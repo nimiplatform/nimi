@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockGetRuntimeDefaults = vi.fn();
 const mockGetDaemonStatus = vi.fn();
-const mockInitI18n = vi.fn();
 const mockBootstrapAuthSession = vi.fn();
 const mockInitializePlatformClient = vi.fn();
 
@@ -14,10 +13,6 @@ vi.mock('@renderer/bridge/runtime-defaults.js', () => ({
 
 vi.mock('@renderer/bridge/runtime-daemon.js', () => ({
   getDaemonStatus: (...args: unknown[]) => mockGetDaemonStatus(...args),
-}));
-
-vi.mock('@renderer/i18n/index.js', () => ({
-  initI18n: (...args: unknown[]) => mockInitI18n(...args),
 }));
 
 vi.mock('./forge-bootstrap-auth.js', () => ({
@@ -78,7 +73,6 @@ describe('runForgeBootstrap', () => {
     const mockRuntime = { ready: vi.fn().mockResolvedValue(undefined) };
     const mockRealm = { raw: { request: vi.fn() } };
 
-    mockInitI18n.mockResolvedValue(undefined);
     mockGetRuntimeDefaults.mockResolvedValue(defaults);
     mockInitializePlatformClient.mockResolvedValue({ runtime: mockRuntime, realm: mockRealm });
     mockBootstrapAuthSession.mockResolvedValue(undefined);
@@ -86,14 +80,11 @@ describe('runForgeBootstrap', () => {
 
     await runForgeBootstrap();
 
-    // Step 1: i18n initialized
-    expect(mockInitI18n).toHaveBeenCalledOnce();
-
-    // Step 2: Runtime defaults fetched and stored
+    // Step 1: Runtime defaults fetched and stored
     expect(mockGetRuntimeDefaults).toHaveBeenCalledOnce();
     expect(useAppStore.getState().runtimeDefaults).toEqual(defaults);
 
-    // Step 3: Platform client initialized with correct params
+    // Step 2: Platform client initialized with correct params
     expect(mockInitializePlatformClient).toHaveBeenCalledWith(
       expect.objectContaining({
         realmBaseUrl: defaults.realm.realmBaseUrl,
@@ -101,30 +92,30 @@ describe('runForgeBootstrap', () => {
       }),
     );
 
-    // Step 4: Auth session bootstrapped
+    // Step 3: Auth session bootstrapped
     expect(mockBootstrapAuthSession).toHaveBeenCalledWith({
       realm: mockRealm,
       accessToken: defaults.realm.accessToken,
     });
 
-    // Step 5: Runtime readiness checked
+    // Step 4: Runtime readiness checked
     expect(mockRuntime.ready).toHaveBeenCalledOnce();
 
-    // Step 6: Daemon status checked
+    // Step 5: Daemon status checked
     expect(mockGetDaemonStatus).toHaveBeenCalledOnce();
 
-    // Step 7: Bootstrap ready
+    // Step 6: Bootstrap ready
     expect(useAppStore.getState().bootstrapReady).toBe(true);
     expect(useAppStore.getState().bootstrapError).toBeNull();
   });
 
   it('sets bootstrapError on fatal failure', async () => {
-    mockInitI18n.mockRejectedValue(new Error('i18n failed'));
+    mockGetRuntimeDefaults.mockRejectedValue(new Error('bridge unavailable'));
 
     await runForgeBootstrap();
 
     expect(useAppStore.getState().bootstrapReady).toBe(false);
-    expect(useAppStore.getState().bootstrapError).toBe('i18n failed');
+    expect(useAppStore.getState().bootstrapError).toBe('bridge unavailable');
   });
 
   it('continues if runtime.ready() fails (non-blocking)', async () => {
@@ -132,7 +123,6 @@ describe('runForgeBootstrap', () => {
     const mockRuntime = { ready: vi.fn().mockRejectedValue(new Error('no runtime')) };
     const mockRealm = { raw: { request: vi.fn() } };
 
-    mockInitI18n.mockResolvedValue(undefined);
     mockGetRuntimeDefaults.mockResolvedValue(defaults);
     mockInitializePlatformClient.mockResolvedValue({ runtime: mockRuntime, realm: mockRealm });
     mockBootstrapAuthSession.mockResolvedValue(undefined);
@@ -149,7 +139,6 @@ describe('runForgeBootstrap', () => {
     const mockRuntime = { ready: vi.fn().mockResolvedValue(undefined) };
     const mockRealm = { raw: { request: vi.fn() } };
 
-    mockInitI18n.mockResolvedValue(undefined);
     mockGetRuntimeDefaults.mockResolvedValue(defaults);
     mockInitializePlatformClient.mockResolvedValue({ runtime: mockRuntime, realm: mockRealm });
     mockBootstrapAuthSession.mockResolvedValue(undefined);
@@ -161,7 +150,6 @@ describe('runForgeBootstrap', () => {
   });
 
   it('sets bootstrapError when getRuntimeDefaults fails', async () => {
-    mockInitI18n.mockResolvedValue(undefined);
     mockGetRuntimeDefaults.mockRejectedValue(new Error('bridge unavailable'));
 
     await runForgeBootstrap();
@@ -176,7 +164,6 @@ describe('runForgeBootstrap', () => {
     const mockRealm = { raw: { request: vi.fn() } };
     let capturedProvider: (() => string) | undefined;
 
-    mockInitI18n.mockResolvedValue(undefined);
     mockGetRuntimeDefaults.mockResolvedValue(defaults);
     mockInitializePlatformClient.mockImplementation((input: Record<string, unknown>) => {
       capturedProvider = input.accessTokenProvider as () => string;

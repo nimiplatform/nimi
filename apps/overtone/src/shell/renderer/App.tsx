@@ -3,39 +3,52 @@ import { AppProviders } from '@renderer/app-shell/providers/app-providers.js';
 import { AppRoutes } from '@renderer/app-shell/routes/app-routes.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { OvertoneLogin } from '@renderer/features/auth/overtone-login.js';
-import { initRealmInstance, clearRealmInstance } from '@renderer/bridge/realm-sdk.js';
+import { clearRealmInstance } from '@renderer/bridge/realm-sdk.js';
+import {
+  getOvertoneRealmBaseUrl,
+  resolveOvertoneCurrentUser,
+} from '@renderer/features/auth/overtone-auth-adapter.js';
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const authStatus = useAppStore((s) => s.authStatus);
 
   useEffect(() => {
-    // Bootstrap: check if env provides a valid token
     if (authStatus !== 'bootstrapping') return;
 
-    const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || '').trim();
     const envToken = String(import.meta.env.VITE_NIMI_REALM_ACCESS_TOKEN || '').trim();
+    let baseUrl = '';
+
+    try {
+      baseUrl = getOvertoneRealmBaseUrl();
+    } catch {
+      baseUrl = '';
+    }
 
     if (!baseUrl || !envToken) {
-      // No env credentials — require OAuth login
       useAppStore.getState().clearAuthSession();
+      useAppStore.getState().setRealmConnection(Boolean(baseUrl), false);
       return;
     }
 
-    // Try to validate the env token
-    const realm = initRealmInstance(baseUrl, envToken);
-    void realm.ready({ timeoutMs: 5_000 }).then(
-      () => {
+    void resolveOvertoneCurrentUser(envToken).then(
+      (user) => {
+        if (!user) {
+          throw new Error('Failed to resolve env-backed Overtone user');
+        }
         useAppStore.getState().setAuthSession(
-          { id: 'env', displayName: 'Environment User' },
+          {
+            id: user.id,
+            displayName: user.displayName,
+          },
           envToken,
           '',
         );
         useAppStore.getState().setRealmConnection(true, true);
       },
       () => {
-        // Token invalid or realm unreachable — require OAuth
         clearRealmInstance();
         useAppStore.getState().clearAuthSession();
+        useAppStore.getState().setRealmConnection(true, false);
       },
     );
   }, [authStatus]);

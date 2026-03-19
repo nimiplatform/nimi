@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import {
-  buttonBase,
-  buttonDefault,
-  inputBase,
-} from './auth-helpers.js';
+import { buttonBase, buttonDefault, inputBase } from '../types/auth-types.js';
+
+export type AuthViewEmailTestIds = {
+  passwordInput?: string;
+  otpButton?: string;
+};
 
 function PasswordToggleIcon({ visible }: { visible: boolean }) {
   return visible ? (
@@ -30,6 +30,7 @@ export function AuthViewEmailLogin(props: {
   onPasswordChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
   onUseEmailCodeInstead: () => void;
+  testIds?: AuthViewEmailTestIds;
 }) {
   const { t } = useTranslation();
   const {
@@ -39,52 +40,48 @@ export function AuthViewEmailLogin(props: {
     onPasswordChange,
     onSubmit,
     onUseEmailCodeInstead,
+    testIds,
   } = props;
 
   const [showOtpConfirm, setShowOtpConfirm] = useState(false);
 
   return (
     <div className="relative w-full">
-      {/* Email display */}
-      <p className="mb-3 text-center text-sm text-[#8a8579]">{email}</p>
+      <p className="mb-3 text-center text-sm text-[var(--auth-muted,#8a8579)]">{email}</p>
 
-      {/* Capsule password bar */}
       <form onSubmit={onSubmit}>
-        <div className="flex items-center h-[52px] rounded-full border border-[#ddd4c6] bg-white/90 shadow-[0_12px_34px_rgba(157,145,123,0.09)]">
-          {/* Left: OTP toggle button */}
+        <div className="flex items-center h-[52px] rounded-full border border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.9))] shadow-[var(--auth-input-shadow,0_12px_34px_rgba(157,145,123,0.09))]">
           <button
             type="button"
-            data-testid={E2E_IDS.loginOtpButton}
+            data-testid={testIds?.otpButton}
             onClick={() => setShowOtpConfirm(true)}
             disabled={pending}
             aria-label={t('Auth.useEmailCodeInstead')}
-            className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#8a8579] transition hover:bg-[#f0ece6] hover:text-[#4b4338] disabled:cursor-not-allowed disabled:opacity-50"
+            className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--auth-muted,#8a8579)] transition hover:bg-[var(--auth-hover-bg,#f0ece6)] hover:text-[var(--auth-hover-text,#4b4338)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {/* Mail/key icon for OTP */}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="2" />
               <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
             </svg>
           </button>
 
-          {/* Center: password input */}
           <input
             type="password"
             value={password}
-            data-testid={E2E_IDS.loginPasswordInput}
+            data-testid={testIds?.passwordInput}
             onChange={(event) => onPasswordChange(event.target.value)}
-            className="flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[#1f1b16] placeholder:text-[#999999] outline-none"
+            className="flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--auth-text-secondary,#1f1b16)] placeholder:text-[var(--auth-muted,#999999)] outline-none"
             placeholder={t('Auth.passwordPlaceholder')}
             required
+            autoFocus
             autoComplete="current-password"
           />
 
-          {/* Right: login submit button (animated appearance) */}
           <div className={`mr-2 flex h-9 w-9 shrink-0 transition-all duration-200 ease-out ${password ? 'scale-100 opacity-100' : 'scale-75 opacity-0 pointer-events-none'}`}>
             <button
               type="submit"
               disabled={pending || !password}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-mint-500 text-white transition hover:bg-mint-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--auth-primary,#4ECCA3)] text-white transition hover:bg-[var(--auth-primary-hover,#3dbb8f)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {pending ? (
                 <svg width="16" height="16" viewBox="0 0 16 16" className="animate-spin">
@@ -100,20 +97,19 @@ export function AuthViewEmailLogin(props: {
         </div>
       </form>
 
-      {/* OTP confirmation dialog */}
-      <div className={`absolute left-0 right-0 z-20 mt-3 origin-top rounded-2xl border border-[#e7dfd3] bg-white/95 p-5 shadow-[0_18px_40px_rgba(157,145,123,0.12)] backdrop-blur transition-all duration-200 ease-out ${
+      <div className={`absolute left-0 right-0 z-20 mt-3 origin-top rounded-2xl border border-[var(--auth-dropdown-border,#e7dfd3)] bg-[var(--auth-dropdown-bg,rgba(255,255,255,0.95))] p-5 shadow-[var(--auth-dropdown-shadow,0_18px_40px_rgba(157,145,123,0.12))] backdrop-blur transition-all duration-200 ease-out ${
         showOtpConfirm
           ? 'scale-100 opacity-100'
           : 'scale-95 opacity-0 pointer-events-none'
       }`}>
-        <p className="mb-4 text-center text-sm text-[#4b4338]">
+        <p className="mb-4 text-center text-sm text-[var(--auth-hover-text,#4b4338)]">
           {t('Auth.otpConfirmMessage')}
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
             type="button"
             onClick={() => setShowOtpConfirm(false)}
-            className="rounded-full border border-[#ddd4c6] bg-white/80 px-5 py-2 text-sm font-medium text-[#6f6758] transition hover:border-[#cbbca4]"
+            className="rounded-full border border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.8))] px-5 py-2 text-sm font-medium text-[var(--auth-muted,#6f6758)] transition hover:border-[#cbbca4]"
           >
             {t('Auth.cancel')}
           </button>
@@ -124,7 +120,7 @@ export function AuthViewEmailLogin(props: {
               onUseEmailCodeInstead();
             }}
             disabled={pending}
-            className="rounded-full bg-mint-500 px-5 py-2 text-sm font-medium text-white transition hover:bg-mint-600 disabled:opacity-50"
+            className="rounded-full bg-[var(--auth-primary,#4ECCA3)] px-5 py-2 text-sm font-medium text-white transition hover:bg-[var(--auth-primary-hover,#3dbb8f)] disabled:opacity-50"
           >
             {t('Auth.confirmOtp')}
           </button>
@@ -162,13 +158,13 @@ export function AuthViewEmailSetPassword(props: {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm text-[#6f6758]">{t('Auth.setPasswordHint')}</p>
+      <p className="text-sm text-[var(--auth-muted,#6f6758)]">{t('Auth.setPasswordHint')}</p>
       <div className="relative">
         <input
           type={showPassword ? 'text' : 'password'}
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
-          className={`${inputBase} h-[52px] rounded-2xl border-[#ddd4c6] bg-white/90 px-4 pr-12 text-[15px] text-[#1f1b16] shadow-[0_12px_34px_rgba(157,145,123,0.09)]`}
+          className={`${inputBase} h-[52px] rounded-2xl border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.9))] px-4 pr-12 text-[15px] text-[var(--auth-text-secondary,#1f1b16)] shadow-[var(--auth-input-shadow,0_12px_34px_rgba(157,145,123,0.09))]`}
           placeholder={t('Auth.passwordMinChars')}
           required
           minLength={8}
@@ -176,7 +172,7 @@ export function AuthViewEmailSetPassword(props: {
         />
         <button
           type="button"
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8d8475] transition hover:text-[#1f1b16]"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--auth-muted,#8d8475)] transition hover:text-[var(--auth-text-secondary,#1f1b16)]"
           onClick={onShowPasswordToggle}
         >
           <PasswordToggleIcon visible={showPassword} />
@@ -187,7 +183,7 @@ export function AuthViewEmailSetPassword(props: {
           type={showConfirmPassword ? 'text' : 'password'}
           value={confirmPassword}
           onChange={(event) => onConfirmPasswordChange(event.target.value)}
-          className={`${inputBase} h-[52px] rounded-2xl border-[#ddd4c6] bg-white/90 px-4 pr-12 text-[15px] text-[#1f1b16] shadow-[0_12px_34px_rgba(157,145,123,0.09)]`}
+          className={`${inputBase} h-[52px] rounded-2xl border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.9))] px-4 pr-12 text-[15px] text-[var(--auth-text-secondary,#1f1b16)] shadow-[var(--auth-input-shadow,0_12px_34px_rgba(157,145,123,0.09))]`}
           placeholder={t('Auth.confirmPasswordPlaceholder')}
           required
           minLength={8}
@@ -195,7 +191,7 @@ export function AuthViewEmailSetPassword(props: {
         />
         <button
           type="button"
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8d8475] transition hover:text-[#1f1b16]"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--auth-muted,#8d8475)] transition hover:text-[var(--auth-text-secondary,#1f1b16)]"
           onClick={onShowConfirmPasswordToggle}
         >
           <PasswordToggleIcon visible={showConfirmPassword} />
@@ -203,7 +199,7 @@ export function AuthViewEmailSetPassword(props: {
       </div>
       <button
         type="submit"
-        className={`${buttonBase} ${buttonDefault} h-[52px] w-full rounded-2xl text-sm font-semibold shadow-[0_18px_40px_rgba(78,204,163,0.28)]`}
+        className={`${buttonBase} ${buttonDefault} h-[52px] w-full rounded-2xl text-sm font-semibold shadow-[var(--auth-primary-shadow,0_18px_40px_rgba(78,204,163,0.28))]`}
         disabled={pending}
       >
         {pending ? t('Auth.settingPassword') : t('Auth.setPasswordButton')}
@@ -226,14 +222,14 @@ export function AuthViewEmailOtpVerify(props: {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm text-[#6f6758]">
-        {t('Auth.otpSentTo')} <span className="font-medium text-[#1f1b16]">{email}</span>.
+      <p className="text-sm text-[var(--auth-muted,#6f6758)]">
+        {t('Auth.otpSentTo')} <span className="font-medium text-[var(--auth-text-secondary,#1f1b16)]">{email}</span>.
       </p>
       <input
         type="text"
         value={otpCode}
         onChange={(event) => onOtpCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
-        className={`${inputBase} h-[56px] rounded-2xl border-[#ddd4c6] bg-white/90 px-4 text-center text-xl font-bold tracking-[0.5em] text-[#1f1b16] shadow-[0_12px_34px_rgba(157,145,123,0.09)]`}
+        className={`${inputBase} h-[56px] rounded-2xl border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.9))] px-4 text-center text-xl font-bold tracking-[0.5em] text-[var(--auth-text-secondary,#1f1b16)] shadow-[var(--auth-input-shadow,0_12px_34px_rgba(157,145,123,0.09))]`}
         placeholder="000000"
         required
         pattern="\d{6}"
@@ -241,7 +237,7 @@ export function AuthViewEmailOtpVerify(props: {
       />
       <button
         type="submit"
-        className={`${buttonBase} ${buttonDefault} h-[52px] w-full rounded-2xl text-sm font-semibold shadow-[0_18px_40px_rgba(78,204,163,0.28)]`}
+        className={`${buttonBase} ${buttonDefault} h-[52px] w-full rounded-2xl text-sm font-semibold shadow-[var(--auth-primary-shadow,0_18px_40px_rgba(78,204,163,0.28))]`}
         disabled={pending || otpCode.length !== 6}
       >
         {pending ? t('Auth.verifying') : t('Auth.verifyAndContinue')}
@@ -254,8 +250,8 @@ export function AuthViewEmailOtpVerify(props: {
         disabled={pending || otpResendCountdown > 0}
         className={`w-full text-center text-xs ${
           otpResendCountdown > 0
-            ? 'cursor-not-allowed text-[#9a9488]'
-            : 'font-semibold text-mint-500 hover:underline'
+            ? 'cursor-not-allowed text-[var(--auth-muted-light,#9a9488)]'
+            : 'font-semibold text-[var(--auth-primary,#4ECCA3)] hover:underline'
         }`}
       >
         {otpResendCountdown > 0 ? t('Auth.resendIn', { count: otpResendCountdown }) : t('Auth.resendCode')}
@@ -275,13 +271,13 @@ export function AuthViewEmail2Fa(props: {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm text-[#6f6758]">{t('Auth.twoFaHint')}</p>
+      <p className="text-sm text-[var(--auth-muted,#6f6758)]">{t('Auth.twoFaHint')}</p>
       <input
         type="text"
         value={twoFactorCode}
         onChange={(event) =>
           onTwoFactorCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
-        className={`${inputBase} h-[56px] rounded-2xl border-[#ddd4c6] bg-white/90 px-4 text-center text-xl font-bold tracking-[0.5em] text-[#1f1b16] shadow-[0_12px_34px_rgba(157,145,123,0.09)]`}
+        className={`${inputBase} h-[56px] rounded-2xl border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.9))] px-4 text-center text-xl font-bold tracking-[0.5em] text-[var(--auth-text-secondary,#1f1b16)] shadow-[var(--auth-input-shadow,0_12px_34px_rgba(157,145,123,0.09))]`}
         placeholder="123456"
         required
         pattern="\d{6}"
@@ -289,7 +285,7 @@ export function AuthViewEmail2Fa(props: {
       />
       <button
         type="submit"
-        className={`${buttonBase} ${buttonDefault} h-[52px] w-full rounded-2xl text-sm font-semibold shadow-[0_18px_40px_rgba(78,204,163,0.28)]`}
+        className={`${buttonBase} ${buttonDefault} h-[52px] w-full rounded-2xl text-sm font-semibold shadow-[var(--auth-primary-shadow,0_18px_40px_rgba(78,204,163,0.28))]`}
         disabled={pending || twoFactorCode.length !== 6}
       >
         {pending ? t('Auth.verifying') : t('Auth.verifyAndLogin')}

@@ -4,12 +4,10 @@ import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { GoogleWindow } from '@renderer/features/auth/auth-helpers.js';
-import { getGoogleClientId, loadGoogleScript } from '@renderer/features/auth/auth-helpers.js';
-import {
-  resolveSocialOauthConfig,
-  startSocialOauth,
-} from '@renderer/features/auth/social-oauth.js';
+import type { GoogleWindow } from '@nimiplatform/shell-auth';
+import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/shell-auth';
+import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/shell-core/oauth';
+import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
 import {
   BIO_MAX,
   ICON_CAMERA,
@@ -52,8 +50,8 @@ export function ProfilePage() {
     ))
     : [];
   const connectedProviderSet = new Set<OAuthProvider>(connectedProviders);
-  const twitterOauthConfig = resolveSocialOauthConfig('TWITTER');
-  const tikTokOauthConfig = resolveSocialOauthConfig('TIKTOK');
+  const twitterOauthConfig = resolveSocialOauthConfig('TWITTER', desktopOAuthBridge);
+  const tikTokOauthConfig = resolveSocialOauthConfig('TIKTOK', desktopOAuthBridge);
   const googleClientId = getGoogleClientId();
   const profileDraft = {
     displayName: name.trim() || displayName,
@@ -101,7 +99,7 @@ export function ProfilePage() {
       const tokenClient = initTokenClient({
         client_id: clientId,
         scope: 'email profile openid',
-        callback: (tokenResponse) => {
+        callback: (tokenResponse: { access_token?: string }) => {
           const accessToken = String(tokenResponse?.access_token || '').trim();
           if (!accessToken) {
             reject(new Error('Google OAuth did not return access token'));
@@ -119,11 +117,11 @@ export function ProfilePage() {
       return requestGoogleAccessToken();
     }
     if (provider === OAuthProvider.TWITTER) {
-      const result = await startSocialOauth('TWITTER');
+      const result = await startSocialOauth('TWITTER', desktopOAuthBridge);
       return result.accessToken;
     }
     if (provider === OAuthProvider.TIKTOK) {
-      const result = await startSocialOauth('TIKTOK');
+      const result = await startSocialOauth('TIKTOK', desktopOAuthBridge);
       return result.accessToken;
     }
     throw new Error(`Unsupported OAuth provider: ${provider}`);

@@ -1,15 +1,11 @@
 import type { FormEvent } from 'react';
-import type { WalletType } from './auth-helpers.js';
-import {
-  buildDesktopCallbackReturnUrl,
-  dataSync,
-  loadPersistedAuthSession,
-  parseChainId,
-  persistAuthSession,
-  resolveWalletProvider,
-  toErrorMessage,
-} from './auth-helpers.js';
+import type { WalletType } from '../types/auth-types.js';
+import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { shouldPromptPasswordSetupAfterEmailOtp } from './auth-email-flow.js';
+import { loadPersistedAuthSession, persistAuthSession } from './auth-session-storage.js';
+import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
+import { parseChainId, resolveWalletProvider } from './wallet-helpers.js';
+import { toErrorMessage } from './error-helpers.js';
 import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
 import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
 
@@ -21,6 +17,7 @@ export async function handleRequestEmailOtp(
   event: FormEvent,
   email: string,
   setters: AuthMenuSetters,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
   const normalizedEmail = email.trim();
@@ -32,10 +29,7 @@ export async function handleRequestEmailOtp(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    const result = await dataSync.callApi(
-      (realm) => realm.services.AuthService.requestEmailOtp({ email: normalizedEmail }),
-      '发送验证码失败',
-    );
+    const result = await adapter.requestEmailOtp(normalizedEmail);
     if (!result?.success) {
       throw new Error(String(result?.message || '发送验证码失败'));
     }
@@ -59,6 +53,7 @@ export async function handleVerifyEmailOtp(
   otpCode: string,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
   const normalizedEmail = email.trim();
@@ -70,24 +65,17 @@ export async function handleVerifyEmailOtp(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    const result = await dataSync.callApi(
-      (realm) => realm.services.AuthService.verifyEmailOtp({
-        email: normalizedEmail,
-        code: otpCode,
-      }),
-      '验证码登录失败',
-    );
+    const result = await adapter.verifyEmailOtp(normalizedEmail, otpCode);
     if (result.tokens && shouldPromptPasswordSetupAfterEmailOtp(result)) {
       const accessToken = String(result.tokens.accessToken || '').trim();
       const refreshToken = String(result.tokens.refreshToken || '').trim();
-      dataSync.setToken(accessToken);
-      dataSync.setRefreshToken(refreshToken);
+      await adapter.applyToken(accessToken, refreshToken);
       setters.setPendingTokens(result.tokens);
       setters.setOtpCode('');
       setters.setView('email_set_password');
       return;
     }
-    await handleLoginResult(result, '验证码登录成功。', setters, desktopCtx, 'email_otp_verify');
+    await handleLoginResult(result, '验证码登录成功。', setters, desktopCtx, adapter, 'email_otp_verify');
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '验证码登录失败'));
   } finally {
@@ -103,6 +91,7 @@ export async function handleResendOtp(
   email: string,
   otpResendCountdown: number,
   setters: AuthMenuSetters,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   if (otpResendCountdown > 0) {
     return;
@@ -117,10 +106,7 @@ export async function handleResendOtp(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    const result = await dataSync.callApi(
-      (realm) => realm.services.AuthService.requestEmailOtp({ email: normalizedEmail }),
-      '重新发送验证码失败',
-    );
+    const result = await adapter.requestEmailOtp(normalizedEmail);
     if (!result?.success) {
       throw new Error(String(result?.message || '重新发送验证码失败'));
     }
@@ -143,6 +129,7 @@ export async function handleVerify2Fa(
   twoFactorCode: string,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
   if (!tempToken || twoFactorCode.length !== 6) {
@@ -153,14 +140,8 @@ export async function handleVerify2Fa(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    const tokens = await dataSync.callApi(
-      (realm) => realm.services.AuthService.verifyTwoFactor({
-        tempToken,
-        code: twoFactorCode,
-      }),
-      '2FA 验证失败',
-    );
-    await applyTokens(tokens, '2FA 验证成功，已登录。', setters, desktopCtx);
+    const tokens = await adapter.verifyTwoFactor(tempToken, twoFactorCode);
+    await applyTokens(tokens, '2FA 验证成功，已登录。', setters, desktopCtx, adapter);
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '2FA 验证失败'));
   } finally {
@@ -176,6 +157,7 @@ export async function handleConfirmDesktopAuthorization(
   event: FormEvent,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
   if (!desktopCtx.desktopCallbackRequest) {
@@ -200,8 +182,8 @@ export async function handleConfirmDesktopAuthorization(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    dataSync.setToken(accessToken);
-    const user = await dataSync.loadCurrentUser();
+    await adapter.applyToken(accessToken);
+    const user = await adapter.loadCurrentUser();
     const normalizedUser = user && typeof user === 'object'
       ? (user as Record<string, unknown>)
       : null;
@@ -244,11 +226,11 @@ export async function handleWalletLogin(
   walletType: WalletType,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   setters.setPending(true);
   setters.setLoginError(null);
 
-  // 设置超时保护，30秒后自动重置状态
   const timeoutId = window.setTimeout(() => {
     setters.setPending(false);
   }, 30000);
@@ -278,14 +260,11 @@ export async function handleWalletLogin(
     });
     const chainId = parseChainId(chainIdRaw);
 
-    const challenge = await dataSync.callApi(
-      (realm) => realm.services.AuthService.walletChallenge({
-        walletAddress,
-        chainId,
-        walletType,
-      }),
-      '获取钱包签名挑战失败',
-    );
+    const challenge = await adapter.walletChallenge({
+      walletAddress,
+      chainId,
+      walletType,
+    });
 
     const challengeMessage = String(challenge?.message || '').trim();
     if (!challengeMessage) {
@@ -300,21 +279,18 @@ export async function handleWalletLogin(
       throw new Error('钱包签名失败');
     }
 
-    const result = await dataSync.callApi(
-      (realm) => realm.services.AuthService.walletLogin({
-        walletAddress,
-        chainId,
-        nonce: challenge.nonce,
-        message: challengeMessage,
-        signature,
-        walletType,
-      }),
-      '钱包登录失败',
-    );
+    const result = await adapter.walletLogin({
+      walletAddress,
+      chainId,
+      nonce: challenge.nonce,
+      message: challengeMessage,
+      signature,
+      walletType,
+    });
 
-    await handleLoginResult(result, '钱包登录成功。', setters, desktopCtx);
+    await handleLoginResult(result, '钱包登录成功。', setters, desktopCtx, adapter);
   } catch (_error) {
-    // 用户取消操作或其他错误，不显示错误提示
+    // User cancelled or other error — don't display error
   } finally {
     window.clearTimeout(timeoutId);
     setters.setPending(false);

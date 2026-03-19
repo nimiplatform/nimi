@@ -15,7 +15,7 @@ pub use metadata::RuntimeBridgeMetadata;
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::RuntimeBridgeUnaryResult;
 
-#[allow(clippy::all)]
+#[allow(clippy::all, dead_code)]
 pub mod generated {
     include!("generated/nimi.runtime.v1.rs");
 }

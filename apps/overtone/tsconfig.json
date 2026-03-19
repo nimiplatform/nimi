@@ -4,7 +4,11 @@
     "paths": {
       "@renderer/*": ["src/shell/renderer/*"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
-      "@nimiplatform/sdk/*": ["../../sdk/src/*"]
+      "@nimiplatform/sdk/*": ["../../sdk/src/*"],
+      "@nimiplatform/shell-auth": ["../_libs/shell-auth/src/index.ts"],
+      "@nimiplatform/shell-auth/*": ["../_libs/shell-auth/src/*"],
+      "@nimiplatform/shell-core": ["../_libs/shell-core/src/index.ts"],
+      "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"]
     },
     "target": "ES2022",
     "module": "ESNext",

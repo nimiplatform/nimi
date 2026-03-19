@@ -18,6 +18,7 @@ export default defineConfig(() => {
         '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
         '@runtime': path.resolve(__dirname, 'src/runtime'),
         '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
+        '@nimiplatform/shell-auth': path.resolve(__dirname, '../_libs/shell-auth/src'),
         '@nimiplatform/shell-core': path.resolve(__dirname, '../_libs/shell-core/src'),
         '@world-engine': path.resolve(__dirname, '../../nimi-mods/runtime/world-studio/src'),
       },
@@ -44,31 +45,83 @@ export default defineConfig(() => {
         },
         output: {
           manualChunks(id) {
-            if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/scheduler')) {
-              return 'vendor-react';
+            const normalizedId = id.split(path.sep).join('/');
+
+            if (normalizedId.includes('/sdk/src/runtime/generated/')) {
+              if (normalizedId.includes('/sdk/src/runtime/generated/google/')) {
+                return 'sdk-runtime-google';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/ai')) {
+                return 'sdk-runtime-ai-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/local_runtime')) {
+                return 'sdk-runtime-local-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/connector')) {
+                return 'sdk-runtime-connector-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/workflow')) {
+                return 'sdk-runtime-workflow-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/model')) {
+                return 'sdk-runtime-model-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/')) {
+                return 'sdk-runtime-generated';
+              }
+              return 'sdk-runtime-generated';
             }
-            if (id.includes('node_modules/react-router') || id.includes('node_modules/@remix-run/router')) {
-              return 'vendor-router';
+            if (normalizedId.includes('/sdk/src/realm/generated/')) {
+              return 'sdk-realm-generated';
             }
-            if (id.includes('node_modules/@tanstack/react-query')) {
-              return 'vendor-query';
+            if (normalizedId.includes('/sdk/src/scope/generated/')) {
+              return 'sdk-scope-generated';
             }
-            if (id.includes('node_modules/zustand')) {
-              return 'vendor-state';
-            }
-            if (id.includes('/sdk/src/')) {
+            if (normalizedId.includes('/sdk/src/')) {
               return 'sdk-client';
             }
-            if (id.includes('nimi-mods/runtime/world-studio/src/')) {
+            if (normalizedId.includes('/apps/_libs/shell-auth/src/')) {
+              return 'shell-auth';
+            }
+            if (normalizedId.includes('nimi-mods/runtime/world-studio/src/')) {
               return 'world-engine';
             }
-            if (id.includes('/bridge/')) {
+            if (normalizedId.includes('/bridge/')) {
               return 'runtime-bridge';
             }
-            if (id.includes('node_modules/')) {
-              return 'vendor-misc';
+
+            if (!normalizedId.includes('node_modules')) {
+              return undefined;
             }
-            return undefined;
+            if (normalizedId.includes('/react-dom/') || normalizedId.includes('/react/') || normalizedId.includes('/scheduler/')) {
+              return 'vendor-react';
+            }
+            if (normalizedId.includes('/react-router') || normalizedId.includes('/@remix-run/router/')) {
+              return 'vendor-router';
+            }
+            if (normalizedId.includes('/@tanstack/react-query/') || normalizedId.includes('/@tanstack/query-core/')) {
+              return 'vendor-query';
+            }
+            if (normalizedId.includes('/zustand/')) {
+              return 'vendor-state';
+            }
+            if (normalizedId.includes('/i18next/') || normalizedId.includes('/react-i18next/')) {
+              return 'vendor-i18n';
+            }
+            if (normalizedId.includes('/@protobuf-ts/runtime') || normalizedId.includes('/@protobuf-ts/runtime-rpc/')) {
+              return 'vendor-protobuf';
+            }
+            if (normalizedId.includes('/three/') || normalizedId.includes('/simplex-noise/')) {
+              return 'vendor-three';
+            }
+            if (
+              normalizedId.includes('/@nimiplatform/shell-auth/')
+              || normalizedId.includes('/@nimiplatform/sdk/')
+              || normalizedId.includes('/openapi-fetch/')
+            ) {
+              return 'vendor-platform';
+            }
+            return 'vendor-misc';
           },
         },
       },

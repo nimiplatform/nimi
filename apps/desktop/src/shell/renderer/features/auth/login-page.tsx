@@ -2,7 +2,6 @@ import { Suspense, lazy } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 const WebAuthMenu = lazy(async () => {
   const mod = await import('./web-auth-menu');
@@ -25,9 +24,7 @@ export function LoginPage() {
 
   return (
     <Suspense fallback={null}>
-      <div data-testid={E2E_IDS.loginScreen}>
-        <WebAuthMenu mode={flags.mode === 'web' ? 'embedded' : 'desktop-browser'} />
-      </div>
+      <WebAuthMenu mode={flags.mode === 'web' ? 'embedded' : 'desktop-browser'} />
     </Suspense>
   );
 }

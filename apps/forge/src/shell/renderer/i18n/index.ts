@@ -8,18 +8,25 @@ const resources = {
   zh: { translation: zh },
 };
 
+const detectedLanguage = navigator.language?.startsWith('zh') ? 'zh' : 'en';
+
+// Eager init — resources are statically bundled so init is synchronous.
+// Must happen before React renders to avoid Suspense on useTranslation().
+void i18n
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: detectedLanguage,
+    fallbackLng: 'en',
+    interpolation: {
+      escapeValue: false,
+    },
+  });
+
 export async function initI18n(language?: string): Promise<void> {
-  const detectedLanguage = language || (navigator.language?.startsWith('zh') ? 'zh' : 'en');
-  await i18n
-    .use(initReactI18next)
-    .init({
-      resources,
-      lng: detectedLanguage,
-      fallbackLng: 'en',
-      interpolation: {
-        escapeValue: false,
-      },
-    });
+  if (language && language !== i18n.language) {
+    await i18n.changeLanguage(language);
+  }
 }
 
 export function changeLocale(locale: string): void {

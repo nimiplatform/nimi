@@ -21,8 +21,25 @@
     "loading": "Loading...",
     "loginRequired": "Please log in to continue",
     "login": "Log In",
+    "loginTitle": "Sign in to Forge",
+    "webAuthHint": "Sign in via Nimi website to continue.",
+    "signInWithNimi": "Sign in with Nimi",
+    "signingIn": "Signing in...",
+    "clickToAuthorize": "Click the mark to authorize in your browser.",
+    "browserAuthOpen": "Browser opened. Finish the Nimi authorization flow there.",
+    "browserAuthSuccess": "Authorization complete. Forge is ready.",
+    "browserAuthFailed": "Authorization failed. Click the mark to retry.",
     "creatorAccessRequired": "Creator access is required to use Forge",
     "applyAccess": "Apply for Creator Access"
+  },
+  "Auth": {
+    "clickToAuthorize": "Click to authorize in browser",
+    "desktopAuthFailed": "Authorization failed. Click logo to retry.",
+    "currentAccount": "Current account",
+    "authorizeDesktopButton": "Authorize desktop",
+    "useAnotherAccount": "Use another account",
+    "nimiNetwork": "NIMI PLATFORM",
+    "authorizing": "Authorizing..."
   },
   "bootstrap": {
     "loading": "Starting Forge...",

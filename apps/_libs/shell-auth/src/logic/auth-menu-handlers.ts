@@ -1,19 +1,18 @@
 import type { FormEvent } from 'react';
-import type { AuthTokensDto, AuthView, DesktopCallbackRequest, GoogleWindow, OAuthLoginResultDto } from './auth-helpers.js';
-import type { StatusBanner } from '@renderer/app-shell/providers/store-types';
+import type { AuthTokensDto, OAuthLoginResultDto } from '@nimiplatform/sdk/realm';
+import { OAuthLoginState } from '@nimiplatform/sdk/realm';
 import {
-  OAuthLoginState,
-  OAuthProvider,
-  buildDesktopCallbackReturnUrl,
-  clearRememberedLogin,
-  dataSync,
-  loadGoogleScript,
-  persistAuthSession,
-  queryClient,
-  saveRememberedLogin,
-  toErrorMessage,
-} from './auth-helpers.js';
-import { startSocialOauth, toOauthProvider, type SocialOauthProvider } from './social-oauth.js';
+  startSocialOauth,
+  toOauthProvider,
+  type SocialOauthProvider,
+} from '@nimiplatform/shell-core/oauth';
+import type { AuthView, DesktopCallbackRequest, GoogleWindow } from '../types/auth-types.js';
+import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
+import { persistAuthSession } from './auth-session-storage.js';
+import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
+import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
+import { loadGoogleScript, getGoogleClientId } from './google-helpers.js';
+import { toErrorMessage } from './error-helpers.js';
 
 // ---------------------------------------------------------------------------
 // State setter interface — passed by the AuthMenu component
@@ -29,7 +28,7 @@ export type AuthMenuSetters = {
   setTempToken: (token: string) => void;
   setTwoFactorCode: (code: string) => void;
   setTwoFactorReturnView: (view: AuthView) => void;
-  setStatusBanner: (banner: StatusBanner | null) => void;
+  setStatusBanner: (banner: { kind: string; message: string } | null) => void;
   setAuthSession: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
 };
 
@@ -49,6 +48,7 @@ export async function applyTokens(
   successMessage: string,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   const accessToken = String(tokens.accessToken || '').trim();
   if (!accessToken) {
@@ -61,10 +61,7 @@ export async function applyTokens(
     ? (tokens.user as Record<string, unknown>)
     : null;
 
-  dataSync.setToken(accessToken);
-  if (refreshToken) {
-    dataSync.setRefreshToken(refreshToken);
-  }
+  await adapter.applyToken(accessToken, refreshToken || undefined);
   setters.setAuthSession(user, accessToken, refreshToken || undefined);
   persistAuthSession({
     accessToken,
@@ -81,12 +78,9 @@ export async function applyTokens(
     return;
   }
 
-  await Promise.allSettled([
-    dataSync.loadChats(),
-    dataSync.loadContacts(),
-    queryClient.invalidateQueries({ queryKey: ['chats'] }),
-    queryClient.invalidateQueries({ queryKey: ['contacts'] }),
-  ]);
+  if (adapter.syncAfterLogin) {
+    await adapter.syncAfterLogin();
+  }
 
   setters.setStatusBanner({
     kind: 'success',
@@ -105,6 +99,7 @@ export async function handleLoginResult(
   successMessage: string,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
   twoFactorReturnView: AuthView = 'main',
 ): Promise<void> {
   if (result.loginState === OAuthLoginState.BLOCKED) {
@@ -124,7 +119,7 @@ export async function handleLoginResult(
     throw new Error('登录返回缺少 tokens');
   }
 
-  await applyTokens(result.tokens, successMessage, setters, desktopCtx);
+  await applyTokens(result.tokens, successMessage, setters, desktopCtx, adapter);
 
   if (result.loginState === OAuthLoginState.NEEDS_ONBOARDING) {
     setters.setStatusBanner({
@@ -139,10 +134,11 @@ export async function handleLoginResult(
 // ---------------------------------------------------------------------------
 
 export async function handleGoogleLogin(
-  googleClientId: string | null,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
+  const googleClientId = getGoogleClientId();
   setters.setLoginError(null);
   if (!googleClientId) {
     setters.setLoginError('缺少 Google Client ID（VITE_NIMI_GOOGLE_CLIENT_ID）');
@@ -171,14 +167,8 @@ export async function handleGoogleLogin(
 
         void (async () => {
           try {
-            const result = await dataSync.callApi(
-              (realm) => realm.services.AuthService.oauthLogin({
-                provider: OAuthProvider.GOOGLE,
-                accessToken,
-              }),
-              'Google 登录失败',
-            );
-            await handleLoginResult(result, 'Google 登录成功。', setters, desktopCtx);
+            const result = await adapter.oauthLogin('GOOGLE', accessToken);
+            await handleLoginResult(result, 'Google 登录成功。', setters, desktopCtx, adapter);
           } catch (error) {
             setters.setLoginError(toErrorMessage(error, 'Google 登录失败'));
           } finally {
@@ -195,24 +185,26 @@ export async function handleGoogleLogin(
   }
 }
 
+// ---------------------------------------------------------------------------
+// handleSocialLogin
+// ---------------------------------------------------------------------------
+
 export async function handleSocialLogin(
   provider: SocialOauthProvider,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   const providerLabel = provider === 'TWITTER' ? 'Twitter' : 'TikTok';
   setters.setLoginError(null);
   setters.setPending(true);
   try {
-    const oauthResult = await startSocialOauth(provider);
-    const result = await dataSync.callApi(
-      (realm) => realm.services.AuthService.oauthLogin({
-        provider: toOauthProvider(oauthResult.provider),
-        accessToken: oauthResult.accessToken,
-      }),
-      `${providerLabel} 登录失败`,
+    const oauthResult = await startSocialOauth(provider, adapter.oauthBridge);
+    const result = await adapter.oauthLogin(
+      toOauthProvider(oauthResult.provider),
+      oauthResult.accessToken,
     );
-    await handleLoginResult(result, `${providerLabel} 登录成功。`, setters, desktopCtx);
+    await handleLoginResult(result, `${providerLabel} 登录成功。`, setters, desktopCtx, adapter);
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, `${providerLabel} 登录失败`));
   } finally {
@@ -231,6 +223,7 @@ export async function handleEmailLogin(
   rememberMe: boolean,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
   const identifier = email.trim();
@@ -242,22 +235,15 @@ export async function handleEmailLogin(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    const result = await dataSync.callApi(
-      (realm) => realm.services.AuthService.passwordLogin({
-        identifier,
-        password,
-      }),
-      '邮箱登录失败',
-    );
+    const result = await adapter.passwordLogin(identifier, password);
 
-    // 保存或清除记住的登录凭据
     if (rememberMe) {
       saveRememberedLogin({ email: identifier, password, rememberMe: true });
     } else {
       clearRememberedLogin();
     }
 
-    await handleLoginResult(result, '登录成功。', setters, desktopCtx, 'main');
+    await handleLoginResult(result, '登录成功。', setters, desktopCtx, adapter, 'main');
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '邮箱登录失败'));
   } finally {
@@ -276,6 +262,7 @@ export async function handleSetPasswordAfterOtp(
   pendingTokens: AuthTokensDto,
   setters: AuthMenuSetters,
   desktopCtx: DesktopCallbackContext,
+  adapter: AuthPlatformAdapter,
 ): Promise<void> {
   event.preventDefault();
   if (password.length < 8) {
@@ -291,11 +278,9 @@ export async function handleSetPasswordAfterOtp(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
-    await dataSync.updatePassword({
-      newPassword: password,
-    });
+    await adapter.updatePassword(password);
 
-    const latestUser = await dataSync.loadCurrentUser().catch(() => null);
+    const latestUser = await adapter.loadCurrentUser().catch(() => null);
     const latestUserRecord = latestUser && typeof latestUser === 'object'
       ? (latestUser as AuthTokensDto['user'])
       : null;
@@ -324,7 +309,7 @@ export async function handleSetPasswordAfterOtp(
         : pendingTokens;
 
     setters.setPendingTokens(null);
-    await applyTokens(finalizedTokens, '注册成功。', setters, desktopCtx);
+    await applyTokens(finalizedTokens, '注册成功。', setters, desktopCtx, adapter);
   } catch (error) {
     setters.setLoginError(toErrorMessage(error, '设置密码失败'));
   } finally {

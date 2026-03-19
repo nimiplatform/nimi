@@ -1,1 +1,2 @@
 @import "tailwindcss";
+@source "../../../../_libs/shell-auth/src/**/*.{ts,tsx}";

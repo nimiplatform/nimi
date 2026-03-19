@@ -17,6 +17,8 @@ export default defineConfig(() => {
       alias: {
         '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
         '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
+        '@nimiplatform/shell-auth': path.resolve(__dirname, '../_libs/shell-auth/src'),
+        '@nimiplatform/shell-core': path.resolve(__dirname, '../_libs/shell-core/src'),
       },
     },
     plugins: [
@@ -35,15 +37,93 @@ export default defineConfig(() => {
       outDir: path.resolve(__dirname, 'dist'),
       emptyOutDir: true,
       sourcemap: true,
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 500,
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'src/shell/renderer/index.html'),
         },
         output: {
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-            'vendor-sdk': ['zustand', '@tanstack/react-query'],
+          manualChunks(id) {
+            const normalizedId = id.split(path.sep).join('/');
+
+            if (normalizedId.includes('/sdk/src/runtime/generated/')) {
+              if (normalizedId.includes('/sdk/src/runtime/generated/google/')) {
+                return 'sdk-runtime-google';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/ai')) {
+                return 'sdk-runtime-ai-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/local_runtime')) {
+                return 'sdk-runtime-local-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/connector')) {
+                return 'sdk-runtime-connector-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/workflow')) {
+                return 'sdk-runtime-workflow-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/model')) {
+                return 'sdk-runtime-model-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/')) {
+                return 'sdk-runtime-generated';
+              }
+              return 'sdk-runtime-generated';
+            }
+            if (normalizedId.includes('/sdk/src/realm/generated/')) {
+              return 'sdk-realm-generated';
+            }
+            if (normalizedId.includes('/sdk/src/scope/generated/')) {
+              return 'sdk-scope-generated';
+            }
+            if (normalizedId.includes('/sdk/src/')) {
+              return 'sdk-client';
+            }
+            if (normalizedId.includes('/apps/_libs/shell-auth/src/')) {
+              return 'shell-auth';
+            }
+            if (normalizedId.includes('/apps/overtone/src/shell/renderer/bridge/')) {
+              return 'runtime-bridge';
+            }
+            if (normalizedId.includes('/apps/overtone/src/shell/renderer/features/workspace/')) {
+              return 'workspace';
+            }
+            if (normalizedId.includes('/apps/overtone/src/shell/renderer/app-shell/')) {
+              return 'app-shell';
+            }
+
+            if (!normalizedId.includes('node_modules')) {
+              return undefined;
+            }
+            if (normalizedId.includes('/react/') || normalizedId.includes('/react-dom/') || normalizedId.includes('/scheduler/')) {
+              return 'vendor-react';
+            }
+            if (normalizedId.includes('/react-router') || normalizedId.includes('/@remix-run/router/')) {
+              return 'vendor-router';
+            }
+            if (normalizedId.includes('/@tanstack/react-query/') || normalizedId.includes('/@tanstack/query-core/')) {
+              return 'vendor-query';
+            }
+            if (normalizedId.includes('/zustand/')) {
+              return 'vendor-state';
+            }
+            if (normalizedId.includes('/i18next/') || normalizedId.includes('/react-i18next/')) {
+              return 'vendor-i18n';
+            }
+            if (normalizedId.includes('/@protobuf-ts/runtime') || normalizedId.includes('/@protobuf-ts/runtime-rpc/')) {
+              return 'vendor-protobuf';
+            }
+            if (normalizedId.includes('/three/') || normalizedId.includes('/simplex-noise/')) {
+              return 'vendor-three';
+            }
+            if (
+              normalizedId.includes('/@nimiplatform/shell-auth/')
+              || normalizedId.includes('/@nimiplatform/sdk/')
+              || normalizedId.includes('/openapi-fetch/')
+            ) {
+              return 'vendor-platform';
+            }
+            return 'vendor-misc';
           },
         },
       },

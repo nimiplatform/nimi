@@ -1,9 +1,5 @@
 import type { ReactNode } from 'react';
 
-// ---------------------------------------------------------------------------
-// CircleIconButton — small round icon button used in the main view
-// ---------------------------------------------------------------------------
-
 export function CircleIconButton(props: {
   label: string;
   onClick: () => void;
@@ -20,7 +16,7 @@ export function CircleIconButton(props: {
       onClick={props.onClick}
       disabled={props.disabled}
       data-testid={props.dataTestId}
-      className={`h-[40px] w-[40px] rounded-full border border-border bg-card text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 ${props.className || ''}`}
+      className={`h-[40px] w-[40px] rounded-full border border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-card-bg,#fffdf9)] text-[var(--auth-text,#3b352c)] shadow-sm transition hover:bg-[var(--auth-hover-bg,#f0ece6)] disabled:cursor-not-allowed disabled:opacity-50 ${props.className || ''}`}
     >
       {props.children}
     </button>

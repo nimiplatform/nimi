@@ -11,6 +11,8 @@ export default defineConfig({
     alias: {
       '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
       '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
+      '@nimiplatform/shell-auth': path.resolve(__dirname, '../_libs/shell-auth/src'),
+      '@nimiplatform/shell-core': path.resolve(__dirname, '../_libs/shell-core/src'),
     },
   },
 });

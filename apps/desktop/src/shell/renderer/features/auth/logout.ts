@@ -1,7 +1,7 @@
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
-import { clearPersistedAccessToken } from './auth-session-storage';
+import { clearPersistedAccessToken } from '@nimiplatform/shell-auth';
 
 type LogoutAndClearSessionInput = {
   clearAuthSession: AppStoreState['clearAuthSession'];

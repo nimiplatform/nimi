@@ -1,138 +1,42 @@
 import {
   Suspense,
   lazy,
-  useRef,
-  useState,
+  useMemo,
   type MouseEvent,
 } from 'react';
-import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { queryClient } from '@renderer/infra/query-client/query-client';
-import type { WebAuthMenuMode } from './auth-helpers.js';
-import {
-  DESKTOP_CALLBACK_TIMEOUT_MS,
-  buildDesktopWebAuthLaunchUrl,
-  createDesktopCallbackRedirectUri,
-  createDesktopCallbackState,
-  toDesktopBrowserAuthErrorMessage,
-} from './auth-helpers.js';
-import { AuthMenu } from './auth-menu.js';
+import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
+import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import type { WebAuthMenuMode } from '@nimiplatform/shell-auth';
+import { DesktopShellAuthPage } from '@nimiplatform/shell-auth';
+import '@nimiplatform/shell-auth/styles.css';
+import { desktopOAuthBridge } from './desktop-auth-adapter.js';
+import { createDesktopAuthAdapter } from './desktop-auth-adapter.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
-export type { WebAuthMenuMode } from './auth-helpers.js';
+export type { WebAuthMenuMode } from '@nimiplatform/shell-auth';
 
-const ParticleBackgroundLight = lazy(async () => {
-  const mod = await import('./particle-background-light');
-  return { default: mod.ParticleBackgroundLight };
+const SlotHost = lazy(async () => {
+  const mod = await import('@renderer/mod-ui/host/slot-host');
+  return { default: mod.SlotHost };
 });
 
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
-  const { t } = useTranslation();
+  const flags = getShellFeatureFlags();
+  const context = useUiExtensionContext();
   const mode = props.mode || 'embedded';
-  const [isLogoHovered, setIsLogoHovered] = useState(false);
-  const [desktopAuthPending, setDesktopAuthPending] = useState(false);
-  const [desktopAuthError, setDesktopAuthError] = useState<string | null>(null);
-  const desktopAttemptRef = useRef(0);
+  const adapter = useMemo(() => createDesktopAuthAdapter(), []);
+  const authStatus = useAppStore((state) => state.auth.status);
+  const authToken = useAppStore((state) => state.auth.token);
+  const authUser = useAppStore((state) => state.auth.user);
   const setAuthSession = useAppStore((state) => state.setAuthSession);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
-
-  const desktopLogoHintText = desktopAuthError
-    ? t('Auth.desktopAuthFailed')
-    : undefined;
-
-  const handleDesktopLogoClick = () => {
-    const myAttempt = ++desktopAttemptRef.current;
-
-    void (async () => {
-      setDesktopAuthPending(true);
-      setDesktopAuthError(null);
-      let listenTask: ReturnType<typeof desktopBridge.oauthListenForCode> | null = null;
-
-      try {
-        if (!desktopBridge.hasTauriInvoke()) {
-          throw new Error('当前环境不支持浏览器授权回调，请在桌面客户端中运行。');
-        }
-
-        const callbackUrl = createDesktopCallbackRedirectUri();
-        const callbackState = createDesktopCallbackState();
-        const launchUrl = buildDesktopWebAuthLaunchUrl({
-          callbackUrl,
-          state: callbackState,
-        });
-
-        listenTask = desktopBridge.oauthListenForCode({
-          redirectUri: callbackUrl,
-          timeoutMs: DESKTOP_CALLBACK_TIMEOUT_MS,
-        });
-
-        const launchResult = await desktopBridge.openExternalUrl(launchUrl);
-        if (!launchResult.opened) {
-          throw new Error('无法打开系统浏览器，请检查系统默认浏览器设置。');
-        }
-
-        setStatusBanner({
-          kind: 'info',
-          message: '已打开浏览器，请在网页完成授权登录。',
-        });
-
-        if (!listenTask) {
-          throw new Error('网页登录回调监听初始化失败。');
-        }
-
-        const callback = await listenTask;
-        void desktopBridge.focusMainWindow().catch(() => undefined);
-        if (callback.error) {
-          throw new Error(`网页授权失败：${callback.error}`);
-        }
-
-        const callbackStateFromWeb = String(callback.state || '').trim();
-        if (!callbackStateFromWeb || callbackStateFromWeb !== callbackState) {
-          throw new Error('网页登录回调 state 校验失败，请重试。');
-        }
-
-        const accessToken = String(callback.code || '').trim();
-        if (!accessToken) {
-          throw new Error('网页登录回调缺少 access token。');
-        }
-
-        dataSync.setToken(accessToken);
-        const user = await dataSync.loadCurrentUser();
-        setAuthSession(
-          (user && typeof user === 'object' ? (user as Record<string, unknown>) : null),
-          accessToken,
-        );
-
-        await Promise.allSettled([
-          dataSync.loadChats(),
-          dataSync.loadContacts(),
-          queryClient.invalidateQueries({ queryKey: ['chats'] }),
-          queryClient.invalidateQueries({ queryKey: ['contacts'] }),
-        ]);
-
-        setStatusBanner({
-          kind: 'success',
-          message: '网页登录授权成功，已登录。',
-        });
-      } catch (error) {
-        if (myAttempt !== desktopAttemptRef.current) return;
-        const message = toDesktopBrowserAuthErrorMessage(error);
-        setDesktopAuthError(message);
-        setStatusBanner({
-          kind: 'error',
-          message,
-        });
-      } finally {
-        if (listenTask) {
-          void listenTask.catch(() => undefined);
-        }
-        if (myAttempt === desktopAttemptRef.current) {
-          setDesktopAuthPending(false);
-        }
-      }
-    })();
-  };
+  const footer = flags.enableModUi && mode === 'embedded' ? (
+    <Suspense fallback={null}>
+      <SlotHost slot="auth.login.form.footer" base={null} context={context} />
+    </Suspense>
+  ) : null;
 
   const handleRootMouseDown = (event: MouseEvent<HTMLElement>) => {
     if (mode !== 'desktop-browser') {
@@ -160,27 +64,35 @@ export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   };
 
   return (
-    <main
-      data-testid={E2E_IDS.loginScreen}
-      data-auth-mode={mode}
-      className="relative min-h-screen overflow-hidden bg-[#f3f1ee] text-[#3b352c]"
-      onMouseDown={handleRootMouseDown}
-    >
-      <Suspense fallback={null}>
-        <ParticleBackgroundLight
-          isLogoHovered={isLogoHovered}
-          profile={mode === 'embedded' ? 'web' : 'desktop'}
-        />
-      </Suspense>
-      <AuthMenu
-        mode={mode}
-        onLogoHoverChange={setIsLogoHovered}
-        onLogoClick={mode === 'desktop-browser' ? handleDesktopLogoClick : undefined}
-        logoHintText={mode === 'desktop-browser' ? desktopLogoHintText : undefined}
-        logoErrorText={mode === 'desktop-browser' ? desktopAuthError : null}
-        logoDisabled={false}
-        logoLoading={mode === 'desktop-browser' ? desktopAuthPending : false}
-      />
-    </main>
+    <DesktopShellAuthPage
+      adapter={adapter}
+      session={{
+        mode,
+        authStatus,
+        authToken,
+        authUser: authUser as Record<string, unknown> | null,
+        setAuthSession,
+        setStatusBanner: setStatusBanner as (banner: { kind: string; message: string } | null) => void,
+      }}
+      footer={footer}
+      desktopBrowserAuth={
+        mode === 'desktop-browser'
+          ? {
+              bridge: desktopOAuthBridge,
+              onRootPointerDown: handleRootMouseDown,
+            }
+          : undefined
+      }
+      testIds={{
+        screen: E2E_IDS.loginScreen,
+        logoTrigger: E2E_IDS.loginLogoTrigger,
+        emailInput: E2E_IDS.loginEmailInput,
+        emailSubmitArrow: E2E_IDS.loginEmailSubmitArrow,
+        alternativeToggle: E2E_IDS.loginAlternativeToggle,
+        alternativePanel: E2E_IDS.loginAlternativePanel,
+        passwordInput: E2E_IDS.loginPasswordInput,
+        otpButton: E2E_IDS.loginOtpButton,
+      }}
+    />
   );
 }

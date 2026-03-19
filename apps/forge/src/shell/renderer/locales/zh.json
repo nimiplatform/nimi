@@ -21,8 +21,25 @@
     "loading": "加载中...",
     "loginRequired": "请登录以继续",
     "login": "登录",
+    "loginTitle": "登录 Forge",
+    "webAuthHint": "通过 Nimi 网页授权登录以继续。",
+    "signInWithNimi": "使用 Nimi 登录",
+    "signingIn": "登录中...",
+    "clickToAuthorize": "点击标记，在浏览器中完成授权。",
+    "browserAuthOpen": "已打开浏览器，请在网页完成 Nimi 授权。",
+    "browserAuthSuccess": "授权完成，Forge 已登录。",
+    "browserAuthFailed": "授权失败。请再次点击标记重试。",
     "creatorAccessRequired": "需要创作者权限才能使用锻造台",
     "applyAccess": "申请创作者权限"
+  },
+  "Auth": {
+    "clickToAuthorize": "点击以在浏览器中授权",
+    "desktopAuthFailed": "授权失败。点击标志重试。",
+    "currentAccount": "当前账号",
+    "authorizeDesktopButton": "授权桌面端",
+    "useAnotherAccount": "使用其他账号",
+    "nimiNetwork": "NIMI PLATFORM",
+    "authorizing": "授权中..."
   },
   "bootstrap": {
     "loading": "正在启动锻造台...",

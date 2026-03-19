@@ -68,11 +68,11 @@ function writeSessionKeys(session: PersistedWebAuthSession): void {
   }
 
   const normalizedRefreshToken = String(session.refreshToken || '').trim();
-  const normalizedUser = normalizeUser(session.user);
+  const normalizedUserValue = normalizeUser(session.user);
   const payload: PersistedWebAuthSession = {
     accessToken: normalizedToken,
     ...(normalizedRefreshToken ? { refreshToken: normalizedRefreshToken } : {}),
-    ...(normalizedUser ? { user: normalizedUser } : {}),
+    ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: session.updatedAt || new Date().toISOString(),
   };
 
@@ -104,14 +104,14 @@ export function persistAuthSession(input: {
   const normalizedRefreshToken = input.refreshToken === undefined
     ? (isSameToken ? previous?.refreshToken : undefined)
     : String(input.refreshToken || '').trim();
-  const normalizedUser = input.user === undefined
+  const normalizedUserValue = input.user === undefined
     ? (isSameToken ? (previous?.user ?? null) : null)
     : input.user;
 
   const payload: PersistedWebAuthSession = {
     accessToken: normalizedToken,
     ...(normalizedRefreshToken ? { refreshToken: normalizedRefreshToken } : {}),
-    ...(normalizedUser ? { user: normalizedUser } : {}),
+    ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: new Date().toISOString(),
   };
 

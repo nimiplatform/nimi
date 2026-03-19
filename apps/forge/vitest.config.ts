@@ -7,6 +7,7 @@ export default defineConfig({
       '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
       '@runtime': path.resolve(__dirname, 'src/runtime'),
       '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
+      '@nimiplatform/shell-auth': path.resolve(__dirname, '../_libs/shell-auth/src'),
       '@nimiplatform/shell-core': path.resolve(__dirname, '../_libs/shell-core/src'),
       '@world-engine': path.resolve(__dirname, '../../nimi-mods/runtime/world-studio/src'),
     },

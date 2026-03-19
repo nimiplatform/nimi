@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../../_libs/shell-auth/src/**/*.{ts,tsx}";
 
 /* ================================================================
    Nimi Desktop — Design System Tokens

@@ -127,20 +127,7 @@ fn read_request_target(stream: &mut std::net::TcpStream) -> Result<String, Strin
 }
 
 fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
-    let body = if success {
-        r#"<!DOCTYPE html><html><head><meta charset="UTF-8"><title>OAuth Complete</title>
-<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f9fafb}
-.c{text-align:center;padding:48px;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:400px}
-h1{color:#111;font-size:22px;margin:0 0 12px}p{color:#6b7280;margin:0}</style></head>
-<body><div class="c"><h1>Authentication Complete!</h1><p>You can close this window now.</p></div>
-<script>setTimeout(function(){window.close()},3000)</script></body></html>"#
-    } else {
-        r#"<!DOCTYPE html><html><head><meta charset="UTF-8"><title>OAuth Failed</title>
-<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#fef2f2}
-.c{text-align:center;padding:48px;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:400px}
-h1{color:#991b1b;font-size:22px;margin:0 0 12px}p{color:#6b7280;margin:0}</style></head>
-<body><div class="c"><h1>Authentication Failed</h1><p>Please return to the app and try again.</p></div></body></html>"#
-    };
+    let body = render_oauth_callback_page(success);
     let response = format!(
         "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: {}\r\n\r\n{}",
         body.as_bytes().len(),
@@ -148,6 +135,90 @@ h1{color:#991b1b;font-size:22px;margin:0 0 12px}p{color:#6b7280;margin:0}</style
     );
     let _ = stream.write_all(response.as_bytes());
     let _ = stream.flush();
+}
+
+const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str = include_str!(
+    "../../../_libs/shell-auth/src/logic/native-oauth-result-page.template.html"
+);
+
+fn render_oauth_callback_page(success: bool) -> String {
+    if success {
+        DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE
+            .replace("__PAGE_TITLE__", "OAuth Complete - Nimi")
+            .replace("__BODY_BACKGROUND__", "#ffffff")
+            .replace("__LOGO_ANIMATION_NAME__", "float")
+            .replace("__LOGO_ANIMATION_DURATION__", "3s")
+            .replace("__LOGO_ANIMATION_REPEAT__", "infinite")
+            .replace("__LOGO_FILTER__", "none")
+            .replace(
+                "__SUCCESS_ICON_ANIMATION__",
+                "scaleIn 0.5s ease-out 0.3s both",
+            )
+            .replace("__ERROR_ICON_ANIMATION__", "scaleIn 0.5s ease-out")
+            .replace("__STATUS_ICON_CLASS__", "success_icon")
+            .replace(
+                "__STATUS_ICON_SVG__",
+                r#"<svg class="checkmark" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>"#,
+            )
+            .replace("__HEADING__", "Authentication Complete!")
+            .replace("__HEADING_ANIMATION__", "fadeIn 0.5s ease-out 0.4s both")
+            .replace(
+                "__MESSAGE_PRIMARY__",
+                "You have successfully signed in to Nimi.",
+            )
+            .replace("__MESSAGE_ANIMATION__", "fadeIn 0.5s ease-out 0.5s both")
+            .replace("__MESSAGE_SECONDARY_BLOCK__", "")
+            .replace(
+                "__ACTION_BLOCK__",
+                r#"<div class="auto_close">You can close this window now<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>"#,
+            )
+            .replace("__ACTION_ANIMATION__", "fadeIn 0.5s ease-out 0.7s both")
+            .replace(
+                "__AUTO_CLOSE_SCRIPT__",
+                r#"<script>setTimeout(function(){window.close();}, 3000);</script>"#,
+            )
+    } else {
+        DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE
+            .replace("__PAGE_TITLE__", "OAuth Failed - Nimi")
+            .replace(
+                "__BODY_BACKGROUND__",
+                "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+            )
+            .replace("__LOGO_ANIMATION_NAME__", "shake")
+            .replace("__LOGO_ANIMATION_DURATION__", "0.8s")
+            .replace("__LOGO_ANIMATION_REPEAT__", "1")
+            .replace(
+                "__LOGO_FILTER__",
+                "drop-shadow(0 10px 20px rgba(240, 147, 251, 0.3))",
+            )
+            .replace(
+                "__SUCCESS_ICON_ANIMATION__",
+                "scaleIn 0.5s ease-out 0.3s both",
+            )
+            .replace("__ERROR_ICON_ANIMATION__", "scaleIn 0.5s ease-out")
+            .replace("__STATUS_ICON_CLASS__", "error_icon")
+            .replace(
+                "__STATUS_ICON_SVG__",
+                r#"<svg class="x_mark" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>"#,
+            )
+            .replace("__HEADING__", "Authentication Failed")
+            .replace("__HEADING_ANIMATION__", "fadeIn 0.5s ease-out 0.2s both")
+            .replace(
+                "__MESSAGE_PRIMARY__",
+                "Something went wrong during the sign-in process.",
+            )
+            .replace("__MESSAGE_ANIMATION__", "fadeIn 0.5s ease-out 0.3s both")
+            .replace(
+                "__MESSAGE_SECONDARY_BLOCK__",
+                "<p>Please return to the app and try again.</p>",
+            )
+            .replace(
+                "__ACTION_BLOCK__",
+                r#"<button class="retry_btn" onclick="window.close()">Close Window</button>"#,
+            )
+            .replace("__ACTION_ANIMATION__", "fadeIn 0.5s ease-out 0.4s both")
+            .replace("__AUTO_CLOSE_SCRIPT__", "")
+    }
 }
 
 fn is_sensitive_key(key: &str) -> bool {
