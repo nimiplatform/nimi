@@ -14,6 +14,7 @@
   - SDK must not cross `realm` and `runtime` private implementation boundaries.
   - Mods must not bypass `nimi-hook` to call `@nimiplatform/sdk/runtime`.
   - Runtime must not import from `sdk/**` or `apps/desktop/**`.
+- App production code must not bypass Realm typed services with `realm.raw.request`, literal `/api/` fetches, or ad hoc REST path assembly. Use generated services or an explicitly approved typed adapter module only.
 - Keep AI-facing structure shallow: no file/directory collisions, no forwarding shells outside `index.ts`, and no new debug paths longer than three hops from UI to business logic.
 - Structure budget depth is measured from each layer's source root (`runtime/internal`, `runtime/cmd/nimi`, `sdk/src`, `apps/*/src`, `apps/desktop/src-tauri/src`, `scripts`), not repo root.
 
@@ -23,7 +24,7 @@
 - If you must inspect generated files or external mirrors, state the exception first and keep reads narrow.
 
 ## Verification Commands
-- Repo-wide guardrails: `pnpm check:agents-freshness`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`.
+- Repo-wide guardrails: `pnpm check:agents-freshness`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
 - Spec gates: run the affected spec consistency command and the matching docs drift command.
 - Runtime chain order:
   - `runtime`: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`

@@ -34,6 +34,7 @@ The renderer is a thin consumer: it receives structured beat messages via IPC an
 - All agent-scoped IPC inputs carry `agentId` (RL-CORE-004)
 - Stream protocol is generic — shared by AI stream and video job subscribe (RL-IPC-003)
 - Binary data crosses IPC as base64 strings (RL-IPC-005)
+- Renderer must use explicit typed bridge methods only. Do not reintroduce generic Realm passthrough IPC or raw `/api/` request forwarding.
 - Chat pipeline logic must NOT import from renderer or preload
 - Session store must use `RelayChatStorage` interface, not raw fs calls
 
