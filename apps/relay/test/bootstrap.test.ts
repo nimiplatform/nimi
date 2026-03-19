@@ -8,6 +8,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { parseEnv } from '../src/main/env.js';
 import { useAppStore, type Agent } from '../src/renderer/app-shell/providers/app-store.js';
+import type { NimiRelayBridge } from '../src/renderer/bridge/electron-bridge.js';
+import { syncAuthenticatedRendererState } from '../src/renderer/infra/bootstrap.js';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const srcMain = path.join(testDir, '..', 'src', 'main');
@@ -16,9 +18,21 @@ const srcMain = path.join(testDir, '..', 'src', 'main');
 
 describe('RL-BOOT-003 — Environment Variable Resolution', () => {
   const originalEnv = { ...process.env };
+  const originalCwd = process.cwd();
+  let tempCwd: string | null = null;
+
+  beforeEach(() => {
+    tempCwd = mkdtempSync(path.join(os.tmpdir(), 'nimi-relay-env-'));
+    process.chdir(tempCwd);
+  });
 
   afterEach(() => {
     process.env = { ...originalEnv };
+    process.chdir(originalCwd);
+    if (tempCwd) {
+      rmSync(tempCwd, { recursive: true, force: true });
+      tempCwd = null;
+    }
   });
 
   it('throws when NIMI_REALM_URL is missing', () => {
@@ -30,7 +44,8 @@ describe('RL-BOOT-003 — Environment Variable Resolution', () => {
   it('throws when NIMI_ACCESS_TOKEN is missing', () => {
     process.env.NIMI_REALM_URL = 'https://realm.example.com';
     delete process.env.NIMI_ACCESS_TOKEN;
-    assert.throws(() => parseEnv(), /NIMI_ACCESS_TOKEN is required/);
+    const env = parseEnv();
+    assert.equal(env.NIMI_ACCESS_TOKEN, undefined);
   });
 
   it('uses default gRPC address 127.0.0.1:46371 when not set', () => {
@@ -135,22 +150,22 @@ describe('RL-BOOT-003 — Environment Variable Resolution', () => {
 // ─── RL-BOOT-001 — Main Process Initialization Sequence ─────────────────
 
 describe('RL-BOOT-001 — Main Process Initialization Sequence', () => {
-  it('index.ts follows 6-step sequence: env → platform(runtime+realm) → realtime → IPC → window', () => {
+  it('index.ts follows login-first sequence: env → auth IPC → window → platform init → authenticated IPC', () => {
     const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
     const body = source.slice(source.indexOf('app.whenReady()'));
     assert.ok(body, 'app.whenReady() must exist');
 
     const step1 = body.indexOf('parseEnv()');
-    const step2 = body.indexOf('initPlatformClient');
-    const step3 = body.indexOf('initRealtimeRelay');
-    const step4 = body.indexOf('registerIpcHandlers');
-    const step5 = body.indexOf('createWindow()');
+    const step2 = body.indexOf('registerAuthIpcHandlers(env, () => mainWindow)');
+    const step3 = body.indexOf('createWindow()');
+    const step4 = body.indexOf('initPlatformClient(env)');
+    const step5 = body.indexOf('registerIpcHandlers(runtime, realm, getWebContents, env, routeState)');
 
     assert.ok(step1 >= 0, 'step 1: parseEnv exists');
-    assert.ok(step2 > step1, 'step 2: initPlatformClient after parseEnv');
-    assert.ok(step3 > step2, 'step 3: initRealtimeRelay after initPlatformClient');
-    assert.ok(step4 > step3, 'step 4: registerIpcHandlers after initRealtimeRelay');
-    assert.ok(step5 > step4, 'step 5: createWindow after registerIpcHandlers');
+    assert.ok(step2 > step1, 'step 2: auth IPC registered after parseEnv');
+    assert.ok(step3 > step2, 'step 3: window created after auth IPC');
+    assert.ok(step4 > step3, 'step 4: platform init occurs after window for login-first boot');
+    assert.ok(step5 > step4, 'step 5: authenticated IPC registered after platform init');
   });
 });
 
@@ -305,5 +320,139 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
     // Simulate: config returns agentId: null
     // Bootstrap does not call setAgent
     assert.equal(useAppStore.getState().currentAgent, null);
+  });
+
+  it('post-auth sync reapplies env agent id after login-first bootstrap', async () => {
+    const bridge = {
+      health: async () => ({ status: 'ok' }),
+      config: async () => ({ agentId: 'agent-from-env', worldId: null }),
+      realm: {
+        request: async () => ({
+          id: 'agent-from-env',
+          displayName: 'Env Agent',
+          handle: '@env',
+          agent: { state: 'active' },
+        }),
+      },
+    };
+
+    const result = await syncAuthenticatedRendererState(
+      bridge as unknown as NimiRelayBridge,
+    );
+
+    assert.equal(result.runtimeAvailable, true);
+    assert.equal(result.agentId, 'agent-from-env');
+    assert.equal(useAppStore.getState().currentAgent?.id, 'agent-from-env');
+    assert.equal(useAppStore.getState().currentAgent?.name, 'Env Agent');
+  });
+
+  it('post-auth sync retries config lookup after transient login-first race', async () => {
+    let configAttempts = 0;
+    const bridge = {
+      health: async () => ({ status: 'ok' }),
+      config: async () => {
+        configAttempts += 1;
+        if (configAttempts === 1) {
+          throw new Error('relay:config handler not ready yet');
+        }
+        return { agentId: 'agent-from-env', worldId: null };
+      },
+      realm: {
+        request: async () => ({
+          id: 'agent-from-env',
+          displayName: 'Env Agent',
+          handle: '@env',
+          agent: { state: 'active' },
+        }),
+      },
+    };
+
+    const result = await syncAuthenticatedRendererState(
+      bridge as unknown as NimiRelayBridge,
+    );
+
+    assert.equal(configAttempts, 2);
+    assert.equal(result.runtimeAvailable, true);
+    assert.equal(result.agentId, 'agent-from-env');
+    assert.equal(useAppStore.getState().currentAgent?.id, 'agent-from-env');
+  });
+
+  it('post-auth sync survives several transient config failures before restoring env agent', async () => {
+    let configAttempts = 0;
+    const bridge = {
+      health: async () => ({ status: 'ok' }),
+      config: async () => {
+        configAttempts += 1;
+        if (configAttempts < 4) {
+          throw new Error('relay:config handler still warming up');
+        }
+        return { agentId: 'agent-from-env', worldId: null };
+      },
+      realm: {
+        request: async () => ({
+          id: 'agent-from-env',
+          displayName: 'Env Agent',
+          handle: '@env',
+          agent: { state: 'active' },
+        }),
+      },
+    };
+
+    const result = await syncAuthenticatedRendererState(
+      bridge as unknown as NimiRelayBridge,
+    );
+
+    assert.equal(configAttempts, 4);
+    assert.equal(result.runtimeAvailable, true);
+    assert.equal(result.agentId, 'agent-from-env');
+    assert.equal(useAppStore.getState().currentAgent?.id, 'agent-from-env');
+    assert.equal(useAppStore.getState().currentAgent?.name, 'Env Agent');
+  });
+
+  it('post-auth sync clears stale agent when config has no default agent', async () => {
+    useAppStore.getState().setAgent({ id: 'stale-agent', name: 'Stale Agent' });
+
+    const bridge = {
+      health: async () => ({ status: 'ok' }),
+      config: async () => ({ agentId: null, worldId: null }),
+      realm: {
+        request: async () => {
+          throw new Error('should not be called');
+        },
+      },
+    };
+
+    const result = await syncAuthenticatedRendererState(
+      bridge as unknown as NimiRelayBridge,
+    );
+
+    assert.equal(result.runtimeAvailable, true);
+    assert.equal(result.agentId, null);
+    assert.equal(useAppStore.getState().currentAgent, null);
+  });
+
+  it('post-auth sync preserves current agent when config lookup fails transiently', async () => {
+    useAppStore.getState().setAgent({ id: 'existing-agent', name: 'Existing Agent' });
+
+    const bridge = {
+      health: async () => ({ status: 'ok' }),
+      config: async () => {
+        throw new Error('relay:config temporarily unavailable');
+      },
+      realm: {
+        request: async () => {
+          throw new Error('should not be called');
+        },
+      },
+    };
+
+    const result = await syncAuthenticatedRendererState(
+      bridge as unknown as NimiRelayBridge,
+    );
+
+    assert.equal(result.runtimeAvailable, true);
+    assert.equal(result.agentId, 'existing-agent');
+    assert.equal(useAppStore.getState().currentAgent?.id, 'existing-agent');
+    assert.equal(useAppStore.getState().currentAgent?.name, 'Existing Agent');
   });
 });

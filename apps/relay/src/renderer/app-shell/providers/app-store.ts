@@ -18,6 +18,14 @@ export interface Agent {
 
 export type AuthState = 'pending' | 'authenticating' | 'authenticated' | 'failed';
 
+export interface UserProfile {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+  email?: string;
+  handle?: string;
+}
+
 export interface AppState {
   /** RL-CORE-001: The single global agent context */
   currentAgent: Agent | null;
@@ -29,12 +37,15 @@ export interface AppState {
   authState: AuthState;
   /** Auth error message when authState === 'failed' */
   authError: string | null;
+  /** Current authenticated user profile */
+  currentUser: UserProfile | null;
 
   /** RL-CORE-002: Set agent — resets all active sessions */
   setAgent: (agent: Agent | null) => void;
   setRuntimeAvailable: (available: boolean) => void;
   setRealtimeConnected: (connected: boolean) => void;
   setAuthState: (state: AuthState, error?: string | null) => void;
+  setCurrentUser: (user: UserProfile | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -43,6 +54,7 @@ export const useAppStore = create<AppState>((set) => ({
   realtimeConnected: false,
   authState: 'pending',
   authError: null,
+  currentUser: null,
 
   setAgent: (agent) => set({
     currentAgent: agent,
@@ -53,4 +65,5 @@ export const useAppStore = create<AppState>((set) => ({
   setRuntimeAvailable: (available) => set({ runtimeAvailable: available }),
   setRealtimeConnected: (connected) => set({ realtimeConnected: connected }),
   setAuthState: (state, error) => set({ authState: state, authError: error ?? null }),
+  setCurrentUser: (user) => set({ currentUser: user }),
 }));

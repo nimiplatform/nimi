@@ -10,14 +10,29 @@ import { registerIpcHandlers } from './ipc-handlers.js';
 import { registerModelIpcHandlers } from './model-handlers.js';
 import { registerDesktopInteropHandlers } from './desktop-interop.js';
 import { initRealtimeRelay } from './realtime-relay.js';
-import { loadToken, saveToken, performDesktopBrowserAuth } from './auth/index.js';
+import { loadToken, saveToken, clearToken } from './auth/index.js';
+import { createRouteState } from './route/route-state.js';
+import { registerRouteHandlers } from './route/route-handlers.js';
+import type { RouteState } from './route/route-state.js';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
 import type { Realm } from '@nimiplatform/sdk/realm';
+
+/**
+ * Invalidate the current auth session: clear persisted token,
+ * wipe the in-memory token, and transition to 'pending' state
+ * so the renderer shows the login page.
+ */
+export function invalidateAuth(): void {
+  clearToken();
+  env.NIMI_ACCESS_TOKEN = undefined;
+  setAuthState('pending');
+}
 
 let mainWindow: BrowserWindow | null = null;
 let env: RelayEnv;
 let runtime: Runtime;
 let realm: Realm;
+let routeState: RouteState;
 
 export type AuthState = 'pending' | 'authenticating' | 'authenticated' | 'failed';
 let currentAuthState: AuthState = 'pending';
@@ -75,19 +90,24 @@ function createWindow() {
 }
 
 /**
- * Run browser OAuth and initialize platform clients.
- * Triggered by renderer when user clicks "Login with Browser".
+ * Apply a token obtained by the renderer (via Social OAuth) and initialize
+ * platform clients. Called from `relay:auth:apply-token` IPC handler.
  */
-export async function performBrowserLoginAndInit(): Promise<void> {
+export async function applyTokenAndInit(accessToken: string): Promise<void> {
   try {
     setAuthState('authenticating');
-    const result = await performDesktopBrowserAuth({ webUrl: env.NIMI_WEB_URL });
-    saveToken(result.accessToken);
-    env.NIMI_ACCESS_TOKEN = result.accessToken;
+    saveToken(accessToken);
+    env.NIMI_ACCESS_TOKEN = accessToken;
 
     // Initialize platform clients with new token
     ({ runtime, realm } = initPlatformClient(env));
-    registerIpcHandlers(runtime, realm, getWebContents, env);
+
+    // Initialize route state
+    routeState = createRouteState();
+    await routeState.initialize(runtime).catch(() => {});
+    registerRouteHandlers(runtime, routeState);
+
+    registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
     registerModelIpcHandlers(runtime);
     initRealtimeRelay(env.NIMI_REALM_URL, env.NIMI_ACCESS_TOKEN!, getWebContents);
 
@@ -99,13 +119,21 @@ export async function performBrowserLoginAndInit(): Promise<void> {
   }
 }
 
+export function getMainWindow(): BrowserWindow | null {
+  return mainWindow;
+}
+
+export function getEnv(): RelayEnv {
+  return env;
+}
+
 app.whenReady().then(async () => {
   // Step 1: Parse environment variables (RL-BOOT-003)
   env = parseEnv();
 
   // Step 2: Register auth + desktop interop IPC handlers early (before window needs them)
   const { registerAuthIpcHandlers } = await import('./ipc-handlers.js');
-  registerAuthIpcHandlers();
+  registerAuthIpcHandlers(env, () => mainWindow);
   registerDesktopInteropHandlers();
 
   // Step 3: Create window immediately so user sees UI
@@ -115,15 +143,42 @@ app.whenReady().then(async () => {
   const token = env.NIMI_ACCESS_TOKEN || loadToken() || null;
 
   if (token) {
-    // Token available — initialize platform clients
+    // Token available — validate via runtime.health() (main process, no IPC serialization)
     env.NIMI_ACCESS_TOKEN = token;
     ({ runtime, realm } = initPlatformClient(env));
-    initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents);
-    registerIpcHandlers(runtime, realm, getWebContents, env);
-    registerModelIpcHandlers(runtime);
-    setAuthState('authenticated');
+
+    try {
+      await runtime.health();
+      // Token accepted by Runtime — proceed with authenticated boot
+      routeState = createRouteState();
+      await routeState.initialize(runtime).catch(() => {});
+      registerRouteHandlers(runtime, routeState);
+
+      initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents);
+      registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
+      registerModelIpcHandlers(runtime);
+      setAuthState('authenticated');
+    } catch (healthError) {
+      const reason = (healthError as { reasonCode?: string }).reasonCode;
+      if (reason === 'AUTH_TOKEN_INVALID' || reason === 'AUTH_DENIED') {
+        // Stale/revoked token — clear and fall through to login
+        clearToken();
+        env.NIMI_ACCESS_TOKEN = undefined;
+        setAuthState('pending');
+      } else {
+        // Runtime unreachable but token may be valid — degrade gracefully (RL-BOOT-004)
+        routeState = createRouteState();
+        await routeState.initialize(runtime).catch(() => {});
+        registerRouteHandlers(runtime, routeState);
+
+        initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents);
+        registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
+        registerModelIpcHandlers(runtime);
+        setAuthState('authenticated');
+      }
+    }
   } else {
-    // No token — show login page, wait for user to click "Login with Browser"
+    // No token — show login page, wait for Social OAuth
     setAuthState('pending');
   }
 });

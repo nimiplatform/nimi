@@ -4,6 +4,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore, type MediaAutonomy, type VoiceAutonomy, type VisualComfortLevel } from '../../../app-shell/providers/settings-store.js';
+import { ChatRoutePanel } from '../../model-config/chat-route-panel.js';
 
 interface SettingsDrawerProps {
   open: boolean;
@@ -33,6 +34,11 @@ export function SettingsDrawer({ open, onClose }: SettingsDrawerProps) {
         </div>
 
         <div className="p-4 space-y-6">
+          {/* Model Selection */}
+          <SettingGroup label={t('route.title', 'Model')}>
+            <ChatRoutePanel />
+          </SettingGroup>
+
           {/* Media Autonomy */}
           <SettingGroup label={t('settings.mediaAutonomy', 'Media Autonomy')}>
             <TriSelect

@@ -12,8 +12,8 @@ export interface RelayEnv {
   NIMI_REALM_URL: string;
   /** Bearer token for auth. Optional — triggers browser auth when missing. */
   NIMI_ACCESS_TOKEN: string | undefined;
-  /** Web login page URL for browser auth flow. */
-  NIMI_WEB_URL: string;
+  /** Web login page URL. Optional — no longer used for auth (Social OAuth replaces it). */
+  NIMI_WEB_URL: string | undefined;
   /** Default agent binding. Optional. */
   NIMI_AGENT_ID: string | undefined;
   /** Default world binding. Optional. */
@@ -27,7 +27,7 @@ export interface RelayEnv {
 function loadDotEnv(): void {
   // Walk up from __dirname to find monorepo root containing .env
   // Build output: apps/relay/dist/main/index.cjs → walk up 4 levels to nimi/
-  let dir = __dirname;
+  let dir = typeof __dirname === 'string' ? __dirname : process.cwd();
   for (let i = 0; i < 6; i++) {
     const candidate = path.join(dir, '.env');
     try {
@@ -84,7 +84,7 @@ export function parseEnv(): RelayEnv {
     NIMI_RUNTIME_GRPC_ADDR: process.env.NIMI_RUNTIME_GRPC_ADDR || readConfigGrpcAddr() || DEFAULT_GRPC_ADDR,
     NIMI_REALM_URL: realmUrl,
     NIMI_ACCESS_TOKEN: process.env.NIMI_ACCESS_TOKEN || undefined,
-    NIMI_WEB_URL: process.env.NIMI_WEB_URL || 'http://localhost:3000',
+    NIMI_WEB_URL: process.env.NIMI_WEB_URL || undefined,
     NIMI_AGENT_ID: process.env.NIMI_AGENT_ID || undefined,
     NIMI_WORLD_ID: process.env.NIMI_WORLD_ID || undefined,
   };

@@ -5,6 +5,7 @@ import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../providers/app-store.js';
 import { AgentSelector } from '../../features/agent/components/agent-selector.js';
+import { UserMenu } from '../components/user-menu.js';
 
 // Code-split pixi.js (~600KB) — only loaded when agent has Live2D model
 const BuddyCanvas = lazy(() =>
@@ -22,6 +23,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
       {/* Status bar */}
       <header className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
         <div className="flex items-center gap-3">
+          <UserMenu />
           <h1 className="text-sm font-semibold">{t('app.name')}</h1>
           {currentAgent && (
             <span className="text-xs text-gray-400">

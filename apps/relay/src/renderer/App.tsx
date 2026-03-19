@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './infra/query-client.js';
-import { bootstrap, type BootstrapResult } from './infra/bootstrap.js';
+import { bootstrap, syncAuthenticatedRendererState } from './infra/bootstrap.js';
 import { MainLayout } from './app-shell/layout/main-layout.js';
 import { ChatPage } from './features/chat/chat-page.js';
 import { useSettingsStore } from './app-shell/providers/settings-store.js';
@@ -14,10 +14,10 @@ import { getBridge } from './bridge/electron-bridge.js';
 import { AuthLoginPage } from './features/auth/auth-login-page.js';
 
 export function App() {
-  const { t, ready: i18nReady } = useTranslation();
+  const { t } = useTranslation();
   const authState = useAppStore((s) => s.authState);
   const [ready, setReady] = useState(false);
-  const [bootstrapResult, setBootstrapResult] = useState<BootstrapResult | null>(null);
+  const [authSessionReady, setAuthSessionReady] = useState(false);
 
   useEffect(() => {
     // Listen for auth state changes from main process
@@ -40,15 +40,42 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    bootstrap().then((result) => {
-      setBootstrapResult(result);
+    bootstrap().then(() => {
       setReady(true);
       // Load product settings after bootstrap
       useSettingsStore.getState().load();
     });
   }, []);
 
-  if (!ready || !i18nReady) {
+  useEffect(() => {
+    if (authState !== 'authenticated') {
+      setAuthSessionReady(false);
+      return;
+    }
+
+    let cancelled = false;
+    setAuthSessionReady(false);
+
+    syncAuthenticatedRendererState()
+      .catch(() => {
+        // Renderer should still render even if post-auth sync partially fails.
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setAuthSessionReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authState]);
+
+  if (authState !== 'authenticated') {
+    return <AuthLoginPage />;
+  }
+
+  if (!ready || !authSessionReady) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-950 text-white">
         <div className="text-center">
@@ -57,10 +84,6 @@ export function App() {
         </div>
       </div>
     );
-  }
-
-  if (authState !== 'authenticated') {
-    return <AuthLoginPage />;
   }
 
   return (

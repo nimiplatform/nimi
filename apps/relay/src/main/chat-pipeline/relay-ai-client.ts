@@ -1,7 +1,9 @@
 // RelayAiClient — wraps Runtime SDK to implement LocalChatTurnAiClient for the chat pipeline.
 // No mod SDK imports. Calls runtime.ai.text.generate/stream and runtime.media.* directly.
+// Accepts optional resolved route to direct AI calls to the user-selected model.
 
 import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
 import { parseJsonObject } from './json-repair.js';
 import { resolveModelAndRoute } from '../input-transform.js';
 import type {
@@ -17,6 +19,7 @@ import type {
   LocalChatStreamTextDelta,
   LocalChatTurnAiClient,
 } from './types.js';
+import type { ResolvedRelayRoute } from '../route/types.js';
 
 const DEFAULT_SUBJECT_USER_ID = 'local-user';
 
@@ -24,13 +27,31 @@ function normalize(value: string | undefined | null): string {
   return String(value || '').trim();
 }
 
-export function createRelayAiClient(runtime: Runtime): LocalChatTurnAiClient {
+function resolveTextTarget(
+  resolvedRoute: ResolvedRelayRoute | null,
+  inputModel: string | undefined,
+): { model: string; route: NimiRoutePolicy } {
+  // If we have a resolved route from route state, use it
+  if (resolvedRoute) {
+    const route: NimiRoutePolicy = resolvedRoute.source === 'cloud' ? 'cloud' : 'local';
+    return { model: resolvedRoute.model, route };
+  }
+  // Fallback to legacy resolution
+  return resolveModelAndRoute(undefined, inputModel);
+}
+
+export function createRelayAiClient(
+  runtime: Runtime,
+  resolvedRoute?: ResolvedRelayRoute | null,
+): LocalChatTurnAiClient {
+  const route = resolvedRoute ?? null;
+
   return {
     // ── generateText ──────────────────────────────────────────────────
     async generateText(
       input: LocalChatGenerateTextInput,
     ): Promise<LocalChatGenerateTextResult> {
-      const target = resolveModelAndRoute(undefined, input.model);
+      const target = resolveTextTarget(route, input.model);
       const response = await runtime.ai.text.generate({
         model: target.model,
         input: input.prompt,
@@ -51,7 +72,7 @@ export function createRelayAiClient(runtime: Runtime): LocalChatTurnAiClient {
     async generateObject<T = unknown>(
       input: LocalChatGenerateObjectInput,
     ): Promise<LocalChatGenerateObjectResult<T>> {
-      const target = resolveModelAndRoute(undefined, input.model);
+      const target = resolveTextTarget(route, input.model);
       const response = await runtime.ai.text.generate({
         model: target.model,
         input: input.prompt,
@@ -70,7 +91,7 @@ export function createRelayAiClient(runtime: Runtime): LocalChatTurnAiClient {
     async *streamText(
       input: LocalChatGenerateTextInput,
     ): AsyncIterable<LocalChatStreamTextDelta> {
-      const target = resolveModelAndRoute(undefined, input.model);
+      const target = resolveTextTarget(route, input.model);
       const response = await runtime.ai.text.stream({
         model: target.model,
         input: input.prompt,
@@ -174,8 +195,15 @@ export function createRelayAiClient(runtime: Runtime): LocalChatTurnAiClient {
     async resolveRoute(
       _input: { routeBinding?: unknown },
     ): Promise<ChatRouteSnapshot | null> {
-      // The relay uses input-transform.ts route resolution (model prefix based).
-      // Default to local route since relay primarily uses local runtime.
+      if (route) {
+        return {
+          source: route.source,
+          model: route.model,
+          connectorId: route.connectorId,
+          provider: route.provider,
+          localModelId: route.localModelId,
+        };
+      }
       return { source: 'local', model: 'local/default' };
     },
   };

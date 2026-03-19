@@ -89,9 +89,45 @@ const api = {
   // Auth (RL-BOOT-005)
   auth: {
     getStatus: () => ipcRenderer.invoke('relay:auth:status') as Promise<{ state: string; error: string | null }>,
-    browserLogin: () => ipcRenderer.invoke('relay:auth:browser-login') as Promise<{ success: boolean; error?: string }>,
+    applyToken: (payload: { accessToken: string }) =>
+      ipcRenderer.invoke('relay:auth:apply-token', payload) as Promise<{ success: boolean; error?: string }>,
+    realmRequest: (payload: { method: string; path: string; body?: unknown; accessToken?: string }) =>
+      ipcRenderer.invoke('relay:auth:realm-request', payload),
+    checkEmail: (payload: { email: string }) =>
+      ipcRenderer.invoke('relay:auth:check-email', payload),
+    passwordLogin: (payload: { identifier: string; password: string }) =>
+      ipcRenderer.invoke('relay:auth:password-login', payload),
+    oauthLogin: (payload: { provider: string; accessToken: string }) =>
+      ipcRenderer.invoke('relay:auth:oauth-login', payload),
+    requestEmailOtp: (payload: { email: string }) =>
+      ipcRenderer.invoke('relay:auth:email-otp-request', payload),
+    verifyEmailOtp: (payload: { email: string; code: string }) =>
+      ipcRenderer.invoke('relay:auth:email-otp-verify', payload),
+    verifyTwoFactor: (payload: { tempToken: string; code: string }) =>
+      ipcRenderer.invoke('relay:auth:2fa-verify', payload),
+    walletChallenge: (payload: { walletAddress: string; chainId?: number; walletType: string }) =>
+      ipcRenderer.invoke('relay:auth:wallet-challenge', payload),
+    walletLogin: (payload: { walletAddress: string; chainId?: number; nonce: string; message: string; signature: string; walletType: string }) =>
+      ipcRenderer.invoke('relay:auth:wallet-login', payload),
+    updatePassword: (payload: { newPassword: string; accessToken?: string }) =>
+      ipcRenderer.invoke('relay:auth:update-password', payload),
+    currentUser: (payload?: { accessToken?: string }) =>
+      ipcRenderer.invoke('relay:auth:current-user', payload),
+    logout: () => ipcRenderer.invoke('relay:auth:logout') as Promise<void>,
     onStatus: (cb: (...args: unknown[]) => void) => addListener('relay:auth:status', cb),
     removeListener,
+  },
+
+  // OAuth primitives (RL-BOOT-005)
+  oauth: {
+    listenForCode: (payload: { redirectUri: string; timeoutMs?: number }) =>
+      ipcRenderer.invoke('relay:oauth:listen-for-code', payload) as Promise<{ callbackUrl: string; code?: string; state?: string; error?: string }>,
+    openExternalUrl: (url: string) =>
+      ipcRenderer.invoke('relay:oauth:open-external-url', { url }) as Promise<{ opened: boolean }>,
+    focusMainWindow: () =>
+      ipcRenderer.invoke('relay:oauth:focus-main-window') as Promise<void>,
+    tokenExchange: (payload: Record<string, unknown>) =>
+      ipcRenderer.invoke('relay:oauth:token-exchange', payload),
   },
 
   // Model service (RL-IPC-010)
@@ -138,6 +174,15 @@ const api = {
     deleteCatalogProvider: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-provider:delete', input),
     upsertCatalogOverlay: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-overlay:upsert', input),
     deleteCatalogOverlay: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:connector:catalog-overlay:delete', input),
+  },
+
+  // Route selection (relay:route:*)
+  route: {
+    getOptions: () => ipcRenderer.invoke('relay:route:options'),
+    getBinding: () => ipcRenderer.invoke('relay:route:binding:get'),
+    setBinding: (input: Record<string, unknown>) => ipcRenderer.invoke('relay:route:binding:set', input),
+    getSnapshot: () => ipcRenderer.invoke('relay:route:snapshot'),
+    refresh: () => ipcRenderer.invoke('relay:route:refresh'),
   },
 
   // Desktop interop (RL-IPC-013)

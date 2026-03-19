@@ -610,6 +610,9 @@ export type LocalChatContextPacket = {
 export type ChatRouteSnapshot = {
   source: string;
   model: string;
+  connectorId?: string;
+  provider?: string;
+  localModelId?: string;
 };
 
 export type AssistantPlanChannel = 'auto' | 'text' | 'voice';

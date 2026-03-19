@@ -55,9 +55,27 @@ export interface NimiRelayBridge {
   };
   auth: {
     getStatus: () => Promise<{ state: string; error: string | null }>;
-    browserLogin: () => Promise<{ success: boolean; error?: string }>;
+    applyToken: (payload: { accessToken: string }) => Promise<{ success: boolean; error?: string }>;
+    realmRequest: (payload: { method: string; path: string; body?: unknown; accessToken?: string }) => Promise<unknown>;
+    checkEmail: (payload: { email: string }) => Promise<unknown>;
+    passwordLogin: (payload: { identifier: string; password: string }) => Promise<unknown>;
+    oauthLogin: (payload: { provider: string; accessToken: string }) => Promise<unknown>;
+    requestEmailOtp: (payload: { email: string }) => Promise<unknown>;
+    verifyEmailOtp: (payload: { email: string; code: string }) => Promise<unknown>;
+    verifyTwoFactor: (payload: { tempToken: string; code: string }) => Promise<unknown>;
+    walletChallenge: (payload: { walletAddress: string; chainId?: number; walletType: string }) => Promise<unknown>;
+    walletLogin: (payload: { walletAddress: string; chainId?: number; nonce: string; message: string; signature: string; walletType: string }) => Promise<unknown>;
+    updatePassword: (payload: { newPassword: string; accessToken?: string }) => Promise<unknown>;
+    currentUser: (payload?: { accessToken?: string }) => Promise<unknown>;
+    logout: () => Promise<void>;
     onStatus: (callback: (payload: { state: string; error: string | null }) => void) => string;
     removeListener: (id: string) => void;
+  };
+  oauth: {
+    listenForCode: (payload: { redirectUri: string; timeoutMs?: number }) => Promise<{ callbackUrl: string; code?: string; state?: string; error?: string }>;
+    openExternalUrl: (url: string) => Promise<{ opened: boolean }>;
+    focusMainWindow: () => Promise<void>;
+    tokenExchange: (payload: Record<string, unknown>) => Promise<unknown>;
   };
   model: {
     list: (input?: Record<string, unknown>) => Promise<unknown>;
@@ -98,6 +116,13 @@ export interface NimiRelayBridge {
     deleteCatalogProvider: (input: Record<string, unknown>) => Promise<unknown>;
     upsertCatalogOverlay: (input: Record<string, unknown>) => Promise<unknown>;
     deleteCatalogOverlay: (input: Record<string, unknown>) => Promise<unknown>;
+  };
+  route: {
+    getOptions: () => Promise<unknown>;
+    getBinding: () => Promise<unknown>;
+    setBinding: (input: Record<string, unknown>) => Promise<unknown>;
+    getSnapshot: () => Promise<unknown>;
+    refresh: () => Promise<unknown>;
   };
   desktop: {
     openConfig: (pageId?: string) => Promise<{ success: boolean }>;

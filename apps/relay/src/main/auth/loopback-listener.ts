@@ -2,23 +2,15 @@
 // Node.js HTTP server that captures OAuth callback on 127.0.0.1
 
 import http from 'node:http';
+import { renderDesktopOAuthResultPage } from '@nimiplatform/shell-auth/native-oauth-result-page';
 
 export interface LoopbackListenerResult {
   code: string;
   state: string;
 }
 
-const SUCCESS_HTML = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>授权成功</title>
-<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0a0a0a;color:#fff}
-.card{text-align:center;padding:2rem}.check{font-size:3rem;margin-bottom:1rem}p{color:#999;margin-top:.5rem}</style>
-</head><body><div class="card"><div class="check">✓</div><h2>授权成功</h2><p>可以关闭此浏览器窗口</p></div></body></html>`;
-
-const ERROR_HTML = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>授权失败</title>
-<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0a0a0a;color:#fff}
-.card{text-align:center;padding:2rem}.icon{font-size:3rem;margin-bottom:1rem}p{color:#999;margin-top:.5rem}</style>
-</head><body><div class="card"><div class="icon">✗</div><h2>授权失败</h2><p>请返回应用重试</p></div></body></html>`;
+const SUCCESS_HTML = renderDesktopOAuthResultPage({ status: 'success' });
+const ERROR_HTML = renderDesktopOAuthResultPage({ status: 'error' });
 
 /**
  * Start an HTTP server on 127.0.0.1 listening for an OAuth callback.

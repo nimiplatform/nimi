@@ -11,6 +11,13 @@ export default defineConfig([
     target: 'node22',
     sourcemap: true,
     external: ['electron'],
+    noExternal: ['@nimiplatform/shell-core', '@nimiplatform/shell-auth'],
+    esbuildOptions(options) {
+      options.loader = {
+        ...options.loader,
+        '.html': 'text',
+      };
+    },
   },
   {
     entry: {
