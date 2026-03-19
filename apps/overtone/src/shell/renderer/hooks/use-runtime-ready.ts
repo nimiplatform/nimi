@@ -24,7 +24,7 @@ async function syncRealmFromEnv(): Promise<{
   realmAuthenticated: boolean;
   realmIssue?: string;
 }> {
-  const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || '').trim();
+  const baseUrl = String(import.meta.env.VITE_NIMI_REALM_BASE_URL || import.meta.env.NIMI_REALM_URL || '').trim();
 
   // Prefer token from auth store (OAuth login), fallback to env var
   const storeToken = useAppStore.getState().authToken;

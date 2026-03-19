@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { DesktopShellAuthPage } from '@nimiplatform/shell-auth';
 import '@nimiplatform/shell-auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { overtoneTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { createOvertoneDesktopBrowserAuthAdapter } from './overtone-auth-adapter.js';
 
 export function OvertoneLogin() {
@@ -17,7 +18,7 @@ export function OvertoneLogin() {
           const store = useAppStore.getState();
           if (!user || !user.id) {
             store.clearAuthSession();
-            store.setRealmConnection(Boolean(import.meta.env.VITE_NIMI_REALM_BASE_URL), false);
+            store.setRealmConnection(Boolean(import.meta.env.VITE_NIMI_REALM_BASE_URL || import.meta.env.NIMI_REALM_URL), false);
             return;
           }
 
@@ -31,6 +32,9 @@ export function OvertoneLogin() {
           );
           store.setRealmConnection(true, true);
         },
+      }}
+      desktopBrowserAuth={{
+        bridge: overtoneTauriOAuthBridge,
       }}
       testIds={{
         screen: 'overtone-login-page',

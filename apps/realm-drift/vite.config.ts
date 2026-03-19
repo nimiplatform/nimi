@@ -8,6 +8,7 @@ export default defineConfig(() => {
 
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
+    envDir: workspaceRoot,
     envPrefix: ['VITE_', 'NIMI_'],
     define: {
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('realm-drift'),

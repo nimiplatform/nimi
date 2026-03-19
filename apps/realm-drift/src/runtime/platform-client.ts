@@ -1,5 +1,6 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
+import { useAppStore } from '@renderer/app-shell/app-store.js';
 
 const DEFAULT_APP_ID = 'nimi.realm-drift';
 
@@ -106,6 +107,18 @@ export async function initializePlatformClient(input: PlatformClientRuntimeDefau
   ]);
   const tokenValue = String(input.accessToken || '').trim();
   const runtimeAccessTokenProvider = input.accessTokenProvider || tokenValue;
+  const realmAccessTokenProvider = async () => {
+    const store = useAppStore.getState();
+    const currentToken = normalizeText(store.auth.token);
+    if (currentToken) {
+      return currentToken;
+    }
+    if (store.auth.status === 'bootstrapping') {
+      return tokenValue;
+    }
+    return '';
+  };
+  const realmRefreshTokenProvider = () => normalizeText(useAppStore.getState().auth.refreshToken);
   const runtimeSubjectUserIdProvider = async () => {
     const explicit = normalizeText(await input.subjectUserIdProvider?.());
     if (explicit) {
@@ -131,15 +144,26 @@ export async function initializePlatformClient(input: PlatformClientRuntimeDefau
   });
   const realm = new realmSdk.Realm({
     baseUrl: String(input.realmBaseUrl || '').trim(),
-    auth: tokenValue
-      ? {
-          accessToken: tokenValue,
+    auth: {
+      accessToken: realmAccessTokenProvider,
+      refreshToken: realmRefreshTokenProvider,
+      onTokenRefreshed: (result) => {
+        const store = useAppStore.getState();
+        if (!store.auth.user) {
+          return;
         }
-      : null,
+        store.setAuthSession(
+          store.auth.user,
+          result.accessToken,
+          result.refreshToken || store.auth.refreshToken,
+        );
+      },
+      onRefreshFailed: () => {
+        realm.clearAuth();
+        useAppStore.getState().clearAuthSession();
+      },
+    },
   });
-
-  // Install 401 response interceptor for automatic token refresh
-  installTokenRefreshInterceptor(realm, input);
 
   const client: PlatformClient = {
     runtime,
@@ -154,78 +178,4 @@ export function getPlatformClient(): PlatformClient {
     throw new Error('PLATFORM_CLIENT_NOT_READY');
   }
   return platformClient;
-}
-
-function installTokenRefreshInterceptor(
-  realm: InstanceType<typeof import('@nimiplatform/sdk/realm').Realm>,
-  input: PlatformClientRuntimeDefaults,
-): void {
-  const originalRequest = realm.raw?.request?.bind(realm.raw);
-  if (!originalRequest) return;
-
-  let refreshPromise: Promise<string | null> | null = null;
-
-  realm.raw.request = async function interceptedRequest<T>(
-    ...args: Parameters<typeof originalRequest>
-  ): Promise<T> {
-    try {
-      return await originalRequest<T>(...args);
-    } catch (err: unknown) {
-      const status = (err as Record<string, unknown>)?.status ?? (err as Record<string, unknown>)?.statusCode;
-      if (status !== 401) throw err;
-
-      if (!refreshPromise) {
-        refreshPromise = attemptTokenRefresh(realm, input).finally(() => {
-          refreshPromise = null;
-        });
-      }
-
-      const newToken = await refreshPromise;
-      if (!newToken) throw err;
-
-      return await originalRequest<T>(...args);
-    }
-  };
-}
-
-async function attemptTokenRefresh(
-  realm: InstanceType<typeof import('@nimiplatform/sdk/realm').Realm>,
-  _input: PlatformClientRuntimeDefaults,
-): Promise<string | null> {
-  try {
-    const { useAppStore } = await import('@renderer/app-shell/app-store.js');
-    const store = useAppStore.getState();
-    const { refreshToken } = store.auth;
-
-    if (!refreshToken) return null;
-
-    const data = await realm.raw.request<Record<string, unknown>>({
-      method: 'POST',
-      path: '/api/auth/refresh',
-      body: { refreshToken },
-    });
-
-    const newToken = String(data.accessToken || '');
-    const newRefreshToken = String(data.refreshToken || refreshToken);
-
-    if (!newToken) {
-      store.clearAuthSession();
-      return null;
-    }
-
-    if (store.auth.user) {
-      store.setAuthSession(store.auth.user, newToken, newRefreshToken);
-    }
-
-    const realmAny = realm as unknown as Record<string, unknown>;
-    if (realmAny.config) {
-      (realmAny.config as Record<string, unknown>).auth = { accessToken: newToken };
-    }
-
-    return newToken;
-  } catch {
-    const { useAppStore } = await import('@renderer/app-shell/app-store.js');
-    useAppStore.getState().clearAuthSession();
-    return null;
-  }
 }

@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 
-const mockRequest = vi.fn();
+const mockGetMe = vi.fn();
 
 const mockRealm = {
-  raw: {
-    request: (...args: unknown[]) => mockRequest(...args),
+  services: {
+    MeService: {
+      getMe: (...args: unknown[]) => mockGetMe(...args),
+    },
   },
 };
 
@@ -13,21 +15,22 @@ import { bootstrapAuthSession } from './drift-bootstrap-auth.js';
 
 describe('bootstrapAuthSession', () => {
   beforeEach(() => {
-    mockRequest.mockReset();
+    mockGetMe.mockReset();
     useAppStore.setState({
       auth: { status: 'bootstrapping', user: null, token: '', refreshToken: '' },
     });
   });
 
   it('sets auth session when token is valid and user data returned', async () => {
-    mockRequest.mockResolvedValue({
-      user: {
-        id: 'u1',
-        displayName: 'Test User',
-        email: 'test@example.com',
-        avatarUrl: 'https://example.com/avatar.jpg',
-      },
-      refreshToken: 'refresh-abc',
+    useAppStore.setState({
+      auth: { status: 'bootstrapping', user: null, token: '', refreshToken: 'refresh-abc' },
+    });
+
+    mockGetMe.mockResolvedValue({
+      id: 'u1',
+      displayName: 'Test User',
+      email: 'test@example.com',
+      avatarUrl: 'https://example.com/avatar.jpg',
     });
 
     await bootstrapAuthSession({
@@ -48,12 +51,9 @@ describe('bootstrapAuthSession', () => {
   });
 
   it('sets auth session with fallback name field', async () => {
-    mockRequest.mockResolvedValue({
-      user: {
-        id: 'u2',
-        name: 'Fallback Name',
-      },
-      refreshToken: '',
+    mockGetMe.mockResolvedValue({
+      id: 'u2',
+      name: 'Fallback Name',
     });
 
     await bootstrapAuthSession({
@@ -77,11 +77,11 @@ describe('bootstrapAuthSession', () => {
     const state = useAppStore.getState();
     expect(state.auth.status).toBe('unauthenticated');
     expect(state.auth.user).toBeNull();
-    expect(mockRequest).not.toHaveBeenCalled();
+    expect(mockGetMe).not.toHaveBeenCalled();
   });
 
-  it('clears auth session when API call fails', async () => {
-    mockRequest.mockRejectedValue(new Error('Network error'));
+  it('clears auth session when MeService.getMe fails', async () => {
+    mockGetMe.mockRejectedValue(new Error('Network error'));
 
     await bootstrapAuthSession({
       realm: mockRealm as never,
@@ -94,10 +94,7 @@ describe('bootstrapAuthSession', () => {
   });
 
   it('clears auth session when no user in response', async () => {
-    mockRequest.mockResolvedValue({
-      user: null,
-      refreshToken: 'some-token',
-    });
+    mockGetMe.mockResolvedValue(null);
 
     await bootstrapAuthSession({
       realm: mockRealm as never,
@@ -110,10 +107,7 @@ describe('bootstrapAuthSession', () => {
   });
 
   it('clears auth session when user has no id', async () => {
-    mockRequest.mockResolvedValue({
-      user: { displayName: 'No ID User' },
-      refreshToken: '',
-    });
+    mockGetMe.mockResolvedValue({ displayName: 'No ID User' });
 
     await bootstrapAuthSession({
       realm: mockRealm as never,
@@ -125,20 +119,14 @@ describe('bootstrapAuthSession', () => {
     expect(state.auth.user).toBeNull();
   });
 
-  it('calls realm.raw.request with GET /api/auth/me', async () => {
-    mockRequest.mockResolvedValue({
-      user: { id: 'u1', displayName: 'Test' },
-      refreshToken: '',
-    });
+  it('calls MeService.getMe to bootstrap the current user', async () => {
+    mockGetMe.mockResolvedValue({ id: 'u1', displayName: 'Test' });
 
     await bootstrapAuthSession({
       realm: mockRealm as never,
       accessToken: 'token',
     });
 
-    expect(mockRequest).toHaveBeenCalledWith({
-      method: 'GET',
-      path: '/api/auth/me',
-    });
+    expect(mockGetMe).toHaveBeenCalledWith();
   });
 });

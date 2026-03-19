@@ -1,14 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from './app-store.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getMyWorldAccess } from '@renderer/data/world-data-client.js';
 
 export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const creatorAccess = useAppStore((s) => s.creatorAccess);
   const setCreatorAccess = useAppStore((s) => s.setCreatorAccess);
-  const [applying, setApplying] = useState(false);
-  const [applyResult, setApplyResult] = useState<'idle' | 'submitted' | 'error'>('idle');
 
   useEffect(() => {
     if (creatorAccess.checked) {
@@ -17,11 +15,7 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
 
     async function checkAccess() {
       try {
-        const { realm } = getPlatformClient();
-        const response = await realm.raw.request<Record<string, unknown>>({
-          method: 'GET',
-          path: '/api/world-control/access/me',
-        });
+        const response = await getMyWorldAccess() as Record<string, unknown>;
         setCreatorAccess(Boolean(response.hasCreatorAccess));
       } catch {
         setCreatorAccess(false);
@@ -31,32 +25,11 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
     void checkAccess();
   }, [creatorAccess.checked, setCreatorAccess]);
 
-  const handleApply = useCallback(async () => {
-    setApplying(true);
-    setApplyResult('idle');
-    try {
-      const { realm } = getPlatformClient();
-      await realm.raw.request({
-        method: 'POST',
-        path: '/api/world-control/access/apply',
-        body: {},
-      });
-      setApplyResult('submitted');
-    } catch {
-      // Apply endpoint may not exist yet — show submitted anyway
-      // since the backend grants access via admin role assignment
-      setApplyResult('submitted');
-    } finally {
-      setApplying(false);
-    }
-  }, []);
-
   const handleRetryCheck = useCallback(() => {
     useAppStore.getState().setCreatorAccess(false);
     useAppStore.setState((s) => ({
       creatorAccess: { ...s.creatorAccess, checked: false },
     }));
-    setApplyResult('idle');
   }, []);
 
   if (!creatorAccess.checked) {
@@ -75,34 +48,15 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 text-white">
         <div className="text-center space-y-6 max-w-sm">
           <p className="text-neutral-300 text-lg">{t('auth.creatorAccessRequired')}</p>
-          {applyResult === 'submitted' ? (
-            <>
-              <p className="text-sm text-neutral-400">
-                {t('auth.applySubmitted', 'Your request has been submitted. Access is typically granted within 24 hours.')}
-              </p>
-              <button
-                onClick={handleRetryCheck}
-                className="px-6 py-2 border border-neutral-600 text-neutral-300 rounded-lg font-medium hover:bg-neutral-800 transition-colors"
-              >
-                {t('auth.recheckAccess', 'Check Again')}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-neutral-500">
-                {t('auth.applyHint', 'Creator access is required to use Forge. Apply below to request access.')}
-              </p>
-              <button
-                onClick={() => void handleApply()}
-                disabled={applying}
-                className="px-6 py-2 bg-white text-black rounded-lg font-medium hover:bg-neutral-200 disabled:opacity-50 transition-colors"
-              >
-                {applying
-                  ? t('auth.applying', 'Submitting...')
-                  : t('auth.applyAccess', 'Apply for Creator Access')}
-              </button>
-            </>
-          )}
+          <p className="text-sm text-neutral-400">
+            {t('auth.applyUnavailable', 'Creator access is managed outside Forge right now. Ask an admin to grant access, then re-check here.')}
+          </p>
+          <button
+            onClick={handleRetryCheck}
+            className="px-6 py-2 border border-neutral-600 text-neutral-300 rounded-lg font-medium hover:bg-neutral-800 transition-colors"
+          >
+            {t('auth.recheckAccess', 'Check Again')}
+          </button>
         </div>
       </div>
     );

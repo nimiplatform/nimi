@@ -24,11 +24,10 @@ function LoginForm() {
 
     try {
       const { realm } = getPlatformClient();
-      const data = await realm.raw.request<Record<string, unknown>>({
-        method: 'POST',
-        path: '/api/auth/password/login',
-        body: { identifier: identifier.trim(), password },
-      });
+      const data = await realm.services.AuthService.passwordLogin({
+        identifier: identifier.trim(),
+        password,
+      }) as Record<string, unknown>;
 
       const state = String(data.loginState || '');
 
@@ -66,20 +65,17 @@ function LoginForm() {
 
     try {
       const { realm } = getPlatformClient();
-      const data = await realm.raw.request<Record<string, unknown>>({
-        method: 'POST',
-        path: '/api/auth/2fa/verify',
-        body: { tempToken, code: twoFaCode.trim() },
-      });
-
-      const tokens = data.tokens as Record<string, unknown> | undefined;
-      if (!tokens?.accessToken) {
+      const data = await realm.services.AuthService.verifyTwoFactor({
+        tempToken,
+        code: twoFaCode.trim(),
+      }) as Record<string, unknown>;
+      if (!data.accessToken) {
         setError(t('auth.2faFailed', 'Verification failed'));
         setSubmitting(false);
         return;
       }
 
-      applyAuthTokens(tokens);
+      applyAuthTokens(data as unknown as Record<string, unknown>);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.2faFailed', 'Verification failed'));
       setSubmitting(false);
