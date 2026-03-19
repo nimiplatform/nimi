@@ -6,22 +6,21 @@ import { useCallback } from 'react';
 import { getBridge } from '../../../bridge/electron-bridge.js';
 import { useAppStore, type Agent } from '../../../app-shell/providers/app-store.js';
 
+function readAgentVoiceId(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const record = value as { voice?: { voiceId?: string } | null };
+  return record.voice?.voiceId;
+}
+
 export function useAgentProfile() {
   const currentAgent = useAppStore((s) => s.currentAgent);
   const setAgent = useAppStore((s) => s.setAgent);
 
   const fetchAgentList = useCallback(async (): Promise<Agent[]> => {
     const bridge = getBridge();
-    const result = await bridge.agent.list();
-    const response = result as {
-      items: Array<{
-        agentId: string;
-        displayName: string;
-        handle: string;
-        state: string;
-        avatarUrl?: string | null;
-      }>;
-    };
+    const response = await bridge.agent.list();
     return response.items
       .filter((a) => a.state === 'ACTIVE')
       .map((a) => ({
@@ -40,26 +39,14 @@ export function useAgentProfile() {
     // Async enrichment: fetch full profile for voice/live2d support
     if (agent) {
       const bridge = getBridge();
-      bridge.agent.get(agent.id).then((result) => {
-        const profile = result as {
-          id: string;
-          displayName: string;
-          handle?: string;
-          avatarUrl?: string | null;
-          bio?: string | null;
-          agentProfile?: {
-            dna?: {
-              voice?: { voiceId?: string };
-            } | null;
-          };
-        };
+      bridge.agent.get(agent.id).then((profile) => {
         const enriched: Agent = {
           ...agent,
           name: profile.displayName || agent.name,
           handle: profile.handle ?? agent.handle,
           avatarUrl: profile.avatarUrl ?? agent.avatarUrl,
           description: profile.bio ?? agent.description,
-          voiceId: profile.agentProfile?.dna?.voice?.voiceId,
+          voiceId: readAgentVoiceId(profile.agentProfile?.dna),
         };
         useAppStore.getState().setAgent(enriched);
       }).catch(() => {

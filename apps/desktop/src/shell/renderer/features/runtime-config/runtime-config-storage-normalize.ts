@@ -1,3 +1,5 @@
+import type { JsonObject } from '../../bridge/runtime-bridge/types';
+import { parseOptionalJsonObject } from '../../bridge/runtime-bridge/shared';
 import {
   DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeCapabilityV11,
@@ -14,13 +16,11 @@ import { createDefaultStateV11 } from './runtime-config-storage-defaults';
 
 function normalizeLocalFromAny(
   seed: RuntimeConfigSeedV11,
-  parsed: StoredStateV11 & Record<string, unknown>,
+  parsed: StoredStateV11 & JsonObject,
   fallback: RuntimeConfigStateV11,
 ): RuntimeConfigStateV11['local'] {
-  const rawLocal = (parsed.local && typeof parsed.local === 'object')
-    ? parsed.local as Partial<RuntimeConfigStateV11['local']>
-    : null;
-  const rawLocalRecord = (rawLocal ?? {}) as Record<string, unknown>;
+  const rawLocalRecord = parseOptionalJsonObject(parsed.local) || {};
+  const rawLocal = rawLocalRecord as Partial<RuntimeConfigStateV11['local']>;
 
   const endpoint = normalizeEndpointV11(
     String(rawLocalRecord.endpoint || seed.localProviderEndpoint || seed.localOpenAiEndpoint),
@@ -29,7 +29,8 @@ function normalizeLocalFromAny(
 
   const rawModels = Array.isArray(rawLocalRecord.models) ? rawLocalRecord.models : [];
   const localModels = rawModels
-    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    .map((item) => parseOptionalJsonObject(item))
+    .filter((item): item is JsonObject => Boolean(item))
     .map((item) => normalizeLocalModelV11(item as Partial<RuntimeConfigStateV11['local']['models'][number]>));
   const models = localModels.length > 0
     ? localModels
@@ -38,7 +39,8 @@ function normalizeLocalFromAny(
     ? rawLocalRecord.nodeMatrix
     : [];
   const nodeMatrix = rawNodeMatrix
-    .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    .map((item) => parseOptionalJsonObject(item))
+    .filter((item): item is JsonObject => Boolean(item))
     .map((item) => normalizeLocalNodeMatrixEntryV11(item as Partial<RuntimeConfigStateV11['local']['nodeMatrix'][number]>));
 
   return {
@@ -52,7 +54,7 @@ function normalizeLocalFromAny(
 
 export function normalizeStoredStateV11(seed: RuntimeConfigSeedV11, parsed: StoredStateV11): RuntimeConfigStateV11 {
   const fallback = createDefaultStateV11(seed);
-  const parsedRecord = parsed as StoredStateV11 & Record<string, unknown>;
+  const parsedRecord = parsed as StoredStateV11 & JsonObject;
   const local = normalizeLocalFromAny(seed, parsedRecord, fallback);
 
   const rawActivePage = parsedRecord.activePage || fallback.activePage;

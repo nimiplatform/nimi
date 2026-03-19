@@ -8,7 +8,7 @@ import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';
-import type { ProfileData } from '@renderer/features/profile/profile-model';
+import type { ProfileData, ProfileSource } from '@renderer/features/profile/profile-model';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import type { ContactsViewProps, BlockedUserInfo } from './contacts-view-types.js';
@@ -348,10 +348,10 @@ export function ContactsView(props: ContactsViewProps) {
         const result = selectedContact.isAgent
           ? await dataSync.loadAgentDetails(selectedContact.id)
           : await dataSync.loadUserProfile(selectedContact.id);
-        return toProfileData(result as Record<string, unknown>);
+        return toProfileData(result);
       } catch (_error) {
         // 如果 API 失败，使用联系人数据构建基础 Profile
-        return toProfileData({
+        const fallbackProfile: ProfileSource = {
           id: selectedContact.id,
           displayName: selectedContact.displayName,
           handle: selectedContact.handle,
@@ -367,7 +367,8 @@ export function ContactsView(props: ContactsViewProps) {
           gender: selectedContact.gender || null,
           worldName: selectedContact.worldName || null,
           worldBannerUrl: selectedContact.worldBannerUrl || null,
-        } as Record<string, unknown>);
+        };
+        return toProfileData(fallbackProfile);
       }
     },
     enabled: !!selectedContact,
@@ -388,7 +389,7 @@ export function ContactsView(props: ContactsViewProps) {
     }
 
     // 否则使用基础数据构建
-    return toProfileData({
+    const fallbackProfile: ProfileSource = {
       id: selectedContact.id,
       displayName: selectedContact.displayName,
       handle: selectedContact.handle,
@@ -404,7 +405,8 @@ export function ContactsView(props: ContactsViewProps) {
       gender: selectedContact.gender || null,
       worldName: selectedContact.worldName || null,
       worldBannerUrl: selectedContact.worldBannerUrl || null,
-    } as Record<string, unknown>);
+    };
+    return toProfileData(fallbackProfile);
   }, [selectedContact, profileQuery.data]);
 
   // Profile 加载和错误状态

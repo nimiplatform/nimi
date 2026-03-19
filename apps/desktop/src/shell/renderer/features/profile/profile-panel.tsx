@@ -15,8 +15,9 @@ import {
 } from '@renderer/features/contacts/contact-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
-import { toProfileData } from './profile-model';
-import type { ContactRecord } from '@renderer/features/contacts/contacts-model';
+import { toProfileData, type ProfileSource } from './profile-model';
+import { toFriendContact, type ContactRecord } from '@renderer/features/contacts/contacts-model';
+import type { SocialContactSnapshot } from '@runtime/data-sync/flows/profile-flow';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
@@ -47,9 +48,9 @@ export function ProfilePanel() {
 
   // Try to get contact info from cache for fallback
   const getContactFromCache = (id: string): ContactRecord | null => {
-    const contactsData = queryClient.getQueryData<{ friends?: ContactRecord[] }>(['contacts', 'authenticated']);
+    const contactsData = queryClient.getQueryData<SocialContactSnapshot>(['contacts', 'authenticated']);
     if (contactsData?.friends) {
-      return contactsData.friends.find((f) => f.id === id) || null;
+      return contactsData.friends.map((item) => toFriendContact(item)).find((f) => f.id === id) || null;
     }
     return null;
   };
@@ -59,7 +60,7 @@ export function ProfilePanel() {
     queryFn: async () => {
       try {
         const result = await dataSync.loadUserProfile(selectedProfileId!);
-        const data = result as Record<string, unknown>;
+        const data: ProfileSource = result;
         // API may not return isFriend — check local contacts
         if (data.isFriend !== true && (dataSync.isFriend(selectedProfileId!) || Boolean(getContactFromCache(selectedProfileId!)))) {
           return { ...data, isFriend: true };
@@ -93,7 +94,7 @@ export function ProfilePanel() {
             followerCount: 0,
             followingCount: 0,
             postCount: 0,
-          } as Record<string, unknown>;
+          } satisfies ProfileSource;
         }
         // Re-throw if not in cache
         throw error;
@@ -274,7 +275,7 @@ export function ProfilePanel() {
         gender: draft.gender.trim() || null,
         languages: toArray(draft.languages),
         tags: toArray(draft.tags),
-      }) as Record<string, unknown>;
+      });
 
       if (typeof updated.avatarUrl !== 'string') {
         updated.avatarUrl = draft.avatarUrl.trim() || null;

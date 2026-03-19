@@ -1,5 +1,6 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { isJsonObject, type JsonObject } from '@runtime/net/json';
 import {
   getErrorMessage,
   getOfflineCacheManager,
@@ -14,11 +15,11 @@ type StartChatInputDto = RealmModel<'StartChatInputDto'>;
 type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
-  details?: Record<string, unknown>,
+  details?: JsonObject,
 ) => void;
 
 function isHumanChatThread(chat: unknown): boolean {
@@ -54,7 +55,7 @@ function toPersistentEntry(entry: PendingChatOutboxEntry): PersistentOutboxEntry
   return {
     clientMessageId: String(entry.body.clientMessageId || '').trim(),
     chatId: entry.chatId,
-    body: entry.body as unknown as Record<string, unknown>,
+    body: entry.body as JsonObject,
     enqueuedAt: entry.queuedAt,
     attempts: entry.attempts,
     status: 'pending',
@@ -62,8 +63,8 @@ function toPersistentEntry(entry: PendingChatOutboxEntry): PersistentOutboxEntry
 }
 
 function toQueuedMessagePlaceholder(entry: PersistentOutboxEntry): MessageViewDto {
-  const payload = (entry.body.payload && typeof entry.body.payload === 'object')
-    ? entry.body.payload as Record<string, unknown>
+  const payload = isJsonObject(entry.body.payload)
+    ? entry.body.payload
     : null;
   return {
     id: `offline:${entry.clientMessageId}`,
@@ -72,7 +73,7 @@ function toQueuedMessagePlaceholder(entry: PersistentOutboxEntry): MessageViewDt
     createdAt: new Date(entry.enqueuedAt).toISOString(),
     isRead: true,
     payload,
-    senderId: String((entry.body as Record<string, unknown>).senderId || 'local-user'),
+    senderId: String(entry.body.senderId || 'local-user'),
     text: typeof entry.body.text === 'string' ? entry.body.text : null,
     type: (entry.body.type || 'TEXT') as MessageType,
   };
@@ -112,7 +113,7 @@ export async function loadChatList(
       '加载会话列表失败',
     );
     const manager = await getOfflineCacheManager();
-    const items = filterHumanChatItems(result?.items as Record<string, unknown>[] | undefined);
+    const items = filterHumanChatItems(result?.items);
     await manager.syncChatList(items);
     return {
       ...result,
@@ -145,7 +146,7 @@ export async function loadMoreChatList(
     );
     return {
       ...result,
-      items: filterHumanChatItems(result?.items as Record<string, unknown>[] | undefined),
+      items: filterHumanChatItems(result?.items),
     };
   } catch (error) {
     emitDataSyncError('load-more-chats', error);
@@ -167,9 +168,6 @@ export async function startChatWithTarget(
     if (normalizedMessage) {
       data.text = normalizedMessage;
       data.type = 'TEXT' as MessageType;
-      data.payload = {
-        content: normalizedMessage,
-      } as unknown as Record<string, never>;
     }
 
     const result = await callApi(
@@ -203,7 +201,7 @@ export async function loadChatMessages(
       '加载消息失败',
     );
     const manager = await getOfflineCacheManager();
-    const items = Array.isArray(result?.items) ? result.items as Record<string, unknown>[] : [];
+    const items = Array.isArray(result?.items) ? result.items : [];
     await manager.syncChatMessages(chatId, items);
     if (markChatRead) {
       await markChatRead(chatId);
@@ -217,7 +215,7 @@ export async function loadChatMessages(
       const manager = await getOfflineCacheManager();
       getOfflineCoordinator().markCacheFallbackUsed();
       return {
-        items: await manager.getCachedMessages(chatId) as MessageViewDto[],
+        items: await manager.getCachedMessages<MessageViewDto>(chatId),
         offlineOutbox: await manager.getChatOutboxEntries(chatId),
       };
     }
@@ -265,7 +263,6 @@ export async function sendChatMessage(
       clientMessageId,
       type: 'TEXT' as MessageType,
       text: content,
-      payload: { content } as unknown as Record<string, never>,
       ...options,
     };
     const manager = await getOfflineCacheManager();

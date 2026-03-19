@@ -2,52 +2,13 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getBridge } from '../../bridge/electron-bridge.js';
+import type {
+  RelayRouteBinding,
+  RelayRouteOptions,
+  ResolvedRelayRoute,
+} from '../../../shared/ipc-contract.js';
 
-export type RelayRouteSource = 'local' | 'cloud';
-
-export type RelayLocalModelOption = {
-  localModelId: string;
-  modelId: string;
-  engine: string;
-  status: 'active' | 'installed' | 'unhealthy' | 'removed' | 'unspecified';
-  capabilities: string[];
-};
-
-export type RelayConnectorModelOption = {
-  modelId: string;
-  modelLabel: string;
-  available: boolean;
-  capabilities: string[];
-};
-
-export type RelayConnectorOption = {
-  connectorId: string;
-  provider: string;
-  label: string;
-  status: string;
-  models: RelayConnectorModelOption[];
-};
-
-export type RelayRouteOptions = {
-  local: { models: RelayLocalModelOption[] };
-  connectors: RelayConnectorOption[];
-  selected: RelayRouteBinding | null;
-};
-
-export type RelayRouteBinding = {
-  source: RelayRouteSource;
-  model?: string;
-  connectorId?: string;
-  localModelId?: string;
-};
-
-export type ResolvedRelayRoute = {
-  source: RelayRouteSource;
-  model: string;
-  connectorId?: string;
-  localModelId?: string;
-  provider?: string;
-};
+export type RelayRouteSource = RelayRouteBinding['source'];
 
 const POLL_INTERVAL_WITH_CONNECTORS = 30_000;
 const POLL_INTERVAL_WITHOUT_CONNECTORS = 60_000;
@@ -65,9 +26,9 @@ export function useRelayRoute() {
     const bridge = getBridge();
     try {
       const [opts, bind, snap] = await Promise.all([
-        bridge.route.getOptions() as Promise<RelayRouteOptions>,
-        bridge.route.getBinding() as Promise<RelayRouteBinding | null>,
-        bridge.route.getSnapshot() as Promise<ResolvedRelayRoute | null>,
+        bridge.route.getOptions(),
+        bridge.route.getBinding(),
+        bridge.route.getSnapshot(),
       ]);
       if (!mountedRef.current) return;
       setOptions(opts);
@@ -108,11 +69,11 @@ export function useRelayRoute() {
       if (!mountedRef.current) return;
       try {
         const bridge = getBridge();
-        const refreshed = await bridge.route.refresh() as RelayRouteOptions;
+        const refreshed = await bridge.route.refresh();
         if (!mountedRef.current) return;
         setOptions(refreshed);
         // Also refresh snapshot since options may have changed resolution
-        const snap = await bridge.route.getSnapshot() as ResolvedRelayRoute | null;
+        const snap = await bridge.route.getSnapshot();
         if (mountedRef.current) setSnapshot(snap);
       } catch {
         // Silently ignore polling errors
@@ -124,7 +85,7 @@ export function useRelayRoute() {
   const onSourceChange = useCallback(async (source: RelayRouteSource) => {
     const bridge = getBridge();
     const newBinding: RelayRouteBinding = { source };
-    const resolved = await bridge.route.setBinding(newBinding) as ResolvedRelayRoute | null;
+    const resolved = await bridge.route.setBinding(newBinding);
     setBinding(newBinding);
     setSnapshot(resolved);
   }, []);
@@ -132,7 +93,7 @@ export function useRelayRoute() {
   const onConnectorChange = useCallback(async (connectorId: string) => {
     const bridge = getBridge();
     const newBinding: RelayRouteBinding = { source: 'cloud', connectorId };
-    const resolved = await bridge.route.setBinding(newBinding) as ResolvedRelayRoute | null;
+    const resolved = await bridge.route.setBinding(newBinding);
     setBinding(newBinding);
     setSnapshot(resolved);
   }, []);
@@ -146,7 +107,7 @@ export function useRelayRoute() {
       connectorId: source === 'cloud' ? binding?.connectorId : undefined,
       localModelId: source === 'local' ? model : undefined,
     };
-    const resolved = await bridge.route.setBinding(newBinding) as ResolvedRelayRoute | null;
+    const resolved = await bridge.route.setBinding(newBinding);
     setBinding(newBinding);
     setSnapshot(resolved);
   }, [binding]);
@@ -154,7 +115,7 @@ export function useRelayRoute() {
   const onReset = useCallback(async () => {
     const bridge = getBridge();
     const newBinding: RelayRouteBinding = { source: 'local' };
-    const resolved = await bridge.route.setBinding(newBinding) as ResolvedRelayRoute | null;
+    const resolved = await bridge.route.setBinding(newBinding);
     setBinding(newBinding);
     setSnapshot(resolved);
   }, []);

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
+import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
 import { PageShell, SectionTitle } from './settings-layout-components';
 
@@ -49,13 +50,13 @@ function normalizeWalletCheckoutStatus(input: unknown): WalletCheckoutStatus | n
 }
 
 function toSparkPackages(input: unknown): SparkPackageItem[] {
-  const root = input && typeof input === 'object' ? input as Record<string, unknown> : null;
-  const rawItems = Array.isArray(root)
-    ? root
+  const root = parseOptionalJsonObject(input);
+  const rawItems: unknown[] = Array.isArray(input)
+    ? input
     : (Array.isArray(root?.items) ? root.items : []);
   return rawItems
-    .map((item) => {
-      const record = item && typeof item === 'object' ? item as Record<string, unknown> : null;
+    .map((item: unknown) => {
+      const record = parseOptionalJsonObject(item);
       const id = String(record?.id || '').trim();
       if (!id) {
         return null;
@@ -198,10 +199,10 @@ function formatDateTime(value: unknown): string {
 }
 
 function toTimelineItems(input: unknown): WalletTimelineItem[] {
-  const payload = input && typeof input === 'object' ? (input as Record<string, unknown>) : null;
+  const payload = parseOptionalJsonObject(input);
   const items = Array.isArray(payload?.items) ? payload.items : [];
   return items.map((item, index) => {
-    const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+    const record = parseOptionalJsonObject(item) ?? {};
     const id = typeof record.id === 'string' ? record.id : `tx-${index}`;
     return {
       id,
@@ -319,13 +320,16 @@ export function WalletPage() {
     queryFn: async () => dataSync.loadWithdrawalHistory(10),
   });
 
-  const sparkBalance = formatAmount((balancesQuery.data as Record<string, unknown> | undefined)?.sparkBalance);
-  const gemBalance = formatAmount((balancesQuery.data as Record<string, unknown> | undefined)?.gemBalance);
-  const subscriptionStatus = String((subscriptionQuery.data as Record<string, unknown> | undefined)?.status || 'UNKNOWN');
-  const subscriptionTier = String((subscriptionQuery.data as Record<string, unknown> | undefined)?.tier || 'FREE');
-  const canWithdraw = (withdrawEligibilityQuery.data as Record<string, unknown> | undefined)?.canWithdraw === true;
-  const withdrawReason = String((withdrawEligibilityQuery.data as Record<string, unknown> | undefined)?.reason || '');
-  const withdrawMin = formatAmount((withdrawEligibilityQuery.data as Record<string, unknown> | undefined)?.minAmount, 0);
+  const balancesPayload = parseOptionalJsonObject(balancesQuery.data);
+  const subscriptionPayload = parseOptionalJsonObject(subscriptionQuery.data);
+  const withdrawEligibilityPayload = parseOptionalJsonObject(withdrawEligibilityQuery.data);
+  const sparkBalance = formatAmount(balancesPayload?.sparkBalance);
+  const gemBalance = formatAmount(balancesPayload?.gemBalance);
+  const subscriptionStatus = String(subscriptionPayload?.status || 'UNKNOWN');
+  const subscriptionTier = String(subscriptionPayload?.tier || 'FREE');
+  const canWithdraw = withdrawEligibilityPayload?.canWithdraw === true;
+  const withdrawReason = String(withdrawEligibilityPayload?.reason || '');
+  const withdrawMin = formatAmount(withdrawEligibilityPayload?.minAmount, 0);
   const sparkPackages = useMemo(() => toSparkPackages(sparkPackagesQuery.data), [sparkPackagesQuery.data]);
   const defaultSparkPackage = useMemo(
     () => pickDefaultSparkPackage(sparkPackages),
@@ -345,10 +349,10 @@ export function WalletPage() {
   }, [gemHistoryQuery.data, sparkHistoryQuery.data]);
 
   const withdrawalItems = useMemo(() => {
-    const payload = withdrawalHistoryQuery.data as Record<string, unknown> | undefined;
+    const payload = parseOptionalJsonObject(withdrawalHistoryQuery.data);
     const items = Array.isArray(payload?.items) ? payload.items : [];
     return items.map((item, index) => {
-      const record = item && typeof item === 'object' ? (item as Record<string, unknown>) : {};
+      const record = parseOptionalJsonObject(item) ?? {};
       return {
         id: typeof record.id === 'string' ? record.id : `wd-${index}`,
         status: typeof record.status === 'string' ? record.status : 'UNKNOWN',

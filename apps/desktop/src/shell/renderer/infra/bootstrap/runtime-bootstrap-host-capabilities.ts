@@ -9,7 +9,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import type { DesktopHookRuntimeService } from '@runtime/hook';
-import { getPlatformClient } from '@runtime/platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { buildRuntimeRequestMetadata, ensureRuntimeLocalModelWarm, } from '@runtime/llm-adapter/execution/runtime-ai-bridge';
 import { LifecycleSubscriptionManager } from '@renderer/mod-ui/lifecycle/lifecycle-subscription-manager';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';

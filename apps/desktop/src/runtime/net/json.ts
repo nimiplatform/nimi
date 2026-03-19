@@ -1,12 +1,24 @@
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = unknown;
+export type JsonObject = Record<string, unknown>;
+
+export function isJsonObject(value: unknown): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function asRecord(value: unknown): JsonObject {
+  return isJsonObject(value) ? value : {};
+}
+
 export async function parseJsonObject(
   response: Response,
-): Promise<Record<string, unknown> | null> {
+): Promise<JsonObject | null> {
   try {
     const text = await response.text();
     if (!text) return null;
     const parsed = JSON.parse(text);
-    if (typeof parsed === 'object' && parsed !== null) {
-      return parsed as Record<string, unknown>;
+    if (isJsonObject(parsed)) {
+      return parsed;
     }
     return null;
   } catch {

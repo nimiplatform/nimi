@@ -4,8 +4,8 @@
 
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
+import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
 import { parseEnv, type RelayEnv } from './env.js';
-import { initPlatformClient } from './platform-client.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
 import { registerModelIpcHandlers } from './model-handlers.js';
 import { registerDesktopInteropHandlers } from './desktop-interop.js';
@@ -14,8 +14,6 @@ import { loadToken, saveToken, clearToken } from './auth/index.js';
 import { createRouteState } from './route/route-state.js';
 import { registerRouteHandlers } from './route/route-handlers.js';
 import type { RouteState } from './route/route-state.js';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
-import type { Realm } from '@nimiplatform/sdk/realm';
 
 /**
  * Invalidate the current auth session: clear persisted token,
@@ -30,8 +28,8 @@ export function invalidateAuth(): void {
 
 let mainWindow: BrowserWindow | null = null;
 let env: RelayEnv;
-let runtime: Runtime;
-let realm: Realm;
+let runtime: PlatformClient['runtime'];
+let realm: PlatformClient['realm'];
 let routeState: RouteState;
 
 export type AuthState = 'pending' | 'authenticating' | 'authenticated' | 'failed';
@@ -100,7 +98,15 @@ export async function applyTokenAndInit(accessToken: string): Promise<void> {
     env.NIMI_ACCESS_TOKEN = accessToken;
 
     // Initialize platform clients with new token
-    ({ runtime, realm } = initPlatformClient(env));
+    ({ runtime, realm } = await createPlatformClient({
+      appId: 'nimi.relay',
+      realmBaseUrl: env.NIMI_REALM_URL,
+      accessToken,
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: env.NIMI_RUNTIME_GRPC_ADDR,
+      },
+    }));
 
     // Initialize route state
     routeState = createRouteState();
@@ -145,7 +151,15 @@ app.whenReady().then(async () => {
   if (token) {
     // Token available — validate via runtime.health() (main process, no IPC serialization)
     env.NIMI_ACCESS_TOKEN = token;
-    ({ runtime, realm } = initPlatformClient(env));
+    ({ runtime, realm } = await createPlatformClient({
+      appId: 'nimi.relay',
+      realmBaseUrl: env.NIMI_REALM_URL,
+      accessToken: token,
+      runtimeTransport: {
+        type: 'node-grpc',
+        endpoint: env.NIMI_RUNTIME_GRPC_ADDR,
+      },
+    }));
 
     try {
       await runtime.health();

@@ -1,3 +1,4 @@
+import { assertRecord, parseOptionalJsonObject } from './shared.js';
 import { hasTauriInvoke, nativeFetch } from './env';
 import { invokeChecked } from './invoke';
 import { resolveRendererSessionTraceId } from './logging';
@@ -17,19 +18,12 @@ type ProxyHttpResult = {
 };
 
 function parseProxyHttpResult(value: unknown): ProxyHttpResult {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('http_request returned invalid payload');
-  }
-  const record = value as Record<string, unknown>;
+  const record = assertRecord(value, 'http_request returned invalid payload');
   const status = Number(record.status);
   if (!Number.isFinite(status)) {
     throw new Error('http_request returned invalid status');
   }
-  const headers = (
-    record.headers && typeof record.headers === 'object' && !Array.isArray(record.headers)
-      ? record.headers
-      : {}
-  ) as Record<string, unknown>;
+  const headers = parseOptionalJsonObject(record.headers) || {};
   return {
     status,
     ok: Boolean(record.ok),

@@ -84,7 +84,7 @@ vi.mock('../human-chat/realtime-connection.js', () => ({
   },
 }));
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       raw: {

@@ -1,5 +1,5 @@
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
-import { getPlatformClient } from '../platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import type {
   GgufVariantDescriptor,
   LocalRuntimeArtifactRecord,

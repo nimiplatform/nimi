@@ -1,4 +1,4 @@
-import { getPlatformClient } from '@runtime/platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { asNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
@@ -24,6 +24,10 @@ function withAuditError<T>(promise: Promise<T>): Promise<T> {
   });
 }
 
+function runtimeAdmin() {
+  return getPlatformClient().domains.runtimeAdmin;
+}
+
 export function dateToTimestamp(date: Date): { seconds: string; nanos: number } {
   const ms = date.getTime();
   const seconds = Math.floor(ms / 1000);
@@ -34,9 +38,8 @@ export function dateToTimestamp(date: Date): { seconds: string; nanos: number } 
 export async function fetchGlobalAuditEvents(
   req: Partial<ListAuditEventsRequest>,
 ): Promise<ListAuditEventsResponse> {
-  const runtime = getPlatformClient().runtime;
   return withAuditError(
-    runtime.audit.listAuditEvents({
+    runtimeAdmin().listAuditEvents({
       appId: '',
       subjectUserId: '',
       domain: req.domain ?? '',
@@ -54,9 +57,8 @@ export async function fetchGlobalAuditEvents(
 export async function startAuditExport(
   req: Partial<ExportAuditEventsRequest>,
 ): Promise<AsyncIterable<AuditExportChunk>> {
-  const runtime = getPlatformClient().runtime;
   return withAuditError(
-    runtime.audit.exportAuditEvents({
+    runtimeAdmin().exportAuditEvents({
       appId: req.appId ?? '',
       subjectUserId: req.subjectUserId ?? '',
       format: req.format ?? 'json',
@@ -70,9 +72,8 @@ export async function startAuditExport(
 export async function fetchUsageStats(
   req: Partial<ListUsageStatsRequest>,
 ): Promise<ListUsageStatsResponse> {
-  const runtime = getPlatformClient().runtime;
   return withAuditError(
-    runtime.audit.listUsageStats({
+    runtimeAdmin().listUsageStats({
       appId: '',
       subjectUserId: '',
       callerKind: req.callerKind ?? 0,
@@ -89,25 +90,21 @@ export async function fetchUsageStats(
 }
 
 export async function fetchRuntimeHealth(): Promise<GetRuntimeHealthResponse> {
-  const runtime = getPlatformClient().runtime;
   return withAuditError(
-    runtime.audit.getRuntimeHealth({}, { timeoutMs: 5000 }),
+    runtimeAdmin().getRuntimeHealth({}, { timeoutMs: 5000 }),
   );
 }
 
 export async function fetchProviderHealth(): Promise<ListAIProviderHealthResponse> {
-  const runtime = getPlatformClient().runtime;
   return withAuditError(
-    runtime.audit.listAIProviderHealth({}, { timeoutMs: 5000 }),
+    runtimeAdmin().listAIProviderHealth({}, { timeoutMs: 5000 }),
   );
 }
 
 export async function subscribeRuntimeHealth(): Promise<AsyncIterable<RuntimeHealthEvent>> {
-  const runtime = getPlatformClient().runtime;
-  return withAuditError(runtime.healthEvents({}));
+  return withAuditError(runtimeAdmin().healthEvents({}));
 }
 
 export async function subscribeProviderHealth(): Promise<AsyncIterable<AIProviderHealthEvent>> {
-  const runtime = getPlatformClient().runtime;
-  return withAuditError(runtime.providerHealthEvents({}));
+  return withAuditError(runtimeAdmin().providerHealthEvents({}));
 }

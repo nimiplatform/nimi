@@ -3,6 +3,7 @@
 
 import type { WebContents } from 'electron';
 import { normalizeError } from './error-utils.js';
+import type { RelayEventMap } from '../shared/ipc-contract.js';
 
 interface ActiveStream {
   type: string;
@@ -54,18 +55,21 @@ async function consumeStream(
         break;
       }
       // relay:stream:chunk — { streamId, data }
-      webContents.send('relay:stream:chunk', { streamId, data: chunk });
+      const payload: RelayEventMap['relay:stream:chunk'] = { streamId, data: chunk as RelayEventMap['relay:stream:chunk']['data'] };
+      webContents.send('relay:stream:chunk', payload);
     }
 
     if (!signal.aborted && !webContents.isDestroyed()) {
       // relay:stream:end — { streamId }
-      webContents.send('relay:stream:end', { streamId });
+      const payload: RelayEventMap['relay:stream:end'] = { streamId };
+      webContents.send('relay:stream:end', payload);
     }
   } catch (error: unknown) {
     if (!signal.aborted && !webContents.isDestroyed()) {
       const errorPayload = normalizeError(error);
       // relay:stream:error — { streamId, error }
-      webContents.send('relay:stream:error', { streamId, error: errorPayload });
+      const payload: RelayEventMap['relay:stream:error'] = { streamId, error: errorPayload };
+      webContents.send('relay:stream:error', payload);
     }
   } finally {
     streams.delete(streamId);
@@ -84,4 +88,3 @@ export function cancelStream(streamId: string): boolean {
   streams.delete(streamId);
   return true;
 }
-

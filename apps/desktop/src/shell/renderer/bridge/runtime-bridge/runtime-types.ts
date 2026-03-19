@@ -1,3 +1,5 @@
+import type { JsonObject } from './shared.js';
+
 export type RealmDefaults = {
   realmBaseUrl: string;
   realtimeUrl: string;
@@ -80,14 +82,14 @@ export type RuntimeBridgeDaemonStatus = {
 
 export type RuntimeBridgeConfigGetResult = {
   path: string;
-  config: Record<string, unknown>;
+  config: JsonObject;
 };
 
 export type RuntimeBridgeConfigSetResult = {
   path: string;
   reasonCode?: string;
   actionHint?: string;
-  config: Record<string, unknown>;
+  config: JsonObject;
 };
 
 export type MenuBarProviderSummary = {
@@ -119,8 +121,8 @@ export type RuntimeLocalManifestSummary = {
   styles?: string[];
   stylePaths?: string[];
   description?: string;
-  manifest?: Record<string, unknown>;
-  releaseManifest?: Record<string, unknown>;
+  manifest?: JsonObject;
+  releaseManifest?: JsonObject;
 };
 
 export type RuntimeLocalAsset = {
@@ -351,7 +353,7 @@ export type OauthTokenExchangeResult = {
   tokenType?: string;
   expiresIn?: number;
   scope?: string;
-  raw: Record<string, unknown>;
+  raw: JsonObject;
 };
 
 export type OauthListenForCodePayload = {

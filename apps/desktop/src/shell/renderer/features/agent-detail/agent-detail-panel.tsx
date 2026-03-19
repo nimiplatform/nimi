@@ -8,6 +8,7 @@ import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
+import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { toAgentDetailData } from './agent-detail-model';
 import { AgentDetailView } from './agent-detail-view';
 
@@ -28,7 +29,7 @@ export function AgentDetailPanel() {
       if (!agentIdentifier) {
         return null;
       }
-      const result = await dataSync.loadAgentDetails(agentIdentifier) as Record<string, unknown>;
+      const result = await dataSync.loadAgentDetails(agentIdentifier);
       // API may not return isFriend — check local contacts
       const agentId = String(result.id || '').trim();
       if (result.isFriend !== true && agentId && dataSync.isFriend(agentId)) {
@@ -45,7 +46,7 @@ export function AgentDetailPanel() {
   });
 
   const resolvedAgentId = useMemo(() => {
-    const profileId = String((profileQuery.data as Record<string, unknown> | null)?.id || '').trim();
+    const profileId = String(profileQuery.data?.id || '').trim();
     if (profileId) {
       return profileId;
     }
@@ -60,8 +61,10 @@ export function AgentDetailPanel() {
   // Extract stats from profile data (if available from API)
   const stats = useMemo(() => {
     if (!profileQuery.data) return null;
-    const data = profileQuery.data as Record<string, unknown>;
-    const statsData = data.stats as Record<string, number> | undefined;
+    const statsData = parseOptionalJsonObject(profileQuery.data.stats) as (JsonObject & {
+      friendsCount?: number;
+      postsCount?: number;
+    }) | undefined;
     return {
       friendsCount: statsData?.friendsCount ?? 0,
       postsCount: statsData?.postsCount ?? 0,
@@ -72,10 +75,12 @@ export function AgentDetailPanel() {
   // World score from agent data (if available)
   const worldScore = useMemo(() => {
     if (!profileQuery.data) return 0;
-    const data = profileQuery.data as Record<string, unknown>;
-    // Try to get score from various possible sources
-    const worldData = data.world as Record<string, unknown> | undefined;
-    return (worldData?.scoreEwma as number) ?? (data.worldScoreEwma as number) ?? 0;
+    const worldData = parseOptionalJsonObject(profileQuery.data.world) as (JsonObject & {
+      scoreEwma?: number;
+    }) | undefined;
+    return worldData?.scoreEwma ?? (
+      typeof profileQuery.data.worldScoreEwma === 'number' ? profileQuery.data.worldScoreEwma : 0
+    );
   }, [profileQuery.data]);
 
   const handleAddFriendClick = () => {

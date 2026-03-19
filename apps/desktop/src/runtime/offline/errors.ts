@@ -1,5 +1,6 @@
 import type { NimiError, NimiErrorSource } from '@nimiplatform/sdk/types';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { asRecord } from '@runtime/net/json';
 
 const REALM_OFFLINE_REASON_CODES = new Set<string>([
   ReasonCode.REALM_UNAVAILABLE,
@@ -29,7 +30,7 @@ export function isNimiErrorLike(error: unknown): error is NimiError {
   if (!error || typeof error !== 'object') {
     return false;
   }
-  const record = error as Record<string, unknown>;
+  const record = asRecord(error);
   return typeof record.reasonCode === 'string' && typeof record.actionHint === 'string';
 }
 

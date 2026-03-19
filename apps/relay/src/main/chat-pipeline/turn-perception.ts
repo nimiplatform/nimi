@@ -11,6 +11,7 @@ import type {
 import type { TurnInvokeInput } from './request-builder.js';
 import { pt, type PromptLocale } from '../prompt/prompt-locale.js';
 import { buildPerceptionCompactContext } from './perception-context.js';
+import { asRecord, type JsonObject } from '../../shared/json.js';
 
 export type TurnPerceptionResult = {
   turnMode: LocalChatTurnMode;
@@ -38,7 +39,7 @@ function parseIntimacyCeiling(
 }
 
 function parsePerceptionResult(
-  object: Record<string, unknown>,
+  object: JsonObject,
   currentRelationship?: string,
 ): TurnPerceptionResult {
   const turnMode = parseTurnMode(object.turnMode);
@@ -74,7 +75,7 @@ function parseTurnMode(value: unknown): LocalChatTurnMode {
 
 function parseEmotionalState(value: unknown): TurnPerceptionResult['emotionalState'] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const detected = String(record.detected || '').trim();
   if (!detected) return null;
   return {
@@ -171,7 +172,7 @@ export async function perceiveTurn(input: {
       maxTokens: 1024,
       temperature: 0.3,
     });
-    const parsed = parsePerceptionResult(result.object as Record<string, unknown>, currentRelationship);
+    const parsed = parsePerceptionResult(asRecord(result.object), currentRelationship);
     console.log('[relay:turn-perception] generateObject: success', {
       turnMode: parsed.turnMode,
       emotionalState: parsed.emotionalState?.detected || null,

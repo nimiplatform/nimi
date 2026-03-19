@@ -52,14 +52,9 @@ function ChatListLoadingSkeleton() {
 }
 
 function getChatTitle(chat: ChatViewDto): string {
-  const record = chat as unknown as Record<string, unknown>;
-  const otherUser =
-    record.otherUser && typeof record.otherUser === 'object'
-      ? (record.otherUser as Record<string, unknown>)
-      : null;
-  const displayName = String(otherUser?.displayName || '').trim();
-  const handle = String(otherUser?.handle || '').trim();
-  return displayName || handle || String(record.id || i18n.t('Common.unknown', { defaultValue: 'Unknown' }));
+  const displayName = String(chat.otherUser?.displayName || '').trim();
+  const handle = String(chat.otherUser?.handle || '').trim();
+  return displayName || handle || String(chat.id || i18n.t('Common.unknown', { defaultValue: 'Unknown' }));
 }
 
 function getChatPreview(
@@ -70,8 +65,10 @@ function getChatPreview(
   if (lastMsg) {
     const text = String(lastMsg.text || '').trim();
     if (text) return text;
-    const payload = lastMsg.payload as Record<string, unknown> | null;
-    const payloadText = String(payload?.content || payload?.text || '').trim();
+    const payload = lastMsg.payload;
+    const payloadText = payload && typeof payload === 'object'
+      ? String(payload.content || payload.text || '').trim()
+      : '';
     if (payloadText) return payloadText;
   }
   return noMessagesFallback;
@@ -92,7 +89,7 @@ function resolveChatSortTime(chat: ChatViewDto): number {
     return messageTime;
   }
 
-  const createdAt = Date.parse(String((chat as unknown as { createdAt?: string }).createdAt || ''));
+  const createdAt = Date.parse(String(chat.createdAt || ''));
   if (Number.isFinite(createdAt)) {
     return createdAt;
   }
@@ -212,7 +209,7 @@ export function ChatList() {
           chats.map((chat) => {
             const active = chat.id === selectedChatId;
             const title = getChatTitle(chat);
-            const unread = Number((chat as unknown as Record<string, unknown>).unreadCount || 0);
+            const unread = Number(chat.unreadCount || 0);
             const timeLabel = formatChatTime(chat.lastMessageAt);
             return (
               <div

@@ -1,4 +1,8 @@
 export type {
+  JsonArray,
+  JsonObject,
+  JsonPrimitive,
+  JsonValue,
   RendererLogLevel,
   RendererLogMessage,
   RendererLogPayload,

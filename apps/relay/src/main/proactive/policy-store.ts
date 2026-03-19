@@ -2,6 +2,7 @@
 // Adapted: uses RelayChatStorage instead of mod SDK ModKvStore
 
 import { createRelayChatStorage, type RelayChatStorage } from '../session-store/relay-chat-storage.js';
+import { asRecord, type JsonObject } from '../../shared/json.js';
 
 const LOCAL_CHAT_PROACTIVE_POLICY_STORE_KEY = 'nimi.local-chat.proactive.policy.v1';
 
@@ -31,11 +32,6 @@ function getPolicyStore(): RelayChatStorage {
 
 function normalizeTargetId(value: unknown): string {
   return String(value || '').trim();
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
 }
 
 function normalizeDailyCounter(value: unknown): DailyCounter | null {

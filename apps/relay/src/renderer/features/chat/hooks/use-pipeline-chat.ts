@@ -5,7 +5,7 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { getBridge } from '../../../bridge/electron-bridge.js';
 import { useAppStore } from '../../../app-shell/providers/app-store.js';
-import { useChatStore, type ChatMessage, type TurnSendPhase } from '../../../app-shell/providers/chat-store.js';
+import { useChatStore } from '../../../app-shell/providers/chat-store.js';
 
 export function usePipelineChat() {
   const currentAgent = useAppStore((s) => s.currentAgent);
@@ -29,24 +29,23 @@ export function usePipelineChat() {
     const bridge = getBridge();
     const ids: string[] = [];
 
-    ids.push(bridge.chat.onMessages((msgs: unknown) => {
-      setMessages(msgs as ChatMessage[]);
+    ids.push(bridge.chat.onMessages((msgs) => {
+      setMessages(msgs);
     }));
 
-    ids.push(bridge.chat.onTurnPhase((payload: unknown) => {
-      const p = payload as { phase: TurnSendPhase };
-      setSendPhase(p.phase);
+    ids.push(bridge.chat.onTurnPhase((payload) => {
+      setSendPhase(payload.phase);
     }));
 
-    ids.push(bridge.chat.onStatusBanner((banner: unknown) => {
-      setStatusBanner(banner as { kind: 'warning' | 'error' | 'success' | 'info'; message: string } | null);
+    ids.push(bridge.chat.onStatusBanner((banner) => {
+      setStatusBanner(banner);
     }));
 
-    ids.push(bridge.chat.onPromptTrace((trace: unknown) => {
+    ids.push(bridge.chat.onPromptTrace((trace) => {
       setPromptTrace(trace);
     }));
 
-    ids.push(bridge.chat.onTurnAudit((audit: unknown) => {
+    ids.push(bridge.chat.onTurnAudit((audit) => {
       setTurnAudit(audit);
     }));
 
@@ -69,9 +68,7 @@ export function usePipelineChat() {
     // Load session history for new agent
     getBridge().chat.history({ agentId: currentAgent.id })
       .then((result) => {
-        if (result && Array.isArray(result)) {
-          setMessages(result as ChatMessage[]);
-        }
+        setMessages(result);
       })
       .catch(() => {
         // History load failed — start fresh

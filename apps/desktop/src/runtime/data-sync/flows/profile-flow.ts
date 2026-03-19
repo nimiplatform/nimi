@@ -1,4 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { JsonObject } from '@runtime/net/json';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
@@ -35,7 +36,7 @@ export async function loadCurrentUserProfile(
 export async function updateCurrentUserProfile(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-  data: Record<string, unknown>,
+  data: JsonObject,
 ) {
   try {
     return await callApi((realm) => realm.services.MeService.updateMe(data), '更新用户资料失败');
@@ -89,17 +90,17 @@ export async function loadUserProfileById(
     if (!profile || typeof profile !== 'object' || Array.isArray(profile)) {
       return profile as UserProfileDto;
     }
-    const enriched = await enrichProfileWithWorldBanner(callApi, profile as Record<string, unknown>);
+    const enriched = await enrichProfileWithWorldBanner(callApi, profile as JsonObject);
     const cache = await getOfflineCacheManager();
-    await cache.syncAgentMetadata(`user:${id}`, enriched as Record<string, unknown>);
+    await cache.syncAgentMetadata(`user:${id}`, enriched);
     return enriched;
   } catch (error) {
     if (isRealmOfflineError(error)) {
       const cache = await getOfflineCacheManager();
-      const cached = await cache.getCachedAgentMetadata(`user:${id}`);
+      const cached = await cache.getCachedAgentMetadata<UserProfileDto>(`user:${id}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
-        return cached as UserProfileDto;
+        return cached;
       }
     }
     emitDataSyncError('load-user-profile', error, { id });
@@ -213,7 +214,7 @@ export async function rejectOrRemoveFriend(input: {
 
 export async function blockUser(
   callApi: DataSyncApiCaller,
-  contact: Record<string, unknown>,
+  contact: JsonObject,
   reloadContacts: () => Promise<void>,
 ) {
   const contactId = String(contact.id || '');
@@ -246,7 +247,7 @@ export async function blockUser(
 
 export async function unblockUser(
   callApi: DataSyncApiCaller,
-  contact: Record<string, unknown>,
+  contact: JsonObject,
   reloadContacts: () => Promise<void>,
 ) {
   const contactId = String(contact.id || '');

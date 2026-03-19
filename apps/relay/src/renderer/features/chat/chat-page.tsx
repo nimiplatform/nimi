@@ -240,7 +240,7 @@ function VideoPanel({
 
   // Extract first video artifact URL if available
   const videoUrl = video.result?.artifacts
-    ?.map((a) => (a as { url?: string }).url)
+    ?.map((artifact) => artifact.uri || undefined)
     .find(Boolean);
 
   return (

@@ -43,7 +43,7 @@ export async function runDiscoverLocalModelsCommand(input: {
     try {
       const cacheManager = await getOfflineCacheManager();
       await Promise.all([
-        cacheManager.syncModelManifests(rawModels as unknown as Record<string, unknown>[]),
+        cacheManager.syncModelManifests(rawModels),
         reconcileModelsToGoRuntime(rawModels),
       ]);
     } catch (error) {

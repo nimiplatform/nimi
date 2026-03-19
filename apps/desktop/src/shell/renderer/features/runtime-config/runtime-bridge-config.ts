@@ -1,3 +1,5 @@
+import type { JsonObject } from '../../bridge/runtime-bridge/types';
+import { parseOptionalJsonObject } from '../../bridge/runtime-bridge/shared';
 import {
   DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeEndpointV11,
@@ -10,10 +12,8 @@ const DEFAULT_RUNTIME_CONFIG = {
   httpAddr: '127.0.0.1:46372',
 } as const;
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
+function asRecord(value: unknown): JsonObject {
+  return parseOptionalJsonObject(value) || {};
 }
 
 function readString(value: unknown): string {
@@ -56,7 +56,7 @@ function extractPortFromEndpoint(endpoint: string): number | null {
  */
 export function applyRuntimeBridgeConfigToState(
   state: RuntimeConfigStateV11,
-  runtimeConfigRaw: Record<string, unknown>,
+  runtimeConfigRaw: JsonObject,
 ): RuntimeConfigStateV11 {
   const engines = asRecord(asRecord(runtimeConfigRaw).engines);
   const llamaEngine = asRecord(engines.llama);
@@ -81,9 +81,9 @@ export function applyRuntimeBridgeConfigToState(
  */
 export function buildRuntimeBridgeConfigFromState(
   state: RuntimeConfigStateV11,
-  baseConfigRaw: Record<string, unknown>,
-): Record<string, unknown> {
-  const configRecord = JSON.parse(JSON.stringify(baseConfigRaw)) as Record<string, unknown>;
+  baseConfigRaw: JsonObject,
+): JsonObject {
+  const configRecord = asRecord(JSON.parse(JSON.stringify(baseConfigRaw)));
   configRecord.schemaVersion = DEFAULT_RUNTIME_CONFIG.schemaVersion;
   configRecord.grpcAddr = readString(configRecord.grpcAddr as string) || DEFAULT_RUNTIME_CONFIG.grpcAddr;
   configRecord.httpAddr = readString(configRecord.httpAddr as string) || DEFAULT_RUNTIME_CONFIG.httpAddr;

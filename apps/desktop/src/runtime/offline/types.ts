@@ -1,3 +1,5 @@
+import type { JsonObject } from '@runtime/net/json';
+
 /** D-OFFLINE-001: Three-tier degradation model */
 export type OfflineTier = 'L0' | 'L1' | 'L2';
 
@@ -17,7 +19,7 @@ export type ConnectivityStatus = {
 export type PersistentOutboxEntry = {
   clientMessageId: string;
   chatId: string;
-  body: Record<string, unknown>;
+  body: JsonObject;
   enqueuedAt: number;
   attempts: number;
   status: 'pending' | 'failed';
@@ -33,7 +35,7 @@ export type SocialMutationKind =
 export type PersistentSocialMutationEntry = {
   id: string;
   kind: SocialMutationKind;
-  payload: Record<string, unknown>;
+  payload: JsonObject;
   enqueuedAt: number;
   attempts: number;
   status: 'pending' | 'failed';

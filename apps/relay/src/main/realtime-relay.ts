@@ -5,8 +5,15 @@
 import { io, type Socket } from 'socket.io-client';
 import { type WebContents } from 'electron';
 import { safeHandle } from './ipc-utils.js';
+import type { RelayEventMap, RelayInvokeMap } from '../shared/ipc-contract.js';
 
 let socket: Socket | null = null;
+
+type RealtimeMessageEvent = RelayEventMap['relay:realtime:message'];
+type RealtimePresenceEvent = RelayEventMap['relay:realtime:presence'];
+type RealtimeStatusEvent = RelayEventMap['relay:realtime:status'];
+type RealtimeSubscribeRequest = RelayInvokeMap['relay:realtime:subscribe']['request'];
+type RealtimeUnsubscribeRequest = RelayInvokeMap['relay:realtime:unsubscribe']['request'];
 
 /**
  * Initialize socket.io connection to Realm realtime endpoint.
@@ -32,14 +39,14 @@ export function initRealtimeRelay(
   });
 
   // Forward socket.io events to renderer (RL-IPC-009)
-  socket.on('message', (data: unknown) => {
+  socket.on('message', (data: RealtimeMessageEvent) => {
     const wc = getWebContents();
     if (wc && !wc.isDestroyed()) {
       wc.send('relay:realtime:message', data);
     }
   });
 
-  socket.on('presence', (data: unknown) => {
+  socket.on('presence', (data: RealtimePresenceEvent) => {
     const wc = getWebContents();
     if (wc && !wc.isDestroyed()) {
       wc.send('relay:realtime:presence', data);
@@ -49,23 +56,25 @@ export function initRealtimeRelay(
   socket.on('connect', () => {
     const wc = getWebContents();
     if (wc && !wc.isDestroyed()) {
-      wc.send('relay:realtime:status', { connected: true });
+      const payload: RealtimeStatusEvent = { connected: true };
+      wc.send('relay:realtime:status', payload);
     }
   });
 
   socket.on('disconnect', () => {
     const wc = getWebContents();
     if (wc && !wc.isDestroyed()) {
-      wc.send('relay:realtime:status', { connected: false });
+      const payload: RealtimeStatusEvent = { connected: false };
+      wc.send('relay:realtime:status', payload);
     }
   });
 
   // IPC handlers for subscribe/unsubscribe
-  safeHandle('relay:realtime:subscribe', (_event, channel: string) => {
+  safeHandle('relay:realtime:subscribe', (_event, channel: RealtimeSubscribeRequest) => {
     socket?.emit('join', channel);
   });
 
-  safeHandle('relay:realtime:unsubscribe', (_event, channel: string) => {
+  safeHandle('relay:realtime:unsubscribe', (_event, channel: RealtimeUnsubscribeRequest) => {
     socket?.emit('leave', channel);
   });
 }

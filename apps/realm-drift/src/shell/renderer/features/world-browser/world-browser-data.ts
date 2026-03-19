@@ -1,4 +1,4 @@
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
 type ListMyWorldsResult = RealmServiceResult<'WorldControlService', 'worldControlControllerListMyWorlds'>;
@@ -84,7 +84,7 @@ function extractStringArray(obj: Record<string, unknown>, key: string): string[]
 export async function listMyWorlds(): Promise<WorldSummary[]> {
   const { realm } = getPlatformClient();
   const data: ListMyWorldsResult = await realm.services.WorldControlService.worldControlControllerListMyWorlds();
-  const items = (data.worlds ?? data.items ?? data) as Record<string, unknown>[];
+  const items = data.items as Record<string, unknown>[];
   if (!Array.isArray(items)) return [];
 
   return items.map((w) => ({
@@ -150,7 +150,7 @@ export async function getWorldview(worldId: string): Promise<WorldviewData> {
 export async function listWorldScenes(worldId: string): Promise<WorldScene[]> {
   const { realm } = getPlatformClient();
   const data: WorldScenesResult = await realm.services.WorldsService.worldControllerGetWorldScenes(worldId);
-  const items = (data.scenes ?? data.items ?? data) as Record<string, unknown>[];
+  const items = data.items as Record<string, unknown>[];
   if (!Array.isArray(items)) return [];
 
   return items.map((s) => ({
@@ -164,7 +164,7 @@ export async function listWorldScenes(worldId: string): Promise<WorldScene[]> {
 export async function listWorldLorebooks(worldId: string): Promise<WorldLorebook[]> {
   const { realm } = getPlatformClient();
   const data: WorldLorebooksResult = await realm.services.WorldsService.worldControllerGetWorldLorebooks(worldId);
-  const items = (data.lorebooks ?? data.items ?? data) as Record<string, unknown>[];
+  const items = data.items as Record<string, unknown>[];
   if (!Array.isArray(items)) return [];
 
   return items.map((l) => ({

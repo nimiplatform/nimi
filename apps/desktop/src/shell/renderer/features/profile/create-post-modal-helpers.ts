@@ -1,3 +1,5 @@
+import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+
 export type SelectedFile = {
   file: File;
   previewUrl: string;
@@ -70,10 +72,10 @@ export const EMOJI_CATEGORIES = [
 ];
 
 export function mapWorldToLocation(raw: unknown): Location | null {
-  if (!raw || typeof raw !== 'object') {
+  const record = parseOptionalJsonObject(raw);
+  if (!record) {
     return null;
   }
-  const record = raw as Record<string, unknown>;
   const id = String(record.id || '').trim();
   const name = String(record.name || '').trim();
   if (!id || !name) {

@@ -39,7 +39,7 @@ with business logic in the Electron main process and structured beat delivery to
 | Module | Implementation Path |
 |--------|-------------------|
 | Main process entry | apps/relay/src/main/index.ts |
-| Platform client | apps/relay/src/main/platform-client.ts |
+| SDK bootstrap | apps/relay/src/main/index.ts |
 | IPC handlers | apps/relay/src/main/ipc-handlers.ts |
 | Stream manager | apps/relay/src/main/stream-manager.ts |
 | Socket.io relay | apps/relay/src/main/realtime-relay.ts |

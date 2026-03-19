@@ -1,4 +1,4 @@
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import { loadGoldFixture, loadGoldFixtureAudioInput } from '../../../../scripts/ai-gold-path/fixtures.mjs';
 import { runDesktopBridgeReplay } from '../../src/runtime/llm-adapter/execution/replay.js';
 
@@ -31,19 +31,18 @@ async function main(): Promise<void> {
   const fixture = loadGoldFixture(fixturePath);
   const fixtureAudio = loadGoldFixtureAudioInput(fixture);
   const subjectUserId = requireGoldSubjectUserId();
-  const runtime = new Runtime({
+  const { runtime } = await createPlatformClient({
     appId: 'nimi.desktop.ai.gold',
-    transport: {
+    runtimeTransport: {
       type: 'node-grpc',
       endpoint,
     },
-    defaults: {
+    runtimeDefaults: {
       callerKind: 'desktop-core',
       callerId: 'desktop-ai-gold-path',
     },
-    subjectContext: {
-      subjectUserId,
-    },
+    realmBaseUrl: 'http://localhost:3002',
+    subjectUserIdProvider: () => subjectUserId,
   });
 
   const result = await runDesktopBridgeReplay({

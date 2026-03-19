@@ -9,6 +9,7 @@ import type {
 } from '../chat-pipeline/types.js';
 import type { MediaIntent } from './media-spec.js';
 import { pt, type PromptLocale } from '../prompt/prompt-locale.js';
+import { asRecord } from '../../shared/json.js';
 
 export type CharacterVisualAnchor = {
   subject: string;
@@ -440,9 +441,7 @@ function buildContinuityRefs(input: {
 function buildCharacterVisualAnchor(target: LocalChatTarget): CharacterVisualAnchor {
   const displayName = asString(target.displayName);
   const bio = asString(target.bio);
-  const metadata = (target.metadata && typeof target.metadata === 'object' && !Array.isArray(target.metadata))
-    ? target.metadata as Record<string, unknown>
-    : {};
+  const metadata = asRecord(target.metadata);
 
   const artStyle = asString(metadata.artStyle || metadata.art_style);
   const fashionStyle = asString(metadata.fashionStyle || metadata.fashion_style);

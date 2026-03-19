@@ -1,4 +1,5 @@
 import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
+import type { JsonObject } from '../../bridge/runtime-bridge/types';
 
 export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];
@@ -50,8 +51,8 @@ export type LocalProviderHintsV11 = {
     backend?: string;
     family?: string;
   };
-  extra?: Record<string, unknown>;
-} & Record<string, unknown>;
+  extra?: JsonObject;
+} & JsonObject;
 
 export type LocalNodeMatrixEntryV11 = {
   nodeId: string;

@@ -7,15 +7,17 @@ import type {
   InteractionRecallDoc,
 } from '../chat-pipeline/types.js';
 
+type JsonObject = Record<string, unknown>;
+
 type GetAgentResult = RealmServiceResult<'AgentsService', 'getAgent'>;
 type ListFriendsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
 type GetWorldResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorld'>;
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function asRecord(value: unknown): Record<string, unknown> {
+function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
+    ? (value as JsonObject)
     : {};
 }
 
@@ -37,7 +39,7 @@ function isAgentHandle(handle: string | null): boolean {
   return Boolean(handle && handle.startsWith('~'));
 }
 
-function toMemoryEntries(value: unknown): Array<string | Record<string, unknown>> {
+function toMemoryEntries(value: unknown): Array<string | JsonObject> {
   if (Array.isArray(value)) {
     return value
       .filter(
@@ -46,7 +48,7 @@ function toMemoryEntries(value: unknown): Array<string | Record<string, unknown>
           (item && typeof item === 'object' && !Array.isArray(item)),
       )
       .map((item) =>
-        typeof item === 'string' ? item : (item as Record<string, unknown>),
+        typeof item === 'string' ? item : (item as JsonObject),
       );
   }
   const record = asRecord(value);
@@ -55,7 +57,7 @@ function toMemoryEntries(value: unknown): Array<string | Record<string, unknown>
   return [];
 }
 
-function toMemoryText(entry: string | Record<string, unknown>): string {
+function toMemoryText(entry: string | JsonObject): string {
   if (typeof entry === 'string') return entry.trim();
   const content = asString(
     entry.content ||
@@ -71,7 +73,7 @@ function toMemoryText(entry: string | Record<string, unknown>): string {
 }
 
 function toMemoryTextList(
-  entries: Array<string | Record<string, unknown>>,
+  entries: Array<string | JsonObject>,
   topK: number,
 ): string[] {
   const dedupe = new Map<string, string>();
@@ -89,7 +91,7 @@ function toMemoryTextList(
 
 // ── Agent Profile ───────────────────────────────────────────────────
 
-function normalizeAgentToTarget(payload: Record<string, unknown>): LocalChatTarget {
+function normalizeAgentToTarget(payload: JsonObject): LocalChatTarget {
   const id = asString(payload.id);
   const handle = asString(payload.handle) || id;
   const agent = asRecord(payload.agent);
@@ -132,7 +134,7 @@ export async function fetchTargetProfile(
 
 // ── Agent Friends List ──────────────────────────────────────────────
 
-function normalizeFriendToTarget(friend: Record<string, unknown>): LocalChatTarget | null {
+function normalizeFriendToTarget(friend: JsonObject): LocalChatTarget | null {
   const id = asString(friend.id);
   if (!id) return null;
   const handle = asString(friend.handle) || id;

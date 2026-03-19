@@ -42,7 +42,7 @@ export function createRelayAuthAdapter(): AuthPlatformAdapter {
 
     oauthLogin: (provider, accessToken) =>
       bridge.auth.oauthLogin({
-        provider,
+        provider: provider as Parameters<typeof bridge.auth.oauthLogin>[0]['provider'],
         accessToken,
       }) as ReturnType<AuthPlatformAdapter['oauthLogin']>,
 
@@ -54,10 +54,9 @@ export function createRelayAuthAdapter(): AuthPlatformAdapter {
     },
 
     loadCurrentUser: async () => {
-      const user = await bridge.auth.currentUser({
+      return await bridge.auth.currentUser({
         accessToken: currentAccessToken || undefined,
       }).catch(() => null);
-      return user && typeof user === 'object' ? (user as Record<string, unknown>) : null;
     },
 
     applyToken: async (accessToken) => {

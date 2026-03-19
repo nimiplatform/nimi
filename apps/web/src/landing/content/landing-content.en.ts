@@ -1,8 +1,10 @@
 import type { LandingContent } from './landing-content.js';
 
-const EN_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const EN_TAB_LOCAL = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.local',
+});
 
 const result = await runtime.generate({
   prompt: 'Explain quantum computing simply.',
@@ -10,9 +12,11 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const EN_TAB_CLOUD = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const EN_TAB_CLOUD = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.cloud',
+});
 
 const result = await runtime.generate({
   provider: 'gemini',
@@ -21,9 +25,11 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const EN_TAB_STREAMING = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const EN_TAB_STREAMING = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.streaming',
+});
 
 const stream = await runtime.stream({
   prompt: 'Tell me a story about a robot.',
@@ -33,9 +39,11 @@ for await (const chunk of stream) {
   process.stdout.write(chunk.text);
 }`;
 
-const EN_TAB_WORKFLOW = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const EN_TAB_WORKFLOW = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.workflow',
+});
 
 const draft = await runtime.generate({
   prompt: 'Draft a product launch summary.',

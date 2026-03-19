@@ -4,7 +4,8 @@
 
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
+import type { Runtime } from '@nimiplatform/sdk/runtime';
 
 const GRPC_ENDPOINT = process.env.NIMI_RUNTIME_GRPC_ADDR || '127.0.0.1:46371';
 const ACCESS_TOKEN = process.env.NIMI_ACCESS_TOKEN || 'test-token';
@@ -12,16 +13,17 @@ const ACCESS_TOKEN = process.env.NIMI_ACCESS_TOKEN || 'test-token';
 let runtime: Runtime;
 
 before(() => {
-  runtime = new Runtime({
+  const clientPromise = createPlatformClient({
     appId: 'nimi.relay.test',
-    transport: {
+    runtimeTransport: {
       type: 'node-grpc',
       endpoint: GRPC_ENDPOINT,
     },
-    auth: {
-      // RL-TRANS-003: accessToken as provider function
-      accessToken: () => Promise.resolve(ACCESS_TOKEN),
-    },
+    realmBaseUrl: 'http://localhost:3002',
+    accessTokenProvider: () => Promise.resolve(ACCESS_TOKEN),
+  });
+  return clientPromise.then((client) => {
+    runtime = client.runtime;
   });
 });
 
@@ -61,19 +63,19 @@ describe('RL-TRANS-003 — Auth Injection', () => {
   it('provider function re-evaluates on each call', async () => {
     // RL-TRANS-003: "test with a token provider that returns different values on successive calls"
     let callCount = 0;
-    const countingRuntime = new Runtime({
+    const countingClient = await createPlatformClient({
       appId: 'nimi.relay.test.auth',
-      transport: {
+      runtimeTransport: {
         type: 'node-grpc',
         endpoint: GRPC_ENDPOINT,
       },
-      auth: {
-        accessToken: () => {
-          callCount++;
-          return Promise.resolve(ACCESS_TOKEN);
-        },
+      realmBaseUrl: 'http://localhost:3002',
+      accessTokenProvider: () => {
+        callCount++;
+        return Promise.resolve(ACCESS_TOKEN);
       },
     });
+    const countingRuntime = countingClient.runtime;
 
     // Make two separate RPC calls — the provider function should be invoked for each
     await countingRuntime.health();

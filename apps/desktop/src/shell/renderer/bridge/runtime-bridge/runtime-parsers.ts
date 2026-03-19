@@ -1,5 +1,6 @@
 import {
   assertRecord,
+  parseOptionalJsonObject,
   parseOptionalNumber,
   parseOptionalString,
   parseRequiredString,
@@ -220,12 +221,8 @@ export function parseMenuBarProviderSummary(value: unknown): MenuBarProviderSumm
 
 export function parseRuntimeLocalManifestSummary(value: unknown): RuntimeLocalManifestSummary {
   const record = assertRecord(value, 'runtime_mod_list_local_manifests returned invalid manifest payload');
-  const manifestRecord = record.manifest && typeof record.manifest === 'object' && !Array.isArray(record.manifest)
-    ? (record.manifest as Record<string, unknown>)
-    : undefined;
-  const releaseManifestRecord = record.releaseManifest && typeof record.releaseManifest === 'object' && !Array.isArray(record.releaseManifest)
-    ? (record.releaseManifest as Record<string, unknown>)
-    : undefined;
+  const manifestRecord = parseOptionalJsonObject(record.manifest);
+  const releaseManifestRecord = parseOptionalJsonObject(record.releaseManifest);
   const styles = Array.isArray(record.styles)
     ? record.styles.map((item) => String(item || '').trim()).filter(Boolean)
     : undefined;
@@ -365,9 +362,7 @@ export function parseCatalogReleaseRecord(value: unknown): CatalogReleaseRecord 
 
 export function parseCatalogPackageRecord(value: unknown): CatalogPackageRecord {
   const record = assertRecord(value, 'catalog package record');
-  const channelsRecord = record.channels && typeof record.channels === 'object' && !Array.isArray(record.channels)
-    ? record.channels as Record<string, unknown>
-    : {};
+  const channelsRecord = parseOptionalJsonObject(record.channels) || {};
   return {
     packageId: parseRequiredString(record.packageId, 'packageId', 'catalog package record'),
     packageType: parseRequiredString(record.packageType, 'packageType', 'catalog package record'),
@@ -576,9 +571,7 @@ export function parseConfirmPrivateSyncResult(value: unknown): ConfirmPrivateSyn
 
 export function parseOauthTokenExchangeResult(value: unknown): OauthTokenExchangeResult {
   const record = assertRecord(value, 'oauth_token_exchange returned invalid payload');
-  const raw = record.raw && typeof record.raw === 'object' && !Array.isArray(record.raw)
-    ? (record.raw as Record<string, unknown>)
-    : {};
+  const raw = parseOptionalJsonObject(record.raw) || {};
   return {
     accessToken: parseRequiredString(record.accessToken, 'accessToken', 'oauth_token_exchange'),
     refreshToken: parseOptionalString(record.refreshToken),

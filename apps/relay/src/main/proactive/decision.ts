@@ -5,6 +5,7 @@ import type {
   LocalChatProactiveDecisionInput,
   LocalChatProactiveDecisionObject,
 } from './types.js';
+import { asRecord, type JsonObject } from '../../shared/json.js';
 
 const PROACTIVE_MAX_CONTEXT_CHARS = 3200;
 const PROACTIVE_MAX_MESSAGE_CHARS = 220;
@@ -17,7 +18,7 @@ function sanitizeProactiveMessage(input: string): string {
     .trim();
 }
 
-function parseStrictJsonObject(text: string): Record<string, unknown> {
+function parseStrictJsonObject(text: string): JsonObject {
   const normalized = String(text || '').trim();
   if (!normalized || !normalized.startsWith('{') || !normalized.endsWith('}')) {
     throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_INVALID_JSON');
@@ -26,10 +27,10 @@ function parseStrictJsonObject(text: string): Record<string, unknown> {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_INVALID_OBJECT');
   }
-  return parsed as Record<string, unknown>;
+  return parsed as JsonObject;
 }
 
-function parseProactiveDecisionObject(text: string): Record<string, unknown> {
+function parseProactiveDecisionObject(text: string): JsonObject {
   const record = parseStrictJsonObject(text);
   if (typeof record.shouldContact !== 'boolean') {
     throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_SHOULD_CONTACT_REQUIRED');
@@ -109,7 +110,7 @@ export async function generateLocalChatProactiveDecision(
     agentId: target.id,
   });
 
-  const parsed = result.object as Record<string, unknown>;
+  const parsed = asRecord(result.object);
   return {
     shouldContact: Boolean(parsed.shouldContact),
     message: String(parsed.message || '').trim(),

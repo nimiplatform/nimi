@@ -20,6 +20,8 @@ import { ContactsView } from './contacts-view';
 import { AddContactModal } from './add-contact-modal';
 import { resolveAgentFriendLimit } from './agent-friend-limit';
 
+type SocialSnapshot = Awaited<ReturnType<typeof dataSync.loadSocialSnapshot>>;
+
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     const next = error.message.trim();
@@ -45,16 +47,7 @@ export function ContactsPanel() {
 
   const contactsQuery = useQuery({
     queryKey: ['contacts', authStatus],
-    queryFn: async () => {
-      const snapshot = await dataSync.loadSocialSnapshot();
-      return snapshot as {
-        friends?: Array<Record<string, unknown>>;
-        agents?: Array<Record<string, unknown>>;
-        pendingReceived?: Array<Record<string, unknown>>;
-        pendingSent?: Array<Record<string, unknown>>;
-        blocked?: Array<Record<string, unknown>>;
-      };
-    },
+    queryFn: async (): Promise<SocialSnapshot> => dataSync.loadSocialSnapshot(),
     enabled: authStatus === 'authenticated',
   });
   const refetchContacts = contactsQuery.refetch;

@@ -1,7 +1,7 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import { emitAuthLog, traceIdOf, type PasswordAuthDebug } from '../auth';
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 
 export async function loginWithPassword(
   callApi: DataSyncApiCaller,
@@ -10,7 +10,7 @@ export async function loginWithPassword(
   password: string,
   debug?: PasswordAuthDebug,
   setRefreshToken?: (token: string | null | undefined) => void,
-  setAuth?: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void,
+  setAuth?: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void,
 ) {
   const traceId = traceIdOf(debug)
     || `datasync-login-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -44,7 +44,7 @@ export async function loginWithPassword(
     });
 
     if (result.tokens?.accessToken) {
-      setAuth?.(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken);
+      setAuth?.(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken ?? undefined);
       setToken(result.tokens.accessToken);
       if (result.tokens.refreshToken) {
         setRefreshToken?.(result.tokens.refreshToken);
@@ -73,7 +73,7 @@ export async function registerWithPassword(
   password: string,
   debug?: PasswordAuthDebug,
   setRefreshToken?: (token: string | null | undefined) => void,
-  setAuth?: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void,
+  setAuth?: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void,
 ) {
   const traceId = traceIdOf(debug)
     || `datasync-register-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -107,7 +107,7 @@ export async function registerWithPassword(
     });
 
     if (result.tokens?.accessToken) {
-      setAuth?.(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken);
+      setAuth?.(result.tokens.user, result.tokens.accessToken, result.tokens.refreshToken ?? undefined);
       setToken(result.tokens.accessToken);
       if (result.tokens.refreshToken) {
         setRefreshToken?.(result.tokens.refreshToken);

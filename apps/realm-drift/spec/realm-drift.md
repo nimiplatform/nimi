@@ -28,9 +28,9 @@ Realm Drift is a standalone Tauri desktop demo application that brings nimi worl
 | 3D Generation | World Labs Marble API (external) |
 | 3D Rendering | Marble Web Viewer (iframe embed) |
 
-Realm Drift connects to both platform planes directly:
-- **Runtime** — `new Runtime({ transport: 'tauri-ipc' })` via `initializePlatformClient()`
-- **Realm** — `new Realm({ baseUrl, auth })` via `initializePlatformClient()`
+Realm Drift connects to both platform planes through the SDK root bootstrap:
+- **Platform client** — `createPlatformClient({ appId: 'nimi.realm-drift', runtimeTransport: 'tauri-ipc', sessionStore })`
+- **Runtime / Realm** — consumed from the returned SDK client instead of app-local constructors
 
 The Tauri shell supplies runtime defaults and lifecycle affordances only.
 
@@ -112,7 +112,7 @@ Realm Drift copies the forge app shell pattern without the world engine:
 Copied from forge (adapted):
 - `src-tauri/` — Entire Rust shell including runtime_bridge
 - `src/shell/renderer/bridge/` — Tauri IPC bridge helpers
-- `src/runtime/platform-client.ts` — SDK initialization (appId changed)
+- `@nimiplatform/sdk` root `createPlatformClient()` — shared SDK initialization (appId = `nimi.realm-drift`)
 - Bootstrap sequence — Simplified from forge's 7-step to 5-step
 
 ## Navigation Structure

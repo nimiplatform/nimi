@@ -1,11 +1,13 @@
 // Route IPC handlers — relay:route:* channels (RL-IPC-001)
 
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { PlatformClient } from '@nimiplatform/sdk';
 import type { RouteState } from './route-state.js';
-import type { RelayRouteBinding } from './types.js';
+import type { RelayInvokeMap } from '../../shared/ipc-contract.js';
 import { safeHandle } from '../ipc-utils.js';
 
-export function registerRouteHandlers(runtime: Runtime, routeState: RouteState): void {
+type SetRouteBindingRequest = RelayInvokeMap['relay:route:binding:set']['request'];
+
+export function registerRouteHandlers(runtime: PlatformClient['runtime'], routeState: RouteState): void {
   // List available route options (local models + connectors)
   safeHandle('relay:route:options', async () => {
     return routeState.getOptions();
@@ -17,7 +19,7 @@ export function registerRouteHandlers(runtime: Runtime, routeState: RouteState):
   });
 
   // Set binding and resolve
-  safeHandle('relay:route:binding:set', async (_event, input: RelayRouteBinding) => {
+  safeHandle('relay:route:binding:set', async (_event, input: SetRouteBindingRequest) => {
     return await routeState.setBinding(input);
   });
 

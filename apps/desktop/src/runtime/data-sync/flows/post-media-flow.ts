@@ -15,7 +15,7 @@ type MediaDirectUploadSessionDto = RealmModel<'MediaDirectUploadSessionDto'>;
 type PostDto = RealmModel<'PostDto'>;
 type ReportResponseDto = RealmModel<'ReportResponseDto'>;
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,

@@ -1,5 +1,5 @@
 import { logRendererEvent as logBridgeRendererEvent, toRendererLogMessage } from '@renderer/bridge/runtime-bridge/logging';
-import type { RendererLogMessage } from '@renderer/bridge/runtime-bridge/types';
+import type { JsonObject, RendererLogMessage } from '@renderer/bridge/runtime-bridge/types';
 
 type RendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -14,7 +14,7 @@ export function logRendererEvent(payload: {
   flowId?: string;
   source?: string;
   costMs?: number;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 }): void {
   logBridgeRendererEvent({
     level: payload.level || 'info',

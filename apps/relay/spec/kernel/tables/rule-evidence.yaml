@@ -104,7 +104,7 @@ rules:
   - id: RL-TRANS-001
     contract: kernel/transport-validation.md
     status: partial
-    evidence_path: apps/relay/src/main/platform-client.ts
+    evidence_path: apps/relay/src/main/index.ts
     test: apps/relay/test/transport-smoke.test.ts
     note: Test written — requires live runtime daemon to verify
 
@@ -118,14 +118,14 @@ rules:
   - id: RL-TRANS-003
     contract: kernel/transport-validation.md
     status: partial
-    evidence_path: apps/relay/src/main/platform-client.ts
+    evidence_path: apps/relay/src/main/index.ts
     test: apps/relay/test/transport-smoke.test.ts
     note: Token provider function + counting provider test — requires live runtime to verify
 
   - id: RL-TRANS-004
     contract: kernel/transport-validation.md
     status: partial
-    evidence_path: apps/relay/src/main/platform-client.ts
+    evidence_path: apps/relay/src/main/index.ts
     test: apps/relay/test/transport-smoke.test.ts
     note: runtimeVersion + versionCompatibility tests — requires live runtime to verify
 
@@ -147,7 +147,7 @@ rules:
   - id: RL-INTOP-002
     contract: kernel/interop-contract.md
     status: verified
-    evidence_path: apps/relay/src/main/platform-client.ts
+    evidence_path: apps/relay/src/main/index.ts
     note: appId set to 'nimi.relay', appMode FULL — constant assertion
 
   - id: RL-INTOP-003

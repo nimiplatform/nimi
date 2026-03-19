@@ -17,6 +17,7 @@ import {
 import { resolveRealtimeUrl } from './resolve-realtime-url';
 
 type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
+type ChatEventEnvelopeDto = RealmModel<'ChatEventEnvelopeDto'>;
 type ChatViewDto = RealmModel<'ChatViewDto'>;
 type ListChatsResultDto = RealmModel<'ListChatsResultDto'>;
 type ListMessagesResultDto = RealmModel<'ListMessagesResultDto'>;
@@ -25,20 +26,25 @@ type MessageViewDto = RealmModel<'MessageViewDto'>;
 const CHAT_SOCKET_PATH = '/socket.io/';
 const SEEN_EVENT_LIMIT = 3000;
 
-type ChatEventEnvelope = {
-  sessionId: string;
-  seq: number;
-  eventId: string;
-  chatId: string;
-  kind: string;
-  payload: Record<string, unknown>;
-};
+type ChatEventEnvelope = ChatEventEnvelopeDto;
 
 type ChatSessionState = {
   chatId: string;
   sessionId: string;
   resumeToken: string;
   lastAckSeq: number;
+};
+
+type ChatSessionReadyPayload = {
+  chatId: string;
+  sessionId: string;
+  resumeToken: string;
+  lastAckSeq: number;
+};
+
+type ChatSessionSyncRequiredPayload = {
+  chatId: string;
+  requestedAfterSeq: number;
 };
 
 type ApplyChatEventInput = {
@@ -73,36 +79,131 @@ function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
   return false;
 }
 
-function normalizeChatEvent(payload: unknown): ChatEventEnvelope | null {
-  if (!payload || typeof payload !== 'object') {
+function isObjectLike(value: unknown): value is object {
+  return Boolean(value) && typeof value === 'object';
+}
+
+function readStringField(value: unknown, key: string): string {
+  if (!isObjectLike(value)) {
+    return '';
+  }
+  const field = Reflect.get(value, key);
+  return typeof field === 'string' ? field.trim() : '';
+}
+
+function readNumberField(value: unknown, key: string): number | null {
+  if (!isObjectLike(value)) {
     return null;
   }
-  const record = payload as Record<string, unknown>;
-  const eventId = String(record.eventId || '').trim();
-  const chatId = String(record.chatId || '').trim();
-  const kind = String(record.kind || '').trim();
-  const seqRaw = Number(record.seq);
+  const numeric = Number(Reflect.get(value, key));
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function readObjectField(value: unknown, key: string): object | null {
+  if (!isObjectLike(value)) {
+    return null;
+  }
+  const field = Reflect.get(value, key);
+  return isObjectLike(field) ? field : null;
+}
+
+function normalizeChatEventEnvelope(payload: ChatEventEnvelopeDto): ChatEventEnvelope | null {
+  const eventId = String(payload.eventId || '').trim();
+  const chatId = String(payload.chatId || '').trim();
+  const kind = String(payload.kind || '').trim();
+  const seqRaw = Number(payload.seq);
   const seq = Number.isFinite(seqRaw) ? Math.max(0, Math.floor(seqRaw)) : 0;
   if (!eventId || !chatId || !kind || seq <= 0) {
     return null;
   }
   return {
-    sessionId: String(record.sessionId || '').trim(),
+    ...payload,
+    sessionId: String(payload.sessionId || '').trim(),
+    eventId,
+    chatId,
+    kind,
+    seq,
+  };
+}
+
+function parseSocketChatEvent(payload: unknown): ChatEventEnvelope | null {
+  if (!isObjectLike(payload)) {
+    return null;
+  }
+  const eventId = readStringField(payload, 'eventId');
+  const chatId = readStringField(payload, 'chatId');
+  const kind = readStringField(payload, 'kind');
+  const seqRaw = readNumberField(payload, 'seq');
+  const seq = seqRaw !== null ? Math.max(0, Math.floor(seqRaw)) : 0;
+  if (!eventId || !chatId || !kind || seq <= 0) {
+    return null;
+  }
+  const payloadObject = readObjectField(payload, 'payload');
+  return {
+    actionHint: readStringField(payload, 'actionHint') || undefined,
+    actorId: readStringField(payload, 'actorId'),
     seq,
     eventId,
     chatId,
     kind,
-    payload: (record.payload as Record<string, unknown>) || {},
+    occurredAt: readStringField(payload, 'occurredAt'),
+    payload: payloadObject ? (payloadObject as ChatEventEnvelopeDto['payload']) : {},
+    reasonCode: readStringField(payload, 'reasonCode') || undefined,
+    sessionId: readStringField(payload, 'sessionId'),
+    turnAudit: readObjectField(payload, 'turnAudit') ? (readObjectField(payload, 'turnAudit') as ChatEventEnvelopeDto['turnAudit']) : undefined,
   };
 }
 
 function extractMessageFromEvent(event: ChatEventEnvelope): MessageViewDto | null {
-  const payload = event.payload;
-  const candidate =
-    payload && typeof payload === 'object' && payload['message']
-      ? (payload['message'] as Record<string, unknown>)
-      : null;
+  const candidate = readObjectField(event.payload, 'message');
   return candidate ? normalizeRealtimeMessagePayload(candidate) : null;
+}
+
+function parseSessionReadyPayload(payload: unknown): ChatSessionReadyPayload | null {
+  if (!isObjectLike(payload)) {
+    return null;
+  }
+  const chatId = readStringField(payload, 'chatId');
+  const sessionId = readStringField(payload, 'sessionId');
+  const resumeToken = readStringField(payload, 'resumeToken');
+  const lastAckSeqRaw = readNumberField(payload, 'lastAckSeq');
+  const lastAckSeq = lastAckSeqRaw !== null ? Math.max(0, Math.floor(lastAckSeqRaw)) : 0;
+  if (!chatId || !sessionId || !resumeToken) {
+    return null;
+  }
+  return {
+    chatId,
+    sessionId,
+    resumeToken,
+    lastAckSeq,
+  };
+}
+
+function parseSyncRequiredPayload(payload: unknown): ChatSessionSyncRequiredPayload | null {
+  if (!isObjectLike(payload)) {
+    return null;
+  }
+  const chatId = readStringField(payload, 'chatId');
+  if (!chatId) {
+    return null;
+  }
+  const requestedAfterSeqRaw = readNumberField(payload, 'requestedAfterSeq');
+  return {
+    chatId,
+    requestedAfterSeq: requestedAfterSeqRaw !== null
+      ? Math.max(0, Math.floor(requestedAfterSeqRaw))
+      : 0,
+  };
+}
+
+function getReplayMaxSeq(events: ChatEventEnvelopeDto[], fallbackSeq: number): number {
+  return events.reduce((maxSeq, candidate) => {
+    const normalized = normalizeChatEventEnvelope(candidate);
+    if (!normalized) {
+      return maxSeq;
+    }
+    return Math.max(maxSeq, normalized.seq);
+  }, fallbackSeq);
 }
 
 function mergeChatQueriesByMessage(input: {
@@ -221,15 +322,14 @@ function applySyncSnapshotToCache(chatId: string, snapshot: ChatSyncResultDto['s
     return;
   }
   if (snapshot.chat) {
-    const chat = snapshot.chat as unknown as ChatViewDto;
     const chatQueries = queryClient.getQueriesData<ListChatsResultDto>({ queryKey: ['chats'] });
     for (const [queryKey, current] of chatQueries) {
-      queryClient.setQueryData(queryKey as QueryKey, upsertChatInChatsResult(current, chat));
+      queryClient.setQueryData(queryKey as QueryKey, upsertChatInChatsResult(current, snapshot.chat));
     }
   }
   if (Array.isArray(snapshot.messages)) {
     queryClient.setQueryData<ListMessagesResultDto>(['messages', chatId], {
-      items: snapshot.messages as unknown as MessageViewDto[],
+      items: snapshot.messages,
       nextBefore: null,
       nextAfter: null,
     });
@@ -379,29 +479,21 @@ export function useChatRealtimeSync(): void {
     };
 
     const onSessionReady = (payload: unknown) => {
-      if (!payload || typeof payload !== 'object') {
-        return;
-      }
-      const record = payload as Record<string, unknown>;
-      const chatId = String(record.chatId || '').trim();
-      const sessionId = String(record.sessionId || '').trim();
-      const resumeToken = String(record.resumeToken || '').trim();
-      const lastAckSeqRaw = Number(record.lastAckSeq);
-      const lastAckSeq = Number.isFinite(lastAckSeqRaw) ? Math.max(0, Math.floor(lastAckSeqRaw)) : 0;
-      if (!chatId || !sessionId || !resumeToken) {
+      const session = parseSessionReadyPayload(payload);
+      if (!session) {
         return;
       }
       sessionRef.current = {
-        chatId,
-        sessionId,
-        resumeToken,
-        lastAckSeq,
+        chatId: session.chatId,
+        sessionId: session.sessionId,
+        resumeToken: session.resumeToken,
+        lastAckSeq: session.lastAckSeq,
       };
       void dataSync.flushChatOutbox();
     };
 
     const onChatEvent = (payload: unknown) => {
-      const event = normalizeChatEvent(payload);
+      const event = parseSocketChatEvent(payload);
       if (!event) {
         return;
       }
@@ -419,17 +511,13 @@ export function useChatRealtimeSync(): void {
     };
 
     const onSyncRequired = (payload: unknown) => {
-      if (!payload || typeof payload !== 'object') {
-        return;
-      }
-      const record = payload as Record<string, unknown>;
-      const chatId = String(record.chatId || '').trim();
+      const syncRequired = parseSyncRequiredPayload(payload);
+      const chatId = syncRequired?.chatId || '';
       if (!chatId || chatId !== selectedChatIdRef.current) {
         return;
       }
-      const requestedAfterSeqRaw = Number(record.requestedAfterSeq);
-      const requestedAfterSeq = Number.isFinite(requestedAfterSeqRaw)
-        ? Math.max(0, Math.floor(requestedAfterSeqRaw))
+      const requestedAfterSeq = syncRequired && syncRequired.requestedAfterSeq > 0
+        ? syncRequired.requestedAfterSeq
         : Math.max(0, Math.floor(sessionRef.current?.lastAckSeq || 0));
       void dataSync
         .syncChatEvents(chatId, requestedAfterSeq, 200)
@@ -437,7 +525,7 @@ export function useChatRealtimeSync(): void {
           applySyncSnapshotToCache(chatId, result.snapshot);
           if (Array.isArray(result.events)) {
             for (const candidate of result.events) {
-              const event = normalizeChatEvent(candidate);
+              const event = normalizeChatEventEnvelope(candidate);
               if (!event) {
                 continue;
               }
@@ -454,13 +542,7 @@ export function useChatRealtimeSync(): void {
 
           if (sessionRef.current && sessionRef.current.chatId === chatId) {
             const replayMaxSeq = Array.isArray(result.events)
-              ? result.events.reduce((maxSeq, candidate) => {
-                const value = Number((candidate as Record<string, unknown>)?.seq);
-                if (!Number.isFinite(value)) {
-                  return maxSeq;
-                }
-                return Math.max(maxSeq, Math.floor(value));
-              }, sessionRef.current?.lastAckSeq ?? 0)
+              ? getReplayMaxSeq(result.events, sessionRef.current?.lastAckSeq ?? 0)
               : sessionRef.current.lastAckSeq;
             if (replayMaxSeq > sessionRef.current.lastAckSeq) {
               sessionRef.current.lastAckSeq = replayMaxSeq;
@@ -496,7 +578,7 @@ export function useChatRealtimeSync(): void {
             applySyncSnapshotToCache(activeChatId, result.snapshot);
             if (Array.isArray(result.events)) {
               for (const candidate of result.events) {
-                const event = normalizeChatEvent(candidate);
+                const event = normalizeChatEventEnvelope(candidate);
                 if (!event) continue;
                 if (rememberSeenEvent(seenEventsRef.current, `chat:event:${event.eventId}`)) continue;
                 applyChatEventToCache({

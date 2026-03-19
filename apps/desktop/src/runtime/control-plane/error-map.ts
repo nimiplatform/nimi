@@ -1,3 +1,5 @@
+import type { JsonObject } from '../net/json';
+
 export type ControlPlaneHttpErrorReasonCode =
   | 'control-plane/http-status'
   | 'control-plane/upstream-message'
@@ -13,7 +15,7 @@ export type ControlPlaneHttpError = Error & {
 export function toControlPlaneHttpError(input: {
   status: number;
   statusText: string;
-  payload: Record<string, unknown> | null;
+  payload: JsonObject | null;
 }): Error {
   const payload = input.payload || {};
   const payloadMessage = typeof payload.message === 'string' ? payload.message.trim() : '';

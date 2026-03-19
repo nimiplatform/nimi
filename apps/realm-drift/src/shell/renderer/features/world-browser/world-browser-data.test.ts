@@ -6,7 +6,7 @@ const mockGetWorldview = vi.fn();
 const mockGetWorldScenes = vi.fn();
 const mockGetWorldLorebooks = vi.fn();
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       services: {

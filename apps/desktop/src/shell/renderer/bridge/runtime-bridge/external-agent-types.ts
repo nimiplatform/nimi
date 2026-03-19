@@ -1,8 +1,10 @@
 import {
   assertRecord,
+  parseOptionalJsonObject,
   parseOptionalString,
   parseRequiredString,
 } from './shared.js';
+import type { JsonObject } from './shared.js';
 export type ExternalAgentActionExecutionMode = 'full' | 'guarded' | 'opaque';
 export type ExternalAgentActionRiskLevel = 'low' | 'medium' | 'high';
 
@@ -71,7 +73,7 @@ export type ExternalAgentActionExecutionRequest = {
   executionId: string;
   actionId: string;
   phase: 'dry-run' | 'verify' | 'commit';
-  input: Record<string, unknown>;
+  input: JsonObject;
   context: {
     principalId: string;
     principalType: 'external-agent';
@@ -95,7 +97,7 @@ export type ExternalAgentActionExecutionCompletion = {
   actionHint: string;
   traceId: string;
   auditId?: string;
-  output?: Record<string, unknown>;
+  output?: JsonObject;
   executionMode: ExternalAgentActionExecutionMode;
   warnings?: string[];
 };

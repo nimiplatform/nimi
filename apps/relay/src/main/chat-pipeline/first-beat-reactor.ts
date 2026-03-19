@@ -8,6 +8,7 @@ import type {
   LocalChatTurnAiClient,
 } from './types.js';
 import type { TurnInvokeInput } from './request-builder.js';
+import type { JsonObject } from '../../shared/json.js';
 import {
   DEFAULT_STREAM_END_MARKER,
   findTrailingEndMarkerFragmentLength,
@@ -31,7 +32,7 @@ type FirstBeatDebugContext = {
 function emitFirstBeatDebugLog(input: {
   event: string;
   context?: FirstBeatDebugContext;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 }): void {
   try {
     const record = {

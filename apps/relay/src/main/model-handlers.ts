@@ -3,11 +3,11 @@
 // RL-IPC-012 — Connector IPC
 // All handlers are SDK passthrough — no agentId required (not agent-scoped)
 
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { PlatformClient } from '@nimiplatform/sdk';
 import { normalizeError } from './error-utils.js';
 import { safeHandle } from './ipc-utils.js';
 
-export function registerModelIpcHandlers(runtime: Runtime): void {
+export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): void {
   // ── Model Service (RL-IPC-010) ──────────────────────────────────────
 
   safeHandle('relay:model:list', async (_e, input) => {

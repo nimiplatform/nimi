@@ -1,3 +1,4 @@
+import { assertRecord } from './shared.js';
 import { hasTauriInvoke, nativeFetch } from './env';
 import { invokeChecked } from './invoke';
 import {
@@ -55,7 +56,7 @@ export async function oauthTokenExchange(
     if (!response.ok) {
       throw new Error(`OAuth token exchange failed: HTTP ${response.status} ${body.slice(0, 200)}`);
     }
-    const parsed = JSON.parse(body) as Record<string, unknown>;
+    const parsed = assertRecord(JSON.parse(body), 'oauth_token_exchange returned invalid JSON payload');
     const accessToken = String(parsed.access_token || '').trim();
     if (!accessToken) {
       throw new Error('OAuth token 响应缺少 access_token');

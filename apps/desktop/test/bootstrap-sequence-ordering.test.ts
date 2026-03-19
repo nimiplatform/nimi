@@ -9,23 +9,23 @@ const bootstrapSource = readFileSync(BOOTSTRAP_PATH, 'utf-8');
 describe('bootstrap sequence ordering (D-BOOT)', () => {
   test('D-BOOT-001: bootstrap loads runtime defaults before platform client init', () => {
     const defaultsIndex = bootstrapSource.indexOf('getRuntimeDefaults()');
-    const platformClientIndex = bootstrapSource.indexOf('initializePlatformClient(');
+    const platformClientIndex = bootstrapSource.indexOf('createPlatformClient(');
     assert.ok(defaultsIndex !== -1, 'getRuntimeDefaults() must appear in bootstrap source');
-    assert.ok(platformClientIndex !== -1, 'initializePlatformClient( must appear in bootstrap source');
+    assert.ok(platformClientIndex !== -1, 'createPlatformClient( must appear in bootstrap source');
     assert.ok(
       defaultsIndex < platformClientIndex,
-      `getRuntimeDefaults() (pos ${defaultsIndex}) must appear before initializePlatformClient( (pos ${platformClientIndex})`,
+      `getRuntimeDefaults() (pos ${defaultsIndex}) must appear before createPlatformClient( (pos ${platformClientIndex})`,
     );
   });
 
   test('D-BOOT-002: platform client init precedes DataSync init', () => {
-    const platformClientIndex = bootstrapSource.indexOf('initializePlatformClient(');
+    const platformClientIndex = bootstrapSource.indexOf('createPlatformClient(');
     const dataSyncIndex = bootstrapSource.indexOf('dataSync.initApi(');
-    assert.ok(platformClientIndex !== -1, 'initializePlatformClient( must appear in bootstrap source');
+    assert.ok(platformClientIndex !== -1, 'createPlatformClient( must appear in bootstrap source');
     assert.ok(dataSyncIndex !== -1, 'dataSync.initApi( must appear in bootstrap source');
     assert.ok(
       platformClientIndex < dataSyncIndex,
-      `initializePlatformClient( (pos ${platformClientIndex}) must appear before dataSync.initApi( (pos ${dataSyncIndex})`,
+      `createPlatformClient( (pos ${platformClientIndex}) must appear before dataSync.initApi( (pos ${dataSyncIndex})`,
     );
   });
 

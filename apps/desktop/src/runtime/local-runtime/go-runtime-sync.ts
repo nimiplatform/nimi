@@ -1,4 +1,4 @@
-import { getPlatformClient } from '../platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { toProtoStruct } from '@nimiplatform/sdk/runtime';
 import { emitRuntimeLog } from '../telemetry/logger';
 import { adoptLocalRuntimeModel } from './commands';

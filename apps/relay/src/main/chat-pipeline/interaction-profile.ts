@@ -3,12 +3,7 @@ import type {
   LocalChatReplyStyleProfile,
   LocalChatTarget,
 } from './types.js';
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-}
+import { asRecord, type JsonObject } from '../../shared/json.js';
 
 function asString(value: unknown): string {
   return String(value || '').trim();
@@ -18,7 +13,7 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
-function readNestedRecord(record: unknown, path: string[]): Record<string, unknown> {
+function readNestedRecord(record: unknown, path: string[]): JsonObject {
   let current = asRecord(record);
   for (const key of path) {
     current = asRecord(current[key]);

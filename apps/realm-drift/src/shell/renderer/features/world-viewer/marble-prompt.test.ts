@@ -3,7 +3,7 @@ import type { RawWorldContext } from './marble-prompt.js';
 
 const mockStream = vi.fn();
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     runtime: {
       ai: {

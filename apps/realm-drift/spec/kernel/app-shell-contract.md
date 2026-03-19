@@ -63,7 +63,7 @@ Step 2: Runtime Defaults
   → Store realm base URL + access token defaults
 
 Step 3: Platform Client
-  → initializePlatformClient({ realmBaseUrl, accessToken, accessTokenProvider, subjectUserIdProvider })
+  → createPlatformClient({ realmBaseUrl, accessToken, accessTokenProvider, subjectUserIdProvider })
   → Produces { runtime, realm } SDK clients
 
 Step 4: Auth Session

@@ -5,14 +5,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getBridge } from '../../../bridge/electron-bridge.js';
 import { useAppStore } from '../../../app-shell/providers/app-store.js';
+import type { RelayRealtimeMessage } from '../../../../shared/ipc-contract.js';
 
-export interface HumanMessage {
-  id: string;
-  senderId: string;
-  senderName?: string;
-  text: string;
-  timestamp: string;
-}
+export type HumanMessage = RelayRealtimeMessage;
 
 export function useHumanChat() {
   const currentAgent = useAppStore((s) => s.currentAgent);
@@ -31,9 +26,8 @@ export function useHumanChat() {
     bridge.realtime.subscribe(channel);
 
     // Listen for real-time messages (RL-IPC-009)
-    const listenerId = bridge.realtime.onMessage((data: unknown) => {
-      const msg = data as HumanMessage;
-      setMessages((prev) => [...prev, msg]);
+    const listenerId = bridge.realtime.onMessage((message) => {
+      setMessages((prev) => [...prev, message]);
     });
 
     return () => {

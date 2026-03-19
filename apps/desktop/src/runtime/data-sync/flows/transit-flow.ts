@@ -11,7 +11,7 @@ import {
   startTransitSessionById,
 } from '../clients/transit-client';
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,

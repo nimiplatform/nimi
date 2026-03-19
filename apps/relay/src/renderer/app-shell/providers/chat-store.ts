@@ -2,6 +2,7 @@
 // Beat-first messages, turn phases, voice state
 
 import { create } from 'zustand';
+import type { JsonObject } from '../../../shared/json.js';
 
 export type ChatMessageKind =
   | 'text'
@@ -21,7 +22,7 @@ export type ChatMessageMedia = {
   previewUri?: string;
 };
 
-export type ChatMessageMeta = Record<string, unknown>;
+export type ChatMessageMeta = JsonObject;
 
 export type ChatMessage = {
   id: string;

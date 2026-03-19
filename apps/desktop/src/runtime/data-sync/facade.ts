@@ -1,4 +1,4 @@
-import { withOpenApiContextLock } from '@runtime/context/openapi-context';
+import { withRealmContextLock } from '@nimiplatform/sdk';
 import type { RealmTokenRefreshResult, RequestAccountDeletionInput, RequestAccountDeletionOutput, RequestDataExportInput, RequestDataExportOutput } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { Realm } from '@nimiplatform/sdk/realm';
@@ -9,11 +9,16 @@ import {
   isRealmOfflineError,
 } from '@runtime/offline';
 import type { DataSyncApiConfig, FetchImpl } from './api-core';
-import type { WorldEventsPayload } from './flows/world-flow';
+import type {
+  WorldEventsPayload,
+  WorldLorebookListPayload,
+  WorldMediaBindingListPayload,
+  WorldMutationListPayload,
+  WorldSceneListPayload,
+} from './flows/world-flow';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
 import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
-import { refreshDataSyncAccessToken } from './facade-refresh';
 import { DataSyncPollingManager } from './polling-manager';
 import type { CreatorEligibility } from './flows/settings-flow';
 import type {
@@ -53,9 +58,11 @@ type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
 type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
 type UserSettingsDto = RealmModel<'UserSettingsDto'>;
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
+type WorldAgentSummaryDto = RealmModel<'WorldAgentSummaryDto'>;
+type WorldDetailWithAgentsDto = RealmModel<'WorldDetailWithAgentsDto'>;
 
 export type DataSyncAuthCallbacks = {
-  setAuth: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
+  setAuth: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void;
   clearAuth: () => void;
   getCurrentUser: () => Record<string, unknown> | null;
   isFriend: (userId: string) => boolean;
@@ -71,7 +78,7 @@ export class DataSync {
   private proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private authCallbacks: DataSyncAuthCallbacks | null = null;
   private readonly polling = new DataSyncPollingManager();
-  private readonly callApiTask = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) =>
+  private readonly callApiTask = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) =>
     this.callApi(task, fallbackMessage);
   private readonly emitFacadeError = (
     action: string,
@@ -135,10 +142,10 @@ export class DataSync {
     if (!this.realmBaseUrl) throw new Error('API not initialized');
   }
 
-  async callApi(task: (realm: Realm) => Promise<any>, fallbackMessage?: string): Promise<any> {
+  async callApi<T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string): Promise<T> {
     this.assertApiConfigured();
     try {
-      const result = await withOpenApiContextLock(
+      const result = await withRealmContextLock(
         {
           realmBaseUrl: this.realmBaseUrl,
           accessToken: this.accessToken,
@@ -186,7 +193,7 @@ export class DataSync {
       );
       const normalized = tryParseJsonLike(result);
       getOfflineCoordinator().markRealmRestReachable(true);
-      return normalized === undefined ? {} : normalized;
+      return normalized;
     } catch (error) {
       const normalized = normalizeApiError(error, fallbackMessage);
       if (isRealmOfflineError(normalized)) {
@@ -260,18 +267,18 @@ export class DataSync {
   loadWorldSemanticBundle(worldId: string) { return this.actions.loadWorldSemanticBundle(worldId); }
   loadMainWorld() { return this.actions.loadMainWorld(); }
   loadWorldLevelAudits(worldId: string, limit = 20): Promise<WorldLevelAuditEventDto[]> { return this.actions.loadWorldLevelAudits(worldId, limit); }
-  loadWorldAgents(worldId: string): Promise<Array<Record<string, unknown>>> { return this.actions.loadWorldAgents(worldId); }
+  loadWorldAgents(worldId: string): Promise<WorldAgentSummaryDto[]> { return this.actions.loadWorldAgents(worldId); }
   loadWorldDetailWithAgents(
     worldId: string,
     recommendedAgentLimit?: number,
-  ): Promise<Record<string, unknown> | null> {
+  ): Promise<WorldDetailWithAgentsDto | null> {
     return this.actions.loadWorldDetailWithAgents(worldId, recommendedAgentLimit);
   }
   loadWorldEvents(worldId: string): Promise<WorldEventsPayload> { return this.actions.loadWorldEvents(worldId); }
-  loadWorldLorebooks(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldLorebooks(worldId); }
-  loadWorldScenes(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldScenes(worldId); }
-  loadWorldMediaBindings(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldMediaBindings(worldId); }
-  loadWorldMutations(worldId: string): Promise<{ worldId: string; items: Array<Record<string, unknown>> }> { return this.actions.loadWorldMutations(worldId); }
+  loadWorldLorebooks(worldId: string): Promise<WorldLorebookListPayload> { return this.actions.loadWorldLorebooks(worldId); }
+  loadWorldScenes(worldId: string): Promise<WorldSceneListPayload> { return this.actions.loadWorldScenes(worldId); }
+  loadWorldMediaBindings(worldId: string): Promise<WorldMediaBindingListPayload> { return this.actions.loadWorldMediaBindings(worldId); }
+  loadWorldMutations(worldId: string): Promise<WorldMutationListPayload> { return this.actions.loadWorldMutations(worldId); }
   loadSceneQuota(): Promise<SceneQuotaDto> { return this.actions.loadSceneQuota(); }
   startWorldTransit(input: {
     agentId: string;
@@ -428,10 +435,10 @@ export class DataSync {
       return;
     }
     try {
-      const refreshResult = await refreshDataSyncAccessToken({
+      const refreshResult = await Realm.refreshAccessToken({
         realmBaseUrl: this.realmBaseUrl,
         refreshToken: this.refreshToken,
-        fetchImpl: this.fetchImpl,
+        fetchImpl: this.fetchImpl || undefined,
       });
       this.accessToken = refreshResult.accessToken;
       if (refreshResult.refreshToken) {

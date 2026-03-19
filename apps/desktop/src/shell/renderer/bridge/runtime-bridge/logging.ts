@@ -4,22 +4,25 @@ import {
   isRendererDebugEnabledForCurrentEnv,
   shouldForwardRendererLogLevel,
 } from './env';
-import type { RendererLogLevel, RendererLogMessage, RendererLogPayload } from './types';
+import { isJsonObject } from './shared.js';
+import type { JsonObject, RendererLogLevel, RendererLogMessage, RendererLogPayload } from './types';
 
 const MAX_RENDERER_DEBUG_LOGS = 80;
 const RENDERER_TRACE_SESSION_KEY = 'nimi.renderer.trace.sessionId.v1';
 const RENDERER_CONSOLE_DEDUP_MS = 1200;
 const RENDERER_CONSOLE_CACHE_LIMIT = 400;
 const rendererConsoleMirrorAt = new Map<string, number>();
-const rendererDebugLogs: Array<Record<string, unknown>> = [];
+const rendererDebugLogs: JsonObject[] = [];
 let rendererSessionTraceIdCache = '';
 
-function sanitizeLogDetails(details: unknown): Record<string, unknown> {
-  if (!details || typeof details !== 'object') {
+function sanitizeLogDetails(details: unknown): JsonObject {
+  if (!isJsonObject(details)) {
     return {};
   }
   try {
-    return JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
+    return isJsonObject(JSON.parse(JSON.stringify(details)))
+      ? JSON.parse(JSON.stringify(details)) as JsonObject
+      : {};
   } catch {
     return { raw: String(details) };
   }
@@ -76,8 +79,8 @@ function persistRendererLogForDebug(payload: RendererLogPayload): void {
   }
   try {
     const runtimeWindow = window as typeof window & {
-      __NIMI_RENDERER_DEBUG_LOGS__?: Array<Record<string, unknown>>;
-      __NIMI_RENDERER_DEBUG_LOGS_LATEST__?: Record<string, unknown>;
+      __NIMI_RENDERER_DEBUG_LOGS__?: JsonObject[];
+      __NIMI_RENDERER_DEBUG_LOGS_LATEST__?: JsonObject;
     };
     runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS__ = [...rendererDebugLogs];
     runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS_LATEST__ = record;
@@ -193,7 +196,7 @@ export function logRendererEvent(payload: {
   flowId?: string;
   source?: string;
   costMs?: number;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 }): void {
   const normalizedLevel = payload.level || 'info';
   const normalizedArea = String(payload.area || 'renderer');
@@ -214,7 +217,7 @@ export function logRendererEvent(payload: {
   });
 }
 
-export function getRendererDebugLogsForTest(): Array<Record<string, unknown>> {
+export function getRendererDebugLogsForTest(): JsonObject[] {
   return [...rendererDebugLogs];
 }
 
@@ -224,8 +227,8 @@ export function resetRendererTelemetryStateForTest(): void {
   rendererSessionTraceIdCache = '';
   try {
     const runtimeWindow = window as typeof window & {
-      __NIMI_RENDERER_DEBUG_LOGS__?: Array<Record<string, unknown>>;
-      __NIMI_RENDERER_DEBUG_LOGS_LATEST__?: Record<string, unknown>;
+      __NIMI_RENDERER_DEBUG_LOGS__?: JsonObject[];
+      __NIMI_RENDERER_DEBUG_LOGS_LATEST__?: JsonObject;
     };
     runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS__ = [];
     delete runtimeWindow.__NIMI_RENDERER_DEBUG_LOGS_LATEST__;

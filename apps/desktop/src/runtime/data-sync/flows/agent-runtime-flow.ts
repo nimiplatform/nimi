@@ -1,16 +1,17 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import { getRuntimeHookRuntime } from '@runtime/mod';
+import type { JsonObject } from '@runtime/net/json';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@runtime/offline';
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
-  details?: Record<string, unknown>,
+  details?: JsonObject,
 ) => void;
 
 // Module-level TTL cache for profile lookups.
@@ -33,8 +34,8 @@ async function applyAgentProfileReadFilters(input: {
   emitDataSyncError: DataSyncErrorEmitter;
   viewerUserId?: string;
   worldId?: string;
-  profile: Record<string, unknown>;
-}): Promise<Record<string, unknown>> {
+  profile: JsonObject;
+}): Promise<JsonObject> {
   const ownerAgentId = toNonEmptyString(input.profile.id);
   if (!ownerAgentId) {
     return {
@@ -62,11 +63,11 @@ async function applyAgentProfileReadFilters(input: {
   }
 }
 
-function toRecord(value: unknown): Record<string, unknown> | null {
+function toRecord(value: unknown): JsonObject | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
-  return value as Record<string, unknown>;
+  return value as JsonObject;
 }
 
 function toNonEmptyString(value: unknown): string {
@@ -82,7 +83,7 @@ function toNullableString(value: unknown): string | null {
   return normalized || null;
 }
 
-function extractAgentWorldId(profile: Record<string, unknown>): string | null {
+function extractAgentWorldId(profile: JsonObject): string | null {
   const direct = toNonEmptyString(profile.worldId);
   if (direct) {
     return direct;
@@ -103,7 +104,7 @@ function extractAgentWorldId(profile: Record<string, unknown>): string | null {
   return null;
 }
 
-function extractWorldBannerUrl(profile: Record<string, unknown>): string | null {
+function extractWorldBannerUrl(profile: JsonObject): string | null {
   const direct = toNonEmptyString(profile.worldBannerUrl);
   if (direct) {
     return direct;
@@ -124,7 +125,7 @@ function extractWorldBannerUrl(profile: Record<string, unknown>): string | null 
   return null;
 }
 
-function extractWorldName(profile: Record<string, unknown>): string | null {
+function extractWorldName(profile: JsonObject): string | null {
   const direct = toNonEmptyString(profile.worldName);
   if (direct) {
     return direct;
@@ -147,8 +148,8 @@ function extractWorldName(profile: Record<string, unknown>): string | null {
 
 async function enrichAgentProfileWithWorldBanner(
   callApi: DataSyncApiCaller,
-  profile: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+  profile: JsonObject,
+): Promise<JsonObject> {
   const existingBannerUrl = extractWorldBannerUrl(profile);
   const existingWorldName = extractWorldName(profile);
   if (existingBannerUrl && existingWorldName) {
@@ -185,7 +186,7 @@ async function enrichAgentProfileWithWorldBanner(
   }
 }
 
-function isAgentProfile(profile: Record<string, unknown>): boolean {
+function isAgentProfile(profile: JsonObject): boolean {
   if (profile.isAgent === true) {
     return true;
   }
@@ -198,7 +199,7 @@ function isAgentProfile(profile: Record<string, unknown>): boolean {
 async function getProfileByHandle(
   callApi: DataSyncApiCaller,
   handleCandidate: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<JsonObject | null> {
   const normalized = toNonEmptyString(handleCandidate);
   if (!normalized) {
     return null;
@@ -217,7 +218,7 @@ async function getProfileByHandle(
 async function getProfileById(
   callApi: DataSyncApiCaller,
   agentId: string,
-): Promise<Record<string, unknown> | null> {
+): Promise<JsonObject | null> {
   const normalized = toNonEmptyString(agentId);
   if (!normalized) {
     return null;
@@ -258,11 +259,11 @@ export async function loadAgentDetails(
         emitDataSyncError,
         viewerUserId: context?.viewerUserId,
         worldId: context?.worldId,
-        profile: cached as Record<string, unknown>,
+        profile: cached as JsonObject,
       });
     }
 
-    let profile: Record<string, unknown> | null = null;
+    let profile: JsonObject | null = null;
 
     profile = await getProfileById(callApi, normalizedIdentifier);
     if (!profile) {

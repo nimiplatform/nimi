@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { ScenarioJobStatus, buildMusicIterationExtensions, type MusicIterationMode } from '@nimiplatform/sdk/runtime';
 import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
-import { getRuntimeInstance } from '@renderer/bridge/runtime-sdk.js';
 import {
   copyArtifactBytesToArrayBuffer,
   scenarioJobStatusLabel,
@@ -85,7 +85,7 @@ export function IteratePanel() {
       sourceMimeType = uploadedAudio.mime;
     }
 
-    const runtime = getRuntimeInstance();
+    const runtime = getPlatformClient().runtime;
     const prompt = brief?.description || '';
     const style = brief ? [brief.genre, brief.mood].filter(Boolean).join(', ') : '';
     let result:

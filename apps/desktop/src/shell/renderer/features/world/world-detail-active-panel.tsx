@@ -17,9 +17,7 @@ export function WorldDetailActivePanel() {
     queryKey: worldListQueryKey(),
     queryFn: async () => {
       const result = await dataSync.loadWorlds();
-      return Array.isArray(result)
-        ? result.map((item) => toWorldListItem(item as Record<string, unknown>))
-        : [];
+      return result.map((item) => toWorldListItem(item));
     },
     enabled: authStatus === 'authenticated' && Boolean(selectedWorldId),
     staleTime: 30_000,

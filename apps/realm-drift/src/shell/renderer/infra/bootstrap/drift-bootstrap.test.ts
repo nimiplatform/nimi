@@ -9,8 +9,8 @@ vi.mock('@renderer/bridge/runtime-defaults.js', () => ({
   getRuntimeDefaults: (...args: unknown[]) => mockGetRuntimeDefaults(...args),
 }));
 
-vi.mock('@runtime/platform-client.js', () => ({
-  initializePlatformClient: (...args: unknown[]) => mockInitializePlatformClient(...args),
+vi.mock('@nimiplatform/sdk', () => ({
+  createPlatformClient: (...args: unknown[]) => mockInitializePlatformClient(...args),
   getPlatformClient: vi.fn(),
 }));
 

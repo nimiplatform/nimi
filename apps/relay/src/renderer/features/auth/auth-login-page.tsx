@@ -5,7 +5,9 @@ import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { getBridge } from '../../bridge/electron-bridge.js';
 import { createRelayAuthAdapter } from './relay-auth-adapter.js';
 import { createElectronOAuthBridge } from './electron-oauth-bridge.js';
-import { useChatStore } from '../../app-shell/providers/chat-store.js';
+import { useChatStore, type StatusBanner } from '../../app-shell/providers/chat-store.js';
+import type { RelayInvokeResponse } from '../../../shared/ipc-contract.js';
+import type { JsonObject } from '../../../shared/json.js';
 
 export function AuthLoginPage() {
   const authState = useAppStore((s) => s.authState);
@@ -14,7 +16,7 @@ export function AuthLoginPage() {
   const adapter = useMemo(() => createRelayAuthAdapter(), []);
   const oauthBridge = useMemo(() => createElectronOAuthBridge(), []);
 
-  const handleFinalizeSession = useCallback((_user: Record<string, unknown> | null, accessToken: string) => {
+  const handleFinalizeSession = useCallback((_user: RelayInvokeResponse<'relay:auth:current-user'> | JsonObject | null, accessToken: string) => {
     useAppStore.getState().setAuthState('authenticating');
     void bridge.auth.applyToken({ accessToken }).then((result) => {
       if (!result.success) {
@@ -31,10 +33,20 @@ export function AuthLoginPage() {
     });
   }, [bridge]);
 
-  const handleStatusBanner = useCallback((banner: { kind: string; message: string } | null) => {
-    useChatStore.getState().setStatusBanner(
-      banner as { kind: 'warning' | 'error' | 'success' | 'info'; message: string } | null,
-    );
+  const handleStatusBanner = useCallback((banner: { kind?: unknown; message?: unknown } | null) => {
+    const normalized: StatusBanner = banner
+      ? {
+          kind:
+            banner.kind === 'warning'
+            || banner.kind === 'error'
+            || banner.kind === 'success'
+            || banner.kind === 'info'
+              ? banner.kind
+              : 'info',
+          message: String(banner.message || '').trim(),
+        }
+      : null;
+    useChatStore.getState().setStatusBanner(normalized);
   }, []);
 
   return (

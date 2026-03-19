@@ -1,6 +1,6 @@
 // Route option aggregator — loads available local models + cloud connectors from runtime
 
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { PlatformClient } from '@nimiplatform/sdk';
 import type {
   RelayLocalModelOption,
   RelayConnectorOption,
@@ -47,7 +47,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Pro
   }
 }
 
-async function loadLocalModels(runtime: Runtime): Promise<RelayLocalModelOption[]> {
+async function loadLocalModels(runtime: PlatformClient['runtime']): Promise<RelayLocalModelOption[]> {
   // Cast: protobuf request has required zero-value fields; SDK accepts partial input at runtime
   const response = await runtime.local.listLocalModels({} as Parameters<typeof runtime.local.listLocalModels>[0]);
   const models = response.models || [];
@@ -67,7 +67,7 @@ async function loadLocalModels(runtime: Runtime): Promise<RelayLocalModelOption[
     });
 }
 
-async function loadConnectors(runtime: Runtime): Promise<RelayConnectorOption[]> {
+async function loadConnectors(runtime: PlatformClient['runtime']): Promise<RelayConnectorOption[]> {
   const response = await runtime.connector.listConnectors({} as Parameters<typeof runtime.connector.listConnectors>[0]);
   const connectors = response.connectors || [];
   const results: RelayConnectorOption[] = [];
@@ -111,7 +111,7 @@ async function loadConnectors(runtime: Runtime): Promise<RelayConnectorOption[]>
 }
 
 export async function loadRouteOptions(
-  runtime: Runtime,
+  runtime: PlatformClient['runtime'],
   currentBinding: RelayRouteBinding | null,
 ): Promise<RelayRouteOptions> {
   const [localModels, connectors] = await Promise.all([

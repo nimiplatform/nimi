@@ -6,7 +6,7 @@ import type {
   RuntimeHealthEvent,
   RuntimeStreamCallOptions,
 } from '@nimiplatform/sdk/runtime';
-import { getPlatformClient } from '@runtime/platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 const HEALTH_STALE_MS = 60_000;
 const HEALTH_WATCHDOG_INTERVAL_MS = 60_000;
@@ -35,6 +35,10 @@ type RuntimeHealthCoordinatorDeps = {
   setInterval: (callback: () => void, intervalMs: number) => unknown;
   clearInterval: (handle: unknown) => void;
 };
+
+function runtimeAdmin() {
+  return getPlatformClient().domains.runtimeAdmin;
+}
 
 export type RuntimeHealthCoordinatorState = {
   runtimeHealth: GetRuntimeHealthResponse | null;
@@ -154,20 +158,16 @@ export class RuntimeHealthCoordinator {
   constructor(deps?: Partial<RuntimeHealthCoordinatorDeps>) {
     this.deps = {
       fetchRuntimeHealth: async () => {
-        const runtime = getPlatformClient().runtime;
-        return runtime.audit.getRuntimeHealth({}, HEALTH_CALL_OPTIONS);
+        return runtimeAdmin().getRuntimeHealth({}, HEALTH_CALL_OPTIONS);
       },
       fetchProviderHealth: async () => {
-        const runtime = getPlatformClient().runtime;
-        return runtime.audit.listAIProviderHealth({}, HEALTH_CALL_OPTIONS);
+        return runtimeAdmin().listAIProviderHealth({}, HEALTH_CALL_OPTIONS);
       },
       subscribeRuntimeHealth: async () => {
-        const runtime = getPlatformClient().runtime;
-        return runtime.healthEvents({}, HEALTH_STREAM_OPTIONS);
+        return runtimeAdmin().healthEvents({}, HEALTH_STREAM_OPTIONS);
       },
       subscribeProviderHealth: async () => {
-        const runtime = getPlatformClient().runtime;
-        return runtime.providerHealthEvents({}, HEALTH_STREAM_OPTIONS);
+        return runtimeAdmin().providerHealthEvents({}, HEALTH_STREAM_OPTIONS);
       },
       now: () => Date.now(),
       setInterval: (callback, intervalMs) => window.setInterval(callback, intervalMs),

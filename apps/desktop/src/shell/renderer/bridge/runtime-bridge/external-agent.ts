@@ -1,5 +1,6 @@
 import { hasTauriInvoke } from './env';
 import { invoke, invokeChecked } from './invoke';
+import { parseOptionalJsonObject } from './shared.js';
 import {
   parseExternalAgentActionDescriptors,
   parseExternalAgentGatewayStatus,
@@ -82,12 +83,8 @@ export async function getExternalAgentGatewayStatus(): Promise<ExternalAgentGate
 }
 
 function parseExecutionRequest(value: unknown): ExternalAgentActionExecutionRequest {
-  const record = value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
-  const contextRaw = record.context && typeof record.context === 'object' && !Array.isArray(record.context)
-    ? record.context as Record<string, unknown>
-    : {};
+  const record = parseOptionalJsonObject(value) || {};
+  const contextRaw = parseOptionalJsonObject(record.context) || {};
   const mode = String(contextRaw.mode || '').trim() === 'autonomous' ? 'autonomous' : 'delegated';
   const phaseRaw = String(record.phase || '').trim();
   const phase: 'dry-run' | 'verify' | 'commit' = phaseRaw === 'verify'
@@ -101,9 +98,7 @@ function parseExecutionRequest(value: unknown): ExternalAgentActionExecutionRequ
     executionId: String(record.executionId || '').trim(),
     actionId: String(record.actionId || '').trim(),
     phase,
-    input: record.input && typeof record.input === 'object' && !Array.isArray(record.input)
-      ? record.input as Record<string, unknown>
-      : {},
+    input: parseOptionalJsonObject(record.input) || {},
     context: {
       principalId: String(contextRaw.principalId || '').trim(),
       principalType: 'external-agent',

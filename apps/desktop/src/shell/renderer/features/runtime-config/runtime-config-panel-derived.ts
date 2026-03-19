@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import type { RuntimeLocalManifestSummary } from '@renderer/bridge';
+import type { JsonObject } from '../../bridge/runtime-bridge/types';
+import { parseOptionalJsonObject } from '../../bridge/runtime-bridge/shared';
 import { normalizeLocalRuntimeProfilesDeclaration } from '@runtime/local-runtime';
 import {
   CAPABILITIES_V11,
@@ -15,10 +17,8 @@ import {
   selectOrderedConnectorsV11,
 } from '@renderer/features/runtime-config/runtime-config-selectors-v11';
 
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : {};
+function asRecord(value: unknown): JsonObject {
+  return parseOptionalJsonObject(value) || {};
 }
 
 function normalizeCapability(value: unknown): CapabilityV11 | null {
@@ -94,9 +94,10 @@ export function useRuntimeConfigPanelDerived(input: {
       const ai = asRecord(manifest.ai);
       const profiles = normalizeLocalRuntimeProfilesDeclaration(ai.profiles);
       if (profiles.length <= 0) continue;
-      const consumeCapabilities = Array.isArray(ai.consume)
+      const consumeEntries: unknown[] = Array.isArray(ai.consume) ? ai.consume : [];
+      const consumeCapabilities = consumeEntries.length > 0
         ? Array.from(new Set(
-          ai.consume
+          consumeEntries
             .map((item) => normalizeCapability(item))
             .filter((item): item is CapabilityV11 => Boolean(item)),
         ))

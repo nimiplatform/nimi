@@ -1,4 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 
 type ChatViewDto = RealmModel<'ChatViewDto'>;
 type ListChatsResultDto = RealmModel<'ListChatsResultDto'>;
@@ -23,11 +24,8 @@ type ChatMergeResult = {
   shouldMarkRead: boolean;
 };
 
-function asRecord(input: unknown): Record<string, unknown> | null {
-  if (!input || typeof input !== 'object') {
-    return null;
-  }
-  return input as Record<string, unknown>;
+function asRecord(input: unknown): JsonObject | null {
+  return parseOptionalJsonObject(input) ?? null;
 }
 
 function normalizeString(value: unknown): string {
@@ -107,19 +105,16 @@ function normalizeReplyTo(input: unknown): MessageViewDto['replyTo'] {
     text: typeof textValue === 'string' ? textValue : '',
     payload:
       payloadValue && typeof payloadValue === 'object'
-        ? (payloadValue as Record<string, unknown>)
+        ? (parseOptionalJsonObject(payloadValue) ?? null)
         : null,
   };
 }
 
-function normalizePayload(input: unknown): Record<string, unknown> | null {
+function normalizePayload(input: unknown): JsonObject | null {
   if (input === null) {
     return null;
   }
-  if (input && typeof input === 'object') {
-    return input as Record<string, unknown>;
-  }
-  return null;
+  return parseOptionalJsonObject(input) ?? null;
 }
 
 export function normalizeRealtimeMessagePayload(payload: unknown): MessageViewDto | null {

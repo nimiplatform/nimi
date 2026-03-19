@@ -1,3 +1,4 @@
+import type { JsonObject } from '@runtime/net/json';
 import type {
   PersistentOutboxEntry,
   PersistentSocialMutationEntry,
@@ -22,12 +23,12 @@ const MODEL_MANIFEST_CACHE_KEY = '__model-manifests__';
 
 type MetadataRow = {
   cacheKey: string;
-  payload: Record<string, unknown> | Record<string, unknown>[];
+  payload: JsonObject | JsonObject[];
 };
 
 type OfflineMemoryStore = {
-  chatList: Map<string, Record<string, unknown>>;
-  chatMessages: Map<string, Map<string, Record<string, unknown>>>;
+  chatList: Map<string, JsonObject>;
+  chatMessages: Map<string, Map<string, JsonObject>>;
   chatOutbox: Map<string, PersistentOutboxEntry>;
   socialOutbox: Map<string, PersistentSocialMutationEntry>;
   agentMetadata: Map<string, MetadataRow>;
@@ -89,7 +90,7 @@ function openDatabase(): Promise<IDBDatabase> {
 
 function toMetadataRow(
   cacheKey: string,
-  payload: Record<string, unknown> | Record<string, unknown>[],
+  payload: JsonObject | JsonObject[],
 ): MetadataRow {
   return { cacheKey, payload };
 }
@@ -165,7 +166,7 @@ export class OfflineCacheManager {
     });
   }
 
-  async syncChatList(chats: Record<string, unknown>[]): Promise<void> {
+  async syncChatList<T extends JsonObject>(chats: T[]): Promise<void> {
     const limited = chats.slice(0, CACHE_MAX_CHATS);
     if (this.memory) {
       const memory = this.ensureMemory();
@@ -187,18 +188,18 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedChatList(): Promise<Record<string, unknown>[]> {
+  async getCachedChatList<T extends JsonObject>(): Promise<T[]> {
     if (this.memory) {
-      return Array.from(this.ensureMemory().chatList.values());
+      return Array.from(this.ensureMemory().chatList.values()) as T[];
     }
-    return await this.getAll<Record<string, unknown>>(STORE_CHAT_LIST);
+    return await this.getAll<T>(STORE_CHAT_LIST);
   }
 
-  async syncChatMessages(chatId: string, messages: Record<string, unknown>[]): Promise<void> {
+  async syncChatMessages<T extends JsonObject>(chatId: string, messages: T[]): Promise<void> {
     const limited = messages.slice(0, CACHE_MAX_MESSAGES_PER_CHAT);
     if (this.memory) {
       const memory = this.ensureMemory();
-      const byId = new Map<string, Record<string, unknown>>();
+      const byId = new Map<string, JsonObject>();
       for (const message of limited) {
         const id = String(message.id || '').trim();
         if (!id) continue;
@@ -234,9 +235,9 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedMessages(chatId: string): Promise<Record<string, unknown>[]> {
+  async getCachedMessages<T extends JsonObject>(chatId: string): Promise<T[]> {
     if (this.memory) {
-      return Array.from((this.ensureMemory().chatMessages.get(chatId) || new Map()).values());
+      return Array.from((this.ensureMemory().chatMessages.get(chatId) || new Map()).values()) as T[];
     }
     const db = this.ensureDb();
     return await new Promise((resolve, reject) => {
@@ -245,7 +246,7 @@ export class OfflineCacheManager {
       const index = store.index('chatId_createdAt');
       const range = IDBKeyRange.bound([chatId], [chatId, '\uffff']);
       const request = index.getAll(range);
-      request.onsuccess = () => resolve(request.result as Record<string, unknown>[]);
+      request.onsuccess = () => resolve(request.result as T[]);
       request.onerror = () => reject(request.error);
     });
   }
@@ -392,7 +393,7 @@ export class OfflineCacheManager {
     });
   }
 
-  async syncAgentMetadata(agentId: string, payload: Record<string, unknown>): Promise<void> {
+  async syncAgentMetadata<T extends JsonObject>(agentId: string, payload: T): Promise<void> {
     const row = toMetadataRow(agentId, payload);
     if (this.memory) {
       this.ensureMemory().agentMetadata.set(agentId, row);
@@ -404,16 +405,16 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedAgentMetadata(agentId: string): Promise<Record<string, unknown> | null> {
+  async getCachedAgentMetadata<T extends JsonObject>(agentId: string): Promise<T | null> {
     if (this.memory) {
       const row = this.ensureMemory().agentMetadata.get(agentId);
-      return row && !Array.isArray(row.payload) ? row.payload : null;
+      return row && !Array.isArray(row.payload) ? row.payload as T : null;
     }
     const row = await this.getByKey<MetadataRow>(STORE_AGENT_METADATA, agentId);
-    return row && !Array.isArray(row.payload) ? row.payload : null;
+    return row && !Array.isArray(row.payload) ? row.payload as T : null;
   }
 
-  async syncWorldList(worlds: Record<string, unknown>[]): Promise<void> {
+  async syncWorldList<T extends JsonObject>(worlds: T[]): Promise<void> {
     const row = toMetadataRow(WORLD_LIST_CACHE_KEY, worlds);
     if (this.memory) {
       this.ensureMemory().worldMetadata.set(WORLD_LIST_CACHE_KEY, row);
@@ -425,16 +426,16 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedWorldList(): Promise<Record<string, unknown>[]> {
+  async getCachedWorldList<T extends JsonObject>(): Promise<T[]> {
     if (this.memory) {
       const row = this.ensureMemory().worldMetadata.get(WORLD_LIST_CACHE_KEY);
-      return row && Array.isArray(row.payload) ? row.payload : [];
+      return row && Array.isArray(row.payload) ? row.payload as T[] : [];
     }
     const row = await this.getByKey<MetadataRow>(STORE_WORLD_METADATA, WORLD_LIST_CACHE_KEY);
-    return row && Array.isArray(row.payload) ? row.payload : [];
+    return row && Array.isArray(row.payload) ? row.payload as T[] : [];
   }
 
-  async syncWorldMetadata(worldId: string, payload: Record<string, unknown>): Promise<void> {
+  async syncWorldMetadata<T extends JsonObject>(worldId: string, payload: T): Promise<void> {
     const row = toMetadataRow(worldId, payload);
     if (this.memory) {
       this.ensureMemory().worldMetadata.set(worldId, row);
@@ -446,16 +447,16 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedWorldMetadata(worldId: string): Promise<Record<string, unknown> | null> {
+  async getCachedWorldMetadata<T extends JsonObject>(worldId: string): Promise<T | null> {
     if (this.memory) {
       const row = this.ensureMemory().worldMetadata.get(worldId);
-      return row && !Array.isArray(row.payload) ? row.payload : null;
+      return row && !Array.isArray(row.payload) ? row.payload as T : null;
     }
     const row = await this.getByKey<MetadataRow>(STORE_WORLD_METADATA, worldId);
-    return row && !Array.isArray(row.payload) ? row.payload : null;
+    return row && !Array.isArray(row.payload) ? row.payload as T : null;
   }
 
-  async syncModelManifests(payload: Record<string, unknown>[]): Promise<void> {
+  async syncModelManifests<T extends JsonObject>(payload: T[]): Promise<void> {
     const row = toMetadataRow(MODEL_MANIFEST_CACHE_KEY, payload);
     if (this.memory) {
       this.ensureMemory().modelManifests.set(MODEL_MANIFEST_CACHE_KEY, row);
@@ -467,13 +468,13 @@ export class OfflineCacheManager {
     await this.complete(tx);
   }
 
-  async getCachedModelManifests(): Promise<Record<string, unknown>[]> {
+  async getCachedModelManifests<T extends JsonObject>(): Promise<T[]> {
     if (this.memory) {
       const row = this.ensureMemory().modelManifests.get(MODEL_MANIFEST_CACHE_KEY);
-      return row && Array.isArray(row.payload) ? row.payload : [];
+      return row && Array.isArray(row.payload) ? row.payload as T[] : [];
     }
     const row = await this.getByKey<MetadataRow>(STORE_MODEL_MANIFESTS, MODEL_MANIFEST_CACHE_KEY);
-    return row && Array.isArray(row.payload) ? row.payload : [];
+    return row && Array.isArray(row.payload) ? row.payload as T[] : [];
   }
 }
 

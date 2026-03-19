@@ -1,6 +1,6 @@
 import React from 'react';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { getRealmInstance } from '@renderer/bridge/realm-sdk.js';
 
 async function publishTake(input: {
   audioBuffer: ArrayBuffer;
@@ -11,8 +11,10 @@ async function publishTake(input: {
   onStatus: (status: 'uploading' | 'creating' | 'done' | 'error', error?: string) => void;
   onPostId: (postId: string) => void;
 }): Promise<void> {
-  const realm = getRealmInstance();
-  if (!realm) {
+  let client;
+  try {
+    client = getPlatformClient();
+  } catch {
     input.onStatus('error', 'Realm client is not initialized.');
     return;
   }
@@ -20,10 +22,7 @@ async function publishTake(input: {
   try {
     input.onStatus('uploading');
 
-    const upload = (await realm.services.MediaService.createAudioDirectUpload({ mimeType: 'audio/mpeg' })) as {
-      uploadUrl: string;
-      key: string;
-    };
+    const upload = await client.domains.media.createAudioDirectUpload({ mimeType: 'audio/mpeg' });
 
     const audioBlob = new Blob([input.audioBuffer], { type: 'audio/mpeg' });
     const uploadResponse = await fetch(upload.uploadUrl, {
@@ -39,12 +38,12 @@ async function publishTake(input: {
 
     input.onStatus('creating');
 
-    const post = (await realm.services.PostService.createPost({
+    const post = (await client.domains.media.createPost({
       caption: input.description || input.title,
       media: [
         {
           type: 'AUDIO' as const,
-          id: upload.key,
+          assetId: upload.assetId,
           duration: input.duration,
         },
       ],

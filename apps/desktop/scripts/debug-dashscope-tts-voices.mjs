@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
 const APP_ID = 'nimi.desktop.debug.dashscope-tts-voices';
 const SUBJECT_USER_ID = 'desktop-debug-user';
@@ -125,19 +125,18 @@ async function main() {
   });
 
   try {
-    const runtime = new Runtime({
+    const { runtime } = await createPlatformClient({
       appId: APP_ID,
-      transport: {
+      runtimeTransport: {
         type: 'node-grpc',
         endpoint,
       },
-      defaults: {
+      runtimeDefaults: {
         callerKind: 'desktop-core',
         callerId: 'dashscope-tts-debug',
       },
-      subjectContext: {
-        subjectUserId: SUBJECT_USER_ID,
-      },
+      realmBaseUrl: 'http://localhost:3002',
+      subjectUserIdProvider: () => SUBJECT_USER_ID,
     });
 
     await waitForRuntimeReady(runtime);

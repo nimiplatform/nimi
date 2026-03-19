@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { ExecutionMode, ScenarioType } from '@nimiplatform/sdk/runtime';
 import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-bridge.js';
-import { clearRealmInstance, initRealmInstance } from '@renderer/bridge/realm-sdk.js';
-import { getRuntimeInstance } from '@renderer/bridge/runtime-sdk.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import {
+  clearOvertonePlatformClient,
+  ensureOvertonePlatformClient,
+} from '@renderer/features/auth/overtone-auth-adapter.js';
 
 type RuntimeProbeResult = {
   running: boolean;
@@ -31,16 +34,20 @@ async function syncRealmFromEnv(): Promise<{
   const accessToken = storeToken || String(import.meta.env.VITE_NIMI_REALM_ACCESS_TOKEN || '').trim();
 
   if (!baseUrl || !accessToken) {
-    clearRealmInstance();
+    if (baseUrl) {
+      await ensureOvertonePlatformClient('');
+    } else {
+      clearOvertonePlatformClient();
+    }
     return {
       realmConfigured: Boolean(baseUrl),
       realmAuthenticated: false,
     };
   }
-  const realm = initRealmInstance(baseUrl, accessToken);
+  const client = await ensureOvertonePlatformClient(accessToken);
 
   try {
-    await realm.ready({ timeoutMs: 5_000 });
+    await client.realm.ready({ timeoutMs: 5_000 });
     return {
       realmConfigured: true,
       realmAuthenticated: true,
@@ -93,7 +100,7 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
   let musicIterationSupported = false;
 
   try {
-    const runtime = getRuntimeInstance();
+    const runtime = getPlatformClient().runtime;
     await runtime.ready();
 
     const profiles = await runtime.ai.listScenarioProfiles({ modelId: '' });

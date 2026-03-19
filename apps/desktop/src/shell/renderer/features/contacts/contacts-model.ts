@@ -1,4 +1,5 @@
 import { formatRelativeLocaleTime } from '@renderer/i18n';
+import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 
 export type ContactRecord = {
   id: string;
@@ -48,6 +49,8 @@ export type ContactSearchCandidate = {
 
 export const CONTACTS_ACTIVE_FILTER_STORAGE_KEY = 'nimi.contacts.active-filter';
 
+type ContactPayload = JsonObject;
+
 export function loadStoredContactsFilter(defaultFilter: TabFilter = 'humans'): TabFilter {
   if (typeof window === 'undefined') {
     return defaultFilter;
@@ -83,14 +86,12 @@ export function formatContactRelativeTime(dateStr: string | null): string {
   return formatRelativeLocaleTime(dateStr);
 }
 
-export function toFriendContact(item: Record<string, unknown>): ContactRecord {
+export function toFriendContact(item: ContactPayload): ContactRecord {
   const handle = String(item.handle || '');
   const isAgent = item.isAgent === true;
   
   // Parse agent ownership type
-  const agentProfile = item.agentProfile && typeof item.agentProfile === 'object'
-    ? item.agentProfile as Record<string, unknown>
-    : null;
+  const agentProfile = parseOptionalJsonObject(item.agentProfile) ?? null;
   const ownershipRaw = String(item.ownershipType || agentProfile?.ownershipType || '').trim();
   const agentOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
     ? ownershipRaw
@@ -121,7 +122,7 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
   else if (genderStr === 'other' || genderStr === 'o') gender = 'other';
   
   // Parse world info
-  const worldData = item.world && typeof item.world === 'object' ? item.world as Record<string, unknown> : null;
+  const worldData = parseOptionalJsonObject(item.world) ?? null;
   const worldId = typeof item.worldId === 'string' ? item.worldId : 
     typeof worldData?.id === 'string' ? worldData.id : null;
   const worldName = typeof item.worldName === 'string' ? item.worldName : 
@@ -153,10 +154,8 @@ export function toFriendContact(item: Record<string, unknown>): ContactRecord {
   };
 }
 
-export function toDeveloperAgentContact(item: Record<string, unknown>): ContactRecord {
-  const agentProfile = item.agentProfile && typeof item.agentProfile === 'object'
-    ? item.agentProfile as Record<string, unknown>
-    : null;
+export function toDeveloperAgentContact(item: ContactPayload): ContactRecord {
+  const agentProfile = parseOptionalJsonObject(item.agentProfile) ?? null;
   const ownershipRaw = String(item.ownershipType || agentProfile?.ownershipType || '').trim();
   const agentOwnershipType = ownershipRaw === 'MASTER_OWNED' || ownershipRaw === 'WORLD_OWNED'
     ? ownershipRaw
@@ -164,7 +163,7 @@ export function toDeveloperAgentContact(item: Record<string, unknown>): ContactR
   const agentCreatorIdRaw = String(item.creatorId || agentProfile?.creatorId || '').trim();
   
   // Parse world info
-  const worldData = item.world && typeof item.world === 'object' ? item.world as Record<string, unknown> : null;
+  const worldData = parseOptionalJsonObject(item.world) ?? null;
   const worldId = typeof item.worldId === 'string' ? item.worldId : 
     typeof worldData?.id === 'string' ? worldData.id : null;
   const worldName = typeof item.worldName === 'string' ? item.worldName : 
@@ -193,7 +192,7 @@ export function toDeveloperAgentContact(item: Record<string, unknown>): ContactR
   };
 }
 
-export function toPendingRequestContact(item: Record<string, unknown>): ContactRequestRecord {
+export function toPendingRequestContact(item: ContactPayload): ContactRequestRecord {
   const userId = String(item.userId || item.id || '').trim();
   const handle = String(item.handle || '');
   return {
@@ -211,10 +210,10 @@ export function toPendingRequestContact(item: Record<string, unknown>): ContactR
 }
 
 export function toContactSearchCandidate(payload: unknown): ContactSearchCandidate | null {
-  if (!payload || typeof payload !== 'object') {
+  const input = parseOptionalJsonObject(payload);
+  if (!input) {
     return null;
   }
-  const input = payload as Record<string, unknown>;
   const id = String(input.id || '').trim();
   if (!id) {
     return null;

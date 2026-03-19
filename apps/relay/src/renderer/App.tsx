@@ -9,7 +9,7 @@ import { bootstrap, syncAuthenticatedRendererState } from './infra/bootstrap.js'
 import { MainLayout } from './app-shell/layout/main-layout.js';
 import { ChatPage } from './features/chat/chat-page.js';
 import { useSettingsStore } from './app-shell/providers/settings-store.js';
-import { useAppStore, type AuthState } from './app-shell/providers/app-store.js';
+import { useAppStore } from './app-shell/providers/app-store.js';
 import { getBridge } from './bridge/electron-bridge.js';
 import { AuthLoginPage } from './features/auth/auth-login-page.js';
 
@@ -23,14 +23,13 @@ export function App() {
     // Listen for auth state changes from main process
     try {
       const bridge = getBridge();
-      const listenerId = bridge.auth.onStatus((data: unknown) => {
-        const payload = data as { state: AuthState; error: string | null };
+      const listenerId = bridge.auth.onStatus((payload) => {
         useAppStore.getState().setAuthState(payload.state, payload.error);
       });
 
       // Query initial auth state
       bridge.auth.getStatus().then((status) => {
-        useAppStore.getState().setAuthState(status.state as AuthState, status.error);
+        useAppStore.getState().setAuthState(status.state, status.error);
       });
 
       return () => bridge.auth.removeListener(listenerId);

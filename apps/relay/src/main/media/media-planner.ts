@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { LocalChatTarget, LocalChatPromptTrace, LocalChatTurnAiClient } from '../chat-pipeline/types.js';
 import type { NsfwMediaPolicy } from './nsfw-media-policy.js';
 import { pt, type PromptLocale } from '../prompt/prompt-locale.js';
+import type { JsonObject } from '../../shared/json.js';
 
 export type { NsfwMediaPolicy };
 
@@ -61,7 +62,7 @@ const mediaPlannerDecisionSchema = z.object({
   nsfwIntent: z.enum(['none', 'suggested']).default('none'),
 });
 
-function parseStrictJsonObject(text: string): Record<string, unknown> {
+function parseStrictJsonObject(text: string): JsonObject {
   const normalized = String(text || '').trim();
   if (!normalized.startsWith('{') || !normalized.endsWith('}')) {
     throw new Error('RELAY_MEDIA_PLANNER_INVALID_JSON');
@@ -70,10 +71,10 @@ function parseStrictJsonObject(text: string): Record<string, unknown> {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('RELAY_MEDIA_PLANNER_INVALID_OBJECT');
   }
-  return parsed as Record<string, unknown>;
+  return parsed as JsonObject;
 }
 
-function parseMediaPlannerDecision(text: string): Record<string, unknown> {
+function parseMediaPlannerDecision(text: string): JsonObject {
   const parsed = parseStrictJsonObject(text);
   const result = mediaPlannerDecisionSchema.safeParse(parsed);
   if (!result.success) {

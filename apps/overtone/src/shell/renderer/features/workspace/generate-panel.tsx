@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime';
 import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
-import { getRuntimeInstance } from '@renderer/bridge/runtime-sdk.js';
 import {
   copyArtifactBytesToArrayBuffer,
   scenarioJobStatusLabel,
@@ -35,7 +35,7 @@ export function GeneratePanel() {
     }
 
     setLastError(null);
-    const runtime = getRuntimeInstance();
+    const runtime = getPlatformClient().runtime;
     const resolvedStyle = style || [brief.genre, brief.mood].filter(Boolean).join(', ');
     let result:
       | Awaited<ReturnType<typeof submitMusicJobAndWait>>

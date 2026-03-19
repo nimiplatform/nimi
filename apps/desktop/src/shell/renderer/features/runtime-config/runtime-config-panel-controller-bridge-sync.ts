@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '@renderer/bridge';
+import type { JsonObject } from '../../bridge/runtime-bridge/types';
 import { getOfflineCoordinator } from '@runtime/offline';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
@@ -22,7 +23,7 @@ type UseRuntimeConfigBridgeSyncInput = {
 export function useRuntimeConfigBridgeSync(input: UseRuntimeConfigBridgeSyncInput): void {
   const { hydrated, state, setState, setStatusBanner } = input;
 
-  const runtimeBridgeConfigRef = useRef<Record<string, unknown>>({});
+  const runtimeBridgeConfigRef = useRef<JsonObject>({});
   const runtimeBridgeProjectionRef = useRef('');
   const runtimeBridgeFailedProjectionRef = useRef('');
   const runtimeBridgeLoadStartedRef = useRef(false);

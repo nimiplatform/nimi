@@ -22,6 +22,15 @@ import type {
 } from './world-detail-types';
 
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
+type WorldDetailWithAgentsDto = NonNullable<Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>>;
+type WorldEventPayload = Awaited<ReturnType<typeof dataSync.loadWorldEvents>>;
+type WorldEventDetailDto = WorldEventPayload['items'][number];
+type WorldEventGraphSummaryDto = NonNullable<WorldEventPayload['eventGraphSummary']>;
+type WorldSemanticBundleDto = Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>;
+type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
+type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
+type PublicWorldMediaBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldMediaBindings>>['items'][number];
+type PublicWorldMutationDto = Awaited<ReturnType<typeof dataSync.loadWorldMutations>>['items'][number];
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
@@ -81,7 +90,7 @@ function stringifyLoose(value: unknown): string | null {
   return null;
 }
 
-function toWorldEvent(raw: Record<string, unknown>): WorldEvent {
+function toWorldEvent(raw: WorldEventDetailDto): WorldEvent {
   const horizon = typeof raw.eventHorizon === 'string' ? raw.eventHorizon : 'PAST';
   return {
     id: String(raw.id || ''),
@@ -104,8 +113,6 @@ function toWorldEvent(raw: Record<string, unknown>): WorldEvent {
       : [],
     evidenceRefs: Array.isArray(raw.evidenceRefs)
       ? raw.evidenceRefs
-        .map((item) => asRecord(item))
-        .filter((item): item is Record<string, unknown> => Boolean(item))
         .map((item) => ({
           segmentId: String(item.segmentId || ''),
           offsetStart: Number(item.offsetStart || 0),
@@ -120,14 +127,13 @@ function toWorldEvent(raw: Record<string, unknown>): WorldEvent {
   };
 }
 
-function toWorldEventSummary(raw: unknown): WorldEventSummary | null {
-  const record = asRecord(raw);
-  if (!record) return null;
-  const primaryCount = readNumber(record.primaryCount);
-  const secondaryCount = readNumber(record.secondaryCount);
-  const totalCount = readNumber(record.totalCount);
-  const eventCharacterCoverage = readNumber(record.eventCharacterCoverage);
-  const eventLocationCoverage = readNumber(record.eventLocationCoverage);
+function toWorldEventSummary(raw: WorldEventPayload['eventGraphSummary']): WorldEventSummary | null {
+  if (!raw) return null;
+  const primaryCount = readNumber(raw.primaryCount);
+  const secondaryCount = readNumber(raw.secondaryCount);
+  const totalCount = readNumber(raw.totalCount);
+  const eventCharacterCoverage = readNumber(raw.eventCharacterCoverage);
+  const eventLocationCoverage = readNumber(raw.eventLocationCoverage);
 
   if (
     primaryCount === null &&
@@ -244,7 +250,7 @@ function toWorldviewSnapshots(raw: Array<Record<string, unknown>>): WorldSemanti
   }, []);
 }
 
-function toSemanticBundle(raw: Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>): WorldSemanticData {
+function toSemanticBundle(raw: WorldSemanticBundleDto): WorldSemanticData {
   const worldview = asRecord(raw.worldview);
   const coreSystem = asRecord(worldview?.coreSystem);
   const spaceTopology = asRecord(worldview?.spaceTopology);
@@ -338,7 +344,7 @@ function toWorldAuditItem(raw: WorldLevelAuditEventDto): WorldAuditItem {
   };
 }
 
-function toWorldLorebookItem(raw: Record<string, unknown>): WorldLorebookItem | null {
+function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem | null {
   const id = readString(raw.id);
   if (!id) return null;
   return {
@@ -351,7 +357,7 @@ function toWorldLorebookItem(raw: Record<string, unknown>): WorldLorebookItem | 
   };
 }
 
-function toWorldSceneItem(raw: Record<string, unknown>): WorldSceneItem | null {
+function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem | null {
   const id = readString(raw.id);
   if (!id) return null;
   return {
@@ -364,11 +370,10 @@ function toWorldSceneItem(raw: Record<string, unknown>): WorldSceneItem | null {
   };
 }
 
-function toWorldMediaBindingItem(raw: Record<string, unknown>): WorldMediaBindingItem | null {
+function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBindingItem | null {
   const id = readString(raw.id);
-  const asset = asRecord(raw.asset);
-  const assetId = readString(asset?.id);
-  const assetUrl = readString(asset?.url);
+  const assetId = readString(raw.asset?.id);
+  const assetUrl = readString(raw.asset?.url);
   if (!id || !assetId || !assetUrl) return null;
   return {
     id,
@@ -380,13 +385,13 @@ function toWorldMediaBindingItem(raw: Record<string, unknown>): WorldMediaBindin
     asset: {
       id: assetId,
       url: assetUrl,
-      mediaType: readString(asset?.mediaType) ?? 'IMAGE',
-      label: readString(asset?.label),
+      mediaType: readString(raw.asset?.mediaType) ?? 'IMAGE',
+      label: readString(raw.asset?.label),
     },
   };
 }
 
-function toWorldMutationItem(raw: Record<string, unknown>): WorldMutationItem | null {
+function toWorldMutationItem(raw: PublicWorldMutationDto): WorldMutationItem | null {
   const id = readString(raw.id);
   const title = readString(raw.title);
   const summary = readString(raw.summary);

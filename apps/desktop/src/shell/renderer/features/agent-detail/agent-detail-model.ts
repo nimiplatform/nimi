@@ -1,3 +1,5 @@
+import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
+
 export type AgentDetailData = {
   id: string;
   displayName: string;
@@ -20,8 +22,15 @@ export type AgentDetailData = {
   worldBannerUrl: string | null;
 };
 
-export function toAgentDetailData(raw: Record<string, unknown>): AgentDetailData {
-  const agent = raw.agent as Record<string, unknown> | undefined;
+function readOptionalString(record: JsonObject | undefined, key: string): string | null {
+  const value = record?.[key];
+  return typeof value === 'string' ? value : null;
+}
+
+export function toAgentDetailData(raw: JsonObject): AgentDetailData {
+  const agent = parseOptionalJsonObject(raw.agent);
+  const agentProfile = parseOptionalJsonObject(raw.agentProfile);
+  const world = parseOptionalJsonObject(raw.world);
 
   return {
     id: String(raw.id || ''),
@@ -39,62 +48,26 @@ export function toAgentDetailData(raw: Record<string, unknown>): AgentDetailData
     wakeStrategy: (agent && typeof agent.wakeStrategy === 'string' ? agent.wakeStrategy : 'PASSIVE'),
     accountVisibility: (
       (agent && typeof agent.accountVisibility === 'string' ? agent.accountVisibility : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).accountVisibility === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).accountVisibility)
-          : null
-      )
+      || readOptionalString(agentProfile, 'accountVisibility')
     ),
     ownershipType: (
       (agent && typeof agent.ownershipType === 'string' ? agent.ownershipType : '')
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).ownershipType === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).ownershipType)
-          : ''
-      )
+      || readOptionalString(agentProfile, 'ownershipType')
       || 'MASTER_OWNED'
     ),
     worldId: (
       (agent && typeof agent.worldId === 'string' ? agent.worldId : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).worldId === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).worldId)
-          : null
-      )
+      || readOptionalString(agentProfile, 'worldId')
     ),
     ownerWorldId: (
       (agent && typeof agent.ownerWorldId === 'string' ? agent.ownerWorldId : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).ownerWorldId === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).ownerWorldId)
-          : null
-      )
+      || readOptionalString(agentProfile, 'ownerWorldId')
     ),
     isFriend: raw.isFriend === true,
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).worldBannerUrl === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).worldBannerUrl)
-          : null
-      )
-      || (
-        raw.world
-        && typeof raw.world === 'object'
-        && typeof (raw.world as Record<string, unknown>).bannerUrl === 'string'
-          ? String((raw.world as Record<string, unknown>).bannerUrl)
-          : null
-      )
+      || readOptionalString(agentProfile, 'worldBannerUrl')
+      || readOptionalString(world, 'bannerUrl')
     ),
   };
 }

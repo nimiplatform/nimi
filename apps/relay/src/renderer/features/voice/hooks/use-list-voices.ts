@@ -30,7 +30,7 @@ export function useListVoices() {
       const bridge = getBridge();
       const result = await bridge.media.tts.listVoices({
         model: currentAgent.voiceModel,
-      }) as { voices?: Voice[] };
+      });
       setVoices(result.voices ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load voices');

@@ -1,6 +1,8 @@
 // JSON extraction and repair utilities for LLM output.
 // Adapted from nimi-mods/runtime/local-chat/src/json-repair.ts for relay main process.
 
+import type { JsonObject } from '../../shared/json.js';
+
 export function extractJsonFromText(text: string): string {
   const trimmed = text.trim();
   // Strategy 1: extract from markdown code fence anywhere in text
@@ -181,7 +183,7 @@ export function quoteBareJsonValues(text: string): string {
   );
 }
 
-export function parseJsonObject(text: string): Record<string, unknown> {
+export function parseJsonObject(text: string): JsonObject {
   const extracted = extractJsonFromText(String(text || '').trim());
   if (!extracted) {
     throw new Error('RELAY_AI_GENERATE_OBJECT_EMPTY_TEXT');
@@ -190,7 +192,7 @@ export function parseJsonObject(text: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(extracted);
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
+      return parsed as JsonObject;
     }
   } catch {
     // Fall through to repair attempt
@@ -201,5 +203,5 @@ export function parseJsonObject(text: string): Record<string, unknown> {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('RELAY_AI_GENERATE_OBJECT_INVALID_JSON_OBJECT');
   }
-  return parsed as Record<string, unknown>;
+  return parsed as JsonObject;
 }

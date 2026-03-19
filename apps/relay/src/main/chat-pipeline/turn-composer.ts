@@ -13,12 +13,7 @@ import type { TurnInvokeInput } from './request-builder.js';
 import { createUlid } from './ulid.js';
 import { stripTrailingEndMarkerFragment } from './stream-end-marker.js';
 import { pt, type PromptLocale } from '../prompt/prompt-locale.js';
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
+import { asRecord, type JsonObject } from '../../shared/json.js';
 
 function asString(value: unknown): string {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -132,7 +127,7 @@ function clampRelationMove(relationMove: string, intimacyCeiling?: string): stri
 }
 
 function parsePlanObject(input: {
-  object: Record<string, unknown>;
+  object: JsonObject;
   turnId: string;
   turnMode: LocalChatTurnMode;
   intimacyCeiling?: string;
@@ -334,7 +329,7 @@ export async function composeInteractionTurnPlan(input: {
         maxTokens,
         temperature,
       });
-      const rawBeats = (result.object as Record<string, unknown>)?.beats;
+      const rawBeats = asRecord(result.object).beats;
       console.log('[relay:turn-composer] generateObject: success', {
         beatCount: Array.isArray(rawBeats) ? rawBeats.length : 'non-array',
         turnMode: input.turnMode,
@@ -343,7 +338,7 @@ export async function composeInteractionTurnPlan(input: {
         attempt,
       });
       const plan = parsePlanObject({
-        object: result.object as Record<string, unknown>,
+        object: asRecord(result.object),
         turnId: input.turnId,
         turnMode: input.turnMode,
         intimacyCeiling: input.intimacyCeiling,

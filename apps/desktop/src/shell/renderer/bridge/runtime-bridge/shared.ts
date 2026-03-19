@@ -1,5 +1,10 @@
 import type { RuntimeLogMessage } from '@runtime/telemetry/logger';
 
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = unknown;
+export type JsonObject = Record<string, unknown>;
+export type JsonArray = JsonValue[];
+
 export type RendererLogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type RendererLogMessage = RuntimeLogMessage;
 
@@ -11,7 +16,7 @@ export type RendererLogPayload = {
   flowId?: string;
   source?: string;
   costMs?: number;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
 export type RuntimeBridgeStructuredError = {
@@ -21,14 +26,22 @@ export type RuntimeBridgeStructuredError = {
   traceId?: string;
   retryable?: boolean;
   message?: string;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
-export function assertRecord(value: unknown, errorMessage: string): Record<string, unknown> {
+export function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function assertRecord(value: unknown, errorMessage: string): JsonObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(errorMessage);
   }
-  return value as Record<string, unknown>;
+  return value as JsonObject;
+}
+
+export function parseOptionalJsonObject(value: unknown): JsonObject | undefined {
+  return isJsonObject(value) ? value : undefined;
 }
 
 export function parseRequiredString(

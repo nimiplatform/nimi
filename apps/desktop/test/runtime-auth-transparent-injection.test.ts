@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { getPlatformClient, initializePlatformClient } from '../src/runtime/platform-client';
+import { getPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
 
 type TauriInvokeCall = {
   command: string;
@@ -171,7 +171,7 @@ test('platform runtime call injects bearer token from accessTokenProvider', asyn
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'token-provider-value',
     });
@@ -191,7 +191,7 @@ test('platform runtime call resolves fresh token on each invocation', async () =
   const restoreTauri = installTauriRuntime(calls);
   let currentToken = 'token-initial';
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => currentToken,
     });
@@ -213,7 +213,7 @@ test('platform runtime call injects subjectUserId from subjectUserIdProvider', a
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => createJwtWithSub('jwt-subject-user'),
       subjectUserIdProvider: () => 'subject-from-provider',
@@ -230,7 +230,7 @@ test('platform runtime call falls back to jwt sub when subjectUserIdProvider is 
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => createJwtWithSub('jwt-subject-fallback'),
       subjectUserIdProvider: () => '',
@@ -247,7 +247,7 @@ test('platform runtime call omits authorization when token provider returns empt
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => '',
     });
@@ -266,7 +266,7 @@ test('platform local ai call omits authorization even when token provider return
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'stale-realm-token',
     });
@@ -288,7 +288,7 @@ test('platform local read-only calls omit authorization even when token provider
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'stale-realm-token',
     });
@@ -321,7 +321,7 @@ test('platform cloud ai call still injects authorization', async () => {
   const calls: TauriInvokeCall[] = [];
   const restoreTauri = installTauriRuntime(calls);
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => 'fresh-realm-token',
       subjectUserIdProvider: () => 'subject-user',

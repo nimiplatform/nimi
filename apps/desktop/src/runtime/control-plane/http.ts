@@ -1,4 +1,4 @@
-import { parseJsonObject } from '@runtime/net/json';
+import { parseJsonObject, type JsonObject } from '@runtime/net/json';
 import { toControlPlaneHttpError } from './error-map';
 
 export type ControlPlaneFetchImpl = (
@@ -17,6 +17,7 @@ export async function requestControlPlaneJson<T>(input: {
   method: 'GET' | 'POST';
   path: string;
   body?: unknown;
+  parse: (payload: JsonObject) => T | null;
   required: boolean;
   fallback: T;
 }): Promise<T> {
@@ -51,7 +52,8 @@ export async function requestControlPlaneJson<T>(input: {
     if (!payload) {
       return input.fallback;
     }
-    return payload as unknown as T;
+    const parsed = input.parse(payload);
+    return parsed ?? input.fallback;
   } catch (error) {
     if (input.required) {
       throw error;

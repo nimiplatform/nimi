@@ -6,10 +6,17 @@ import { getBridge } from '../../../bridge/electron-bridge.js';
 import { useAppStore } from '../../../app-shell/providers/app-store.js';
 
 export type VideoJobStatus = 'idle' | 'submitting' | 'processing' | 'completed' | 'error';
+type RelayBridge = ReturnType<typeof getBridge>;
+type VideoGenerateResponse = Awaited<ReturnType<RelayBridge['media']['video']['generate']>>;
+type VideoArtifactsResponse = Awaited<ReturnType<RelayBridge['media']['video']['job']['artifacts']>>;
 
 export interface VideoResult {
-  artifacts: unknown[];
-  job: unknown;
+  artifacts: VideoGenerateResponse['artifacts'];
+  job: VideoGenerateResponse['job'];
+}
+
+function isScenarioJobEvent(value: unknown): value is { job?: { status?: number } } {
+  return value !== null && typeof value === 'object' && 'job' in value;
 }
 
 export function useVideoGenerate() {
@@ -41,10 +48,10 @@ export function useVideoGenerate() {
       const response = await bridge.media.video.generate({
         agentId: currentAgent.id,
         prompt,
-      }) as { job: unknown; artifacts: unknown[]; trace?: unknown };
+      });
 
       // If artifacts populated immediately (synchronous completion)
-      if (response.artifacts && (response.artifacts as unknown[]).length > 0) {
+      if (response.artifacts && response.artifacts.length > 0) {
         setResult({ job: response.job, artifacts: response.artifacts });
         setStatus('completed');
         return;
@@ -52,18 +59,17 @@ export function useVideoGenerate() {
 
       // Async job — subscribe to job events (RL-IPC-003 stream protocol)
       setStatus('processing');
-      const jobId = (response.job as { id: string }).id;
+      const jobId = response.job.jobId;
       const { streamId } = await bridge.media.video.job.subscribe(jobId);
       activeStreamRef.current = streamId;
 
       const chunkId = bridge.stream.onChunk((payload) => {
         if (payload.streamId !== streamId) return;
-        // ScenarioJobEvent data shape
-        const event = payload.data as { status?: string };
-        if (event.status === 'completed') {
+        const event = payload.data;
+        if (isScenarioJobEvent(event) && event.job?.status === 4) {
           // Fetch artifacts on completion
-          bridge.media.video.job.artifacts(jobId).then((artifacts) => {
-            setResult({ job: response.job, artifacts: artifacts as unknown[] });
+          bridge.media.video.job.artifacts(jobId).then((artifacts: VideoArtifactsResponse) => {
+            setResult({ job: response.job, artifacts: artifacts.artifacts });
             setStatus('completed');
           });
         }

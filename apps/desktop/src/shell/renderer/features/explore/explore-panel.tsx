@@ -7,6 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { ContactDetailProfileModal, type ContactDetailProfileSeed } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
+import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
@@ -49,11 +50,8 @@ const DEFAULT_FEATURED_WORLDS: FeaturedWorldCardData[] = [
   },
 ];
 
-function toRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  return value as Record<string, unknown>;
+function toRecord(value: unknown): JsonObject | null {
+  return parseOptionalJsonObject(value) ?? null;
 }
 
 function asString(value: unknown, fallback = ''): string {
@@ -71,6 +69,21 @@ function asNumber(value: unknown): number | undefined {
     }
   }
   return undefined;
+}
+
+function toNumberMap(value: unknown): Record<string, number> | undefined {
+  const record = parseOptionalJsonObject(value);
+  if (!record) {
+    return undefined;
+  }
+  const output: Record<string, number> = {};
+  for (const [key, entry] of Object.entries(record)) {
+    const numeric = asNumber(entry);
+    if (numeric !== undefined) {
+      output[key] = numeric;
+    }
+  }
+  return output;
 }
 
 function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | null; scoreEwma: number; name?: string }>): ExploreAgentCardData | null {
@@ -152,9 +165,7 @@ function mapAgent(raw: unknown, worldsMap: Map<string, { bannerUrl: string | nul
   const likesCount = asNumber(stats?.likesCount)
     ?? asNumber(source.likesCount)
     ?? asNumber(source.likeCount);
-  const giftStats = typeof source.giftStats === 'object' && source.giftStats !== null
-    ? source.giftStats as Record<string, number>
-    : undefined;
+  const giftStats = toNumberMap(source.giftStats);
 
   return {
     // Basic contact info
@@ -240,9 +251,7 @@ export function ExplorePanel() {
     queryKey: ['explore-worlds'],
     queryFn: async () => {
       const result = await dataSync.loadWorlds();
-      return Array.isArray(result)
-        ? result.map((item) => toWorldListItem(item as Record<string, unknown>))
-        : [];
+      return result.map((item) => toWorldListItem(item));
     },
   });
 

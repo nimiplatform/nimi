@@ -1,3 +1,5 @@
+import type { RealmModel } from '@nimiplatform/sdk/realm';
+
 export type ProfileTab = 'Posts' | 'Collections' | 'Likes' | 'Gifts';
 
 export const PROFILE_TABS: ProfileTab[] = ['Posts', 'Collections', 'Likes', 'Gifts'];
@@ -42,13 +44,89 @@ export type ProfileData = {
   worldBannerUrl: string | null;
 };
 
-export function toProfileData(raw: Record<string, unknown>): ProfileData {
-  const agent = raw.agent as Record<string, unknown> | undefined;
-  const stats = raw.stats as Record<string, unknown> | undefined;
-  const giftStats = raw.giftStats as Record<string, unknown> | undefined;
+type UserProfileDto = RealmModel<'UserProfileDto'>;
+type ProfileStatsLike = NonNullable<UserProfileDto['stats']> & {
+  likesCount?: number;
+  likeCount?: number;
+};
+type ProfileAgentLike = {
+  activeWorldId?: string | null;
+  accountVisibility?: string | null;
+  category?: string | null;
+  importance?: string | null;
+  origin?: string | null;
+  ownerWorldId?: string | null;
+  ownershipType?: string | null;
+  state?: string | null;
+  tier?: string | null;
+  wakeStrategy?: string | null;
+  worldId?: string | null;
+};
+type ProfileAgentProfileLike = {
+  activeWorldId?: string | null;
+  accountVisibility?: string | null;
+  category?: string | null;
+  dna?: object | null;
+  dnaConfirmedAt?: string | null;
+  importance?: string | null;
+  origin?: string | null;
+  ownerWorldId?: string | null;
+  ownershipType?: string | null;
+  state?: string | null;
+  stats?: object | null;
+  tier?: string | null;
+  wakeStrategy?: string | null;
+  worldId?: string | null;
+  worldName?: string | null;
+  worldBannerUrl?: string | null;
+};
+type ProfileWorldLike = {
+  name?: string | null;
+  bannerUrl?: string | null;
+};
+export type ProfileSource = Partial<Omit<UserProfileDto, 'stats' | 'giftStats' | 'agent' | 'agentProfile' | 'createdAt' | 'gender'>> & {
+  createdAt?: string | null;
+  displayName?: string;
+  handle?: string;
+  gender?: string | null;
+  id?: string;
+  isAgent?: boolean;
+  isCreator?: boolean;
+  isVerified?: boolean;
+  followerCount?: number;
+  followingCount?: number;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  city?: string | null;
+  countryCode?: string | null;
+  languages?: string[];
+  postCount?: number;
+  tags?: string[];
+  isFriend?: boolean;
+  isPendingFriendRequest?: boolean;
+  worldId?: string | null;
+  agentWorldId?: string | null;
+  agentConfig?: object | null;
+  worldName?: string | null;
+  worldBannerUrl?: string | null;
+  likesCount?: number;
+  likeCount?: number;
+  stats?: ProfileStatsLike | null;
+  giftStats?: Record<string, number> | null;
+  agent?: ProfileAgentLike | null;
+  agentProfile?: ProfileAgentProfileLike | null;
+  world?: ProfileWorldLike | null;
+};
+
+export function toProfileData(raw: ProfileSource): ProfileData {
+  const agent = raw.agent ?? undefined;
+  const stats = raw.stats;
+  const giftStats = raw.giftStats;
+  const agentProfile = raw.agentProfile ?? undefined;
+  const world = raw.world;
 
   const parsedGiftStats: Record<string, number> = {};
-  if (giftStats && typeof giftStats === 'object') {
+  if (giftStats) {
     for (const [key, val] of Object.entries(giftStats)) {
       if (typeof val === 'number') parsedGiftStats[key] = val;
     }
@@ -90,78 +168,30 @@ export function toProfileData(raw: Record<string, unknown>): ProfileData {
     agentTier: agent && typeof agent.tier === 'string' ? agent.tier : null,
     agentAccountVisibility: (
       (agent && typeof agent.accountVisibility === 'string' ? agent.accountVisibility : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).accountVisibility === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).accountVisibility)
-          : null
-      )
+      || (typeof agentProfile?.accountVisibility === 'string' ? agentProfile.accountVisibility : null)
     ),
     agentWakeStrategy: agent && typeof agent.wakeStrategy === 'string' ? agent.wakeStrategy : null,
     agentOwnershipType: (
       (agent && typeof agent.ownershipType === 'string' ? agent.ownershipType : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).ownershipType === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).ownershipType)
-          : null
-      )
+      || (typeof agentProfile?.ownershipType === 'string' ? agentProfile.ownershipType : null)
     ),
     agentWorldId: (
       (agent && typeof agent.worldId === 'string' ? agent.worldId : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).worldId === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).worldId)
-          : null
-      )
+      || (typeof agentProfile?.worldId === 'string' ? agentProfile.worldId : null)
     ),
     agentOwnerWorldId: (
       (agent && typeof agent.ownerWorldId === 'string' ? agent.ownerWorldId : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).ownerWorldId === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).ownerWorldId)
-          : null
-      )
+      || (typeof agentProfile?.ownerWorldId === 'string' ? agentProfile.ownerWorldId : null)
     ),
     worldName: (
       (typeof raw.worldName === 'string' ? raw.worldName : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).worldName === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).worldName)
-          : null
-      )
-      || (
-        raw.world
-        && typeof raw.world === 'object'
-        && typeof (raw.world as Record<string, unknown>).name === 'string'
-          ? String((raw.world as Record<string, unknown>).name)
-          : null
-      )
+      || (typeof agentProfile?.worldName === 'string' ? agentProfile.worldName : null)
+      || (typeof world?.name === 'string' ? world.name : null)
     ),
     worldBannerUrl: (
       (typeof raw.worldBannerUrl === 'string' ? raw.worldBannerUrl : null)
-      || (
-        raw.agentProfile
-        && typeof raw.agentProfile === 'object'
-        && typeof (raw.agentProfile as Record<string, unknown>).worldBannerUrl === 'string'
-          ? String((raw.agentProfile as Record<string, unknown>).worldBannerUrl)
-          : null
-      )
-      || (
-        raw.world
-        && typeof raw.world === 'object'
-        && typeof (raw.world as Record<string, unknown>).bannerUrl === 'string'
-          ? String((raw.world as Record<string, unknown>).bannerUrl)
-          : null
-      )
+      || (typeof agentProfile?.worldBannerUrl === 'string' ? agentProfile.worldBannerUrl : null)
+      || (typeof world?.bannerUrl === 'string' ? world.bannerUrl : null)
     ),
     isFriend: raw.isFriend === true,
     isPendingFriendRequest: raw.isPendingFriendRequest === true,

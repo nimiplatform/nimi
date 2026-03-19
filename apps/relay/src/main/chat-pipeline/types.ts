@@ -2,6 +2,7 @@
 // Adapted: removed mod SDK dependencies, React types; self-contained for Electron main process.
 
 import type { PromptLayerId } from '../prompt/types.js';
+import type { JsonObject } from '../../shared/json.js';
 
 // ── Enums / Unions ──────────────────────────────────────────────────
 
@@ -823,7 +824,7 @@ export type LocalChatTarget = {
     rulesLines: string[];
     replyStyleLines: string[];
   };
-  metadata: Record<string, unknown>;
+  metadata: JsonObject;
   worldId: string | null;
   worldName: string | null;
 };

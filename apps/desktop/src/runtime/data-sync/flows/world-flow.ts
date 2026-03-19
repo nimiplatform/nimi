@@ -1,5 +1,5 @@
-import type { Realm } from '@nimiplatform/sdk/realm';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { Realm, RealmModel, RealmServiceResult } from '@nimiplatform/sdk/realm';
+import { isJsonObject, type JsonObject } from '@runtime/net/json';
 import {
   getOfflineCacheManager,
   getOfflineCoordinator,
@@ -8,43 +8,39 @@ import {
 
 type WorldDetailDto = RealmModel<'WorldDetailDto'>;
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
+type WorldviewDetailDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldview'>;
+type WorldDetailWithAgentsDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
+type WorldAgentSummaryDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldAgents'>[number];
+type WorldEventListDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldEvents'>;
+export type WorldLorebookListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldLorebooks'>;
+export type WorldMediaBindingListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldMediaBindings'>;
+export type WorldMutationListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldMutations'>;
+export type WorldSceneListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldScenes'>;
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
-  details?: Record<string, unknown>,
+  details?: JsonObject,
 ) => void;
 
 export type WorldSemanticBundle = {
   world: WorldDetailDto | null;
-  worldview: Record<string, unknown> | null;
-  worldviewEvents: Array<Record<string, unknown>>;
-  worldviewSnapshots: Array<Record<string, unknown>>;
+  worldview: WorldviewDetailDto | null;
+  worldviewEvents: JsonObject[];
+  worldviewSnapshots: JsonObject[];
 };
 
-export type WorldEventsPayload = {
-  items: Array<Record<string, unknown>>;
-  eventGraphSummary: Record<string, unknown> | null;
-};
+export type WorldEventsPayload = WorldEventListDto;
 
-export type WorldAssetListPayload = {
-  worldId: string;
-  items: Array<Record<string, unknown>>;
-};
-
-function toRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
+function toRecord(value: unknown): JsonObject | null {
+  return isJsonObject(value) ? value : null;
 }
 
-function toRecordArray(value: unknown): Array<Record<string, unknown>> {
+function toRecordArray(value: unknown): JsonObject[] {
   if (Array.isArray(value)) {
     return value
-      .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
-      .map((item) => item as Record<string, unknown>);
+      .filter((item): item is JsonObject => isJsonObject(item));
   }
   const payload = toRecord(value);
   if (!payload) {
@@ -71,17 +67,15 @@ export async function loadWorldList(
     );
     const normalized = Array.isArray(worlds)
       ? worlds
-        .filter((item) => item && typeof item === 'object')
-        .map((item) => item as WorldDetailDto)
-      : toRecordArray(worlds).map((item) => item as unknown as WorldDetailDto);
-    await (await getOfflineCacheManager()).syncWorldList(
-      normalized as unknown as Record<string, unknown>[],
-    );
+        .filter((item): item is WorldDetailDto => isJsonObject(item))
+        .map((item) => item)
+      : toRecordArray(worlds).map((item) => item as WorldDetailDto);
+    await (await getOfflineCacheManager()).syncWorldList(normalized);
     return normalized;
   } catch (error) {
     if (isRealmOfflineError(error)) {
       getOfflineCoordinator().markCacheFallbackUsed();
-      return (await (await getOfflineCacheManager()).getCachedWorldList()) as WorldDetailDto[];
+      return await (await getOfflineCacheManager()).getCachedWorldList<WorldDetailDto>();
     }
     emitDataSyncError('load-world-list', error);
     throw error;
@@ -97,19 +91,19 @@ export async function loadMainWorld(
       (realm) => realm.services.WorldsService.worldControllerGetMainWorld(),
       'Failed to load main world',
     );
-    if (world && typeof world === 'object' && !Array.isArray(world)) {
+    if (isJsonObject(world)) {
       await (await getOfflineCacheManager()).syncWorldMetadata(
         'main-world',
-        world as Record<string, unknown>,
+        world as WorldDetailDto,
       );
     }
     return world;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata('main-world');
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailDto>('main-world');
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
-        return cached as WorldDetailDto;
+        return cached;
       }
     }
     emitDataSyncError('load-main-world', error);
@@ -166,16 +160,16 @@ export async function loadWorldDetailById(
     if (record) {
       await (await getOfflineCacheManager()).syncWorldMetadata(
         `world:${normalizedWorldId}`,
-        record,
+        record as WorldDetailDto,
       );
     }
-    return record ? (record as unknown as WorldDetailDto) : null;
+    return record ? (record as WorldDetailDto) : null;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata(`world:${normalizedWorldId}`);
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailDto>(`world:${normalizedWorldId}`);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
-        return cached as unknown as WorldDetailDto;
+        return cached;
       }
     }
     emitDataSyncError('load-world-detail', error, { worldId: normalizedWorldId });
@@ -193,48 +187,32 @@ export async function loadWorldEvents(
     throw new Error('WORLD_ID_REQUIRED');
   }
   try {
-    const payload = await callApi(
+    return await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetWorldEvents(normalizedWorldId),
       'Failed to load world events',
     );
-    const record = toRecord(payload);
-    if (record && Array.isArray(record.items)) {
-      return {
-        items: toRecordArray(record.items),
-        eventGraphSummary: toRecord(record.eventGraphSummary),
-      };
-    }
-    return {
-      items: toRecordArray(payload),
-      eventGraphSummary: null,
-    };
   } catch (error) {
     emitDataSyncError('load-world-events', error, { worldId: normalizedWorldId });
     throw error;
   }
 }
 
-async function loadWorldAssetList(
+async function loadWorldAssetList<T extends { worldId: string; items: unknown[] }>(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
   action: string,
-  task: (realm: Realm, worldId: string) => Promise<unknown>,
-): Promise<WorldAssetListPayload> {
+  task: (realm: Realm, worldId: string) => Promise<T>,
+): Promise<T> {
   const normalizedWorldId = String(worldId || '').trim();
   if (!normalizedWorldId) {
     throw new Error('WORLD_ID_REQUIRED');
   }
   try {
-    const payload = await callApi(
+    return await callApi(
       (realm) => task(realm, normalizedWorldId),
       `Failed to ${action}`,
     );
-    const record = toRecord(payload);
-    return {
-      worldId: normalizedWorldId,
-      items: record && Array.isArray(record.items) ? toRecordArray(record.items) : toRecordArray(payload),
-    };
   } catch (error) {
     emitDataSyncError(action, error, { worldId: normalizedWorldId });
     throw error;
@@ -245,7 +223,7 @@ export async function loadWorldLorebooks(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
-): Promise<WorldAssetListPayload> {
+): Promise<WorldLorebookListPayload> {
   return loadWorldAssetList(
     callApi,
     emitDataSyncError,
@@ -259,7 +237,7 @@ export async function loadWorldScenes(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
-): Promise<WorldAssetListPayload> {
+): Promise<WorldSceneListPayload> {
   return loadWorldAssetList(
     callApi,
     emitDataSyncError,
@@ -273,7 +251,7 @@ export async function loadWorldMediaBindings(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
-): Promise<WorldAssetListPayload> {
+): Promise<WorldMediaBindingListPayload> {
   return loadWorldAssetList(
     callApi,
     emitDataSyncError,
@@ -287,7 +265,7 @@ export async function loadWorldMutations(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
-): Promise<WorldAssetListPayload> {
+): Promise<WorldMutationListPayload> {
   return loadWorldAssetList(
     callApi,
     emitDataSyncError,
@@ -301,7 +279,7 @@ export async function loadWorldAgents(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
-): Promise<Array<Record<string, unknown>>> {
+): Promise<WorldAgentSummaryDto[]> {
   const normalizedWorldId = String(worldId || '').trim();
   if (!normalizedWorldId) {
     throw new Error('WORLD_ID_REQUIRED');
@@ -311,7 +289,7 @@ export async function loadWorldAgents(
       (realm) => realm.services.WorldsService.worldControllerGetWorldAgents(normalizedWorldId),
       'Failed to load world agents',
     );
-    return toRecordArray(payload);
+    return payload;
   } catch (error) {
     emitDataSyncError('load-world-agents', error, { worldId: normalizedWorldId });
     throw error;
@@ -323,7 +301,7 @@ export async function loadWorldDetailWithAgents(
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
   recommendedAgentLimit?: number,
-): Promise<Record<string, unknown> | null> {
+): Promise<WorldDetailWithAgentsDto | null> {
   const normalizedWorldId = String(worldId || '').trim();
   if (!normalizedWorldId) {
     throw new Error('WORLD_ID_REQUIRED');
@@ -342,17 +320,16 @@ export async function loadWorldDetailWithAgents(
       ),
       'Failed to load world detail with agents',
     );
-    const record = toRecord(payload);
-    if (record) {
+    if (payload) {
       await (await getOfflineCacheManager()).syncWorldMetadata(
         cacheKey,
-        record,
+        payload as WorldDetailWithAgentsDto,
       );
     }
-    return record;
+    return payload;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata(cacheKey);
+      const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailWithAgentsDto>(cacheKey);
       if (cached) {
         getOfflineCoordinator().markCacheFallbackUsed();
         return cached;
@@ -375,13 +352,12 @@ export async function loadWorldSemanticBundle(
 
   try {
     const world = await loadWorldDetailById(callApi, emitDataSyncError, normalizedWorldId);
-    const worldview = await (async () => {
+    const worldview: WorldviewDetailDto | null = await (async () => {
       try {
-        const payload = await callApi(
+        return await callApi(
           (realm) => realm.services.WorldsService.worldControllerGetWorldview(normalizedWorldId),
           'Failed to load worldview',
         );
-        return toRecord(payload);
       } catch {
         return null;
       }

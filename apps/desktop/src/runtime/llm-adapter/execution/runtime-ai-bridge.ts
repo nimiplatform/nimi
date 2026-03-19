@@ -1,4 +1,4 @@
-import { getPlatformClient } from '@runtime/platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { inferRouteSourceFromEndpoint, type InferenceRouteSource } from './inference-audit';
 import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';

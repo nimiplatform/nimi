@@ -4,6 +4,7 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { LocalChatTarget } from '../chat-pipeline/types.js';
 import { markProactiveContactSent, readProactivePolicyTargetState } from './policy-store.js';
+import { asRecord, type JsonObject } from '../../shared/json.js';
 import type {
   LocalChatProactiveGateInput,
   LocalChatProactivePolicyResult,
@@ -15,12 +16,7 @@ export const PROACTIVE_IDLE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
 export const PROACTIVE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 export const PROACTIVE_DAILY_CAP = 3;
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  return value as Record<string, unknown>;
-}
-
-function readWakeStrategyText(record: Record<string, unknown>): string {
+function readWakeStrategyText(record: JsonObject): string {
   return String(record.wakeStrategy || record.wake_strategy || '').trim().toUpperCase();
 }
 

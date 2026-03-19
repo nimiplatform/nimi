@@ -3,7 +3,9 @@ import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 import { i18n } from '@renderer/i18n';
 import { hasTauriInvoke } from './env';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from './logging';
+import { parseOptionalJsonObject } from './shared.js';
 import type { RuntimeBridgeStructuredError } from './types';
+import type { JsonObject } from './types';
 
 const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string }> = {
   LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT', defaultValue: 'Import path is invalid. Move the model into the Local Runtime models directory and try again.' },
@@ -123,11 +125,8 @@ function translateBridgeMessage(key: string, defaultValue: string): string {
     : defaultValue;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
+function asRecord(value: unknown): JsonObject {
+  return parseOptionalJsonObject(value) || {};
 }
 
 function parseBridgeJsonPayload(input: unknown): RuntimeBridgeStructuredError | null {
@@ -268,15 +267,13 @@ export function toBridgeUserError(error: unknown): NimiError {
   return toBridgeNimiError(error);
 }
 
-function summarizeInvokePayload(command: string, payload: unknown): Record<string, unknown> {
-  if (command !== 'http_request' || !payload || typeof payload !== 'object') {
+function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
+  if (command !== 'http_request') {
     return {};
   }
 
-  const root = payload as Record<string, unknown>;
-  const inner = root.payload && typeof root.payload === 'object'
-    ? (root.payload as Record<string, unknown>)
-    : {};
+  const root = parseOptionalJsonObject(payload) || {};
+  const inner = parseOptionalJsonObject(root.payload) || {};
   const url = String(inner.url || '').trim();
   const method = String(inner.method || 'GET').toUpperCase();
   const body = typeof inner.body === 'string' ? inner.body : '';

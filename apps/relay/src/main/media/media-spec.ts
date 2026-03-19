@@ -13,6 +13,7 @@ import type {
   LocalChatMediaRouteSource,
   LocalChatResolvedMediaRoute,
 } from '../chat-pipeline/types.js';
+import type { JsonObject } from '../../shared/json.js';
 
 export const RELAY_MEDIA_COMPILER_REVISION = 'media-compiler.2026-03-09.context-enrich-v1';
 
@@ -107,7 +108,7 @@ function normalizeSortedStringList(values: string[] | undefined): string[] | und
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function serializeCanonicalRecord(record: Record<string, unknown>): string {
+function serializeCanonicalRecord(record: JsonObject): string {
   return JSON.stringify(record);
 }
 

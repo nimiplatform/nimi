@@ -8,6 +8,7 @@ import type {
   LocalChatTarget,
   LocalChatTurnAiClient,
 } from '../chat-pipeline/types.js';
+import type { JsonObject } from '../../shared/json.js';
 
 export type LocalChatWakeStrategy = 'PASSIVE' | 'PROACTIVE' | null;
 
@@ -55,7 +56,7 @@ export type LocalChatProactiveAuditEvent = {
   reasonCode: LocalChatProactiveReasonCode;
   actionHint: string;
   level?: 'debug' | 'info' | 'warn' | 'error';
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
 export type LocalChatProactiveHeartbeatInput = {

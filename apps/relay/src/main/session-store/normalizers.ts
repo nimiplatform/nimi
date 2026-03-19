@@ -17,6 +17,7 @@ import type {
   RelationMemorySlot,
 } from '../chat-pipeline/types.js';
 import { createUlid } from '../chat-pipeline/ulid.js';
+import { asRecord } from '../../shared/json.js';
 
 export function nowIso(): string {
   return new Date().toISOString();
@@ -45,7 +46,7 @@ export function normalizeDeliveryStatus(value: unknown): LocalChatStoredBeat['de
 
 export function normalizeBeatMedia(value: unknown): LocalChatStoredBeat['media'] {
   if (!value || typeof value !== 'object') return undefined;
-  const media = value as Record<string, unknown>;
+  const media = asRecord(value);
   const normalized: LocalChatStoredBeat['media'] = {};
   const uri = trimString(media.uri);
   const mimeType = trimString(media.mimeType);
@@ -79,7 +80,7 @@ export function normalizeMediaShadow(value: unknown): LocalChatMediaArtifactShad
 
 export function normalizeCachedMediaAsset(value: unknown): LocalChatCachedMediaAsset | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const executionCacheKey = trimString(record.executionCacheKey);
   const specHash = trimString(record.specHash);
   const renderUri = trimString(record.renderUri);
@@ -104,7 +105,7 @@ export function normalizeCachedMediaAsset(value: unknown): LocalChatCachedMediaA
 
 export function normalizeMediaAssetRecord(value: unknown): LocalChatMediaAssetRecord | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const cached = normalizeCachedMediaAsset(record);
   if (!cached) return null;
   return {
@@ -118,7 +119,7 @@ export function normalizeMediaAssetRecord(value: unknown): LocalChatMediaAssetRe
 
 export function normalizeTurnAudit(value: unknown): LocalChatTurnAudit | undefined {
   if (!value || typeof value !== 'object') return undefined;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   return {
     id: trimString(record.id) || `audit_${createUlid()}`,
     targetId: trimString(record.targetId),
@@ -131,7 +132,7 @@ export function normalizeTurnAudit(value: unknown): LocalChatTurnAudit | undefin
 
 export function normalizeInteractionSnapshot(value: unknown): InteractionSnapshot | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const conversationId = trimString(record.conversationId);
   if (!conversationId) return null;
   const updatedAt = asIsoString(record.updatedAt, nowIso());
@@ -164,7 +165,7 @@ export function normalizeInteractionSnapshot(value: unknown): InteractionSnapsho
 
 export function normalizeRelationMemorySlot(value: unknown): RelationMemorySlot | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const id = trimString(record.id);
   const targetId = trimString(record.targetId);
   const viewerId = trimString(record.viewerId);
@@ -201,7 +202,7 @@ export function normalizeRelationMemorySlot(value: unknown): RelationMemorySlot 
 
 export function normalizeInteractionRecallDoc(value: unknown): InteractionRecallDoc | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const id = trimString(record.id);
   const conversationId = trimString(record.conversationId);
   const text = trimString(record.text);
@@ -219,7 +220,7 @@ export function normalizeInteractionRecallDoc(value: unknown): InteractionRecall
 
 export function normalizeConversationRecord(value: unknown): LocalChatConversationRecord | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const id = trimString(record.id);
   const targetId = trimString(record.targetId);
   const viewerId = trimString(record.viewerId);
@@ -239,7 +240,7 @@ export function normalizeConversationRecord(value: unknown): LocalChatConversati
 
 export function normalizeTurnRecord(value: unknown): LocalChatTurnRecord | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const id = trimString(record.id);
   const conversationId = trimString(record.conversationId);
   if (!id || !conversationId) return null;
@@ -258,7 +259,7 @@ export function normalizeTurnRecord(value: unknown): LocalChatTurnRecord | null 
 
 export function normalizeBeatRecord(value: unknown): LocalChatStoredBeat | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Record<string, unknown>;
+  const record = asRecord(value);
   const id = trimString(record.id);
   const turnId = trimString(record.turnId);
   const conversationId = trimString(record.conversationId);
@@ -282,7 +283,7 @@ export function normalizeBeatRecord(value: unknown): LocalChatStoredBeat | null 
     media: normalizeBeatMedia(record.media),
     timestamp,
     latencyMs: Number.isFinite(Number(record.latencyMs)) ? Number(record.latencyMs) : undefined,
-    meta: record.meta && typeof record.meta === 'object' ? record.meta as ChatMessageMeta : undefined,
+    meta: record.meta && typeof record.meta === 'object' ? asRecord(record.meta) as ChatMessageMeta : undefined,
     promptTrace: normalizeContextTrace(record.promptTrace),
     audit: normalizeTurnAudit(record.audit),
   };

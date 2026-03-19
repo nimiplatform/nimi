@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { PageShell, SaveFooter, SectionTitle } from './settings-layout-components';
 
 export function SecurityPage() {
@@ -59,9 +60,7 @@ export function SecurityPage() {
 
   const refreshCurrentUser = async () => {
     const latest = await dataSync.loadCurrentUser();
-    const normalized = latest && typeof latest === 'object'
-      ? (latest as Record<string, unknown>)
-      : null;
+    const normalized = parseOptionalJsonObject(latest) ?? null;
     setAuthSession(normalized, authToken, refreshToken || undefined);
   };
 

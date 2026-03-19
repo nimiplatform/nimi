@@ -1,4 +1,10 @@
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { isMainWorldType } from './shared';
+
+type WorldDetailDto = RealmModel<'WorldDetailDto'>;
+type WorldDetailWithAgentsDto = RealmModel<'WorldDetailWithAgentsDto'>;
+type WorldAgentSummaryDto = RealmModel<'WorldAgentSummaryDto'>;
+type LooseObject = { [key: string]: unknown };
 
 export type WorldAgentItem = {
   id: string;
@@ -80,8 +86,8 @@ function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function readRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+function readRecord(value: unknown): LooseObject | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as LooseObject) : null;
 }
 
 function readBoolean(value: unknown): boolean | null {
@@ -94,12 +100,16 @@ function readNumber(value: unknown): number | null {
 
 function toComputedAgent(raw: unknown): WorldComputedEntryAgent | null {
   const record = readRecord(raw);
-  if (!record?.id) {
+  if (!record) {
+    return null;
+  }
+  const id = typeof record?.id === 'string' ? record.id : '';
+  if (!id) {
     return null;
   }
   return {
-    id: String(record.id),
-    name: String(record.name || 'Unknown'),
+    id,
+    name: typeof record.name === 'string' ? record.name : 'Unknown',
     handle: readString(record.handle),
     avatarUrl: readString(record.avatarUrl),
   };
@@ -138,20 +148,16 @@ function toWorldComputed(raw: unknown): WorldComputed {
   };
 }
 
-function resolveWorldType(raw: Record<string, unknown>): string {
+function resolveWorldType(raw: WorldDetailDto): string {
   return (
     readString(raw.type) ??
-    readString(raw.worldType) ??
-    readString(raw.world_type) ??
     'CREATOR'
   );
 }
 
-function resolveCreatorId(raw: Record<string, unknown>): string | null {
+function resolveCreatorId(raw: WorldDetailDto): string | null {
   return (
     readString(raw.creatorId) ??
-    readString(raw.worldCreatorId) ??
-    readString(raw.world_creator_id) ??
     null
   );
 }
@@ -160,18 +166,17 @@ export function isMainWorld(item: Pick<WorldListItem, 'type' | 'creatorId'>): bo
   return isMainWorldType(item.type) || !item.creatorId;
 }
 
-export function toWorldListItem(raw: Record<string, unknown>): WorldListItem {
+export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithAgentsDto): WorldListItem {
   let parsedAgents: WorldAgentItem[] | undefined;
-  if (Array.isArray(raw.agents)) {
-    parsedAgents = raw.agents.map((a: unknown) => {
-      const agent = a as Record<string, unknown>;
+  if ('agents' in raw && Array.isArray(raw.agents)) {
+    parsedAgents = raw.agents.map((agent: WorldAgentSummaryDto) => {
       return {
-        id: String(agent.id || ''),
-        name: String(agent.name || 'Unknown'),
-        handle: typeof agent.handle === 'string' ? agent.handle : undefined,
-        bio: typeof agent.bio === 'string' ? agent.bio : undefined,
-        avatarUrl: typeof agent.avatarUrl === 'string' ? agent.avatarUrl : null,
-        createdAt: typeof agent.createdAt === 'string' ? agent.createdAt : undefined,
+        id: agent.id,
+        name: agent.name || 'Unknown',
+        handle: agent.handle,
+        bio: agent.bio,
+        avatarUrl: agent.avatarUrl ?? null,
+        createdAt: agent.createdAt,
       };
     });
   }

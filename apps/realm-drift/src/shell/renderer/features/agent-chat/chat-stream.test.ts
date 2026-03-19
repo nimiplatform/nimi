@@ -4,7 +4,7 @@ import type { ChatMessage } from '@renderer/app-shell/app-store.js';
 
 const mockStream = vi.fn();
 
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     runtime: {
       ai: {

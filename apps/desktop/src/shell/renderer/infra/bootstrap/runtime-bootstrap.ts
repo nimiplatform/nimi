@@ -7,7 +7,7 @@ import {
   checkLocalLlmHealth,
   executeLocalKernelTurn,
 } from '@runtime/llm-adapter';
-import { withOpenApiContextLock } from '@runtime/context/openapi-context';
+import { createPlatformClient, withRealmContextLock } from '@nimiplatform/sdk';
 import {
   getRuntimeHookRuntime,
   listRegisteredRuntimeModIds,
@@ -23,7 +23,6 @@ import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { initializePlatformClient } from '@runtime/platform-client';
 import { getOfflineCoordinator } from '@runtime/offline';
 import { bootstrapAuthSession } from './runtime-bootstrap-auth';
 import {
@@ -220,15 +219,32 @@ export function bootstrapRuntime(): Promise<void> {
       }
       return String(user.accountId || '').trim();
     };
+    const proxyFetch = createProxyFetch();
 
-    await initializePlatformClient({
+    await createPlatformClient({
+      appId: 'nimi.desktop',
       realmBaseUrl: defaults.realm.realmBaseUrl,
       accessToken: defaults.realm.accessToken,
-      accessTokenProvider: resolveCurrentAccessToken,
-      subjectUserIdProvider: resolveCurrentSubjectUserId,
+      realmFetchImpl: proxyFetch,
+      runtimeTransport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      sessionStore: {
+        getAccessToken: resolveCurrentAccessToken,
+        getRefreshToken: () => useAppStore.getState().auth.refreshToken,
+        getSubjectUserId: resolveCurrentSubjectUserId,
+        getCurrentUser: () => useAppStore.getState().auth.user,
+        setAuthSession: (user, accessToken, refreshToken) => {
+          useAppStore.getState().setAuthSession(user, accessToken, refreshToken);
+        },
+        clearAuthSession: () => {
+          useAppStore.getState().clearAuthSession();
+        },
+      },
     });
     await reconcileLocalRuntimeBootstrapState({ flowId });
-    const proxyFetch = createProxyFetch();
     useAppStore.getState().setRuntimeDefaults(defaults);
 
     dataSync.initApi({
@@ -239,7 +255,7 @@ export function bootstrapRuntime(): Promise<void> {
 
     dataSync.setAuthCallbacks({
       setAuth: (user, token, refreshToken) => {
-        useAppStore.getState().setAuthSession(user, token, refreshToken);
+        useAppStore.getState().setAuthSession(user ?? null, token, refreshToken);
       },
       clearAuth: () => {
         useAppStore.getState().clearAuthSession();
@@ -272,7 +288,7 @@ export function bootstrapRuntime(): Promise<void> {
         withOpenApiContextLock: async <T>(
           context: { realmBaseUrl: string; accessToken?: string; fetchImpl?: typeof fetch },
           task: () => Promise<T>,
-        ) => withOpenApiContextLock<T>(context, task),
+        ) => withRealmContextLock<T>(context, task),
         getRuntimeHookRuntime: () => getRuntimeHookRuntime(),
       });
       setInternalModSdkHost(runtimeHostCapabilities);

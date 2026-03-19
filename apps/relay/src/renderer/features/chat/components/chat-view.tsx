@@ -46,7 +46,7 @@ export function ChatView({ messages, sendPhase }: ChatViewProps) {
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user';
-  const meta = message.meta as Record<string, unknown> | undefined;
+  const meta = message.meta;
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>

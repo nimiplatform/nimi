@@ -1,27 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Realm } from '@nimiplatform/sdk/realm';
+import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
 
-interface PostMediaDto {
-  type: 'IMAGE' | 'VIDEO' | 'AUDIO';
-  url?: string;
-  thumbnail?: string;
-  width?: number;
-  height?: number;
-}
-
-interface UserLiteDto {
-  handle?: string;
-  displayName?: string;
-  avatarUrl?: string;
-}
-
-interface PostDto {
-  id: string;
-  caption?: string;
-  media: PostMediaDto[];
-  author?: UserLiteDto;
-  createdAt?: string;
-}
+type PostDto = NonNullable<Awaited<ReturnType<PlatformClient['domains']['publicContent']['getPublicPost']>>>;
+type PostMediaDto = PostDto['media'][number];
 
 type LoadState =
   | { status: 'loading' }
@@ -42,15 +23,16 @@ export function PostPermalinkPage({ postId }: { postId: string }) {
       };
     }
 
-    const realm = new Realm({
-      baseUrl,
-      auth: null,
-    });
-
-    realm.services.PostService.getPublicPost(postId)
+    createPlatformClient({
+      appId: 'nimi.web',
+      realmBaseUrl: baseUrl,
+      allowAnonymousRealm: true,
+      runtimeTransport: null,
+    })
+      .then((client) => client.domains.publicContent.getPublicPost(postId))
       .then((post) => {
         if (!cancelled) {
-          setState(post ? { status: 'ok', post: post as unknown as PostDto } : { status: 'not_found' });
+          setState(post ? { status: 'ok', post } : { status: 'not_found' });
         }
       })
       .catch(() => {

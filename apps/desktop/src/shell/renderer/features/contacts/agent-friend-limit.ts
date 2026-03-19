@@ -1,5 +1,6 @@
 import { dataSync } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
+import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 
 export type AgentFriendLimit = {
   tier: 'FREE' | 'PRO' | 'MAX';
@@ -31,24 +32,19 @@ function normalizeStatus(value: unknown): AgentFriendLimit['status'] {
 }
 
 function isAgentFriend(friend: unknown): boolean {
-  if (!friend || typeof friend !== 'object') {
+  const payload = parseOptionalJsonObject(friend);
+  if (!payload) {
     return false;
   }
-  const payload = friend as Record<string, unknown>;
   return payload.isAgent === true;
 }
 
 export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {
   const social = await dataSync.loadSocialSnapshot();
-  const socialRecord = social && typeof social === 'object'
-    ? social as Record<string, unknown>
-    : {};
-  let subscriptionRecord: Record<string, unknown> = {};
+  let subscriptionRecord: JsonObject = {};
   try {
     const subscription = await dataSync.loadSubscriptionStatus();
-    subscriptionRecord = subscription && typeof subscription === 'object'
-      ? subscription as Record<string, unknown>
-      : {};
+    subscriptionRecord = parseOptionalJsonObject(subscription) ?? {};
   } catch {
     // subscription API 失败时回退 FREE tier（limit=10）
   }
@@ -56,7 +52,7 @@ export async function resolveAgentFriendLimit(): Promise<AgentFriendLimit> {
   const tier = normalizeTier(subscriptionRecord.tier);
   const status = normalizeStatus(subscriptionRecord.status);
   const limit = LIMIT_BY_TIER[tier];
-  const friends = Array.isArray(socialRecord.friends) ? socialRecord.friends : [];
+  const friends = Array.isArray(social.friends) ? social.friends : [];
   const used = friends.filter((friend) => isAgentFriend(friend)).length;
   const canAdd = used < limit;
   const reason = canAdd

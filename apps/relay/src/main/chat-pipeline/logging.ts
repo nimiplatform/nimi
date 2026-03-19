@@ -2,6 +2,7 @@
 // Replaced: emitLocalChatLog/logRendererEvent from SDK with console.log
 
 import type { LocalChatTarget, SegmentParseMode } from './types.js';
+import type { JsonObject } from '../../shared/json.js';
 
 export function createLocalChatFlowId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -13,7 +14,7 @@ export function emitLocalChatLog(options: {
   flowId?: string;
   source?: string;
   costMs?: number;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 }): void {
   const { level = 'info', message, details } = options;
   const consoleMethod = level === 'debug'

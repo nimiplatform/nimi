@@ -3,15 +3,18 @@
 
 import { useEffect, useState } from 'react';
 import { getBridge } from '../../bridge/electron-bridge.js';
+import type { RelayInvokeResponse } from '../../../shared/ipc-contract.js';
+
+type DeviceProfileData = RelayInvokeResponse<'relay:local:device-profile'>;
 
 export interface DeviceProfile {
-  data: Record<string, unknown> | null;
+  data: DeviceProfileData | null;
   loading: boolean;
   error: string | null;
 }
 
 export function useDeviceProfile(): DeviceProfile {
-  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [data, setData] = useState<DeviceProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,7 +26,7 @@ export function useDeviceProfile(): DeviceProfile {
       try {
         const result = await bridge.local.collectDeviceProfile();
         if (!cancelled) {
-          setData(result as Record<string, unknown>);
+          setData(result);
           setError(null);
         }
       } catch (err) {

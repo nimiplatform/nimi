@@ -1,3 +1,7 @@
+type RuntimeConfigPanelViewModel = {
+  state: object | null;
+};
+
 function RuntimeUnavailableNotice() {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center bg-gray-50 p-6">
@@ -12,6 +16,6 @@ export function RuntimeConfigPanelBody() {
   return <RuntimeUnavailableNotice />;
 }
 
-export function RuntimeConfigPanelView(_props: { model: unknown }) {
+export function RuntimeConfigPanelView(_props: { model: RuntimeConfigPanelViewModel }) {
   return <RuntimeUnavailableNotice />;
 }

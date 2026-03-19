@@ -41,7 +41,7 @@ const mockStartChat = vi.fn();
 const mockListMessages = vi.fn();
 const mockMarkChatRead = vi.fn();
 const mockSendMessage = vi.fn();
-vi.mock('@runtime/platform-client.js', () => ({
+vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       services: {

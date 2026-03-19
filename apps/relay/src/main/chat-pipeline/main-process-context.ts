@@ -6,6 +6,7 @@ import type {
   LocalChatPromptTrace,
   LocalChatTurnAudit,
 } from './types.js';
+import type { RelayEventMap } from '../../shared/ipc-contract.js';
 
 /**
  * MainProcessChatContext adapts the React-based UseLocalChatTurnSendInput
@@ -55,11 +56,13 @@ export function createMainProcessChatContext(webContents: WebContents): MainProc
 
     setMessages(updater) {
       messages = typeof updater === 'function' ? updater(messages) : updater;
-      webContents.send('relay:chat:messages', messages);
+      const payload: RelayEventMap['relay:chat:messages'] = messages;
+      webContents.send('relay:chat:messages', payload);
     },
 
     setSessions(sessions) {
-      webContents.send('relay:chat:sessions', sessions);
+      const payload: RelayEventMap['relay:chat:sessions'] = sessions;
+      webContents.send('relay:chat:sessions', payload);
     },
 
     setInputText(text) {
@@ -72,19 +75,23 @@ export function createMainProcessChatContext(webContents: WebContents): MainProc
     },
 
     setLatestPromptTrace(trace) {
-      webContents.send('relay:chat:prompt-trace', trace);
+      const payload: RelayEventMap['relay:chat:prompt-trace'] = trace;
+      webContents.send('relay:chat:prompt-trace', payload);
     },
 
     setLatestTurnAudit(audit) {
-      webContents.send('relay:chat:turn-audit', audit);
+      const payload: RelayEventMap['relay:chat:turn-audit'] = audit;
+      webContents.send('relay:chat:turn-audit', payload);
     },
 
     setStatusBanner(input) {
-      webContents.send('relay:chat:status-banner', input);
+      const payload: RelayEventMap['relay:chat:status-banner'] = input;
+      webContents.send('relay:chat:status-banner', payload);
     },
 
     setSendPhase(phase) {
-      webContents.send('relay:chat:turn:phase', { phase });
+      const payload: RelayEventMap['relay:chat:turn:phase'] = { phase };
+      webContents.send('relay:chat:turn:phase', payload);
     },
   };
 }

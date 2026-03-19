@@ -1,5 +1,6 @@
 import {
   assertRecord,
+  parseOptionalJsonObject,
   parseOptionalString,
   parseRequiredString,
 } from './shared.js';
@@ -137,9 +138,7 @@ export function parseLocalRuntimeModelsHealthResult(value: unknown): LocalRuntim
 
 export function parseLocalRuntimeAuditEvent(value: unknown): LocalRuntimeAuditEvent {
   const record = assertRecord(value, 'local_runtime_audits_list returned invalid payload');
-  const payload = record.payload && typeof record.payload === 'object' && !Array.isArray(record.payload)
-    ? (record.payload as Record<string, unknown>)
-    : undefined;
+  const payload = parseOptionalJsonObject(record.payload);
   const source = parseOptionalString(record.source || payload?.source);
   const modality = parseOptionalString(record.modality || payload?.modality);
   const reasonCode = parseOptionalString(record.reasonCode || payload?.reasonCode);

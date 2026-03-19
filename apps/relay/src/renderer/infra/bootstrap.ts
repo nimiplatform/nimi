@@ -42,8 +42,7 @@ function ensureRealtimeStatusSubscription(): void {
   }
 
   const bridge = getBridge();
-  bridge.realtime.onStatus((data: unknown) => {
-    const status = data as { connected: boolean };
+  bridge.realtime.onStatus((status) => {
     useAppStore.getState().setRealtimeConnected(status.connected);
   });
   realtimeStatusSubscribed = true;
@@ -104,6 +103,14 @@ function delay(ms: number): Promise<void> {
   });
 }
 
+function readAgentVoiceId(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const record = value as { voice?: { voiceId?: string } | null };
+  return record.voice?.voiceId;
+}
+
 /**
  * Fetch current authenticated user profile via bridge.
  * Falls back to null if unavailable (non-blocking).
@@ -112,10 +119,8 @@ async function loadCurrentUser(
   bridge: ReturnType<typeof getBridge>,
 ): Promise<UserProfile | null> {
   try {
-    const raw = await bridge.auth.currentUser();
-    if (!raw || typeof raw !== 'object') return null;
-    const data = raw as Record<string, unknown>;
-    if (!data.id || !data.displayName) return null;
+    const data = await bridge.auth.currentUser();
+    if (!data?.id || !data.displayName) return null;
     return {
       id: String(data.id),
       displayName: String(data.displayName),
@@ -137,22 +142,7 @@ async function fetchAgentProfile(
   bridge: ReturnType<typeof getBridge>,
 ): Promise<Agent> {
   try {
-    const result = await bridge.agent.get(agentId);
-    const profile = result as {
-      id: string;
-      displayName: string;
-      handle?: string;
-      avatarUrl?: string | null;
-      bio?: string | null;
-      agent?: {
-        state?: string;
-      };
-      agentProfile?: {
-        dna?: {
-          voice?: { voiceId?: string };
-        } | null;
-      };
-    };
+    const profile = await bridge.agent.get(agentId);
     return {
       id: profile.id,
       name: profile.displayName,
@@ -160,7 +150,7 @@ async function fetchAgentProfile(
       state: profile.agent?.state,
       avatarUrl: profile.avatarUrl ?? undefined,
       description: profile.bio ?? undefined,
-      voiceId: profile.agentProfile?.dna?.voice?.voiceId,
+      voiceId: readAgentVoiceId(profile.agentProfile?.dna),
     };
   } catch {
     // Realm unreachable — fall back to stub

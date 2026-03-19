@@ -1,6 +1,6 @@
 import type { WorldAgent, WorldDetailWithAgents } from '../world-browser/world-browser-data.js';
 import type { ChatMessage } from '@renderer/app-shell/app-store.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 export function buildSystemPrompt(agent: WorldAgent, world: WorldDetailWithAgents): string {
   const parts: string[] = [];

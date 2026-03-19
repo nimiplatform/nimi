@@ -1,4 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 
 type NotificationDto = RealmModel<'NotificationDto'>;
 type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
@@ -50,11 +51,8 @@ const LIKE_NOTIFICATION_TYPES = new Set<NotificationItemType>([
 
 const MENTION_NOTIFICATION_TYPES = new Set<NotificationItemType>([]);
 
-function toRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
+function toRecord(value: unknown): JsonObject | null {
+  return parseOptionalJsonObject(value) ?? null;
 }
 
 function toStringValue(value: unknown, fallback = ''): string {

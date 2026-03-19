@@ -14,7 +14,7 @@ type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
 type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;
 type UserSettingsDto = RealmModel<'UserSettingsDto'>;
 
-type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
@@ -161,7 +161,7 @@ export async function prepareTwoFactor(
     return await callApi(
       (realm) => realm.services.MeTwoFactorService.prepareTwoFactor(),
       '生成 2FA 配置失败',
-    );
+    ) as MeTwoFactorPrepareOutput;
   } catch (error) {
     emitDataSyncError('prepare-two-factor', error);
     throw error;

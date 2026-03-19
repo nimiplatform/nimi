@@ -37,7 +37,7 @@ export function useSpeechPlayback() {
         text,
         model: currentAgent.voiceModel || '',
         voiceId: voiceId ?? currentAgent.voiceId,
-      }) as { audio?: string };
+      });
 
       if (result.audio) {
         await playBase64AudioWithLipSync(result.audio, audioContextRef, sourceRef);

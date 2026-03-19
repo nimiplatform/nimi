@@ -1,14 +1,20 @@
 import { loadCreatorAgents } from './social-flow';
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { isJsonObject, type JsonObject } from '@runtime/net/json';
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
+type EnrichedUserProfile = UserProfileDto & {
+  worldName?: string | null;
+  worldBannerUrl?: string | null;
+  world?: JsonObject;
+};
 
-export type DataSyncApiCaller = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+export type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type DataSyncErrorEmitter = (
   action: string,
   error: unknown,
-  details?: Record<string, unknown>,
+  details?: JsonObject,
 ) => void;
 
 type PendingFriendRequestDto = {
@@ -23,13 +29,15 @@ type PendingFriendRequestListDto = {
 };
 
 export type SocialContactSnapshot = {
-  friends: Array<Record<string, unknown>>;
-  agents: Array<Record<string, unknown>>;
-  groups: Array<Record<string, unknown>>;
-  pendingReceived: Array<Record<string, unknown>>;
-  pendingSent: Array<Record<string, unknown>>;
-  blocked: Array<Record<string, unknown>>;
+  friends: JsonObject[];
+  agents: JsonObject[];
+  groups: JsonObject[];
+  pendingReceived: JsonObject[];
+  pendingSent: JsonObject[];
+  blocked: JsonObject[];
 };
+
+type SocialContactRecord = JsonObject;
 
 let cachedContacts: SocialContactSnapshot = {
   friends: [],
@@ -49,80 +57,81 @@ function toNullableString(value: unknown): string | null {
   return normalized || null;
 }
 
-function extractAgentWorldId(profile: Record<string, unknown>): string | null {
+function extractAgentWorldId(profile: JsonObject): string | null {
   const direct = toNonEmptyString(profile.worldId);
   if (direct) {
     return direct;
   }
 
-  const agent = profile.agent && typeof profile.agent === 'object'
-    ? (profile.agent as Record<string, unknown>)
+  const agent = isJsonObject(profile.agent)
+    ? profile.agent
     : null;
   const fromAgent = toNonEmptyString(agent?.worldId);
   if (fromAgent) {
     return fromAgent;
   }
 
-  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
-    ? (profile.agentProfile as Record<string, unknown>)
+  const agentProfile = isJsonObject(profile.agentProfile)
+    ? profile.agentProfile
     : null;
   const fromAgentProfile = toNonEmptyString(agentProfile?.worldId);
   return fromAgentProfile || null;
 }
 
-function extractWorldBannerUrl(profile: Record<string, unknown>): string | null {
+function extractWorldBannerUrl(profile: JsonObject): string | null {
   const direct = toNonEmptyString(profile.worldBannerUrl);
   if (direct) {
     return direct;
   }
 
-  const world = profile.world && typeof profile.world === 'object'
-    ? (profile.world as Record<string, unknown>)
+  const world = isJsonObject(profile.world)
+    ? profile.world
     : null;
   const fromWorld = toNonEmptyString(world?.bannerUrl);
   if (fromWorld) {
     return fromWorld;
   }
 
-  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
-    ? (profile.agentProfile as Record<string, unknown>)
+  const agentProfile = isJsonObject(profile.agentProfile)
+    ? profile.agentProfile
     : null;
   return toNonEmptyString(agentProfile?.worldBannerUrl) || null;
 }
 
-function extractWorldName(profile: Record<string, unknown>): string | null {
+function extractWorldName(profile: JsonObject): string | null {
   const direct = toNonEmptyString(profile.worldName);
   if (direct) {
     return direct;
   }
 
-  const world = profile.world && typeof profile.world === 'object'
-    ? (profile.world as Record<string, unknown>)
+  const world = isJsonObject(profile.world)
+    ? profile.world
     : null;
   const fromWorld = toNonEmptyString(world?.name);
   if (fromWorld) {
     return fromWorld;
   }
 
-  const agentProfile = profile.agentProfile && typeof profile.agentProfile === 'object'
-    ? (profile.agentProfile as Record<string, unknown>)
+  const agentProfile = isJsonObject(profile.agentProfile)
+    ? profile.agentProfile
     : null;
   return toNonEmptyString(agentProfile?.worldName) || null;
 }
 
 export async function enrichProfileWithWorldBanner(
   callApi: DataSyncApiCaller,
-  profile: Record<string, unknown>,
-): Promise<UserProfileDto> {
+  profile: JsonObject,
+): Promise<EnrichedUserProfile> {
+  const typedProfile = profile as EnrichedUserProfile;
   const existingBannerUrl = extractWorldBannerUrl(profile);
   const existingWorldName = extractWorldName(profile);
   if (existingBannerUrl && existingWorldName) {
-    return profile as UserProfileDto;
+    return typedProfile;
   }
 
   const worldId = extractAgentWorldId(profile);
   if (!worldId) {
-    return profile as UserProfileDto;
+    return typedProfile;
   }
 
   try {
@@ -130,27 +139,27 @@ export async function enrichProfileWithWorldBanner(
       (realm) => realm.services.WorldsService.worldControllerGetWorld(worldId),
       'Failed to load world detail',
     );
-    const worldRecord = world && typeof world === 'object' && !Array.isArray(world)
-      ? (world as Record<string, unknown>)
+    const worldRecord = isJsonObject(world)
+      ? world
       : null;
     if (!worldRecord) {
-      return profile as UserProfileDto;
+      return typedProfile;
     }
 
     return {
-      ...profile,
+      ...typedProfile,
       worldName: existingWorldName || toNullableString(worldRecord.name),
       worldBannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
-      world: profile.world && typeof profile.world === 'object'
+      world: isJsonObject(typedProfile.world)
         ? {
-            ...(profile.world as Record<string, unknown>),
+            ...typedProfile.world,
             ...worldRecord,
             bannerUrl: existingBannerUrl || toNullableString(worldRecord.bannerUrl),
           }
         : worldRecord,
-    } as unknown as UserProfileDto;
+    };
   } catch {
-    return profile as UserProfileDto;
+    return typedProfile;
   }
 }
 
@@ -175,13 +184,13 @@ async function resolvePendingRequestProfiles(
   callApi: DataSyncApiCaller,
   userMap: Map<string, PendingRequestMapValue>,
   direction: 'received' | 'sent',
-): Promise<Array<Record<string, unknown>>> {
+): Promise<SocialContactRecord[]> {
   const tasks = Array.from(userMap.entries()).map(async ([userId, { requestedAt, requestMessage }]) => {
     try {
       const profile = await callApi(
         (realm) => realm.services.UserService.getUser(userId),
         '加载好友请求用户资料失败',
-      ) as Record<string, unknown>;
+      ) as JsonObject;
       const handle = toNonEmptyString(profile.handle);
       const isAgent = profile.isAgent === true;
       return {
@@ -196,7 +205,7 @@ async function resolvePendingRequestProfiles(
         bio: toNullableString(profile.bio),
         isAgent,
         worldId: isAgent ? extractAgentWorldId(profile) : null,
-      } as Record<string, unknown>;
+      } as SocialContactRecord;
     } catch {
       return {
         id: userId,
@@ -210,7 +219,7 @@ async function resolvePendingRequestProfiles(
         bio: null,
         isAgent: false,
         worldId: null,
-      } as Record<string, unknown>;
+      } as SocialContactRecord;
     }
   });
 
@@ -234,7 +243,7 @@ export async function fetchPendingFriendRequests(
     return await callApi(
       (realm) => realm.services.MeService.getMyPendingFriendRequests(),
       '加载好友请求失败',
-    );
+    ) as PendingFriendRequestListDto;
   } catch (error) {
     emitDataSyncError('load-friend-requests', error);
     throw error;
@@ -244,14 +253,14 @@ export async function fetchPendingFriendRequests(
 async function fetchBlockedUsers(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
-): Promise<Array<Record<string, unknown>>> {
+): Promise<SocialContactRecord[]> {
   try {
     const response = await callApi(
       (realm) => realm.services.MeService.getMyBlockedUsers(undefined, 100),
       '加载拉黑列表失败',
     );
     const items = Array.isArray(response?.items)
-      ? (response.items as Array<Record<string, unknown>>)
+      ? (response.items as JsonObject[])
       : [];
     return items
       .map((item) => {
@@ -270,9 +279,9 @@ async function fetchBlockedUsers(
           isAgent: item?.isAgent === true,
           blockedAt: toNullableString(item?.blockedAt),
           reason: toNullableString(item?.reason),
-        } as Record<string, unknown>;
+        } as SocialContactRecord;
       })
-      .filter((item): item is Record<string, unknown> => Boolean(item));
+      .filter((item): item is SocialContactRecord => Boolean(item));
   } catch (error) {
     emitDataSyncError('load-blocked-users', error);
     return [];
@@ -378,7 +387,7 @@ export function getCachedContacts(): SocialContactSnapshot {
 }
 
 export function isPendingSentRequestInContacts(
-  contacts: { pendingSent?: Array<Record<string, unknown>> } | undefined,
+  contacts: Pick<SocialContactSnapshot, 'pendingSent'> | undefined,
   userId: string,
 ): boolean {
   if (!contacts?.pendingSent?.length) return false;

@@ -3,8 +3,8 @@ import { AppProviders } from '@renderer/app-shell/providers/app-providers.js';
 import { AppRoutes } from '@renderer/app-shell/routes/app-routes.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { OvertoneLogin } from '@renderer/features/auth/overtone-login.js';
-import { clearRealmInstance } from '@renderer/bridge/realm-sdk.js';
 import {
+  clearOvertonePlatformClient,
   getOvertoneRealmBaseUrl,
   resolveOvertoneCurrentUser,
 } from '@renderer/features/auth/overtone-auth-adapter.js';
@@ -46,7 +46,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         useAppStore.getState().setRealmConnection(true, true);
       },
       () => {
-        clearRealmInstance();
+        clearOvertonePlatformClient();
         useAppStore.getState().clearAuthSession();
         useAppStore.getState().setRealmConnection(true, false);
       },

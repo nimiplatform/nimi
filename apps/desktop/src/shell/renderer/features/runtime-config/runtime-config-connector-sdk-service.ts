@@ -1,4 +1,4 @@
-import { getPlatformClient } from '@runtime/platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { createNimiError, RuntimeReasonCode, type ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
@@ -51,10 +51,13 @@ function runtimeReasonCodeName(value: unknown): string {
   return String(enumName || '').trim();
 }
 
+function runtimeAdmin() {
+  return getPlatformClient().domains.runtimeAdmin;
+}
+
 export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
   if (cachedProviderCatalog) return cachedProviderCatalog;
-  const runtime = getPlatformClient().runtime;
-  const response = await runtime.connector.listProviderCatalog({}, CONNECTOR_CALL_OPTIONS);
+  const response = await runtimeAdmin().listProviderCatalog({}, CONNECTOR_CALL_OPTIONS);
   const providers = Array.isArray(response.providers)
     ? (response.providers as ProviderCatalogEntry[])
     : [];
@@ -127,9 +130,8 @@ export function sdkConnectorToApiConnector(
 }
 
 export async function sdkListConnectors(): Promise<ApiConnector[]> {
-  const runtime = getPlatformClient().runtime;
   const providerCatalog = await sdkListProviderCatalog();
-  const response = await runtime.connector.listConnectors(
+  const response = await runtimeAdmin().listConnectors(
     { pageSize: 0, pageToken: '', kindFilter: 0, statusFilter: 0, providerFilter: '' },
     CONNECTOR_CALL_OPTIONS,
   );
@@ -148,8 +150,7 @@ export async function sdkCreateConnector(input: {
   label: string;
   apiKey: string;
 }): Promise<ApiConnector | null> {
-  const runtime = getPlatformClient().runtime;
-  const response = await runtime.connector.createConnector({
+  const response = await runtimeAdmin().createConnector({
     provider: input.provider,
     endpoint: input.endpoint,
     label: input.label,
@@ -166,8 +167,7 @@ export async function sdkUpdateConnector(input: {
   endpoint?: string;
   apiKey?: string;
 }): Promise<ApiConnector | null> {
-  const runtime = getPlatformClient().runtime;
-  const response = await runtime.connector.updateConnector({
+  const response = await runtimeAdmin().updateConnector({
     connectorId: input.connectorId,
     label: input.label || '',
     endpoint: input.endpoint || '',
@@ -180,16 +180,14 @@ export async function sdkUpdateConnector(input: {
 }
 
 export async function sdkDeleteConnector(connectorId: string): Promise<void> {
-  const runtime = getPlatformClient().runtime;
-  await runtime.connector.deleteConnector(
+  await runtimeAdmin().deleteConnector(
     { connectorId },
     CONNECTOR_CALL_OPTIONS,
   );
 }
 
 export async function sdkTestConnector(connectorId: string): Promise<void> {
-  const runtime = getPlatformClient().runtime;
-  const response = await runtime.connector.testConnector(
+  const response = await runtimeAdmin().testConnector(
     { connectorId },
     CONNECTOR_CALL_OPTIONS,
   );
@@ -238,12 +236,11 @@ export async function sdkListConnectorModelDescriptors(
   connectorId: string,
   forceRefresh: boolean = false,
 ): Promise<ConnectorModelInfo[]> {
-  const runtime = getPlatformClient().runtime;
   const descriptors: ConnectorModelInfo[] = [];
   const seenModelIds = new Set<string>();
   let pageToken = '';
   for (let pageIndex = 0; pageIndex < CONNECTOR_MODELS_MAX_PAGES; pageIndex += 1) {
-    const response = await runtime.connector.listConnectorModels(
+    const response = await runtimeAdmin().listConnectorModels(
       {
         connectorId,
         forceRefresh: pageIndex === 0 ? forceRefresh : false,

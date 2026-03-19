@@ -7,7 +7,7 @@ import {
   providerToVendor,
   vendorToProvider,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
-import { initializePlatformClient } from '../src/runtime/platform-client';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
 
 type TauriInvokeCall = {
@@ -252,7 +252,7 @@ test('sdkCreateConnector runtime calls include auto authorization and pick refre
   const restoreTauri = installTauriRuntime(calls);
   let token = 'connector-token-1';
   try {
-    await initializePlatformClient({
+    await createPlatformClient({
       realmBaseUrl: 'http://localhost:3002',
       accessTokenProvider: () => token,
     });

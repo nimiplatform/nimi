@@ -1,5 +1,5 @@
 import type { WorldDetailWithAgents, WorldviewData, WorldScene, WorldLorebook } from '../world-browser/world-browser-data.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 
 export type RawWorldContext = {
   world: WorldDetailWithAgents;

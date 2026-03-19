@@ -37,7 +37,7 @@ export function useSpeechTranscribe() {
         const result = await bridge.media.stt.transcribe({
           audio: base64,
           format: 'webm',
-        }) as { text?: string };
+        });
         setTranscript(result.text || '');
       } catch {
         setTranscript('');

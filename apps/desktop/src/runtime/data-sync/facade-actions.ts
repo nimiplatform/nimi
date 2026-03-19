@@ -137,7 +137,7 @@ import {
   updateMySettings,
 } from './flows/settings-flow';
 
-export type DataSyncCallApi = (task: (realm: Realm) => Promise<any>, fallbackMessage?: string) => Promise<any>;
+export type DataSyncCallApi = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type DataSyncEmitError = (
   action: string,
   error: unknown,
@@ -149,7 +149,7 @@ type CreateDataSyncActionsInput = {
   emitFacadeError: DataSyncEmitError;
   setToken: (token: string | null | undefined) => void;
   setRefreshToken: (token: string | null | undefined) => void;
-  setAuth: (user: Record<string, unknown> | null, token: string, refreshToken?: string) => void;
+  setAuth: (user: Record<string, unknown> | null | undefined, token: string, refreshToken?: string) => void;
   clearAuth: () => void;
   stopAllPolling: () => void;
   isFriend: (userId: string) => boolean;

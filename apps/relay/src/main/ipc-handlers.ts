@@ -8,16 +8,13 @@
 // RL-BOOT-005 — Auth IPC
 
 import { ipcMain, shell, type BrowserWindow, type WebContents } from 'electron';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
-import { OAuthProvider, Realm } from '@nimiplatform/sdk/realm';
+import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
+import { OAuthProvider, sendAgentChannelMessage } from '@nimiplatform/sdk/realm';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
-  SpeechSynthesizeInput,
   SpeechListVoicesInput,
-  SpeechTranscribeInput,
   ImageGenerateInput,
-  VideoGenerateInput,
 } from '@nimiplatform/sdk/runtime';
 import { openStream, cancelStream } from './stream-manager.js';
 import { normalizeError } from './error-utils.js';
@@ -27,24 +24,41 @@ import type { RelayEnv } from './env.js';
 import { listenForOAuthCallback, performOauthTokenExchange } from './auth/index.js';
 import { DESKTOP_CALLBACK_TIMEOUT_MS } from '@nimiplatform/shell-core/oauth';
 import type { RouteState } from './route/route-state.js';
-import { sendAgentChannelMessage } from './realm-agent-channel.js';
+import type { RelayInvokeMap } from '../shared/ipc-contract.js';
 
 type ListCreatorAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
+type AuthOauthLoginRequest = RelayInvokeMap['relay:auth:oauth-login']['request'];
+type TtsSynthesizeRequest = RelayInvokeMap['relay:media:tts:synthesize']['request'];
+type SttTranscribeRequest = RelayInvokeMap['relay:media:stt:transcribe']['request'];
+type VideoGenerateRequest = RelayInvokeMap['relay:media:video:generate']['request'];
 
-function createScopedRealm(
+function decodeBase64Audio(input: string): Uint8Array {
+  return Uint8Array.from(Buffer.from(input, 'base64'));
+}
+
+function encodeArtifactBytes(bytes: Uint8Array | undefined): string | undefined {
+  if (!bytes || bytes.byteLength === 0) {
+    return undefined;
+  }
+  return Buffer.from(bytes).toString('base64');
+}
+
+async function createScopedRealm(
   env: RelayEnv,
   accessToken?: string,
-): Realm {
+): Promise<PlatformClient['realm']> {
   const normalizedAccessToken = String(
     accessToken ?? env.NIMI_ACCESS_TOKEN ?? '',
   ).trim();
 
-  return new Realm({
-    baseUrl: env.NIMI_REALM_URL,
-    auth: {
-      accessToken: normalizedAccessToken,
-    },
+  const client = await createPlatformClient({
+    appId: 'nimi.relay',
+    realmBaseUrl: env.NIMI_REALM_URL,
+    accessToken: normalizedAccessToken,
+    allowAnonymousRealm: !normalizedAccessToken,
+    runtimeTransport: null,
   });
+  return client.realm;
 }
 
 /**
@@ -81,7 +95,7 @@ export function registerAuthIpcHandlers(
 
   ipcMain.handle('relay:auth:check-email', async (_event, payload: { email: string }) => {
     try {
-      return await createScopedRealm(env).services.AuthService.checkEmail({
+      return await (await createScopedRealm(env)).services.AuthService.checkEmail({
         email: payload.email,
       });
     } catch (error) {
@@ -94,7 +108,7 @@ export function registerAuthIpcHandlers(
     password: string;
   }) => {
     try {
-      return await createScopedRealm(env).services.AuthService.passwordLogin({
+      return await (await createScopedRealm(env)).services.AuthService.passwordLogin({
         identifier: payload.identifier,
         password: payload.password,
       });
@@ -103,12 +117,9 @@ export function registerAuthIpcHandlers(
     }
   });
 
-  ipcMain.handle('relay:auth:oauth-login', async (_event, payload: {
-    provider: string;
-    accessToken: string;
-  }) => {
+  ipcMain.handle('relay:auth:oauth-login', async (_event, payload: AuthOauthLoginRequest) => {
     try {
-      return await createScopedRealm(env).services.AuthService.oauthLogin({
+      return await (await createScopedRealm(env)).services.AuthService.oauthLogin({
         provider: payload.provider as OAuthProvider,
         accessToken: payload.accessToken,
       });
@@ -119,7 +130,7 @@ export function registerAuthIpcHandlers(
 
   ipcMain.handle('relay:auth:email-otp-request', async (_event, payload: { email: string }) => {
     try {
-      return await createScopedRealm(env).services.AuthService.requestEmailOtp({
+      return await (await createScopedRealm(env)).services.AuthService.requestEmailOtp({
         email: payload.email,
       });
     } catch (error) {
@@ -132,7 +143,7 @@ export function registerAuthIpcHandlers(
     code: string;
   }) => {
     try {
-      return await createScopedRealm(env).services.AuthService.verifyEmailOtp({
+      return await (await createScopedRealm(env)).services.AuthService.verifyEmailOtp({
         email: payload.email,
         code: payload.code,
       });
@@ -146,7 +157,7 @@ export function registerAuthIpcHandlers(
     code: string;
   }) => {
     try {
-      return await createScopedRealm(env).services.AuthService.verifyTwoFactor({
+      return await (await createScopedRealm(env)).services.AuthService.verifyTwoFactor({
         tempToken: payload.tempToken,
         code: payload.code,
       });
@@ -161,7 +172,7 @@ export function registerAuthIpcHandlers(
     walletType: string;
   }) => {
     try {
-      return await createScopedRealm(env).services.AuthService.walletChallenge({
+      return await (await createScopedRealm(env)).services.AuthService.walletChallenge({
         walletAddress: payload.walletAddress,
         chainId: payload.chainId,
         walletType: payload.walletType,
@@ -180,7 +191,7 @@ export function registerAuthIpcHandlers(
     walletType: string;
   }) => {
     try {
-      return await createScopedRealm(env).services.AuthService.walletLogin({
+      return await (await createScopedRealm(env)).services.AuthService.walletLogin({
         walletAddress: payload.walletAddress,
         chainId: payload.chainId,
         nonce: payload.nonce,
@@ -198,7 +209,7 @@ export function registerAuthIpcHandlers(
     accessToken?: string;
   }) => {
     try {
-      await createScopedRealm(env, payload.accessToken).services.AuthService.updatePassword({
+      await (await createScopedRealm(env, payload.accessToken)).services.AuthService.updatePassword({
         newPassword: payload.newPassword,
       });
       return { success: true };
@@ -211,7 +222,7 @@ export function registerAuthIpcHandlers(
     accessToken?: string;
   }) => {
     try {
-      return await createScopedRealm(env, payload?.accessToken).services.MeService.getMe();
+      return await (await createScopedRealm(env, payload?.accessToken)).services.MeService.getMe();
     } catch (error) {
       throw normalizeError(error);
     }
@@ -263,8 +274,11 @@ export function registerAuthIpcHandlers(
 
 const RELAY_REASON_CODE_MISSING_AGENT_ID = ReasonCode.AI_INPUT_INVALID;
 
-function requireAgentId(input: Record<string, unknown>): void {
-  if (!input.agentId || typeof input.agentId !== 'string') {
+function requireAgentId(input: unknown): void {
+  const agentId = input && typeof input === 'object' && 'agentId' in input
+    ? (input as { agentId?: unknown }).agentId
+    : undefined;
+  if (!agentId || typeof agentId !== 'string') {
     throw Object.assign(new Error('agentId is required for agent-scoped IPC calls'), {
       reasonCode: RELAY_REASON_CODE_MISSING_AGENT_ID,
       actionHint: 'Select an agent before using this feature',
@@ -273,8 +287,8 @@ function requireAgentId(input: Record<string, unknown>): void {
 }
 
 export function registerIpcHandlers(
-  runtime: Runtime,
-  realm: Realm,
+  runtime: PlatformClient['runtime'],
+  realm: PlatformClient['realm'],
   getWebContents: () => WebContents | null,
   env: RelayEnv,
   routeState?: RouteState,
@@ -306,7 +320,7 @@ export function registerIpcHandlers(
   // Input shape: { agentId, prompt, model?, provider?, ... }
 
   safeHandle('relay:ai:generate', async (_event, input: IpcAiGenerateInput) => {
-    requireAgentId(input as unknown as Record<string, unknown>);
+    requireAgentId(input);
     try {
       const textInput = toTextGenerateInput(input);
       const result = await runtime.ai.text.generate(textInput);
@@ -317,7 +331,7 @@ export function registerIpcHandlers(
   });
 
   safeHandle('relay:ai:stream:open', async (_event, input: IpcAiStreamInput) => {
-    requireAgentId(input as unknown as Record<string, unknown>);
+    requireAgentId(input);
     const wc = getWebContents();
     if (!wc) {
       throw new Error('No renderer available');
@@ -338,10 +352,20 @@ export function registerIpcHandlers(
   // ── Media (RL-IPC-007) ──────────────────────────────────────────────
 
   // TTS
-  safeHandle('relay:media:tts:synthesize', async (_event, input: Omit<SpeechSynthesizeInput, 'signal'>) => {
-    requireAgentId(input as unknown as Record<string, unknown>);
+  safeHandle('relay:media:tts:synthesize', async (_event, input: TtsSynthesizeRequest) => {
+    requireAgentId(input);
     try {
-      return await runtime.media.tts.synthesize(input);
+      const { agentId: _agentId, voiceId, ...runtimeInput } = input;
+      const result = await runtime.media.tts.synthesize({
+        ...runtimeInput,
+        voice: voiceId,
+      });
+      const artifact = result.artifacts[0];
+      return {
+        ...result,
+        artifact,
+        audio: encodeArtifactBytes(artifact?.bytes),
+      };
     } catch (error) {
       throw normalizeError(error);
     }
@@ -356,9 +380,18 @@ export function registerIpcHandlers(
   });
 
   // STT
-  safeHandle('relay:media:stt:transcribe', async (_event, input: Omit<SpeechTranscribeInput, 'signal'>) => {
+  safeHandle('relay:media:stt:transcribe', async (_event, input: SttTranscribeRequest) => {
     try {
-      return await runtime.media.stt.transcribe(input);
+      const { audio, format, ...runtimeInput } = input;
+      return await runtime.media.stt.transcribe({
+        ...runtimeInput,
+        model: runtimeInput.model || 'auto',
+        mimeType: input.mimeType || `audio/${format}`,
+        audio: {
+          kind: 'bytes',
+          bytes: decodeBase64Audio(audio),
+        },
+      });
     } catch (error) {
       throw normalizeError(error);
     }
@@ -374,10 +407,20 @@ export function registerIpcHandlers(
   });
 
   // Video
-  safeHandle('relay:media:video:generate', async (_event, input: Omit<VideoGenerateInput, 'signal'>) => {
-    requireAgentId(input as unknown as Record<string, unknown>);
+  safeHandle('relay:media:video:generate', async (_event, input: VideoGenerateRequest) => {
+    requireAgentId(input);
     try {
-      return await runtime.media.video.generate(input);
+      return await runtime.media.video.generate({
+        mode: 't2v',
+        model: input.model || 'auto',
+        prompt: input.prompt,
+        content: [
+          {
+            type: 'text',
+            text: input.prompt,
+          },
+        ],
+      });
     } catch (error) {
       throw normalizeError(error);
     }
@@ -420,10 +463,24 @@ export function registerIpcHandlers(
   safeHandle('relay:agent:list', async () => {
     try {
       const payload: ListCreatorAgentsResult = await realm.services.CreatorService.creatorControllerListAgents();
-      const items = Array.isArray(payload.items) ? payload.items : Array.isArray(payload) ? payload : [];
+      const candidate = payload as { items?: unknown[] } | unknown[];
+      const items = Array.isArray(candidate)
+        ? candidate
+        : Array.isArray(candidate.items) ? candidate.items : [];
       return {
-        items: items.map((item) => {
-          const record = item && typeof item === 'object' ? item as Record<string, unknown> : {};
+        items: items.map((item: unknown) => {
+          const record = item && typeof item === 'object'
+            ? item as {
+                agentId?: unknown;
+                id?: unknown;
+                displayName?: unknown;
+                name?: unknown;
+                handle?: unknown;
+                state?: unknown;
+                status?: unknown;
+                avatarUrl?: unknown;
+              }
+            : {};
           return {
             agentId: String(record.agentId || record.id || ''),
             displayName: String(record.displayName || record.name || ''),
@@ -448,7 +505,7 @@ export function registerIpcHandlers(
 
   safeHandle('relay:human-chat:send', async (_event, input: { agentId: string; text: string }) => {
     try {
-      return await sendAgentChannelMessage(realm, input);
+      return await sendAgentChannelMessage(realm as unknown as Parameters<typeof sendAgentChannelMessage>[0], input);
     } catch (error) {
       throw normalizeError(error);
     }
@@ -463,7 +520,7 @@ export function registerIpcHandlers(
     text: string;
     sessionId?: string;
   }) => {
-    requireAgentId(input as unknown as Record<string, unknown>);
+    requireAgentId(input);
     const wc = getWebContents();
     if (!wc) throw new Error('No renderer available');
 

@@ -8,6 +8,7 @@ import type { GoogleWindow } from '@nimiplatform/shell-auth';
 import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/shell-auth';
 import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/shell-core/oauth';
 import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
+import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import {
   BIO_MAX,
   ICON_CAMERA,
@@ -66,9 +67,7 @@ export function ProfilePage() {
 
   const refreshCurrentUser = async () => {
     const latest = await dataSync.loadCurrentUser();
-    const updatedUser = latest && typeof latest === 'object'
-      ? (latest as Record<string, unknown>)
-      : null;
+    const updatedUser = parseOptionalJsonObject(latest) ?? null;
     setAuthSession(updatedUser, authToken, authRefreshToken || undefined);
   };
 
@@ -241,15 +240,13 @@ export function ProfilePage() {
     }
     setSaving(true);
     try {
-      const payload: Record<string, unknown> = {
+      const payload = {
         displayName: profileDraft.displayName,
         avatarUrl: profileDraft.avatarUrl,
         bio: profileDraft.bio,
       };
       const updated = await dataSync.updateUserProfile(payload);
-      const updatedUser = (updated && typeof updated === 'object')
-        ? (updated as Record<string, unknown>)
-        : null;
+      const updatedUser = parseOptionalJsonObject(updated) ?? null;
       if (updatedUser) {
         if (typeof updatedUser.avatarUrl !== 'string') {
           updatedUser.avatarUrl = avatarUrl;

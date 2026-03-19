@@ -1,4 +1,4 @@
-import { getPlatformClient } from '@runtime/platform-client';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { type ModRuntimeResolvedBinding, type ModSdkHost, type RuntimeCanonicalCapability, type RuntimeRouteBinding } from '@nimiplatform/sdk/mod';
 import {
   getJobState,

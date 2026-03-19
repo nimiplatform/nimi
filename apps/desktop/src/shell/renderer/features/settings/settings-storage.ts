@@ -1,3 +1,5 @@
+import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
+
 export const SETTINGS_SELECTED_STORAGE_KEY = 'nimi.settings.selected';
 export const SETTINGS_SELECTED_MOD_ID_STORAGE_KEY = 'nimi.settings.modId';
 export const SETTINGS_PERFORMANCE_PREFERENCES_STORAGE_KEY = 'nimi.settings.performance.preferences.v1';
@@ -59,10 +61,10 @@ export function loadStoredPerformancePreferences(): PerformancePreferences {
       return { ...DEFAULT_PERFORMANCE_PREFERENCES };
     }
     const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') {
+    const payload = parseOptionalJsonObject(parsed);
+    if (!payload) {
       return { ...DEFAULT_PERFORMANCE_PREFERENCES };
     }
-    const payload = parsed as Record<string, unknown>;
     return {
       hardwareAcceleration: payload.hardwareAcceleration !== false,
       reduceAnimations: payload.reduceAnimations === true,

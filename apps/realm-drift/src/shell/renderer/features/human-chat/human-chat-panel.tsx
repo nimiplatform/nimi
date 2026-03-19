@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import type { FriendInfo, ChatMessage } from '@renderer/app-shell/app-store.js';
 import { FriendList } from './friend-list.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { generateId } from '@renderer/infra/ulid.js';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
@@ -51,7 +51,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
           targetAccountId: friend.userId,
         });
 
-        const chatId = String(data.chatId || data.id || '');
+        const chatId = String(data.chatId || '');
         if (!chatId) {
           setError(t('humanChat.openFailed'));
           setActiveHumanChat(null);
@@ -70,7 +70,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         // Load existing messages
         const messagesData: ListMessagesResult = await realm.services.HumanChatService.listMessages(chatId, 50);
 
-        const items = ((messagesData.messages ?? messagesData.items ?? []) as Record<string, unknown>[]);
+        const items = (messagesData.items ?? []) as Record<string, unknown>[];
         const messages: ChatMessage[] = items.map((m) => ({
           id: String(m.id || m.eventId || `m-${Date.now()}-${Math.random()}`),
           role: String(m.senderId || '') === useAppStore.getState().auth.user?.id ? 'user' as const : 'assistant' as const,

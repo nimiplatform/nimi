@@ -52,7 +52,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   load: async () => {
     try {
-      const result = await getBridge().chat.settings.get() as { product?: ProductSettings } | null;
+      const result = await getBridge().chat.settings.get();
       if (result?.product) {
         set({ product: result.product, loaded: true });
       } else {

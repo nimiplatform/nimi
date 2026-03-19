@@ -19,14 +19,7 @@ import type {
   VoiceConversationMode,
 } from './types.js';
 import { deriveInteractionProfile } from './interaction-profile.js';
-
-// ── Helpers ─────────────────────────────────────────────────────────
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
+import { asRecord } from '../../shared/json.js';
 
 function asString(value: unknown): string {
   return String(value || '').trim();

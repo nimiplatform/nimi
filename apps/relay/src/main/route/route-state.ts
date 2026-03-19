@@ -4,7 +4,7 @@
 import { app } from 'electron';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { PlatformClient } from '@nimiplatform/sdk';
 import type {
   RelayRouteBinding,
   RelayRouteOptions,
@@ -47,8 +47,8 @@ export type RouteState = {
   getOptions(): RelayRouteOptions;
   getResolved(): ResolvedRelayRoute | null;
   setBinding(binding: RelayRouteBinding): Promise<ResolvedRelayRoute | null>;
-  refresh(runtime: Runtime): Promise<RelayRouteOptions>;
-  initialize(runtime: Runtime): Promise<void>;
+  refresh(runtime: PlatformClient['runtime']): Promise<RelayRouteOptions>;
+  initialize(runtime: PlatformClient['runtime']): Promise<void>;
 };
 
 export function createRouteState(): RouteState {
@@ -76,13 +76,13 @@ export function createRouteState(): RouteState {
       return resolved;
     },
 
-    async refresh(runtime: Runtime) {
+    async refresh(runtime: PlatformClient['runtime']) {
       options = await loadRouteOptions(runtime, binding);
       resolved = resolveRelayRoute(binding, options);
       return { ...options, selected: binding };
     },
 
-    async initialize(runtime: Runtime) {
+    async initialize(runtime: PlatformClient['runtime']) {
       binding = await loadPersistedBinding();
       options = await loadRouteOptions(runtime, binding);
       resolved = resolveRelayRoute(binding, options);

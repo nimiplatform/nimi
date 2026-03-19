@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore, type SongBrief } from '@renderer/app-shell/providers/app-store.js';
-import { getRuntimeInstance } from '@renderer/bridge/runtime-sdk.js';
 import { collectTextStream } from './runtime-workflow.js';
 import { ErrorDisplay } from './error-display.js';
 
@@ -39,7 +39,7 @@ export function BriefPanel() {
     if (!selectedTextModelId || !selectedTextConnectorId) {
       throw new Error('No ready text connector/model pair is available.');
     }
-    const runtime = getRuntimeInstance();
+    const runtime = getPlatformClient().runtime;
     const output = await runtime.ai.text.stream({
       model: selectedTextModelId,
       connectorId: selectedTextConnectorId,

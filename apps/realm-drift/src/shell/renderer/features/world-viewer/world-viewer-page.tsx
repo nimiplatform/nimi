@@ -13,7 +13,7 @@ import { MarbleViewer } from './marble-viewer.js';
 import { AgentChatPanel } from '../agent-chat/agent-chat-panel.js';
 import { HumanChatPanel } from '../human-chat/human-chat-panel.js';
 import { realtimeConnection } from '../human-chat/realtime-connection.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
 type ListMyFriendsWithDetailsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
@@ -104,7 +104,7 @@ export function WorldViewerPage() {
       const { realm } = getPlatformClient();
       const data: ListMyFriendsWithDetailsResult =
         await realm.services.MeService.listMyFriendsWithDetails(undefined, 100);
-      const items = ((data.friends ?? data.items ?? data) as Record<string, unknown>[]);
+      const items = (data.items ?? []) as Record<string, unknown>[];
       if (!Array.isArray(items)) return;
 
       setFriendList(

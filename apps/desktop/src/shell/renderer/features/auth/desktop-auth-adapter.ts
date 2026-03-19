@@ -1,6 +1,7 @@
 import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
 import type { TauriOAuthBridge } from '@nimiplatform/shell-core/oauth';
 import { OAuthProvider } from '@nimiplatform/sdk/realm';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
@@ -13,19 +14,23 @@ export const desktopOAuthBridge: TauriOAuthBridge = {
   focusMainWindow: () => desktopBridge.focusMainWindow(),
 };
 
+type AuthTokensDto = RealmModel<'AuthTokensDto'>;
+type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
+type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
+
 export function createDesktopAuthAdapter(): AuthPlatformAdapter {
   return {
     checkEmail: (email) =>
       dataSync.callApi(
         (realm) => realm.services.AuthService.checkEmail({ email }),
         '',
-      ),
+      ) as Promise<CheckEmailResponseDto>,
 
     passwordLogin: (identifier, password) =>
       dataSync.callApi(
         (realm) => realm.services.AuthService.passwordLogin({ identifier, password }),
         '邮箱登录失败',
-      ),
+      ) as Promise<OAuthLoginResultDto>,
 
     requestEmailOtp: (email) =>
       dataSync.callApi(
@@ -37,13 +42,13 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
       dataSync.callApi(
         (realm) => realm.services.AuthService.verifyEmailOtp({ email, code }),
         '验证码登录失败',
-      ),
+      ) as Promise<OAuthLoginResultDto>,
 
     verifyTwoFactor: (tempToken, code) =>
       dataSync.callApi(
         (realm) => realm.services.AuthService.verifyTwoFactor({ tempToken, code }),
         '2FA 验证失败',
-      ),
+      ) as Promise<AuthTokensDto>,
 
     walletChallenge: (input) =>
       dataSync.callApi(
@@ -66,7 +71,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
           walletType: input.walletType,
         }),
         '钱包登录失败',
-      ),
+      ) as Promise<OAuthLoginResultDto>,
 
     oauthLogin: (provider, accessToken) =>
       dataSync.callApi(
@@ -75,7 +80,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
           accessToken,
         }),
         'OAuth 登录失败',
-      ),
+      ) as Promise<OAuthLoginResultDto>,
 
     updatePassword: async (newPassword) => {
       await dataSync.updatePassword({ newPassword });

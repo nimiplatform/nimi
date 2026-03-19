@@ -4,7 +4,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
-import { toProfileData, type ProfileData } from '@renderer/features/profile/profile-model';
+import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ContactDetailView } from './contact-detail-view.js';
 
@@ -50,7 +50,7 @@ function toSeedProfileData(seed: ContactDetailProfileSeed | null): ProfileData |
   if (!seed?.id) {
     return null;
   }
-  return toProfileData({
+  const profileSource: ProfileSource = {
     id: seed.id,
     displayName: seed.displayName,
     handle: seed.handle,
@@ -81,7 +81,8 @@ function toSeedProfileData(seed: ContactDetailProfileSeed | null): ProfileData |
       worldId: seed.agentWorldId,
       ownerWorldId: seed.agentOwnerWorldId,
     } : undefined,
-  } as Record<string, unknown>);
+  };
+  return toProfileData(profileSource);
 }
 
 export function ContactDetailProfileModal(props: ContactDetailProfileModalProps) {
@@ -129,7 +130,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         const result = props.profileSeed?.isAgent
           ? await dataSync.loadAgentDetails(props.profileId)
           : await dataSync.loadUserProfile(props.profileId);
-        return toProfileData(result as Record<string, unknown>);
+        return toProfileData(result as ProfileSource);
       } catch {
         return fallbackProfile;
       }

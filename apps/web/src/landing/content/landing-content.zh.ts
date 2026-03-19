@@ -1,8 +1,10 @@
 import type { LandingContent } from './landing-content.js';
 
-const ZH_TAB_MODS = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const ZH_TAB_MODS = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.mods',
+});
 
 await runtime.registerMod({
   name: 'story-lab',
@@ -15,9 +17,11 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const ZH_TAB_LOCAL = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const ZH_TAB_LOCAL = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.local',
+});
 
 const result = await runtime.generate({
   prompt: '用简单的话解释量子计算。',
@@ -25,9 +29,11 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const ZH_TAB_CLOUD = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const ZH_TAB_CLOUD = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.cloud',
+});
 
 const result = await runtime.generate({
   provider: 'gemini',
@@ -36,9 +42,11 @@ const result = await runtime.generate({
 
 console.log(result.text);`;
 
-const ZH_TAB_STREAMING = `import { Runtime } from '@nimiplatform/sdk/runtime';
+const ZH_TAB_STREAMING = `import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'landing.streaming',
+});
 
 const stream = await runtime.stream({
   prompt: '给我讲一个关于机器人的故事。',

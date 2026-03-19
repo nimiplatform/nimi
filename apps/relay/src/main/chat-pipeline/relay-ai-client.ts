@@ -2,7 +2,7 @@
 // No mod SDK imports. Calls runtime.ai.text.generate/stream and runtime.media.* directly.
 // Accepts optional resolved route to direct AI calls to the user-selected model.
 
-import type { Runtime } from '@nimiplatform/sdk/runtime';
+import type { PlatformClient } from '@nimiplatform/sdk';
 import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
 import { parseJsonObject } from './json-repair.js';
 import { resolveModelAndRoute } from '../input-transform.js';
@@ -41,7 +41,7 @@ function resolveTextTarget(
 }
 
 export function createRelayAiClient(
-  runtime: Runtime,
+  runtime: PlatformClient['runtime'],
   resolvedRoute?: ResolvedRelayRoute | null,
 ): LocalChatTurnAiClient {
   const route = resolvedRoute ?? null;

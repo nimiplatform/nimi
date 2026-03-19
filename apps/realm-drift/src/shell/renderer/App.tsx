@@ -4,7 +4,7 @@ import { useAppStore } from '@renderer/app-shell/app-store.js';
 import { AppProviders } from '@renderer/app-shell/app-providers.js';
 import { AppRoutes } from '@renderer/app-shell/app-routes.js';
 import { runDriftBootstrap } from '@renderer/infra/bootstrap/drift-bootstrap.js';
-import { getPlatformClient } from '@runtime/platform-client.js';
+import { getPlatformClient } from '@nimiplatform/sdk';
 import { useCallback, useState } from 'react';
 
 function LoginForm() {

@@ -18,6 +18,25 @@ export interface ModelStatus {
   error: string | null;
 }
 
+function toModelStatusEntry(
+  model: object,
+  source: ModelStatusEntry['source'],
+): ModelStatusEntry {
+  const value = model as {
+    id?: string;
+    modelId?: string;
+    name?: string;
+    status?: string;
+  };
+  return {
+    id: String(value.id ?? value.modelId ?? ''),
+    name: String(value.name ?? value.id ?? value.modelId ?? ''),
+    source,
+    status: value.status,
+    ...value,
+  };
+}
+
 export function useModelStatus(): ModelStatus {
   const [models, setModels] = useState<ModelStatusEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,32 +58,21 @@ export function useModelStatus(): ModelStatus {
         const entries: ModelStatusEntry[] = [];
 
         if (modelResult.status === 'fulfilled') {
-          const data = modelResult.value as { models?: Array<Record<string, unknown>> };
-          for (const m of data.models ?? []) {
-            entries.push({
-              id: String(m.id ?? m.modelId ?? ''),
-              name: String(m.name ?? m.id ?? ''),
-              source: 'unknown',
-              ...m,
-            });
+          for (const model of modelResult.value.models ?? []) {
+            entries.push(toModelStatusEntry(model, 'unknown'));
           }
         }
 
         if (localResult.status === 'fulfilled') {
-          const data = localResult.value as { models?: Array<Record<string, unknown>> };
-          for (const m of data.models ?? []) {
-            const id = String(m.id ?? m.modelId ?? '');
+          for (const model of localResult.value.models ?? []) {
+            const next = toModelStatusEntry(model, 'local');
+            const id = next.id;
             const existing = entries.find((e) => e.id === id);
             if (existing) {
               existing.source = 'local';
-              Object.assign(existing, m);
+              Object.assign(existing, next);
             } else {
-              entries.push({
-                id,
-                name: String(m.name ?? m.id ?? ''),
-                source: 'local',
-                ...m,
-              });
+              entries.push(next);
             }
           }
         }

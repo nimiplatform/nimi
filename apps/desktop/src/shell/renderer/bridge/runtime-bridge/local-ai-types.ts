@@ -1,3 +1,5 @@
+import type { JsonObject } from './shared.js';
+
 export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalRuntimeArtifactKind = 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
 export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
@@ -22,7 +24,7 @@ export type LocalRuntimeModelRecord = {
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
-  engineConfig?: Record<string, unknown>;
+  engineConfig?: JsonObject;
 };
 
 export type LocalRuntimeArtifactRecord = {
@@ -42,7 +44,7 @@ export type LocalRuntimeArtifactRecord = {
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 };
 
 export type LocalRuntimeInstallAcceptedResponse = {
@@ -89,8 +91,8 @@ export type LocalRuntimeInferenceAuditPayload = {
   endpoint?: string;
   reasonCode?: string;
   detail?: string;
-  policyGate?: string | Record<string, unknown>;
-  extra?: Record<string, unknown>;
+  policyGate?: string | JsonObject;
+  extra?: JsonObject;
 };
 
 export type LocalRuntimeAuditEvent = {
@@ -103,7 +105,7 @@ export type LocalRuntimeAuditEvent = {
   detail?: string;
   modelId?: string;
   localModelId?: string;
-  payload?: Record<string, unknown>;
+  payload?: JsonObject;
 };
 
 export type LocalRuntimeAuditTimeRange = {
@@ -168,7 +170,7 @@ export type LocalRuntimeInstallPayload = {
   license?: string;
   hashes?: Record<string, string>;
   endpoint?: string;
-  engineConfig?: Record<string, unknown>;
+  engineConfig?: JsonObject;
 };
 
 export type LocalRuntimeVerifiedModelDescriptor = {
@@ -189,7 +191,7 @@ export type LocalRuntimeVerifiedModelDescriptor = {
   fileCount: number;
   totalSizeBytes?: number;
   tags: string[];
-  engineConfig?: Record<string, unknown>;
+  engineConfig?: JsonObject;
 };
 
 export type LocalRuntimeVerifiedArtifactDescriptor = {
@@ -208,7 +210,7 @@ export type LocalRuntimeVerifiedArtifactDescriptor = {
   fileCount: number;
   totalSizeBytes?: number;
   tags: string[];
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 };
 
 export type LocalRuntimeInstallVerifiedPayload = {
