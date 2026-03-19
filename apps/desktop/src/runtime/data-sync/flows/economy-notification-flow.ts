@@ -274,10 +274,38 @@ export async function loadGiftTransaction(
     throw new Error('礼物交易 ID 不能为空');
   }
   try {
-    return await callApi(
-      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetGiftTransaction(normalizedId),
-      '加载礼物详情失败',
-    );
+    const [received, sent] = await Promise.all([
+      callApi(
+        (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetReceivedGifts(100),
+        '加载礼物详情失败',
+      ),
+      callApi(
+        (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetSentGifts(100),
+        '加载礼物详情失败',
+      ),
+    ]);
+
+    const candidates = [
+      ...((received && typeof received === 'object' && Array.isArray((received as { items?: unknown[] }).items))
+        ? (received as { items: unknown[] }).items
+        : []),
+      ...((sent && typeof sent === 'object' && Array.isArray((sent as { items?: unknown[] }).items))
+        ? (sent as { items: unknown[] }).items
+        : []),
+    ];
+
+    const matched = candidates.find((item) => {
+      if (!item || typeof item !== 'object') {
+        return false;
+      }
+      return String((item as { id?: unknown }).id || '').trim() === normalizedId;
+    });
+
+    if (!matched) {
+      throw new Error('GIFT_TRANSACTION_NOT_FOUND');
+    }
+
+    return matched;
   } catch (error) {
     emitDataSyncError('load-gift-transaction', error, { id: normalizedId });
     throw error;
