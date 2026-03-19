@@ -12,8 +12,10 @@ export const CLEAN_TARGETS = [
   'schemas',
   'index.ts',
   'schema.ts',
+  'model-map.ts',
   'operation-map.ts',
   'service-registry.ts',
+  'type-helpers.ts',
   'property-enums.ts',
 ];
 

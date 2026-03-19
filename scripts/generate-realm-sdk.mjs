@@ -1,18 +1,19 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { load as parseYaml } from 'js-yaml';
 import { parseArgs, resolveInputPath } from './realm-sdk/cli.mjs';
 import { REALM_GENERATED_RELATIVE_PATH } from './realm-sdk/constants.mjs';
 import { cleanRealmSources, computeDirectoryHash } from './realm-sdk/fs-state.mjs';
-import { runOpenApiTypescript, normalizeOperationsInterfaceInSchema } from './realm-sdk/openapi-pipeline.mjs';
+import { runOpenApiTypescript } from './realm-sdk/openapi-pipeline.mjs';
 import { writeOperationArtifacts } from './realm-sdk/emit-operation-artifacts.mjs';
 import { writeGeneratedModels } from './realm-sdk/generate-models.mjs';
 import { writePropertyEnums } from './realm-sdk/generate-property-enums.mjs';
 import { writeRealmFacade } from './realm-sdk/generate-realm-facade.mjs';
 import { parseRealmOperations } from './realm-sdk/parse-operations.mjs';
+import { normalizeRealmOpenApiSpec } from './realm-sdk/spec-normalization.mjs';
 import { maybeUpdateRealmVersion } from './realm-sdk/versioning.mjs';
 
 function main() {
@@ -33,10 +34,13 @@ function main() {
     cleanRealmSources(repoRoot);
   }
 
-  runOpenApiTypescript(repoRoot, inputPath);
-  normalizeOperationsInterfaceInSchema(repoRoot);
-
   const spec = parseYaml(readFileSync(inputPath, 'utf8'));
+  normalizeRealmOpenApiSpec(spec);
+  const normalizedSpecPath = path.join(path.dirname(inputPath), 'api-nimi.codegen.json');
+  writeFileSync(normalizedSpecPath, JSON.stringify(spec, null, 2), 'utf8');
+
+  runOpenApiTypescript(repoRoot, normalizedSpecPath);
+
   const operations = parseRealmOperations(spec);
   process.stdout.write(`[generate:realm-sdk] parsed operations: ${operations.length}\n`);
 

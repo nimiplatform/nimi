@@ -3,6 +3,7 @@ import type {
   RealmGeneratedServiceRegistry,
   RealmRawRequestInput,
 } from './generated/service-registry.js';
+import type { components } from './generated/schema.js';
 
 export type RealmConnectionState = {
   status: 'idle' | 'connecting' | 'ready' | 'closing' | 'closed';
@@ -66,10 +67,20 @@ export type RealmEventsModule = {
 };
 
 type Assert<T extends true> = T;
+type IsEqual<A, B> = (
+  (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
+);
 
 type _ListMessagesArgs = Parameters<RealmGeneratedServiceRegistry['HumanChatService']['listMessages']>;
 type _SyncChatEventsArgs = Parameters<RealmGeneratedServiceRegistry['HumanChatService']['syncChatEvents']>;
 type _WorldLevelAuditsArgs = Parameters<RealmGeneratedServiceRegistry['WorldsService']['worldControllerGetWorldLevelAudits']>;
+type _PasswordLoginArgs = Parameters<RealmGeneratedServiceRegistry['AuthService']['passwordLogin']>;
+
+type _GetMeResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['MeService']['getMe']>>;
+type _UpdateMeResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['MeService']['updateMe']>>;
+type _ListMessagesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['HumanChatService']['listMessages']>>;
+type _StartChatResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['HumanChatService']['startChat']>>;
+type _WorldDetailResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['WorldsService']['worldControllerGetWorld']>>;
 
 type _GuardListMessagesFirstArg = Assert<_ListMessagesArgs[0] extends string ? true : false>;
 type _GuardListMessagesSecondArg = Assert<_ListMessagesArgs[1] extends number | undefined ? true : false>;
@@ -80,3 +91,28 @@ type _GuardSyncChatEventsThirdArg = Assert<_SyncChatEventsArgs[2] extends number
 
 type _GuardWorldLevelAuditsFirstArg = Assert<_WorldLevelAuditsArgs[0] extends string ? true : false>;
 type _GuardWorldLevelAuditsSecondArg = Assert<_WorldLevelAuditsArgs[1] extends number | undefined ? true : false>;
+
+type _GuardPasswordLoginBody = Assert<IsEqual<
+  _PasswordLoginArgs[0],
+  components['schemas']['PasswordLoginDto']
+>>;
+type _GuardGetMeResult = Assert<IsEqual<
+  _GetMeResult,
+  components['schemas']['UserPrivateDto']
+>>;
+type _GuardUpdateMeResult = Assert<IsEqual<
+  _UpdateMeResult,
+  components['schemas']['UserPrivateDto']
+>>;
+type _GuardListMessagesResult = Assert<IsEqual<
+  _ListMessagesResult,
+  components['schemas']['ListMessagesResultDto']
+>>;
+type _GuardStartChatResult = Assert<IsEqual<
+  _StartChatResult,
+  components['schemas']['StartChatResultDto']
+>>;
+type _GuardWorldDetailResult = Assert<IsEqual<
+  _WorldDetailResult,
+  components['schemas']['WorldDetailDto']
+>>;

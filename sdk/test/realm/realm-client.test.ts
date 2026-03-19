@@ -828,7 +828,7 @@ test('Realm services support path-first call pattern for mixed path/query method
     await realm.services.HumanChatService.recallMessage('chat-123', 'msg-9');
     await realm.services.WorldsService.worldControllerGetWorldLevelAudits('world-7', 30);
     await realm.services.WorldsService.worldControllerGetWorldDetailWithAgents('world-7', 4);
-    await realm.services.WorldsService.worldControllerGetWorldviewEvents('world-7', 0, 50);
+    await realm.services.WorldsService.worldControllerGetWorldview('world-7');
     await realm.services.WorldsService.worldControllerGetWorldLorebooks('world-7');
     await realm.services.WorldsService.worldControllerGetWorldScenes('world-7');
     await realm.services.WorldsService.worldControllerGetWorldMediaBindings('world-7');
@@ -857,9 +857,7 @@ test('Realm services support path-first call pattern for mixed path/query method
     assert.equal(worldDetailUrl.searchParams.get('recommendedAgentLimit'), '4');
 
     const worldviewEventsUrl = new URL(urls[5] || '');
-    assert.equal(worldviewEventsUrl.pathname, '/api/world/by-id/world-7/worldview/events');
-    assert.equal(worldviewEventsUrl.searchParams.get('offset'), '0');
-    assert.equal(worldviewEventsUrl.searchParams.get('limit'), '50');
+    assert.equal(worldviewEventsUrl.pathname, '/api/world/by-id/world-7/worldview');
 
     const lorebooksUrl = new URL(urls[6] || '');
     assert.equal(lorebooksUrl.pathname, '/api/world/by-id/world-7/lorebooks');

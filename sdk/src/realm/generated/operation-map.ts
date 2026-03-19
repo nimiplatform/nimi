@@ -3572,7 +3572,7 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": false
   },
   "SearchService.searchUsers": {
-    "operationId": "searchUsers",
+    "operationId": "SearchService_searchUsers_2",
     "method": "GET",
     "path": "/api/search/users",
     "service": "SearchService",
@@ -4405,7 +4405,7 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": false
   },
   "UserService.searchUsers": {
-    "operationId": "searchUsers",
+    "operationId": "UserService_searchUsers",
     "method": "GET",
     "path": "/api/human/search",
     "service": "UserService",

@@ -22,11 +22,24 @@ const LEGACY_PUBLIC_SYMBOLS = new Set([
 ]);
 
 const REQUIRED_REALM_FACADE_SYMBOLS = [
+  'Realm',
+  'RealmModel',
+  'RealmOperations',
+  'RealmServiceArgs',
+  'RealmServiceResult',
+  'requestDataExport',
+  'requestAccountDeletion',
+  'listAgentCoreMemories',
+  'recallAgentMemoriesForEntity',
+];
+
+const FORBIDDEN_REALM_FACADE_SYMBOLS = [
   'MeTwoFactorService',
   'AuthTwoFactorVerifyInput',
   'MeTwoFactorVerifyInput',
   'MeTwoFactorPrepareOutput',
   'SocialDefaultVisibilityService',
+  'sendAgentChannelMessage',
 ];
 
 const BANNED_PUBLIC_NAME_PATTERNS = [
@@ -135,6 +148,12 @@ async function main() {
     if (!facadeSymbols.has(symbol)) {
       const relative = path.relative(repoRoot, realmFacadePath).replaceAll(path.sep, '/');
       violations.push(`${relative} missing required normalized facade symbol: ${symbol}`);
+    }
+  }
+  for (const symbol of FORBIDDEN_REALM_FACADE_SYMBOLS) {
+    if (facadeSymbols.has(symbol)) {
+      const relative = path.relative(repoRoot, realmFacadePath).replaceAll(path.sep, '/');
+      violations.push(`${relative} exports removed facade symbol: ${symbol}`);
     }
   }
 

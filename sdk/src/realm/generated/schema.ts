@@ -2467,7 +2467,7 @@ export type paths = {
          * Search users
          * @description Search users by keyword with pagination and filtering options.
          */
-        get: operations["searchUsers"];
+        get: operations["UserService_searchUsers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2660,7 +2660,7 @@ export type paths = {
             cookie?: never;
         };
         /** Search users */
-        get: operations["searchUsers"];
+        get: operations["SearchService_searchUsers_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7352,6 +7352,6745 @@ export type components = {
 };
 export type $defs = Record<string, never>;
 export interface operations {
-    [key: string]: unknown;
+    AgentController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentDto"];
+            };
+        };
+        responses: {
+            /** @description Agent incubation started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateAgentResponseDto"];
+                };
+            };
+        };
+    };
+    getAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileDto"];
+                };
+            };
+        };
+    };
+    AgentController_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateAgentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_getApprovals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Approval ID */
+                approvalId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Approval approved (immediate or scheduled) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Approval ID */
+                approvalId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approval cancelled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Approval ID */
+                approvalId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Approval rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Approval ID */
+                approvalId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approval status reset for retry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_selectAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SelectAvatarDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_updateDna: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAgentDnaDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_forceAction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForceActionDto"];
+            };
+        };
+        responses: {
+            /** @description Force action triggered successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_listCoreMemories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of Core memories */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_listE2EMemories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Entity ID (e.g., User ID) */
+                entityId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of E2E memories for this Entity */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_deleteAllE2EMemories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Entity ID requesting deletion */
+                entityId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All E2E memories for this Entity deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_deleteE2EMemory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Memory ID to delete */
+                memoryId: string;
+                /** @description Entity ID (must match memory's subjectId) */
+                entityId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description E2E memory deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_listKeyEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of key events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_createKeyEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateKeyEventDto"];
+            };
+        };
+        responses: {
+            /** @description Key event created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_deleteKeyEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                eventId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Key event deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_listUserProfiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of user profiles */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_getUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                userId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User profile data */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_updateUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                userId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserProfileDto"];
+            };
+        };
+        responses: {
+            /** @description User profile updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_recallForEntity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Entity ID interacting with Agent */
+                entityId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recalled memories (Core + relevant E2E) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_getMemoryStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Memory statistics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryStatsResponseDto"];
+                };
+            };
+        };
+    };
+    AgentController_makePublic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_getRelationships: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of relationships */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_setRelationship: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetAgentRelationshipDto"];
+            };
+        };
+        responses: {
+            /** @description Relationship created or updated */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_removeRelationship: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RemoveAgentRelationshipDto"];
+            };
+        };
+        responses: {
+            /** @description Relationship removed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_getSoulPrime: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Soul Prime configuration */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SoulPrimeDto"];
+                };
+            };
+        };
+    };
+    AgentController_updateSoulPrime: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSoulPrimeDto"];
+            };
+        };
+        responses: {
+            /** @description Soul Prime updated successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_getTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentController_getVisibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Agent visibility settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentVisibilitySettingsDto"];
+                };
+            };
+        };
+    };
+    AgentController_updateVisibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAgentVisibilityDto"];
+            };
+        };
+        responses: {
+            /** @description Updated agent visibility settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentVisibilitySettingsDto"];
+                };
+            };
+        };
+    };
+    AgentNsfwConsentController_updateAgentConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent account ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Object"];
+            };
+        };
+        responses: {
+            /** @description Updated NSFW consent state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAgentByHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileDto"];
+                };
+            };
+        };
+    };
+    AgentController_checkHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DefaultVisibilityController_applyAgentDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent profile ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Defaults applied successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid agent ID or agent not found */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DefaultVisibilityController_applyUserDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User account ID */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Defaults applied successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid user ID or account not found */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DefaultVisibilityController_getDefaultVisibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Entity type (USER or AGENT) */
+                entityType: "USER" | "AGENT";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default visibility settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DefaultVisibilityController_getDefaultForScope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Visibility scope */
+                scope: "account" | "profile" | "defaultPost" | "wallet" | "social" | "dm" | "friendList" | "friendRequest" | "mention" | "onlineStatus";
+                /** @description Entity type (USER or AGENT) */
+                entityType: "USER" | "AGENT";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Default visibility for scope */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DefaultVisibilityController_validateAgentVisibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent profile ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Validation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    V1DefaultVisibilityController_validateUserVisibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User account ID */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Validation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    verify2Fa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Auth2faVerifyDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensDto"];
+                };
+            };
+        };
+    };
+    checkEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckEmailDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckEmailResponseDto"];
+                };
+            };
+        };
+    };
+    requestEmailOtp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailOtpRequestDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailOtpResponseDto"];
+                };
+            };
+        };
+    };
+    verifyEmailOtp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailOtpVerifyDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResultDto"];
+                };
+            };
+        };
+    };
+    getAuthJwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        keys: {
+                            /** @enum {string} */
+                            alg: "RS256";
+                            e: string;
+                            kid: string;
+                            /** @enum {string} */
+                            kty: "RSA";
+                            n: string;
+                            /** @enum {string} */
+                            use: "sig";
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenDto"];
+            };
+        };
+        responses: {
+            /** @description Logout success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    disable2Fa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Me2faVerifyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    enable2Fa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Me2faVerifyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+        };
+    };
+    prepare2Fa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me2faPrepareResponseDto"];
+                };
+            };
+        };
+    };
+    bindEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BindEmailDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    changeEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeEmailDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updatePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePasswordRequestDto"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    linkOauth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthLoginDto"];
+            };
+        };
+        responses: {
+            /** @description OAuth linked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oauthLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OAuthLoginDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResultDto"];
+                };
+            };
+        };
+    };
+    unlinkOauth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    passwordLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordLoginDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResultDto"];
+                };
+            };
+        };
+    };
+    passwordRegister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordRegisterDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResultDto"];
+                };
+            };
+        };
+    };
+    refreshToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefreshTokenDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthTokensDto"];
+                };
+            };
+        };
+    };
+    walletChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletChallengeDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletChallengeResponseDto"];
+                };
+            };
+        };
+    };
+    walletLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletLoginDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthLoginResultDto"];
+                };
+            };
+        };
+    };
+    CreatorController_listAgents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLiteDto"][];
+                };
+            };
+        };
+    };
+    CreatorController_createAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLiteDto"];
+                };
+            };
+        };
+    };
+    CreatorController_batchCreateAgents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchCreateAgentsRequestDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        created?: Record<string, never>[];
+                        failed?: Record<string, never>[];
+                    };
+                };
+            };
+        };
+    };
+    CreatorController_getAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        capabilities?: Record<string, never>;
+                        id?: string;
+                        user?: components["schemas"]["UserLiteDto"];
+                    };
+                };
+            };
+        };
+    };
+    CreatorController_deleteAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    CreatorController_updateAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCreatorAgentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        capabilities?: Record<string, never>;
+                        id?: string;
+                        user?: components["schemas"]["UserLiteDto"];
+                    };
+                };
+            };
+        };
+    };
+    CreatorController_listKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt?: string;
+                        id?: string;
+                        isActive?: boolean;
+                        label?: string;
+                        /** Format: date-time */
+                        lastUsedAt?: string | null;
+                        scopes?: string[];
+                        type?: string;
+                    }[];
+                };
+            };
+        };
+    };
+    CreatorController_createKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKeyDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        createdAt?: string;
+                        id?: string;
+                        label?: string;
+                        token?: string;
+                    };
+                };
+            };
+        };
+    };
+    CreatorController_revokeKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description API Key ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API Key revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreatorModsController_ingestAudit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorModControlAuditIngestRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Audit ingest accepted count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreatorModsController_queryAudit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Runtime audit records */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreatorModsController_issueGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorModControlGrantIssueRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Grant issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreatorModsController_validateGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorModControlGrantValidateRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Grant validation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreatorModsController_verifyManifest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorModControlManifestVerifyRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Manifest verification result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreatorModsController_revocations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revocation feed items */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreatorModsController_verifySignature: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatorModControlSignatureVerifyRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Signature verification result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DesktopController_resolveChatRoute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DesktopChatRouteRequestDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DesktopChatRouteResultDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getBalances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencyBalancesDto"];
+                };
+            };
+        };
+    };
+    EconomyController_createConnectDashboard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectDashboardLinkDto"];
+                };
+            };
+        };
+    };
+    EconomyController_createConnectOnboarding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateConnectOnboardingDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectOnboardingResponseDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getConnectStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeConnectStatusDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getGemHistory: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencyTransactionHistoryDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getGiftCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftCatalogItemDto"][];
+                };
+            };
+        };
+    };
+    EconomyController_getReceivedGifts: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivedGiftsResponseDto"];
+                };
+            };
+        };
+    };
+    EconomyController_sendGift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendGiftDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftTransactionDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getSentGifts: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivedGiftsResponseDto"];
+                };
+            };
+        };
+    };
+    EconomyController_rejectGift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                giftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectGiftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftTransactionDto"];
+                };
+            };
+        };
+    };
+    EconomyController_acceptGift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Gift Transaction ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftTransactionDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getAgentOrigin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentOriginDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getRevenueShareConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueShareConfigDto"];
+                };
+            };
+        };
+    };
+    EconomyController_previewRevenueDistribution: {
+        parameters: {
+            query: {
+                /** @description Total revenue amount (as string) */
+                amount: string;
+                /** @description Agent ID */
+                agentId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevenueDistributionPreviewDto"];
+                };
+            };
+        };
+    };
+    ReviewController_getReviews: {
+        parameters: {
+            query: {
+                /** @description The ID of the user/agent being reviewed */
+                userId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDto"][];
+                };
+            };
+        };
+    };
+    ReviewController_createReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReviewDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDto"];
+                };
+            };
+        };
+    };
+    EconomyController_createSparkCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSparkCheckoutDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SparkCheckoutSessionDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getSparkHistory: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrencyTransactionHistoryDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getSparkPackages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SparkPackageDto"][];
+                };
+            };
+        };
+    };
+    EconomyController_getSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionDto"];
+                };
+            };
+        };
+    };
+    EconomyController_cancelSubscription: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EconomyController_createSubscriptionCheckout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSubscriptionCheckoutDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionCheckoutSessionDto"];
+                };
+            };
+        };
+    };
+    EconomyController_createPortalSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePortalSessionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalSessionDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getSubscriptionTiers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriptionTierConfigDto"][];
+                };
+            };
+        };
+    };
+    EconomyController_getWithdrawal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalDto"];
+                };
+            };
+        };
+    };
+    EconomyController_calculateWithdrawal: {
+        parameters: {
+            query: {
+                /** @description Gem amount to withdraw */
+                amount: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalSummaryDto"];
+                };
+            };
+        };
+    };
+    EconomyController_canWithdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CanWithdrawDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getWithdrawalConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalConfigDto"];
+                };
+            };
+        };
+    };
+    EconomyController_createWithdrawal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWithdrawalDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalDto"];
+                };
+            };
+        };
+    };
+    EconomyController_getWithdrawalHistory: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WithdrawalHistoryDto"];
+                };
+            };
+        };
+    };
+    getExploreFeed: {
+        parameters: {
+            query?: {
+                seed?: string;
+                tag?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ExploreController_checkStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileDto"];
+                };
+            };
+        };
+    };
+    getUserFriends: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Target user ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Friend IDs list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
+    addFriend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    requestMessage?: string;
+                };
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removeFriend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMutualFriends: {
+        parameters: {
+            query?: {
+                /** @description Pagination cursor (user ID) */
+                cursor?: string;
+                /** @description Max items per page (default 20, max 100) */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Target user ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mutual friends list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: {
+                            /** @description Avatar URL */
+                            avatarUrl?: string | null;
+                            /** @description User bio */
+                            bio?: string | null;
+                            /** @description Display name */
+                            displayName?: string | null;
+                            /** @description User handle */
+                            handle?: string | null;
+                            /** @description User ID */
+                            id?: string;
+                        }[];
+                        /** @description Cursor for next page */
+                        nextCursor?: string | null;
+                        /** @description Total number of mutual friends */
+                        total?: number;
+                    };
+                };
+            };
+        };
+    };
+    getMutualFriendsCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Target user ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mutual friends count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Number of mutual friends */
+                        count?: number;
+                    };
+                };
+            };
+        };
+    };
+    listChats: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListChatsResultDto"];
+                };
+            };
+        };
+    };
+    startChat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartChatInputDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartChatResultDto"];
+                };
+            };
+        };
+    };
+    getChatById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatViewDto"];
+                };
+            };
+        };
+    };
+    listMessages: {
+        parameters: {
+            query?: {
+                limit?: number;
+                around?: string;
+                after?: string;
+                before?: string;
+            };
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListMessagesResultDto"];
+                };
+            };
+        };
+    };
+    sendMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageInputDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageViewDto"];
+                };
+            };
+        };
+    };
+    editMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: string;
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditMessageInputDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageViewDto"];
+                };
+            };
+        };
+    };
+    recallMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: string;
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    markChatRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    syncChatEvents: {
+        parameters: {
+            query?: {
+                limit?: number;
+                afterSeq?: number;
+            };
+            header?: never;
+            path: {
+                chatId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatSyncResultDto"];
+                };
+            };
+        };
+    };
+    checkHandle: {
+        parameters: {
+            query: {
+                handle: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getUserByHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileDto"];
+                };
+            };
+        };
+    };
+    getMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPrivateDto"];
+                };
+            };
+        };
+    };
+    updateMe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserDto"];
+            };
+        };
+        responses: {
+            /** @description The updated user profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPrivateDto"];
+                };
+            };
+        };
+    };
+    getMyBlockedUsers: {
+        parameters: {
+            query?: {
+                /** @description Pagination cursor (ISO date string) */
+                cursor?: string;
+                /** @description Max items per page (default 20, max 100) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Blocked users list with details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: {
+                            /** @description Avatar URL */
+                            avatarUrl?: string | null;
+                            /** @description User bio */
+                            bio?: string | null;
+                            /**
+                             * Format: date-time
+                             * @description When the block was created
+                             */
+                            blockedAt?: string;
+                            /** @description Display name */
+                            displayName?: string | null;
+                            /** @description User handle */
+                            handle?: string | null;
+                            /** @description Blocked user ID */
+                            id?: string;
+                            /** @description Optional reason for blocking */
+                            reason?: string | null;
+                        }[];
+                        /** @description Cursor for next page */
+                        nextCursor?: string | null;
+                        /** @description Total number of blocked users */
+                        total?: number;
+                    };
+                };
+            };
+        };
+    };
+    blockUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID to block */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unblockUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID to unblock */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMyCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User capabilities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCapabilitiesDto"];
+                };
+            };
+        };
+    };
+    getMyCreatorEligibility: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Creator eligibility information */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Can create agents as creator */
+                        canCreateAgent?: boolean;
+                        /** @description Can create worlds */
+                        canCreateWorld?: boolean;
+                        /** @description Whether user can access creator features */
+                        isEligible?: boolean;
+                        /** @description Human-readable eligibility message */
+                        message?: string;
+                        /**
+                         * @description Subscription status
+                         * @enum {string}
+                         */
+                        status?: "ACTIVE" | "CANCELED" | "PAST_DUE" | "PAUSED";
+                        /**
+                         * @description Current subscription tier
+                         * @enum {string}
+                         */
+                        tier?: "FREE" | "PRO" | "MAX";
+                    };
+                };
+            };
+        };
+    };
+    listMyFriendIds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listMyFriendsWithDetails: {
+        parameters: {
+            query?: {
+                /** @description Pagination cursor (ISO date string) */
+                cursor?: string;
+                /** @description Max items per page (default 20, max 100) */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Friends list with details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: {
+                            avatarUrl?: string | null;
+                            bio?: string | null;
+                            displayName?: string | null;
+                            /** Format: date-time */
+                            friendsSince?: string;
+                            handle?: string | null;
+                            id?: string;
+                            isAgent?: boolean;
+                        }[];
+                        nextCursor?: string | null;
+                        total?: number;
+                    };
+                };
+            };
+        };
+    };
+    getMyPendingFriendRequests: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pending friend requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Friend requests received from other users */
+                        received?: {
+                            /** @description Message included with the friend request */
+                            requestMessage?: string | null;
+                            /** Format: date-time */
+                            requestedAt?: string;
+                            /** @description ID of the user who sent the request */
+                            userId?: string;
+                        }[];
+                        /** @description Friend requests sent to other users */
+                        sent?: {
+                            /** @description Message included with the friend request */
+                            requestMessage?: string | null;
+                            /** Format: date-time */
+                            requestedAt?: string;
+                            /** @description ID of the user to whom the request was sent */
+                            userId?: string;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
+    updateMyHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    handle?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMyNotificationSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User notification settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserNotificationSettingsDto"];
+                };
+            };
+        };
+    };
+    updateMyNotificationSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserNotificationSettingsDto"];
+            };
+        };
+        responses: {
+            /** @description Updated notification settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserNotificationSettingsDto"];
+                };
+            };
+        };
+    };
+    getMyPPConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateMyPPConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description PP slot configuration with slot1-slot4 component assignments */
+                    ppSlotConfig?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSettingsDto"];
+                };
+            };
+        };
+    };
+    updateMySettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserSettingsDto"];
+            };
+        };
+        responses: {
+            /** @description Updated user settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSettingsDto"];
+                };
+            };
+        };
+    };
+    HumanNsfwConsentController_updateUserConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Object"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMyTiers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TierDetailDto"];
+                };
+            };
+        };
+    };
+    getMyWallets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserWalletListResponseDto"];
+                };
+            };
+        };
+    };
+    bindWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletBindDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserWalletDto"];
+                };
+            };
+        };
+    };
+    prepareBindWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletPrepareBindDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletPrepareBindResponseDto"];
+                };
+            };
+        };
+    };
+    unbindWallet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                walletId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listNotifications: {
+        parameters: {
+            query?: {
+                type?: "friend_request_received" | "friend_request_accepted" | "friend_request_rejected" | "post_liked" | "gift_received" | "gift_status_updated" | "system_announcement" | "review_received";
+                unreadOnly?: boolean;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationListResultDto"];
+                };
+            };
+        };
+    };
+    markNotificationsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkNotificationsReadInputDto"];
+            };
+        };
+        responses: {
+            /** @description Marked read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getUnreadCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unread count */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadNotificationCountDto"];
+                };
+            };
+        };
+    };
+    markNotificationRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marked read */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HumanNsfwConsentController_canManageAgentNsfw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HumanNsfwConsentController_checkConsent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HumanNsfwConsentController_getConsentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listOnlineUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RelationshipController_createRelationship: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRelationshipDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipResponseDto"];
+                };
+            };
+        };
+    };
+    RelationshipController_getMyRelationships: {
+        parameters: {
+            query?: {
+                direction?: "outgoing" | "incoming";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipResponseDto"][];
+                };
+            };
+        };
+    };
+    RelationshipController_deleteRelationship: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Relationship ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RelationshipController_updateRelationship: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Relationship ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRelationshipDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RelationshipResponseDto"];
+                };
+            };
+        };
+    };
+    UserService_searchUsers: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                ageMax?: number;
+                ageMin?: number;
+                isAgent?: boolean;
+                city?: string;
+                countryCode?: string;
+                gender?: string;
+                tag?: string;
+                minVitalityScore?: number;
+                minInteractionTier?: number;
+                minInfluenceTier?: number;
+                minAssetTier?: number;
+                /** @description Search keyword */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSearchResponseDto"];
+                };
+            };
+        };
+    };
+    InvitationController_listMyCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of codes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InvitationController_generateCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created code */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InvitationController_verifyCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    invitationCode: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Verification success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": boolean;
+                };
+            };
+        };
+    };
+    listMediaAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAssetListDto"];
+                };
+            };
+        };
+    };
+    getMediaAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAssetDetailDto"];
+                };
+            };
+        };
+    };
+    deleteMediaAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateMediaAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMediaAssetDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAssetDetailDto"];
+                };
+            };
+        };
+    };
+    finalizeMediaAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeMediaAssetDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaAssetDetailDto"];
+                };
+            };
+        };
+    };
+    createAudioDirectUpload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAudioDirectUploadDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaDirectUploadSessionDto"];
+                };
+            };
+        };
+    };
+    createImageDirectUpload: {
+        parameters: {
+            query?: {
+                /** @description Whether to require signed image delivery URLs */
+                requireSignedUrls?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaDirectUploadSessionDto"];
+                };
+            };
+        };
+    };
+    createVideoDirectUpload: {
+        parameters: {
+            query?: {
+                /** @description Whether to require signed playback URLs */
+                requireSignedUrls?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaDirectUploadSessionDto"];
+                };
+            };
+        };
+    };
+    ReportController_createReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReportDto"];
+            };
+        };
+        responses: {
+            /** @description Report submitted successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponseDto"];
+                };
+            };
+        };
+    };
+    searchPosts: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                authorAgeMax?: number;
+                authorAgeMin?: number;
+                authorIsAi?: boolean;
+                authorCity?: string;
+                authorCountryCode?: string;
+                authorGender?: string;
+                tag?: string;
+                minLikeCount?: number;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostSearchResponseDto"];
+                };
+            };
+        };
+    };
+    SearchService_searchUsers_2: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                ageMax?: number;
+                ageMin?: number;
+                isAgent?: boolean;
+                city?: string;
+                countryCode?: string;
+                gender?: string;
+                tag?: string;
+                minVitalityScore?: number;
+                minInteractionTier?: number;
+                minInfluenceTier?: number;
+                minAssetTier?: number;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSearchResponseDto"];
+                };
+            };
+        };
+    };
+    translateText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TranslateRequestDto"];
+            };
+        };
+        responses: {
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranslateResponseDto"];
+                };
+            };
+        };
+    };
+    WorldController_listWorlds: {
+        parameters: {
+            query?: {
+                status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDetailDto"][];
+                };
+            };
+        };
+    };
+    WorldController_createWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorldDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDetailDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_getMyAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldAccessSummaryDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_resolveLanding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldLandingDecisionDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listDrafts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDraftSummaryListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_createDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorldDraftDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDraftDetailDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_getDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World draft ID */
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDraftDetailDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_updateDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World draft ID */
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorldDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDraftDetailDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_publishDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World draft ID */
+                draftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishWorldDraftDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishWorldDraftResultDto"];
+                };
+            };
+        };
+    };
+    WorldController_getWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDetailDto"];
+                };
+            };
+        };
+    };
+    WorldController_getWorldAgents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldAgentSummaryDto"][];
+                };
+            };
+        };
+    };
+    WorldController_getWorldDetailWithAgents: {
+        parameters: {
+            query?: {
+                recommendedAgentLimit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDetailWithAgentsDto"];
+                };
+            };
+        };
+    };
+    WorldController_getWorldEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldEventListDto"];
+                };
+            };
+        };
+    };
+    WorldController_getWorldLevelAudits: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldLevelAuditEventDto"][];
+                };
+            };
+        };
+    };
+    WorldController_getWorldLorebooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWorldLorebookListDto"];
+                };
+            };
+        };
+    };
+    WorldController_getWorldMediaBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWorldMediaBindingListDto"];
+                };
+            };
+        };
+    };
+    WorldController_getWorldMutations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWorldMutationListDto"];
+                };
+            };
+        };
+    };
+    WorldController_returnToMainWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WorldController_getWorldScenes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWorldSceneListDto"];
+                };
+            };
+        };
+    };
+    WorldController_transitToWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WorldController_getWorldview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldviewDetailDto"];
+                };
+            };
+            /** @description Worldview not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AgentRulesController_listRules: {
+        parameters: {
+            query?: {
+                layer?: "DNA" | "BEHAVIORAL" | "RELATIONAL" | "CONTEXTUAL";
+                status?: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
+            };
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRuleDto"][];
+                };
+            };
+        };
+    };
+    AgentRulesController_createRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentRuleDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRuleDto"];
+                };
+            };
+        };
+    };
+    AgentRulesController_updateRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                ruleId: string;
+                /** @description Agent ID */
+                agentId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAgentRuleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRuleDto"];
+                };
+            };
+        };
+    };
+    AgentRulesController_archiveRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                ruleId: string;
+                /** @description Agent ID */
+                agentId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRuleDto"];
+                };
+            };
+        };
+    };
+    AgentRulesController_deprecateRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                ruleId: string;
+                /** @description Agent ID */
+                agentId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRuleDto"];
+                };
+            };
+        };
+    };
+    getWorldPosts: {
+        parameters: {
+            query?: {
+                visibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+                authorId?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedResponseDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_getRules: {
+        parameters: {
+            query?: {
+                status?: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
+            };
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldRuleDto"][];
+                };
+            };
+        };
+    };
+    WorldRulesController_createRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorldRuleDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldRuleDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_getCreatorCapabilities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatorCapabilitiesResponseDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_checkPermission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Action to check */
+                action: "INJECT_EVENT" | "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY";
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionCheckResponseDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_listEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of creator world events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WorldRulesController_injectEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InjectWorldEventDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InjectEventResponseDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_validateRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateRulesDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleValidationResponseDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_validateContext: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ValidateContextDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleValidationResponseDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_updateRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                ruleId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorldRuleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldRuleDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_archiveRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                ruleId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldRuleDto"];
+                };
+            };
+        };
+    };
+    WorldRulesController_deprecateRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Rule ID */
+                ruleId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldRuleDto"];
+                };
+            };
+        };
+    };
+    WorldController_getSceneQuota: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WorldController_getMainWorld: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldDetailDto"];
+                };
+            };
+        };
+    };
+    getHomeFeed: {
+        parameters: {
+            query?: {
+                visibility?: "PUBLIC" | "FRIENDS" | "PRIVATE";
+                worldId?: string;
+                authorId?: string;
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedResponseDto"];
+                };
+            };
+        };
+    };
+    createPost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePostDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDto"];
+                };
+            };
+        };
+    };
+    getPost: {
+        parameters: {
+            query?: {
+                worldId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDto"];
+                };
+            };
+        };
+    };
+    deletePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updatePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePostDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDto"];
+                };
+            };
+        };
+    };
+    likePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    unlikePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listLikedPosts: {
+        parameters: {
+            query?: {
+                worldId?: string;
+                limit?: number;
+                cursor?: string;
+                userId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedResponseDto"];
+                };
+            };
+        };
+    };
+    getPublicPost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PostDto"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SatelliteController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSatelliteDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"];
+                };
+            };
+        };
+    };
+    SatelliteController_findBySpineEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine Event ID */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"][];
+                };
+            };
+        };
+    };
+    SatelliteController_findByScene: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Scene ID */
+                sceneId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"][];
+                };
+            };
+        };
+    };
+    SatelliteController_findBySpine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"][];
+                };
+            };
+        };
+    };
+    SatelliteController_searchSimilar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"][];
+                };
+            };
+        };
+    };
+    SatelliteController_createSyntheticMemory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSyntheticMemoryDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"];
+                };
+            };
+        };
+    };
+    SatelliteController_getPendingSyntheticMemories: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"][];
+                };
+            };
+        };
+    };
+    SatelliteController_verifySyntheticMemory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Satellite ID */
+                satelliteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifySyntheticMemoryDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"];
+                };
+            };
+        };
+    };
+    SatelliteController_findById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Satellite ID */
+                satelliteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"];
+                };
+            };
+        };
+    };
+    SatelliteController_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Satellite ID */
+                satelliteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SatelliteController_touchReference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Satellite ID */
+                satelliteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SatelliteDetailDto"];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_getGrowthProjection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GrowthProjectionDto"];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_getMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsensusMetricDetailDto"][];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_aggregateMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AggregateMetricsDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsensusMetricDetailDto"][];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_getLatestMetrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsensusMetricDetailDto"][];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_getProposals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationProposalDetailDto"][];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_createProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMutationProposalDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationProposalDetailDto"];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_getPendingProposals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationProposalDetailDto"][];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_getProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Proposal ID */
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationProposalDetailDto"];
+                };
+            };
+        };
+    };
+    SoulEvolutionController_reviewProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Proposal ID */
+                proposalId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewProposalDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MutationProposalDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_archiveBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Branch ID */
+                branchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_mergeBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Target branch ID */
+                targetBranchId: string;
+                /** @description Source branch ID */
+                branchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getSpine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getBranches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"][];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_createBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBranchDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getDefaultBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_appendEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Branch ID */
+                branchId: string;
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateNarrativeSpineEventDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"][];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_findSpine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+                /** @description Runtime story instance ID */
+                storyId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getOrCreateSpine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+                /** @description Runtime story instance ID */
+                storyId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_publishStorySpine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+                /** @description Runtime story instance ID */
+                storyId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishNarrativeSpineDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_updateEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateNarrativeSpineEventDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getCausalChain: {
+        parameters: {
+            query?: {
+                depth?: number;
+            };
+            header?: never;
+            path: {
+                /** @description Event ID */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CausalChainDto"];
+                };
+            };
+        };
+    };
+    NarrativeSpineController_getEventChildren: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Event ID */
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"][];
+                };
+            };
+        };
+    };
+    TimeGapController_findBySpine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGapDetailDto"][];
+                };
+            };
+        };
+    };
+    TimeGapController_detectGap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+                /** @description Spine ID */
+                spineId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetectedGapDto"];
+                };
+            };
+        };
+    };
+    TimeGapController_findPendingGaps: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGapDetailDto"][];
+                };
+            };
+        };
+    };
+    TimeGapController_getGap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Time Gap ID */
+                gapId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGapDetailDto"];
+                };
+            };
+        };
+    };
+    TimeGapController_collapseGap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Time Gap ID */
+                gapId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollapseGapDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGapDetailDto"];
+                };
+            };
+        };
+    };
+    TimeGapController_skipGap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Time Gap ID */
+                gapId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeGapDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_listTransits: {
+        parameters: {
+            query?: {
+                transitType?: unknown;
+                status?: unknown;
+                agentId?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"][];
+                };
+            };
+        };
+    };
+    TransitController_createTransit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTransitDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_getActiveTransit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Agent ID */
+                agentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_getTransit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transit ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_abandon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transit ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_addCheckpoint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transit ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddCheckpointDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_complete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transit ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_updateSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transit ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSessionDataDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_startSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Transit ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransitSessionDataDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listMyWorlds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldSummaryListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listWorldEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldEventListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_batchUpsertWorldEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchUpsertWorldEventsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldEventListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_deleteWorldEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World event ID */
+                eventId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldEventListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listWorldLorebooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldLorebookListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_getMaintenance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldMaintenanceDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_updateMaintenance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateWorldMaintenanceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldMaintenanceDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listWorldMediaBindings: {
+        parameters: {
+            query?: {
+                take?: number;
+                slot?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "SCENE_BACKGROUND" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE";
+                targetId?: string;
+                targetType?: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
+            };
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldMediaBindingListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_batchUpsertWorldMediaBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchUpsertWorldMediaBindingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldMediaBindingListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_deleteWorldMediaBinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Media binding ID */
+                bindingId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldMediaBindingListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listWorldMutations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldMutationListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listWorldNarrativeContexts: {
+        parameters: {
+            query?: {
+                take?: number;
+                targetSubjectId?: string;
+                targetSubjectType?: "AGENT" | "PLAYER" | "FACTION";
+                subjectId?: string;
+                subjectType?: "AGENT" | "PLAYER" | "FACTION";
+                storyId?: string;
+                scope?: "CANON" | "STORY" | "SUBJECT" | "RELATION";
+            };
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldNarrativeContextListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_listWorldScenes: {
+        parameters: {
+            query?: {
+                take?: number;
+                sceneIds?: string[];
+            };
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldSceneListDto"];
+                };
+            };
+        };
+    };
 }
-

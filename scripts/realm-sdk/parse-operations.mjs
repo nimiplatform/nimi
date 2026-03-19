@@ -40,12 +40,19 @@ export function parseRealmOperations(spec) {
       }
 
       operationCounter += 1;
-      const operationIdRaw = String(operation.operationId || '').trim() || `operation_${operationCounter}`;
+      const originalOperationIdRaw = String(
+        operation['x-nimi-sdk-original-operation-id'] || operation.operationId || '',
+      ).trim() || `operation_${operationCounter}`;
+      const operationIdRaw = String(operation.operationId || '').trim() || originalOperationIdRaw;
       const tags = Array.isArray(operation.tags) ? operation.tags.filter(Boolean) : [];
       const primaryTag = String(tags[0] || 'Misc').trim() || 'Misc';
       const service = normalizeTagToService(primaryTag);
       const operationId = normalizeOperationId(operationIdRaw);
-      const methodName = resolveMethodName(serviceMethodCounts, service, operationId);
+      const methodName = resolveMethodName(
+        serviceMethodCounts,
+        service,
+        normalizeOperationId(originalOperationIdRaw),
+      );
       const parameters = mergeOperationParameters(spec, pathName, pathItem, operation);
       const bodyDescriptor = resolveOperationRequestBody(spec, operation);
       const operationKey = `${service}.${methodName}`;

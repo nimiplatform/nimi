@@ -42,6 +42,7 @@ function assertGeneratedArtifacts() {
     path.join(generatedDir, 'schema.ts'),
     path.join(generatedDir, 'operation-map.ts'),
     path.join(generatedDir, 'service-registry.ts'),
+    path.join(generatedDir, 'type-helpers.ts'),
     path.join(generatedDir, 'property-enums.ts'),
     path.join(generatedDir, 'index.ts'),
   ];
@@ -64,8 +65,24 @@ function assertGeneratedArtifacts() {
 
   const registrySource = readFileSync(path.join(generatedDir, 'service-registry.ts'), 'utf8');
   assert(
-    registrySource.includes('type OperationInvokerArgs<K extends OperationKey> = ['),
-    'service-registry missing typed OperationInvokerArgs declaration',
+    registrySource.includes("type OperationSchema<K extends OperationKey> = OperationId<K> extends keyof operations"),
+    'service-registry missing operationId-driven typed OperationSchema declaration',
+  );
+
+  const schemaSource = readFileSync(path.join(generatedDir, 'schema.ts'), 'utf8');
+  assert(
+    schemaSource.includes('getMe: {'),
+    'schema.ts missing concrete getMe operation definition',
+  );
+  assert(
+    schemaSource.includes('"application/json": components["schemas"]["UserPrivateDto"]'),
+    'schema.ts missing concrete UserPrivateDto response binding',
+  );
+
+  const typeHelpersSource = readFileSync(path.join(generatedDir, 'type-helpers.ts'), 'utf8');
+  assert(
+    typeHelpersSource.includes("export type RealmModel<Name extends RealmModelName> = RealmModels[Name];"),
+    'type-helpers missing RealmModel helper export',
   );
 }
 

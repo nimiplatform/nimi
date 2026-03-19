@@ -15,33 +15,30 @@ export function writeRealmFacade(repoRoot) {
 
   const lines = [];
   lines.push('/* eslint-disable */');
-  lines.push('// AUTO-GENERATED FACADE from realm/generated/models/*.ts. DO NOT EDIT BY HAND.');
+  lines.push('// AUTO-GENERATED FACADE from realm/generated/* and selected typed adapters. DO NOT EDIT BY HAND.');
   lines.push('');
 
   for (const fileName of modelFiles) {
     const symbol = fileName.replace(/\.ts$/, '');
     const source = readFileSync(path.join(generatedModelsDir, fileName), 'utf8');
     const exportKind = classifyModelExport(source);
-    if (exportKind === 'value') {
-      lines.push(`export { ${symbol} } from './generated/models/${symbol}.js';`);
+    if (exportKind !== 'value') {
       continue;
     }
-    if (exportKind === 'type') {
-      lines.push(`export type { ${symbol} } from './generated/models/${symbol}.js';`);
-      continue;
-    }
-    lines.push(`export type { ${symbol} } from './generated/models/${symbol}.js';`);
+    lines.push(`export { ${symbol} } from './generated/models/${symbol}.js';`);
   }
 
   lines.push('');
-  lines.push('// Account data extension exports.');
+  lines.push('// Generated type helpers.');
+  lines.push("export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOperationName, RealmOperation, RealmServiceName, RealmServiceMethod, RealmServiceArgs, RealmServiceResult } from './generated/type-helpers.js';");
+  lines.push('');
+  lines.push('// Typed adapter exports.');
   lines.push("export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';");
   lines.push("export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';");
+  lines.push("export type { AgentEntityMemorySliceInput, AgentMemoryRecallInput, AgentMemoryRecallOutput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';");
+  lines.push("export { listAgentCoreMemories, listAgentE2EMemories, recallAgentMemoriesForEntity } from './extensions/agent-memory.js';");
   lines.push('');
-  lines.push('// Explicit service type exports for public naming checks.');
-  lines.push("export type { MeTwoFactorService, SocialDefaultVisibilityService } from './client-types.js';");
-  lines.push('');
-  lines.push('// vNext realm client exports.');
+  lines.push('// Realm client exports.');
   lines.push("export { Realm } from './client.js';");
   lines.push("export type * from './client-types.js';");
   lines.push("export * from './generated/property-enums.js';");

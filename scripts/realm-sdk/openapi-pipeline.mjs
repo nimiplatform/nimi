@@ -1,4 +1,3 @@
-import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { OPENAPI_TYPESCRIPT_VERSION, REALM_GENERATED_RELATIVE_PATH } from './constants.mjs';
@@ -54,60 +53,4 @@ export function runOpenApiTypescript(repoRoot, inputPath) {
     outputPath,
     '--export-type',
   ]);
-}
-
-function countBraceDelta(line) {
-  const text = String(line || '');
-  const opened = (text.match(/\{/g) || []).length;
-  const closed = (text.match(/\}/g) || []).length;
-  return opened - closed;
-}
-
-export function normalizeOperationsInterfaceInSchema(repoRoot) {
-  const schemaPath = path.join(repoRoot, REALM_GENERATED_RELATIVE_PATH, 'schema.ts');
-  const source = readFileSync(schemaPath, 'utf8');
-  const lines = source.split('\n');
-  let start = -1;
-  let end = -1;
-  let depth = 0;
-
-  for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (start < 0) {
-      if (/^\s*export interface operations \{/.test(line)) {
-        start = index;
-        depth = countBraceDelta(line);
-        if (depth <= 0) {
-          end = index;
-          break;
-        }
-      }
-      continue;
-    }
-
-    depth += countBraceDelta(line);
-    if (depth <= 0) {
-      end = index;
-      break;
-    }
-  }
-
-  if (start < 0 || end < 0) {
-    return;
-  }
-
-  const replacement = [
-    'export interface operations {',
-    '    [key: string]: unknown;',
-    '}',
-  ];
-  const output = [
-    ...lines.slice(0, start),
-    ...replacement,
-    ...lines.slice(end + 1),
-  ];
-  const normalized = `${output.join('\n')}\n`;
-  if (source !== normalized) {
-    writeFileSync(schemaPath, normalized, 'utf8');
-  }
 }

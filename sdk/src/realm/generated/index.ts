@@ -5,4 +5,5 @@ export type { paths, components } from './schema.js';
 export { REALM_OPERATION_MAP, REALM_SERVICE_METHODS } from './operation-map.js';
 export { createRealmServiceRegistry } from './service-registry.js';
 export type { RealmGeneratedServiceRegistry, RealmServiceHandle, RealmRequestExecutor, RealmRawRequestInput } from './service-registry.js';
+export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOperationName, RealmOperation, RealmServiceName, RealmServiceMethod, RealmServiceArgs, RealmServiceResult } from './type-helpers.js';
 export * from './property-enums.js';
