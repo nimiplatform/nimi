@@ -1,6 +1,8 @@
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'example.app-template',
+});
 
 const result = await runtime.generate({
   prompt: 'What is Nimi in one sentence?',

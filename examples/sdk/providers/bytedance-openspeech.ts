@@ -36,7 +36,7 @@ async function run(): Promise<void> {
   const ttsModel = env('NIMI_BYTEDANCE_TTS_MODEL', 'volcengine/tts-1');
   const sttModel = env('NIMI_BYTEDANCE_STT_MODEL', 'volcengine/stt-1');
 
-  const { endpoint, provider } = createProviderContext({
+  const { endpoint, provider } = await createProviderContext({
     appId,
     subjectUserId,
     routePolicy: 'cloud',

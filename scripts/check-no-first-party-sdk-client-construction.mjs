@@ -7,16 +7,18 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
-const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
+const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.mts', '.cts']);
 const IGNORED_DIRS = new Set([
-  'dist',
+  '.git',
+  '.next',
+  '.turbo',
   'build',
   'coverage',
-  'node_modules',
+  'dist',
   'generated',
   'gen',
-  '.turbo',
-  '.next',
+  'node_modules',
+  'out',
   'spec',
   'test',
   'tests',
@@ -28,26 +30,18 @@ const IGNORED_FILE_PATTERNS = [
   /\.d\.ts$/,
 ];
 
+const ALLOWLIST = new Set();
+
 const CHECKS = [
   {
-    label: 'raw.request',
-    pattern: /\braw\.request(?:<[\s\S]*?>)?\s*\(/g,
-    message: 'app production code must not call realm.raw.request directly',
+    label: 'new Runtime',
+    pattern: /\bnew\s+Runtime\s*\(/g,
+    message: 'first-party app production code must use createPlatformClient instead of new Runtime()',
   },
   {
-    label: 'path literal',
-    pattern: /\bpath\s*:\s*['"`]\/api\//g,
-    message: 'app production code must not pass literal /api paths',
-  },
-  {
-    label: 'url literal',
-    pattern: /\burl\s*:\s*['"`]\/api\//g,
-    message: 'app production code must not pass literal /api urls',
-  },
-  {
-    label: 'fetch literal',
-    pattern: /\bfetch\s*\(\s*['"`]\/api\//g,
-    message: 'app production code must not fetch literal /api routes',
+    label: 'new Realm',
+    pattern: /\bnew\s+Realm\s*\(/g,
+    message: 'first-party app production code must use createPlatformClient instead of new Realm()',
   },
 ];
 
@@ -60,16 +54,16 @@ function shouldSkipFile(relativePath) {
   if (!normalized.startsWith('apps/')) {
     return true;
   }
-
-  if (normalized.includes('/e2e/fixtures/')) {
+  if (ALLOWLIST.has(normalized)) {
     return true;
   }
-
-  if (IGNORED_FILE_PATTERNS.some((pattern) => pattern.test(normalized))) {
+  if (normalized.includes('/scripts/')) {
     return true;
   }
-
-  return false;
+  if (normalized.includes('/dev/')) {
+    return true;
+  }
+  return IGNORED_FILE_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
 async function walk(dir, visitor) {
@@ -79,23 +73,14 @@ async function walk(dir, visitor) {
       continue;
     }
     const fullPath = path.join(dir, entry.name);
-    let isDirectory = entry.isDirectory();
-    let isFile = entry.isFile();
-
-    if (entry.isSymbolicLink()) {
-      const stats = await fs.stat(fullPath);
-      isDirectory = stats.isDirectory();
-      isFile = stats.isFile();
-    }
-
-    if (isDirectory) {
+    if (entry.isDirectory()) {
       if (IGNORED_DIRS.has(entry.name)) {
         continue;
       }
       await walk(fullPath, visitor);
       continue;
     }
-    if (!isFile) {
+    if (!entry.isFile()) {
       continue;
     }
     await visitor(fullPath);
@@ -107,8 +92,7 @@ async function main() {
 
   await walk(path.join(repoRoot, 'apps'), async (fullPath) => {
     const relativePath = path.relative(repoRoot, fullPath);
-    const extension = path.extname(relativePath);
-    if (!SOURCE_EXTENSIONS.has(extension)) {
+    if (!SOURCE_EXTENSIONS.has(path.extname(relativePath))) {
       return;
     }
     if (shouldSkipFile(relativePath)) {
@@ -129,7 +113,7 @@ async function main() {
   });
 
   if (violations.length > 0) {
-    process.stderr.write('App Realm REST bypass check failed:\n');
+    process.stderr.write('First-party SDK client construction check failed:\n');
     for (const violation of violations) {
       process.stderr.write(`- ${violation}\n`);
     }
@@ -137,10 +121,10 @@ async function main() {
     return;
   }
 
-  process.stdout.write('App Realm REST bypass check passed\n');
+  process.stdout.write('First-party SDK client construction check passed\n');
 }
 
 main().catch((error) => {
-  process.stderr.write(`check-no-app-realm-rest-bypass failed: ${String(error)}\n`);
+  process.stderr.write(`check-no-first-party-sdk-client-construction failed: ${String(error)}\n`);
   process.exitCode = 1;
 });

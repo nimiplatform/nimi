@@ -1,4 +1,5 @@
 import { asRecord } from '../internal/utils.js';
+import type { JsonObject } from '../internal/utils.js';
 
 export { asRecord };
 
@@ -10,7 +11,7 @@ export function safeParseJson<T>(text: string, fallback: T): T {
   }
 }
 
-export function safeParseObject(text: string): Record<string, unknown> {
+export function safeParseObject(text: string): JsonObject {
   const parsed = safeParseJson<unknown>(String(text || '{}'), {});
   return asRecord(parsed);
 }

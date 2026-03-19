@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
 export type ProviderRoute = 'local' | 'cloud';
@@ -55,22 +55,22 @@ export function firstTextFromGenerateContent(content: Array<{ type: string; text
     .trim();
 }
 
-export function createProviderContext(input: {
+export async function createProviderContext(input: {
   appId: string;
   subjectUserId: string;
   routePolicy: ProviderRoute;
   fallback?: 'deny' | 'allow';
   timeoutMs?: number;
-}): ProviderContext {
+}): Promise<ProviderContext> {
   const endpoint = env('NIMI_RUNTIME_GRPC_ENDPOINT', '127.0.0.1:46371');
 
-  const runtime = new Runtime({
+  const { runtime } = await createPlatformClient({
     appId: input.appId,
-    transport: {
+    runtimeTransport: {
       type: 'node-grpc',
       endpoint,
     },
-    defaults: {
+    runtimeDefaults: {
       callerKind: 'desktop-core',
       callerId: 'docs-example-provider',
     },

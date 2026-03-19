@@ -1,5 +1,6 @@
 import createClient from 'openapi-fetch';
 import { createEventBus } from '../internal/event-bus.js';
+import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
 import { createNimiError } from '../runtime/errors.js';
 import type { NimiError } from '../types/index.js';
@@ -180,6 +181,62 @@ export class Realm {
 
   clearAuth(): void {
     this.#options.auth = undefined;
+  }
+
+  static async refreshAccessToken(input: {
+    realmBaseUrl: string;
+    refreshToken: string;
+    fetchImpl?: typeof fetch;
+  }): Promise<RealmTokenRefreshResult> {
+    const baseUrl = resolveBaseUrl(input.realmBaseUrl);
+    const refreshToken = normalizeText(input.refreshToken);
+    if (!refreshToken) {
+      throw createNimiError({
+        message: 'realm refresh token is required',
+        reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
+        actionHint: 'set_realm_refresh_token',
+        source: 'sdk',
+      });
+    }
+
+    const fetchFn = input.fetchImpl || globalThis.fetch.bind(globalThis);
+    const response = await fetchFn(`${baseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+    if (!response.ok) {
+      throw createNimiError({
+        message: `realm refresh failed: ${response.status}`,
+        reasonCode: ReasonCode.REALM_UNAVAILABLE,
+        actionHint: 'check_realm_refresh_token',
+        source: 'realm',
+        details: {
+          httpStatus: response.status,
+        },
+      });
+    }
+
+    const payload = asRecord(await response.json());
+    const tokens = asRecord(payload.tokens);
+    const accessToken = normalizeText(tokens.accessToken || payload.accessToken);
+    if (!accessToken) {
+      throw createNimiError({
+        message: 'realm refresh response missing accessToken',
+        reasonCode: ReasonCode.REALM_UNAVAILABLE,
+        actionHint: 'check_realm_refresh_response',
+        source: 'realm',
+      });
+    }
+    const nextRefreshToken = normalizeText(tokens.refreshToken || payload.refreshToken);
+    const expiresIn = Number(tokens.expiresIn || payload.expiresIn || 0) || undefined;
+    return {
+      accessToken,
+      refreshToken: nextRefreshToken || undefined,
+      expiresIn,
+    };
   }
 
   async #requestUnknown(input: RealmRawRequestInput): Promise<unknown> {
@@ -627,7 +684,7 @@ export class Realm {
       const payload = parts[1]!;
       const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
       const decoded = atob(padded);
-      const parsed = JSON.parse(decoded) as Record<string, unknown>;
+      const parsed = asRecord(JSON.parse(decoded));
       const exp = Number(parsed.exp);
       if (!Number.isFinite(exp) || exp <= 0) {
         return null;
@@ -666,7 +723,7 @@ export class Realm {
     return merged;
   }
 
-  #emitTelemetry(name: string, data?: Record<string, unknown>): void {
+  #emitTelemetry(name: string, data?: JsonObject): void {
     if (!this.#options.telemetry?.enabled || typeof this.#options.telemetry.onEvent !== 'function') {
       return;
     }

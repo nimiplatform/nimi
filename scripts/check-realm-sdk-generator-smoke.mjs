@@ -62,11 +62,19 @@ function assertGeneratedArtifacts() {
     operationMapSource.includes('"HumanChatService.listMessages"'),
     'operation-map missing HumanChatService.listMessages key',
   );
+  assert(
+    operationMapSource.includes('"successStatusCodes"'),
+    'operation-map missing successStatusCodes metadata',
+  );
+  assert(
+    operationMapSource.includes('export type RealmOperationResult<K extends RealmOperationKey>'),
+    'operation-map missing RealmOperationResult type export',
+  );
 
   const registrySource = readFileSync(path.join(generatedDir, 'service-registry.ts'), 'utf8');
   assert(
-    registrySource.includes("type OperationSchema<K extends OperationKey> = OperationId<K> extends keyof operations"),
-    'service-registry missing operationId-driven typed OperationSchema declaration',
+    registrySource.includes('type OperationDefinitionByKey<K extends RealmOperationKey>'),
+    'service-registry missing RealmOperationKey binding',
   );
 
   const schemaSource = readFileSync(path.join(generatedDir, 'schema.ts'), 'utf8');

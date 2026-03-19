@@ -4,7 +4,7 @@
 
 ## S-RUNTIME-010 Runtime Client Construction
 
-Runtime SDK 不允许隐式全局单例，但允许 first-run 默认值：
+Runtime SDK 不允许隐式全局单例。`@nimiplatform/sdk` 根入口的 `createPlatformClient()` 是 app 级组合面的推荐入口；runtime 子路径上的 `new Runtime()` 仅作为允许的 low-level escape hatch，并保留 first-run 默认值：
 
 - Node.js 环境下，`new Runtime()` 默认使用 `node-grpc` 连接本地 daemon。
 - 默认 `appId` 为 `process.env.NIMI_APP_ID || 'nimi.app'`。

@@ -34,7 +34,7 @@ async function run(): Promise<void> {
   const imageModel = env('NIMI_GEMINI_IMAGE_MODEL', 'gemini/imagen-3');
   const videoModel = env('NIMI_GEMINI_VIDEO_MODEL', 'gemini/veo-3');
 
-  const { endpoint, provider } = createProviderContext({
+  const { endpoint, provider } = await createProviderContext({
     appId,
     subjectUserId,
     routePolicy: 'cloud',

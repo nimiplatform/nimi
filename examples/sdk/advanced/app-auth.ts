@@ -3,7 +3,7 @@
  * Run: npx tsx examples/sdk/advanced/app-auth.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import {
   AppMode,
   ExternalPrincipalType,
@@ -18,9 +18,9 @@ const APP_ID = 'example.auth';
 const PRINCIPAL_ID = 'agent-assistant-1';
 const SUBJECT_USER_ID = 'local-user';
 
-const runtime = new Runtime({
+const { runtime } = await createPlatformClient({
   appId: APP_ID,
-  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+  runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
 function nowTimestamp() {

@@ -11,9 +11,11 @@ npm install @nimiplatform/sdk
 创建一个文件（例如 `hello.ts`），然后使用 `npx tsx hello.ts` 运行：
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.app-dev.sdk-setup',
+});
 const result = await runtime.generate({
   prompt: 'Explain Nimi in one sentence.',
 });

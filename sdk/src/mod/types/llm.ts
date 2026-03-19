@@ -1,3 +1,4 @@
+import type { JsonObject } from '../../internal/utils.js';
 export type RuntimeModality = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'music';
 
 export type LocalEngine = 'llama' | 'media' | 'speech' | 'sidecar' | string;
@@ -45,8 +46,8 @@ export type LocalProviderHints = {
     preferredAdapter?: LocalProviderAdapter;
     backend?: string;
   };
-  extra?: Record<string, unknown>;
-} & Record<string, unknown>;
+  extra?: JsonObject;
+} & JsonObject;
 
 export type LocalRouteBinding = {
   source: 'local';
@@ -88,7 +89,7 @@ export type RuntimeLlmHealthInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  extra?: Record<string, unknown>;
+  extra?: JsonObject;
 };
 
 export type RuntimeLlmHealthResult = {

@@ -5,9 +5,11 @@
  * Run: npx tsx examples/sdk/02-streaming.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'example.sdk.streaming',
+});
 const stream = await runtime.stream({
   prompt: 'Write a haiku about AI runtimes.',
 });

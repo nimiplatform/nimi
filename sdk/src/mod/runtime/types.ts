@@ -32,6 +32,7 @@ import type {
   VideoGenerateInput,
   VideoGenerateOutput,
 } from '../../runtime/types.js';
+import type { JsonObject } from '../../internal/utils.js';
 import type {
   RuntimeCanonicalCapability,
   RuntimeRouteBinding,
@@ -232,7 +233,7 @@ export type ModRuntimeLocalArtifactRecord = {
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 };
 
 export type ModRuntimeClient = {

@@ -38,7 +38,7 @@ async function run(): Promise<void> {
   const appId = env('NIMI_APP_ID', 'example.providers.glm');
   const subjectUserId = env('NIMI_SUBJECT_USER_ID', 'local-user');
 
-  const { endpoint, provider } = createProviderContext({
+  const { endpoint, provider } = await createProviderContext({
     appId,
     subjectUserId,
     routePolicy: 'cloud',

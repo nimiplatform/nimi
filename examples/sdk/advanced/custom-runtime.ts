@@ -5,18 +5,16 @@
 
 import { generateText } from 'ai';
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
-const runtime = new Runtime({
+const { runtime } = await createPlatformClient({
   appId: 'example.custom-runtime',
-  transport: {
+  runtimeTransport: {
     type: 'node-grpc',
     endpoint: process.env.NIMI_RUNTIME_ENDPOINT || '127.0.0.1:46371',
   },
-  subjectContext: {
-    subjectUserId: 'local-user',
-  },
+  subjectUserIdProvider: () => 'local-user',
 });
 
 const nimi = createNimiAiProvider({

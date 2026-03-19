@@ -1,4 +1,5 @@
 import { ReasonCode } from '../types/index.js';
+import type { JsonObject } from '../internal/utils.js';
 import { createNimiError } from './errors.js';
 import { createRuntimeClient } from './core/client.js';
 import { normalizeText, nowIso } from './helpers.js';
@@ -19,7 +20,7 @@ export async function connectRuntime(input: {
   setConnectPromise: (promise: Promise<void> | null) => void;
   setClient: (client: RuntimeClient | null) => void;
   emitConnected: (at: string) => void;
-  emitTelemetry: (name: string, data?: Record<string, unknown>) => void;
+  emitTelemetry: (name: string, data?: JsonObject) => void;
 }): Promise<void> {
   if (input.state.status === 'ready') {
     return;
@@ -38,7 +39,7 @@ export async function connectRuntime(input: {
     const transport = input.options.transport;
     if (!transport) {
       throw createNimiError({
-        message: 'runtime transport is not configured. Use new Runtime() in Node.js, or pass transport explicitly when constructing Runtime.',
+        message: 'runtime transport is not configured. App-level consumers should use createPlatformClient(); low-level Runtime construction must run in Node.js defaults mode or pass transport explicitly.',
         reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
         actionHint: 'set_transport',
         source: 'sdk',
@@ -105,7 +106,7 @@ export function closeRuntime(input: {
   setState: (state: RuntimeConnectionState) => void;
   setClient: (client: RuntimeClient | null) => void;
   emitDisconnected: (at: string) => void;
-  emitTelemetry: (name: string, data?: Record<string, unknown>) => void;
+  emitTelemetry: (name: string, data?: JsonObject) => void;
 }): void {
   if (input.state.status === 'closed') {
     return;

@@ -1,4 +1,5 @@
 import type { NimiError, VersionCompatibilityStatus } from '../types/index.js';
+import type { JsonObject } from '../internal/utils.js';
 import type { RuntimeClient } from './types-client-interfaces.js';
 
 export type * from './types-media.js';
@@ -144,7 +145,7 @@ export type { VersionCompatibilityStatus };
 export type RuntimeTelemetryEvent = {
   name: string;
   at: string;
-  data?: Record<string, unknown>;
+  data?: JsonObject;
 };
 
 export type RuntimeAuthProvider = {

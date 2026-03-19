@@ -1,13 +1,14 @@
 import { ReasonCode } from '../types/index.js';
 import { asNimiError, createNimiError } from '../runtime/errors.js';
 import { asRecord, normalizeText, nowIso } from '../internal/utils.js';
+import type { JsonObject } from '../internal/utils.js';
 import type { NimiError } from '../types/index.js';
 
 export const DEFAULT_REALM_TIMEOUT_MS = 10000;
 
 export { asRecord, normalizeText, nowIso };
 
-function pickString(record: Record<string, unknown>, keys: string[]): string {
+function pickString(record: JsonObject, keys: string[]): string {
   for (const key of keys) {
     const value = record[key];
     if (typeof value === 'string' && value.trim()) {
@@ -99,7 +100,7 @@ export function isResponse(value: unknown): value is Response {
   return typeof Response !== 'undefined' && value instanceof Response;
 }
 
-export async function readErrorBody(value: unknown): Promise<Record<string, unknown>> {
+export async function readErrorBody(value: unknown): Promise<JsonObject> {
   if (!value) {
     return {};
   }
@@ -118,7 +119,7 @@ export async function readErrorBody(value: unknown): Promise<Record<string, unkn
 }
 
 export function extractResponseReasonCode(
-  body: Record<string, unknown>,
+  body: JsonObject,
   response: Response,
 ): {
   rawReasonCode: string;
@@ -128,7 +129,7 @@ export function extractResponseReasonCode(
   traceId: string;
   message: string;
   retryable: boolean;
-  details: Record<string, unknown>;
+  details: JsonObject;
 } {
   const nestedError = asRecord(body.error);
   const rawReasonCode = pickString(body, ['reasonCode', 'reason_code'])
@@ -152,7 +153,7 @@ export function extractResponseReasonCode(
     || `${response.status} ${response.statusText}`;
 
   const retryable = response.status === 429 || response.status >= 500;
-  const details: Record<string, unknown> = {
+  const details: JsonObject = {
     httpStatus: response.status,
   };
   if (rawReasonCode) {

@@ -1,3 +1,4 @@
+import type { JsonObject, JsonValue } from '../../internal/utils.js';
 import type { HookSourceType } from './shared';
 
 export type RuntimeHookEventFacade = {
@@ -5,7 +6,7 @@ export type RuntimeHookEventFacade = {
     modId: string;
     sourceType?: HookSourceType;
     topic: string;
-    handler: (payload: Record<string, unknown>) => Promise<unknown> | unknown;
+    handler: (payload: JsonObject) => Promise<JsonValue> | JsonValue;
     once?: boolean;
   }) => Promise<void>;
   unsubscribeEvent: (input: {
@@ -16,7 +17,7 @@ export type RuntimeHookEventFacade = {
     modId: string;
     sourceType?: HookSourceType;
     topic: string;
-    payload: Record<string, unknown>;
+    payload: JsonObject;
   }) => Promise<{ deliveredCount: number; failedCount: number; reasonCodes: string[] }>;
   listEventTopics: () => string[];
 };
@@ -24,13 +25,13 @@ export type RuntimeHookEventFacade = {
 export type HookEventClient = {
   subscribe: (input: {
     topic: string;
-    handler: (payload: Record<string, unknown>) => Promise<unknown> | unknown;
+    handler: (payload: JsonObject) => Promise<JsonValue> | JsonValue;
     once?: boolean;
   }) => Promise<void>;
   unsubscribe: (input?: { topic?: string }) => number;
   publish: (input: {
     topic: string;
-    payload: Record<string, unknown>;
+    payload: JsonObject;
   }) => Promise<{ deliveredCount: number; failedCount: number; reasonCodes: string[] }>;
   listTopics: () => string[];
 };

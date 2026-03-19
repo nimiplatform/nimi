@@ -2,6 +2,10 @@ export type AsRecordOptions = {
   allowArray?: boolean;
 };
 
+export type JsonPrimitive = string | number | boolean | null;
+export type JsonValue = unknown;
+export type JsonObject = Record<string, unknown>;
+
 export function nowIso(): string {
   return new Date().toISOString();
 }
@@ -10,20 +14,24 @@ export function normalizeText(value: unknown): string {
   return String(value || '').trim();
 }
 
+export function isJsonObject(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === 'object' && (!Array.isArray(value));
+}
+
 export function asRecord(
   value: unknown,
   options?: AsRecordOptions,
-): Record<string, unknown> {
+): JsonObject {
   if (!value || typeof value !== 'object') {
     return {};
   }
   if (!options?.allowArray && Array.isArray(value)) {
     return {};
   }
-  return value as Record<string, unknown>;
+  return value as JsonObject;
 }
 
-export function readString(record: Record<string, unknown>, keys: string[]): string {
+export function readString(record: JsonObject, keys: string[]): string {
   for (const key of keys) {
     const value = record[key];
     if (typeof value === 'string' && value.trim()) {

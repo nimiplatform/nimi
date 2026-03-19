@@ -14,16 +14,18 @@
 ## Usage baseline
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.sdk.reference',
+});
 
 const result = await runtime.generate({
   prompt: 'What is Nimi?',
 });
 ```
 
-Node.js consumers can use `new Runtime()` with local daemon defaults. Use explicit transport when you are outside Node.js or when you need a non-default endpoint.
+`createPlatformClient()` is the recommended entry point for apps and examples. In Node.js it can attach to the local daemon with runtime defaults, while still giving you typed Realm access from the same SDK root. Use `@nimiplatform/sdk/runtime` or `@nimiplatform/sdk/realm` directly only when you need an explicit low-level escape hatch.
 
 For a provider default cloud target:
 

@@ -1,0 +1,456 @@
+import { asRecord, normalizeText, type JsonObject } from './internal/utils.js';
+import { Realm } from './realm/client.js';
+import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
+import { sendAgentChannelMessage, type SendAgentChannelMessageInput, type SendAgentChannelMessageOutput } from './realm/extensions/agent-channel.js';
+import { Runtime } from './runtime/runtime.js';
+import type { RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
+
+type PlatformSessionUser = JsonObject | null;
+type RealmServices = Realm['services'];
+type RuntimeConnectorModule = Runtime['connector'];
+type RuntimeAuditModule = Runtime['audit'];
+type ListConnectorsMethod = RuntimeConnectorModule['listConnectors'];
+type ListConnectorsInput = Parameters<ListConnectorsMethod>[0];
+type RealmMethod<
+  S extends keyof RealmServices,
+  M extends keyof RealmServices[S],
+> = RealmServices[S][M] extends (...args: infer Args) => infer Result
+  ? (...args: Args) => Result
+  : never;
+type AuthPasswordLoginMethod = RealmMethod<'AuthService', 'passwordLogin'>;
+type AuthPasswordLoginInput = {
+  identifier?: string;
+  email?: string;
+  password: Parameters<AuthPasswordLoginMethod>[0]['password'];
+};
+type ListMyFriendsMethod = RealmMethod<'MeService', 'listMyFriendsWithDetails'>;
+type ListMyFriendsResult = ReturnType<ListMyFriendsMethod>;
+type CreateImageDirectUploadMethod = RealmMethod<'MediaService', 'createImageDirectUpload'>;
+type CreateVideoDirectUploadMethod = RealmMethod<'MediaService', 'createVideoDirectUpload'>;
+type RequireSignedUrlsInput = {
+  requireSignedUrls?: string | boolean;
+};
+
+export type PlatformAuthSessionStore = {
+  getAccessToken?: () => string | Promise<string>;
+  getRefreshToken?: () => string | Promise<string>;
+  getSubjectUserId?: () => string | Promise<string>;
+  getCurrentUser?: () => PlatformSessionUser | Promise<PlatformSessionUser>;
+  setAuthSession?: (
+    user: PlatformSessionUser,
+    accessToken: string,
+    refreshToken?: string,
+  ) => void | Promise<void>;
+  clearAuthSession?: () => void | Promise<void>;
+};
+
+export type PlatformClientInput = {
+  appId?: string;
+  realmBaseUrl?: string;
+  accessToken?: string;
+  accessTokenProvider?: () => string | Promise<string>;
+  refreshTokenProvider?: () => string | Promise<string>;
+  subjectUserIdProvider?: () => string | Promise<string>;
+  sessionStore?: PlatformAuthSessionStore | null;
+  runtimeTransport?: RuntimeTransportConfig | null;
+  runtimeDefaults?: RuntimeClientDefaults;
+  runtimeOptions?: Omit<RuntimeOptions, 'appId' | 'transport' | 'auth' | 'subjectContext' | 'defaults'>;
+  realmFetchImpl?: RealmFetchImpl;
+  allowAnonymousRealm?: boolean;
+};
+
+type PlatformDomains = {
+  auth: {
+    checkEmail: RealmServices['AuthService']['checkEmail'];
+    passwordLogin: (input: AuthPasswordLoginInput) => ReturnType<AuthPasswordLoginMethod>;
+    oauthLogin: RealmServices['AuthService']['oauthLogin'];
+    requestEmailOtp: RealmServices['AuthService']['requestEmailOtp'];
+    verifyEmailOtp: RealmServices['AuthService']['verifyEmailOtp'];
+    verifyTwoFactor: RealmServices['AuthService']['verifyTwoFactor'];
+    walletChallenge: RealmServices['AuthService']['walletChallenge'];
+    walletLogin: RealmServices['AuthService']['walletLogin'];
+    updatePassword: RealmServices['AuthService']['updatePassword'];
+    getCurrentUser: RealmServices['MeService']['getMe'];
+  };
+  social: {
+    startChat: RealmServices['HumanChatService']['startChat'];
+    listMessages: RealmServices['HumanChatService']['listMessages'];
+    markChatRead: RealmServices['HumanChatService']['markChatRead'];
+    sendMessage: RealmServices['HumanChatService']['sendMessage'];
+    listFriends: (limit?: number, cursor?: string) => ListMyFriendsResult;
+  };
+  world: {
+    getWorld: RealmServices['WorldsService']['worldControllerGetWorld'];
+    getWorldview: RealmServices['WorldsService']['worldControllerGetWorldview'];
+    getWorldDetailWithAgents: RealmServices['WorldsService']['worldControllerGetWorldDetailWithAgents'];
+    listMyWorlds: RealmServices['WorldControlService']['worldControlControllerListMyWorlds'];
+    listWorldScenes: RealmServices['WorldsService']['worldControllerGetWorldScenes'];
+    listWorldLorebooks: RealmServices['WorldsService']['worldControllerGetWorldLorebooks'];
+    listWorldMediaBindings: RealmServices['WorldsService']['worldControllerGetWorldMediaBindings'];
+    listWorldMutations: RealmServices['WorldsService']['worldControllerGetWorldMutations'];
+    listWorldEvents: RealmServices['WorldsService']['worldControllerGetWorldEvents'];
+    listWorldLevelAudits: RealmServices['WorldsService']['worldControllerGetWorldLevelAudits'];
+  };
+  creator: {
+    listAgents: RealmServices['CreatorService']['creatorControllerListAgents'];
+    getAgent: RealmServices['CreatorService']['creatorControllerGetAgent'];
+    createAgent: RealmServices['CreatorService']['creatorControllerCreateAgent'];
+    updateAgent: RealmServices['CreatorService']['creatorControllerUpdateAgent'];
+    batchCreateAgents: RealmServices['CreatorService']['creatorControllerBatchCreateAgents'];
+  };
+  media: {
+    createImageDirectUpload: (input?: RequireSignedUrlsInput) => ReturnType<CreateImageDirectUploadMethod>;
+    createVideoDirectUpload: (input?: RequireSignedUrlsInput) => ReturnType<CreateVideoDirectUploadMethod>;
+    createAudioDirectUpload: RealmServices['MediaService']['createAudioDirectUpload'];
+    finalizeAsset: RealmServices['MediaService']['finalizeMediaAsset'];
+    getAsset: RealmServices['MediaService']['getMediaAsset'];
+    createPost: RealmServices['PostService']['createPost'];
+    sendAgentChannelMessage: (input: SendAgentChannelMessageInput) => Promise<SendAgentChannelMessageOutput>;
+  };
+  runtimeAdmin: {
+    listProviderCatalog: RuntimeConnectorModule['listProviderCatalog'];
+    listConnectors: (
+      input?: Partial<ListConnectorsInput>,
+      options?: Parameters<ListConnectorsMethod>[1],
+    ) => ReturnType<ListConnectorsMethod>;
+    createConnector: RuntimeConnectorModule['createConnector'];
+    updateConnector: RuntimeConnectorModule['updateConnector'];
+    deleteConnector: RuntimeConnectorModule['deleteConnector'];
+    testConnector: RuntimeConnectorModule['testConnector'];
+    listConnectorModels: RuntimeConnectorModule['listConnectorModels'];
+    listModelCatalogProviders: RuntimeConnectorModule['listModelCatalogProviders'];
+    listCatalogProviderModels: RuntimeConnectorModule['listCatalogProviderModels'];
+    getCatalogModelDetail: RuntimeConnectorModule['getCatalogModelDetail'];
+    upsertModelCatalogProvider: RuntimeConnectorModule['upsertModelCatalogProvider'];
+    deleteModelCatalogProvider: RuntimeConnectorModule['deleteModelCatalogProvider'];
+    upsertCatalogModelOverlay: RuntimeConnectorModule['upsertCatalogModelOverlay'];
+    deleteCatalogModelOverlay: RuntimeConnectorModule['deleteCatalogModelOverlay'];
+    listAuditEvents: RuntimeAuditModule['listAuditEvents'];
+    exportAuditEvents: RuntimeAuditModule['exportAuditEvents'];
+    listUsageStats: RuntimeAuditModule['listUsageStats'];
+    getRuntimeHealth: RuntimeAuditModule['getRuntimeHealth'];
+    listAIProviderHealth: RuntimeAuditModule['listAIProviderHealth'];
+    healthEvents: Runtime['healthEvents'];
+    providerHealthEvents: Runtime['providerHealthEvents'];
+  };
+  publicContent: {
+    getPublicPost: RealmServices['PostService']['getPublicPost'];
+  };
+};
+
+export type PlatformClient = {
+  runtime: Runtime;
+  realm: Realm;
+  domains: PlatformDomains;
+};
+
+let currentPlatformClient: PlatformClient | null = null;
+const DEFAULT_PLATFORM_APP_ID = 'nimi.app';
+const DEFAULT_REALM_BASE_URL = 'http://localhost:3002';
+
+function detectTauriTransport(): RuntimeTransportConfig | null {
+  const tauriRuntime = (
+    (globalThis as { __TAURI__?: unknown }).__TAURI__
+    || ((globalThis as { window?: { __TAURI__?: unknown } }).window?.__TAURI__)
+  );
+  if (!tauriRuntime) {
+    return null;
+  }
+  return {
+    type: 'tauri-ipc',
+    commandNamespace: 'runtime_bridge',
+    eventNamespace: 'runtime_bridge',
+  };
+}
+
+function readProcessEnv(name: string): string {
+  if (typeof process === 'undefined' || typeof process.env === 'undefined') {
+    return '';
+  }
+  return normalizeText(process.env[name]);
+}
+
+function resolvePlatformRealmBaseUrl(explicitBaseUrl: string | undefined): string {
+  const normalizedExplicitBaseUrl = normalizeText(explicitBaseUrl);
+  if (normalizedExplicitBaseUrl) {
+    return normalizedExplicitBaseUrl;
+  }
+
+  const envBaseUrl = readProcessEnv('VITE_NIMI_REALM_BASE_URL') || readProcessEnv('NIMI_REALM_URL');
+  if (envBaseUrl) {
+    return envBaseUrl;
+  }
+
+  const locationOrigin = normalizeText((globalThis as { location?: { origin?: string } }).location?.origin);
+  if (locationOrigin && /^https?:\/\//.test(locationOrigin)) {
+    return locationOrigin;
+  }
+
+  return DEFAULT_REALM_BASE_URL;
+}
+
+function decodeBase64UrlUtf8(input: string): string {
+  const normalized = normalizeText(input).replace(/-/g, '+').replace(/_/g, '/');
+  if (!normalized) {
+    return '';
+  }
+  const paddingLength = (4 - (normalized.length % 4)) % 4;
+  const padded = `${normalized}${'='.repeat(paddingLength)}`;
+
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(padded, 'base64').toString('utf8');
+  }
+  if (typeof atob === 'function') {
+    const binary = atob(padded);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    if (typeof TextDecoder !== 'undefined') {
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+    return String.fromCharCode(...bytes);
+  }
+  return '';
+}
+
+async function resolveToken(
+  explicit: string | undefined,
+  provider: (() => string | Promise<string>) | undefined,
+  storeProvider: (() => string | Promise<string>) | undefined,
+): Promise<string> {
+  if (storeProvider) {
+    return normalizeText(await storeProvider());
+  }
+  if (provider) {
+    return normalizeText(await provider());
+  }
+  return normalizeText(explicit);
+}
+
+function decodeJwtSubject(accessToken: string): string {
+  const normalizedToken = normalizeText(accessToken);
+  if (!normalizedToken) {
+    return '';
+  }
+  const rawToken = normalizedToken.toLowerCase().startsWith('bearer ')
+    ? normalizeText(normalizedToken.slice(7))
+    : normalizedToken;
+  const parts = rawToken.split('.');
+  if (parts.length < 2) {
+    return '';
+  }
+  try {
+    const payloadText = decodeBase64UrlUtf8(parts[1] || '');
+    if (!payloadText) {
+      return '';
+    }
+    return normalizeText(asRecord(JSON.parse(payloadText)).sub);
+  } catch {
+    return '';
+  }
+}
+
+function createDisabledRuntime(appId: string): Runtime {
+  const target = { appId } as Runtime;
+  return new Proxy(target, {
+    get(currentTarget, prop, receiver) {
+      if (prop === 'appId') {
+        return Reflect.get(currentTarget, prop, receiver);
+      }
+      if (prop === 'toString') {
+        return () => '[DisabledRuntime]';
+      }
+      throw new Error(`runtime is disabled for platform client ${appId}`);
+    },
+  });
+}
+
+function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
+  const toListConnectorsInput = (input?: Partial<ListConnectorsInput>): ListConnectorsInput => ({
+    pageSize: Number(input?.pageSize || 0),
+    pageToken: String(input?.pageToken || ''),
+    kindFilter: Number(input?.kindFilter || 0),
+    statusFilter: Number(input?.statusFilter || 0),
+    providerFilter: String(input?.providerFilter || ''),
+  });
+
+  return {
+    auth: {
+      checkEmail: (input) => realm.services.AuthService.checkEmail(input),
+      passwordLogin: (input) => realm.services.AuthService.passwordLogin({
+        identifier: normalizeText(input.identifier || input.email),
+        password: input.password,
+      }),
+      oauthLogin: (input) => realm.services.AuthService.oauthLogin(input),
+      requestEmailOtp: (input) => realm.services.AuthService.requestEmailOtp(input),
+      verifyEmailOtp: (input) => realm.services.AuthService.verifyEmailOtp(input),
+      verifyTwoFactor: (input) => realm.services.AuthService.verifyTwoFactor(input),
+      walletChallenge: (input) => realm.services.AuthService.walletChallenge(input),
+      walletLogin: (input) => realm.services.AuthService.walletLogin(input),
+      updatePassword: (input) => realm.services.AuthService.updatePassword(input),
+      getCurrentUser: () => realm.services.MeService.getMe(),
+    },
+    social: {
+      startChat: (input) => realm.services.HumanChatService.startChat(input),
+      listMessages: (chatId, limit) => realm.services.HumanChatService.listMessages(chatId, limit),
+      markChatRead: (chatId) => realm.services.HumanChatService.markChatRead(chatId),
+      sendMessage: (chatId, input) => realm.services.HumanChatService.sendMessage(chatId, input),
+      listFriends: (limit, cursor) => realm.services.MeService.listMyFriendsWithDetails(cursor, limit),
+    },
+    world: {
+      getWorld: (worldId) => realm.services.WorldsService.worldControllerGetWorld(worldId),
+      getWorldview: (worldId) => realm.services.WorldsService.worldControllerGetWorldview(worldId),
+      getWorldDetailWithAgents: (worldId, take = 4) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, take),
+      listMyWorlds: () => realm.services.WorldControlService.worldControlControllerListMyWorlds(),
+      listWorldScenes: (worldId) => realm.services.WorldsService.worldControllerGetWorldScenes(worldId),
+      listWorldLorebooks: (worldId) => realm.services.WorldsService.worldControllerGetWorldLorebooks(worldId),
+      listWorldMediaBindings: (worldId) => realm.services.WorldsService.worldControllerGetWorldMediaBindings(worldId),
+      listWorldMutations: (worldId) => realm.services.WorldsService.worldControllerGetWorldMutations(worldId),
+      listWorldEvents: (worldId) => realm.services.WorldsService.worldControllerGetWorldEvents(worldId),
+      listWorldLevelAudits: (worldId, take) => realm.services.WorldsService.worldControllerGetWorldLevelAudits(worldId, take),
+    },
+    creator: {
+      listAgents: () => realm.services.CreatorService.creatorControllerListAgents(),
+      getAgent: (agentId) => realm.services.CreatorService.creatorControllerGetAgent(agentId),
+      createAgent: (input) => realm.services.CreatorService.creatorControllerCreateAgent(input),
+      updateAgent: (agentId, input) => realm.services.CreatorService.creatorControllerUpdateAgent(agentId, input),
+      batchCreateAgents: (input) => realm.services.CreatorService.creatorControllerBatchCreateAgents(input),
+    },
+    media: {
+      createImageDirectUpload: (input) => realm.services.MediaService.createImageDirectUpload(
+        String(input?.requireSignedUrls ?? ''),
+      ),
+      createVideoDirectUpload: (input) => realm.services.MediaService.createVideoDirectUpload(
+        String(input?.requireSignedUrls ?? ''),
+      ),
+      createAudioDirectUpload: (input = {}) => realm.services.MediaService.createAudioDirectUpload(input),
+      finalizeAsset: (assetId, input = {}) => realm.services.MediaService.finalizeMediaAsset(assetId, input),
+      getAsset: (assetId) => realm.services.MediaService.getMediaAsset(assetId),
+      createPost: (input) => realm.services.PostService.createPost(input),
+      sendAgentChannelMessage: (input) => sendAgentChannelMessage(realm, input),
+    },
+    runtimeAdmin: {
+      listProviderCatalog: (input = {}, options) => runtime.connector.listProviderCatalog(input, options),
+      listConnectors: (input, options) => runtime.connector.listConnectors(toListConnectorsInput(input), options),
+      createConnector: (input, options) => runtime.connector.createConnector(input, options),
+      updateConnector: (input, options) => runtime.connector.updateConnector(input, options),
+      deleteConnector: (input, options) => runtime.connector.deleteConnector(input, options),
+      testConnector: (input, options) => runtime.connector.testConnector(input, options),
+      listConnectorModels: (input, options) => runtime.connector.listConnectorModels(input, options),
+      listModelCatalogProviders: (input = {}, options) => runtime.connector.listModelCatalogProviders(input, options),
+      listCatalogProviderModels: (input, options) => runtime.connector.listCatalogProviderModels(input, options),
+      getCatalogModelDetail: (input, options) => runtime.connector.getCatalogModelDetail(input, options),
+      upsertModelCatalogProvider: (input, options) => runtime.connector.upsertModelCatalogProvider(input, options),
+      deleteModelCatalogProvider: (input, options) => runtime.connector.deleteModelCatalogProvider(input, options),
+      upsertCatalogModelOverlay: (input, options) => runtime.connector.upsertCatalogModelOverlay(input, options),
+      deleteCatalogModelOverlay: (input, options) => runtime.connector.deleteCatalogModelOverlay(input, options),
+      listAuditEvents: (input, options) => runtime.audit.listAuditEvents(input, options),
+      exportAuditEvents: (input, options) => runtime.audit.exportAuditEvents(input, options),
+      listUsageStats: (input, options) => runtime.audit.listUsageStats(input, options),
+      getRuntimeHealth: (input = {}, options) => runtime.audit.getRuntimeHealth(input, options),
+      listAIProviderHealth: (input = {}, options) => runtime.audit.listAIProviderHealth(input, options),
+      healthEvents: (input = {}, options) => runtime.healthEvents(input, options),
+      providerHealthEvents: (input = {}, options) => runtime.providerHealthEvents(input, options),
+    },
+    publicContent: {
+      getPublicPost: (postId) => realm.services.PostService.getPublicPost(postId),
+    },
+  };
+}
+
+export async function createPlatformClient(input: PlatformClientInput): Promise<PlatformClient> {
+  const appId = normalizeText(input.appId) || DEFAULT_PLATFORM_APP_ID;
+  const tokenValue = normalizeText(input.accessToken);
+  const sessionStore = input.sessionStore ?? null;
+  const realmBaseUrl = resolvePlatformRealmBaseUrl(input.realmBaseUrl);
+
+  const runtimeAccessTokenProvider = async () => resolveToken(
+    tokenValue,
+    input.accessTokenProvider,
+    sessionStore?.getAccessToken,
+  );
+
+  const runtimeSubjectUserIdProvider = async () => {
+    if (sessionStore?.getSubjectUserId) {
+      const subjectUserId = normalizeText(await sessionStore.getSubjectUserId());
+      if (subjectUserId) {
+        return subjectUserId;
+      }
+    }
+    if (input.subjectUserIdProvider) {
+      const subjectUserId = normalizeText(await input.subjectUserIdProvider());
+      if (subjectUserId) {
+        return subjectUserId;
+      }
+    }
+    return decodeJwtSubject(await runtimeAccessTokenProvider());
+  };
+
+  const runtime = input.runtimeTransport === null
+    ? createDisabledRuntime(appId)
+    : new Runtime({
+        ...input.runtimeOptions,
+        appId,
+        transport: input.runtimeTransport || detectTauriTransport() || undefined,
+        defaults: input.runtimeDefaults,
+        auth: {
+          accessToken: runtimeAccessTokenProvider,
+        },
+        subjectContext: {
+          getSubjectUserId: runtimeSubjectUserIdProvider,
+        },
+      });
+
+  let realm!: Realm;
+  realm = new Realm({
+    baseUrl: realmBaseUrl,
+    auth: input.allowAnonymousRealm && !tokenValue && !input.accessTokenProvider && !sessionStore?.getAccessToken
+      ? null
+      : {
+          accessToken: async () => resolveToken(
+            tokenValue,
+            input.accessTokenProvider,
+            sessionStore?.getAccessToken,
+          ),
+          refreshToken: async () => resolveToken(
+            '',
+            input.refreshTokenProvider,
+            sessionStore?.getRefreshToken,
+          ),
+          onTokenRefreshed: async (result: RealmTokenRefreshResult) => {
+            if (!sessionStore?.setAuthSession) {
+              return;
+            }
+            const user = sessionStore.getCurrentUser
+              ? await sessionStore.getCurrentUser()
+              : null;
+            await sessionStore.setAuthSession(user ?? null, result.accessToken, result.refreshToken);
+          },
+          onRefreshFailed: async () => {
+            realm.clearAuth();
+            await sessionStore?.clearAuthSession?.();
+          },
+        },
+    fetchImpl: input.realmFetchImpl,
+  });
+
+  const client: PlatformClient = {
+    runtime,
+    realm,
+    domains: createDomains(runtime, realm),
+  };
+  currentPlatformClient = client;
+  return client;
+}
+
+export function getPlatformClient(): PlatformClient {
+  if (!currentPlatformClient) {
+    throw new Error('PLATFORM_CLIENT_NOT_READY');
+  }
+  return currentPlatformClient;
+}
+
+export function clearPlatformClient(): void {
+  currentPlatformClient = null;
+}

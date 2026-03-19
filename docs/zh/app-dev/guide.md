@@ -39,9 +39,11 @@ pnpm start
 将 runtime 作为操作边界，Provider 密钥集中保存在 runtime 进程中，而非分散到每个应用里。
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.app-dev.guide',
+});
 
 const result = await runtime.generate({
   prompt: 'What is Nimi?',

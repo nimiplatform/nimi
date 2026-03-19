@@ -1,4 +1,5 @@
 import type { ComponentType, ReactNode } from 'react';
+import type { JsonObject } from '../../internal/utils.js';
 import type {
   RuntimeHttpContext,
 } from '../types/runtime-hook';
@@ -66,7 +67,7 @@ export type RuntimeLogMessage = {
   flowId?: string;
   source?: string;
   costMs?: number;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
 export type RendererLogMessage = {
@@ -76,7 +77,7 @@ export type RendererLogMessage = {
   flowId?: string;
   source?: string;
   costMs?: number;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
 export type ModSdkUiContext = {
@@ -96,7 +97,7 @@ export type ModShellStatusBannerInput = {
 
 export type ModShellAuthState = {
   isAuthenticated: boolean;
-  user: Record<string, unknown> | null;
+  user: JsonObject | null;
 };
 
 export type ModShellBootstrapState = {
@@ -133,7 +134,7 @@ export type RuntimeKernelTurnInput = {
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
   connectorId?: string;
-  extra?: Record<string, unknown>;
+  extra?: JsonObject;
 };
 
 export type RuntimeKernelTurnResult = {
@@ -260,8 +261,8 @@ export type ModSdkHost = {
     useStatusBanner: () => ModShellStatusBannerState;
   };
   settings?: {
-    useRuntimeModSettings: (modId: string) => Record<string, unknown>;
-    setRuntimeModSettings: (modId: string, settings: Record<string, unknown>) => void;
+    useRuntimeModSettings: (modId: string) => JsonObject;
+    setRuntimeModSettings: (modId: string, settings: JsonObject) => void;
   };
   logging: {
     emitRuntimeLog: (payload: RuntimeLogMessage) => void;

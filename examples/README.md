@@ -33,7 +33,7 @@ npx tsx examples/sdk/01-hello.ts
 
 This is the shortest proof that:
 
-- `new Runtime()` can attach to the local daemon with defaults
+- `createPlatformClient()` can attach to the local daemon with defaults
 - `runtime.generate()` is the new ergonomic first-run API
 - local generation can happen without wiring app-specific transport code
 

@@ -6,6 +6,7 @@
 
 公开 SDK 子路径固定为：
 
+- `@nimiplatform/sdk`
 - `@nimiplatform/sdk/runtime`
 - `@nimiplatform/sdk/ai-provider`
 - `@nimiplatform/sdk/realm`
@@ -14,6 +15,8 @@
 - `@nimiplatform/sdk/types`
 
 SDK 必须维持单一 package layout；公开子路径只允许在 `@nimiplatform/sdk` 包内投影，不得漂移为多 package 或多根布局。
+
+其中 `@nimiplatform/sdk` 根入口是 app 级组合面与第一方 docs/examples 的推荐入口；子路径继续作为显式 low-level escape hatch 或专用 domain 入口保留。
 
 执行命令：
 

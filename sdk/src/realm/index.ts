@@ -36,8 +36,11 @@ export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOu
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
 export type { AgentEntityMemorySliceInput, AgentMemoryRecallInput, AgentMemoryRecallOutput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';
 export { listAgentCoreMemories, listAgentE2EMemories, recallAgentMemoriesForEntity } from './extensions/agent-memory.js';
+export type { SendAgentChannelMessageInput, SendAgentChannelMessageOutput } from './extensions/agent-channel.js';
+export { sendAgentChannelMessage } from './extensions/agent-channel.js';
 
 // Realm client exports.
 export { Realm } from './client.js';
 export type * from './client-types.js';
+export type { RealmOperationKey, RealmOperationResult, RealmOperationResultMap } from './generated/operation-map.js';
 export * from './generated/property-enums.js';

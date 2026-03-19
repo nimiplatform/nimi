@@ -1,5 +1,6 @@
 import { asNimiError } from '../../runtime/errors.js';
 import { asRecord } from '../../internal/utils.js';
+import type { JsonObject } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type { Realm } from '../client.js';
 
@@ -53,7 +54,7 @@ function asText(value: unknown): string {
   return String(value || '').trim();
 }
 
-function pickText(record: Record<string, unknown>, keys: string[]): string {
+function pickText(record: JsonObject, keys: string[]): string {
   for (const key of keys) {
     const value = asText(record[key]);
     if (value) {
@@ -63,7 +64,7 @@ function pickText(record: Record<string, unknown>, keys: string[]): string {
   return '';
 }
 
-function pickStatus(record: Record<string, unknown>, accepted: boolean): AccountDataTaskStatus {
+function pickStatus(record: JsonObject, accepted: boolean): AccountDataTaskStatus {
   const raw = pickText(record, ['status', 'state', 'taskStatus', 'task_state']).toUpperCase();
   if (
     raw === 'PENDING'
@@ -77,7 +78,7 @@ function pickStatus(record: Record<string, unknown>, accepted: boolean): Account
   return accepted ? 'PENDING' : 'FAILED';
 }
 
-function parseAccepted(record: Record<string, unknown>): boolean {
+function parseAccepted(record: JsonObject): boolean {
   const acceptedValue = record.accepted;
   if (typeof acceptedValue === 'boolean') {
     return acceptedValue;
@@ -89,7 +90,7 @@ function parseAccepted(record: Record<string, unknown>): boolean {
   return false;
 }
 
-function parseTaskId(record: Record<string, unknown>): string {
+function parseTaskId(record: JsonObject): string {
   return pickText(record, ['taskId', 'jobId', 'id']);
 }
 

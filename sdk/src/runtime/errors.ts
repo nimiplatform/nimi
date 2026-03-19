@@ -1,5 +1,6 @@
 import type { NimiError, NimiErrorSource } from '../types/index.js';
 import { asRecord, readString } from '../internal/utils.js';
+import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
 
 export type CreateNimiErrorInput = {
@@ -10,14 +11,14 @@ export type CreateNimiErrorInput = {
   traceId?: string;
   retryable?: boolean;
   source?: NimiErrorSource;
-  details?: Record<string, unknown>;
+  details?: JsonObject;
 };
 
 export function isNimiError(error: unknown): error is NimiError {
   if (!error || typeof error !== 'object') {
     return false;
   }
-  const record = error as Record<string, unknown>;
+  const record = error as JsonObject;
   return (
     typeof record.reasonCode === 'string'
     && typeof record.actionHint === 'string'
@@ -27,7 +28,7 @@ export function isNimiError(error: unknown): error is NimiError {
   );
 }
 
-function readBoolean(record: Record<string, unknown>, keys: string[]): boolean | undefined {
+function readBoolean(record: JsonObject, keys: string[]): boolean | undefined {
   for (const key of keys) {
     const value = record[key];
     if (typeof value === 'boolean') {

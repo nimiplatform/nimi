@@ -35,7 +35,7 @@ async function run(): Promise<void> {
   const embedModel = env('NIMI_NIMILLM_EMBED_MODEL', 'nimillm/text-embedding-3-small');
   const imageModel = env('NIMI_NIMILLM_IMAGE_MODEL');
 
-  const { endpoint, provider } = createProviderContext({
+  const { endpoint, provider } = await createProviderContext({
     appId,
     subjectUserId,
     routePolicy: 'cloud',

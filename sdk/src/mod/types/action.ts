@@ -1,3 +1,4 @@
+import type { JsonObject } from '../../internal/utils.js';
 import type { HookSourceType } from './shared';
 
 export type HookActionExecutionMode = 'full' | 'guarded' | 'opaque';
@@ -23,8 +24,8 @@ export type HookActionCompensation = {
 
 export type HookActionDescriptor = {
   actionId: string;
-  inputSchema: Record<string, unknown>;
-  outputSchema: Record<string, unknown>;
+  inputSchema: JsonObject;
+  outputSchema: JsonObject;
   operation: HookActionOperation;
   riskLevel: HookActionRiskLevel;
   executionMode: HookActionExecutionMode;
@@ -67,14 +68,14 @@ export type HookActionResult = {
   executionId: string;
   traceId: string;
   auditId?: string;
-  output?: Record<string, unknown>;
+  output?: JsonObject;
   executionMode: HookActionExecutionMode;
   warnings?: string[];
 };
 
 export type HookActionDryRunRequest = {
   actionId: string;
-  input: Record<string, unknown>;
+  input: JsonObject;
   context: HookActionRequestContext;
   idempotencyKey?: string;
 };
@@ -91,7 +92,7 @@ export type HookActionCommitRequest = HookActionDryRunRequest & {
 export type HookActionVerifyResult = HookActionResult & {
   verifyTicket: string;
   expiresAt: string;
-  constraints?: Record<string, unknown>;
+  constraints?: JsonObject;
 };
 
 export type HookActionCommitResult = HookActionResult;
@@ -123,7 +124,7 @@ export type HookActionAuditRecord = {
   actionHint: string;
   outcome: 'allow' | 'deny' | 'error';
   occurredAt: string;
-  payload?: Record<string, unknown>;
+  payload?: JsonObject;
 };
 
 export type RuntimeHookActionFacade = {
@@ -137,20 +138,20 @@ export type RuntimeHookActionFacade = {
       actionId: string;
       modId: string;
       sourceType: HookSourceType;
-      input: Record<string, unknown>;
+      input: JsonObject;
       context: HookActionRequestContext;
       idempotencyKey?: string;
     }) => Promise<{
       ok: boolean;
       reasonCode?: string;
       actionHint?: string;
-      output?: Record<string, unknown>;
+      output?: JsonObject;
       warnings?: string[];
     }> | {
       ok: boolean;
       reasonCode?: string;
       actionHint?: string;
-      output?: Record<string, unknown>;
+      output?: JsonObject;
       warnings?: string[];
     };
   }) => HookActionDescriptorView;
@@ -171,20 +172,20 @@ export type HookActionClient = {
       actionId: string;
       modId: string;
       sourceType: HookSourceType;
-      input: Record<string, unknown>;
+      input: JsonObject;
       context: HookActionRequestContext;
       idempotencyKey?: string;
     }) => Promise<{
       ok: boolean;
       reasonCode?: string;
       actionHint?: string;
-      output?: Record<string, unknown>;
+      output?: JsonObject;
       warnings?: string[];
     }> | {
       ok: boolean;
       reasonCode?: string;
       actionHint?: string;
-      output?: Record<string, unknown>;
+      output?: JsonObject;
       warnings?: string[];
     };
   }) => HookActionDescriptorView;

@@ -1,3 +1,4 @@
+import type { JsonObject } from '../internal/utils.js';
 import type { RuntimeCallOptions, RuntimeClient, RuntimeStreamCallOptions } from './types.js';
 import type { RuntimeOptions } from './types.js';
 import type {
@@ -43,5 +44,5 @@ export interface RuntimeInternalContext {
   resolveOptionalSubjectUserId: (explicit?: string) => Promise<string | undefined>;
 
   /** Emit a telemetry event. */
-  emitTelemetry: (name: string, data?: Record<string, unknown>) => void;
+  emitTelemetry: (name: string, data?: JsonObject) => void;
 }

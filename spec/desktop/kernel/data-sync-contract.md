@@ -12,7 +12,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 - **API 初始化** — `dataSync.initApi(config)` 设置 realm 连接参数（`realmBaseUrl`、`accessToken`、`fetchImpl`），持久化到 `globalThis.__NIMI_DATA_SYNC_API_CONFIG__` 热状态。
 - **热状态** — `readDataSyncHotState()` / `writeDataSyncHotState()` 跨 HMR 重载保持 API 连接状态。Store 热状态通过 `globalThis` 键保持 HMR 连续性。
-- **上下文锁** — `callApi()` 内部使用 `withOpenApiContextLock` 确保同一时刻只有一个 Realm 客户端上下文激活，响应通过 JSON 解析归一化，错误通过 `normalizeApiError` 归一化（错误格式参考 `D-NET-005`）。
+- **上下文锁** — `callApi()` 内部使用 SDK `withRealmContextLock` 确保同一时刻只有一个 Realm 客户端上下文激活，响应通过 JSON 解析归一化，错误通过 `normalizeApiError` 归一化（错误格式参考 `D-NET-005`）。
 - **轮询管理** — `DataSyncPollingManager` 提供 key-based 轮询：`startPolling(key, callback, intervalMs)`、`stopPolling(key)`、`stopAllPolling()`。
 - **错误日志** — `emitDataSyncError` 通过 runtime telemetry 记录错误（日志区域 `datasync`，消息格式 `action:${actionName}:failed`）。
 - **初始数据加载** — `loadInitialData()` 按序加载 `loadCurrentUser()` → `loadChats()` → `loadContacts()`。

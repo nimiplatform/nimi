@@ -41,7 +41,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 ## D-BOOT-002 — Platform Client 初始化
 
-使用 `D-BOOT-001` 获取的 realmBaseUrl 和 accessToken 初始化 `initializePlatformClient`。
+使用 `D-BOOT-001` 获取的 realmBaseUrl 和 accessToken 初始化 SDK 根导出的 `createPlatformClient()`。
 
 - 必须在 DataSync 初始化之前完成。
 

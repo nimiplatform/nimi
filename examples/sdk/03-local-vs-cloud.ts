@@ -4,9 +4,11 @@
  * Run: npx tsx examples/sdk/03-local-vs-cloud.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'example.sdk.local-vs-cloud',
+});
 const prompt = 'Explain why one runtime for local and cloud AI is useful.';
 
 for (const [label, input] of [

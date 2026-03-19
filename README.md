@@ -87,9 +87,11 @@ npm install @nimiplatform/sdk
 ```
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'readme.quickstart',
+});
 
 const local = await runtime.generate({
   prompt: 'Explain Nimi in one sentence.',
@@ -108,7 +110,7 @@ The runtime call shape stays the same. Add `provider` when you want the cloud de
 
 If the runtime is not running, `nimi run` points you back to `nimi start`.
 
-High-level onboarding stays on `nimi run` and `runtime.generate()/stream()`. Fully-qualified explicit model ids stay on lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
+High-level onboarding stays on `nimi run`, `createPlatformClient()`, and `runtime.generate()/stream()`. Fully-qualified explicit model ids stay on lower-level surfaces such as `nimi ai text-generate --model-id ...` and `runtime.ai.text.generate({ model: ... })`.
 
 <p align="center">
   <img src="docs/assets/nimi-sdk.gif" alt="Nimi SDK walkthrough" width="1100">
@@ -118,10 +120,12 @@ High-level onboarding stays on `nimi run` and `runtime.generate()/stream()`. Ful
 
 ```ts
 import { generateText } from 'ai';
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'readme.vercel-ai',
+});
 const nimi = createNimiAiProvider({ runtime });
 
 const { text } = await generateText({

@@ -626,12 +626,12 @@ Nimi 的错误由两层组成，二者正交：
 为什么 transport 必须显式声明？因为 \`node-grpc\` 和 \`tauri-ipc\` 的行为差异远超一个 adapter 能隐藏的范围：gRPC 有独立连接池、HTTP/2 多路复用、超时语义；IPC 走 Tauri 进程间通道，无网络栈。如果让 SDK "自动检测"使用哪种 transport，调用者在调试失败时将无法判断问题出在网络层还是 IPC 层。
 
 \`\`\`typescript
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-// 必须显式声明 transport — 不允许隐式默认
-const runtime = new Runtime({
-  transport: 'tauri-ipc',   // 或 'node-grpc'
-  // endpoint: 仅 node-grpc 需要
+// app 主路径使用 createPlatformClient；底层 runtime 子路径保留为 escape hatch
+const { runtime } = await createPlatformClient({
+  appId: 'my-app',
+  runtimeTransport: { type: 'tauri-ipc' },   // 或 node-grpc + endpoint
 });
 \`\`\``);
   d.blank();
@@ -739,11 +739,13 @@ SDK 的五个子路径之间有**物理级导入隔离**，而非仅靠文档约
 
   d.text(`### 9.5 各子路径领域概述
 
-**Runtime SDK** 是最重的子路径。入口 \`new Runtime(options)\` 必须声明 transport（如 9.2 所述），构造后提供与 Runtime 守护进程完整的方法投影：连接器 CRUD、AI 推理触发、认证管理、Grant 操作等。方法按 service 分组（如 S-SURFACE-002 / S-SURFACE-009 所定义），每个方法调用携带显式的 metadata/body 分离。重试策略按上述三层模型执行。
+**SDK 根入口** \`createPlatformClient()\` 是 app 级组合面。它把 Runtime 与 Realm 的实例化、auth/session 注入和第一方高层 domains 收敛到一个入口，作为 docs/examples/第一方 app 的推荐主路径。
+
+**Runtime SDK** 是最重的 low-level 子路径。\`new Runtime(options)\` 仍是允许的 escape hatch，用于显式 transport、测试和协议级控制；构造后提供与 Runtime 守护进程完整的方法投影：连接器 CRUD、AI 推理触发、认证管理、Grant 操作等。方法按 service 分组（如 S-SURFACE-002 / S-SURFACE-009 所定义），每个方法调用携带显式的 metadata/body 分离。重试策略按上述三层模型执行。
 
 **AI Provider** 是 Runtime SDK 上层的协议适配。它实现 AI SDK v3 的 \`LanguageModelV1\` / \`EmbeddingModelV1\` 接口，将标准化调用（\`generateText\`、\`embed\`、\`generateMedia\`）翻译为对应的 Runtime gRPC 方法。AI Provider **只做协议转换**——路由决策由 Desktop 的 LLM 适配器或调用方完成。
 
-**Realm SDK** 通过 HTTP/WebSocket 与远程 Realm 服务器通信。每个 \`new Realm(options)\` 实例独立配置 endpoint、token、headers（如 S-TRANSPORT-004 所定义）。Realm SDK 的认证模型允许 \`NO_AUTH\` 模式用于公开数据读取。本地配置错误使用 \`SDK_REALM_*\` 族错误码。
+**Realm SDK** 通过 HTTP/WebSocket 与远程 Realm 服务器通信。每个 \`new Realm(options)\` 实例独立配置 endpoint、token、headers（如 S-TRANSPORT-004 所定义）；它同样保留为 low-level escape hatch，而 app 主路径优先经由 \`createPlatformClient()\` 获取 Realm 实例。Realm SDK 的认证模型允许 \`NO_AUTH\` 模式用于公开数据读取。本地配置错误使用 \`SDK_REALM_*\` 族错误码。
 
 **Scope SDK** 维护纯内存的权限目录。核心 API 是 \`register\` / \`publish\` / \`revoke\` 三操作，不涉及网络通信。Scope catalog 是进程级的——各 Runtime 实例共享同一个 catalog 实例。
 

@@ -6,10 +6,12 @@
 
 import { generateText } from 'ai';
 
+import { createPlatformClient } from '@nimiplatform/sdk';
 import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';
-import { Runtime } from '@nimiplatform/sdk/runtime';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'example.sdk.vercel-ai',
+});
 const nimi = createNimiAiProvider({ runtime });
 
 const { text } = await generateText({

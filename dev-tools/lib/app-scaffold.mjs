@@ -35,9 +35,11 @@ function buildBasicAppTemplate(versions) {
     {
       path: 'index.ts',
       content: [
-        "import { Runtime } from '@nimiplatform/sdk/runtime';",
+        "import { createPlatformClient } from '@nimiplatform/sdk';",
         '',
-        'const runtime = new Runtime();',
+        'const { runtime } = await createPlatformClient({',
+        "  appId: 'my-nimi-app',",
+        '});',
         '',
         'const result = await runtime.generate({',
         "  prompt: 'What is Nimi in one sentence?',",
@@ -95,11 +97,13 @@ function buildVercelAIAppTemplate(versions) {
     {
       path: 'index.ts',
       content: [
-        "import { Runtime } from '@nimiplatform/sdk/runtime';",
+        "import { createPlatformClient } from '@nimiplatform/sdk';",
         "import { createNimiAiProvider } from '@nimiplatform/sdk/ai-provider';",
         "import { generateText } from 'ai';",
         '',
-        'const runtime = new Runtime();',
+        'const { runtime } = await createPlatformClient({',
+        "  appId: 'my-nimi-app',",
+        '});',
         'const nimi = createNimiAiProvider({ runtime });',
         '',
         'const { text } = await generateText({',

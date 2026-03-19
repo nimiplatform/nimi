@@ -16,6 +16,8 @@
 
 本文件是 runtime 子路径导引。公开方法、连接语义与重试基线由 sdk kernel 定义。
 
+对 app/docs/examples 而言，官方推荐入口是 `@nimiplatform/sdk` 根导出的 `createPlatformClient()`；本文件描述的 `@nimiplatform/sdk/runtime` 属于显式 runtime low-level surface。
+
 ## 2. 阅读路径
 
 1. runtime 主合同：`kernel/runtime-contract.md`。
@@ -29,7 +31,7 @@
 
 当前 runtime projection 已包含 engine-first 本地 surface，并且上层消费面必须遵守以下 kernel 约束：
 
-- `S-RUNTIME-010` / `S-TRANSPORT-001`: Node.js 环境允许 `new Runtime()` 走本地 `node-grpc` 默认值；非 Node 环境缺失 transport 时必须 fail-close。
+- `S-RUNTIME-010` / `S-TRANSPORT-001`: Node.js 环境允许 runtime 子路径上的 `new Runtime()` 走本地 `node-grpc` 默认值，但 app/docs/examples 的官方主路径是 `createPlatformClient()`；非 Node 环境缺失 transport 时必须 fail-close。
 - `S-RUNTIME-011` / `S-SURFACE-002`: runtime 子路径公开方法集合以 `runtime-method-groups.yaml` 为权威，不能漂移到 legacy runtime surface。
 - `S-RUNTIME-011`: `Runtime.generate()` / `Runtime.stream()` 允许作为 first-run convenience surface，但必须复用现有 runtime text projection，并采用 bare local / provider default / provider explicit 的 high-level targeting 语义。
 - `S-RUNTIME-011`: `runtime.media.music.iterate()` 允许作为 music iteration 的 first-class convenience surface，但必须继续复用 `MUSIC_GENERATE` + `ScenarioJob` + artifact 主链，不得新增私有 RPC。

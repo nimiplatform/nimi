@@ -38,7 +38,7 @@ async function run(): Promise<void> {
   const subjectUserId = env('NIMI_SUBJECT_USER_ID', 'local-user');
   const model = env('NIMI_KIMI_IMAGE_MODEL', 'kimi/moonshot-v1-vision');
 
-  const { endpoint, provider } = createProviderContext({
+  const { endpoint, provider } = await createProviderContext({
     appId,
     subjectUserId,
     routePolicy: 'cloud',

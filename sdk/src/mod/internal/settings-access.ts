@@ -1,3 +1,4 @@
+import type { JsonObject } from '../../internal/utils.js';
 import { createNimiError } from '../../runtime/errors.js';
 import { ReasonCode } from '../../types/index.js';
 import { getModSdkHost } from '../host.js';
@@ -15,10 +16,10 @@ function requireSettings() {
   });
 }
 
-export function useModSdkRuntimeModSettings(modId: string): Record<string, unknown> {
+export function useModSdkRuntimeModSettings(modId: string): JsonObject {
   return requireSettings().useRuntimeModSettings(modId);
 }
 
-export function setModSdkRuntimeModSettings(modId: string, settings: Record<string, unknown>): void {
+export function setModSdkRuntimeModSettings(modId: string, settings: JsonObject): void {
   requireSettings().setRuntimeModSettings(modId, settings);
 }

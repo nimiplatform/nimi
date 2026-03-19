@@ -1,8 +1,10 @@
 import type { NimiError } from '../types/index.js';
+import type { JsonObject } from '../internal/utils.js';
 import type {
   RealmGeneratedServiceRegistry,
   RealmRawRequestInput,
 } from './generated/service-registry.js';
+import type { RealmOperationResult } from './generated/operation-map.js';
 import type { components } from './generated/schema.js';
 
 export type RealmConnectionState = {
@@ -14,7 +16,7 @@ export type RealmConnectionState = {
 export type RealmTelemetryEvent = {
   name: string;
   at: string;
-  data?: Record<string, unknown>;
+  data?: JsonObject;
 };
 
 export type RealmTokenRefreshResult = {
@@ -81,6 +83,8 @@ type _UpdateMeResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['MeServi
 type _ListMessagesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['HumanChatService']['listMessages']>>;
 type _StartChatResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['HumanChatService']['startChat']>>;
 type _WorldDetailResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['WorldsService']['worldControllerGetWorld']>>;
+type _GetMeOperationResult = RealmOperationResult<'MeService.getMe'>;
+type _PublicPostOperationResult = RealmOperationResult<'PostService.getPublicPost'>;
 
 type _GuardListMessagesFirstArg = Assert<_ListMessagesArgs[0] extends string ? true : false>;
 type _GuardListMessagesSecondArg = Assert<_ListMessagesArgs[1] extends number | undefined ? true : false>;
@@ -115,4 +119,12 @@ type _GuardStartChatResult = Assert<IsEqual<
 type _GuardWorldDetailResult = Assert<IsEqual<
   _WorldDetailResult,
   components['schemas']['WorldDetailDto']
+>>;
+type _GuardGetMeOperationResult = Assert<IsEqual<
+  _GetMeOperationResult,
+  components['schemas']['UserPrivateDto']
+>>;
+type _GuardPublicPostOperationResult = Assert<IsEqual<
+  _PublicPostOperationResult,
+  components['schemas']['PostDto']
 >>;

@@ -1,3 +1,4 @@
+import type { JsonObject } from '../../internal/utils.js';
 import type { HookSourceType } from './shared';
 
 export type HookStorageFileKind = 'file' | 'directory';
@@ -80,7 +81,7 @@ export type RuntimeHookStorageFacade = {
         sourceType?: HookSourceType;
         sql: string;
         params?: unknown[];
-      }) => Promise<Record<string, unknown>[]>;
+      }) => Promise<JsonObject[]>;
       execute: (input: {
         modId: string;
         sourceType?: HookSourceType;
@@ -110,7 +111,7 @@ export type HookStorageClient = {
     query: (input: {
       sql: string;
       params?: unknown[];
-    }) => Promise<Record<string, unknown>[]>;
+    }) => Promise<JsonObject[]>;
     execute: (input: {
       sql: string;
       params?: unknown[];

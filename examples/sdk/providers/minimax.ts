@@ -34,7 +34,7 @@ async function run(): Promise<void> {
   const imageModel = env('NIMI_MINIMAX_IMAGE_MODEL', 'minimax/image-1');
   const videoModel = env('NIMI_MINIMAX_VIDEO_MODEL', 'minimax/video-1');
 
-  const { endpoint, provider } = createProviderContext({
+  const { endpoint, provider } = await createProviderContext({
     appId,
     subjectUserId,
     routePolicy: 'cloud',

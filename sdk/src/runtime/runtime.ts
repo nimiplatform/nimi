@@ -1,4 +1,5 @@
 import { createEventBus } from '../internal/event-bus.js';
+import type { JsonObject } from '../internal/utils.js';
 import { createScopeModule, type ScopeModule } from '../scope/index.js';
 import { ReasonCode, type VersionCompatibilityStatus } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
@@ -165,7 +166,7 @@ export class Runtime {
       : undefined);
     if (!transportInput) {
       throw createNimiError({
-        message: 'transport is required outside Node.js. new Runtime() only auto-configures transport in Node.js; pass transport explicitly (for example node-grpc or tauri-ipc).',
+        message: 'transport is required outside Node.js. App-level consumers should use createPlatformClient(); direct Runtime construction only auto-configures transport in Node.js. Otherwise pass transport explicitly (for example node-grpc or tauri-ipc).',
         reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
         actionHint: 'set_transport',
         source: 'sdk',
@@ -478,7 +479,7 @@ export class Runtime {
     });
   }
 
-  #emitTelemetry(name: string, data?: Record<string, unknown>): void {
+  #emitTelemetry(name: string, data?: JsonObject): void {
     if (!this.#options.telemetry?.enabled || typeof this.#options.telemetry.onEvent !== 'function') {
       return;
     }

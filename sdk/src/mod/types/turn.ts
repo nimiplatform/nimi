@@ -1,3 +1,4 @@
+import type { JsonObject } from '../../internal/utils.js';
 import type {
   HookSourceType,
   TurnHookPoint,
@@ -10,8 +11,8 @@ export type RuntimeHookTurnFacade = {
     point: TurnHookPoint;
     priority?: number;
     handler: (
-      context: Record<string, unknown>,
-    ) => Promise<Record<string, unknown>> | Record<string, unknown>;
+      context: JsonObject,
+    ) => Promise<JsonObject> | JsonObject;
   }) => Promise<void>;
   unregisterTurnHook: (input: {
     modId: string;
@@ -19,10 +20,10 @@ export type RuntimeHookTurnFacade = {
   }) => number;
   invokeTurnHooks: (input: {
     point: TurnHookPoint;
-    context: Record<string, unknown>;
+    context: JsonObject;
     abortSignal?: AbortSignal;
   }) => Promise<{
-    context: Record<string, unknown>;
+    context: JsonObject;
     errors: Array<{ modId: string; point: TurnHookPoint; error: string }>;
     aborted: boolean;
   }>;
@@ -33,18 +34,18 @@ export type HookTurnClient = {
     point: TurnHookPoint;
     priority?: number;
     handler: (
-      context: Record<string, unknown>,
-    ) => Promise<Record<string, unknown>> | Record<string, unknown>;
+      context: JsonObject,
+    ) => Promise<JsonObject> | JsonObject;
   }) => Promise<void>;
   unregister: (input: {
     point: TurnHookPoint;
   }) => number;
   invoke: (input: {
     point: TurnHookPoint;
-    context: Record<string, unknown>;
+    context: JsonObject;
     abortSignal?: AbortSignal;
   }) => Promise<{
-    context: Record<string, unknown>;
+    context: JsonObject;
     errors: Array<{ modId: string; point: TurnHookPoint; error: string }>;
     aborted: boolean;
   }>;

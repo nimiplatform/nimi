@@ -1,4 +1,6 @@
 import type { ScopeModule } from '../scope/index.js';
+import { asRecord } from '../internal/utils.js';
+import type { JsonObject } from '../internal/utils.js';
 import { normalizeText, nowIso, wrapModeBWorkflowStream } from './helpers.js';
 import {
   runtimeGenerateText,
@@ -74,7 +76,7 @@ type RuntimeAuthEventEmitter = {
   emitTokenRevoked: (tokenId: string) => void;
 };
 
-type RuntimeTelemetryEmitter = (name: string, data?: Record<string, unknown>) => void;
+type RuntimeTelemetryEmitter = (name: string, data?: JsonObject) => void;
 
 export type RuntimeCorePassthroughClients = {
   auth: RuntimeAuthClient;
@@ -246,9 +248,8 @@ export function createAppAuthClient(
         optionsValue,
       ));
 
-      const issuedScopeCatalogVersion = normalizeText(
-        (response as unknown as Record<string, unknown>).issuedScopeCatalogVersion,
-      );
+      const responseRecord = asRecord(response);
+      const issuedScopeCatalogVersion = normalizeText(responseRecord.issuedScopeCatalogVersion);
       if (issuedScopeCatalogVersion && issuedScopeCatalogVersion !== resolvedScopeCatalogVersion) {
         emitTelemetry('runtime.app-auth.scope-version-mismatch', {
           requested: resolvedScopeCatalogVersion,
@@ -256,7 +257,7 @@ export function createAppAuthClient(
         });
       }
 
-      const tokenId = normalizeText((response as unknown as Record<string, unknown>).tokenId);
+      const tokenId = normalizeText(responseRecord.tokenId);
       if (tokenId) {
         authEvents.emitTokenIssued(tokenId);
       }
@@ -270,7 +271,7 @@ export function createAppAuthClient(
       const response = await invokeWithClient(
         async (client) => client.appAuth.revokeToken(request, optionsValue),
       );
-      const tokenId = normalizeText((request as unknown as Record<string, unknown>).tokenId);
+      const tokenId = normalizeText(asRecord(request).tokenId);
       if (tokenId) {
         authEvents.emitTokenRevoked(tokenId);
       }
@@ -280,7 +281,7 @@ export function createAppAuthClient(
       const response = await invokeWithClient(
         async (client) => client.appAuth.issueDelegatedToken(request, optionsValue),
       );
-      const tokenId = normalizeText((response as unknown as Record<string, unknown>).tokenId);
+      const tokenId = normalizeText(asRecord(response).tokenId);
       if (tokenId) {
         authEvents.emitTokenIssued(tokenId);
       }

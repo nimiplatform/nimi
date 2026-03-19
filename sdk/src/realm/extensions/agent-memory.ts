@@ -1,3 +1,4 @@
+import { asRecord, isJsonObject, type JsonObject } from '../../internal/utils.js';
 import type { Realm } from '../client.js';
 
 export type AgentMemorySliceInput = {
@@ -17,8 +18,8 @@ export type AgentMemoryRecallInput = {
   topK?: number;
 };
 
-export type AgentMemoryRecord = Record<string, unknown>;
-export type AgentMemoryRecallOutput = Record<string, unknown>;
+export type AgentMemoryRecord = JsonObject;
+export type AgentMemoryRecallOutput = JsonObject;
 
 function normalizeText(value: unknown): string {
   return String(value || '').trim();
@@ -35,11 +36,11 @@ function requireId(value: unknown, errorCode: string): string {
 function toRecordArray(value: unknown): AgentMemoryRecord[] {
   if (Array.isArray(value)) {
     return value
-      .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
+      .filter((item): item is AgentMemoryRecord => isJsonObject(item))
       .map((item) => item as AgentMemoryRecord);
   }
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
+  if (isJsonObject(value)) {
+    const record = value;
     if (Array.isArray(record.items)) {
       return toRecordArray(record.items);
     }
@@ -116,5 +117,5 @@ export async function recallAgentMemoriesForEntity(
     path: `/api/agent/accounts/${encodeURIComponent(agentId)}/memory/recall/${encodeURIComponent(entityId)}`,
     query: buildRecallQuery(input),
   });
-  return payload && typeof payload === 'object' ? payload : {};
+  return isJsonObject(payload) ? payload : {};
 }

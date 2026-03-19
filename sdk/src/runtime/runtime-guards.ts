@@ -1,3 +1,4 @@
+import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
 import type { NimiError, VersionCompatibilityStatus } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
@@ -9,7 +10,7 @@ export function checkRuntimeVersionCompatibility(input: {
   version: string;
   versionChecked: boolean;
   sdkRuntimeMajor: number;
-  emitTelemetry: (name: string, data?: Record<string, unknown>) => void;
+  emitTelemetry: (name: string, data?: JsonObject) => void;
   emitError: (error: NimiError) => void;
   setStatus?: (status: VersionCompatibilityStatus) => void;
 }): VersionCompatibilityStatus {
@@ -188,14 +189,14 @@ type RuntimeAiRequestLike = {
 
 type RuntimeAiMetadataLike =
   | Pick<RuntimeMetadata, 'keySource' | 'providerType' | 'providerEndpoint' | 'providerApiKey'>
-  | Record<string, unknown>
+  | JsonObject
   | undefined;
 
 function metadataValue(metadata: RuntimeAiMetadataLike, key: string, altKey?: string): string {
   if (!metadata) {
     return '';
   }
-  const record = metadata as Record<string, unknown>;
+  const record = metadata as JsonObject;
   return normalizeText(record[key] ?? (altKey ? record[altKey] : undefined));
 }
 

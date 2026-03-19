@@ -154,20 +154,16 @@ pnpm add @nimiplatform/sdk
 最小示例（Runtime + Realm）：
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
-import { Realm } from '@nimiplatform/sdk/realm';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime({
+const { runtime, realm } = await createPlatformClient({
   appId: 'my_app',
-  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
-});
-
-const realm = new Realm({
-  baseUrl: 'https://api.nimi.xyz',
+  runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+  realmBaseUrl: 'https://api.nimi.xyz',
 });
 ```
 
-当前 SDK 主入口是 `Runtime` / `Realm`。不要使用 `createNimiClient`。
+当前 SDK 主入口是根导出的 `createPlatformClient()`。`Runtime` / `Realm` 子路径保留为 low-level escape hatch。不要使用 `createNimiClient`。
 
 Runtime 实例暴露以下模块：`auth`、`appAuth`、`ai`、`media`、`model`、`local`、`connector`、`knowledge`、`workflow`、`app`、`audit`、`scope`、`events`、`raw`。
 

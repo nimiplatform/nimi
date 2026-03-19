@@ -1,4 +1,5 @@
 import type { NimiError } from '../types/index.js';
+import type { JsonObject } from '../internal/utils.js';
 import type {
   ArtifactChunk,
   ScenarioArtifact,
@@ -115,7 +116,7 @@ export type ImageGenerateInput = {
   referenceImages?: string[];
   mask?: string;
   responseFormat?: 'url' | 'base64';
-  extensions?: Record<string, unknown>;
+  extensions?: JsonObject;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -160,7 +161,7 @@ export type VideoGenerateInput = {
     executionExpiresAfterSec?: number;
     returnLastFrame?: boolean;
   };
-  extensions?: Record<string, unknown>;
+  extensions?: JsonObject;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -184,7 +185,7 @@ export type SpeechSynthesizeInput = {
   pitch?: number;
   volume?: number;
   emotion?: string;
-  extensions?: Record<string, unknown>;
+  extensions?: JsonObject;
   timingMode?: 'none' | 'word' | 'char';
   voiceRenderHints?: {
     stability?: number;
@@ -218,7 +219,7 @@ export type SpeechTranscribeInput = {
   speakerCount?: number;
   prompt?: string;
   responseFormat?: string;
-  extensions?: Record<string, unknown>;
+  extensions?: JsonObject;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
@@ -287,7 +288,7 @@ export type MusicGenerateInput = {
   title?: string;
   durationSeconds?: number;
   instrumental?: boolean;
-  extensions?: Record<string, unknown>;
+  extensions?: JsonObject;
   route?: NimiRoutePolicy;
   fallback?: NimiFallbackPolicy;
   timeoutMs?: number;

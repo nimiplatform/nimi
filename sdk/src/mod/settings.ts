@@ -1,10 +1,11 @@
 import { useCallback, useMemo } from 'react';
+import type { JsonObject } from '../internal/utils.js';
 import { loadStorageJsonFrom, saveStorageJsonTo } from './local-storage';
 import { setModSdkRuntimeModSettings, useModSdkRuntimeModSettings } from './internal/settings-access.js';
 
 export const RUNTIME_MOD_SETTINGS_STORAGE_KEY = 'nimi.runtime.mod-settings.v1';
 
-export type RuntimeModSettingsMap = Record<string, Record<string, unknown>>;
+export type RuntimeModSettingsMap = Record<string, JsonObject>;
 
 type RuntimeModSettingsStoragePayload = {
   version: 1;
@@ -25,11 +26,11 @@ function normalizeModId(value: unknown): string {
   return String(value || '').trim();
 }
 
-function normalizeModSettingsValue(value: unknown): Record<string, unknown> {
+function normalizeModSettingsValue(value: unknown): JsonObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {};
   }
-  return value as Record<string, unknown>;
+  return value as JsonObject;
 }
 
 export function normalizeRuntimeModSettingsMap(value: unknown): RuntimeModSettingsMap {
@@ -37,9 +38,9 @@ export function normalizeRuntimeModSettingsMap(value: unknown): RuntimeModSettin
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return {};
     }
-    const record = value as Record<string, unknown>;
+    const record = value as JsonObject;
     if (record.byModId && typeof record.byModId === 'object' && !Array.isArray(record.byModId)) {
-      return record.byModId as Record<string, unknown>;
+      return record.byModId as Record<string, JsonObject>;
     }
     return record;
   })();
@@ -69,14 +70,14 @@ export function persistRuntimeModSettingsMap(map: RuntimeModSettingsMap): void {
   saveStorageJsonTo(storage, RUNTIME_MOD_SETTINGS_STORAGE_KEY, payload);
 }
 
-export function readRuntimeModSettings(modId: string): Record<string, unknown> {
+export function readRuntimeModSettings(modId: string): JsonObject {
   const normalizedModId = normalizeModId(modId);
   if (!normalizedModId) return {};
   const map = loadRuntimeModSettingsMap();
   return map[normalizedModId] || {};
 }
 
-export function writeRuntimeModSettings(modId: string, settings: Record<string, unknown>): void {
+export function writeRuntimeModSettings(modId: string, settings: JsonObject): void {
   const normalizedModId = normalizeModId(modId);
   if (!normalizedModId) return;
   const map = loadRuntimeModSettingsMap();
@@ -95,14 +96,14 @@ export function removeRuntimeModSettings(modId: string): void {
   persistRuntimeModSettingsMap(map);
 }
 
-function identityNormalize<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
+function identityNormalize<T extends JsonObject>(value: unknown, fallback: T): T {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return fallback;
   }
   return value as T;
 }
 
-export function useRuntimeModSettings<T extends Record<string, unknown>>(input: {
+export function useRuntimeModSettings<T extends JsonObject>(input: {
   modId: string;
   defaults: T;
   normalize?: (value: unknown) => T;

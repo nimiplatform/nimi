@@ -6,9 +6,11 @@
 
 import { writeFile } from 'node:fs/promises';
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'example.sdk.multimodal',
+});
 
 async function saveImage() {
   const chunks: Uint8Array[] = [];

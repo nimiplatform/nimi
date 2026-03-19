@@ -5,11 +5,11 @@
 
 import { resolve } from 'node:path';
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime({
+const { runtime } = await createPlatformClient({
   appId: 'example.knowledge',
-  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+  runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
 const indexId = 'docs.nimi';

@@ -1,4 +1,5 @@
 import i18next from 'i18next';
+import type { JsonObject } from '../internal/utils.js';
 import {
   getI18n,
   initReactI18next,
@@ -11,7 +12,7 @@ type RuntimeI18nLike = {
   addResourceBundle: (
     lng: string,
     ns: string,
-    resources: Record<string, unknown>,
+    resources: JsonObject,
     deep?: boolean,
     overwrite?: boolean,
   ) => unknown;
@@ -23,7 +24,7 @@ type RuntimeI18nLike = {
 type PendingTranslationEntry = {
   modId: string;
   locale: string;
-  translations: Record<string, unknown>;
+  translations: JsonObject;
 };
 
 let runtimeI18nBinding: RuntimeI18nLike | null = null;
@@ -179,7 +180,7 @@ export function getPromptLocale(): PromptLocale {
 export function registerModTranslations(
   modId: string,
   locale: string,
-  translations: Record<string, unknown>,
+  translations: JsonObject,
 ): void {
   const normalizedModId = String(modId || '').trim();
   if (!normalizedModId) {

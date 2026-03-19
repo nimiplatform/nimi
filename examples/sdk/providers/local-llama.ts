@@ -37,7 +37,7 @@ async function run(): Promise<void> {
   const textPrompt = env('NIMI_LOCAL_TEXT_PROMPT', '用两句话介绍 Nimi runtime 的作用。');
   const imagePrompt = env('NIMI_LOCAL_IMAGE_PROMPT', 'A cinematic city skyline at sunset, digital art');
 
-  const { endpoint, provider } = createProviderContext({
+  const { endpoint, provider } = await createProviderContext({
     appId,
     subjectUserId,
     routePolicy: 'local',

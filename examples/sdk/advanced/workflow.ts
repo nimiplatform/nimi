@@ -3,7 +3,7 @@
  * Run: npx tsx examples/sdk/advanced/workflow.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 import {
   aiGenerateNode,
   FallbackPolicy,
@@ -18,9 +18,9 @@ import {
 
 const APP_ID = 'example.workflow';
 
-const runtime = new Runtime({
+const { runtime } = await createPlatformClient({
   appId: APP_ID,
-  transport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
+  runtimeTransport: { type: 'node-grpc', endpoint: '127.0.0.1:46371' },
 });
 
 const definition = workflowDefinition({

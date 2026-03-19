@@ -1,4 +1,5 @@
 import { ReasonCode } from '../types/index.js';
+import type { JsonObject } from '../internal/utils.js';
 import { createNimiError } from './errors.js';
 import {
   ExecutionMode,
@@ -49,14 +50,14 @@ export interface LocalImageWorkflowComponentSelection {
 
 export interface LocalImageWorkflowExtensionInput {
   components?: LocalImageWorkflowComponentSelection[];
-  profileOverrides?: Record<string, unknown>;
+  profileOverrides?: JsonObject;
 }
 
 const MUSIC_ITERATION_MODES = new Set(['extend', 'remix', 'reference']);
 
 export function buildMusicIterationExtensions(
   input: MusicIterationExtensionInput,
-): Record<string, unknown> {
+): JsonObject {
   const mode = normalizeText(input.mode).toLowerCase();
   const sourceAudioBase64 = normalizeText(input.sourceAudioBase64);
   const trimStartSec = normalizeOptionalMusicIterationSecond(input.trimStartSec, 'trimStartSec');
@@ -76,7 +77,7 @@ export function buildMusicIterationExtensions(
     throw createMusicIterationValidationError('music iteration trimEndSec must be greater than trimStartSec');
   }
 
-  const payload: Record<string, unknown> = {
+  const payload: JsonObject = {
     mode,
     source_audio_base64: sourceAudioBase64,
   };
@@ -147,9 +148,9 @@ function isValidMusicIterationBase64(value: string): boolean {
 
 export function buildLocalImageWorkflowExtensions(
   workflow: LocalImageWorkflowExtensionInput,
-  baseExtensions?: Record<string, unknown>,
-): Record<string, unknown> {
-  const merged: Record<string, unknown> = { ...(baseExtensions || {}) };
+  baseExtensions?: JsonObject,
+): JsonObject {
+  const merged: JsonObject = { ...(baseExtensions || {}) };
   const components = Array.isArray(workflow.components)
     ? workflow.components
       .map((item) => ({
@@ -315,7 +316,7 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
     spec: { spec: { oneofKind: undefined } },
     extensions: toScenarioExtensions(
       input.modal,
-      (input.input as { extensions?: Record<string, unknown> }).extensions,
+      (input.input as { extensions?: JsonObject }).extensions,
     ),
   };
 
@@ -539,7 +540,7 @@ const MODAL_EXTENSION_NAMESPACE: Record<ScenarioJobSubmitInput['modal'], string>
 
 function toScenarioExtensions(
   modal: ScenarioJobSubmitInput['modal'],
-  extensions: Record<string, unknown> | undefined,
+  extensions: JsonObject | undefined,
 ): ScenarioExtension[] {
   if (!extensions || Object.keys(extensions).length === 0) {
     return [];

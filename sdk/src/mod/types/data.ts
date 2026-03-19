@@ -1,3 +1,4 @@
+import type { JsonObject, JsonValue } from '../../internal/utils.js';
 import type { HookSourceType } from './shared';
 
 export type RuntimeHookDataFacade = {
@@ -5,13 +6,13 @@ export type RuntimeHookDataFacade = {
     modId: string;
     sourceType?: HookSourceType;
     capability: string;
-    query: Record<string, unknown>;
-  }) => Promise<unknown>;
+    query: JsonObject;
+  }) => Promise<JsonValue>;
   registerDataProvider: (input: {
     modId: string;
     sourceType?: HookSourceType;
     capability: string;
-    handler: (query: Record<string, unknown>) => Promise<unknown> | unknown;
+    handler: (query: JsonObject) => Promise<JsonValue> | JsonValue;
   }) => Promise<void>;
   unregisterDataProvider: (input: {
     modId: string;
@@ -23,11 +24,11 @@ export type RuntimeHookDataFacade = {
 export type HookDataClient = {
   query: (input: {
     capability: string;
-    query: Record<string, unknown>;
-  }) => Promise<unknown>;
+    query: JsonObject;
+  }) => Promise<JsonValue>;
   register: (input: {
     capability: string;
-    handler: (query: Record<string, unknown>) => Promise<unknown> | unknown;
+    handler: (query: JsonObject) => Promise<JsonValue> | JsonValue;
   }) => Promise<void>;
   unregister: (input: {
     capability: string;

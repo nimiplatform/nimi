@@ -6,7 +6,7 @@ export const SERVICE_REGISTRY_FACTORY_SECTION = [
   '    const methodMap = REALM_SERVICE_METHODS[serviceName];',
   '    const handle = {} as ServiceHandleByName<typeof serviceName>;',
   '    for (const methodName of Object.keys(methodMap) as Array<keyof typeof methodMap>) {',
-  '      const operationKey = methodMap[methodName] as OperationKey;',
+  '      const operationKey = methodMap[methodName] as RealmOperationKey;',
   '      const definition = REALM_OPERATION_MAP[operationKey] as RealmOperationDefinition;',
   '      (handle as Record<string, RealmOperationInvoker>)[String(methodName)] = async (...args: unknown[]) =>',
   '        execute(bindOperationInput(definition, args));',

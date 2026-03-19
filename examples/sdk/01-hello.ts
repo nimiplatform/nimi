@@ -5,9 +5,11 @@
  * Run: npx tsx examples/sdk/01-hello.ts
  */
 
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'example.sdk.hello',
+});
 
 const result = await runtime.generate({
   prompt: 'What is Nimi in one sentence?',

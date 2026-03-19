@@ -15,12 +15,14 @@ Nimi 为 App 开发者提供了统一的 runtime 和单一的 SDK（`@nimiplatfo
 npm install @nimiplatform/sdk
 ```
 
-### 2. 创建 Runtime 实例
+### 2. 创建 platform client
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.app-dev.quickstart',
+});
 ```
 
 ### 3. 生成文本
@@ -33,9 +35,11 @@ console.log(result.text);
 ### 最小可运行示例
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.app-dev.minimal',
+});
 const result = await runtime.generate({ prompt: 'What is Nimi?' });
 console.log(result.text);
 ```

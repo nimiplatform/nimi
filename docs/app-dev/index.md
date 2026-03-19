@@ -15,12 +15,14 @@ Nimi gives app developers a single runtime and a single SDK (`@nimiplatform/sdk`
 npm install @nimiplatform/sdk
 ```
 
-### 2. Create a Runtime instance
+### 2. Create a platform client
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.app-dev.quickstart',
+});
 ```
 
 ### 3. Generate
@@ -33,9 +35,11 @@ console.log(result.text);
 ### Minimal working example
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.app-dev.minimal',
+});
 const result = await runtime.generate({ prompt: 'What is Nimi?' });
 console.log(result.text);
 ```

@@ -27,7 +27,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
 type SavedConnector = {
   connectorId: string;
@@ -98,13 +98,13 @@ async function main(): Promise<void> {
     apiKey: requiredEnv('NIMI_BYTEDANCE_API_KEY'),
   });
 
-  const runtime = new Runtime({
+  const { runtime } = await createPlatformClient({
     appId,
-    transport: {
+    runtimeTransport: {
       type: 'node-grpc',
       endpoint,
     },
-    defaults: {
+    runtimeDefaults: {
       callerKind: 'desktop-core',
       callerId: 'docs-example-provider',
     },

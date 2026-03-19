@@ -3,6 +3,7 @@ import { normalizeMethodName, normalizeOperationId } from './legacy-normalizatio
 import { normalizeTagToService, toLowerCamel } from './operation-naming.mjs';
 import { mergeOperationParameters } from './operation-parameters.mjs';
 import { resolveOperationRequestBody } from './operation-request-body.mjs';
+import { resolveOperationSuccessResponse } from './operation-success-response.mjs';
 
 function isFilteredPath(pathName) {
   return /^\/api\/admin(?:\/|$)/i.test(pathName);
@@ -55,6 +56,7 @@ export function parseRealmOperations(spec) {
       );
       const parameters = mergeOperationParameters(spec, pathName, pathItem, operation);
       const bodyDescriptor = resolveOperationRequestBody(spec, operation);
+      const successDescriptor = resolveOperationSuccessResponse(spec, operation);
       const operationKey = `${service}.${methodName}`;
 
       operations.push({
@@ -69,6 +71,9 @@ export function parseRealmOperations(spec) {
         hasBody: bodyDescriptor.hasBody,
         bodyRequired: bodyDescriptor.bodyRequired,
         requestBodyContentType: bodyDescriptor.requestBodyContentType,
+        successStatusCodes: successDescriptor.successStatusCodes,
+        successContentTypes: successDescriptor.successContentTypes,
+        hasSuccessBody: successDescriptor.hasSuccessBody,
       });
     }
   }

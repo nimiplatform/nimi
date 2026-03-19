@@ -14,16 +14,18 @@
 ## 基本用法
 
 ```ts
-import { Runtime } from '@nimiplatform/sdk/runtime';
+import { createPlatformClient } from '@nimiplatform/sdk';
 
-const runtime = new Runtime();
+const { runtime } = await createPlatformClient({
+  appId: 'docs.sdk.reference',
+});
 
 const result = await runtime.generate({
   prompt: 'What is Nimi?',
 });
 ```
 
-Node.js 用户可以使用 `new Runtime()` 连接本地 daemon 默认配置。如果在非 Node.js 环境中运行，或需要连接非默认端点，请使用显式 transport。
+`createPlatformClient()` 是 app 和示例的推荐入口。在 Node.js 环境里，它可以直接走本地 daemon 的 runtime 默认配置，同时从同一个 SDK 根入口暴露 typed Realm 能力。只有在你确实需要显式低层控制时，才直接使用 `@nimiplatform/sdk/runtime` 或 `@nimiplatform/sdk/realm`。
 
 指定 Provider 的云端调用：
 

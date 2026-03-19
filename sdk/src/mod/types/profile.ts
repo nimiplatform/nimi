@@ -1,3 +1,4 @@
+import type { JsonObject } from '../../internal/utils.js';
 import type { HookSourceType } from './shared.js';
 
 export type RuntimeHookAgentProfileReadInput = {
@@ -6,7 +7,7 @@ export type RuntimeHookAgentProfileReadInput = {
   viewerUserId?: string;
   ownerAgentId: string;
   worldId?: string;
-  profile: Record<string, unknown>;
+  profile: JsonObject;
 };
 
 export type RuntimeHookAgentProfileReadResult = {
