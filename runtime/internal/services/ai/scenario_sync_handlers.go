@@ -92,13 +92,6 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
-	if usage == nil {
-		usage = &runtimev1.UsageStats{
-			InputTokens:  -1,
-			OutputTokens: -1,
-			ComputeMs:    -1,
-		}
-	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_TextGenerate{

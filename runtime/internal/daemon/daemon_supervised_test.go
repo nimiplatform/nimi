@@ -95,7 +95,7 @@ func TestOnEngineStateChangeHealthyDoesNotReinjectAfterCleanBootstrap(t *testing
 	daemon := newTestDaemon(t, logger)
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
 
-	daemon.injectEngineEndpointEnv(engine.EngineLlama, "NIMI_RUNTIME_LOCAL_AI_BASE_URL", "bootstrap")
+	daemon.injectEngineEndpointEnv(engine.EngineLlama, "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "bootstrap")
 	daemon.onEngineStateChange("llama", "healthy", "ready")
 
 	logs := logBuf.String()
@@ -420,7 +420,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 
 func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	t.Setenv("NIMI_RUNTIME_LOCAL_AI_BASE_URL", "http://127.0.0.1:2234/v1")
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
 
 	cfg := config.Config{
 		GRPCAddr:       "127.0.0.1:0",

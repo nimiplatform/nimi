@@ -65,7 +65,6 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	}
 
 	var sawDelta bool
-	var sawUsage bool
 	var completed *runtimev1.ScenarioStreamCompleted
 	for _, event := range stream.events {
 		switch event.GetEventType() {
@@ -77,17 +76,12 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 				t.Fatalf("delta mime type should be set")
 			}
 			sawDelta = true
-		case runtimev1.StreamEventType_STREAM_EVENT_USAGE:
-			sawUsage = true
 		case runtimev1.StreamEventType_STREAM_EVENT_COMPLETED:
 			completed = event.GetCompleted()
 		}
 	}
 	if !sawDelta {
 		t.Fatalf("expected delta event")
-	}
-	if !sawUsage {
-		t.Fatalf("expected usage event")
 	}
 	if completed == nil {
 		t.Fatalf("expected completed event")
@@ -96,7 +90,10 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 		t.Fatalf("unexpected finish reason: %v", completed.GetFinishReason())
 	}
 	if completed.GetUsage() == nil {
-		t.Fatalf("expected usage in completed event")
+		t.Fatal("expected backend-estimated usage in completed event")
+	}
+	if completed.GetUsage().GetInputTokens() < 0 || completed.GetUsage().GetOutputTokens() < 0 || completed.GetUsage().GetComputeMs() < 0 {
+		t.Fatalf("expected non-negative usage without sentinel values, got=%#v", completed.GetUsage())
 	}
 }
 
@@ -465,7 +462,7 @@ func TestStreamCloseModeDoneTrueCarriesUsage(t *testing.T) {
 		t.Fatalf("stream scenario: %v", err)
 	}
 
-	// Verify event sequence ends with COMPLETED carrying usage
+	// Verify event sequence ends with COMPLETED carrying backend-estimated usage, not sentinel values.
 	var completed *runtimev1.ScenarioStreamCompleted
 	for _, event := range stream.events {
 		if event.GetEventType() == runtimev1.StreamEventType_STREAM_EVENT_COMPLETED {
@@ -476,7 +473,10 @@ func TestStreamCloseModeDoneTrueCarriesUsage(t *testing.T) {
 		t.Fatal("expected COMPLETED event (done=true close mode)")
 	}
 	if completed.GetUsage() == nil {
-		t.Fatal("COMPLETED event must carry usage stats (K-STREAM-003)")
+		t.Fatal("expected completed usage")
+	}
+	if completed.GetUsage().GetInputTokens() < 0 || completed.GetUsage().GetOutputTokens() < 0 || completed.GetUsage().GetComputeMs() < 0 {
+		t.Fatalf("expected completed usage without sentinel values, got=%#v", completed.GetUsage())
 	}
 }
 

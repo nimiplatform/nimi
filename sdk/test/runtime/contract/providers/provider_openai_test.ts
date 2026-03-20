@@ -167,7 +167,7 @@ test('provider_openai_test.ts: video uses /v1/videos/generations fallback path',
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_LOCAL_AI_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({
@@ -231,7 +231,7 @@ test('provider_openai_test.ts: video unsupported returns strict fail-close', {
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_LOCAL_AI_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({
@@ -301,7 +301,7 @@ test('provider_openai_test.ts: stream falls back to non-stream generate when str
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_LOCAL_AI_BASE_URL: fakeServer.url,
+        NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: fakeServer.url,
       },
       run: async ({ endpoint }) => {
         const runtime = new Runtime({

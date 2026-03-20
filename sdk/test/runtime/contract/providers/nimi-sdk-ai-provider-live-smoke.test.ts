@@ -246,8 +246,8 @@ test('nimi sdk ai-provider live smoke: local provider generate text', {
     await withRuntimeDaemon({
       appId: APP_ID,
       runtimeEnv: {
-        NIMI_RUNTIME_LOCAL_AI_BASE_URL: baseURL,
-        ...(apiKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: apiKey } : {}),
+        NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: baseURL,
+        ...(apiKey ? { NIMI_RUNTIME_LOCAL_LLAMA_API_KEY: apiKey } : {}),
       },
       run: async ({ endpoint }) => {
       const model = createSdkTextModel(endpoint, 'local', modelID);
@@ -285,8 +285,8 @@ test('nimi sdk ai-provider live smoke: local sidecar music', {
   await withRuntimeDaemon({
     appId: APP_ID,
     runtimeEnv: {
-      NIMI_RUNTIME_LOCAL_AI_BASE_URL: localBaseURL,
-      ...(localAPIKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: localAPIKey } : {}),
+      NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: localBaseURL,
+      ...(localAPIKey ? { NIMI_RUNTIME_LOCAL_LLAMA_API_KEY: localAPIKey } : {}),
       NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL: sidecarBaseURL,
       ...(sidecarAPIKey ? { NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY: sidecarAPIKey } : {}),
     },
@@ -875,8 +875,8 @@ function buildRuntimeEnvForProvider(t: { skip: (msg?: string) => void }, provide
     const sidecarBaseURL = String(process.env.NIMI_LIVE_LOCAL_SIDECAR_BASE_URL || '').trim();
     const sidecarAPIKey = String(process.env.NIMI_LIVE_LOCAL_SIDECAR_API_KEY || '').trim();
     return {
-      NIMI_RUNTIME_LOCAL_AI_BASE_URL: baseURL,
-      ...(apiKey ? { NIMI_RUNTIME_LOCAL_AI_API_KEY: apiKey } : {}),
+      NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: baseURL,
+      ...(apiKey ? { NIMI_RUNTIME_LOCAL_LLAMA_API_KEY: apiKey } : {}),
       ...(sidecarBaseURL ? { NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL: sidecarBaseURL } : {}),
       ...(sidecarAPIKey ? { NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY: sidecarAPIKey } : {}),
     };

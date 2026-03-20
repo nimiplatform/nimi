@@ -236,8 +236,8 @@ func backendForLocalProvider(
 		return mediaBackend
 	case "speech":
 		return speechBackend
-		case "sidecar":
-			return sidecarBackend
+	case "sidecar":
+		return sidecarBackend
 	default:
 		return nil
 	}

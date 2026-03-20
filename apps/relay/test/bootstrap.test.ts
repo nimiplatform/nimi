@@ -178,6 +178,14 @@ describe('RL-BOOT-001 — Main Process Initialization Sequence', () => {
     assert.ok(!source.includes(authTokenInvalidLiteral), 'must not hard-code AUTH_TOKEN_INVALID');
     assert.ok(!source.includes(authDeniedLiteral), 'must not hard-code AUTH_DENIED');
   });
+
+  it('index.ts fails closed when persisted token loading throws', () => {
+    const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
+    const tokenLoadIndex = source.indexOf('token = loadToken() || null;');
+    const failedStateIndex = source.indexOf("setAuthState('failed', message);", tokenLoadIndex);
+    assert.ok(tokenLoadIndex >= 0, 'must load persisted token through guarded path');
+    assert.ok(failedStateIndex > tokenLoadIndex, 'must surface persisted token load failures as failed auth state');
+  });
 });
 
 // ─── RL-BOOT-002 — Renderer Bootstrap ───────────────────────────────────

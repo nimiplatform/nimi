@@ -257,13 +257,6 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if err := flushDelta(); err != nil {
 		return err
 	}
-	if usage == nil {
-		usage = &runtimev1.UsageStats{
-			InputTokens:  -1,
-			OutputTokens: -1,
-			ComputeMs:    -1,
-		}
-	}
 	if streamSimulated {
 		s.recordStreamFallbackSimulated(
 			req.GetHead().GetAppId(),
@@ -443,18 +436,13 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 		}
 	}
 
-	if usage == nil {
-		usage = &runtimev1.UsageStats{
-			InputTokens:  -1,
-			OutputTokens: -1,
-			ComputeMs:    -1,
+	if usage != nil {
+		if err := send(&runtimev1.StreamScenarioEvent{
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE,
+			Payload:   &runtimev1.StreamScenarioEvent_Usage{Usage: usage},
+		}); err != nil {
+			return err
 		}
-	}
-	if err := send(&runtimev1.StreamScenarioEvent{
-		EventType: runtimev1.StreamEventType_STREAM_EVENT_USAGE,
-		Payload:   &runtimev1.StreamScenarioEvent_Usage{Usage: usage},
-	}); err != nil {
-		return err
 	}
 	return send(&runtimev1.StreamScenarioEvent{
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,

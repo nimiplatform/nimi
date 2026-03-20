@@ -66,6 +66,56 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 	}
 }
 
+func TestExecuteScenarioTextGenerateDoesNotSynthesizeSentinelUsage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"hello without usage"},"finish_reason":"stop"}]}`))
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{"llama": {BaseURL: server.URL}},
+	})
+
+	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen2.5",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{Role: "user", Content: "hello runtime"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("execute scenario text generate without explicit upstream usage: %v", err)
+	}
+	if outputText(resp.GetOutput()) == "" {
+		t.Fatalf("output text must be non-empty")
+	}
+	if resp.GetUsage() == nil {
+		t.Fatal("expected backend-estimated usage")
+	}
+	if resp.GetUsage().GetInputTokens() < 0 || resp.GetUsage().GetOutputTokens() < 0 || resp.GetUsage().GetComputeMs() < 0 {
+		t.Fatalf("expected usage without sentinel values, got=%#v", resp.GetUsage())
+	}
+}
+
 func TestStreamScenarioTextGenerateSequence(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {

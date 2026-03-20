@@ -311,7 +311,7 @@ func buildVoiceWorkflowPayload(
 
 func estimateVoiceWorkflowUsage(req *runtimev1.SubmitScenarioJobRequest) *runtimev1.UsageStats {
 	if req == nil || req.GetSpec() == nil {
-		return &runtimev1.UsageStats{InputTokens: -1, OutputTokens: -1, ComputeMs: 1}
+		return nil
 	}
 	inputTokens := int64(0)
 	switch req.GetScenarioType() {

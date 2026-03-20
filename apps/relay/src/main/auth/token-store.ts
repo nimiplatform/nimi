@@ -4,6 +4,7 @@
 import { app, safeStorage } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createTokenStore } from './token-store-core.js';
 
 const TOKEN_FILE = 'relay-auth.dat';
 
@@ -11,44 +12,20 @@ function getTokenPath(): string {
   return path.join(app.getPath('userData'), TOKEN_FILE);
 }
 
-export function saveToken(accessToken: string): void {
-  if (!safeStorage.isEncryptionAvailable()) {
-    // Fallback: write plaintext (dev-only scenario)
-    fs.writeFileSync(getTokenPath(), accessToken, 'utf-8');
-    return;
-  }
-  const encrypted = safeStorage.encryptString(accessToken);
-  fs.writeFileSync(getTokenPath(), encrypted);
-}
-
-export function loadToken(): string | null {
-  const tokenPath = getTokenPath();
-  if (!fs.existsSync(tokenPath)) {
-    return null;
-  }
-
-  try {
-    const raw = fs.readFileSync(tokenPath);
-    if (!safeStorage.isEncryptionAvailable()) {
-      // Fallback: read as plaintext
-      return raw.toString('utf-8').trim() || null;
+export const { saveToken, loadToken, clearToken } = createTokenStore({
+  getTokenPath,
+  isPackaged: () => app.isPackaged,
+  isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
+  encryptString: (value) => safeStorage.encryptString(value),
+  decryptString: (value) => safeStorage.decryptString(value),
+  existsSync: (filePath) => fs.existsSync(filePath),
+  readFileSync: (filePath) => fs.readFileSync(filePath),
+  writeFileSync: (filePath, data, encoding) => {
+    if (typeof data === 'string') {
+      fs.writeFileSync(filePath, data, encoding);
+      return;
     }
-    const decrypted = safeStorage.decryptString(raw);
-    return decrypted.trim() || null;
-  } catch (err) {
-    console.warn('[relay:auth] token corrupted or unreadable, clearing', err);
-    clearToken();
-    return null;
-  }
-}
-
-export function clearToken(): void {
-  const tokenPath = getTokenPath();
-  try {
-    if (fs.existsSync(tokenPath)) {
-      fs.unlinkSync(tokenPath);
-    }
-  } catch (err) {
-    console.warn('[relay:auth] clearToken failed', err);
-  }
-}
+    fs.writeFileSync(filePath, data);
+  },
+  unlinkSync: (filePath) => fs.unlinkSync(filePath),
+});

@@ -147,7 +147,16 @@ app.whenReady().then(async () => {
   createWindow();
 
   // Step 4: Try silent token resolution (env → persisted)
-  const token = env.NIMI_ACCESS_TOKEN || loadToken() || null;
+  let token = env.NIMI_ACCESS_TOKEN || null;
+  if (!token) {
+    try {
+      token = loadToken() || null;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setAuthState('failed', message);
+      token = null;
+    }
+  }
 
   if (token) {
     // Token available — validate via runtime.health() (main process, no IPC serialization)
