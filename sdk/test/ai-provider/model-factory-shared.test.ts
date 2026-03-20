@@ -15,7 +15,11 @@ test('assertNoLegacyLocalModelPrefix rejects legacy local prefixes', () => {
   for (const modelId of legacyModelIds) {
     assert.throws(
       () => assertNoLegacyLocalModelPrefix(modelId),
-      /legacy local model prefix/,
+      (error: unknown) => {
+        assert.match(String((error as { message?: string })?.message || ''), /legacy local model prefix/);
+        assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_AI_PROVIDER_CONFIG_INVALID');
+        return true;
+      },
       `expected ${modelId} to be rejected`,
     );
   }

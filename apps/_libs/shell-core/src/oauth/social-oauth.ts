@@ -6,6 +6,7 @@ import type { TauriOAuthBridge } from './oauth-types.js';
 import {
   createDesktopCallbackRedirectUri,
   createDesktopCallbackState,
+  validateDesktopCallbackState,
   readEnv,
   toDesktopBrowserAuthErrorMessage,
 } from './oauth-helpers.js';
@@ -146,12 +147,12 @@ function base64UrlEncode(data: Uint8Array): string {
 }
 
 function createCodeVerifier(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+  if (typeof globalThis.crypto !== 'undefined' && typeof globalThis.crypto.getRandomValues === 'function') {
     const bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
+    globalThis.crypto.getRandomValues(bytes);
     return base64UrlEncode(bytes);
   }
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 18)}`;
+  throw new Error('Secure random generator is unavailable');
 }
 
 async function createCodeChallenge(codeVerifier: string): Promise<string> {
@@ -197,7 +198,7 @@ export async function startSocialOauth(
   }
 
   const callbackUrl = createDesktopCallbackRedirectUri();
-  const callbackState = createDesktopCallbackState();
+  const callbackState = createDesktopCallbackState('social-oauth');
   const codeVerifier = createCodeVerifier();
   const codeChallenge = await createCodeChallenge(codeVerifier);
   const authorizeUrl = buildAuthorizeUrl({
@@ -224,7 +225,11 @@ export async function startSocialOauth(
     }
 
     const callbackStateFromWeb = String(callback.state || '').trim();
-    if (!callbackStateFromWeb || callbackStateFromWeb !== callbackState) {
+    if (!validateDesktopCallbackState({
+      expectedState: callbackState,
+      actualState: callbackStateFromWeb,
+      flowKind: 'social-oauth',
+    })) {
       throw new Error(`${config.label} OAuth state mismatch`);
     }
 

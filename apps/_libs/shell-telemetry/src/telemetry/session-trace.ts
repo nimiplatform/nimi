@@ -1,8 +1,22 @@
 const RENDERER_TRACE_SESSION_KEY = 'nimi.renderer.trace.sessionId.v1';
 let rendererSessionTraceIdCache = '';
 
+function requireSecureCrypto(): Crypto {
+  if (typeof globalThis.crypto === 'undefined') {
+    throw new Error('Secure random generator is unavailable');
+  }
+  return globalThis.crypto;
+}
+
 function newTraceToken(prefix = 'renderer-session'): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const secureCrypto = requireSecureCrypto();
+  if (typeof secureCrypto.randomUUID === 'function') {
+    return `${prefix}-${secureCrypto.randomUUID().replace(/-/g, '')}`;
+  }
+  const bytes = new Uint8Array(12);
+  secureCrypto.getRandomValues(bytes);
+  const suffix = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return `${prefix}-${suffix}`;
 }
 
 export function resolveRendererSessionTraceId(): string {
@@ -36,7 +50,7 @@ export function resolveRendererSessionTraceId(): string {
 }
 
 export function createRendererFlowId(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return newTraceToken(prefix);
 }
 
 export function resetRendererSessionTraceIdForTest(): void {

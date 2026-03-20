@@ -22,9 +22,21 @@ test('extractEmbeddingVectors reads typed scenario embedding output', () => {
   assert.deepEqual(extractEmbeddingVectors(output), [[1, 2.5], [3, 4]]);
 });
 
-test('extractEmbeddingVectors tolerates missing or mismatched output kind', () => {
-  assert.deepEqual(extractEmbeddingVectors(undefined), []);
-  assert.deepEqual(extractEmbeddingVectors(textGenerateOutput('nope')), []);
+test('extractEmbeddingVectors fails closed for missing or mismatched output kind', () => {
+  assert.throws(
+    () => extractEmbeddingVectors(undefined),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
+  assert.throws(
+    () => extractEmbeddingVectors(textGenerateOutput('nope')),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
   assert.deepEqual(extractEmbeddingVectors(textEmbedOutput([[1, Number.NaN, 2]])), [[1, 2]]);
 });
 

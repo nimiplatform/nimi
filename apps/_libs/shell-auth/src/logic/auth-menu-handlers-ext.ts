@@ -9,6 +9,21 @@ import { toErrorMessage } from './error-helpers.js';
 import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
 import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
 
+function isWalletCancellationError(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = Number((error as { code?: unknown }).code);
+    if (code === 4001) {
+      return true;
+    }
+  }
+  const message = error instanceof Error ? error.message : String(error || '');
+  const normalized = message.trim().toLowerCase();
+  return normalized.includes('cancel')
+    || normalized.includes('rejected')
+    || normalized.includes('denied')
+    || normalized.includes('closed');
+}
+
 // ---------------------------------------------------------------------------
 // handleRequestEmailOtp
 // ---------------------------------------------------------------------------
@@ -289,8 +304,10 @@ export async function handleWalletLogin(
     });
 
     await handleLoginResult(result, '钱包登录成功。', setters, desktopCtx, adapter);
-  } catch (_error) {
-    // User cancelled or other error — don't display error
+  } catch (error) {
+    if (!isWalletCancellationError(error)) {
+      console.warn('[shell-auth] wallet login failed', error);
+    }
   } finally {
     window.clearTimeout(timeoutId);
     setters.setPending(false);

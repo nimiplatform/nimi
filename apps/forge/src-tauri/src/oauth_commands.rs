@@ -254,7 +254,7 @@ fn redact_body_preview(input: &str, max_bytes: usize) -> String {
             }
         }
     }
-    preview_text_utf8_safe(input, max_bytes)
+    preview_text_utf8_safe("<unparseable response body>", max_bytes)
 }
 
 fn redact_json_value(value: &mut serde_json::Value) {
@@ -467,4 +467,45 @@ pub async fn oauth_listen_for_code(
     tauri::async_runtime::spawn_blocking(move || oauth_listen_for_code_blocking(payload))
         .await
         .map_err(|error| error.to_string())?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{redact_body_preview, redact_json_value};
+
+    #[test]
+    fn redact_body_preview_masks_sensitive_json_keys() {
+        let preview = redact_body_preview(
+            r#"{"access_token":"abc","nested":{"refreshToken":"def","name":"ok"}}"#,
+            200,
+        );
+        assert!(preview.contains("[REDACTED]"));
+        assert!(!preview.contains("abc"));
+        assert!(!preview.contains("def"));
+        assert!(preview.contains("\"name\":\"ok\""));
+    }
+
+    #[test]
+    fn redact_body_preview_hides_unparseable_body_contents() {
+        let preview = redact_body_preview("access_token=secret-value", 200);
+        assert_eq!(preview, "<unparseable response body>");
+        assert!(!preview.contains("secret-value"));
+    }
+
+    #[test]
+    fn redact_json_value_masks_nested_sensitive_fields() {
+        let mut value = serde_json::json!({
+            "sessionToken": "top-secret",
+            "items": [
+                {
+                    "cookie": "cookie-value"
+                }
+            ]
+        });
+        redact_json_value(&mut value);
+        let rendered = serde_json::to_string(&value).expect("json serialization must succeed");
+        assert!(rendered.contains("[REDACTED]"));
+        assert!(!rendered.contains("top-secret"));
+        assert!(!rendered.contains("cookie-value"));
+    }
 }

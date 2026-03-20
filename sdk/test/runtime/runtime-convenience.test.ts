@@ -15,6 +15,7 @@ import {
   setNodeGrpcBridge,
   type NodeGrpcBridge,
 } from '../../src/runtime/index.js';
+import { ReasonCode } from '../../src/types/index.js';
 import { textDelta, textGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 
 function installNodeGrpcBridge(bridge: NodeGrpcBridge): void {
@@ -240,6 +241,43 @@ test('Runtime.stream maps text, done, and error chunks', async () => {
         routeDecision: 'local',
       },
     ]);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
+test('Runtime embedding surface fails closed on mismatched typed output', async () => {
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId !== RuntimeMethodIds.ai.executeScenario) {
+        throw new Error(`unexpected method: ${input.methodId}`);
+      }
+      return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
+        output: textGenerateOutput('wrong-output-kind'),
+        finishReason: FinishReason.STOP,
+        routeDecision: RoutePolicy.LOCAL,
+        modelResolved: 'llama/embed',
+        traceId: 'trace-embed-mismatch',
+      }));
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime();
+    await assert.rejects(
+      () => runtime.ai.embedding.generate({
+        model: 'llama/embed',
+        input: ['hello'],
+      }),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+        return true;
+      },
+    );
   } finally {
     clearNodeGrpcBridge();
   }

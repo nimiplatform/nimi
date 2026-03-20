@@ -295,13 +295,27 @@ function resolveTauriInvoke(): TauriInvokeFn {
   return invokeFn.bind(window.__TAURI__?.core);
 }
 
+function createSecureInvokeId(command: string): string {
+  if (typeof globalThis.crypto === 'undefined') {
+    throw new Error('Secure random generator is unavailable');
+  }
+  const secureCrypto = globalThis.crypto;
+  if (typeof secureCrypto.randomUUID === 'function') {
+    return `${command}-${secureCrypto.randomUUID().replace(/-/g, '')}`;
+  }
+  const bytes = new Uint8Array(12);
+  secureCrypto.getRandomValues(bytes);
+  const suffix = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return `${command}-${suffix}`;
+}
+
 export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {
   const startedAt = performance.now();
   if (!hasTauriInvoke()) {
     throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
   const tauriInvoke = resolveTauriInvoke();
-  const invokeId = `${command}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const invokeId = createSecureInvokeId(command);
   const sessionTraceId = resolveRendererSessionTraceId();
   const payloadSummary = summarizeInvokePayload(command, payload);
   const commandLog = {

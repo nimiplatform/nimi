@@ -241,7 +241,7 @@ export async function handleEmailLogin(
     const result = await adapter.passwordLogin(identifier, password);
 
     if (rememberMe) {
-      saveRememberedLogin({ email: identifier, password, rememberMe: true });
+      saveRememberedLogin({ email: identifier, rememberMe: true });
     } else {
       clearRememberedLogin();
     }

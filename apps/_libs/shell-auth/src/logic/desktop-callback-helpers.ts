@@ -1,22 +1,15 @@
 import type { DesktopCallbackRequest } from '../types/auth-types.js';
-import { isLoopbackHost, readEnv, DESKTOP_CALLBACK_PATH } from '@nimiplatform/shell-core/oauth';
+import {
+  normalizeLoopbackCallbackUrl as normalizeSharedLoopbackCallbackUrl,
+  createDesktopCallbackState as createSharedDesktopCallbackState,
+  validateDesktopCallbackState as validateSharedDesktopCallbackState,
+  createDesktopCallbackRedirectUri as createSharedDesktopCallbackRedirectUri,
+  readEnv,
+} from '@nimiplatform/shell-core/oauth';
 import { toErrorMessage } from './error-helpers.js';
 
 export function normalizeLoopbackCallbackUrl(rawUrl: string): string | null {
-  const normalized = String(rawUrl || '').trim();
-  if (!normalized) {
-    return null;
-  }
-
-  try {
-    const parsed = new URL(normalized);
-    if (parsed.protocol !== 'http:' || !isLoopbackHost(parsed.hostname)) {
-      return null;
-    }
-    return parsed.toString();
-  } catch {
-    return null;
-  }
+  return normalizeSharedLoopbackCallbackUrl(rawUrl);
 }
 
 export function readLocationQueryParams(): URLSearchParams {
@@ -65,13 +58,23 @@ export function buildDesktopCallbackReturnUrl(input: {
 }
 
 export function createDesktopCallbackState(): string {
-  const entropy = Math.random().toString(36).slice(2, 10);
-  return `desktop-${Date.now().toString(36)}-${entropy}`;
+  return createSharedDesktopCallbackState('desktop-web-auth');
+}
+
+export function validateDesktopCallbackState(input: {
+  expectedState: string;
+  actualState: string;
+  maxAgeMs?: number;
+  nowMs?: number;
+}): boolean {
+  return validateSharedDesktopCallbackState({
+    ...input,
+    flowKind: 'desktop-web-auth',
+  });
 }
 
 export function createDesktopCallbackRedirectUri(): string {
-  const port = 43_000 + Math.floor(Math.random() * 10_000);
-  return `http://127.0.0.1:${port}${DESKTOP_CALLBACK_PATH}`;
+  return createSharedDesktopCallbackRedirectUri();
 }
 
 export function normalizeWebAuthLaunchPath(input: URL): URL {

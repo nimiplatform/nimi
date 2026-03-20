@@ -2,6 +2,8 @@ import {
   asRecord,
   normalizeText,
 } from './helpers.js';
+import { ReasonCode } from '../types/index.js';
+import { createNimiError } from '../runtime/errors.js';
 
 export function assertNoLegacyLocalModelPrefix(modelId: string): void {
   const normalized = normalizeText(modelId);
@@ -14,9 +16,12 @@ export function assertNoLegacyLocalModelPrefix(modelId: string): void {
     || lowered === 'media.diffusers'
     || lowered === 'localsidecar'
   ) {
-    throw new Error(
-      `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, speech/, or sidecar/.`,
-    );
+    throw createNimiError({
+      message: `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, speech/, or sidecar/.`,
+      reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
+      actionHint: 'rename_legacy_local_model_prefix',
+      source: 'sdk',
+    });
   }
 }
 

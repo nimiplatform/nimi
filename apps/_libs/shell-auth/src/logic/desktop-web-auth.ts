@@ -3,6 +3,7 @@ import { DESKTOP_CALLBACK_TIMEOUT_MS } from '@nimiplatform/shell-core/oauth';
 import {
   createDesktopCallbackRedirectUri,
   createDesktopCallbackState,
+  validateDesktopCallbackState,
   buildDesktopWebAuthLaunchUrl,
 } from './desktop-callback-helpers.js';
 
@@ -44,7 +45,11 @@ export async function performDesktopWebAuth(
     throw new Error(`网页授权失败：${callback.error}`);
   }
 
-  if (!callback.state || callback.state !== callbackState) {
+  if (!validateDesktopCallbackState({
+    expectedState: callbackState,
+    actualState: String(callback.state || ''),
+    maxAgeMs: options?.timeoutMs ?? DESKTOP_CALLBACK_TIMEOUT_MS,
+  })) {
     throw new Error('网页登录回调 state 校验失败');
   }
 

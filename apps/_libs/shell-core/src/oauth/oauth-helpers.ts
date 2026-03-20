@@ -6,6 +6,11 @@ import { readBundledEnv } from '../env.js';
 
 export const DESKTOP_CALLBACK_TIMEOUT_MS = 300_000;
 export const DESKTOP_CALLBACK_PATH = '/oauth/callback';
+const DESKTOP_CALLBACK_STATE_PREFIX = 'desktop';
+const DESKTOP_CALLBACK_STATE_VERSION = 'v1';
+const DESKTOP_CALLBACK_PORT_MIN = 1024;
+const DESKTOP_CALLBACK_PORT_MAX = 65535;
+const GENERIC_AUTH_ERROR_MESSAGE = 'Authentication failed. Please try again.';
 
 // ---------------------------------------------------------------------------
 // Environment helpers
@@ -45,13 +50,114 @@ export function normalizeLoopbackCallbackUrl(rawUrl: string): string | null {
 // Desktop callback helpers
 // ---------------------------------------------------------------------------
 
-export function createDesktopCallbackState(): string {
-  const entropy = Math.random().toString(36).slice(2, 10);
-  return `desktop-${Date.now().toString(36)}-${entropy}`;
+function requireSecureCrypto(): Crypto {
+  if (typeof globalThis.crypto === 'undefined') {
+    throw new Error('Secure random generator is unavailable');
+  }
+  return globalThis.crypto;
+}
+
+function createSecureOpaqueToken(prefix: string): string {
+  const secureCrypto = requireSecureCrypto();
+  if (typeof secureCrypto.randomUUID === 'function') {
+    return `${prefix}-${secureCrypto.randomUUID().replace(/-/g, '')}`;
+  }
+  const bytes = new Uint8Array(16);
+  secureCrypto.getRandomValues(bytes);
+  const suffix = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return `${prefix}-${suffix}`;
+}
+
+function createSecureRandomUint32(): number {
+  const secureCrypto = requireSecureCrypto();
+  const values = new Uint32Array(1);
+  secureCrypto.getRandomValues(values);
+  return values[0] ?? 0;
+}
+
+function normalizeFlowKind(flowKind: string | undefined): string {
+  const normalized = String(flowKind || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return normalized || 'desktop-callback';
+}
+
+type ParsedDesktopCallbackState = {
+  flowKind: string;
+  issuedAtMs: number;
+  nonce: string;
+};
+
+function parseDesktopCallbackState(state: string): ParsedDesktopCallbackState | null {
+  const normalized = String(state || '').trim();
+  const parts = normalized.split(':');
+  if (parts.length !== 5) {
+    return null;
+  }
+  const [prefix, version, flowKind, issuedAtRaw, nonce] = parts;
+  if (
+    prefix !== DESKTOP_CALLBACK_STATE_PREFIX
+    || version !== DESKTOP_CALLBACK_STATE_VERSION
+    || !flowKind
+    || !issuedAtRaw
+    || !nonce
+  ) {
+    return null;
+  }
+  const issuedAtMs = Number.parseInt(issuedAtRaw, 36);
+  if (!Number.isFinite(issuedAtMs) || issuedAtMs <= 0) {
+    return null;
+  }
+  return {
+    flowKind,
+    issuedAtMs,
+    nonce,
+  };
+}
+
+export function createDesktopCallbackState(flowKind?: string): string {
+  const normalizedFlowKind = normalizeFlowKind(flowKind);
+  const issuedAt = Date.now().toString(36);
+  const nonce = createSecureOpaqueToken('nonce');
+  return [
+    DESKTOP_CALLBACK_STATE_PREFIX,
+    DESKTOP_CALLBACK_STATE_VERSION,
+    normalizedFlowKind,
+    issuedAt,
+    nonce,
+  ].join(':');
+}
+
+export function validateDesktopCallbackState(input: {
+  expectedState: string;
+  actualState: string;
+  flowKind?: string;
+  maxAgeMs?: number;
+  nowMs?: number;
+}): boolean {
+  const expectedState = String(input.expectedState || '').trim();
+  const actualState = String(input.actualState || '').trim();
+  if (!expectedState || !actualState || expectedState !== actualState) {
+    return false;
+  }
+  const parsed = parseDesktopCallbackState(actualState);
+  if (!parsed) {
+    return false;
+  }
+  if (parsed.flowKind !== normalizeFlowKind(input.flowKind)) {
+    return false;
+  }
+  const nowMs = Number.isFinite(input.nowMs) ? Number(input.nowMs) : Date.now();
+  const maxAgeMs = Number.isFinite(input.maxAgeMs) ? Number(input.maxAgeMs) : DESKTOP_CALLBACK_TIMEOUT_MS;
+  const ageMs = nowMs - parsed.issuedAtMs;
+  return ageMs >= 0 && ageMs <= maxAgeMs;
 }
 
 export function createDesktopCallbackRedirectUri(): string {
-  const port = 43_000 + Math.floor(Math.random() * 10_000);
+  const span = DESKTOP_CALLBACK_PORT_MAX - DESKTOP_CALLBACK_PORT_MIN + 1;
+  const port = DESKTOP_CALLBACK_PORT_MIN + (createSecureRandomUint32() % span);
   return `http://127.0.0.1:${port}${DESKTOP_CALLBACK_PATH}`;
 }
 
@@ -105,7 +211,7 @@ export function localizeAuthError(message: string): string {
     return 'Server error. Please try again later.';
   }
 
-  return message;
+  return GENERIC_AUTH_ERROR_MESSAGE;
 }
 
 export function toDesktopBrowserAuthErrorMessage(error: unknown): string {

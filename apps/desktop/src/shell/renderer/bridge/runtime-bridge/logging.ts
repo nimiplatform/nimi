@@ -14,22 +14,84 @@ const RENDERER_CONSOLE_CACHE_LIMIT = 400;
 const rendererConsoleMirrorAt = new Map<string, number>();
 const rendererDebugLogs: JsonObject[] = [];
 let rendererSessionTraceIdCache = '';
+const REDACTED_VALUE = '[REDACTED]';
+const UNSERIALIZABLE_VALUE = '[UNSERIALIZABLE]';
+const CIRCULAR_VALUE = '[CIRCULAR]';
+
+function requireSecureCrypto(): Crypto {
+  if (typeof globalThis.crypto === 'undefined') {
+    throw new Error('Secure random generator is unavailable');
+  }
+  return globalThis.crypto;
+}
+
+function isSensitiveKey(key: string): boolean {
+  const normalized = key.trim().toLowerCase();
+  return normalized === 'authorization'
+    || normalized === 'cookie'
+    || normalized.includes('password')
+    || normalized.includes('token')
+    || normalized.includes('secret')
+    || normalized.includes('apikey')
+    || normalized.includes('api_key')
+    || normalized.includes('session');
+}
+
+function sanitizeLogValue(value: unknown, seen: WeakSet<object>): unknown {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : UNSERIALIZABLE_VALUE;
+  }
+  if (typeof value === 'bigint' || typeof value === 'symbol' || typeof value === 'function') {
+    return UNSERIALIZABLE_VALUE;
+  }
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value.toISOString() : UNSERIALIZABLE_VALUE;
+  }
+  if (value instanceof Error) {
+    return {
+      name: value.name || 'Error',
+      message: value.message || '',
+    };
+  }
+  if (!value || typeof value !== 'object') {
+    return UNSERIALIZABLE_VALUE;
+  }
+  if (seen.has(value)) {
+    return CIRCULAR_VALUE;
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeLogValue(entry, seen));
+  }
+  const sanitized: JsonObject = {};
+  for (const [key, entry] of Object.entries(value)) {
+    sanitized[key] = isSensitiveKey(key)
+      ? REDACTED_VALUE
+      : sanitizeLogValue(entry, seen);
+  }
+  return sanitized;
+}
 
 function sanitizeLogDetails(details: unknown): JsonObject {
   if (!isJsonObject(details)) {
     return {};
   }
-  try {
-    return isJsonObject(JSON.parse(JSON.stringify(details)))
-      ? JSON.parse(JSON.stringify(details)) as JsonObject
-      : {};
-  } catch {
-    return { raw: String(details) };
-  }
+  const sanitized = sanitizeLogValue(details, new WeakSet<object>());
+  return isJsonObject(sanitized) ? sanitized : {};
 }
 
 function newTraceToken(prefix = 'renderer-session'): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const secureCrypto = requireSecureCrypto();
+  if (typeof secureCrypto.randomUUID === 'function') {
+    return `${prefix}-${secureCrypto.randomUUID().replace(/-/g, '')}`;
+  }
+  const bytes = new Uint8Array(12);
+  secureCrypto.getRandomValues(bytes);
+  const suffix = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+  return `${prefix}-${suffix}`;
 }
 
 export function resolveRendererSessionTraceId(): string {

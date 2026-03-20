@@ -428,7 +428,12 @@ export function extractEmbeddingVectors(output: unknown): number[][] {
   const value = output as ScenarioOutput | undefined;
   const variant = value?.output;
   if (variant?.oneofKind !== 'textEmbed') {
-    return [];
+    throw createNimiError({
+      message: 'runtime media output missing typed textEmbed result',
+      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      actionHint: 'regenerate_runtime_proto_and_sdk',
+      source: 'runtime',
+    });
   }
   return variant.textEmbed.vectors.map((vector) => vector.values
     .map((item) => Number(item))

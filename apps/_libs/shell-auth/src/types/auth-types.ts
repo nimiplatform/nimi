@@ -82,7 +82,6 @@ export type DesktopCallbackRequest = {
 
 export type RememberedLogin = {
   email: string;
-  password: string;
   rememberMe: boolean;
 };
 

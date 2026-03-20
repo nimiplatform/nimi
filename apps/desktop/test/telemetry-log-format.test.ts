@@ -177,7 +177,7 @@ test('D-TEL-005: invoke emits start and success traces with a stable invokeId', 
   assert.ok(successLog, 'invoke-success log should be forwarded');
   assert.equal(startLog?.level, 'info');
   assert.equal(successLog?.level, 'debug');
-  assert.match(String(startLog?.details?.invokeId || ''), /^demo_command-[0-9a-z]+-[0-9a-z]+$/);
+  assert.match(String(startLog?.details?.invokeId || ''), /^demo_command-[0-9a-f]+$/);
   assert.equal(startLog?.details?.invokeId, successLog?.details?.invokeId);
   assert.equal(startLog?.details?.sessionTraceId, successLog?.details?.sessionTraceId);
   assert.equal(getRendererDebugLogsForTest().length >= 2, true);
