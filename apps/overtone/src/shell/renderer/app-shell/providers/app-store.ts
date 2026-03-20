@@ -1,5 +1,12 @@
 import { create } from 'zustand';
 
+function createProjectId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `proj-${globalThis.crypto.randomUUID()}`;
+  }
+  return `proj-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export type ReadinessStatus = 'checking' | 'ready' | 'degraded' | 'unavailable';
 
 export interface SongBrief {
@@ -270,7 +277,7 @@ export const useAppStore = create<AppState>((set) => ({
   setPublishedPostId: (postId) => set({ publishedPostId: postId }),
 
   startProject: () =>
-    set({ projectId: `proj-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }),
+    set({ projectId: createProjectId() }),
 
   resetProject: () =>
     set({

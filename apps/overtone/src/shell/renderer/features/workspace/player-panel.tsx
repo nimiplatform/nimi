@@ -32,6 +32,16 @@ export function PlayerPanel() {
     return audioContextRef.current;
   }, []);
 
+  const closeAudioContext = useCallback(() => {
+    const context = audioContextRef.current;
+    audioContextRef.current = null;
+    if (context) {
+      void context.close().catch(() => {
+        // ignore close races
+      });
+    }
+  }, []);
+
   const stopPlayback = useCallback(() => {
     if (animationRef.current !== null) {
       cancelAnimationFrame(animationRef.current);
@@ -56,6 +66,7 @@ export function PlayerPanel() {
     offsetRef.current = 0;
 
     if (!audioData) {
+      closeAudioContext();
       return;
     }
 
@@ -66,9 +77,14 @@ export function PlayerPanel() {
     }).catch(() => {
       decodedBufferRef.current = null;
     });
-  }, [audioData, getAudioContext, selectedTakeId, stopPlayback]);
+  }, [audioData, closeAudioContext, getAudioContext, selectedTakeId, stopPlayback]);
 
-  useEffect(() => stopPlayback, [stopPlayback]);
+  useEffect(() => {
+    return () => {
+      stopPlayback();
+      closeAudioContext();
+    };
+  }, [closeAudioContext, stopPlayback]);
 
   const startPlayback = useCallback((fromOffset?: number) => {
     const decoded = decodedBufferRef.current;

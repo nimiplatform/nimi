@@ -210,6 +210,26 @@ describe('app-store', () => {
       expect(useAppStore.getState().projectId).toMatch(/^proj-/);
     });
 
+    it('startProject prefers crypto.randomUUID when available', () => {
+      const originalCrypto = globalThis.crypto;
+      Object.defineProperty(globalThis, 'crypto', {
+        value: {
+          ...originalCrypto,
+          randomUUID: () => '11111111-2222-3333-4444-555555555555',
+        },
+        configurable: true,
+      });
+      try {
+        useAppStore.getState().startProject();
+        expect(useAppStore.getState().projectId).toBe('proj-11111111-2222-3333-4444-555555555555');
+      } finally {
+        Object.defineProperty(globalThis, 'crypto', {
+          value: originalCrypto,
+          configurable: true,
+        });
+      }
+    });
+
     it('resetProject clears all project state including trim', () => {
       useAppStore.getState().startProject();
       useAppStore.getState().setBrief({ title: 'T', genre: 'g', mood: 'm', tempo: 't', description: 'd' });
