@@ -3,6 +3,7 @@ import type { JsonObject } from '../internal/utils.js';
 
 export { asRecord };
 
+/** Parse-only: returns the parsed JSON cast to T without shape validation. Use safeParseObject/safeParseArray for runtime-checked variants. */
 export function safeParseJson<T>(text: string, fallback: T): T {
   try {
     return JSON.parse(String(text || '')) as T;
