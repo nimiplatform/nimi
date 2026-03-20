@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { isNimiError } from '@nimiplatform/sdk/runtime/errors.js';
+import { OtButton } from './ui-primitives.js';
 
 type ErrorActionType =
   | 'retry'
@@ -110,6 +111,7 @@ export function ErrorDisplay({
 }) {
   const classified = classifyError(error);
   const [cooldownLeft, setCooldownLeft] = useState(classified.cooldownMs ?? 0);
+  const [shaking, setShaking] = useState(true);
 
   useEffect(() => {
     if (classified.actionType !== 'cooldown' || !classified.cooldownMs) return;
@@ -127,6 +129,12 @@ export function ErrorDisplay({
     return () => clearInterval(interval);
   }, [classified.actionType, classified.cooldownMs]);
 
+  useEffect(() => {
+    if (!shaking) return;
+    const timer = setTimeout(() => setShaking(false), 300);
+    return () => clearTimeout(timer);
+  }, [shaking]);
+
   const handleAction = useCallback(() => {
     if (classified.retryable && onRetry) {
       onRetry();
@@ -136,15 +144,14 @@ export function ErrorDisplay({
   }, [classified.retryable, onRetry, onDismiss]);
 
   const isWarning = classified.actionType === 'content_warning' || classified.actionType === 'cooldown';
-  const borderColor = isWarning ? 'border-amber-500/20' : 'border-red-500/20';
-  const bgColor = isWarning ? 'bg-amber-500/10' : 'bg-red-500/10';
-  const textColor = isWarning ? 'text-amber-300' : 'text-red-300';
-  const iconColor = isWarning ? 'text-amber-400' : 'text-red-400';
+  const borderColor = isWarning ? 'border-ot-warning/20' : 'border-ot-error/20';
+  const bgColor = isWarning ? 'bg-ot-warning/10' : 'bg-ot-error/10';
+  const textColor = isWarning ? 'text-ot-warning' : 'text-ot-error';
 
   return (
-    <div className={`p-3 rounded-lg border ${borderColor} ${bgColor} space-y-2`}>
+    <div className={`p-3 rounded-lg border ${borderColor} ${bgColor} space-y-2 ${shaking ? 'ot-input--shake' : ''}`}>
       <div className="flex items-start gap-2">
-        <span className={`${iconColor} text-sm shrink-0 mt-0.5`}>
+        <span className={`${textColor} text-sm shrink-0 mt-0.5`}>
           {isWarning ? '\u26A0' : '\u2718'}
         </span>
         <p className={`text-xs ${textColor} flex-1`}>{classified.message}</p>
@@ -152,28 +159,20 @@ export function ErrorDisplay({
 
       <div className="flex items-center gap-2">
         {classified.actionType === 'cooldown' && cooldownLeft > 0 ? (
-          <span className="text-[10px] text-amber-400 tabular-nums">
+          <span className="text-[10px] text-ot-warning tabular-nums font-mono">
             Retry in {Math.ceil(cooldownLeft / 1000)}s
           </span>
         ) : (
           <>
             {classified.retryable && onRetry && (
-              <button
-                className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors"
-                onClick={handleAction}
-                type="button"
-              >
+              <OtButton variant="tertiary" className="text-[10px] py-0.5 px-2" onClick={handleAction} type="button">
                 {classified.actionLabel}
-              </button>
+              </OtButton>
             )}
             {onDismiss && (
-              <button
-                className="text-[10px] px-2 py-0.5 rounded text-zinc-500 hover:text-zinc-300 transition-colors"
-                onClick={onDismiss}
-                type="button"
-              >
+              <OtButton variant="tertiary" className="text-[10px] py-0.5 px-2" onClick={onDismiss} type="button">
                 Dismiss
-              </button>
+              </OtButton>
             )}
           </>
         )}

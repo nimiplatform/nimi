@@ -70,18 +70,9 @@ export function PlayerPanel() {
 
   useEffect(() => stopPlayback, [stopPlayback]);
 
-  const handlePlayPause = useCallback(() => {
-    if (isPlaying) {
-      const context = getAudioContext();
-      offsetRef.current = context.currentTime - startTimeRef.current;
-      stopPlayback();
-      return;
-    }
-
+  const startPlayback = useCallback((fromOffset?: number) => {
     const decoded = decodedBufferRef.current;
-    if (!decoded) {
-      return;
-    }
+    if (!decoded) return;
 
     const context = getAudioContext();
     if (context.state === 'suspended') {
@@ -95,7 +86,11 @@ export function PlayerPanel() {
     const effectiveStart = trimStart ?? 0;
     const effectiveEnd = trimEnd ?? decoded.duration;
 
-    const offset = offsetRef.current < effectiveStart ? effectiveStart : offsetRef.current;
+    const offset = fromOffset !== undefined
+      ? fromOffset
+      : offsetRef.current < effectiveStart
+        ? effectiveStart
+        : offsetRef.current;
     const playDuration = effectiveEnd - offset;
 
     if (playDuration <= 0) {
@@ -123,15 +118,47 @@ export function PlayerPanel() {
       }
     };
     animationRef.current = requestAnimationFrame(tick);
-  }, [getAudioContext, isPlaying, stopPlayback, trimStart, trimEnd]);
+  }, [getAudioContext, stopPlayback, trimStart, trimEnd]);
+
+  const handlePlayPause = useCallback(() => {
+    if (isPlaying) {
+      const context = getAudioContext();
+      offsetRef.current = context.currentTime - startTimeRef.current;
+      stopPlayback();
+      return;
+    }
+    startPlayback();
+  }, [getAudioContext, isPlaying, stopPlayback, startPlayback]);
 
   const handleSeek = useCallback((time: number) => {
     if (isPlaying) {
       stopPlayback();
+      offsetRef.current = time;
+      setCurrentTime(time);
+      startPlayback(time);
+    } else {
+      offsetRef.current = time;
+      setCurrentTime(time);
     }
-    offsetRef.current = time;
-    setCurrentTime(time);
-  }, [isPlaying, stopPlayback]);
+  }, [isPlaying, stopPlayback, startPlayback]);
+
+  /* ─── Global keyboard event listeners ─── */
+  useEffect(() => {
+    function onToggle() {
+      handlePlayPause();
+    }
+    function onSeekDelta(e: Event) {
+      const delta = (e as CustomEvent<number>).detail;
+      const newTime = Math.max(0, Math.min(duration, currentTime + delta));
+      handleSeek(newTime);
+    }
+    window.addEventListener('ot-toggle-playback', onToggle);
+    window.addEventListener('ot-seek-delta', onSeekDelta);
+    return () => {
+      window.removeEventListener('ot-toggle-playback', onToggle);
+      window.removeEventListener('ot-seek-delta', onSeekDelta);
+    };
+  }, [handlePlayPause, handleSeek, duration, currentTime]);
 
   const handleSetTrimStart = useCallback(() => {
     setTrimStart(currentTime);
@@ -141,78 +168,79 @@ export function PlayerPanel() {
     setTrimEnd(currentTime);
   }, [currentTime, setTrimEnd]);
 
+  const hasAudio = Boolean(decodedBufferRef.current);
+
+  /* ─── Empty state ─── */
   if (!selectedTake) {
     return (
-      <div className="border-t border-zinc-800 px-4 py-3">
-        <p className="text-xs text-zinc-600 text-center">Select a take to preview</p>
+      <div className="ot-glass h-[80px] flex items-center justify-center px-6 z-50 shrink-0">
+        <button className="ot-play-btn" disabled type="button">
+          <span className="text-sm">&#x25B6;</span>
+        </button>
+        <div className="flex-1 flex items-center justify-center mx-5">
+          <div className="w-full h-[1px] bg-ot-surface-5 relative">
+            <span className="absolute left-1/2 -translate-x-1/2 -top-3 text-[11px] text-ot-text-ghost whitespace-nowrap">
+              Select a take to preview
+            </span>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const hasAudio = Boolean(decodedBufferRef.current);
-
   return (
-    <div className="border-t border-zinc-800 px-4 py-3 space-y-2">
-      <div className="flex items-center gap-3">
-        <button
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 text-zinc-900 hover:bg-zinc-200 transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
-          onClick={handlePlayPause}
-          disabled={!hasAudio}
-          type="button"
-        >
-          <span className="text-sm">{isPlaying ? '\u23F8' : '\u25B6'}</span>
-        </button>
+    <div className="ot-glass h-[80px] flex items-center gap-5 px-6 z-50 shrink-0">
+      {/* Play button */}
+      <button
+        className={`ot-play-btn${isPlaying ? ' ot-play-btn--playing' : ''}`}
+        onClick={handlePlayPause}
+        disabled={!hasAudio}
+        type="button"
+      >
+        <span className="text-sm">{isPlaying ? '\u23F8' : '\u25B6'}</span>
+      </button>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-zinc-300 truncate">{selectedTake.title}</span>
-            <span className="text-[10px] text-zinc-500 tabular-nums shrink-0 ml-2">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-          </div>
-          {hasAudio ? (
-            <Waveform
-              buffer={decodedBufferRef.current}
-              currentTime={currentTime}
-              duration={duration}
-              trimStart={trimStart}
-              trimEnd={trimEnd}
-              onSeek={handleSeek}
-            />
-          ) : (
-            <div className="h-12 bg-zinc-800 rounded flex items-center justify-center">
-              <p className="text-[10px] text-zinc-600">No audio data available for this take</p>
-            </div>
-          )}
-        </div>
+      {/* Track info */}
+      <div className="shrink-0 min-w-0 max-w-[200px]">
+        <p className="text-xs font-medium text-ot-text-primary truncate">{selectedTake.title}</p>
+        <p className="text-[11px] font-mono text-ot-text-secondary tabular-nums">
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </p>
       </div>
 
+      {/* Waveform */}
+      <div className="flex-1 min-w-0">
+        {hasAudio ? (
+          <Waveform
+            buffer={decodedBufferRef.current}
+            currentTime={currentTime}
+            duration={duration}
+            trimStart={trimStart}
+            trimEnd={trimEnd}
+            onSeek={handleSeek}
+          />
+        ) : (
+          <div className="h-10 bg-ot-surface-3 rounded-lg flex items-center justify-center">
+            <p className="text-[10px] text-ot-text-ghost">No audio data available</p>
+          </div>
+        )}
+      </div>
+
+      {/* Trim controls */}
       {hasAudio && (
-        <div className="flex items-center gap-2 pl-11">
-          <button
-            className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
-            onClick={handleSetTrimStart}
-            type="button"
-          >
-            Set Start
+        <div className="flex items-center gap-2 shrink-0">
+          <button className="ot-btn-tertiary text-[11px] py-1 px-2" onClick={handleSetTrimStart} type="button">
+            Set ▸
           </button>
-          <button
-            className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
-            onClick={handleSetTrimEnd}
-            type="button"
-          >
-            Set End
+          <button className="ot-btn-tertiary text-[11px] py-1 px-2" onClick={handleSetTrimEnd} type="button">
+            ▸ Set
           </button>
           {(trimStart !== null || trimEnd !== null) && (
             <>
-              <button
-                className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
-                onClick={clearTrim}
-                type="button"
-              >
+              <button className="ot-btn-tertiary text-[11px] py-1 px-2" onClick={clearTrim} type="button">
                 Clear
               </button>
-              <span className="text-[10px] text-cyan-400 tabular-nums">
+              <span className="text-[11px] font-mono text-ot-violet-300 tabular-nums">
                 {trimStart !== null ? formatTime(trimStart) : '0:00'}
                 {' – '}
                 {trimEnd !== null ? formatTime(trimEnd) : formatTime(duration)}

@@ -9,6 +9,7 @@ import {
   submitMusicJobAndWait,
 } from './runtime-workflow.js';
 import { ErrorDisplay } from './error-display.js';
+import { OtButton, OtSegmentedControl, OtAccordionSection } from './ui-primitives.js';
 
 type SourceKind = 'take' | 'upload';
 
@@ -191,119 +192,96 @@ export function IteratePanel() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Iterate</h2>
-
+    <OtAccordionSection title="Iteration" defaultOpen={false}>
       {!musicIterationSupported && (
-        <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+        <div className="rounded-lg border border-ot-warning/20 bg-ot-warning/10 px-3 py-2 text-xs text-ot-warning">
           Iteration requires a connector/model pair that supports music.generate.iteration (e.g. Suno, Stability).
         </div>
       )}
 
-      <div className="flex gap-1">
-        {(['extend', 'remix', 'reference'] as const).map((value) => (
-          <button
-            key={value}
-            className={`flex-1 px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              mode === value
-                ? 'bg-zinc-700 text-zinc-100'
-                : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
-            }`}
-            onClick={() => setMode(value)}
-            type="button"
-          >
-            {value.charAt(0).toUpperCase() + value.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      <p className="text-[10px] text-zinc-600">
-        {mode === 'extend' && 'Continue the selected source take.'}
-        {mode === 'remix' && 'Keep the source material but reinterpret arrangement and style.'}
-        {mode === 'reference' && 'Use the source as a guide for a fresh generation.'}
-      </p>
-
-      <div className="space-y-2">
-        <label className="text-xs font-medium text-zinc-400">Source</label>
-        <div className="flex gap-2">
-          <button
-            className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-colors ${
-              sourceKind === 'take'
-                ? 'border-zinc-600 bg-zinc-800 text-zinc-200'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700'
-            }`}
-            onClick={() => setSourceKind('take')}
-            type="button"
-          >
-            From Take
-          </button>
-          <button
-            className={`flex-1 px-2 py-1.5 text-xs rounded-md border transition-colors ${
-              sourceKind === 'upload'
-                ? 'border-zinc-600 bg-zinc-800 text-zinc-200'
-                : 'border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700'
-            }`}
-            onClick={() => setSourceKind('upload')}
-            type="button"
-          >
-            Upload Audio
-          </button>
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Mode</label>
+          <OtSegmentedControl
+            options={['extend', 'remix', 'reference'] as const}
+            value={mode}
+            onChange={setMode}
+            labels={{ extend: 'Extend', remix: 'Remix', reference: 'Reference' }}
+          />
         </div>
 
-        {sourceKind === 'take' && (
-          <div className="p-2 rounded-md bg-zinc-900 border border-zinc-800 text-xs">
-            {selectedTake ? (
-              <div className="flex items-center justify-between">
-                <span className="text-zinc-300 truncate">{selectedTake.title}</span>
-                <span className={selectedTakeAudio ? 'text-emerald-400' : 'text-zinc-600'}>
-                  {selectedTakeAudio ? 'ready' : 'no audio'}
-                </span>
-              </div>
-            ) : (
-              <span className="text-zinc-600">Select a take from the list.</span>
-            )}
-          </div>
-        )}
-
-        {sourceKind === 'upload' && (
-          <div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="audio/*"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <button
-              className="w-full p-2 rounded-md bg-zinc-900 border border-dashed border-zinc-700 text-xs text-zinc-500 hover:border-zinc-600 hover:text-zinc-400 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-            >
-              {uploadedAudio ? uploadedAudio.name : 'Click to upload an audio source'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {(trimStart !== null || trimEnd !== null) && (
-        <p className="text-[10px] text-cyan-400 tabular-nums">
-          Trim: {trimStart !== null ? `${trimStart.toFixed(1)}s` : 'start'} – {trimEnd !== null ? `${trimEnd.toFixed(1)}s` : 'end'}
+        <p className="text-[10px] text-ot-text-ghost">
+          {mode === 'extend' && 'Continue the selected source take.'}
+          {mode === 'remix' && 'Keep the source material but reinterpret arrangement and style.'}
+          {mode === 'reference' && 'Use the source as a guide for a fresh generation.'}
         </p>
-      )}
 
-      {lastError ? (
-        <ErrorDisplay error={lastError} onDismiss={() => setLastError(null)} onRetry={handleIterate} />
-      ) : null}
+        <div className="space-y-2">
+          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Source</label>
+          <OtSegmentedControl
+            options={['take', 'upload'] as const}
+            value={sourceKind}
+            onChange={setSourceKind}
+            labels={{ take: 'From Take', upload: 'Upload Audio' }}
+          />
 
-      <button
-        className="w-full px-4 py-2 text-sm font-medium bg-zinc-100 text-zinc-900 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-        onClick={handleIterate}
-        disabled={!musicIterationSupported || !hasSource || hasActiveJob}
-        type="button"
-      >
-        {hasActiveJob ? 'Processing...' : `${mode.charAt(0).toUpperCase() + mode.slice(1)} Song`}
-      </button>
-    </div>
+          {sourceKind === 'take' && (
+            <div className="p-2.5 rounded-lg bg-ot-surface-3 border border-ot-surface-5 text-xs">
+              {selectedTake ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-ot-text-secondary truncate">{selectedTake.title}</span>
+                  <span className={selectedTakeAudio ? 'text-ot-success' : 'text-ot-text-ghost'}>
+                    {selectedTakeAudio ? 'ready' : 'no audio'}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-ot-text-ghost">Select a take from the list.</span>
+              )}
+            </div>
+          )}
+
+          {sourceKind === 'upload' && (
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+              <button
+                className="w-full p-3 rounded-lg bg-ot-surface-3 border border-dashed border-ot-surface-5 text-xs text-ot-text-ghost hover:border-ot-violet-400 hover:bg-ot-violet-400/5 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                {uploadedAudio ? uploadedAudio.name : 'Drop audio or click to browse'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {(trimStart !== null || trimEnd !== null) && (
+          <p className="text-[10px] font-mono text-ot-violet-300 tabular-nums">
+            Trim: {trimStart !== null ? `${trimStart.toFixed(1)}s` : 'start'} – {trimEnd !== null ? `${trimEnd.toFixed(1)}s` : 'end'}
+          </p>
+        )}
+
+        {lastError ? (
+          <ErrorDisplay error={lastError} onDismiss={() => setLastError(null)} onRetry={handleIterate} />
+        ) : null}
+
+        <OtButton
+          variant="secondary"
+          className="w-full"
+          onClick={handleIterate}
+          disabled={!musicIterationSupported || !hasSource || hasActiveJob}
+          loading={hasActiveJob}
+          type="button"
+        >
+          {hasActiveJob ? 'Processing...' : `${mode.charAt(0).toUpperCase() + mode.slice(1)} Song`}
+        </OtButton>
+      </div>
+    </OtAccordionSection>
   );
 }
 

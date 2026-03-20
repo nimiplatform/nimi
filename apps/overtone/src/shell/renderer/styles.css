@@ -1,9 +1,669 @@
 @import "tailwindcss";
 @source "../../../../_libs/shell-auth/src/**/*.{ts,tsx}";
 
+@theme {
+  /* ─── Overtone Surface Layers ─── */
+  --color-ot-surface-0: #08090d;
+  --color-ot-surface-1: #0e1018;
+  --color-ot-surface-2: #151825;
+  --color-ot-surface-3: #1c2033;
+  --color-ot-surface-4: #252a40;
+  --color-ot-surface-5: #2f354e;
+
+  /* ─── Brand Violet ─── */
+  --color-ot-violet-50:  #f3eeff;
+  --color-ot-violet-100: #e0d4ff;
+  --color-ot-violet-200: #c4adff;
+  --color-ot-violet-300: #a785ff;
+  --color-ot-violet-400: #8b5cf6;
+  --color-ot-violet-500: #7c3aed;
+  --color-ot-violet-600: #6d28d9;
+  --color-ot-violet-700: #5b21b6;
+  --color-ot-violet-800: #4c1d95;
+  --color-ot-violet-900: #2e1065;
+
+  /* ─── Semantic ─── */
+  --color-ot-success: #34d399;
+  --color-ot-warning: #fbbf24;
+  --color-ot-error:   #f87171;
+  --color-ot-info:    #38bdf8;
+
+  /* ─── Text ─── */
+  --color-ot-text-primary:   #e8eaf0;
+  --color-ot-text-secondary: #9ca3b8;
+  --color-ot-text-tertiary:  #5c6380;
+  --color-ot-text-ghost:     #3a4060;
+
+  /* ─── Fonts ─── */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* ─── Shadows ─── */
+  --shadow-panel:      0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow-violet: 0 0 20px rgba(139, 92, 246, 0.35), 0 0 60px rgba(139, 92, 246, 0.15);
+  --shadow-focus: 0 0 0 2px #08090d, 0 0 0 4px #8b5cf6;
+}
+
+/* ─── CSS Custom Properties (non-Tailwind, for use in JS/Canvas) ─── */
+:root {
+  --ot-surface-0: #08090d;
+  --ot-surface-1: #0e1018;
+  --ot-surface-2: #151825;
+  --ot-surface-3: #1c2033;
+  --ot-surface-4: #252a40;
+  --ot-surface-5: #2f354e;
+
+  --ot-violet-50:  #f3eeff;
+  --ot-violet-100: #e0d4ff;
+  --ot-violet-200: #c4adff;
+  --ot-violet-300: #a785ff;
+  --ot-violet-400: #8b5cf6;
+  --ot-violet-500: #7c3aed;
+  --ot-violet-600: #6d28d9;
+  --ot-violet-700: #5b21b6;
+  --ot-violet-800: #4c1d95;
+  --ot-violet-900: #2e1065;
+
+  --ot-success: #34d399;
+  --ot-warning: #fbbf24;
+  --ot-error:   #f87171;
+  --ot-info:    #38bdf8;
+
+  --ot-text-primary:   #e8eaf0;
+  --ot-text-secondary: #9ca3b8;
+  --ot-text-tertiary:  #5c6380;
+  --ot-text-ghost:     #3a4060;
+
+  --ot-glow-violet:      rgba(139, 92, 246, 0.35);
+  --ot-glow-violet-soft: rgba(139, 92, 246, 0.15);
+  --ot-glow-amber:       rgba(251, 191, 36, 0.30);
+  --ot-glow-waveform:    rgba(139, 92, 246, 0.20);
+
+  --ot-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --ot-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+
+  --ot-radius-sm:   4px;
+  --ot-radius-md:   8px;
+  --ot-radius-lg:   12px;
+  --ot-radius-xl:   16px;
+  --ot-radius-full: 9999px;
+
+  --ot-shadow-panel:       0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.2);
+  --ot-shadow-card-hover:  0 8px 32px rgba(0, 0, 0, 0.5);
+  --ot-shadow-glow-violet: 0 0 20px var(--ot-glow-violet), 0 0 60px var(--ot-glow-violet-soft);
+  --ot-shadow-focus:       0 0 0 2px var(--ot-surface-0), 0 0 0 4px var(--ot-violet-400);
+  --ot-shadow-transport:   0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Base ─── */
 html, body, #root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
+}
+
+body {
+  font-family: var(--ot-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--ot-surface-0);
+  color: var(--ot-text-primary);
+}
+
+/* ─── Focus Visible ─── */
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--ot-shadow-focus);
+}
+
+/* ─── Scrollbar ─── */
+.ot-scroll::-webkit-scrollbar { width: 6px; }
+.ot-scroll::-webkit-scrollbar-track { background: transparent; }
+.ot-scroll::-webkit-scrollbar-thumb {
+  background: var(--ot-surface-5);
+  border-radius: var(--ot-radius-full);
+}
+.ot-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--ot-text-tertiary);
+}
+
+/* ─── Glass Effect ─── */
+.ot-glass {
+  background: rgba(14, 16, 24, 0.80);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Buttons ─── */
+.ot-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  background: var(--ot-violet-400);
+  border: none;
+  border-radius: var(--ot-radius-md);
+  box-shadow: var(--ot-shadow-glow-violet);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+.ot-btn-primary:hover {
+  background: var(--ot-violet-300);
+  transform: scale(1.02);
+  box-shadow: 0 0 28px var(--ot-glow-violet), 0 0 80px var(--ot-glow-violet-soft);
+}
+.ot-btn-primary:active {
+  background: var(--ot-violet-500);
+  transform: scale(0.98);
+  box-shadow: 0 0 12px var(--ot-glow-violet-soft);
+}
+.ot-btn-primary:disabled {
+  background: var(--ot-surface-4);
+  color: var(--ot-text-ghost);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+.ot-btn-primary--generating {
+  position: relative;
+}
+.ot-btn-primary--generating::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--ot-radius-md);
+  border: 1px solid var(--ot-violet-400);
+  animation: ot-concentric-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.ot-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ot-violet-300);
+  background: transparent;
+  border: 1px solid rgba(139, 92, 246, 0.30);
+  border-radius: var(--ot-radius-md);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+.ot-btn-secondary:hover {
+  background: rgba(139, 92, 246, 0.10);
+  border-color: rgba(139, 92, 246, 0.50);
+  color: var(--ot-violet-200);
+}
+.ot-btn-secondary:active {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(139, 92, 246, 0.60);
+  color: var(--ot-violet-100);
+}
+.ot-btn-secondary:disabled {
+  color: var(--ot-text-ghost);
+  border-color: var(--ot-surface-5);
+  background: transparent;
+  cursor: not-allowed;
+}
+
+.ot-btn-tertiary {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ot-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--ot-radius-md);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+.ot-btn-tertiary:hover {
+  background: var(--ot-surface-3);
+  color: var(--ot-text-primary);
+}
+.ot-btn-tertiary:active {
+  background: var(--ot-surface-4);
+  color: var(--ot-text-primary);
+}
+
+.ot-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ot-radius-md);
+  color: var(--ot-text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+.ot-btn-icon:hover {
+  background: var(--ot-surface-3);
+  color: var(--ot-text-secondary);
+}
+.ot-btn-icon:active {
+  background: var(--ot-surface-4);
+  color: var(--ot-text-primary);
+}
+
+/* ─── Input ─── */
+.ot-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ot-text-primary);
+  background: var(--ot-surface-4);
+  border: 1px solid var(--ot-surface-5);
+  border-radius: var(--ot-radius-md);
+  outline: none;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.ot-input::placeholder {
+  color: var(--ot-text-ghost);
+}
+.ot-input:focus {
+  border-color: var(--ot-violet-400);
+  box-shadow: 0 0 0 2px var(--ot-surface-0), 0 0 0 4px rgba(139, 92, 246, 0.25);
+}
+.ot-input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ot-input--error {
+  border-color: var(--ot-error);
+  box-shadow: 0 0 0 2px var(--ot-surface-0), 0 0 0 4px rgba(248, 113, 113, 0.20);
+}
+
+/* ─── Play Button ─── */
+.ot-play-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--ot-radius-full);
+  background: var(--ot-violet-400);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform 150ms ease-out, background 150ms ease-out;
+  box-shadow: var(--ot-shadow-glow-violet);
+  flex-shrink: 0;
+}
+.ot-play-btn--playing {
+  animation: ot-breathe 3s ease-in-out infinite;
+}
+.ot-play-btn:hover {
+  transform: scale(1.06);
+}
+.ot-play-btn:active {
+  transform: scale(0.94);
+}
+.ot-play-btn:disabled {
+  background: var(--ot-surface-4);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+/* ─── Take Card ─── */
+.ot-take-card {
+  position: relative;
+  background: var(--ot-surface-2);
+  border: 1px solid var(--ot-surface-5);
+  border-radius: var(--ot-radius-lg);
+  overflow: hidden;
+  transition: border-color 150ms ease-out, box-shadow 200ms ease-out;
+  cursor: pointer;
+}
+.ot-take-card:hover {
+  border-color: rgba(139, 92, 246, 0.30);
+  box-shadow: var(--ot-shadow-card-hover);
+}
+.ot-take-card--selected {
+  border-color: var(--ot-violet-400);
+  box-shadow: 0 0 0 1px var(--ot-violet-400);
+}
+.ot-take-card--selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ot-violet-400);
+}
+
+/* ─── Origin Badge ─── */
+.ot-badge-origin {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border-radius: var(--ot-radius-full);
+  text-transform: lowercase;
+}
+.ot-badge-origin--prompt    { background: rgba(139, 92, 246, 0.12); color: var(--ot-violet-300); }
+.ot-badge-origin--extend    { background: rgba(52, 211, 153, 0.12); color: var(--ot-success); }
+.ot-badge-origin--remix     { background: rgba(251, 191, 36, 0.12); color: var(--ot-warning); }
+.ot-badge-origin--reference { background: rgba(56, 189, 248, 0.12); color: var(--ot-info); }
+
+/* ─── Readiness Indicator ─── */
+.ot-readiness__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--ot-radius-full);
+  flex-shrink: 0;
+}
+.ot-readiness__dot--ready    { background: var(--ot-success); }
+.ot-readiness__dot--degraded { background: var(--ot-warning); }
+.ot-readiness__dot--error    { background: var(--ot-error); }
+.ot-readiness__dot--checking {
+  background: var(--ot-text-tertiary);
+  animation: ot-pulse 1.5s ease-in-out infinite;
+}
+
+/* ─── Progress Bar ─── */
+.ot-progress {
+  height: 3px;
+  background: var(--ot-surface-4);
+  border-radius: var(--ot-radius-full);
+  overflow: hidden;
+}
+.ot-progress__fill {
+  height: 100%;
+  background: var(--ot-violet-400);
+  border-radius: var(--ot-radius-full);
+  transition: width 300ms ease-out;
+}
+.ot-progress__fill--indeterminate {
+  width: 40%;
+  animation: ot-progress-indeterminate 1.5s ease-in-out infinite;
+}
+.ot-progress__fill--generating {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(255, 255, 255, 0.08) 4px,
+    rgba(255, 255, 255, 0.08) 8px
+  );
+  background-size: 20px 20px;
+  animation: ot-stripe-scroll 0.8s linear infinite;
+}
+
+/* ─── Segmented Control ─── */
+.ot-segmented {
+  display: inline-flex;
+  background: var(--ot-surface-3);
+  border-radius: var(--ot-radius-md);
+  padding: 2px;
+  gap: 2px;
+}
+.ot-segmented__item {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ot-text-tertiary);
+  border-radius: calc(var(--ot-radius-md) - 2px);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+  background: transparent;
+  border: none;
+}
+.ot-segmented__item:hover {
+  color: var(--ot-text-secondary);
+}
+.ot-segmented__item--active {
+  background: var(--ot-surface-1);
+  color: var(--ot-text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Toggle Switch ─── */
+.ot-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--ot-surface-4);
+  border: 1px solid var(--ot-surface-5);
+  border-radius: var(--ot-radius-full);
+  cursor: pointer;
+  transition: background 150ms ease-out, border-color 150ms ease-out;
+  flex-shrink: 0;
+}
+.ot-toggle--on {
+  background: var(--ot-violet-400);
+  border-color: var(--ot-violet-500);
+}
+.ot-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--ot-text-primary);
+  border-radius: var(--ot-radius-full);
+  transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ot-toggle--on .ot-toggle__thumb {
+  transform: translateX(16px);
+}
+
+/* ─── Tag Pill ─── */
+.ot-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ot-text-secondary);
+  background: var(--ot-surface-3);
+  border-radius: var(--ot-radius-full);
+  border: none;
+}
+.ot-tag__dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  color: var(--ot-text-ghost);
+  cursor: pointer;
+  border-radius: var(--ot-radius-full);
+  transition: all 150ms;
+}
+.ot-tag__dismiss:hover {
+  color: var(--ot-text-primary);
+  background: var(--ot-surface-5);
+}
+
+/* ─── Context Menu ─── */
+.ot-context-menu {
+  position: fixed;
+  width: 200px;
+  background: var(--ot-surface-2);
+  border: 1px solid var(--ot-surface-5);
+  border-radius: var(--ot-radius-md);
+  box-shadow: var(--ot-shadow-panel);
+  padding: 4px 0;
+  z-index: 100;
+}
+.ot-context-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ot-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 100ms;
+  text-align: left;
+}
+.ot-context-menu__item:hover {
+  background: var(--ot-surface-3);
+  color: var(--ot-text-primary);
+}
+.ot-context-menu__item--danger {
+  color: var(--ot-error);
+}
+.ot-context-menu__item--danger:hover {
+  background: rgba(248, 113, 113, 0.10);
+  color: var(--ot-error);
+}
+.ot-context-menu__sep {
+  height: 1px;
+  background: var(--ot-surface-5);
+  margin: 4px 0;
+}
+
+/* ─── Compare View ─── */
+.ot-compare-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  animation: ot-compare-enter 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.ot-compare-side--active {
+  border-left: 2px solid var(--ot-violet-400);
+}
+
+/* ─── Keyframes ─── */
+@keyframes ot-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+@keyframes ot-breathe {
+  0%   { box-shadow: 0 0 16px rgba(139, 92, 246, 0.30), 0 0 48px rgba(139, 92, 246, 0.10); }
+  50%  { box-shadow: 0 0 24px rgba(139, 92, 246, 0.50), 0 0 64px rgba(139, 92, 246, 0.20); }
+  100% { box-shadow: 0 0 16px rgba(139, 92, 246, 0.30), 0 0 48px rgba(139, 92, 246, 0.10); }
+}
+
+@keyframes ot-activity-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes ot-stripe-scroll {
+  0%   { background-position: 0 0; }
+  100% { background-position: 20px 0; }
+}
+
+@keyframes ot-ghost-bar {
+  0%   { height: 4px; opacity: 0.3; }
+  50%  { height: var(--bar-target-h); opacity: 0.7; }
+  100% { height: 4px; opacity: 0.3; }
+}
+
+@keyframes ot-concentric-pulse {
+  0%   { transform: scale(0.8); opacity: 0.4; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes ot-star-bounce {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.4); }
+  60%  { transform: scale(0.9); }
+  80%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes ot-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+@keyframes ot-card-appear {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.97); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes ot-card-discard {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.95) translateY(4px); }
+}
+
+@keyframes ot-compare-enter {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes ot-tooltip-in {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ot-ambient-wave {
+  0%   { transform: scaleY(0.6); }
+  50%  { transform: scaleY(1.0); }
+  100% { transform: scaleY(0.6); }
+}
+
+@keyframes ot-progress-indeterminate {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+@keyframes ot-modal-enter {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ot-modal-exit {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(4px); }
+}
+
+/* ─── Animation Classes ─── */
+.ot-star--just-favorited {
+  animation: ot-star-bounce 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: var(--ot-warning);
+  filter: drop-shadow(0 0 4px var(--ot-glow-amber));
+}
+
+.ot-take-card--new {
+  animation: ot-card-appear 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ot-take-card--discarding {
+  animation: ot-card-discard 200ms ease-out forwards;
+  pointer-events: none;
+}
+
+.ot-input--shake {
+  animation: ot-shake 300ms ease-out;
+}
+
+/* ─── Reduced Motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

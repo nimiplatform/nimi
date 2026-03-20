@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRuntimeReady } from '@renderer/hooks/use-runtime-ready.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { OtButton } from './ui-primitives.js';
 import { BriefPanel } from './brief-panel.js';
 import { GeneratePanel } from './generate-panel.js';
 import { IteratePanel } from './iterate-panel.js';
 import { TakesPanel } from './takes-panel.js';
 import { PlayerPanel } from './player-panel.js';
-import { PublishPanel } from './publish-panel.js';
+import { PublishModal } from './publish-panel.js';
+
+/* ─── ReadinessGate ─── */
 
 function ReadinessGate({ children }: { children: React.ReactNode }) {
   const runtimeStatus = useAppStore((state) => state.runtimeStatus);
@@ -18,8 +21,8 @@ function ReadinessGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin mx-auto" />
-          <p className="text-zinc-400 text-sm">Connecting to runtime...</p>
+          <div className="w-8 h-8 border-2 border-ot-violet-400/20 border-t-ot-violet-400 rounded-full animate-spin mx-auto" />
+          <p className="text-ot-text-secondary text-sm">Connecting to runtime...</p>
         </div>
       </div>
     );
@@ -29,14 +32,14 @@ function ReadinessGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
-          <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
-            <span className="text-red-400 text-xl">!</span>
+          <div className="w-12 h-12 rounded-full bg-ot-error/10 flex items-center justify-center mx-auto">
+            <span className="text-ot-error text-xl">!</span>
           </div>
-          <h2 className="text-lg font-semibold text-zinc-200">Runtime Unavailable</h2>
-          <p className="text-zinc-400 text-sm">
+          <h2 className="text-lg font-semibold text-ot-text-primary">Runtime Unavailable</h2>
+          <p className="text-ot-text-secondary text-sm">
             {runtimeError || 'Could not connect to the nimi runtime daemon.'}
           </p>
-          <p className="text-zinc-500 text-xs">
+          <p className="text-ot-text-tertiary text-xs">
             Make sure the nimi runtime is installed and accessible. Check your NIMI_RUNTIME_BRIDGE_MODE
             and NIMI_RUNTIME_BINARY environment variables.
           </p>
@@ -47,6 +50,8 @@ function ReadinessGate({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
+/* ─── ReadinessIssuesBanner ─── */
 
 function ReadinessIssuesBanner() {
   const runtimeStatus = useAppStore((state) => state.runtimeStatus);
@@ -67,9 +72,9 @@ function ReadinessIssuesBanner() {
   }
 
   return (
-    <div className="mx-4 mt-2 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2">
-      <p className="text-xs font-medium text-amber-300 mb-1">Readiness issues</p>
-      <ul className="text-[10px] text-amber-300/80 space-y-0.5">
+    <div className="mx-4 mt-2 rounded-lg border border-ot-warning/20 bg-ot-warning/10 px-3 py-2">
+      <p className="text-xs font-medium text-ot-warning mb-1">Readiness issues</p>
+      <ul className="text-[10px] text-ot-warning/80 space-y-0.5">
         {issues.map((issue) => (
           <li key={issue}>{issue}</li>
         ))}
@@ -78,68 +83,243 @@ function ReadinessIssuesBanner() {
   );
 }
 
+/* ─── Ambient Waveform (Empty State) ─── */
+
+function AmbientWaveform() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let running = true;
+    const BAR_COUNT = 120;
+
+    const animate = () => {
+      if (!running) return;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const time = Date.now() / 1000;
+      const barWidth = rect.width / BAR_COUNT;
+      const centerY = rect.height / 2;
+
+      ctx.fillStyle = 'rgba(139, 92, 246, 0.08)';
+
+      for (let i = 0; i < BAR_COUNT; i++) {
+        const phase = (i / BAR_COUNT) * Math.PI * 4 + time * 0.8;
+        const amplitude = 0.05 + 0.10 * Math.sin(time * 0.3 + i * 0.05);
+        const h = Math.max(2, Math.abs(Math.sin(phase)) * rect.height * amplitude);
+        const x = i * barWidth;
+        ctx.beginPath();
+        ctx.roundRect(x + 1, centerY - h / 2, barWidth - 2, h, [2, 2, 0, 0]);
+        ctx.fill();
+      }
+
+      frameRef.current = requestAnimationFrame(animate);
+    };
+
+    frameRef.current = requestAnimationFrame(animate);
+    return () => {
+      running = false;
+      cancelAnimationFrame(frameRef.current);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
+}
+
+/* ─── ProjectStarter (Empty State) ─── */
+
 function ProjectStarter() {
   const startProject = useAppStore((state) => state.startProject);
+  const runtimeStatus = useAppStore((s) => s.runtimeStatus);
+  const realmConfigured = useAppStore((s) => s.realmConfigured);
+  const musicOk = useAppStore((s) => s.musicConnectorAvailable);
+  const textOk = useAppStore((s) => s.textConnectorAvailable);
+
+  const dots = [
+    { label: 'Runtime', ok: runtimeStatus === 'ready' || runtimeStatus === 'degraded', checking: runtimeStatus === 'checking' },
+    { label: 'Realm', ok: realmConfigured, checking: false },
+    { label: 'Music', ok: musicOk, checking: false },
+    { label: 'Text', ok: textOk, checking: false },
+  ];
 
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center space-y-6 max-w-lg">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">Overtone Studio</h2>
-          <p className="text-zinc-400">
-            AI-powered music creation. Describe your song, generate candidates, compare takes, and publish.
+    <div className="flex-1 flex items-center justify-center relative">
+      <AmbientWaveform />
+      <div className="text-center space-y-8 relative z-10">
+        <div className="space-y-3">
+          <h2 className="text-[28px] font-bold tracking-[0.3em] uppercase text-ot-text-primary">
+            OVERTONE
+          </h2>
+          <p className="text-sm text-ot-text-tertiary">
+            AI Music Creation Studio
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-left">
-          <InfoCard
-            title="Song Brief"
-            description="Describe your idea and let AI help structure it into a creative brief."
-          />
-          <InfoCard
-            title="Generate Music"
-            description="Create multiple song candidates from your brief and lyrics."
-          />
-          <InfoCard
-            title="Compare Takes"
-            description="A/B compare, favorite, and iterate on your best candidates."
-          />
-          <InfoCard
-            title="Publish Prep"
-            description="Prepare metadata and provenance for future realm publishing."
-          />
-        </div>
-
-        <button
-          className="px-6 py-2.5 bg-zinc-100 text-zinc-900 font-medium rounded-lg hover:bg-zinc-200 transition-colors"
+        <OtButton
+          variant="primary"
+          className="min-w-[200px]"
           onClick={startProject}
           type="button"
         >
-          New Song Project
-        </button>
+          Start New Session
+        </OtButton>
+
+        <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono text-ot-text-ghost">
+          <span>⌘N New Session</span>
+        </div>
+
+        <div className="flex items-center justify-center gap-4">
+          {dots.map((d) => (
+            <div key={d.label} className="flex items-center gap-1.5">
+              <div
+                className={`ot-readiness__dot ${
+                  d.checking
+                    ? 'ot-readiness__dot--checking'
+                    : d.ok
+                      ? 'ot-readiness__dot--ready'
+                      : 'ot-readiness__dot--error'
+                }`}
+              />
+              <span className="text-[11px] text-ot-text-tertiary">{d.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function InfoCard({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="p-4 rounded-lg bg-zinc-900 border border-zinc-800">
-      <h3 className="text-sm font-medium text-zinc-200 mb-1">{title}</h3>
-      <p className="text-xs text-zinc-500">{description}</p>
-    </div>
-  );
-}
+/* ─── StudioWorkspace ─── */
 
 function StudioWorkspace() {
   const resetProject = useAppStore((state) => state.resetProject);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
+  const [composeWidth, setComposeWidth] = useState(320);
+  const resizing = useRef(false);
+
+  const handlePublish = useCallback(() => {
+    setPublishModalOpen(true);
+  }, []);
+
+  /* ─── Keyboard Shortcuts ─── */
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === 'Escape') {
+        if (publishModalOpen) {
+          setPublishModalOpen(false);
+          return;
+        }
+        const { compareTakeIds, clearCompareTakeIds } = useAppStore.getState();
+        if (compareTakeIds[0] || compareTakeIds[1]) {
+          clearCompareTakeIds();
+          return;
+        }
+      }
+
+      if (isInput) return;
+
+      if (e.key === ' ') {
+        e.preventDefault();
+        // Space → play/pause handled by PlayerPanel's own logic via store
+        // We dispatch a custom event that PlayerPanel listens for
+        window.dispatchEvent(new CustomEvent('ot-toggle-playback'));
+        return;
+      }
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        const delta = e.shiftKey ? 15 : 5;
+        const sign = e.key === 'ArrowLeft' ? -1 : 1;
+        window.dispatchEvent(new CustomEvent('ot-seek-delta', { detail: delta * sign }));
+        return;
+      }
+
+      if (e.key === 'f' || e.key === 'F') {
+        const { selectedTakeId, toggleFavorite } = useAppStore.getState();
+        if (selectedTakeId) toggleFavorite(selectedTakeId);
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        useAppStore.getState().resetProject();
+        useAppStore.getState().startProject();
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'g') {
+        e.preventDefault();
+        // Dispatch generate event — GeneratePanel can listen for it
+        window.dispatchEvent(new CustomEvent('ot-trigger-generate'));
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault();
+        if (useAppStore.getState().selectedTakeId) {
+          setPublishModalOpen(true);
+        }
+        return;
+      }
+
+      if (e.key === '1' || e.key === '2') {
+        const { compareTakeIds, selectTake } = useAppStore.getState();
+        const slot = e.key === '1' ? 0 : 1;
+        const takeId = compareTakeIds[slot];
+        if (takeId) {
+          selectTake(takeId);
+          window.dispatchEvent(new CustomEvent('ot-toggle-playback'));
+        }
+        return;
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [publishModalOpen]);
+
+  /* ─── Resize handler for Compose panel ─── */
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    resizing.current = true;
+    const startX = e.clientX;
+    const startW = composeWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!resizing.current) return;
+      const delta = ev.clientX - startX;
+      setComposeWidth(Math.max(280, Math.min(480, startW + delta)));
+    };
+    const onUp = () => {
+      resizing.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [composeWidth]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
-        <span className="text-xs text-zinc-500">Song Project</span>
+      {/* Project toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-ot-surface-5">
+        <span className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Song Project</span>
         <button
-          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+          className="ot-btn-tertiary text-xs py-1 px-2"
           onClick={resetProject}
           type="button"
         >
@@ -149,32 +329,45 @@ function StudioWorkspace() {
 
       <ReadinessIssuesBanner />
 
+      {/* Stage: Compose + Output */}
       <div className="flex-1 flex min-h-0">
-        <div className="w-80 border-r border-zinc-800 flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Compose Panel */}
+        <div
+          className="flex flex-col min-h-0 border-r border-ot-surface-5"
+          style={{ width: composeWidth, minWidth: 280, maxWidth: 480 }}
+        >
+          <div className="flex-1 overflow-y-auto ot-scroll p-4 space-y-0">
             <BriefPanel />
-            <div className="border-t border-zinc-800 pt-4">
-              <GeneratePanel />
-            </div>
-            <div className="border-t border-zinc-800 pt-4">
-              <IteratePanel />
-            </div>
+            <GeneratePanel />
+            <IteratePanel />
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            <TakesPanel />
-            <div className="border-t border-zinc-800 pt-4">
-              <PublishPanel />
-            </div>
+        {/* Resize handle */}
+        <div
+          className="w-[1px] bg-ot-surface-5 cursor-col-resize hover:bg-ot-violet-400/30 transition-colors relative"
+          style={{ padding: '0 3px', margin: '0 -3px' }}
+          onMouseDown={handleResizeStart}
+        />
+
+        {/* Output Panel */}
+        <div className="flex-1 flex flex-col min-h-0 min-w-[400px]">
+          <div className="flex-1 overflow-y-auto ot-scroll p-4">
+            <TakesPanel onPublish={handlePublish} />
           </div>
-          <PlayerPanel />
         </div>
       </div>
+
+      {/* Transport Bar */}
+      <PlayerPanel />
+
+      {/* Publish Modal */}
+      <PublishModal open={publishModalOpen} onClose={() => setPublishModalOpen(false)} />
     </div>
   );
 }
+
+/* ─── WorkspacePage ─── */
 
 export function WorkspacePage() {
   const projectId = useAppStore((state) => state.projectId);

@@ -55,10 +55,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (authStatus === 'bootstrapping') {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 text-white">
+      <div className="flex h-screen w-screen items-center justify-center bg-ot-surface-0">
         <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
-          <p className="text-neutral-400">Loading...</p>
+          <div className="w-8 h-8 border-2 border-ot-violet-400/20 border-t-ot-violet-400 rounded-full animate-spin mx-auto" />
+          <p className="text-ot-text-secondary text-sm">Loading...</p>
         </div>
       </div>
     );

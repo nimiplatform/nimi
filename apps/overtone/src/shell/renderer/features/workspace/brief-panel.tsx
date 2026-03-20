@@ -3,6 +3,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { useAppStore, type SongBrief } from '@renderer/app-shell/providers/app-store.js';
 import { collectTextStream } from './runtime-workflow.js';
 import { ErrorDisplay } from './error-display.js';
+import { OtButton, OtInput, OtTextarea, OtAccordionSection } from './ui-primitives.js';
 
 const BRIEF_SYSTEM_PROMPT = `You are a music production assistant. Given a song idea, output a structured brief as JSON with these fields:
 - title: short catchy title (max 50 chars)
@@ -106,81 +107,87 @@ export function BriefPanel() {
   }, [idea, setBrief]);
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Song Brief</h2>
-
-      <div className="space-y-2">
-        <textarea
-          className="w-full h-24 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-500"
-          placeholder="Describe your song idea..."
-          value={idea}
-          onChange={(event) => setIdea(event.target.value)}
-        />
-        <div className="flex gap-2">
-          <button
-            className="px-4 py-1.5 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 rounded-md transition-colors disabled:opacity-40"
-            onClick={handleGenerateBrief}
-            disabled={!idea.trim() || isGeneratingBrief || !textConnectorAvailable}
-            type="button"
-          >
-            {isGeneratingBrief ? 'Generating brief...' : 'AI Generate Brief'}
-          </button>
-          <button
-            className="px-4 py-1.5 text-xs font-medium bg-zinc-900 border border-zinc-700 hover:border-zinc-600 rounded-md transition-colors disabled:opacity-40"
-            onClick={handleCreateManualBrief}
-            disabled={!idea.trim()}
-            type="button"
-          >
-            Manual Brief
-          </button>
-        </div>
-        {!textConnectorAvailable && (
-          <p className="text-xs text-amber-400">
-            No text connector/model pair is ready. Use Manual Brief or configure runtime text access.
-          </p>
-        )}
-        {error ? (
-          <ErrorDisplay error={error} onDismiss={() => setError(null)} onRetry={handleGenerateBrief} />
-        ) : null}
-      </div>
-
-      {brief && (
+    <div>
+      <OtAccordionSection title="Song Brief" defaultOpen>
         <div className="space-y-3">
-          <BriefField label="Title" value={brief.title} onChange={(value) => setBrief({ ...brief, title: value })} />
-          <BriefField label="Genre" value={brief.genre} onChange={(value) => setBrief({ ...brief, genre: value })} />
-          <BriefField label="Mood" value={brief.mood} onChange={(value) => setBrief({ ...brief, mood: value })} />
-          <BriefField label="Tempo" value={brief.tempo} onChange={(value) => setBrief({ ...brief, tempo: value })} />
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-zinc-400">Description</label>
-            <textarea
-              className="w-full h-24 bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-500"
-              value={brief.description}
-              onChange={(event) => setBrief({ ...brief, description: event.target.value })}
-              placeholder="Creative direction"
-            />
+          <OtTextarea
+            placeholder="Describe your song idea..."
+            value={idea}
+            onChange={(event) => setIdea(event.target.value)}
+            style={{ minHeight: 96 }}
+          />
+          <div className="flex gap-2">
+            <OtButton
+              variant="secondary"
+              onClick={handleGenerateBrief}
+              disabled={!idea.trim() || isGeneratingBrief || !textConnectorAvailable}
+              loading={isGeneratingBrief}
+              type="button"
+            >
+              {isGeneratingBrief ? 'Generating...' : 'AI Generate Brief'}
+            </OtButton>
+            <OtButton
+              variant="tertiary"
+              onClick={handleCreateManualBrief}
+              disabled={!idea.trim()}
+              type="button"
+            >
+              Manual Brief
+            </OtButton>
           </div>
+          {!textConnectorAvailable && (
+            <p className="text-xs text-ot-warning">
+              No text connector/model pair is ready. Use Manual Brief or configure runtime text access.
+            </p>
+          )}
+          {error ? (
+            <ErrorDisplay error={error} onDismiss={() => setError(null)} onRetry={handleGenerateBrief} />
+          ) : null}
         </div>
-      )}
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-zinc-400">Lyrics</label>
-          <button
-            className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors disabled:opacity-40"
-            onClick={handleGenerateLyrics}
-            disabled={isGeneratingLyrics || !textConnectorAvailable || !buildBriefContext(brief, idea)}
-            type="button"
-          >
-            {isGeneratingLyrics ? 'Writing...' : lyrics ? 'Regenerate Lyrics' : 'Generate Lyrics'}
-          </button>
+        {brief && (
+          <div className="space-y-3 mt-4">
+            <BriefField label="Title" value={brief.title} onChange={(value) => setBrief({ ...brief, title: value })} />
+            <BriefField label="Genre" value={brief.genre} onChange={(value) => setBrief({ ...brief, genre: value })} />
+            <BriefField label="Mood" value={brief.mood} onChange={(value) => setBrief({ ...brief, mood: value })} />
+            <BriefField label="Tempo" value={brief.tempo} onChange={(value) => setBrief({ ...brief, tempo: value })} />
+            <div className="space-y-1">
+              <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Description</label>
+              <OtTextarea
+                value={brief.description}
+                onChange={(event) => setBrief({ ...brief, description: event.target.value })}
+                placeholder="Creative direction"
+                style={{ minHeight: 96 }}
+              />
+            </div>
+          </div>
+        )}
+      </OtAccordionSection>
+
+      <OtAccordionSection title="Lyrics" defaultOpen={false}>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Lyrics</label>
+            <OtButton
+              variant="tertiary"
+              className="text-[11px] py-0.5 px-2"
+              onClick={handleGenerateLyrics}
+              disabled={isGeneratingLyrics || !textConnectorAvailable || !buildBriefContext(brief, idea)}
+              loading={isGeneratingLyrics}
+              type="button"
+            >
+              {isGeneratingLyrics ? 'Writing...' : lyrics ? 'Regenerate' : 'Generate Lyrics'}
+            </OtButton>
+          </div>
+          <OtTextarea
+            className="font-mono"
+            style={{ minHeight: 160, lineHeight: 1.8 }}
+            placeholder="Write or paste lyrics here..."
+            value={lyrics}
+            onChange={(event) => setLyrics(event.target.value)}
+          />
         </div>
-        <textarea
-          className="w-full h-40 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-zinc-500 font-mono"
-          placeholder="Write or paste lyrics here..."
-          value={lyrics}
-          onChange={(event) => setLyrics(event.target.value)}
-        />
-      </div>
+      </OtAccordionSection>
     </div>
   );
 }
@@ -226,9 +233,8 @@ function BriefField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-zinc-400">{label}</label>
-      <input
-        className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
+      <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">{label}</label>
+      <OtInput
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />

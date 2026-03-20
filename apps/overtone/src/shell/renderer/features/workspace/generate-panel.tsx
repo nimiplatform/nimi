@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime';
 import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
@@ -9,6 +9,7 @@ import {
   submitMusicJobAndWait,
 } from './runtime-workflow.js';
 import { ErrorDisplay } from './error-display.js';
+import { OtButton, OtInput, OtToggle, OtTagInput, OtAccordionSection, OtProgressBar } from './ui-primitives.js';
 
 export function GeneratePanel() {
   const brief = useAppStore((state) => state.brief);
@@ -24,7 +25,7 @@ export function GeneratePanel() {
 
   const [durationSeconds, setDurationSeconds] = useState(120);
   const [instrumental, setInstrumental] = useState(false);
-  const [style, setStyle] = useState('');
+  const [styleTags, setStyleTags] = useState<string[]>([]);
   const [lastError, setLastError] = useState<unknown>(null);
 
   const hasActiveJob = activeJobs.size > 0;
@@ -36,7 +37,9 @@ export function GeneratePanel() {
 
     setLastError(null);
     const runtime = getPlatformClient().runtime;
-    const resolvedStyle = style || [brief.genre, brief.mood].filter(Boolean).join(', ');
+    const resolvedStyle = styleTags.length > 0
+      ? styleTags.join(', ')
+      : [brief.genre, brief.mood].filter(Boolean).join(', ');
     let result:
       | Awaited<ReturnType<typeof submitMusicJobAndWait>>
       | undefined;
@@ -119,38 +122,45 @@ export function GeneratePanel() {
     selectedMusicModelId,
     setAudioBuffer,
     setJobStatus,
-    style,
+    styleTags,
   ]);
 
-  return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">Generate</h2>
+  // Listen for ⌘G shortcut from workspace-page
+  useEffect(() => {
+    const onTrigger = () => {
+      if (brief && !hasActiveJob && musicConnectorAvailable) {
+        void handleGenerate();
+      }
+    };
+    window.addEventListener('ot-trigger-generate', onTrigger);
+    return () => window.removeEventListener('ot-trigger-generate', onTrigger);
+  }, [brief, hasActiveJob, musicConnectorAvailable, handleGenerate]);
 
+  return (
+    <OtAccordionSection title="Generation Controls" defaultOpen>
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-zinc-400">Runtime Path</label>
-          <div className="rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-300">
+          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Runtime Path</label>
+          <div className="rounded-lg bg-ot-surface-4 border border-ot-surface-5 px-3 py-2 text-sm text-ot-text-secondary">
             {selectedMusicConnectorId && selectedMusicModelId
-              ? `${selectedMusicConnectorId} -> ${selectedMusicModelId}`
+              ? `${selectedMusicConnectorId} → ${selectedMusicModelId}`
               : 'No ready music connector/model pair'}
           </div>
         </div>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-zinc-400">Style Tags</label>
-          <input
-            className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-1.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-500"
-            value={style}
-            onChange={(event) => setStyle(event.target.value)}
+          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Style Tags</label>
+          <OtTagInput
+            tags={styleTags}
+            onChange={setStyleTags}
             placeholder={brief ? [brief.genre, brief.mood].filter(Boolean).join(', ') : 'e.g. indie, dreamy, acoustic'}
           />
         </div>
 
         <div className="flex gap-3">
           <div className="flex-1 space-y-1">
-            <label className="text-xs font-medium text-zinc-400">Duration (sec)</label>
-            <input
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500"
+            <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Duration (sec)</label>
+            <OtInput
               type="number"
               min={10}
               max={600}
@@ -158,64 +168,65 @@ export function GeneratePanel() {
               onChange={(event) => setDurationSeconds(Number(event.target.value))}
             />
           </div>
-          <div className="flex items-end pb-0.5">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={instrumental}
-                onChange={(event) => setInstrumental(event.target.checked)}
-                className="rounded border-zinc-600 bg-zinc-900"
-              />
-              <span className="text-xs text-zinc-400">Instrumental</span>
-            </label>
+          <div className="flex items-end pb-1">
+            <OtToggle
+              checked={instrumental}
+              onChange={setInstrumental}
+              label="Instrumental"
+            />
           </div>
         </div>
       </div>
 
       {!musicConnectorAvailable && (
-        <p className="text-xs text-amber-400">
+        <p className="text-xs text-ot-warning mt-3">
           No music connector/model pair is ready. Configure runtime music access before generating.
         </p>
       )}
 
       {lastError ? (
-        <ErrorDisplay error={lastError} onDismiss={() => setLastError(null)} onRetry={handleGenerate} />
+        <div className="mt-3">
+          <ErrorDisplay error={lastError} onDismiss={() => setLastError(null)} onRetry={handleGenerate} />
+        </div>
       ) : null}
 
-      <button
-        className="w-full px-4 py-2 text-sm font-medium bg-zinc-100 text-zinc-900 rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      <OtButton
+        variant="primary"
+        className={`w-full mt-4${hasActiveJob ? ' ot-btn-primary--generating' : ''}`}
         onClick={handleGenerate}
         disabled={!brief || hasActiveJob || !musicConnectorAvailable}
+        loading={hasActiveJob}
         type="button"
       >
         {hasActiveJob ? 'Generating...' : 'Generate Song'}
-      </button>
+      </OtButton>
 
       {activeJobs.size > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 mt-3">
           {Array.from(activeJobs.values()).map((job) => (
-            <div key={job.jobId} className="p-2 rounded-md bg-zinc-900 border border-zinc-800 text-xs">
+            <div key={job.jobId} className="p-2 rounded-lg bg-ot-surface-3 border border-ot-surface-5 text-xs space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-zinc-400">{job.progress || job.status}</span>
+                <span className="text-ot-text-secondary">{job.progress || job.status}</span>
                 <StatusBadge status={job.status} />
               </div>
-              {job.error && <p className="text-red-400 mt-1">{job.error}</p>}
+              {job.status === 'running' && <OtProgressBar generating value={50} />}
+              {job.error && <p className="text-ot-error">{job.error}</p>}
             </div>
           ))}
         </div>
       )}
-    </div>
+    </OtAccordionSection>
   );
 }
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    pending: 'text-amber-400',
-    running: 'text-blue-400',
-    completed: 'text-emerald-400',
-    failed: 'text-red-400',
-    timeout: 'text-orange-400',
-    canceled: 'text-zinc-500',
+    pending: 'text-ot-warning',
+    running: 'text-ot-info',
+    completed: 'text-ot-success',
+    failed: 'text-ot-error',
+    timeout: 'text-ot-warning',
+    canceled: 'text-ot-text-tertiary',
   };
-  return <span className={`text-xs font-medium ${colors[status] ?? 'text-zinc-500'}`}>{status}</span>;
+  return <span className={`text-xs font-medium ${colors[status] ?? 'text-ot-text-tertiary'}`}>{status}</span>;
 }
