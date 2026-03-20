@@ -39,8 +39,9 @@ type Daemon struct {
 	auditStore *auditlog.Store
 	engineMgr  *engine.Manager
 
-	newEngineManager func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
-	startEngineFn    func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
+	newEngineManager  func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
+	startEngineFn     func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
+	probeAIProviderFn func(ctx context.Context, client *http.Client, target aiProviderTarget) error
 
 	providerFailureHintMu sync.RWMutex
 	providerFailureHints  map[string]string
@@ -69,6 +70,7 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 		aiHealth:             nil,
 		auditStore:           nil,
 		newEngineManager:     engine.NewManager,
+		probeAIProviderFn:    probeAIProvider,
 		providerFailureHints: map[string]string{},
 	}, nil
 }
@@ -80,8 +82,14 @@ func (d *Daemon) Run(ctx context.Context) error {
 	d.state.SetStatus(health.StatusStarting, "booting")
 	d.grpc.SyncServingState()
 
-	samplerStop := make(chan struct{})
-	go d.sampleRuntimeResource(samplerStop)
+	backgroundCtx, cancelBackground := context.WithCancel(context.Background())
+	defer cancelBackground()
+	var backgroundWG sync.WaitGroup
+	backgroundWG.Add(1)
+	go func() {
+		defer backgroundWG.Done()
+		d.sampleRuntimeResource(backgroundCtx)
+	}()
 
 	errCh := make(chan error, 2)
 	go func() {
@@ -102,8 +110,11 @@ func (d *Daemon) Run(ctx context.Context) error {
 		d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
 	}
 
-	aiProbeStop := make(chan struct{})
-	go d.sampleAIProviderHealth(aiProbeStop)
+	backgroundWG.Add(1)
+	go func() {
+		defer backgroundWG.Done()
+		d.sampleAIProviderHealth(backgroundCtx)
+	}()
 
 	var serveErr error
 	select {
@@ -116,8 +127,8 @@ func (d *Daemon) Run(ctx context.Context) error {
 		}
 	}
 
-	close(samplerStop)
-	close(aiProbeStop)
+	cancelBackground()
+	backgroundWG.Wait()
 	shutdownErr := d.shutdown()
 
 	if serveErr != nil {
@@ -157,13 +168,13 @@ func (d *Daemon) shutdown() error {
 	return nil
 }
 
-func (d *Daemon) sampleRuntimeResource(stop <-chan struct{}) {
+func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			var ms runtime.MemStats
@@ -173,7 +184,7 @@ func (d *Daemon) sampleRuntimeResource(stop <-chan struct{}) {
 	}
 }
 
-func (d *Daemon) sampleAIProviderHealth(stop <-chan struct{}) {
+func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 	targets := configuredAIProviderTargets()
 	if len(targets) == 0 {
 		return
@@ -192,6 +203,9 @@ func (d *Daemon) sampleAIProviderHealth(stop <-chan struct{}) {
 	defer ticker.Stop()
 
 	probe := func() {
+		if ctx.Err() != nil {
+			return
+		}
 		snapshot := d.state.Snapshot()
 		if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
 			return
@@ -200,11 +214,17 @@ func (d *Daemon) sampleAIProviderHealth(stop <-chan struct{}) {
 		var firstErr string
 		healthyCount := 0
 		for _, target := range targets {
+			if ctx.Err() != nil {
+				return
+			}
 			previous := providerhealth.Snapshot{}
 			if d.aiHealth != nil {
 				previous = d.aiHealth.Snapshot(target.Name)
 			}
-			if err := probeAIProvider(client, target); err != nil {
+			if err := d.probeAIProviderFn(ctx, client, target); err != nil {
+				if ctx.Err() != nil {
+					return
+				}
 				err = d.decorateProviderProbeError(target.Name, err)
 				if d.aiHealth != nil {
 					d.aiHealth.Mark(target.Name, false, err.Error())
@@ -241,7 +261,7 @@ func (d *Daemon) sampleAIProviderHealth(stop <-chan struct{}) {
 	probe()
 	for {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
 			probe()
@@ -296,7 +316,7 @@ func configuredAIProviderTargets() []aiProviderTarget {
 //   - 2xx/401/403/429 = healthy
 //   - 404 = try next path
 //   - other 4xx/5xx = unhealthy
-func probeAIProvider(client *http.Client, target aiProviderTarget) error {
+func probeAIProvider(ctx context.Context, client *http.Client, target aiProviderTarget) error {
 	paths := providerProbePaths(target.Name)
 	var lastErr error
 	for _, path := range paths {
@@ -306,6 +326,7 @@ func probeAIProvider(client *http.Client, target aiProviderTarget) error {
 			lastErr = err
 			continue
 		}
+		req = req.WithContext(ctx)
 		if target.APIKey != "" {
 			req.Header.Set("Authorization", "Bearer "+target.APIKey)
 		}

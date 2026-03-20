@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
@@ -86,5 +87,63 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 	}
 	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusStopped {
 		t.Fatalf("expected daemon to end in STOPPED, got %s (%s)", snapshot.Status, snapshot.Reason)
+	}
+}
+
+func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", "https://example.invalid")
+	cfg := config.Config{
+		GRPCAddr:                "127.0.0.1:0",
+		HTTPAddr:                "127.0.0.1:0",
+		ShutdownTimeout:         2 * time.Second,
+		LocalStatePath:          filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:     64,
+		UsageStatsBufferSize:    64,
+		AIHealthIntervalSeconds: 1,
+		AIHTTPTimeoutSeconds:    1,
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+
+	probeStarted := make(chan struct{})
+	probeStopped := make(chan struct{})
+	daemon.probeAIProviderFn = func(ctx context.Context, _ *http.Client, _ aiProviderTarget) error {
+		select {
+		case <-probeStarted:
+		default:
+			close(probeStarted)
+		}
+		<-ctx.Done()
+		close(probeStopped)
+		return ctx.Err()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- daemon.Run(ctx)
+	}()
+
+	select {
+	case <-probeStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected AI provider probe to start")
+	}
+
+	cancel()
+
+	select {
+	case <-probeStopped:
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected AI provider probe to stop after shutdown")
+	}
+
+	if err := <-done; err != nil {
+		t.Fatalf("daemon run returned error: %v", err)
 	}
 }
