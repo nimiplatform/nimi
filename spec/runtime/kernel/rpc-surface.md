@@ -207,7 +207,7 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - 返回结果：不得因为 provider live `/models` 差异而改变
 - `TestConnector(remote)`：是唯一保留的非 scenario 出站探测入口，但其结果不得回填 `ListConnectorModels`
 
-## K-RPC-012A Catalog Provider Model Browsing Surface
+## K-RPC-012a Catalog Provider Model Browsing Surface
 
 `ListCatalogProviderModels` and `GetCatalogModelDetail` MUST expose runtime model catalog truth after overlay merge, scoped to the caller subject user when identity is present.
 
@@ -216,7 +216,7 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - provider metadata returned to desktop MAY include overlay presence, overlay timestamps, effective YAML, default endpoint facts, runtime plane facts, and source classification
 - model metadata MUST classify each model row as `builtin`, `custom`, or `overridden`
 
-## K-RPC-012B Catalog Overlay Mutation Surface
+## K-RPC-012b Catalog Overlay Mutation Surface
 
 `UpsertCatalogModelOverlay` and `DeleteCatalogModelOverlay` are the stable structured mutation RPCs for personal catalog models.
 
@@ -225,7 +225,7 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 - overlay mutations are user-private unless the runtime is explicitly operating on a shared non-subject custom root
 - `DeleteCatalogModelOverlay(provider, model_id)` MUST delete only the targeted overlay entry and restore the built-in effective model when one exists
 
-## K-RPC-012C Advanced YAML Editing Scope
+## K-RPC-012c Advanced YAML Editing Scope
 
 `ListModelCatalogProviders`, `UpsertModelCatalogProvider`, and `DeleteModelCatalogProvider` remain valid as advanced YAML operations.
 When used by desktop catalog UX, these RPCs MUST target provider overlay fragments rather than full effective provider snapshots.

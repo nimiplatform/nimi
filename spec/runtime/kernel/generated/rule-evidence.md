@@ -401,3 +401,14 @@
 | `K-WF-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-WF-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-WF-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-MCAT-006a` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
+| `K-MCAT-006b` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
+| `K-RPC-012a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-RPC-012b` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-RPC-012c` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-014a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-021a` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
+| `K-LOCAL-021b` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
+| `K-LOCAL-021c` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
+| `K-LOCAL-021d` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
+| `K-LOCAL-021e` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |

@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_k_rules: 384
+  total_k_rules: 395
   audit_date: "2026-03-18"
 
 evidence_catalog:
@@ -1266,3 +1266,38 @@ rules:
   - rule_id: K-WF-012
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+
+  # --- Missing Runtime Kernel Coverage Entries (2026-03 audit) ---
+  - rule_id: K-MCAT-006a
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]
+  - rule_id: K-MCAT-006b
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]
+  - rule_id: K-RPC-012a
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+  - rule_id: K-RPC-012b
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+  - rule_id: K-RPC-012c
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+  - rule_id: K-LOCAL-014a
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+  - rule_id: K-LOCAL-021a
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]
+  - rule_id: K-LOCAL-021b
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]
+  - rule_id: K-LOCAL-021c
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]
+  - rule_id: K-LOCAL-021d
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]
+  - rule_id: K-LOCAL-021e
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]

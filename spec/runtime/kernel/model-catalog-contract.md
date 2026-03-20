@@ -80,7 +80,7 @@ Any custom provider YAML ingestion MUST enforce:
 - last-known-good built-in snapshot fallback
 - no startup dependency on mutable external metadata
 
-## K-MCAT-006A User Overlay Merge Semantics
+## K-MCAT-006a User Overlay Merge Semantics
 
 Custom catalog overlays MUST be stored as provider-scoped local fragments and merged at model granularity, not as full effective provider snapshots.
 
@@ -91,7 +91,7 @@ Custom catalog overlays MUST be stored as provider-scoped local fragments and me
 - built-in models that are not mentioned by overlay fragments MUST remain visible and continue to receive built-in catalog upgrades
 - user-created models and user-created overrides MUST be isolated to the requesting subject user and MUST NOT mutate other users' effective catalogs
 
-## K-MCAT-006B Desktop Catalog Truth Source
+## K-MCAT-006b Desktop Catalog Truth Source
 
 Desktop catalog browsing and editing MUST use runtime model catalog truth resolved from `runtime/catalog/providers/*.yaml` plus overlay merge semantics.
 `tables/provider-catalog.yaml` remains the projected remote-provider table and MUST NOT be treated as the desktop catalog page truth source.
