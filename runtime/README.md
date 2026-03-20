@@ -145,6 +145,11 @@ make compliance
 make compliance-gate
 ```
 
+`make proto-baseline` 会把当前 proto contract 快照写入
+`runtime/proto/runtime-v1.baseline.binpb`。当前 AI baseline 已采用 typed
+`ScenarioOutput` 和 typed `ScenarioStreamDelta` delta oneof；如果这些 wire
+contract 发生有意变化，必须先完成 runtime / sdk 对齐，再重建 baseline。
+
 ## References
 
 - Runtime reference: [docs/reference/runtime.md](../docs/reference/runtime.md)

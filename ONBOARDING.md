@@ -54,8 +54,8 @@ pnpm -v
 # nimi/.env
 NIMI_RUNTIME_BRIDGE_MODE=RUNTIME
 NIMI_REALM_URL=http://localhost:3002
-NIMI_CONTROL_PLANE_URL=http://localhost
-NIMI_WEB_URL=http://localhost
+NIMI_CONTROL_PLANE_URL=http://localhost:46372
+NIMI_WEB_URL=http://localhost:1420
 ```
 
 说明：

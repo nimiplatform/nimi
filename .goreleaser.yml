@@ -36,6 +36,31 @@ archives:
 checksum:
   name_template: checksums.txt
 
+sboms:
+  - artifacts: archive
+
+signs:
+  - id: archives
+    cmd: cosign
+    args:
+      - sign-blob
+      - --bundle=${signature}
+      - ${artifact}
+      - --yes
+    artifacts: archive
+    output: true
+    signature: ${artifact}.sigstore.json
+  - id: checksums
+    cmd: cosign
+    args:
+      - sign-blob
+      - --bundle=${signature}
+      - ${artifact}
+      - --yes
+    artifacts: checksum
+    output: true
+    signature: ${artifact}.sigstore.json
+
 changelog:
   sort: asc
   filters:
@@ -49,4 +74,4 @@ release:
   prerelease: auto
 
 snapshot:
-  version_template: "0.0.0-next-{{ .ShortCommit }}"
+  version_template: "0.0.0-next-{{ .ShortCommit }}-{{ .Timestamp }}"

@@ -50,6 +50,11 @@ pnpm proto:drift-check
 - `cd proto && buf lint`
 - `cd proto && buf breaking --against ../runtime/proto/runtime-v1.baseline.binpb`
 
+当前 `runtime-v1.baseline.binpb` 对应的是 typed AI contract：
+`ExecuteScenarioResponse.output = ScenarioOutput`，以及
+`ScenarioStreamDelta.delta.oneof { text, artifact }`。
+如果这些 proto contract 有意变更，必须先更新实现与消费端，再同步重建 baseline。
+
 `buf breaking proto/ --against .git#branch=main` 这种写法如果要用，必须从仓库根目录执行；但它不是本仓当前 release 主路径。
 
 ### 2. Version Bump
@@ -172,9 +177,9 @@ official mod package / catalog publish：
 - Verify `checksums.txt` exists in release assets
 - Verify runtime/desktop release assets include:
   - `*.spdx.json` SBOM
-  - `*.sig` + `*.pem` keyless signing outputs
+  - `*.sigstore.json` keyless signing bundles
 - Verify signatures:
-  - `cosign verify-blob --certificate <file>.pem --signature <file>.sig --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp 'https://github.com/<org>/<repo>/.github/workflows/release.*@.*' <file>`
+  - `cosign verify-blob --bundle <file>.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp 'https://github.com/<org>/<repo>/.github/workflows/release.*@.*' <file>`
 
 ## Hotfix Process
 

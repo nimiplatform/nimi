@@ -40,8 +40,14 @@ func TestGenerate(t *testing.T) {
 Verify gRPC services honor the proto contract:
 
 ```bash
-buf breaking proto/ --against .git#branch=main
+cd proto
+buf breaking --against ../runtime/proto/runtime-v1.baseline.binpb
 ```
+
+当前 baseline 固定在 typed AI contract：
+`ExecuteScenarioResponse.output = ScenarioOutput`，以及
+`ScenarioStreamDelta.delta.oneof { text, artifact }`。
+变更这些 proto wire contract 时，必须同步更新实现、消费端测试和 `runtime/proto/runtime-v1.baseline.binpb`。
 
 ## SDK (TypeScript)
 
@@ -52,7 +58,7 @@ pnpm test
 
 ### Test framework
 
-- **Node.js test runner via `tsx --test`** for unit and integration tests
+- Package-local tests may use `tsx --test`; the repo root `vitest.config.ts` only exists to keep workspace-level tooling from traversing non-TS trees.
 - Tests in `__tests__/` or `*.test.ts` alongside source
 
 ```ts

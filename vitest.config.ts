@@ -6,6 +6,10 @@ export default defineConfig({
       '_external/**',
       'node_modules/**',
       '**/node_modules/**',
+      'runtime/**',
+      'proto/**',
+      'docs/**',
+      'spec/**',
     ],
   },
 });

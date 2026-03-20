@@ -40,7 +40,8 @@ pnpm build
 Optional (recommended) pre-commit hook setup:
 
 ```bash
-python3 -m pip install --user pre-commit
+python3 -m pip install --user pipx
+pipx install pre-commit
 pre-commit install
 ```
 
