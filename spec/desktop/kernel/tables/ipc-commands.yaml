@@ -601,6 +601,11 @@ commands:
     description: Reveal installed model files in system file manager
     source_rule: D-IPC-011
 
+  - command: runtime_local_models_reveal_root_folder
+    module: local-runtime
+    description: Reveal the runtime models root folder in the system file manager
+    source_rule: D-IPC-011
+
   - command: runtime_local_models_scan_orphans
     module: local-runtime
     description: Scan for orphan model files not tracked by runtime state
@@ -619,4 +624,14 @@ commands:
   - command: runtime_local_artifacts_scaffold_orphan
     module: local-runtime
     description: Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and canonical local engine
+    source_rule: D-IPC-011
+
+  - command: runtime_local_assets_scan_unregistered
+    module: local-runtime
+    description: Scan root-level and typed-folder local assets that are not yet registered in runtime state
+    source_rule: D-IPC-011
+
+  - command: runtime_local_pick_asset_manifest_path
+    module: local-runtime
+    description: Pick either a resolved model manifest or managed artifact manifest under the runtime models root
     source_rule: D-IPC-011

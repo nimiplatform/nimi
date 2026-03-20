@@ -2,7 +2,6 @@ import { createNimiError } from '../errors.js';
 import { ReasonCode } from '../../types/index.js';
 import { RuntimeMethodIds } from '../method-ids.js';
 import {
-  FallbackPolicy,
   RoutePolicy,
 } from '../generated/runtime/v1/ai.js';
 import {
@@ -24,11 +23,9 @@ import type {
 
 export type RuntimeAiRouteRequest = {
   routePolicy?: RoutePolicy;
-  fallback?: FallbackPolicy;
   connectorId?: string;
   head?: {
     routePolicy?: RoutePolicy;
-    fallback?: FallbackPolicy;
     connectorId?: string;
   };
 };
@@ -85,23 +82,6 @@ function withAiRouteValidation<Request extends RuntimeAiRouteRequest>(
       `${methodId} requires explicit routePolicy`,
       'set_route_policy_local_or_cloud',
     );
-  }
-
-  const fallback = request.fallback ?? request.head?.fallback ?? FallbackPolicy.UNSPECIFIED;
-  if (fallback === FallbackPolicy.UNSPECIFIED) {
-    if (typeof request.routePolicy !== 'undefined') {
-      return {
-        ...request,
-        fallback: FallbackPolicy.DENY,
-      };
-    }
-    return {
-      ...request,
-      head: {
-        ...(request.head || {}),
-        fallback: FallbackPolicy.DENY,
-      },
-    };
   }
 
   return request;

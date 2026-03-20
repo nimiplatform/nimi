@@ -18,12 +18,11 @@ import type {
   TextStreamOutput,
 } from './types.js';
 import {
-  asRecord,
+  extractEmbeddingVectors,
   ensureText,
   extractGenerateText,
   fromRoutePolicy,
   normalizeText,
-  toFallbackPolicy,
   toFinishReason,
   toRoutePolicy,
   toRuntimeMessages,
@@ -51,16 +50,19 @@ export async function runtimeGenerateText(
     ? await ctx.resolveSubjectUserId(input.subjectUserId)
     : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const prompt = toRuntimeMessages(input.input, input.system);
-  const request: ExecuteScenarioRequest = {
+  const head = await ctx.normalizeScenarioHead({
     head: {
       appId: ctx.appId,
       subjectUserId: subjectUserId || '',
       modelId,
       routePolicy,
-      fallback: toFallbackPolicy(input.fallback),
       timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
       connectorId,
     },
+    metadata: input.metadata,
+  });
+  const request: ExecuteScenarioRequest = {
+    head,
     scenarioType: ScenarioType.TEXT_GENERATE,
     executionMode: ExecutionMode.SYNC,
     spec: {
@@ -126,18 +128,21 @@ export async function runtimeStreamText(
     ? await ctx.resolveSubjectUserId(input.subjectUserId)
     : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const prompt = toRuntimeMessages(input.input, input.system);
+  const head = await ctx.normalizeScenarioHead({
+    head: {
+      appId: ctx.appId,
+      subjectUserId: subjectUserId || '',
+      modelId,
+      routePolicy,
+      timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
+      connectorId,
+    },
+    metadata: input.metadata,
+  });
 
   const stream = await ctx.invokeWithClient(async (client) => client.ai.streamScenario(
     {
-      head: {
-        appId: ctx.appId,
-        subjectUserId: subjectUserId || '',
-        modelId,
-        routePolicy,
-        fallback: toFallbackPolicy(input.fallback),
-        timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-        connectorId,
-      },
+      head,
       scenarioType: ScenarioType.TEXT_GENERATE,
       executionMode: ExecutionMode.STREAM,
       spec: {
@@ -171,10 +176,9 @@ export async function runtimeStreamText(
 
       yield { type: 'start' as const };
       for await (const event of stream) {
-        const payloadKind = normalizeText(asRecord(event.payload).oneofKind);
-
-        if (payloadKind === 'started') {
-          const started = asRecord(asRecord(event.payload).started);
+        switch (event.payload.oneofKind) {
+        case 'started': {
+          const started = event.payload.started;
           streamModelResolved = normalizeText(started.modelResolved);
           const routeDecision = Number(started.routeDecision);
           streamRouteDecision = routeDecision === RoutePolicy.CLOUD
@@ -187,24 +191,21 @@ export async function runtimeStreamText(
           });
           continue;
         }
-
-        if (payloadKind === 'delta') {
-          const deltaValue = asRecord(asRecord(event.payload).delta).text;
-          const delta = typeof deltaValue === 'string'
-            ? deltaValue
-            : (deltaValue == null ? '' : String(deltaValue));
+        case 'delta': {
+          const streamDelta = event.payload.delta;
+          const deltaPayload = streamDelta.delta;
+          const delta = deltaPayload?.oneofKind === 'text'
+            ? normalizeText(deltaPayload.text.text)
+            : '';
           if (delta.length > 0) {
             yield { type: 'delta' as const, text: delta };
           }
           continue;
         }
-
-        if (payloadKind === 'usage') {
-          streamUsage = asRecord(asRecord(event.payload).usage);
+        case 'usage':
+          streamUsage = event.payload.usage;
           continue;
-        }
-
-        if (payloadKind === 'completed') {
+        case 'completed': {
           const trace = toTraceInfo({
             traceId: event.traceId,
             modelResolved: streamModelResolved,
@@ -212,15 +213,14 @@ export async function runtimeStreamText(
           });
           yield {
             type: 'finish' as const,
-            finishReason: toFinishReason(asRecord(asRecord(event.payload).completed).finishReason as FinishReason),
+            finishReason: toFinishReason(event.payload.completed.finishReason as FinishReason),
             usage: toUsage(streamUsage),
             trace,
           };
           continue;
         }
-
-        if (payloadKind === 'failed') {
-          const failed = asRecord(asRecord(event.payload).failed);
+        case 'failed': {
+          const failed = event.payload.failed;
           yield {
             type: 'error' as const,
             error: createNimiError({
@@ -230,6 +230,10 @@ export async function runtimeStreamText(
               source: 'runtime',
             }),
           };
+          continue;
+        }
+        case undefined:
+          continue;
         }
       }
     },
@@ -269,18 +273,22 @@ export async function runtimeGenerateEmbedding(
       source: 'sdk',
     });
   }
+  const modelId = ensureText(input.model, 'model');
+  const head = await ctx.normalizeScenarioHead({
+    head: {
+      appId: ctx.appId,
+      subjectUserId: subjectUserId || '',
+      modelId,
+      routePolicy,
+      timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
+      connectorId,
+    },
+    metadata: input.metadata,
+  });
 
   const response = await ctx.invokeWithClient(async (client) => client.ai.executeScenario(
     {
-      head: {
-        appId: ctx.appId,
-        subjectUserId: subjectUserId || '',
-        modelId: ensureText(input.model, 'model'),
-        routePolicy,
-        fallback: toFallbackPolicy(input.fallback),
-        timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-        connectorId,
-      },
+      head,
       scenarioType: ScenarioType.TEXT_EMBED,
       executionMode: ExecutionMode.SYNC,
       spec: {
@@ -307,39 +315,13 @@ export async function runtimeGenerateEmbedding(
 
   ctx.emitTelemetry('ai.route.decision', {
     route: trace.routeDecision || 'local',
-    model: ensureText(input.model, 'model'),
+    model: modelId,
     traceId: trace.traceId,
   });
 
   return {
-    vectors: toEmbeddingVectorsFromOutput(response.output),
+    vectors: extractEmbeddingVectors(response.output),
     usage: toUsage(response.usage),
     trace,
   };
-}
-
-function toEmbeddingVectorsFromOutput(output: unknown): number[][] {
-  const vectors = asRecord(asRecord(output).fields).vectors;
-  const vectorKind = asRecord(asRecord(vectors).kind);
-  const values = vectorKind.oneofKind === 'listValue'
-    ? asRecord(vectorKind.listValue).values
-    : [];
-  const normalized = Array.isArray(values) ? values.map((value: unknown) => {
-    const listKind = asRecord(value).kind;
-    if (asRecord(listKind).oneofKind !== 'listValue') {
-      return { values: [] };
-    }
-    return asRecord(listKind).listValue;
-  }) : [];
-  return normalized.map((entry) => {
-    const items = Array.isArray(asRecord(entry).values) ? asRecord(entry).values as unknown[] : [];
-    return items.map((item: unknown) => {
-      const kind = asRecord(item).kind;
-      if (asRecord(kind).oneofKind === 'numberValue') {
-        const parsed = Number(asRecord(kind).numberValue);
-        return Number.isFinite(parsed) ? parsed : null;
-      }
-      return null;
-    }).filter((value: number | null): value is number => value !== null);
-  });
 }

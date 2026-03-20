@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
 import {
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
@@ -16,6 +15,7 @@ import {
   setNodeGrpcBridge,
   type NodeGrpcBridge,
 } from '../../src/runtime/index.js';
+import { textDelta, textGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 
 function installNodeGrpcBridge(bridge: NodeGrpcBridge): void {
   setNodeGrpcBridge(bridge);
@@ -35,7 +35,7 @@ test('new Runtime() defaults appId and node transport in Node.js', async () => {
       }
       capturedRequest = ExecuteScenarioRequest.fromBinary(input.request);
       return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
-        output: Struct.fromJson({ text: 'hello-default-runtime' } as never),
+        output: textGenerateOutput('hello-default-runtime'),
         finishReason: FinishReason.STOP,
         routeDecision: RoutePolicy.LOCAL,
         modelResolved: 'local/qwen2.5',
@@ -54,23 +54,23 @@ test('new Runtime() defaults appId and node transport in Node.js', async () => {
 
   try {
     const runtime = new Runtime();
-    const result = await runtime.generate({
-      prompt: 'hello default runtime',
-    });
+    let thrown: unknown = null;
+    try {
+      await runtime.generate({
+        prompt: 'hello default runtime',
+      });
+    } catch (error) {
+      thrown = error;
+    }
 
     assert.equal(runtime.appId, 'nimi.app');
     assert.equal(runtime.transport.type, 'node-grpc');
     if (runtime.transport.type === 'node-grpc') {
       assert.equal(runtime.transport.endpoint, '127.0.0.1:46371');
     }
-    assert.equal(capturedRequest?.head?.routePolicy, RoutePolicy.LOCAL);
-    assert.equal(capturedRequest?.head?.modelId, 'local/default');
-    assert.equal(capturedRequest?.head?.subjectUserId, 'local-user');
-    assert.equal(result.text, 'hello-default-runtime');
-    assert.deepEqual(result.usage, { inputTokens: 3, outputTokens: 5 });
-    assert.equal(result.traceId, 'trace-default-runtime');
-    assert.equal(result.modelResolved, 'local/qwen2.5');
-    assert.equal(result.routeDecision, 'local');
+    assert.ok(thrown);
+    assert.match(String((thrown as { message?: string })?.message || ''), /requires an explicit local model or provider \+ model/i);
+    assert.equal(capturedRequest, null);
   } finally {
     clearNodeGrpcBridge();
   }
@@ -106,14 +106,14 @@ test('new Runtime() without transport throws targeted error outside Node.js', ()
   }
 });
 
-test('Runtime.generate uses provider default and explicit provider-scoped models', async () => {
+test('Runtime.generate requires explicit provider-scoped models', async () => {
   const capturedRequests: ExecuteScenarioRequest[] = [];
 
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
       capturedRequests.push(ExecuteScenarioRequest.fromBinary(input.request));
       return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
-        output: Struct.fromJson({ text: 'hello-cloud-runtime' } as never),
+        output: textGenerateOutput('hello-cloud-runtime'),
         finishReason: FinishReason.STOP,
         routeDecision: RoutePolicy.CLOUD,
         modelResolved: 'cloud/gpt-4o-mini',
@@ -128,20 +128,22 @@ test('Runtime.generate uses provider default and explicit provider-scoped models
 
   try {
     const runtime = new Runtime();
-    await runtime.generate({
-      provider: 'gemini',
-      prompt: 'hello cloud runtime',
-    });
+    await assert.rejects(
+      () => runtime.generate({
+        provider: 'gemini',
+        prompt: 'hello cloud runtime',
+      }),
+      /requires provider \+ model for cloud routing/i,
+    );
     await runtime.generate({
       provider: 'gemini',
       model: 'gemini-2.5-pro',
       prompt: 'explicit provider model',
     });
 
+    assert.equal(capturedRequests.length, 1);
     assert.equal(capturedRequests[0]?.head?.routePolicy, RoutePolicy.CLOUD);
-    assert.equal(capturedRequests[0]?.head?.modelId, 'gemini/default');
-    assert.equal(capturedRequests[1]?.head?.routePolicy, RoutePolicy.CLOUD);
-    assert.equal(capturedRequests[1]?.head?.modelId, 'gemini/gemini-2.5-pro');
+    assert.equal(capturedRequests[0]?.head?.modelId, 'gemini/gemini-2.5-pro');
   } finally {
     clearNodeGrpcBridge();
   }
@@ -184,9 +186,7 @@ test('Runtime.stream maps text, done, and error chunks', async () => {
           eventType: StreamEventType.STREAM_EVENT_DELTA,
           payload: {
             oneofKind: 'delta',
-            delta: {
-              text: 'hello ',
-            },
+            delta: textDelta('hello '),
           },
         }));
         yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
@@ -218,6 +218,7 @@ test('Runtime.stream maps text, done, and error chunks', async () => {
     const runtime = new Runtime();
     const stream = await runtime.stream({
       prompt: 'hello stream runtime',
+      model: 'llama3',
     });
     const parts: Array<Record<string, unknown>> = [];
     for await (const part of stream) {
@@ -229,7 +230,7 @@ test('Runtime.stream maps text, done, and error chunks', async () => {
     }
 
     assert.deepEqual(parts, [
-      { type: 'text', text: 'hello ' },
+      { type: 'text', text: 'hello' },
       {
         type: 'done',
         usage: { inputTokens: 2, outputTokens: 4 },

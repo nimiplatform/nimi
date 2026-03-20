@@ -34,13 +34,23 @@ export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOpe
 // Typed adapter exports.
 export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
+export type { SendAgentChannelMessageInput, SendAgentChannelMessageOutput } from './extensions/agent-channel.js';
 export type { AgentEntityMemorySliceInput, AgentMemoryRecallInput, AgentMemoryRecallOutput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';
 export { listAgentCoreMemories, listAgentE2EMemories, recallAgentMemoriesForEntity } from './extensions/agent-memory.js';
-export type { SendAgentChannelMessageInput, SendAgentChannelMessageOutput } from './extensions/agent-channel.js';
-export { sendAgentChannelMessage } from './extensions/agent-channel.js';
 
 // Realm client exports.
 export { Realm } from './client.js';
-export type * from './client-types.js';
+export type {
+  RealmConnectionState,
+  RealmTelemetryEvent,
+  RealmTokenRefreshResult,
+  RealmFetchImpl,
+  RealmAuthOptions,
+  RealmRetryOptions,
+  RealmOptions,
+  RealmUnsafeRawModule,
+  RealmServiceRegistry,
+  RealmEventsModule,
+} from './client-types.js';
 export type { RealmOperationKey, RealmOperationResult, RealmOperationResultMap } from './generated/operation-map.js';
 export * from './generated/property-enums.js';

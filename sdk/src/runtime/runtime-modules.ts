@@ -1,5 +1,4 @@
 import type { ScopeModule } from '../scope/index.js';
-import { asRecord } from '../internal/utils.js';
 import type { JsonObject } from '../internal/utils.js';
 import { normalizeText, nowIso, wrapModeBWorkflowStream } from './helpers.js';
 import {
@@ -7,6 +6,7 @@ import {
   runtimeStreamText,
   runtimeGenerateEmbedding,
 } from './runtime-ai-text.js';
+import { FallbackPolicy } from './generated/runtime/v1/ai.js';
 import { runtimeUploadArtifact } from './runtime-ai-upload.js';
 import {
   runtimeSubmitScenarioJobForMedia,
@@ -47,9 +47,9 @@ import type {
   RuntimeLocalServiceClient,
   RuntimeMediaModule,
   RuntimeModelClient,
-  RuntimeRawModule,
   RuntimeScopeModule,
   RuntimeStreamCallOptions,
+  RuntimeUnsafeRawModule,
   RuntimeWorkflowClient,
 } from './types.js';
 import type { RuntimeInternalContext } from './internal-context.js';
@@ -60,11 +60,7 @@ type RuntimeInvoke = <T>(operation: () => Promise<T>) => Promise<T>;
 
 type RuntimePassthroughModuleKey = 'auth' | 'workflow' | 'model' | 'local' | 'connector' | 'knowledge' | 'audit';
 
-type RuntimeRawCall = <TReq, TRes>(
-  methodId: string,
-  input: TReq,
-  options?: RuntimeCallOptions | RuntimeStreamCallOptions,
-) => Promise<TRes>;
+type RuntimeRawCall = RuntimeUnsafeRawModule['call'];
 
 type RuntimeModuleAppClient = {
   sendMessage: RuntimeClient['app']['sendAppMessage'];
@@ -248,8 +244,7 @@ export function createAppAuthClient(
         optionsValue,
       ));
 
-      const responseRecord = asRecord(response);
-      const issuedScopeCatalogVersion = normalizeText(responseRecord.issuedScopeCatalogVersion);
+      const issuedScopeCatalogVersion = normalizeText(response.issuedScopeCatalogVersion);
       if (issuedScopeCatalogVersion && issuedScopeCatalogVersion !== resolvedScopeCatalogVersion) {
         emitTelemetry('runtime.app-auth.scope-version-mismatch', {
           requested: resolvedScopeCatalogVersion,
@@ -257,7 +252,7 @@ export function createAppAuthClient(
         });
       }
 
-      const tokenId = normalizeText(responseRecord.tokenId);
+      const tokenId = normalizeText(response.tokenId);
       if (tokenId) {
         authEvents.emitTokenIssued(tokenId);
       }
@@ -271,7 +266,7 @@ export function createAppAuthClient(
       const response = await invokeWithClient(
         async (client) => client.appAuth.revokeToken(request, optionsValue),
       );
-      const tokenId = normalizeText(asRecord(request).tokenId);
+      const tokenId = normalizeText(request.tokenId);
       if (tokenId) {
         authEvents.emitTokenRevoked(tokenId);
       }
@@ -281,7 +276,7 @@ export function createAppAuthClient(
       const response = await invokeWithClient(
         async (client) => client.appAuth.issueDelegatedToken(request, optionsValue),
       );
-      const tokenId = normalizeText(asRecord(response).tokenId);
+      const tokenId = normalizeText(response.tokenId);
       if (tokenId) {
         authEvents.emitTokenIssued(tokenId);
       }
@@ -319,10 +314,21 @@ export function createAiModule(
   },
 ): RuntimeAiModule {
   const { invokeWithClient, ctx } = input;
-  const withScenarioHeadSubjectUserId = async <T extends { head: { subjectUserId?: string; routePolicy?: number; connectorId?: string } }>(
+  const withScenarioHeadSubjectUserId = async <T extends {
+    head: {
+      subjectUserId?: string;
+      routePolicy?: number;
+      connectorId?: string;
+    };
+  }>(
     request: T,
     optionsValue?: RuntimeCallOptions | RuntimeStreamCallOptions,
-  ): Promise<Omit<T, 'head'> & { head: Omit<T['head'], 'subjectUserId'> & { subjectUserId: string } }> => {
+  ): Promise<Omit<T, 'head'> & {
+    head: Omit<T['head'], 'subjectUserId' | 'fallback'> & {
+      subjectUserId: string;
+      fallback: FallbackPolicy;
+    };
+  }> => {
     const subjectUserId = runtimeAiRequestRequiresSubject({
       request: { head: request.head },
       metadata: optionsValue?.metadata,
@@ -331,8 +337,12 @@ export function createAiModule(
       : await ctx.resolveOptionalSubjectUserId(request.head?.subjectUserId);
     const head = {
       ...request.head,
+      fallback: FallbackPolicy.DENY,
       subjectUserId: subjectUserId || '',
-    } as Omit<T['head'], 'subjectUserId'> & { subjectUserId: string };
+    } as Omit<T['head'], 'subjectUserId' | 'fallback'> & {
+      subjectUserId: string;
+      fallback: FallbackPolicy;
+    };
     return {
       ...request,
       head,
@@ -466,10 +476,15 @@ export function createRawModule(
     rawCall: RuntimeRawCall;
     invokeWithClient: RuntimeInvokeWithClient;
   },
-): RuntimeRawModule {
+): RuntimeUnsafeRawModule {
   const { rawCall, invokeWithClient } = input;
+  const call: RuntimeUnsafeRawModule['call'] = async (
+    methodId: string,
+    rawInput: unknown,
+    options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+  ) => rawCall(methodId, rawInput, options);
   return {
-    call: async (methodId, rawInput, options) => rawCall(methodId, rawInput, options),
+    call,
     closeStream: async (streamId) => invokeWithClient(
       async (client) => client.closeStream(streamId),
     ),

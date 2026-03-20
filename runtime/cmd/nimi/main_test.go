@@ -378,7 +378,7 @@ func TestStreamEventJSONDelta(t *testing.T) {
 		Sequence:  2,
 		TraceId:   "trace-1",
 		Payload: &runtimev1.StreamScenarioEvent_Delta{
-			Delta: &runtimev1.ScenarioStreamDelta{Text: "hello"},
+			Delta: testTextStreamDelta("hello"),
 		},
 	}
 

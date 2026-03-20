@@ -174,7 +174,13 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{Text: chunk},
+				Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Text{
+						Text: &runtimev1.TextStreamDelta{
+							Text: chunk,
+						},
+					},
+				},
 			},
 		})
 	}
@@ -187,7 +193,13 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{Text: chunk},
+				Delta: &runtimev1.ScenarioStreamDelta{
+					Delta: &runtimev1.ScenarioStreamDelta_Text{
+						Text: &runtimev1.TextStreamDelta{
+							Text: chunk,
+						},
+					},
+				},
 			},
 		})
 	}
@@ -418,8 +430,12 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 			Payload: &runtimev1.StreamScenarioEvent_Delta{
 				Delta: &runtimev1.ScenarioStreamDelta{
-					Chunk:    payload[offset:end],
-					MimeType: mimeType,
+					Delta: &runtimev1.ScenarioStreamDelta_Artifact{
+						Artifact: &runtimev1.ArtifactStreamDelta{
+							Chunk:    payload[offset:end],
+							MimeType: mimeType,
+						},
+					},
 				},
 			},
 		}); err != nil {

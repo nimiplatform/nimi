@@ -4,18 +4,15 @@ import type {
   LanguageModelV3,
 } from '@ai-sdk/provider';
 import type { Runtime, RuntimeCallOptions } from '../runtime/index.js';
-import type { AiFallbackPolicy, AiRoutePolicy } from '../types/index.js';
+import type { AiRoutePolicy } from '../types/index.js';
 
 export const ROUTE_POLICY_LOCAL = 1;
 export const ROUTE_POLICY_CLOUD = 2;
-export const FALLBACK_POLICY_DENY = 1;
-export const FALLBACK_POLICY_ALLOW = 2;
 
 export type RuntimeDefaults = {
   appId: string;
   subjectUserId?: string;
   routePolicy: AiRoutePolicy;
-  fallback: AiFallbackPolicy;
   timeoutMs?: number;
   metadata?: RuntimeCallOptions['metadata'];
 };
@@ -25,7 +22,6 @@ export type NimiAiProviderConfig = {
   appId?: string;
   subjectUserId?: string;
   routePolicy?: AiRoutePolicy;
-  fallback?: AiFallbackPolicy;
   timeoutMs?: number;
   metadata?: RuntimeCallOptions['metadata'];
 };
@@ -80,7 +76,6 @@ export type NimiRuntimeVideoModel = {
     idempotencyKey?: string;
     labels?: Record<string, string>;
     routePolicy?: AiRoutePolicy;
-    fallback?: AiFallbackPolicy;
     timeoutMs?: number;
     signal?: AbortSignal;
   }): Promise<NimiArtifactGenerationResult>;
@@ -102,7 +97,6 @@ export type NimiRuntimeSpeechModel = {
     idempotencyKey?: string;
     labels?: Record<string, string>;
     routePolicy?: AiRoutePolicy;
-    fallback?: AiFallbackPolicy;
     timeoutMs?: number;
     signal?: AbortSignal;
   }): Promise<NimiArtifactGenerationResult>;
@@ -125,7 +119,6 @@ export type NimiRuntimeTranscriptionModel = {
     idempotencyKey?: string;
     labels?: Record<string, string>;
     routePolicy?: AiRoutePolicy;
-    fallback?: AiFallbackPolicy;
     timeoutMs?: number;
   }): Promise<{
     text: string;

@@ -20,20 +20,22 @@ test('buildRuntimeAuthMetadata maps grant token and version into runtime metadat
   });
 });
 
-test('fetchRealmGrant and helper bundle follow explicit Realm -> Runtime bridge contract', async () => {
+test('fetchRealmGrant and helper bundle follow the standard typed Realm -> Runtime bridge contract', async () => {
   const capturedCalls: Array<Record<string, unknown>> = [];
   const context = {
     appId: 'app.bridge.test',
     runtime: {} as never,
     realm: {
-      raw: {
-        request: async <T>(input: Record<string, unknown>): Promise<T> => {
-          capturedCalls.push(input);
-          return {
-            token: 'grant-token-bridge',
-            version: 'grant-version-bridge',
-            expiresAt: '2026-02-28T00:00:00Z',
-          } as T;
+      services: {
+        RuntimeRealmGrantsService: {
+          issueRuntimeRealmGrant: async (input: Record<string, unknown>) => {
+            capturedCalls.push(input);
+            return {
+              token: 'grant-token-bridge',
+              version: 'grant-version-bridge',
+              expiresAt: '2026-02-28T00:00:00Z',
+            };
+          },
         },
       },
     } as never,
@@ -58,9 +60,7 @@ test('fetchRealmGrant and helper bundle follow explicit Realm -> Runtime bridge 
   assert.equal(helperGrant.version, 'grant-version-bridge');
 
   assert.equal(capturedCalls.length, 2);
-  assert.equal(capturedCalls[0]?.path, '/api/creator/mods/control/grants/issue');
-  assert.equal(capturedCalls[0]?.method, 'POST');
-  assert.deepEqual(capturedCalls[0]?.body, {
+  assert.deepEqual(capturedCalls[0], {
     appId: 'app.bridge.test',
     subjectUserId: 'subject-bridge',
     scopes: ['ai.text.generate'],
@@ -76,3 +76,28 @@ test('fetchRealmGrant and helper bundle follow explicit Realm -> Runtime bridge 
   });
 });
 
+test('fetchRealmGrant rejects missing scopes', async () => {
+  const context = {
+    appId: 'app.bridge.test',
+    runtime: {} as never,
+    realm: {
+      services: {
+        RuntimeRealmGrantsService: {
+          issueRuntimeRealmGrant: async () => ({
+            token: 'unused',
+            version: 'unused',
+            expiresAt: '2026-02-28T00:00:00Z',
+          }),
+        },
+      },
+    } as never,
+  } as RuntimeRealmBridgeContext;
+
+  await assert.rejects(
+    async () => fetchRealmGrant(context, {
+      subjectUserId: 'subject-bridge',
+      scopes: [],
+    }),
+    (error: unknown) => String((error as Error).message) === 'scopes is required',
+  );
+});

@@ -175,16 +175,16 @@ func (s *scenarioJobStore) cancel(jobID string) bool {
 	return true
 }
 
-func (s *scenarioJobStore) listArtifacts(jobID string) ([]*runtimev1.ScenarioArtifact, string, bool) {
+func (s *scenarioJobStore) listArtifacts(jobID string) (*runtimev1.ScenarioJob, []*runtimev1.ScenarioArtifact, string, bool) {
 	job, ok := s.get(jobID)
 	if !ok {
-		return nil, "", false
+		return nil, nil, "", false
 	}
 	items := make([]*runtimev1.ScenarioArtifact, 0, len(job.GetArtifacts()))
 	for _, artifact := range job.GetArtifacts() {
 		items = append(items, cloneScenarioArtifact(artifact))
 	}
-	return items, job.GetTraceId(), true
+	return job, items, job.GetTraceId(), true
 }
 
 func (s *scenarioJobStore) findArtifact(appID string, subjectUserID string, artifactID string) (*runtimev1.ScenarioArtifact, string, bool) {

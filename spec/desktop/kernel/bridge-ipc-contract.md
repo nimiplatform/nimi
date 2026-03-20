@@ -192,7 +192,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 
 补充约束：
 
-- companion artifact（`vae` / `llm` / `controlnet` / `lora`）列表、verified catalog、安装、导入、移除与 orphan 管理统一落在 Tauri `runtime_local_artifacts_*` command surface；不得再经 runtime SDK `RuntimeLocalService` 绕行第二条执行路径。
+- companion artifact（`vae` / `ae` / `llm` / `clip` / `controlnet` / `lora` / `auxiliary`）列表、verified catalog、安装、导入、移除与 intake/scaffold 管理统一落在 Tauri `runtime_local_artifacts_*` 或 `runtime_local_assets_*` command surface；不得再经 runtime SDK `RuntimeLocalService` 绕行第二条执行路径。
 - local image workflow 的 `engineConfig`、`components`、`profile_overrides` 必须沿 `desktop -> sdk/runtime -> runtime` 原样透传；Desktop 不得改写为绝对路径。
 
 cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 legacy adapter factory、直接 `listModels()` 或 `healthCheck()` 调用以绕开 Runtime。
@@ -225,11 +225,15 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_models_start` / `runtime_local_models_stop` / `runtime_local_models_remove`：模型生命周期管理。
 - `runtime_local_models_health`：模型健康检查。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
-- `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：孤立模型文件扫描与脚手架导入。scan command 允许接受按 path 组织的 capability/engine preference，并在返回项中复用统一 `recommendation` payload。
+- `runtime_local_models_reveal_root_folder`：在系统文件管理器中打开 runtime models 根目录。
+- `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：保留底层 main-model orphan detect/scaffold surface；统一 desktop intake UI 默认应优先使用 `runtime_local_assets_scan_unregistered`，但 specialized main-model flow 仍可复用该命令面。
 - `runtime_local_artifacts_list` / `runtime_local_artifacts_verified_list`：列出已安装 / verified companion artifacts。
 - `runtime_local_artifacts_install_verified` / `runtime_local_artifacts_import` / `runtime_local_artifacts_remove`：companion artifact 安装、导入、移除。
-- `runtime_local_artifacts_scan_orphans` / `runtime_local_artifacts_scaffold_orphan`：孤立 companion 文件扫描与脚手架导入。
+- `runtime_local_artifacts_scan_orphans`：保留底层 companion orphan detect surface；统一 desktop intake UI 默认应优先使用 `runtime_local_assets_scan_unregistered`。
+- `runtime_local_artifacts_scaffold_orphan`：将 companion file scaffold 为 canonical `artifact.manifest.json`，随后再经 `runtime_local_artifacts_import` 纳管。
 - `runtime_local_artifacts_adopt`：将 go-runtime 已存在的结构化 companion artifact record 纳管到 Desktop/Tauri state，不触发下载或导入。
+- `runtime_local_assets_scan_unregistered`：扫描 `~/.nimi/models/` 根目录与一级子目录下未被 state 纳管的裸文件，返回统一 asset declaration suggestion、confidence 与 review state。
+- `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<logical-model-id>/manifest.json` 或 `artifacts/<artifact-id>/artifact.manifest.json`。
 - `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：推理与运行时审计。
 - `runtime_local_pick_manifest_path`：选取 `~/.nimi/models/**/resolved/**/manifest.json` 或兼容的当前 resolved manifest 路径。
 - `runtime_local_pick_artifact_manifest_path`：选取 `~/.nimi/models/**/artifact.manifest.json`。
@@ -246,18 +250,22 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 companion artifact 补充：
 
 - artifact list / verified list / install / import / remove 是一等 `runtime_local_artifacts_*` Tauri commands，数据真相由 Desktop/Tauri local runtime state 维护。
-- companion acquisition 支持 verified artifact install、`artifact.manifest.json` import，以及独立的 orphan detect/scaffold lane；不得复用主模型 capability selector 或 scaffold command。
+- companion acquisition 支持 verified artifact install、`artifact.manifest.json` import，以及统一 local asset intake 下的 artifact review/scaffold；不得要求用户手写 manifest。
 - `runtime_local_artifacts_scaffold_orphan` 固定生成 canonical local artifact manifest，随后再经 `runtime_local_artifacts_import` 纳管。
 - verified companion install 的失败恢复通过 desktop `Artifact Tasks` 行内 `Retry` 完成；artifact task 不是 download session。
-- `artifact.manifest.json` picker 与 resolved main manifest picker 必须物理拆分，且都只允许 runtime models root 下的路径。
+- `runtime_local_pick_asset_manifest_path` 是 runtime models root 下唯一允许暴露给统一 import menu 的 manifest picker；内部仍必须区分 model manifest 与 artifact manifest 的校验与导入路径。
 - Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。
-- 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型；用户直接 copy 到 `~/.nimi/models` 的裸文件通过 `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan` 路径，由用户选择能力后导入。
-- companion orphan lane 允许与主模型 orphan lane 同时暴露同一裸文件；文件最终分类由用户选择的导入入口决定，导入成功后两条 lane 都必须在刷新后移除该文件。
+- 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型，以及 verified/catalog/manual-download 已携带显式 declaration 的 intake 来源。
+- 用户直接 copy 到 `~/.nimi/models` 的裸文件必须统一进入 `runtime_local_assets_scan_unregistered` intake：
+  - 根目录或未知目录文件不得静默纳管；
+  - 识别到 typed folder（`chat` / `embedding` / `image` / `video` / `tts` / `stt` / `music` / `vae` / `ae` / `clip` / `controlnet` / `lora` / `llm` / `auxiliary`）时，可视为 high-confidence declaration；
+  - high-confidence 且 declaration 完整的项允许自动导入；
+  - low-confidence 项只允许预填 review UI，不得静默注册。
 - recommendation 审计仅覆盖 request-driven resolve 面，不覆盖 installed list 之类的被动刷新：
   - `runtime_local_models_catalog_search`
   - `runtime_local_models_catalog_list_variants`
   - `runtime_local_models_catalog_resolve_install_plan`
-  - `runtime_local_models_scan_orphans`
+  - `runtime_local_assets_scan_unregistered`
   - `runtime_local_recommendation_feed_get`
 - 上述入口的 recommendation 解析沿现有 local runtime audit 面记录：
   - `recommendation_resolve_invoked`

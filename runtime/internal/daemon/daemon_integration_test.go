@@ -21,7 +21,10 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
 	}
-	daemon := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}

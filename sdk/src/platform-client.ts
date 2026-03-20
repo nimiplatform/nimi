@@ -1,32 +1,27 @@
 import { asRecord, normalizeText, type JsonObject } from './internal/utils.js';
 import { Realm } from './realm/client.js';
 import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
+import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
 import { sendAgentChannelMessage, type SendAgentChannelMessageInput, type SendAgentChannelMessageOutput } from './realm/extensions/agent-channel.js';
 import { Runtime } from './runtime/runtime.js';
-import type { RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
+import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
+import type { RuntimeCallOptions, RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
 
 type PlatformSessionUser = JsonObject | null;
 type RealmServices = Realm['services'];
 type RuntimeConnectorModule = Runtime['connector'];
 type RuntimeAuditModule = Runtime['audit'];
-type ListConnectorsMethod = RuntimeConnectorModule['listConnectors'];
-type ListConnectorsInput = Parameters<ListConnectorsMethod>[0];
-type RealmMethod<
-  S extends keyof RealmServices,
-  M extends keyof RealmServices[S],
-> = RealmServices[S][M] extends (...args: infer Args) => infer Result
-  ? (...args: Args) => Result
-  : never;
-type AuthPasswordLoginMethod = RealmMethod<'AuthService', 'passwordLogin'>;
+type ListConnectorsInput = ListConnectorsRequest;
+type AuthPasswordLoginBody = RealmServiceArgs<'AuthService', 'passwordLogin'>[0];
 type AuthPasswordLoginInput = {
   identifier?: string;
   email?: string;
-  password: Parameters<AuthPasswordLoginMethod>[0]['password'];
+  password: AuthPasswordLoginBody['password'];
 };
-type ListMyFriendsMethod = RealmMethod<'MeService', 'listMyFriendsWithDetails'>;
-type ListMyFriendsResult = ReturnType<ListMyFriendsMethod>;
-type CreateImageDirectUploadMethod = RealmMethod<'MediaService', 'createImageDirectUpload'>;
-type CreateVideoDirectUploadMethod = RealmMethod<'MediaService', 'createVideoDirectUpload'>;
+type AuthPasswordLoginResult = RealmServiceResult<'AuthService', 'passwordLogin'>;
+type ListMyFriendsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
+type CreateImageDirectUploadResult = RealmServiceResult<'MediaService', 'createImageDirectUpload'>;
+type CreateVideoDirectUploadResult = RealmServiceResult<'MediaService', 'createVideoDirectUpload'>;
 type RequireSignedUrlsInput = {
   requireSignedUrls?: string | boolean;
 };
@@ -62,7 +57,7 @@ export type PlatformClientInput = {
 type PlatformDomains = {
   auth: {
     checkEmail: RealmServices['AuthService']['checkEmail'];
-    passwordLogin: (input: AuthPasswordLoginInput) => ReturnType<AuthPasswordLoginMethod>;
+    passwordLogin: (input: AuthPasswordLoginInput) => Promise<AuthPasswordLoginResult>;
     oauthLogin: RealmServices['AuthService']['oauthLogin'];
     requestEmailOtp: RealmServices['AuthService']['requestEmailOtp'];
     verifyEmailOtp: RealmServices['AuthService']['verifyEmailOtp'];
@@ -77,7 +72,7 @@ type PlatformDomains = {
     listMessages: RealmServices['HumanChatService']['listMessages'];
     markChatRead: RealmServices['HumanChatService']['markChatRead'];
     sendMessage: RealmServices['HumanChatService']['sendMessage'];
-    listFriends: (limit?: number, cursor?: string) => ListMyFriendsResult;
+    listFriends: (limit?: number, cursor?: string) => Promise<ListMyFriendsResult>;
   };
   world: {
     getWorld: RealmServices['WorldsService']['worldControllerGetWorld'];
@@ -99,8 +94,8 @@ type PlatformDomains = {
     batchCreateAgents: RealmServices['CreatorService']['creatorControllerBatchCreateAgents'];
   };
   media: {
-    createImageDirectUpload: (input?: RequireSignedUrlsInput) => ReturnType<CreateImageDirectUploadMethod>;
-    createVideoDirectUpload: (input?: RequireSignedUrlsInput) => ReturnType<CreateVideoDirectUploadMethod>;
+    createImageDirectUpload: (input?: RequireSignedUrlsInput) => Promise<CreateImageDirectUploadResult>;
+    createVideoDirectUpload: (input?: RequireSignedUrlsInput) => Promise<CreateVideoDirectUploadResult>;
     createAudioDirectUpload: RealmServices['MediaService']['createAudioDirectUpload'];
     finalizeAsset: RealmServices['MediaService']['finalizeMediaAsset'];
     getAsset: RealmServices['MediaService']['getMediaAsset'];
@@ -111,8 +106,8 @@ type PlatformDomains = {
     listProviderCatalog: RuntimeConnectorModule['listProviderCatalog'];
     listConnectors: (
       input?: Partial<ListConnectorsInput>,
-      options?: Parameters<ListConnectorsMethod>[1],
-    ) => ReturnType<ListConnectorsMethod>;
+      options?: RuntimeCallOptions,
+    ) => Promise<ListConnectorsResponse>;
     createConnector: RuntimeConnectorModule['createConnector'];
     updateConnector: RuntimeConnectorModule['updateConnector'];
     deleteConnector: RuntimeConnectorModule['deleteConnector'];
@@ -220,10 +215,12 @@ async function resolveToken(
   storeProvider: (() => string | Promise<string>) | undefined,
 ): Promise<string> {
   if (storeProvider) {
-    return normalizeText(await storeProvider());
+    const value = normalizeText(await storeProvider());
+    if (value) return value;
   }
   if (provider) {
-    return normalizeText(await provider());
+    const value = normalizeText(await provider());
+    if (value) return value;
   }
   return normalizeText(explicit);
 }

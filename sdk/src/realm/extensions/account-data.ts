@@ -4,8 +4,6 @@ import type { JsonObject } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type { Realm } from '../client.js';
 
-const DATA_EXPORT_PATH = '/api/auth/me/data-export';
-const ACCOUNT_DELETION_PATH = '/api/auth/me/account-deletion';
 const ACCOUNT_DATA_UNAVAILABLE_REASON = 'REALM_ACCOUNT_DATA_UNAVAILABLE';
 const ACCOUNT_DATA_UNAVAILABLE_HINT = 'upgrade_realm_account_data_api';
 
@@ -156,11 +154,7 @@ export async function requestDataExport(
   input: RequestDataExportInput = {},
 ): Promise<RequestDataExportOutput> {
   try {
-    const payload = await realm.raw.request({
-      method: 'POST',
-      path: DATA_EXPORT_PATH,
-      body: input,
-    });
+    const payload = await realm.services.MeaccountdataService.requestDataExport(input);
     return normalizeDataExportOutput(payload);
   } catch (error) {
     const normalized = asNimiError(error, {
@@ -180,11 +174,7 @@ export async function requestAccountDeletion(
   input: RequestAccountDeletionInput = {},
 ): Promise<RequestAccountDeletionOutput> {
   try {
-    const payload = await realm.raw.request({
-      method: 'POST',
-      path: ACCOUNT_DELETION_PATH,
-      body: input,
-    });
+    const payload = await realm.services.MeaccountdataService.requestAccountDeletion(input);
     return normalizeAccountDeletionOutput(payload);
   } catch (error) {
     const normalized = asNimiError(error, {

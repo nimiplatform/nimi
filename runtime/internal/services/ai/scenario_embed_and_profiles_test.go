@@ -45,9 +45,8 @@ func TestExecuteScenarioTextEmbedSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("execute scenario text embed: %v", err)
 	}
-	vectors := resp.GetOutput().GetFields()["vectors"].GetListValue().GetValues()
-	if len(vectors) != 2 {
-		t.Fatalf("expected 2 vectors, got %d", len(vectors))
+	if count := outputVectorCount(resp.GetOutput()); count != 2 {
+		t.Fatalf("expected 2 vectors, got %d", count)
 	}
 	if resp.GetUsage().GetInputTokens() == 0 {
 		t.Fatalf("usage input tokens should be set")

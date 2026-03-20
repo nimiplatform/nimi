@@ -5,25 +5,15 @@ import type {
 } from './types.js';
 import { normalizeText, ensureText } from './helpers.js';
 
-const DEFAULT_REALM_GRANT_PATH = '/api/creator/mods/control/grants/issue';
-
 type FetchRealmGrantInput = {
-  appId?: string;
   subjectUserId: string;
   scopes: string[];
-  path?: string;
 };
 
 type FetchRealmGrantOutput = {
   token: string;
   version: string;
-  expiresAt?: string;
-};
-
-type RealmGrantResponse = {
-  token?: unknown;
-  version?: unknown;
-  expiresAt?: unknown;
+  expiresAt: string;
 };
 
 function toStringArray(values: string[]): string[] {
@@ -36,27 +26,22 @@ export async function fetchRealmGrant(
   context: RuntimeRealmBridgeContext,
   input: FetchRealmGrantInput,
 ): Promise<FetchRealmGrantOutput> {
-  const appId = normalizeText(input.appId) || ensureText(context.appId, 'appId');
+  const appId = ensureText(context.appId, 'appId');
   const subjectUserId = ensureText(input.subjectUserId, 'subjectUserId');
   const scopes = toStringArray(input.scopes || []);
   if (scopes.length === 0) {
     throw new Error('scopes is required');
   }
-  const path = normalizeText(input.path) || DEFAULT_REALM_GRANT_PATH;
 
-  const response = await context.realm.raw.request<RealmGrantResponse>({
-    method: 'POST',
-    path,
-    body: {
+  const response = await context.realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant({
       appId,
       subjectUserId,
       scopes,
-    },
   });
 
-  const token = ensureText(response?.token, 'token');
-  const version = ensureText(response?.version, 'version');
-  const expiresAt = normalizeText(response?.expiresAt) || undefined;
+  const token = ensureText(response.token, 'token');
+  const version = ensureText(response.version, 'version');
+  const expiresAt = ensureText(response.expiresAt, 'expiresAt');
   return {
     token,
     version,
@@ -85,4 +70,3 @@ export function createRuntimeRealmBridgeHelpers(
     buildRuntimeAuthMetadata,
   };
 }
-

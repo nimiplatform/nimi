@@ -5,11 +5,10 @@ import type {
   ScenarioArtifact,
   ScenarioJob,
   ScenarioJobEvent,
+  ScenarioOutput,
 } from './generated/runtime/v1/ai';
 
 export type NimiRoutePolicy = 'local' | 'cloud';
-
-export type NimiFallbackPolicy = 'deny' | 'allow';
 
 export type NimiFinishReason =
   | 'stop'
@@ -58,7 +57,6 @@ export type TextGenerateInput = {
   topP?: number;
   maxTokens?: number;
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
   connectorId?: string;
   metadata?: Record<string, string>;
@@ -90,7 +88,6 @@ export type EmbeddingGenerateInput = {
   input: string | string[];
   subjectUserId?: string;
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
   connectorId?: string;
   metadata?: Record<string, string>;
@@ -118,7 +115,6 @@ export type ImageGenerateInput = {
   responseFormat?: 'url' | 'base64';
   extensions?: JsonObject;
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
   connectorId?: string;
   metadata?: Record<string, string>;
@@ -163,7 +159,6 @@ export type VideoGenerateInput = {
   };
   extensions?: JsonObject;
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
   connectorId?: string;
   metadata?: Record<string, string>;
@@ -195,7 +190,6 @@ export type SpeechSynthesizeInput = {
     speed?: number;
   };
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
   connectorId?: string;
   metadata?: Record<string, string>;
@@ -221,7 +215,6 @@ export type SpeechTranscribeInput = {
   responseFormat?: string;
   extensions?: JsonObject;
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
   connectorId?: string;
   metadata?: Record<string, string>;
@@ -252,6 +245,7 @@ export type SpeechSynthesizeOutput = {
 export type SpeechTranscribeOutput = {
   job: ScenarioJob;
   text: string;
+  artifacts: ScenarioArtifact[];
   trace: NimiTraceInfo;
 };
 
@@ -259,7 +253,6 @@ export type SpeechListVoicesInput = {
   model: string;
   subjectUserId?: string;
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   connectorId?: string;
   metadata?: Record<string, string>;
 };
@@ -290,7 +283,6 @@ export type MusicGenerateInput = {
   instrumental?: boolean;
   extensions?: JsonObject;
   route?: NimiRoutePolicy;
-  fallback?: NimiFallbackPolicy;
   timeoutMs?: number;
   connectorId?: string;
   metadata?: Record<string, string>;
@@ -353,6 +345,6 @@ export type RuntimeMediaModule = {
     get(jobId: string): Promise<ScenarioJob>;
     cancel(input: { jobId: string; reason?: string }): Promise<ScenarioJob>;
     subscribe(jobId: string): Promise<AsyncIterable<ScenarioJobEvent>>;
-    getArtifacts(jobId: string): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string }>;
+    getArtifacts(jobId: string): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string; output?: ScenarioOutput }>;
   };
 };

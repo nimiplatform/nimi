@@ -1,6 +1,7 @@
 import type { JsonObject } from '../internal/utils.js';
 import type { RuntimeCallOptions, RuntimeClient, RuntimeStreamCallOptions } from './types.js';
 import type { RuntimeOptions } from './types.js';
+import type { FallbackPolicy, RoutePolicy } from './generated/runtime/v1/ai.js';
 import type {
   RuntimeCallOptionsInternal,
   RuntimeStreamCallOptionsInternal,
@@ -42,6 +43,22 @@ export interface RuntimeInternalContext {
 
   /** Resolve the subject user ID when anonymous local is allowed. */
   resolveOptionalSubjectUserId: (explicit?: string) => Promise<string | undefined>;
+
+  /** Normalize AI request heads so stable helpers do not hand-roll fallback defaults. */
+  normalizeScenarioHead: <T extends {
+    subjectUserId?: string;
+    routePolicy?: RoutePolicy;
+    connectorId?: string;
+    fallback?: FallbackPolicy;
+  }>(
+    input: {
+      head: T;
+      metadata?: Record<string, string>;
+    },
+  ) => Promise<Omit<T, 'subjectUserId' | 'fallback'> & {
+    subjectUserId: string;
+    fallback: FallbackPolicy;
+  }>;
 
   /** Emit a telemetry event. */
   emitTelemetry: (name: string, data?: JsonObject) => void;

@@ -482,8 +482,7 @@ func runLiveSmokeEmbedForProvider(t *testing.T, providerID string, record provid
 	if err != nil {
 		t.Fatalf("live embed failed: %v", err)
 	}
-	vectors := resp.GetOutput().GetFields()["vectors"].GetListValue().GetValues()
-	if len(vectors) == 0 {
+	if count := outputVectorCount(resp.GetOutput()); count == 0 {
 		t.Fatalf("live embed returned empty vectors")
 	}
 }

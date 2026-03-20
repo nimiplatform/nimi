@@ -60,7 +60,7 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 	if resp.GetRouteDecision() != runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL {
 		t.Fatalf("unexpected route decision: %v", resp.GetRouteDecision())
 	}
-	text := resp.GetOutput().GetFields()["text"].GetStringValue()
+	text := outputText(resp.GetOutput())
 	if text == "" {
 		t.Fatalf("output text must be non-empty")
 	}

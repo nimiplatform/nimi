@@ -506,6 +506,14 @@ func ExecuteGeminiTranscribe(
 	if err != nil {
 		return nil, nil, "", err
 	}
+	resolvedInlineMIME := resolveInlineAudioMIME(mimeType, audioBytes)
+	if resolvedInlineMIME == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	resolvedInlineFormat := resolveInlineAudioFormat(mimeType, audioBytes)
+	if resolvedInlineFormat == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 
 	payload := map[string]any{
 		"model": modelResolved,
@@ -521,7 +529,7 @@ func ExecuteGeminiTranscribe(
 						"type": "input_audio",
 						"input_audio": map[string]any{
 							"data":   base64AudioString(audioBytes),
-							"format": resolveInlineAudioFormat(mimeType, audioBytes),
+							"format": resolvedInlineFormat,
 						},
 					},
 				},
@@ -547,7 +555,7 @@ func ExecuteGeminiTranscribe(
 		"language":        strings.TrimSpace(spec.GetLanguage()),
 		"prompt":          strings.TrimSpace(spec.GetPrompt()),
 		"response_format": strings.TrimSpace(spec.GetResponseFormat()),
-		"mime_type":       resolveInlineAudioMIME(mimeType, audioBytes),
+		"mime_type":       resolvedInlineMIME,
 		"audio_uri":       audioURI,
 		"response":        responsePayload,
 	})

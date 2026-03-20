@@ -134,6 +134,13 @@ const checks = [
     ],
   },
   {
+    description: 'forge creator access gate must consume typed world access results directly',
+    pattern: 'getMyWorldAccess\\(\\) as Record<string, unknown>',
+    paths: [
+      'apps/forge/src/shell/renderer/app-shell/providers/creator-access-gate.tsx',
+    ],
+  },
+  {
     description: 'forge revenue adapter and deferred stubs must not expose unknown/record contracts',
     pattern: 'as never|Record<string, unknown>|Promise<unknown>',
     paths: [
@@ -181,6 +188,13 @@ const checks = [
     ],
   },
   {
+    description: 'relay typed realm list adapters must not restore legacy array-or-object contracts from unknown unions',
+    pattern: 'payload as \\{ items\\?: unknown\\[] \\} \\| unknown\\[]',
+    paths: [
+      'apps/relay/src/main/ipc-handlers.ts',
+    ],
+  },
+  {
     description: 'relay preload and bridge must not expose unknown or record app-facing contracts',
     pattern: 'Promise<unknown>|Record<string, unknown>',
     paths: [
@@ -211,6 +225,15 @@ const checks = [
       'apps/relay/src/main/media/media-planner.ts',
       'apps/relay/src/main/media/media-spec.ts',
       'apps/relay/src/main/media/media-context-enricher.ts',
+    ],
+  },
+  {
+    description: 'relay stable AI object outputs must not be re-parsed through asRecord(result.object)',
+    pattern: 'asRecord\\(result\\.object\\)',
+    paths: [
+      'apps/relay/src/main/chat-pipeline/turn-composer.ts',
+      'apps/relay/src/main/chat-pipeline/turn-perception.ts',
+      'apps/relay/src/main/proactive/decision.ts',
     ],
   },
   {

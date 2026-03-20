@@ -107,7 +107,6 @@ async function main(): Promise<void> {
     connectorId,
     input: prompt,
     route: 'cloud',
-    fallback: 'deny',
     timeoutMs: 120000,
     metadata: {
       keySource: 'inline',

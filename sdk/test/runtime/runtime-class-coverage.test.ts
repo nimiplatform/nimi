@@ -44,6 +44,7 @@ import {
   ScenarioType,
   StreamEventType,
   StreamScenarioEvent,
+  StreamScenarioRequest,
   SubmitScenarioJobRequest,
   SubmitScenarioJobResponse,
 } from '../../src/runtime/generated/runtime/v1/ai.js';
@@ -56,6 +57,17 @@ import {
   type NodeGrpcBridge,
 } from '../../src/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
+import {
+  artifactDelta,
+  imageGenerateOutput,
+  musicGenerateOutput,
+  speechSynthesizeOutput,
+  speechTranscribeOutput,
+  textDelta,
+  textEmbedOutput,
+  textGenerateOutput,
+  videoGenerateOutput,
+} from '../helpers/runtime-ai-shapes.js';
 
 const APP_ID = 'nimi.runtime.class.coverage.test';
 
@@ -127,7 +139,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         capturedTextRequests.push(request);
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'hello-from-runtime-generate' } as never),
+            output: textGenerateOutput('hello-from-runtime-generate'),
             finishReason: FinishReason.LENGTH,
             usage: {
               inputTokens: '2',
@@ -144,7 +156,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         capturedEmbedRequests.push(request);
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ vectors: [[0.1, 0.2]] } as never),
+            output: textEmbedOutput([[0.1, 0.2]]),
             usage: {
               inputTokens: '4',
               outputTokens: '0',
@@ -189,9 +201,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
               traceId: 'trace-stream-1',
               payload: {
                 oneofKind: 'delta',
-                delta: {
-                  text: 'delta-text',
-                },
+                delta: textDelta('delta-text'),
               },
             }));
             yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
@@ -262,7 +272,6 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       ],
       system: 'system-two',
       route: 'cloud',
-      fallback: 'allow',
       temperature: 0.4,
       topP: 0.9,
       maxTokens: 42,
@@ -273,7 +282,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
     assert.equal(textResult.trace.routeDecision, 'cloud');
     assert.equal(capturedTextRequests[0]?.head?.subjectUserId, 'subject-from-context');
     assert.equal(capturedTextRequests[0]?.head?.routePolicy, RoutePolicy.CLOUD);
-    assert.equal(capturedTextRequests[0]?.head?.fallback, FallbackPolicy.ALLOW);
+    assert.equal(capturedTextRequests[0]?.head?.fallback, FallbackPolicy.DENY);
     assert.equal(
       capturedTextRequests[0]?.spec?.spec.oneofKind === 'textGenerate'
         ? capturedTextRequests[0]?.spec?.spec.textGenerate.systemPrompt
@@ -286,7 +295,6 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         appId: APP_ID,
         modelId: 'cloud/model-low-level',
         routePolicy: RoutePolicy.CLOUD,
-        fallback: FallbackPolicy.ALLOW,
         timeoutMs: 1000,
         connectorId: '',
       },
@@ -308,12 +316,12 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       extensions: [],
     });
     assert.equal(capturedTextRequests[1]?.head?.subjectUserId, 'subject-from-context');
+    assert.equal(capturedTextRequests[1]?.head?.fallback, FallbackPolicy.DENY);
 
     const streamResult = await runtime.ai.text.stream({
       model: 'cloud/stream-model',
       input: 'stream this',
       route: 'cloud',
-      fallback: 'allow',
     });
     const streamParts: Array<{ type: string; reason?: string }> = [];
     for await (const part of streamResult.stream) {
@@ -333,7 +341,6 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       model: 'cloud/stream-model',
       input: 'stream error',
       route: 'cloud',
-      fallback: 'allow',
     });
     let streamErrorReason = '';
     for await (const part of streamErrorResult.stream) {
@@ -348,7 +355,6 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       subjectUserId: 'subject-explicit',
       input: ['alpha', 'beta'],
       route: 'cloud',
-      fallback: 'allow',
     });
     assert.equal(embeddingResult.vectors.length, 1);
     assert.equal(embeddingResult.trace.traceId, 'trace-embed');
@@ -360,7 +366,6 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         appId: APP_ID,
         modelId: 'cloud/embed-model',
         routePolicy: RoutePolicy.CLOUD,
-        fallback: FallbackPolicy.ALLOW,
         timeoutMs: 1000,
         connectorId: '',
       },
@@ -377,6 +382,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       extensions: [],
     });
     assert.equal(capturedEmbedRequests[1]?.head?.subjectUserId, 'subject-from-context');
+    assert.equal(capturedEmbedRequests[1]?.head?.fallback, FallbackPolicy.DENY);
 
     await assert.rejects(
       async () => runtime.ai.embedding.generate({
@@ -413,7 +419,6 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
         appId: APP_ID,
         modelId: 'local/model-low-level',
         routePolicy: RoutePolicy.LOCAL,
-        fallback: FallbackPolicy.DENY,
         timeoutMs: 1000,
         connectorId: '',
       },
@@ -435,6 +440,7 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
       extensions: [],
     });
     assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.subjectUserId, '');
+    assert.equal(capturedTextRequests[capturedTextRequests.length - 1]?.head?.fallback, FallbackPolicy.DENY);
 
     await assert.rejects(
       async () => runtimeWithoutAuthContext.ai.executeScenario({
@@ -442,7 +448,6 @@ test('Runtime text and embedding helpers map requests and stream parts', async (
           appId: APP_ID,
           modelId: 'cloud/model',
           routePolicy: RoutePolicy.CLOUD,
-          fallback: FallbackPolicy.ALLOW,
           timeoutMs: 1000,
           connectorId: '',
         },
@@ -482,7 +487,7 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
       capturedTextRequests.push(request);
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
-          output: Struct.fromJson({ text: 'ok' } as never),
+          output: textGenerateOutput('ok'),
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.CLOUD,
           modelResolved: 'cloud/model',
@@ -528,7 +533,6 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
       ],
       system: 'explicit system',
       route: 'cloud',
-      fallback: 'allow',
     });
 
     const textGenerate = capturedTextRequests[0]?.spec?.spec.oneofKind === 'textGenerate'
@@ -550,7 +554,6 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
         { role: 'user', content: 'plain text path' },
       ],
       route: 'cloud',
-      fallback: 'allow',
     });
 
     const plainTextGenerate = capturedTextRequests[1]?.spec?.spec.oneofKind === 'textGenerate'
@@ -573,7 +576,6 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
         },
       ],
       route: 'cloud',
-      fallback: 'allow',
     });
 
     const videoGenerate = capturedTextRequests[2]?.spec?.spec.oneofKind === 'textGenerate'
@@ -594,7 +596,6 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
         },
       ],
       route: 'cloud',
-      fallback: 'allow',
     });
   } finally {
     clearNodeGrpcBridge();
@@ -627,7 +628,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
           const request = ExecuteScenarioRequest.fromBinary(input.request);
           if (request.scenarioType === ScenarioType.TEXT_EMBED) {
             return ExecuteScenarioResponse.toBinary(ExecuteScenarioResponse.create({
-              output: Struct.fromJson({ vectors: [[1, 2, 3]] } as never),
+              output: textEmbedOutput([[1, 2, 3]]),
               usage: { inputTokens: '1', outputTokens: '0', computeMs: '1' },
               routeDecision: RoutePolicy.LOCAL,
               modelResolved: 'embed-raw',
@@ -671,6 +672,18 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
         case RuntimeMethodIds.ai.getScenarioArtifacts: {
           const request = GetScenarioArtifactsRequest.fromBinary(input.request);
           const payloadText = `artifact-${request.jobId}`;
+          const current = jobs.get(request.jobId);
+          const output = current?.scenarioType === ScenarioType.IMAGE_GENERATE
+            ? imageGenerateOutput(`artifact-${request.jobId}`)
+            : current?.scenarioType === ScenarioType.VIDEO_GENERATE
+              ? videoGenerateOutput(`artifact-${request.jobId}`)
+              : current?.scenarioType === ScenarioType.SPEECH_SYNTHESIZE
+                ? speechSynthesizeOutput(`artifact-${request.jobId}`)
+              : current?.scenarioType === ScenarioType.SPEECH_TRANSCRIBE
+                ? speechTranscribeOutput(payloadText, `artifact-${request.jobId}`)
+                : current?.scenarioType === ScenarioType.MUSIC_GENERATE
+                  ? musicGenerateOutput(`artifact-${request.jobId}`)
+                  : undefined;
           return GetScenarioArtifactsResponse.toBinary(GetScenarioArtifactsResponse.create({
             artifacts: [{
               artifactId: `artifact-${request.jobId}`,
@@ -687,6 +700,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
               channels: 0,
             }],
             traceId: `trace-${request.jobId}`,
+            output,
           }));
         }
         case RuntimeMethodIds.model.list:
@@ -722,8 +736,20 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
       }
 
       if (input.methodId === RuntimeMethodIds.ai.streamScenario) {
+        const request = StreamScenarioRequest.fromBinary(input.request);
         return {
           async *[Symbol.asyncIterator]() {
+            if (request.scenarioType === ScenarioType.SPEECH_SYNTHESIZE) {
+              yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
+                eventType: StreamEventType.STREAM_EVENT_DELTA,
+                sequence: '8',
+                traceId: 'trace-speech-stream',
+                payload: {
+                  oneofKind: 'delta',
+                  delta: artifactDelta(new Uint8Array([1]), 'audio/wav'),
+                },
+              }));
+            }
             yield StreamScenarioEvent.toBinary(StreamScenarioEvent.create({
               eventType: StreamEventType.STREAM_EVENT_COMPLETED,
               sequence: '9',
@@ -789,7 +815,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     const viaCall = await runtime.call(RuntimeMethodIds.model.list, {});
     assert.ok(viaCall);
 
-    const rawEmbed = await runtime.raw.call(RuntimeMethodIds.ai.executeScenario, {
+    const rawEmbed = await runtime.unsafeRaw.call(RuntimeMethodIds.ai.executeScenario, {
       head: {
         appId: APP_ID,
         subjectUserId: 'subject-1',
@@ -811,7 +837,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     });
     assert.ok(rawEmbed);
 
-    const rawStream = await runtime.raw.call(RuntimeMethodIds.ai.streamScenario, {
+    const rawStream = await runtime.unsafeRaw.call(RuntimeMethodIds.ai.streamScenario, {
       head: {
         appId: APP_ID,
         subjectUserId: 'subject-1',
@@ -844,7 +870,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     }
     assert.equal(rawStreamItems.length, 1);
 
-    await runtime.raw.closeStream('remote-stream-1');
+    await runtime.unsafeRaw.closeStream('remote-stream-1');
     assert.deepEqual(closedStreamIds, ['remote-stream-1']);
 
     await runtime.app.sendMessage({
@@ -873,7 +899,6 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
         model: 'image-model',
         prompt: 'image prompt',
         route: 'local',
-        fallback: 'deny',
       },
     });
     await runtime.media.jobs.submit({
@@ -882,7 +907,6 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
         model: 'video-model',
         prompt: 'video prompt',
         route: 'cloud',
-        fallback: 'allow',
       },
     });
     await runtime.media.jobs.submit({
@@ -990,7 +1014,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     for await (const _chunk of speechStream) {
       speechChunkCount += 1;
     }
-    assert.equal(speechChunkCount, 1);
+    assert.equal(speechChunkCount, 2);
 
     const job = await runtime.media.jobs.get('job-1');
     assert.equal(job.jobId, 'job-1');
@@ -1039,7 +1063,7 @@ test('Runtime media helpers, raw calls and passthrough modules cover bridge path
     assert.equal(lowLevelMediaCount, 1);
 
     await assert.rejects(
-      async () => runtime.raw.call('/nimi.runtime.v1.UnknownService/UnknownMethod', {}),
+      async () => runtime.unsafeRaw.call('/nimi.runtime.v1.UnknownService/UnknownMethod', {}),
       (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.SDK_RUNTIME_CODEC_MISSING,
     );
 

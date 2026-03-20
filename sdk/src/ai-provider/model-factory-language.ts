@@ -12,11 +12,9 @@ import type {
   RuntimeForAiProvider,
 } from './types.js';
 import {
-  asRecord,
   extractGenerateText,
   normalizeProviderError,
   normalizeText,
-  resolveFallbackPolicy,
   resolveRoutePolicy,
   toCallOptions,
   toFinishReason,
@@ -26,7 +24,12 @@ import {
   toUsage,
 } from './helpers.js';
 import { withOptionalHeadSubjectUserId } from './model-factory-shared.js';
-import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
+import {
+  ExecutionMode,
+  RoutePolicy,
+  ScenarioType,
+} from '../runtime/generated/runtime/v1/ai.js';
+import type { UsageStats } from '../runtime/generated/runtime/v1/common.js';
 
 function createPromptRequiredError() {
   return createNimiError({
@@ -57,9 +60,9 @@ export function createLanguageModelImpl(
         const response = await runtime.ai.executeScenario(withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
+            subjectUserId: '',
             modelId,
             routePolicy: resolveRoutePolicy(defaults.routePolicy),
-            fallback: resolveFallbackPolicy(defaults.fallback),
             timeoutMs: defaults.timeoutMs || 0,
             connectorId: '',
           },
@@ -67,7 +70,7 @@ export function createLanguageModelImpl(
           executionMode: ExecutionMode.SYNC,
           spec: {
             spec: {
-              oneofKind: 'textGenerate',
+              oneofKind: 'textGenerate' as const,
               textGenerate: {
                 input: prompt.input,
                 systemPrompt: prompt.systemPrompt,
@@ -115,9 +118,9 @@ export function createLanguageModelImpl(
         const runtimeStream = await runtime.ai.streamScenario(withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
+            subjectUserId: '',
             modelId,
             routePolicy: resolveRoutePolicy(defaults.routePolicy),
-            fallback: resolveFallbackPolicy(defaults.fallback),
             timeoutMs: defaults.timeoutMs || 0,
             connectorId: '',
           },
@@ -125,7 +128,7 @@ export function createLanguageModelImpl(
           executionMode: ExecutionMode.STREAM,
           spec: {
             spec: {
-              oneofKind: 'textGenerate',
+              oneofKind: 'textGenerate' as const,
               textGenerate: {
                 input: prompt.input,
                 systemPrompt: prompt.systemPrompt,
@@ -153,18 +156,21 @@ export function createLanguageModelImpl(
               });
               let streamRouteDecision = resolveRoutePolicy(defaults.routePolicy);
               let streamModelResolved = modelId;
-              let streamUsage: unknown = undefined;
+              let streamUsage: UsageStats | undefined = undefined;
 
               for await (const event of runtimeStream) {
-                const payload = asRecord(event).payload;
-                const oneofKind = normalizeText(asRecord(payload).oneofKind);
-                if (oneofKind === 'started') {
-                  streamRouteDecision = Number(asRecord(asRecord(payload).started).routeDecision) || streamRouteDecision;
-                  streamModelResolved = normalizeText(asRecord(asRecord(payload).started).modelResolved) || streamModelResolved;
+                switch (event.payload.oneofKind) {
+                case 'started': {
+                  const started = event.payload.started;
+                  streamRouteDecision = Number(started.routeDecision) || streamRouteDecision;
+                  streamModelResolved = normalizeText(started.modelResolved) || streamModelResolved;
                   continue;
                 }
-                if (oneofKind === 'delta') {
-                  const delta = normalizeText(asRecord(asRecord(payload).delta).text);
+                case 'delta': {
+                  const deltaPayload = event.payload.delta.delta;
+                  const delta = deltaPayload?.oneofKind === 'text'
+                    ? normalizeText(deltaPayload.text.text)
+                    : '';
                   if (!delta) {
                     continue;
                   }
@@ -182,26 +188,23 @@ export function createLanguageModelImpl(
                   });
                   continue;
                 }
-
-                if (oneofKind === 'failed') {
+                case 'failed': {
+                  const failed = event.payload.failed;
                   controller.enqueue({
                     type: 'error',
                     error: createNimiError({
-                      message: normalizeText(asRecord(asRecord(payload).failed).actionHint) || 'runtime stream failed',
-                      reasonCode: normalizeText(asRecord(asRecord(payload).failed).reasonCode) || 'AI_STREAM_BROKEN',
+                      message: normalizeText(failed.actionHint) || 'runtime stream failed',
+                      reasonCode: normalizeText(failed.reasonCode) || 'AI_STREAM_BROKEN',
                       actionHint: 'retry_or_switch_route',
                       source: 'runtime',
                     }),
                   });
                   continue;
                 }
-
-                if (oneofKind === 'usage') {
-                  streamUsage = asRecord(payload).usage;
+                case 'usage':
+                  streamUsage = event.payload.usage;
                   continue;
-                }
-
-                if (oneofKind === 'completed') {
+                case 'completed':
                   if (textOpen) {
                     controller.enqueue({
                       type: 'text-end',
@@ -211,16 +214,19 @@ export function createLanguageModelImpl(
                   }
                   controller.enqueue({
                     type: 'finish',
-                    finishReason: toFinishReason(
-                      asRecord(asRecord(payload).completed).finishReason,
-                    ),
-                    usage: toUsage(streamUsage || asRecord(asRecord(payload).completed).usage),
+                    finishReason: toFinishReason(event.payload.completed.finishReason),
+                    usage: toUsage(streamUsage || event.payload.completed.usage),
                     providerMetadata: toProviderMetadata({
-                      traceId: normalizeText(asRecord(event).traceId) || undefined,
-                      routeDecision: streamRouteDecision,
+                      traceId: normalizeText(event.traceId) || undefined,
+                      routeDecision: streamRouteDecision === RoutePolicy.CLOUD
+                        ? RoutePolicy.CLOUD
+                        : RoutePolicy.LOCAL,
                       modelResolved: streamModelResolved,
                     }),
                   });
+                  continue;
+                case undefined:
+                  continue;
                 }
               }
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"os"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -155,7 +157,10 @@ func TestLocalProviderResolveModelIDPreservesExplicitEnginePrefixes(t *testing.T
 
 func TestServicePublicSettersAndAccessors(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	constructed := New(logger, nil, nil, nil, nil, runtimecfg.Config{})
+	constructed, err := New(logger, nil, nil, nil, nil, runtimecfg.Config{})
+	if err != nil {
+		t.Fatalf("New should not fail with default config: %v", err)
+	}
 	if constructed == nil {
 		t.Fatalf("New should return service instance")
 	}
@@ -197,6 +202,25 @@ func TestServicePublicSettersAndAccessors(t *testing.T) {
 	}
 	if resolvedModel != "stable-audio-open-sidecar" || !explicit {
 		t.Fatalf("unexpected sidecar resolution: model=%q explicit=%v", resolvedModel, explicit)
+	}
+}
+
+func TestNewFailsOnInvalidCustomSpeechCatalog(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	invalidDir := t.TempDir()
+	invalidPath := invalidDir + ".file"
+	if err := os.WriteFile(invalidPath, []byte("not-a-directory"), 0o600); err != nil {
+		t.Fatalf("seed invalid custom dir path: %v", err)
+	}
+
+	_, err := New(logger, nil, nil, nil, nil, runtimecfg.Config{
+		ModelCatalogCustomDir: invalidPath,
+	})
+	if err == nil {
+		t.Fatal("expected custom speech catalog init failure")
+	}
+	if !strings.Contains(err.Error(), "init speech catalog") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

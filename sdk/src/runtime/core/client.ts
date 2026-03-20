@@ -16,8 +16,6 @@ import type { RuntimeClientConfigInternal } from '../types-internal.js';
 import {
   RuntimeStreamMethodCodecs,
   RuntimeUnaryMethodCodecs,
-  type RuntimeStreamMethodCodec,
-  type RuntimeUnaryMethodCodec,
 } from './method-codecs.js';
 import {
   decodeStreamEvent,
@@ -32,6 +30,18 @@ import {
   toStreamCall,
   toUnaryCall,
 } from './client-auth.js';
+import type {
+  RuntimeStreamMethodId,
+  RuntimeStreamMethodResponse,
+  RuntimeStreamMethodRequest,
+  RuntimeUnaryMethodId,
+  RuntimeUnaryMethodResponse,
+  RuntimeUnaryMethodRequest,
+} from '../runtime-method-contracts.js';
+import type {
+  RuntimeStreamMethodCodec,
+  RuntimeUnaryMethodCodec,
+} from './method-codecs.js';
 
 function createTransport(config: RuntimeClientConfigInternal): RuntimeTransport {
   if (config.transport.type === 'tauri-ipc') {
@@ -48,13 +58,29 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
 
   const transport = createTransport(config);
 
-  const unary = <Request, Response>(methodId: string) => async (
-    request: Request,
+  const getUnaryCodec = <MethodId extends RuntimeUnaryMethodId>(
+    methodId: MethodId,
+  ): RuntimeUnaryMethodCodec<RuntimeUnaryMethodRequest<MethodId>, RuntimeUnaryMethodResponse<MethodId>> =>
+    RuntimeUnaryMethodCodecs[methodId] as RuntimeUnaryMethodCodec<
+      RuntimeUnaryMethodRequest<MethodId>,
+      RuntimeUnaryMethodResponse<MethodId>
+    >;
+
+  const getStreamCodec = <MethodId extends RuntimeStreamMethodId>(
+    methodId: MethodId,
+  ): RuntimeStreamMethodCodec<
+    RuntimeStreamMethodRequest<MethodId>,
+    Awaited<RuntimeStreamMethodResponse<MethodId>> extends AsyncIterable<infer Event> ? Event : never
+  > => RuntimeStreamMethodCodecs[methodId] as unknown as RuntimeStreamMethodCodec<
+    RuntimeStreamMethodRequest<MethodId>,
+    Awaited<RuntimeStreamMethodResponse<MethodId>> extends AsyncIterable<infer Event> ? Event : never
+  >;
+
+  const unary = <MethodId extends RuntimeUnaryMethodId>(methodId: MethodId) => async (
+    request: RuntimeUnaryMethodRequest<MethodId>,
     options?: RuntimeCallOptions,
-  ): Promise<Response> => {
-    const codec = RuntimeUnaryMethodCodecs[methodId as keyof typeof RuntimeUnaryMethodCodecs] as unknown as
-      | RuntimeUnaryMethodCodec<Request, Response>
-      | undefined;
+  ): Promise<RuntimeUnaryMethodResponse<MethodId>> => {
+    const codec = getUnaryCodec(methodId);
     if (!codec) {
       throw createNimiError({
         message: `missing unary codec for ${methodId}`,
@@ -70,16 +96,14 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     const wireResponse = await transport.invokeUnary(
       call,
     );
-    return decodeUnaryResponse(methodId, codec as RuntimeUnaryMethodCodec<unknown, Response>, wireResponse);
+    return decodeUnaryResponse(methodId, codec, wireResponse);
   };
 
-  const stream = <Request, Event>(methodId: string) => async (
-    request: Request,
+  const stream = <MethodId extends RuntimeStreamMethodId>(methodId: MethodId) => async (
+    request: RuntimeStreamMethodRequest<MethodId>,
     options?: RuntimeStreamCallOptions,
-  ): Promise<AsyncIterable<Event>> => {
-    const codec = RuntimeStreamMethodCodecs[methodId as keyof typeof RuntimeStreamMethodCodecs] as unknown as
-      | RuntimeStreamMethodCodec<Request, Event>
-      | undefined;
+  ): Promise<RuntimeStreamMethodResponse<MethodId>> => {
+    const codec = getStreamCodec(methodId);
     if (!codec) {
       throw createNimiError({
         message: `missing stream codec for ${methodId}`,
@@ -97,16 +121,16 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     );
 
     return {
-      async *[Symbol.asyncIterator](): AsyncIterator<Event> {
+      async *[Symbol.asyncIterator](): AsyncIterator<Awaited<RuntimeStreamMethodResponse<MethodId>> extends AsyncIterable<infer Event> ? Event : never> {
         for await (const eventBytes of wireStream) {
           yield decodeStreamEvent(
             methodId,
-            codec as RuntimeStreamMethodCodec<unknown, Event>,
+            codec,
             eventBytes,
           );
         }
       },
-    };
+    } as RuntimeStreamMethodResponse<MethodId>;
   };
 
   return {

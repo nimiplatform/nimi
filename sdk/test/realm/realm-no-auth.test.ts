@@ -34,7 +34,7 @@ test('Realm accepts explicit auth: undefined as unauthenticated mode', async () 
       auth: undefined,
     });
 
-    await realm.raw.request({ method: 'GET', path: '/api/public' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/public' });
 
     assert.deepEqual(capturedAuthHeaders, [null]);
   } finally {

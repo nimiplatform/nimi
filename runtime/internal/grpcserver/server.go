@@ -46,7 +46,7 @@ type Server struct {
 	localService *localservice.Service
 }
 
-func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) *Server {
+func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
 	addr := cfg.GRPCAddr
 	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
 	idempotencyStore := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
@@ -64,8 +64,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	registryPath := modelregistry.ResolvePersistencePath()
 	modelRegistry, err := modelregistry.NewFromFile(registryPath)
 	if err != nil {
-		logger.Warn("load model registry failed; fallback to empty registry", "path", registryPath, "error", err)
-		modelRegistry = modelregistry.New()
+		return nil, fmt.Errorf("load model registry: %w", err)
 	}
 	if registryPath != "" {
 		logger.Info("model registry persistence enabled", "path", registryPath)
@@ -124,7 +123,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		logger.Warn("cloud connector auto-registration failed", "error", err)
 	}
 
-	aiSvc := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+	aiSvc, err := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("init ai service: %w", err)
+	}
 	aiSvc.SetModelRegistryPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeAiServiceServer(g, aiSvc)
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
@@ -133,7 +135,10 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	modelSvc := modelservice.New(logger, modelRegistry)                           // Phase 2 Draft
 	modelSvc.SetPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc) // Phase 2 Draft
-	localSvc := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity)
+	localSvc, err := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity)
+	if err != nil {
+		return nil, fmt.Errorf("init local service: %w", err)
+	}
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 	aiSvc.SetLocalModelLister(localSvc)
 	aiSvc.SetLocalImageProfileResolver(localSvc)
@@ -162,7 +167,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		localService: localSvc,
 	}
 	s.SyncServingState()
-	return s
+	return s, nil
 }
 
 func (s *Server) AIHealthTracker() *providerhealth.Tracker {

@@ -51,22 +51,26 @@ var (
 	engineCrashExitStatusPattern = regexp.MustCompile(`exit status (\d+)`)
 )
 
-func New(cfg config.Config, logger *slog.Logger, version string) *Daemon {
+func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
 	if value := strings.TrimSpace(cfg.LocalStatePath); value != "" {
 		_ = os.Setenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value)
 	}
 	state := health.NewState()
+	grpcServer, err := grpcserver.New(cfg, state, logger, version)
+	if err != nil {
+		return nil, err
+	}
 	return &Daemon{
 		cfg:                  cfg,
 		logger:               logger,
 		state:                state,
-		grpc:                 grpcserver.New(cfg, state, logger, version),
+		grpc:                 grpcServer,
 		http:                 httpserver.New(cfg.HTTPAddr, state, logger),
 		aiHealth:             nil,
 		auditStore:           nil,
 		newEngineManager:     engine.NewManager,
 		providerFailureHints: map[string]string{},
-	}
+	}, nil
 }
 
 func (d *Daemon) Run(ctx context.Context) error {

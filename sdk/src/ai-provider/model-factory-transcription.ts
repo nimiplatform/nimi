@@ -9,10 +9,9 @@ import {
   executeScenarioJob,
   normalizeProviderError,
   normalizeText,
-  resolveFallbackPolicy,
   resolveRoutePolicy,
+  toSpeechTranscriptionFromScenarioOutput,
   toLabels,
-  toUtf8,
 } from './helpers.js';
 import { withOptionalHeadSubjectUserId } from './model-factory-shared.js';
 import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
@@ -35,8 +34,16 @@ export function createTranscriptionModelImpl(
             source: 'sdk',
           });
         }
+        const mimeType = normalizeText(options.mimeType);
+        if (!mimeType) {
+          throw createNimiError({
+            message: 'mimeType is required',
+            reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
+            actionHint: 'set_mime_type',
+            source: 'sdk',
+          });
+        }
         const resolvedRoute = options.routePolicy || defaults.routePolicy;
-        const resolvedFallback = options.fallback || defaults.fallback;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
         const audioChunks = Array.isArray(options.audioChunks)
           ? options.audioChunks.filter((chunk): chunk is Uint8Array => chunk instanceof Uint8Array && chunk.length > 0)
@@ -65,12 +72,12 @@ export function createTranscriptionModelImpl(
                 },
               }
               : undefined;
-        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+        const request = withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
+            subjectUserId: '',
             modelId,
             routePolicy: resolveRoutePolicy(resolvedRoute),
-            fallback: resolveFallbackPolicy(resolvedFallback),
             timeoutMs,
             connectorId: '',
           },
@@ -78,12 +85,12 @@ export function createTranscriptionModelImpl(
           executionMode: ExecutionMode.ASYNC_JOB,
           requestId: normalizeText(options.requestId),
           idempotencyKey: normalizeText(options.idempotencyKey),
-          labels: toLabels(options.labels),
+          labels: toLabels(options.labels) || {},
           spec: {
             spec: {
-              oneofKind: 'speechTranscribe',
+              oneofKind: 'speechTranscribe' as const,
               speechTranscribe: {
-                mimeType: normalizeText(options.mimeType || 'audio/wav'),
+                mimeType,
                 language: normalizeText(options.language),
                 timestamps: Boolean(options.timestamps),
                 diarization: Boolean(options.diarization),
@@ -95,9 +102,18 @@ export function createTranscriptionModelImpl(
             },
           },
           extensions: [],
-        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, undefined);
-        const firstArtifact = media.artifacts[0];
-        const text = firstArtifact ? normalizeText(toUtf8(firstArtifact.bytes)) : '';
+        }, defaults.subjectUserId);
+        const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, undefined);
+        if (!media.output?.output || media.output.output.oneofKind !== 'speechTranscribe') {
+          throw createNimiError({
+            message: 'runtime transcription result missing typed speechTranscribe output',
+            reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+            actionHint: 'regenerate_runtime_proto_and_sdk',
+            source: 'sdk',
+          });
+        }
+        const typedResult = toSpeechTranscriptionFromScenarioOutput(media.output);
+        const text = typedResult.text;
         return {
           text,
           traceId: normalizeText(media.traceId),

@@ -18,6 +18,17 @@ func (s *Service) executeTask(taskID string) {
 	if !exists || record.Graph == nil {
 		return
 	}
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+		err := workflowRecoveredError(recovered)
+		if s.logger != nil {
+			s.logger.Error("workflow task panicked", "task_id", taskID, "error", err)
+		}
+		s.finishFailed(taskID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err.Error())
+	}()
 
 	if !s.setTaskStatus(taskID, runtimev1.WorkflowStatus_WORKFLOW_STATUS_QUEUED, runtimev1.ReasonCode_ACTION_EXECUTED, nil) {
 		return
@@ -150,7 +161,8 @@ func (s *Service) executeTask(taskID string) {
 
 		payload := nodeOutputs["output"]
 		if payload == nil {
-			payload = structFromMap(map[string]any{"slots": len(nodeOutputs)})
+			s.finishFailed(taskID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, fmt.Sprintf("workflow node %s completed without output payload", nodeID))
+			return
 		}
 		if !s.publishIfRunning(taskID, &runtimev1.WorkflowEvent{
 			EventType:       runtimev1.WorkflowEventType_WORKFLOW_EVENT_NODE_COMPLETED,
@@ -176,6 +188,19 @@ func (s *Service) executeTask(taskID string) {
 		s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
 	}
 	s.markTaskTerminal(taskID)
+}
+
+func workflowRecoveredError(recovered any) error {
+	switch value := recovered.(type) {
+	case nil:
+		return fmt.Errorf("unknown workflow panic")
+	case error:
+		return value
+	case string:
+		return fmt.Errorf("%s", value)
+	default:
+		return fmt.Errorf("%v", value)
+	}
 }
 
 func (s *Service) resolveNodeInputs(taskID string, graph *workflowGraph, nodeID string) (map[string]*structpb.Struct, error) {
@@ -220,7 +245,7 @@ func (s *Service) executeNode(ctx context.Context, record *taskRecord, node *run
 	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_MERGE:
 		return s.executeMergeNode(record, node, inputs)
 	case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_NOOP:
-		return s.executeNoopNode(inputs), nil
+		return s.executeNoopNode(inputs)
 	default:
 		return nil, fmt.Errorf("unsupported workflow node type: %s", node.GetNodeType().String())
 	}

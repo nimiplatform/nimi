@@ -403,6 +403,7 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
   - `sources/`
   - `recipes/`
   - `resolved/<logical-model-id>/manifest.json`
+  - `artifacts/<artifact-id>/artifact.manifest.json`
   - `cache/{llama,media,diffusers}`
 - **保留原始文件名**（非 content-addressable hash），理由：调试可读、生态工具兼容（vLLM/SGLang 等可直接引用）。
 - resolved manifest 是本地 bundle 的规范入口（schema 见 `K-LOCAL-026`）。
@@ -421,6 +422,9 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
     ├── resolved/
     │   └── <logical-model-id>/
     │       └── manifest.json
+    ├── artifacts/
+    │   └── <artifact-id>/
+    │       └── artifact.manifest.json
     └── cache/
         ├── llama/
         ├── media/
@@ -428,6 +432,8 @@ Runtime/desktop 允许在 catalog surface 之外新增 capability-scoped candida
 ```
 
 Desktop/Tauri 面向用户与 App/Mod 的主模型 manifest public contract 固定为 `resolved/<logical-model-id>/manifest.json`。旧 `model.manifest.json` 不再是合法 public import/install 入口，实现必须 reject。
+
+companion artifact public contract 固定为 `artifacts/<artifact-id>/artifact.manifest.json`。artifact managed root 与 model managed root 同属保留目录；裸文件 intake 不得将 `resolved/` 或 `artifacts/` 再次视作 orphan/unregistered 候选。
 
 ## K-LOCAL-026 模型 Manifest Schema
 

@@ -452,8 +452,7 @@ func structFromMap(values map[string]any) *structpb.Struct {
 	}
 	built, err := structpb.NewStruct(values)
 	if err != nil {
-		fallback, _ := structpb.NewStruct(map[string]any{})
-		return fallback
+		panic(workflowStructBuildError{err: err})
 	}
 	return built
 }
@@ -501,4 +500,19 @@ func coerceString(input *structpb.Struct) string {
 		}
 	}
 	return ""
+}
+
+type workflowStructBuildError struct {
+	err error
+}
+
+func (e workflowStructBuildError) Error() string {
+	if e.err == nil {
+		return "workflow struct build failed"
+	}
+	return "workflow struct build failed: " + e.err.Error()
+}
+
+func (e workflowStructBuildError) Unwrap() error {
+	return e.err
 }

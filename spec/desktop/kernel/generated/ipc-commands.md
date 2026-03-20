@@ -122,7 +122,10 @@
 | `runtime_local_append_inference_audit` | `local-runtime` | Append a local AI inference audit record | `D-IPC-011` |
 | `runtime_local_append_runtime_audit` | `local-runtime` | Append local runtime audit event | `D-IPC-011` |
 | `runtime_local_models_reveal_in_folder` | `local-runtime` | Reveal installed model files in system file manager | `D-IPC-011` |
+| `runtime_local_models_reveal_root_folder` | `local-runtime` | Reveal the runtime models root folder in the system file manager | `D-IPC-011` |
 | `runtime_local_models_scan_orphans` | `local-runtime` | Scan for orphan model files not tracked by runtime state | `D-IPC-011` |
 | `runtime_local_models_scaffold_orphan` | `local-runtime` | Scaffold an orphan model file into a tracked model with user-selected capability | `D-IPC-011` |
 | `runtime_local_artifacts_scan_orphans` | `local-runtime` | Scan for orphan companion files not managed by resolved manifest.json or artifact.manifest.json | `D-IPC-011` |
 | `runtime_local_artifacts_scaffold_orphan` | `local-runtime` | Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and canonical local engine | `D-IPC-011` |
+| `runtime_local_assets_scan_unregistered` | `local-runtime` | Scan root-level and typed-folder local assets that are not yet registered in runtime state | `D-IPC-011` |
+| `runtime_local_pick_asset_manifest_path` | `local-runtime` | Pick either a resolved model manifest or managed artifact manifest under the runtime models root | `D-IPC-011` |

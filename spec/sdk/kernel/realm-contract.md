@@ -26,9 +26,9 @@ auth 刷新策略必须显式声明，不允许隐式后台刷新状态。
 
 认证失败重试最多一次，且必须可观测。
 
-## S-REALM-019 ready() Fail-Open Semantics
+## S-REALM-019 ready() Fail-Close Semantics
 
-Realm `ready()` 探测失败只发射 error 事件，不改变连接状态。
+Realm `ready()` 探测失败必须 fail-close 并抛出错误，不得再以事件遥测替代可用性判断。
 
 ## S-REALM-027 AccessToken Function Mode
 

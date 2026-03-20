@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func summarizeExecuteScenarioResponse(fixture *aiGoldFixture, resp *runtimev1.ExecuteScenarioResponse) map[string]any {
@@ -17,11 +16,11 @@ func summarizeExecuteScenarioResponse(fixture *aiGoldFixture, resp *runtimev1.Ex
 	}
 	switch strings.TrimSpace(strings.ToLower(fixture.Capability)) {
 	case "text.generate":
-		text := extractStructStringField(resp.GetOutput(), "text")
+		text := extractScenarioOutputText(resp.GetOutput())
 		out["textLength"] = len(strings.TrimSpace(text))
 		out["textPreview"] = trimPreview(text)
 	case "text.embed":
-		out["vectorCount"] = extractStructListCount(resp.GetOutput(), "vectors")
+		out["vectorCount"] = extractScenarioOutputVectorCount(resp.GetOutput())
 	}
 	return out
 }
@@ -54,26 +53,18 @@ func summarizeScenarioArtifacts(artifacts []*runtimev1.ScenarioArtifact) map[str
 	}
 }
 
-func extractStructStringField(output *structpb.Struct, key string) string {
-	if output == nil {
-		return ""
+func extractScenarioOutputText(output *runtimev1.ScenarioOutput) string {
+	if value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_TextGenerate); ok {
+		return strings.TrimSpace(value.TextGenerate.GetText())
 	}
-	field, ok := output.GetFields()[key]
-	if !ok || field == nil {
-		return ""
-	}
-	return strings.TrimSpace(field.GetStringValue())
+	return ""
 }
 
-func extractStructListCount(output *structpb.Struct, key string) int {
-	if output == nil {
-		return 0
+func extractScenarioOutputVectorCount(output *runtimev1.ScenarioOutput) int {
+	if value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_TextEmbed); ok {
+		return len(value.TextEmbed.GetVectors())
 	}
-	field, ok := output.GetFields()[key]
-	if !ok || field == nil || field.GetListValue() == nil {
-		return 0
-	}
-	return len(field.GetListValue().GetValues())
+	return 0
 }
 
 func firstArtifactBase64(artifacts []*runtimev1.ScenarioArtifact) string {

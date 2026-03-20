@@ -47,11 +47,14 @@ func (s *Service) executeAIGenerateNode(ctx context.Context, record *taskRecord,
 		if err != nil {
 			return nil, err
 		}
-		output := cloneStruct(resp.GetOutput())
+		output := scenarioOutputToStruct(resp.GetOutput())
 		if output == nil {
-			output = structFromMap(map[string]any{})
+			return nil, fmt.Errorf("ai generate output missing typed payload")
 		}
-		text := coerceString(output)
+		text := scenarioOutputText(resp.GetOutput())
+		if text == "" {
+			text = coerceString(output)
+		}
 		return map[string]*structpb.Struct{
 			"output": output,
 			"text":   structFromMap(map[string]any{"value": text}),
@@ -111,7 +114,7 @@ func (s *Service) executeAIStreamNode(ctx context.Context, record *taskRecord, n
 				return nil, recvErr
 			}
 			if delta := event.GetDelta(); delta != nil {
-				output.WriteString(delta.GetText())
+				output.WriteString(streamDeltaText(delta))
 			}
 		}
 		text := output.String()
@@ -164,10 +167,12 @@ func (s *Service) executeAIEmbedNode(ctx context.Context, record *taskRecord, no
 			return nil, err
 		}
 		vectors := make([]any, 0)
-		if output := resp.GetOutput(); output != nil {
-			if raw, ok := output.AsMap()["vectors"].([]any); ok {
-				vectors = append(vectors, raw...)
+		for _, vector := range scenarioOutputVectors(resp.GetOutput()) {
+			row := make([]any, 0, len(vector))
+			for _, value := range vector {
+				row = append(row, value)
 			}
+			vectors = append(vectors, row)
 		}
 		return map[string]*structpb.Struct{
 			"output": structFromMap(map[string]any{"vectors": vectors}),
@@ -181,6 +186,52 @@ func (s *Service) executeAIEmbedNode(ctx context.Context, record *taskRecord, no
 	return map[string]*structpb.Struct{
 		"output": structFromMap(map[string]any{"vectors": vectors}),
 	}, nil
+}
+
+func scenarioOutputToStruct(output *runtimev1.ScenarioOutput) *structpb.Struct {
+	switch value := output.GetOutput().(type) {
+	case *runtimev1.ScenarioOutput_TextGenerate:
+		return structFromMap(map[string]any{"text": value.TextGenerate.GetText()})
+	case *runtimev1.ScenarioOutput_TextEmbed:
+		rows := make([]any, 0, len(value.TextEmbed.GetVectors()))
+		for _, vector := range value.TextEmbed.GetVectors() {
+			row := make([]any, 0, len(vector.GetValues()))
+			for _, item := range vector.GetValues() {
+				row = append(row, item)
+			}
+			rows = append(rows, row)
+		}
+		return structFromMap(map[string]any{"vectors": rows})
+	default:
+		return nil
+	}
+}
+
+func scenarioOutputText(output *runtimev1.ScenarioOutput) string {
+	if value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_TextGenerate); ok {
+		return strings.TrimSpace(value.TextGenerate.GetText())
+	}
+	return ""
+}
+
+func scenarioOutputVectors(output *runtimev1.ScenarioOutput) [][]float64 {
+	value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_TextEmbed)
+	if !ok || value.TextEmbed == nil {
+		return nil
+	}
+	rows := make([][]float64, 0, len(value.TextEmbed.GetVectors()))
+	for _, vector := range value.TextEmbed.GetVectors() {
+		rows = append(rows, append([]float64(nil), vector.GetValues()...))
+	}
+	return rows
+}
+
+func streamDeltaText(delta *runtimev1.ScenarioStreamDelta) string {
+	value, ok := delta.GetDelta().(*runtimev1.ScenarioStreamDelta_Text)
+	if !ok || value.Text == nil {
+		return ""
+	}
+	return value.Text.GetText()
 }
 
 func (s *Service) executeAIImageNode(ctx context.Context, record *taskRecord, node *runtimev1.WorkflowNode, inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {

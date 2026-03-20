@@ -59,7 +59,6 @@ export async function createProviderContext(input: {
   appId: string;
   subjectUserId: string;
   routePolicy: ProviderRoute;
-  fallback?: 'deny' | 'allow';
   timeoutMs?: number;
 }): Promise<ProviderContext> {
   const endpoint = env('NIMI_RUNTIME_GRPC_ENDPOINT', '127.0.0.1:46371');
@@ -81,7 +80,6 @@ export async function createProviderContext(input: {
     appId: input.appId,
     subjectUserId: input.subjectUserId,
     routePolicy: input.routePolicy,
-    fallback: input.fallback || 'deny',
     timeoutMs: input.timeoutMs || 120_000,
   });
 

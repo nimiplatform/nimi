@@ -103,11 +103,7 @@ func ExecuteBytedanceOpenSpeech(
 			}
 			artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
 			ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
-			return []*runtimev1.ScenarioArtifact{artifact}, &runtimev1.UsageStats{
-				InputTokens:  MaxInt64(1, int64(len(audioBytes)/256)),
-				OutputTokens: EstimateTokens(text),
-				ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
-			}, "", nil
+			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 		}
 		payload := map[string]any{
 			"model":           modelResolved,
@@ -143,11 +139,7 @@ func ExecuteBytedanceOpenSpeech(
 			"extensions":      scenarioExtensions,
 		})
 		ApplyTranscriptionSpecMetadata(artifact, spec, audioURI)
-		return []*runtimev1.ScenarioArtifact{artifact}, &runtimev1.UsageStats{
-			InputTokens:  MaxInt64(1, int64(len(audioBytes)/256)),
-			OutputTokens: EstimateTokens(text),
-			ComputeMs:    MaxInt64(10, int64(len(audioBytes)/64)),
-		}, "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -220,7 +212,10 @@ func executeBytedanceOpenSpeechWS(
 		_ = connection.SetDeadline(deadline)
 	}
 
-	chunks := transcriptionAudioChunks(spec, audioBytes)
+	chunks := transcriptionAudioChunks(spec)
+	if len(chunks) == 0 {
+		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	startPayload := map[string]any{
 		"event":           "start",
 		"model":           modelResolved,
@@ -376,7 +371,7 @@ func websocketOrigin(targetURL string) string {
 	return "http://" + parsed.Host + "/"
 }
 
-func transcriptionAudioChunks(spec *runtimev1.SpeechTranscribeScenarioSpec, fallback []byte) [][]byte {
+func transcriptionAudioChunks(spec *runtimev1.SpeechTranscribeScenarioSpec) [][]byte {
 	if spec != nil {
 		if source := spec.GetAudioSource(); source != nil {
 			if chunks := source.GetAudioChunks(); chunks != nil {
@@ -392,9 +387,6 @@ func transcriptionAudioChunks(spec *runtimev1.SpeechTranscribeScenarioSpec, fall
 				}
 			}
 		}
-	}
-	if len(fallback) > 0 {
-		return [][]byte{append([]byte(nil), fallback...)}
 	}
 	return nil
 }

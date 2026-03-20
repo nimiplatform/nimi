@@ -514,7 +514,13 @@ func TestWorkflowCancel(t *testing.T) {
 			case <-ctx.Done():
 				return nil, ctx.Err()
 			case <-time.After(400 * time.Millisecond):
-				return &runtimev1.ExecuteScenarioResponse{Output: structFromMap(map[string]any{"text": "ok"})}, nil
+				return &runtimev1.ExecuteScenarioResponse{
+					Output: &runtimev1.ScenarioOutput{
+						Output: &runtimev1.ScenarioOutput_TextGenerate{
+							TextGenerate: &runtimev1.TextGenerateOutput{Text: "ok"},
+						},
+					},
+				}, nil
 			}
 		},
 	}

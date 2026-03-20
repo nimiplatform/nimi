@@ -7,7 +7,6 @@ import {
   executeScenarioJob,
   normalizeProviderError,
   normalizeText,
-  resolveFallbackPolicy,
   resolveRoutePolicy,
   toLabels,
 } from './helpers.js';
@@ -27,14 +26,13 @@ export function createVideoModelImpl(
     generate: async (options) => {
       try {
         const resolvedRoute = options.routePolicy || defaults.routePolicy;
-        const resolvedFallback = options.fallback || defaults.fallback;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
-        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+        const request = withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
+            subjectUserId: '',
             modelId,
             routePolicy: resolveRoutePolicy(resolvedRoute),
-            fallback: resolveFallbackPolicy(resolvedFallback),
             timeoutMs,
             connectorId: '',
           },
@@ -42,10 +40,10 @@ export function createVideoModelImpl(
           executionMode: ExecutionMode.ASYNC_JOB,
           requestId: normalizeText(options.requestId),
           idempotencyKey: normalizeText(options.idempotencyKey),
-          labels: toLabels(options.labels),
+          labels: toLabels(options.labels) || {},
           spec: {
             spec: {
-              oneofKind: 'videoGenerate',
+              oneofKind: 'videoGenerate' as const,
               videoGenerate: {
                 prompt: normalizeText(options.prompt),
                 negativePrompt: normalizeText(options.negativePrompt),
@@ -87,7 +85,8 @@ export function createVideoModelImpl(
             },
           },
           extensions: [],
-        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, options.signal);
+        }, defaults.subjectUserId);
+        const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, options.signal);
         return {
           artifacts: media.artifacts,
         };

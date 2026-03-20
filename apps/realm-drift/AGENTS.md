@@ -6,7 +6,7 @@
 
 ## Hard Boundaries
 - All runtime access goes through `@nimiplatform/sdk/runtime`; all realm access goes through `@nimiplatform/sdk/realm`.
-- App production code must use typed Realm services or an approved typed adapter. Do not call `realm.raw.request` or hardcode Realm `/api/` paths.
+- App production code must use typed Realm services or an approved typed adapter. Do not call `realm.raw.request`, `realm.unsafeRaw.request`, or hardcode Realm `/api/` paths.
 - Rust owns transport and daemon lifecycle only. No business logic on the Rust side.
 - Human chat uses Socket.IO client; do not add alternative transport.
 - Marble 3D visualization is rendered via external iframe. Do not embed rendering logic.

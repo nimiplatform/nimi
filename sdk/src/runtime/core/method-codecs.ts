@@ -213,6 +213,12 @@ import {
   SubscribeRuntimeHealthEventsRequest,
 } from '../generated/runtime/v1/audit';
 import { Ack } from '../generated/runtime/v1/common';
+import type {
+  RuntimeStreamMethodContractMap,
+  RuntimeStreamMethodId,
+  RuntimeUnaryMethodContractMap,
+  RuntimeUnaryMethodId,
+} from '../runtime-method-contracts.js';
 
 type BinaryMessageType<T> = {
   create(value?: Partial<T>): T;
@@ -228,7 +234,21 @@ export type RuntimeStreamMethodCodec<Request, Event> = {
   eventType: BinaryMessageType<Event>;
 };
 
-export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<unknown, unknown>> = {
+type RuntimeUnaryMethodCodecMap = {
+  [MethodId in RuntimeUnaryMethodId]: RuntimeUnaryMethodCodec<
+    RuntimeUnaryMethodContractMap[MethodId]['request'],
+    RuntimeUnaryMethodContractMap[MethodId]['response']
+  >;
+};
+
+type RuntimeStreamMethodCodecMap = {
+  [MethodId in RuntimeStreamMethodId]: RuntimeStreamMethodCodec<
+    RuntimeStreamMethodContractMap[MethodId]['request'],
+    RuntimeStreamMethodContractMap[MethodId]['response'] extends AsyncIterable<infer Event> ? Event : never
+  >;
+};
+
+export const RuntimeUnaryMethodCodecs: RuntimeUnaryMethodCodecMap = {
   [RuntimeMethodIds.auth.registerApp]: {
     requestType: RegisterAppRequest,
     responseType: RegisterAppResponse,
@@ -591,7 +611,7 @@ export const RuntimeUnaryMethodCodecs: Record<string, RuntimeUnaryMethodCodec<un
   },
 };
 
-export const RuntimeStreamMethodCodecs: Record<string, RuntimeStreamMethodCodec<unknown, unknown>> = {
+export const RuntimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
   [RuntimeMethodIds.ai.streamScenario]: {
     requestType: StreamScenarioRequest,
     eventType: StreamScenarioEvent,

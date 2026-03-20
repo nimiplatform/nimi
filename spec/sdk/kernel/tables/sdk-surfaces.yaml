@@ -3,12 +3,15 @@ surfaces:
   - path: spec/sdk/runtime.md
     package_subpath: "@nimiplatform/sdk/runtime"
     role: runtime_projection
+    governed_by: [S-SURFACE-002, S-SURFACE-007, S-SURFACE-009, S-SURFACE-011]
   - path: spec/sdk/ai-provider.md
     package_subpath: "@nimiplatform/sdk/ai-provider"
     role: ai_provider_projection
+    governed_by: [S-SURFACE-011]
   - path: spec/sdk/realm.md
     package_subpath: "@nimiplatform/sdk/realm"
     role: realm_projection
+    governed_by: [S-SURFACE-004, S-SURFACE-006, S-SURFACE-007, S-SURFACE-008, S-SURFACE-010]
   - path: spec/sdk/scope.md
     package_subpath: "@nimiplatform/sdk/scope"
     role: scope_projection

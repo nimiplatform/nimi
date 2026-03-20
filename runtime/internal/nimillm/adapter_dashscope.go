@@ -267,13 +267,21 @@ func ExecuteDashScopeTranscribe(
 	if err != nil {
 		return nil, nil, "", err
 	}
+	resolvedInlineMIME := resolveInlineAudioMIME(mimeType, audioBytes)
+	if resolvedInlineMIME == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	resolvedInlineFormat := resolveInlineAudioFormat(mimeType, audioBytes)
+	if resolvedInlineFormat == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 
 	audioPayload := map[string]any{
 		"data": strings.TrimSpace(audioURI),
 	}
 	if audioPayload["data"] == "" {
 		audioPayload["data"] = encodeInlineAudioDataURI(audioBytes, mimeType)
-		audioPayload["format"] = resolveInlineAudioFormat(mimeType, audioBytes)
+		audioPayload["format"] = resolvedInlineFormat
 	}
 
 	systemMessage := buildCoreTranscriptionInstruction(spec)
@@ -328,7 +336,7 @@ func ExecuteDashScopeTranscribe(
 		"language":        strings.TrimSpace(spec.GetLanguage()),
 		"prompt":          strings.TrimSpace(spec.GetPrompt()),
 		"response_format": strings.TrimSpace(spec.GetResponseFormat()),
-		"mime_type":       resolveInlineAudioMIME(mimeType, audioBytes),
+		"mime_type":       resolvedInlineMIME,
 		"audio_uri":       audioURI,
 		"response":        responsePayload,
 	}

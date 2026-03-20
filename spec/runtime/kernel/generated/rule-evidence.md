@@ -303,6 +303,7 @@
 | `K-MMPROV-034` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-035` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
 | `K-MMPROV-036` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_provider_checks` |
+| `K-MMPROV-037` | `covered` | `runtime_kernel_consistency`, `runtime_go_test`, `runtime_proto_linkage` |
 | `K-MODEL-001` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-002` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-MODEL-003` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

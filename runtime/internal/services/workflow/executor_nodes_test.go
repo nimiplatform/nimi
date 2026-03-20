@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -110,6 +112,25 @@ func TestExecuteScriptNodeReturnsStructuredFallback(t *testing.T) {
 	}
 	if got := mapped["code"]; got != "1 + 1" {
 		t.Fatalf("script fallback code mismatch: %v", got)
+	}
+}
+
+func TestExecuteNoopNodeFailsWithoutInputs(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	outputs, err := svc.executeNoopNode(map[string]*structpb.Struct{})
+	if err == nil {
+		t.Fatalf("expected noop node to fail without inputs")
+	}
+	if outputs != nil {
+		t.Fatalf("noop node must not synthesize empty output when inputs are missing")
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status error, got %T", err)
+	}
+	if st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
 

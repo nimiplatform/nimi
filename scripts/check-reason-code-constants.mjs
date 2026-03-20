@@ -34,6 +34,8 @@ const REASON_CODE_LITERAL_PATTERNS = [
   /\breasonCode\s*:\s*(['"])([A-Za-z][A-Za-z0-9_-]*)\1/g,
   /\breasonCode\s*(?:===|==|!==|!=)\s*(['"])([A-Za-z][A-Za-z0-9_-]*)\1/g,
   /(['"])([A-Za-z][A-Za-z0-9_-]*)\1\s*(?:===|==|!==|!=)\s*reasonCode\b/g,
+  /\breason\s*(?:===|==|!==|!=)\s*(['"])([A-Za-z][A-Za-z0-9_-]*)\1/g,
+  /(['"])([A-Za-z][A-Za-z0-9_-]*)\1\s*(?:===|==|!==|!=)\s*reason\b/g,
 ];
 const TYPEOF_LITERAL_VALUES = new Set([
   'string',
@@ -124,6 +126,7 @@ async function main() {
   const violations = [];
   const reasonCodeSource = await fs.readFile(reasonCodeFile, 'utf8');
   const reasonCodeEntries = parseReasonCodeEntries(reasonCodeSource);
+  const reasonCodeValues = new Set(reasonCodeEntries.map((entry) => entry.value));
 
   const keyCounts = new Map();
   const valueCounts = new Map();
@@ -162,6 +165,10 @@ async function main() {
         while (match) {
           const literalValue = match[2];
           if (shouldIgnoreReasonCodeLiteralMatch(source, match.index, literalValue)) {
+            match = pattern.exec(source);
+            continue;
+          }
+          if (!reasonCodeValues.has(literalValue)) {
             match = pattern.exec(source);
             continue;
           }

@@ -54,14 +54,15 @@ export type RealmOptions = {
   };
 };
 
-export type RealmRawModule = {
+export type RealmUnsafeRawModule = {
+  /**
+   * Unsafe escape hatch. Prefer generated `realm.services.*` methods so request and response
+   * contracts stay bound to the published OpenAPI schema.
+   */
   request<T = unknown>(input: RealmRawRequestInput): Promise<T>;
 };
 
 export type RealmServiceRegistry = RealmGeneratedServiceRegistry;
-
-export type MeTwoFactorService = NonNullable<RealmServiceRegistry['MeTwoFactorService']>;
-export type SocialDefaultVisibilityService = NonNullable<RealmServiceRegistry['SocialDefaultVisibilityService']>;
 
 export type RealmEventsModule = {
   on(name: 'error', handler: (event: { error: NimiError; at: string }) => void): () => void;

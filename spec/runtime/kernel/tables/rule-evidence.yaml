@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_k_rules: 383
+  total_k_rules: 384
   audit_date: "2026-03-18"
 
 evidence_catalog:
@@ -952,6 +952,9 @@ rules:
   - rule_id: K-MMPROV-036
     status: covered
     evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_provider_checks]
+  - rule_id: K-MMPROV-037
+    status: covered
+    evidence_refs: [runtime_kernel_consistency, runtime_go_test, runtime_proto_linkage]
 
   # --- Model Contract (K-MODEL) ---
   - rule_id: K-MODEL-001

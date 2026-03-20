@@ -323,3 +323,24 @@ iteration 支持必须由 `music.generate.iteration` capability 与 runtime prov
 - `soundverse`、`mubert`、`loudly` 当前规范基线只要求 `music.generate` prompt-only；若未声明 `music.generate.iteration` capability，则带 iteration 扩展时必须 fail-close。
 - `local` provider 当前规范基线只要求 prompt-only；`sidecar` 本地 backend 后续可在声明 capability 后增量开放 iteration。
 - 本规则不新增新的顶层 RPC；iteration 继续复用通用 `ScenarioJob` / artifact 契约。
+
+## K-MMPROV-037 Stable AI Output Typed Contract
+
+稳定 AI product surface 不得再以 `google.protobuf.Struct` 作为主输出契约承载。runtime 必须使用显式 typed proto message：
+
+- sync `TEXT_GENERATE` -> `ExecuteScenarioResponse.output.text_generate.text`
+- sync `TEXT_EMBED` -> `ExecuteScenarioResponse.output.text_embed.vectors[]`
+- async `SPEECH_TRANSCRIBE` -> `GetScenarioArtifactsResponse.output.speech_transcribe.text`
+- async `SPEECH_SYNTHESIZE` -> `GetScenarioArtifactsResponse.output.speech_synthesize.artifacts[]`
+- async `IMAGE_GENERATE` -> `GetScenarioArtifactsResponse.output.image_generate.artifacts[]`
+- async `VIDEO_GENERATE` -> `GetScenarioArtifactsResponse.output.video_generate.artifacts[]`
+- async `MUSIC_GENERATE` -> `GetScenarioArtifactsResponse.output.music_generate.artifacts[]`
+- stream text delta -> `ScenarioStreamDelta.text.text`
+- stream artifact delta -> `ScenarioStreamDelta.artifact.{chunk,mime_type}`
+
+约束：
+
+- `ScenarioOutput` 必须作为稳定 product output 的唯一 oneof 容器；sync 路径挂在 `ExecuteScenarioResponse.output`，async artifact/job 路径挂在 `GetScenarioArtifactsResponse.output`。不得要求 SDK/app 通过 `Struct.fields.*`、artifact bytes、或 MIME 约定猜测字段语义。
+- `ScenarioStreamDelta` 必须使用显式 oneof 分支表达 text/artifact；不得再混用自由字段或让消费方根据场景类型推断 delta 语义。
+- `google.protobuf.Struct` 仅允许保留在 workflow/internal explicit-dynamic envelope 等非稳定 product surface，不得继续作为 text/embed/stt/image/video/music 等高频 app-facing 能力的事实源。
+- SDK/desktop/relay 的高层 helper 必须直接消费这些 typed output/delta，不得把稳定 protobuf message 重新降格为 `Record<string, unknown>` 再解析。

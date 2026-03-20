@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { FallbackPolicy } from '../../src/runtime/generated/runtime/v1/ai.js';
 import type { RuntimeInternalContext } from '../../src/runtime/internal-context.js';
+import { runtimeAiRequestRequiresSubject } from '../../src/runtime/runtime-guards.js';
 import { runtimeListSpeechVoices } from '../../src/runtime/runtime-modality.js';
 
 function createMockCtx(overrides?: Partial<RuntimeInternalContext>): RuntimeInternalContext {
@@ -31,6 +33,20 @@ function createMockCtx(overrides?: Partial<RuntimeInternalContext>): RuntimeInte
     }),
     resolveSubjectUserId: async (explicit) => explicit || 'test-subject',
     resolveOptionalSubjectUserId: async (explicit) => explicit || undefined,
+    normalizeScenarioHead: async ({ head, metadata }) => {
+      const requiresSubject = runtimeAiRequestRequiresSubject({
+        request: { head },
+        metadata,
+      });
+      const subjectUserId = requiresSubject
+        ? await (overrides?.resolveSubjectUserId ?? (async (explicit) => explicit || 'test-subject'))(head.subjectUserId)
+        : await (overrides?.resolveOptionalSubjectUserId ?? (async (explicit) => explicit || undefined))(head.subjectUserId);
+      return {
+        ...head,
+        subjectUserId: subjectUserId || '',
+        fallback: head.fallback ?? FallbackPolicy.DENY,
+      };
+    },
     emitTelemetry: () => {},
     ...overrides,
   } as RuntimeInternalContext;

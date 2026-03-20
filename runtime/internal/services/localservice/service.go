@@ -77,7 +77,7 @@ type Service struct {
 	recoveryDone      chan struct{}
 }
 
-func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int) *Service {
+func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int) (*Service, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -110,9 +110,11 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		modelProbeState:              make(map[string]*probeRecoveryState),
 		serviceProbeState:            make(map[string]*probeRecoveryState),
 	}
-	svc.restoreState()
+	if err := svc.restoreState(); err != nil {
+		return nil, err
+	}
 	svc.startRecoveryLoop()
-	return svc
+	return svc, nil
 }
 
 func (s *Service) effectiveLocalAuditCapacity() int {

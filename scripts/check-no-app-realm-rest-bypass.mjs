@@ -30,9 +30,9 @@ const IGNORED_FILE_PATTERNS = [
 
 const CHECKS = [
   {
-    label: 'raw.request',
-    pattern: /\braw\.request(?:<[\s\S]*?>)?\s*\(/g,
-    message: 'app production code must not call realm.raw.request directly',
+    label: 'unsafeRaw.request',
+    pattern: /\b(?:raw|unsafeRaw)\.request(?:<[\s\S]*?>)?\s*\(/g,
+    message: 'app production code must not call realm.raw.request or realm.unsafeRaw.request directly',
   },
   {
     label: 'path literal',

@@ -32,6 +32,7 @@ test('realm facade does not expose removed DTO symbols or legacy naming symbols'
   assert.equal('openApiRequest' in realm, false);
   assert.equal('OpenAPI' in realm, false);
   assert.equal('ApiError' in realm, false);
+  assert.equal('sendAgentChannelMessage' in realm, false);
   assert.equal('MeTwoFactorService' in realm, false);
   assert.equal('SocialDefaultVisibilityService' in realm, false);
   assert.equal('SocialAttributesService' in realm, false);

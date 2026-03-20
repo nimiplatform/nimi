@@ -7,6 +7,8 @@ import {
   ScenarioJobEventType,
   ScenarioJobStatus,
   RoutePolicy,
+  type ScenarioArtifact,
+  type ScenarioOutput,
   type ChatContentPart,
   type ChatMessage,
   type ScenarioJobEvent,
@@ -20,7 +22,6 @@ import { Struct } from './generated/google/protobuf/struct.js';
 import { asRecord, normalizeText, nowIso } from '../internal/utils.js';
 import { RuntimeMethodIds, isRuntimeStreamMethod } from './method-ids.js';
 import type {
-  NimiFallbackPolicy,
   NimiFinishReason,
   NimiRoutePolicy,
   NimiTokenUsage,
@@ -118,10 +119,6 @@ export function fromRoutePolicy(value: RoutePolicy): NimiRoutePolicy {
   return value === RoutePolicy.CLOUD ? 'cloud' : 'local';
 }
 
-export function toFallbackPolicy(value: NimiFallbackPolicy | undefined): FallbackPolicy {
-  return value === 'allow' ? FallbackPolicy.ALLOW : FallbackPolicy.DENY;
-}
-
 export function toFinishReason(value: FinishReason): NimiFinishReason {
   switch (value) {
     case FinishReason.LENGTH:
@@ -177,15 +174,10 @@ export function toTraceInfo(input: {
 }
 
 export function extractGenerateText(output: unknown): string {
-  const fields = asRecord(asRecord(output).fields);
-  const text = asRecord(fields.text);
-  const kind = asRecord(text.kind);
-
-  if (kind.oneofKind === 'stringValue') {
-    return normalizeText(kind.stringValue);
-  }
-  if (typeof text.stringValue === 'string') {
-    return normalizeText(text.stringValue);
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  if (variant?.oneofKind === 'textGenerate') {
+    return normalizeText(variant.textGenerate.text);
   }
   return '';
 }
@@ -430,6 +422,67 @@ export function toEmbeddingVectors(vectors: unknown): number[][] {
       })
       .filter((value): value is number => value !== null);
   });
+}
+
+export function extractEmbeddingVectors(output: unknown): number[][] {
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  if (variant?.oneofKind !== 'textEmbed') {
+    return [];
+  }
+  return variant.textEmbed.vectors.map((vector) => vector.values
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item)));
+}
+
+export function extractSpeechTranscription(output: unknown): {
+  text: string;
+  artifacts: ScenarioArtifact[];
+} {
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  if (variant?.oneofKind !== 'speechTranscribe') {
+    throw createNimiError({
+      message: 'runtime media output missing typed speechTranscribe result',
+      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      actionHint: 'regenerate_runtime_proto_and_sdk',
+      source: 'runtime',
+    });
+  }
+  return {
+    text: normalizeText(variant.speechTranscribe.text),
+    artifacts: Array.isArray(variant.speechTranscribe.artifacts)
+      ? variant.speechTranscribe.artifacts
+      : [],
+  };
+}
+
+export function extractScenarioArtifacts(
+  output: unknown,
+  kind: 'imageGenerate' | 'videoGenerate' | 'musicGenerate' | 'speechSynthesize',
+): ScenarioArtifact[] {
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  switch (kind) {
+    case 'imageGenerate':
+      return variant?.oneofKind === 'imageGenerate' && Array.isArray(variant.imageGenerate.artifacts)
+        ? variant.imageGenerate.artifacts
+        : [];
+    case 'videoGenerate':
+      return variant?.oneofKind === 'videoGenerate' && Array.isArray(variant.videoGenerate.artifacts)
+        ? variant.videoGenerate.artifacts
+        : [];
+    case 'musicGenerate':
+      return variant?.oneofKind === 'musicGenerate' && Array.isArray(variant.musicGenerate.artifacts)
+        ? variant.musicGenerate.artifacts
+        : [];
+    case 'speechSynthesize':
+      return variant?.oneofKind === 'speechSynthesize' && Array.isArray(variant.speechSynthesize.artifacts)
+        ? variant.speechSynthesize.artifacts
+        : [];
+    default:
+      return [];
+  }
 }
 
 export function toProtoStruct(input: Record<string, unknown> | undefined): Struct | undefined {

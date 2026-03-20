@@ -15,6 +15,7 @@
 | `events` | `session_recovery_protocol` | on disconnected: reconnect + OpenSession unconditionally | `S-RUNTIME-070` |
 | `construction` | `connector_field_prevalidation` | optional client-side CreateConnector api_key and UpdateConnector mutable-field checks | `S-RUNTIME-071` |
 | `media` | `music_iteration_fail_fast` | runtime.media.music.iterate validates mode, source audio base64, and trim ordering before RPC submit | `S-RUNTIME-072` |
+| `ai_output` | `stable_ai_output_typed_projection` | stable AI helpers consume typed ScenarioOutput and ScenarioStreamDelta oneofs, expose no app-facing fallback knobs, and fail-close instead of synthesizing placeholder artifacts or mime defaults | `S-RUNTIME-073` |
 | `transport` | `stream_finish_projection` | done=true reason_code and usage must be projected to consumer | `S-TRANSPORT-007` |
 | `transport` | `bearer_injection_routing` | bearer only on cloud consume + local lifecycle write; no bearer on anonymous local consume + local readonly | `S-TRANSPORT-010` |
 | `transport` | `backpressure_error_projection` | server RESOURCE_EXHAUSTED from slow consumer → NimiError | `S-TRANSPORT-011` |

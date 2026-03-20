@@ -5,6 +5,11 @@ import { ReasonCode, type VersionCompatibilityStatus } from '../types/index.js';
 import { asNimiError, createNimiError } from './errors.js';
 import { RuntimeMethodIds } from './method-ids.js';
 import type {
+  RuntimeMethodId,
+  RuntimeMethodRequest,
+  RuntimeMethodResponse,
+} from './runtime-method-contracts.js';
+import type {
   RuntimeAppAuthClient,
   RuntimeAuditClient,
   RuntimeAuthClient,
@@ -26,8 +31,8 @@ import type {
   RuntimeMediaModule,
   RuntimeMethod,
   RuntimeOptions,
-  RuntimeRawModule,
   RuntimeScopeModule,
+  RuntimeUnsafeRawModule,
   RuntimeEventsModule,
 } from './types.js';
 import type { RuntimeInternalContext } from './internal-context.js';
@@ -64,6 +69,7 @@ import {
 } from './runtime-infra.js';
 import {
   assertRuntimeMethodAvailable,
+  runtimeAiRequestRequiresSubject,
   checkRuntimeVersionCompatibility,
   resolveOptionalRuntimeSubjectUserId,
   resolveRuntimeSubjectUserId,
@@ -71,6 +77,7 @@ import {
 } from './runtime-guards.js';
 import { runtimeRawCall } from './runtime-raw-call.js';
 import { closeRuntime, connectRuntime, readyRuntime } from './runtime-lifecycle.js';
+import { FallbackPolicy } from './generated/runtime/v1/ai.js';
 import {
   runtimeGenerateConvenience,
   runtimeStreamConvenience,
@@ -121,7 +128,7 @@ export class Runtime {
   ) => Promise<AsyncIterable<import('./generated/runtime/v1/audit').AIProviderHealthEvent>>;
   readonly scope: RuntimeScopeModule;
   readonly events: RuntimeEventsModule;
-  readonly raw: RuntimeRawModule;
+  readonly unsafeRaw: RuntimeUnsafeRawModule;
   readonly transport: RuntimeTransportConfig;
   #client: RuntimeClient | null = null;
   #connectPromise: Promise<void> | null = null;
@@ -212,6 +219,25 @@ export class Runtime {
         explicit,
         subjectContext: this.#options.subjectContext,
       }),
+      normalizeScenarioHead: async ({ head, metadata }) => {
+        const subjectUserId = runtimeAiRequestRequiresSubject({
+          request: { head },
+          metadata,
+        })
+          ? await resolveRuntimeSubjectUserId({
+            explicit: head.subjectUserId,
+            subjectContext: this.#options.subjectContext,
+          })
+          : await resolveOptionalRuntimeSubjectUserId({
+            explicit: head.subjectUserId,
+            subjectContext: this.#options.subjectContext,
+          });
+        return {
+          ...head,
+          subjectUserId: subjectUserId || '',
+          fallback: head.fallback ?? FallbackPolicy.DENY,
+        };
+      },
       emitTelemetry: (name, data) => this.#emitTelemetry(name, data),
     };
 
@@ -261,29 +287,36 @@ export class Runtime {
 
     this.media = createMediaModule(ctx);
 
-    this.raw = createRawModule({
-      rawCall: (methodId, inputValue, optionsValue) => runtimeRawCall({
-        methodId,
-        request: inputValue,
-        options: optionsValue,
-        methodLookup: RUNTIME_METHOD_LOOKUP,
-        assertMethodAvailable: (moduleKey, methodKey) => this.#assertMethodAvailable(moduleKey, methodKey),
-        invokeWithClient: (operation) => this.#invokeWithClient(operation),
-        createMethodNotAllowlistedError: (missingMethodId) => createNimiError({
-          message: `runtime method is not allowlisted: ${missingMethodId}`,
-          reasonCode: ReasonCode.SDK_RUNTIME_CODEC_MISSING,
-          actionHint: 'use_runtime_method_ids',
-          source: 'sdk',
-        }),
-        createMethodNotImplementedError: (moduleKey, methodKey) => createNimiError({
-          message: `${moduleKey}.${methodKey} is not implemented`,
-          reasonCode: ReasonCode.SDK_RUNTIME_CODEC_MISSING,
-          actionHint: 'check_runtime_method_mapping',
-          source: 'sdk',
-        }),
+    const rawCall: RuntimeUnsafeRawModule['call'] = (
+      methodId: string,
+      inputValue: unknown,
+      optionsValue?: RuntimeCallOptions | RuntimeStreamCallOptions,
+    ) => runtimeRawCall({
+      methodId,
+      request: inputValue,
+      options: optionsValue,
+      methodLookup: RUNTIME_METHOD_LOOKUP,
+      assertMethodAvailable: (moduleKey, methodKey) => this.#assertMethodAvailable(moduleKey, methodKey),
+      invokeWithClient: (operation) => this.#invokeWithClient(operation),
+      createMethodNotAllowlistedError: (missingMethodId) => createNimiError({
+        message: `runtime method is not allowlisted: ${missingMethodId}`,
+        reasonCode: ReasonCode.SDK_RUNTIME_CODEC_MISSING,
+        actionHint: 'use_runtime_method_ids',
+        source: 'sdk',
       }),
+      createMethodNotImplementedError: (moduleKey, methodKey) => createNimiError({
+        message: `${moduleKey}.${methodKey} is not implemented`,
+        reasonCode: ReasonCode.SDK_RUNTIME_CODEC_MISSING,
+        actionHint: 'check_runtime_method_mapping',
+        source: 'sdk',
+      }),
+    });
+
+    const unsafeRaw = createRawModule({
+      rawCall,
       invokeWithClient: (operation) => this.#invokeWithClient(operation),
     });
+    this.unsafeRaw = unsafeRaw;
   }
 
   async connect(): Promise<void> {
@@ -376,13 +409,33 @@ export class Runtime {
     return runtimeStreamConvenience(this, input);
   }
 
+  call<MethodId extends RuntimeMethodId>(
+    method: MethodId,
+    input: RuntimeMethodRequest<MethodId>,
+    options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+  ): Promise<RuntimeMethodResponse<MethodId>>;
+  call<MethodId extends RuntimeMethodId>(
+    method: RuntimeMethod<RuntimeMethodRequest<MethodId>, RuntimeMethodResponse<MethodId>> & { methodId: MethodId },
+    input: RuntimeMethodRequest<MethodId>,
+    options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+  ): Promise<RuntimeMethodResponse<MethodId>>;
   call<TReq, TRes>(
-    method: RuntimeMethod<TReq, TRes> | string,
+    method: RuntimeMethod<TReq, TRes>,
     input: TReq,
     options?: RuntimeCallOptions | RuntimeStreamCallOptions,
-  ): Promise<TRes> {
+  ): Promise<TRes>;
+  call(
+    method: RuntimeMethod<unknown, unknown>,
+    input: unknown,
+    options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+  ): Promise<unknown>;
+  call(
+    method: RuntimeMethod<unknown, unknown> | string,
+    input: unknown,
+    options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+  ): Promise<unknown> {
     const methodId = typeof method === 'string' ? method : method.methodId;
-    return this.raw.call<TReq, TRes>(methodId, input, options);
+    return this.unsafeRaw.call(methodId, input, options);
   }
 
   // ── Private infrastructure methods ──────────────────────────────────

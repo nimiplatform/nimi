@@ -1,4 +1,4 @@
-import type { JsonObject } from '../../internal/utils.js';
+import type { RealmModel } from '../generated/type-helpers.js';
 import type { Realm } from '../client.js';
 
 export type SendAgentChannelMessageInput = {
@@ -6,7 +6,7 @@ export type SendAgentChannelMessageInput = {
   text: string;
 };
 
-export type SendAgentChannelMessageOutput = JsonObject;
+export type SendAgentChannelMessageOutput = RealmModel<'MessageViewDto'>;
 
 function normalizeText(value: unknown): string {
   return String(value || '').trim();
@@ -24,12 +24,12 @@ export async function sendAgentChannelMessage(
   if (!text) {
     throw new Error('AGENT_CHANNEL_TEXT_REQUIRED');
   }
-  return realm.raw.request<SendAgentChannelMessageOutput>({
-    method: 'POST',
-    path: '/api/messages',
-    body: {
-      agentId,
-      text,
-    },
+  const started = await realm.services.HumanChatService.startChat({
+    targetAccountId: agentId,
+  });
+  return realm.services.HumanChatService.sendMessage(started.chatId, {
+    clientMessageId: `sdk-agent-channel:${agentId}:${Date.now()}`,
+    type: 'TEXT',
+    text,
   });
 }

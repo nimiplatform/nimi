@@ -131,17 +131,17 @@ Quit path 的 daemon 生命周期行为：
 
 ## D-BOOT-012 — Realm 可达性策略
 
-Realm SDK `ready()` 采用 fail-open 语义（`S-REALM-019`）：探测失败不抛错，仅发射 error 事件。Runtime SDK `ready()` 采用 fail-close 语义（`S-RUNTIME-015`）：探测失败抛出 `RUNTIME_UNAVAILABLE`。Bootstrap 序列必须消化这一不对称性。
+Realm SDK `ready()` 与 Runtime SDK `ready()` 都采用 fail-close 语义（`S-REALM-019` / `S-RUNTIME-015`）：探测失败必须抛错，不得伪装成“仅记录遥测”的软失败。
 
-**策略**：Bootstrap 不显式调用 `Realm.ready()`。Realm 可达性通过 `D-BOOT-010` 触发的 `loadInitialData()` 中的首个业务请求（`loadCurrentUser()`）隐式验证：
+**策略**：Bootstrap 不显式调用 `Realm.ready()`。Realm 可达性继续通过 `D-BOOT-010` 触发的 `loadInitialData()` 中的首个业务请求（`loadCurrentUser()`）隐式验证：
 
 - `loadCurrentUser()` 成功：Realm 可达，正常流程。
 - `loadCurrentUser()` 失败（网络错误）：Realm 不可达。DataSync 通过 `emitDataSyncError` 记录错误。UI 进入降级状态——`bootstrapReady=true` 但数据为空，用户可见空列表和加载失败提示。
-- 此设计意图：`bootstrapReady` 表示"应用骨架就绪"，不表示"所有后端可达"。Realm 不可达是运行时降级，不是启动失败。
+- 此设计意图：`bootstrapReady` 表示"应用骨架就绪"，不表示"所有后端可达"。Realm 不可达是运行时降级，不是启动失败；但一旦显式调用 `Realm.ready()`，错误必须直接暴露给调用方。
 
 **与 Runtime fail-close 的对比**：Runtime daemon 不可用在 Desktop 侧是运行时降级，不再阻断 app shell；需要 Runtime 的功能页展示 unavailable 提示并允许后续恢复。Realm 不可达同样是运行时降级，因为功能可以在恢复后补偿加载。
 
-**跨层引用**：`S-REALM-019`（fail-open 语义）、`S-RUNTIME-015`（fail-close 语义）。
+**跨层引用**：`S-REALM-019`（fail-close 语义）、`S-RUNTIME-015`（fail-close 语义）。
 
 ## Fact Sources
 

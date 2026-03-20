@@ -8,28 +8,32 @@ import {
   requestAccountDeletion,
 } from '../src/realm/extensions/account-data.js';
 
-type RawRequestInput = {
-  method: string;
-  path: string;
+type AccountDataRequestInput = {
   body?: unknown;
 };
 
 type FakeRealm = {
-  raw: {
-    request: (input: RawRequestInput) => Promise<unknown>;
+  services: {
+    MeaccountdataService: {
+      requestDataExport: (input?: unknown) => Promise<unknown>;
+      requestAccountDeletion: (input?: unknown) => Promise<unknown>;
+    };
   };
 };
 
-function createFakeRealm(handler: (input: RawRequestInput) => Promise<unknown>): FakeRealm {
+function createFakeRealm(handler: (input: AccountDataRequestInput) => Promise<unknown>): FakeRealm {
   return {
-    raw: {
-      request: handler,
+    services: {
+      MeaccountdataService: {
+        requestDataExport: async (input) => handler({ body: input }),
+        requestAccountDeletion: async (input) => handler({ body: input }),
+      },
     },
   };
 }
 
 test('requestDataExport builds account-data export request and maps response', async () => {
-  const requests: RawRequestInput[] = [];
+  const requests: AccountDataRequestInput[] = [];
   const realm = createFakeRealm(async (input) => {
     requests.push(input);
     return {
@@ -46,8 +50,6 @@ test('requestDataExport builds account-data export request and maps response', a
   });
 
   assert.equal(requests.length, 1);
-  assert.equal(requests[0]?.method, 'POST');
-  assert.equal(requests[0]?.path, '/api/auth/me/data-export');
   assert.deepEqual(requests[0]?.body, {
     format: 'JSON',
     includeMedia: true,

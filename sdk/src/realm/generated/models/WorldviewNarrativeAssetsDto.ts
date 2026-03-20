@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type Object = components['schemas']['Object'];
+export type WorldviewNarrativeAssetsDto = components['schemas']['WorldviewNarrativeAssetsDto'];

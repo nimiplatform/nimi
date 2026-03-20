@@ -1,6 +1,6 @@
 version: 2
 rule_compliance:
-  total_s_rules: 101
+  total_s_rules: 103
   audit_date: "2026-03-12"
   sdk_version: "0.4.0"
 
@@ -43,11 +43,26 @@ evidence_catalog:
     command: pnpm check:no-app-realm-rest-bypass
     path: scripts/check-no-app-realm-rest-bypass.mjs
     description: App production code Realm access boundary enforcement.
+  sdk_unsafe_raw_gate:
+    type: static_gate
+    command: pnpm check:sdk-unsafe-raw-usage
+    path: scripts/check-sdk-unsafe-raw-usage.mjs
+    description: Explicit unsafeRaw-only escape hatch enforcement for SDK public surface.
+  sdk_generated_type_quality_gate:
+    type: static_gate
+    command: pnpm check:sdk-generated-type-quality
+    path: scripts/check-sdk-generated-type-quality.mjs
+    description: Generated realm schema quality gate, including high-frequency DTO assertions and dynamic-envelope allowlist enforcement.
   sdk_mod_hardcut_gate:
     type: static_gate
     command: pnpm check:runtime-mod-hook-hardcut
     path: scripts/check-runtime-mod-hook-hardcut.mjs
     description: Mod legacy surface hardcut enforcement.
+  sdk_runtime_stable_ai_output_gate:
+    type: static_gate
+    command: pnpm check:runtime-stable-ai-output-typing
+    path: scripts/check-runtime-stable-ai-output-typing.mjs
+    description: Stable runtime AI product surfaces must consume typed ScenarioOutput and ScenarioStreamDelta contracts without Struct/record reparsing.
 
 rules:
   # --- AI Provider Contract (S-AIP) ---
@@ -366,6 +381,10 @@ rules:
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
     test_files: [sdk/test/runtime/runtime-media-branch.test.ts]
+  - rule_id: S-RUNTIME-073
+    status: covered
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency, sdk_runtime_stable_ai_output_gate]
+    test_files: [sdk/test/runtime/runtime-struct-output-helpers.test.ts, sdk/test/ai-provider/provider.test.ts]
 
   # --- Scope Contract (S-SCOPE) ---
   - rule_id: S-SCOPE-001
@@ -414,10 +433,26 @@ rules:
     status: covered
     evidence_refs: [sdk_kernel_consistency, sdk_app_realm_boundary_gate]
     note: "Repo-level guardrail rule; explicit allowlist enforced by check:no-app-realm-rest-bypass"
+  - rule_id: S-SURFACE-007
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_unsafe_raw_gate]
+    note: "Unsafe raw escape hatches are naming-gated by check:sdk-unsafe-raw-usage"
+  - rule_id: S-SURFACE-008
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_generated_type_quality_gate]
+    note: "App-facing realm DTO quality is enforced by check:sdk-generated-type-quality"
   - rule_id: S-SURFACE-009
     status: covered
     evidence_refs: [sdk_kernel_consistency]
     note: "Governance rule; runtime-method-groups.yaml maintained as structured fact source, consistency gate validates"
+  - rule_id: S-SURFACE-010
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_generated_type_quality_gate]
+    note: "Every realm unknown-map field must be explicitly allowlisted as a dynamic envelope or promoted to a named schema"
+  - rule_id: S-SURFACE-011
+    status: covered
+    evidence_refs: [sdk_kernel_consistency, sdk_runtime_stable_ai_output_gate]
+    note: "Stable runtime AI product surfaces are locked to typed ScenarioOutput/ScenarioStreamDelta consumption and may not regress to Struct or record reparsing"
 
   # --- Transport Contract (S-TRANSPORT) ---
   - rule_id: S-TRANSPORT-001

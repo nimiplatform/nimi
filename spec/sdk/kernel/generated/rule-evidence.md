@@ -11,7 +11,10 @@
 | `sdk_boundary_gate` | `static_gate` | `pnpm check:sdk-import-boundary && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config` | `scripts/check-sdk-import-boundary.mjs` | Import boundary enforcement and legacy entry point prohibition. |
 | `sdk_realm_legacy_gate` | `static_gate` | `pnpm check:sdk-realm-legacy-clean` | `scripts/check-sdk-realm-legacy-clean.mjs` | Realm legacy naming prohibition. |
 | `sdk_app_realm_boundary_gate` | `static_gate` | `pnpm check:no-app-realm-rest-bypass` | `scripts/check-no-app-realm-rest-bypass.mjs` | App production code Realm access boundary enforcement. |
+| `sdk_unsafe_raw_gate` | `static_gate` | `pnpm check:sdk-unsafe-raw-usage` | `scripts/check-sdk-unsafe-raw-usage.mjs` | Explicit unsafeRaw-only escape hatch enforcement for SDK public surface. |
+| `sdk_generated_type_quality_gate` | `static_gate` | `pnpm check:sdk-generated-type-quality` | `scripts/check-sdk-generated-type-quality.mjs` | Generated realm schema quality gate, including high-frequency DTO assertions and dynamic-envelope allowlist enforcement. |
 | `sdk_mod_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Mod legacy surface hardcut enforcement. |
+| `sdk_runtime_stable_ai_output_gate` | `static_gate` | `pnpm check:runtime-stable-ai-output-typing` | `scripts/check-runtime-stable-ai-output-typing.mjs` | Stable runtime AI product surfaces must consume typed ScenarioOutput and ScenarioStreamDelta contracts without Struct/record reparsing. |
 
 ## Rule Coverage Matrix
 
@@ -93,6 +96,7 @@
 | `S-RUNTIME-070` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-RUNTIME-071` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-RUNTIME-072` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
+| `S-RUNTIME-073` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_runtime_stable_ai_output_gate` |
 | `S-SCOPE-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SCOPE-002` | `covered` | `sdk_kernel_consistency` |
 | `S-SCOPE-003` | `covered` | `sdk_kernel_consistency` |
@@ -104,7 +108,11 @@
 | `S-SURFACE-004` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-SURFACE-005` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_realm_legacy_gate` |
 | `S-SURFACE-006` | `covered` | `sdk_kernel_consistency`, `sdk_app_realm_boundary_gate` |
+| `S-SURFACE-007` | `covered` | `sdk_kernel_consistency`, `sdk_unsafe_raw_gate` |
+| `S-SURFACE-008` | `covered` | `sdk_kernel_consistency`, `sdk_generated_type_quality_gate` |
 | `S-SURFACE-009` | `covered` | `sdk_kernel_consistency` |
+| `S-SURFACE-010` | `covered` | `sdk_kernel_consistency`, `sdk_generated_type_quality_gate` |
+| `S-SURFACE-011` | `covered` | `sdk_kernel_consistency`, `sdk_runtime_stable_ai_output_gate` |
 | `S-TRANSPORT-001` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-TRANSPORT-002` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-TRANSPORT-003` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |

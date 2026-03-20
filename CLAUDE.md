@@ -60,6 +60,10 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 - `spec/**` is the only normative contract source. Evidence → `dev/report/**`; plans → `dev/plan/**`.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
+- No fallback that hides contract violations. Missing typed output, MIME type, discriminator, required JSON shape, or schema fields must fail-close.
+- No pseudo-success on stable product paths. Do not synthesize placeholder artifacts, guessed MIME types, fabricated IDs, default payloads, or "unchanged" success after a typed/cached path fails.
+- App-facing SDK surfaces must not expose fallback knobs for route/provider rescue. Internal runtime fallback may exist only as an observable low-level strategy and must not weaken typed public contracts.
+- Retry and auth refresh are transport/auth mechanisms only. They must never rescue decode, content-type, schema, or contract failures.
 - Boundary enforcement:
   - Desktop/Web must not import `runtime/internal/**`.
   - SDK must not cross `realm` / `runtime` private boundaries.

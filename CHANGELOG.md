@@ -17,6 +17,7 @@ The format follows Keep a Changelog and Semantic Versioning.
 ### Changed
 
 - `README.md` quick start aligned with `cmd/nimi serve` + `cmd/nimi runtime ...`
+- SDK AI provider image file inputs now require an explicit `mediaType`; image payloads fail closed instead of inferring or defaulting MIME type.
 
 ### Removed
 

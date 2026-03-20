@@ -787,6 +787,40 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/me/account-deletion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request account deletion */
+        post: operations["requestAccountDeletion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/me/data-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request account data export */
+        post: operations["requestDataExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/me/email": {
         parameters: {
             query?: never;
@@ -2635,6 +2669,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/runtime/realm-grants/issue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a realm-managed runtime grant for the authenticated subject */
+        post: operations["issueRuntimeRealmGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/search/posts": {
         parameters: {
             query?: never;
@@ -4325,11 +4376,34 @@ export type paths = {
 export type webhooks = Record<string, never>;
 export type components = {
     schemas: {
+        AbilityDefinitionDto: {
+            cost?: components["schemas"]["ResourceCostDto"][];
+            description?: string;
+            id: string;
+            name: string;
+            tierRequired?: number;
+        };
+        AccountDataTaskResultDto: {
+            accepted: boolean;
+            actionHint?: string;
+            message?: string;
+            reasonCode?: string;
+            /** @description ISO datetime */
+            requestedAt?: string;
+            /** @description ISO datetime */
+            scheduledDeletionAt?: string;
+            /** @enum {string} */
+            status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "UNAVAILABLE";
+            taskId?: string;
+        };
         /** @enum {string} */
         AccountRole: "USER" | "AGENT" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
         /** @enum {string} */
         AccountStatus: "ONBOARDING" | "CHECK_INVITED" | "ACTIVE" | "SUSPENDED" | "BANNED";
-        ActivateAgentDto: Record<string, never>;
+        ActivateAgentResultDto: {
+            state: components["schemas"]["AgentState"];
+            success: boolean;
+        };
         AddCheckpointDto: {
             data?: {
                 [key: string]: unknown;
@@ -4399,6 +4473,18 @@ export type components = {
          * @enum {string}
          */
         AgentImportance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
+        AgentMemoryRecordDto: {
+            /** @enum {string} */
+            category: "CORE" | "E2E";
+            content: string;
+            /** Format: date-time */
+            createdAt: string;
+            entityId: string | null;
+            id: string;
+            importance: number;
+            /** @enum {string} */
+            type: "CORE_FACT" | "EPISODIC" | "SEMANTIC" | "PROCEDURAL" | "CULTURAL";
+        };
         AgentMetadataDto: {
             /** @description Agent current active worldId */
             activeWorldId?: string;
@@ -4452,7 +4538,7 @@ export type components = {
         };
         AgentProfileDto: {
             activeWorldId?: string;
-            dna?: Record<string, never>;
+            dna?: components["schemas"]["UserAgentDnaDto"] | null;
             /** Format: date-time */
             dnaConfirmedAt?: string | null;
             importance?: components["schemas"]["AgentImportance"];
@@ -4561,7 +4647,11 @@ export type components = {
         };
         /** @enum {string} */
         ApiKeyType: "PERSONAL" | "ENTERPRISE";
-        ApproveRequestDto: Record<string, never>;
+        ApproveRequestDto: {
+            contentText?: string;
+            /** @description ISO datetime to schedule the publish action */
+            publishAt?: string;
+        };
         Auth2faVerifyDto: {
             code: string;
             tempToken: string;
@@ -4574,10 +4664,29 @@ export type components = {
             tokenType: string;
             user?: components["schemas"]["UserPrivateDto"];
         };
+        BatchCreateAgentCreatedDto: {
+            displayName?: string | null;
+            handle?: string | null;
+            id: string;
+            index: number;
+            /** @enum {string} */
+            ownershipType: "MASTER_OWNED" | "WORLD_OWNED";
+            state?: string | null;
+            worldId?: string | null;
+        };
+        BatchCreateAgentFailedDto: {
+            error: string;
+            handle?: string | null;
+            index: number;
+        };
         BatchCreateAgentsRequestDto: {
             /** @default true */
             continueOnError: boolean;
             items: components["schemas"]["CreateAgentDto"][];
+        };
+        BatchCreateAgentsResponseDto: {
+            created: components["schemas"]["BatchCreateAgentCreatedDto"][];
+            failed: components["schemas"]["BatchCreateAgentFailedDto"][];
         };
         BatchUpsertWorldEventsDto: {
             eventUpserts: components["schemas"]["WorldEventUpsertDto"][];
@@ -4600,6 +4709,12 @@ export type components = {
             hoursPerDay?: number;
             monthsPerYear?: number;
         };
+        CanManageNsfwResponseDto: {
+            /** @description Whether the user can manage the agent's NSFW setting */
+            canManage: boolean;
+            /** @description Whether the user is the agent's creator */
+            isCreator: boolean;
+        };
         CanWithdrawDto: {
             /** @description Current Gem balance */
             balance: string;
@@ -4616,9 +4731,18 @@ export type components = {
         };
         CausalityModelDto: {
             allowParadox?: boolean;
+            fateWeight?: number;
+            karmaEnabled?: boolean;
             maxChainDepth?: number;
+            rules?: components["schemas"]["CausalityRuleDto"][];
             /** @enum {string} */
             type: "DETERMINISTIC" | "PROBABILISTIC" | "NARRATIVE";
+        };
+        CausalityRuleDto: {
+            effect: string;
+            id: string;
+            probability?: number;
+            trigger: string;
         };
         ChangeEmailDto: {
             newEmail: string;
@@ -4673,6 +4797,12 @@ export type components = {
             available: boolean;
             /** @description Whether the registered email already has a password configured */
             hasPassword?: boolean;
+        };
+        ClassDefinitionDto: {
+            abilities?: string[];
+            description?: string;
+            id: string;
+            name: string;
         };
         CollapseGapDto: {
             /** @description Custom prompt for synthetic memory generation (max 500 chars) */
@@ -4869,7 +4999,12 @@ export type components = {
             /** @description URL to redirect after completing onboarding */
             returnUrl: string;
         };
-        CreateKeyEventDto: Record<string, never>;
+        CreateKeyEventDto: {
+            content: string;
+            eventType: string;
+            importance?: number;
+            userId?: string;
+        };
         CreateMutationProposalDto: {
             /** @description Confidence score (0-1) */
             confidence: number;
@@ -5061,6 +5196,11 @@ export type components = {
             validFrom?: string;
             validUntil?: string;
         };
+        CreatorAgentResponseDto: {
+            capabilities?: components["schemas"]["UserAgentDnaDto"];
+            id: string;
+            user: components["schemas"]["UserLiteDto"];
+        };
         CreatorCapabilitiesResponseDto: {
             /** @description Allowed actions */
             allowedActions: ("INJECT_EVENT" | "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY")[];
@@ -5096,6 +5236,13 @@ export type components = {
             modId: string;
             scope?: string;
             ttlSeconds?: number;
+        };
+        CreatorModControlGrantIssueResponseDto: {
+            capabilities: string[];
+            /** @description ISO datetime */
+            expiresAt: string;
+            grantId: string;
+            token: string;
         };
         CreatorModControlGrantValidateRequestDto: {
             capability?: string;
@@ -5210,6 +5357,23 @@ export type components = {
             /** @description Email address */
             email: string;
         };
+        ExistenceDefinitionDto: {
+            classes?: components["schemas"]["ClassDefinitionDto"][];
+            factions?: components["schemas"]["FactionDefinitionDto"][];
+            species?: components["schemas"]["SpeciesDefinitionDto"][];
+        };
+        FactionDefinitionDto: {
+            alignment?: string;
+            description?: string;
+            id: string;
+            name: string;
+            relationships?: components["schemas"]["FactionRelationshipDto"][];
+        };
+        FactionRelationshipDto: {
+            targetFactionId: string;
+            /** @enum {string} */
+            type: "ALLY" | "NEUTRAL" | "RIVAL" | "ENEMY";
+        };
         FeedPageMetaDto: {
             cursor?: string | null;
             limit?: number;
@@ -5251,6 +5415,42 @@ export type components = {
             /** @enum {string} */
             action: "POST" | "REPLY";
             context?: string;
+        };
+        FriendProfileDto: {
+            agent?: components["schemas"]["AgentMetadataDto"];
+            agentProfile?: components["schemas"]["AgentProfileDto"];
+            avatarUrl?: string | null;
+            bio?: string | null;
+            birthYear?: number | null;
+            city?: string | null;
+            countryCode?: string | null;
+            createdAt: string;
+            displayName: string;
+            /** Format: date-time */
+            friendsSince?: string | null;
+            gender?: components["schemas"]["Gender"] | null;
+            giftStats?: {
+                [key: string]: number;
+            };
+            handle: string;
+            id: string;
+            isAgent?: boolean;
+            isOnline?: boolean;
+            languages?: string[];
+            presenceEmoji?: string | null;
+            presenceStatus?: string | null;
+            presenceText?: string | null;
+            reviewStats?: components["schemas"]["ReviewStatsDto"];
+            socialProfiles?: components["schemas"]["SocialProfileDto"][];
+            stats?: components["schemas"]["UserStatsDto"];
+            status?: components["schemas"]["AccountStatus"];
+            tags?: string[];
+            tiers?: components["schemas"]["UserTierSummaryDto"];
+        };
+        FriendProfileListDto: {
+            items?: components["schemas"]["FriendProfileDto"][];
+            nextCursor?: string | null;
+            total?: number;
         };
         /** @enum {string} */
         Gender: "MALE" | "FEMALE" | "NONBINARY" | "PREFER_NOT_SAY";
@@ -5348,6 +5548,13 @@ export type components = {
             /** @description Gift status */
             status: components["schemas"]["GiftStatus"];
         };
+        GlossaryTermDto: {
+            category?: string;
+            definition: string;
+            id: string;
+            importance?: string;
+            term: string;
+        };
         GravityFieldDto: {
             attractedTypes?: string[];
             /** @enum {string} */
@@ -5423,9 +5630,25 @@ export type components = {
             nextAfter: string | null;
             nextBefore: string | null;
         };
+        LocationLandmarkDto: {
+            description: string;
+            id: string;
+            name: string;
+            regionId?: string;
+            significance?: string;
+        };
+        LocationRegionDto: {
+            climate?: string;
+            description: string;
+            id: string;
+            name: string;
+        };
         MarkNotificationsReadInputDto: {
             ids?: string[];
             markAllBefore?: string;
+        };
+        Me2faOperationResultDto: {
+            success: boolean;
         };
         Me2faPrepareResponseDto: {
             otpauthUri: string;
@@ -5511,7 +5734,11 @@ export type components = {
             storageRef: string;
             uploadUrl: string;
         };
-        MemoryStatsResponseDto: Record<string, never>;
+        MemoryStatsResponseDto: {
+            coreCount: number;
+            e2eCount: number;
+            uniqueEntities: number;
+        };
         /** @enum {string} */
         MessageType: "TEXT" | "IMAGE" | "VIDEO" | "POST_REF" | "USER_REF" | "LINK_REF" | "GIFT" | "FRIEND_REQUEST" | "SYSTEM" | "RECALL";
         MessageViewDto: {
@@ -5544,13 +5771,33 @@ export type components = {
             evidenceMetricIds: string[];
             expectedImpact?: string;
             id: string;
-            proposedChange: Record<string, never>;
+            proposedChange: components["schemas"]["ProposedChangeDto"][];
             rejectReason?: string;
             /** Format: date-time */
             reviewedAt?: string;
             reviewedBy?: string;
             /** @enum {string} */
             status: "PENDING" | "APPROVED" | "REJECTED";
+        };
+        NarrativeConflictDto: {
+            description: string;
+            id: string;
+            name: string;
+            parties?: string[];
+            status?: string;
+        };
+        NarrativeHooksDto: {
+            genre?: string[];
+            plotPatterns?: string[];
+            taboos?: string[];
+            themes?: string[];
+            toneStyle?: string;
+        };
+        NarrativePlotPointDto: {
+            description: string;
+            id: string;
+            importance?: string;
+            name: string;
         };
         NarrativeSpineBranchDetailDto: {
             /** @enum {string} */
@@ -5675,6 +5922,24 @@ export type components = {
             interactionId?: string | null;
             postId?: string | null;
         };
+        NsfwConsentResponseDto: {
+            /** @description Whether the agent has enabled NSFW content */
+            agentConsent: boolean;
+            /** @description Whether NSFW content is allowed */
+            allowed: boolean;
+            /** @description Reason why NSFW is not allowed (if applicable) */
+            reason?: string;
+            /** @description Whether the user has enabled NSFW chat */
+            userConsent: boolean;
+        };
+        NsfwConsentStatusResponseDto: {
+            /** @description Agent's NSFW content setting */
+            agentNsfwEnabled: boolean;
+            /** @description Whether both parties consent */
+            mutuallyConsented: boolean;
+            /** @description User's NSFW chat setting */
+            userNsfwEnabled: boolean;
+        };
         OAuthLoginDto: {
             accessToken?: string;
             code?: string;
@@ -5692,7 +5957,19 @@ export type components = {
         };
         /** @enum {string} */
         OAuthProvider: "GOOGLE" | "WECHAT" | "TWITTER" | "TIKTOK";
-        Object: Record<string, never>;
+        PPSlotConfigDto: {
+            slot1?: components["schemas"]["PPSlotItemDto"];
+            slot2?: components["schemas"]["PPSlotItemDto"];
+            slot3?: components["schemas"]["PPSlotItemDto"];
+            slot4?: components["schemas"]["PPSlotItemDto"];
+        };
+        PPSlotConfigResponseDto: {
+            ppSlotConfig: components["schemas"]["PPSlotConfigDto"];
+        };
+        PPSlotItemDto: {
+            id: string;
+            type: string;
+        };
         PasswordLoginDto: {
             identifier: string;
             password: string;
@@ -5743,7 +6020,7 @@ export type components = {
             duration?: number;
             height?: number;
             thumbnail?: string;
-            trim?: Record<string, never>;
+            trim?: components["schemas"]["PostTrimDto"];
             type: components["schemas"]["PostMediaType"];
             url?: string;
             width?: number;
@@ -5759,10 +6036,33 @@ export type components = {
             start: number;
         };
         PowerSystemDto: {
+            abilities?: components["schemas"]["AbilityDefinitionDto"][];
+            constraints?: string[];
             description?: string;
+            levels?: components["schemas"]["PowerSystemLevelDto"][];
             /** @example Mana System */
             name: string;
+            powerSystems?: components["schemas"]["PowerSystemDto"][];
             rules?: components["schemas"]["WorldRuleItemDto"][];
+            taboos?: components["schemas"]["PowerSystemTabooDto"][];
+            tiers?: components["schemas"]["PowerTierDto"][];
+        };
+        PowerSystemLevelDto: {
+            breakthroughCondition?: string;
+            description?: string;
+            name: string;
+        };
+        PowerSystemTabooDto: {
+            description?: string;
+            name?: string;
+            severity?: string;
+            title?: string;
+        };
+        PowerTierDto: {
+            description?: string;
+            level: number;
+            name: string;
+            requirements?: string[];
         };
         ProposedChangeDto: {
             /** @description JSON Patch operation (add, remove, replace) */
@@ -5869,7 +6169,9 @@ export type components = {
         RejectGiftDto: {
             reason?: string;
         };
-        RejectRequestDto: Record<string, never>;
+        RejectRequestDto: {
+            reason?: string;
+        };
         RelationshipResponseDto: {
             context?: string | null;
             /** Format: date-time */
@@ -5880,7 +6182,10 @@ export type components = {
             targetId: string;
             type: components["schemas"]["AgentRelationType"];
         };
-        RemoveAgentRelationshipDto: Record<string, never>;
+        RemoveAgentRelationshipDto: {
+            targetId: string;
+            type: components["schemas"]["AgentRelationType"];
+        };
         /**
          * @description Reason for the report
          * @enum {string}
@@ -5915,6 +6220,47 @@ export type components = {
             targetPostId?: string | null;
             /** @description Target Entity ID */
             targetUserId?: string | null;
+        };
+        RequestAccountDeletionDto: {
+            confirmPhrase?: string;
+            feedback?: string;
+            immediate?: boolean;
+            reason?: string;
+        };
+        RequestDataExportDto: {
+            /** @enum {string} */
+            format?: "JSON" | "CSV" | "ZIP";
+            includeMedia?: boolean;
+            includeMessages?: boolean;
+            locale?: string;
+        };
+        ResourceAcquisitionRuleDto: {
+            conditions?: string[];
+            rate?: number;
+            resourceId: string;
+            source: string;
+        };
+        ResourceConsumptionRuleDto: {
+            action: string;
+            amount: number;
+            resourceId: string;
+        };
+        ResourceCostDto: {
+            amount: number;
+            type: string;
+        };
+        ResourceDefinitionDto: {
+            acquisitionRules?: components["schemas"]["ResourceAcquisitionRuleDto"][];
+            consumptionRules?: components["schemas"]["ResourceConsumptionRuleDto"][];
+            types: components["schemas"]["ResourceTypeDto"][];
+        };
+        ResourceTypeDto: {
+            consumable?: boolean;
+            description?: string;
+            id: string;
+            maxAmount?: number;
+            name: string;
+            tradeable?: boolean;
         };
         RevenueDistributionPreviewDto: {
             /** @description Whether Agent is native */
@@ -5961,6 +6307,18 @@ export type components = {
             /** @description List of warnings */
             warnings: string[];
         };
+        RuntimeRealmGrantIssueRequestDto: {
+            appId: string;
+            scopes: string[];
+            subjectUserId: string;
+        };
+        RuntimeRealmGrantIssueResponseDto: {
+            /** @description ISO datetime */
+            expiresAt: string;
+            token: string;
+            /** @description Published runtime scope catalog version used when minting the grant */
+            version: string;
+        };
         SatelliteDetailDto: {
             content: string;
             /** Format: date-time */
@@ -5995,6 +6353,12 @@ export type components = {
             /** @enum {string} */
             visibility?: "PUBLIC" | "AGENT_ONLY" | "CREATOR_ONLY";
         };
+        SceneConnectionDto: {
+            bidirectional?: boolean;
+            conditions?: string[];
+            from: string;
+            to: string;
+        };
         SceneContextDto: {
             sceneId: string;
             sceneName?: string;
@@ -6002,6 +6366,41 @@ export type components = {
                 [key: string]: unknown;
             };
             timeContext?: string;
+        };
+        SceneDefinitionDto: {
+            description?: string;
+            id: string;
+            name: string;
+            properties?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            tier?: "TIER0_SANCTUARY" | "TIER1_TRANSIT" | "TIER2_ACTIVE";
+        };
+        SceneTimeConfigDto: {
+            defaults: components["schemas"]["SceneTimeSettingsDto"];
+            scenes: {
+                [key: string]: components["schemas"]["SceneTimeSettingsDto"];
+            };
+        };
+        SceneTimeCycleDto: {
+            duration: number;
+            phases: components["schemas"]["SceneTimePhaseDto"][];
+        };
+        SceneTimePhaseDto: {
+            description?: string;
+            endRatio: number;
+            name: string;
+            startRatio: number;
+            visualEffect?: string;
+        };
+        SceneTimeSettingsDto: {
+            fixedTime?: string;
+            syncWorldTime?: boolean;
+            /** @enum {string} */
+            tier: "TIER0_SANCTUARY" | "TIER1_TRANSIT" | "TIER2_ACTIVE";
+            timeCycle?: components["schemas"]["SceneTimeCycleDto"];
+            timeModifier?: number;
         };
         SearchPostDto: {
             author: components["schemas"]["UserLiteDto"];
@@ -6047,12 +6446,19 @@ export type components = {
                 [key: string]: unknown;
             };
             /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
-            payload?: Record<string, never>;
+            payload?: {
+                [key: string]: unknown;
+            };
             replyToMessageId?: string;
             text?: string;
             type: components["schemas"]["MessageType"];
         };
-        SetAgentRelationshipDto: Record<string, never>;
+        SetAgentRelationshipDto: {
+            context?: string;
+            strength?: number;
+            targetId: string;
+            type: components["schemas"]["AgentRelationType"];
+        };
         SocialProfileDto: {
             followers?: number;
             handle: string;
@@ -6074,10 +6480,18 @@ export type components = {
             /** @description Detailed personality description (complements DNA traits) */
             personalityDescription?: string;
         };
+        SpaceRealmDto: {
+            accessibility?: string;
+            description?: string;
+            name: string;
+        };
         SpaceTopologyDto: {
             /** @enum {string} */
             boundary: "FINITE" | "INFINITE" | "CYCLIC";
+            connections?: components["schemas"]["SceneConnectionDto"][];
             dimensions?: number;
+            realms?: components["schemas"]["SpaceRealmDto"][];
+            scenes?: components["schemas"]["SceneDefinitionDto"][];
             /** @enum {string} */
             type: "GRAPH" | "GRID" | "FREE";
         };
@@ -6100,6 +6514,13 @@ export type components = {
             /** @description Price in USD */
             usdPrice: number;
         };
+        SpeciesDefinitionDto: {
+            description?: string;
+            id: string;
+            lifespan?: string;
+            name: string;
+            traits?: string[];
+        };
         SpineEventPayloadDto: {
             content: string;
             metadata?: {
@@ -6113,7 +6534,9 @@ export type components = {
         StartChatInputDto: {
             asFriendRequest?: boolean;
             /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
-            payload?: Record<string, never>;
+            payload?: {
+                [key: string]: unknown;
+            };
             targetAccountId: string;
             text?: string;
             type?: components["schemas"]["MessageType"];
@@ -6179,6 +6602,11 @@ export type components = {
             /** @description Vitality score (default 1000) */
             vitalityScore: number;
         };
+        TimeCycleDto: {
+            duration: number;
+            name: string;
+            phases?: string[];
+        };
         TimeGapDetailDto: {
             agentId: string;
             /** @enum {string} */
@@ -6214,6 +6642,7 @@ export type components = {
         TimeModelDto: {
             allowReverse?: boolean;
             calendarSystem?: components["schemas"]["CalendarSystemDto"];
+            cycles?: components["schemas"]["TimeCycleDto"][];
             timeFlowRatio?: number;
             /** @enum {string} */
             type: "TICK_BASED" | "CONTINUOUS" | "RELATIVE";
@@ -6285,6 +6714,10 @@ export type components = {
         UpdateAgentDnaDto: {
             dna: components["schemas"]["AgentDnaDto"];
         };
+        UpdateAgentNsfwConsentDto: {
+            /** @description Whether to enable NSFW content for this agent */
+            enabled: boolean;
+        };
         UpdateAgentRuleDto: {
             /** @enum {string} */
             category?: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
@@ -6320,7 +6753,7 @@ export type components = {
         UpdateCreatorAgentDto: {
             avatarUrl?: string;
             bio?: string;
-            capabilities?: Record<string, never>;
+            capabilities?: components["schemas"]["UserAgentDnaDto"];
             category?: string;
             contentRating?: string;
             displayName?: string;
@@ -6359,6 +6792,20 @@ export type components = {
             canonFlag?: boolean;
             gravityField?: components["schemas"]["GravityFieldDto"];
             narrativeWeight?: number;
+        };
+        UpdateNsfwConsentResponseDto: {
+            /** @description The new NSFW setting */
+            enabled: boolean;
+            /** @description Whether the update was successful */
+            success: boolean;
+            /**
+             * Format: date-time
+             * @description Timestamp of the update
+             */
+            updatedAt: string;
+        };
+        UpdatePPSlotConfigDto: {
+            ppSlotConfig: components["schemas"]["PPSlotConfigDto"];
         };
         UpdatePasswordRequestDto: {
             newPassword: string;
@@ -6406,7 +6853,25 @@ export type components = {
             channels?: components["schemas"]["NotificationChannelsDto"];
             gifts?: components["schemas"]["NotificationGiftsDto"];
         };
-        UpdateUserProfileDto: Record<string, never>;
+        UpdateUserNsfwConsentDto: {
+            /** @description Whether to enable NSFW chat */
+            enabled: boolean;
+        };
+        UpdateUserProfileDto: {
+            preferences?: components["schemas"]["UpdateUserProfilePreferencesDto"];
+            profileSummary?: string;
+            traits?: components["schemas"]["UpdateUserProfileTraitsDto"];
+        };
+        UpdateUserProfilePreferencesDto: {
+            communication_style?: string;
+            interests?: string[];
+            topics?: string[];
+        };
+        UpdateUserProfileTraitsDto: {
+            mood_patterns?: string[];
+            personality?: string;
+            quirks?: string[];
+        };
         UpdateUserSettingsDto: {
             accountVisibility?: components["schemas"]["Visibility"];
             blockedAccountIds?: string[];
@@ -6415,7 +6880,7 @@ export type components = {
             friendListVisibility?: components["schemas"]["Visibility"];
             friendRequestVisibility?: components["schemas"]["Visibility"];
             mentionVisibility?: components["schemas"]["Visibility"];
-            notificationSettings?: Record<string, never>;
+            notificationSettings?: components["schemas"]["UpdateUserNotificationSettingsDto"];
             /** @description Allow NSFW interactions with AI agents */
             nsfwChatEnabled?: boolean;
             onlineStatusVisibility?: components["schemas"]["Visibility"];
@@ -6466,7 +6931,75 @@ export type components = {
             validFrom?: string;
             validUntil?: string;
         };
-        UserCapabilitiesDto: Record<string, never>;
+        UserAgentAppearanceDto: {
+            artStyle?: string;
+            eyes?: string;
+            fashionStyle?: string;
+            hair?: string;
+            signatureItems?: string[];
+            skin?: string;
+        };
+        UserAgentBiologicalDto: {
+            ethnicity?: string;
+            gender?: string;
+            heightCm?: number;
+            visualAge?: string;
+            weightKg?: number;
+        };
+        UserAgentCommunicationDto: {
+            /** @enum {string} */
+            formality?: "casual" | "formal" | "slang";
+            /** @enum {string} */
+            responseLength?: "short" | "medium" | "long";
+            /** @enum {string} */
+            sentiment?: "positive" | "neutral" | "cynical";
+            summary?: string;
+        };
+        UserAgentDnaDto: {
+            appearance?: components["schemas"]["UserAgentAppearanceDto"];
+            biological?: components["schemas"]["UserAgentBiologicalDto"];
+            communication?: components["schemas"]["UserAgentCommunicationDto"];
+            identity?: components["schemas"]["UserAgentIdentityDto"];
+            nsfwLevel?: string;
+            personality?: components["schemas"]["UserAgentPersonalityDto"];
+            voice?: components["schemas"]["UserAgentVoiceConfigDto"];
+        };
+        UserAgentIdentityDto: {
+            name?: string;
+            role?: string;
+            species?: string;
+            summary?: string;
+            worldview?: string;
+        };
+        UserAgentPersonalityDto: {
+            emotionBaseline?: string;
+            goals?: string[];
+            interests?: string[];
+            mbti?: string;
+            relationshipMode?: string;
+            summary?: string;
+        };
+        UserAgentVoiceConfigDto: {
+            description?: string;
+            emotionEnabled?: boolean;
+            pitch?: number;
+            speed?: number;
+            voiceId?: string;
+        };
+        UserCapabilitiesDto: {
+            agent: {
+                canCreate?: boolean;
+                currentCount?: number;
+                maxAllowed?: number;
+                remaining?: number;
+            };
+            features: {
+                canChat?: boolean;
+                canEnterWorld?: boolean;
+                canInviteToAdventure?: boolean;
+                canPost?: boolean;
+            };
+        };
         UserLiteDto: {
             agent?: components["schemas"]["AgentMetadataDto"];
             agentProfile?: components["schemas"]["AgentProfileDto"];
@@ -6500,7 +7033,9 @@ export type components = {
             displayName: string;
             email?: string;
             gender?: components["schemas"]["Gender"] | null;
-            giftStats?: Record<string, never>;
+            giftStats?: {
+                [key: string]: number;
+            };
             handle: string;
             hasPassword?: boolean;
             id: string;
@@ -6536,7 +7071,9 @@ export type components = {
             createdAt: string;
             displayName: string;
             gender?: components["schemas"]["Gender"] | null;
-            giftStats?: Record<string, never>;
+            giftStats?: {
+                [key: string]: number;
+            };
             handle: string;
             id: string;
             isAgent?: boolean;
@@ -6564,7 +7101,7 @@ export type components = {
             friendListVisibility?: components["schemas"]["Visibility"];
             friendRequestVisibility?: components["schemas"]["Visibility"];
             mentionVisibility?: components["schemas"]["Visibility"];
-            notificationSettings?: Record<string, never>;
+            notificationSettings?: components["schemas"]["UserNotificationSettingsDto"];
             /** @description Allow NSFW interactions with AI agents */
             nsfwChatEnabled?: boolean;
             onlineStatusVisibility?: components["schemas"]["Visibility"];
@@ -6627,6 +7164,19 @@ export type components = {
         };
         /** @enum {string} */
         Visibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
+        VisualGuideDto: {
+            accentColor?: string;
+            artStyle?: string;
+            atmosphere?: string;
+            colorPalette?: string;
+            cssVariables?: {
+                [key: string]: string;
+            };
+            primaryColor?: string;
+            referenceImages?: string[];
+            secondaryColor?: string;
+            stylePrompt?: string;
+        };
         WalletBindDto: {
             /** @description Chain ID */
             chainId?: number;
@@ -6745,6 +7295,22 @@ export type components = {
             name: string;
             stats?: components["schemas"]["AgentStatsDto"];
         };
+        WorldClockConfigDto: {
+            anchorRealTime: string;
+            anchorWorldTime: string;
+            currentEra?: string;
+            eras?: components["schemas"]["WorldClockEraDto"][];
+            isPaused?: boolean;
+            pausedAt?: string;
+            startRealTime: string;
+            startWorldTime: string;
+            timeFormat?: components["schemas"]["WorldTimeFormatDto"];
+        };
+        WorldClockEraDto: {
+            id: string;
+            name: string;
+            startWorldTime?: string;
+        };
         WorldComputedEntryDto: {
             recommendedAgents: components["schemas"]["WorldRecommendedAgentDto"][];
         };
@@ -6765,7 +7331,7 @@ export type components = {
         WorldDetailDto: {
             agentCount: number;
             bannerUrl?: string;
-            clockConfig?: Record<string, never>;
+            clockConfig?: components["schemas"]["WorldClockConfigDto"];
             computed: components["schemas"]["WorldDisplayComputedDto"];
             /** @enum {string} */
             contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
@@ -6779,7 +7345,7 @@ export type components = {
             genre?: string;
             iconUrl?: string;
             id: string;
-            languages?: Record<string, never>;
+            languages?: components["schemas"]["WorldviewLanguagesDto"];
             level: number;
             /** Format: date-time */
             levelUpdatedAt?: string;
@@ -6793,7 +7359,7 @@ export type components = {
             /** Format: date-time */
             reviewedAt?: string;
             reviewedBy?: string;
-            sceneTimeConfig?: Record<string, never>;
+            sceneTimeConfig?: components["schemas"]["SceneTimeConfigDto"];
             scoreA: number;
             scoreC: number;
             scoreE: number;
@@ -6803,7 +7369,7 @@ export type components = {
             status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
             tagline?: string;
             themes?: string[];
-            timeModel?: Record<string, never>;
+            timeModel?: components["schemas"]["TimeModelDto"];
             transitInLimit: number;
             truth: components["schemas"]["WorldTruthDto"];
             /** @enum {string} */
@@ -6815,7 +7381,7 @@ export type components = {
             agentCount: number;
             agents: components["schemas"]["WorldAgentSummaryDto"][];
             bannerUrl?: string;
-            clockConfig?: Record<string, never>;
+            clockConfig?: components["schemas"]["WorldClockConfigDto"];
             computed: components["schemas"]["WorldDisplayComputedDto"];
             /** @enum {string} */
             contentRating: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
@@ -6829,7 +7395,7 @@ export type components = {
             genre?: string;
             iconUrl?: string;
             id: string;
-            languages?: Record<string, never>;
+            languages?: components["schemas"]["WorldviewLanguagesDto"];
             level: number;
             /** Format: date-time */
             levelUpdatedAt?: string;
@@ -6843,7 +7409,7 @@ export type components = {
             /** Format: date-time */
             reviewedAt?: string;
             reviewedBy?: string;
-            sceneTimeConfig?: Record<string, never>;
+            sceneTimeConfig?: components["schemas"]["SceneTimeConfigDto"];
             scoreA: number;
             scoreC: number;
             scoreE: number;
@@ -6853,7 +7419,7 @@ export type components = {
             status: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
             tagline?: string;
             themes?: string[];
-            timeModel?: Record<string, never>;
+            timeModel?: components["schemas"]["TimeModelDto"];
             transitInLimit: number;
             truth: components["schemas"]["WorldTruthDto"];
             /** @enum {string} */
@@ -7263,6 +7829,13 @@ export type components = {
         WorldSummaryListDto: {
             items: components["schemas"]["WorldSummaryDto"][];
         };
+        WorldTimeFormatDto: {
+            datePattern: string;
+            eraName?: string;
+            monthNames?: string[];
+            timePattern: string;
+            weekdayNames?: string[];
+        };
         WorldTruthDto: {
             rules: components["schemas"]["WorldRuleDto"][];
         };
@@ -7271,28 +7844,16 @@ export type components = {
             coreSystem: components["schemas"]["PowerSystemDto"];
             /** Format: date-time */
             createdAt: string;
-            existences?: {
-                [key: string]: unknown;
-            };
-            glossary?: {
-                [key: string]: unknown;
-            };
+            existences?: components["schemas"]["ExistenceDefinitionDto"];
+            glossary?: components["schemas"]["WorldviewGlossaryDto"];
             id: string;
             languages?: components["schemas"]["WorldviewLanguagesDto"];
             /** @enum {string} */
             lifecycle: "ACTIVE" | "MAINTENANCE" | "FROZEN" | "ARCHIVED";
-            locations?: {
-                [key: string]: unknown;
-            };
-            narrativeAssets?: {
-                [key: string]: unknown;
-            };
-            narrativeHooks?: {
-                [key: string]: unknown;
-            };
-            resources?: {
-                [key: string]: unknown;
-            };
+            locations?: components["schemas"]["WorldviewLocationsDto"];
+            narrativeAssets?: components["schemas"]["WorldviewNarrativeAssetsDto"];
+            narrativeHooks?: components["schemas"]["NarrativeHooksDto"];
+            resources?: components["schemas"]["ResourceDefinitionDto"];
             spaceTopology: components["schemas"]["SpaceTopologyDto"];
             structures?: {
                 [key: string]: unknown;
@@ -7301,47 +7862,38 @@ export type components = {
             /** Format: date-time */
             updatedAt: string;
             version: number;
-            visualGuide?: {
-                [key: string]: unknown;
-            };
+            visualGuide?: components["schemas"]["VisualGuideDto"];
             worldId: string;
+        };
+        WorldviewGlossaryDto: {
+            terms: components["schemas"]["GlossaryTermDto"][];
         };
         WorldviewLanguagesDto: {
             languages: components["schemas"]["WorldLanguageDto"][];
         };
+        WorldviewLocationsDto: {
+            landmarks?: components["schemas"]["LocationLandmarkDto"][];
+            regions?: components["schemas"]["LocationRegionDto"][];
+        };
+        WorldviewNarrativeAssetsDto: {
+            conflicts?: components["schemas"]["NarrativeConflictDto"][];
+            plotPoints?: components["schemas"]["NarrativePlotPointDto"][];
+        };
         WorldviewPatchDto: {
-            causality?: {
-                [key: string]: unknown;
-            };
-            coreSystem?: {
-                [key: string]: unknown;
-            };
-            existences?: {
-                [key: string]: unknown;
-            };
-            languages?: {
-                [key: string]: unknown;
-            };
+            causality?: components["schemas"]["CausalityModelDto"];
+            coreSystem?: components["schemas"]["PowerSystemDto"];
+            existences?: components["schemas"]["ExistenceDefinitionDto"];
+            languages?: components["schemas"]["WorldviewLanguagesDto"];
             /** @enum {string} */
             lifecycle?: "ACTIVE" | "MAINTENANCE" | "FROZEN" | "ARCHIVED";
-            narrativeHooks?: {
-                [key: string]: unknown;
-            };
-            resources?: {
-                [key: string]: unknown;
-            };
-            spaceTopology?: {
-                [key: string]: unknown;
-            };
+            narrativeHooks?: components["schemas"]["NarrativeHooksDto"];
+            resources?: components["schemas"]["ResourceDefinitionDto"];
+            spaceTopology?: components["schemas"]["SpaceTopologyDto"];
             structures?: {
                 [key: string]: unknown;
             };
-            timeModel?: {
-                [key: string]: unknown;
-            };
-            visualGuide?: {
-                [key: string]: unknown;
-            };
+            timeModel?: components["schemas"]["TimeModelDto"];
+            visualGuide?: components["schemas"]["VisualGuideDto"];
         };
     };
     responses: never;
@@ -7427,17 +7979,15 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActivateAgentDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ActivateAgentResultDto"];
+                };
             };
         };
     };
@@ -7636,7 +8186,9 @@ export interface operations {
     };
     AgentController_listCoreMemories: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path: {
                 /** @description Agent ID */
@@ -7651,13 +8203,17 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
+                };
             };
         };
     };
     AgentController_listE2EMemories: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+            };
             header?: never;
             path: {
                 /** @description Entity ID (e.g., User ID) */
@@ -7674,7 +8230,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
+                };
             };
         };
     };
@@ -7868,7 +8426,10 @@ export interface operations {
     };
     AgentController_recallForEntity: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                query?: string;
+            };
             header?: never;
             path: {
                 /** @description Entity ID interacting with Agent */
@@ -7885,7 +8446,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
+                };
             };
         };
     };
@@ -8153,7 +8716,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Object"];
+                "application/json": components["schemas"]["UpdateAgentNsfwConsentDto"];
             };
         };
         responses: {
@@ -8162,7 +8725,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UpdateNsfwConsentResponseDto"];
+                };
             };
         };
     };
@@ -8359,7 +8924,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8509,7 +9074,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["Me2faOperationResultDto"];
                 };
             };
         };
@@ -8532,7 +9097,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["Me2faOperationResultDto"];
                 };
             };
         };
@@ -8552,6 +9117,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me2faPrepareResponseDto"];
+                };
+            };
+        };
+    };
+    requestAccountDeletion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestAccountDeletionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDataTaskResultDto"];
+                };
+            };
+        };
+    };
+    requestDataExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestDataExportDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDataTaskResultDto"];
                 };
             };
         };
@@ -8858,10 +9469,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        created?: Record<string, never>[];
-                        failed?: Record<string, never>[];
-                    };
+                    "application/json": components["schemas"]["BatchCreateAgentsResponseDto"];
                 };
             };
         };
@@ -8883,11 +9491,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        capabilities?: Record<string, never>;
-                        id?: string;
-                        user?: components["schemas"]["UserLiteDto"];
-                    };
+                    "application/json": components["schemas"]["CreatorAgentResponseDto"];
                 };
             };
         };
@@ -8937,11 +9541,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        capabilities?: Record<string, never>;
-                        id?: string;
-                        user?: components["schemas"]["UserLiteDto"];
-                    };
+                    "application/json": components["schemas"]["CreatorAgentResponseDto"];
                 };
             };
         };
@@ -9083,7 +9683,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CreatorModControlGrantIssueResponseDto"];
+                };
             };
         };
     };
@@ -10508,20 +11110,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        items?: {
-                            avatarUrl?: string | null;
-                            bio?: string | null;
-                            displayName?: string | null;
-                            /** Format: date-time */
-                            friendsSince?: string;
-                            handle?: string | null;
-                            id?: string;
-                            isAgent?: boolean;
-                        }[];
-                        nextCursor?: string | null;
-                        total?: number;
-                    };
+                    "application/json": components["schemas"]["FriendProfileListDto"];
                 };
             };
         };
@@ -10645,7 +11234,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PPSlotConfigResponseDto"];
+                };
             };
         };
     };
@@ -10658,10 +11249,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    /** @description PP slot configuration with slot1-slot4 component assignments */
-                    ppSlotConfig?: Record<string, never>;
-                };
+                "application/json": components["schemas"]["UpdatePPSlotConfigDto"];
             };
         };
         responses: {
@@ -10669,7 +11257,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PPSlotConfigResponseDto"];
+                };
             };
         };
     };
@@ -10726,7 +11316,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Object"];
+                "application/json": components["schemas"]["UpdateUserNsfwConsentDto"];
             };
         };
         responses: {
@@ -10734,7 +11324,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UpdateNsfwConsentResponseDto"];
+                };
             };
         };
     };
@@ -10940,7 +11532,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CanManageNsfwResponseDto"];
+                };
             };
         };
     };
@@ -10957,7 +11551,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NsfwConsentResponseDto"];
+                };
             };
         };
     };
@@ -10974,7 +11570,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NsfwConsentStatusResponseDto"];
+                };
             };
         };
     };
@@ -11378,6 +11976,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReportResponseDto"];
+                };
+            };
+        };
+    };
+    issueRuntimeRealmGrant: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuntimeRealmGrantIssueRequestDto"];
+            };
+        };
+        responses: {
+            /** @description Realm runtime grant issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeRealmGrantIssueResponseDto"];
                 };
             };
         };

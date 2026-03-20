@@ -100,8 +100,8 @@ test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
       auth: { accessToken: 'token-b' },
     });
 
-    await realmA.raw.request({ method: 'GET', path: '/api/a' });
-    await realmB.raw.request({ method: 'GET', path: '/api/b' });
+    await realmA.unsafeRaw.request({ method: 'GET', path: '/api/a' });
+    await realmB.unsafeRaw.request({ method: 'GET', path: '/api/b' });
 
     assert.equal(calls.length, 2);
     assert.equal(calls[0]?.url, 'https://realm-a.nimi.xyz/api/a');
@@ -113,7 +113,7 @@ test('Realm keeps baseUrl/accessToken isolated per instance', async () => {
   }
 });
 
-test('Realm raw.request replaces pathParams before dispatch', async () => {
+test('Realm unsafeRaw.request replaces pathParams before dispatch', async () => {
   const originalFetch = globalThis.fetch;
   const calls: string[] = [];
 
@@ -133,7 +133,7 @@ test('Realm raw.request replaces pathParams before dispatch', async () => {
       auth: null,
     });
 
-    await realm.raw.request({
+    await realm.unsafeRaw.request({
       method: 'GET',
       path: '/api/worlds/{worldId}/posts/{postId}',
       pathParams: {
@@ -147,6 +147,15 @@ test('Realm raw.request replaces pathParams before dispatch', async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('Realm exposes unsafeRaw as the explicit escape hatch', () => {
+  const realm = new Realm({
+    baseUrl: 'https://realm-unsafe-raw.nimi.xyz',
+    auth: null,
+  });
+
+  assert.equal(typeof realm.unsafeRaw.request, 'function');
 });
 
 test('Realm services facade uses instance config (no global OpenAPI mutation)', async () => {
@@ -206,7 +215,7 @@ test('Realm maps HTTP errors to NimiError with layered reasonCode/actionHint', a
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'GET', path: '/api/secure' });
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/secure' });
     } catch (error) {
       thrown = error;
     }
@@ -247,7 +256,7 @@ test('Realm maps HTTP 422 to CONFIG_INVALID when reasonCode is absent', async ()
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'POST', path: '/api/validate', body: {} });
+      await realm.unsafeRaw.request({ method: 'POST', path: '/api/validate', body: {} });
     } catch (error) {
       thrown = error;
     }
@@ -301,7 +310,7 @@ test('Realm maps default 404/409/429 status codes when reasonCode is absent', as
     for (const item of expectations) {
       let thrown: unknown = null;
       try {
-        await realm.raw.request({ method: 'GET', path: item.path });
+        await realm.unsafeRaw.request({ method: 'GET', path: item.path });
       } catch (error) {
         thrown = error;
       }
@@ -331,7 +340,7 @@ test('Realm maps network failures to REALM_UNAVAILABLE', async () => {
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'GET', path: '/api/ping' });
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/ping' });
     } catch (error) {
       thrown = error;
     }
@@ -375,7 +384,7 @@ test('Realm maps timeout abort to REALM_UNAVAILABLE (not OPERATION_ABORTED)', as
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'GET', path: '/api/slow' });
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/slow' });
     } catch (error) {
       thrown = error;
     }
@@ -418,7 +427,7 @@ test('Realm maps external abort signal to OPERATION_ABORTED', async () => {
       auth: null,
     });
     const controller = new AbortController();
-    const requestPromise = realm.raw.request({
+    const requestPromise = realm.unsafeRaw.request({
       method: 'GET',
       path: '/api/stream',
       signal: controller.signal,
@@ -526,7 +535,7 @@ test('Realm 401 with refreshToken triggers refresh then retries successfully', a
       },
     });
 
-    const result = await realm.raw.request({ method: 'GET', path: '/api/protected' });
+    const result = await realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
     assert.deepEqual(result, { data: 'success' });
     assert.ok(refreshedResult);
     assert.equal((refreshedResult as { accessToken: string }).accessToken, 'new-access-token');
@@ -558,7 +567,7 @@ test('Realm 401 without refreshToken throws directly (existing behavior)', async
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'GET', path: '/api/protected' });
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
     } catch (error) {
       thrown = error;
     }
@@ -609,7 +618,7 @@ test('Realm refresh failure calls onRefreshFailed and throws original 401 error'
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'GET', path: '/api/protected' });
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
     } catch (error) {
       thrown = error;
     }
@@ -651,7 +660,7 @@ test('Realm 403 does not trigger refresh', async () => {
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'GET', path: '/api/admin' });
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/admin' });
     } catch (error) {
       thrown = error;
     }
@@ -705,7 +714,7 @@ test('Realm refreshToken supports function mode', async () => {
       },
     });
 
-    const result = await realm.raw.request({ method: 'GET', path: '/api/data' });
+    const result = await realm.unsafeRaw.request({ method: 'GET', path: '/api/data' });
     assert.deepEqual(result, { ok: true });
   } finally {
     globalThis.fetch = originalFetch;
@@ -759,7 +768,7 @@ test('Realm explicit unauthenticated mode does not send Authorization header (SD
       auth: null,
     });
 
-    await realm.raw.request({ method: 'GET', path: '/api/public' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/public' });
 
     assert.equal(capturedHeaders.length, 1);
     assert.equal(capturedHeaders[0]?.authorization, undefined, 'unauthenticated mode must not emit Authorization header');
@@ -768,7 +777,7 @@ test('Realm explicit unauthenticated mode does not send Authorization header (SD
   }
 });
 
-test('Realm ready() emits error event on probe failure (SDKREALM-019)', async () => {
+test('Realm ready() fails closed on probe failure and still emits error event', async () => {
   const originalFetch = globalThis.fetch;
   const errors: Array<{ error: { reasonCode?: string }; at: string }> = [];
 
@@ -793,11 +802,15 @@ test('Realm ready() emits error event on probe failure (SDKREALM-019)', async ()
       errors.push(event as typeof errors[number]);
     });
 
-    await realm.ready({ timeoutMs: 1000 });
+    await assert.rejects(
+      async () => realm.ready({ timeoutMs: 1000 }),
+      (error: unknown) => asNimiError(error, { source: 'realm' }).reasonCode === ReasonCode.REALM_UNAVAILABLE,
+    );
 
     assert.equal(errors.length, 1, 'ready() probe failure must emit exactly one error event');
     assert.equal(errors[0]?.error?.reasonCode, 'REALM_UNAVAILABLE');
-    assert.equal(realm.state().status, 'ready', 'state must still be ready (fail-open)');
+    assert.equal(realm.state().status, 'ready');
+    assert.equal(realm.state().lastReadyAt, undefined);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -940,7 +953,7 @@ test('S-REALM-015: auth retry max once — second 401 after refresh does not loo
 
     let thrown: unknown = null;
     try {
-      await realm.raw.request({ method: 'GET', path: '/api/protected' });
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
     } catch (error) {
       thrown = error;
     }
@@ -1007,8 +1020,8 @@ test('S-REALM-029: concurrent 401 requests merge into a single refresh call', as
     });
 
     const results = await Promise.allSettled([
-      realm.raw.request({ method: 'GET', path: '/api/resource-a' }),
-      realm.raw.request({ method: 'GET', path: '/api/resource-b' }),
+      realm.unsafeRaw.request({ method: 'GET', path: '/api/resource-a' }),
+      realm.unsafeRaw.request({ method: 'GET', path: '/api/resource-b' }),
     ]);
 
     assert.equal(refreshCount, 1, '/api/auth/refresh must be called exactly once (single-flight)');
@@ -1045,8 +1058,8 @@ test('S-REALM-027: accessToken as function resolves dynamically on each request'
       },
     });
 
-    await realm.raw.request({ method: 'GET', path: '/api/first' });
-    await realm.raw.request({ method: 'GET', path: '/api/second' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/first' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/second' });
 
     assert.equal(capturedAuthHeaders.length, 2);
     assert.equal(capturedAuthHeaders[0], 'Bearer dynamic-token-0');
@@ -1102,8 +1115,8 @@ test('Realm refresh updates internal static token for subsequent requests', asyn
       },
     });
 
-    await realm.raw.request({ method: 'GET', path: '/api/first' });
-    await realm.raw.request({ method: 'GET', path: '/api/second' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/first' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/second' });
 
     assert.equal(refreshCount, 1);
     assert.deepEqual(seenAuthHeaders, [
@@ -1137,8 +1150,8 @@ test('Realm resolves async headers function per request', async () => {
       headers: async () => ({ 'x-realm-test': `call-${callCount++}` }),
     });
 
-    await realm.raw.request({ method: 'GET', path: '/api/one' });
-    await realm.raw.request({ method: 'GET', path: '/api/two' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/one' });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/two' });
 
     assert.deepEqual(seenHeaders, ['call-0', 'call-1']);
   } finally {
@@ -1165,7 +1178,7 @@ test('Realm requests still execute after close()', async () => {
     });
 
     await realm.close();
-    const result = await realm.raw.request({ method: 'GET', path: '/api/after-close' });
+    const result = await realm.unsafeRaw.request({ method: 'GET', path: '/api/after-close' });
 
     assert.deepEqual(result, { ok: true });
     assert.equal(callCount, 1);
@@ -1188,14 +1201,14 @@ test('Realm returns undefined for 204 responses', async () => {
       auth: null,
     });
 
-    const result = await realm.raw.request({ method: 'DELETE', path: '/api/resource' });
+    const result = await realm.unsafeRaw.request({ method: 'DELETE', path: '/api/resource' });
     assert.equal(result, undefined);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test('Realm returns text for text/plain responses', async () => {
+test('Realm rejects text/plain responses when published contract expects JSON', async () => {
   const originalFetch = globalThis.fetch;
 
   globalThis.fetch = (async (): Promise<Response> => (
@@ -1211,8 +1224,10 @@ test('Realm returns text for text/plain responses', async () => {
       auth: null,
     });
 
-    const result = await realm.raw.request({ method: 'GET', path: '/api/text' });
-    assert.equal(result, 'plain-text-payload');
+    await assert.rejects(
+      async () => realm.unsafeRaw.request({ method: 'GET', path: '/api/text' }),
+      (error: unknown) => asNimiError(error, { source: 'realm' }).reasonCode === ReasonCode.REALM_UNAVAILABLE,
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -1245,7 +1260,7 @@ test('Realm retries 429 responses using Retry-After', async () => {
       auth: null,
     });
 
-    const result = await realm.raw.request({ method: 'GET', path: '/api/rate-limited' });
+    const result = await realm.unsafeRaw.request({ method: 'GET', path: '/api/rate-limited' });
     assert.deepEqual(result, { ok: true });
     assert.equal(callCount, 2);
   } finally {
@@ -1282,7 +1297,7 @@ test('Realm retries configured 5xx responses and stops at maxRetries', async () 
       },
     });
 
-    const result = await realm.raw.request({ method: 'GET', path: '/api/flaky' });
+    const result = await realm.unsafeRaw.request({ method: 'GET', path: '/api/flaky' });
     assert.deepEqual(result, { ok: true });
     assert.equal(successCallCount, 3);
   } finally {
@@ -1310,7 +1325,7 @@ test('Realm retries configured 5xx responses and stops at maxRetries', async () 
     });
 
     await assert.rejects(
-      () => realm.raw.request({ method: 'GET', path: '/api/still-flaky' }),
+      () => realm.unsafeRaw.request({ method: 'GET', path: '/api/still-flaky' }),
       (error: unknown) => {
         const nimiError = asNimiError(error, { source: 'realm' });
         assert.equal(nimiError.reasonCode, ReasonCode.REALM_UNAVAILABLE);

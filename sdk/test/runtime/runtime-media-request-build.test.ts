@@ -31,7 +31,6 @@ test('build request: image modal with all optional fields', async () => {
       mask: 'mask.png',
       responseFormat: 'url' as const,
       route: 'local' as const,
-      fallback: 'deny' as const,
       timeoutMs: 5000,
       requestId: 'req-1',
       idempotencyKey: 'idem-1',
@@ -515,6 +514,7 @@ test('build request: stt modal with audio url', async () => {
     input: {
       model: 'stt-model',
       audio: { kind: 'url', url: 'https://example.com/audio.wav' },
+      mimeType: 'audio/wav',
     },
   });
 
@@ -530,6 +530,7 @@ test('build request: stt modal with audio chunks', async () => {
     input: {
       model: 'stt-model',
       audio: { kind: 'chunks', chunks: [new Uint8Array([7, 8])] },
+      mimeType: 'audio/wav',
     },
   });
 
@@ -538,19 +539,18 @@ test('build request: stt modal with audio chunks', async () => {
   }
 });
 
-test('build request: stt modal without optional mimeType defaults to audio/wav', async () => {
+test('build request: stt modal without mimeType now fails closed', async () => {
   const ctx = createMockContext();
-  const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
-    modal: 'stt',
-    input: {
-      model: 'stt-model',
-      audio: { kind: 'bytes', bytes: new Uint8Array([]) },
-    },
-  });
-
-  if (result.spec?.spec.oneofKind === 'speechTranscribe') {
-    assert.equal(result.spec.spec.speechTranscribe.mimeType, 'audio/wav');
-  }
+  await assert.rejects(
+    async () => runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
+      modal: 'stt',
+      input: {
+        model: 'stt-model',
+        audio: { kind: 'bytes', bytes: new Uint8Array([]) },
+      },
+    }),
+    /mimeType is required/,
+  );
 });
 
 test('build request: stt modal without optional fields defaults to false/0', async () => {
@@ -560,6 +560,7 @@ test('build request: stt modal without optional fields defaults to false/0', asy
     input: {
       model: 'stt-model',
       audio: { kind: 'bytes', bytes: new Uint8Array([]) },
+      mimeType: 'audio/wav',
     },
   });
 
@@ -750,6 +751,7 @@ test('build request: stt modal extensions use correct namespace', async () => {
     input: {
       model: 'stt-model',
       audio: { kind: 'bytes', bytes: new Uint8Array([]) },
+      mimeType: 'audio/wav',
       extensions: { extra: 'data' },
     },
   });
@@ -838,7 +840,7 @@ test('build request: stt modal maps to SPEECH_TRANSCRIBE scenario type', async (
   const ctx = createMockContext();
   const result = await runtimeBuildSubmitScenarioJobRequestForMedia(ctx, {
     modal: 'stt',
-    input: { model: 'm', audio: { kind: 'bytes', bytes: new Uint8Array([]) } },
+    input: { model: 'm', audio: { kind: 'bytes', bytes: new Uint8Array([]) }, mimeType: 'audio/wav' },
   });
   assert.equal(result.scenarioType, 6);
 });

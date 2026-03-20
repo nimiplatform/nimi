@@ -2,7 +2,11 @@ import {
   asNimiError,
   createNimiError,
   type RuntimeCallOptions,
+  type RuntimeAiSubmitScenarioJobRequestInput,
 } from '../runtime/index.js';
+import type {
+  Value as ProtoValue,
+} from '../runtime/generated/google/protobuf/struct.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import {
   ROUTE_POLICY_CLOUD,
@@ -11,13 +15,19 @@ import {
   type RuntimeForAiProvider,
 } from './types.js';
 import { asRecord, normalizeText } from '../internal/utils.js';
-import { ExecutionMode, ScenarioJobStatus } from '../runtime/generated/runtime/v1/ai.js';
+import {
+  ExecutionMode,
+  ScenarioJobStatus,
+  type ScenarioArtifact,
+  type ScenarioOutput,
+} from '../runtime/generated/runtime/v1/ai.js';
 
 type ScenarioJobExecution = {
   artifacts: NimiArtifact[];
   traceId: string;
   routeDecision: AiRoutePolicy;
   modelResolved: string;
+  output?: ScenarioOutput;
 };
 
 function ensureText(value: unknown, fieldName: string): string {
@@ -78,16 +88,14 @@ function toCallOptions(
 export async function executeScenarioJob(
   runtime: RuntimeForAiProvider,
   defaults: RuntimeDefaults,
-  request: Record<string, unknown>,
+  request: RuntimeAiSubmitScenarioJobRequestInput,
   timeoutMs: number,
   signal?: AbortSignal,
 ): Promise<ScenarioJobExecution> {
-  const requestRecord = asRecord(request);
-  const requestHead = asRecord(requestRecord.head);
   const submitRequest = {
-    ...requestRecord,
-    executionMode: Number(requestRecord.executionMode || ExecutionMode.ASYNC_JOB),
-    extensions: Array.isArray(requestRecord.extensions) ? requestRecord.extensions : [],
+    ...request,
+    executionMode: Number(request.executionMode || ExecutionMode.ASYNC_JOB),
+    extensions: Array.isArray(request.extensions) ? request.extensions : [],
   };
   const submitResponse = await runtime.ai.submitScenarioJob(
     submitRequest as never,
@@ -96,8 +104,8 @@ export async function executeScenarioJob(
       metadata: undefined,
     }),
   );
-  const initialJob = asRecord(submitResponse.job);
-  const jobId = ensureText(initialJob.jobId, 'jobId');
+  const initialJob = submitResponse.job;
+  const jobId = ensureText(initialJob?.jobId, 'jobId');
   const startedAt = Date.now();
   const maxWaitMs = timeoutMs > 0 ? timeoutMs : 120000;
   let cancelIssued = false;
@@ -134,8 +142,8 @@ export async function executeScenarioJob(
       { jobId } as never,
       toCallOptions(defaults, { timeoutMs }),
     );
-    const job = asRecord(jobResponse.job);
-    const status = Number(job.status || 0);
+    const job = jobResponse.job;
+    const status = Number(job?.status || 0);
     if (status === ScenarioJobStatus.COMPLETED) {
       const artifactsResponse = await runtime.ai.getScenarioArtifacts(
         { jobId } as never,
@@ -144,19 +152,18 @@ export async function executeScenarioJob(
       const artifacts = Array.isArray(artifactsResponse.artifacts)
         ? artifactsResponse.artifacts
         : [];
-      const traceId = normalizeText(artifactsResponse.traceId) || normalizeText(job.traceId);
-      const routeDecision = fromRouteDecision(job.routeDecision);
-      const modelResolved = normalizeText(job.modelResolved) || normalizeText(requestHead.modelId);
+      const traceId = normalizeText(artifactsResponse.traceId) || normalizeText(job?.traceId);
+      const routeDecision = fromRouteDecision(job?.routeDecision);
+      const modelResolved = normalizeText(job?.modelResolved) || normalizeText(request.head?.modelId);
 
       return {
-        artifacts: artifacts.map((item) => {
-          const record = asRecord(item);
-          const bytes = record.bytes instanceof Uint8Array
-            ? record.bytes
+        artifacts: artifacts.map((item: ScenarioArtifact) => {
+          const bytes = item.bytes instanceof Uint8Array
+            ? item.bytes
             : new Uint8Array(0);
           return {
-            artifactId: normalizeText(record.artifactId),
-            mimeType: normalizeText(record.mimeType),
+            artifactId: normalizeText(item.artifactId),
+            mimeType: normalizeText(item.mimeType),
             bytes,
             traceId,
             routeDecision,
@@ -166,6 +173,7 @@ export async function executeScenarioJob(
         traceId,
         routeDecision,
         modelResolved,
+        output: artifactsResponse.output,
       };
     }
     if (
@@ -173,9 +181,9 @@ export async function executeScenarioJob(
       || status === ScenarioJobStatus.CANCELED
       || status === ScenarioJobStatus.TIMEOUT
     ) {
-      const reasonCode = normalizeText(job.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE;
+      const reasonCode = normalizeText(job?.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE;
       throw createNimiError({
-        message: normalizeText(job.reasonDetail) || `scenario job failed: ${reasonCode}`,
+        message: normalizeText(job?.reasonDetail) || `scenario job failed: ${reasonCode}`,
         reasonCode,
         actionHint: 'retry_scenario_job_request',
         source: 'runtime',
@@ -275,49 +283,71 @@ export async function collectArtifacts(stream: AsyncIterable<unknown>): Promise<
 export function toEmbeddingVectors(vectors: unknown): number[][] {
   const list = Array.isArray(vectors) ? vectors : [];
   return list.map((entry) => {
-    const values = Array.isArray(asRecord(entry).values)
-      ? asRecord(entry).values as unknown[]
-      : [];
+    const values = readLooseListValues(entry);
     return values
-      .map((value) => {
-        const kind = asRecord(asRecord(value).kind);
-        if (kind.oneofKind === 'numberValue') {
-          const n = Number(kind.numberValue);
-          return Number.isFinite(n) ? n : null;
-        }
-        return null;
-      })
-      .filter((value): value is number => value !== null);
+      .map((value) => readNumberValue(value))
+      .filter((value): value is number => typeof value === 'number');
   });
 }
 
 export function toEmbeddingVectorsFromScenarioOutput(output: unknown): number[][] {
-  const fields = asRecord(asRecord(output).fields);
-  const vectors = asRecord(fields.vectors);
-  const vectorKind = asRecord(vectors.kind);
-  if (vectorKind.oneofKind !== 'listValue') {
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  if (variant?.oneofKind !== 'textEmbed') {
     return [];
   }
-  const rows = Array.isArray(asRecord(vectorKind.listValue).values)
-    ? asRecord(vectorKind.listValue).values as unknown[]
+  return variant.textEmbed.vectors.map((row) => row.values
+    .map((item) => Number(item))
+    .filter((item) => Number.isFinite(item)));
+}
+
+export function toSpeechTranscriptionFromScenarioOutput(output: unknown): {
+  text: string;
+  artifacts: ScenarioArtifact[];
+} {
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  if (variant?.oneofKind !== 'speechTranscribe') {
+    return {
+      text: '',
+      artifacts: [],
+    };
+  }
+  return {
+    text: normalizeText(variant.speechTranscribe.text),
+    artifacts: Array.isArray(variant.speechTranscribe.artifacts)
+      ? variant.speechTranscribe.artifacts
+      : [],
+  };
+}
+
+export function toSpeechSynthesisArtifactsFromScenarioOutput(output: unknown): ScenarioArtifact[] {
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  if (variant?.oneofKind !== 'speechSynthesize') {
+    return [];
+  }
+  return Array.isArray(variant.speechSynthesize.artifacts)
+    ? variant.speechSynthesize.artifacts
     : [];
-  return rows.map((row) => {
-    const rowKind = asRecord(asRecord(row).kind);
-    if (rowKind.oneofKind !== 'listValue') {
-      return [];
-    }
-    const values = Array.isArray(asRecord(rowKind.listValue).values)
-      ? asRecord(rowKind.listValue).values as unknown[]
-      : [];
-    return values.map((value) => {
-      const kind = asRecord(asRecord(value).kind);
-      if (kind.oneofKind === 'numberValue') {
-        const parsed = Number(kind.numberValue);
-        return Number.isFinite(parsed) ? parsed : null;
-      }
-      return null;
-    }).filter((value): value is number => value !== null);
-  });
+}
+
+function readLooseListValues(value: unknown): ProtoValue[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return [];
+  }
+  const values = (value as { values?: unknown }).values;
+  return Array.isArray(values)
+    ? values as ProtoValue[]
+    : [];
+}
+
+function readNumberValue(value: ProtoValue | undefined): number | undefined {
+  if (value?.kind.oneofKind !== 'numberValue') {
+    return undefined;
+  }
+  const parsed = Number(value.kind.numberValue);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 export function normalizeProviderError(error: unknown) {

@@ -20,7 +20,7 @@ export function assertNoLegacyLocalModelPrefix(modelId: string): void {
   }
 }
 
-export function withOptionalHeadSubjectUserId<T extends { head: Record<string, unknown> }>(
+export function withOptionalHeadSubjectUserId<T extends { head: { subjectUserId: string } }>(
   request: T,
   subjectUserId: string | undefined,
 ): T {

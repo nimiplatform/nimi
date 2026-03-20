@@ -3,7 +3,7 @@
 ## 1. ready() 语义差异
 Anchors: S-RUNTIME-015, S-REALM-019
 
-Runtime `ready()` 是 fail-close，Realm `ready()` 是 fail-open。调用方必须按子路径差异处理可用性判断。
+Runtime `ready()` 与 Realm `ready()` 都必须 fail-close。调用方不得再把 Realm 探测失败当作“仅遥测、不影响可用性”的软失败。
 
 ## 2. 中断与重建策略
 Anchors: S-RUNTIME-028, S-RUNTIME-045, S-REALM-036

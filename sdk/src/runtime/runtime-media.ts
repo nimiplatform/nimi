@@ -10,6 +10,7 @@ import {
   VideoContentType,
   VideoMode,
   type ScenarioArtifact,
+  type ScenarioOutput,
   type ScenarioExtension,
   type ScenarioJob,
   type ScenarioJobEvent,
@@ -20,7 +21,6 @@ import type {
   ImageGenerateInput,
   MusicIterationExtensionInput,
   MusicGenerateInput,
-  NimiFallbackPolicy,
   NimiRoutePolicy,
   ScenarioJobSubmitInput,
   SpeechSynthesizeInput,
@@ -35,7 +35,6 @@ import {
   normalizeText,
   nowIso,
   sleep,
-  toFallbackPolicy,
   toLabels,
   toProtoStruct,
   toRoutePolicy,
@@ -264,7 +263,7 @@ export async function runtimeSubscribeScenarioJobForMedia(
 export async function runtimeGetScenarioArtifactsForMedia(
   ctx: RuntimeInternalContext,
   jobId: string,
-): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string }> {
+): Promise<{ artifacts: ScenarioArtifact[]; traceId?: string; output?: ScenarioOutput }> {
   const response = await ctx.invokeWithClient(async (client) => client.ai.getScenarioArtifacts({
     jobId: ensureText(jobId, 'jobId'),
   }));
@@ -272,6 +271,7 @@ export async function runtimeGetScenarioArtifactsForMedia(
   return {
     artifacts: response.artifacts || [],
     traceId: normalizeText(response.traceId) || undefined,
+    output: response.output,
   };
 }
 
@@ -283,7 +283,6 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
     (input.input as { timeoutMs?: unknown }).timeoutMs || ctx.options.timeoutMs || 0,
   );
   const route = toRoutePolicy((input.input as { route?: NimiRoutePolicy }).route);
-  const fallback = toFallbackPolicy((input.input as { fallback?: NimiFallbackPolicy }).fallback);
   const connectorId = normalizeText((input.input as { connectorId?: string }).connectorId);
 
   const subjectUserId = runtimeAiRequestRequiresSubject({
@@ -297,17 +296,20 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
   })
     ? await ctx.resolveSubjectUserId((input.input as { subjectUserId?: string }).subjectUserId)
     : await ctx.resolveOptionalSubjectUserId((input.input as { subjectUserId?: string }).subjectUserId);
-
-  const base: SubmitScenarioJobRequest = {
+  const head = await ctx.normalizeScenarioHead({
     head: {
       appId: ctx.appId,
       subjectUserId: subjectUserId || '',
       modelId: ensureText((input.input as { model: string }).model, 'model'),
       routePolicy: route,
-      fallback,
       timeoutMs,
       connectorId,
     },
+    metadata: (input.input as { metadata?: Record<string, string> }).metadata,
+  });
+
+  const base: SubmitScenarioJobRequest = {
+    head,
     scenarioType: scenarioTypeFromModal(input.modal),
     executionMode: ExecutionMode.ASYNC_JOB,
     requestId: normalizeText((input.input as { requestId?: string }).requestId),
@@ -482,7 +484,7 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
       spec: {
         oneofKind: 'speechTranscribe',
         speechTranscribe: {
-          mimeType: normalizeText(value.mimeType || 'audio/wav'),
+          mimeType: ensureText(value.mimeType, 'mimeType'),
           language: normalizeText(value.language),
           timestamps: Boolean(value.timestamps),
           diarization: Boolean(value.diarization),

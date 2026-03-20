@@ -64,15 +64,18 @@ export type RuntimeRealmBridgeContext = {
 };
 
 export type RuntimeRealmBridgeHelpers = {
+  /**
+   * Fetches realm-issued runtime auth material through the standard generated Realm service.
+   * The request contract is `{ appId, subjectUserId, scopes }`; `appId` is always sourced from
+   * the bound Runtime/Realm bridge context.
+   */
   fetchRealmGrant(input: {
-    appId?: string;
     subjectUserId: string;
     scopes: string[];
-    path?: string;
   }): Promise<{
     token: string;
     version: string;
-    expiresAt?: string;
+    expiresAt: string;
   }>;
   buildRuntimeAuthMetadata(input: {
     grantToken: string;
@@ -90,19 +93,22 @@ export type RuntimeScopeModule = {
 export type RuntimeAiExecuteScenarioRequestInput =
   Omit<ExecuteScenarioRequest, 'head'>
   & {
-    head: Omit<NonNullable<ExecuteScenarioRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
+    head: Omit<NonNullable<ExecuteScenarioRequest['head']>, 'subjectUserId' | 'fallback'>
+      & { subjectUserId?: string };
   };
 
 export type RuntimeAiStreamScenarioRequestInput =
   Omit<StreamScenarioRequest, 'head'>
   & {
-    head: Omit<NonNullable<StreamScenarioRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
+    head: Omit<NonNullable<StreamScenarioRequest['head']>, 'subjectUserId' | 'fallback'>
+      & { subjectUserId?: string };
   };
 
 export type RuntimeAiSubmitScenarioJobRequestInput =
   Omit<SubmitScenarioJobRequest, 'head'>
   & {
-    head: Omit<NonNullable<SubmitScenarioJobRequest['head']>, 'subjectUserId'> & { subjectUserId?: string };
+    head: Omit<NonNullable<SubmitScenarioJobRequest['head']>, 'subjectUserId' | 'fallback'>
+      & { subjectUserId?: string };
   };
 
 export type RuntimeAiOpenRealtimeSessionRequestInput =

@@ -3,6 +3,16 @@
 
 import type { components } from './schema.js';
 
+export const AccountDataTaskStatus = {
+  PENDING: "PENDING",
+  PROCESSING: "PROCESSING",
+  COMPLETED: "COMPLETED",
+  FAILED: "FAILED",
+  UNAVAILABLE: "UNAVAILABLE",
+} as const satisfies Record<string, components['schemas']['AccountDataTaskResultDto']['status']>;
+
+export type AccountDataTaskStatus = (typeof AccountDataTaskStatus)[keyof typeof AccountDataTaskStatus];
+
 export const AddCheckpointStatus = {
   PASSED: "PASSED",
   FAILED: "FAILED",
@@ -34,6 +44,23 @@ export const AgentCommunicationSentiment = {
 } as const satisfies Record<string, components['schemas']['AgentCommunicationDto']['sentiment']>;
 
 export type AgentCommunicationSentiment = (typeof AgentCommunicationSentiment)[keyof typeof AgentCommunicationSentiment];
+
+export const AgentMemoryRecordCategory = {
+  CORE: "CORE",
+  E2E: "E2E",
+} as const satisfies Record<string, components['schemas']['AgentMemoryRecordDto']['category']>;
+
+export type AgentMemoryRecordCategory = (typeof AgentMemoryRecordCategory)[keyof typeof AgentMemoryRecordCategory];
+
+export const AgentMemoryRecordType = {
+  CORE_FACT: "CORE_FACT",
+  EPISODIC: "EPISODIC",
+  SEMANTIC: "SEMANTIC",
+  PROCEDURAL: "PROCEDURAL",
+  CULTURAL: "CULTURAL",
+} as const satisfies Record<string, components['schemas']['AgentMemoryRecordDto']['type']>;
+
+export type AgentMemoryRecordType = (typeof AgentMemoryRecordType)[keyof typeof AgentMemoryRecordType];
 
 export const AgentRuleCategory = {
   CONSTRAINT: "CONSTRAINT",
@@ -102,6 +129,13 @@ export const AgentRuleStatus = {
 } as const satisfies Record<string, components['schemas']['AgentRuleDto']['status']>;
 
 export type AgentRuleStatus = (typeof AgentRuleStatus)[keyof typeof AgentRuleStatus];
+
+export const BatchCreateAgentCreatedOwnershipType = {
+  MASTER_OWNED: "MASTER_OWNED",
+  WORLD_OWNED: "WORLD_OWNED",
+} as const satisfies Record<string, components['schemas']['BatchCreateAgentCreatedDto']['ownershipType']>;
+
+export type BatchCreateAgentCreatedOwnershipType = (typeof BatchCreateAgentCreatedOwnershipType)[keyof typeof BatchCreateAgentCreatedOwnershipType];
 
 export const BatchUpsertWorldEventsMode = {
   MERGE: "merge",
@@ -407,6 +441,15 @@ export const DesktopChatRouteTargetType = {
 
 export type DesktopChatRouteTargetType = (typeof DesktopChatRouteTargetType)[keyof typeof DesktopChatRouteTargetType];
 
+export const FactionRelationshipType = {
+  ALLY: "ALLY",
+  NEUTRAL: "NEUTRAL",
+  RIVAL: "RIVAL",
+  ENEMY: "ENEMY",
+} as const satisfies Record<string, components['schemas']['FactionRelationshipDto']['type']>;
+
+export type FactionRelationshipType = (typeof FactionRelationshipType)[keyof typeof FactionRelationshipType];
+
 export const FinalizeMediaAssetDeliveryAccess = {
   PUBLIC: "PUBLIC",
   SIGNED: "SIGNED",
@@ -699,6 +742,14 @@ export const PublicWorldMutationType = {
 
 export type PublicWorldMutationType = (typeof PublicWorldMutationType)[keyof typeof PublicWorldMutationType];
 
+export const RequestDataExportFormat = {
+  JSON: "JSON",
+  CSV: "CSV",
+  ZIP: "ZIP",
+} as const satisfies Record<string, components['schemas']['RequestDataExportDto']['format']>;
+
+export type RequestDataExportFormat = (typeof RequestDataExportFormat)[keyof typeof RequestDataExportFormat];
+
 export const ReviewProposalAction = {
   APPROVED: "APPROVED",
   REJECTED: "REJECTED",
@@ -750,6 +801,22 @@ export const SatelliteMetadataVisibility = {
 } as const satisfies Record<string, components['schemas']['SatelliteMetadataDto']['visibility']>;
 
 export type SatelliteMetadataVisibility = (typeof SatelliteMetadataVisibility)[keyof typeof SatelliteMetadataVisibility];
+
+export const SceneDefinitionTier = {
+  TIER0_SANCTUARY: "TIER0_SANCTUARY",
+  TIER1_TRANSIT: "TIER1_TRANSIT",
+  TIER2_ACTIVE: "TIER2_ACTIVE",
+} as const satisfies Record<string, components['schemas']['SceneDefinitionDto']['tier']>;
+
+export type SceneDefinitionTier = (typeof SceneDefinitionTier)[keyof typeof SceneDefinitionTier];
+
+export const SceneTimeSettingsTier = {
+  TIER0_SANCTUARY: "TIER0_SANCTUARY",
+  TIER1_TRANSIT: "TIER1_TRANSIT",
+  TIER2_ACTIVE: "TIER2_ACTIVE",
+} as const satisfies Record<string, components['schemas']['SceneTimeSettingsDto']['tier']>;
+
+export type SceneTimeSettingsTier = (typeof SceneTimeSettingsTier)[keyof typeof SceneTimeSettingsTier];
 
 export const SpaceTopologyBoundary = {
   FINITE: "FINITE",
@@ -919,6 +986,30 @@ export const UpdateWorldRuleScope = {
 } as const satisfies Record<string, components['schemas']['UpdateWorldRuleDto']['scope']>;
 
 export type UpdateWorldRuleScope = (typeof UpdateWorldRuleScope)[keyof typeof UpdateWorldRuleScope];
+
+export const UserAgentCommunicationFormality = {
+  CASUAL: "casual",
+  FORMAL: "formal",
+  SLANG: "slang",
+} as const satisfies Record<string, components['schemas']['UserAgentCommunicationDto']['formality']>;
+
+export type UserAgentCommunicationFormality = (typeof UserAgentCommunicationFormality)[keyof typeof UserAgentCommunicationFormality];
+
+export const UserAgentCommunicationResponseLength = {
+  SHORT: "short",
+  MEDIUM: "medium",
+  LONG: "long",
+} as const satisfies Record<string, components['schemas']['UserAgentCommunicationDto']['responseLength']>;
+
+export type UserAgentCommunicationResponseLength = (typeof UserAgentCommunicationResponseLength)[keyof typeof UserAgentCommunicationResponseLength];
+
+export const UserAgentCommunicationSentiment = {
+  POSITIVE: "positive",
+  NEUTRAL: "neutral",
+  CYNICAL: "cynical",
+} as const satisfies Record<string, components['schemas']['UserAgentCommunicationDto']['sentiment']>;
+
+export type UserAgentCommunicationSentiment = (typeof UserAgentCommunicationSentiment)[keyof typeof UserAgentCommunicationSentiment];
 
 export const VerifySyntheticMemoryStatus = {
   CANONIZED: "canonized",

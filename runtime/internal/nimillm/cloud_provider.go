@@ -233,7 +233,7 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 		if backend == nil {
 			return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
-		resolvedModelID := p.ResolveModelID(modelID)
+		resolvedModelID := stripModelPrefix(modelID)
 		p.rememberDecision(modelID, backend.Name)
 		return backend.Embed(ctx, resolvedModelID, inputs)
 	}
@@ -433,7 +433,7 @@ func (p *CloudProvider) Backends() map[string]*Backend {
 func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTarget) (*Backend, string) {
 	if target != nil {
 		backend := p.backendFromTarget(target)
-		resolvedModelID := p.ResolveModelID(modelID)
+		resolvedModelID := stripModelPrefix(modelID)
 		return backend, resolvedModelID
 	}
 	backend, resolvedModelID, explicit, ok := p.PickBackend(modelID)
@@ -441,6 +441,25 @@ func (p *CloudProvider) resolveBackendForTarget(modelID string, target *RemoteTa
 		return nil, resolvedModelID
 	}
 	return backend, resolvedModelID
+}
+
+// stripModelPrefix removes cloud/, token/, and provider prefixes (e.g. "deepseek/deepseek-chat" -> "deepseek-chat").
+// It is intentionally used only on RemoteTarget override paths where the backend/provider has already
+// been selected explicitly, so sending the prefixed model ID downstream would be redundant. Non-target
+// text-generation paths continue to use the normal provider/model resolution flow rather than this helper.
+func stripModelPrefix(modelID string) string {
+	id := strings.TrimSpace(modelID)
+	id = strings.TrimSpace(strings.TrimPrefix(id, "cloud/"))
+	id = strings.TrimSpace(strings.TrimPrefix(id, "token/"))
+	if segments := strings.SplitN(id, "/", 2); len(segments) == 2 {
+		if rest := strings.TrimSpace(segments[1]); rest != "" {
+			return rest
+		}
+	}
+	if id == "" {
+		return "cloud-default"
+	}
+	return id
 }
 
 // backendFromTarget creates a backend from a RemoteTarget.

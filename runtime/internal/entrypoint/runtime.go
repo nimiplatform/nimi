@@ -79,7 +79,10 @@ func RunDaemonFromArgs(program string, args []string, version ...string) error {
 		stop() // restore default signal behavior: second Ctrl+C kills the process immediately
 	}()
 
-	d := daemon.New(cfg, logger, runtimeVersion)
+	d, err := daemon.New(cfg, logger, runtimeVersion)
+	if err != nil {
+		return err
+	}
 	return d.Run(ctx)
 }
 

@@ -289,8 +289,53 @@ message ExecuteScenarioRequest {
   repeated ScenarioExtension extensions = 5;
 }
 
+message TextGenerateOutput {
+  string text = 1;
+}
+
+message EmbeddingVector {
+  repeated double values = 1;
+}
+
+message TextEmbedOutput {
+  repeated EmbeddingVector vectors = 1;
+}
+
+message ImageGenerateResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message VideoGenerateResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message SpeechSynthesizeResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message SpeechTranscribeResult {
+  string text = 1;
+  repeated ScenarioArtifact artifacts = 2;
+}
+
+message MusicGenerateResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message ScenarioOutput {
+  oneof output {
+    TextGenerateOutput text_generate = 1;
+    TextEmbedOutput text_embed = 2;
+    ImageGenerateResult image_generate = 3;
+    VideoGenerateResult video_generate = 4;
+    SpeechTranscribeResult speech_transcribe = 5;
+    MusicGenerateResult music_generate = 6;
+    SpeechSynthesizeResult speech_synthesize = 7;
+  }
+}
+
 message ExecuteScenarioResponse {
-  google.protobuf.Struct output = 1;
+  ScenarioOutput output = 1;
   FinishReason finish_reason = 2;
   UsageStats usage = 3;
   RoutePolicy route_decision = 4;
@@ -312,10 +357,20 @@ message ScenarioStreamStarted {
   RoutePolicy route_decision = 2;
 }
 
-message ScenarioStreamDelta {
+message TextStreamDelta {
   string text = 1;
-  bytes chunk = 2;
-  string mime_type = 3;
+}
+
+message ArtifactStreamDelta {
+  bytes chunk = 1;
+  string mime_type = 2;
+}
+
+message ScenarioStreamDelta {
+  oneof delta {
+    TextStreamDelta text = 1;
+    ArtifactStreamDelta artifact = 2;
+  }
 }
 
 message ScenarioStreamCompleted {
@@ -455,6 +510,7 @@ message GetScenarioArtifactsResponse {
   string job_id = 1;
   repeated ScenarioArtifact artifacts = 2;
   string trace_id = 3;
+  ScenarioOutput output = 4;
 }
 
 message ScenarioProfile {

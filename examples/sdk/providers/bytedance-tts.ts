@@ -119,7 +119,6 @@ async function main(): Promise<void> {
     voice,
     audioFormat: 'mp3',
     route: 'cloud',
-    fallback: 'deny',
     timeoutMs: 120000,
     metadata: {
       keySource: 'inline',

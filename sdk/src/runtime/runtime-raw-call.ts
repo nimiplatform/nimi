@@ -10,16 +10,36 @@ type RuntimeMethodBinding = {
   stream: boolean;
 };
 
-export async function runtimeRawCall<TReq, TRes>(input: {
-  methodId: string;
-  request: TReq;
+export function runtimeRawCall<MethodId extends import('./runtime-method-contracts.js').RuntimeMethodId>(input: {
+  methodId: MethodId;
+  request: import('./runtime-method-contracts.js').RuntimeMethodRequest<MethodId>;
   options?: RuntimeCallOptions | RuntimeStreamCallOptions;
   methodLookup: Record<string, RuntimeMethodBinding>;
   assertMethodAvailable: (moduleKey: string, methodKey: string) => void;
   invokeWithClient: <T>(operation: (client: RuntimeClient) => Promise<T>) => Promise<T>;
   createMethodNotAllowlistedError: (methodId: string) => Error;
   createMethodNotImplementedError: (moduleKey: string, methodKey: string) => Error;
-}): Promise<TRes> {
+}): Promise<import('./runtime-method-contracts.js').RuntimeMethodResponse<MethodId>>;
+export function runtimeRawCall(input: {
+  methodId: string;
+  request: unknown;
+  options?: RuntimeCallOptions | RuntimeStreamCallOptions;
+  methodLookup: Record<string, RuntimeMethodBinding>;
+  assertMethodAvailable: (moduleKey: string, methodKey: string) => void;
+  invokeWithClient: <T>(operation: (client: RuntimeClient) => Promise<T>) => Promise<T>;
+  createMethodNotAllowlistedError: (methodId: string) => Error;
+  createMethodNotImplementedError: (moduleKey: string, methodKey: string) => Error;
+}): Promise<unknown>;
+export async function runtimeRawCall(input: {
+  methodId: string;
+  request: unknown;
+  options?: RuntimeCallOptions | RuntimeStreamCallOptions;
+  methodLookup: Record<string, RuntimeMethodBinding>;
+  assertMethodAvailable: (moduleKey: string, methodKey: string) => void;
+  invokeWithClient: <T>(operation: (client: RuntimeClient) => Promise<T>) => Promise<T>;
+  createMethodNotAllowlistedError: (methodId: string) => Error;
+  createMethodNotImplementedError: (moduleKey: string, methodKey: string) => Error;
+}): Promise<unknown> {
   const binding = input.methodLookup[input.methodId];
   if (!binding) {
     throw input.createMethodNotAllowlistedError(input.methodId);
@@ -36,14 +56,14 @@ export async function runtimeRawCall<TReq, TRes>(input: {
 
     if (binding.stream) {
       return (method as (
-        request: TReq,
+        request: unknown,
         callOptions?: RuntimeStreamCallOptions,
-      ) => Promise<TRes>)(input.request, input.options as RuntimeStreamCallOptions | undefined);
+      ) => Promise<unknown>)(input.request, input.options as RuntimeStreamCallOptions | undefined);
     }
 
     return (method as (
-      request: TReq,
+      request: unknown,
       callOptions?: RuntimeCallOptions,
-    ) => Promise<TRes>)(input.request, input.options as RuntimeCallOptions | undefined);
+    ) => Promise<unknown>)(input.request, input.options as RuntimeCallOptions | undefined);
   });
 }

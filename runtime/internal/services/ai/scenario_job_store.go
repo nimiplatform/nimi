@@ -273,12 +273,14 @@ func (s *Service) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScen
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
-	artifacts, traceID, ok := s.scenarioJobs.listArtifacts(jobID)
+	job, artifacts, traceID, ok := s.scenarioJobs.listArtifacts(jobID)
 	if ok {
+		output := buildScenarioOutputFromArtifacts(job, artifacts)
 		return &runtimev1.GetScenarioArtifactsResponse{
 			JobId:     jobID,
 			Artifacts: artifacts,
 			TraceId:   traceID,
+			Output:    output,
 		}, nil
 	}
 	if job, ok := s.voiceAssets.getJob(jobID); ok {

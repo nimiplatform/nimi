@@ -5,6 +5,7 @@ import {
   RoutePolicy,
   ScenarioType,
   type ArtifactChunk,
+  type ScenarioArtifact,
   type ScenarioJob,
 } from './generated/runtime/v1/ai';
 import type { ListPresetVoicesRequest, VoicePresetDescriptor } from './generated/runtime/v1/voice';
@@ -27,10 +28,10 @@ import type {
   VideoGenerateOutput,
 } from './types.js';
 import {
-  decodeUtf8,
   ensureText,
+  extractScenarioArtifacts,
+  extractSpeechTranscription,
   normalizeText,
-  toFallbackPolicy,
   toRoutePolicy,
   toTraceInfo,
 } from './helpers.js';
@@ -40,6 +41,59 @@ import {
   runtimeSubmitScenarioJobForMedia,
   runtimeWaitForScenarioJobCompletion,
 } from './runtime-media.js';
+
+function requireTypedMediaArtifacts(
+  response: Awaited<ReturnType<typeof runtimeGetScenarioArtifactsForMedia>>,
+  kind: 'imageGenerate' | 'videoGenerate' | 'musicGenerate' | 'speechSynthesize',
+): ScenarioArtifact[] {
+  const output = response.output;
+  if (!output?.output || output.output.oneofKind !== kind) {
+    throw createNimiError({
+      message: `runtime media output missing typed ${kind} result`,
+      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      actionHint: 'regenerate_runtime_proto_and_sdk',
+      source: 'runtime',
+    });
+  }
+  const artifacts = extractScenarioArtifacts(output, kind);
+  if (artifacts.length === 0) {
+    throw createNimiError({
+      message: `runtime media output missing artifacts for typed ${kind} result`,
+      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      actionHint: 'check_runtime_media_contract',
+      source: 'runtime',
+    });
+  }
+  const byArtifactId = new Map<string, ScenarioArtifact>();
+  for (const artifact of response.artifacts || []) {
+    const artifactId = normalizeText(artifact.artifactId);
+    if (artifactId) {
+      byArtifactId.set(artifactId, artifact);
+    }
+  }
+
+  return artifacts.map((artifact, index) => {
+    const artifactId = normalizeText(artifact.artifactId);
+    const hydrated = artifactId ? byArtifactId.get(artifactId) : undefined;
+    const mergedArtifactId = artifactId || normalizeText(hydrated?.artifactId);
+    const mergedMimeType = normalizeText(hydrated?.mimeType) || normalizeText(artifact.mimeType);
+    if (!mergedArtifactId || !mergedMimeType) {
+      throw createNimiError({
+        message: `runtime media artifact ${index} is missing stable metadata`,
+        reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+        actionHint: 'check_runtime_media_contract',
+        source: 'runtime',
+      });
+    }
+    return {
+      ...hydrated,
+      ...artifact,
+      artifactId: mergedArtifactId,
+      mimeType: mergedMimeType,
+      bytes: hydrated?.bytes ?? artifact.bytes ?? new Uint8Array(0),
+    };
+  });
+}
 
 export async function runtimeGenerateImage(
   ctx: RuntimeInternalContext,
@@ -61,10 +115,11 @@ export async function runtimeGenerateImage(
     modelResolved: job.modelResolved,
     routeDecision: job.routeDecision,
   });
+  const typedArtifacts = requireTypedMediaArtifacts(artifacts, 'imageGenerate');
 
   return {
     job,
-    artifacts: artifacts.artifacts,
+    artifacts: typedArtifacts,
     trace,
   };
 }
@@ -89,10 +144,11 @@ export async function runtimeGenerateVideo(
     modelResolved: job.modelResolved,
     routeDecision: job.routeDecision,
   });
+  const typedArtifacts = requireTypedMediaArtifacts(artifacts, 'videoGenerate');
 
   return {
     job,
-    artifacts: artifacts.artifacts,
+    artifacts: typedArtifacts,
     trace,
   };
 }
@@ -117,10 +173,11 @@ export async function runtimeSynthesizeSpeech(
     modelResolved: job.modelResolved,
     routeDecision: job.routeDecision,
   });
+  const typedArtifacts = requireTypedMediaArtifacts(artifacts, 'speechSynthesize');
 
   return {
     job,
-    artifacts: artifacts.artifacts,
+    artifacts: typedArtifacts,
     trace,
   };
 }
@@ -148,7 +205,7 @@ export async function runtimeGenerateMusic(
 
   return {
     job,
-    artifacts: artifacts.artifacts,
+    artifacts: requireTypedMediaArtifacts(artifacts, 'musicGenerate'),
     trace,
   };
 }
@@ -178,8 +235,8 @@ export async function runtimeTranscribeSpeech(
   });
 
   const artifacts = await runtimeGetScenarioArtifactsForMedia(ctx, job.jobId);
-  const first = artifacts.artifacts[0];
-  const text = first ? decodeUtf8(first.bytes) : '';
+  const typedResult = extractSpeechTranscription(artifacts.output);
+  const text = typedResult.text;
 
   const trace = toTraceInfo({
     traceId: artifacts.traceId || job.traceId,
@@ -190,6 +247,7 @@ export async function runtimeTranscribeSpeech(
   return {
     job,
     text,
+    artifacts: typedResult.artifacts,
     trace,
   };
 }
@@ -294,15 +352,17 @@ export async function runtimeStreamSpeechSynthesis(
     ? await ctx.resolveSubjectUserId(input.subjectUserId)
     : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const request = {
-    head: {
-      appId: ctx.appId,
-      subjectUserId: subjectUserId || '',
-      modelId: ensureText(input.model, 'model'),
-      routePolicy,
-      fallback: toFallbackPolicy(input.fallback),
-      timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
-      connectorId,
-    },
+    head: await ctx.normalizeScenarioHead({
+      head: {
+        appId: ctx.appId,
+        subjectUserId: subjectUserId || '',
+        modelId: ensureText(input.model, 'model'),
+        routePolicy,
+        timeoutMs: Number(input.timeoutMs || ctx.options.timeoutMs || 0),
+        connectorId,
+      },
+      metadata: input.metadata,
+    }),
     scenarioType: ScenarioType.SPEECH_SYNTHESIZE,
     executionMode: ExecutionMode.STREAM,
     spec: {
@@ -350,64 +410,95 @@ export async function runtimeStreamSpeechSynthesis(
     }),
   ));
 
-  const fallbackMimeType = normalizeText(input.audioFormat) || 'audio/wav';
   const fallbackModel = ensureText(input.model, 'model');
   return {
     async *[Symbol.asyncIterator](): AsyncIterator<ArtifactChunk> {
       let streamModelResolved = fallbackModel;
       let streamRouteDecision = request.head.routePolicy || RoutePolicy.UNSPECIFIED;
+      let streamMimeType = '';
+      let sawArtifactChunk = false;
       for await (const event of stream) {
-        const payload = (event.payload || { oneofKind: undefined }) as { oneofKind?: string };
-        if (payload.oneofKind === 'started') {
-          const started = (event.payload as { started?: { modelResolved?: string; routeDecision?: RoutePolicy } }).started || {};
-          streamModelResolved = normalizeText(started.modelResolved) || fallbackModel;
-          streamRouteDecision = started.routeDecision || request.head.routePolicy || RoutePolicy.UNSPECIFIED;
-          continue;
-        }
-
-        if (payload.oneofKind === 'delta') {
-          const delta = (event.payload as { delta?: { chunk?: Uint8Array; text?: string; mimeType?: string } }).delta || {};
-          const chunk = delta.chunk || new Uint8Array(0);
-          if (chunk.length === 0) {
+        switch (event.payload.oneofKind) {
+          case 'started': {
+            const started = event.payload.started;
+            streamModelResolved = normalizeText(started.modelResolved) || fallbackModel;
+            streamRouteDecision = started.routeDecision || request.head.routePolicy || RoutePolicy.UNSPECIFIED;
             continue;
           }
-          yield {
-            artifactId: 'speech-stream-artifact',
-            mimeType: normalizeText(delta.mimeType) || fallbackMimeType,
-            sequence: String(event.sequence || 0),
-            chunk,
-            eof: false,
-            routeDecision: streamRouteDecision,
-            modelResolved: streamModelResolved,
-            traceId: normalizeText(event.traceId),
-          };
-          continue;
-        }
-
-        if (payload.oneofKind === 'completed') {
-          const completed = (event.payload as { completed?: { usage?: ArtifactChunk['usage'] } }).completed || {};
-          yield {
-            artifactId: 'speech-stream-artifact',
-            mimeType: fallbackMimeType,
-            sequence: String(event.sequence || 0),
-            chunk: new Uint8Array(0),
-            eof: true,
-            usage: completed.usage,
-            routeDecision: streamRouteDecision,
-            modelResolved: streamModelResolved,
-            traceId: normalizeText(event.traceId),
-          };
-          return;
-        }
-
-        if (payload.oneofKind === 'failed') {
-          const failed = (event.payload as { failed?: { reasonCode?: string; actionHint?: string } }).failed || {};
-          throw createNimiError({
-            message: normalizeText(failed.actionHint) || 'runtime stream failed',
-            reasonCode: normalizeText(failed.reasonCode) || ReasonCode.AI_STREAM_BROKEN,
-            actionHint: 'retry_or_switch_route',
-            source: 'runtime',
-          });
+          case 'delta': {
+            const streamDelta = event.payload.delta;
+            const deltaPayload = streamDelta.delta;
+            const chunk = deltaPayload?.oneofKind === 'artifact'
+              ? (deltaPayload.artifact.chunk || new Uint8Array(0))
+              : new Uint8Array(0);
+            if (chunk.length === 0) {
+              continue;
+            }
+            const mimeType = normalizeText(deltaPayload?.oneofKind === 'artifact'
+              ? deltaPayload.artifact.mimeType
+              : '');
+            if (!mimeType) {
+              throw createNimiError({
+                message: 'runtime speech stream artifact chunk missing mimeType',
+                reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+                actionHint: 'check_runtime_stream_contract',
+                source: 'runtime',
+              });
+            }
+            streamMimeType = mimeType;
+            sawArtifactChunk = true;
+            yield {
+              artifactId: 'speech-stream-artifact',
+              mimeType,
+              sequence: String(event.sequence || 0),
+              chunk,
+              eof: false,
+              routeDecision: streamRouteDecision,
+              modelResolved: streamModelResolved,
+              traceId: normalizeText(event.traceId),
+            };
+            continue;
+          }
+          case 'completed': {
+            const completedMimeType = streamMimeType || normalizeText(input.audioFormat);
+            if (!completedMimeType) {
+              throw createNimiError({
+                message: 'runtime speech stream completed without stable mimeType',
+                reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+                actionHint: 'check_runtime_stream_contract',
+                source: 'runtime',
+              });
+            }
+            if (!sawArtifactChunk) {
+              throw createNimiError({
+                message: 'runtime speech stream completed without audio chunks',
+                reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+                actionHint: 'check_runtime_stream_contract',
+                source: 'runtime',
+              });
+            }
+            yield {
+              artifactId: 'speech-stream-artifact',
+              mimeType: completedMimeType,
+              sequence: String(event.sequence || 0),
+              chunk: new Uint8Array(0),
+              eof: true,
+              usage: event.payload.completed.usage,
+              routeDecision: streamRouteDecision,
+              modelResolved: streamModelResolved,
+              traceId: normalizeText(event.traceId),
+            };
+            return;
+          }
+          case 'failed':
+            throw createNimiError({
+              message: normalizeText(event.payload.failed.actionHint) || 'runtime stream failed',
+              reasonCode: normalizeText(event.payload.failed.reasonCode) || ReasonCode.AI_STREAM_BROKEN,
+              actionHint: 'retry_or_switch_route',
+              source: 'runtime',
+            });
+          default:
+            continue;
         }
       }
     },
@@ -431,22 +522,26 @@ export function streamArtifactsFromMediaOutput(
   const modelResolved = normalizeText(output.job.modelResolved);
   const traceId = normalizeText(output.trace.traceId || output.job.traceId);
   const usage = output.job.usage;
-  const fallbackArtifactId = normalizeText(output.job.jobId);
-  const fallbackMimeType = 'application/octet-stream';
+  if (output.artifacts.length === 0) {
+    throw createNimiError({
+      message: 'runtime media output is missing artifacts',
+      reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+      actionHint: 'check_runtime_media_contract',
+      source: 'runtime',
+    });
+  }
 
-  const sourceArtifacts = output.artifacts.length > 0
-    ? output.artifacts
-    : [
-        {
-          artifactId: fallbackArtifactId,
-          mimeType: fallbackMimeType,
-          bytes: new Uint8Array(0),
-        },
-      ];
-
-  const items = sourceArtifacts.flatMap((artifact) => {
-    const artifactId = normalizeText(artifact.artifactId) || fallbackArtifactId;
-    const mimeType = normalizeText(artifact.mimeType) || fallbackMimeType;
+  const items = output.artifacts.flatMap((artifact, index) => {
+    const artifactId = normalizeText(artifact.artifactId);
+    const mimeType = normalizeText(artifact.mimeType);
+    if (!artifactId || !mimeType) {
+      throw createNimiError({
+        message: `runtime media artifact ${index} is missing stable metadata`,
+        reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+        actionHint: 'check_runtime_media_contract',
+        source: 'runtime',
+      });
+    }
     const bytes = artifact.bytes ?? new Uint8Array(0);
     if (bytes.length === 0) {
       return [{

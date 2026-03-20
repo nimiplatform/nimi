@@ -73,10 +73,9 @@ func NewResolver(cfg ResolverConfig) (*Resolver, error) {
 	if resolver.customDir != "" {
 		sharedOverlays, loadErr := loadOverlayProviderDocumentsFromDir(resolver.customDir)
 		if loadErr != nil {
-			resolver.logger.Warn("catalog custom dir ignored", "dir", resolver.customDir, "error", loadErr)
-		} else {
-			resolver.sharedOverlays = sharedOverlays
+			return nil, fmt.Errorf("load catalog custom dir %s: %w", resolver.customDir, loadErr)
 		}
+		resolver.sharedOverlays = sharedOverlays
 	}
 
 	if err := resolver.recomputeGlobalStateLocked(); err != nil {

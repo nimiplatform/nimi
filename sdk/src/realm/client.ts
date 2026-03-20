@@ -14,10 +14,10 @@ import type {
   RealmConnectionState,
   RealmEventsModule,
   RealmOptions,
-  RealmRawModule,
   RealmRetryOptions,
   RealmServiceRegistry,
   RealmTokenRefreshResult,
+  RealmUnsafeRawModule,
 } from './client-types.js';
 import {
   DEFAULT_REALM_TIMEOUT_MS,
@@ -56,7 +56,7 @@ export class Realm {
 
   readonly events: RealmEventsModule;
 
-  readonly raw: RealmRawModule;
+  readonly unsafeRaw: RealmUnsafeRawModule;
 
   readonly baseUrl: string;
 
@@ -98,12 +98,13 @@ export class Realm {
       once: (name, handler) => this.#eventBus.once(name, handler),
     };
 
-    this.raw = {
+    const unsafeRaw: RealmUnsafeRawModule = {
       request: async <T = unknown>(input: RealmRawRequestInput): Promise<T> => {
         const value = await this.#requestUnknown(input);
         return value as T;
       },
     };
+    this.unsafeRaw = unsafeRaw;
   }
 
   async connect(): Promise<void> {
@@ -134,13 +135,6 @@ export class Realm {
       method: 'GET',
       path: '/',
       timeoutMs,
-    }).catch((error: unknown) => {
-      // Fail-open per SDKREALM-019: #requestUnknown already emitted the error
-      // event, so we only add telemetry and swallow the exception.
-      const mapped = mapRealmError(error);
-      this.#emitTelemetry('realm.ready_probe_failed', {
-        reasonCode: mapped.reasonCode,
-      });
     });
 
     this.#state = {
@@ -404,17 +398,6 @@ export class Realm {
 
           return responseTuple;
         } catch (requestError) {
-          const fallback = await this.#maybeHandlePlainTextSuccess(
-            requestError,
-            methodName,
-            path,
-            input,
-            headers,
-            requestAbortController.signal,
-          );
-          if (fallback.handled) {
-            return fallback.value;
-          }
           throw requestError;
         }
       }
@@ -624,55 +607,6 @@ export class Realm {
       };
       signal.addEventListener('abort', onAbort, { once: true });
     });
-  }
-
-  async #maybeHandlePlainTextSuccess(
-    error: unknown,
-    methodName: string,
-    path: string,
-    input: RealmRawRequestInput,
-    headers: Record<string, string>,
-    signal: AbortSignal,
-  ): Promise<{ handled: boolean; value?: unknown }> {
-    const message = normalizeText(asRecord(error).message) || (error instanceof Error ? error.message : '');
-    const isJsonParseFailure = error instanceof SyntaxError
-      || message.includes('Unexpected token')
-      || message.includes('is not valid JSON');
-    if (!isJsonParseFailure || !['GET', 'HEAD', 'OPTIONS'].includes(methodName)) {
-      return { handled: false };
-    }
-
-    const fetchFn = this.#options.fetchImpl || globalThis.fetch.bind(globalThis);
-    const url = new URL(path, this.baseUrl);
-    for (const [key, value] of Object.entries(input.query || {})) {
-      if (value === undefined || value === null) {
-        continue;
-      }
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          url.searchParams.append(key, String(item));
-        }
-        continue;
-      }
-      url.searchParams.append(key, String(value));
-    }
-
-    const response = await fetchFn(url, {
-      method: methodName,
-      headers,
-      signal,
-    });
-    if (!response.ok) {
-      return { handled: false };
-    }
-    if (response.status === 204) {
-      return { handled: true, value: undefined };
-    }
-    const contentType = normalizeText(response.headers.get('content-type')).toLowerCase();
-    if (contentType.includes('application/json')) {
-      return { handled: true, value: await response.json() };
-    }
-    return { handled: true, value: await response.text() };
   }
 
   static decodeTokenExpiry(jwt: string): { expiresAt: number; expiresInMs: number } | null {

@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ReasonCode } from '../../src/types/index.js';
-import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
 
 import { asNimiError, Runtime } from '../../src/runtime/index.js';
 
 import { createNimiAiProvider } from '../../src/ai-provider/index.js';
+import {
+  speechSynthesizeOutput,
+  speechTranscribeOutput,
+  textDelta,
+  textEmbedOutput,
+  textGenerateOutput,
+} from '../helpers/runtime-ai-shapes.js';
 
 const APP_ID = 'nimi.ai.provider.test';
 const SUBJECT_USER_ID = 'user-test-1';
@@ -108,7 +114,7 @@ function createRuntimeStub(
         return null;
       }).filter((item): item is number => item !== null);
     });
-    return Struct.fromJson({ vectors: normalized } as never) as unknown as Record<string, unknown>;
+    return textEmbedOutput(normalized) as unknown as Record<string, unknown>;
   };
 
   const scenarioJobs = new Map<string, {
@@ -127,19 +133,29 @@ function createRuntimeStub(
     }>;
   }>();
   let scenarioJobCounter = 0;
+  const outputForScenarioEntry = (
+    entry: {
+      job: { scenarioType: number };
+      artifacts: Array<{ artifactId: string; mimeType: string; bytes: Uint8Array }>;
+    } | undefined,
+  ): Record<string, unknown> | undefined => {
+    if (!entry) {
+      return undefined;
+    }
+    const firstArtifact = entry.artifacts[0];
+    if (entry.job.scenarioType === 5) {
+      return speechSynthesizeOutput(firstArtifact?.artifactId || 'tts-artifact') as unknown as Record<string, unknown>;
+    }
+    if (entry.job.scenarioType !== 6) {
+      return undefined;
+    }
+    const text = firstArtifact ? Buffer.from(firstArtifact.bytes).toString('utf8') : '';
+    return speechTranscribeOutput(text, firstArtifact?.artifactId || 'stt-artifact') as unknown as Record<string, unknown>;
+  };
 
   const scenarioBridge = {
     generate: async () => ({
-      output: {
-        fields: {
-          text: {
-            kind: {
-              oneofKind: 'stringValue',
-              stringValue: 'ok',
-            },
-          },
-        },
-      },
+      output: textGenerateOutput('ok') as unknown as Record<string, unknown>,
       finishReason: 1,
       usage: {
         inputTokens: '1',
@@ -204,6 +220,7 @@ function createRuntimeStub(
         jobId: entry?.job.jobId || '',
         artifacts: entry?.artifacts || [],
         traceId: entry?.job.traceId || '',
+        output: outputForScenarioEntry(entry),
       };
     },
     ...aiOverrides,
@@ -213,6 +230,7 @@ function createRuntimeStub(
     executeScenario: async (request) => {
       const requestRecord = request as unknown as Record<string, unknown>;
       const head = asRecord(requestRecord.head);
+      const fallback = typeof head.fallback === 'undefined' ? 1 : head.fallback;
       const scenarioType = Number(requestRecord.scenarioType || 0);
       const spec = asRecord(asRecord(requestRecord.spec).spec);
 
@@ -222,7 +240,7 @@ function createRuntimeStub(
           subjectUserId: head.subjectUserId,
           modelId: head.modelId,
           routePolicy: head.routePolicy,
-          fallback: head.fallback,
+          fallback,
           timeoutMs: head.timeoutMs,
           connectorId: head.connectorId,
           inputs: asRecord(spec.textEmbed).inputs,
@@ -243,7 +261,7 @@ function createRuntimeStub(
         subjectUserId: head.subjectUserId,
         modelId: head.modelId,
         routePolicy: head.routePolicy,
-        fallback: head.fallback,
+        fallback,
         timeoutMs: head.timeoutMs,
         connectorId: head.connectorId,
         input: asRecord(spec.textGenerate).input,
@@ -267,13 +285,14 @@ function createRuntimeStub(
     streamScenario: async (request) => {
       const requestRecord = request as unknown as Record<string, unknown>;
       const head = asRecord(requestRecord.head);
+      const fallback = typeof head.fallback === 'undefined' ? 1 : head.fallback;
       const spec = asRecord(asRecord(requestRecord.spec).spec);
       return scenarioBridge.streamGenerate({
         appId: head.appId,
         subjectUserId: head.subjectUserId,
         modelId: head.modelId,
         routePolicy: head.routePolicy,
-        fallback: head.fallback,
+        fallback,
         timeoutMs: head.timeoutMs,
         connectorId: head.connectorId,
         input: asRecord(spec.textGenerate).input,
@@ -287,6 +306,7 @@ function createRuntimeStub(
     submitScenarioJob: async (request) => {
       const requestRecord = request as unknown as Record<string, unknown>;
       const head = asRecord(requestRecord.head);
+      const fallback = typeof head.fallback === 'undefined' ? 1 : head.fallback;
       const scenarioType = Number(requestRecord.scenarioType || 0);
       const scenarioResponse = await scenarioBridge.submitScenarioJob({
         appId: head.appId,
@@ -294,7 +314,7 @@ function createRuntimeStub(
         modelId: head.modelId,
         modal: scenarioTypeToModal(scenarioType),
         routePolicy: head.routePolicy,
-        fallback: head.fallback,
+        fallback,
         timeoutMs: head.timeoutMs,
         connectorId: head.connectorId,
         requestId: requestRecord.requestId,
@@ -311,7 +331,7 @@ function createRuntimeStub(
             subjectUserId: normalizeText(head.subjectUserId),
             modelId: normalizeText(head.modelId),
             routePolicy: Number(head.routePolicy || 0),
-            fallback: Number(head.fallback || 0),
+            fallback: Number(fallback || 0),
             timeoutMs: Number(head.timeoutMs || 0),
             connectorId: normalizeText(head.connectorId),
           },
@@ -422,6 +442,7 @@ function createRuntimeStub(
         jobId: normalizeText(scenarioResponse.jobId),
         artifacts: Array.isArray(scenarioResponse.artifacts) ? scenarioResponse.artifacts : [],
         traceId: normalizeText(scenarioResponse.traceId),
+        output: scenarioResponse.output,
       };
     },
     listScenarioProfiles: async () => ({ profiles: [] }),
@@ -460,16 +481,7 @@ test('createNimiAiProvider accepts missing subjectUserId and keeps request subje
     generate: async (request) => {
       capturedRequest = request as Record<string, unknown>;
       return {
-        output: {
-          fields: {
-            text: {
-              kind: {
-                oneofKind: 'stringValue',
-                stringValue: 'hello without explicit subject',
-              },
-            },
-          },
-        },
+        output: textGenerateOutput('hello without explicit subject') as unknown as Record<string, unknown>,
         finishReason: 1,
         usage: {
           inputTokens: '1',
@@ -500,7 +512,7 @@ test('createNimiAiProvider accepts missing subjectUserId and keeps request subje
   });
 
   assert.ok(capturedRequest);
-  assert.equal(capturedRequest.subjectUserId, undefined);
+  assert.equal(capturedRequest.subjectUserId, '');
   assert.equal(result.content[0]?.type, 'text');
 });
 
@@ -510,16 +522,7 @@ test('createNimiAiProvider text model maps runtime generate response', async () 
     generate: async (request) => {
       capturedRequest = request as Record<string, unknown>;
       return {
-        output: {
-          fields: {
-            text: {
-              kind: {
-                oneofKind: 'stringValue',
-                stringValue: 'hello from runtime',
-              },
-            },
-          },
-        },
+        output: textGenerateOutput('hello from runtime') as unknown as Record<string, unknown>,
         finishReason: 1,
         usage: {
           inputTokens: '14',
@@ -626,26 +629,46 @@ test('createNimiAiProvider text streaming maps delta and finish events', async (
   const runtime = createRuntimeStub({
     streamGenerate: async function* () {
       yield {
+        traceId: 'trace-stream',
         payload: {
-          oneofKind: 'delta',
-          delta: {
-            text: 'he',
+          oneofKind: 'started',
+          started: {
+            routeDecision: 2,
+            modelResolved: 'chat/stream-resolved',
           },
         },
       };
       yield {
         payload: {
           oneofKind: 'delta',
-          delta: {
-            text: 'llo',
+          delta: textDelta('he'),
+        },
+      };
+      yield {
+        payload: {
+          oneofKind: 'delta',
+          delta: textDelta('llo'),
+        },
+      };
+      yield {
+        payload: {
+          oneofKind: 'usage',
+          usage: {
+            inputTokens: '4',
+            outputTokens: '2',
           },
         },
       };
       yield {
+        traceId: 'trace-stream',
         payload: {
           oneofKind: 'completed',
           completed: {
             finishReason: 1,
+            usage: {
+              inputTokens: '99',
+              outputTokens: '99',
+            },
           },
         },
       };
@@ -669,18 +692,35 @@ test('createNimiAiProvider text streaming maps delta and finish events', async (
   });
 
   const reader = streamResult.stream.getReader();
-  const parts: Array<{ type?: string; delta?: string; finishReason?: { unified?: string } }> = [];
+  const parts: Array<{
+    type?: string;
+    delta?: string;
+    finishReason?: { unified?: string };
+    usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+    providerMetadata?: { nimi?: { traceId?: string; routeDecision?: string; modelResolved?: string } };
+  }> = [];
   while (true) {
     const next = await reader.read();
     if (next.done) {
       break;
     }
-    parts.push(next.value as { type?: string; delta?: string; finishReason?: { unified?: string } });
+    parts.push(next.value as {
+      type?: string;
+      delta?: string;
+      finishReason?: { unified?: string };
+      usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+      providerMetadata?: { nimi?: { traceId?: string; routeDecision?: string; modelResolved?: string } };
+    });
   }
 
   assert.ok(parts.some((part) => part.type === 'text-delta' && part.delta === 'he'));
   assert.ok(parts.some((part) => part.type === 'text-delta' && part.delta === 'llo'));
   assert.ok(parts.some((part) => part.type === 'finish' && part.finishReason?.unified === 'stop'));
+  assert.ok(parts.some((part) => part.type === 'finish' && part.usage?.inputTokens?.total === 4 && part.usage?.outputTokens?.total === 2));
+  assert.ok(parts.some((part) => part.type === 'finish'
+    && part.providerMetadata?.nimi?.traceId === 'trace-stream'
+    && part.providerMetadata?.nimi?.routeDecision === 'cloud'
+    && part.providerMetadata?.nimi?.modelResolved === 'chat/stream-resolved'));
 });
 
 test('createNimiAiProvider stream interruption requires explicit resubscribe', async () => {
@@ -704,9 +744,7 @@ test('createNimiAiProvider stream interruption requires explicit resubscribe', a
       yield {
         payload: {
           oneofKind: 'delta',
-          delta: {
-            text: 'retry-ok',
-          },
+          delta: textDelta('retry-ok'),
         },
       };
       yield {
@@ -960,6 +998,7 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
   assert.equal(capturedSubmitRequest.requestId, 'req-top');
   assert.equal(capturedSubmitRequest.idempotencyKey, 'idem-top');
   assert.deepEqual(capturedSubmitRequest.labels, { source: 'top' });
+  assert.equal(capturedSubmitRequest.fallback, 1);
 
   const specRecord = capturedSubmitRequest.spec as { imageSpec?: Record<string, unknown> } | undefined;
   const imageSpec = (specRecord?.imageSpec || {}) as Record<string, unknown>;
@@ -974,6 +1013,41 @@ test('createNimiAiProvider image model flattens providerOptions and maps files/m
   assert.equal(imageSpec.responseFormat, 'b64_json');
 
   assert.equal(imageSpec.providerOptions, undefined);
+});
+
+test('createNimiAiProvider image model rejects file payloads without mediaType', async () => {
+  const runtime = createRuntimeStub({
+    submitScenarioJob: async () => ({
+      job: {
+        jobId: 'job-image-invalid-1',
+        status: 4,
+        routeDecision: 1,
+        modelResolved: 'image/default',
+        traceId: 'trace-image-invalid',
+      },
+    }),
+  });
+
+  const nimi = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  });
+
+  await assert.rejects(
+    async () => nimi.image('image/default').doGenerate({
+      prompt: 'draw',
+      files: [
+        { type: 'file', data: 'QUJD' } as never,
+      ],
+      providerOptions: {},
+    }),
+    (error: unknown) => {
+      const nimiError = asNimiError(error, { source: 'sdk' });
+      assert.equal(nimiError.reasonCode, ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID);
+      return true;
+    },
+  );
 });
 
 test('createNimiAiProvider maps runtime failures and exposes video/tts/stt extensions', async () => {
@@ -1031,6 +1105,7 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
         job: {
           jobId,
           status: 4,
+          scenarioType: modal === 3 ? 4 : modal === 4 ? 5 : 6,
           routeDecision,
           modelResolved,
           traceId,
@@ -1050,6 +1125,11 @@ test('createNimiAiProvider maps runtime failures and exposes video/tts/stt exten
         jobId: entry?.job.jobId || '',
         artifacts: entry?.artifacts || [],
         traceId: entry?.job.traceId || '',
+        output: entry?.job.scenarioType === 5
+          ? speechSynthesizeOutput('tts-1') as unknown as Record<string, unknown>
+          : entry?.job.scenarioType === 6
+            ? speechTranscribeOutput('transcribed text', 'stt-1') as unknown as Record<string, unknown>
+            : undefined,
       };
     },
   });

@@ -8,10 +8,8 @@ import type {
   RuntimeForAiProvider,
 } from './types.js';
 import {
-  asRecord,
   normalizeProviderError,
   parseCount,
-  resolveFallbackPolicy,
   resolveRoutePolicy,
   toCallOptions,
   toEmbeddingVectorsFromScenarioOutput,
@@ -36,9 +34,9 @@ export function createEmbeddingModelImpl(
         const response = await runtime.ai.executeScenario(withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
+            subjectUserId: '',
             modelId,
             routePolicy: resolveRoutePolicy(defaults.routePolicy),
-            fallback: resolveFallbackPolicy(defaults.fallback),
             timeoutMs: defaults.timeoutMs || 0,
             connectorId: '',
           },
@@ -46,7 +44,7 @@ export function createEmbeddingModelImpl(
           executionMode: ExecutionMode.SYNC,
           spec: {
             spec: {
-              oneofKind: 'textEmbed',
+              oneofKind: 'textEmbed' as const,
               textEmbed: {
                 inputs: options.values,
               },
@@ -61,7 +59,7 @@ export function createEmbeddingModelImpl(
         return {
           embeddings: toEmbeddingVectorsFromScenarioOutput(response.output),
           usage: {
-            tokens: parseCount(asRecord(response.usage).inputTokens) || 0,
+            tokens: parseCount(response.usage?.inputTokens) || 0,
           },
           warnings: [],
           providerMetadata: toProviderMetadata({

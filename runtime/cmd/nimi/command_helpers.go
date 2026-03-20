@@ -278,10 +278,16 @@ func streamEventJSON(event *runtimev1.StreamScenarioEvent) map[string]any {
 			"route_decision": event.GetStarted().GetRouteDecision().String(),
 		}
 	case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
-		payload["delta"] = map[string]any{
-			"text":      event.GetDelta().GetText(),
-			"mime_type": event.GetDelta().GetMimeType(),
+		delta := event.GetDelta()
+		payloadDelta := map[string]any{}
+		if value, ok := delta.GetDelta().(*runtimev1.ScenarioStreamDelta_Text); ok {
+			payloadDelta["text"] = value.Text.GetText()
 		}
+		if value, ok := delta.GetDelta().(*runtimev1.ScenarioStreamDelta_Artifact); ok {
+			payloadDelta["mime_type"] = value.Artifact.GetMimeType()
+			payloadDelta["chunk_size"] = len(value.Artifact.GetChunk())
+		}
+		payload["delta"] = payloadDelta
 	case runtimev1.StreamEventType_STREAM_EVENT_USAGE:
 		payload["usage"] = map[string]any{
 			"input_tokens":  event.GetUsage().GetInputTokens(),
@@ -299,6 +305,13 @@ func streamEventJSON(event *runtimev1.StreamScenarioEvent) map[string]any {
 		}
 	}
 	return payload
+}
+
+func extractScenarioStreamTextDelta(delta *runtimev1.ScenarioStreamDelta) string {
+	if value, ok := delta.GetDelta().(*runtimev1.ScenarioStreamDelta_Text); ok {
+		return value.Text.GetText()
+	}
+	return ""
 }
 
 func workflowEventJSON(event *runtimev1.WorkflowEvent) map[string]any {

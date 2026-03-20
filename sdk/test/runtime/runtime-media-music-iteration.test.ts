@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { ReasonCode } from '../../src/types/index.js';
 import { ScenarioJobStatus, SpeechTimingMode } from '../../src/runtime/generated/runtime/v1/ai.js';
+import { musicGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 import {
   buildMusicIterationExtensions,
   buildLocalImageWorkflowExtensions,
@@ -83,6 +84,7 @@ test('runtimeGenerateMusicIteration wires canonical extensions through music gen
             bytes: new Uint8Array([1, 2, 3]),
           }],
           traceId: 'trace-1',
+          output: musicGenerateOutput('artifact-1'),
         }),
       },
     } as never),

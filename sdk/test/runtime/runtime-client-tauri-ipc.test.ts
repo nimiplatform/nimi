@@ -27,6 +27,7 @@ import {
   installTauriRuntime,
   unwrapTauriInvokePayload,
 } from './runtime-client-fixtures.js';
+import { textDelta } from '../helpers/runtime-ai-shapes.js';
 
 test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async () => {
   const localMethodEntries = Object.entries(RuntimeMethodIds.local) as Array<
@@ -551,9 +552,7 @@ test('tauri-ipc backpressure close does not masquerade as normal completion', as
                       traceId: 'trace-slow-consumer',
                       payload: {
                         oneofKind: 'delta',
-                        delta: {
-                          text: 'partial',
-                        },
+                        delta: textDelta('partial'),
                       },
                     }),
                   ),
@@ -625,7 +624,9 @@ test('tauri-ipc backpressure close does not masquerade as normal completion', as
     try {
       for await (const event of stream) {
         if (event.payload.oneofKind === 'delta') {
-          deltas.push(event.payload.delta.text);
+          if (event.payload.delta.delta.oneofKind === 'text') {
+            deltas.push(event.payload.delta.delta.text.text);
+          }
         }
       }
     } catch (error) {
@@ -668,9 +669,7 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
                       traceId: 'trace-break',
                       payload: {
                         oneofKind: 'delta',
-                        delta: {
-                          text: 'hello',
-                        },
+                        delta: textDelta('hello'),
                       },
                     }),
                   ),
@@ -721,7 +720,9 @@ test('tauri-ipc stream close is invoked when consumer breaks early', async () =>
     const received: string[] = [];
     for await (const event of stream) {
       if (event.payload.oneofKind === 'delta') {
-        received.push(event.payload.delta.text);
+        received.push(event.payload.delta.delta.oneofKind === 'text'
+          ? event.payload.delta.delta.text.text
+          : '');
       }
       break;
     }

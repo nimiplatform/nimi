@@ -1,4 +1,6 @@
 import type { RuntimeInternalContext } from '../../src/runtime/internal-context.js';
+import { FallbackPolicy } from '../../src/runtime/generated/runtime/v1/ai.js';
+import { runtimeAiRequestRequiresSubject } from '../../src/runtime/runtime-guards.js';
 
 export function createMockContext(overrides?: {
   invokeWithClient?: RuntimeInternalContext['invokeWithClient'];
@@ -27,6 +29,20 @@ export function createMockContext(overrides?: {
     }),
     resolveSubjectUserId: overrides?.resolveSubjectUserId ?? (async () => 'subject-1'),
     resolveOptionalSubjectUserId: overrides?.resolveOptionalSubjectUserId ?? (async () => undefined),
+    normalizeScenarioHead: async ({ head, metadata }) => {
+      const requiresSubject = runtimeAiRequestRequiresSubject({
+        request: { head },
+        metadata,
+      });
+      const subjectUserId = requiresSubject
+        ? await (overrides?.resolveSubjectUserId ?? (async () => 'subject-1'))(head.subjectUserId)
+        : await (overrides?.resolveOptionalSubjectUserId ?? (async () => undefined))(head.subjectUserId);
+      return {
+        ...head,
+        subjectUserId: subjectUserId || '',
+        fallback: head.fallback ?? FallbackPolicy.DENY,
+      };
+    },
     emitTelemetry: (name, data) => {
       telemetryEvents.push({ name, data });
     },

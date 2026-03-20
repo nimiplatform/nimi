@@ -1,5 +1,5 @@
 import type { NimiError } from '../types/index.js';
-import type { AiFallbackPolicy, AiRoutePolicy } from '../types/index.js';
+import type { AiRoutePolicy } from '../types/index.js';
 import type { RuntimeMetadata } from './types.js';
 import type {
   NimiFinishReason,
@@ -23,7 +23,6 @@ export type RuntimeGenerateInput = {
   temperature?: number;
   topP?: number;
   subjectUserId?: string;
-  fallback?: AiFallbackPolicy;
   timeoutMs?: number;
   metadata?: RuntimeMetadata;
 };
@@ -120,10 +119,9 @@ function resolveRuntimeConvenienceTarget(input: RuntimeGenerateInput): ResolvedR
   const model = normalize(input.model);
 
   if (!provider && !model) {
-    return {
-      model: 'local/default',
-      route: 'local',
-    };
+    throw new Error(
+      'high-level Runtime.generate()/stream() requires an explicit local model or provider + model.',
+    );
   }
 
   if (!provider) {
@@ -144,6 +142,12 @@ function resolveRuntimeConvenienceTarget(input: RuntimeGenerateInput): ResolvedR
     );
   }
 
+  if (!model) {
+    throw new Error(
+      'high-level Runtime.generate()/stream() requires provider + model for cloud routing. It no longer invents an implicit provider/default target.',
+    );
+  }
+
   if (model && looksLikeQualifiedRemoteModel(model)) {
     throw new Error(
       'provider + model expects a provider-scoped model id. Remove the remote prefix, or use runtime.ai.text.generate() for explicit fully-qualified remote model ids.',
@@ -151,7 +155,7 @@ function resolveRuntimeConvenienceTarget(input: RuntimeGenerateInput): ResolvedR
   }
 
   return {
-    model: `${provider}/${model || 'default'}`,
+    model: `${provider}/${model}`,
     route: 'cloud',
   };
 }
@@ -168,7 +172,6 @@ function toGenerateInput(input: RuntimeGenerateInput): TextGenerateInput {
     topP: input.topP,
     subjectUserId,
     route: target.route,
-    fallback: input.fallback,
     timeoutMs: input.timeoutMs,
     metadata: input.metadata as TextGenerateInput['metadata'],
   };

@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { clearPlatformClient, createPlatformClient, getPlatformClient } from '../src/index.js';
+
+const testDir = path.dirname(fileURLToPath(import.meta.url));
+const distPlatformClientDtsPath = path.join(testDir, '..', 'dist', 'platform-client.d.ts');
+const distRuntimeTypesDtsPath = path.join(testDir, '..', 'dist', 'runtime', 'types-runtime-modules.d.ts');
 
 test('createPlatformClient initializes runtime, realm, and grouped domains', async () => {
   clearPlatformClient();
@@ -62,4 +69,17 @@ test('createPlatformClient resolves realm base url from environment when omitted
       process.env.NIMI_REALM_URL = previousRealmUrl;
     }
   }
+});
+
+test('platform-client public declaration avoids Parameters/ReturnType utility signatures', () => {
+  assert.equal(existsSync(distPlatformClientDtsPath), true, 'dist/platform-client.d.ts must exist');
+  const source = readFileSync(distPlatformClientDtsPath, 'utf8');
+  assert.equal(source.includes('Parameters<'), false);
+  assert.equal(source.includes('ReturnType<'), false);
+});
+
+test('runtime public declaration does not expose ai fallback knobs on low-level scenario request inputs', () => {
+  assert.equal(existsSync(distRuntimeTypesDtsPath), true, 'dist/runtime/types-runtime-modules.d.ts must exist');
+  const source = readFileSync(distRuntimeTypesDtsPath, 'utf8');
+  assert.equal(source.includes('fallback?:'), false);
 });

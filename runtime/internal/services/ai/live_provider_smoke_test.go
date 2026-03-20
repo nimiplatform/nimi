@@ -92,7 +92,7 @@ func executeLiveSmokeScenarioGenerateText(svc *Service, modelID string, route ru
 	if err != nil {
 		return "", err
 	}
-	text := strings.TrimSpace(resp.GetOutput().GetFields()["text"].GetStringValue())
+	text := strings.TrimSpace(outputText(resp.GetOutput()))
 	return text, nil
 }
 

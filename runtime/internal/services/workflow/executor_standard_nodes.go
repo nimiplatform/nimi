@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -117,13 +119,13 @@ func (s *Service) executeMergeNode(record *taskRecord, node *runtimev1.WorkflowN
 	return result, nil
 }
 
-func (s *Service) executeNoopNode(inputs map[string]*structpb.Struct) map[string]*structpb.Struct {
+func (s *Service) executeNoopNode(inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {
 	for _, value := range inputs {
 		if value != nil {
-			return map[string]*structpb.Struct{"output": cloneStruct(value)}
+			return map[string]*structpb.Struct{"output": cloneStruct(value)}, nil
 		}
 	}
-	return map[string]*structpb.Struct{"output": structFromMap(map[string]any{})}
+	return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 }
 
 func (s *Service) skipBranchPath(taskID string, graph *workflowGraph, branchNodeID string, startNodeID string) {

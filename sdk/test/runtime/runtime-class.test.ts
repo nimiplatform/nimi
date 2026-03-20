@@ -29,7 +29,7 @@ import {
 } from '../../src/runtime/generated/runtime/v1/ai';
 import { WorkflowEvent, WorkflowEventType } from '../../src/runtime/generated/runtime/v1/workflow';
 import { Timestamp } from '../../src/runtime/generated/google/protobuf/timestamp';
-import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
+import { textGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 
 const APP_ID = 'nimi.runtime.class.test';
 
@@ -50,7 +50,7 @@ test('Runtime auto mode connects lazily and injects subjectUserId from subjectCo
         capturedExecuteScenarioRequest = ExecuteScenarioRequest.fromBinary(input.request);
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'hello from runtime class' } as never),
+            output: textGenerateOutput('hello from runtime class'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
@@ -119,7 +119,7 @@ test('Runtime auto mode retries retryable runtime errors with configured backoff
 
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'retry-ok' } as never),
+            output: textGenerateOutput('retry-ok'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
@@ -192,7 +192,7 @@ test('Runtime auto mode retries RESOURCE_EXHAUSTED scheduler rejections', async 
 
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'resource-exhausted-ok' } as never),
+            output: textGenerateOutput('resource-exhausted-ok'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
@@ -403,7 +403,7 @@ test('retry backoff includes jitter', async () => {
 
           return ExecuteScenarioResponse.toBinary(
             ExecuteScenarioResponse.create({
-              output: Struct.fromJson({ text: 'jitter-ok' } as never),
+              output: textGenerateOutput('jitter-ok'),
               finishReason: FinishReason.STOP,
               routeDecision: RoutePolicy.LOCAL,
               modelResolved: 'local/qwen2.5',
@@ -463,7 +463,7 @@ test('metadata sends x-nimi-key-source with inline/managed values', async () => 
 
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'metadata-ok' } as never),
+            output: textGenerateOutput('metadata-ok'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
@@ -519,7 +519,7 @@ test('Runtime ai.text.generate omits x-nimi-key-source unless explicitly provide
         }
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'metadata-default-ok' } as never),
+            output: textGenerateOutput('metadata-default-ok'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.CLOUD,
             modelResolved: 'gemini/gemini-3-flash-preview',
@@ -596,7 +596,7 @@ test('Runtime runtimeVersion() returns null before any RPC and caches after meta
       if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'version-test' } as never),
+            output: textGenerateOutput('version-test'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
@@ -659,7 +659,7 @@ test('Runtime retry defaults to maxAttempts=3 backoffMs=200 when retry is omitte
 
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'default-retry' } as never),
+            output: textGenerateOutput('default-retry'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/qwen2.5',
@@ -767,7 +767,7 @@ test('Runtime version negotiation: incompatible major version throws SDK_RUNTIME
       }
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
-          output: Struct.fromJson({ text: 'never' } as never),
+          output: textGenerateOutput('never'),
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local/test',
@@ -810,7 +810,7 @@ test('Runtime version negotiation: compatible version 0.x.y proceeds normally', 
       }
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
-          output: Struct.fromJson({ text: 'version-ok' } as never),
+          output: textGenerateOutput('version-ok'),
           finishReason: FinishReason.STOP,
           routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local/test',
@@ -1253,7 +1253,7 @@ test('S-RUNTIME-050: Phase 2 deferred method propagates SDK_RUNTIME_METHOD_UNAVA
       if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
         return ExecuteScenarioResponse.toBinary(
           ExecuteScenarioResponse.create({
-            output: Struct.fromJson({ text: 'version-seed' } as never),
+            output: textGenerateOutput('version-seed'),
             finishReason: FinishReason.STOP,
             routeDecision: RoutePolicy.LOCAL,
             modelResolved: 'local/test',

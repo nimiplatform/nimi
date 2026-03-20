@@ -1,6 +1,11 @@
 import type { NimiError, VersionCompatibilityStatus } from '../types/index.js';
 import type { JsonObject } from '../internal/utils.js';
 import type { RuntimeClient } from './types-client-interfaces.js';
+import type {
+  RuntimeMethodId,
+  RuntimeMethodRequest,
+  RuntimeMethodResponse,
+} from './runtime-method-contracts.js';
 
 export type * from './types-media.js';
 export type * from './types-client-interfaces.js';
@@ -209,12 +214,21 @@ export type RuntimeEventsModule = {
   ): () => void;
 };
 
-export type RuntimeRawModule = {
-  call<TReq, TRes>(
-    methodId: string,
-    input: TReq,
+export type RuntimeUnsafeRawModule = {
+  /**
+   * Unsafe escape hatch. Prefer typed runtime clients or known `RuntimeMethodIds` so request and
+   * response contracts stay bound to method ids at compile time.
+   */
+  call<MethodId extends RuntimeMethodId>(
+    methodId: MethodId,
+    input: RuntimeMethodRequest<MethodId>,
     options?: RuntimeCallOptions | RuntimeStreamCallOptions,
-  ): Promise<TRes>;
+  ): Promise<RuntimeMethodResponse<MethodId>>;
+  call<MethodId extends string>(
+    methodId: MethodId extends RuntimeMethodId ? never : MethodId,
+    input: unknown,
+    options?: RuntimeCallOptions | RuntimeStreamCallOptions,
+  ): Promise<unknown>;
   closeStream(streamId: string): Promise<void>;
 };
 

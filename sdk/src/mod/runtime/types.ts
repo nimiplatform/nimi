@@ -141,6 +141,7 @@ export type ModRuntimeListPresetVoicesInput =
 
 export type ModRuntimeLocalArtifactKind =
   | 'vae'
+  | 'ae'
   | 'llm'
   | 'clip'
   | 'controlnet'

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 	"time"
@@ -58,7 +59,7 @@ type Service struct {
 }
 
 // New creates a Service with all dependencies.
-func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) *Service {
+func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
 	effectiveCfg := loadConfigFromEnv()
 	effectiveCfg.EnforceEndpointSecurity = true
 	effectiveCfg.AllowLoopbackEndpoint = daemonCfg.AllowLoopbackProviderEndpoint
@@ -90,24 +91,27 @@ func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *provid
 	if perAppConc <= 0 {
 		perAppConc = 2
 	}
-	svc := newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
-	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
-	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
-		Logger:    logger,
-		CustomDir: daemonCfg.ModelCatalogCustomDir,
-	})
+	svc, err := newFromProviderConfig(logger, registry, aiHealth, auditStore, connStore, effectiveCfg, globalConc, perAppConc)
 	if err != nil {
-		if logger != nil {
-			logger.Warn("speech catalog init failed; fallback to built-in snapshot", "error", err)
+		return nil, err
+	}
+	svc.allowLoopback = daemonCfg.AllowLoopbackProviderEndpoint
+	customDir := strings.TrimSpace(daemonCfg.ModelCatalogCustomDir)
+	if customDir != "" {
+		voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{
+			Logger:    logger,
+			CustomDir: customDir,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("init speech catalog: %w", err)
 		}
-	} else {
 		svc.speechCatalog = voiceCatalog
 	}
-	return svc
+	return svc, nil
 }
 
 // newFromProviderConfig is an internal constructor used by New and tests.
-func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) *Service {
+func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, cfg Config, globalConc int, perAppConc int) (*Service, error) {
 	if globalConc <= 0 {
 		globalConc = 8
 	}
@@ -128,12 +132,11 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		streamFirstPacketTimeout: defaultStreamFirstTimeout,
 	}
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{Logger: logger})
-	if err == nil {
-		svc.speechCatalog = voiceCatalog
-	} else if logger != nil {
-		logger.Warn("speech catalog default init failed", "error", err)
+	if err != nil {
+		return nil, fmt.Errorf("init default speech catalog: %w", err)
 	}
-	return svc
+	svc.speechCatalog = voiceCatalog
+	return svc, nil
 }
 
 func (s *Service) SetModelRegistryPersistencePath(path string) {

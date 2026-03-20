@@ -210,7 +210,7 @@ test('runtime-lifecycle: closeRuntime sets client to null', () => {
 // These functions are not directly exported, so we test them through the
 // public API functions runtimeGenerateConvenience and runtimeStreamConvenience.
 
-test('runtime-convenience: generate with no model/provider defaults to local/default', async () => {
+test('runtime-convenience: generate with no model/provider requires explicit target', async () => {
   let capturedModel = '';
   const mockRuntime = {
     ai: {
@@ -229,11 +229,13 @@ test('runtime-convenience: generate with no model/provider defaults to local/def
     },
   };
 
-  const result = await runtimeGenerateConvenience(mockRuntime as never, {
-    prompt: 'hello',
-  });
-  assert.equal(capturedModel, 'local/default');
-  assert.equal(result.text, 'hello');
+  await assert.rejects(
+    () => runtimeGenerateConvenience(mockRuntime as never, {
+      prompt: 'hello',
+    }),
+    /requires an explicit local model or provider \+ model/i,
+  );
+  assert.equal(capturedModel, '');
 });
 
 test('runtime-convenience: generate with model only uses local route', async () => {
@@ -352,30 +354,25 @@ test('runtime-convenience: generate with provider + qualified remote model throw
   );
 });
 
-test('runtime-convenience: generate with provider but no model defaults to provider/default', async () => {
-  let capturedModel = '';
+test('runtime-convenience: generate with provider but no model fails closed', async () => {
   const mockRuntime = {
     ai: {
       text: {
-        generate: async (input: Record<string, unknown>) => {
-          capturedModel = String(input.model || '');
-          return {
-            text: 'ok',
-            usage: {},
-            finishReason: 'stop',
-            trace: { traceId: 't4', routeDecision: 'cloud' },
-          };
+        generate: async () => {
+          throw new Error('should not be called');
         },
         stream: async () => ({ stream: (async function*() {})() }),
       },
     },
   };
 
-  await runtimeGenerateConvenience(mockRuntime as never, {
-    prompt: 'test',
-    provider: 'anthropic',
-  });
-  assert.equal(capturedModel, 'anthropic/default');
+  await assert.rejects(
+    () => runtimeGenerateConvenience(mockRuntime as never, {
+      prompt: 'test',
+      provider: 'anthropic',
+    }),
+    { message: /requires provider \+ model for cloud routing/i },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -402,6 +399,7 @@ test('runtime-convenience: stream maps delta, finish, error, and unknown parts',
   const chunks: unknown[] = [];
   const stream = await runtimeStreamConvenience(mockRuntime as never, {
     prompt: 'test',
+    model: 'llama3',
   });
   for await (const chunk of stream) {
     chunks.push(chunk);
@@ -452,7 +450,7 @@ test('runtime-convenience: generate uses default subjectUserId when not provided
     },
   };
 
-  await runtimeGenerateConvenience(mockRuntime as never, { prompt: 'test' });
+  await runtimeGenerateConvenience(mockRuntime as never, { prompt: 'test', model: 'llama3' });
   assert.equal(capturedSubject, 'local-user');
 });
 
@@ -477,6 +475,7 @@ test('runtime-convenience: generate uses explicit subjectUserId', async () => {
 
   await runtimeGenerateConvenience(mockRuntime as never, {
     prompt: 'test',
+    model: 'llama3',
     subjectUserId: 'custom-user',
   });
   assert.equal(capturedSubject, 'custom-user');

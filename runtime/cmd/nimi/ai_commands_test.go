@@ -23,9 +23,7 @@ import (
 func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
 		textGenerateResponse: &runtimev1.ExecuteScenarioResponse{
-			Output: &structpb.Struct{Fields: map[string]*structpb.Value{
-				"text": structpb.NewStringValue("hello from runtime"),
-			}},
+			Output: testTextGenerateOutput("hello from runtime"),
 			FinishReason:  runtimev1.FinishReason_FINISH_REASON_STOP,
 			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			ModelResolved: "qwen2.5",
@@ -82,12 +80,7 @@ func TestRunRuntimeAIGenerateJSON(t *testing.T) {
 func TestRunRuntimeAIEmbedJSON(t *testing.T) {
 	service := &cmdTestRuntimeAIService{
 		textEmbedResponse: &runtimev1.ExecuteScenarioResponse{
-			Output: mustStructPB(t, map[string]any{
-				"vectors": []any{
-					[]any{1.0, 2.0},
-					[]any{3.0, 4.0},
-				},
-			}),
+			Output: testTextEmbedOutput([][]float64{{1.0, 2.0}, {3.0, 4.0}}),
 			FinishReason:  runtimev1.FinishReason_FINISH_REASON_STOP,
 			RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 			ModelResolved: "text-embedding-3-small",
@@ -149,7 +142,7 @@ func TestRunRuntimeAIStreamJSON(t *testing.T) {
 				TraceId:   "trace-stream-1",
 				Timestamp: timestamppb.Now(),
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{Text: "hello"},
+					Delta: testTextStreamDelta("hello"),
 				},
 			},
 			{
@@ -821,6 +814,34 @@ func mustStructPB(t *testing.T, input map[string]any) *structpb.Struct {
 		t.Fatalf("build structpb: %v", err)
 	}
 	return out
+}
+
+func testTextGenerateOutput(text string) *runtimev1.ScenarioOutput {
+	return &runtimev1.ScenarioOutput{
+		Output: &runtimev1.ScenarioOutput_TextGenerate{
+			TextGenerate: &runtimev1.TextGenerateOutput{Text: text},
+		},
+	}
+}
+
+func testTextEmbedOutput(vectors [][]float64) *runtimev1.ScenarioOutput {
+	rows := make([]*runtimev1.EmbeddingVector, 0, len(vectors))
+	for _, vector := range vectors {
+		rows = append(rows, &runtimev1.EmbeddingVector{Values: vector})
+	}
+	return &runtimev1.ScenarioOutput{
+		Output: &runtimev1.ScenarioOutput_TextEmbed{
+			TextEmbed: &runtimev1.TextEmbedOutput{Vectors: rows},
+		},
+	}
+}
+
+func testTextStreamDelta(text string) *runtimev1.ScenarioStreamDelta {
+	return &runtimev1.ScenarioStreamDelta{
+		Delta: &runtimev1.ScenarioStreamDelta_Text{
+			Text: &runtimev1.TextStreamDelta{Text: text},
+		},
+	}
 }
 
 func splitNonEmptyLines(input string) []string {

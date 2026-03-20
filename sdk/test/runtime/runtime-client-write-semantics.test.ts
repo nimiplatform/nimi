@@ -11,7 +11,6 @@ import {
   AuthorizeExternalPrincipalResponse,
 } from '../../src/runtime/generated/runtime/v1/grant';
 import {
-  FallbackPolicy,
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
   FinishReason,
@@ -164,10 +163,12 @@ test('createRuntimeClient allows cloud route without explicit keySource metadata
   }
 });
 
-test('createRuntimeClient defaults ai fallback policy to deny when unspecified', async () => {
+test('createRuntimeClient raw client allows omitted ai fallback and preserves explicit wire value', async () => {
   let captured: RuntimeUnaryCall<RuntimeWireMessage> | null = null;
+  let invokeCount = 0;
   installNodeGrpcBridge({
     invokeUnary: async (_config, input) => {
+      invokeCount += 1;
       captured = input;
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
@@ -190,17 +191,18 @@ test('createRuntimeClient defaults ai fallback policy to deny when unspecified',
 
   try {
     const client = createRuntimeClient(runtimeConfig);
-    await client.ai.executeScenario({
+    const response = await client.ai.executeScenario({
       ...createGenerateRequest(),
       head: {
         ...createGenerateRequest().head,
-        fallback: FallbackPolicy.UNSPECIFIED,
+        fallback: undefined,
       },
     });
+    assert.equal(response.traceId, 'trace-default-fallback');
+    assert.equal(invokeCount, 1);
     assert.ok(captured);
-
     const decoded = ExecuteScenarioRequest.fromBinary(captured.request);
-    assert.equal(decoded.head?.fallback, FallbackPolicy.DENY);
+    assert.equal(decoded.head?.fallback, 0);
   } finally {
     clearNodeGrpcBridge();
   }

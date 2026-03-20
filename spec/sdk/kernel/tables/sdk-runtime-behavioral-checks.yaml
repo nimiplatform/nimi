@@ -44,6 +44,10 @@ projections:
     rule: music_iteration_fail_fast
     requirement: runtime.media.music.iterate validates mode, source audio base64, and trim ordering before RPC submit
     source_rule: S-RUNTIME-072
+  - area: ai_output
+    rule: stable_ai_output_typed_projection
+    requirement: stable AI helpers consume typed ScenarioOutput and ScenarioStreamDelta oneofs, expose no app-facing fallback knobs, and fail-close instead of synthesizing placeholder artifacts or mime defaults
+    source_rule: S-RUNTIME-073
   # --- transport behavioral checks ---
   - area: transport
     rule: stream_finish_projection

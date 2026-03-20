@@ -70,10 +70,10 @@ func TestStreamScenarioSpeechSynthesizeSuccess(t *testing.T) {
 	for _, event := range stream.events {
 		switch event.GetEventType() {
 		case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
-			if len(event.GetDelta().GetChunk()) == 0 {
+			if len(deltaArtifactChunk(event.GetDelta())) == 0 {
 				t.Fatalf("delta chunk should not be empty")
 			}
-			if event.GetDelta().GetMimeType() == "" {
+			if deltaArtifactMimeType(event.GetDelta()) == "" {
 				t.Fatalf("delta mime type should be set")
 			}
 			sawDelta = true
@@ -228,7 +228,7 @@ func TestStreamSpeechDoneFrameConstraints(t *testing.T) {
 		if event.GetEventType() != runtimev1.StreamEventType_STREAM_EVENT_DELTA {
 			continue
 		}
-		if len(event.GetDelta().GetChunk()) == 0 {
+		if len(deltaArtifactChunk(event.GetDelta())) == 0 {
 			t.Fatal("speech delta events must carry non-empty audio chunks")
 		}
 	}
@@ -340,7 +340,7 @@ func TestStreamScenarioSpeechSynthesizeLargePayloadChunking(t *testing.T) {
 			continue
 		}
 		chunkCount++
-		totalBytes += len(event.GetDelta().GetChunk())
+		totalBytes += len(deltaArtifactChunk(event.GetDelta()))
 	}
 	expectedChunks := (len(largePayload) + defaultSpeechStreamChunkSize - 1) / defaultSpeechStreamChunkSize
 	if chunkCount != expectedChunks {

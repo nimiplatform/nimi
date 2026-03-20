@@ -37,10 +37,17 @@ type RealmLike = {
   connect: () => Promise<void>;
   ready: () => Promise<void>;
   close: () => Promise<void>;
-  raw: {
+  unsafeRaw: {
     request: <T>(input: RealmRawRequest) => Promise<T>;
   };
   services: {
+    RuntimeRealmGrantsService: {
+      issueRuntimeRealmGrant: (input: {
+        appId: string;
+        subjectUserId: string;
+        scopes: string[];
+      }) => Promise<RealmGrantResponse>;
+    };
     PostService: {
       createPost: (input: {
         content: string;
@@ -73,7 +80,7 @@ type RuntimeLike = {
 };
 
 async function orchestratePatternA(input: {
-  realm: Pick<RealmLike, 'raw'>;
+  realm: Pick<RealmLike, 'services'>;
   runtime: Pick<RuntimeLike, 'ai'>;
   appId: string;
   subjectUserId: string;
@@ -81,14 +88,10 @@ async function orchestratePatternA(input: {
   model: string;
   prompt: string;
 }): Promise<RuntimeTextOutput> {
-  const grant = await input.realm.raw.request<RealmGrantResponse>({
-    method: 'POST',
-    path: '/api/creator/mods/control/grants/issue',
-    body: {
-      appId: input.appId,
-      subjectUserId: input.subjectUserId,
-      scopes: input.scopes,
-    },
+  const grant = await input.realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant({
+    appId: input.appId,
+    subjectUserId: input.subjectUserId,
+    scopes: input.scopes,
   });
 
   return input.runtime.ai.text.generate({
@@ -120,13 +123,13 @@ async function orchestratePatternB(input: {
 }
 
 async function orchestratePatternC(input: {
-  realm: Pick<RealmLike, 'raw'>;
+  realm: Pick<RealmLike, 'unsafeRaw'>;
   runtime: Pick<RuntimeLike, 'health'>;
   appId: string;
   subjectUserId: string;
 }): Promise<void> {
   const [policy, health] = await Promise.all([
-    input.realm.raw.request<{ allowed: boolean }>({
+    input.realm.unsafeRaw.request<{ allowed: boolean }>({
       method: 'POST',
       path: '/api/auth/policy/check',
       body: {
@@ -161,14 +164,10 @@ async function orchestratePatternD(input: {
   await input.realm.ready();
 
   try {
-    const grant = await input.realm.raw.request<RealmGrantResponse>({
-      method: 'POST',
-      path: '/api/creator/mods/control/grants/issue',
-      body: {
-        appId: input.appId,
-        subjectUserId: input.subjectUserId,
-        scopes: input.scopes,
-      },
+    const grant = await input.realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant({
+      appId: input.appId,
+      subjectUserId: input.subjectUserId,
+      scopes: input.scopes,
     });
 
     const output = await input.runtime.ai.text.generate({
@@ -193,7 +192,7 @@ async function orchestratePatternD(input: {
 }
 
 test('Pattern A: Realm -> Runtime passes grant material explicitly', async () => {
-  let capturedGrantRequest: RealmRawRequest | null = null;
+  let capturedGrantRequest: Record<string, unknown> | null = null;
   let capturedGenerateInput: {
     model: string;
     input: string;
@@ -201,13 +200,15 @@ test('Pattern A: Realm -> Runtime passes grant material explicitly', async () =>
   } | null = null;
 
   const realm = {
-    raw: {
-      request: async <T>(request: RealmRawRequest): Promise<T> => {
-        capturedGrantRequest = request;
-        return {
-          token: 'grant_token_1',
-          version: 'v1',
-        } as T;
+    services: {
+      RuntimeRealmGrantsService: {
+        issueRuntimeRealmGrant: async (request: Record<string, unknown>): Promise<RealmGrantResponse> => {
+          capturedGrantRequest = request;
+          return {
+            token: 'grant_token_1',
+            version: 'v1',
+          };
+        },
       },
     },
   };
@@ -241,7 +242,11 @@ test('Pattern A: Realm -> Runtime passes grant material explicitly', async () =>
   });
 
   assert.equal(output.text, 'pattern-a-ok');
-  assert.equal(capturedGrantRequest?.path, '/api/creator/mods/control/grants/issue');
+  assert.deepEqual(capturedGrantRequest, {
+    appId: 'app.pattern.a',
+    subjectUserId: 'subject-a',
+    scopes: ['app.pattern.a.chat.read'],
+  });
   assert.equal(capturedGenerateInput?.metadata?.realmGrantToken, 'grant_token_1');
   assert.equal(capturedGenerateInput?.metadata?.realmGrantVersion, 'v1');
 });
@@ -271,6 +276,12 @@ test('Pattern B: Runtime -> Realm writes back artifacts with trace id', async ()
 
   const realm = {
     services: {
+      RuntimeRealmGrantsService: {
+        issueRuntimeRealmGrant: async (): Promise<RealmGrantResponse> => ({
+          token: 'unused',
+          version: 'unused',
+        }),
+      },
       PostService: {
         createPost: async (request: {
           content: string;
@@ -308,12 +319,12 @@ test('Pattern C: dual preflight requires both realm policy and runtime health', 
   };
 
   const realmAllowed = {
-    raw: {
+    unsafeRaw: {
       request: async <T>(): Promise<T> => ({ allowed: true } as T),
     },
   };
   const realmDenied = {
-    raw: {
+    unsafeRaw: {
       request: async <T>(): Promise<T> => ({ allowed: false } as T),
     },
   };
@@ -364,16 +375,19 @@ test('Pattern D: lifecycle stays independent while bridging data explicitly', as
     close: async () => {
       sequence.push('realm.close');
     },
-    raw: {
-      request: async <T>(request: RealmRawRequest): Promise<T> => {
-        sequence.push(`realm.raw.request:${request.path}`);
-        return {
-          token: 'grant_token_d',
-          version: 'v-d',
-        } as T;
-      },
+    unsafeRaw: {
+      request: async <T>(_request: RealmRawRequest): Promise<T> => ({ allowed: true } as T),
     },
     services: {
+      RuntimeRealmGrantsService: {
+        issueRuntimeRealmGrant: async (): Promise<RealmGrantResponse> => {
+          sequence.push('realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant');
+          return {
+            token: 'grant_token_d',
+            version: 'v-d',
+          };
+        },
+      },
       PostService: {
         createPost: async (request: {
           content: string;
@@ -440,7 +454,7 @@ test('Pattern D: lifecycle stays independent while bridging data explicitly', as
     'runtime.ready',
     'realm.connect',
     'realm.ready',
-    'realm.raw.request:/api/creator/mods/control/grants/issue',
+    'realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant',
     'runtime.ai.text.generate',
     'realm.services.PostService.createPost',
     'runtime.close',

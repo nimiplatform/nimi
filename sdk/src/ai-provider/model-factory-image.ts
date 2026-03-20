@@ -8,11 +8,9 @@ import type {
   RuntimeForAiProvider,
 } from './types.js';
 import {
-  asRecord,
   executeScenarioJob,
   normalizeProviderError,
   normalizeText,
-  resolveFallbackPolicy,
   resolveRoutePolicy,
   toBase64,
   toImageFileSource,
@@ -24,6 +22,16 @@ import {
   withOptionalHeadSubjectUserId,
 } from './model-factory-shared.js';
 import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
+
+type NimiImageModelCallOptions = ImageModelV3CallOptions & {
+  negativePrompt?: string;
+  n?: number;
+  size?: string;
+  aspectRatio?: string;
+  seed?: number | string;
+  files?: unknown;
+  mask?: unknown;
+};
 
 export function createImageModelImpl(
   runtime: RuntimeForAiProvider,
@@ -38,17 +46,17 @@ export function createImageModelImpl(
     doGenerate: async (options: ImageModelV3CallOptions) => {
       try {
         const timeoutMs = defaults.timeoutMs || 0;
-        const optionRecord = asRecord(options as unknown as Record<string, unknown>);
+        const optionRecord = options as NimiImageModelCallOptions;
         const flattenedProviderOptions = flattenImageProviderOptions(options.providerOptions);
-        const requestLabels = toLabels(flattenedProviderOptions.labels);
+        const requestLabels = toLabels(flattenedProviderOptions.labels) || {};
         const referenceImages = toImageFileSources(optionRecord.files);
         const mask = toImageFileSource(optionRecord.mask);
-        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+        const request = withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
+            subjectUserId: '',
             modelId,
             routePolicy: resolveRoutePolicy(defaults.routePolicy),
-            fallback: resolveFallbackPolicy(defaults.fallback),
             timeoutMs,
             connectorId: '',
           },
@@ -59,7 +67,7 @@ export function createImageModelImpl(
           labels: requestLabels,
           spec: {
             spec: {
-              oneofKind: 'imageGenerate',
+              oneofKind: 'imageGenerate' as const,
               imageGenerate: {
                 prompt: normalizeText(options.prompt),
                 negativePrompt: normalizeText(optionRecord.negativePrompt),
@@ -76,7 +84,8 @@ export function createImageModelImpl(
             },
           },
           extensions: [],
-        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, options.abortSignal);
+        }, defaults.subjectUserId);
+        const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, options.abortSignal);
         const artifacts = media.artifacts;
         const providerMetadata = {
           nimi: {

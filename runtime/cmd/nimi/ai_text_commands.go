@@ -89,12 +89,7 @@ func runRuntimeAITextGenerate(args []string) error {
 		return err
 	}
 
-	text := ""
-	if output := resp.GetOutput(); output != nil {
-		if field, ok := output.GetFields()["text"]; ok {
-			text = strings.TrimSpace(field.GetStringValue())
-		}
-	}
+	text := extractScenarioOutputText(resp.GetOutput())
 
 	if *jsonOutput {
 		payload := map[string]any{
@@ -241,7 +236,7 @@ func runRuntimeAIStream(args []string) error {
 				routeDecision = started.GetRouteDecision()
 			}
 			if delta := event.GetDelta(); delta != nil {
-				output.WriteString(delta.GetText())
+				output.WriteString(extractScenarioStreamTextDelta(delta))
 			}
 			if currentUsage := event.GetUsage(); currentUsage != nil {
 				usage = currentUsage
@@ -259,7 +254,7 @@ func runRuntimeAIStream(args []string) error {
 				continue
 			}
 			if event.GetDelta() != nil {
-				fmt.Print(event.GetDelta().GetText())
+				fmt.Print(extractScenarioStreamTextDelta(event.GetDelta()))
 			}
 		}
 	}
@@ -354,10 +349,16 @@ func runRuntimeAITextEmbed(args []string) error {
 	if err != nil {
 		return err
 	}
-	vectorPayloads := make([]any, 0)
+	vectorPayloads := make([]any, 0, extractScenarioOutputVectorCount(resp.GetOutput()))
 	if output := resp.GetOutput(); output != nil {
-		if raw, ok := output.AsMap()["vectors"].([]any); ok {
-			vectorPayloads = raw
+		if value, ok := output.GetOutput().(*runtimev1.ScenarioOutput_TextEmbed); ok {
+			for _, vector := range value.TextEmbed.GetVectors() {
+				row := make([]any, 0, len(vector.GetValues()))
+				for _, item := range vector.GetValues() {
+					row = append(row, item)
+				}
+				vectorPayloads = append(vectorPayloads, row)
+			}
 		}
 	}
 	vectorCount := len(vectorPayloads)

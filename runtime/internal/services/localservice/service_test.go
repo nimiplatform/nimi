@@ -38,7 +38,10 @@ func newTestService(t *testing.T) *Service {
 func newTestServiceWithProbe(t *testing.T, probe func(context.Context, string) endpointProbeResult) *Service {
 	t.Helper()
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
+	svc, err := New(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, statePath, 0)
+	if err != nil {
+		t.Fatalf("create local service: %v", err)
+	}
 	if probe != nil {
 		svc.endpointProbe = func(ctx context.Context, _ string, endpoint string) endpointProbeResult {
 			return probe(ctx, endpoint)
@@ -2676,7 +2679,10 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	svc := New(logger, nil, statePath, 0)
+	svc, err := New(logger, nil, statePath, 0)
+	if err != nil {
+		t.Fatalf("create service: %v", err)
+	}
 	installedModel := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
 		ModelId:      "local/persisted-model",
 		Capabilities: []string{"chat"},
@@ -2729,7 +2735,10 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 		t.Fatalf("append persisted audit: %v", err)
 	}
 
-	restarted := New(logger, nil, statePath, 0)
+	restarted, err := New(logger, nil, statePath, 0)
+	if err != nil {
+		t.Fatalf("restart service: %v", err)
+	}
 	modelsResp, err := restarted.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
 	if err != nil {
 		t.Fatalf("list models after restart: %v", err)
@@ -2780,7 +2789,10 @@ func TestLocalAuditCapacityRespectedAcrossPersistAndRestore(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	svc := New(logger, nil, statePath, 2)
+	svc, err := New(logger, nil, statePath, 2)
+	if err != nil {
+		t.Fatalf("create service: %v", err)
+	}
 	defer svc.Close()
 
 	for i := 0; i < 5; i++ {
@@ -2803,7 +2815,10 @@ func TestLocalAuditCapacityRespectedAcrossPersistAndRestore(t *testing.T) {
 		t.Fatalf("unexpected retained audit order before restart: %s, %s", current.GetEvents()[0].GetEventType(), current.GetEvents()[1].GetEventType())
 	}
 
-	restarted := New(logger, nil, statePath, 2)
+	restarted, err := New(logger, nil, statePath, 2)
+	if err != nil {
+		t.Fatalf("restart service: %v", err)
+	}
 	defer restarted.Close()
 
 	restored, err := restarted.ListLocalAudits(context.Background(), &runtimev1.ListLocalAuditsRequest{PageSize: 10})

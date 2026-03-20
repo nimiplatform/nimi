@@ -3,14 +3,15 @@ import type {
   RuntimeDefaults,
   RuntimeForAiProvider,
 } from './types.js';
+import { createNimiError } from '../runtime/index.js';
 import {
   executeScenarioJob,
   normalizeProviderError,
   normalizeText,
-  resolveFallbackPolicy,
   resolveRoutePolicy,
   toLabels,
 } from './helpers.js';
+import { ReasonCode } from '../types/index.js';
 import { withOptionalHeadSubjectUserId } from './model-factory-shared.js';
 import { ExecutionMode, ScenarioType } from '../runtime/generated/runtime/v1/ai.js';
 
@@ -23,14 +24,13 @@ export function createSpeechModelImpl(
     synthesize: async (options) => {
       try {
         const resolvedRoute = options.routePolicy || defaults.routePolicy;
-        const resolvedFallback = options.fallback || defaults.fallback;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
-        const media = await executeScenarioJob(runtime, defaults, withOptionalHeadSubjectUserId({
+        const request = withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
+            subjectUserId: '',
             modelId,
             routePolicy: resolveRoutePolicy(resolvedRoute),
-            fallback: resolveFallbackPolicy(resolvedFallback),
             timeoutMs,
             connectorId: '',
           },
@@ -38,10 +38,10 @@ export function createSpeechModelImpl(
           executionMode: ExecutionMode.ASYNC_JOB,
           requestId: normalizeText(options.requestId),
           idempotencyKey: normalizeText(options.idempotencyKey),
-          labels: toLabels(options.labels),
+          labels: toLabels(options.labels) || {},
           spec: {
             spec: {
-              oneofKind: 'speechSynthesize',
+              oneofKind: 'speechSynthesize' as const,
               speechSynthesize: {
                 text: normalizeText(options.text),
                 language: normalizeText(options.language),
@@ -55,16 +55,26 @@ export function createSpeechModelImpl(
                   ? {
                     kind: 3,
                     reference: {
-                      oneofKind: 'providerVoiceRef',
+                      oneofKind: 'providerVoiceRef' as const,
                       providerVoiceRef: normalizeText(options.voice),
                     },
                   }
                   : undefined,
+                timingMode: 0,
               },
             },
           },
           extensions: [],
-        }, defaults.subjectUserId) as unknown as Record<string, unknown>, timeoutMs, options.signal);
+        }, defaults.subjectUserId);
+        const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, options.signal);
+        if (!media.output?.output || media.output.output.oneofKind !== 'speechSynthesize') {
+          throw createNimiError({
+            message: 'runtime speech synthesis output missing typed speechSynthesize result',
+            reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+            actionHint: 'regenerate_runtime_proto_and_sdk',
+            source: 'runtime',
+          });
+        }
         return {
           artifacts: media.artifacts,
         };

@@ -286,9 +286,10 @@ func runTopLevelRun(args []string) error {
 				}
 			}
 			if delta := event.GetDelta(); delta != nil {
-				buffer.WriteString(delta.GetText())
+				text := extractScenarioStreamTextDelta(delta)
+				buffer.WriteString(text)
 				if !*jsonOutput {
-					fmt.Print(delta.GetText())
+					fmt.Print(text)
 				}
 			}
 			if currentUsage := event.GetUsage(); currentUsage != nil {

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { RoutePolicy } from '../../src/runtime/generated/runtime/v1/ai.js';
+import { FallbackPolicy, RoutePolicy } from '../../src/runtime/generated/runtime/v1/ai.js';
 import type { RuntimeInternalContext } from '../../src/runtime/internal-context.js';
+import { runtimeAiRequestRequiresSubject } from '../../src/runtime/runtime-guards.js';
 import {
   runtimeGenerateImage,
   runtimeGenerateVideo,
@@ -16,6 +17,13 @@ import {
   streamArtifactsFromMediaOutput,
 } from '../../src/runtime/runtime-modality.js';
 import { ReasonCode } from '../../src/types/index.js';
+import {
+  artifactDelta,
+  imageGenerateOutput,
+  speechSynthesizeOutput,
+  speechTranscribeOutput,
+  videoGenerateOutput,
+} from '../helpers/runtime-ai-shapes.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -66,6 +74,20 @@ function createMockCtx(overrides?: Partial<RuntimeInternalContext>): RuntimeInte
     }),
     resolveSubjectUserId: async (explicit) => explicit || 'test-subject',
     resolveOptionalSubjectUserId: async (explicit) => explicit || undefined,
+    normalizeScenarioHead: async ({ head, metadata }) => {
+      const requiresSubject = runtimeAiRequestRequiresSubject({
+        request: { head },
+        metadata,
+      });
+      const subjectUserId = requiresSubject
+        ? await (overrides?.resolveSubjectUserId ?? (async (explicit) => explicit || 'test-subject'))(head.subjectUserId)
+        : await (overrides?.resolveOptionalSubjectUserId ?? (async (explicit) => explicit || undefined))(head.subjectUserId);
+      return {
+        ...head,
+        subjectUserId: subjectUserId || '',
+        fallback: head.fallback ?? FallbackPolicy.DENY,
+      };
+    },
     emitTelemetry: () => {},
     ...overrides,
   } as RuntimeInternalContext;
@@ -91,23 +113,24 @@ function makeArtifact(id: string, bytes: Uint8Array, mimeType = 'image/png') {
 // streamArtifactsFromMediaOutput — branch coverage
 // ---------------------------------------------------------------------------
 
-test('streamArtifactsFromMediaOutput: empty artifacts array uses fallback artifact', async () => {
+test('streamArtifactsFromMediaOutput: empty artifacts array throws contract violation', async () => {
   const output = {
     job: makeJob({ jobId: 'fallback-job' }) as never,
     artifacts: [],
     trace: { traceId: 'trace-1' },
   };
 
-  const chunks = [];
-  for await (const chunk of streamArtifactsFromMediaOutput(output)) {
-    chunks.push(chunk);
-  }
-
-  assert.equal(chunks.length, 1);
-  assert.equal(chunks[0]!.artifactId, 'fallback-job');
-  assert.equal(chunks[0]!.mimeType, 'application/octet-stream');
-  assert.equal(chunks[0]!.chunk.length, 0);
-  assert.equal(chunks[0]!.eof, true);
+  await assert.rejects(
+    async () => {
+      for await (const _chunk of streamArtifactsFromMediaOutput(output)) {
+        // consume
+      }
+    },
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
 });
 
 test('streamArtifactsFromMediaOutput: artifact with zero-length bytes yields single empty chunk', async () => {
@@ -172,20 +195,24 @@ test('streamArtifactsFromMediaOutput: multiple artifacts yield correct sequences
   assert.equal(chunks[1]!.eof, true);
 });
 
-test('streamArtifactsFromMediaOutput: artifact with empty artifactId/mimeType uses fallback', async () => {
+test('streamArtifactsFromMediaOutput: artifact with empty artifactId/mimeType throws contract violation', async () => {
   const output = {
     job: makeJob({ jobId: 'fb-id' }) as never,
     artifacts: [{ artifactId: '', mimeType: '', bytes: new Uint8Array([1]) }],
     trace: { traceId: 'trace-5' },
   };
 
-  const chunks = [];
-  for await (const chunk of streamArtifactsFromMediaOutput(output)) {
-    chunks.push(chunk);
-  }
-
-  assert.equal(chunks[0]!.artifactId, 'fb-id');
-  assert.equal(chunks[0]!.mimeType, 'application/octet-stream');
+  await assert.rejects(
+    async () => {
+      for await (const _chunk of streamArtifactsFromMediaOutput(output)) {
+        // consume
+      }
+    },
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
 });
 
 test('streamArtifactsFromMediaOutput: routeDecision defaults to UNSPECIFIED when job has none', async () => {
@@ -259,7 +286,7 @@ test('runtimeStreamSpeechSynthesis: started event sets model and route for subse
               traceId: 'trace-s1',
             };
             yield {
-              payload: { oneofKind: 'delta', delta: { chunk: new Uint8Array([1, 2, 3]), mimeType: 'audio/mp3' } },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1, 2, 3]), 'audio/mp3') },
               sequence: '2',
               traceId: 'trace-s2',
             };
@@ -304,12 +331,12 @@ test('runtimeStreamSpeechSynthesis: delta with zero-length chunk is skipped', as
         streamScenario: async () => ({
           async *[Symbol.asyncIterator]() {
             yield {
-              payload: { oneofKind: 'delta', delta: { chunk: new Uint8Array(0), mimeType: 'audio/wav' } },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array(0), 'audio/wav') },
               sequence: '1',
               traceId: 'trace-d1',
             };
             yield {
-              payload: { oneofKind: 'delta', delta: { chunk: new Uint8Array([5]), mimeType: 'audio/wav' } },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([5]), 'audio/wav') },
               sequence: '2',
               traceId: 'trace-d2',
             };
@@ -426,6 +453,11 @@ test('runtimeStreamSpeechSynthesis: without voice — voiceRef is undefined', as
           return {
             async *[Symbol.asyncIterator]() {
               yield {
+                payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+                sequence: '0',
+                traceId: 'trace-nv',
+              };
+              yield {
                 payload: { oneofKind: 'completed', completed: {} },
                 sequence: '1',
                 traceId: 'trace-nv',
@@ -460,6 +492,11 @@ test('runtimeStreamSpeechSynthesis: without voiceRenderHints — hints are undef
           capturedRequest = request as Record<string, unknown>;
           return {
             async *[Symbol.asyncIterator]() {
+              yield {
+                payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+                sequence: '0',
+                traceId: 'trace-nh',
+              };
               yield {
                 payload: { oneofKind: 'completed', completed: {} },
                 sequence: '1',
@@ -505,6 +542,7 @@ test('runtimeStreamSpeechSynthesis: cloud route requires subject, local does not
       ai: {
         streamScenario: async () => ({
           async *[Symbol.asyncIterator]() {
+            yield { payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') }, sequence: '0', traceId: '' };
             yield { payload: { oneofKind: 'completed', completed: {} }, sequence: '1', traceId: '' };
           },
         }),
@@ -537,6 +575,7 @@ test('runtimeStreamSpeechSynthesis: cloud route requires subject, local does not
       ai: {
         streamScenario: async () => ({
           async *[Symbol.asyncIterator]() {
+            yield { payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') }, sequence: '0', traceId: '' };
             yield { payload: { oneofKind: 'completed', completed: {} }, sequence: '1', traceId: '' };
           },
         }),
@@ -553,7 +592,7 @@ test('runtimeStreamSpeechSynthesis: cloud route requires subject, local does not
   assert.equal(resolveSubjectCalled, false, 'local route should not call resolveSubjectUserId');
 });
 
-test('runtimeStreamSpeechSynthesis: started with empty model uses fallback model', async () => {
+test('runtimeStreamSpeechSynthesis: started with empty model keeps explicit input model', async () => {
   const ctx = createMockCtx({
     invokeWithClient: async (op) => op({
       ai: {
@@ -565,7 +604,7 @@ test('runtimeStreamSpeechSynthesis: started with empty model uses fallback model
               traceId: '',
             };
             yield {
-              payload: { oneofKind: 'delta', delta: { chunk: new Uint8Array([1]), mimeType: '' } },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/ogg') },
               sequence: '2',
               traceId: '',
             };
@@ -591,20 +630,18 @@ test('runtimeStreamSpeechSynthesis: started with empty model uses fallback model
     chunks.push(chunk);
   }
 
-  // When started.modelResolved is empty, fallback to input model
   assert.equal(chunks[0]!.modelResolved, 'my-model');
-  // When delta.mimeType is empty, fallback to audioFormat
   assert.equal(chunks[0]!.mimeType, 'audio/ogg');
 });
 
-test('runtimeStreamSpeechSynthesis: fallback mimeType defaults to audio/wav when audioFormat absent', async () => {
+test('runtimeStreamSpeechSynthesis: missing mimeType now throws contract violation', async () => {
   const ctx = createMockCtx({
     invokeWithClient: async (op) => op({
       ai: {
         streamScenario: async () => ({
           async *[Symbol.asyncIterator]() {
             yield {
-              payload: { oneofKind: 'delta', delta: { chunk: new Uint8Array([1]), mimeType: '' } },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), '') },
               sequence: '1',
               traceId: '',
             };
@@ -624,13 +661,17 @@ test('runtimeStreamSpeechSynthesis: fallback mimeType defaults to audio/wav when
     text: 'test',
   });
 
-  const chunks = [];
-  for await (const chunk of stream) {
-    chunks.push(chunk);
-  }
-
-  assert.equal(chunks[0]!.mimeType, 'audio/wav');
-  assert.equal(chunks[1]!.mimeType, 'audio/wav');
+  await assert.rejects(
+    async () => {
+      for await (const _chunk of stream) {
+        // consume
+      }
+    },
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
 });
 
 test('runtimeStreamSpeechSynthesis: unknown payload oneofKind is ignored', async () => {
@@ -650,8 +691,13 @@ test('runtimeStreamSpeechSynthesis: unknown payload oneofKind is ignored', async
               traceId: '',
             };
             yield {
-              payload: { oneofKind: 'completed', completed: {} },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
               sequence: '3',
+              traceId: '',
+            };
+            yield {
+              payload: { oneofKind: 'completed', completed: {} },
+              sequence: '4',
               traceId: '',
             };
           },
@@ -670,12 +716,12 @@ test('runtimeStreamSpeechSynthesis: unknown payload oneofKind is ignored', async
     chunks.push(chunk);
   }
 
-  // Only the completed event should yield a chunk
-  assert.equal(chunks.length, 1);
-  assert.equal(chunks[0]!.eof, true);
+  assert.equal(chunks.length, 2);
+  assert.equal(chunks[0]!.eof, false);
+  assert.equal(chunks[1]!.eof, true);
 });
 
-test('runtimeStreamSpeechSynthesis: delta without chunk property uses fallback empty Uint8Array and is skipped', async () => {
+test('runtimeStreamSpeechSynthesis: delta without chunk is skipped but completed still requires real audio chunk', async () => {
   const ctx = createMockCtx({
     invokeWithClient: async (op) => op({
       ai: {
@@ -702,14 +748,17 @@ test('runtimeStreamSpeechSynthesis: delta without chunk property uses fallback e
     text: 'test',
   });
 
-  const chunks = [];
-  for await (const chunk of stream) {
-    chunks.push(chunk);
-  }
-
-  // Delta with no chunk is treated as empty (length 0) and skipped
-  assert.equal(chunks.length, 1);
-  assert.equal(chunks[0]!.eof, true);
+  await assert.rejects(
+    async () => {
+      for await (const _chunk of stream) {
+        // consume
+      }
+    },
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -723,7 +772,7 @@ test('runtimeStreamSpeech: delegates to runtimeStreamSpeechSynthesis', async () 
         streamScenario: async () => ({
           async *[Symbol.asyncIterator]() {
             yield {
-              payload: { oneofKind: 'delta', delta: { chunk: new Uint8Array([99]), mimeType: 'audio/wav' } },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([99]), 'audio/wav') },
               sequence: '1',
               traceId: 'trace-delegate',
             };
@@ -768,6 +817,7 @@ test('runtimeTranscribeSpeech: empty artifacts returns empty text', async () => 
         getScenarioArtifacts: async () => ({
           artifacts: [],
           traceId: 'trace-stt-empty',
+          output: speechTranscribeOutput(''),
         }),
       },
     } as never),
@@ -795,6 +845,7 @@ test('runtimeTranscribeSpeech: artifact with bytes returns decoded text', async 
         getScenarioArtifacts: async () => ({
           artifacts: [{ bytes: Buffer.from('hello world', 'utf8') }],
           traceId: 'trace-stt-text',
+          output: speechTranscribeOutput('hello world'),
         }),
       },
     } as never),
@@ -807,6 +858,38 @@ test('runtimeTranscribeSpeech: artifact with bytes returns decoded text', async 
   });
 
   assert.equal(result.text, 'hello world');
+});
+
+test('runtimeTranscribeSpeech: mismatched typed output fails closed', async () => {
+  const ctx = createMockCtx({
+    invokeWithClient: async (op) => op({
+      ai: {
+        submitScenarioJob: async () => ({
+          job: makeJob({ jobId: 'stt-job-3' }),
+        }),
+        getScenarioJob: async () => ({
+          job: makeJob({ jobId: 'stt-job-3' }),
+        }),
+        getScenarioArtifacts: async () => ({
+          artifacts: [],
+          traceId: 'trace-stt-mismatch',
+          output: imageGenerateOutput('img-art-1'),
+        }),
+      },
+    } as never),
+  });
+
+  await assert.rejects(
+    () => runtimeTranscribeSpeech(ctx, {
+      model: 'stt-model',
+      audio: { kind: 'bytes', bytes: new Uint8Array([1]) },
+      mimeType: 'audio/wav',
+    }),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED);
+      return true;
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -826,6 +909,7 @@ test('runtimeGenerateImage: artifacts.traceId used when present', async () => {
         getScenarioArtifacts: async () => ({
           artifacts: [makeArtifact('art-1', new Uint8Array([1]))],
           traceId: 'artifacts-trace',
+          output: imageGenerateOutput('art-1'),
         }),
       },
     } as never),
@@ -852,6 +936,7 @@ test('runtimeGenerateImage: falls back to job.traceId when artifacts.traceId is 
         getScenarioArtifacts: async () => ({
           artifacts: [makeArtifact('art-2', new Uint8Array([2]))],
           traceId: '',
+          output: imageGenerateOutput('art-2'),
         }),
       },
     } as never),
@@ -882,6 +967,7 @@ test('runtimeGenerateVideo: artifacts.traceId used over job.traceId', async () =
         getScenarioArtifacts: async () => ({
           artifacts: [makeArtifact('vid-art', new Uint8Array([1]))],
           traceId: 'vid-art-trace',
+          output: videoGenerateOutput('vid-art'),
         }),
       },
     } as never),
@@ -901,7 +987,7 @@ test('runtimeGenerateVideo: artifacts.traceId used over job.traceId', async () =
 // runtimeSynthesizeSpeech — traceId fallback branch
 // ---------------------------------------------------------------------------
 
-test('runtimeSynthesizeSpeech: traceId fallback to job when artifacts empty', async () => {
+test('runtimeSynthesizeSpeech: typed artifacts remain valid when top-level artifacts are empty', async () => {
   const ctx = createMockCtx({
     invokeWithClient: async (op) => op({
       ai: {
@@ -914,6 +1000,7 @@ test('runtimeSynthesizeSpeech: traceId fallback to job when artifacts empty', as
         getScenarioArtifacts: async () => ({
           artifacts: [],
           traceId: undefined,
+          output: speechSynthesizeOutput('tts-art-1'),
         }),
       },
     } as never),
@@ -925,6 +1012,7 @@ test('runtimeSynthesizeSpeech: traceId fallback to job when artifacts empty', as
   });
 
   assert.equal(result.trace.traceId, 'tts-job-trace');
+  assert.equal(result.artifacts[0]?.artifactId, 'tts-art-1');
 });
 
 // ---------------------------------------------------------------------------
@@ -944,6 +1032,7 @@ test('runtimeStreamImage: delegates through runtimeGenerateImage to streamArtifa
         getScenarioArtifacts: async () => ({
           artifacts: [makeArtifact('si-art', new Uint8Array([10, 20]))],
           traceId: 'si-trace',
+          output: imageGenerateOutput('si-art'),
         }),
       },
     } as never),
@@ -976,6 +1065,7 @@ test('runtimeStreamVideo: delegates through runtimeGenerateVideo to streamArtifa
         getScenarioArtifacts: async () => ({
           artifacts: [makeArtifact('sv-art', new Uint8Array([30, 40]))],
           traceId: 'sv-trace',
+          output: videoGenerateOutput('sv-art'),
         }),
       },
     } as never),
@@ -1156,6 +1246,11 @@ test('runtimeStreamSpeechSynthesis: completed event carries usage data', async (
         streamScenario: async () => ({
           async *[Symbol.asyncIterator]() {
             yield {
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+              sequence: '0',
+              traceId: 'trace-usage',
+            };
+            yield {
               payload: {
                 oneofKind: 'completed',
                 completed: { usage: { inputTokens: '100', outputTokens: '50', computeMs: '200' } },
@@ -1179,10 +1274,11 @@ test('runtimeStreamSpeechSynthesis: completed event carries usage data', async (
     chunks.push(chunk);
   }
 
-  assert.equal(chunks.length, 1);
-  assert.equal(chunks[0]!.eof, true);
-  assert.ok(chunks[0]!.usage);
-  assert.equal(chunks[0]!.usage?.inputTokens, '100');
+  assert.equal(chunks.length, 2);
+  assert.equal(chunks[0]!.eof, false);
+  assert.equal(chunks[1]!.eof, true);
+  assert.ok(chunks[1]!.usage);
+  assert.equal(chunks[1]!.usage?.inputTokens, '100');
 });
 
 // ---------------------------------------------------------------------------
@@ -1238,6 +1334,11 @@ test('runtimeStreamSpeechSynthesis: connectorId forces required subject resoluti
       ai: {
         streamScenario: async () => ({
           async *[Symbol.asyncIterator]() {
+            yield {
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+              sequence: '0',
+              traceId: '',
+            };
             yield { payload: { oneofKind: 'completed', completed: {} }, sequence: '1', traceId: '' };
           },
         }),
@@ -1270,6 +1371,11 @@ test('runtimeStreamSpeechSynthesis: timeoutMs uses input then ctx fallback', asy
           capturedRequest = request as Record<string, unknown>;
           return {
             async *[Symbol.asyncIterator]() {
+              yield {
+                payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+                sequence: '0',
+                traceId: '',
+              };
               yield { payload: { oneofKind: 'completed', completed: {} }, sequence: '1', traceId: '' };
             },
           };
@@ -1305,7 +1411,7 @@ test('runtimeStreamSpeechSynthesis: started event without routeDecision uses hea
               traceId: '',
             };
             yield {
-              payload: { oneofKind: 'delta', delta: { chunk: new Uint8Array([1]), mimeType: 'audio/wav' } },
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
               sequence: '2',
               traceId: '',
             };

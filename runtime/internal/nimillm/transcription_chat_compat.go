@@ -81,11 +81,14 @@ func resolveInlineAudioMIME(mimeType string, audio []byte) string {
 	if strings.HasPrefix(strings.ToLower(detected), "audio/") {
 		return detected
 	}
-	return "audio/wav"
+	return ""
 }
 
 func resolveInlineAudioFormat(mimeType string, audio []byte) string {
 	normalized := strings.ToLower(strings.TrimSpace(resolveInlineAudioMIME(mimeType, audio)))
+	if normalized == "" {
+		return ""
+	}
 	switch {
 	case strings.Contains(normalized, "wav"):
 		return "wav"
@@ -103,15 +106,15 @@ func resolveInlineAudioFormat(mimeType string, audio []byte) string {
 		return "mp4"
 	default:
 		subtype := strings.TrimSpace(strings.TrimPrefix(normalized, "audio/"))
-		if subtype != "" {
-			return subtype
-		}
-		return "wav"
+		return subtype
 	}
 }
 
 func encodeInlineAudioDataURI(audio []byte, mimeType string) string {
 	normalizedMIME := resolveInlineAudioMIME(mimeType, audio)
+	if normalizedMIME == "" {
+		return ""
+	}
 	return "data:" + normalizedMIME + ";base64," + base64.StdEncoding.EncodeToString(audio)
 }
 
@@ -167,18 +170,13 @@ func extractChatCompletionMessageText(payload map[string]any) string {
 }
 
 func usageFromChatCompletionTranscription(payload map[string]any, audio []byte, text string) *runtimev1.UsageStats {
-	fallback := &runtimev1.UsageStats{
-		InputTokens:  MaxInt64(1, int64(len(audio)/256)),
-		OutputTokens: EstimateTokens(text),
-		ComputeMs:    MaxInt64(10, int64(len(audio)/64)),
-	}
 	if payload == nil {
-		return fallback
+		return nil
 	}
 
 	usagePayload, ok := payload["usage"].(map[string]any)
 	if !ok {
-		return fallback
+		return nil
 	}
 	inputTokens := ValueAsInt64(usagePayload["prompt_tokens"])
 	outputTokens := ValueAsInt64(usagePayload["completion_tokens"])
@@ -189,11 +187,10 @@ func usageFromChatCompletionTranscription(payload map[string]any, audio []byte, 
 		}
 	}
 	if inputTokens == 0 && outputTokens == 0 {
-		return fallback
+		return nil
 	}
 	return &runtimev1.UsageStats{
-		InputTokens:  MaxInt64(fallback.GetInputTokens(), inputTokens),
-		OutputTokens: MaxInt64(fallback.GetOutputTokens(), outputTokens),
-		ComputeMs:    fallback.GetComputeMs(),
+		InputTokens:  inputTokens,
+		OutputTokens: outputTokens,
 	}
 }

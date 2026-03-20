@@ -19,7 +19,6 @@ async function saveImage() {
     prompt: 'A bold launch poster for Nimi',
     subjectUserId: 'local-user',
     route: 'local',
-    fallback: 'deny',
     timeoutMs: 120000,
   });
 
@@ -39,7 +38,6 @@ async function saveSpeech() {
     text: 'Hello from the Nimi runtime.',
     subjectUserId: 'local-user',
     route: 'local',
-    fallback: 'deny',
     timeoutMs: 45000,
   });
 

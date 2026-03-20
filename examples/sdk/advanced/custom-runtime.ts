@@ -20,7 +20,6 @@ const { runtime } = await createPlatformClient({
 const nimi = createNimiAiProvider({
   runtime,
   routePolicy: 'cloud',
-  fallback: 'deny',
 });
 
 const { text } = await generateText({

@@ -10,12 +10,12 @@ import {
   type RuntimeCallOptions,
   type RuntimeStreamCallOptions,
 } from '../runtime/index.js';
-import { Struct } from '../runtime/generated/google/protobuf/struct.js';
-import { ChatContentPartType } from '../runtime/generated/runtime/v1/ai.js';
-import { ReasonCode, type AiFallbackPolicy, type AiRoutePolicy } from '../types/index.js';
 import {
-  FALLBACK_POLICY_ALLOW,
-  FALLBACK_POLICY_DENY,
+  Struct,
+} from '../runtime/generated/google/protobuf/struct.js';
+import { ChatContentPartType, type ScenarioOutput } from '../runtime/generated/runtime/v1/ai.js';
+import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
+import {
   ROUTE_POLICY_LOCAL,
   ROUTE_POLICY_CLOUD,
   type NimiAiProviderConfig,
@@ -29,6 +29,8 @@ export {
   normalizeProviderError,
   toEmbeddingVectors,
   toEmbeddingVectorsFromScenarioOutput,
+  toSpeechSynthesisArtifactsFromScenarioOutput,
+  toSpeechTranscriptionFromScenarioOutput,
 } from './helpers-scenario.js';
 export { asRecord, normalizeText };
 
@@ -60,12 +62,6 @@ export function resolveRoutePolicy(value: AiRoutePolicy | undefined): number {
   return value === 'cloud'
     ? ROUTE_POLICY_CLOUD
     : ROUTE_POLICY_LOCAL;
-}
-
-export function resolveFallbackPolicy(value: AiFallbackPolicy | undefined): number {
-  return value === 'allow'
-    ? FALLBACK_POLICY_ALLOW
-    : FALLBACK_POLICY_DENY;
 }
 
 export function fromRouteDecision(value: unknown): AiRoutePolicy {
@@ -385,15 +381,10 @@ function extractContentParts(
 }
 
 export function extractGenerateText(output: unknown): string {
-  const fields = asRecord(asRecord(output).fields);
-  const text = asRecord(fields.text);
-  const kind = asRecord(text.kind);
-
-  if (kind.oneofKind === 'stringValue') {
-    return normalizeText(kind.stringValue);
-  }
-  if (typeof text.stringValue === 'string') {
-    return normalizeText(text.stringValue);
+  const value = output as ScenarioOutput | undefined;
+  const variant = value?.output;
+  if (variant?.oneofKind === 'textGenerate') {
+    return normalizeText(variant.textGenerate.text);
   }
   return '';
 }
@@ -458,7 +449,15 @@ export function toImageFileSource(value: unknown): string {
     return '';
   }
 
-  const mediaType = normalizeText(record.mediaType) || 'application/octet-stream';
+  const mediaType = normalizeText(record.mediaType);
+  if (!mediaType) {
+    throw createNimiError({
+      message: 'image file mediaType is required',
+      reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
+      actionHint: 'set_file_media_type',
+      source: 'sdk',
+    });
+  }
   const data = record.data;
   if (typeof data === 'string') {
     const normalized = normalizeText(data);
@@ -567,12 +566,12 @@ export function ensureRuntime(config: NimiAiProviderConfig): {
       appId: ensureText(config.appId || config.runtime.appId, 'appId'),
       subjectUserId,
       routePolicy: config.routePolicy || 'local',
-      fallback: config.fallback || 'deny',
       timeoutMs: config.timeoutMs,
       metadata: config.metadata,
     },
   };
 }
+
 
 export function toCallOptions(
   defaults: RuntimeDefaults,

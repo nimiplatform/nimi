@@ -52,8 +52,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentRulesService.agentRulesControllerArchiveRule": {
     "operationId": "AgentRulesController_archiveRule",
@@ -257,14 +259,15 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       }
     ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
+    "hasBody": false,
+    "bodyRequired": false,
     "successStatusCodes": [
-      "201"
+      "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerApprove": {
     "operationId": "AgentController_approve",
@@ -710,6 +713,12 @@ export const REALM_OPERATION_MAP = {
         "in": "path",
         "required": true,
         "valueType": "string"
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
       }
     ],
     "hasBody": false,
@@ -717,8 +726,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerListE2EMemories": {
     "operationId": "AgentController_listE2EMemories",
@@ -739,6 +750,12 @@ export const REALM_OPERATION_MAP = {
         "in": "path",
         "required": true,
         "valueType": "string"
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
       }
     ],
     "hasBody": false,
@@ -746,8 +763,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerListKeyEvents": {
     "operationId": "AgentController_listKeyEvents",
@@ -837,6 +856,18 @@ export const REALM_OPERATION_MAP = {
         "in": "path",
         "required": true,
         "valueType": "string"
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "query",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
       }
     ],
     "hasBody": false,
@@ -844,8 +875,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerReject": {
     "operationId": "AgentController_reject",
@@ -1379,9 +1412,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.walletChallenge": {
     "operationId": "walletChallenge",
@@ -1444,8 +1481,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "CreatorModsControlPlaneService.creatorModsControllerQueryAudit": {
     "operationId": "CreatorModsController_queryAudit",
@@ -2688,15 +2727,17 @@ export const REALM_OPERATION_MAP = {
     "path": "/api/human/nsfw-consent/can-manage",
     "service": "HumanNsfwConsentService",
     "methodName": "humanNsfwConsentControllerCanManageAgentNsfw",
-    "tag": "HumanNsfwConsent",
+    "tag": "Human NSFW Consent",
     "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanNsfwConsentService.humanNsfwConsentControllerCheckConsent": {
     "operationId": "HumanNsfwConsentController_checkConsent",
@@ -2704,15 +2745,17 @@ export const REALM_OPERATION_MAP = {
     "path": "/api/human/nsfw-consent/check",
     "service": "HumanNsfwConsentService",
     "methodName": "humanNsfwConsentControllerCheckConsent",
-    "tag": "HumanNsfwConsent",
+    "tag": "Human NSFW Consent",
     "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanNsfwConsentService.humanNsfwConsentControllerGetConsentStatus": {
     "operationId": "HumanNsfwConsentController_getConsentStatus",
@@ -2720,15 +2763,17 @@ export const REALM_OPERATION_MAP = {
     "path": "/api/human/nsfw-consent/status",
     "service": "HumanNsfwConsentService",
     "methodName": "humanNsfwConsentControllerGetConsentStatus",
-    "tag": "HumanNsfwConsent",
+    "tag": "Human NSFW Consent",
     "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanNsfwConsentService.humanNsfwConsentControllerUpdateUserConsent": {
     "operationId": "HumanNsfwConsentController_updateUserConsent",
@@ -2736,7 +2781,7 @@ export const REALM_OPERATION_MAP = {
     "path": "/api/human/me/settings/nsfw-consent",
     "service": "HumanNsfwConsentService",
     "methodName": "humanNsfwConsentControllerUpdateUserConsent",
-    "tag": "HumanNsfwConsent",
+    "tag": "Human NSFW Consent",
     "parameters": [],
     "hasBody": true,
     "bodyRequired": true,
@@ -2744,8 +2789,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "InvitationsService.invitationControllerGenerateCode": {
     "operationId": "InvitationController_generateCode",
@@ -2808,6 +2855,44 @@ export const REALM_OPERATION_MAP = {
     "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "MeaccountdataService.requestAccountDeletion": {
+    "operationId": "requestAccountDeletion",
+    "method": "POST",
+    "path": "/api/auth/me/account-deletion",
+    "service": "MeaccountdataService",
+    "methodName": "requestAccountDeletion",
+    "tag": "MeAccountData",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "MeaccountdataService.requestDataExport": {
+    "operationId": "requestDataExport",
+    "method": "POST",
+    "path": "/api/auth/me/data-export",
+    "service": "MeaccountdataService",
+    "methodName": "requestDataExport",
+    "tag": "MeAccountData",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
     "successStatusCodes": [
       "200"
     ],
@@ -3180,8 +3265,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "MeService.getMySettings": {
     "operationId": "getMySettings",
@@ -3418,8 +3505,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "MeService.updateMySettings": {
     "operationId": "updateMySettings",
@@ -4417,6 +4506,25 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "RuntimeRealmGrantsService.issueRuntimeRealmGrant": {
+    "operationId": "issueRuntimeRealmGrant",
+    "method": "POST",
+    "path": "/api/runtime/realm-grants/issue",
+    "service": "RuntimeRealmGrantsService",
+    "methodName": "issueRuntimeRealmGrant",
+    "tag": "Runtime Realm Grants",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
     "successStatusCodes": [
       "200"
     ],
@@ -7435,6 +7543,10 @@ export const REALM_SERVICE_METHODS = {
   "JwksService": {
     "getAuthJwks": "JwksService.getAuthJwks"
   },
+  "MeaccountdataService": {
+    "requestAccountDeletion": "MeaccountdataService.requestAccountDeletion",
+    "requestDataExport": "MeaccountdataService.requestDataExport"
+  },
   "MediaService": {
     "createAudioDirectUpload": "MediaService.createAudioDirectUpload",
     "createImageDirectUpload": "MediaService.createImageDirectUpload",
@@ -7517,6 +7629,9 @@ export const REALM_SERVICE_METHODS = {
   "ReviewsEconomyTrustService": {
     "reviewControllerCreateReview": "ReviewsEconomyTrustService.reviewControllerCreateReview",
     "reviewControllerGetReviews": "ReviewsEconomyTrustService.reviewControllerGetReviews"
+  },
+  "RuntimeRealmGrantsService": {
+    "issueRuntimeRealmGrant": "RuntimeRealmGrantsService.issueRuntimeRealmGrant"
   },
   "SatelliteNarrativeService": {
     "satelliteControllerCreate": "SatelliteNarrativeService.satelliteControllerCreate",

@@ -26,11 +26,14 @@ import (
 
 func newTestDaemon(t *testing.T, logger *slog.Logger) *Daemon {
 	t.Helper()
-	daemon := New(config.Config{
+	daemon, err := New(config.Config{
 		GRPCAddr:       "127.0.0.1:0",
 		HTTPAddr:       "127.0.0.1:0",
 		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
 	}, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -167,7 +170,10 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "3.12.1",
 	}
-	daemon := New(cfg, logger, "test")
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -217,7 +223,10 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
 	}
-	daemon := New(cfg, logger, "test")
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -267,7 +276,10 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
 	}
-	daemon := New(cfg, logger, "test")
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -346,7 +358,10 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 		EngineLlamaPort:        1234,
 		EngineLlamaVersion:     "3.12.1",
 	}
-	daemon := New(cfg, logger, "test")
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -412,7 +427,10 @@ func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *test
 		HTTPAddr:       "127.0.0.1:0",
 		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
 	}
-	daemon := New(cfg, logger, "test")
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
 		t.Cleanup(func() { svc.Close() })
 	}
@@ -451,6 +469,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	if err := os.WriteFile(filepath.Join(homeDir, ".nimi"), []byte("blocked"), 0o644); err != nil {
 		t.Fatalf("seed blocked home path: %v", err)
 	}
+	t.Setenv("NIMI_RUNTIME_MODEL_REGISTRY_PATH", filepath.Join(t.TempDir(), "model-registry.json"))
 
 	localModelsPath := filepath.Join(t.TempDir(), "models")
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")
@@ -498,7 +517,10 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "3.12.1",
 	}
-	daemon := New(cfg, logger, "test")
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
 	svc := daemon.grpc.LocalService()
 	if svc == nil {
 		t.Fatalf("expected local service")

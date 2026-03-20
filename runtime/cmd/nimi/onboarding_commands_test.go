@@ -342,7 +342,7 @@ func TestRunTopLevelRunInstallsLocalModelAndStreamsJSON(t *testing.T) {
 			{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{Text: "hello local"},
+					Delta: testTextStreamDelta("hello local"),
 				},
 			},
 			{
@@ -407,7 +407,7 @@ func TestRunTopLevelRunCloudInteractiveCredentialCapture(t *testing.T) {
 			{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{Text: "hello cloud"},
+					Delta: testTextStreamDelta("hello cloud"),
 				},
 			},
 			{
@@ -520,7 +520,7 @@ func TestRunTopLevelRunCloudUsesDefaultProvider(t *testing.T) {
 			{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{Text: "default cloud"},
+					Delta: testTextStreamDelta("default cloud"),
 				},
 			},
 			{

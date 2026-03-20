@@ -99,16 +99,14 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 			ComputeMs:    -1,
 		}
 	}
-	output, err := structpb.NewStruct(map[string]any{
-		"text":          outputText,
-		"scenario_type": req.GetScenarioType().String(),
-	})
-	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-
 	return &runtimev1.ExecuteScenarioResponse{
-		Output:            output,
+		Output: &runtimev1.ScenarioOutput{
+			Output: &runtimev1.ScenarioOutput_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateOutput{
+					Text: outputText,
+				},
+			},
+		},
 		FinishReason:      finishReason,
 		Usage:             usage,
 		RouteDecision:     routeDecision,
@@ -199,16 +197,24 @@ func executeTextEmbedScenario(ctx context.Context, s *Service, req *runtimev1.Ex
 			ComputeMs:    maxInt64(4, int64(len(inputs)*3)),
 		}
 	}
-	vectorPayloads := make([]any, 0, len(vectors))
+	vectorPayloads := make([]*runtimev1.EmbeddingVector, 0, len(vectors))
 	for _, vector := range vectors {
-		vectorPayloads = append(vectorPayloads, vector.AsSlice())
-	}
-	output, err := structpb.NewStruct(map[string]any{"vectors": vectorPayloads})
-	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		values := make([]float64, 0, len(vector.GetValues()))
+		for _, value := range vector.GetValues() {
+			values = append(values, value.GetNumberValue())
+		}
+		vectorPayloads = append(vectorPayloads, &runtimev1.EmbeddingVector{
+			Values: values,
+		})
 	}
 	return &runtimev1.ExecuteScenarioResponse{
-		Output:            output,
+		Output: &runtimev1.ScenarioOutput{
+			Output: &runtimev1.ScenarioOutput_TextEmbed{
+				TextEmbed: &runtimev1.TextEmbedOutput{
+					Vectors: vectorPayloads,
+				},
+			},
+		},
 		FinishReason:      runtimev1.FinishReason_FINISH_REASON_STOP,
 		Usage:             usage,
 		RouteDecision:     routeDecision,

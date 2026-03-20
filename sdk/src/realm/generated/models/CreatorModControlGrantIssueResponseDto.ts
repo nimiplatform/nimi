@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type ActivateAgentDto = components['schemas']['ActivateAgentDto'];
+export type CreatorModControlGrantIssueResponseDto = components['schemas']['CreatorModControlGrantIssueResponseDto'];

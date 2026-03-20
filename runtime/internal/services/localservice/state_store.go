@@ -119,15 +119,14 @@ func resolveLocalStatePath(configuredPath string) string {
 	return filepath.Join(home, defaultLocalStateRelativePath)
 }
 
-func (s *Service) restoreState() {
+func (s *Service) restoreState() error {
 	path := strings.TrimSpace(s.stateStorePath)
 	if path == "" {
-		return
+		return nil
 	}
 	snapshot, err := loadLocalStateSnapshot(path)
 	if err != nil {
-		s.logger.Warn("load local runtime state failed; fallback to empty state", "path", path, "error", err)
-		return
+		return err
 	}
 
 	s.mu.Lock()
@@ -261,6 +260,7 @@ func (s *Service) restoreState() {
 	if healedSnapshot {
 		s.persistStateLocked()
 	}
+	return nil
 }
 
 func (s *Service) persistStateLocked() {

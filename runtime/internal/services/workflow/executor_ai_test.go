@@ -364,16 +364,24 @@ func (c *recordingRuntimeAIClient) ExecuteScenario(_ context.Context, req *runti
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		c.generateReq = cloneExecuteScenarioRequest(req)
 		return &runtimev1.ExecuteScenarioResponse{
-			Output: structFromMap(map[string]any{"text": "generated"}),
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{Text: "generated"},
+				},
+			},
 		}, nil
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
 		c.embedReq = cloneExecuteScenarioRequest(req)
 		return &runtimev1.ExecuteScenarioResponse{
-			Output: structFromMap(map[string]any{
-				"vectors": []any{
-					[]any{1.0, 2.0},
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextEmbed{
+					TextEmbed: &runtimev1.TextEmbedOutput{
+						Vectors: []*runtimev1.EmbeddingVector{
+							{Values: []float64{1.0, 2.0}},
+						},
+					},
 				},
-			}),
+			},
 		}, nil
 	default:
 		return nil, status.Error(codes.Unimplemented, "unimplemented")
@@ -389,12 +397,20 @@ func (c *recordingRuntimeAIClient) StreamScenario(ctx context.Context, req *runt
 		events: []*runtimev1.StreamScenarioEvent{
 			{
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{Text: "hello"},
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Text{
+							Text: &runtimev1.TextStreamDelta{Text: "hello"},
+						},
+					},
 				},
 			},
 			{
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{Text: " world"},
+					Delta: &runtimev1.ScenarioStreamDelta{
+						Delta: &runtimev1.ScenarioStreamDelta_Text{
+							Text: &runtimev1.TextStreamDelta{Text: " world"},
+						},
+					},
 				},
 			},
 		},
