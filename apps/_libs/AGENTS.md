@@ -1,18 +1,26 @@
-# Shell Core (_libs) — AGENTS.md
+# Shell Shared Libs (_libs) — AGENTS.md
 
 ## Scope
 - Applies to `apps/_libs/**`.
-- Shared library providing OAuth flows and shell-mode feature flags for Tauri apps (Forge, Realm Drift, Desktop).
+- Shared libraries for Tauri app shells (Forge, Realm Drift, Desktop).
+- Packages: `shell-core`, `shell-auth`, `shell-telemetry`.
 
 ## Hard Boundaries
 - Zero runtime dependencies; TypeScript types and logic only.
+- Do not import app-layer code from `apps/**`.
 - OAuth helpers are parameterized on `TauriOAuthBridge`; do not add Tauri-specific imports.
 - Shell mode detection reads `VITE_NIMI_SHELL_MODE` env; do not hardcode mode values.
-- Consumers import via `@nimiplatform/shell-core/oauth` and `@nimiplatform/shell-core/shell-mode`.
+- Telemetry helpers must stay renderer-safe; do not add Node/Tauri/Electron-specific imports.
+- Consumers import through published package subpaths only.
 
 ## Retrieval Defaults
-- Start in `apps/_libs/shell-core/src/`.
+- Start in the exact package being changed:
+- `apps/_libs/shell-core/src/`
+- `apps/_libs/shell-auth/src/`
+- `apps/_libs/shell-telemetry/src/`
 
 ## Verification Commands
 - `pnpm --filter @nimiplatform/shell-core build`
 - `pnpm --filter @nimiplatform/shell-core test`
+- `pnpm --filter @nimiplatform/shell-auth build`
+- `pnpm --filter @nimiplatform/shell-telemetry build`

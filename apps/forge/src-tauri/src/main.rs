@@ -6,6 +6,7 @@ mod defaults;
 mod desktop_paths;
 mod oauth_commands;
 mod runtime_bridge;
+mod session_logging;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +26,9 @@ fn get_storage_dirs() -> Result<ForgeStorageDirs, String> {
 }
 
 fn main() {
+    session_logging::install_panic_hook();
+    session_logging::log_boot_marker("forge main() entered");
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_storage_dirs,
@@ -41,6 +45,7 @@ fn main() {
             runtime_bridge::runtime_bridge_restart,
             runtime_bridge::runtime_bridge_config_get,
             runtime_bridge::runtime_bridge_config_set,
+            session_logging::log_renderer_event,
         ])
         .run(tauri::generate_context!())
         .expect("error running forge");

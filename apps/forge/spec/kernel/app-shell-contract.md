@@ -86,9 +86,10 @@ Auth states: `bootstrapping` → `authenticated` | `unauthenticated`
 
 Forge additionally gates on **creator access**:
 - After auth, call the typed world data client (`getMyWorldAccess()` backed by Realm SDK)
-- If `hasCreatorAccess: false` → show a blocked state with re-check only
+- The Forge adapter normalizes the backend response to `{ hasAccess: boolean }`
+- If `hasAccess: false` → show a blocked state with re-check only
 - Forge does not simulate an "apply for creator access" success path until a real backend contract exists
-- If `hasCreatorAccess: true` → render full app
+- If `hasAccess: true` → render full app
 
 ## FG-SHELL-005: Studio Layout
 

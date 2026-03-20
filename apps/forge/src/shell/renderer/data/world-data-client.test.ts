@@ -64,10 +64,34 @@ const wdc = await import('./world-data-client.js');
 describe('world-data-client', () => {
   beforeEach(() => { vi.clearAllMocks(); });
 
-  it('getMyWorldAccess', async () => {
+  it('getMyWorldAccess normalizes hasActiveAccess from backend', async () => {
+    mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasActiveAccess: true, canCreateWorld: true });
+    const result = await wdc.getMyWorldAccess();
+    expect(result).toEqual({ hasAccess: true });
+  });
+
+  it('getMyWorldAccess normalizes hasActiveAccess false', async () => {
+    mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasActiveAccess: false });
+    const result = await wdc.getMyWorldAccess();
+    expect(result).toEqual({ hasAccess: false });
+  });
+
+  it('getMyWorldAccess normalizes hasAccess responses', async () => {
     mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasAccess: true });
     const result = await wdc.getMyWorldAccess();
     expect(result).toEqual({ hasAccess: true });
+  });
+
+  it('getMyWorldAccess normalizes legacy hasCreatorAccess responses', async () => {
+    mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasCreatorAccess: true });
+    const result = await wdc.getMyWorldAccess();
+    expect(result).toEqual({ hasAccess: true });
+  });
+
+  it('getMyWorldAccess fails closed for non-object responses', async () => {
+    mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue('unexpected');
+    const result = await wdc.getMyWorldAccess();
+    expect(result).toEqual({ hasAccess: false });
   });
 
   it('resolveWorldLanding', async () => {

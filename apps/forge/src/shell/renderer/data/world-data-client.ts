@@ -14,6 +14,16 @@ function realm() {
   return getPlatformClient().realm;
 }
 
+type ForgeWorldAccessResponse = {
+  hasActiveAccess?: unknown;
+  hasAccess?: unknown;
+  hasCreatorAccess?: unknown;
+};
+
+export type ForgeWorldAccessResult = {
+  hasAccess: boolean;
+};
+
 type CreateWorldDraftInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerCreateDraft'>[0];
 type UpdateWorldDraftInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerUpdateDraft'>[1];
 type PublishWorldDraftInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerPublishDraft'>[1];
@@ -104,10 +114,31 @@ export type ForgeCreateWorldCreatorAgentInput = CreateCreatorAgentInput | {
   [key: string]: unknown;
 };
 
+function normalizeWorldAccessResponse(response: unknown): ForgeWorldAccessResult {
+  const access = response && typeof response === 'object' && !Array.isArray(response)
+    ? response as ForgeWorldAccessResponse
+    : null;
+
+  if (access && 'hasActiveAccess' in access) {
+    return { hasAccess: Boolean(access.hasActiveAccess) };
+  }
+
+  if (access && 'hasAccess' in access) {
+    return { hasAccess: Boolean(access.hasAccess) };
+  }
+
+  if (access && 'hasCreatorAccess' in access) {
+    return { hasAccess: Boolean(access.hasCreatorAccess) };
+  }
+
+  return { hasAccess: false };
+}
+
 // ── Draft Queries ──────────────────────────────────────────
 
 export async function getMyWorldAccess() {
-  return realm().services.WorldControlService.worldControlControllerGetMyAccess();
+  const response = await realm().services.WorldControlService.worldControlControllerGetMyAccess();
+  return normalizeWorldAccessResponse(response);
 }
 
 export async function resolveWorldLanding() {

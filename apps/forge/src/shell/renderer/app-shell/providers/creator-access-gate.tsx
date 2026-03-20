@@ -15,8 +15,8 @@ export function CreatorAccessGate({ children }: { children: React.ReactNode }) {
 
     async function checkAccess() {
       try {
-        const response = await getMyWorldAccess() as Record<string, unknown>;
-        setCreatorAccess(Boolean(response.hasCreatorAccess));
+        const response = await getMyWorldAccess();
+        setCreatorAccess(Boolean(response.hasAccess));
       } catch {
         setCreatorAccess(false);
       }

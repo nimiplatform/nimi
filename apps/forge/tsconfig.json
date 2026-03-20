@@ -10,6 +10,8 @@
       "@nimiplatform/shell-auth/*": ["../_libs/shell-auth/src/*"],
       "@nimiplatform/shell-core": ["../_libs/shell-core/src/index.ts"],
       "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"],
+      "@nimiplatform/shell-telemetry/telemetry": ["../_libs/shell-telemetry/src/telemetry/index.ts"],
+      "@nimiplatform/shell-telemetry/error-boundary": ["../_libs/shell-telemetry/src/error-boundary/index.ts"],
       "@world-engine/*": ["../../nimi-mods/runtime/world-studio/src/*"]
     },
     "target": "ES2022",

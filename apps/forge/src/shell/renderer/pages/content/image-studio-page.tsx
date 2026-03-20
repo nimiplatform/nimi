@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { type JsonObject } from '@renderer/bridge/types.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 
 const STYLE_PRESETS = ['anime', 'realistic', 'painterly', 'pixel-art'] as const;
 const ASPECT_RATIOS = ['1:1', '16:9', '9:16', '4:3'] as const;
@@ -47,8 +48,11 @@ export default function ImageStudioPage() {
     setGenerating(true);
     try {
       const { runtime } = getPlatformClient();
+      const imageParams = getResolvedAiParams('image');
       const result = await runtime.media.image.generate({
-        model: 'auto',
+        model: imageParams.model,
+        connectorId: imageParams.connectorId,
+        route: imageParams.route,
         prompt: template ? `[${template}] ${prompt}` : prompt,
         negativePrompt: negativePrompt || undefined,
         aspectRatio: ratio,

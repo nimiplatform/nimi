@@ -9,6 +9,7 @@ import type {
 } from '@world-engine/contracts.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { JsonObject } from '@renderer/bridge/types.js';
+import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 
 const WORLDVIEW_RULE_MODULES = [
   {
@@ -362,10 +363,14 @@ export function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: JsonObject): 
 
 export function createForgeAiClient(): WorldStudioRuntimeAiClient {
   const { runtime } = getPlatformClient();
+  const textParams = getResolvedAiParams('text');
+  const imageParams = getResolvedAiParams('image');
   return {
     generateText: async (input) => {
       const result = await runtime.ai.text.generate({
-        model: 'auto',
+        model: textParams.model,
+        connectorId: textParams.connectorId,
+        route: textParams.route,
         input: input.prompt,
         system: input.systemPrompt,
         maxTokens: input.maxTokens,
@@ -380,7 +385,9 @@ export function createForgeAiClient(): WorldStudioRuntimeAiClient {
     },
     generateImage: async (input) => {
       const result = await runtime.media.image.generate({
-        model: 'auto',
+        model: imageParams.model,
+        connectorId: imageParams.connectorId,
+        route: imageParams.route,
         prompt: input.prompt,
         negativePrompt: input.negativePrompt,
         size: input.size,
@@ -407,7 +414,9 @@ export function createForgeAiClient(): WorldStudioRuntimeAiClient {
     },
     generateEmbedding: async (input) => {
       const result = await runtime.ai.embedding.generate({
-        model: input.model || 'auto',
+        model: input.model || textParams.model,
+        connectorId: textParams.connectorId,
+        route: textParams.route,
         input: input.input,
       });
       return {

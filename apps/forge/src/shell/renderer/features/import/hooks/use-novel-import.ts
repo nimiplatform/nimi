@@ -8,6 +8,7 @@
 import { useCallback, useRef } from 'react';
 
 import { createForgeAiClient } from '@renderer/pages/worlds/world-create-page-helpers.js';
+import { logRendererEvent } from '@nimiplatform/shell-telemetry/telemetry';
 
 import { useImportSessionStore } from '../state/import-session-store.js';
 import { splitNovelIntoChapters } from '../engines/novel-chunker.js';
@@ -100,6 +101,7 @@ export function useNovelImport() {
   ) => {
     const aiClient = createForgeAiClient();
     let currentAcc = initialAcc;
+    let consecutiveFailures = 0;
 
     for (let i = currentAcc.processedChapters; i < chapters.length; i++) {
       // Check for pause
@@ -115,14 +117,49 @@ export function useNovelImport() {
       store.setNovelState('EXTRACTING');
       store.setNovelProgress(i, chapters.length);
 
-      // Extract chapter
-      const artifact = await extractChapter(
-        aiClient,
-        chapter.index,
-        chapter.title,
-        chapter.text,
-        currentAcc,
-      );
+      // Extract chapter with error recovery
+      let artifact: ChapterExtractionArtifact;
+      try {
+        artifact = await extractChapter(
+          aiClient,
+          chapter.index,
+          chapter.title,
+          chapter.text,
+          currentAcc,
+        );
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logRendererEvent({
+          level: 'error',
+          area: 'novel-import',
+          message: 'action:extraction:chapter-error',
+          details: { chapterIndex: i, chapterTitle: chapter.title, error: errorMessage },
+        });
+        artifact = {
+          chapterIndex: chapter.index,
+          chapterTitle: chapter.title,
+          status: 'FAILED',
+          error: errorMessage,
+          worldRules: [],
+          agentRules: [],
+          newCharacters: [],
+          contradictions: [],
+          chapterSummary: '',
+        };
+      }
+
+      // Circuit breaker: stop after 3 consecutive failures
+      if (artifact.status === 'FAILED') {
+        consecutiveFailures++;
+        if (consecutiveFailures >= 3) {
+          store.setNovelError(`连续 ${consecutiveFailures} 章提取失败，请检查 AI 运行时状态`);
+          store.setNovelState('PAUSED');
+          store.persistNovelSession();
+          return;
+        }
+      } else {
+        consecutiveFailures = 0;
+      }
 
       store.setNovelChapterResult(artifact);
 

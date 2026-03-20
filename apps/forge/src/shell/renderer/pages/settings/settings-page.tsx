@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AiConfigSection } from './ai-config-section.js';
 
 type ThemeOption = 'dark' | 'system';
 type LanguageOption = 'en' | 'zh';
@@ -175,6 +176,9 @@ export default function SettingsPage() {
             </button>
           </SettingRow>
         </section>
+
+        {/* AI Configuration */}
+        <AiConfigSection />
 
         {/* About */}
         <section className="space-y-3">

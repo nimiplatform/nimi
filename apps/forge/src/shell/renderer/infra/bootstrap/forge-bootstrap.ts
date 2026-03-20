@@ -2,6 +2,7 @@ import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
 import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { createPlatformClient } from '@nimiplatform/sdk';
+import { logRendererEvent } from '@nimiplatform/shell-telemetry/telemetry';
 import { bootstrapAuthSession } from './forge-bootstrap-auth.js';
 
 function toForgeAuthUser(user: Record<string, unknown> | null) {
@@ -22,6 +23,12 @@ function toForgeAuthUser(user: Record<string, unknown> | null) {
 
 export async function runForgeBootstrap(): Promise<void> {
   const store = useAppStore.getState();
+
+  logRendererEvent({
+    level: 'info',
+    area: 'forge-bootstrap',
+    message: 'phase:bootstrap:start',
+  });
 
   try {
     // Step 1: Runtime Defaults (i18n is eagerly initialized at module load)
@@ -84,8 +91,19 @@ export async function runForgeBootstrap(): Promise<void> {
 
     // Step 7: Ready
     store.setBootstrapReady(true);
+    logRendererEvent({
+      level: 'info',
+      area: 'forge-bootstrap',
+      message: 'phase:bootstrap:ready',
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     store.setBootstrapError(message);
+    logRendererEvent({
+      level: 'error',
+      area: 'forge-bootstrap',
+      message: 'action:bootstrap:error',
+      details: { error: message },
+    });
   }
 }

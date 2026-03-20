@@ -54,12 +54,14 @@ export const useAppStore = create<ForgeAppStore>((set) => ({
   setAuthSession(user, token, refreshToken) {
     set({
       auth: { status: 'authenticated', user, token, refreshToken },
+      creatorAccess: { checked: false, hasAccess: false },
     });
   },
 
   clearAuthSession() {
     set({
       auth: { status: 'unauthenticated', user: null, token: '', refreshToken: '' },
+      creatorAccess: { checked: false, hasAccess: false },
     });
   },
 

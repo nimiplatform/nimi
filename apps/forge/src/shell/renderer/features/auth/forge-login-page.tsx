@@ -7,6 +7,7 @@ import {
 import '@nimiplatform/shell-auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { createForgeDesktopBrowserAuthAdapter } from './forge-auth-adapter.js';
+import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 
 export function ForgeLoginPage() {
   const adapter = useMemo(() => createForgeDesktopBrowserAuthAdapter(), []);
@@ -60,6 +61,9 @@ export function ForgeLoginPage() {
             refreshToken || '',
           );
         },
+      }}
+      desktopBrowserAuth={{
+        bridge: forgeTauriOAuthBridge,
       }}
       testIds={{
         screen: 'forge-login-page',

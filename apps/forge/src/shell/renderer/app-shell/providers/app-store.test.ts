@@ -25,6 +25,7 @@ describe('ForgeAppStore', () => {
 
     it('setAuthSession transitions to authenticated', () => {
       const user = { id: 'u1', displayName: 'Test User', email: 'test@example.com' };
+      useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true } });
       useAppStore.getState().setAuthSession(user, 'tok123', 'ref456');
 
       const state = useAppStore.getState();
@@ -32,17 +33,20 @@ describe('ForgeAppStore', () => {
       expect(state.auth.user).toEqual(user);
       expect(state.auth.token).toBe('tok123');
       expect(state.auth.refreshToken).toBe('ref456');
+      expect(state.creatorAccess).toEqual({ checked: false, hasAccess: false });
     });
 
     it('clearAuthSession transitions to unauthenticated', () => {
       const user = { id: 'u1', displayName: 'Test' };
       useAppStore.getState().setAuthSession(user, 'tok', 'ref');
+      useAppStore.setState({ creatorAccess: { checked: true, hasAccess: true } });
       useAppStore.getState().clearAuthSession();
 
       const state = useAppStore.getState();
       expect(state.auth.status).toBe('unauthenticated');
       expect(state.auth.user).toBeNull();
       expect(state.auth.token).toBe('');
+      expect(state.creatorAccess).toEqual({ checked: false, hasAccess: false });
     });
   });
 

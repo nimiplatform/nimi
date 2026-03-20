@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlatformClient } from '@nimiplatform/sdk';
+import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import { finalizeMediaAsset } from '@renderer/data/content-data-client.js';
@@ -155,8 +156,11 @@ export default function MusicStudioPage() {
     setError(null);
     try {
       const { runtime } = getPlatformClient();
+      const musicParams = getResolvedAiParams('music');
       const result = await runtime.media.music.generate({
-        model: 'auto',
+        model: musicParams.model,
+        connectorId: musicParams.connectorId,
+        route: musicParams.route,
         prompt: template ? `[${template}] ${prompt}` : prompt,
         title: title || undefined,
         lyrics: instrumental ? undefined : lyrics || undefined,
