@@ -2,13 +2,13 @@ import type { ComponentType, ReactNode } from 'react';
 import type { JsonObject } from '../../internal/utils.js';
 import type {
   RuntimeHttpContext,
-} from '../types/runtime-hook';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+} from '../types/runtime-hook.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 import type {
   RuntimeLlmHealthInput,
   RuntimeLlmHealthResult,
   RuntimeRouteHealthResult,
-} from '../types/llm';
+} from '../types/llm.js';
 import type {
   ModRuntimeBoundEmbeddingGenerateInput,
   ModRuntimeLocalProfileSnapshot,
@@ -27,7 +27,7 @@ import type {
   ModRuntimeListPresetVoicesInput,
   ModRuntimeResolvedBinding,
   ModRuntimeScenarioJobSubmitInput,
-} from '../runtime/types';
+} from '../runtime/types.js';
 import type {
   ArtifactChunk,
   ScenarioArtifact,

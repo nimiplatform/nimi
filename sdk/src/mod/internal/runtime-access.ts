@@ -1,16 +1,16 @@
-import { getModSdkHost } from '../host';
+import { getModSdkHost } from '../host.js';
 import type {
   RuntimeLlmHealthInput,
   RuntimeLlmHealthResult,
   RuntimeRouteHealthResult,
-} from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+} from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 import type {
   ModRuntimeContext,
   ModRuntimeContextInput,
   ModRuntimeHost,
-} from '../types/runtime-mod';
-import type { ModRuntimeLocalProfileSnapshot } from '../runtime/types';
+} from '../types/runtime-mod.js';
+import type { ModRuntimeLocalProfileSnapshot } from '../runtime/types.js';
 import type { RuntimeCanonicalCapability } from '../runtime-route.js';
 
 export function getRuntimeHost(): ModRuntimeHost {

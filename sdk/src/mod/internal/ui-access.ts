@@ -1,5 +1,5 @@
-import { getModSdkHost } from '../host';
-import type { ModSdkUiContext } from './host-types';
+import { getModSdkHost } from '../host.js';
+import type { ModSdkUiContext } from './host-types.js';
 
 export function useModSdkAppStore<T>(selector: (state: unknown) => T): T {
   return getModSdkHost().ui.useAppStore(selector);
