@@ -546,6 +546,123 @@ test('Realm 401 with refreshToken triggers refresh then retries successfully', a
   }
 });
 
+test('Realm refresh normalizes numeric-string expiresIn consistently across refresh paths', async () => {
+  const originalFetch = globalThis.fetch;
+  let refreshCallbackResult: unknown = null;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = resolveFetchUrl(input);
+    if (url.endsWith('/api/auth/refresh')) {
+      return new Response(JSON.stringify({
+        tokens: {
+          accessToken: 'new-access-token',
+          refreshToken: 'new-refresh-token',
+          expiresIn: '3600',
+        },
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    const headers = resolveFetchHeaders(input, init);
+    if ((headers.get('Authorization') || '') === 'Bearer expired-token') {
+      return new Response(JSON.stringify({
+        message: 'token expired',
+        reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
+      }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const staticResult = await Realm.refreshAccessToken({
+      realmBaseUrl: 'https://realm-refresh.nimi.xyz',
+      refreshToken: 'refresh-token',
+    });
+    assert.equal(staticResult.expiresIn, 3600);
+
+    const realm = new Realm({
+      baseUrl: 'https://realm-refresh.nimi.xyz',
+      auth: {
+        accessToken: 'expired-token',
+        refreshToken: 'refresh-token',
+        onTokenRefreshed: (result) => { refreshCallbackResult = result; },
+      },
+    });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
+
+    assert.equal((refreshCallbackResult as RealmTokenRefreshResult).expiresIn, 3600);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('Realm refresh drops invalid expiresIn values', async () => {
+  const originalFetch = globalThis.fetch;
+  let refreshCallbackResult: unknown = null;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = resolveFetchUrl(input);
+    if (url.endsWith('/api/auth/refresh')) {
+      return new Response(JSON.stringify({
+        tokens: {
+          accessToken: 'new-access-token',
+          refreshToken: 'new-refresh-token',
+          expiresIn: 'not-a-number',
+        },
+      }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    const headers = resolveFetchHeaders(input, init);
+    if ((headers.get('Authorization') || '') === 'Bearer expired-token') {
+      return new Response(JSON.stringify({
+        message: 'token expired',
+        reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
+      }), {
+        status: 401,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const staticResult = await Realm.refreshAccessToken({
+      realmBaseUrl: 'https://realm-refresh.nimi.xyz',
+      refreshToken: 'refresh-token',
+    });
+    assert.equal(staticResult.expiresIn, undefined);
+
+    const realm = new Realm({
+      baseUrl: 'https://realm-refresh.nimi.xyz',
+      auth: {
+        accessToken: 'expired-token',
+        refreshToken: 'refresh-token',
+        onTokenRefreshed: (result) => { refreshCallbackResult = result; },
+      },
+    });
+    await realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
+    assert.equal((refreshCallbackResult as { expiresIn?: number }).expiresIn, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('Realm 401 without refreshToken throws directly (existing behavior)', async () => {
   const originalFetch = globalThis.fetch;
 

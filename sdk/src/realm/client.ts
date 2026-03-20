@@ -51,6 +51,21 @@ function encodePathValue(value: string | number): string {
   return encodeURIComponent(String(value));
 }
 
+function parseRefreshExpiresIn(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (!normalized) {
+      return undefined;
+    }
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
 export class Realm {
   readonly services: RealmServiceRegistry;
 
@@ -225,7 +240,7 @@ export class Realm {
       });
     }
     const nextRefreshToken = normalizeText(tokens.refreshToken || payload.refreshToken);
-    const expiresIn = Number(tokens.expiresIn || payload.expiresIn || 0) || undefined;
+    const expiresIn = parseRefreshExpiresIn(tokens.expiresIn ?? payload.expiresIn);
     return {
       accessToken,
       refreshToken: nextRefreshToken || undefined,
@@ -516,7 +531,7 @@ export class Realm {
     return {
       accessToken,
       refreshToken: normalizeText(tokens.refreshToken) || undefined,
-      expiresIn: typeof tokens.expiresIn === 'number' ? tokens.expiresIn : undefined,
+      expiresIn: parseRefreshExpiresIn(tokens.expiresIn),
     };
   }
 
