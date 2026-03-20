@@ -185,7 +185,7 @@ func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 }
 
 func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
-	targets := configuredAIProviderTargets()
+	targets := configuredAIProviderTargets(d.cfg)
 	if len(targets) == 0 {
 		return
 	}
@@ -275,8 +275,8 @@ type aiProviderTarget struct {
 	APIKey string
 }
 
-func configuredAIProviderTargets() []aiProviderTarget {
-	targets := make([]aiProviderTarget, 0, 10)
+func configuredAIProviderTargets(cfg config.Config) []aiProviderTarget {
+	targets := make([]aiProviderTarget, 0, 16)
 	seen := map[string]bool{}
 
 	add := func(name string, base string, apiKey string) {
@@ -299,17 +299,18 @@ func configuredAIProviderTargets() []aiProviderTarget {
 	add("local", os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
 	add("local-media", os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
 	add("local-sidecar", os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
-	add("cloud-nimillm", os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"))
-	add("cloud-dashscope", os.Getenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"))
-	add("cloud-volcengine", os.Getenv("NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY"))
-	add("cloud-volcengine-openspeech", os.Getenv("NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY"))
-	add("cloud-gemini", os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"))
-	add("cloud-minimax", os.Getenv("NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY"))
-	add("cloud-kimi", os.Getenv("NIMI_RUNTIME_CLOUD_KIMI_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_KIMI_API_KEY"))
-	add("cloud-glm", os.Getenv("NIMI_RUNTIME_CLOUD_GLM_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_GLM_API_KEY"))
-	add("cloud-deepseek", os.Getenv("NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY"))
-	add("cloud-openrouter", os.Getenv("NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL"), os.Getenv("NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"))
+	for _, target := range config.ResolveCloudProviderTargets(cfg.Providers) {
+		add(cloudProviderTargetName(target.CanonicalID), target.BaseURL, target.APIKey)
+	}
 	return targets
+}
+
+func cloudProviderTargetName(canonicalID string) string {
+	trimmed := strings.TrimSpace(canonicalID)
+	if trimmed == "" {
+		return "cloud"
+	}
+	return "cloud-" + strings.ReplaceAll(trimmed, "_", "-")
 }
 
 // probeAIProvider checks provider health per K-PROV-003:

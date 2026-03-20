@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+var githubNamePattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 func resolveExistingDir(value string) (string, bool) {
 	trimmed := strings.TrimSpace(value)
@@ -81,7 +84,45 @@ func parseGitHubRepoReference(raw string) (string, string, string, error) {
 	if owner == "" || repo == "" {
 		return "", "", "", fmt.Errorf("invalid GitHub repo reference %q", raw)
 	}
+	if !isValidGitHubName(owner) || !isValidGitHubName(repo) {
+		return "", "", "", fmt.Errorf("invalid GitHub repo reference %q (owner/repo contains unsupported characters)", raw)
+	}
+	if subpath != "" {
+		normalizedSubpath, err := normalizeGitHubRelativePath(subpath)
+		if err != nil {
+			return "", "", "", fmt.Errorf("invalid GitHub repo reference %q (%w)", raw, err)
+		}
+		subpath = normalizedSubpath
+	}
 	return owner, repo, subpath, nil
+}
+
+func isValidGitHubName(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || trimmed == "." || trimmed == ".." {
+		return false
+	}
+	return githubNamePattern.MatchString(trimmed)
+}
+
+func normalizeGitHubRelativePath(raw string) (string, error) {
+	trimmed := strings.Trim(strings.TrimSpace(strings.ReplaceAll(raw, "\\", "/")), "/")
+	if trimmed == "" {
+		return "", nil
+	}
+	parts := strings.Split(trimmed, "/")
+	clean := make([]string, 0, len(parts))
+	for _, part := range parts {
+		segment := strings.TrimSpace(part)
+		if segment == "" || segment == "." || segment == ".." {
+			return "", fmt.Errorf("path contains invalid traversal segment")
+		}
+		if !githubNamePattern.MatchString(segment) {
+			return "", fmt.Errorf("path contains unsupported characters")
+		}
+		clean = append(clean, segment)
+	}
+	return strings.Join(clean, "/"), nil
 }
 
 func normalizeGitHubRepoToken(raw string) string {

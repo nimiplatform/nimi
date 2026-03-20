@@ -57,7 +57,14 @@ func (c *githubRESTClient) getBranchSHA(ctx context.Context, owner string, repo 
 			SHA string `json:"sha"`
 		} `json:"object"`
 	}
-	if err := c.do(ctx, http.MethodGet, fmt.Sprintf("/repos/%s/%s/git/ref/heads/%s", owner, repo, branch), nil, &payload); err != nil {
+	if !isValidGitHubName(owner) || !isValidGitHubName(repo) {
+		return "", fmt.Errorf("resolve base branch sha failed: invalid owner/repo")
+	}
+	normalizedBranch, err := normalizeGitHubRelativePath(branch)
+	if err != nil {
+		return "", fmt.Errorf("resolve base branch sha failed: %w", err)
+	}
+	if err := c.do(ctx, http.MethodGet, joinGitHubAPIPath("repos", owner, repo, "git", "ref", "heads", normalizedBranch), nil, &payload); err != nil {
 		return "", fmt.Errorf("resolve base branch sha failed: %w", err)
 	}
 	if strings.TrimSpace(payload.Object.SHA) == "" {
@@ -67,37 +74,66 @@ func (c *githubRESTClient) getBranchSHA(ctx context.Context, owner string, repo 
 }
 
 func (c *githubRESTClient) createBranch(ctx context.Context, owner string, repo string, branch string, sha string) error {
+	if !isValidGitHubName(owner) || !isValidGitHubName(repo) {
+		return fmt.Errorf("create publish branch failed: invalid owner/repo")
+	}
+	normalizedBranch, err := normalizeGitHubRelativePath(branch)
+	if err != nil {
+		return fmt.Errorf("create publish branch failed: %w", err)
+	}
 	body := map[string]any{
-		"ref": "refs/heads/" + branch,
+		"ref": "refs/heads/" + normalizedBranch,
 		"sha": sha,
 	}
-	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/repos/%s/%s/git/refs", owner, repo), body, nil); err != nil {
+	if err := c.do(ctx, http.MethodPost, joinGitHubAPIPath("repos", owner, repo, "git", "refs"), body, nil); err != nil {
 		return fmt.Errorf("create publish branch failed: %w", err)
 	}
 	return nil
 }
 
 func (c *githubRESTClient) putFile(ctx context.Context, owner string, repo string, path string, branch string, message string, content []byte) error {
+	if !isValidGitHubName(owner) || !isValidGitHubName(repo) {
+		return fmt.Errorf("commit mod index file failed: invalid owner/repo")
+	}
+	normalizedPath, err := normalizeGitHubRelativePath(path)
+	if err != nil {
+		return fmt.Errorf("commit mod index file failed: %w", err)
+	}
+	normalizedBranch, err := normalizeGitHubRelativePath(branch)
+	if err != nil {
+		return fmt.Errorf("commit mod index file failed: %w", err)
+	}
 	body := map[string]any{
 		"message": message,
 		"content": base64.StdEncoding.EncodeToString(content),
-		"branch":  branch,
+		"branch":  normalizedBranch,
 	}
-	if err := c.do(ctx, http.MethodPut, fmt.Sprintf("/repos/%s/%s/contents/%s", owner, repo, path), body, nil); err != nil {
+	if err := c.do(ctx, http.MethodPut, joinGitHubAPIPath("repos", owner, repo, "contents", normalizedPath), body, nil); err != nil {
 		return fmt.Errorf("commit mod index file failed: %w", err)
 	}
 	return nil
 }
 
 func (c *githubRESTClient) createPullRequest(ctx context.Context, owner string, repo string, title string, head string, base string, body string) (githubPullRequest, error) {
+	if !isValidGitHubName(owner) || !isValidGitHubName(repo) {
+		return githubPullRequest{}, fmt.Errorf("create mod circle pull request failed: invalid owner/repo")
+	}
+	normalizedHead, err := normalizeGitHubRelativePath(head)
+	if err != nil {
+		return githubPullRequest{}, fmt.Errorf("create mod circle pull request failed: %w", err)
+	}
+	normalizedBase, err := normalizeGitHubRelativePath(base)
+	if err != nil {
+		return githubPullRequest{}, fmt.Errorf("create mod circle pull request failed: %w", err)
+	}
 	request := map[string]any{
 		"title": title,
-		"head":  head,
-		"base":  base,
+		"head":  normalizedHead,
+		"base":  normalizedBase,
 		"body":  body,
 	}
 	var response githubPullRequest
-	if err := c.do(ctx, http.MethodPost, fmt.Sprintf("/repos/%s/%s/pulls", owner, repo), request, &response); err != nil {
+	if err := c.do(ctx, http.MethodPost, joinGitHubAPIPath("repos", owner, repo, "pulls"), request, &response); err != nil {
 		return githubPullRequest{}, fmt.Errorf("create mod circle pull request failed: %w", err)
 	}
 	if response.Number <= 0 || strings.TrimSpace(response.HTMLURL) == "" {
@@ -107,11 +143,22 @@ func (c *githubRESTClient) createPullRequest(ctx context.Context, owner string, 
 }
 
 func (c *githubRESTClient) listDirectory(ctx context.Context, owner string, repo string, path string, ref string) ([]githubContentItem, error) {
+	if !isValidGitHubName(owner) || !isValidGitHubName(repo) {
+		return nil, fmt.Errorf("list directory failed: invalid owner/repo")
+	}
+	normalizedPath, err := normalizeGitHubRelativePath(path)
+	if err != nil {
+		return nil, fmt.Errorf("list directory failed: %w", err)
+	}
 	query := ""
 	if strings.TrimSpace(ref) != "" {
-		query = "?ref=" + url.QueryEscape(strings.TrimSpace(ref))
+		normalizedRef, refErr := normalizeGitHubRelativePath(ref)
+		if refErr != nil {
+			return nil, fmt.Errorf("list directory failed: %w", refErr)
+		}
+		query = "?ref=" + url.QueryEscape(normalizedRef)
 	}
-	endpoint := fmt.Sprintf("/repos/%s/%s/contents/%s%s", owner, repo, strings.Trim(path, "/"), query)
+	endpoint := joinGitHubAPIPath("repos", owner, repo, "contents", normalizedPath) + query
 	var response []githubContentItem
 	if err := c.do(ctx, http.MethodGet, endpoint, nil, &response); err != nil {
 		return nil, fmt.Errorf("list directory failed: %w", err)
@@ -120,11 +167,22 @@ func (c *githubRESTClient) listDirectory(ctx context.Context, owner string, repo
 }
 
 func (c *githubRESTClient) getFileContent(ctx context.Context, owner string, repo string, path string, ref string) ([]byte, error) {
+	if !isValidGitHubName(owner) || !isValidGitHubName(repo) {
+		return nil, fmt.Errorf("fetch file content failed: invalid owner/repo")
+	}
+	normalizedPath, err := normalizeGitHubRelativePath(path)
+	if err != nil {
+		return nil, fmt.Errorf("fetch file content failed: %w", err)
+	}
 	query := ""
 	if strings.TrimSpace(ref) != "" {
-		query = "?ref=" + url.QueryEscape(strings.TrimSpace(ref))
+		normalizedRef, refErr := normalizeGitHubRelativePath(ref)
+		if refErr != nil {
+			return nil, fmt.Errorf("fetch file content failed: %w", refErr)
+		}
+		query = "?ref=" + url.QueryEscape(normalizedRef)
 	}
-	endpoint := fmt.Sprintf("/repos/%s/%s/contents/%s%s", owner, repo, strings.Trim(path, "/"), query)
+	endpoint := joinGitHubAPIPath("repos", owner, repo, "contents", normalizedPath) + query
 	var response githubContentFile
 	if err := c.do(ctx, http.MethodGet, endpoint, nil, &response); err != nil {
 		return nil, fmt.Errorf("fetch file content failed: %w", err)
@@ -139,6 +197,20 @@ func (c *githubRESTClient) getFileContent(ctx context.Context, owner string, rep
 		return nil, fmt.Errorf("fetch file content failed: decode base64: %w", err)
 	}
 	return content, nil
+}
+
+func joinGitHubAPIPath(segments ...string) string {
+	clean := make([]string, 0, len(segments))
+	for _, segment := range segments {
+		for _, part := range strings.Split(segment, "/") {
+			trimmed := strings.TrimSpace(part)
+			if trimmed == "" {
+				continue
+			}
+			clean = append(clean, url.PathEscape(trimmed))
+		}
+	}
+	return "/" + strings.Join(clean, "/")
 }
 
 func (c *githubRESTClient) do(ctx context.Context, method string, path string, requestBody any, responseBody any) error {

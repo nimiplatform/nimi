@@ -56,8 +56,7 @@ func authenticate(ctx context.Context, v *Validator) (context.Context, error) {
 		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
 	if identity == nil {
-		// Should not happen if token is non-empty, but guard defensively
-		return ctx, nil
+		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
 	return WithIdentity(ctx, identity), nil
 }

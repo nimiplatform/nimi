@@ -8,11 +8,18 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+)
+
+const (
+	maxModArchiveEntries    = 4096
+	maxModArchiveFileBytes  = 32 << 20
+	maxModArchiveTotalBytes = 256 << 20
 )
 
 func downloadGitHubModSource(
@@ -28,7 +35,10 @@ func downloadGitHubModSource(
 	if normalizedAPIBase == "" {
 		normalizedAPIBase = defaultGitHubAPIBase
 	}
-	downloadURL := fmt.Sprintf("%s/repos/%s/%s/tarball", normalizedAPIBase, owner, repo)
+	downloadURL, err := buildGitHubAPIURL(normalizedAPIBase, "repos", owner, repo, "tarball")
+	if err != nil {
+		return "", fmt.Errorf("MOD_INSTALL_DOWNLOAD_FAILED: actionHint=use_source_owner_repo_valid_subpath: %w", err)
+	}
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, nil)
 	if err != nil {
@@ -78,6 +88,8 @@ func extractGitHubTarball(reader io.Reader, destination string) error {
 	defer gzipReader.Close()
 
 	tarReader := tar.NewReader(gzipReader)
+	totalBytes := int64(0)
+	entryCount := 0
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -88,6 +100,10 @@ func extractGitHubTarball(reader io.Reader, destination string) error {
 		}
 		if header == nil {
 			continue
+		}
+		entryCount++
+		if entryCount > maxModArchiveEntries {
+			return fmt.Errorf("MOD_INSTALL_ARCHIVE_INVALID: actionHint=retry_with_valid_repo_source archive contains too many entries")
 		}
 
 		trimmedName := strings.Trim(strings.TrimSpace(header.Name), "/")
@@ -114,6 +130,13 @@ func extractGitHubTarball(reader io.Reader, destination string) error {
 				return err
 			}
 		case tar.TypeReg, tar.TypeRegA:
+			if header.Size < 0 || header.Size > maxModArchiveFileBytes {
+				return fmt.Errorf("MOD_INSTALL_ARCHIVE_INVALID: actionHint=retry_with_valid_repo_source file exceeds size limit")
+			}
+			totalBytes += header.Size
+			if totalBytes > maxModArchiveTotalBytes {
+				return fmt.Errorf("MOD_INSTALL_ARCHIVE_INVALID: actionHint=retry_with_valid_repo_source archive exceeds size limit")
+			}
 			if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 				return err
 			}
@@ -121,9 +144,14 @@ func extractGitHubTarball(reader io.Reader, destination string) error {
 			if err != nil {
 				return err
 			}
-			if _, err := io.Copy(file, tarReader); err != nil {
+			written, err := io.Copy(file, io.LimitReader(tarReader, header.Size))
+			if err != nil {
 				_ = file.Close()
 				return err
+			}
+			if written != header.Size {
+				_ = file.Close()
+				return fmt.Errorf("MOD_INSTALL_ARCHIVE_INVALID: actionHint=retry_with_valid_repo_source short tar entry")
 			}
 			if err := file.Close(); err != nil {
 				return err
@@ -133,6 +161,30 @@ func extractGitHubTarball(reader io.Reader, destination string) error {
 		}
 	}
 	return nil
+}
+
+func buildGitHubAPIURL(apiBase string, segments ...string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(apiBase))
+	if err != nil {
+		return "", fmt.Errorf("invalid github api base: %w", err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return "", fmt.Errorf("invalid github api base")
+	}
+	basePath := strings.TrimSuffix(parsed.EscapedPath(), "/")
+	escapedSegments := make([]string, 0, len(segments))
+	for _, segment := range segments {
+		trimmed := strings.TrimSpace(segment)
+		if trimmed == "" {
+			return "", fmt.Errorf("invalid github api path segment")
+		}
+		escapedSegments = append(escapedSegments, url.PathEscape(trimmed))
+	}
+	parsed.Path = basePath + "/" + strings.Join(escapedSegments, "/")
+	parsed.RawPath = parsed.Path
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return parsed.String(), nil
 }
 
 func resolveInstallSourceDirFromExtracted(extractedRoot string, subpath string) (string, error) {

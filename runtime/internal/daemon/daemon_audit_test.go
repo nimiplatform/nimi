@@ -5,6 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
@@ -70,14 +71,18 @@ func TestConfiguredAIProviderTargetsIncludesExtendedProviders(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:1234/v1")
 	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "http://127.0.0.1:2834/v1")
 	t.Setenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL", "http://127.0.0.1:3234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", "http://127.0.0.1:3234/v1")
-	t.Setenv("NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", "http://127.0.0.1:4234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", "http://127.0.0.1:5234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", "http://127.0.0.1:6234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", "http://127.0.0.1:7234")
-	t.Setenv("NIMI_RUNTIME_CLOUD_GLM_BASE_URL", "http://127.0.0.1:8234")
+	cfg := config.Config{
+		Providers: map[string]config.RuntimeFileTarget{
+			"nimillm":               {BaseURL: "http://127.0.0.1:3234/v1", APIKey: "nimillm-key"},
+			"volcengine_openspeech": {BaseURL: "http://127.0.0.1:4234", APIKey: "speech-key"},
+			"gemini":                {BaseURL: "http://127.0.0.1:5234", APIKey: "gemini-key"},
+			"minimax":               {BaseURL: "http://127.0.0.1:6234", APIKey: "minimax-key"},
+			"kimi":                  {BaseURL: "http://127.0.0.1:7234", APIKey: "kimi-key"},
+			"glm":                   {BaseURL: "http://127.0.0.1:8234", APIKey: "glm-key"},
+		},
+	}
 
-	targets := configuredAIProviderTargets()
+	targets := configuredAIProviderTargets(cfg)
 	seen := make(map[string]bool, len(targets))
 	for _, item := range targets {
 		seen[item.Name] = true

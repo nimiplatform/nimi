@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -526,19 +525,13 @@ func TestGenerateTextRejectsUnsupportedOpenAITextChatParts(t *testing.T) {
 }
 
 func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
-	audioFile, err := os.CreateTemp(t.TempDir(), "openai-audio-*.wav")
-	if err != nil {
-		t.Fatalf("create temp audio: %v", err)
-	}
-	if _, err := audioFile.Write([]byte("RIFFdemo")); err != nil {
-		t.Fatalf("write temp audio: %v", err)
-	}
-	if err := audioFile.Close(); err != nil {
-		t.Fatalf("close temp audio: %v", err)
-	}
-
 	var captured map[string]any
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/sample.wav" {
+			w.Header().Set("Content-Type", "audio/wav")
+			_, _ = w.Write([]byte("RIFFdemo"))
+			return
+		}
 		if r.URL.Path != "/v1/chat/completions" {
 			http.NotFound(w, r)
 			return
@@ -549,7 +542,7 @@ func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	backend := NewBackend("cloud-openai", server.URL, "", 0)
+	backend := newBackend("cloud-openai", server.URL, "", 0, server.Client().Transport, false, true)
 	if backend == nil {
 		t.Fatal("expected backend")
 	}
@@ -558,7 +551,7 @@ func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
 				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "transcribe this"},
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, AudioUrl: audioFile.Name()},
+				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, AudioUrl: server.URL + "/sample.wav"},
 			},
 		},
 	}, "", 0, 0, 0)

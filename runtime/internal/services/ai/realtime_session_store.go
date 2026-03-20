@@ -123,8 +123,17 @@ func (s *realtimeSessionStore) releaseReader(sessionID string) {
 }
 
 func (s *realtimeSessionStore) close(sessionID string) {
-	record, ok := s.get(sessionID)
-	if !ok {
+	id := strings.TrimSpace(sessionID)
+	if id == "" {
+		return
+	}
+	s.mu.Lock()
+	record := s.sessions[id]
+	if record != nil {
+		delete(s.sessions, id)
+	}
+	s.mu.Unlock()
+	if record == nil {
 		return
 	}
 	record.mu.Lock()

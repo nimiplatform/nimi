@@ -9,16 +9,17 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
@@ -129,6 +130,9 @@ func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.Append
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
 	}
+	if err := authorizeRealtimeSession(ctx, record); err != nil {
+		return nil, err
+	}
 	record.mu.Lock()
 	closed := record.closed
 	record.mu.Unlock()
@@ -214,6 +218,13 @@ func (s *Service) AppendRealtimeInput(ctx context.Context, req *runtimev1.Append
 }
 
 func (s *Service) ReadRealtimeEvents(req *runtimev1.ReadRealtimeEventsRequest, stream runtimev1.RuntimeAiRealtimeService_ReadRealtimeEventsServer) error {
+	record, ok := s.realtimeSessions.get(req.GetSessionId())
+	if !ok {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
+	}
+	if err := authorizeRealtimeSession(stream.Context(), record); err != nil {
+		return err
+	}
 	backlog, ch, closed, conflict := s.realtimeSessions.claimReader(req.GetSessionId(), req.GetAfterSequence())
 	if conflict {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
@@ -248,10 +259,13 @@ func (s *Service) ReadRealtimeEvents(req *runtimev1.ReadRealtimeEventsRequest, s
 	}
 }
 
-func (s *Service) CloseRealtimeSession(_ context.Context, req *runtimev1.CloseRealtimeSessionRequest) (*runtimev1.CloseRealtimeSessionResponse, error) {
+func (s *Service) CloseRealtimeSession(ctx context.Context, req *runtimev1.CloseRealtimeSessionRequest) (*runtimev1.CloseRealtimeSessionResponse, error) {
 	record, ok := s.realtimeSessions.get(req.GetSessionId())
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
+	}
+	if err := authorizeRealtimeSession(ctx, record); err != nil {
+		return nil, err
 	}
 	record.mu.Lock()
 	alreadyClosed := record.closed
@@ -539,22 +553,51 @@ func readRealtimeLocationBytes(ctx context.Context, location string) ([]byte, er
 		return data, nil
 	}
 	if strings.HasPrefix(lower, "file://") {
-		parsed, err := url.Parse(value)
-		if err == nil {
-			value = parsed.Path
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if looksLikeLocalFilePath(value) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+}
+
+func authorizeRealtimeSession(ctx context.Context, record *realtimeSessionRecord) error {
+	if record == nil {
+		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
+	}
+	if appID := incomingAppID(ctx); appID != "" && strings.TrimSpace(record.appID) != "" && strings.TrimSpace(record.appID) != appID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		expectedSubject := strings.TrimSpace(record.subjectUserID)
+		actualSubject := strings.TrimSpace(identity.SubjectUserID)
+		if expectedSubject != "" && actualSubject != "" && expectedSubject != actualSubject {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		}
 	}
-	data, err := os.ReadFile(value)
-	if err != nil {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	return nil
+}
+
+func incomingAppID(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
 	}
-	if len(data) == 0 {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	values := md.Get(metadataAppIDKey)
+	if len(values) == 0 {
+		return ""
 	}
-	if len(data) > maxUploadedArtifactBytes {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE)
+	return strings.TrimSpace(values[0])
+}
+
+func looksLikeLocalFilePath(value string) bool {
+	if strings.HasPrefix(value, "/") || strings.HasPrefix(value, "\\") {
+		return true
 	}
-	return data, nil
+	if len(value) >= 3 && value[1] == ':' && (value[2] == '\\' || value[2] == '/') {
+		return true
+	}
+	return strings.Contains(value, "/") || strings.Contains(value, "\\")
 }
 
 func splitRealtimeAudio(payload []byte, chunkSize int) [][]byte {

@@ -6,8 +6,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -450,22 +448,23 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 	}
 	path := value
 	if strings.HasPrefix(strings.ToLower(value), "file://") {
-		parsed, err := url.Parse(value)
-		if err == nil && strings.TrimSpace(parsed.Path) != "" {
-			path = parsed.Path
-		}
-	}
-	payload, err := os.ReadFile(path)
-	if err != nil {
-		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if len(payload) == 0 {
-		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if len(payload) > maxInlineOpenAIMediaBytes {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	return payload, mime.TypeByExtension(strings.ToLower(filepath.Ext(path))), nil
+	if looksLikeLocalFilesystemPath(path) {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+}
+
+func looksLikeLocalFilesystemPath(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return false
+	}
+	if strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "\\") {
+		return true
+	}
+	return len(trimmed) >= 3 && trimmed[1] == ':' && (trimmed[2] == '\\' || trimmed[2] == '/')
 }
 
 func isRemoteHTTPURL(location string) bool {

@@ -157,27 +157,36 @@ func (s *Service) submitVoiceWorkflowJob(
 	}, nil
 }
 
-func (s *Service) GetScenarioJob(_ context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
+func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenarioJobRequest) (*runtimev1.GetScenarioJobResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetJobId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
 	if job, ok := s.scenarioJobs.get(jobID); ok {
+		if err := authorizeScenarioJob(ctx, job); err != nil {
+			return nil, err
+		}
 		return &runtimev1.GetScenarioJobResponse{Job: job}, nil
 	}
 	job, ok := s.voiceAssets.getJob(jobID)
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 	}
+	if err := authorizeScenarioJob(ctx, job); err != nil {
+		return nil, err
+	}
 	return &runtimev1.GetScenarioJobResponse{Job: job}, nil
 }
 
-func (s *Service) CancelScenarioJob(_ context.Context, req *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error) {
+func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelScenarioJobRequest) (*runtimev1.CancelScenarioJobResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetJobId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
 	if existingJob, exists := s.scenarioJobs.get(jobID); exists {
+		if err := authorizeScenarioJob(ctx, existingJob); err != nil {
+			return nil, err
+		}
 		if isTerminalScenarioJobStatus(existingJob.GetStatus()) {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 		}
@@ -200,6 +209,9 @@ func (s *Service) CancelScenarioJob(_ context.Context, req *runtimev1.CancelScen
 	job, ok := s.voiceAssets.cancelJob(jobID, req.GetReason())
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
+	}
+	if err := authorizeScenarioJob(ctx, job); err != nil {
+		return nil, err
 	}
 	return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
 }
@@ -268,13 +280,16 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 	}
 }
 
-func (s *Service) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
+func (s *Service) GetScenarioArtifacts(ctx context.Context, req *runtimev1.GetScenarioArtifactsRequest) (*runtimev1.GetScenarioArtifactsResponse, error) {
 	if req == nil || strings.TrimSpace(req.GetJobId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
 	job, artifacts, traceID, ok := s.scenarioJobs.listArtifacts(jobID)
 	if ok {
+		if err := authorizeScenarioJob(ctx, job); err != nil {
+			return nil, err
+		}
 		output := buildScenarioOutputFromArtifacts(job, artifacts)
 		return &runtimev1.GetScenarioArtifactsResponse{
 			JobId:     jobID,
@@ -284,6 +299,9 @@ func (s *Service) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScen
 		}, nil
 	}
 	if job, ok := s.voiceAssets.getJob(jobID); ok {
+		if err := authorizeScenarioJob(ctx, job); err != nil {
+			return nil, err
+		}
 		return &runtimev1.GetScenarioArtifactsResponse{
 			JobId:     jobID,
 			Artifacts: []*runtimev1.ScenarioArtifact{},
@@ -291,6 +309,24 @@ func (s *Service) GetScenarioArtifacts(_ context.Context, req *runtimev1.GetScen
 		}, nil
 	}
 	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
+}
+
+func authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error {
+	if job == nil || job.GetHead() == nil {
+		return nil
+	}
+	head := job.GetHead()
+	if appID := incomingAppID(ctx); appID != "" && strings.TrimSpace(head.GetAppId()) != "" && strings.TrimSpace(head.GetAppId()) != appID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
+	if identity := authn.IdentityFromContext(ctx); identity != nil {
+		expectedSubject := strings.TrimSpace(head.GetSubjectUserId())
+		actualSubject := strings.TrimSpace(identity.SubjectUserID)
+		if expectedSubject != "" && actualSubject != "" && expectedSubject != actualSubject {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+		}
+	}
+	return nil
 }
 
 func (s *Service) submitScenarioAsyncJob(

@@ -340,7 +340,18 @@ func computeWSReadDeadline(ctx context.Context, readTimeout time.Duration) time.
 
 func resolveBytedanceOpenSpeechWSURL(baseURL string, scenarioExtensions map[string]any) string {
 	if explicitURL := strings.TrimSpace(ValueAsString(scenarioExtensions["ws_url"])); explicitURL != "" {
-		return explicitURL
+		baseParsed, baseErr := url.Parse(strings.TrimSpace(baseURL))
+		explicitParsed, explicitErr := url.Parse(explicitURL)
+		if baseErr != nil || explicitErr != nil || baseParsed == nil || explicitParsed == nil {
+			return ""
+		}
+		if !explicitParsed.IsAbs() {
+			return resolveBytedanceOpenSpeechWSURL(baseURL, map[string]any{"ws_path": explicitURL})
+		}
+		if !strings.EqualFold(strings.TrimSpace(baseParsed.Host), strings.TrimSpace(explicitParsed.Host)) {
+			return ""
+		}
+		return explicitParsed.String()
 	}
 	wsPath := strings.TrimSpace(ValueAsString(scenarioExtensions["ws_path"]))
 	if wsPath == "" {

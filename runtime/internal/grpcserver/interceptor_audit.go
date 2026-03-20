@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -113,21 +114,22 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			ctx:           streamCtx,
 		}
 		err := handler(srv, wrapped)
+		request, usage, modelResolved, traceID := wrapped.snapshot()
 
 		domain, operation, capability := methodDescriptor(info.FullMethod)
-		appID, subjectUserID, modelID := inferRequestIdentity(wrapped.request)
+		appID, subjectUserID, modelID := inferRequestIdentity(request)
 		// K-AUDIT-018: prefer JWT subject_user_id over request body (WP-6)
 		if identity := authn.IdentityFromContext(streamCtx); identity != nil {
 			subjectUserID = identity.SubjectUserID
 		}
-		if wrapped.modelResolved != "" {
-			modelID = wrapped.modelResolved
+		if modelResolved != "" {
+			modelID = modelResolved
 		}
-		callerKind, callerID, surfaceID, traceID := readCallerMetadata(ss.Context())
+		callerKind, callerID, surfaceID, metadataTraceID := readCallerMetadata(ss.Context())
 		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(ss.Context())
 		tokenID := accessTokenIDFromMetadata(ss.Context())
-		if wrapped.traceID != "" {
-			traceID = wrapped.traceID
+		if traceID == "" {
+			traceID = metadataTraceID
 		}
 
 		reasonCode := reasonCodeFromError(err)
@@ -166,7 +168,7 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 			Capability:    capability,
 			ModelID:       modelID,
 			Success:       success,
-			Usage:         wrapped.usage,
+			Usage:         usage,
 			QueueWaitMs:   queueWaitRecorder.Value(),
 		})
 		return err
@@ -181,6 +183,7 @@ type auditStream struct {
 	traceID       string
 	metadataAppID string
 	ctx           context.Context
+	mu            sync.RWMutex
 }
 
 func (s *auditStream) RecvMsg(m any) error {
@@ -193,6 +196,8 @@ func (s *auditStream) RecvMsg(m any) error {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
 		}
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.request == nil {
 		s.request = cloneAnyProto(m)
 	}
@@ -211,6 +216,8 @@ func (s *auditStream) SendMsg(m any) error {
 		return err
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	switch msg := m.(type) {
 	case *runtimev1.StreamScenarioEvent:
 		if usage := msg.GetUsage(); usage != nil {
@@ -249,4 +256,16 @@ func (s *auditStream) SendMsg(m any) error {
 		}
 	}
 	return nil
+}
+
+func (s *auditStream) snapshot() (any, *runtimev1.UsageStats, string, string) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var request any
+	if s.request != nil {
+		request = cloneAnyProto(s.request)
+	}
+
+	return request, cloneUsage(s.usage), s.modelResolved, s.traceID
 }

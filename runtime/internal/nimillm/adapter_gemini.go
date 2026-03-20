@@ -5,12 +5,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -440,23 +437,12 @@ func resolveGeminiReferenceImageBytes(ctx context.Context, location string) ([]b
 	}
 	pathValue := value
 	if strings.HasPrefix(strings.ToLower(value), "file://") {
-		parsed, err := url.Parse(value)
-		if err == nil && strings.TrimSpace(parsed.Path) != "" {
-			pathValue = parsed.Path
-		}
-	}
-	payload, err := os.ReadFile(pathValue)
-	if err != nil {
-		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if len(payload) == 0 || len(payload) > maxDecodedMediaURLBytes {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	mimeType := strings.TrimSpace(mime.TypeByExtension(strings.ToLower(filepath.Ext(pathValue))))
-	if mimeType == "" {
-		mimeType = strings.TrimSpace(http.DetectContentType(payload))
+	if looksLikeLocalFilesystemPath(pathValue) {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	return payload, mimeType, nil
+	return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 }
 
 func decodeGeminiDataURL(value string) ([]byte, string, error) {

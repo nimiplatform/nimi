@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -168,19 +167,82 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 		}
 	}
 	if fileCfg.Auth != nil && fileCfg.Auth.JWT != nil {
-		jwksURL := strings.TrimSpace(fileCfg.Auth.JWT.JWKSURL)
-		if jwksURL != "" {
-			parsed, err := url.Parse(jwksURL)
-			if err != nil {
-				return fmt.Errorf("auth.jwt.jwksUrl invalid: %w", err)
-			}
-			if parsed.Scheme != "http" && parsed.Scheme != "https" {
-				return fmt.Errorf("auth.jwt.jwksUrl must use http/https scheme")
-			}
-			if strings.TrimSpace(parsed.Host) == "" {
-				return fmt.Errorf("auth.jwt.jwksUrl must include host")
-			}
+		if err := validateJWTSettings(fileCfg.Auth.JWT.Issuer, fileCfg.Auth.JWT.Audience, fileCfg.Auth.JWT.JWKSURL); err != nil {
+			return err
 		}
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.ShutdownTimeoutSeconds, "shutdownTimeoutSeconds", 1, 600); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.SessionTTLMinSeconds, "sessionTtlMinSeconds", 1, 86400); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.SessionTTLMaxSeconds, "sessionTtlMaxSeconds", 1, 604800); err != nil {
+		return err
+	}
+	if fileCfg.SessionTTLMinSeconds != nil && fileCfg.SessionTTLMaxSeconds != nil && *fileCfg.SessionTTLMaxSeconds < *fileCfg.SessionTTLMinSeconds {
+		return fmt.Errorf("sessionTtlMaxSeconds must be >= sessionTtlMinSeconds")
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.AIHealthIntervalSeconds, "aiHealthIntervalSeconds", 1, 3600); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.AIHTTPTimeoutSeconds, "aiHttpTimeoutSeconds", 1, 600); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.GlobalConcurrencyLimit, "globalConcurrencyLimit", 1, 256); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.PerAppConcurrencyLimit, "perAppConcurrencyLimit", 1, 128); err != nil {
+		return err
+	}
+	if fileCfg.GlobalConcurrencyLimit != nil && fileCfg.PerAppConcurrencyLimit != nil && *fileCfg.PerAppConcurrencyLimit > *fileCfg.GlobalConcurrencyLimit {
+		return fmt.Errorf("perAppConcurrencyLimit must be <= globalConcurrencyLimit")
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.IdempotencyCapacity, "idempotencyCapacity", 1, 1_000_000); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.MaxDelegationDepth, "maxDelegationDepth", 1, 16); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.AuditRingBufferSize, "auditRingBufferSize", 1, 1_000_000); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.UsageStatsBufferSize, "usageStatsBufferSize", 1, 1_000_000); err != nil {
+		return err
+	}
+	if err := validateOptionalFileConfigInt(fileCfg.LocalAuditCapacity, "localAuditCapacity", 1, 1_000_000); err != nil {
+		return err
+	}
+	if fileCfg.Engines != nil {
+		if err := validateOptionalFileConfigPort(fileConfigEngineInt(fileCfg, "llama", "port"), "engines.llama.port"); err != nil {
+			return err
+		}
+		if err := validateOptionalFileConfigPort(fileConfigEngineInt(fileCfg, "media", "port"), "engines.media.port"); err != nil {
+			return err
+		}
+		if err := validateOptionalFileConfigPort(fileConfigEngineInt(fileCfg, "speech", "port"), "engines.speech.port"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateOptionalFileConfigInt(value *int, field string, min int, max int) error {
+	if value == nil {
+		return nil
+	}
+	if *value < min || *value > max {
+		return fmt.Errorf("%s must be between %d and %d", field, min, max)
+	}
+	return nil
+}
+
+func validateOptionalFileConfigPort(value *int, field string) error {
+	if value == nil {
+		return nil
+	}
+	if *value < 1 || *value > 65535 {
+		return fmt.Errorf("%s must be between 1 and 65535", field)
 	}
 	return nil
 }

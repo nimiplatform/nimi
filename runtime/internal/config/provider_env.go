@@ -6,42 +6,105 @@ import (
 )
 
 type providerEnvBinding struct {
-	baseURLKey string
-	apiKeyKey  string
+	canonicalID string
+	baseURLKey  string
+	apiKeyKey   string
 }
 
-func applyProviderEnvDefaults(fileCfg FileConfig) {
-	for providerName, providerCfg := range fileCfg.Providers {
-		binding, ok := resolveProviderBinding(providerName)
-		if !ok {
+type ResolvedCloudProvider struct {
+	CanonicalID string
+	BaseURL     string
+	APIKey      string
+}
+
+var providerEnvBindings = []providerEnvBinding{
+	{canonicalID: "nimillm", baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY"},
+	{canonicalID: "openai", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENAI_API_KEY"},
+	{canonicalID: "anthropic", baseURLKey: "NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY"},
+	{canonicalID: "dashscope", baseURLKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY"},
+	{canonicalID: "volcengine", baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY"},
+	{canonicalID: "azure", baseURLKey: "NIMI_RUNTIME_CLOUD_AZURE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_AZURE_API_KEY"},
+	{canonicalID: "mistral", baseURLKey: "NIMI_RUNTIME_CLOUD_MISTRAL_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_MISTRAL_API_KEY"},
+	{canonicalID: "groq", baseURLKey: "NIMI_RUNTIME_CLOUD_GROQ_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GROQ_API_KEY"},
+	{canonicalID: "xai", baseURLKey: "NIMI_RUNTIME_CLOUD_XAI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_XAI_API_KEY"},
+	{canonicalID: "qianfan", baseURLKey: "NIMI_RUNTIME_CLOUD_QIANFAN_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_QIANFAN_API_KEY"},
+	{canonicalID: "hunyuan", baseURLKey: "NIMI_RUNTIME_CLOUD_HUNYUAN_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_HUNYUAN_API_KEY"},
+	{canonicalID: "spark", baseURLKey: "NIMI_RUNTIME_CLOUD_SPARK_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_SPARK_API_KEY"},
+	{canonicalID: "volcengine_openspeech", baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY"},
+	{canonicalID: "gemini", baseURLKey: "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"},
+	{canonicalID: "minimax", baseURLKey: "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY"},
+	{canonicalID: "kimi", baseURLKey: "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_KIMI_API_KEY"},
+	{canonicalID: "glm", baseURLKey: "NIMI_RUNTIME_CLOUD_GLM_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_GLM_API_KEY"},
+	{canonicalID: "deepseek", baseURLKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY"},
+	{canonicalID: "openrouter", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY"},
+	{canonicalID: "openai_compatible", baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL", apiKeyKey: "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY"},
+}
+
+func resolveCloudProviders(fileTargets map[string]RuntimeFileTarget) map[string]RuntimeFileTarget {
+	resolved := make(map[string]RuntimeFileTarget, len(fileTargets)+len(providerEnvBindings))
+	for providerName, target := range fileTargets {
+		resolved[canonicalProviderKey(providerName)] = target
+	}
+
+	for _, binding := range providerEnvBindings {
+		target := resolved[binding.canonicalID]
+		resolvedBase := strings.TrimSpace(os.Getenv(binding.baseURLKey))
+		if resolvedBase == "" {
+			resolvedBase = strings.TrimSpace(target.BaseURL)
+		}
+
+		resolvedAPIKey := resolveProviderAPIKeyWithBinding(target, binding.apiKeyKey)
+		if resolvedBase == "" && binding.canonicalID == "gemini" && resolvedAPIKey != "" {
+			resolvedBase = defaultCloudGeminiBaseURL
+		}
+
+		if resolvedBase == "" && resolvedAPIKey == "" && strings.TrimSpace(target.DefaultModel) == "" {
 			continue
 		}
 
-		apiKeyValue := ResolveProviderAPIKey(providerCfg)
-		if strings.TrimSpace(os.Getenv(binding.apiKeyKey)) == "" && apiKeyValue != "" {
-			_ = os.Setenv(binding.apiKeyKey, apiKeyValue)
-		}
-
-		baseURLValue := strings.TrimSpace(providerCfg.BaseURL)
-		if baseURLValue == "" && canonicalProviderKey(providerName) == "gemini" && (apiKeyValue != "" || strings.TrimSpace(os.Getenv(binding.apiKeyKey)) != "") {
-			baseURLValue = defaultCloudGeminiBaseURL
-		}
-		if strings.TrimSpace(os.Getenv(binding.baseURLKey)) == "" && baseURLValue != "" {
-			_ = os.Setenv(binding.baseURLKey, baseURLValue)
-		}
+		target.BaseURL = resolvedBase
+		target.APIKey = resolvedAPIKey
+		target.APIKeyEnv = ""
+		resolved[binding.canonicalID] = target
 	}
+
+	return resolved
 }
 
-func applyImplicitProviderDefaults() {
-	if strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")) == "" && strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")) != "" {
-		_ = os.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL", defaultCloudGeminiBaseURL)
+func ResolveCloudProviderTargets(fileTargets map[string]RuntimeFileTarget) []ResolvedCloudProvider {
+	resolvedTargets := resolveCloudProviders(fileTargets)
+	targets := make([]ResolvedCloudProvider, 0, len(resolvedTargets))
+	for _, binding := range providerEnvBindings {
+		target, ok := resolvedTargets[binding.canonicalID]
+		if !ok {
+			continue
+		}
+		baseURL := strings.TrimSpace(target.BaseURL)
+		if baseURL == "" {
+			continue
+		}
+		targets = append(targets, ResolvedCloudProvider{
+			CanonicalID: binding.canonicalID,
+			BaseURL:     baseURL,
+			APIKey:      strings.TrimSpace(target.APIKey),
+		})
 	}
+	return targets
 }
 
 // ResolveProviderAPIKey resolves the API key from a RuntimeFileTarget (env var or literal).
 func ResolveProviderAPIKey(target RuntimeFileTarget) string {
+	return resolveProviderAPIKeyWithBinding(target, "")
+}
+
+func resolveProviderAPIKeyWithBinding(target RuntimeFileTarget, fallbackEnvKey string) string {
 	if envRef := strings.TrimSpace(target.APIKeyEnv); envRef != "" {
 		if value := strings.TrimSpace(os.Getenv(envRef)); value != "" {
+			return value
+		}
+	}
+	if fallbackEnvKey != "" {
+		if value := strings.TrimSpace(os.Getenv(fallbackEnvKey)); value != "" {
 			return value
 		}
 	}
@@ -56,110 +119,13 @@ func ResolveProviderAPIKey(target RuntimeFileTarget) string {
 }
 
 func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
-	switch canonicalProviderKey(raw) {
-	case "nimillm":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY",
-		}, true
-	case "openai":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_OPENAI_API_KEY",
-		}, true
-	case "anthropic":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_ANTHROPIC_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_ANTHROPIC_API_KEY",
-		}, true
-	case "dashscope":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY",
-		}, true
-	case "volcengine":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_VOLCENGINE_API_KEY",
-		}, true
-	case "azure":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_AZURE_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_AZURE_API_KEY",
-		}, true
-	case "mistral":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_MISTRAL_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_MISTRAL_API_KEY",
-		}, true
-	case "groq":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_GROQ_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_GROQ_API_KEY",
-		}, true
-	case "xai":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_XAI_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_XAI_API_KEY",
-		}, true
-	case "qianfan":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_QIANFAN_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_QIANFAN_API_KEY",
-		}, true
-	case "hunyuan":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_HUNYUAN_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_HUNYUAN_API_KEY",
-		}, true
-	case "spark":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_SPARK_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_SPARK_API_KEY",
-		}, true
-	case "volcengine_openspeech":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_VOLCENGINE_OPENSPEECH_API_KEY",
-		}, true
-	case "gemini":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY",
-		}, true
-	case "minimax":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_MINIMAX_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_MINIMAX_API_KEY",
-		}, true
-	case "kimi":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_KIMI_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_KIMI_API_KEY",
-		}, true
-	case "glm":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_GLM_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_GLM_API_KEY",
-		}, true
-	case "deepseek":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_DEEPSEEK_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_DEEPSEEK_API_KEY",
-		}, true
-	case "openrouter":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_OPENROUTER_API_KEY",
-		}, true
-	case "openai_compatible":
-		return providerEnvBinding{
-			baseURLKey: "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_BASE_URL",
-			apiKeyKey:  "NIMI_RUNTIME_CLOUD_OPENAI_COMPATIBLE_API_KEY",
-		}, true
-	default:
-		return providerEnvBinding{}, false
+	canonical := canonicalProviderKey(raw)
+	for _, binding := range providerEnvBindings {
+		if binding.canonicalID == canonical {
+			return binding, true
+		}
 	}
+	return providerEnvBinding{}, false
 }
 
 // NormalizeProviderName strips non-alphanumeric characters and lowercases.

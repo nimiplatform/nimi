@@ -495,17 +495,20 @@ func TestValidateAlgNoneTokenRejected(t *testing.T) {
 	}
 }
 
-func TestValidateEmptyTokenReturnsAnonymous(t *testing.T) {
+func TestValidateEmptyTokenFailsClosed(t *testing.T) {
 	validator, err := NewValidator("https://realm.nimi.xyz/api/auth/jwks", "", "")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
 	identity, err := validator.Validate("")
-	if err != nil {
-		t.Fatalf("Validate empty token: %v", err)
+	if err == nil {
+		t.Fatal("expected empty token to be rejected")
 	}
 	if identity != nil {
-		t.Fatalf("expected anonymous identity, got %#v", identity)
+		t.Fatalf("expected nil identity, got %#v", identity)
+	}
+	if err != ErrEmptyToken {
+		t.Fatalf("expected ErrEmptyToken, got %v", err)
 	}
 }
 

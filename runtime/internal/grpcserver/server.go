@@ -46,6 +46,12 @@ type Server struct {
 	localService *localservice.Service
 }
 
+const (
+	maxGRPCMessageBytes      = 8 << 20
+	maxGRPCConcurrentStreams = 128
+	grpcIOBufferBytes        = 32 << 10
+)
+
 func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
 	addr := cfg.GRPCAddr
 	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
@@ -90,6 +96,11 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	}
 
 	g := grpc.NewServer(
+		grpc.MaxRecvMsgSize(maxGRPCMessageBytes),
+		grpc.MaxSendMsgSize(maxGRPCMessageBytes),
+		grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
+		grpc.ReadBufferSize(grpcIOBufferBytes),
+		grpc.WriteBufferSize(grpcIOBufferBytes),
 		grpc.ChainUnaryInterceptor(
 			newUnaryVersionInterceptor(version),
 			newUnaryLifecycleInterceptor(state),
@@ -132,7 +143,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	runtimev1.RegisterRuntimeAiRealtimeServiceServer(g, aiSvc)
 
 	runtimev1.RegisterRuntimeWorkflowServiceServer(g, workflowservice.New(logger)) // Phase 2 Draft
-	modelSvc := modelservice.New(logger, modelRegistry)                           // Phase 2 Draft
+	modelSvc := modelservice.New(logger, modelRegistry)                            // Phase 2 Draft
 	modelSvc.SetPersistencePath(registryPath)
 	runtimev1.RegisterRuntimeModelServiceServer(g, modelSvc) // Phase 2 Draft
 	localSvc, err := localservice.New(logger, auditStore, cfg.LocalStatePath, cfg.LocalAuditCapacity)
@@ -152,7 +163,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 
 	runtimev1.RegisterRuntimeGrantServiceServer(g, grantSvc)
 	runtimev1.RegisterRuntimeAuthServiceServer(g, authSvc)
-	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger)) // Phase 2 Draft
+	runtimev1.RegisterRuntimeKnowledgeServiceServer(g, knowledgeservice.New(logger))                               // Phase 2 Draft
 	runtimev1.RegisterRuntimeAppServiceServer(g, appservice.New(logger, appservice.WithSessionValidator(authSvc))) // Phase 2 Draft
 
 	s := &Server{

@@ -26,8 +26,7 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	applyProviderEnvDefaults(fileCfg)
-	applyImplicitProviderDefaults()
+	resolvedProviders := resolveCloudProviders(fileCfg.Providers)
 
 	llamaEnabledFromFile := fileConfigEngineBool(fileCfg, "llama")
 	llamaPortFromFile := fileConfigEngineInt(fileCfg, "llama", "port")
@@ -35,6 +34,67 @@ func Load() (Config, error) {
 	mediaPortFromFile := fileConfigEngineInt(fileCfg, "media", "port")
 	speechEnabledFromFile := fileConfigEngineBool(fileCfg, "speech")
 	speechPortFromFile := fileConfigEngineInt(fileCfg, "speech", "port")
+
+	sessionTTLMinSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS", fileCfg.SessionTTLMinSeconds, 60)
+	if err != nil {
+		return Config{}, err
+	}
+	sessionTTLMaxSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS", fileCfg.SessionTTLMaxSeconds, 86400)
+	if err != nil {
+		return Config{}, err
+	}
+	aiHealthIntervalSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS", fileCfg.AIHealthIntervalSeconds, 8)
+	if err != nil {
+		return Config{}, err
+	}
+	aiHTTPTimeoutSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", fileCfg.AIHTTPTimeoutSeconds, 30)
+	if err != nil {
+		return Config{}, err
+	}
+	globalConcurrencyLimit, err := readIntWithFileConfigFallback("NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT", fileCfg.GlobalConcurrencyLimit, 8)
+	if err != nil {
+		return Config{}, err
+	}
+	perAppConcurrencyLimit, err := readIntWithFileConfigFallback("NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT", fileCfg.PerAppConcurrencyLimit, 2)
+	if err != nil {
+		return Config{}, err
+	}
+	idempotencyCapacity, err := readIntWithFileConfigFallback("NIMI_RUNTIME_IDEMPOTENCY_CAPACITY", fileCfg.IdempotencyCapacity, 10000)
+	if err != nil {
+		return Config{}, err
+	}
+	maxDelegationDepth, err := readIntWithFileConfigFallback("NIMI_RUNTIME_MAX_DELEGATION_DEPTH", fileCfg.MaxDelegationDepth, 3)
+	if err != nil {
+		return Config{}, err
+	}
+	auditRingBufferSize, err := readIntWithFileConfigFallback("NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE", fileCfg.AuditRingBufferSize, 20000)
+	if err != nil {
+		return Config{}, err
+	}
+	usageStatsBufferSize, err := readIntWithFileConfigFallback("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", fileCfg.UsageStatsBufferSize, 50000)
+	if err != nil {
+		return Config{}, err
+	}
+	localAuditCapacity, err := readIntWithFileConfigFallback("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", fileCfg.LocalAuditCapacity, 5000)
+	if err != nil {
+		return Config{}, err
+	}
+	engineLlamaPort, err := readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_PORT", llamaPortFromFile, 1234)
+	if err != nil {
+		return Config{}, err
+	}
+	engineMediaPort, err := readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_PORT", mediaPortFromFile, 8321)
+	if err != nil {
+		return Config{}, err
+	}
+	engineSpeechPort, err := readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_PORT", speechPortFromFile, 8330)
+	if err != nil {
+		return Config{}, err
+	}
+	engineSidecarPort, err := readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_PORT", nil, 0)
+	if err != nil {
+		return Config{}, err
+	}
 
 	cfg := Config{
 		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
@@ -45,35 +105,35 @@ func Load() (Config, error) {
 		DefaultLocalTextModel:         readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL", fileCfg.DefaultLocalTextModel, ""),
 		DefaultCloudProvider:          strings.TrimSpace(fileCfg.DefaultCloudProvider),
 		AllowLoopbackProviderEndpoint: readBoolWithFileConfigFallback("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", nil, false),
-		SessionTTLMinSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS", fileCfg.SessionTTLMinSeconds, 60),
-		SessionTTLMaxSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_SESSION_TTL_MAX_SECONDS", fileCfg.SessionTTLMaxSeconds, 86400),
-		AIHealthIntervalSeconds:       readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HEALTH_INTERVAL_SECONDS", fileCfg.AIHealthIntervalSeconds, 8),
-		AIHTTPTimeoutSeconds:          readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", fileCfg.AIHTTPTimeoutSeconds, 30),
+		SessionTTLMinSeconds:          sessionTTLMinSeconds,
+		SessionTTLMaxSeconds:          sessionTTLMaxSeconds,
+		AIHealthIntervalSeconds:       aiHealthIntervalSeconds,
+		AIHTTPTimeoutSeconds:          aiHTTPTimeoutSeconds,
 		ModelCatalogCustomDir:         resolveModelCatalogCustomDir(fileCfg),
-		GlobalConcurrencyLimit:        readIntWithFileConfigFallback("NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT", fileCfg.GlobalConcurrencyLimit, 8),
-		PerAppConcurrencyLimit:        readIntWithFileConfigFallback("NIMI_RUNTIME_PER_APP_CONCURRENCY_LIMIT", fileCfg.PerAppConcurrencyLimit, 2),
-		IdempotencyCapacity:           readIntWithFileConfigFallback("NIMI_RUNTIME_IDEMPOTENCY_CAPACITY", fileCfg.IdempotencyCapacity, 10000),
-		MaxDelegationDepth:            readIntWithFileConfigFallback("NIMI_RUNTIME_MAX_DELEGATION_DEPTH", fileCfg.MaxDelegationDepth, 3),
-		AuditRingBufferSize:           readIntWithFileConfigFallback("NIMI_RUNTIME_AUDIT_RING_BUFFER_SIZE", fileCfg.AuditRingBufferSize, 20000),
-		UsageStatsBufferSize:          readIntWithFileConfigFallback("NIMI_RUNTIME_USAGE_STATS_BUFFER_SIZE", fileCfg.UsageStatsBufferSize, 50000),
-		LocalAuditCapacity:            readIntWithFileConfigFallback("NIMI_RUNTIME_LOCAL_AUDIT_CAPACITY", fileCfg.LocalAuditCapacity, 5000),
+		GlobalConcurrencyLimit:        globalConcurrencyLimit,
+		PerAppConcurrencyLimit:        perAppConcurrencyLimit,
+		IdempotencyCapacity:           idempotencyCapacity,
+		MaxDelegationDepth:            maxDelegationDepth,
+		AuditRingBufferSize:           auditRingBufferSize,
+		UsageStatsBufferSize:          usageStatsBufferSize,
+		LocalAuditCapacity:            localAuditCapacity,
 		LogLevel:                      readStringWithFileConfigFallback("NIMI_RUNTIME_LOG_LEVEL", fileCfg.LogLevel, "info"),
 		AuthJWTIssuer:                 readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_ISSUER", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Issuer }), ""),
 		AuthJWTAudience:               readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
 		AuthJWTJWKSURL:                readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
-		Providers:                     fileCfg.Providers,
+		Providers:                     resolvedProviders,
 		EngineLlamaEnabled:            readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_ENABLED", llamaEnabledFromFile, false),
 		EngineLlamaVersion:            readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), "3.12.1"),
-		EngineLlamaPort:               readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_PORT", llamaPortFromFile, 1234),
+		EngineLlamaPort:               engineLlamaPort,
 		EngineMediaEnabled:            readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_ENABLED", mediaEnabledFromFile, false),
 		EngineMediaVersion:            readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_VERSION", fileConfigEngineString(fileCfg, "media", "version"), "0.1.0"),
-		EngineMediaPort:               readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_PORT", mediaPortFromFile, 8321),
+		EngineMediaPort:               engineMediaPort,
 		EngineSpeechEnabled:           readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_ENABLED", speechEnabledFromFile, false),
 		EngineSpeechVersion:           readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_VERSION", fileConfigEngineString(fileCfg, "speech", "version"), "0.1.0"),
-		EngineSpeechPort:              readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_PORT", speechPortFromFile, 8330),
+		EngineSpeechPort:              engineSpeechPort,
 		EngineSidecarEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_ENABLED", nil, false),
 		EngineSidecarVersion:          readString("NIMI_RUNTIME_ENGINE_SIDECAR_VERSION", ""),
-		EngineSidecarPort:             readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_PORT", nil, 0),
+		EngineSidecarPort:             engineSidecarPort,
 	}
 
 	localBaseURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"))
@@ -116,17 +176,19 @@ func Load() (Config, error) {
 }
 
 // readIntWithFileConfigFallback implements three-level fallback: env > fileConfig > default.
-func readIntWithFileConfigFallback(envKey string, fileValue *int, fallback int) int {
+func readIntWithFileConfigFallback(envKey string, fileValue *int, fallback int) (int, error) {
 	raw := strings.TrimSpace(os.Getenv(envKey))
 	if raw != "" {
-		if value, err := strconv.Atoi(raw); err == nil {
-			return value
+		value, err := strconv.Atoi(raw)
+		if err != nil {
+			return 0, fmt.Errorf("parse %s: %w", envKey, err)
 		}
+		return value, nil
 	}
 	if fileValue != nil {
-		return *fileValue
+		return *fileValue, nil
 	}
-	return fallback
+	return fallback, nil
 }
 
 // readBoolWithFileConfigFallback implements three-level fallback: env > fileConfig > default.

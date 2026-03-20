@@ -65,6 +65,7 @@ func runCommand(ctx context.Context, dir string, env map[string]string, bin stri
 }
 
 func ensureUV(ctx context.Context, installDir string) (string, error) {
+	_ = ctx
 	if path, err := exec.LookPath("uv"); err == nil {
 		return path, nil
 	}
@@ -78,25 +79,7 @@ func ensureUV(ctx context.Context, installDir string) (string, error) {
 	if _, err := os.Stat(binaryPath); err == nil {
 		return binaryPath, nil
 	}
-
-	env := map[string]string{
-		"UV_INSTALL_DIR": installDir,
-	}
-	switch currentGOOS() {
-	case "windows":
-		if err := runCommand(ctx, "", env, "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm https://astral.sh/uv/install.ps1 | iex"); err != nil {
-			return "", err
-		}
-	default:
-		if err := runCommand(ctx, "", env, "sh", "-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"); err != nil {
-			return "", err
-		}
-	}
-
-	if _, err := os.Stat(binaryPath); err != nil {
-		return "", fmt.Errorf("uv installed but binary missing at %s: %w", binaryPath, err)
-	}
-	return binaryPath, nil
+	return "", fmt.Errorf("uv is required but is not installed; install it via a verified local package manager and place it on PATH or at %s", binaryPath)
 }
 
 func ensureManagedPython(ctx context.Context, uvPath string, root string, version string) (string, error) {

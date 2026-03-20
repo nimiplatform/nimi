@@ -91,7 +91,6 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 }
 
 func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_CLOUD_OPENROUTER_BASE_URL", "https://example.invalid")
 	cfg := config.Config{
 		GRPCAddr:                "127.0.0.1:0",
 		HTTPAddr:                "127.0.0.1:0",
@@ -101,6 +100,9 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 		UsageStatsBufferSize:    64,
 		AIHealthIntervalSeconds: 1,
 		AIHTTPTimeoutSeconds:    1,
+		Providers: map[string]config.RuntimeFileTarget{
+			"openrouter": {BaseURL: "https://example.invalid", APIKey: "openrouter-key"},
+		},
 	}
 	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {

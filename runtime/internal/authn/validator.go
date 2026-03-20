@@ -7,7 +7,9 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -25,7 +27,10 @@ const (
 	defaultJWKSFallbackTTL   = 2 * time.Minute
 	defaultJWKSRequestTimout = 5 * time.Second
 	refreshCoalesceWindow    = 1 * time.Second
+	maxJWKSBodyBytes         = 1 << 20
 )
+
+var ErrEmptyToken = errors.New("empty token")
 
 // allowedAlgorithms lists the signing algorithms accepted by the validator.
 // alg=none is explicitly rejected (K-AUTHN-002).
@@ -86,10 +91,9 @@ func NewValidator(jwksURL, issuer, audience string) (*Validator, error) {
 
 // Validate parses and verifies a JWT token string.
 // Returns the identity on success, or an error on failure.
-// If token is empty, returns (nil, nil) indicating an anonymous request.
 func (v *Validator) Validate(tokenString string) (*Identity, error) {
 	if strings.TrimSpace(tokenString) == "" {
-		return nil, nil
+		return nil, ErrEmptyToken
 	}
 	if strings.TrimSpace(v.jwksURL) == "" {
 		return nil, fmt.Errorf("no jwks url configured")
@@ -240,7 +244,7 @@ func (v *Validator) refreshJWKS(force bool, requiredKid string) error {
 	}
 
 	var document jwksDocument
-	if err := json.NewDecoder(resp.Body).Decode(&document); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxJWKSBodyBytes)).Decode(&document); err != nil {
 		return fmt.Errorf("decode jwks response: %w", err)
 	}
 	parsedKeys, err := parseJWKSDocument(document)

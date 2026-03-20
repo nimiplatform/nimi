@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"io"
 	"net/http"
 	"strings"
@@ -81,8 +82,14 @@ func ExecuteAzureSpeechTTS(
 }
 
 func buildAzureSSML(language, voiceName, text string) string {
-	return "<speak version='1.0' xml:lang='" + language + "'>" +
-		"<voice name='" + voiceName + "'>" + text + "</voice></speak>"
+	return "<speak version='1.0' xml:lang='" + xmlEscapeString(language) + "'>" +
+		"<voice name='" + xmlEscapeString(voiceName) + "'>" + xmlEscapeString(text) + "</voice></speak>"
+}
+
+func xmlEscapeString(value string) string {
+	var builder strings.Builder
+	_ = xml.EscapeText(&builder, []byte(value))
+	return builder.String()
 }
 
 func resolveAzureOutputFormat(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {

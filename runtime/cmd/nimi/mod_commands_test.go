@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -272,6 +273,20 @@ func TestRunRuntimeModInstallGitHubRequiresSubpathWhenMultipleManifests(t *testi
 	}
 }
 
+func TestRunRuntimeModInstallRejectsInvalidGitHubRepoReference(t *testing.T) {
+	err := runRuntimeMod([]string{
+		"install",
+		"github:someuser/../nimi-mod-pack",
+		"--mods-dir", t.TempDir(),
+	})
+	if err == nil {
+		t.Fatal("expected invalid GitHub source to fail")
+	}
+	if !strings.Contains(err.Error(), "invalid source") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestRunRuntimeModInstallFromModCircleByID(t *testing.T) {
 	modsDir := filepath.Join(t.TempDir(), "installed")
 	tarball := buildGitHubTarball(t, map[string]string{
@@ -530,6 +545,48 @@ func TestRunRuntimeModInstallModCircleStrictIDDisablesNameFallback(t *testing.T)
 	}
 }
 
+func TestExtractGitHubTarballRejectsOversizedFile(t *testing.T) {
+	buffer := &bytes.Buffer{}
+	gzipWriter := gzip.NewWriter(buffer)
+	tarWriter := tar.NewWriter(gzipWriter)
+	content := bytes.Repeat([]byte("a"), maxModArchiveFileBytes+1)
+	header := &tar.Header{
+		Name: "repo-root/mod.manifest.yaml",
+		Mode: 0o644,
+		Size: int64(len(content)),
+	}
+	if err := tarWriter.WriteHeader(header); err != nil {
+		t.Fatalf("write tar header: %v", err)
+	}
+	if _, err := tarWriter.Write(content); err != nil {
+		t.Fatalf("write tar content: %v", err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		t.Fatalf("close tar writer: %v", err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		t.Fatalf("close gzip writer: %v", err)
+	}
+
+	err := extractGitHubTarball(bytes.NewReader(buffer.Bytes()), t.TempDir())
+	if err == nil {
+		t.Fatal("expected oversized archive entry to fail")
+	}
+	if !strings.Contains(err.Error(), "MOD_INSTALL_ARCHIVE_INVALID") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGitHubRESTClientRejectsTraversalPath(t *testing.T) {
+	client := newGitHubRESTClient("https://api.github.com", "")
+	_, err := client.listDirectory(context.Background(), "nimiplatform", "mod-circle", "../mods", "main")
+	if err == nil {
+		t.Fatal("expected traversal path to be rejected")
+	}
+	if !strings.Contains(err.Error(), "path contains invalid traversal segment") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
 
 func createTestModProject(t *testing.T, dir string, modID string, name string) {
 	t.Helper()

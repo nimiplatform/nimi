@@ -76,16 +76,17 @@ type Config struct {
 	// Valid values: "debug", "info", "warn", "error". Default: "info". (K-DAEMON-009)
 	LogLevel string
 
-	// AuthJWTIssuer is the expected JWT issuer (iss claim). If empty, issuer
-	// validation is skipped. (K-AUTHN-003, K-DAEMON-009)
+	// AuthJWTIssuer is the expected JWT issuer (iss claim). It must be set
+	// together with AuthJWTAudience and AuthJWTJWKSURL. (K-AUTHN-003, K-DAEMON-009)
 	AuthJWTIssuer string
 
-	// AuthJWTAudience is the expected JWT audience (aud claim). If empty,
-	// audience validation is skipped. (K-AUTHN-003, K-DAEMON-009)
+	// AuthJWTAudience is the expected JWT audience (aud claim). It must be set
+	// together with AuthJWTIssuer and AuthJWTJWKSURL. (K-AUTHN-003, K-DAEMON-009)
 	AuthJWTAudience string
 
 	// AuthJWTJWKSURL is the JWKS endpoint URL used for JWT signature
-	// verification. If empty, JWT verification is disabled (all tokens
+	// verification. It must use HTTPS and be configured together with issuer
+	// and audience. If empty, JWT verification is disabled (all tokens
 	// rejected). (K-AUTHN-004, K-DAEMON-009)
 	AuthJWTJWKSURL string
 

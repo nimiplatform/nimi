@@ -169,11 +169,15 @@ func TestLoadFromConfigFileAppliesRuntimeAndProviderDefaults(t *testing.T) {
 	if cfg.AIHealthIntervalSeconds != 3 {
 		t.Fatalf("aiHealthIntervalSeconds mismatch: got=%d want=3", cfg.AIHealthIntervalSeconds)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")); got != "gemini-from-env" {
-		t.Fatalf("gemini key env mismatch: %q", got)
+	target, ok := cfg.Providers["gemini"]
+	if !ok {
+		t.Fatalf("expected gemini provider to be resolved from config")
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")); got != defaultCloudGeminiBaseURL {
-		t.Fatalf("gemini base env mismatch: %q", got)
+	if got := ResolveProviderAPIKey(target); got != "gemini-from-env" {
+		t.Fatalf("gemini key mismatch: %q", got)
+	}
+	if got := strings.TrimSpace(target.BaseURL); got != defaultCloudGeminiBaseURL {
+		t.Fatalf("gemini base mismatch: %q", got)
 	}
 }
 
@@ -440,10 +444,11 @@ func TestLoadEnvOverridesConfigFile(t *testing.T) {
 	if cfg.GRPCAddr != "127.0.0.1:46399" {
 		t.Fatalf("grpc env override mismatch: %q", cfg.GRPCAddr)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")); got != "https://env.example.com/openai" {
+	target := cfg.Providers["gemini"]
+	if got := strings.TrimSpace(target.BaseURL); got != "https://env.example.com/openai" {
 		t.Fatalf("gemini base should keep env override: %q", got)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")); got != "env-key" {
+	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "env-key" {
 		t.Fatalf("gemini key should keep env override: %q", got)
 	}
 }
@@ -537,8 +542,8 @@ func TestLoadAllowsInlineProviderAPIKey(t *testing.T) {
 	if got := ResolveProviderAPIKey(cfg.Providers["gemini"]); got != "inline-key" {
 		t.Fatalf("inline api key mismatch: got=%q", got)
 	}
-	if got := os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"); got != "inline-key" {
-		t.Fatalf("runtime env binding mismatch: got=%q", got)
+	if got := strings.TrimSpace(cfg.Providers["gemini"].BaseURL); got != "https://generativelanguage.googleapis.com/v1beta/openai" {
+		t.Fatalf("provider base mismatch: got=%q", got)
 	}
 }
 
@@ -717,14 +722,18 @@ func TestLoadAppliesGeminiDefaultBaseURLWhenCanonicalKeyPresent(t *testing.T) {
 	clearRuntimeConfigEnv(t)
 	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "canonical-key")
 
-	_, err := Load()
+	cfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY")); got != "canonical-key" {
+	target, ok := cfg.Providers["gemini"]
+	if !ok {
+		t.Fatalf("expected env-only gemini provider to be resolved")
+	}
+	if got := strings.TrimSpace(ResolveProviderAPIKey(target)); got != "canonical-key" {
 		t.Fatalf("gemini key mismatch: %q", got)
 	}
-	if got := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_CLOUD_GEMINI_BASE_URL")); got != defaultCloudGeminiBaseURL {
+	if got := strings.TrimSpace(target.BaseURL); got != defaultCloudGeminiBaseURL {
 		t.Fatalf("gemini default base mismatch: %q", got)
 	}
 }
@@ -954,6 +963,84 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
 	}
 	if cfg.AuthJWTJWKSURL != "https://realm.env.test/api/auth/jwks" {
 		t.Fatalf("jwksUrl env override mismatch: %q", cfg.AuthJWTJWKSURL)
+	}
+}
+
+func TestLoadRejectsInvalidIntegerEnvOverride(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT", "invalid")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected invalid integer env override to fail")
+	}
+	if !strings.Contains(err.Error(), "parse NIMI_RUNTIME_GLOBAL_CONCURRENCY_LIMIT") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadRejectsIncompleteJWTConfig(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", "https://realm.env.test/api/auth/jwks")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected incomplete jwt config to fail")
+	}
+	if !strings.Contains(err.Error(), "requires issuer, audience, and jwks url together") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadRejectsHTTPJWKSURL(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "auth": {
+    "jwt": {
+      "issuer": "https://realm.nimi.xyz",
+      "audience": "nimi-runtime",
+      "jwksUrl": "http://realm.nimi.xyz/api/auth/jwks"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected http jwks url to fail")
+	}
+	if !strings.Contains(err.Error(), "auth jwt jwks url must use https") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadRejectsOutOfRangeNumericConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "globalConcurrencyLimit": 0
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected invalid numeric config to fail")
+	}
+	if !strings.Contains(err.Error(), "globalConcurrencyLimit must be between 1 and 256") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
