@@ -3,16 +3,6 @@
 
 import type { components } from './schema.js';
 
-export const AccountDataTaskStatus = {
-  PENDING: "PENDING",
-  PROCESSING: "PROCESSING",
-  COMPLETED: "COMPLETED",
-  FAILED: "FAILED",
-  UNAVAILABLE: "UNAVAILABLE",
-} as const satisfies Record<string, components['schemas']['AccountDataTaskResultDto']['status']>;
-
-export type AccountDataTaskStatus = (typeof AccountDataTaskStatus)[keyof typeof AccountDataTaskStatus];
-
 export const AddCheckpointStatus = {
   PASSED: "PASSED",
   FAILED: "FAILED",
@@ -1463,3 +1453,65 @@ export const WorldviewPatchLifecycle = {
 } as const satisfies Record<string, components['schemas']['WorldviewPatchDto']['lifecycle']>;
 
 export type WorldviewPatchLifecycle = (typeof WorldviewPatchLifecycle)[keyof typeof WorldviewPatchLifecycle];
+
+export const WorldviewTruthRuleSummaryCategory = {
+  CONSTRAINT: "CONSTRAINT",
+  MECHANISM: "MECHANISM",
+  DEFINITION: "DEFINITION",
+  RELATION: "RELATION",
+  POLICY: "POLICY",
+} as const satisfies Record<string, components['schemas']['WorldviewTruthRuleSummaryDto']['category']>;
+
+export type WorldviewTruthRuleSummaryCategory = (typeof WorldviewTruthRuleSummaryCategory)[keyof typeof WorldviewTruthRuleSummaryCategory];
+
+export const WorldviewTruthRuleSummaryDomain = {
+  AXIOM: "AXIOM",
+  PHYSICS: "PHYSICS",
+  SOCIETY: "SOCIETY",
+  ECONOMY: "ECONOMY",
+  CHARACTER: "CHARACTER",
+  NARRATIVE: "NARRATIVE",
+  META: "META",
+} as const satisfies Record<string, components['schemas']['WorldviewTruthRuleSummaryDto']['domain']>;
+
+export type WorldviewTruthRuleSummaryDomain = (typeof WorldviewTruthRuleSummaryDomain)[keyof typeof WorldviewTruthRuleSummaryDomain];
+
+export const WorldviewTruthRuleSummaryHardness = {
+  HARD: "HARD",
+  FIRM: "FIRM",
+  SOFT: "SOFT",
+  AESTHETIC: "AESTHETIC",
+} as const satisfies Record<string, components['schemas']['WorldviewTruthRuleSummaryDto']['hardness']>;
+
+export type WorldviewTruthRuleSummaryHardness = (typeof WorldviewTruthRuleSummaryHardness)[keyof typeof WorldviewTruthRuleSummaryHardness];
+
+export const WorldviewTruthRuleSummaryProvenance = {
+  SEED: "SEED",
+  CREATOR: "CREATOR",
+  MOJING_MERGED: "MOJING_MERGED",
+  RENDER_BACKFLOW: "RENDER_BACKFLOW",
+  WORLD_STUDIO: "WORLD_STUDIO",
+  SYSTEM: "SYSTEM",
+} as const satisfies Record<string, components['schemas']['WorldviewTruthRuleSummaryDto']['provenance']>;
+
+export type WorldviewTruthRuleSummaryProvenance = (typeof WorldviewTruthRuleSummaryProvenance)[keyof typeof WorldviewTruthRuleSummaryProvenance];
+
+export const WorldviewTruthRuleSummaryScope = {
+  WORLD: "WORLD",
+  REGION: "REGION",
+  FACTION: "FACTION",
+  INDIVIDUAL: "INDIVIDUAL",
+  SCENE: "SCENE",
+} as const satisfies Record<string, components['schemas']['WorldviewTruthRuleSummaryDto']['scope']>;
+
+export type WorldviewTruthRuleSummaryScope = (typeof WorldviewTruthRuleSummaryScope)[keyof typeof WorldviewTruthRuleSummaryScope];
+
+export const WorldviewTruthRuleSummaryStatus = {
+  ACTIVE: "ACTIVE",
+  DEPRECATED: "DEPRECATED",
+  SUPERSEDED: "SUPERSEDED",
+  PROPOSED: "PROPOSED",
+  ARCHIVED: "ARCHIVED",
+} as const satisfies Record<string, components['schemas']['WorldviewTruthRuleSummaryDto']['status']>;
+
+export type WorldviewTruthRuleSummaryStatus = (typeof WorldviewTruthRuleSummaryStatus)[keyof typeof WorldviewTruthRuleSummaryStatus];

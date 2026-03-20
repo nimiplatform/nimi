@@ -345,10 +345,10 @@ type _GuardRequestAccountDeletionBody = Assert<IsEqual<
 
 type _GuardRequestDataExportResult = Assert<IsEqual<
   _RequestDataExportResult,
-  components['schemas']['AccountDataTaskResultDto']
+  unknown
 >>;
 
 type _GuardRequestAccountDeletionResult = Assert<IsEqual<
   _RequestAccountDeletionResult,
-  components['schemas']['AccountDataTaskResultDto']
+  unknown
 >>;

@@ -264,21 +264,15 @@ expectRegex(
 );
 
 expectRegex(
-  schema,
-  /AccountDataTaskResultDto:\s*{[\s\S]*?accepted: boolean;[\s\S]*?status: "PENDING" \| "PROCESSING" \| "COMPLETED" \| "FAILED" \| "UNAVAILABLE";/,
-  'AccountDataTaskResultDto must expose the stable task result contract',
+  operationMap,
+  /"MeaccountdataService\.requestDataExport":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": false/,
+  'requestDataExport must expose a typed request body and no success body until the backend is implemented',
 );
 
 expectRegex(
   operationMap,
-  /"MeaccountdataService\.requestDataExport":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
-  'requestDataExport must be generated as a typed service method',
-);
-
-expectRegex(
-  operationMap,
-  /"MeaccountdataService\.requestAccountDeletion":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
-  'requestAccountDeletion must be generated as a typed service method',
+  /"MeaccountdataService\.requestAccountDeletion":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": false/,
+  'requestAccountDeletion must expose a typed request body and no success body until the backend is implemented',
 );
 
 expectRegex(

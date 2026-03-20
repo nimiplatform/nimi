@@ -1322,23 +1322,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/economy/gifts/{giftTransactionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get gift transaction detail */
-        get: operations["EconomyController_getGiftTransaction"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/economy/gifts/received": {
         parameters: {
             query?: never;
@@ -3228,7 +3211,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Validate world rules without saving (public) */
+        /** Validate world rules without saving */
         post: operations["WorldRulesController_validateRules"];
         delete?: never;
         options?: never;
@@ -4400,19 +4383,6 @@ export type components = {
             name: string;
             tierRequired?: number;
         };
-        AccountDataTaskResultDto: {
-            accepted: boolean;
-            actionHint?: string;
-            message?: string;
-            reasonCode?: string;
-            /** @description ISO datetime */
-            requestedAt?: string;
-            /** @description ISO datetime */
-            scheduledDeletionAt?: string;
-            /** @enum {string} */
-            status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "UNAVAILABLE";
-            taskId?: string;
-        };
         /** @enum {string} */
         AccountRole: "USER" | "AGENT" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
         /** @enum {string} */
@@ -4428,6 +4398,9 @@ export type components = {
             name: string;
             /** @enum {string} */
             status: "PASSED" | "FAILED" | "SKIPPED";
+        };
+        AddFriendBodyDto: {
+            requestMessage?: string;
         };
         AgentAppearanceDto: {
             artStyle: string;
@@ -4576,6 +4549,7 @@ export type components = {
             /** @enum {string} */
             category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
             conflictsWith: string[];
+            /** Format: date-time */
             createdAt: string;
             createdBy: string;
             dependsOn: string[];
@@ -4603,6 +4577,7 @@ export type components = {
                 [key: string]: unknown;
             };
             title: string;
+            /** Format: date-time */
             updatedAt: string;
             updatedBy: string;
             version: number;
@@ -4719,6 +4694,9 @@ export type components = {
         BindEmailDto: {
             email: string;
             password: string;
+        };
+        BlockUserBodyDto: {
+            reason?: string;
         };
         CalendarSystemDto: {
             daysPerMonth?: number;
@@ -5228,6 +5206,8 @@ export type components = {
             /** @description Current world status */
             worldStatus?: string;
         };
+        /** @enum {string} */
+        CreatorEventCategory: "NATURAL" | "SOCIAL" | "POLITICAL" | "ECONOMIC" | "MAGICAL" | "DISASTER" | "DISCOVERY" | "OTHER";
         CreatorModControlAuditIngestRequestDto: {
             modId?: string;
             records: components["schemas"]["CreatorModControlAuditRecordDto"][];
@@ -5285,6 +5265,24 @@ export type components = {
             signerId: string;
             version: string;
         };
+        CreatorWorldEventDto: {
+            affectedAreas: string[];
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: string;
+            description: string;
+            durationHours?: number | null;
+            eventType: components["schemas"]["CreatorEventCategory"];
+            /** Format: date-time */
+            expiresAt?: string | null;
+            id: string;
+            isActive: boolean;
+            requiresAcknowledgment: boolean;
+            scope: components["schemas"]["ScopeType"];
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         CurrencyBalancesDto: {
             /** @description Gem balance (earned currency) */
             gemBalance: string;
@@ -5313,6 +5311,9 @@ export type components = {
         CursorPageMetaDto: {
             hasNext: boolean;
             nextCursor: string | null;
+        };
+        DeleteAgentOperationResponseDto: {
+            success: boolean;
         };
         DesktopChatRouteRequestDto: {
             /** @description Required for AGENT */
@@ -5432,6 +5433,10 @@ export type components = {
             /** @enum {string} */
             action: "POST" | "REPLY";
             context?: string;
+        };
+        ForceActionResponseDto: {
+            message?: string;
+            success: boolean;
         };
         FriendProfileDto: {
             agent?: components["schemas"]["AgentMetadataDto"];
@@ -5647,6 +5652,9 @@ export type components = {
             nextAfter: string | null;
             nextBefore: string | null;
         };
+        ListWorldEventsResponseDto: {
+            events: components["schemas"]["CreatorWorldEventDto"][];
+        };
         LocationLandmarkDto: {
             description: string;
             id: string;
@@ -5659,6 +5667,10 @@ export type components = {
             description: string;
             id: string;
             name: string;
+        };
+        MakeAgentPublicResponseDto: {
+            accountVisibility: components["schemas"]["Visibility"];
+            success: boolean;
         };
         MarkNotificationsReadInputDto: {
             ids?: string[];
@@ -5882,6 +5894,7 @@ export type components = {
             agent?: components["schemas"]["AgentMetadataDto"];
             agentProfile?: components["schemas"]["AgentProfileDto"];
             avatarUrl?: string | null;
+            bio?: string | null;
             createdAt: string;
             displayName: string;
             handle: string;
@@ -6239,6 +6252,7 @@ export type components = {
             targetUserId?: string | null;
         };
         RequestAccountDeletionDto: {
+            /** @description Must exactly equal "PERMANENTLY DELETE MY ACCOUNT" when provided */
             confirmPhrase?: string;
             feedback?: string;
             immediate?: boolean;
@@ -6419,6 +6433,8 @@ export type components = {
             timeCycle?: components["schemas"]["SceneTimeCycleDto"];
             timeModifier?: number;
         };
+        /** @enum {string} */
+        ScopeType: "GLOBAL" | "REGION" | "FACTION" | "LOCAL";
         SearchPostDto: {
             author: components["schemas"]["UserLiteDto"];
             authorId: string;
@@ -6845,6 +6861,10 @@ export type components = {
             /** @description Soul Prime configuration */
             soulPrime: components["schemas"]["SoulPrimeDto"];
         };
+        UpdateSoulPrimeResponseDto: {
+            soulPrime: components["schemas"]["SoulPrimeDto"];
+            success: boolean;
+        };
         UpdateUserDto: {
             /** @description Avatar URL */
             avatarUrl?: string;
@@ -7021,6 +7041,7 @@ export type components = {
             agent?: components["schemas"]["AgentMetadataDto"];
             agentProfile?: components["schemas"]["AgentProfileDto"];
             avatarUrl?: string | null;
+            bio?: string | null;
             createdAt: string;
             displayName: string;
             handle: string;
@@ -7042,7 +7063,7 @@ export type components = {
             agent?: components["schemas"]["AgentMetadataDto"];
             agentProfile?: components["schemas"]["AgentProfileDto"];
             avatarUrl?: string | null;
-            bio?: string;
+            bio?: string | null;
             birthYear?: number | null;
             city?: string;
             countryCode?: string | null;
@@ -7611,10 +7632,10 @@ export type components = {
             worldId: string;
         };
         WorldLorebookDetailDto: {
-            constant?: boolean;
+            constant: boolean;
             content: string;
             createdAt?: string;
-            enabled?: boolean;
+            enabled: boolean;
             id: string;
             key: string;
             keywords?: string[];
@@ -7641,7 +7662,7 @@ export type components = {
             lorebooks: components["schemas"]["WorldLorebookDetailDto"][];
             storyProjectionSummary?: components["schemas"]["WorldStoryProjectionSummaryDto"];
             world: components["schemas"]["WorldPatchDto"];
-            worldview?: components["schemas"]["WorldviewPatchDto"];
+            readonly worldview?: components["schemas"]["WorldviewPatchDto"];
         };
         WorldMediaAssetDetailDto: {
             durationSec?: number;
@@ -7775,6 +7796,7 @@ export type components = {
             /** @enum {string} */
             category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
             conflictsWith: string[];
+            /** Format: date-time */
             createdAt: string;
             createdBy: string;
             dependsOn: string[];
@@ -7800,6 +7822,7 @@ export type components = {
                 [key: string]: unknown;
             };
             title: string;
+            /** Format: date-time */
             updatedAt: string;
             updatedBy: string;
             validFrom?: string;
@@ -7876,6 +7899,7 @@ export type components = {
                 [key: string]: unknown;
             };
             timeModel: components["schemas"]["TimeModelDto"];
+            truthRules?: components["schemas"]["WorldviewTruthRuleSummaryDto"][];
             /** Format: date-time */
             updatedAt: string;
             version: number;
@@ -7911,6 +7935,37 @@ export type components = {
             };
             timeModel?: components["schemas"]["TimeModelDto"];
             visualGuide?: components["schemas"]["VisualGuideDto"];
+        };
+        WorldviewTruthRuleSummaryDto: {
+            /** @enum {string} */
+            category: "CONSTRAINT" | "MECHANISM" | "DEFINITION" | "RELATION" | "POLICY";
+            conflictsWith: string[];
+            dependsOn: string[];
+            /** @enum {string} */
+            domain: "AXIOM" | "PHYSICS" | "SOCIETY" | "ECONOMY" | "CHARACTER" | "NARRATIVE" | "META";
+            /** @enum {string} */
+            hardness: "HARD" | "FIRM" | "SOFT" | "AESTHETIC";
+            id: string;
+            lineageId: string;
+            overrides?: string;
+            priority: number;
+            /** @enum {string} */
+            provenance: "SEED" | "CREATOR" | "MOJING_MERGED" | "RENDER_BACKFLOW" | "WORLD_STUDIO" | "SYSTEM";
+            reasoning?: string;
+            ruleKey: string;
+            /** @enum {string} */
+            scope: "WORLD" | "REGION" | "FACTION" | "INDIVIDUAL" | "SCENE";
+            sourceRef?: string;
+            statement: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "DEPRECATED" | "SUPERSEDED" | "PROPOSED" | "ARCHIVED";
+            structured?: {
+                [key: string]: unknown;
+            };
+            title: string;
+            validFrom?: string;
+            validUntil?: string;
+            version: number;
         };
     };
     responses: never;
@@ -7982,7 +8037,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeleteAgentOperationResponseDto"];
+                };
             };
         };
     };
@@ -8197,7 +8254,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ForceActionResponseDto"];
+                };
             };
         };
     };
@@ -8504,11 +8563,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MakeAgentPublicResponseDto"];
+                };
             };
         };
     };
@@ -8627,7 +8688,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UpdateSoulPrimeResponseDto"];
+                };
             };
         };
     };
@@ -8643,7 +8706,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            201: {
+            /** @description Agent suspended successfully */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9151,13 +9215,12 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description Account deletion backend is not implemented yet */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["AccountDataTaskResultDto"];
-                };
+                content?: never;
             };
         };
     };
@@ -9174,13 +9237,12 @@ export interface operations {
             };
         };
         responses: {
-            200: {
+            /** @description Account data export backend is not implemented yet */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["AccountDataTaskResultDto"];
-                };
+                content?: never;
             };
         };
     };
@@ -9934,28 +9996,6 @@ export interface operations {
             };
         };
     };
-    EconomyController_getGiftTransaction: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Gift Transaction ID */
-                giftTransactionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GiftTransactionRichDto"];
-                };
-            };
-        };
-    };
     EconomyController_getReceivedGifts: {
         parameters: {
             query?: {
@@ -10565,9 +10605,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    requestMessage?: string;
-                };
+                "application/json": components["schemas"]["AddFriendBodyDto"];
             };
         };
         responses: {
@@ -11019,9 +11057,7 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": {
-                    reason?: string;
-                };
+                "application/json": components["schemas"]["BlockUserBodyDto"];
             };
         };
         responses: {
@@ -12871,12 +12907,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List of creator world events */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ListWorldEventsResponseDto"];
+                };
             };
         };
     };
@@ -14234,9 +14271,9 @@ export interface operations {
     TransitController_listTransits: {
         parameters: {
             query?: {
-                transitType?: unknown;
-                status?: unknown;
-                agentId?: unknown;
+                transitType?: string;
+                status?: string;
+                agentId?: string;
             };
             header?: never;
             path?: never;

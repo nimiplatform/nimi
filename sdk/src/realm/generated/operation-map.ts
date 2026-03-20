@@ -407,8 +407,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerDeleteAllE2EMemories": {
     "operationId": "AgentController_deleteAllE2EMemories",
@@ -524,8 +526,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerGetApprovals": {
     "operationId": "AgentController_getApprovals",
@@ -832,10 +836,12 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
-      "201"
+      "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerRecallForEntity": {
     "operationId": "AgentController_recallForEntity",
@@ -1029,7 +1035,7 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
-      "201"
+      "200"
     ],
     "successContentTypes": [],
     "hasSuccessBody": false
@@ -1079,8 +1085,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerUpdateUserProfile": {
     "operationId": "AgentController_updateUserProfile",
@@ -2087,31 +2095,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "EconomyCurrencyGiftsService.economyControllerGetGiftTransaction": {
-    "operationId": "EconomyController_getGiftTransaction",
-    "method": "GET",
-    "path": "/api/economy/gifts/{giftTransactionId}",
-    "service": "EconomyCurrencyGiftsService",
-    "methodName": "economyControllerGetGiftTransaction",
-    "tag": "Economy (Currency & Gifts)",
-    "parameters": [
-      {
-        "name": "giftTransactionId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "EconomyCurrencyGiftsService.economyControllerGetReceivedGifts": {
     "operationId": "EconomyController_getReceivedGifts",
     "method": "GET",
@@ -2899,13 +2882,9 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
+    "successStatusCodes": [],
+    "successContentTypes": [],
+    "hasSuccessBody": false
   },
   "MeaccountdataService.requestDataExport": {
     "operationId": "requestDataExport",
@@ -2918,13 +2897,9 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
+    "successStatusCodes": [],
+    "successContentTypes": [],
+    "hasSuccessBody": false
   },
   "MediaService.createAudioDirectUpload": {
     "operationId": "createAudioDirectUpload",
@@ -5693,19 +5668,19 @@ export const REALM_OPERATION_MAP = {
         "name": "transitType",
         "in": "query",
         "required": false,
-        "valueType": "unknown"
+        "valueType": "string"
       },
       {
         "name": "status",
         "in": "query",
         "required": false,
-        "valueType": "unknown"
+        "valueType": "string"
       },
       {
         "name": "agentId",
         "in": "query",
         "required": false,
-        "valueType": "unknown"
+        "valueType": "string"
       }
     ],
     "hasBody": false,
@@ -6941,8 +6916,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "WorldRulesService.worldRulesControllerUpdateRule": {
     "operationId": "WorldRulesController_updateRule",
@@ -7522,7 +7499,6 @@ export const REALM_SERVICE_METHODS = {
     "economyControllerGetConnectStatus": "EconomyCurrencyGiftsService.economyControllerGetConnectStatus",
     "economyControllerGetGemHistory": "EconomyCurrencyGiftsService.economyControllerGetGemHistory",
     "economyControllerGetGiftCatalog": "EconomyCurrencyGiftsService.economyControllerGetGiftCatalog",
-    "economyControllerGetGiftTransaction": "EconomyCurrencyGiftsService.economyControllerGetGiftTransaction",
     "economyControllerGetReceivedGifts": "EconomyCurrencyGiftsService.economyControllerGetReceivedGifts",
     "economyControllerGetRevenueShareConfig": "EconomyCurrencyGiftsService.economyControllerGetRevenueShareConfig",
     "economyControllerGetSentGifts": "EconomyCurrencyGiftsService.economyControllerGetSentGifts",

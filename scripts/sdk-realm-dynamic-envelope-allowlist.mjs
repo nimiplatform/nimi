@@ -54,6 +54,7 @@ export const realmDynamicEnvelopeAllowlist = [
   { path: 'WorldSceneDetailDto.setting', category: 'world-scene-setting' },
   { path: 'WorldviewDetailDto.structures?', category: 'worldview-semantic-block' },
   { path: 'WorldviewPatchDto.structures?', category: 'worldview-patch-envelope' },
+  { path: 'WorldviewTruthRuleSummaryDto.structured?', category: 'rule-structured-extension' },
 ];
 
 export const realmDynamicEnvelopeAllowlistPaths = new Set(

@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type AccountDataTaskResultDto = components['schemas']['AccountDataTaskResultDto'];
+export type MakeAgentPublicResponseDto = components['schemas']['MakeAgentPublicResponseDto'];
