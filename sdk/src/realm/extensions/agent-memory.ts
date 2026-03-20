@@ -1,6 +1,7 @@
 import type { RealmModel, RealmServiceResult } from '../generated/type-helpers.js';
 import type { Realm } from '../client.js';
 import { createNimiError } from '../../runtime/errors.js';
+import { normalizeText } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 
 export type AgentMemorySliceInput = {
@@ -21,10 +22,6 @@ export type AgentMemoryRecallInput = {
 
 export type AgentMemoryRecord = RealmModel<'AgentMemoryRecordDto'>;
 export type AgentMemoryRecallOutput = RealmServiceResult<'AgentsService', 'agentControllerRecallForEntity'>;
-
-function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
 
 function requireId(value: unknown, fieldName: 'agentId' | 'entityId'): string {
   const normalized = normalizeText(value);

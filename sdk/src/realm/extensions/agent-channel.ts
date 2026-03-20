@@ -1,6 +1,7 @@
 import type { RealmModel } from '../generated/type-helpers.js';
 import type { Realm } from '../client.js';
 import { createNimiError } from '../../runtime/errors.js';
+import { normalizeText } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 
 export type SendAgentChannelMessageInput = {
@@ -9,10 +10,6 @@ export type SendAgentChannelMessageInput = {
 };
 
 export type SendAgentChannelMessageOutput = RealmModel<'MessageViewDto'>;
-
-function normalizeText(value: unknown): string {
-  return String(value || '').trim();
-}
 
 export async function sendAgentChannelMessage(
   realm: Realm,
