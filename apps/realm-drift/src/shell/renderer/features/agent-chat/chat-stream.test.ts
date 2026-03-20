@@ -166,7 +166,7 @@ describe('streamAgentChat', () => {
     expect(callArgs.signal).toBe(ac.signal);
   });
 
-  it('calls onDelta with accumulated text on delta parts', async () => {
+  it('calls onDelta with incremental delta text on delta parts', async () => {
     mockStream.mockResolvedValue(makeAsyncIterable([
       { type: 'delta', text: 'Hello ' },
       { type: 'delta', text: 'traveler' },
@@ -189,7 +189,7 @@ describe('streamAgentChat', () => {
 
     expect(onDelta).toHaveBeenCalledTimes(2);
     expect(onDelta).toHaveBeenNthCalledWith(1, 'Hello ');
-    expect(onDelta).toHaveBeenNthCalledWith(2, 'Hello traveler');
+    expect(onDelta).toHaveBeenNthCalledWith(2, 'traveler');
   });
 
   it('calls onFinish with full text on stream end', async () => {

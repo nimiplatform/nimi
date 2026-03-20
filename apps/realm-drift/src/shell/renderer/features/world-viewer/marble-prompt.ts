@@ -8,6 +8,17 @@ export type RawWorldContext = {
   lorebooks: WorldLorebook[];
 };
 
+function sanitizePromptText(value: unknown): string {
+  return String(value ?? '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/{/g, '\\u007b')
+    .replace(/}/g, '\\u007d')
+    .replace(/`/g, '\\u0060')
+    .trim();
+}
+
 /**
  * Phase 1: Assemble raw world data into structured context string.
  */
@@ -15,25 +26,25 @@ export function assembleRawContext(ctx: RawWorldContext): string {
   const parts: string[] = [];
 
   // World identity
-  parts.push(`World: ${ctx.world.name}`);
-  if (ctx.world.description) parts.push(`Description: ${ctx.world.description}`);
-  if (ctx.world.genre) parts.push(`Genre: ${ctx.world.genre}`);
-  if (ctx.world.era) parts.push(`Era: ${ctx.world.era}`);
+  parts.push(`World: ${sanitizePromptText(ctx.world.name)}`);
+  if (ctx.world.description) parts.push(`Description: ${sanitizePromptText(ctx.world.description)}`);
+  if (ctx.world.genre) parts.push(`Genre: ${sanitizePromptText(ctx.world.genre)}`);
+  if (ctx.world.era) parts.push(`Era: ${sanitizePromptText(ctx.world.era)}`);
   if (ctx.world.themes && ctx.world.themes.length > 0) {
-    parts.push(`Themes: ${ctx.world.themes.join(', ')}`);
+    parts.push(`Themes: ${ctx.world.themes.map((value) => sanitizePromptText(value)).join(', ')}`);
   }
 
   // Worldview
   const worldviewParts: string[] = [];
-  if (ctx.worldview.description) worldviewParts.push(ctx.worldview.description);
-  if (ctx.worldview.geography) worldviewParts.push(`Geography: ${ctx.worldview.geography}`);
-  if (ctx.worldview.culture) worldviewParts.push(`Culture: ${ctx.worldview.culture}`);
-  if (ctx.worldview.history) worldviewParts.push(`History: ${ctx.worldview.history}`);
-  if (ctx.worldview.lore) worldviewParts.push(`Lore: ${ctx.worldview.lore}`);
-  if (ctx.worldview.spaceTopology) worldviewParts.push(`Space Topology: ${ctx.worldview.spaceTopology}`);
-  if (ctx.worldview.coreSystem) worldviewParts.push(`Core System: ${ctx.worldview.coreSystem}`);
-  if (ctx.worldview.causality) worldviewParts.push(`Causality: ${ctx.worldview.causality}`);
-  if (ctx.worldview.tone) worldviewParts.push(`Tone: ${ctx.worldview.tone}`);
+  if (ctx.worldview.description) worldviewParts.push(sanitizePromptText(ctx.worldview.description));
+  if (ctx.worldview.geography) worldviewParts.push(`Geography: ${sanitizePromptText(ctx.worldview.geography)}`);
+  if (ctx.worldview.culture) worldviewParts.push(`Culture: ${sanitizePromptText(ctx.worldview.culture)}`);
+  if (ctx.worldview.history) worldviewParts.push(`History: ${sanitizePromptText(ctx.worldview.history)}`);
+  if (ctx.worldview.lore) worldviewParts.push(`Lore: ${sanitizePromptText(ctx.worldview.lore)}`);
+  if (ctx.worldview.spaceTopology) worldviewParts.push(`Space Topology: ${sanitizePromptText(ctx.worldview.spaceTopology)}`);
+  if (ctx.worldview.coreSystem) worldviewParts.push(`Core System: ${sanitizePromptText(ctx.worldview.coreSystem)}`);
+  if (ctx.worldview.causality) worldviewParts.push(`Causality: ${sanitizePromptText(ctx.worldview.causality)}`);
+  if (ctx.worldview.tone) worldviewParts.push(`Tone: ${sanitizePromptText(ctx.worldview.tone)}`);
   if (worldviewParts.length > 0) {
     parts.push('');
     parts.push('Worldview:');
@@ -45,8 +56,8 @@ export function assembleRawContext(ctx: RawWorldContext): string {
     parts.push('');
     parts.push('Key Locations:');
     for (const scene of ctx.scenes.slice(0, 3)) {
-      const desc = scene.description ? ` - ${scene.description}` : '';
-      parts.push(`  • ${scene.name}${desc}`);
+      const desc = scene.description ? ` - ${sanitizePromptText(scene.description)}` : '';
+      parts.push(`  • ${sanitizePromptText(scene.name)}${desc}`);
     }
   }
 
@@ -58,8 +69,8 @@ export function assembleRawContext(ctx: RawWorldContext): string {
     parts.push('');
     parts.push('Lore Entries:');
     for (const entry of filteredLorebooks.slice(0, 5)) {
-      const content = entry.content ? ` - ${entry.content.slice(0, 200)}` : '';
-      parts.push(`  • ${entry.title}${content}`);
+      const content = entry.content ? ` - ${sanitizePromptText(entry.content).slice(0, 200)}` : '';
+      parts.push(`  • ${sanitizePromptText(entry.title)}${content}`);
     }
   }
 
@@ -68,8 +79,8 @@ export function assembleRawContext(ctx: RawWorldContext): string {
     parts.push('');
     parts.push('Inhabitants:');
     for (const agent of ctx.world.agents.slice(0, 10)) {
-      const bio = agent.bio ? ` - ${agent.bio}` : '';
-      parts.push(`  • ${agent.name}${bio}`);
+      const bio = agent.bio ? ` - ${sanitizePromptText(agent.bio)}` : '';
+      parts.push(`  • ${sanitizePromptText(agent.name)}${bio}`);
     }
   }
 
@@ -87,6 +98,7 @@ export async function composeMarblePrompt(
   signal?: AbortSignal,
 ): Promise<string> {
   const rawContext = assembleRawContext(ctx);
+  const fallbackPrompt = `Create a single 3D scene from this sanitized world reference:\n\n${rawContext}`;
 
   try {
     const { runtime } = getPlatformClient();
@@ -132,8 +144,7 @@ export async function composeMarblePrompt(
     // LLM unavailable — fall through to direct concatenation
   }
 
-  // Fallback: use raw context directly
-  return rawContext;
+  return fallbackPrompt;
 }
 
 /**

@@ -69,7 +69,7 @@ export async function streamAgentChat(input: StreamChatInput): Promise<void> {
 
       if (part.type === 'delta') {
         fullText += part.text;
-        onDelta(fullText);
+        onDelta(part.text);
       } else if (part.type === 'error') {
         onError(new Error(String(part.error)));
         return;

@@ -183,6 +183,7 @@ describe('composeMarblePrompt', () => {
     const ctx = makeFullContext();
     const result = await composeMarblePrompt(ctx);
 
+    expect(result).toContain('Create a single 3D scene from this sanitized world reference');
     expect(result).toContain('World: Eldoria');
     expect(result).toContain('Crystal Tower');
   });
@@ -195,6 +196,7 @@ describe('composeMarblePrompt', () => {
     const ctx = makeFullContext();
     const result = await composeMarblePrompt(ctx);
 
+    expect(result).toContain('Create a single 3D scene from this sanitized world reference');
     expect(result).toContain('World: Eldoria');
   });
 
@@ -211,18 +213,30 @@ describe('composeMarblePrompt', () => {
 
   it('respects abort signal', async () => {
     const ac = new AbortController();
+    let consumedChunks = 0;
 
-    mockStream.mockResolvedValue(makeAsyncIterable([
-      { type: 'finish' },
-    ]));
+    mockStream.mockResolvedValue({
+      stream: (async function* () {
+        yield { type: 'delta', text: 'first' };
+        consumedChunks += 1;
+        ac.abort();
+        yield { type: 'delta', text: 'second' };
+        consumedChunks += 1;
+      })(),
+    });
 
     const ctx = makeFullContext();
-    ac.abort();
     const result = await composeMarblePrompt(ctx, ac.signal);
 
-    // Should still return something (either LLM result or fallback)
-    expect(typeof result).toBe('string');
-    expect(result.length).toBeGreaterThan(0);
+    expect(result).toBe('first');
+    expect(consumedChunks).toBe(1);
+  });
+
+  it('sanitizes world data before composing prompts', () => {
+    const ctx = makeFullContext();
+    ctx.world.name = 'Eldoria<script>alert(1)</script>';
+    const result = assembleRawContext(ctx);
+    expect(result).toContain('World: Eldoria\\u003cscript\\u003ealert(1)\\u003c/script\\u003e');
   });
 });
 
