@@ -91,18 +91,24 @@ describe('ai-config-store', () => {
     await useAiConfigStore.getState().fetchConnectors();
 
     const { connectors, loading } = useAiConfigStore.getState();
+    const firstConnector = connectors[0];
+    const secondConnector = connectors[1];
     expect(loading).toBe(false);
     expect(connectors).toHaveLength(2);
-    expect(connectors[0].connectorId).toBe('c1');
-    expect(connectors[1].provider).toBe('deepseek');
+    expect(firstConnector).toBeDefined();
+    expect(secondConnector).toBeDefined();
+    expect(firstConnector?.connectorId).toBe('c1');
+    expect(secondConnector?.provider).toBe('deepseek');
   });
 
   it('fetchConnectorModels populates models for a connector', async () => {
     await useAiConfigStore.getState().fetchConnectorModels('c1');
 
     const { connectorModels } = useAiConfigStore.getState();
+    const firstModel = connectorModels['c1']?.[0];
     expect(connectorModels['c1']).toHaveLength(2);
-    expect(connectorModels['c1'][0].modelId).toBe('gpt-4o');
+    expect(firstModel).toBeDefined();
+    expect(firstModel?.modelId).toBe('gpt-4o');
   });
 
   it('testConnector returns success', async () => {

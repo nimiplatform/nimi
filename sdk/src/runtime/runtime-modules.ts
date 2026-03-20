@@ -337,6 +337,9 @@ export function createAiModule(
       : await ctx.resolveOptionalSubjectUserId(request.head?.subjectUserId);
     const head = {
       ...request.head,
+      // High-level SDK surfaces no longer expose app-facing fallback controls.
+      // Normalize scenario requests to fail-close here and keep any fallback
+      // behavior confined to lower-level internal/runtime strategies.
       fallback: FallbackPolicy.DENY,
       subjectUserId: subjectUserId || '',
     } as Omit<T['head'], 'subjectUserId' | 'fallback'> & {

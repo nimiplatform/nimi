@@ -17,6 +17,9 @@ The format follows Keep a Changelog and Semantic Versioning.
 ### Changed
 
 - `README.md` quick start aligned with `cmd/nimi serve` + `cmd/nimi runtime ...`
+- Runtime AI scenario outputs and stream deltas now use typed `ScenarioOutput` / discriminated delta wrappers instead of generic `google.protobuf.Struct`-style payload decoding.
+- `realm.raw` and `runtime.raw` were renamed to `realm.unsafeRaw` and `runtime.unsafeRaw` to make raw transport boundaries explicit.
+- High-level SDK AI surfaces no longer expose fallback controls; public scenario execution paths now normalize to fail-close / `DENY`.
 - SDK AI provider image file inputs now require an explicit `mediaType`; image payloads fail closed instead of inferring or defaulting MIME type.
 
 ### Removed

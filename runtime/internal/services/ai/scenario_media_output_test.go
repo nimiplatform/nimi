@@ -101,3 +101,31 @@ func TestBuildScenarioOutputFromArtifactsForVideoSpeechAndMusic(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildScenarioOutputFromArtifactsReturnsNilForUnsupportedScenarioTypes(t *testing.T) {
+	cases := []struct {
+		name         string
+		scenarioType runtimev1.ScenarioType
+	}{
+		{
+			name:         "unspecified",
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED,
+		},
+		{
+			name:         "voice_clone",
+			scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := buildScenarioOutputFromArtifacts(
+				&runtimev1.ScenarioJob{ScenarioType: tc.scenarioType},
+				[]*runtimev1.ScenarioArtifact{{ArtifactId: "art-1"}},
+			)
+			if output != nil {
+				t.Fatalf("expected nil output for unsupported scenario type %v, got %#v", tc.scenarioType, output)
+			}
+		})
+	}
+}
