@@ -10,6 +10,7 @@ type GrpcModule = typeof import('@grpc/grpc-js');
 
 const defaultUploadChunkSize = 256 * 1024;
 const uploadArtifactMethodId = '/nimi.runtime.v1.RuntimeAiService/UploadArtifact';
+let grpcModulePromise: Promise<GrpcModule> | null = null;
 
 export async function runtimeUploadArtifact(
   ctx: RuntimeInternalContext,
@@ -53,7 +54,7 @@ export async function runtimeUploadArtifact(
       idempotencyKey: options?.idempotencyKey,
     });
     const authorization = await resolveAuthorizationHeader(ctx);
-    const metadata = toGrpcMetadata(grpc, callOptions.metadata, authorization);
+    const metadata = toGrpcMetadata(grpc, transport, callOptions.metadata, authorization);
 
     const responseBytes = await new Promise<Uint8Array>((resolve, reject) => {
       const call = client.makeClientStreamRequest(
@@ -149,8 +150,10 @@ function normalizeEndpoint(config: RuntimeNodeGrpcTransportConfig): string {
 }
 
 async function loadGrpcModule(): Promise<GrpcModule> {
-  const dynamicImport = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<unknown>;
-  return dynamicImport('@grpc/grpc-js') as Promise<GrpcModule>;
+  if (!grpcModulePromise) {
+    grpcModulePromise = import('@grpc/grpc-js');
+  }
+  return grpcModulePromise;
 }
 
 function toChannelCredentials(grpc: GrpcModule, config: RuntimeNodeGrpcTransportConfig) {
@@ -175,6 +178,7 @@ function toChannelOptions(config: RuntimeNodeGrpcTransportConfig) {
 
 function toGrpcMetadata(
   grpc: GrpcModule,
+  transport: RuntimeNodeGrpcTransportConfig,
   metadata: RuntimeMetadata | undefined,
   authorization?: string,
 ) {
@@ -183,6 +187,14 @@ function toGrpcMetadata(
     const normalizedKey = String(key || '').trim();
     const normalizedValue = String(entry || '').trim();
     if (normalizedKey && normalizedValue) {
+      if (/[\r\n\0]/.test(normalizedKey) || /[\r\n\0]/.test(normalizedValue)) {
+        throw createNimiError({
+          message: `invalid gRPC metadata value for ${normalizedKey}`,
+          reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
+          actionHint: 'remove_control_characters_from_metadata',
+          source: 'sdk',
+        });
+      }
       value.set(normalizedKey, normalizedValue);
     }
   };
@@ -200,7 +212,16 @@ function toGrpcMetadata(
   append('x-nimi-provider-type', metadata?.providerType);
   append('x-nimi-client-id', metadata?.clientId);
   append('x-nimi-provider-endpoint', metadata?.providerEndpoint);
-  append('x-nimi-provider-api-key', metadata?.providerApiKey);
+  const providerApiKey = String(metadata?.providerApiKey || '').trim();
+  if (providerApiKey && !transportAllowsPlaintextProviderKey(transport)) {
+    throw createNimiError({
+      message: 'providerApiKey requires TLS or a loopback-only node-grpc endpoint',
+      reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
+      actionHint: 'enable_tls_or_use_loopback_for_provider_api_key',
+      source: 'sdk',
+    });
+  }
+  append('x-nimi-provider-api-key', providerApiKey);
   for (const [key, entry] of Object.entries(metadata?.extra || {})) {
     append(key, entry);
   }
@@ -208,6 +229,15 @@ function toGrpcMetadata(
     value.set('authorization', authorization);
   }
   return value;
+}
+
+function transportAllowsPlaintextProviderKey(config: RuntimeNodeGrpcTransportConfig): boolean {
+  if (config.tls?.enabled) {
+    return true;
+  }
+  const endpoint = normalizeEndpoint(config);
+  const host = endpoint.split(':')[0]?.trim().toLowerCase() || '';
+  return host === '127.0.0.1' || host === 'localhost' || host === '[::1]';
 }
 
 function toGrpcCallOptions(timeoutMs?: number) {

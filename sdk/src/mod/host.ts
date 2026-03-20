@@ -2,10 +2,10 @@ import { createNimiError } from '../runtime/errors.js';
 import { ReasonCode } from '../types/index.js';
 import type { ModSdkHost } from './internal/host-types';
 
-const MOD_SDK_HOST_KEY = '__NIMI_MOD_SDK_HOST__';
+const MOD_SDK_HOST_KEY = Symbol.for('nimi.mod.sdk.host');
 
 function readHost(): ModSdkHost | null {
-  const value = (globalThis as Record<string, unknown>)[MOD_SDK_HOST_KEY];
+  const value = (globalThis as Record<PropertyKey, unknown>)[MOD_SDK_HOST_KEY];
   if (!value || typeof value !== 'object') {
     return null;
   }
@@ -13,11 +13,20 @@ function readHost(): ModSdkHost | null {
 }
 
 export function setModSdkHost(host: ModSdkHost): void {
-  (globalThis as Record<string, unknown>)[MOD_SDK_HOST_KEY] = host;
+  const current = readHost();
+  if (current && current !== host) {
+    throw createNimiError({
+      message: 'mod SDK host is already initialized for this execution context',
+      reasonCode: ReasonCode.SDK_MOD_HOST_MISSING,
+      actionHint: 'avoid_overwriting_existing_mod_host',
+      source: 'sdk',
+    });
+  }
+  (globalThis as Record<PropertyKey, unknown>)[MOD_SDK_HOST_KEY] = Object.freeze(host);
 }
 
 export function clearModSdkHost(): void {
-  delete (globalThis as Record<string, unknown>)[MOD_SDK_HOST_KEY];
+  delete (globalThis as Record<PropertyKey, unknown>)[MOD_SDK_HOST_KEY];
 }
 
 export function getModSdkHost(): ModSdkHost {

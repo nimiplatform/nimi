@@ -49,9 +49,11 @@ export function createHookClient(modId: string, context?: ModRuntimeContextInput
       runtime,
     }),
     audit: createAuditClient({
+      modId: normalizedModId,
       runtime,
     }),
     meta: createMetaClient({
+      modId: normalizedModId,
       runtime,
     }),
   };
