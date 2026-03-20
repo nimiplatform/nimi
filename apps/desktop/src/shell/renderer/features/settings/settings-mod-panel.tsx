@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { showModTabLimitBanner } from '@renderer/mod-ui/host/mod-tab-limit-banner';
-import { Button, PageShell, SectionTitle, StatusBadge } from './settings-layout-components';
-import { loadStoredSettingsModId, persistStoredSettingsModId } from './settings-storage';
+import { Button, PageShell, SectionTitle, StatusBadge } from './settings-layout-components.js';
+import { loadStoredSettingsModId, persistStoredSettingsModId } from './settings-storage.js';
 
 type RuntimeModSettingsRecord = Record<string, unknown>;
 

@@ -7,7 +7,7 @@ import { dataSync } from '@runtime/data-sync';
 import {
   PageShell,
   SectionTitle,
-} from './settings-layout-components';
+} from './settings-layout-components.js';
 
 type StorageSnapshot = {
   queryCacheBytes: number;

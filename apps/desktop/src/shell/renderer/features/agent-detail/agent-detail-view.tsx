@@ -2,8 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import type { AgentDetailData } from './agent-detail-model';
-import { getStateBadgeColor } from './agent-detail-model';
+import type { AgentDetailData } from './agent-detail-model.js';
+import { getStateBadgeColor } from './agent-detail-model.js';
 
 type AgentDetailViewProps = {
   agent: AgentDetailData;

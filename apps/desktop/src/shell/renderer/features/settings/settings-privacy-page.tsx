@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { PageShell, SectionTitle } from './settings-layout-components';
+import { PageShell, SectionTitle } from './settings-layout-components.js';
 
 type UpdateUserSettingsDto = RealmModel<'UpdateUserSettingsDto'>;
 type UserSettingsDto = RealmModel<'UserSettingsDto'>;
@@ -524,4 +524,3 @@ function MailIcon({ className = '' }: { className?: string }) {
     </svg>
   );
 }
-

@@ -465,6 +465,8 @@ export function useChatRealtimeSync(): void {
       },
     });
     socketRef.current = socket;
+    let disposed = false;
+    const isSocketActive = () => !disposed && socketRef.current === socket;
 
     const onConnect = () => {
       offlineCoordinator.markRealmSocketReachable(true);
@@ -522,6 +524,9 @@ export function useChatRealtimeSync(): void {
       void dataSync
         .syncChatEvents(chatId, requestedAfterSeq, 200)
         .then((result) => {
+          if (!isSocketActive() || selectedChatIdRef.current !== chatId) {
+            return;
+          }
           applySyncSnapshotToCache(chatId, result.snapshot);
           if (Array.isArray(result.events)) {
             for (const candidate of result.events) {
@@ -557,6 +562,9 @@ export function useChatRealtimeSync(): void {
           void queryClient.invalidateQueries({ queryKey: ['chats'] });
         })
         .catch(() => {
+          if (!isSocketActive() || selectedChatIdRef.current !== chatId) {
+            return;
+          }
           void dataSync.loadMessages(chatId);
           void queryClient.invalidateQueries({ queryKey: ['chats'] });
         });
@@ -575,6 +583,9 @@ export function useChatRealtimeSync(): void {
         void dataSync
           .syncChatEvents(activeChatId, sessionRef.current.lastAckSeq, 200)
           .then((result) => {
+            if (!isSocketActive() || selectedChatIdRef.current !== activeChatId) {
+              return;
+            }
             applySyncSnapshotToCache(activeChatId, result.snapshot);
             if (Array.isArray(result.events)) {
               for (const candidate of result.events) {
@@ -590,6 +601,9 @@ export function useChatRealtimeSync(): void {
             }
           })
           .catch(() => {
+            if (!isSocketActive() || selectedChatIdRef.current !== activeChatId) {
+              return;
+            }
             void queryClient.invalidateQueries({ queryKey: ['messages', activeChatId] });
           });
       }
@@ -603,6 +617,7 @@ export function useChatRealtimeSync(): void {
     socket.on('notif:new', onNotification);
 
     return () => {
+      disposed = true;
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
       socket.off('chat:session.ready', onSessionReady);

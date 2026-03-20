@@ -57,6 +57,37 @@ function readNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function assertRecord(value: unknown, fieldName: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function requireString(value: unknown, fieldName: string): string {
+  const normalized = readString(value);
+  if (!normalized) {
+    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
+  }
+  return normalized;
+}
+
+function requireRecordArray(value: unknown, fieldName: string): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) {
+    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
+  }
+  return value.map((item, index) => assertRecord(item, `${fieldName}_${index}`));
+}
+
+function assertArrayIfPresent(value: unknown, fieldName: string): void {
+  if (value == null) {
+    return;
+  }
+  if (!Array.isArray(value)) {
+    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
+  }
+}
+
 function toPositiveInt(value: unknown, fieldName: string): number {
   const numeric = Number(value);
   if (!Number.isInteger(numeric) || numeric < 1) {
@@ -85,11 +116,13 @@ function stringifyLoose(value: unknown): string | null {
 }
 
 function toWorldEvent(raw: WorldEventDetailDto): WorldEvent {
+  const id = requireString(raw.id, 'event_id');
+  const title = requireString(raw.title, 'event_title');
   const horizon = typeof raw.eventHorizon === 'string' ? raw.eventHorizon : 'PAST';
   return {
-    id: String(raw.id || ''),
+    id,
     timelineSeq: toPositiveInt(raw.timelineSeq, 'timeline_seq'),
-    title: String(raw.title || 'Untitled Event'),
+    title,
     description: String(raw.summary || raw.cause || raw.process || raw.result || ''),
     time: String(raw.timeRef || raw.createdAt || ''),
     tag: EVENT_HORIZON_TAG[horizon] || horizon || 'Event',
@@ -150,10 +183,9 @@ function toWorldEventSummary(raw: WorldEventPayload['eventGraphSummary']): World
 
 function toOperationRules(raw?: PowerSystemDto['rules']): WorldSemanticRule[] {
   return (raw ?? []).reduce<WorldSemanticRule[]>((acc, item) => {
-    const key = readString(item.key);
-    const title = readString(item.title);
-    const value = readString(item.value);
-    if (!key || !title || !value) return acc;
+    const key = requireString(item.key, 'semantic_rule_key');
+    const title = requireString(item.title, 'semantic_rule_title');
+    const value = requireString(item.value, 'semantic_rule_value');
     acc.push({ key, title, value });
     return acc;
   }, []);
@@ -161,8 +193,7 @@ function toOperationRules(raw?: PowerSystemDto['rules']): WorldSemanticRule[] {
 
 function toSemanticLevels(raw?: PowerSystemLevelDto[]): WorldSemanticLevel[] {
   return (raw ?? []).reduce<WorldSemanticLevel[]>((acc, item) => {
-    const name = readString(item.name);
-    if (!name) return acc;
+    const name = requireString(item.name, 'semantic_level_name');
     acc.push({
       name,
       description: readString(item.description),
@@ -175,7 +206,9 @@ function toSemanticLevels(raw?: PowerSystemLevelDto[]): WorldSemanticLevel[] {
 function toTaboos(raw?: PowerSystemTabooDto[]): WorldSemanticTaboo[] {
   return (raw ?? []).reduce<WorldSemanticTaboo[]>((acc, item) => {
     const name = readString(item.name) ?? readString(item.title);
-    if (!name) return acc;
+    if (!name) {
+      throw new Error('WORLD_DETAIL_SEMANTIC_TABOO_NAME_INVALID');
+    }
     acc.push({
       name,
       description: readString(item.description),
@@ -187,8 +220,7 @@ function toTaboos(raw?: PowerSystemTabooDto[]): WorldSemanticTaboo[] {
 
 function toRealms(raw?: SpaceRealmDto[]): WorldSemanticRealm[] {
   return (raw ?? []).reduce<WorldSemanticRealm[]>((acc, item) => {
-    const name = readString(item.name);
-    if (!name) return acc;
+    const name = requireString(item.name, 'semantic_realm_name');
     acc.push({
       name,
       description: readString(item.description),
@@ -200,8 +232,7 @@ function toRealms(raw?: SpaceRealmDto[]): WorldSemanticRealm[] {
 
 function toLanguages(raw?: WorldLanguageDto[]): WorldSemanticLanguage[] {
   return (raw ?? []).reduce<WorldSemanticLanguage[]>((acc, item) => {
-    const name = readString(item.name);
-    if (!name) return acc;
+    const name = requireString(item.name, 'semantic_language_name');
     acc.push({
       name,
       category: readString(item.category),
@@ -216,8 +247,7 @@ function toLanguages(raw?: WorldLanguageDto[]): WorldSemanticLanguage[] {
 
 function toWorldviewEvents(raw: Array<Record<string, unknown>>): WorldSemanticTimelineItem[] {
   return raw.reduce<WorldSemanticTimelineItem[]>((acc, item) => {
-    const id = readString(item.id);
-    if (!id) return acc;
+    const id = requireString(item.id, 'worldview_event_id');
     acc.push({
       id,
       title: readString(item.title) ?? readString(item.name) ?? formatLabel(readString(item.eventType) ?? 'Update'),
@@ -231,8 +261,7 @@ function toWorldviewEvents(raw: Array<Record<string, unknown>>): WorldSemanticTi
 
 function toWorldviewSnapshots(raw: Array<Record<string, unknown>>): WorldSemanticSnapshotItem[] {
   return raw.reduce<WorldSemanticSnapshotItem[]>((acc, item) => {
-    const id = readString(item.id);
-    if (!id) return acc;
+    const id = requireString(item.id, 'worldview_snapshot_id');
     const version = readString(item.versionLabel) ?? readString(item.version) ?? readString(item.snapshotVersion);
     acc.push({
       id,
@@ -245,6 +274,11 @@ function toWorldviewSnapshots(raw: Array<Record<string, unknown>>): WorldSemanti
 }
 
 function toSemanticBundle(raw: WorldSemanticBundleDto): WorldSemanticData {
+  assertArrayIfPresent(raw.worldviewEvents, 'worldview_events');
+  assertArrayIfPresent(raw.worldviewSnapshots, 'worldview_snapshots');
+  if (raw.worldview != null) {
+    assertRecord(raw.worldview, 'worldview');
+  }
   const worldview: WorldviewDetailDto | null = raw.worldview;
   const coreSystem = worldview?.coreSystem;
   const spaceTopology = worldview?.spaceTopology;
@@ -283,8 +317,10 @@ function toSemanticBundle(raw: WorldSemanticBundleDto): WorldSemanticData {
       }
     : null;
   const languageList = toLanguages(languages?.languages);
-  const worldviewEvents = toWorldviewEvents(raw.worldviewEvents ?? []);
-  const worldviewSnapshots = toWorldviewSnapshots(raw.worldviewSnapshots ?? []);
+  const worldviewEvents = toWorldviewEvents(requireRecordArray(raw.worldviewEvents ?? [], 'worldview_events'));
+  const worldviewSnapshots = toWorldviewSnapshots(
+    requireRecordArray(raw.worldviewSnapshots ?? [], 'worldview_snapshots'),
+  );
 
   const hasContent = Boolean(
     readString(coreSystem?.name) ||
@@ -320,10 +356,11 @@ function toSemanticBundle(raw: WorldSemanticBundleDto): WorldSemanticData {
 }
 
 function toWorldAuditItem(raw: WorldLevelAuditEventDto): WorldAuditItem {
+  const id = requireString(raw.id, 'audit_id');
   const occurredAt = raw.occurredAt as unknown;
   const eventType = readString(raw.eventType);
   return {
-    id: String(raw.id || ''),
+    id,
     label: formatLabel(eventType || 'Audit'),
     eventType,
     occurredAt: typeof occurredAt === 'string'
@@ -338,9 +375,8 @@ function toWorldAuditItem(raw: WorldLevelAuditEventDto): WorldAuditItem {
   };
 }
 
-function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem | null {
-  const id = readString(raw.id);
-  if (!id) return null;
+function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem {
+  const id = requireString(raw.id, 'lorebook_id');
   return {
     id,
     key: readString(raw.key) ?? id,
@@ -351,9 +387,8 @@ function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem | n
   };
 }
 
-function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem | null {
-  const id = readString(raw.id);
-  if (!id) return null;
+function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
+  const id = requireString(raw.id, 'scene_id');
   return {
     id,
     name: readString(raw.name) ?? id,
@@ -364,11 +399,11 @@ function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem | null {
   };
 }
 
-function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBindingItem | null {
-  const id = readString(raw.id);
-  const assetId = readString(raw.asset?.id);
-  const assetUrl = readString(raw.asset?.url);
-  if (!id || !assetId || !assetUrl) return null;
+function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBindingItem {
+  const id = requireString(raw.id, 'media_binding_id');
+  const assetRecord = assertRecord(raw.asset, 'media_binding_asset');
+  const assetId = requireString(assetRecord.id, 'media_binding_asset_id');
+  const assetUrl = requireString(assetRecord.url, 'media_binding_asset_url');
   return {
     id,
     targetType: readString(raw.targetType) ?? 'WORLD',
@@ -379,18 +414,16 @@ function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBin
     asset: {
       id: assetId,
       url: assetUrl,
-      mediaType: readString(raw.asset?.mediaType) ?? 'IMAGE',
-      label: readString(raw.asset?.label),
+      mediaType: readString(assetRecord.mediaType) ?? 'IMAGE',
+      label: readString(assetRecord.label),
     },
   };
 }
 
-function toWorldMutationItem(raw: PublicWorldMutationDto): WorldMutationItem | null {
-  const id = readString(raw.id);
-  const title = readString(raw.title);
-  const summary = readString(raw.summary);
-  if (!id) return null;
-  if (!title || !summary) return null;
+function toWorldMutationItem(raw: PublicWorldMutationDto): WorldMutationItem {
+  const id = requireString(raw.id, 'mutation_id');
+  const title = requireString(raw.title, 'mutation_title');
+  const summary = requireString(raw.summary, 'mutation_summary');
   return {
     id,
     mutationType: readString(raw.mutationType) ?? 'SETTING_CHANGE',
@@ -467,10 +500,10 @@ export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPubl
   ]);
 
   return {
-    lorebooks: lorebooksPayload.items.map(toWorldLorebookItem).filter((value): value is WorldLorebookItem => Boolean(value)),
-    scenes: scenesPayload.items.map(toWorldSceneItem).filter((value): value is WorldSceneItem => Boolean(value)),
-    mediaBindings: mediaBindingsPayload.items.map(toWorldMediaBindingItem).filter((value): value is WorldMediaBindingItem => Boolean(value)),
-    mutations: mutationsPayload.items.map(toWorldMutationItem).filter((value): value is WorldMutationItem => Boolean(value)),
+    lorebooks: lorebooksPayload.items.map(toWorldLorebookItem),
+    scenes: scenesPayload.items.map(toWorldSceneItem),
+    mediaBindings: mediaBindingsPayload.items.map(toWorldMediaBindingItem),
+    mutations: mutationsPayload.items.map(toWorldMutationItem),
   };
 }
 

@@ -5,7 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { desktopBridge } from '@renderer/bridge';
 import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
-import { PageShell, SectionTitle } from './settings-layout-components';
+import { PageShell, SectionTitle } from './settings-layout-components.js';
 
 type WalletTimelineItem = {
   id: string;

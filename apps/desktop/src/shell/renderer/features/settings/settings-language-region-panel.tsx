@@ -11,7 +11,7 @@ import {
 import {
   PageShell,
   SectionTitle,
-} from './settings-layout-components';
+} from './settings-layout-components.js';
 
 type SettingsDropdownOption = {
   value: string;

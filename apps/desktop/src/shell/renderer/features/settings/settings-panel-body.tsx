@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
-import { SidebarNav } from './settings-layout-components';
-import { renderSettingsPage } from './settings-pages';
+import { SidebarNav } from './settings-layout-components.js';
+import { renderSettingsPage } from './settings-pages.js';
 import {
   loadStoredSettingsSelected,
   persistStoredSettingsSelected,
-} from './settings-storage';
+} from './settings-storage.js';
 
 export function SettingsPanelBody() {
   const MIN_SETTINGS_SIDEBAR_WIDTH = 220;

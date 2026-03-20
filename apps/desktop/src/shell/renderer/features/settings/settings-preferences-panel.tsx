@@ -7,7 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   PageShell,
   SectionTitle,
-} from './settings-layout-components';
+} from './settings-layout-components.js';
 import {
   AlertCircleIcon,
   AtSignIcon,
@@ -19,12 +19,12 @@ import {
   MonitorIcon,
   SettingRow,
   UserPlusIcon,
-} from './settings-preferences-panel-parts';
+} from './settings-preferences-panel-parts.js';
 
 export {
   canUseDesktopUpdater,
   collectDesktopUpdatePanelAlerts,
-} from './settings-preferences-panel-parts';
+} from './settings-preferences-panel-parts.js';
 
 type UpdateUserNotificationSettingsDto = RealmModel<'UpdateUserNotificationSettingsDto'>;
 type UserNotificationSettingsDto = RealmModel<'UserNotificationSettingsDto'>;

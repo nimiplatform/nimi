@@ -11,12 +11,12 @@ import {
 import {
   PageShell,
   SectionTitle,
-} from './settings-layout-components';
+} from './settings-layout-components.js';
 import {
   loadStoredPerformancePreferences,
   persistStoredPerformancePreferences,
   type PerformancePreferences,
-} from './settings-storage';
+} from './settings-storage.js';
 import {
   AnimationIcon,
   AwardIcon,
@@ -32,7 +32,7 @@ import {
   ServerIcon,
   SettingRow,
   TargetIcon,
-} from './settings-preferences-panel-parts';
+} from './settings-preferences-panel-parts.js';
 
 export function PerformancePage() {
   const { t } = useTranslation();

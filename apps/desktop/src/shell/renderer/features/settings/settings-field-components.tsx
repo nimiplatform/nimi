@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { C } from './settings-assets';
+import { C } from './settings-assets.js';
 
 export function ToggleRow({
   label,

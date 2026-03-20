@@ -16,7 +16,7 @@ import {
 } from '@renderer/features/contacts/contact-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
-import { toProfileData, type ProfileSource } from './profile-model';
+import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/contacts/contacts-model';
 
 function toErrorMessage(error: unknown, fallback: string): string {

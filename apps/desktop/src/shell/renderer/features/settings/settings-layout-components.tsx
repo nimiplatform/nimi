@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
-import { C, ICON_CHEVRON_RIGHT, getSettingsMenuSections } from './settings-assets';
+import { C, ICON_CHEVRON_RIGHT, getSettingsMenuSections } from './settings-assets.js';
 
 const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
   Account: 'Settings.sectionAccount',

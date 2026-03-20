@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { parseOptionalJsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import { PageShell, SaveFooter, SectionTitle } from './settings-layout-components';
+import { PageShell, SaveFooter, SectionTitle } from './settings-layout-components.js';
 
 export function SecurityPage() {
   const { t } = useTranslation();

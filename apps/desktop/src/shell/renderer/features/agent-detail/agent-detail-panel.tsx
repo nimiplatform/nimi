@@ -9,8 +9,8 @@ import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-frien
 import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
-import { toAgentDetailData } from './agent-detail-model';
-import { AgentDetailView } from './agent-detail-view';
+import { toAgentDetailData } from './agent-detail-model.js';
+import { AgentDetailView } from './agent-detail-view.js';
 
 export function AgentDetailPanel() {
   const authStatus = useAppStore((state) => state.auth.status);

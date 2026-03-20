@@ -5,7 +5,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { refreshRuntimeModDeveloperHostState } from '@renderer/mod-ui/lifecycle/runtime-mod-shell-state';
 import { reconcileRuntimeLocalMods } from '@renderer/mod-ui/lifecycle/runtime-mod-developer-host';
-import { Button, Card, PageShell, SectionTitle, StatusBadge } from './settings-layout-components';
+import { Button, Card, PageShell, SectionTitle, StatusBadge } from './settings-layout-components.js';
 
 function sourceStatusTone(status: 'resolved' | 'conflict' | 'invalid'): 'success' | 'warning' | 'error' {
   switch (status) {

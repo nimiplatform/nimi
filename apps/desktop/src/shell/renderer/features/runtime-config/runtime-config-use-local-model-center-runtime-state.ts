@@ -224,8 +224,21 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   searchQueryRef.current = deferredSearchQuery;
   const catalogCapabilityRef = useRef(catalogCapability);
   catalogCapabilityRef.current = catalogCapability;
+  const catalogRequestSeqRef = useRef(0);
+  const verifiedModelsRequestSeqRef = useRef(0);
+  const installedArtifactsRequestSeqRef = useRef(0);
+  const verifiedArtifactsRequestSeqRef = useRef(0);
+  const unregisteredAssetsRequestSeqRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const refreshCatalogItems = useCallback(async () => {
+    const requestId = ++catalogRequestSeqRef.current;
     const query = searchQueryRef.current.trim();
     const capability = catalogCapabilityRef.current;
     if (!query) {
@@ -239,55 +252,96 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         capability: capability === 'all' ? undefined : capability,
         limit: 30,
       });
+      if (!mountedRef.current || requestId !== catalogRequestSeqRef.current) {
+        return;
+      }
       setCatalogItems(rows.filter((item) => !isInstalled(item.modelId)));
     } catch {
+      if (!mountedRef.current || requestId !== catalogRequestSeqRef.current) {
+        return;
+      }
       setCatalogItems([]);
     } finally {
-      setLoadingCatalog(false);
+      if (mountedRef.current && requestId === catalogRequestSeqRef.current) {
+        setLoadingCatalog(false);
+      }
     }
   }, [isInstalled]);
 
   const refreshVerifiedModels = useCallback(async () => {
+    const requestId = ++verifiedModelsRequestSeqRef.current;
     setLoadingVerifiedModels(true);
     try {
       const rows = await localRuntime.listVerified();
+      if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
+        return;
+      }
       setVerifiedModels(sortVerifiedModelsForDisplay(rows.filter((item) => !isInstalled(item.modelId))).slice(0, 5));
     } catch {
+      if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
+        return;
+      }
       setVerifiedModels([]);
     } finally {
-      setLoadingVerifiedModels(false);
+      if (mountedRef.current && requestId === verifiedModelsRequestSeqRef.current) {
+        setLoadingVerifiedModels(false);
+      }
     }
   }, [isInstalled]);
 
   const refreshInstalledArtifacts = useCallback(async () => {
+    const requestId = ++installedArtifactsRequestSeqRef.current;
     setLoadingInstalledArtifacts(true);
     try {
-      setInstalledArtifacts(await localRuntime.listArtifacts(
+      const rows = await localRuntime.listArtifacts(
         artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
-      ));
+      );
+      if (!mountedRef.current || requestId !== installedArtifactsRequestSeqRef.current) {
+        return;
+      }
+      setInstalledArtifacts(rows);
     } catch {
+      if (!mountedRef.current || requestId !== installedArtifactsRequestSeqRef.current) {
+        return;
+      }
       setInstalledArtifacts([]);
     } finally {
-      setLoadingInstalledArtifacts(false);
+      if (mountedRef.current && requestId === installedArtifactsRequestSeqRef.current) {
+        setLoadingInstalledArtifacts(false);
+      }
     }
   }, [artifactKindFilter]);
 
   const refreshVerifiedArtifacts = useCallback(async () => {
+    const requestId = ++verifiedArtifactsRequestSeqRef.current;
     setLoadingVerifiedArtifacts(true);
     try {
-      setVerifiedArtifacts(await localRuntime.listVerifiedArtifacts(
+      const rows = await localRuntime.listVerifiedArtifacts(
         artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
-      ));
+      );
+      if (!mountedRef.current || requestId !== verifiedArtifactsRequestSeqRef.current) {
+        return;
+      }
+      setVerifiedArtifacts(rows);
     } catch {
+      if (!mountedRef.current || requestId !== verifiedArtifactsRequestSeqRef.current) {
+        return;
+      }
       setVerifiedArtifacts([]);
     } finally {
-      setLoadingVerifiedArtifacts(false);
+      if (mountedRef.current && requestId === verifiedArtifactsRequestSeqRef.current) {
+        setLoadingVerifiedArtifacts(false);
+      }
     }
   }, [artifactKindFilter]);
 
   const refreshUnregisteredAssets = useCallback(async () => {
+    const requestId = ++unregisteredAssetsRequestSeqRef.current;
     try {
       const rows = await localRuntime.scanUnregisteredAssets();
+      if (!mountedRef.current || requestId !== unregisteredAssetsRequestSeqRef.current) {
+        return;
+      }
       setUnregisteredAssets(rows);
       setUnregisteredAssetDrafts((prev) => {
         const next: Record<string, LocalRuntimeAssetDeclaration> = {};
@@ -304,6 +358,9 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         return next;
       });
     } catch {
+      if (!mountedRef.current || requestId !== unregisteredAssetsRequestSeqRef.current) {
+        return;
+      }
       setUnregisteredAssets([]);
       setUnregisteredAssetDrafts({});
     }

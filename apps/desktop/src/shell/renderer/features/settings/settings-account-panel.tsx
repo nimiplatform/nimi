@@ -14,11 +14,11 @@ import {
   ICON_CAMERA,
   ICON_MAIL,
   ICON_USER,
-} from './settings-assets';
+} from './settings-assets.js';
 import {
   PageShell,
   SectionTitle,
-} from './settings-layout-components';
+} from './settings-layout-components.js';
 
 const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
