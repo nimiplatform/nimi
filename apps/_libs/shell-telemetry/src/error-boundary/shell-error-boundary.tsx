@@ -1,6 +1,14 @@
 import React, { type PropsWithChildren } from 'react';
 import { logRendererEvent } from '../telemetry/emit.js';
 
+const MAX_ERROR_MESSAGE_CHARS = 512;
+const MAX_COMPONENT_STACK_CHARS = 2048;
+
+function truncateForTelemetry(value: string | null | undefined, maxChars: number): string {
+  const normalized = String(value || '');
+  return normalized.length > maxChars ? `${normalized.slice(0, maxChars)}...[truncated]` : normalized;
+}
+
 type ShellErrorBoundaryProps = PropsWithChildren<{
   appName: string;
   fallbackTitle?: string;
@@ -36,8 +44,8 @@ export class ShellErrorBoundary extends React.Component<ShellErrorBoundaryProps,
       message: 'action:error-boundary:caught',
       details: {
         appName: this.props.appName,
-        error: error.message,
-        componentStack: errorInfo.componentStack,
+        error: truncateForTelemetry(error.message, MAX_ERROR_MESSAGE_CHARS),
+        componentStack: truncateForTelemetry(errorInfo.componentStack, MAX_COMPONENT_STACK_CHARS),
       },
     });
 
@@ -48,8 +56,8 @@ export class ShellErrorBoundary extends React.Component<ShellErrorBoundaryProps,
         message: 'action:error-boundary:dev-stack',
         details: {
           appName: this.props.appName,
-          error: error.message,
-          componentStack: errorInfo.componentStack,
+          error: truncateForTelemetry(error.message, MAX_ERROR_MESSAGE_CHARS),
+          componentStack: truncateForTelemetry(errorInfo.componentStack, MAX_COMPONENT_STACK_CHARS),
         },
       });
     }

@@ -1,7 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use sha2::Digest;
 
 use crate::runtime_mod::store::{
     get_external_agent_token_record, open_db, revoke_external_agent_token_record,
@@ -9,7 +8,7 @@ use crate::runtime_mod::store::{
 };
 
 use super::{
-    ExternalAgentActionScope, ExternalAgentClaims, ExternalAgentGatewayState,
+    secure_random_hex, ExternalAgentActionScope, ExternalAgentClaims, ExternalAgentGatewayState,
     ExternalAgentIssueTokenPayload, ExternalAgentIssueTokenResult, ExternalAgentRevokeTokenPayload,
 };
 
@@ -20,24 +19,12 @@ fn now_unix_secs() -> usize {
         .as_secs() as usize
 }
 
-fn build_token_id(principal_id: &str, subject_account_id: &str, mode: &str) -> String {
-    let nonce = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let raw = format!(
-        "{}:{}:{}:{}",
-        principal_id.trim(),
-        subject_account_id.trim(),
-        mode.trim(),
-        nonce
-    );
-    let digest = sha2::Sha256::digest(raw.as_bytes());
-    let encoded = digest
-        .iter()
-        .map(|byte| format!("{:02x}", byte))
-        .collect::<String>();
-    format!("ext-{}", &encoded[..24])
+fn build_token_id(
+    _principal_id: &str,
+    _subject_account_id: &str,
+    _mode: &str,
+) -> Result<String, String> {
+    Ok(format!("ext-{}", secure_random_hex(16)?))
 }
 
 fn is_supported_scope_op(value: &str) -> bool {
@@ -130,7 +117,7 @@ pub async fn issue_token(
     let iat = now_unix_secs();
     let ttl = payload.ttl_seconds.unwrap_or(3600).clamp(60, 86_400) as usize;
     let exp = iat + ttl;
-    let token_id = build_token_id(principal_id, subject_account_id, mode);
+    let token_id = build_token_id(principal_id, subject_account_id, mode)?;
     let claims = ExternalAgentClaims {
         sub: subject_account_id.to_string(),
         principal_id: principal_id.to_string(),

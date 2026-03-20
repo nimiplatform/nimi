@@ -128,27 +128,14 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     [locationSignature],
   );
   const persistedAuthSession = loadPersistedAuthSession();
-  const persistedToken = String(persistedAuthSession?.accessToken || '').trim();
   const supportsPasswordLogin =
     adapter.supportsPasswordLogin !== false && typeof adapter.passwordLogin === 'function';
 
   const desktopCallbackToken = useMemo(() => {
-    const tokenFromStore = String(authToken || '').trim();
-    if (persistedToken) {
-      return persistedToken;
-    }
-    return tokenFromStore;
-  }, [authToken, persistedToken]);
+    return String(authToken || '').trim();
+  }, [authToken]);
 
   const desktopCallbackUser = useMemo(() => {
-    const tokenFromStore = String(authToken || '').trim();
-    if (persistedToken && tokenFromStore && persistedToken !== tokenFromStore) {
-      const persistedUser = toAuthUserRecord(persistedAuthSession?.user);
-      if (persistedUser) {
-        return persistedUser;
-      }
-    }
-
     const normalizedAuthUser = toAuthUserRecord(authUser);
     if (normalizedAuthUser) {
       return normalizedAuthUser;
@@ -160,7 +147,7 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     }
 
     return null;
-  }, [authToken, authUser, persistedAuthSession, persistedToken]);
+  }, [authUser, persistedAuthSession]);
 
   const desktopCallbackUserLabel = useMemo(
     () => getUserDisplayLabel(desktopCallbackUser, 'Current Account'),
@@ -242,25 +229,15 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
   useEffect(() => {
     if (!desktopCallbackRequest || typeof window === 'undefined') return;
 
-    const syncFromPersistedSession = () => {
-      const latest = loadPersistedAuthSession();
-      const latestToken = String(latest?.accessToken || '').trim();
-      if (!latestToken) return;
-      const latestRefreshToken = String(latest?.refreshToken || '').trim();
-      const latestUser = toAuthUserRecord(latest?.user);
-      void adapter.applyToken(latestToken, latestRefreshToken || undefined);
-      externalSetAuthSession?.(latestUser, latestToken, latestRefreshToken || undefined);
-    };
-
     const handleStorage = (event: StorageEvent) => {
       if (event.storageArea !== window.localStorage) return;
       if (event.key && event.key !== WEB_AUTH_SESSION_KEY) return;
-      syncFromPersistedSession();
+      setLocationSignature(readLocationSignature());
     };
 
     window.addEventListener('storage', handleStorage);
     return () => { window.removeEventListener('storage', handleStorage); };
-  }, [desktopCallbackRequest, externalSetAuthSession, adapter]);
+  }, [desktopCallbackRequest]);
 
   // Cleanup pending tokens on unmount
   useEffect(() => {

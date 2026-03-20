@@ -49,7 +49,11 @@ export function buildDesktopCallbackReturnUrl(input: {
   request: DesktopCallbackRequest;
   accessToken: string;
 }): string {
-  const callbackUrl = new URL(input.request.callbackUrl);
+  const normalizedCallbackUrl = normalizeLoopbackCallbackUrl(input.request.callbackUrl);
+  if (!normalizedCallbackUrl) {
+    throw new Error('Desktop callback URL must resolve to an allowed loopback address');
+  }
+  const callbackUrl = new URL(normalizedCallbackUrl);
   callbackUrl.searchParams.set('code', input.accessToken);
   if (input.request.state) {
     callbackUrl.searchParams.set('state', input.request.state);

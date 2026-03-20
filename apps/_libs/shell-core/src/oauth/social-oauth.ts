@@ -86,7 +86,7 @@ function normalizeProviderUrl(value: string, fallback: string): string {
   }
   try {
     const parsed = new URL(normalized);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    if (parsed.protocol !== 'https:') {
       return fallback;
     }
     return parsed.toString();

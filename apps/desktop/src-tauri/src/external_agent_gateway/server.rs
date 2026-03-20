@@ -16,7 +16,7 @@ use crate::runtime_mod::store::{open_db, query_runtime_audit, RuntimeAuditFilter
 
 use super::auth::{bearer_token, verify_external_agent_token};
 use super::{
-    ExternalAgentExecutionCompletionPayload, ExternalAgentExecutionOwner,
+    secure_random_hex, ExternalAgentExecutionCompletionPayload, ExternalAgentExecutionOwner,
     ExternalAgentExecutionPayload, ExternalAgentGatewayState, EXTERNAL_AGENT_ACTION_REQUEST_EVENT,
 };
 
@@ -155,6 +155,7 @@ async fn dispatch_action(
         action_id,
         chrono::Utc::now().timestamp_millis(),
         rand_suffix()
+            .map_err(|reason| error_response(StatusCode::INTERNAL_SERVER_ERROR, reason.as_str()))?
     );
     let trace_id = normalize_trace_id(body.trace_id, execution_id.as_str());
     let principal_id = claims.principal_id.clone();
@@ -304,16 +305,8 @@ async fn dispatch_action(
     Ok(completed)
 }
 
-fn rand_suffix() -> String {
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    format!("{:x}", nanos)
-        .chars()
-        .rev()
-        .take(6)
-        .collect::<String>()
+fn rand_suffix() -> Result<String, String> {
+    secure_random_hex(8)
 }
 
 async fn dry_run_action(

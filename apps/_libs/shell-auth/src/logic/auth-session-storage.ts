@@ -3,8 +3,6 @@ import { isWebShellMode } from '@nimiplatform/shell-core/shell-mode';
 export const WEB_AUTH_SESSION_KEY = 'nimi.web.auth.session.v1';
 
 export type PersistedWebAuthSession = {
-  accessToken: string;
-  refreshToken?: string;
   user?: Record<string, unknown> | null;
   updatedAt: string;
 };
@@ -36,21 +34,9 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
     const parsed = JSON.parse(raw) as PersistedWebAuthSession;
     if (!parsed || typeof parsed !== 'object') return null;
 
-    const accessToken = typeof parsed.accessToken === 'string'
-      ? parsed.accessToken.trim()
-      : '';
-    if (!accessToken) {
-      return null;
-    }
-
-    const refreshToken = typeof parsed.refreshToken === 'string'
-      ? parsed.refreshToken.trim()
-      : '';
     const user = normalizeUser(parsed.user);
 
     return {
-      accessToken,
-      ...(refreshToken ? { refreshToken } : {}),
       ...(user ? { user } : {}),
       updatedAt: typeof parsed.updatedAt === 'string'
         ? parsed.updatedAt
@@ -62,16 +48,8 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
 }
 
 function writeSessionKeys(session: PersistedWebAuthSession): void {
-  const normalizedToken = String(session.accessToken || '').trim();
-  if (!normalizedToken) {
-    return;
-  }
-
-  const normalizedRefreshToken = String(session.refreshToken || '').trim();
   const normalizedUserValue = normalizeUser(session.user);
   const payload: PersistedWebAuthSession = {
-    accessToken: normalizedToken,
-    ...(normalizedRefreshToken ? { refreshToken: normalizedRefreshToken } : {}),
     ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: session.updatedAt || new Date().toISOString(),
   };
@@ -80,8 +58,7 @@ function writeSessionKeys(session: PersistedWebAuthSession): void {
 }
 
 export function loadPersistedAccessToken(): string {
-  const session = loadPersistedAuthSession();
-  return session?.accessToken || '';
+  return '';
 }
 
 export function persistAuthSession(input: {
@@ -100,17 +77,11 @@ export function persistAuthSession(input: {
     return;
   }
 
-  const isSameToken = previous?.accessToken === normalizedToken;
-  const normalizedRefreshToken = input.refreshToken === undefined
-    ? (isSameToken ? previous?.refreshToken : undefined)
-    : String(input.refreshToken || '').trim();
   const normalizedUserValue = input.user === undefined
-    ? (isSameToken ? (previous?.user ?? null) : null)
+    ? (previous?.user ?? null)
     : input.user;
 
   const payload: PersistedWebAuthSession = {
-    accessToken: normalizedToken,
-    ...(normalizedRefreshToken ? { refreshToken: normalizedRefreshToken } : {}),
     ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: new Date().toISOString(),
   };

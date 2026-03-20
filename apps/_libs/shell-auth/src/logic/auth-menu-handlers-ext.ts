@@ -2,7 +2,7 @@ import type { FormEvent } from 'react';
 import type { WalletType } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { shouldPromptPasswordSetupAfterEmailOtp } from './auth-email-flow.js';
-import { loadPersistedAuthSession, persistAuthSession } from './auth-session-storage.js';
+import { persistAuthSession } from './auth-session-storage.js';
 import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
 import { parseChainId, resolveWalletProvider } from './wallet-helpers.js';
 import { toErrorMessage } from './error-helpers.js';
@@ -22,6 +22,16 @@ function isWalletCancellationError(error: unknown): boolean {
     || normalized.includes('rejected')
     || normalized.includes('denied')
     || normalized.includes('closed');
+}
+
+function redactErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim();
+  }
+  return 'wallet login failed';
 }
 
 // ---------------------------------------------------------------------------
@@ -181,10 +191,8 @@ export async function handleConfirmDesktopAuthorization(
     return;
   }
 
-  const latestPersistedAuthSession = loadPersistedAuthSession();
   const accessToken = String(
-    latestPersistedAuthSession?.accessToken
-    || desktopCtx.authToken
+    desktopCtx.authToken
     || desktopCtx.desktopCallbackToken
     || '',
   ).trim();
@@ -206,11 +214,10 @@ export async function handleConfirmDesktopAuthorization(
     setters.setAuthSession(
       normalizedUser,
       accessToken,
-      latestPersistedAuthSession?.refreshToken || undefined,
+      undefined,
     );
     persistAuthSession({
       accessToken,
-      refreshToken: latestPersistedAuthSession?.refreshToken || '',
       user: normalizedUser ?? desktopCtx.desktopCallbackUser,
     });
 
@@ -306,7 +313,7 @@ export async function handleWalletLogin(
     await handleLoginResult(result, '钱包登录成功。', setters, desktopCtx, adapter);
   } catch (error) {
     if (!isWalletCancellationError(error)) {
-      console.warn('[shell-auth] wallet login failed', error);
+      console.warn('[shell-auth] wallet login failed', redactErrorMessage(error));
     }
   } finally {
     window.clearTimeout(timeoutId);

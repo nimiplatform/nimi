@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use sha2::Digest;
 use tauri::AppHandle;
 use tokio::sync::{oneshot, Mutex};
 
@@ -173,23 +172,14 @@ fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
 }
 
-fn generate_local_gateway_secret(seed_prefix: &str) -> String {
-    let now_nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    let raw = format!(
-        "{}:{}:{}:{}",
-        seed_prefix,
-        std::process::id(),
-        now_nanos,
-        std::thread::current().name().unwrap_or("unnamed")
-    );
-    let digest = sha2::Sha256::digest(raw.as_bytes());
-    digest
+pub(crate) fn secure_random_hex(bytes_len: usize) -> Result<String, String> {
+    let mut bytes = vec![0u8; bytes_len];
+    getrandom::getrandom(&mut bytes)
+        .map_err(|error| format!("EXTERNAL_AGENT_RANDOM_SOURCE_UNAVAILABLE: {error}"))?;
+    Ok(bytes
         .iter()
         .map(|byte| format!("{:02x}", byte))
-        .collect::<String>()
+        .collect::<String>())
 }
 
 fn read_or_create_gateway_secret(app: &AppHandle) -> Result<String, String> {
@@ -200,7 +190,7 @@ fn read_or_create_gateway_secret(app: &AppHandle) -> Result<String, String> {
             return Ok(normalized);
         }
     }
-    let generated = generate_local_gateway_secret("external-agent");
+    let generated = secure_random_hex(32)?;
     set_runtime_kv(
         &conn,
         EXTERNAL_AGENT_SECRET_KV_KEY,
@@ -220,13 +210,8 @@ impl ExternalAgentGatewayConfig {
             .ok()
             .filter(|value| !value.trim().is_empty())
             .unwrap_or_else(|| "local".to_string());
-        let jws_secret = std::env::var("NIMI_EXTERNAL_AGENT_JWS_SECRET")
-            .ok()
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| {
-                read_or_create_gateway_secret(app)
-                    .unwrap_or_else(|_| generate_local_gateway_secret("external-agent-fallback"))
-            });
+        let jws_secret = read_or_create_gateway_secret(app)
+            .unwrap_or_else(|error| panic!("EXTERNAL_AGENT_GATEWAY_SECRET_INIT_FAILED: {error}"));
         Self {
             bind_address,
             issuer,

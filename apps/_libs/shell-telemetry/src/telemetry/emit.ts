@@ -137,6 +137,21 @@ export function logRendererEvent(payload: {
     source: payload.source,
     costMs: payload.costMs,
     details: payload.details,
+  }).catch((error) => {
+    if (RENDERER_DEBUG_ENABLED || isRendererDebugEnabledForCurrentEnv()) {
+      persistRendererLogForDebug({
+        level: 'warn',
+        area: `${normalizedArea}.emit-rejected`,
+        message: 'action:renderer-log:emit-rejected',
+        traceId: payload.traceId,
+        flowId: payload.flowId,
+        source: payload.source,
+        costMs: payload.costMs,
+        details: {
+          error: error instanceof Error ? error.message : String(error || ''),
+        },
+      });
+    }
   });
 }
 

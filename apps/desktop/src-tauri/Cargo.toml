@@ -23,6 +23,7 @@ rusqlite = { version = "0.38", features = ["bundled"] }
 serde_yaml = "0.9"
 webbrowser = "1"
 sha2 = "0.10"
+getrandom = "0.2"
 chrono = { version = "0.4", default-features = true, features = ["clock"] }
 url = "2"
 axum = { version = "0.8", features = ["json"] }

@@ -139,7 +139,7 @@ export function validateDesktopCallbackState(input: {
 }): boolean {
   const expectedState = String(input.expectedState || '').trim();
   const actualState = String(input.actualState || '').trim();
-  if (!expectedState || !actualState || expectedState !== actualState) {
+  if (!expectedState || !actualState || !constantTimeEquals(expectedState, actualState)) {
     return false;
   }
   const parsed = parseDesktopCallbackState(actualState);
@@ -153,6 +153,17 @@ export function validateDesktopCallbackState(input: {
   const maxAgeMs = Number.isFinite(input.maxAgeMs) ? Number(input.maxAgeMs) : DESKTOP_CALLBACK_TIMEOUT_MS;
   const ageMs = nowMs - parsed.issuedAtMs;
   return ageMs >= 0 && ageMs <= maxAgeMs;
+}
+
+function constantTimeEquals(left: string, right: string): boolean {
+  const leftBytes = new TextEncoder().encode(left);
+  const rightBytes = new TextEncoder().encode(right);
+  let diff = leftBytes.length ^ rightBytes.length;
+  const maxLength = Math.max(leftBytes.length, rightBytes.length);
+  for (let index = 0; index < maxLength; index += 1) {
+    diff |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
+  }
+  return diff === 0;
 }
 
 export function createDesktopCallbackRedirectUri(): string {
