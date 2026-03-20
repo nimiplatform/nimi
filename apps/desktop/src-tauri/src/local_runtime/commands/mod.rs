@@ -46,14 +46,14 @@ use super::import_validator::{
     validate_import_artifact_manifest_path, validate_import_manifest_path,
     validate_loopback_endpoint,
 };
-use super::model_registry::{list_models, remove_model, upsert_model};
 use super::model_index::load_recommendation_feed;
+use super::model_registry::{list_models, remove_model, upsert_model};
 use super::node_catalog::list_nodes_from_services;
-use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 use super::reason_codes::{
     extract_reason_code as extract_local_ai_reason_code, normalize_local_ai_reason_code,
     LOCAL_AI_PROVIDER_INTERNAL_ERROR,
 };
+use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 use super::service_artifacts::find_service_artifact;
 use super::service_lifecycle::{
     bootstrap_service_artifact, build_service_descriptor, is_managed_service,
@@ -64,25 +64,24 @@ use super::service_lifecycle::{
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::supervisor::{health, start_model, stop_model};
 use super::types::{
-    default_artifact_roles_for_capabilities, default_endpoint_for_engine,
+    artifact_dir, default_artifact_roles_for_capabilities, default_endpoint_for_engine,
     default_fallback_engines_for_engine, default_logical_model_id,
     default_preferred_engine_for_capabilities, generate_ulid_string, normalize_local_engine,
-    now_iso_timestamp, artifact_dir, resolved_model_dir, resolved_model_manifest_path,
-    slugify_local_model_id, CatalogVariantDescriptor, LocalAiArtifactKind, LocalAiArtifactRecord,
-    LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiAssetClass, LocalAiAssetDeclaration,
-    LocalAiAuditEvent, LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult,
-    LocalAiDependencyKind, LocalAiDependencyResolutionPlan, LocalAiDeviceProfile,
-    LocalAiDownloadControlPayload, LocalAiDownloadProgressEvent,
-    LocalAiDownloadSessionSummary, LocalAiDownloadState, LocalAiInstallPlanDescriptor,
-    LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord, LocalAiModelSource,
-    LocalAiModelType, LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor,
+    now_iso_timestamp, resolved_model_dir, resolved_model_manifest_path, slugify_local_model_id,
+    CatalogVariantDescriptor, LocalAiArtifactKind, LocalAiArtifactRecord, LocalAiArtifactSource,
+    LocalAiArtifactStatus, LocalAiAssetClass, LocalAiAssetDeclaration, LocalAiAuditEvent,
+    LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult, LocalAiDependencyKind,
+    LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
+    LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
+    LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
+    LocalAiModelSource, LocalAiModelType, LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor,
     LocalAiOrphanScanPreference, LocalAiProfileApplyResult, LocalAiProfileArtifactPlanEntry,
     LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
     LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiSuggestionConfidence,
-    LocalAiSuggestionSource, LocalAiUnregisteredAssetDescriptor,
-    LocalAiVerifiedArtifactDescriptor, LocalAiVerifiedModelDescriptor, OrphanArtifactFile,
-    OrphanModelFile, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiSuggestionSource, LocalAiUnregisteredAssetDescriptor, LocalAiVerifiedArtifactDescriptor,
+    LocalAiVerifiedModelDescriptor, OrphanArtifactFile, OrphanModelFile,
+    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_artifacts::{find_verified_artifact, verified_artifact_list};
 use super::verified_models::{find_verified_model, verified_model_list};

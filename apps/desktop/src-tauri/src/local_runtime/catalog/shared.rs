@@ -74,9 +74,12 @@ pub(super) fn infer_engine(repo: &str, tags: &[String], capabilities: &[String])
         || normalized_repo.contains("qwen3-tts")
         || joined_tags.contains("speech")
         || joined_tags.contains("audio")
-        || capabilities
-            .iter()
-            .any(|item| item == "stt" || item == "tts" || item == "audio.transcribe" || item == "audio.synthesize")
+        || capabilities.iter().any(|item| {
+            item == "stt"
+                || item == "tts"
+                || item == "audio.transcribe"
+                || item == "audio.synthesize"
+        })
     {
         return "speech".to_string();
     }

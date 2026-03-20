@@ -157,7 +157,10 @@ fn collect_memory_bytes() -> Option<(u64, u64)> {
     if values.len() < 2 {
         return None;
     }
-    Some((values[0].saturating_mul(1024), values[1].saturating_mul(1024)))
+    Some((
+        values[0].saturating_mul(1024),
+        values[1].saturating_mul(1024),
+    ))
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
@@ -174,7 +177,10 @@ fn collect_gpu_profile() -> LocalAiGpuProfile {
         ],
     ) {
         if let Some(first_row) = raw.lines().find(|line| !line.trim().is_empty()) {
-            let columns = first_row.split(',').map(|item| item.trim()).collect::<Vec<_>>();
+            let columns = first_row
+                .split(',')
+                .map(|item| item.trim())
+                .collect::<Vec<_>>();
             let total_vram_bytes = columns
                 .get(1)
                 .and_then(|value| value.parse::<u64>().ok())

@@ -107,10 +107,12 @@ mod tests {
 
     #[test]
     fn qwen_service_artifact_uses_speech_native_contract() {
-        let artifact =
-            find_service_artifact("qwen-tts-python").expect("qwen-tts-python artifact");
+        let artifact = find_service_artifact("qwen-tts-python").expect("qwen-tts-python artifact");
         assert_eq!(artifact.health.endpoint, "/healthz");
-        assert_eq!(artifact.health.capability_probe_endpoint.as_deref(), Some("/v1/catalog"));
+        assert_eq!(
+            artifact.health.capability_probe_endpoint.as_deref(),
+            Some("/v1/catalog")
+        );
         assert!(artifact
             .nodes
             .iter()

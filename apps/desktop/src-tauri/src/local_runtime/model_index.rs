@@ -11,13 +11,13 @@ use super::model_registry::list_models;
 use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
 use super::store::runtime_root_dir;
 use super::types::{
-    now_iso_timestamp, LocalAiDeviceProfile, LocalAiInstallRequest,
-    LocalAiRecommendationActionState, LocalAiRecommendationDescriptor,
-    LocalAiRecommendationFeedCapability, LocalAiRecommendationFeedSource,
-    LocalAiRecommendationFeedCacheState, LocalAiRecommendationFeedDescriptor,
+    now_iso_timestamp, LocalAiDeviceProfile, LocalAiHostSupportClass, LocalAiInstallRequest,
+    LocalAiModelRecord, LocalAiRecommendationActionState, LocalAiRecommendationConfidence,
+    LocalAiRecommendationDescriptor, LocalAiRecommendationFeedCacheState,
+    LocalAiRecommendationFeedCapability, LocalAiRecommendationFeedDescriptor,
     LocalAiRecommendationFeedEntryDescriptor, LocalAiRecommendationFeedItemDescriptor,
-    LocalAiRecommendationInstalledState, LocalAiRecommendationTier, LocalAiModelRecord,
-    LocalAiRecommendationConfidence, LocalAiHostSupportClass, LocalAiRecommendationFormat,
+    LocalAiRecommendationFeedSource, LocalAiRecommendationFormat,
+    LocalAiRecommendationInstalledState, LocalAiRecommendationTier,
 };
 use super::verified_models::verified_model_list;
 
@@ -95,9 +95,7 @@ fn fetch_leaderboard(
     page_size: usize,
 ) -> Result<RemoteLeaderboardResponse, String> {
     let client = build_client()?;
-    let url = format!(
-        "{base_url}/leaderboard?capability={capability}&page=1&pageSize={page_size}"
-    );
+    let url = format!("{base_url}/leaderboard?capability={capability}&page=1&pageSize={page_size}");
     let response = client
         .get(url.as_str())
         .send()
@@ -116,7 +114,10 @@ fn fetch_leaderboard(
 fn cached_feed_for_capability(
     cache: Option<&ModelIndexCacheRecord>,
     capability: &str,
-) -> Option<(RemoteLeaderboardResponse, LocalAiRecommendationFeedCacheState)> {
+) -> Option<(
+    RemoteLeaderboardResponse,
+    LocalAiRecommendationFeedCacheState,
+)> {
     cache.and_then(|cache| {
         cache
             .feeds
@@ -132,7 +133,10 @@ fn resolve_remote_or_cached_feed<F>(
     page_size: usize,
     cache: Option<&ModelIndexCacheRecord>,
     fetcher: F,
-) -> Option<(RemoteLeaderboardResponse, LocalAiRecommendationFeedCacheState)>
+) -> Option<(
+    RemoteLeaderboardResponse,
+    LocalAiRecommendationFeedCacheState,
+)>
 where
     F: Fn(&str, &str, usize) -> Result<RemoteLeaderboardResponse, String>,
 {
@@ -164,7 +168,8 @@ fn entry_files(entry: &RemoteInstallEntry) -> Vec<String> {
 }
 
 fn entry_hashes(entry: &RemoteInstallEntry) -> HashMap<String, String> {
-    entry.files
+    entry
+        .files
         .iter()
         .filter_map(|file| {
             file.sha256
@@ -227,7 +232,13 @@ fn recommendation_sort_key(
         None => 3,
     };
     let verified_rank = if verified { 0 } else { 1 };
-    (tier_rank, host_rank, confidence_rank, verified_rank, source_rank)
+    (
+        tier_rank,
+        host_rank,
+        confidence_rank,
+        verified_rank,
+        source_rank,
+    )
 }
 
 fn compare_feed_items(
@@ -242,7 +253,11 @@ fn compare_feed_items(
             right.verified,
             right_rank,
         ))
-        .then_with(|| left.title.to_ascii_lowercase().cmp(&right.title.to_ascii_lowercase()))
+        .then_with(|| {
+            left.title
+                .to_ascii_lowercase()
+                .cmp(&right.title.to_ascii_lowercase())
+        })
 }
 
 fn build_feed_item(
@@ -294,8 +309,10 @@ fn build_feed_item(
         let recommendation = build_catalog_recommendation(&candidate, profile);
         let better = match (&best_recommendation, &recommendation) {
             (None, Some(_)) => true,
-            (Some(left), Some(right)) => recommendation_sort_key(Some(right), false, source_rank)
-                < recommendation_sort_key(Some(left), false, source_rank),
+            (Some(left), Some(right)) => {
+                recommendation_sort_key(Some(right), false, source_rank)
+                    < recommendation_sort_key(Some(left), false, source_rank)
+            }
             _ => false,
         };
         if better {
@@ -393,13 +410,7 @@ fn materialize_feed_descriptor(
         .iter()
         .enumerate()
         .map(|(index, item)| {
-            build_feed_item(
-                item,
-                capability,
-                &device_profile,
-                installed_models,
-                index,
-            )
+            build_feed_item(item, capability, &device_profile, installed_models, index)
         })
         .collect::<Vec<_>>();
     items.sort_by(|left, right| {
@@ -475,8 +486,8 @@ pub fn load_recommendation_feed(
 mod tests {
     use super::*;
     use crate::local_runtime::types::{
-        LocalAiGpuProfile, LocalAiMemoryModel, LocalAiNpuProfile, LocalAiPythonProfile,
-        LocalAiPortAvailability, LocalAiRecommendationFeedSource,
+        LocalAiGpuProfile, LocalAiMemoryModel, LocalAiNpuProfile, LocalAiPortAvailability,
+        LocalAiPythonProfile, LocalAiRecommendationFeedSource,
     };
 
     fn profile_fixture() -> LocalAiDeviceProfile {
@@ -718,7 +729,10 @@ mod tests {
             &[],
         );
 
-        assert_eq!(descriptor.cache_state, LocalAiRecommendationFeedCacheState::Fresh);
+        assert_eq!(
+            descriptor.cache_state,
+            LocalAiRecommendationFeedCacheState::Fresh
+        );
         assert_eq!(
             descriptor.active_capability,
             LocalAiRecommendationFeedCapability::Chat
@@ -726,11 +740,17 @@ mod tests {
         assert_eq!(descriptor.items[0].repo, "repo/small");
         assert_eq!(descriptor.items[1].repo, "repo/large");
         assert_eq!(
-            descriptor.items[0].recommendation.as_ref().and_then(|item| item.tier.clone()),
+            descriptor.items[0]
+                .recommendation
+                .as_ref()
+                .and_then(|item| item.tier.clone()),
             Some(LocalAiRecommendationTier::Tight)
         );
         assert_eq!(
-            descriptor.items[1].recommendation.as_ref().and_then(|item| item.tier.clone()),
+            descriptor.items[1]
+                .recommendation
+                .as_ref()
+                .and_then(|item| item.tier.clone()),
             Some(LocalAiRecommendationTier::NotRecommended)
         );
     }
@@ -744,7 +764,12 @@ mod tests {
             page: 1,
             page_size: 24,
             total: 1,
-            items: vec![chat_item("repo/chat", "Chat", "chat-q4.gguf", 4_000_000_000)],
+            items: vec![chat_item(
+                "repo/chat",
+                "Chat",
+                "chat-q4.gguf",
+                4_000_000_000,
+            )],
         };
 
         let descriptor = materialize_feed_descriptor(
@@ -760,6 +785,9 @@ mod tests {
         assert_eq!(payload["cacheState"], "fresh");
         assert_eq!(payload["items"][0]["source"], "model-index");
         assert_eq!(payload["items"][0]["entries"][0]["format"], "gguf");
-        assert_eq!(descriptor.items[0].source, LocalAiRecommendationFeedSource::ModelIndex);
+        assert_eq!(
+            descriptor.items[0].source,
+            LocalAiRecommendationFeedSource::ModelIndex
+        );
     }
 }

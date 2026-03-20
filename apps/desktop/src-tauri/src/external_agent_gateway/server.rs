@@ -230,7 +230,11 @@ async fn dispatch_action(
         );
     }
 
-    if state.app.emit(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, payload).is_err() {
+    if state
+        .app
+        .emit(EXTERNAL_AGENT_ACTION_REQUEST_EVENT, payload)
+        .is_err()
+    {
         {
             let mut guard = state.inner.lock().await;
             guard.completion_waiters.remove(execution_id.as_str());

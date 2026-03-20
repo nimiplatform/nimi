@@ -262,8 +262,7 @@ fn invalid_endpoint_error_transitions_state_from_checking_to_error() {
                     let _ = sync_current_version(state);
                     apply_state_event(state, UpdateStateEvent::Checking);
                 });
-                let error =
-                    set_error_state(None, updater_unavailable_reason().unwrap_or_default());
+                let error = set_error_state(None, updater_unavailable_reason().unwrap_or_default());
 
                 let state = current_state().expect("state");
                 assert_eq!(state.status, "error");

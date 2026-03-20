@@ -1,8 +1,6 @@
 use llmfit_core::fit::{FitLevel as LlmFitLevel, ModelFit, RunMode as LlmRunMode};
 use llmfit_core::hardware::{GpuBackend, SystemSpecs};
-use llmfit_core::models::{
-    quant_bpp, Capability as LlmCapability, LlmModel, ModelFormat, UseCase,
-};
+use llmfit_core::models::{quant_bpp, Capability as LlmCapability, LlmModel, ModelFormat, UseCase};
 use serde_json::json;
 
 use super::types::{
@@ -70,7 +68,12 @@ fn first_media_capability(capabilities: &[String]) -> Option<String> {
     capabilities
         .iter()
         .map(|value| normalize_capability(value))
-        .find(|value| value == "image" || value == "video" || value == "image.generate" || value == "video.generate")
+        .find(|value| {
+            value == "image"
+                || value == "video"
+                || value == "image.generate"
+                || value == "video.generate"
+        })
 }
 
 fn first_llm_capability(capabilities: &[String]) -> Option<String> {
@@ -98,10 +101,7 @@ fn has_vision_hint(candidate: &RecommendationCandidate) -> bool {
 }
 
 fn normalize_gpu_vendor(value: Option<&str>) -> String {
-    value
-        .unwrap_or_default()
-        .trim()
-        .to_ascii_lowercase()
+    value.unwrap_or_default().trim().to_ascii_lowercase()
 }
 
 pub fn classify_host_support(
@@ -221,10 +221,7 @@ pub fn add_host_support_to_provider_hints(
         .take()
         .and_then(|value| value.as_object().cloned())
         .unwrap_or_default();
-    extra.insert(
-        "runtime_support_class".to_string(),
-        json!(support.class),
-    );
+    extra.insert("runtime_support_class".to_string(), json!(support.class));
     if let Some(detail) = support.detail {
         extra.insert("runtime_support_detail".to_string(), json!(detail));
     }
@@ -255,8 +252,8 @@ pub fn build_recommendation_candidate(
     fallback_entries: Vec<String>,
     tags: &[String],
 ) -> Option<RecommendationCandidate> {
-    let capability = first_media_capability(capabilities)
-        .or_else(|| first_llm_capability(capabilities))?;
+    let capability =
+        first_media_capability(capabilities).or_else(|| first_llm_capability(capabilities))?;
     Some(RecommendationCandidate {
         model_id: model_id.trim().to_string(),
         repo: repo.trim().to_string(),
@@ -376,7 +373,8 @@ mod tests {
             &["image".to_string(), "z-image".to_string()],
         )
         .expect("candidate");
-        let recommendation = build_media_recommendation(&candidate, &profile).expect("recommendation");
+        let recommendation =
+            build_media_recommendation(&candidate, &profile).expect("recommendation");
         assert_eq!(
             recommendation.tier,
             Some(LocalAiRecommendationTier::Recommended)
@@ -431,9 +429,16 @@ mod tests {
             .expect("video tier");
         assert!(matches!(
             (image_tier, video_tier),
-            (LocalAiRecommendationTier::Recommended, LocalAiRecommendationTier::Tight)
-                | (LocalAiRecommendationTier::Runnable, LocalAiRecommendationTier::NotRecommended)
-                | (LocalAiRecommendationTier::Recommended, LocalAiRecommendationTier::Runnable)
+            (
+                LocalAiRecommendationTier::Recommended,
+                LocalAiRecommendationTier::Tight
+            ) | (
+                LocalAiRecommendationTier::Runnable,
+                LocalAiRecommendationTier::NotRecommended
+            ) | (
+                LocalAiRecommendationTier::Recommended,
+                LocalAiRecommendationTier::Runnable
+            )
         ));
     }
 
@@ -488,7 +493,8 @@ mod tests {
             &[],
         )
         .expect("candidate");
-        let recommendation = build_media_recommendation(&candidate, &profile).expect("recommendation");
+        let recommendation =
+            build_media_recommendation(&candidate, &profile).expect("recommendation");
         assert_eq!(
             recommendation.confidence,
             Some(LocalAiRecommendationConfidence::Low)
@@ -522,7 +528,8 @@ mod tests {
             &["image".to_string(), "z-image".to_string()],
         )
         .expect("candidate");
-        let recommendation = build_media_recommendation(&candidate, &unified).expect("recommendation");
+        let recommendation =
+            build_media_recommendation(&candidate, &unified).expect("recommendation");
         assert!(recommendation
             .reason_codes
             .iter()
@@ -552,7 +559,8 @@ mod tests {
             &["image".to_string(), "z-image".to_string()],
         )
         .expect("candidate");
-        let recommendation = build_media_recommendation(&candidate, &profile).expect("recommendation");
+        let recommendation =
+            build_media_recommendation(&candidate, &profile).expect("recommendation");
         assert!(!recommendation.suggested_artifacts.is_empty());
         assert!(recommendation
             .suggested_artifacts
@@ -624,6 +632,9 @@ mod tests {
         let recommendation =
             build_catalog_recommendation(&candidate, &profile).expect("catalog recommendation");
         assert_eq!(recommendation.source, LocalAiRecommendationSource::Llmfit);
-        assert!(recommendation.reason_codes.iter().any(|code| code == REASON_LLMFIT_VISION_MODEL));
+        assert!(recommendation
+            .reason_codes
+            .iter()
+            .any(|code| code == REASON_LLMFIT_VISION_MODEL));
     }
 }

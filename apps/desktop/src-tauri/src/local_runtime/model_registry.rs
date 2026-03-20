@@ -6,8 +6,8 @@ use super::recommendation::{
 };
 use super::store::{load_state, runtime_models_dir, save_state};
 use super::types::{
-    default_logical_model_id, normalize_local_inventory_id, now_iso_timestamp,
-    resolved_model_dir, LocalAiModelRecord, LocalAiModelStatus, LocalAiRuntimeState,
+    default_logical_model_id, normalize_local_inventory_id, now_iso_timestamp, resolved_model_dir,
+    LocalAiModelRecord, LocalAiModelStatus, LocalAiRuntimeState,
 };
 
 fn rebuild_capability_index(state: &mut LocalAiRuntimeState) {
@@ -87,7 +87,9 @@ fn build_recommendation_candidate_for_record(
     let model_dir = models_root.map(|root| resolved_model_dir(root, logical_model_id.as_str()));
     let file_size = |relative_path: &str| -> Option<u64> {
         let root = model_dir.as_ref()?;
-        std::fs::metadata(root.join(relative_path)).ok().map(|meta| meta.len())
+        std::fs::metadata(root.join(relative_path))
+            .ok()
+            .map(|meta| meta.len())
     };
 
     let main_size_bytes = if has_complete_record_metadata {
@@ -95,20 +97,27 @@ fn build_recommendation_candidate_for_record(
     } else {
         None
     };
-    let known_total_size_bytes = record.known_total_size_bytes.filter(|value| *value > 0).or_else(|| {
-        if has_complete_record_metadata {
-            let mut total = 0_u64;
-            let mut seen_any = false;
-            for file in &files {
-                let size = file_size(file.as_str())?;
-                total = total.saturating_add(size);
-                seen_any = true;
+    let known_total_size_bytes = record
+        .known_total_size_bytes
+        .filter(|value| *value > 0)
+        .or_else(|| {
+            if has_complete_record_metadata {
+                let mut total = 0_u64;
+                let mut seen_any = false;
+                for file in &files {
+                    let size = file_size(file.as_str())?;
+                    total = total.saturating_add(size);
+                    seen_any = true;
+                }
+                if seen_any {
+                    Some(total)
+                } else {
+                    None
+                }
+            } else {
+                file_size(record.entry.as_str())
             }
-            if seen_any { Some(total) } else { None }
-        } else {
-            file_size(record.entry.as_str())
-        }
-    });
+        });
     let fallback_entries = if has_complete_record_metadata {
         files
             .iter()
@@ -141,11 +150,9 @@ pub fn list_models(app: &AppHandle) -> Result<Vec<LocalAiModelRecord>, String> {
         .models
         .into_iter()
         .map(|mut record| {
-            record.recommendation = build_recommendation_candidate_for_record(
-                &record,
-                models_root.as_deref(),
-            )
-            .and_then(|candidate| build_catalog_recommendation(&candidate, &profile));
+            record.recommendation =
+                build_recommendation_candidate_for_record(&record, models_root.as_deref())
+                    .and_then(|candidate| build_catalog_recommendation(&candidate, &profile));
             record
         })
         .collect())
@@ -372,11 +379,7 @@ mod tests {
     #[test]
     fn recommendation_candidate_for_complete_record_matches_install_inputs() {
         let temp = tempfile::tempdir().expect("tempdir");
-        let record = model_fixture(
-            "local:z-image",
-            &["image"],
-            LocalAiModelStatus::Installed,
-        );
+        let record = model_fixture("local:z-image", &["image"], LocalAiModelStatus::Installed);
         let model_dir = crate::local_runtime::types::resolved_model_dir(
             temp.path(),
             record.logical_model_id.as_str(),

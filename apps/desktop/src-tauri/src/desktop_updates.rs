@@ -6,8 +6,7 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 use url::Url;
 
 const UPDATE_EVENT_NAME: &str = "desktop-update://state";
-const DEFAULT_UPDATE_ENDPOINT: &str =
-    "https://install.nimi.xyz/desktop/latest.json";
+const DEFAULT_UPDATE_ENDPOINT: &str = "https://install.nimi.xyz/desktop/latest.json";
 
 enum UpdateStateEvent {
     Checking,

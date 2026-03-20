@@ -8,7 +8,8 @@ fn z_image_vae_descriptor() -> LocalAiVerifiedArtifactDescriptor {
     LocalAiVerifiedArtifactDescriptor {
         template_id: "verified.artifact.z_image.vae".to_string(),
         title: "Z-Image AE VAE".to_string(),
-        description: "Recommended verified companion VAE for local media Z-Image workflows".to_string(),
+        description: "Recommended verified companion VAE for local media Z-Image workflows"
+            .to_string(),
         artifact_id: "local/z_image_ae".to_string(),
         kind: LocalAiArtifactKind::Vae,
         engine: "media".to_string(),
@@ -38,7 +39,8 @@ fn z_image_qwen_descriptor() -> LocalAiVerifiedArtifactDescriptor {
     LocalAiVerifiedArtifactDescriptor {
         template_id: "verified.artifact.z_image.qwen3_4b".to_string(),
         title: "Qwen3 4B Companion LLM".to_string(),
-        description: "Recommended verified companion LLM for local media Z-Image workflows".to_string(),
+        description: "Recommended verified companion LLM for local media Z-Image workflows"
+            .to_string(),
         artifact_id: "local/qwen3_4b_companion".to_string(),
         kind: LocalAiArtifactKind::Llm,
         engine: "llama".to_string(),

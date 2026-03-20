@@ -120,7 +120,11 @@ impl QwenTtsPythonAdapter {
             return Some(normalized.to_string());
         }
         if normalized.ends_with("/v1/models") {
-            return Some(format!("{}{}", normalized.trim_end_matches("/v1/models"), "/v1/catalog"));
+            return Some(format!(
+                "{}{}",
+                normalized.trim_end_matches("/v1/models"),
+                "/v1/catalog"
+            ));
         }
         if normalized.ends_with("/v1") {
             return Some(format!("{normalized}/catalog"));

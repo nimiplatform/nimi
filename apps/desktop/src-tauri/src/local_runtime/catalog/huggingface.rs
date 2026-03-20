@@ -391,7 +391,11 @@ pub(super) fn known_total_size_bytes(siblings: &[HfModelSibling], files: &[Strin
         total = total.saturating_add(size);
         any = true;
     }
-    if any { Some(total) } else { None }
+    if any {
+        Some(total)
+    } else {
+        None
+    }
 }
 
 fn variant_format_for_entry(entry: &str) -> String {

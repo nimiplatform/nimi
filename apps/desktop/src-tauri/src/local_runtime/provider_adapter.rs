@@ -81,7 +81,9 @@ fn llama_probe_model_matches_capability(model_id: &str, capability: &str) -> boo
     }
     match capability.to_ascii_lowercase().as_str() {
         "chat" | "embedding" => true,
-        "stt" | "audio.transcribe" => normalized.contains("whisper") || normalized.contains("transcrib"),
+        "stt" | "audio.transcribe" => {
+            normalized.contains("whisper") || normalized.contains("transcrib")
+        }
         _ => true,
     }
 }
@@ -92,7 +94,11 @@ fn media_probe_model_matches_capability(model_id: &str, capability: &str) -> boo
         return false;
     }
     match capability.to_ascii_lowercase().as_str() {
-        "image" => normalized.contains("flux") || normalized.contains("image") || normalized.contains("diffusion"),
+        "image" => {
+            normalized.contains("flux")
+                || normalized.contains("image")
+                || normalized.contains("diffusion")
+        }
         "video" => normalized.contains("wan") || normalized.contains("video"),
         _ => false,
     }
@@ -105,7 +111,9 @@ fn speech_probe_model_matches_capability(model_id: &str, capability: &str) -> bo
     }
     match capability.to_ascii_lowercase().as_str() {
         "stt" | "audio.transcribe" => {
-            normalized.contains("whisper") || normalized.contains("stt") || normalized.contains("transcrib")
+            normalized.contains("whisper")
+                || normalized.contains("stt")
+                || normalized.contains("transcrib")
         }
         "tts" | "audio.synthesize" => {
             normalized.contains("kokoro")
@@ -139,11 +147,18 @@ pub fn infer_backend_hint_for_provider(
 ) -> Option<String> {
     let normalized_provider = normalize_provider(Some(provider));
     let normalized_model = model_id.unwrap_or_default().trim().to_ascii_lowercase();
-    match (normalized_provider.as_str(), normalize_capability(capability).as_str()) {
-        ("speech", "stt") | ("speech", "audio.transcribe") if normalized_model.contains("whisper") => {
+    match (
+        normalized_provider.as_str(),
+        normalize_capability(capability).as_str(),
+    ) {
+        ("speech", "stt") | ("speech", "audio.transcribe")
+            if normalized_model.contains("whisper") =>
+        {
             Some("whispercpp".to_string())
         }
-        ("speech", "tts") | ("speech", "audio.synthesize") if normalized_model.contains("kokoro") => {
+        ("speech", "tts") | ("speech", "audio.synthesize")
+            if normalized_model.contains("kokoro") =>
+        {
             Some("kokoro".to_string())
         }
         ("speech", "voice_workflow.tts_v2v") | ("speech", "voice_workflow.tts_t2v")
@@ -167,7 +182,9 @@ pub fn default_provider_hints_for_provider_capability(
             llama: None,
             media: Some(LocalAiProviderMediaHints {
                 backend: None,
-                preferred_adapter: Some(default_adapter_for_provider_capability(provider, capability)),
+                preferred_adapter: Some(default_adapter_for_provider_capability(
+                    provider, capability,
+                )),
                 family: None,
                 image_driver: None,
                 video_driver: None,
@@ -185,7 +202,9 @@ pub fn default_provider_hints_for_provider_capability(
             media: None,
             speech: Some(LocalAiProviderSpeechHints {
                 backend: None,
-                preferred_adapter: Some(default_adapter_for_provider_capability(provider, capability)),
+                preferred_adapter: Some(default_adapter_for_provider_capability(
+                    provider, capability,
+                )),
                 family: None,
                 driver: None,
                 device: None,
@@ -208,7 +227,9 @@ pub fn default_provider_hints_for_provider_capability(
         _ => Some(LocalAiProviderHints {
             llama: Some(LocalAiProviderLlamaHints {
                 backend: None,
-                preferred_adapter: Some(default_adapter_for_provider_capability(provider, capability)),
+                preferred_adapter: Some(default_adapter_for_provider_capability(
+                    provider, capability,
+                )),
                 multimodal_projector: None,
             }),
             media: None,
@@ -305,12 +326,19 @@ pub fn with_provider_backend_hint(
 pub fn adapter_supports_capability(adapter: &LocalAiProviderAdapterKind, capability: &str) -> bool {
     match normalize_capability(capability).as_str() {
         "image" | "video" => matches!(adapter, LocalAiProviderAdapterKind::MediaNativeAdapter),
-        "stt" | "tts" | "audio.transcribe" | "audio.synthesize" | "voice_workflow.tts_v2v"
-        | "voice_workflow.tts_t2v" => matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter),
+        "stt"
+        | "tts"
+        | "audio.transcribe"
+        | "audio.synthesize"
+        | "voice_workflow.tts_v2v"
+        | "voice_workflow.tts_t2v" => {
+            matches!(adapter, LocalAiProviderAdapterKind::SpeechNativeAdapter)
+        }
         "music" => matches!(adapter, LocalAiProviderAdapterKind::SidecarMusicAdapter),
         _ => matches!(
             adapter,
-            LocalAiProviderAdapterKind::OpenaiCompatAdapter | LocalAiProviderAdapterKind::LlamaNativeAdapter
+            LocalAiProviderAdapterKind::OpenaiCompatAdapter
+                | LocalAiProviderAdapterKind::LlamaNativeAdapter
         ),
     }
 }
@@ -401,8 +429,8 @@ mod tests {
 
     #[test]
     fn default_media_hints_do_not_synthesize_driver_or_family() {
-        let hints = default_provider_hints_for_provider_capability("media", "image")
-            .expect("media hints");
+        let hints =
+            default_provider_hints_for_provider_capability("media", "image").expect("media hints");
         let media = hints.media.expect("media payload");
         assert!(media.backend.is_none());
         assert!(media.family.is_none());
@@ -424,7 +452,9 @@ mod tests {
     fn with_provider_backend_hint_preserves_runtime_metadata_only() {
         let mut hints = default_provider_hints_for_provider_capability("speech", "tts");
         with_provider_backend_hint("speech", &mut hints, Some("kokoro".to_string()), "tts");
-        let speech = hints.and_then(|value| value.speech).expect("speech payload");
+        let speech = hints
+            .and_then(|value| value.speech)
+            .expect("speech payload");
         assert_eq!(speech.backend.as_deref(), Some("kokoro"));
         assert!(speech.family.is_none());
     }

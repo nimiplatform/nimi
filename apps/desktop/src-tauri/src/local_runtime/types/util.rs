@@ -42,10 +42,7 @@ fn capability_is_synthesize(value: &str) -> bool {
 }
 
 fn capability_is_voice_workflow(value: &str) -> bool {
-    capability_matches(
-        value,
-        &["voice_workflow.tts_v2v", "voice_workflow.tts_t2v"],
-    )
+    capability_matches(value, &["voice_workflow.tts_v2v", "voice_workflow.tts_t2v"])
 }
 
 pub fn default_preferred_engine_for_capabilities(capabilities: &[String]) -> String {
@@ -86,13 +83,7 @@ pub fn default_logical_model_id(model_id: &str) -> String {
         return "nimi/local-model".to_string();
     }
     let lower = trimmed.to_ascii_lowercase();
-    for prefix in [
-        "local/",
-        "llama/",
-        "media/",
-        "speech/",
-        "sidecar/",
-    ] {
+    for prefix in ["local/", "llama/", "media/", "speech/", "sidecar/"] {
         if lower.starts_with(prefix) {
             return format!("nimi/{}", slugify_local_model_id(&trimmed[prefix.len()..]));
         }
@@ -297,9 +288,9 @@ mod tests {
     use super::{
         default_artifact_roles_for_capabilities, default_endpoint_for_engine,
         default_fallback_engines_for_engine, default_logical_model_id,
-        default_preferred_engine_for_capabilities, generate_ulid_string,
-        normalize_local_engine, normalize_local_inventory_id, now_iso_timestamp,
-        resolved_model_relative_dir, slugify_local_model_id,
+        default_preferred_engine_for_capabilities, generate_ulid_string, normalize_local_engine,
+        normalize_local_inventory_id, now_iso_timestamp, resolved_model_relative_dir,
+        slugify_local_model_id,
     };
     use std::path::PathBuf;
 
@@ -363,7 +354,10 @@ mod tests {
     fn normalize_local_engine_accepts_only_runtime_native_provider_names() {
         assert_eq!(normalize_local_engine("llama", &[]), "llama");
         assert_eq!(normalize_local_engine("media", &[]), "media");
-        assert_eq!(normalize_local_engine("speech", &["audio.transcribe".to_string()]), "speech");
+        assert_eq!(
+            normalize_local_engine("speech", &["audio.transcribe".to_string()]),
+            "speech"
+        );
     }
 
     #[test]
@@ -417,8 +411,14 @@ mod tests {
 
     #[test]
     fn default_endpoint_for_engine_uses_canonical_ports() {
-        assert_eq!(default_endpoint_for_engine("speech"), "http://127.0.0.1:8330");
-        assert_eq!(default_endpoint_for_engine("media"), "http://127.0.0.1:8321");
+        assert_eq!(
+            default_endpoint_for_engine("speech"),
+            "http://127.0.0.1:8330"
+        );
+        assert_eq!(
+            default_endpoint_for_engine("media"),
+            "http://127.0.0.1:8321"
+        );
     }
 
     #[test]

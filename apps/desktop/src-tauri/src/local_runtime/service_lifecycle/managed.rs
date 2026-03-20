@@ -1,4 +1,6 @@
-use super::super::reason_codes::{normalize_local_ai_reason_code, LOCAL_AI_PROVIDER_INTERNAL_ERROR};
+use super::super::reason_codes::{
+    normalize_local_ai_reason_code, LOCAL_AI_PROVIDER_INTERNAL_ERROR,
+};
 use super::super::types::{
     LocalAiDeviceProfile, LocalAiServiceArtifact, LocalAiServiceArtifactType,
     DEFAULT_LOCAL_ENDPOINT,

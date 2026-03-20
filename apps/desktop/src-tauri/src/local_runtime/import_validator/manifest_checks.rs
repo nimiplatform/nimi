@@ -319,10 +319,7 @@ fn validate_import_manifest_path_with_expected_file_name(
         } else {
             format!("仅支持导入 {expected_file_name}")
         };
-        return Err(err(
-            invalid_file_name_code,
-            message,
-        ));
+        return Err(err(invalid_file_name_code, message));
     }
 
     let canonical_root = runtime_models_root.canonicalize().map_err(|error| {
