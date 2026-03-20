@@ -25,6 +25,7 @@ import { listenForOAuthCallback, performOauthTokenExchange } from './auth/index.
 import { DESKTOP_CALLBACK_TIMEOUT_MS } from '@nimiplatform/shell-core/oauth';
 import type { RouteState } from './route/route-state.js';
 import type { RelayInvokeMap } from '../shared/ipc-contract.js';
+import type { TurnDeliveryScheduleHandle } from './chat-pipeline/session-persist.js';
 import { resolveRelayTtsConfig } from './tts-config.js';
 
 type ListCreatorAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
@@ -32,6 +33,10 @@ type AuthOauthLoginRequest = RelayInvokeMap['relay:auth:oauth-login']['request']
 type TtsSynthesizeRequest = RelayInvokeMap['relay:media:tts:synthesize']['request'];
 type SttTranscribeRequest = RelayInvokeMap['relay:media:stt:transcribe']['request'];
 type VideoGenerateRequest = RelayInvokeMap['relay:media:video:generate']['request'];
+type ActiveRelayChatTurn = {
+  abortController: AbortController;
+  scheduleHandle: TurnDeliveryScheduleHandle | null;
+};
 
 function decodeBase64Audio(input: string): Uint8Array {
   return Uint8Array.from(Buffer.from(input, 'base64'));
@@ -294,6 +299,8 @@ export function registerIpcHandlers(
   env: RelayEnv,
   routeState?: RouteState,
 ): void {
+  const activeRelayChatTurns = new Map<string, ActiveRelayChatTurn>();
+
   // ── Config — expose non-secret env defaults to renderer (RL-CORE-003) ─
   safeHandle('relay:config', () => ({
     agentId: env.NIMI_AGENT_ID ?? null,
@@ -553,6 +560,23 @@ export function registerIpcHandlers(
     requireAgentId(input);
     const wc = getWebContents();
     if (!wc) throw new Error('No renderer available');
+    const abortController = new AbortController();
+    let activeTurnTxnId = '';
+    let scheduleRegistered = false;
+
+    const bindActiveTurnTxnId = (turnTxnId?: string) => {
+      const normalizedTurnTxnId = String(turnTxnId || '').trim();
+      if (!normalizedTurnTxnId) {
+        return;
+      }
+      activeTurnTxnId = normalizedTurnTxnId;
+      if (!activeRelayChatTurns.has(normalizedTurnTxnId)) {
+        activeRelayChatTurns.set(normalizedTurnTxnId, {
+          abortController,
+          scheduleHandle: null,
+        });
+      }
+    };
 
     try {
       // Dynamic import to avoid circular dependency at registration time
@@ -630,78 +654,51 @@ export function registerIpcHandlers(
       const { fetchTargetProfile } = await import('./data/realm-queries.js');
       const selectedTarget = await fetchTargetProfile(realm, input.agentId);
 
-      // Try full pipeline, fall back to simple streaming
-      const sendFlowModule = await import('./chat-pipeline/send-flow.js').catch(() => null);
-
-      if (sendFlowModule) {
-        const contextKeyRef = { sessionId: input.sessionId || '' };
-        await sendFlowModule.runLocalChatTurnSend({
-          context: {
-            aiClient,
-            inputText: input.text,
-            viewerId: 'local-user',
-            viewerDisplayName: 'User',
-            runtimeMode: undefined,
-            routeSnapshot,
-            defaultSettings: effectiveSettings,
-            selectedTarget,
-            selectedSessionId: input.sessionId || '',
-            messages: chatContext.messages,
-            onSessionResolved: (sessionId: string) => { contextKeyRef.sessionId = sessionId; },
-          },
-          chatContext,
-          setSendPhase: (phase) => chatContext.setSendPhase(phase),
-          getCurrentContextKey: () => [input.agentId, contextKeyRef.sessionId].join('|'),
-          registerSchedule: () => {},
-          clearScheduleByTxn: () => {},
-        });
-      } else {
-        // Fallback: direct SDK streaming (backward compatible with old behavior)
-        const textInput = toTextStreamInput({ agentId: input.agentId, prompt: input.text });
-        const stream = await runtime.ai.text.stream(textInput);
-
-        const userMsg = {
-          id: `user_${Date.now()}`,
-          role: 'user' as const,
-          kind: 'text' as const,
-          content: input.text,
-          timestamp: new Date(),
-        };
-
-        const assistantMsg = {
-          id: `assistant_${Date.now()}`,
-          role: 'assistant' as const,
-          kind: 'streaming' as const,
-          content: '',
-          timestamp: new Date(),
-        };
-
-        chatContext.setMessages([...chatContext.messages, userMsg, assistantMsg]);
-        chatContext.setSendPhase('streaming-first-beat');
-
-        let fullText = '';
-        for await (const event of stream.stream) {
-          if (event.type === 'delta') {
-            const delta = event as unknown as { text?: string };
-            if (delta.text) {
-              fullText += delta.text;
-              chatContext.setMessages([
-                ...chatContext.messages.filter((m) => m.id !== assistantMsg.id),
-                userMsg,
-                { ...assistantMsg, content: fullText },
-              ]);
-            }
-          }
-        }
-
-        chatContext.setMessages([
-          ...chatContext.messages.filter((m) => m.id !== assistantMsg.id),
-          userMsg,
-          { ...assistantMsg, kind: 'text' as const, content: fullText },
-        ]);
-        chatContext.setSendPhase('idle');
+      const sendFlowModule = await import('./chat-pipeline/send-flow.js');
+      const contextKeyRef = { sessionId: input.sessionId || '' };
+      await sendFlowModule.runLocalChatTurnSend({
+        context: {
+          aiClient,
+          inputText: input.text,
+          viewerId: 'local-user',
+          viewerDisplayName: 'User',
+          runtimeMode: undefined,
+          routeSnapshot,
+          defaultSettings: effectiveSettings,
+          selectedTarget,
+          selectedSessionId: input.sessionId || '',
+          messages: chatContext.messages,
+          onSessionResolved: (sessionId: string) => { contextKeyRef.sessionId = sessionId; },
+        },
+        chatContext,
+        abortSignal: abortController.signal,
+        setSendPhase: (phase, turnTxnId) => {
+          bindActiveTurnTxnId(turnTxnId);
+          chatContext.setSendPhase(phase, turnTxnId);
+        },
+        getCurrentContextKey: () => [input.agentId, contextKeyRef.sessionId].join('|'),
+        registerSchedule: ({ handle }) => {
+          bindActiveTurnTxnId(handle.turnTxnId);
+          scheduleRegistered = true;
+          activeRelayChatTurns.set(handle.turnTxnId, {
+            abortController,
+            scheduleHandle: handle,
+          });
+          void handle.done.finally(() => {
+            activeRelayChatTurns.delete(handle.turnTxnId);
+          });
+        },
+        clearScheduleByTxn: (turnTxnId) => {
+          activeRelayChatTurns.delete(turnTxnId);
+        },
+      });
+      if (!scheduleRegistered && activeTurnTxnId) {
+        activeRelayChatTurns.delete(activeTurnTxnId);
       }
     } catch (error) {
+      if (activeTurnTxnId) {
+        activeRelayChatTurns.delete(activeTurnTxnId);
+      }
       const wc2 = getWebContents();
       if (wc2) {
         wc2.send('relay:chat:status-banner', {
@@ -714,8 +711,23 @@ export function registerIpcHandlers(
     }
   });
 
-  safeHandle('relay:chat:cancel', (_event, _input: { turnTxnId: string }) => {
-    // TODO: wire to AbortController in send-flow
+  safeHandle('relay:chat:cancel', (_event, input: { turnTxnId: string }) => {
+    const turnTxnId = String(input.turnTxnId || '').trim();
+    if (!turnTxnId) {
+      throw Object.assign(new Error('turnTxnId is required to cancel relay chat turns'), {
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'retry_with_active_turn_transaction_id',
+      });
+    }
+    const activeTurn = activeRelayChatTurns.get(turnTxnId);
+    if (!activeTurn) {
+      throw Object.assign(new Error(`relay chat turn is not cancellable: ${turnTxnId}`), {
+        reasonCode: ReasonCode.ACTION_NOT_FOUND,
+        actionHint: 'wait_for_active_turn_then_retry_cancel',
+      });
+    }
+    activeTurn.abortController.abort();
+    activeTurn.scheduleHandle?.cancel('LOCAL_CHAT_SCHEDULE_CANCELLED_BY_USER');
   });
 
   safeHandle('relay:chat:history', async (_event, input: { agentId: string }) => {

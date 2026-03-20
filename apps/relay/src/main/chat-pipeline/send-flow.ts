@@ -99,7 +99,7 @@ export async function runLocalChatTurnSend(input: {
   context: RelayChatTurnSendInput;
   chatContext: MainProcessChatContext;
   abortSignal?: AbortSignal;
-  setSendPhase: (next: LocalChatTurnSendPhase) => void;
+  setSendPhase: (next: LocalChatTurnSendPhase, turnTxnId?: string) => void;
   getCurrentContextKey: () => string;
   registerSchedule: (input: {
     handle: TurnDeliveryScheduleHandle;
@@ -138,7 +138,7 @@ export async function runLocalChatTurnSend(input: {
   if (canOptimisticallyReflectUserTurn) {
     chatContext.setMessages((prev) => [...prev, userMessage]);
     chatContext.setInputText('');
-    input.setSendPhase('awaiting-first-beat');
+    input.setSendPhase('awaiting-first-beat', turnTxnId);
     await waitForNextPaint();
   }
 
@@ -163,7 +163,7 @@ export async function runLocalChatTurnSend(input: {
     if (!canOptimisticallyReflectUserTurn) {
       chatContext.setMessages((prev) => [...prev, userMessage]);
       chatContext.setInputText('');
-      input.setSendPhase('awaiting-first-beat');
+      input.setSendPhase('awaiting-first-beat', turnTxnId);
       await waitForNextPaint();
     }
     await persistUserTurns({
@@ -314,7 +314,7 @@ export async function runLocalChatTurnSend(input: {
         sessionId,
       },
       onPreview: (preview) => {
-        input.setSendPhase('streaming-first-beat');
+        input.setSendPhase('streaming-first-beat', turnTxnId);
         upsertTransientFirstBeatMessage({
           chatContext,
           messageId: firstBeatMessageId,
@@ -376,7 +376,7 @@ export async function runLocalChatTurnSend(input: {
       setSessions: chatContext.setSessions,
     });
     firstBeatCommitted = true;
-    input.setSendPhase('planning-tail');
+    input.setSendPhase('planning-tail', turnTxnId);
 
     const perceptionState = await perceptionStatePromise;
     if (!perceptionState.ok) throw perceptionState.error;
@@ -658,11 +658,11 @@ export async function runLocalChatTurnSend(input: {
         streamDurationMs: firstBeatResult.streamDurationMs,
         segmentParseMode: 'single-message',
       });
-      input.setSendPhase('idle');
+      input.setSendPhase('idle', turnTxnId);
       return;
     }
 
-    input.setSendPhase('delivering-tail');
+    input.setSendPhase('delivering-tail', turnTxnId);
     const schedule = await scheduleAssistantTurnDeliveries({
       sessionId,
       targetId: selectedTarget.id,
@@ -782,7 +782,7 @@ export async function runLocalChatTurnSend(input: {
       })
       .finally(() => {
         input.clearScheduleByTxn(turnTxnId);
-        input.setSendPhase('idle');
+        input.setSendPhase('idle', turnTxnId);
       });
 
     logTurnSendDone({
@@ -816,7 +816,7 @@ export async function runLocalChatTurnSend(input: {
     logTurnSendFailed(flowId, errorPayload.message);
   } finally {
     if (!handedOffToSchedule) {
-      input.setSendPhase('idle');
+      input.setSendPhase('idle', turnTxnId);
     }
   }
 }

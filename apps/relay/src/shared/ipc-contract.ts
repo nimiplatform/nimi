@@ -616,7 +616,7 @@ export type RelayEventMap = {
   'relay:stream:end': RelayStreamEnd;
   'relay:stream:error': RelayStreamError;
   'relay:auth:status': RelayAuthStatus;
-  'relay:chat:turn:phase': { turnId?: string; phase: LocalChatTurnSendPhase };
+  'relay:chat:turn:phase': { turnId?: string; turnTxnId?: string; phase: LocalChatTurnSendPhase };
   'relay:chat:beat': { turnId: string; beat: VideoJobEvent | AiStreamEvent };
   'relay:chat:turn:done': { turnId: string; diagnostics?: LocalChatTurnAudit | null };
   'relay:chat:turn:error': { turnId: string; error: RelayStreamError['error'] };

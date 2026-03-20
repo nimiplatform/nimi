@@ -154,7 +154,7 @@ export function ChatPage() {
                 <div className="flex items-center gap-2 px-6 py-1">
                   {ai.isSending && (
                     <button
-                      onClick={() => ai.cancelTurn('')}
+                      onClick={() => ai.cancelTurn()}
                       className="text-[11px] text-text-secondary hover:text-text-primary transition-colors"
                     >
                       {t('chat.stopGenerating')}

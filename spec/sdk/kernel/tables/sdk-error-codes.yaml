@@ -109,9 +109,6 @@ codes:
   - name: SDK_RUNTIME_AI_ROUTE_POLICY_REQUIRED
     family: SDK_RUNTIME
     source_rule: S-ERROR-003
-  - name: SDK_RUNTIME_AI_FALLBACK_POLICY_REQUIRED
-    family: SDK_RUNTIME
-    source_rule: S-ERROR-003
   - name: SDK_RUNTIME_AI_CREDENTIAL_SOURCE_INVALID
     family: SDK_RUNTIME
     source_rule: S-ERROR-003

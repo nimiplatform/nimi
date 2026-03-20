@@ -42,7 +42,7 @@ export type MainProcessChatContext = {
   setStatusBanner: (input: { kind: 'warning' | 'error' | 'success' | 'info'; message: string }) => void;
 
   /** Broadcast send phase transition to renderer. */
-  setSendPhase: (phase: LocalChatTurnSendPhase) => void;
+  setSendPhase: (phase: LocalChatTurnSendPhase, turnTxnId?: string) => void;
 };
 
 export function createMainProcessChatContext(webContents: WebContents, initialMessages?: ChatMessage[]): MainProcessChatContext {
@@ -89,8 +89,8 @@ export function createMainProcessChatContext(webContents: WebContents, initialMe
       webContents.send('relay:chat:status-banner', payload);
     },
 
-    setSendPhase(phase) {
-      const payload: RelayEventMap['relay:chat:turn:phase'] = { phase };
+    setSendPhase(phase, turnTxnId) {
+      const payload: RelayEventMap['relay:chat:turn:phase'] = { phase, turnTxnId };
       webContents.send('relay:chat:turn:phase', payload);
     },
   };

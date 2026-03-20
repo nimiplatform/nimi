@@ -621,7 +621,8 @@ export type SegmentParseMode = 'explicit-delimiter' | 'double-newline' | 'single
 export type LocalChatScheduleCancelReason =
   | 'LOCAL_CHAT_SCHEDULE_CANCELLED_BY_NEW_USER_TURN'
   | 'LOCAL_CHAT_SCHEDULE_CANCELLED_BY_CONTEXT_CHANGE'
-  | 'LOCAL_CHAT_SCHEDULE_CANCELLED_BY_UNMOUNT';
+  | 'LOCAL_CHAT_SCHEDULE_CANCELLED_BY_UNMOUNT'
+  | 'LOCAL_CHAT_SCHEDULE_CANCELLED_BY_USER';
 
 export type AssistantPlanSegment = {
   id: string;

@@ -9,6 +9,7 @@ beforeEach(() => {
   useChatStore.setState({
     messages: [],
     sendPhase: 'idle',
+    activeTurnTxnId: null,
     statusBanner: null,
     promptTrace: null,
     turnAudit: null,
@@ -26,6 +27,11 @@ describe('RL-PIPE-001 — ChatStore initial state', () => {
   it('starts with empty messages', () => {
     const state = useChatStore.getState();
     assert.deepEqual(state.messages, []);
+  });
+
+  it('starts with null activeTurnTxnId', () => {
+    const state = useChatStore.getState();
+    assert.equal(state.activeTurnTxnId, null);
   });
 
   it('starts with null statusBanner', () => {
@@ -82,8 +88,9 @@ describe('RL-PIPE-001 — ChatStore setMessages', () => {
 
 describe('RL-PIPE-001 — ChatStore setSendPhase', () => {
   it('transitions to awaiting-first-beat', () => {
-    useChatStore.getState().setSendPhase('awaiting-first-beat');
+    useChatStore.getState().setSendPhase('awaiting-first-beat', 'txn-1');
     assert.equal(useChatStore.getState().sendPhase, 'awaiting-first-beat');
+    assert.equal(useChatStore.getState().activeTurnTxnId, 'txn-1');
   });
 
   it('transitions to streaming-first-beat', () => {
@@ -102,23 +109,31 @@ describe('RL-PIPE-001 — ChatStore setSendPhase', () => {
   });
 
   it('transitions back to idle', () => {
-    useChatStore.getState().setSendPhase('streaming-first-beat');
+    useChatStore.getState().setSendPhase('streaming-first-beat', 'txn-2');
     useChatStore.getState().setSendPhase('idle');
     assert.equal(useChatStore.getState().sendPhase, 'idle');
+    assert.equal(useChatStore.getState().activeTurnTxnId, null);
   });
 
   it('walks through full beat-first turn lifecycle', () => {
-    const phases: TurnSendPhase[] = [
-      'awaiting-first-beat',
-      'streaming-first-beat',
-      'planning-tail',
-      'delivering-tail',
-      'idle',
+    const phases: Array<{ phase: TurnSendPhase; turnTxnId?: string }> = [
+      { phase: 'awaiting-first-beat', turnTxnId: 'txn-3' },
+      { phase: 'streaming-first-beat', turnTxnId: 'txn-3' },
+      { phase: 'planning-tail', turnTxnId: 'txn-3' },
+      { phase: 'delivering-tail', turnTxnId: 'txn-3' },
+      { phase: 'idle' },
     ];
-    for (const phase of phases) {
-      useChatStore.getState().setSendPhase(phase);
-      assert.equal(useChatStore.getState().sendPhase, phase);
+    for (const entry of phases) {
+      useChatStore.getState().setSendPhase(entry.phase, entry.turnTxnId);
+      assert.equal(useChatStore.getState().sendPhase, entry.phase);
     }
+    assert.equal(useChatStore.getState().activeTurnTxnId, null);
+  });
+
+  it('replaces activeTurnTxnId when a newer turn phase arrives', () => {
+    useChatStore.getState().setSendPhase('awaiting-first-beat', 'txn-old');
+    useChatStore.getState().setSendPhase('streaming-first-beat', 'txn-new');
+    assert.equal(useChatStore.getState().activeTurnTxnId, 'txn-new');
   });
 });
 
@@ -185,6 +200,7 @@ describe('RL-PIPE-001 — ChatStore clearChat', () => {
     const state = useChatStore.getState();
     assert.deepEqual(state.messages, []);
     assert.equal(state.sendPhase, 'idle');
+    assert.equal(state.activeTurnTxnId, null);
     assert.equal(state.statusBanner, null);
     assert.equal(state.promptTrace, null);
     assert.equal(state.turnAudit, null);
@@ -201,7 +217,7 @@ describe('RL-PIPE-001 — ChatStore subscriber notifications', () => {
     });
 
     useChatStore.getState().setSendPhase('awaiting-first-beat');
-    useChatStore.getState().setSendPhase('streaming-first-beat');
+    useChatStore.getState().setSendPhase('streaming-first-beat', 'txn-sub');
     useChatStore.getState().setSendPhase('idle');
 
     assert.deepEqual(phases, ['awaiting-first-beat', 'streaming-first-beat', 'idle']);

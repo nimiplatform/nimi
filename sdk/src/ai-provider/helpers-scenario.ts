@@ -16,7 +16,10 @@ import {
 } from './types.js';
 import { asRecord, normalizeText } from '../internal/utils.js';
 import {
+  type CancelScenarioJobRequest,
   ExecutionMode,
+  type GetScenarioArtifactsRequest,
+  type GetScenarioJobRequest,
   ScenarioJobStatus,
   type ScenarioArtifact,
   type ScenarioOutput,
@@ -29,6 +32,19 @@ type ScenarioJobExecution = {
   modelResolved: string;
   output?: ScenarioOutput;
 };
+
+function ensureScenarioJobReasonCode(value: unknown): string {
+  const reasonCode = normalizeText(value);
+  if (reasonCode) {
+    return reasonCode;
+  }
+  throw createNimiError({
+    message: 'scenario job response missing reasonCode',
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'regenerate_runtime_proto_and_sdk',
+    source: 'runtime',
+  });
+}
 
 function ensureText(value: unknown, fieldName: string): string {
   const normalized = normalizeText(value);
@@ -98,7 +114,7 @@ export async function executeScenarioJob(
     extensions: Array.isArray(request.extensions) ? request.extensions : [],
   };
   const submitResponse = await runtime.ai.submitScenarioJob(
-    submitRequest as never,
+    submitRequest,
     toCallOptions(defaults, {
       timeoutMs,
       metadata: undefined,
@@ -115,11 +131,12 @@ export async function executeScenarioJob(
     }
     cancelIssued = true;
     try {
+      const cancelRequest: CancelScenarioJobRequest = {
+        jobId,
+        reason,
+      };
       await runtime.ai.cancelScenarioJob(
-        {
-          jobId,
-          reason,
-        } as never,
+        cancelRequest,
         toCallOptions(defaults, { timeoutMs }),
       );
     } catch {
@@ -138,17 +155,13 @@ export async function executeScenarioJob(
       });
     }
 
-    const jobResponse = await runtime.ai.getScenarioJob(
-      { jobId } as never,
-      toCallOptions(defaults, { timeoutMs }),
-    );
+    const jobRequest: GetScenarioJobRequest = { jobId };
+    const jobResponse = await runtime.ai.getScenarioJob(jobRequest, toCallOptions(defaults, { timeoutMs }));
     const job = jobResponse.job;
     const status = Number(job?.status || 0);
     if (status === ScenarioJobStatus.COMPLETED) {
-      const artifactsResponse = await runtime.ai.getScenarioArtifacts(
-        { jobId } as never,
-        toCallOptions(defaults, { timeoutMs }),
-      );
+      const artifactsRequest: GetScenarioArtifactsRequest = { jobId };
+      const artifactsResponse = await runtime.ai.getScenarioArtifacts(artifactsRequest, toCallOptions(defaults, { timeoutMs }));
       const artifacts = Array.isArray(artifactsResponse.artifacts)
         ? artifactsResponse.artifacts
         : [];
@@ -181,7 +194,7 @@ export async function executeScenarioJob(
       || status === ScenarioJobStatus.CANCELED
       || status === ScenarioJobStatus.TIMEOUT
     ) {
-      const reasonCode = normalizeText(job?.reasonCode) || ReasonCode.AI_PROVIDER_UNAVAILABLE;
+      const reasonCode = ensureScenarioJobReasonCode(job?.reasonCode);
       throw createNimiError({
         message: normalizeText(job?.reasonDetail) || `scenario job failed: ${reasonCode}`,
         reasonCode,
@@ -290,9 +303,8 @@ export function toEmbeddingVectors(vectors: unknown): number[][] {
   });
 }
 
-export function toEmbeddingVectorsFromScenarioOutput(output: unknown): number[][] {
-  const value = output as ScenarioOutput | undefined;
-  const variant = value?.output;
+export function toEmbeddingVectorsFromScenarioOutput(output: ScenarioOutput | undefined): number[][] {
+  const variant = output?.output;
   if (variant?.oneofKind !== 'textEmbed') {
     return [];
   }
@@ -301,12 +313,11 @@ export function toEmbeddingVectorsFromScenarioOutput(output: unknown): number[][
     .filter((item) => Number.isFinite(item)));
 }
 
-export function toSpeechTranscriptionFromScenarioOutput(output: unknown): {
+export function toSpeechTranscriptionFromScenarioOutput(output: ScenarioOutput | undefined): {
   text: string;
   artifacts: ScenarioArtifact[];
 } {
-  const value = output as ScenarioOutput | undefined;
-  const variant = value?.output;
+  const variant = output?.output;
   if (variant?.oneofKind !== 'speechTranscribe') {
     return {
       text: '',
@@ -321,9 +332,8 @@ export function toSpeechTranscriptionFromScenarioOutput(output: unknown): {
   };
 }
 
-export function toSpeechSynthesisArtifactsFromScenarioOutput(output: unknown): ScenarioArtifact[] {
-  const value = output as ScenarioOutput | undefined;
-  const variant = value?.output;
+export function toSpeechSynthesisArtifactsFromScenarioOutput(output: ScenarioOutput | undefined): ScenarioArtifact[] {
+  const variant = output?.output;
   if (variant?.oneofKind !== 'speechSynthesize') {
     return [];
   }
@@ -337,9 +347,15 @@ function readLooseListValues(value: unknown): ProtoValue[] {
     return [];
   }
   const values = (value as { values?: unknown }).values;
-  return Array.isArray(values)
-    ? values as ProtoValue[]
-    : [];
+  return Array.isArray(values) ? values.filter(isProtoNumberValue) : [];
+}
+
+function isProtoNumberValue(value: unknown): value is ProtoValue {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const kind = asRecord((value as { kind?: unknown }).kind);
+  return kind.oneofKind === 'numberValue';
 }
 
 function readNumberValue(value: ProtoValue | undefined): number | undefined {

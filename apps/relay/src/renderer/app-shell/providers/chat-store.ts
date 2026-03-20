@@ -50,12 +50,13 @@ export type StatusBanner = {
 export interface ChatState {
   messages: ChatMessage[];
   sendPhase: TurnSendPhase;
+  activeTurnTxnId: string | null;
   statusBanner: StatusBanner;
   promptTrace: unknown | null;
   turnAudit: unknown | null;
 
   setMessages: (messages: ChatMessage[]) => void;
-  setSendPhase: (phase: TurnSendPhase) => void;
+  setSendPhase: (phase: TurnSendPhase, turnTxnId?: string) => void;
   setStatusBanner: (banner: StatusBanner) => void;
   setPromptTrace: (trace: unknown | null) => void;
   setTurnAudit: (audit: unknown | null) => void;
@@ -65,14 +66,25 @@ export interface ChatState {
 export const useChatStore = create<ChatState>((set) => ({
   messages: [],
   sendPhase: 'idle',
+  activeTurnTxnId: null,
   statusBanner: null,
   promptTrace: null,
   turnAudit: null,
 
   setMessages: (messages) => set({ messages }),
-  setSendPhase: (sendPhase) => set({ sendPhase }),
+  setSendPhase: (sendPhase, turnTxnId) => set({
+    sendPhase,
+    activeTurnTxnId: sendPhase === 'idle' ? null : String(turnTxnId || '').trim() || null,
+  }),
   setStatusBanner: (statusBanner) => set({ statusBanner }),
   setPromptTrace: (promptTrace) => set({ promptTrace }),
   setTurnAudit: (turnAudit) => set({ turnAudit }),
-  clearChat: () => set({ messages: [], sendPhase: 'idle', statusBanner: null, promptTrace: null, turnAudit: null }),
+  clearChat: () => set({
+    messages: [],
+    sendPhase: 'idle',
+    activeTurnTxnId: null,
+    statusBanner: null,
+    promptTrace: null,
+    turnAudit: null,
+  }),
 }));

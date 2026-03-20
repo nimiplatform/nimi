@@ -14,6 +14,7 @@ const testDir = path.dirname(fileURLToPath(import.meta.url));
 const srcMain = path.join(testDir, '..', 'src', 'main');
 const specTables = path.join(testDir, '..', 'spec', 'kernel', 'tables');
 const TEST_REASON_CODE = 'TEST';
+const ipcHandlersSource = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf8');
 
 // ── Extracted Logic: requireAgentId (from ipc-handlers.ts:25-32) ─────────
 
@@ -270,6 +271,31 @@ describe('RL-FEAT-003 — relay TTS config resolution', () => {
     }, {});
 
     assert.equal(resolved.voiceId, '');
+  });
+});
+
+describe('RL-PIPE-001 — relay chat cancellation wiring', () => {
+  it('tracks active relay chat turns instead of leaving cancel as a TODO', () => {
+    assert.ok(ipcHandlersSource.includes('const activeRelayChatTurns = new Map'));
+    assert.ok(!ipcHandlersSource.includes('// TODO: wire to AbortController in send-flow'));
+  });
+
+  it('registers abort controllers and schedule handles for relay chat sends', () => {
+    assert.ok(ipcHandlersSource.includes('const abortController = new AbortController()'));
+    assert.ok(ipcHandlersSource.includes('activeRelayChatTurns.set(handle.turnTxnId'));
+    assert.ok(ipcHandlersSource.includes('void handle.done.finally(() => {'));
+  });
+
+  it('fails closed when cancel is called without a cancellable turn', () => {
+    assert.ok(ipcHandlersSource.includes('turnTxnId is required to cancel relay chat turns'));
+    assert.ok(ipcHandlersSource.includes('relay chat turn is not cancellable:'));
+    assert.ok(ipcHandlersSource.includes('ReasonCode.ACTION_NOT_FOUND'));
+  });
+
+  it('cancels active relay schedules with an explicit user cancel reason', () => {
+    assert.ok(ipcHandlersSource.includes("activeTurn.abortController.abort()"));
+    assert.ok(ipcHandlersSource.includes("activeTurn.scheduleHandle?.cancel('LOCAL_CHAT_SCHEDULE_CANCELLED_BY_USER')"));
+    assert.ok(ipcHandlersSource.includes('turnTxnId'));
   });
 });
 

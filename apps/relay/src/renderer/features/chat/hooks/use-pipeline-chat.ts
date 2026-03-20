@@ -13,6 +13,7 @@ export function usePipelineChat() {
   const {
     messages,
     sendPhase,
+    activeTurnTxnId,
     statusBanner,
     setMessages,
     setSendPhase,
@@ -34,7 +35,7 @@ export function usePipelineChat() {
     }));
 
     ids.push(bridge.chat.onTurnPhase((payload) => {
-      setSendPhase(payload.phase);
+      setSendPhase(payload.phase, payload.turnTxnId);
     }));
 
     ids.push(bridge.chat.onStatusBanner((banner) => {
@@ -91,13 +92,18 @@ export function usePipelineChat() {
     }
   }, [currentAgent, runtimeAvailable, setStatusBanner]);
 
-  const cancelTurn = useCallback(async (turnTxnId: string) => {
+  const cancelTurn = useCallback(async (turnTxnId?: string) => {
+    const transactionId = String(turnTxnId || activeTurnTxnId || '').trim();
+    if (!transactionId) {
+      console.warn('[relay:chat] cancelTurn skipped: no active turnTxnId');
+      return;
+    }
     try {
-      await getBridge().chat.cancel({ turnTxnId });
+      await getBridge().chat.cancel({ turnTxnId: transactionId });
     } catch (err) {
       console.warn('[relay:chat] cancelTurn failed', err);
     }
-  }, []);
+  }, [activeTurnTxnId]);
 
   const clearHistory = useCallback(async () => {
     if (!currentAgent) return;
@@ -116,6 +122,7 @@ export function usePipelineChat() {
   return {
     messages,
     sendPhase,
+    activeTurnTxnId,
     statusBanner,
     isSending: sendPhase !== 'idle',
     canChat: !!currentAgent && runtimeAvailable,
