@@ -68,6 +68,7 @@ export default defineConfig(({ mode }) => {
     root: path.resolve(__dirname, 'src/shell/renderer'),
     envPrefix: ['VITE_', 'NIMI_'],
     define: {
+      'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
       'import.meta.env.VITE_NIMI_DESKTOP_VERSION': JSON.stringify(desktopPackageVersion()),
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('desktop'),
     },

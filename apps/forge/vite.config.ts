@@ -11,6 +11,7 @@ export default defineConfig(() => {
     envDir: workspaceRoot,
     envPrefix: ['VITE_', 'NIMI_'],
     define: {
+      'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
       'import.meta.env.VITE_NIMI_SHELL_MODE': JSON.stringify('forge'),
     },
     publicDir: false as const,

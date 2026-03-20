@@ -1,3 +1,5 @@
+import { readBundledEnv } from '../env.js';
+
 // ---------------------------------------------------------------------------
 // OAuth helpers — extracted from Desktop auth-helpers.ts (common parts)
 // ---------------------------------------------------------------------------
@@ -10,15 +12,7 @@ export const DESKTOP_CALLBACK_PATH = '/oauth/callback';
 // ---------------------------------------------------------------------------
 
 export function readEnv(name: string): string {
-  const importMetaEnv = (import.meta as { env?: Record<string, string> }).env;
-  const fromImportMeta = String(importMetaEnv?.[name] || '').trim();
-  if (fromImportMeta) {
-    return fromImportMeta;
-  }
-
-  const globalProcess = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
-  const fromProcess = String(globalProcess?.env?.[name] || '').trim();
-  return fromProcess;
+  return readBundledEnv(name);
 }
 
 // ---------------------------------------------------------------------------

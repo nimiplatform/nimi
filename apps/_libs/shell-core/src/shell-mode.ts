@@ -1,3 +1,5 @@
+import { readBundledEnv } from './env.js';
+
 export type ShellMode = 'desktop' | 'web' | 'forge';
 
 export type ShellFeatureFlags = {
@@ -20,7 +22,7 @@ function hasTauriRuntime(): boolean {
 }
 
 function resolveShellModeFromEnv(): ShellMode {
-  const raw = String((import.meta as { env?: Record<string, string> }).env?.VITE_NIMI_SHELL_MODE || '').trim().toLowerCase();
+  const raw = readBundledEnv('VITE_NIMI_SHELL_MODE').toLowerCase();
   if (raw === 'desktop' || raw === 'web' || raw === 'forge') {
     return raw;
   }
