@@ -5,10 +5,18 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { clearPlatformClient, createPlatformClient, getPlatformClient } from '../src/index.js';
+import { ReasonCode } from '../src/types/index.js';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const distPlatformClientDtsPath = path.join(testDir, '..', 'dist', 'platform-client.d.ts');
 const distRuntimeTypesDtsPath = path.join(testDir, '..', 'dist', 'runtime', 'types-runtime-modules.d.ts');
+
+function readAuthorizationHeader(input: RequestInfo | URL, init?: RequestInit): string {
+  if (input instanceof Request) {
+    return input.headers.get('authorization') || '';
+  }
+  return new Headers(init?.headers as HeadersInit | undefined).get('authorization') || '';
+}
 
 test('createPlatformClient initializes runtime, realm, and grouped domains', async () => {
   clearPlatformClient();
@@ -45,7 +53,23 @@ test('createPlatformClient supports realm-only consumers with disabled runtime',
   assert.equal(typeof client.domains.publicContent.getPublicPost, 'function');
   assert.throws(
     () => (client.runtime as unknown as { health: () => Promise<unknown> }).health(),
-    /runtime is disabled/,
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE);
+      assert.match(String((error as { message?: string }).message || ''), /runtime is disabled/i);
+      return true;
+    },
+  );
+});
+
+test('getPlatformClient throws structured not-ready error before initialization', () => {
+  clearPlatformClient();
+  assert.throws(
+    () => getPlatformClient(),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_PLATFORM_CLIENT_NOT_READY);
+      assert.equal((error as { source?: string }).source, 'sdk');
+      return true;
+    },
   );
 });
 
@@ -67,6 +91,78 @@ test('createPlatformClient resolves realm base url from environment when omitted
       delete process.env.NIMI_REALM_URL;
     } else {
       process.env.NIMI_REALM_URL = previousRealmUrl;
+    }
+  }
+});
+
+test('createPlatformClient prefers sessionStore token over provider and explicit token', async () => {
+  clearPlatformClient();
+  let authorizationHeader = '';
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.platform.tokens',
+    realmBaseUrl: 'https://realm.example',
+    accessToken: 'explicit-token',
+    accessTokenProvider: async () => 'provider-token',
+    sessionStore: {
+      getAccessToken: async () => 'store-token',
+    },
+    runtimeTransport: null,
+    realmFetchImpl: async (_input, init) => {
+      authorizationHeader = readAuthorizationHeader(_input, init);
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+
+  await client.realm.ready();
+  assert.equal(authorizationHeader, 'Bearer store-token');
+});
+
+test('createPlatformClient allows anonymous realm access without authorization header', async () => {
+  clearPlatformClient();
+  let authorizationHeader: string | null = 'uninitialized';
+  const client = await createPlatformClient({
+    appId: 'nimi.sdk.platform.anonymous',
+    realmBaseUrl: 'https://realm.example',
+    allowAnonymousRealm: true,
+    runtimeTransport: null,
+    realmFetchImpl: async (input, init) => {
+      authorizationHeader = readAuthorizationHeader(input, init) || null;
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+
+  await client.realm.ready();
+  assert.equal(authorizationHeader, null);
+});
+
+test('createPlatformClient detects tauri transport from global runtime', async () => {
+  clearPlatformClient();
+  const originalTauri = (globalThis as { __TAURI__?: unknown }).__TAURI__;
+  (globalThis as { __TAURI__?: unknown }).__TAURI__ = {};
+
+  try {
+    const client = await createPlatformClient({
+      appId: 'nimi.sdk.platform.tauri',
+      realmBaseUrl: 'https://realm.example',
+      allowAnonymousRealm: true,
+    });
+
+    assert.equal(client.runtime.transport.type, 'tauri-ipc');
+    if (client.runtime.transport.type === 'tauri-ipc') {
+      assert.equal(client.runtime.transport.commandNamespace, 'runtime_bridge');
+      assert.equal(client.runtime.transport.eventNamespace, 'runtime_bridge');
+    }
+  } finally {
+    if (originalTauri === undefined) {
+      delete (globalThis as { __TAURI__?: unknown }).__TAURI__;
+    } else {
+      (globalThis as { __TAURI__?: unknown }).__TAURI__ = originalTauri;
     }
   }
 });

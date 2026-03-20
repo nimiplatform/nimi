@@ -2,28 +2,7 @@ import {
   asRecord,
   normalizeText,
 } from './helpers.js';
-import { ReasonCode } from '../types/index.js';
-import { createNimiError } from '../runtime/errors.js';
-
-export function assertNoLegacyLocalModelPrefix(modelId: string): void {
-  const normalized = normalizeText(modelId);
-  const prefix = normalized.includes('/') ? normalized.split('/', 1)[0] || '' : normalized;
-  const lowered = prefix.toLowerCase();
-  if (
-    lowered === 'localai'
-    || lowered === 'nexa'
-    || lowered === 'nimi_media'
-    || lowered === 'media.diffusers'
-    || lowered === 'localsidecar'
-  ) {
-    throw createNimiError({
-      message: `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, speech/, or sidecar/.`,
-      reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
-      actionHint: 'rename_legacy_local_model_prefix',
-      source: 'sdk',
-    });
-  }
-}
+export { assertNoLegacyLocalModelPrefix } from '../internal/legacy-local-model-prefix.js';
 
 export function withOptionalHeadSubjectUserId<T extends { head: { subjectUserId: string } }>(
   request: T,

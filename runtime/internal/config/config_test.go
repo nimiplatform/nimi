@@ -1034,6 +1034,9 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED",
 		"NIMI_RUNTIME_ENGINE_NEXA_VERSION",
 		"NIMI_RUNTIME_ENGINE_NEXA_PORT",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT",
 		"NIMI_RUNTIME_MODEL_CATALOG_REMOTE_ENABLED",
 		"NIMI_RUNTIME_MODEL_CATALOG_REMOTE_URL",
 		"NIMI_RUNTIME_MODEL_CATALOG_REFRESH_INTERVAL",
@@ -1154,5 +1157,58 @@ func TestConfigDefaultsMatchSpec(t *testing.T) {
 		if !reflect.DeepEqual(tc.got, tc.want) {
 			t.Errorf("spec alignment %s: got=%v want=%v", tc.field, tc.got, tc.want)
 		}
+	}
+}
+
+func TestRejectLegacyLocalRuntimeEnvIncludesMigrationHints(t *testing.T) {
+	clearRuntimeConfigEnv(t)
+
+	testCases := []struct {
+		name    string
+		key     string
+		value   string
+		substrs []string
+	}{
+		{
+			name:    "local ai base url",
+			key:     "NIMI_RUNTIME_LOCAL_AI_BASE_URL",
+			value:   "http://127.0.0.1:1234/v1",
+			substrs: []string{"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "no longer supported"},
+		},
+		{
+			name:    "nimi media base url",
+			key:     "NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL",
+			value:   "http://127.0.0.1:8321/v1",
+			substrs: []string{"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "no longer supported"},
+		},
+		{
+			name:    "nexa removed",
+			key:     "NIMI_RUNTIME_LOCAL_NEXA_BASE_URL",
+			value:   "http://127.0.0.1:8001/v1",
+			substrs: []string{"removed", "migrate to llama/media providers"},
+		},
+		{
+			name:    "localai image backend removed",
+			key:     "NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_MODE",
+			value:   "official",
+			substrs: []string{"image-backend", "removed"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			clearRuntimeConfigEnv(t)
+			t.Setenv(tc.key, tc.value)
+			err := rejectLegacyLocalRuntimeEnv()
+			if err == nil {
+				t.Fatalf("expected legacy env %s to be rejected", tc.key)
+			}
+			message := err.Error()
+			for _, substr := range tc.substrs {
+				if !strings.Contains(message, substr) {
+					t.Fatalf("expected error %q to contain %q", message, substr)
+				}
+			}
+		})
 	}
 }

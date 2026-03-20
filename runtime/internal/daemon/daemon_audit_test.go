@@ -5,6 +5,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
@@ -124,5 +125,26 @@ func TestProviderProbePathsUsesCanonicalMediaCatalog(t *testing.T) {
 	got := providerProbePaths("local-media")
 	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
 		t.Fatalf("unexpected media probe paths: %v", got)
+	}
+}
+
+func TestProviderTargetNameForEngineSeparatesMediaDiffusersBackend(t *testing.T) {
+	llamaTarget, ok := providerTargetNameForEngine(engine.EngineLlama)
+	if !ok {
+		t.Fatal("expected llama provider target mapping")
+	}
+	if llamaTarget != "local" {
+		t.Fatalf("unexpected llama provider target: %s", llamaTarget)
+	}
+
+	diffusersTarget, ok := providerTargetNameForEngine(engine.EngineKind("media-diffusers-backend"))
+	if !ok {
+		t.Fatal("expected media diffusers provider target mapping")
+	}
+	if diffusersTarget != "local-image" {
+		t.Fatalf("unexpected media diffusers provider target: %s", diffusersTarget)
+	}
+	if diffusersTarget == llamaTarget {
+		t.Fatalf("media diffusers backend must not share provider target name with llama")
 	}
 }

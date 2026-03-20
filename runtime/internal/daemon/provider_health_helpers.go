@@ -32,7 +32,7 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	case engine.EngineLlama:
 		return "local", true
 	case engine.EngineKind("media-diffusers-backend"):
-		return "local", true
+		return "local-image", true
 	case engine.EngineMedia:
 		return "local-media", true
 	case engine.EngineSpeech:

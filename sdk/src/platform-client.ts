@@ -3,9 +3,11 @@ import { Realm } from './realm/client.js';
 import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
 import { sendAgentChannelMessage, type SendAgentChannelMessageInput, type SendAgentChannelMessageOutput } from './realm/extensions/agent-channel.js';
+import { createNimiError } from './runtime/errors.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
 import type { RuntimeCallOptions, RuntimeClientDefaults, RuntimeOptions, RuntimeTransportConfig } from './runtime/types.js';
+import { ReasonCode } from './types/index.js';
 
 type PlatformSessionUser = JsonObject | null;
 type RealmServices = Realm['services'];
@@ -258,7 +260,12 @@ function createDisabledRuntime(appId: string): Runtime {
       if (prop === 'toString') {
         return () => '[DisabledRuntime]';
       }
-      throw new Error(`runtime is disabled for platform client ${appId}`);
+      throw createNimiError({
+        message: `runtime is disabled for platform client ${appId}`,
+        reasonCode: ReasonCode.SDK_RUNTIME_METHOD_UNAVAILABLE,
+        actionHint: 'configure_runtime_transport',
+        source: 'sdk',
+      });
     },
   });
 }
@@ -443,7 +450,12 @@ export async function createPlatformClient(input: PlatformClientInput): Promise<
 
 export function getPlatformClient(): PlatformClient {
   if (!currentPlatformClient) {
-    throw new Error('PLATFORM_CLIENT_NOT_READY');
+    throw createNimiError({
+      message: 'platform client is not ready; call createPlatformClient() first',
+      reasonCode: ReasonCode.SDK_PLATFORM_CLIENT_NOT_READY,
+      actionHint: 'call_create_platform_client_first',
+      source: 'sdk',
+    });
   }
   return currentPlatformClient;
 }

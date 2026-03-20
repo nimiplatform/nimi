@@ -232,33 +232,33 @@ func parseProviderEndpointURL(raw string) (*url.URL, bool) {
 }
 
 func rejectLegacyLocalRuntimeEnv() error {
-	legacyKeys := []string{
-		"NIMI_RUNTIME_LOCAL_AI_BASE_URL",
-		"NIMI_RUNTIME_LOCAL_AI_API_KEY",
-		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL",
-		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY",
-		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL",
-		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_MODE",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_NAME",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ADDRESS",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_COMMAND",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ARGS_JSON",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ENV_JSON",
-		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_WORKING_DIR",
-		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED",
-		"NIMI_RUNTIME_ENGINE_NEXA_VERSION",
-		"NIMI_RUNTIME_ENGINE_NEXA_PORT",
-		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED",
-		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION",
-		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT",
+	legacyMessages := map[string]string{
+		"NIMI_RUNTIME_LOCAL_AI_BASE_URL":                        "use NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL instead",
+		"NIMI_RUNTIME_LOCAL_AI_API_KEY":                         "use NIMI_RUNTIME_LOCAL_LLAMA_API_KEY instead",
+		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL":                      "Nexa support was removed; clear this variable and migrate to llama/media providers",
+		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY":                       "Nexa support was removed; clear this variable and migrate to llama/media providers",
+		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL":                "use NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL instead",
+		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY":                 "use NIMI_RUNTIME_LOCAL_MEDIA_API_KEY instead",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED":                   "use NIMI_RUNTIME_ENGINE_LLAMA_ENABLED instead",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION":                   "use NIMI_RUNTIME_ENGINE_LLAMA_VERSION instead",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT":                      "use NIMI_RUNTIME_ENGINE_LLAMA_PORT instead",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_MODE":        "the LocalAI image-backend config surface was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_NAME":        "the LocalAI image-backend config surface was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ADDRESS":     "the LocalAI image-backend config surface was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_COMMAND":     "the LocalAI image-backend config surface was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ARGS_JSON":   "the LocalAI image-backend config surface was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_ENV_JSON":    "the LocalAI image-backend config surface was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_LOCALAI_IMAGE_BACKEND_WORKING_DIR": "the LocalAI image-backend config surface was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_NEXA_ENABLED":                      "Nexa engine support was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_NEXA_VERSION":                      "Nexa engine support was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_NEXA_PORT":                         "Nexa engine support was removed; clear this variable",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_ENABLED":                "use NIMI_RUNTIME_ENGINE_MEDIA_ENABLED instead",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_VERSION":                "use NIMI_RUNTIME_ENGINE_MEDIA_VERSION instead",
+		"NIMI_RUNTIME_ENGINE_NIMI_MEDIA_PORT":                   "use NIMI_RUNTIME_ENGINE_MEDIA_PORT instead",
 	}
-	for _, key := range legacyKeys {
+	for key, hint := range legacyMessages {
 		if value, ok := os.LookupEnv(key); ok && strings.TrimSpace(value) != "" {
-			return fmt.Errorf("%s is no longer supported; clear legacy local runtime env and reconfigure llama/media", key)
+			return fmt.Errorf("%s is no longer supported; %s", key, hint)
 		}
 	}
 	return nil

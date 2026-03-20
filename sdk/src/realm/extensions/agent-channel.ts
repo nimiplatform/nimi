@@ -1,5 +1,7 @@
 import type { RealmModel } from '../generated/type-helpers.js';
 import type { Realm } from '../client.js';
+import { createNimiError } from '../../runtime/errors.js';
+import { ReasonCode } from '../../types/index.js';
 
 export type SendAgentChannelMessageInput = {
   agentId: string;
@@ -19,10 +21,20 @@ export async function sendAgentChannelMessage(
   const agentId = normalizeText(input.agentId);
   const text = normalizeText(input.text);
   if (!agentId) {
-    throw new Error('AGENT_CHANNEL_AGENT_ID_REQUIRED');
+    throw createNimiError({
+      message: 'agent channel message requires agentId',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_agent_id',
+      source: 'sdk',
+    });
   }
   if (!text) {
-    throw new Error('AGENT_CHANNEL_TEXT_REQUIRED');
+    throw createNimiError({
+      message: 'agent channel message requires text',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_message_text',
+      source: 'sdk',
+    });
   }
   const started = await realm.services.HumanChatService.startChat({
     targetAccountId: agentId,

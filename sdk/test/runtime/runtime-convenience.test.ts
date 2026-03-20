@@ -70,6 +70,7 @@ test('new Runtime() defaults appId and node transport in Node.js', async () => {
       assert.equal(runtime.transport.endpoint, '127.0.0.1:46371');
     }
     assert.ok(thrown);
+    assert.equal((thrown as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
     assert.match(String((thrown as { message?: string })?.message || ''), /requires an explicit local model or provider \+ model/i);
     assert.equal(capturedRequest, null);
   } finally {
@@ -134,7 +135,11 @@ test('Runtime.generate requires explicit provider-scoped models', async () => {
         provider: 'gemini',
         prompt: 'hello cloud runtime',
       }),
-      /requires provider \+ model for cloud routing/i,
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+        assert.match(String((error as { message?: string }).message || ''), /requires provider \+ model for cloud routing/i);
+        return true;
+      },
     );
     await runtime.generate({
       provider: 'gemini',
@@ -158,7 +163,44 @@ test('Runtime.generate rejects fully-qualified remote model ids on the high-leve
       model: 'openai/gpt-5.2',
       prompt: 'should fail',
     }),
-    /does not accept fully-qualified remote model ids/i,
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+      assert.match(String((error as { message?: string }).message || ''), /does not accept fully-qualified remote model ids/i);
+      return true;
+    },
+  );
+});
+
+test('Runtime.generate rejects legacy local prefixes with SDK_AI_PROVIDER_CONFIG_INVALID', async () => {
+  const runtime = new Runtime();
+
+  await assert.rejects(
+    () => runtime.generate({
+      model: 'localai/qwen2.5',
+      prompt: 'should fail legacy prefix',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID);
+      assert.equal((error as { actionHint?: string }).actionHint, 'rename_legacy_local_model_prefix');
+      return true;
+    },
+  );
+});
+
+test('Runtime.generate rejects unsupported provider ids with ACTION_INPUT_INVALID', async () => {
+  const runtime = new Runtime();
+
+  await assert.rejects(
+    () => runtime.generate({
+      provider: 'legacy-cloud',
+      model: 'gpt-4.1-mini',
+      prompt: 'should fail provider validation',
+    }),
+    (error: unknown) => {
+      assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+      assert.match(String((error as { message?: string }).message || ''), /unsupported provider/i);
+      return true;
+    },
   );
 });
 

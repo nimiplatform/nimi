@@ -1,5 +1,7 @@
-import type { NimiError } from '../types/index.js';
-import type { AiRoutePolicy } from '../types/index.js';
+import type { AiRoutePolicy, NimiError } from '../types/index.js';
+import { ReasonCode } from '../types/index.js';
+import { assertNoLegacyLocalModelPrefix } from '../internal/legacy-local-model-prefix.js';
+import { createNimiError } from './errors.js';
 import type { RuntimeMetadata } from './types.js';
 import type {
   NimiFinishReason,
@@ -88,19 +90,9 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
   if (!normalized.includes('/')) {
     return false;
   }
+  assertNoLegacyLocalModelPrefix(normalized);
   const [prefix = ''] = normalized.split('/', 1);
   const lowered = prefix.toLowerCase();
-  if (
-    lowered === 'localai'
-    || lowered === 'nexa'
-    || lowered === 'nimi_media'
-    || lowered === 'media.diffusers'
-    || lowered === 'localsidecar'
-  ) {
-    throw new Error(
-      `legacy local model prefix "${prefix}" is no longer supported. Use local/, llama/, media/, speech/, or sidecar/.`,
-    );
-  }
   if (
     lowered === 'cloud'
     || lowered === 'local'
@@ -114,20 +106,31 @@ function looksLikeQualifiedRemoteModel(model: string): boolean {
   return isLowercaseQualifiedPrefix(prefix) && REMOTE_PROVIDER_SET.has(lowered);
 }
 
+function createRuntimeConvenienceInputError(message: string, actionHint: string): NimiError {
+  return createNimiError({
+    message,
+    reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+    actionHint,
+    source: 'sdk',
+  });
+}
+
 function resolveRuntimeConvenienceTarget(input: RuntimeGenerateInput): ResolvedRuntimeTarget {
   const provider = normalize(input.provider);
   const model = normalize(input.model);
 
   if (!provider && !model) {
-    throw new Error(
+    throw createRuntimeConvenienceInputError(
       'high-level Runtime.generate()/stream() requires an explicit local model or provider + model.',
+      'provide_runtime_target',
     );
   }
 
   if (!provider) {
     if (looksLikeQualifiedRemoteModel(model)) {
-      throw new Error(
+      throw createRuntimeConvenienceInputError(
         'high-level Runtime.generate()/stream() does not accept fully-qualified remote model ids. Use provider + model, or use runtime.ai.text.generate() for explicit remote model ids.',
+        'remove_remote_model_prefix',
       );
     }
     return {
@@ -137,20 +140,23 @@ function resolveRuntimeConvenienceTarget(input: RuntimeGenerateInput): ResolvedR
   }
 
   if (!REMOTE_PROVIDER_SET.has(provider.toLowerCase())) {
-    throw new Error(
+    throw createRuntimeConvenienceInputError(
       `unsupported provider "${provider}". Use a canonical provider id such as gemini, openai, anthropic, or deepseek.`,
+      'use_supported_provider_id',
     );
   }
 
   if (!model) {
-    throw new Error(
+    throw createRuntimeConvenienceInputError(
       'high-level Runtime.generate()/stream() requires provider + model for cloud routing. It no longer invents an implicit provider/default target.',
+      'provide_provider_and_model',
     );
   }
 
   if (model && looksLikeQualifiedRemoteModel(model)) {
-    throw new Error(
+    throw createRuntimeConvenienceInputError(
       'provider + model expects a provider-scoped model id. Remove the remote prefix, or use runtime.ai.text.generate() for explicit fully-qualified remote model ids.',
+      'remove_remote_model_prefix',
     );
   }
 

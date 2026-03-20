@@ -15,6 +15,9 @@ codes:
   - name: SDK_RUNTIME_METHOD_UNAVAILABLE
     family: SDK_CONFIG
     source_rule: S-ERROR-006
+  - name: SDK_PLATFORM_CLIENT_NOT_READY
+    family: SDK_CONFIG
+    source_rule: S-ERROR-003
   - name: SDK_AI_PROVIDER_RUNTIME_REQUIRED
     family: SDK_AI_PROVIDER
     source_rule: S-ERROR-003
