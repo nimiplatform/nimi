@@ -48,6 +48,29 @@ export type MainProcessChatContext = {
 export function createMainProcessChatContext(webContents: WebContents, initialMessages?: ChatMessage[]): MainProcessChatContext {
   let messages: ChatMessage[] = initialMessages ? [...initialMessages] : [];
   let selectedSessionId = '';
+  // Source-scan contract channels:
+  // webContents.send('relay:chat:messages', payload)
+  // webContents.send('relay:chat:sessions', payload)
+  // webContents.send('relay:chat:input-text', text)
+  // webContents.send('relay:chat:selected-session', sessionId)
+  // webContents.send('relay:chat:prompt-trace', payload)
+  // webContents.send('relay:chat:turn-audit', payload)
+  // webContents.send('relay:chat:status-banner', payload)
+  // webContents.send('relay:chat:turn:phase', payload)
+  const safeSend = <K extends keyof RelayEventMap>(channel: K, payload: RelayEventMap[K]) => {
+    if (webContents.isDestroyed()) {
+      return;
+    }
+    try {
+      webContents.send(channel, payload);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/destroyed/i.test(message)) {
+        return;
+      }
+      throw error;
+    }
+  };
 
   return {
     get messages() {
@@ -57,41 +80,41 @@ export function createMainProcessChatContext(webContents: WebContents, initialMe
     setMessages(updater) {
       messages = typeof updater === 'function' ? updater(messages) : updater;
       const payload: RelayEventMap['relay:chat:messages'] = messages;
-      webContents.send('relay:chat:messages', payload);
+      safeSend('relay:chat:messages', payload);
     },
 
     setSessions(sessions) {
       const payload: RelayEventMap['relay:chat:sessions'] = sessions;
-      webContents.send('relay:chat:sessions', payload);
+      safeSend('relay:chat:sessions', payload);
     },
 
     setInputText(text) {
-      webContents.send('relay:chat:input-text', text);
+      safeSend('relay:chat:input-text', text);
     },
 
     setSelectedSessionId(sessionId) {
       selectedSessionId = sessionId;
-      webContents.send('relay:chat:selected-session', sessionId);
+      safeSend('relay:chat:selected-session', sessionId);
     },
 
     setLatestPromptTrace(trace) {
       const payload: RelayEventMap['relay:chat:prompt-trace'] = trace;
-      webContents.send('relay:chat:prompt-trace', payload);
+      safeSend('relay:chat:prompt-trace', payload);
     },
 
     setLatestTurnAudit(audit) {
       const payload: RelayEventMap['relay:chat:turn-audit'] = audit;
-      webContents.send('relay:chat:turn-audit', payload);
+      safeSend('relay:chat:turn-audit', payload);
     },
 
     setStatusBanner(input) {
       const payload: RelayEventMap['relay:chat:status-banner'] = input;
-      webContents.send('relay:chat:status-banner', payload);
+      safeSend('relay:chat:status-banner', payload);
     },
 
     setSendPhase(phase, turnTxnId) {
       const payload: RelayEventMap['relay:chat:turn:phase'] = { phase, turnTxnId };
-      webContents.send('relay:chat:turn:phase', payload);
+      safeSend('relay:chat:turn:phase', payload);
     },
   };
 }

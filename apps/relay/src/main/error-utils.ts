@@ -32,5 +32,14 @@ export function toIpcError(error: unknown): Error {
   if (normalized.reasonCode) parts.push(`[${normalized.reasonCode}]`);
   if (normalized.actionHint) parts.push(`(${normalized.actionHint})`);
   const err = new Error(parts.join(' '));
+  if (normalized.reasonCode) {
+    Object.assign(err, { reasonCode: normalized.reasonCode });
+  }
+  if (normalized.actionHint) {
+    Object.assign(err, { actionHint: normalized.actionHint });
+  }
+  if (normalized.traceId) {
+    Object.assign(err, { traceId: normalized.traceId });
+  }
   return err;
 }

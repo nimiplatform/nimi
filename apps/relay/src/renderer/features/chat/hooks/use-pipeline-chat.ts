@@ -65,16 +65,27 @@ export function usePipelineChat() {
     clearChat();
 
     if (!currentAgent) return;
+    let disposed = false;
+    const requestAgentId = currentAgent.id;
 
     // Load session history for new agent
-    getBridge().chat.history({ agentId: currentAgent.id })
+    getBridge().chat.history({ agentId: requestAgentId })
       .then((result) => {
+        if (disposed || currentAgent?.id !== requestAgentId) {
+          return;
+        }
         setMessages(result);
       })
       .catch((err) => {
+        if (disposed || currentAgent?.id !== requestAgentId) {
+          return;
+        }
         console.warn('[relay:chat] history load failed', err);
         setStatusBanner({ kind: 'warning', message: `History load failed: ${err instanceof Error ? err.message : String(err)}` });
       });
+    return () => {
+      disposed = true;
+    };
   }, [currentAgent?.id, clearChat, setMessages, setStatusBanner]);
 
   const sendMessage = useCallback(async (text: string) => {

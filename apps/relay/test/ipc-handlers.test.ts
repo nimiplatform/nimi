@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { normalizeError, type NormalizedError } from '../src/main/error-utils.js';
+import { normalizeError, toIpcError, type NormalizedError } from '../src/main/error-utils.js';
 import { resolveRelayTtsConfig } from '../src/main/tts-config.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -110,6 +110,22 @@ describe('RL-IPC-005 — Error Normalization (normalizeError)', () => {
     const error = Object.assign(new Error('bad'), { traceId: 42 });
     const result = normalizeError(error);
     assert.equal(result.traceId, undefined, 'numeric traceId should be filtered');
+  });
+
+  it('preserves structured error fields on IPC Error instances', () => {
+    const error = Object.assign(new Error('rpc failed'), {
+      reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+      actionHint: 'retry_later',
+      traceId: 'trace-123',
+    });
+    const ipcError = toIpcError(error) as Error & {
+      reasonCode?: string;
+      actionHint?: string;
+      traceId?: string;
+    };
+    assert.equal(ipcError.reasonCode, ReasonCode.RUNTIME_UNAVAILABLE);
+    assert.equal(ipcError.actionHint, 'retry_later');
+    assert.equal(ipcError.traceId, 'trace-123');
   });
 });
 
