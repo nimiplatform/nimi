@@ -2021,10 +2021,77 @@ pub struct ExecuteScenarioRequest {
     #[prost(message, repeated, tag = "5")]
     pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextGenerateOutput {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EmbeddingVector {
+    #[prost(double, repeated, tag = "1")]
+    pub values: ::prost::alloc::vec::Vec<f64>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextEmbedOutput {
+    #[prost(message, repeated, tag = "1")]
+    pub vectors: ::prost::alloc::vec::Vec<EmbeddingVector>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImageGenerateResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VideoGenerateResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechSynthesizeResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SpeechTranscribeResult {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MusicGenerateResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ScenarioOutput {
+    #[prost(oneof = "scenario_output::Output", tags = "1, 2, 3, 4, 5, 6, 7")]
+    pub output: ::core::option::Option<scenario_output::Output>,
+}
+/// Nested message and enum types in `ScenarioOutput`.
+pub mod scenario_output {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Output {
+        #[prost(message, tag = "1")]
+        TextGenerate(super::TextGenerateOutput),
+        #[prost(message, tag = "2")]
+        TextEmbed(super::TextEmbedOutput),
+        #[prost(message, tag = "3")]
+        ImageGenerate(super::ImageGenerateResult),
+        #[prost(message, tag = "4")]
+        VideoGenerate(super::VideoGenerateResult),
+        #[prost(message, tag = "5")]
+        SpeechTranscribe(super::SpeechTranscribeResult),
+        #[prost(message, tag = "6")]
+        MusicGenerate(super::MusicGenerateResult),
+        #[prost(message, tag = "7")]
+        SpeechSynthesize(super::SpeechSynthesizeResult),
+    }
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteScenarioResponse {
     #[prost(message, optional, tag = "1")]
-    pub output: ::core::option::Option<::prost_types::Struct>,
+    pub output: ::core::option::Option<ScenarioOutput>,
     #[prost(enumeration = "FinishReason", tag = "2")]
     pub finish_reason: i32,
     #[prost(message, optional, tag = "3")]
@@ -2059,13 +2126,31 @@ pub struct ScenarioStreamStarted {
     pub route_decision: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ScenarioStreamDelta {
+pub struct TextStreamDelta {
     #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "2")]
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ArtifactStreamDelta {
+    #[prost(bytes = "vec", tag = "1")]
     pub chunk: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag = "3")]
+    #[prost(string, tag = "2")]
     pub mime_type: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ScenarioStreamDelta {
+    #[prost(oneof = "scenario_stream_delta::Delta", tags = "1, 2")]
+    pub delta: ::core::option::Option<scenario_stream_delta::Delta>,
+}
+/// Nested message and enum types in `ScenarioStreamDelta`.
+pub mod scenario_stream_delta {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Delta {
+        #[prost(message, tag = "1")]
+        Text(super::TextStreamDelta),
+        #[prost(message, tag = "2")]
+        Artifact(super::ArtifactStreamDelta),
+    }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ScenarioStreamCompleted {
@@ -2262,6 +2347,8 @@ pub struct GetScenarioArtifactsResponse {
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
     #[prost(string, tag = "3")]
     pub trace_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "4")]
+    pub output: ::core::option::Option<ScenarioOutput>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ScenarioProfile {
