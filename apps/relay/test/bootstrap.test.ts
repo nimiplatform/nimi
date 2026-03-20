@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { parseEnv } from '../src/main/env.js';
 import { useAppStore, type Agent } from '../src/renderer/app-shell/providers/app-store.js';
 import type { NimiRelayBridge } from '../src/renderer/bridge/electron-bridge.js';
@@ -158,7 +159,7 @@ describe('RL-BOOT-001 — Main Process Initialization Sequence', () => {
     const step1 = body.indexOf('parseEnv()');
     const step2 = body.indexOf('registerAuthIpcHandlers(env, () => mainWindow)');
     const step3 = body.indexOf('createWindow()');
-    const step4 = body.indexOf('initPlatformClient(env)');
+    const step4 = body.indexOf('createPlatformClient({');
     const step5 = body.indexOf('registerIpcHandlers(runtime, realm, getWebContents, env, routeState)');
 
     assert.ok(step1 >= 0, 'step 1: parseEnv exists');
@@ -166,6 +167,16 @@ describe('RL-BOOT-001 — Main Process Initialization Sequence', () => {
     assert.ok(step3 > step2, 'step 3: window created after auth IPC');
     assert.ok(step4 > step3, 'step 4: platform init occurs after window for login-first boot');
     assert.ok(step5 > step4, 'step 5: authenticated IPC registered after platform init');
+  });
+
+  it('index.ts uses ReasonCode.AUTH_* constants instead of hard-coded auth strings', () => {
+    const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
+    const authTokenInvalidLiteral = ['reason === ', `'${ReasonCode.AUTH_TOKEN_INVALID}'`].join('');
+    const authDeniedLiteral = ['reason === ', `'${ReasonCode.AUTH_DENIED}'`].join('');
+    assert.ok(source.includes('ReasonCode.AUTH_TOKEN_INVALID'), 'must use ReasonCode.AUTH_TOKEN_INVALID');
+    assert.ok(source.includes('ReasonCode.AUTH_DENIED'), 'must use ReasonCode.AUTH_DENIED');
+    assert.ok(!source.includes(authTokenInvalidLiteral), 'must not hard-code AUTH_TOKEN_INVALID');
+    assert.ok(!source.includes(authDeniedLiteral), 'must not hard-code AUTH_DENIED');
   });
 });
 
@@ -225,21 +236,13 @@ describe('RL-BOOT-002 — Renderer Bootstrap', () => {
 
 // ─── RL-BOOT-004 — Runtime Unavailable Degradation ──────────────────────
 
-// Re-extract fetchAgentProfile fallback from bootstrap.ts
-function stubAgent(agentId: string): { id: string; name: string } {
-  return { id: agentId, name: agentId };
-}
-
 describe('RL-BOOT-004 — Runtime Unavailable Degradation', () => {
   beforeEach(() => {
     useAppStore.setState({ currentAgent: null, runtimeAvailable: false, realtimeConnected: false });
   });
 
-  it('stub fallback returns agent with id === name', () => {
-    const stub = stubAgent('agent-123');
-    assert.equal(stub.id, 'agent-123');
-    assert.equal(stub.name, 'agent-123');
-    assert.equal(stub.id, stub.name);
+  it('runtime unavailability does not synthesize a placeholder agent', () => {
+    assert.equal(useAppStore.getState().currentAgent, null);
   });
 
   it('store reflects runtime unavailability', () => {
@@ -305,17 +308,6 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
     assert.equal(useAppStore.getState().currentAgent?.id, configAgentId);
   });
 
-  it('fallback stub agent is used when realm unreachable', () => {
-    const configAgentId = 'agent-from-env';
-    const stub = stubAgent(configAgentId);
-    useAppStore.getState().setAgent(stub);
-
-    const current = useAppStore.getState().currentAgent!;
-    assert.equal(current.id, configAgentId);
-    assert.equal(current.name, configAgentId, 'stub has id === name');
-    assert.equal(current.voiceModel, undefined, 'stub has no voice model');
-  });
-
   it('no agent id in config leaves currentAgent null', () => {
     // Simulate: config returns agentId: null
     // Bootstrap does not call setAgent
@@ -326,8 +318,8 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
     const bridge = {
       health: async () => ({ status: 'ok' }),
       config: async () => ({ agentId: 'agent-from-env', worldId: null }),
-      realm: {
-        request: async () => ({
+      agent: {
+        get: async () => ({
           id: 'agent-from-env',
           displayName: 'Env Agent',
           handle: '@env',
@@ -357,8 +349,8 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
         }
         return { agentId: 'agent-from-env', worldId: null };
       },
-      realm: {
-        request: async () => ({
+      agent: {
+        get: async () => ({
           id: 'agent-from-env',
           displayName: 'Env Agent',
           handle: '@env',
@@ -388,8 +380,8 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
         }
         return { agentId: 'agent-from-env', worldId: null };
       },
-      realm: {
-        request: async () => ({
+      agent: {
+        get: async () => ({
           id: 'agent-from-env',
           displayName: 'Env Agent',
           handle: '@env',
@@ -415,8 +407,8 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
     const bridge = {
       health: async () => ({ status: 'ok' }),
       config: async () => ({ agentId: null, worldId: null }),
-      realm: {
-        request: async () => {
+      agent: {
+        get: async () => {
           throw new Error('should not be called');
         },
       },
@@ -439,9 +431,51 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
       config: async () => {
         throw new Error('relay:config temporarily unavailable');
       },
-      realm: {
-        request: async () => {
+      agent: {
+        get: async () => {
           throw new Error('should not be called');
+        },
+      },
+    };
+
+    const result = await syncAuthenticatedRendererState(
+      bridge as unknown as NimiRelayBridge,
+    );
+
+    assert.equal(result.runtimeAvailable, true);
+    assert.equal(result.agentId, 'existing-agent');
+    assert.equal(useAppStore.getState().currentAgent?.id, 'existing-agent');
+    assert.equal(useAppStore.getState().currentAgent?.name, 'Existing Agent');
+  });
+
+  it('post-auth sync does not synthesize a stub agent when realm lookup fails without an existing selection', async () => {
+    const bridge = {
+      health: async () => ({ status: 'ok' }),
+      config: async () => ({ agentId: 'agent-from-env', worldId: null }),
+      agent: {
+        get: async () => {
+          throw new Error('realm unavailable');
+        },
+      },
+    };
+
+    const result = await syncAuthenticatedRendererState(
+      bridge as unknown as NimiRelayBridge,
+    );
+
+    assert.equal(result.runtimeAvailable, true);
+    assert.equal(result.agentId, null);
+    assert.equal(useAppStore.getState().currentAgent, null);
+  });
+
+  it('post-auth sync preserves an existing agent when realm lookup fails', async () => {
+    useAppStore.getState().setAgent({ id: 'existing-agent', name: 'Existing Agent' });
+    const bridge = {
+      health: async () => ({ status: 'ok' }),
+      config: async () => ({ agentId: 'agent-from-env', worldId: null }),
+      agent: {
+        get: async () => {
+          throw new Error('realm unavailable');
         },
       },
     };

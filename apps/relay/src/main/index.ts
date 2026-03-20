@@ -5,6 +5,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { parseEnv, type RelayEnv } from './env.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
 import { registerModelIpcHandlers } from './model-handlers.js';
@@ -174,7 +175,7 @@ app.whenReady().then(async () => {
       setAuthState('authenticated');
     } catch (healthError) {
       const reason = (healthError as { reasonCode?: string }).reasonCode;
-      if (reason === 'AUTH_TOKEN_INVALID' || reason === 'AUTH_DENIED') {
+      if (reason === ReasonCode.AUTH_TOKEN_INVALID || reason === ReasonCode.AUTH_DENIED) {
         // Stale/revoked token — clear and fall through to login
         clearToken();
         env.NIMI_ACCESS_TOKEN = undefined;

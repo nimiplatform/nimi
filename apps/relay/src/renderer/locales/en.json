@@ -14,7 +14,7 @@
     "switchAgent": "Switch agent",
     "selectAnAgent": "Select an Agent",
     "loadingAgents": "Loading agents...",
-    "realmUnreachable": "Realm unreachable. Enter an agent ID manually:",
+    "realmUnreachable": "Realm unreachable. Agent list is unavailable.",
     "go": "Go",
     "noAgentsAvailable": "No agents available"
   },
@@ -27,7 +27,48 @@
     "send": "Send",
     "noMessages": "No messages yet in this channel",
     "messageAgent": "Message {{name}}...",
-    "sendMessage": "Send a message..."
+    "sendMessage": "Send a message...",
+    "greeting": "Hi, what can I help you with?",
+    "greetingSub": "Ask me anything or pick a quick action below",
+    "enterToSend": "Enter to send, Shift+Enter for new line",
+    "clearHistory": "Clear history",
+    "quickAction": {
+      "writeCode": {
+        "label": "Write Code",
+        "prompt": "Help me write code"
+      },
+      "analyzeData": {
+        "label": "Analyze Data",
+        "prompt": "Help me analyze data"
+      },
+      "writeCopy": {
+        "label": "Write Copy",
+        "prompt": "Help me write copy"
+      }
+    }
+  },
+  "sidebar": {
+    "newChat": "New Chat",
+    "search": "Search conversations...",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "previous7Days": "Previous 7 Days",
+    "older": "Older",
+    "noResults": "No matching conversations",
+    "noSessions": "No conversations yet",
+    "untitled": "Untitled"
+  },
+  "message": {
+    "copy": "Copy",
+    "regenerate": "Regenerate",
+    "like": "Like",
+    "dislike": "Dislike"
+  },
+  "code": {
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "copy": "Copy",
+    "copied": "Copied!"
   },
   "degradation": {
     "runtimeUnavailable": "Runtime Unavailable",

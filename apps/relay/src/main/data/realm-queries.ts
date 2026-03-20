@@ -1,6 +1,6 @@
 // Relay data queries — typed Realm service access for relay chat context.
 
-import type { Realm, RealmServiceResult } from '@nimiplatform/sdk/realm';
+import type { RealmModel, RealmServiceResult } from '@nimiplatform/sdk/realm';
 import type {
   LocalChatTarget,
   LocalChatPlatformWarmStartMemory,
@@ -12,73 +12,101 @@ type JsonObject = Record<string, unknown>;
 type GetAgentResult = RealmServiceResult<'AgentsService', 'getAgent'>;
 type ListFriendsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
 type GetWorldResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorld'>;
+type ListCoreMemoriesResult = RealmServiceResult<'AgentsService', 'agentControllerListCoreMemories'>;
+type RecallForEntityResult = RealmServiceResult<'AgentsService', 'agentControllerRecallForEntity'>;
+type FriendProfile = NonNullable<ListFriendsResult['items']>[number];
+type AgentDna = RealmModel<'UserAgentDnaDto'>;
+type AgentProfile = RealmModel<'AgentProfileDto'>;
+type AgentMetadata = RealmModel<'AgentMetadataDto'>;
+type AgentMemoryRecord = RealmModel<'AgentMemoryRecordDto'>;
+
+type RelayRealmClient = {
+  services: {
+    AgentsService: {
+      getAgent(targetId: string): Promise<GetAgentResult>;
+      agentControllerListCoreMemories(targetId: string): Promise<ListCoreMemoriesResult>;
+      agentControllerRecallForEntity(targetId: string, entityId: string): Promise<RecallForEntityResult>;
+    };
+    MeService: {
+      listMyFriendsWithDetails(input?: undefined, limit?: number): Promise<ListFriendsResult>;
+    };
+    WorldsService: {
+      worldControllerGetWorld(worldId: string): Promise<GetWorldResult>;
+    };
+  };
+};
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function asRecord(value: unknown): JsonObject {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as JsonObject)
-    : {};
-}
-
-function asString(value: unknown): string {
+function normalizeText(value: string | null | undefined): string {
   return String(value || '').trim();
 }
 
-function asNullableString(value: unknown): string | null {
-  const s = String(value || '').trim();
-  return s || null;
-}
-
-function asStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => String(item || '').trim()).filter(Boolean);
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const text = normalizeText(value);
+  return text || null;
 }
 
 function isAgentHandle(handle: string | null): boolean {
   return Boolean(handle && handle.startsWith('~'));
 }
 
-function toMemoryEntries(value: unknown): Array<string | JsonObject> {
-  if (Array.isArray(value)) {
-    return value
-      .filter(
-        (item) =>
-          typeof item === 'string' ||
-          (item && typeof item === 'object' && !Array.isArray(item)),
-      )
-      .map((item) =>
-        typeof item === 'string' ? item : (item as JsonObject),
-      );
+function compactLines(values: Array<string | null | undefined>): string[] {
+  return values.map((value) => normalizeText(value)).filter(Boolean);
+}
+
+function buildTargetMetadata(
+  agent: AgentMetadata | undefined,
+  agentProfile: AgentProfile | undefined,
+  dna: AgentDna | null | undefined,
+): JsonObject {
+  const metadata: JsonObject = {};
+  if (agent) {
+    metadata.agent = agent;
   }
-  const record = asRecord(value);
-  if (Array.isArray(record.items)) return toMemoryEntries(record.items);
-  if (Array.isArray(record.data)) return toMemoryEntries(record.data);
-  return [];
+  if (agentProfile) {
+    metadata.agentProfile = agentProfile;
+  }
+  if (dna) {
+    metadata.dna = dna;
+  }
+  return metadata;
 }
 
-function toMemoryText(entry: string | JsonObject): string {
-  if (typeof entry === 'string') return entry.trim();
-  const content = asString(
-    entry.content ||
-      entry.text ||
-      entry.summary ||
-      entry.memory ||
-      entry.description ||
-      entry.value,
-  );
-  if (content) return content;
-  const fallback = JSON.stringify(entry);
-  return fallback === '{}' ? '' : fallback;
+function buildDnaSummary(dna: AgentDna | null | undefined): LocalChatTarget['dna'] {
+  const identity = dna?.identity;
+  const personality = dna?.personality;
+  const communication = dna?.communication;
+  const appearance = dna?.appearance;
+
+  return {
+    identityLines: compactLines([
+      identity?.summary,
+      identity?.name ? `Name: ${identity.name}` : null,
+      identity?.role ? `Role: ${identity.role}` : null,
+      identity?.species ? `Species: ${identity.species}` : null,
+      identity?.worldview ? `Worldview: ${identity.worldview}` : null,
+    ]),
+    rulesLines: compactLines([
+      ...(personality?.goals ?? []).slice(0, 3).map((goal) => `Goal: ${goal}`),
+      ...(personality?.interests ?? []).slice(0, 3).map((interest) => `Interest: ${interest}`),
+      personality?.relationshipMode ? `Relationship mode: ${personality.relationshipMode}` : null,
+    ]),
+    replyStyleLines: compactLines([
+      personality?.summary,
+      communication?.summary,
+      communication?.responseLength ? `Response length: ${communication.responseLength}` : null,
+      communication?.formality ? `Formality: ${communication.formality}` : null,
+      communication?.sentiment ? `Sentiment: ${communication.sentiment}` : null,
+      appearance?.fashionStyle ? `Fashion style: ${appearance.fashionStyle}` : null,
+    ]),
+  };
 }
 
-function toMemoryTextList(
-  entries: Array<string | JsonObject>,
-  topK: number,
-): string[] {
+function toMemoryTextList(records: AgentMemoryRecord[], topK: number): string[] {
   const dedupe = new Map<string, string>();
-  for (const entry of entries) {
-    const text = toMemoryText(entry);
+  for (const record of records) {
+    const text = normalizeText(record.content);
     if (!text) continue;
     const key = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
     if (!key) continue;
@@ -91,33 +119,24 @@ function toMemoryTextList(
 
 // ── Agent Profile ───────────────────────────────────────────────────
 
-function normalizeAgentToTarget(payload: JsonObject): LocalChatTarget {
-  const id = asString(payload.id);
-  const handle = asString(payload.handle) || id;
-  const agent = asRecord(payload.agent);
-  const agentProfile = asRecord(payload.agentProfile);
-  const metadata = asRecord(payload.agentMetadata || agent);
-  const dna = asRecord(metadata.dna || agentProfile.dna);
-  const worldId =
-    asString(payload.worldId) ||
-    asString(agent.worldId) ||
-    asString(agentProfile.worldId) ||
-    null;
+function normalizeAgentToTarget(payload: GetAgentResult): LocalChatTarget {
+  const id = payload.id;
+  const handle = normalizeText(payload.handle) || id;
+  const agent = payload.agent;
+  const agentProfile = payload.agentProfile;
+  const dna = agentProfile?.dna;
+  const worldId = normalizeOptionalText(agent?.worldId || agentProfile?.worldId);
 
   return {
     id,
     handle,
-    displayName: asString(payload.displayName) || handle,
-    avatarUrl: asNullableString(payload.avatarUrl),
-    bio: asNullableString(payload.bio),
-    dna: {
-      identityLines: asStringArray(dna.identityLines),
-      rulesLines: asStringArray(dna.rulesLines),
-      replyStyleLines: asStringArray(dna.replyStyleLines),
-    },
-    metadata,
+    displayName: normalizeText(payload.displayName) || handle,
+    avatarUrl: normalizeOptionalText(payload.avatarUrl),
+    bio: normalizeOptionalText(payload.bio),
+    dna: buildDnaSummary(dna),
+    metadata: buildTargetMetadata(agent, agentProfile, dna),
     worldId,
-    worldName: asNullableString(payload.worldName),
+    worldName: null,
   };
 }
 
@@ -125,49 +144,36 @@ function normalizeAgentToTarget(payload: JsonObject): LocalChatTarget {
  * Fetches an agent profile via Realm services and normalizes to `LocalChatTarget` shape.
  */
 export async function fetchTargetProfile(
-  realm: Realm,
+  realm: RelayRealmClient,
   targetId: string,
 ): Promise<LocalChatTarget> {
   const payload: GetAgentResult = await realm.services.AgentsService.getAgent(targetId);
-  return normalizeAgentToTarget(asRecord(payload));
+  return normalizeAgentToTarget(payload);
 }
 
 // ── Agent Friends List ──────────────────────────────────────────────
 
-function normalizeFriendToTarget(friend: JsonObject): LocalChatTarget | null {
-  const id = asString(friend.id);
+function normalizeFriendToTarget(friend: FriendProfile): LocalChatTarget | null {
+  const id = normalizeText(friend.id);
   if (!id) return null;
-  const handle = asString(friend.handle) || id;
+  const handle = normalizeText(friend.handle) || id;
   const isAgent = Boolean(friend.isAgent) || isAgentHandle(handle);
   if (!isAgent) return null;
-
-  const agent = asRecord(
-    friend.agent && typeof friend.agent === 'object' ? friend.agent : friend.agentMetadata,
-  );
-  const agentProfile = asRecord(friend.agentProfile);
-  const metadata = Object.keys(agent).length > 0 ? agent : asRecord(friend.agentMetadata);
-  const dna = asRecord(metadata.dna || agentProfile.dna);
-
-  const worldId =
-    asString(friend.worldId) ||
-    asString(agent.worldId) ||
-    asString(agentProfile.worldId) ||
-    null;
+  const agent = friend.agent;
+  const agentProfile = friend.agentProfile;
+  const dna = agentProfile?.dna;
+  const worldId = normalizeOptionalText(agent?.worldId || agentProfile?.worldId);
 
   return {
     id,
     handle,
-    displayName: asString(friend.displayName) || handle,
-    avatarUrl: asNullableString(friend.avatarUrl),
-    bio: asNullableString(friend.bio),
-    dna: {
-      identityLines: asStringArray(dna.identityLines),
-      rulesLines: asStringArray(dna.rulesLines),
-      replyStyleLines: asStringArray(dna.replyStyleLines),
-    },
-    metadata,
+    displayName: normalizeText(friend.displayName) || handle,
+    avatarUrl: normalizeOptionalText(friend.avatarUrl),
+    bio: normalizeOptionalText(friend.bio),
+    dna: buildDnaSummary(dna),
+    metadata: buildTargetMetadata(agent, agentProfile, dna),
     worldId,
-    worldName: asNullableString(friend.worldName),
+    worldName: null,
   };
 }
 
@@ -175,13 +181,12 @@ function normalizeFriendToTarget(friend: JsonObject): LocalChatTarget | null {
  * Fetches the user's agent friends via Realm services.
  */
 export async function fetchTargetList(
-  realm: Realm,
+  realm: RelayRealmClient,
 ): Promise<LocalChatTarget[]> {
   const payload: ListFriendsResult = await realm.services.MeService.listMyFriendsWithDetails(undefined, 200);
-  const record = asRecord(payload);
-  const items = Array.isArray(record.items) ? record.items : [];
+  const items = payload.items ?? [];
   return items
-    .map((item) => normalizeFriendToTarget(asRecord(item)))
+    .map((item) => normalizeFriendToTarget(item))
     .filter((item): item is LocalChatTarget => item !== null);
 }
 
@@ -191,31 +196,28 @@ export async function fetchTargetList(
  * Fetches world context via Realm services and returns summarized world lines.
  */
 export async function fetchWorldContext(
-  realm: Realm,
+  realm: RelayRealmClient,
   worldId: string,
 ): Promise<{ lines: string[] }> {
   if (!worldId) return { lines: [] };
 
   try {
     const payload: GetWorldResult = await realm.services.WorldsService.worldControllerGetWorld(worldId);
-    const world = asRecord(payload);
-    const worldName = asString(world.name || world.title);
-    const worldSummary = asString(world.summary || world.description);
-    const worldview = asRecord(world.worldview);
-    const worldviewName = asString(worldview.name || worldview.title);
-    const worldviewSummary = asString(worldview.summary || worldview.description);
-    const rules = asStringArray(worldview.rules);
+    const worldName = normalizeText(payload.name);
+    const worldSummary = normalizeText(payload.overview || payload.description);
+    const rules = (payload.truth?.rules ?? [])
+      .map((rule) => normalizeText(rule.statement || rule.title))
+      .filter(Boolean);
 
     const lines = [
       worldName ? `World: ${worldName}` : '',
       worldSummary ? `World Summary: ${worldSummary}` : '',
-      worldviewName ? `Worldview: ${worldviewName}` : '',
-      worldviewSummary ? `Worldview Summary: ${worldviewSummary}` : '',
       ...rules.slice(0, 4).map((rule) => `World Rule: ${rule}`),
     ].filter(Boolean);
 
     return { lines };
-  } catch {
+  } catch (err) {
+    console.warn('[relay:data] fetchWorldContext failed', { worldId }, err);
     return { lines: [] };
   }
 }
@@ -226,40 +228,30 @@ export async function fetchWorldContext(
  * Fetches agent memory for warm start via typed Realm services.
  */
 export async function fetchPlatformWarmStartMemory(
-  realm: Realm,
+  realm: RelayRealmClient,
   targetId: string,
   entityId?: string,
 ): Promise<LocalChatPlatformWarmStartMemory | null> {
   const topK = 6;
 
   const [corePayload, recallPayload] = await Promise.all([
-    realm.services.AgentsService.agentControllerListCoreMemories(targetId).catch(() => null),
+    realm.services.AgentsService.agentControllerListCoreMemories(targetId).catch((err) => {
+      console.warn('[relay:data] core memory recall failed', { targetId }, err);
+      return null;
+    }),
     entityId
-      ? realm.services.AgentsService.agentControllerRecallForEntity(targetId, entityId).catch(() => null)
+      ? realm.services.AgentsService.agentControllerRecallForEntity(targetId, entityId).catch((err: unknown) => {
+          console.warn('[relay:data] entity memory recall failed', { targetId, entityId }, err);
+          return null;
+        })
       : Promise.resolve(null),
   ]);
 
-  const coreMemory = toMemoryTextList(toMemoryEntries(corePayload), topK);
+  const coreMemory = toMemoryTextList(corePayload ?? [], topK);
 
-  let e2eMemory: string[] = [];
+  const e2eMemory = toMemoryTextList(recallPayload ?? [], topK);
   let resolvedEntityId: string | null = entityId || null;
   let recallSource: LocalChatPlatformWarmStartMemory['recallSource'] = 'remote-only';
-
-  if (recallPayload) {
-    const response = asRecord(recallPayload);
-    const entityFromResponse = asString(response.entityId);
-    if (entityFromResponse) {
-      resolvedEntityId = entityFromResponse;
-    }
-    const source = asString(response.recallSource);
-    if (source === 'local-index-only') recallSource = source;
-    else if (source === 'local-index+remote-backfill') recallSource = source;
-
-    e2eMemory = toMemoryTextList(
-      toMemoryEntries(response.e2e || response.e2eMemory || response.e2eMemories),
-      topK,
-    );
-  }
 
   if (coreMemory.length === 0 && e2eMemory.length === 0) {
     return null;
@@ -279,7 +271,7 @@ export async function fetchPlatformWarmStartMemory(
  * Fetches memory recall for an entity via typed Realm services.
  */
 export async function fetchMemoryRecall(
-  realm: Realm,
+  realm: RelayRealmClient,
   targetId: string,
   entityId: string,
   _query: string,
@@ -288,30 +280,16 @@ export async function fetchMemoryRecall(
 
   try {
     const payload = await realm.services.AgentsService.agentControllerRecallForEntity(targetId, entityId);
-
-    const response = asRecord(payload);
-    const rawDocs = toMemoryEntries(
-      response.docs || response.items || response.data || response.memories,
-    );
-
-    return rawDocs
-      .map((entry) => {
-        const doc = typeof entry === 'string' ? { text: entry } : entry;
-        const record = asRecord(doc);
-        const id = asString(record.id) || crypto.randomUUID();
-        const text = asString(record.text || record.content || record.summary);
-        if (!text) return null;
-        return {
-          id,
-          conversationId: asString(record.conversationId),
-          sourceTurnId: asNullableString(record.sourceTurnId),
-          text,
-          createdAt: asString(record.createdAt) || new Date().toISOString(),
-          updatedAt: asString(record.updatedAt) || new Date().toISOString(),
-        } satisfies InteractionRecallDoc;
-      })
-      .filter((doc): doc is InteractionRecallDoc => doc !== null);
-  } catch {
+    return payload.map((record: AgentMemoryRecord) => ({
+      id: normalizeText(record.id) || crypto.randomUUID(),
+      conversationId: entityId,
+      sourceTurnId: null,
+      text: normalizeText(record.content),
+      createdAt: normalizeText(record.createdAt) || new Date().toISOString(),
+      updatedAt: normalizeText(record.createdAt) || new Date().toISOString(),
+    })).filter((doc: InteractionRecallDoc) => doc.text);
+  } catch (err) {
+    console.warn('[relay:data] fetchMemoryRecall failed', { targetId, entityId }, err);
     return [];
   }
 }

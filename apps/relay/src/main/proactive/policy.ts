@@ -96,7 +96,8 @@ export async function evaluateLocalChatProactivePolicy(
         'wait-next-day-window',
       );
     }
-  } catch {
+  } catch (err) {
+    console.warn('[relay:proactive] policy state read failed', { targetId: input.targetId }, err);
     return buildPolicyResult(
       'LOCAL_CHAT_PROACTIVE_POLICY_UNAVAILABLE',
       'policy-state-unavailable',
@@ -115,7 +116,7 @@ export async function recordLocalChatProactiveContact(input: {
 }): Promise<void> {
   try {
     await markProactiveContactSent(input);
-  } catch {
-    // Proactive policy persistence failure must not break chat flow.
+  } catch (err) {
+    console.error('[relay:proactive] contact persistence failed', { targetId: input.targetId }, err);
   }
 }

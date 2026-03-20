@@ -76,8 +76,8 @@ function emitAudit(
 ): void {
   try {
     sink(event);
-  } catch {
-    // Audit sink failure must not stop proactive flow.
+  } catch (err) {
+    console.error('[relay:proactive] audit sink failed', err);
   }
 }
 

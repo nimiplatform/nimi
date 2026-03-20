@@ -20,3 +20,17 @@ export function normalizeError(error: unknown): NormalizedError {
   }
   return { message: String(error) };
 }
+
+/**
+ * Convert an error to a proper Error instance for IPC serialization.
+ * Electron's ipcMain.handle only serializes Error instances correctly;
+ * plain objects become "[object Object]" in the renderer.
+ */
+export function toIpcError(error: unknown): Error {
+  const normalized = normalizeError(error);
+  const parts = [normalized.message];
+  if (normalized.reasonCode) parts.push(`[${normalized.reasonCode}]`);
+  if (normalized.actionHint) parts.push(`(${normalized.actionHint})`);
+  const err = new Error(parts.join(' '));
+  return err;
+}

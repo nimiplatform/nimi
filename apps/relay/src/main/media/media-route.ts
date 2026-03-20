@@ -29,7 +29,6 @@ export type RouteBinding = {
 export function resolveMediaRouteConfig(input: {
   kind: MediaKind;
   settings: LocalChatDefaultSettings;
-  fallbackSource?: 'local' | 'cloud';
 }): {
   routeSource: MediaRouteSource;
   routeBinding?: RouteBinding;
@@ -44,7 +43,6 @@ export function resolveMediaRouteConfig(input: {
   const model = asTrimmedString(input.kind === 'image'
     ? input.settings.imageModel
     : input.settings.videoModel);
-  const fallbackSource = input.fallbackSource || 'cloud';
 
   if (routeSource === 'cloud') {
     const override: RouteBinding = {
@@ -64,9 +62,8 @@ export function resolveMediaRouteConfig(input: {
   // Relay does not manage local models — auto/local both resolve to cloud
   if (routeSource === 'auto') {
     if (connectorId || model) {
-      const inferredSource = connectorId ? 'cloud' : fallbackSource;
       const override: RouteBinding = {
-        source: inferredSource,
+        source: 'cloud',
         connectorId,
         model: model || '',
         ...(connectorId ? { connectorId } : {}),
@@ -84,17 +81,8 @@ export function resolveMediaRouteConfig(input: {
     };
   }
 
-  // routeSource === 'local' — relay treats as cloud fallback since no local model management
-  const override: RouteBinding = {
-    source: 'cloud',
-    connectorId,
-    model: model || '',
-    ...(connectorId ? { connectorId } : {}),
-    ...(model ? { model } : {}),
-  };
   return {
     routeSource,
-    routeBinding: override,
     model: model || undefined,
   };
 }
@@ -196,12 +184,10 @@ export async function preflightResolveMediaRoute(input: {
   };
   kind: MediaKind;
   settings: LocalChatDefaultSettings;
-  fallbackSource?: 'local' | 'cloud';
 }): Promise<LocalChatResolvedMediaRoute | null> {
   const routeConfig = resolveMediaRouteConfig({
     kind: input.kind,
     settings: input.settings,
-    fallbackSource: input.fallbackSource,
   });
 
   const resolved = await input.aiClient.resolveRoute({

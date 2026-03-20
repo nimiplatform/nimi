@@ -35,8 +35,8 @@ export function loadToken(): string | null {
     }
     const decrypted = safeStorage.decryptString(raw);
     return decrypted.trim() || null;
-  } catch {
-    // Corrupted or unreadable — clear and return null
+  } catch (err) {
+    console.warn('[relay:auth] token corrupted or unreadable, clearing', err);
     clearToken();
     return null;
   }
@@ -48,7 +48,7 @@ export function clearToken(): void {
     if (fs.existsSync(tokenPath)) {
       fs.unlinkSync(tokenPath);
     }
-  } catch {
-    // Best-effort cleanup
+  } catch (err) {
+    console.warn('[relay:auth] clearToken failed', err);
   }
 }

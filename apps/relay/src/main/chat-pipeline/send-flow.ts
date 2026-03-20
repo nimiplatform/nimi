@@ -54,6 +54,7 @@ import {
   createCancelledAudit,
   normalizeBeatText,
   toMarkerOverrideIntent,
+  assertExplicitMediaAssetRequest,
   bindMediaDecisionToDelivery,
   createStandaloneMediaDelivery,
   buildAssistantDeliveries,
@@ -153,6 +154,7 @@ export async function runLocalChatTurnSend(input: {
     });
     sessionId = workingSession.id;
     hasWorkingSession = true;
+    context.onSessionResolved?.(sessionId);
     ensureNotAborted(input.abortSignal);
     sendContextKey = buildLocalChatTurnContextKey({
       targetId: selectedTarget.id,
@@ -461,6 +463,11 @@ export async function runLocalChatTurnSend(input: {
     const plannedBeatCount = 1 + deliveries.length;
     const firstMediaBeat = deliveries.find((d) => d.kind === 'image' || d.kind === 'video')?.beat || null;
     const firstMediaIntent = firstMediaBeat ? toMarkerOverrideIntent({ beat: firstMediaBeat, turnTxnId }) : null;
+    assertExplicitMediaAssetRequest({
+      turnMode,
+      markerOverrideIntent: firstMediaIntent,
+    });
+    const effectiveFirstMediaIntent = firstMediaIntent;
 
     const promptTrace = buildPromptTrace({
       compiledPrompt: recompiledResult,
@@ -477,17 +484,17 @@ export async function runLocalChatTurnSend(input: {
       streamDurationMs: firstBeatResult.streamDurationMs,
       segmentParseMode: 'single-message',
       nsfwPolicy,
-      plannerUsed: firstMediaIntent !== null,
-      plannerKind: firstMediaIntent?.type || 'none',
-      plannerTrigger: firstMediaIntent ? 'marker-override' : 'none',
-      plannerConfidence: firstMediaIntent?.plannerConfidence ?? null,
+      plannerUsed: effectiveFirstMediaIntent !== null,
+      plannerKind: effectiveFirstMediaIntent?.type || 'none',
+      plannerTrigger: effectiveFirstMediaIntent ? 'marker-override' : 'none',
+      plannerConfidence: effectiveFirstMediaIntent?.plannerConfidence ?? null,
       plannerBlockedReason: null,
       imageReady: mediaRouteReady.image,
       videoReady: mediaRouteReady.video,
       imageDependencyStatus: mediaRouteReady.image ? 'ready' : 'unknown',
       videoDependencyStatus: mediaRouteReady.video ? 'ready' : 'unknown',
-      mediaDecisionSource: firstMediaIntent ? 'planner' : 'none',
-      mediaDecisionKind: firstMediaIntent?.type || 'none',
+      mediaDecisionSource: effectiveFirstMediaIntent ? 'planner' : 'none',
+      mediaDecisionKind: effectiveFirstMediaIntent?.type || 'none',
       mediaExecutionStatus: 'none',
       mediaExecutionRouteSource: null,
       mediaExecutionRouteModel: null,
@@ -523,10 +530,8 @@ export async function runLocalChatTurnSend(input: {
       ],
       promptTrace: latestPromptTrace,
       nsfwPolicy,
-      fallbackRouteSource: context.routeSnapshot?.source === 'cloud' ? 'cloud' : 'local',
-      markerOverrideIntent: firstMediaBeat
-        ? toMarkerOverrideIntent({ beat: firstMediaBeat, turnTxnId })
-        : null,
+      routeSourceHint: context.routeSnapshot?.source === 'cloud' ? 'cloud' : 'local',
+      markerOverrideIntent: effectiveFirstMediaIntent,
     });
     latestPromptTrace = { ...latestPromptTrace, ...rawMediaDecision.promptTracePatch };
 
@@ -688,7 +693,7 @@ export async function runLocalChatTurnSend(input: {
           }
           const decision = mediaDeliveryId === delivery.id ? mediaDecision : null;
           if (!decision || decision.kind === 'none') {
-            const fallbackMessage: ChatMessage = {
+            const textOnlyMessage: ChatMessage = {
               id: delivery.id,
               role: 'assistant',
               kind: 'text',
@@ -698,7 +703,7 @@ export async function runLocalChatTurnSend(input: {
             };
             await commitAssistantMessage({
               sessionId, targetId: selectedTarget.id, viewerId: context.viewerId,
-              assistantTurnId, messageId: fallbackMessage.id, message: fallbackMessage,
+              assistantTurnId, messageId: textOnlyMessage.id, message: textOnlyMessage,
               setMessages: chatContext.setMessages, setSessions: chatContext.setSessions,
             });
             deliveredBeatIds.add(delivery.beat.beatId);
@@ -709,7 +714,6 @@ export async function runLocalChatTurnSend(input: {
             aiClient: context.aiClient,
             defaultSettings: context.defaultSettings,
             nsfwPolicy,
-            fallbackRouteSource: context.routeSnapshot?.source === 'cloud' ? 'cloud' : 'local',
             sessionId,
             target: selectedTarget,
             targetId: selectedTarget.id,

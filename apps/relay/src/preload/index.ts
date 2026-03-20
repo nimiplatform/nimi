@@ -170,6 +170,9 @@ const api: NimiRelayBridge = {
     getSnapshot: () => invoke('relay:route:snapshot'),
     refresh: () => invoke('relay:route:refresh'),
   },
+  mediaRoute: {
+    getOptions: (input) => invoke('relay:media-route:options', input),
+  },
   desktop: {
     openConfig: (pageId) => invoke('relay:desktop:open-config', pageId ? { pageId } : undefined),
   },

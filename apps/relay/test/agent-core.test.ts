@@ -153,15 +153,9 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
     assert.equal(current.voiceModel, 'nimi-tts-v2');
   });
 
-  it('fallback stub agent has only id and name', () => {
-    const stub: Agent = { id: 'agent-x', name: 'agent-x' };
-    useAppStore.getState().setAgent(stub);
-
-    const current = useAppStore.getState().currentAgent!;
-    assert.equal(current.id, 'agent-x');
-    assert.equal(current.name, 'agent-x');
-    assert.equal(current.voiceModel, undefined);
-    assert.equal(current.live2dModelUrl, undefined);
+  it('agent state remains null until a real profile is resolved', () => {
+    useAppStore.getState().setAgent(null);
+    assert.equal(useAppStore.getState().currentAgent, null);
   });
 });
 

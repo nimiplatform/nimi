@@ -4,8 +4,10 @@ import type { PlatformClient } from '@nimiplatform/sdk';
 import type { RouteState } from './route-state.js';
 import type { RelayInvokeMap } from '../../shared/ipc-contract.js';
 import { safeHandle } from '../ipc-utils.js';
+import { loadMediaRouteConnectors } from './route-options.js';
 
 type SetRouteBindingRequest = RelayInvokeMap['relay:route:binding:set']['request'];
+type MediaRouteOptionsRequest = RelayInvokeMap['relay:media-route:options']['request'];
 
 export function registerRouteHandlers(runtime: PlatformClient['runtime'], routeState: RouteState): void {
   // List available route options (local models + connectors)
@@ -31,5 +33,10 @@ export function registerRouteHandlers(runtime: PlatformClient['runtime'], routeS
   // Refresh options from runtime
   safeHandle('relay:route:refresh', async () => {
     return await routeState.refresh(runtime);
+  });
+
+  // Media route options — capability-filtered connector list (RL-IPC-001)
+  safeHandle('relay:media-route:options', async (_event, input: MediaRouteOptionsRequest) => {
+    return await loadMediaRouteConnectors(runtime, input.capability);
   });
 }

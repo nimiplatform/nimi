@@ -45,8 +45,8 @@ export type MainProcessChatContext = {
   setSendPhase: (phase: LocalChatTurnSendPhase) => void;
 };
 
-export function createMainProcessChatContext(webContents: WebContents): MainProcessChatContext {
-  let messages: ChatMessage[] = [];
+export function createMainProcessChatContext(webContents: WebContents, initialMessages?: ChatMessage[]): MainProcessChatContext {
+  let messages: ChatMessage[] = initialMessages ? [...initialMessages] : [];
   let selectedSessionId = '';
 
   return {

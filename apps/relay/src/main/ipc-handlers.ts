@@ -9,7 +9,7 @@
 
 import { ipcMain, shell, type BrowserWindow, type WebContents } from 'electron';
 import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
-import { OAuthProvider, sendAgentChannelMessage } from '@nimiplatform/sdk/realm';
+import { OAuthProvider } from '@nimiplatform/sdk/realm';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type {
@@ -17,7 +17,7 @@ import type {
   ImageGenerateInput,
 } from '@nimiplatform/sdk/runtime';
 import { openStream, cancelStream } from './stream-manager.js';
-import { normalizeError } from './error-utils.js';
+import { normalizeError, toIpcError } from './error-utils.js';
 import { safeHandle } from './ipc-utils.js';
 import { toTextGenerateInput, toTextStreamInput, type IpcAiGenerateInput, type IpcAiStreamInput } from './input-transform.js';
 import type { RelayEnv } from './env.js';
@@ -25,6 +25,7 @@ import { listenForOAuthCallback, performOauthTokenExchange } from './auth/index.
 import { DESKTOP_CALLBACK_TIMEOUT_MS } from '@nimiplatform/shell-core/oauth';
 import type { RouteState } from './route/route-state.js';
 import type { RelayInvokeMap } from '../shared/ipc-contract.js';
+import { resolveRelayTtsConfig } from './tts-config.js';
 
 type ListCreatorAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
 type AuthOauthLoginRequest = RelayInvokeMap['relay:auth:oauth-login']['request'];
@@ -99,7 +100,7 @@ export function registerAuthIpcHandlers(
         email: payload.email,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -113,7 +114,7 @@ export function registerAuthIpcHandlers(
         password: payload.password,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -124,7 +125,7 @@ export function registerAuthIpcHandlers(
         accessToken: payload.accessToken,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -134,7 +135,7 @@ export function registerAuthIpcHandlers(
         email: payload.email,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -148,7 +149,7 @@ export function registerAuthIpcHandlers(
         code: payload.code,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -162,7 +163,7 @@ export function registerAuthIpcHandlers(
         code: payload.code,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -178,7 +179,7 @@ export function registerAuthIpcHandlers(
         walletType: payload.walletType,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -200,7 +201,7 @@ export function registerAuthIpcHandlers(
         walletType: payload.walletType,
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -214,7 +215,7 @@ export function registerAuthIpcHandlers(
       });
       return { success: true };
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -224,7 +225,7 @@ export function registerAuthIpcHandlers(
     try {
       return await (await createScopedRealm(env, payload?.accessToken)).services.MeService.getMe();
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -267,7 +268,7 @@ export function registerAuthIpcHandlers(
     try {
       return await performOauthTokenExchange(payload);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 }
@@ -306,7 +307,10 @@ export function registerIpcHandlers(
       return result;
     } catch (error) {
       const normalized = normalizeError(error);
-      if (normalized.reasonCode === 'AUTH_TOKEN_INVALID' || normalized.reasonCode === 'AUTH_DENIED') {
+      if (
+        normalized.reasonCode === ReasonCode.AUTH_TOKEN_INVALID
+        || normalized.reasonCode === ReasonCode.AUTH_DENIED
+      ) {
         // Auth error detected in main process (before IPC serialization strips properties)
         const { invalidateAuth } = await import('./index.js');
         invalidateAuth();
@@ -326,7 +330,7 @@ export function registerIpcHandlers(
       const result = await runtime.ai.text.generate(textInput);
       return result;
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -341,7 +345,7 @@ export function registerIpcHandlers(
       const stream = await runtime.ai.text.stream(textInput);
       return await openStream('ai', stream.stream, wc);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -355,10 +359,34 @@ export function registerIpcHandlers(
   safeHandle('relay:media:tts:synthesize', async (_event, input: TtsSynthesizeRequest) => {
     requireAgentId(input);
     try {
-      const { agentId: _agentId, voiceId, ...runtimeInput } = input;
+      const { agentId: _agentId, voiceId: _voiceId, ...runtimeInput } = input;
+      const { loadRelaySettings } = await import('./settings/settings-store.js');
+      const settings = await loadRelaySettings();
+      const resolved = resolveRelayTtsConfig(settings.inspect, input);
+      if (!resolved.connectorId) {
+        throw new Error('TTS connector not configured. Please select a Voice Model (TTS) in Settings.');
+      }
+      if (!resolved.model) {
+        throw new Error('TTS model not configured. Please select a Voice Model (TTS) in Settings.');
+      }
+      if (!resolved.voiceId) {
+        throw new Error('TTS voice not configured. Please select a Voice in Settings.');
+      }
+      console.info('[relay:tts] synthesize-resolved', {
+        connectorId: resolved.connectorId,
+        requestedModel: resolved.requestedModel || null,
+        settingsModel: resolved.settingsModel || null,
+        modelResolved: resolved.model,
+        requestedVoice: resolved.requestedVoice || null,
+        settingsVoice: resolved.settingsVoice || null,
+        voiceResolved: resolved.voiceId,
+      });
       const result = await runtime.media.tts.synthesize({
         ...runtimeInput,
-        voice: voiceId,
+        model: resolved.model,
+        voice: resolved.voiceId,
+        route: 'cloud' as const,
+        connectorId: resolved.connectorId,
       });
       const artifact = result.artifacts[0];
       return {
@@ -367,7 +395,7 @@ export function registerIpcHandlers(
         audio: encodeArtifactBytes(artifact?.bytes),
       };
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -375,7 +403,7 @@ export function registerIpcHandlers(
     try {
       return await runtime.media.tts.listVoices(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -393,16 +421,24 @@ export function registerIpcHandlers(
         },
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
   // Image
   safeHandle('relay:media:image:generate', async (_event, input: Omit<ImageGenerateInput, 'signal'>) => {
     try {
-      return await runtime.media.image.generate(input);
+      const { loadRelaySettings } = await import('./settings/settings-store.js');
+      const settings = await loadRelaySettings();
+      const imgConnector = settings.inspect.imageConnectorId;
+      const imgModel = settings.inspect.imageModel;
+      return await runtime.media.image.generate({
+        ...input,
+        model: input.model || imgModel || 'auto',
+        ...(imgConnector ? { route: 'cloud' as const, connectorId: imgConnector } : {}),
+      });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -410,9 +446,13 @@ export function registerIpcHandlers(
   safeHandle('relay:media:video:generate', async (_event, input: VideoGenerateRequest) => {
     requireAgentId(input);
     try {
+      const { loadRelaySettings } = await import('./settings/settings-store.js');
+      const settings = await loadRelaySettings();
+      const vidConnector = settings.inspect.videoConnectorId;
+      const vidModel = settings.inspect.videoModel;
       return await runtime.media.video.generate({
         mode: 't2v',
-        model: input.model || 'auto',
+        model: input.model || vidModel || 'auto',
         prompt: input.prompt,
         content: [
           {
@@ -420,9 +460,10 @@ export function registerIpcHandlers(
             text: input.prompt,
           },
         ],
+        ...(vidConnector ? { route: 'cloud' as const, connectorId: vidConnector } : {}),
       });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -430,7 +471,7 @@ export function registerIpcHandlers(
     try {
       return await runtime.media.jobs.get(payload.jobId);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -438,7 +479,7 @@ export function registerIpcHandlers(
     try {
       return await runtime.media.jobs.getArtifacts(payload.jobId);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -452,7 +493,7 @@ export function registerIpcHandlers(
       const stream = await runtime.media.jobs.subscribe(payload.jobId);
       return await openStream('videoJob', stream, wc);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -463,35 +504,17 @@ export function registerIpcHandlers(
   safeHandle('relay:agent:list', async () => {
     try {
       const payload: ListCreatorAgentsResult = await realm.services.CreatorService.creatorControllerListAgents();
-      const candidate = payload as { items?: unknown[] } | unknown[];
-      const items = Array.isArray(candidate)
-        ? candidate
-        : Array.isArray(candidate.items) ? candidate.items : [];
       return {
-        items: items.map((item: unknown) => {
-          const record = item && typeof item === 'object'
-            ? item as {
-                agentId?: unknown;
-                id?: unknown;
-                displayName?: unknown;
-                name?: unknown;
-                handle?: unknown;
-                state?: unknown;
-                status?: unknown;
-                avatarUrl?: unknown;
-              }
-            : {};
-          return {
-            agentId: String(record.agentId || record.id || ''),
-            displayName: String(record.displayName || record.name || ''),
-            handle: String(record.handle || ''),
-            state: String(record.state || record.status || ''),
-            avatarUrl: record.avatarUrl ?? null,
-          };
-        }),
+        items: payload.map((item) => ({
+          agentId: item.id,
+          displayName: item.displayName,
+          handle: item.handle,
+          state: String(item.status || ''),
+          avatarUrl: item.avatarUrl ?? null,
+        })),
       };
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -499,15 +522,22 @@ export function registerIpcHandlers(
     try {
       return await realm.services.AgentsService.getAgent(input.agentId);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
   safeHandle('relay:human-chat:send', async (_event, input: { agentId: string; text: string }) => {
     try {
-      return await sendAgentChannelMessage(realm as unknown as Parameters<typeof sendAgentChannelMessage>[0], input);
+      const started = await realm.services.HumanChatService.startChat({
+        targetAccountId: input.agentId,
+      });
+      return await realm.services.HumanChatService.sendMessage(started.chatId, {
+        clientMessageId: `relay-agent-channel:${input.agentId}:${Date.now()}`,
+        type: 'TEXT',
+        text: input.text,
+      });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -531,10 +561,59 @@ export function registerIpcHandlers(
 
       // Resolve route from route state for model selection
       const resolvedRoute = routeState?.getResolved() ?? null;
-      const aiClient = createRelayAiClient(runtime, resolvedRoute);
-      const chatContext = createMainProcessChatContext(wc);
+
+      // Load inspect settings for media routes
+      const { loadRelaySettings } = await import('./settings/settings-store.js');
+      const chatSettings = await loadRelaySettings();
+      const mediaRoutes = {
+        image: chatSettings.inspect.imageConnectorId
+          ? { connectorId: chatSettings.inspect.imageConnectorId, model: chatSettings.inspect.imageModel }
+          : undefined,
+        video: chatSettings.inspect.videoConnectorId
+          ? { connectorId: chatSettings.inspect.videoConnectorId, model: chatSettings.inspect.videoModel }
+          : undefined,
+        tts: chatSettings.inspect.ttsConnectorId
+          ? { connectorId: chatSettings.inspect.ttsConnectorId, model: chatSettings.inspect.ttsModel }
+          : undefined,
+      };
+      const aiClient = createRelayAiClient(runtime, resolvedRoute, mediaRoutes);
+
+      // Hydrate context with existing session history so setMessages
+      // appends to previous turns rather than broadcasting from empty.
+      let initialMessages: import('./chat-pipeline/types.js').ChatMessage[] = [];
+      try {
+        const { listLocalChatSessions } = await import('./session-store/index.js');
+        const sessions = await listLocalChatSessions(input.agentId, 'local-user');
+        if (sessions.length > 0 && sessions[0]) {
+          initialMessages = sessions[0].turns
+            .filter((turn): turn is typeof turn & { role: 'user' | 'assistant' } =>
+              turn.role === 'user' || turn.role === 'assistant',
+            )
+            .map((turn) => ({
+              id: turn.id,
+              role: turn.role,
+              kind: turn.kind,
+              content: turn.content,
+              timestamp: typeof turn.timestamp === 'string' ? new Date(turn.timestamp) : turn.timestamp,
+              latencyMs: turn.latencyMs,
+              meta: turn.meta,
+              media: turn.media,
+            }));
+        }
+      } catch (err) {
+        console.warn('[relay:chat] history hydration failed, proceeding with empty context', err);
+      }
+      const chatContext = createMainProcessChatContext(wc, initialMessages);
 
       const { DEFAULT_LOCAL_CHAT_DEFAULT_SETTINGS } = await import('./settings/types.js');
+
+      // Merge user's actual settings into defaults so media decision policy
+      // can see configured image/tts/video connectors and models.
+      const effectiveSettings = {
+        ...DEFAULT_LOCAL_CHAT_DEFAULT_SETTINGS,
+        ...chatSettings.product,
+        ...chatSettings.inspect,
+      };
 
       // Build route snapshot from resolved route
       const routeSnapshot = resolvedRoute
@@ -547,10 +626,15 @@ export function registerIpcHandlers(
           }
         : null;
 
+      // Resolve agent target from agentId via Realm queries
+      const { fetchTargetProfile } = await import('./data/realm-queries.js');
+      const selectedTarget = await fetchTargetProfile(realm, input.agentId);
+
       // Try full pipeline, fall back to simple streaming
       const sendFlowModule = await import('./chat-pipeline/send-flow.js').catch(() => null);
 
       if (sendFlowModule) {
+        const contextKeyRef = { sessionId: input.sessionId || '' };
         await sendFlowModule.runLocalChatTurnSend({
           context: {
             aiClient,
@@ -559,14 +643,15 @@ export function registerIpcHandlers(
             viewerDisplayName: 'User',
             runtimeMode: undefined,
             routeSnapshot,
-            defaultSettings: DEFAULT_LOCAL_CHAT_DEFAULT_SETTINGS,
-            selectedTarget: null, // TODO: resolve from agentId via realm queries
+            defaultSettings: effectiveSettings,
+            selectedTarget,
             selectedSessionId: input.sessionId || '',
             messages: chatContext.messages,
+            onSessionResolved: (sessionId: string) => { contextKeyRef.sessionId = sessionId; },
           },
           chatContext,
           setSendPhase: (phase) => chatContext.setSendPhase(phase),
-          getCurrentContextKey: () => `${input.agentId}`,
+          getCurrentContextKey: () => [input.agentId, contextKeyRef.sessionId].join('|'),
           registerSchedule: () => {},
           clearScheduleByTxn: () => {},
         });
@@ -625,7 +710,7 @@ export function registerIpcHandlers(
         });
         wc2.send('relay:chat:turn:phase', { phase: 'idle' });
       }
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -650,8 +735,8 @@ export function registerIpcHandlers(
         }));
       }
       return [];
-    } catch {
-      return [];
+    } catch (error) {
+      throw toIpcError(error);
     }
   });
 
@@ -660,7 +745,7 @@ export function registerIpcHandlers(
       const { clearSession } = await import('./session-store/index.js');
       await clearSession(input.sessionId);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -668,19 +753,27 @@ export function registerIpcHandlers(
     try {
       const { loadRelaySettings } = await import('./settings/settings-store.js');
       return await loadRelaySettings();
-    } catch {
-      return null;
+    } catch (error) {
+      throw toIpcError(error);
     }
   });
 
   safeHandle('relay:chat:settings:set', async (_event, patch: Record<string, unknown>) => {
     try {
-      const { saveRelaySettings } = await import('./settings/settings-store.js');
-      const { normalizeLocalChatSettings } = await import('./settings/types.js');
-      const settings = normalizeLocalChatSettings(patch);
-      saveRelaySettings(settings);
+      const { loadRelaySettings, saveRelaySettings } = await import('./settings/settings-store.js');
+      const { normalizeLocalChatProductSettings, normalizeLocalChatInspectSettings } = await import('./settings/types.js');
+      // Merge patch into existing settings instead of replacing,
+      // so saving inspect doesn't reset product and vice versa.
+      const existing = await loadRelaySettings();
+      if (patch.product && typeof patch.product === 'object') {
+        existing.product = normalizeLocalChatProductSettings({ ...existing.product, ...(patch.product as Record<string, unknown>) });
+      }
+      if (patch.inspect && typeof patch.inspect === 'object') {
+        existing.inspect = normalizeLocalChatInspectSettings({ ...existing.inspect, ...(patch.inspect as Record<string, unknown>) });
+      }
+      await saveRelaySettings(existing, { flush: true });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -689,9 +782,9 @@ export function registerIpcHandlers(
       const { loadRelaySettings, saveRelaySettings } = await import('./settings/settings-store.js');
       const settings = await loadRelaySettings();
       settings.product.allowProactiveContact = input.enabled;
-      saveRelaySettings(settings);
+      await saveRelaySettings(settings, { flush: true });
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 }

@@ -70,10 +70,11 @@ export function usePipelineChat() {
       .then((result) => {
         setMessages(result);
       })
-      .catch(() => {
-        // History load failed — start fresh
+      .catch((err) => {
+        console.warn('[relay:chat] history load failed', err);
+        setStatusBanner({ kind: 'warning', message: `History load failed: ${err instanceof Error ? err.message : String(err)}` });
       });
-  }, [currentAgent?.id, clearChat, setMessages]);
+  }, [currentAgent?.id, clearChat, setMessages, setStatusBanner]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!currentAgent || !runtimeAvailable) return;
@@ -84,16 +85,17 @@ export function usePipelineChat() {
         agentId: currentAgent.id,
         text: text.trim(),
       });
-    } catch {
-      setStatusBanner({ kind: 'error', message: 'Failed to send message' });
+    } catch (err) {
+      console.error('[relay:chat] sendMessage failed', err);
+      setStatusBanner({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
     }
   }, [currentAgent, runtimeAvailable, setStatusBanner]);
 
   const cancelTurn = useCallback(async (turnTxnId: string) => {
     try {
       await getBridge().chat.cancel({ turnTxnId });
-    } catch {
-      // Cancel failed — the turn may have already completed
+    } catch (err) {
+      console.warn('[relay:chat] cancelTurn failed', err);
     }
   }, []);
 
@@ -105,8 +107,9 @@ export function usePipelineChat() {
         sessionId: '', // clears active session
       });
       clearChat();
-    } catch {
-      setStatusBanner({ kind: 'error', message: 'Failed to clear history' });
+    } catch (err) {
+      console.error('[relay:chat] clearHistory failed', err);
+      setStatusBanner({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
     }
   }, [currentAgent, clearChat, setStatusBanner]);
 

@@ -58,10 +58,11 @@ async function probeRuntimeAvailability(
     );
     await Promise.race([healthPromise, timeoutPromise]);
     return true;
-  } catch {
+  } catch (err) {
     // RL-BOOT-004: Runtime unavailable — degrade gracefully.
     // Auth errors are detected and handled in the main process (before IPC serialization),
     // which pushes auth state to renderer via relay:auth:status event.
+    console.warn('[relay:bootstrap] runtime probe failed', err);
     return false;
   }
 }
@@ -82,7 +83,8 @@ async function resolveConfiguredAgent(
       const agent = await fetchAgentProfile(config.agentId, bridge);
       store.setAgent(agent);
       return config.agentId;
-    } catch {
+    } catch (err) {
+      console.warn(`[relay:bootstrap] resolveConfiguredAgent attempt ${attempt + 1}/${CONFIG_RETRY_ATTEMPTS} failed`, err);
       const currentAgentId = useAppStore.getState().currentAgent?.id ?? null;
       const shouldRetry = !currentAgentId && attempt < CONFIG_RETRY_ATTEMPTS - 1;
       if (!shouldRetry) {
@@ -128,33 +130,28 @@ async function loadCurrentUser(
       email: data.email ? String(data.email) : undefined,
       handle: data.handle ? String(data.handle) : undefined,
     };
-  } catch {
+  } catch (err) {
+    console.warn('[relay:bootstrap] loadCurrentUser failed', err);
     return null;
   }
 }
 
 /**
  * Fetch agent profile from Realm via direct account lookup.
- * Falls back to a stub agent if Realm is unreachable (RL-BOOT-004 degradation).
+ * Contract violations and Realm unavailability are surfaced to the caller.
  */
 async function fetchAgentProfile(
   agentId: string,
   bridge: ReturnType<typeof getBridge>,
 ): Promise<Agent> {
-  try {
-    const profile = await bridge.agent.get(agentId);
-    return {
-      id: profile.id,
-      name: profile.displayName,
-      handle: profile.handle,
-      state: profile.agent?.state,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      description: profile.bio ?? undefined,
-      voiceId: readAgentVoiceId(profile.agentProfile?.dna),
-    };
-  } catch {
-    // Realm unreachable — fall back to stub
-  }
-  // Fallback: stub agent with only ID
-  return { id: agentId, name: agentId };
+  const profile = await bridge.agent.get(agentId);
+  return {
+    id: profile.id,
+    name: profile.displayName,
+    handle: profile.handle,
+    state: profile.agent?.state,
+    avatarUrl: profile.avatarUrl ?? undefined,
+    description: profile.bio ?? undefined,
+    voiceId: readAgentVoiceId(profile.agentProfile?.dna),
+  };
 }

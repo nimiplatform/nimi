@@ -3,23 +3,47 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { getBridge } from '../../../bridge/electron-bridge.js';
-import { useAppStore } from '../../../app-shell/providers/app-store.js';
 
 export interface Voice {
   voiceId: string;
   name: string;
 }
 
-export function useListVoices() {
-  const currentAgent = useAppStore((s) => s.currentAgent);
-  const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
+export type VoiceListRequest = {
+  connectorId?: string;
+  model?: string;
+  runtimeAvailable: boolean;
+};
+
+function normalizeText(value: string | undefined): string {
+  return String(value || '').trim();
+}
+
+export function buildListVoicesInput(input: VoiceListRequest): { model: string; connectorId?: string } | null {
+  const model = normalizeText(input.model);
+  const connectorId = normalizeText(input.connectorId);
+  if (!input.runtimeAvailable || !model || !connectorId) {
+    return null;
+  }
+  return {
+    model,
+    connectorId,
+  };
+}
+
+export function useListVoices(input: VoiceListRequest) {
+  const connectorId = normalizeText(input.connectorId);
+  const model = normalizeText(input.model);
+  const runtimeAvailable = input.runtimeAvailable;
   const [voices, setVoices] = useState<Voice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchVoices = useCallback(async () => {
-    if (!currentAgent?.voiceModel || !runtimeAvailable) {
+    const request = buildListVoicesInput({ connectorId, model, runtimeAvailable });
+    if (!request) {
       setVoices([]);
+      setError(null);
       return;
     }
 
@@ -28,9 +52,7 @@ export function useListVoices() {
 
     try {
       const bridge = getBridge();
-      const result = await bridge.media.tts.listVoices({
-        model: currentAgent.voiceModel,
-      });
+      const result = await bridge.media.tts.listVoices(request);
       setVoices(result.voices ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load voices');
@@ -38,9 +60,9 @@ export function useListVoices() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentAgent?.voiceModel, runtimeAvailable]);
+  }, [connectorId, model, runtimeAvailable]);
 
-  // Refetch when agent changes (new voice model)
+  // Refetch when the configured Settings TTS route changes.
   useEffect(() => {
     fetchVoices();
   }, [fetchVoices]);

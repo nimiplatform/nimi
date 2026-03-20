@@ -9,8 +9,7 @@ export function ChatRoutePanel() {
   const { t } = useTranslation();
   const {
     options,
-    binding,
-    snapshot,
+    display,
     loading,
     onSourceChange,
     onConnectorChange,
@@ -19,10 +18,11 @@ export function ChatRoutePanel() {
   } = useRelayRoute();
 
   const [modelQuery, setModelQuery] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   if (loading) {
     return (
-      <div className="text-xs text-gray-500">
+      <div className="text-[12px] text-text-secondary">
         {t('route.loading', 'Loading models...')}
       </div>
     );
@@ -30,53 +30,36 @@ export function ChatRoutePanel() {
 
   if (!options) {
     return (
-      <div className="text-xs text-gray-500">
+      <div className="text-[12px] text-text-secondary">
         {t('route.unavailable', 'Route options unavailable')}
       </div>
     );
   }
 
-  const source = binding?.source ?? snapshot?.source ?? 'local';
-  const localModels = options.local.models;
   const connectors = options.connectors;
   const hasConnectors = connectors.length > 0;
-
-  // Build available model list for current source
-  const availableModels: { id: string; label: string }[] = [];
-  if (source === 'local') {
-    for (const m of localModels) {
-      const statusTag = m.status === 'active' ? '' : ` (${m.status})`;
-      availableModels.push({ id: m.localModelId, label: `${m.modelId}${statusTag}` });
-    }
-  } else if (source === 'cloud') {
-    const selectedConnector = connectors.find(
-      (c) => c.connectorId === (binding?.connectorId ?? snapshot?.connectorId),
-    );
-    if (selectedConnector) {
-      for (const m of selectedConnector.models) {
-        availableModels.push({ id: m.modelId, label: m.modelLabel || m.modelId });
-      }
-    }
-  }
-
-  const activeModel = snapshot?.model ?? '';
-  const isPending = modelQuery !== '' && modelQuery !== activeModel;
+  const source = display?.source ?? 'local';
+  const selectedConnector = connectors.find((connector) => connector.connectorId === display?.connectorId) || null;
+  const availableModels = display?.availableModels ?? [];
+  const activeModel = display?.model ?? '';
+  const displayValue = isEditing ? modelQuery : activeModel;
+  const isPending = isEditing && modelQuery !== activeModel;
   const datalistId = 'relay-route-models';
 
   return (
     <div className="space-y-3">
       {/* Source selector */}
       <div>
-        <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">
+        <label className="text-[11px] text-text-secondary uppercase tracking-wider mb-1 block">
           {t('route.source', 'Source')}
         </label>
-        <div className="flex rounded-lg overflow-hidden border border-gray-700">
+        <div className="flex rounded-lg overflow-hidden border border-border-subtle">
           <button
             onClick={() => onSourceChange('local')}
             className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
               source === 'local'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:text-gray-200'
+                ? 'bg-accent text-white'
+                : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
             }`}
           >
             {t('route.local', 'Local')}
@@ -86,10 +69,10 @@ export function ChatRoutePanel() {
             disabled={!hasConnectors}
             className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
               source === 'cloud'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-accent text-white'
                 : hasConnectors
-                  ? 'bg-gray-800 text-gray-400 hover:text-gray-200'
-                  : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                  ? 'bg-bg-elevated text-text-secondary hover:text-text-primary'
+                  : 'bg-bg-elevated text-text-placeholder cursor-not-allowed'
             }`}
           >
             {t('route.cloud', 'Cloud')}
@@ -100,13 +83,13 @@ export function ChatRoutePanel() {
       {/* Connector selector (cloud only) */}
       {source === 'cloud' && hasConnectors && (
         <div>
-          <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">
+          <label className="text-[11px] text-text-secondary uppercase tracking-wider mb-1 block">
             {t('route.connector', 'Connector')}
           </label>
           <select
-            value={binding?.connectorId ?? snapshot?.connectorId ?? ''}
+            value={display?.connectorId ?? ''}
             onChange={(e) => onConnectorChange(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-blue-500"
+            className="w-full bg-bg-elevated border border-border-subtle rounded-xl px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-accent"
           >
             {connectors.map((c) => (
               <option key={c.connectorId} value={c.connectorId}>
@@ -117,31 +100,63 @@ export function ChatRoutePanel() {
         </div>
       )}
 
+      {display?.invalidBinding && (
+        <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-[12px] text-warning">
+          {t('route.fallbackWarning', 'Saved route is no longer available. Relay is using the active route shown below.')}
+        </div>
+      )}
+
+      {options.loadStatus !== 'ready' && (
+        <div className={`rounded-lg px-3 py-2 text-[12px] ${
+          options.loadStatus === 'failed'
+            ? 'border border-danger/40 bg-danger/10 text-danger'
+            : 'border border-warning/40 bg-warning/10 text-warning'
+        }`}>
+          {options.loadStatus === 'failed'
+            ? t('route.routeLoadFailed', 'Route discovery failed. Runtime or connector state is unavailable.')
+            : t('route.routeLoadDegraded', 'Route discovery is degraded. Some models or connectors could not be loaded.')}
+        </div>
+      )}
+
       {/* Model input with datalist autocomplete */}
       <div>
-        <label className="text-xs text-gray-400 uppercase tracking-wider mb-1 block">
+        <label className="text-[11px] text-text-secondary uppercase tracking-wider mb-1 block">
           {t('route.model', 'Model')}
         </label>
         {availableModels.length > 0 ? (
           <div className={`rounded-lg ${isPending ? 'ring-1 ring-amber-500' : ''}`}>
             <input
               list={datalistId}
-              value={modelQuery || activeModel}
+              value={displayValue}
+              onFocus={() => {
+                setIsEditing(true);
+                setModelQuery(activeModel);
+              }}
               onChange={(e) => setModelQuery(e.target.value)}
               onBlur={() => {
-                if (modelQuery && modelQuery !== activeModel) {
-                  void onModelChange(modelQuery);
-                  setModelQuery('');
+                if (isEditing && modelQuery !== activeModel) {
+                  if (modelQuery) {
+                    void onModelChange(modelQuery);
+                  }
                 }
+                setIsEditing(false);
+                setModelQuery('');
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && modelQuery && modelQuery !== activeModel) {
-                  void onModelChange(modelQuery);
+                if (e.key === 'Enter' && modelQuery !== activeModel) {
+                  if (modelQuery) {
+                    void onModelChange(modelQuery);
+                  }
+                  setIsEditing(false);
+                  setModelQuery('');
+                }
+                if (e.key === 'Escape') {
+                  setIsEditing(false);
                   setModelQuery('');
                 }
               }}
               placeholder={activeModel || t('route.selectModel', 'Select a model...')}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-blue-500"
+              className="w-full bg-bg-elevated border border-border-subtle rounded-xl px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-accent"
             />
             <datalist id={datalistId}>
               {availableModels.map((m) => (
@@ -152,28 +167,33 @@ export function ChatRoutePanel() {
             </datalist>
           </div>
         ) : source === 'local' ? (
-          <div className="text-xs text-gray-500 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
-            {t('route.noLocalModels', 'No local models available. Install a model via Desktop.')}
+          <div className="text-[12px] text-text-secondary bg-bg-surface border border-border-subtle rounded-xl px-3 py-2">
+            {options.local.status === 'unavailable'
+              ? t('route.localLoadFailed', 'Local model discovery failed. Runtime may be unavailable.')
+              : t('route.noLocalModels', 'No local models available. Install a model via Desktop.')}
           </div>
         ) : (
-          <div className="text-xs text-gray-500 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
-            {t('route.noCloudModels', 'No models available for this connector.')}
+          <div className="text-[12px] text-text-secondary bg-bg-surface border border-border-subtle rounded-xl px-3 py-2">
+            {selectedConnector?.modelsStatus === 'unavailable'
+              ? t('route.connectorLoadFailed', 'Connector model discovery failed for this route.')
+              : t('route.noCloudModels', 'No models available for this connector.')}
           </div>
         )}
       </div>
 
       {/* Active model indicator + reset */}
-      {snapshot && (
+      {display?.activeQualifiedModel && (
         <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-500 truncate">
-            {t('route.active', 'Active')}: <span className="text-gray-300">{snapshot.model}</span>
+          <span className="text-text-secondary truncate">
+            {t('route.active', 'Active')}: <span className="text-text-primary">{display.activeQualifiedModel}</span>
           </span>
           <button
             onClick={() => {
               setModelQuery('');
+              setIsEditing(false);
               void onReset();
             }}
-            className="text-gray-500 hover:text-gray-300 ml-2 shrink-0"
+            className="text-text-secondary hover:text-text-primary ml-2 shrink-0"
           >
             {t('route.reset', 'Reset')}
           </button>

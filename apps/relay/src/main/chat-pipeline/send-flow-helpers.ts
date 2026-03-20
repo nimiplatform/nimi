@@ -89,6 +89,15 @@ export function toMarkerOverrideIntent(input: {
   };
 }
 
+export function assertExplicitMediaAssetRequest(input: {
+  turnMode: LocalChatTurnMode;
+  markerOverrideIntent: ReturnType<typeof toMarkerOverrideIntent>;
+}): void {
+  if (input.turnMode !== 'explicit-media') return;
+  if (input.markerOverrideIntent) return;
+  throw new Error('Explicit media request failed because the composer did not produce an asset request.');
+}
+
 export function bindMediaDecisionToDelivery(
   decision: ConcreteMediaDecision,
   deliveryId: string,

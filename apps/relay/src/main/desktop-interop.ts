@@ -17,7 +17,8 @@ export function registerDesktopInteropHandlers(): void {
     try {
       await shell.openExternal(url);
       return { success: true };
-    } catch {
+    } catch (err) {
+      console.error('[relay:interop] open-config failed', err);
       return { success: false };
     }
   });

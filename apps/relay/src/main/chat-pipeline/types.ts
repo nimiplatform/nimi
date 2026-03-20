@@ -299,7 +299,6 @@ export type InteractionTurnPlan = {
   turnId: string;
   turnMode: LocalChatTurnMode;
   beats: InteractionBeat[];
-  fallbackPolicy: 'first-beat-only';
   expiresAt: string;
 };
 
@@ -844,5 +843,6 @@ export type RelayChatTurnSendInput = {
   selectedSessionId: string;
   messages: ChatMessage[];
   isTranscribing?: boolean;
+  onSessionResolved?: (sessionId: string) => void;
   synthesizeVoice?: (text: string) => Promise<LocalChatAudioPlaybackSource>;
 };

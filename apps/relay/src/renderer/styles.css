@@ -1,11 +1,105 @@
 @import "tailwindcss";
 @source "../../../_libs/shell-auth/src/**/*.{ts,tsx}";
 
+@theme {
+  /* Color tokens — Dark mode */
+  --color-bg-base: #0A0A0A;
+  --color-bg-surface: #111111;
+  --color-bg-elevated: #1A1A1A;
+  --color-bg-user-msg: #2A2A2A;
+  --color-accent: #7C6FFF;
+  --color-accent-hover: #6B5EEE;
+  --color-text-primary: #ECECEC;
+  --color-text-secondary: #888888;
+  --color-text-placeholder: #555555;
+  --color-border-subtle: #1E1E1E;
+  --color-success: #34D399;
+  --color-warning: #FBBF24;
+  --color-error: #F87171;
+
+  /* Fonts */
+  --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", monospace;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(124, 111, 255, 0.15);
+}
+
+/* Body defaults */
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Animations */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes message-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes button-press {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+
+.animate-cursor-blink {
+  animation: cursor-blink 800ms ease-in-out infinite;
+}
+
+.animate-message-appear {
+  animation: message-appear 300ms ease-out forwards;
+}
+
+.animate-button-press {
+  animation: button-press 100ms ease-in;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-cursor-blink,
+  .animate-message-appear,
+  .animate-button-press {
+    animation: none;
+  }
+
+  * {
+    transition-duration: 0ms !important;
+  }
 }

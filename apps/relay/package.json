@@ -36,14 +36,17 @@
     "@nimiplatform/shell-auth": "workspace:*",
     "@nimiplatform/shell-core": "workspace:*",
     "@tanstack/react-query": "^5.90.21",
+    "i18next": "^25.8.18",
+    "lucide-react": "^0.577.0",
     "pixi-live2d-display": "^0.4.0",
     "pixi.js": "^6.5.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "react-router-dom": "^7.13.1",
-    "socket.io-client": "^4.8.3",
-    "i18next": "^25.8.18",
     "react-i18next": "^16.5.8",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.13.1",
+    "remark-gfm": "^4.0.1",
+    "socket.io-client": "^4.8.3",
     "zustand": "^5.0.12"
   }
 }

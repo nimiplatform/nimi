@@ -29,7 +29,6 @@ export type ExecuteMediaDecisionInput = {
   aiClient: LocalChatTurnAiClient;
   defaultSettings: LocalChatDefaultSettings;
   nsfwPolicy: 'disabled' | 'local-only' | 'allowed';
-  fallbackRouteSource: MediaRouteSource;
   sessionId: string;
   target: LocalChatTarget;
   targetId: string;
@@ -165,6 +164,53 @@ function createMediaFailureMessage(input: {
       mediaShadow: input.shadow,
     },
   };
+}
+
+function requireRenderableMediaArtifact(input: {
+  artifact: { uri?: string; base64?: string; mimeType?: string } | null | undefined;
+  mediaKind: 'image' | 'video';
+  pendingMessageId: string;
+  routeSource: MediaRouteSource;
+  routeModel?: string;
+}): {
+  uri: string;
+  mimeType: string;
+  diagnostics: {
+    hasArtifact: boolean;
+    hasUri: boolean;
+    hasBase64: boolean;
+    mimeType: string | null;
+  };
+} {
+  const artifact = input.artifact;
+  const diagnostics = {
+    hasArtifact: Boolean(artifact),
+    hasUri: Boolean(artifact?.uri),
+    hasBase64: Boolean(artifact?.base64),
+    mimeType: artifact?.mimeType ?? null,
+  };
+  const mimeType = artifact?.mimeType?.trim() || '';
+  if (!artifact) {
+    throw new Error(`RELAY_MEDIA_${input.mediaKind.toUpperCase()}_NO_ARTIFACT`);
+  }
+  if (!mimeType) {
+    throw new Error(`RELAY_MEDIA_${input.mediaKind.toUpperCase()}_MISSING_MIME_TYPE`);
+  }
+  if (artifact.uri) {
+    return {
+      uri: artifact.uri,
+      mimeType,
+      diagnostics,
+    };
+  }
+  if (artifact.base64) {
+    return {
+      uri: `data:${mimeType};base64,${artifact.base64}`,
+      mimeType,
+      diagnostics,
+    };
+  }
+  throw new Error(`RELAY_MEDIA_${input.mediaKind.toUpperCase()}_NO_URI_OR_BASE64`);
 }
 
 export async function executeMediaDecision(input: ExecuteMediaDecisionInput): Promise<Partial<MediaPromptTracePatch> | null> {
@@ -320,7 +366,19 @@ export async function executeMediaDecision(input: ExecuteMediaDecisionInput): Pr
     routeModel: resolvedRoute.model,
   });
 
+  let artifactDiagnostics:
+    | {
+      hasArtifact: boolean;
+      hasUri: boolean;
+      hasBase64: boolean;
+      mimeType: string | null;
+    }
+    | undefined;
   try {
+    console.info('[relay:media-execution] calling generateMedia...', {
+      pendingMessageId: intent.pendingMessageId,
+      mediaKind: prepared.spec.kind,
+    });
     let result: { uri: string; mimeType: string; routeSource: string; routeModel?: string };
     if (prepared.spec.kind === 'image') {
       const imageResult = await input.aiClient.generateImage({
@@ -334,12 +392,17 @@ export async function executeMediaDecision(input: ExecuteMediaDecisionInput): Pr
         agentId: input.targetId,
       });
       const artifact = imageResult.artifacts[0];
-      if (!artifact?.uri && !artifact?.base64) {
-        throw new Error('RELAY_MEDIA_IMAGE_NO_ARTIFACT');
-      }
+      const resolvedArtifact = requireRenderableMediaArtifact({
+        artifact,
+        mediaKind: 'image',
+        pendingMessageId: intent.pendingMessageId,
+        routeSource: resolvedRoute.source,
+        routeModel: resolvedRoute.model,
+      });
+      artifactDiagnostics = resolvedArtifact.diagnostics;
       result = {
-        uri: artifact.uri || `data:${artifact.mimeType || 'image/png'};base64,${artifact.base64}`,
-        mimeType: artifact.mimeType || 'image/png',
+        uri: resolvedArtifact.uri,
+        mimeType: resolvedArtifact.mimeType,
         routeSource: resolvedRoute.source,
         routeModel: resolvedRoute.model,
       };
@@ -352,21 +415,39 @@ export async function executeMediaDecision(input: ExecuteMediaDecisionInput): Pr
         agentId: input.targetId,
       });
       const artifact = videoResult.artifacts[0];
-      if (!artifact?.uri && !artifact?.base64) {
-        throw new Error('RELAY_MEDIA_VIDEO_NO_ARTIFACT');
-      }
+      const resolvedArtifact = requireRenderableMediaArtifact({
+        artifact,
+        mediaKind: 'video',
+        pendingMessageId: intent.pendingMessageId,
+        routeSource: resolvedRoute.source,
+        routeModel: resolvedRoute.model,
+      });
+      artifactDiagnostics = resolvedArtifact.diagnostics;
       result = {
-        uri: artifact.uri || `data:${artifact.mimeType || 'video/mp4'};base64,${artifact.base64}`,
-        mimeType: artifact.mimeType || 'video/mp4',
+        uri: resolvedArtifact.uri,
+        mimeType: resolvedArtifact.mimeType,
         routeSource: resolvedRoute.source,
         routeModel: resolvedRoute.model,
       };
     }
 
     if (input.getCurrentContextKey() !== input.sendContextKey) {
+      console.warn('[relay:media-execution] context-key mismatch, dropping result', {
+        pendingMessageId: intent.pendingMessageId,
+        current: input.getCurrentContextKey(),
+        expected: input.sendContextKey,
+      });
       input.setMessages((prev) => prev.filter((message) => message.id !== intent.pendingMessageId));
       return null;
     }
+
+    console.info('[relay:media-execution] generated', {
+      pendingMessageId: intent.pendingMessageId,
+      mediaKind: prepared.spec.kind,
+      routeSource: result.routeSource,
+      routeModel: result.routeModel,
+      uriLength: result.uri.length,
+    });
 
     const createdAt = new Date().toISOString();
     const shadow = buildMediaArtifactShadow({
@@ -420,11 +501,25 @@ export async function executeMediaDecision(input: ExecuteMediaDecisionInput): Pr
       shadowText: shadow.shadowText,
     });
   } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error || 'RELAY_MEDIA_EXECUTION_FAILED');
+    console.error('[relay:media-execution] failed', {
+      pendingMessageId: intent.pendingMessageId,
+      mediaKind: prepared.spec.kind,
+      routeSource: resolvedRoute.source,
+      routeModel: resolvedRoute.model,
+      reason,
+      artifactDiagnostics,
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3).join(' | ') : undefined,
+    });
     if (input.getCurrentContextKey() !== input.sendContextKey) {
+      console.warn('[relay:media-execution] context-key mismatch in error path, dropping', {
+        pendingMessageId: intent.pendingMessageId,
+        current: input.getCurrentContextKey(),
+        expected: input.sendContextKey,
+      });
       input.setMessages((prev) => prev.filter((message) => message.id !== intent.pendingMessageId));
       return null;
     }
-    const reason = error instanceof Error ? error.message : String(error || 'RELAY_MEDIA_EXECUTION_FAILED');
     const shadow = buildMediaArtifactShadow({
       spec: prepared.spec,
       status: 'failed',

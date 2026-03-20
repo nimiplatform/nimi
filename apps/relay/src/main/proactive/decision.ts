@@ -5,7 +5,6 @@ import type {
   LocalChatProactiveDecisionInput,
   LocalChatProactiveDecisionObject,
 } from './types.js';
-import { asRecord, type JsonObject } from '../../shared/json.js';
 
 const PROACTIVE_MAX_CONTEXT_CHARS = 3200;
 const PROACTIVE_MAX_MESSAGE_CHARS = 220;
@@ -16,39 +15,6 @@ function sanitizeProactiveMessage(input: string): string {
     .replace(/["'`]+\s*$/, '')
     .replace(/[ \t]{3,}/g, ' ')
     .trim();
-}
-
-function parseStrictJsonObject(text: string): JsonObject {
-  const normalized = String(text || '').trim();
-  if (!normalized || !normalized.startsWith('{') || !normalized.endsWith('}')) {
-    throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_INVALID_JSON');
-  }
-  const parsed = JSON.parse(normalized);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_INVALID_OBJECT');
-  }
-  return parsed as JsonObject;
-}
-
-function parseProactiveDecisionObject(text: string): JsonObject {
-  const record = parseStrictJsonObject(text);
-  if (typeof record.shouldContact !== 'boolean') {
-    throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_SHOULD_CONTACT_REQUIRED');
-  }
-  const shouldContact = record.shouldContact;
-  const message = sanitizeProactiveMessage(String(record.message || '')).slice(0, PROACTIVE_MAX_MESSAGE_CHARS);
-  const reason = String(record.reason || '').trim().slice(0, 240);
-  if (shouldContact && !message) {
-    throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_MESSAGE_REQUIRED');
-  }
-  if (!shouldContact && message) {
-    throw new Error('LOCAL_CHAT_PROACTIVE_DECISION_MESSAGE_MUST_BE_EMPTY');
-  }
-  return {
-    shouldContact,
-    message: shouldContact ? message : '',
-    reason,
-  };
 }
 
 function joinLines(title: string, lines: string[]): string {
@@ -105,15 +71,18 @@ export async function generateLocalChatProactiveDecision(
     summarizeContextPacket(input.contextPacket),
   ].join('\n');
 
-  const result = await input.aiClient.generateObject({
+  const result = await input.aiClient.generateObject<LocalChatProactiveDecisionObject>({
     prompt,
     agentId: target.id,
   });
 
-  const parsed = asRecord(result.object);
+  const parsed = result.object;
+  const shouldContact = Boolean(parsed.shouldContact);
+  const message = sanitizeProactiveMessage(parsed.message).slice(0, PROACTIVE_MAX_MESSAGE_CHARS);
+  const reason = String(parsed.reason || '').trim().slice(0, 240);
   return {
-    shouldContact: Boolean(parsed.shouldContact),
-    message: String(parsed.message || '').trim(),
-    reason: String(parsed.reason || '').trim(),
+    shouldContact,
+    message: shouldContact ? message : '',
+    reason,
   };
 }

@@ -11,7 +11,18 @@ import type {
 import type { TurnInvokeInput } from './request-builder.js';
 import { pt, type PromptLocale } from '../prompt/prompt-locale.js';
 import { buildPerceptionCompactContext } from './perception-context.js';
-import { asRecord, type JsonObject } from '../../shared/json.js';
+
+type TurnPerceptionObject = {
+  conversationDirective?: string | null;
+  emotionalState?: {
+    cause?: string;
+    detected?: string;
+    suggestedApproach?: string;
+  } | null;
+  intimacyCeiling?: TurnPerceptionResult['intimacyCeiling'] | string;
+  relevantMemoryIds?: string[];
+  turnMode?: LocalChatTurnMode | string;
+};
 
 export type TurnPerceptionResult = {
   turnMode: LocalChatTurnMode;
@@ -39,7 +50,7 @@ function parseIntimacyCeiling(
 }
 
 function parsePerceptionResult(
-  object: JsonObject,
+  object: TurnPerceptionObject,
   currentRelationship?: string,
 ): TurnPerceptionResult {
   const turnMode = parseTurnMode(object.turnMode);
@@ -75,13 +86,13 @@ function parseTurnMode(value: unknown): LocalChatTurnMode {
 
 function parseEmotionalState(value: unknown): TurnPerceptionResult['emotionalState'] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-  const record = asRecord(value);
-  const detected = String(record.detected || '').trim();
+  const record = value as TurnPerceptionObject['emotionalState'];
+  const detected = String(record?.detected || '').trim();
   if (!detected) return null;
   return {
     detected,
-    cause: String(record.cause || '').trim(),
-    suggestedApproach: String(record.suggestedApproach || '').trim(),
+    cause: String(record?.cause || '').trim(),
+    suggestedApproach: String(record?.suggestedApproach || '').trim(),
   };
 }
 
@@ -100,7 +111,7 @@ function tryHardcodedOverride(input: {
 }): LocalChatTurnMode | null {
   if (input.proactive) return 'checkin';
   const text = input.userText.trim();
-  if (/^(发图|来张图|发一张|给我看看你|发个视频|来个视频)\b/u.test(text)) return 'explicit-media';
+  if (/^(发图|发张照片|发张图|来张图|发一张|给我看看你|发个视频|来个视频|生成图片|画一张|画张)\b/u.test(text)) return 'explicit-media';
   if (/^(用语音|语音回复|读给我听)\b/u.test(text)) return 'explicit-voice';
   return null;
 }
@@ -165,14 +176,14 @@ export async function perceiveTurn(input: {
       maxTokens: 1024,
       temperature: 0.3,
     });
-    const result = await input.aiClient.generateObject({
+    const result = await input.aiClient.generateObject<TurnPerceptionObject>({
       ...input.invokeInput,
       debugLabel: 'turn-perception',
       prompt,
       maxTokens: 1024,
       temperature: 0.3,
     });
-    const parsed = parsePerceptionResult(asRecord(result.object), currentRelationship);
+    const parsed = parsePerceptionResult(result.object, currentRelationship);
     console.log('[relay:turn-perception] generateObject: success', {
       turnMode: parsed.turnMode,
       emotionalState: parsed.emotionalState?.detected || null,

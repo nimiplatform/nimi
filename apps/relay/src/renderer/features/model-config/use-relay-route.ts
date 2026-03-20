@@ -1,12 +1,16 @@
 // Hook for relay route selection — loads options, binding, snapshot via bridge
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getBridge } from '../../bridge/electron-bridge.js';
 import type {
   RelayRouteBinding,
   RelayRouteOptions,
   ResolvedRelayRoute,
 } from '../../../shared/ipc-contract.js';
+import {
+  buildRelayRouteBindingForModelChange,
+  deriveRelayRouteDisplayState,
+} from './relay-route-binding.js';
 
 export type RelayRouteSource = RelayRouteBinding['source'];
 
@@ -36,17 +40,19 @@ export function useRelayRoute() {
       setSnapshot(snap);
       setLoading(false);
       retryIndexRef.current = RETRY_DELAYS.length; // stop retries
-    } catch {
+    } catch (err) {
       if (!mountedRef.current) return;
       // Retry with backoff
       const idx = retryIndexRef.current;
       if (idx < RETRY_DELAYS.length) {
+        console.warn(`[relay:route] loadAll attempt ${idx + 1}/${RETRY_DELAYS.length} failed`, err);
         retryIndexRef.current = idx + 1;
         const delay = RETRY_DELAYS[idx]!;
         setTimeout(() => {
           if (mountedRef.current) void loadAll();
         }, delay);
       } else {
+        console.error('[relay:route] loadAll retries exhausted', err);
         setLoading(false);
       }
     }
@@ -75,8 +81,8 @@ export function useRelayRoute() {
         // Also refresh snapshot since options may have changed resolution
         const snap = await bridge.route.getSnapshot();
         if (mountedRef.current) setSnapshot(snap);
-      } catch {
-        // Silently ignore polling errors
+      } catch (err) {
+        console.warn('[relay:route] polling refresh failed', err);
       }
     }, interval);
     return () => clearInterval(timer);
@@ -100,17 +106,11 @@ export function useRelayRoute() {
 
   const onModelChange = useCallback(async (model: string) => {
     const bridge = getBridge();
-    const source = binding?.source ?? 'local';
-    const newBinding: RelayRouteBinding = {
-      source,
-      model,
-      connectorId: source === 'cloud' ? binding?.connectorId : undefined,
-      localModelId: source === 'local' ? model : undefined,
-    };
+    const newBinding = buildRelayRouteBindingForModelChange(binding, snapshot, model, options);
     const resolved = await bridge.route.setBinding(newBinding);
     setBinding(newBinding);
     setSnapshot(resolved);
-  }, [binding]);
+  }, [binding, options, snapshot]);
 
   const onReset = useCallback(async () => {
     const bridge = getBridge();
@@ -120,10 +120,16 @@ export function useRelayRoute() {
     setSnapshot(resolved);
   }, []);
 
+  const display = useMemo(
+    () => (options ? deriveRelayRouteDisplayState(binding, snapshot, options) : null),
+    [binding, options, snapshot],
+  );
+
   return {
     options,
     binding,
     snapshot,
+    display,
     loading,
     onSourceChange,
     onConnectorChange,

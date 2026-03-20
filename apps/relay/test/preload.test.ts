@@ -46,10 +46,11 @@ describe('RL-IPC-004 — Preload Security Boundary', () => {
   });
 
   it('api object wraps ipcRenderer.invoke, never returns ipcRenderer directly', () => {
-    const apiBlock = preloadSource.slice(
-      preloadSource.indexOf('const api = {'),
-      preloadSource.indexOf("contextBridge.exposeInMainWorld"),
-    );
+    const apiStart = preloadSource.indexOf('const api');
+    const apiEnd = preloadSource.indexOf("contextBridge.exposeInMainWorld");
+    const apiBlock = apiStart >= 0 && apiEnd > apiStart
+      ? preloadSource.slice(apiStart, apiEnd)
+      : '';
     assert.ok(apiBlock.length > 0, 'api object definition must exist');
     assert.ok(
       !apiBlock.includes('ipcRenderer,'),

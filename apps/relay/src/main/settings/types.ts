@@ -145,7 +145,8 @@ export function normalizeLocalChatInspectSettings(value: unknown): LocalChatInsp
     return { ...DEFAULT_LOCAL_CHAT_INSPECT_SETTINGS };
   }
   const record = value as Record<string, unknown>;
-  const normalizedVoiceName = String(record.voiceName || '').trim();
+  // Accept both voiceName (canonical) and ttsVoiceId (renderer alias)
+  const normalizedVoiceName = String(record.voiceName || record.ttsVoiceId || '').trim();
   const voiceName = normalizedVoiceName || DEFAULT_LOCAL_CHAT_INSPECT_SETTINGS.voiceName;
   const normalizedTtsRouteSource = String(record.ttsRouteSource || '').trim();
   const normalizedSttRouteSource = String(record.sttRouteSource || '').trim();

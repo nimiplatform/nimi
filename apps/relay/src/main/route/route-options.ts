@@ -4,6 +4,7 @@ import type { PlatformClient } from '@nimiplatform/sdk';
 import type {
   RelayLocalModelOption,
   RelayConnectorOption,
+  RelayRouteLoadIssue,
   RelayRouteOptions,
   RelayRouteBinding,
 } from './types.js';
@@ -32,18 +33,64 @@ function mapStatus(raw: number): RelayLocalModelOption['status'] {
   return STATUS_MAP[raw as LocalModelStatus] ?? 'unspecified';
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+function createRouteIssue(
+  scope: RelayRouteLoadIssue['scope'],
+  kind: RelayRouteLoadIssue['kind'],
+  message: string,
+  extras?: Pick<RelayRouteLoadIssue, 'connectorId' | 'capability'>,
+): RelayRouteLoadIssue {
+  return {
+    scope,
+    kind,
+    message,
+    ...(extras?.connectorId ? { connectorId: extras.connectorId } : {}),
+    ...(extras?.capability ? { capability: extras.capability } : {}),
+  };
+}
+
+function createUnavailableRouteOptions(
+  binding: RelayRouteBinding | null,
+  issue: RelayRouteLoadIssue,
+): RelayRouteOptions {
+  return {
+    local: {
+      models: [],
+      status: 'unavailable',
+      error: issue.scope === 'local-models' ? issue.message : undefined,
+    },
+    connectors: [],
+    selected: binding,
+    loadStatus: 'failed',
+    issues: [issue],
+  };
+}
+
+function toRouteIssue(
+  scope: RelayRouteLoadIssue['scope'],
+  error: unknown,
+  extras?: Pick<RelayRouteLoadIssue, 'connectorId' | 'capability'>,
+): RelayRouteLoadIssue {
+  const message = error instanceof Error ? error.message : String(error || 'unknown route options failure');
+  return createRouteIssue(
+    scope,
+    message.startsWith('timeout:') ? 'timeout' : 'runtime-error',
+    message,
+    extras,
+  );
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout>;
-  const timeout = new Promise<T>((resolve) => {
-    timer = setTimeout(() => resolve(fallback), ms);
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timeout:${label}:${ms}`)), ms);
   });
   try {
     const result = await Promise.race([promise, timeout]);
     clearTimeout(timer!);
     return result;
-  } catch {
+  } catch (err) {
     clearTimeout(timer!);
-    return fallback;
+    throw err;
   }
 }
 
@@ -67,61 +114,143 @@ async function loadLocalModels(runtime: PlatformClient['runtime']): Promise<Rela
     });
 }
 
-async function loadConnectors(runtime: PlatformClient['runtime']): Promise<RelayConnectorOption[]> {
-  const response = await runtime.connector.listConnectors({} as Parameters<typeof runtime.connector.listConnectors>[0]);
+async function loadConnectors(
+  runtime: PlatformClient['runtime'],
+  capability = 'text.generate',
+): Promise<{ connectors: RelayConnectorOption[]; issues: RelayRouteLoadIssue[] }> {
+  const response = await withTimeout(
+    runtime.connector.listConnectors({} as Parameters<typeof runtime.connector.listConnectors>[0]),
+    LOAD_TIMEOUT_MS,
+    `list-connectors:${capability}`,
+  );
   const connectors = response.connectors || [];
-  const results: RelayConnectorOption[] = [];
+  const issues: RelayRouteLoadIssue[] = [];
 
-  for (const c of connectors) {
-    try {
-      const modelsResponse = await withTimeout(
-        runtime.connector.listConnectorModels({ connectorId: c.connectorId } as Parameters<typeof runtime.connector.listConnectorModels>[0]),
-        LOAD_TIMEOUT_MS,
-        { models: [], nextPageToken: '' },
-      );
-      const models = (modelsResponse.models || [])
-        .filter((m) => m.capabilities.includes('text.generate'))
-        .map((m) => ({
-          modelId: m.modelId,
-          modelLabel: m.modelLabel,
-          available: m.available,
-          capabilities: m.capabilities,
-        }));
+  const results = await Promise.all(
+    connectors.map(async (c): Promise<RelayConnectorOption> => {
+      try {
+        const modelsResponse = await withTimeout(
+          runtime.connector.listConnectorModels({ connectorId: c.connectorId } as Parameters<typeof runtime.connector.listConnectorModels>[0]),
+          LOAD_TIMEOUT_MS,
+          `list-connector-models:${c.connectorId}:${capability}`,
+        );
+        const models = (modelsResponse.models || [])
+          .filter((m) => m.capabilities.includes(capability))
+          .map((m) => ({
+            modelId: m.modelId,
+            modelLabel: m.modelLabel,
+            available: m.available,
+            capabilities: m.capabilities,
+          }));
 
-      results.push({
-        connectorId: c.connectorId,
-        provider: c.provider,
-        label: c.label || c.provider,
-        status: String(c.status),
-        models,
-      });
-    } catch {
-      // Skip connectors that fail to load models
-      results.push({
-        connectorId: c.connectorId,
-        provider: c.provider,
-        label: c.label || c.provider,
-        status: String(c.status),
-        models: [],
-      });
-    }
+        return {
+          connectorId: c.connectorId,
+          provider: c.provider,
+          label: c.label || c.provider,
+          status: String(c.status),
+          modelsStatus: 'ready',
+          models,
+        };
+      } catch (err) {
+        const issue = toRouteIssue('connector-models', err, {
+          connectorId: c.connectorId,
+          capability,
+        });
+        issues.push(issue);
+        console.warn('[relay:route] connector model load failed', {
+          connectorId: c.connectorId,
+          capability,
+          message: issue.message,
+        }, err);
+        return {
+          connectorId: c.connectorId,
+          provider: c.provider,
+          label: c.label || c.provider,
+          status: String(c.status),
+          modelsStatus: 'unavailable',
+          modelsError: issue.message,
+          models: [],
+        };
+      }
+    }),
+  );
+
+  return { connectors: results, issues };
+}
+
+export async function loadMediaRouteConnectors(
+  runtime: PlatformClient['runtime'],
+  capability: string,
+): Promise<{
+  connectors: RelayConnectorOption[];
+  loadStatus: RelayRouteOptions['loadStatus'];
+  issues: RelayRouteLoadIssue[];
+}> {
+  try {
+    const { connectors, issues } = await loadConnectors(runtime, capability);
+    return {
+      connectors,
+      loadStatus: issues.length > 0 ? 'degraded' : 'ready',
+      issues,
+    };
+  } catch (error) {
+    const issue = toRouteIssue('connectors', error, { capability });
+    console.warn('[relay:route] media connector load failed', { capability, message: issue.message }, error);
+    return {
+      connectors: [],
+      loadStatus: 'failed',
+      issues: [issue],
+    };
   }
-
-  return results;
 }
 
 export async function loadRouteOptions(
   runtime: PlatformClient['runtime'],
   currentBinding: RelayRouteBinding | null,
 ): Promise<RelayRouteOptions> {
-  const [localModels, connectors] = await Promise.all([
-    withTimeout(loadLocalModels(runtime), LOAD_TIMEOUT_MS, []),
-    withTimeout(loadConnectors(runtime), LOAD_TIMEOUT_MS, []),
+  const [localModelsResult, connectorsResult] = await Promise.allSettled([
+    withTimeout(loadLocalModels(runtime), LOAD_TIMEOUT_MS, 'list-local-models'),
+    loadConnectors(runtime),
   ]);
 
+  const issues: RelayRouteLoadIssue[] = [];
+  const local = {
+    models: [] as RelayLocalModelOption[],
+    status: 'ready' as 'ready' | 'unavailable',
+    error: undefined as string | undefined,
+  };
+  let connectors: RelayConnectorOption[] = [];
+
+  if (localModelsResult.status === 'fulfilled') {
+    local.models = localModelsResult.value;
+  } else {
+    const issue = toRouteIssue('local-models', localModelsResult.reason);
+    local.status = 'unavailable';
+    local.error = issue.message;
+    issues.push(issue);
+    console.warn('[relay:route] local model load failed', { message: issue.message }, localModelsResult.reason);
+  }
+
+  if (connectorsResult.status === 'fulfilled') {
+    connectors = connectorsResult.value.connectors;
+    issues.push(...connectorsResult.value.issues);
+  } else {
+    const issue = toRouteIssue('connectors', connectorsResult.reason);
+    issues.push(issue);
+    console.warn('[relay:route] connector catalog load failed', { message: issue.message }, connectorsResult.reason);
+  }
+
+  const loadStatus: RelayRouteOptions['loadStatus'] = issues.length === 0
+    ? 'ready'
+    : local.status === 'unavailable' && connectors.length === 0
+      ? 'failed'
+      : 'degraded';
+
   return {
-    local: { models: localModels },
+    local,
     connectors,
     selected: currentBinding,
+    loadStatus,
+    issues,
   };
 }

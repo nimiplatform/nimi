@@ -17,6 +17,18 @@ export interface ProductSettings {
   autoPlayVoiceReplies: boolean;
 }
 
+export interface InspectSettings {
+  imageConnectorId: string;
+  imageModel: string;
+  videoConnectorId: string;
+  videoModel: string;
+  ttsConnectorId: string;
+  ttsModel: string;
+  ttsVoiceId: string;
+  sttConnectorId: string;
+  sttModel: string;
+}
+
 const DEFAULT_PRODUCT_SETTINGS: ProductSettings = {
   mediaAutonomy: 'natural',
   voiceAutonomy: 'natural',
@@ -26,40 +38,113 @@ const DEFAULT_PRODUCT_SETTINGS: ProductSettings = {
   autoPlayVoiceReplies: false,
 };
 
+const DEFAULT_INSPECT_SETTINGS: InspectSettings = {
+  imageConnectorId: '',
+  imageModel: '',
+  videoConnectorId: '',
+  videoModel: '',
+  ttsConnectorId: '',
+  ttsModel: '',
+  ttsVoiceId: '',
+  sttConnectorId: '',
+  sttModel: '',
+};
+
 export interface SettingsState {
   product: ProductSettings;
+  inspect: InspectSettings;
   loaded: boolean;
+  saveError: string | null;
+  lastSavedAt: number | null;
   setProduct: (settings: ProductSettings) => void;
   updateProduct: (patch: Partial<ProductSettings>) => void;
+  updateInspect: (patch: Partial<InspectSettings>) => void;
   load: () => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   product: { ...DEFAULT_PRODUCT_SETTINGS },
+  inspect: { ...DEFAULT_INSPECT_SETTINGS },
   loaded: false,
+  saveError: null,
+  lastSavedAt: null,
 
-  setProduct: (settings) => set({ product: settings, loaded: true }),
+  setProduct: (settings) => set({ product: settings, loaded: true, saveError: null }),
 
   updateProduct: async (patch) => {
+    const previous = get().product;
     const next = { ...get().product, ...patch };
-    set({ product: next });
+    set({ product: next, saveError: null });
     try {
       await getBridge().chat.settings.set({ product: next });
-    } catch {
-      // Settings save failed — UI stays updated, next load will reconcile
+      set({ lastSavedAt: Date.now(), saveError: null });
+    } catch (error) {
+      console.error('[relay:settings] failed to save product settings', error);
+      set({
+        product: previous,
+        saveError: error instanceof Error ? error.message : 'Failed to save settings',
+      });
+    }
+  },
+
+  updateInspect: async (patch) => {
+    const previous = get().inspect;
+    const next = { ...get().inspect, ...patch };
+    set({ inspect: next, saveError: null });
+    try {
+      await getBridge().chat.settings.set({ inspect: next });
+      set({ lastSavedAt: Date.now(), saveError: null });
+    } catch (error) {
+      console.error('[relay:settings] failed to save inspect settings', error);
+      set({
+        inspect: previous,
+        saveError: error instanceof Error ? error.message : 'Failed to save settings',
+      });
     }
   },
 
   load: async () => {
     try {
       const result = await getBridge().chat.settings.get();
-      if (result?.product) {
-        set({ product: result.product, loaded: true });
+      if (result) {
+        set({
+          product: result.product ?? { ...DEFAULT_PRODUCT_SETTINGS },
+          inspect: {
+            ...DEFAULT_INSPECT_SETTINGS,
+            ...pickInspectFields(result.inspect),
+          },
+          loaded: true,
+          saveError: null,
+        });
       } else {
-        set({ loaded: true });
+        set({ loaded: true, saveError: null });
       }
-    } catch {
-      set({ loaded: true });
+    } catch (error) {
+      set({
+        loaded: true,
+        saveError: error instanceof Error ? error.message : 'Failed to load settings',
+      });
     }
   },
 }));
+
+function pickInspectFields(value: unknown): Partial<InspectSettings> {
+  if (!value || typeof value !== 'object') return {};
+  const r = value as Record<string, unknown>;
+  const result: Partial<InspectSettings> = {};
+  for (const key of [
+    'imageConnectorId', 'imageModel',
+    'videoConnectorId', 'videoModel',
+    'ttsConnectorId', 'ttsModel', 'ttsVoiceId',
+    'sttConnectorId', 'sttModel',
+  ] as const) {
+    if (typeof r[key] === 'string') {
+      result[key] = r[key] as string;
+    }
+  }
+  // Map voiceName (main process canonical field) → ttsVoiceId (renderer field)
+  if (!result.ttsVoiceId && typeof r.voiceName === 'string' && r.voiceName) {
+    result.ttsVoiceId = r.voiceName;
+  }
+  return result;
+}

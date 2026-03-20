@@ -9,8 +9,8 @@ export function VideoPlayer({ url }: VideoPlayerProps) {
 
   if (!url) {
     return (
-      <div className="flex items-center justify-center h-48 bg-gray-800 rounded-lg">
-        <span className="text-sm text-gray-500">{t('video.noVideo')}</span>
+      <div className="flex items-center justify-center h-48 bg-bg-elevated rounded-xl">
+        <span className="text-[13px] text-text-secondary">{t('video.noVideo')}</span>
       </div>
     );
   }
@@ -19,7 +19,7 @@ export function VideoPlayer({ url }: VideoPlayerProps) {
     <video
       src={url}
       controls
-      className="w-full rounded-lg"
+      className="w-full rounded-xl"
     />
   );
 }

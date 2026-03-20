@@ -14,16 +14,18 @@ import {
 // ─── resolveModelAndRoute ─────────────────────────────────────────────────
 
 describe('resolveModelAndRoute', () => {
-  it('defaults to local/default when no provider or model', () => {
-    const result = resolveModelAndRoute(undefined, undefined);
-    assert.equal(result.model, 'local/default');
-    assert.equal(result.route, 'local');
+  it('requires an explicit provider/model target when both are absent', () => {
+    assert.throws(
+      () => resolveModelAndRoute(undefined, undefined),
+      /requires an explicit local model or provider \+ model/,
+    );
   });
 
-  it('empty strings treated as absent', () => {
-    const result = resolveModelAndRoute('', '');
-    assert.equal(result.model, 'local/default');
-    assert.equal(result.route, 'local');
+  it('treats empty strings as absent and rejects implicit defaults', () => {
+    assert.throws(
+      () => resolveModelAndRoute('', ''),
+      /requires an explicit local model or provider \+ model/,
+    );
   });
 
   it('model-only resolves to local/{model}', () => {
@@ -88,7 +90,7 @@ describe('resolveModelAndRoute', () => {
 
 describe('toTextGenerateInput', () => {
   it('maps prompt to input field', () => {
-    const ipc: IpcAiGenerateInput = { prompt: 'Hello' };
+    const ipc: IpcAiGenerateInput = { prompt: 'Hello', model: 'llama3' };
     const result = toTextGenerateInput(ipc);
     assert.equal(result.input, 'Hello');
   });
@@ -101,13 +103,13 @@ describe('toTextGenerateInput', () => {
   });
 
   it('defaults subjectUserId to local-user', () => {
-    const ipc: IpcAiGenerateInput = { prompt: 'Hi' };
+    const ipc: IpcAiGenerateInput = { prompt: 'Hi', model: 'llama3' };
     const result = toTextGenerateInput(ipc);
     assert.equal(result.subjectUserId, 'local-user');
   });
 
   it('uses provided subjectUserId', () => {
-    const ipc: IpcAiGenerateInput = { prompt: 'Hi', subjectUserId: 'user-123' };
+    const ipc: IpcAiGenerateInput = { prompt: 'Hi', model: 'llama3', subjectUserId: 'user-123' };
     const result = toTextGenerateInput(ipc);
     assert.equal(result.subjectUserId, 'user-123');
   });
@@ -115,6 +117,7 @@ describe('toTextGenerateInput', () => {
   it('passes through optional fields', () => {
     const ipc: IpcAiGenerateInput = {
       prompt: 'Hi',
+      model: 'llama3',
       system: 'You are helpful',
       maxTokens: 1000,
       temperature: 0.7,
@@ -132,7 +135,7 @@ describe('toTextGenerateInput', () => {
   });
 
   it('does not include agentId in TextGenerateInput (agentId is IPC-layer only)', () => {
-    const ipc: IpcAiGenerateInput = { prompt: 'Hi', agentId: 'agent-1' };
+    const ipc: IpcAiGenerateInput = { prompt: 'Hi', model: 'llama3', agentId: 'agent-1' };
     const result = toTextGenerateInput(ipc);
     assert.ok(!('agentId' in result), 'agentId should not be in TextGenerateInput');
   });

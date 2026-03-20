@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { normalizeError, type NormalizedError } from '../src/main/error-utils.js';
+import { resolveRelayTtsConfig } from '../src/main/tts-config.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
@@ -229,6 +230,49 @@ describe('RL-CORE-004 — Agent-scoped vs agent-independent channels', () => {
   });
 });
 
+describe('RL-FEAT-003 — relay TTS config resolution', () => {
+  it('uses renderer-provided model and voice ahead of persisted Settings values', () => {
+    const resolved = resolveRelayTtsConfig({
+      ttsConnectorId: 'connector-1',
+      ttsModel: 'qwen3-tts-instruct-flash',
+      voiceName: 'vivian',
+    }, {
+      model: 'agent-model',
+      voiceId: 'agent-voice',
+    });
+
+    assert.equal(resolved.connectorId, 'connector-1');
+    assert.equal(resolved.model, 'agent-model');
+    assert.equal(resolved.voiceId, 'agent-voice');
+    assert.equal(resolved.requestedModel, 'agent-model');
+    assert.equal(resolved.requestedVoice, 'agent-voice');
+  });
+
+  it('falls back to persisted Settings voice only when renderer did not provide one', () => {
+    const resolved = resolveRelayTtsConfig({
+      ttsConnectorId: 'connector-1',
+      ttsModel: 'qwen3-tts-instruct-flash',
+      voiceName: 'vivian',
+    }, {
+      model: 'agent-model',
+      voiceId: '',
+    });
+
+    assert.equal(resolved.model, 'agent-model');
+    assert.equal(resolved.voiceId, 'vivian');
+  });
+
+  it('returns empty voice when both Settings and renderer values are missing', () => {
+    const resolved = resolveRelayTtsConfig({
+      ttsConnectorId: 'connector-1',
+      ttsModel: 'qwen3-tts-instruct-flash',
+      voiceName: '',
+    }, {});
+
+    assert.equal(resolved.voiceId, '');
+  });
+});
+
 // ─── RL-IPC-002 — Unary IPC Semantics ──────────────────────────────────
 
 describe('RL-IPC-002 — Unary IPC Semantics', () => {
@@ -367,6 +411,32 @@ describe('RL-IPC-008 — Typed Realm data IPC', () => {
   it('agent get input shape is explicit', () => {
     const input = { agentId: 'agent-123' };
     assert.equal(input.agentId, 'agent-123');
+  });
+
+  it('human chat send uses typed HumanChatService methods instead of facade helper escape hatches', () => {
+    const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
+    assert.ok(source.includes('realm.services.HumanChatService.startChat'), 'must start chat via typed service');
+    assert.ok(source.includes('realm.services.HumanChatService.sendMessage'), 'must send message via typed service');
+    assert.ok(!source.includes('sendAgentChannelMessage('), 'must not call removed facade helper from relay IPC');
+    assert.ok(!source.includes('realm as never'), 'must not erase realm types in relay IPC');
+  });
+
+  it('agent list uses typed UserLiteDto array directly instead of legacy unknown union recovery', () => {
+    const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
+    assert.ok(source.includes('items: payload.map((item) => ({'), 'must project typed list items directly');
+    assert.ok(!source.includes('payload as { items?: unknown[] } | unknown[]'), 'must not restore legacy array/object union');
+  });
+});
+
+describe('RL-IPC-002 — Health reason codes use ReasonCode constants', () => {
+  it('uses ReasonCode.AUTH_* constants instead of hard-coded auth strings', () => {
+    const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
+    const authTokenInvalidLiteral = ['normalized.reasonCode === ', `'${ReasonCode.AUTH_TOKEN_INVALID}'`].join('');
+    const authDeniedLiteral = ['normalized.reasonCode === ', `'${ReasonCode.AUTH_DENIED}'`].join('');
+    assert.ok(source.includes('ReasonCode.AUTH_TOKEN_INVALID'), 'must use ReasonCode.AUTH_TOKEN_INVALID');
+    assert.ok(source.includes('ReasonCode.AUTH_DENIED'), 'must use ReasonCode.AUTH_DENIED');
+    assert.ok(!source.includes(authTokenInvalidLiteral), 'must not hard-code AUTH_TOKEN_INVALID');
+    assert.ok(!source.includes(authDeniedLiteral), 'must not hard-code AUTH_DENIED');
   });
 });
 

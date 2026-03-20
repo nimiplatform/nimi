@@ -10,6 +10,7 @@ export function useSpeechTranscribe() {
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState<string>('');
+  const [sttError, setSttError] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -33,13 +34,17 @@ export function useSpeechTranscribe() {
 
       const bridge = getBridge();
       try {
+        setSttError(null);
         // STT is agent-independent — no agentId needed
         const result = await bridge.media.stt.transcribe({
           audio: base64,
           format: 'webm',
         });
         setTranscript(result.text || '');
-      } catch {
+      } catch (err) {
+        console.error('[relay:stt] transcribe failed', err);
+        const message = err instanceof Error ? err.message : String(err);
+        setSttError(message);
         setTranscript('');
       }
 
@@ -59,6 +64,7 @@ export function useSpeechTranscribe() {
   return {
     isRecording,
     transcript,
+    sttError,
     startRecording,
     stopRecording,
     canTranscribe: runtimeAvailable,

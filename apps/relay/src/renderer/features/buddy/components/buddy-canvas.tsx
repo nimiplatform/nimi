@@ -26,13 +26,13 @@ export function BuddyCanvas() {
         onClick={onClick}
       />
       {modelState === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50">
-          <span className="text-sm text-gray-400">{t('live2d.loadingModel')}</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-bg-base/50">
+          <span className="text-[13px] text-text-secondary">{t('live2d.loadingModel')}</span>
         </div>
       )}
       {modelState === 'error' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50">
-          <span className="text-sm text-red-400">{t('live2d.failedToLoad')}</span>
+        <div className="absolute inset-0 flex items-center justify-center bg-bg-base/50">
+          <span className="text-[13px] text-error">{t('live2d.failedToLoad')}</span>
         </div>
       )}
     </div>

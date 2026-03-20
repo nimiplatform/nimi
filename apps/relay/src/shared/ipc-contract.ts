@@ -3,7 +3,6 @@ import type {
   Realm,
   RealmServiceArgs,
   RealmServiceResult,
-  sendAgentChannelMessage,
 } from '@nimiplatform/sdk/realm';
 import type { IpcAiGenerateInput, IpcAiStreamInput } from '../main/input-transform.js';
 import type {
@@ -139,7 +138,7 @@ type AuthUpdatePasswordInput = {
 type AuthCurrentUserInput = { accessToken?: string };
 type AuthCurrentUserResponse = RealmServiceResult<'MeService', 'getMe'>;
 type AgentGetResponse = Awaited<ReturnType<Realm['services']['AgentsService']['getAgent']>>;
-type HumanChatSendResponse = Awaited<ReturnType<typeof sendAgentChannelMessage>>;
+type HumanChatSendResponse = RealmServiceResult<'HumanChatService', 'sendMessage'>;
 type RelayAuthOauthLoginInput = {
   provider: string;
   accessToken: string;
@@ -258,6 +257,16 @@ export type {
   RelayRouteBinding,
   RelayRouteOptions,
   ResolvedRelayRoute,
+};
+
+export type RelayMediaRouteOptionsRequest = {
+  capability: string;
+};
+
+export type RelayMediaRouteOptionsResponse = {
+  connectors: RelayRouteOptions['connectors'];
+  loadStatus: RelayRouteOptions['loadStatus'];
+  issues: RelayRouteOptions['issues'];
 };
 
 export type RelayInvokeMap = {
@@ -561,6 +570,10 @@ export type RelayInvokeMap = {
     request: undefined;
     response: RelayRouteOptions;
   };
+  'relay:media-route:options': {
+    request: RelayMediaRouteOptionsRequest;
+    response: RelayMediaRouteOptionsResponse;
+  };
   'relay:desktop:open-config': {
     request: { pageId?: string } | undefined;
     response: RelayDesktopOpenConfigResponse;
@@ -746,6 +759,9 @@ export interface NimiRelayBridge {
     setBinding: (...args: RelayInvokeArgs<'relay:route:binding:set'>) => Promise<RelayInvokeResponse<'relay:route:binding:set'>>;
     getSnapshot: (...args: RelayInvokeArgs<'relay:route:snapshot'>) => Promise<RelayInvokeResponse<'relay:route:snapshot'>>;
     refresh: (...args: RelayInvokeArgs<'relay:route:refresh'>) => Promise<RelayInvokeResponse<'relay:route:refresh'>>;
+  };
+  mediaRoute: {
+    getOptions: (...args: RelayInvokeArgs<'relay:media-route:options'>) => Promise<RelayInvokeResponse<'relay:media-route:options'>>;
   };
   desktop: {
     openConfig: (pageId?: string) => Promise<RelayInvokeResponse<'relay:desktop:open-config'>>;

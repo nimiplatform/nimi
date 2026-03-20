@@ -59,7 +59,7 @@ export type DecideMediaExecutionInput = {
   messages: ChatMessage[];
   promptTrace: LocalChatPromptTrace | null;
   nsfwPolicy: NsfwMediaPolicy;
-  fallbackRouteSource: MediaRouteSource;
+  routeSourceHint: MediaRouteSource;
   markerOverrideIntent: PendingMediaIntent | null;
 };
 
@@ -78,13 +78,13 @@ const GENERIC_MEDIA_DESCRIPTOR_RE = /^(?:当前对话中的主体|贴合当前�
 function resolveConfiguredMediaRouteSource(input: {
   kind: 'image' | 'video';
   settings: LocalChatDefaultSettings;
-  fallbackRouteSource: MediaRouteSource;
+  routeSourceHint: MediaRouteSource;
 }): MediaRouteSource {
   const configured = input.kind === 'image'
     ? input.settings.imageRouteSource
     : input.settings.videoRouteSource;
   if (configured === 'local' || configured === 'cloud') return configured;
-  return input.fallbackRouteSource;
+  return input.routeSourceHint;
 }
 
 function collectAssistantTurnMediaHistory(messages: ChatMessage[]): AssistantTurnMediaHistory[] {
@@ -163,7 +163,7 @@ function hasVideoMotionSignal(input: { userText: string; assistantText: string; 
 function evaluateIntentGate(input: {
   intent: PendingMediaIntent;
   defaultSettings: LocalChatDefaultSettings;
-  fallbackRouteSource: MediaRouteSource;
+  routeSourceHint: MediaRouteSource;
   nsfwPolicy: NsfwMediaPolicy;
   imageRouteReady: boolean;
   videoRouteReady: boolean;
@@ -172,7 +172,7 @@ function evaluateIntentGate(input: {
   const routeSource = resolveConfiguredMediaRouteSource({
     kind: input.intent.type,
     settings: input.defaultSettings,
-    fallbackRouteSource: input.fallbackRouteSource,
+    routeSourceHint: input.routeSourceHint,
   });
   if (!routeReady) {
     return { allowed: false, routeSource, blockedReason: `${input.intent.type} route not ready` };
@@ -273,7 +273,7 @@ async function prepareMediaExecution(input: {
 async function resolveAuthorityMediaRoute(input: {
   kind: 'image' | 'video';
   defaultSettings: LocalChatDefaultSettings;
-  fallbackRouteSource: MediaRouteSource;
+  routeSourceHint: MediaRouteSource;
 }): Promise<{
   routeSource: MediaRouteSource;
   resolvedRoute: LocalChatResolvedMediaRoute;
@@ -281,13 +281,17 @@ async function resolveAuthorityMediaRoute(input: {
   const routeConfig = resolveMediaRouteConfig({
     kind: input.kind,
     settings: input.defaultSettings,
-    fallbackSource: input.fallbackRouteSource,
   });
   const routeSource = routeConfig.routeSource === 'auto'
-    ? input.fallbackRouteSource
+    ? input.routeSourceHint
     : routeConfig.routeSource;
-  const model = String(routeConfig.model || '').trim()
-    || (routeSource === 'local' ? 'selected-local-model' : 'selected-token-model');
+  if (routeSource !== 'cloud') {
+    return null;
+  }
+  const model = String(routeConfig.model || '').trim();
+  if (!model) {
+    return null;
+  }
   const connectorId = String(routeConfig.routeBinding?.connectorId || '').trim();
   return {
     routeSource,
@@ -318,7 +322,7 @@ export async function decideMediaExecution(input: DecideMediaExecutionInput): Pr
     const gate = evaluateIntentGate({
       intent: input.markerOverrideIntent,
       defaultSettings: input.defaultSettings,
-      fallbackRouteSource: input.fallbackRouteSource,
+      routeSourceHint: input.routeSourceHint,
       nsfwPolicy: input.nsfwPolicy,
       imageRouteReady,
       videoRouteReady,
@@ -372,7 +376,7 @@ export async function decideMediaExecution(input: DecideMediaExecutionInput): Pr
     const resolved = await resolveAuthorityMediaRoute({
       kind: intent.type,
       defaultSettings: input.defaultSettings,
-      fallbackRouteSource: input.fallbackRouteSource,
+      routeSourceHint: input.routeSourceHint,
     });
     if (!resolved) {
       return {
@@ -515,7 +519,7 @@ export async function decideMediaExecution(input: DecideMediaExecutionInput): Pr
   const gate = evaluateIntentGate({
     intent,
     defaultSettings: input.defaultSettings,
-    fallbackRouteSource: input.fallbackRouteSource,
+    routeSourceHint: input.routeSourceHint,
     nsfwPolicy: input.nsfwPolicy,
     imageRouteReady,
     videoRouteReady,
@@ -547,7 +551,7 @@ export async function decideMediaExecution(input: DecideMediaExecutionInput): Pr
   const resolved = await resolveAuthorityMediaRoute({
     kind: intent.type,
     defaultSettings: input.defaultSettings,
-    fallbackRouteSource: input.fallbackRouteSource,
+    routeSourceHint: input.routeSourceHint,
   });
   if (!resolved) {
     return {

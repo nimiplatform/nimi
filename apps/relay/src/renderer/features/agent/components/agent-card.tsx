@@ -8,8 +8,8 @@ interface AgentCardProps {
 export function AgentCard({ agent, selected }: AgentCardProps) {
   return (
     <div
-      className={`flex items-center gap-3 p-2 rounded-lg ${
-        selected ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+      className={`flex items-center gap-3 p-2 rounded-lg transition-colors duration-150 ${
+        selected ? 'bg-bg-elevated' : 'hover:bg-bg-elevated/50'
       }`}
     >
       {agent.avatarUrl ? (
@@ -19,14 +19,14 @@ export function AgentCard({ agent, selected }: AgentCardProps) {
           className="w-8 h-8 rounded-full object-cover"
         />
       ) : (
-        <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-300">
+        <div className="w-8 h-8 rounded-full bg-bg-elevated flex items-center justify-center text-[11px] font-medium text-text-secondary">
           {agent.name.charAt(0).toUpperCase()}
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-white truncate">{agent.name}</div>
+        <div className="text-[13px] font-medium text-text-primary truncate">{agent.name}</div>
         {agent.handle && (
-          <div className="text-xs text-gray-500 truncate">@{agent.handle}</div>
+          <div className="text-[11px] text-text-secondary truncate">@{agent.handle}</div>
         )}
       </div>
     </div>

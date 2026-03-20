@@ -24,6 +24,7 @@ export function useVideoGenerate() {
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
   const [status, setStatus] = useState<VideoJobStatus>('idle');
   const [result, setResult] = useState<VideoResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeStreamRef = useRef<string | null>(null);
 
   // RL-CORE-002: Cancel in-flight video job when agent changes
@@ -42,6 +43,7 @@ export function useVideoGenerate() {
     const bridge = getBridge();
     setStatus('submitting');
     setResult(null);
+    setErrorMessage(null);
 
     try {
       // RL-CORE-004: agentId in input
@@ -89,11 +91,17 @@ export function useVideoGenerate() {
 
       const errorId = bridge.stream.onError((payload) => {
         if (payload.streamId !== streamId) return;
+        const errObj = payload.error;
+        const msg = errObj?.message || 'Video job stream error';
+        console.error('[relay:video] job stream error', payload);
+        setErrorMessage(msg);
         setStatus('error');
         activeStreamRef.current = null;
         cleanup();
       });
-    } catch {
+    } catch (err) {
+      console.error('[relay:video] generate failed', err);
+      setErrorMessage(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
   }, [currentAgent, runtimeAvailable]);
@@ -111,6 +119,7 @@ export function useVideoGenerate() {
     cancel,
     status,
     result,
+    errorMessage,
     canGenerate: !!currentAgent && runtimeAvailable,
   };
 }

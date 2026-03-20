@@ -4,13 +4,51 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { getBridge } from '../../../bridge/electron-bridge.js';
-import { useAppStore } from '../../../app-shell/providers/app-store.js';
+import { useAppStore, type Agent } from '../../../app-shell/providers/app-store.js';
+import { useSettingsStore, type InspectSettings } from '../../../app-shell/providers/settings-store.js';
 import { useLipSyncBridge } from '../../buddy/live2d/lip-sync-bridge.js';
+
+function normalizeText(value: string | undefined): string {
+  return String(value || '').trim();
+}
+
+export function resolveSpeakVoiceId(
+  settingsVoiceId?: string,
+  agentVoiceId?: string,
+  overrideVoiceId?: string,
+): string | undefined {
+  void agentVoiceId;
+  const override = normalizeText(overrideVoiceId);
+  if (override) {
+    return override;
+  }
+  const settingsVoice = normalizeText(settingsVoiceId);
+  if (settingsVoice) {
+    return settingsVoice;
+  }
+  return undefined;
+}
+
+export function buildTtsSynthesizeInput(
+  agent: Agent,
+  inspect: InspectSettings,
+  text: string,
+  voiceId?: string,
+) {
+  return {
+    agentId: agent.id,
+    text,
+    model: normalizeText(inspect.ttsModel),
+    voiceId: resolveSpeakVoiceId(inspect.ttsVoiceId, undefined, voiceId),
+  };
+}
 
 export function useSpeechPlayback() {
   const currentAgent = useAppStore((s) => s.currentAgent);
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
+  const inspect = useSettingsStore((s) => s.inspect);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
@@ -28,27 +66,31 @@ export function useSpeechPlayback() {
 
     const bridge = getBridge();
     setIsPlaying(true);
+    setError(null);
 
     try {
       // RL-CORE-004: agentId in input
-      // RL-CORE-002: model + voiceId from agent profile (overridable via voiceId param)
-      const result = await bridge.media.tts.synthesize({
-        agentId: currentAgent.id,
-        text,
-        model: currentAgent.voiceModel || '',
-        voiceId: voiceId ?? currentAgent.voiceId,
-      });
+      // RL-CORE-002: settings-selected TTS config is authoritative for chat-page Speak
+      const result = await bridge.media.tts.synthesize(
+        buildTtsSynthesizeInput(currentAgent, inspect, text, voiceId),
+      );
 
       if (result.audio) {
         await playBase64AudioWithLipSync(result.audio, audioContextRef, sourceRef);
       }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Failed to synthesize speech');
     } finally {
       setIsPlaying(false);
       useLipSyncBridge.getState().setMouthTarget(0);
     }
-  }, [currentAgent, runtimeAvailable]);
+  }, [currentAgent, inspect, runtimeAvailable]);
 
-  return { synthesize, isPlaying, canSpeak: !!currentAgent && runtimeAvailable };
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return { synthesize, isPlaying, canSpeak: !!currentAgent && runtimeAvailable, error, clearError };
 }
 
 async function playBase64AudioWithLipSync(

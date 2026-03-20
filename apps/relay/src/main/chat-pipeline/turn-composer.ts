@@ -4,6 +4,7 @@
 
 import type {
   InteractionBeat,
+  InteractionBeatAssetRequest,
   InteractionTurnPlan,
   LocalChatContextPacket,
   LocalChatTurnAiClient,
@@ -13,7 +14,23 @@ import type { TurnInvokeInput } from './request-builder.js';
 import { createUlid } from './ulid.js';
 import { stripTrailingEndMarkerFragment } from './stream-end-marker.js';
 import { pt, type PromptLocale } from '../prompt/prompt-locale.js';
-import { asRecord, type JsonObject } from '../../shared/json.js';
+
+type ComposerBeatObject = {
+  assetRequest?: Pick<InteractionBeatAssetRequest, 'kind' | 'prompt'>;
+  content?: string;
+  intent?: InteractionBeat['intent'] | string;
+  pauseMs?: number | string;
+  pause_ms?: number | string;
+  relationMove?: string;
+  relation_move?: string;
+  sceneMove?: string;
+  scene_move?: string;
+  text?: string;
+};
+
+type ComposerPlanObject = {
+  beats?: ComposerBeatObject[];
+};
 
 function asString(value: unknown): string {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -127,7 +144,7 @@ function clampRelationMove(relationMove: string, intimacyCeiling?: string): stri
 }
 
 function parsePlanObject(input: {
-  object: JsonObject;
+  object: ComposerPlanObject;
   turnId: string;
   turnMode: LocalChatTurnMode;
   intimacyCeiling?: string;
@@ -138,14 +155,13 @@ function parsePlanObject(input: {
   const rawBeats = Array.isArray(input.object.beats) ? input.object.beats : [];
   const beats: InteractionBeat[] = [];
   rawBeats.slice(0, clampBeatCount(input.turnMode)).forEach((item, index, list) => {
-    const record = asRecord(item);
-    const text = asBeatText(record.text || record.content);
+    const text = asBeatText(item.text || item.content);
     if (!text) return;
     if (isSemanticallyDuplicate(text, input.sealedFirstBeatText)) return;
-    const kind = asString(asRecord(record.assetRequest).kind);
-    const prompt = asBeatText(asRecord(record.assetRequest).prompt);
+    const kind = asString(item.assetRequest?.kind);
+    const prompt = asBeatText(item.assetRequest?.prompt);
     const rawRelationMove = asString(
-      record.relationMove || record.relation_move || input.turnMode,
+      item.relationMove || item.relation_move || input.turnMode,
     );
     const allowAssetRequest = input.turnMode === 'explicit-media';
     beats.push({
@@ -153,12 +169,12 @@ function parsePlanObject(input: {
       turnId: input.turnId,
       beatIndex: index + 1,
       beatCount: list.length || 1,
-      intent: normalizeBeatIntent(record.intent),
+      intent: normalizeBeatIntent(item.intent),
       relationMove: clampRelationMove(rawRelationMove, input.intimacyCeiling),
-      sceneMove: asString(record.sceneMove || record.scene_move || input.turnMode),
+      sceneMove: asString(item.sceneMove || item.scene_move || input.turnMode),
       modality: 'text',
       text,
-      pauseMs: normalizePauseMs(record.pauseMs || record.pause_ms, index),
+      pauseMs: normalizePauseMs(item.pauseMs || item.pause_ms, index),
       assetRequest:
         allowAssetRequest && (kind === 'image' || kind === 'video')
           ? {
@@ -214,7 +230,6 @@ function parsePlanObject(input: {
     turnId: input.turnId,
     turnMode: input.turnMode,
     beats: normalizedBeats,
-    fallbackPolicy: 'first-beat-only',
     expiresAt: new Date(Date.now() + 60000).toISOString(),
   };
 }
@@ -322,14 +337,14 @@ export async function composeInteractionTurnPlan(input: {
         maxTokens,
         temperature,
       });
-      const result = await input.aiClient.generateObject({
+      const result = await input.aiClient.generateObject<ComposerPlanObject>({
         ...input.invokeInput,
         debugLabel: 'turn-composer',
         prompt: prompt + retryReminder,
         maxTokens,
         temperature,
       });
-      const rawBeats = asRecord(result.object).beats;
+      const rawBeats = result.object.beats;
       console.log('[relay:turn-composer] generateObject: success', {
         beatCount: Array.isArray(rawBeats) ? rawBeats.length : 'non-array',
         turnMode: input.turnMode,
@@ -338,7 +353,7 @@ export async function composeInteractionTurnPlan(input: {
         attempt,
       });
       const plan = parsePlanObject({
-        object: asRecord(result.object),
+        object: result.object,
         turnId: input.turnId,
         turnMode: input.turnMode,
         intimacyCeiling: input.intimacyCeiling,
@@ -381,7 +396,6 @@ export async function composeInteractionTurnPlan(input: {
     turnId: input.turnId,
     turnMode: input.turnMode,
     beats: [],
-    fallbackPolicy: 'first-beat-only',
     expiresAt: new Date(Date.now() + 60000).toISOString(),
   };
 }

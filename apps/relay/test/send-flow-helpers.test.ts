@@ -8,6 +8,7 @@ import {
   normalizeBeatText,
   resolveFirstBeatIntent,
   ensureNotAborted,
+  assertExplicitMediaAssetRequest,
   buildAssistantDeliveries,
   type OrchestratedBeat,
 } from '../src/main/chat-pipeline/send-flow-helpers.js';
@@ -120,6 +121,45 @@ describe('ensureNotAborted', () => {
     assert.throws(
       () => ensureNotAborted(controller.signal),
       /RELAY_CHAT_TURN_SEND_ABORTED/,
+    );
+  });
+});
+
+// ─── assertExplicitMediaAssetRequest ────────────────────────────────────
+
+describe('assertExplicitMediaAssetRequest', () => {
+  it('does not throw for non explicit-media turns', () => {
+    assert.doesNotThrow(() =>
+      assertExplicitMediaAssetRequest({
+        turnMode: 'information',
+        markerOverrideIntent: null,
+      }));
+  });
+
+  it('does not throw when explicit-media has a marker override intent', () => {
+    assert.doesNotThrow(() =>
+      assertExplicitMediaAssetRequest({
+        turnMode: 'explicit-media',
+        markerOverrideIntent: {
+          type: 'image',
+          prompt: 'selfie',
+          source: 'tag',
+          plannerTrigger: 'marker-override',
+          pendingMessageId: 'beat-1',
+          plannerConfidence: 0.9,
+          plannerSuggestsNsfw: false,
+        },
+      }));
+  });
+
+  it('throws when explicit-media composer output lacks an asset request', () => {
+    assert.throws(
+      () =>
+        assertExplicitMediaAssetRequest({
+          turnMode: 'explicit-media',
+          markerOverrideIntent: null,
+        }),
+      /did not produce an asset request/,
     );
   });
 });

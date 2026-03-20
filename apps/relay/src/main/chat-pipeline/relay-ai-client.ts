@@ -30,19 +30,26 @@ function normalize(value: string | undefined | null): string {
 function resolveTextTarget(
   resolvedRoute: ResolvedRelayRoute | null,
   inputModel: string | undefined,
-): { model: string; route: NimiRoutePolicy } {
+): { model: string; route: NimiRoutePolicy; connectorId?: string } {
   // If we have a resolved route from route state, use it
   if (resolvedRoute) {
     const route: NimiRoutePolicy = resolvedRoute.source === 'cloud' ? 'cloud' : 'local';
-    return { model: resolvedRoute.model, route };
+    return { model: resolvedRoute.model, route, connectorId: resolvedRoute.connectorId };
   }
   // Fallback to legacy resolution
   return resolveModelAndRoute(undefined, inputModel);
 }
 
+export type MediaRoutes = {
+  image?: { connectorId?: string; model?: string };
+  video?: { connectorId?: string; model?: string };
+  tts?: { connectorId?: string; model?: string };
+};
+
 export function createRelayAiClient(
   runtime: PlatformClient['runtime'],
   resolvedRoute?: ResolvedRelayRoute | null,
+  mediaRoutes?: MediaRoutes,
 ): LocalChatTurnAiClient {
   const route = resolvedRoute ?? null;
 
@@ -59,6 +66,7 @@ export function createRelayAiClient(
         temperature: input.temperature,
         subjectUserId: normalize(input.subjectUserId) || DEFAULT_SUBJECT_USER_ID,
         route: target.route,
+        connectorId: target.connectorId,
       });
       const traceId = normalize(response.trace?.traceId);
       return {
@@ -80,6 +88,7 @@ export function createRelayAiClient(
         temperature: input.temperature,
         subjectUserId: normalize(input.subjectUserId) || DEFAULT_SUBJECT_USER_ID,
         route: target.route,
+        connectorId: target.connectorId,
       });
       const text = String(response.text || '');
       const traceId = normalize(response.trace?.traceId);
@@ -99,6 +108,7 @@ export function createRelayAiClient(
         temperature: input.temperature,
         subjectUserId: normalize(input.subjectUserId) || DEFAULT_SUBJECT_USER_ID,
         route: target.route,
+        connectorId: target.connectorId,
       });
       for await (const event of response.stream) {
         if (event.type === 'delta') {
@@ -126,7 +136,11 @@ export function createRelayAiClient(
     async generateImage(
       input: LocalChatGenerateImageInput,
     ): Promise<LocalChatGenerateImageResult> {
-      const model = normalize(input.model) || 'local/default';
+      const imageRoute = mediaRoutes?.image;
+      const model = normalize(input.model) || normalize(imageRoute?.model);
+      if (!model) {
+        throw new Error('RELAY_MEDIA_IMAGE_ROUTE_MODEL_REQUIRED');
+      }
       const response = await runtime.media.image.generate({
         model,
         prompt: input.prompt,
@@ -137,6 +151,7 @@ export function createRelayAiClient(
         style: input.style,
         n: input.n,
         subjectUserId: DEFAULT_SUBJECT_USER_ID,
+        ...(imageRoute?.connectorId ? { route: 'cloud' as const, connectorId: imageRoute.connectorId } : {}),
       });
       const traceId = normalize(response.trace?.traceId);
       const artifacts = (response.artifacts || []).map((artifact) => ({
@@ -154,7 +169,11 @@ export function createRelayAiClient(
     async generateVideo(
       input: LocalChatGenerateVideoInput,
     ): Promise<LocalChatGenerateVideoResult> {
-      const model = normalize(input.model) || 'local/default';
+      const videoRoute = mediaRoutes?.video;
+      const model = normalize(input.model) || normalize(videoRoute?.model);
+      if (!model) {
+        throw new Error('RELAY_MEDIA_VIDEO_ROUTE_MODEL_REQUIRED');
+      }
       const content: Array<
         | { type: 'text'; role?: 'prompt'; text: string }
         | {
@@ -178,6 +197,7 @@ export function createRelayAiClient(
           ratio: input.aspectRatio,
         },
         subjectUserId: DEFAULT_SUBJECT_USER_ID,
+        ...(videoRoute?.connectorId ? { route: 'cloud' as const, connectorId: videoRoute.connectorId } : {}),
       });
       const traceId = normalize(response.trace?.traceId);
       const artifacts = (response.artifacts || []).map((artifact) => ({
@@ -204,7 +224,7 @@ export function createRelayAiClient(
           localModelId: route.localModelId,
         };
       }
-      return { source: 'local', model: 'local/default' };
+      return null;
     },
   };
 }

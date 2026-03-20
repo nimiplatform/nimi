@@ -1,5 +1,5 @@
 // RL-FEAT-007 — Agent selector UI
-// RL-CORE-001 — No agent selected → show selection prompt
+// RL-CORE-001 — Always-visible agent list, click to switch
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,6 @@ export function AgentSelector() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [manualId, setManualId] = useState('');
 
   useEffect(() => {
     fetchAgentList()
@@ -28,82 +27,42 @@ export function AgentSelector() {
       .finally(() => setLoading(false));
   }, [fetchAgentList]);
 
-  const handleManualSelect = () => {
-    const id = manualId.trim();
-    if (!id) return;
-    selectAgent({ id, name: id });
-    setManualId('');
-  };
-
-  if (currentAgent) {
-    return (
-      <div className="p-3 border-b border-gray-800">
-        <AgentCard agent={currentAgent} selected />
-        <button
-          onClick={() => selectAgent(null)}
-          className="mt-2 text-xs text-gray-500 hover:text-gray-300"
-        >
-          {t('agent.switchAgent')}
-        </button>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
-      <div className="p-4 text-center text-gray-500 text-sm">
+      <div className="p-4 text-center text-text-secondary text-[13px]">
         {t('agent.loadingAgents')}
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-3">
-      <h2 className="text-sm font-medium text-gray-300">{t('agent.selectAnAgent')}</h2>
-
-      {/* Agent list from Realm */}
+    <div className="flex flex-col h-full">
       {agents.length > 0 && (
-        <div className="space-y-1">
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {agents.map((agent) => (
             <button
               key={agent.id}
               onClick={() => selectAgent(agent)}
               className="w-full text-left"
             >
-              <AgentCard agent={agent} />
+              <AgentCard agent={agent} selected={currentAgent?.id === agent.id} />
             </button>
           ))}
         </div>
       )}
 
-      {/* Manual ID entry fallback (when Realm is unreachable) */}
       {fetchError && (
-        <div className="space-y-2">
-          <p className="text-xs text-gray-500">
+        <div className="p-3 border-t border-border-subtle">
+          <p className="text-[11px] text-text-secondary">
             {t('agent.realmUnreachable')}
           </p>
-          <div className="flex gap-1">
-            <input
-              type="text"
-              value={manualId}
-              onChange={(e) => setManualId(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleManualSelect()}
-              placeholder="agent-id"
-              className="flex-1 bg-gray-800 text-white rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleManualSelect}
-              disabled={!manualId.trim()}
-              className="px-2 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
-            >
-              {t('agent.go')}
-            </button>
-          </div>
         </div>
       )}
 
       {!fetchError && agents.length === 0 && (
-        <p className="text-xs text-gray-500">{t('agent.noAgentsAvailable')}</p>
+        <div className="p-4 text-center">
+          <p className="text-[12px] text-text-secondary">{t('agent.noAgentsAvailable')}</p>
+        </div>
       )}
     </div>
   );

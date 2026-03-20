@@ -76,10 +76,10 @@ export function App() {
 
   if (!ready || !authSessionReady) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-950 text-white">
+      <div className="flex items-center justify-center h-screen bg-bg-base text-text-primary">
         <div className="text-center">
-          <div className="text-lg font-semibold mb-2">{t('app.name')}</div>
-          <div className="text-sm text-gray-400">{t('app.connecting')}</div>
+          <div className="text-[17px] font-semibold mb-2">{t('app.name')}</div>
+          <div className="text-[13px] text-text-secondary">{t('app.connecting')}</div>
         </div>
       </div>
     );

@@ -295,6 +295,9 @@ function buildLayerContent(input: LocalChatPromptCompileInput): Record<PromptLay
       pt(locale, 'compiler.safety.noMetaOutput'),
       pt(locale, 'compiler.safety.noGapExplain'),
       buildLanguageLockLine(packet.target.interactionProfile.voice.language, locale),
+      ...((packet.turnMode === 'explicit-media')
+        ? [pt(locale, 'compiler.turnMode.explicitMediaHint')]
+        : []),
     ].filter(Boolean).join('\n'),
     contentBoundary: joinLines(pt(locale, 'compiler.boundary.title'), buildContentBoundaryLines(packet.contentBoundaryHint, locale)),
     identity: [

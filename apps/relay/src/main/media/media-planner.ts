@@ -62,21 +62,10 @@ const mediaPlannerDecisionSchema = z.object({
   nsfwIntent: z.enum(['none', 'suggested']).default('none'),
 });
 
-function parseStrictJsonObject(text: string): JsonObject {
-  const normalized = String(text || '').trim();
-  if (!normalized.startsWith('{') || !normalized.endsWith('}')) {
-    throw new Error('RELAY_MEDIA_PLANNER_INVALID_JSON');
-  }
-  const parsed = JSON.parse(normalized);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('RELAY_MEDIA_PLANNER_INVALID_OBJECT');
-  }
-  return parsed as JsonObject;
-}
+type MediaPlannerDecisionObject = z.infer<typeof mediaPlannerDecisionSchema>;
 
-function parseMediaPlannerDecision(text: string): JsonObject {
-  const parsed = parseStrictJsonObject(text);
-  const result = mediaPlannerDecisionSchema.safeParse(parsed);
+function parseMediaPlannerDecisionObject(object: MediaPlannerDecisionObject): JsonObject {
+  const result = mediaPlannerDecisionSchema.safeParse(object);
   if (!result.success) {
     throw new Error('RELAY_MEDIA_PLANNER_SCHEMA_INVALID');
   }
@@ -220,7 +209,7 @@ export async function planMediaTurn(input: {
     controller.abort();
   }, MEDIA_PLANNER_TIMEOUT_MS);
   try {
-    const result = await input.aiClient.generateObject({
+    const result = await input.aiClient.generateObject<MediaPlannerDecisionObject>({
       prompt: buildMediaPlannerPrompt({
         userText: input.userText,
         assistantText: input.assistantText,
@@ -241,9 +230,7 @@ export async function planMediaTurn(input: {
       temperature: MEDIA_PLANNER_TEMPERATURE,
       agentId: input.target.id,
     });
-    const rawObject = typeof result.object === 'string'
-      ? parseMediaPlannerDecision(result.object)
-      : result.object;
+    const rawObject = parseMediaPlannerDecisionObject(result.object);
     const decisionResult = mediaPlannerDecisionSchema.safeParse(rawObject);
     if (!decisionResult.success) {
       return {

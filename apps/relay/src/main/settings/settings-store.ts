@@ -33,9 +33,10 @@ async function ensureSettingsDir(): Promise<void> {
   await fs.mkdir(dirPath, { recursive: true });
 }
 
-// ── Debounce write ──────────────────────────────────────────────────
+// ── In-memory cache + optionally debounced write ────────────────────
 
 const DEBOUNCE_MS = 500;
+let memoryCache: LocalChatSettings | null = null;
 let pendingWrite: LocalChatSettings | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -43,12 +44,8 @@ async function flushWrite(): Promise<void> {
   if (!pendingWrite) return;
   const data = pendingWrite;
   pendingWrite = null;
-  try {
-    await ensureSettingsDir();
-    await fs.writeFile(getSettingsFilePath(), JSON.stringify(data, null, 2), 'utf-8');
-  } catch {
-    // Swallow write errors — settings will use defaults on next load
-  }
+  await ensureSettingsDir();
+  await fs.writeFile(getSettingsFilePath(), JSON.stringify(data, null, 2), 'utf-8');
 }
 
 function scheduleDebouncedWrite(settings: LocalChatSettings): void {
@@ -58,24 +55,51 @@ function scheduleDebouncedWrite(settings: LocalChatSettings): void {
   }
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
-    void flushWrite();
+    void flushWrite().catch((err) => {
+      console.error('[relay:settings] background flush failed', err);
+    });
   }, DEBOUNCE_MS);
+}
+
+function cancelPendingDebounce(): void {
+  if (!debounceTimer) {
+    return;
+  }
+  clearTimeout(debounceTimer);
+  debounceTimer = null;
 }
 
 // ── Public API ──────────────────────────────────────────────────────
 
 export async function loadRelaySettings(): Promise<LocalChatSettings> {
+  // Return in-memory cache if available (avoids stale disk reads during debounce)
+  if (memoryCache) return memoryCache;
   try {
     const raw = await fs.readFile(getSettingsFilePath(), 'utf-8');
     const parsed = JSON.parse(raw) as unknown;
-    return normalizeLocalChatSettings(parsed);
-  } catch {
+    const settings = normalizeLocalChatSettings(parsed);
+    memoryCache = settings;
+    return settings;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.error('[relay:settings] loadRelaySettings failed', err);
+    }
     return { ...DEFAULT_LOCAL_CHAT_SETTINGS };
   }
 }
 
-export function saveRelaySettings(settings: LocalChatSettings): void {
+export async function saveRelaySettings(
+  settings: LocalChatSettings,
+  options?: { flush?: boolean },
+): Promise<void> {
   const normalized = normalizeLocalChatSettings(settings);
+  memoryCache = normalized;
+  if (options?.flush) {
+    pendingWrite = normalized;
+    cancelPendingDebounce();
+    await flushWrite();
+    return;
+  }
   scheduleDebouncedWrite(normalized);
 }
 

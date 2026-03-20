@@ -42,7 +42,7 @@ export function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-full hover:bg-gray-800 transition-colors p-0.5"
+        className="flex items-center gap-2 rounded-full hover:bg-bg-elevated transition-colors duration-150 p-0.5"
         title={displayName}
       >
         {user?.avatarUrl ? (
@@ -52,29 +52,29 @@ export function UserMenu() {
             className="w-7 h-7 rounded-full object-cover"
           />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-xs font-medium text-gray-300">
+          <div className="w-7 h-7 rounded-full bg-bg-elevated flex items-center justify-center text-[11px] font-medium text-text-secondary">
             {initials}
           </div>
         )}
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-52 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
+        <div className="absolute left-0 top-full mt-1 w-52 bg-bg-elevated border border-border-subtle rounded-xl shadow-md z-50 overflow-hidden">
           {/* User info section */}
-          <div className="px-3 py-2.5 border-b border-gray-700">
-            <div className="text-sm font-medium text-white truncate">{displayName}</div>
+          <div className="px-3 py-2.5 border-b border-border-subtle">
+            <div className="text-[13px] font-medium text-text-primary truncate">{displayName}</div>
             {user?.handle && (
-              <div className="text-xs text-gray-400 truncate">@{user.handle}</div>
+              <div className="text-[11px] text-text-secondary truncate">@{user.handle}</div>
             )}
             {user?.email && !user.handle && (
-              <div className="text-xs text-gray-400 truncate">{user.email}</div>
+              <div className="text-[11px] text-text-secondary truncate">{user.email}</div>
             )}
           </div>
 
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-gray-800 transition-colors"
+            className="w-full px-3 py-2 text-left text-[13px] text-error hover:bg-bg-surface transition-colors duration-150"
           >
             {t('user.logout')}
           </button>

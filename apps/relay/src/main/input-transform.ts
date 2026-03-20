@@ -17,7 +17,6 @@ export type IpcAiGenerateInput = {
   temperature?: number;
   topP?: number;
   subjectUserId?: string;
-  fallback?: 'deny' | 'allow';
   timeoutMs?: number;
   metadata?: Record<string, string>;
   agentId?: string;
@@ -67,7 +66,9 @@ export function resolveModelAndRoute(
   const m = normalize(model);
 
   if (!p && !m) {
-    return { model: 'local/default', route: 'local' };
+    throw new Error(
+      'IPC relay requires an explicit local model or provider + model. It no longer invents an implicit local model target.',
+    );
   }
 
   if (!p) {
@@ -105,7 +106,6 @@ export function toTextGenerateInput(input: IpcAiGenerateInput): TextGenerateInpu
     topP: input.topP,
     subjectUserId: normalize(input.subjectUserId) || DEFAULT_SUBJECT_USER_ID,
     route: target.route,
-    fallback: input.fallback,
     timeoutMs: input.timeoutMs,
     metadata: input.metadata,
   };

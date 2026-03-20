@@ -25,7 +25,10 @@ async function loadPersistedBinding(): Promise<RelayRouteBinding | null> {
       return parsed;
     }
     return null;
-  } catch {
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      console.warn('[relay:route] loadPersistedBinding failed', err);
+    }
     return null;
   }
 }
@@ -37,8 +40,8 @@ async function persistBinding(binding: RelayRouteBinding | null): Promise<void> 
     if (binding) {
       await fs.writeFile(getBindingFilePath(), JSON.stringify(binding, null, 2), 'utf-8');
     }
-  } catch {
-    // Swallow write errors
+  } catch (err) {
+    console.error('[relay:route] persistBinding failed', err);
   }
 }
 
@@ -53,7 +56,17 @@ export type RouteState = {
 
 export function createRouteState(): RouteState {
   let binding: RelayRouteBinding | null = null;
-  let options: RelayRouteOptions = { local: { models: [] }, connectors: [], selected: null };
+  let options: RelayRouteOptions = {
+    local: { models: [], status: 'unavailable', error: 'route options not initialized' },
+    connectors: [],
+    selected: null,
+    loadStatus: 'failed',
+    issues: [{
+      scope: 'connectors',
+      kind: 'runtime-error',
+      message: 'route options not initialized',
+    }],
+  };
   let resolved: ResolvedRelayRoute | null = null;
 
   return {

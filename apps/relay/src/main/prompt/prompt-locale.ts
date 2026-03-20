@@ -100,6 +100,10 @@ const S: Record<string, Record<PromptLocale, string>> = {
     zh: '亲密度上限：{ceiling}，语气和行为不要超过这个阶段。',
     en: 'Intimacy ceiling: {ceiling}. Tone and behavior must not exceed this stage.',
   },
+  'compiler.turnMode.explicitMediaHint': {
+    zh: '【重要】用户要求发图片或视频。系统会自动生成配图附带发送，你不需要担心技术细节。你的任务是：用角色语气自然地回应，描述一个具体的画面、场景或瞬间。严禁说"没有实体""不会拍照""无法发图"之类的话——在这个世界里你可以发图。',
+    en: '[IMPORTANT] User requested an image or video. The system auto-generates matching media. Your task: respond naturally in character, describing a specific visual scene or moment. NEVER say "I have no physical form", "I cannot take photos", or "I cannot send images" — in this world you CAN send media.',
+  },
 
   // ── compiler.ts: interactionProfile ──
   'compiler.profile.title': {
@@ -471,8 +475,8 @@ intimacyCeiling rules:
     en: '- pauseMs: pause in ms relative to previous beat (recommended 300-2000)',
   },
   'composer.fieldAsset': {
-    zh: '- assetRequest: 可选，但只允许 explicit-media 模式输出 {"kind":"image|video","prompt":"描述"}',
-    en: '- assetRequest: optional, only allowed in explicit-media mode {"kind":"image|video","prompt":"description"}',
+    zh: '- assetRequest: 非 explicit-media 模式禁止使用。explicit-media 模式下**必须**在至少一个 beat 中包含 {"kind":"image|video","prompt":"用于生成媒体的画面描述"}，系统会根据 prompt 自动生成图片或视频',
+    en: '- assetRequest: forbidden in non-explicit-media mode. In explicit-media mode you **must** include {"kind":"image|video","prompt":"visual description for media generation"} in at least one beat. The system generates the image/video from the prompt',
   },
   'composer.ruleCount': {
     zh: '- beats 数量 0-4 条，不要超过 4 条',
@@ -491,8 +495,8 @@ intimacyCeiling rules:
     en: '- Subsequent beats must bring new information, new emotional action, or new relationship progression. Do not just rephrase the first beat or previous one',
   },
   'composer.ruleNoMedia': {
-    zh: '- 非 explicit-media 模式不要输出 assetRequest，也不要暗示系统会自动发图/发视频',
-    en: '- Do not output assetRequest in non-explicit-media mode, and do not imply the system will auto-send media',
+    zh: '- 非 explicit-media 模式不要输出 assetRequest，也不要暗示系统会自动发图/发视频。explicit-media 模式下必须有至少一个 beat 带 assetRequest，prompt 要具体描述画面内容',
+    en: '- Do not output assetRequest in non-explicit-media mode, and do not imply the system will auto-send media. In explicit-media mode, at least one beat MUST have assetRequest with a concrete visual prompt',
   },
   'composer.ruleNoMarkdown': {
     zh: '- 不要使用 markdown 格式、不要代码块、不要解释',

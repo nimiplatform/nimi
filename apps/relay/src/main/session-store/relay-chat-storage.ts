@@ -52,7 +52,10 @@ export class ElectronChatStorage implements RelayChatStorage {
       const raw = await fs.readFile(this.filePath(key), 'utf-8');
       const parsed = JSON.parse(raw) as { kind: string; value: unknown };
       return typeof parsed.value === 'string' ? parsed.value : null;
-    } catch {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[relay:storage] get failed', { key }, err);
+      }
       return null;
     }
   }
@@ -67,8 +70,10 @@ export class ElectronChatStorage implements RelayChatStorage {
     this.cancelDebounce(key);
     try {
       await fs.unlink(this.filePath(key));
-    } catch {
-      // file may not exist
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[relay:storage] delete failed', { key }, err);
+      }
     }
   }
 
@@ -81,7 +86,10 @@ export class ElectronChatStorage implements RelayChatStorage {
       const raw = await fs.readFile(this.filePath(key), 'utf-8');
       const parsed = JSON.parse(raw) as { kind: string; value: unknown };
       return parsed.kind === 'json' ? (parsed.value ?? null) as T | null : null;
-    } catch {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[relay:storage] getJson failed', { key }, err);
+      }
       return null;
     }
   }
@@ -100,10 +108,14 @@ export class ElectronChatStorage implements RelayChatStorage {
     try {
       const entries = await fs.readdir(this.baseDir);
       await Promise.all(
-        entries.map((entry) => fs.unlink(path.join(this.baseDir, entry)).catch(() => {})),
+        entries.map((entry) => fs.unlink(path.join(this.baseDir, entry)).catch((err) => {
+          console.warn('[relay:storage] clear: failed to delete entry', { entry }, err);
+        })),
       );
-    } catch {
-      // directory may not exist
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[relay:storage] clear failed', err);
+      }
     }
   }
 
