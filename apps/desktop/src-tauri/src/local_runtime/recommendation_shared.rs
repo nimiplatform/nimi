@@ -389,6 +389,7 @@ fn companion_suggestions(candidate: &RecommendationCandidate) -> Vec<LocalAiSugg
                 artifact_id: Some(artifact.artifact_id),
                 kind: match artifact.kind {
                     crate::local_runtime::types::LocalAiArtifactKind::Vae => "vae",
+                    crate::local_runtime::types::LocalAiArtifactKind::Ae => "ae",
                     crate::local_runtime::types::LocalAiArtifactKind::Llm => "llm",
                     crate::local_runtime::types::LocalAiArtifactKind::Clip => "clip",
                     crate::local_runtime::types::LocalAiArtifactKind::Controlnet => "controlnet",

@@ -1,7 +1,7 @@
 import type { JsonObject } from './shared.js';
 
 export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalRuntimeArtifactKind = 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
+export type LocalRuntimeArtifactKind = 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
 export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 
 export type LocalRuntimeModelRecord = {

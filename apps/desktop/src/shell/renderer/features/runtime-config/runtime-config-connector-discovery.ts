@@ -56,14 +56,15 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     localRuntime.list(),
     localRuntime.listNodesCatalog(),
   ]);
-  const discovered = models.map((m) => m.modelId);
-  const normalizedModels = models.map((m) => ({
+  const activeModels = models.filter((m) => m.status !== 'removed');
+  const discovered = activeModels.map((m) => m.modelId);
+  const normalizedModels = activeModels.map((m) => ({
     localModelId: m.localModelId || m.modelId,
     engine: m.engine || 'llama',
     model: m.modelId,
     endpoint: m.endpoint || endpoint,
     capabilities: (m.capabilities || ['chat']) as Array<'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'>,
-    status: m.status as 'installed' | 'active' | 'unhealthy' | 'removed',
+    status: m.status as 'installed' | 'active' | 'unhealthy',
   }));
   const nodeMatrix = (nodes || []).map((n) => ({
     nodeId: n.nodeId || '',

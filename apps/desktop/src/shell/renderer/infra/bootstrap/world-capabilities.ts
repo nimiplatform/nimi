@@ -1,10 +1,13 @@
 import type { RealmServiceArgs } from '@nimiplatform/sdk/realm';
-import { WORLD_DATA_API_CAPABILITIES, toRecord } from './runtime-bootstrap-utils';
+import {
+  WORLD_DATA_API_CAPABILITIES,
+  requireItemsPayload,
+  requireObjectArray,
+  requireObjectPayload,
+  requireRecord,
+  toRecord,
+} from './runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
-
-function toObjectOr<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
-  return value && typeof value === 'object' ? (value as T) : fallback;
-}
 
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -53,33 +56,28 @@ export async function registerWorldDataCapabilities(): Promise<void> {
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.draftCreate, async (query) => (
     withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerCreateDraft(
-        toObjectOr(query, {} as Record<string, unknown>) as DraftCreateInput,
+        requireRecord(query, 'WORLD_DRAFT_CREATE_INPUT_REQUIRED') as DraftCreateInput,
       )
     ))
   ));
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.draftGet, async (query) => {
     const draftId = String(toRecord(query).draftId || '').trim();
-    if (!draftId) return null;
-    try {
-      const payload = await withRuntimeOpenApiContext((realm) => (
-        realm.services.WorldControlService.worldControlControllerGetDraft(draftId)
-      ));
-      return payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
-    } catch {
-      return null;
-    }
+    if (!draftId) throw new Error('WORLD_DRAFT_ID_REQUIRED');
+    const payload = await withRuntimeOpenApiContext((realm) => (
+      realm.services.WorldControlService.worldControlControllerGetDraft(draftId)
+    ));
+    return requireObjectPayload(payload as Record<string, unknown>, 'WORLD_DRAFT_GET_CONTRACT_INVALID');
   });
 
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.draftsList, async () => {
-    try {
-      return await withRuntimeOpenApiContext((realm) => (
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.draftsList, async () => (
+    requireItemsPayload(
+      await withRuntimeOpenApiContext((realm) => (
         realm.services.WorldControlService.worldControlControllerListDrafts()
-      ));
-    } catch {
-      return { items: [] };
-    }
-  });
+      )) as { items?: unknown[] } & Record<string, unknown>,
+      'WORLD_DRAFT_LIST_CONTRACT_INVALID',
+    )
+  ));
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.draftUpdate, async (query) => {
     const record = toRecord(query);
@@ -88,7 +86,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerUpdateDraft(
         draftId,
-        toObjectOr(record.patch, {} as Record<string, unknown>) as DraftUpdateInput,
+        requireRecord(record.patch, 'WORLD_DRAFT_PATCH_REQUIRED') as DraftUpdateInput,
       )
     ));
   });
@@ -100,33 +98,28 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerPublishDraft(
         draftId,
-        toObjectOr(record.payload, {} as Record<string, unknown>) as DraftPublishInput,
+        requireRecord(record.payload, 'WORLD_DRAFT_PUBLISH_PAYLOAD_REQUIRED') as DraftPublishInput,
       )
     ));
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.maintenanceGet, async (query) => {
     const worldId = String(toRecord(query).worldId || '').trim();
-    if (!worldId) return null;
-    try {
-      const payload = await withRuntimeOpenApiContext((realm) => (
-        realm.services.WorldControlService.worldControlControllerGetMaintenance(worldId)
-      ));
-      return payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
-    } catch {
-      return null;
-    }
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
+    const payload = await withRuntimeOpenApiContext((realm) => (
+      realm.services.WorldControlService.worldControlControllerGetMaintenance(worldId)
+    ));
+    return requireObjectPayload(payload as Record<string, unknown>, 'WORLD_MAINTENANCE_GET_CONTRACT_INVALID');
   });
 
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.worldsMine, async () => {
-    try {
-      return await withRuntimeOpenApiContext((realm) => (
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.worldsMine, async () => (
+    requireItemsPayload(
+      await withRuntimeOpenApiContext((realm) => (
         realm.services.WorldControlService.worldControlControllerListMyWorlds()
-      ));
-    } catch {
-      return { items: [] };
-    }
-  });
+      )) as { items?: unknown[] } & Record<string, unknown>,
+      'WORLD_MY_LIST_CONTRACT_INVALID',
+    )
+  ));
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.maintenanceUpdate, async (query) => {
     const record = toRecord(query);
@@ -135,33 +128,33 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerUpdateMaintenance(
         worldId,
-        toObjectOr(record.patch, {} as Record<string, unknown>) as MaintenanceUpdateInput,
+        requireRecord(record.patch, 'WORLD_MAINTENANCE_PATCH_REQUIRED') as MaintenanceUpdateInput,
       )
     ));
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.lorebooksList, async (query) => {
     const worldId = String(toRecord(query).worldId || '').trim();
-    if (!worldId) return { worldId: '', items: [] };
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerListWorldLorebooks(worldId)
     ));
-    return toObjectOr(payload, { worldId, items: [] });
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_LOREBOOK_LIST_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.eventsList, async (query) => {
     const worldId = String(toRecord(query).worldId || '').trim();
-    if (!worldId) return { worldId: '', items: [] };
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerListWorldEvents(worldId)
     ));
-    return toObjectOr(payload, { worldId, items: [] });
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_EVENT_LIST_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.mediaBindingsList, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
-    if (!worldId) return { worldId: '', items: [] };
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerListWorldMediaBindings(
         worldId,
@@ -171,13 +164,13 @@ export async function registerWorldDataCapabilities(): Promise<void> {
         typeof record.targetType === 'string' ? record.targetType : undefined,
       )
     ));
-    return toObjectOr(payload, { worldId, items: [] });
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_MEDIA_BINDING_LIST_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.scenesList, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
-    if (!worldId) return { worldId: '', items: [] };
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const sceneIds = toStringArray(record.sceneIds);
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerListWorldScenes(
@@ -186,7 +179,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
         sceneIds.length > 0 ? sceneIds : undefined,
       )
     ));
-    return toObjectOr(payload, { worldId, items: [] });
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_SCENE_LIST_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(
@@ -194,7 +187,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     async (query) => {
       const record = toRecord(query);
       const worldId = String(record.worldId || '').trim();
-      if (!worldId) return { worldId: '', items: [] };
+      if (!worldId) throw new Error('WORLD_ID_REQUIRED');
       const payload = await withRuntimeOpenApiContext((realm) => (
         realm.services.WorldControlService.worldControlControllerListWorldNarrativeContexts(
           worldId,
@@ -207,7 +200,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
           typeof record.scope === 'string' ? record.scope : undefined,
         )
       ));
-      return toObjectOr(payload, { worldId, items: [] });
+      return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_NARRATIVE_CONTEXT_LIST_CONTRACT_INVALID');
     },
   );
 
@@ -221,14 +214,10 @@ export async function registerWorldDataCapabilities(): Promise<void> {
       throw new Error('WORLD_ID_AND_STORY_ID_AND_AGENT_ID_REQUIRED');
     }
     if (!createIfMissing) {
-      try {
-        const payload = await withRuntimeOpenApiContext((realm) => (
-          realm.services.NarrativeSpineService.narrativeSpineControllerFindSpine(worldId, storyId, agentId)
-        ));
-        return payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
-      } catch {
-        return null;
-      }
+      const payload = await withRuntimeOpenApiContext((realm) => (
+        realm.services.NarrativeSpineService.narrativeSpineControllerFindSpine(worldId, storyId, agentId)
+      ));
+      return requireObjectPayload(payload as Record<string, unknown>, 'WORLD_NARRATIVE_SPINE_GET_CONTRACT_INVALID');
     }
     return withRuntimeOpenApiContext((realm) => (
       realm.services.NarrativeSpineService.narrativeSpineControllerGetOrCreateSpine(worldId, storyId, agentId)
@@ -240,7 +229,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     const worldId = String(record.worldId || '').trim();
     const storyId = String(record.storyId || '').trim();
     const agentId = String(record.agentId || '').trim();
-    const body = toObjectOr(record.body, record);
+    const body = requireRecord(record.body ?? record, 'WORLD_NARRATIVE_SPINE_PUBLISH_INPUT_REQUIRED');
     if (!worldId || !storyId || !agentId) {
       throw new Error('WORLD_ID_AND_STORY_ID_AND_AGENT_ID_REQUIRED');
     }
@@ -262,12 +251,12 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.SatelliteNarrativeService.satelliteControllerFindBySpine(spineId)
     ));
-    return toObjectOr(payload, { items: [] });
+    return requireObjectArray(payload, 'WORLD_SATELLITE_LIST_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.satellitesCreate, async (query) => {
     const record = toRecord(query);
-    const body = toObjectOr(record.body, record);
+    const body = requireRecord(record.body ?? record, 'WORLD_SATELLITE_CREATE_INPUT_REQUIRED');
     const worldId = String(body.worldId || '').trim();
     const content = String(body.content || '').trim();
     if (!worldId || !content) {
@@ -289,7 +278,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerBatchUpsertWorldEvents(
         worldId,
-        toObjectOr(record.payload, {} as Record<string, unknown>) as BatchUpsertWorldEventsInput,
+        requireRecord(record.payload, 'WORLD_EVENT_BATCH_UPSERT_INPUT_REQUIRED') as BatchUpsertWorldEventsInput,
       )
     ));
   });
@@ -303,7 +292,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
       return withRuntimeOpenApiContext((realm) => (
         realm.services.WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings(
           worldId,
-          toObjectOr(record.payload, {} as Record<string, unknown>) as BatchUpsertWorldMediaBindingsInput,
+          requireRecord(record.payload, 'WORLD_MEDIA_BINDING_BATCH_UPSERT_INPUT_REQUIRED') as BatchUpsertWorldMediaBindingsInput,
         )
       ));
     },
@@ -339,6 +328,6 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerListWorldMutations(worldId)
     ));
-    return toObjectOr(payload, { worldId, items: [] });
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_MUTATION_LIST_CONTRACT_INVALID');
   });
 }

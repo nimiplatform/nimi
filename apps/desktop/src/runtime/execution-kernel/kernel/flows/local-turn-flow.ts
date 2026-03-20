@@ -65,7 +65,7 @@ export async function runLocalTurnFlow({
         requestId: input.requestId,
         sessionId: input.sessionId,
         turnIndex: input.turnIndex,
-        stateDelta: (result.stateDelta as Record<string, unknown>) || {},
+        stateDelta: result.stateDelta,
       },
     });
 

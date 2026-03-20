@@ -126,6 +126,16 @@ pub fn resolved_model_manifest_path(models_root: &Path, logical_model_id: &str) 
     resolved_model_dir(models_root, logical_model_id).join("manifest.json")
 }
 
+pub fn artifact_relative_dir(artifact_id: &str) -> PathBuf {
+    let mut path = PathBuf::from("artifacts");
+    path.push(slugify_local_model_id(artifact_id));
+    path
+}
+
+pub fn artifact_dir(models_root: &Path, artifact_id: &str) -> PathBuf {
+    models_root.join(artifact_relative_dir(artifact_id))
+}
+
 fn push_unique(values: &mut Vec<String>, value: &str) {
     if values.iter().any(|item| item == value) {
         return;

@@ -2,22 +2,18 @@ import {
   listAgentCoreMemories,
   listAgentE2EMemories,
   recallAgentMemoriesForEntity,
+  type AgentMemoryRecord,
   type RealmModel,
 } from '@nimiplatform/sdk/realm';
-import { CORE_DATA_API_CAPABILITIES, toRecord } from './runtime-bootstrap-utils';
+import {
+  CORE_DATA_API_CAPABILITIES,
+  requireItemsPayload,
+  requireObjectPayload,
+  toRecord,
+} from './runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
 
 type MemoryStatsResponseDto = RealmModel<'MemoryStatsResponseDto'>;
-
-function toObjectOr<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
-  return value && typeof value === 'object' ? (value as T) : fallback;
-}
-
-function toNullableObject(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
-}
-
-type AgentMemoryRecord = Record<string, unknown>;
 
 type AgentMemorySliceQuery = {
   limit?: number;
@@ -49,7 +45,7 @@ type AgentCoreDataClient = {
     agentId: string,
     entityId: string,
     query?: AgentMemoryRecallQuery,
-  ) => Promise<unknown>;
+  ) => Promise<AgentMemoryRecord[]>;
   getAgentMemoryStats: (agentId: string) => Promise<MemoryStatsResponseDto>;
   listMyFriendsWithDetails: (limit?: number) => Promise<unknown>;
   getUser: (userId: string) => Promise<unknown>;
@@ -71,7 +67,6 @@ function createAgentCoreDataClient(): AgentCoreDataClient {
       listAgentCoreMemories(realm, {
         agentId,
         limit: query?.limit,
-        offset: query?.offset,
       })
     )),
     listAgentE2EMemories: (agentId, entityId, query) => withRuntimeOpenApiContext((realm) => (
@@ -79,15 +74,14 @@ function createAgentCoreDataClient(): AgentCoreDataClient {
         agentId,
         entityId,
         limit: query?.limit,
-        offset: query?.offset,
       })
     )),
     recallAgentMemoriesForEntity: (agentId, entityId, query) => withRuntimeOpenApiContext((realm) => (
       recallAgentMemoriesForEntity(realm, {
         agentId,
         entityId,
-        queryText: query?.queryText,
-        topK: query?.topK,
+        query: query?.queryText,
+        limit: query?.topK,
       })
     )),
     getAgentMemoryStats: (agentId) => withRuntimeOpenApiContext(async (realm) => (
@@ -132,7 +126,8 @@ function takeTop<T>(items: T[], limit: number): T[] {
 function memoryIdentity(item: AgentMemoryRecord): string {
   const id = String(item.id || '').trim();
   if (id) return `id:${id}`;
-  const content = String(item.content || item.text || item.summary || '').trim();
+  const record = toRecord(item);
+  const content = String(item.content || record.text || record.summary || '').trim();
   return content ? `content:${content}` : `raw:${JSON.stringify(item)}`;
 }
 
@@ -165,12 +160,10 @@ function toMemoryRecordArray(value: unknown): AgentMemoryRecord[] {
 }
 
 function inferRecallKind(item: AgentMemoryRecord): 'core' | 'e2e' {
-  const typeField = String(item.type || item.memoryType || '').trim().toUpperCase();
-  if (typeField === 'E2E' || typeField === 'EPISODIC') {
+  if (item.category === 'E2E' || item.type === 'EPISODIC') {
     return 'e2e';
   }
-  const subject = String(item.subjectId || item.entityId || '').trim();
-  if (subject) {
+  if (String(item.entityId || '').trim()) {
     return 'e2e';
   }
   return 'core';
@@ -210,11 +203,11 @@ const MEMORY_LOCAL_INDEX_TTL_MS = 5 * 60 * 1000;
 const memoryLocalIndex = new Map<string, MemoryIndexEntry>();
 let currentUserIdCache: { userId: string; expiresAt: number } | null = null;
 
-function getMemoryIndex(agentId: string): MemoryIndexEntry | null {
+function getMemoryIndex(agentId: string): MemoryIndexEntry | undefined {
   const current = memoryLocalIndex.get(agentId);
-  if (!current) return null;
+  if (!current) return undefined;
   if (Date.now() - current.updatedAt > MEMORY_LOCAL_INDEX_TTL_MS) {
-    return null;
+    return undefined;
   }
   return current;
 }
@@ -256,30 +249,28 @@ function upsertMemoryIndex(input: {
   return next;
 }
 
-async function resolveCurrentUserIdWith(client: AgentCoreDataClient): Promise<string | null> {
+async function resolveCurrentUserIdWith(client: AgentCoreDataClient): Promise<string> {
   const cached = currentUserIdCache;
   if (cached && cached.expiresAt > Date.now()) {
     return cached.userId;
   }
 
-  try {
-    const payload = await client.getCurrentUser();
-    const userId = String(toRecord(payload).id || '').trim();
-    if (!userId) return null;
-    currentUserIdCache = {
-      userId,
-      expiresAt: Date.now() + 5 * 60 * 1000,
-    };
-    return userId;
-  } catch {
-    return null;
+  const payload = await client.getCurrentUser();
+  const userId = String(toRecord(payload).id || '').trim();
+  if (!userId) {
+    throw new Error('CURRENT_USER_ID_CONTRACT_INVALID');
   }
+  currentUserIdCache = {
+    userId,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+  };
+  return userId;
 }
 
 async function resolveEntityId(
   query: Record<string, unknown>,
-  resolveCurrentUserIdFn: () => Promise<string | null>,
-): Promise<string | null> {
+  resolveCurrentUserIdFn: () => Promise<string | undefined>,
+): Promise<string | undefined> {
   const explicit = String(query.entityId || query.userId || query.subjectId || '').trim();
   if (explicit) return explicit;
   return resolveCurrentUserIdFn();
@@ -379,7 +370,7 @@ async function loadRemoteMemoryStats(
 
 type AgentCoreDataCapabilityDeps = {
   client?: Partial<AgentCoreDataClient>;
-  resolveCurrentUserId?: () => Promise<string | null>;
+  resolveCurrentUserId?: () => Promise<string | undefined>;
 };
 
 export type AgentCoreDataCapabilityHandlers = {
@@ -406,7 +397,7 @@ function requireAgentId(query: Record<string, unknown>): string {
 
 async function requireEntityId(
   query: Record<string, unknown>,
-  resolveCurrentUserIdFn: () => Promise<string | null>,
+  resolveCurrentUserIdFn: () => Promise<string | undefined>,
 ): Promise<string> {
   const entityId = await resolveEntityId(query, resolveCurrentUserIdFn);
   if (!entityId) {
@@ -606,51 +597,35 @@ export async function registerCoreDataCapabilities(): Promise<void> {
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.friendsWithDetailsList, async () => {
     const payload = await client.listMyFriendsWithDetails(100);
-    return toObjectOr(payload, { items: [] });
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'CORE_FRIENDS_WITH_DETAILS_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.userByIdGet, async (query) => {
     const userId = String(toRecord(query).userId || '').trim();
-    if (!userId) return null;
-    try {
-      const payload = await client.getUser(userId);
-      return toNullableObject(payload);
-    } catch {
-      return null;
-    }
+    if (!userId) throw new Error('USER_ID_REQUIRED');
+    const payload = await client.getUser(userId);
+    return requireObjectPayload(payload as Record<string, unknown>, 'CORE_USER_GET_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.userByHandleGet, async (query) => {
     const handle = String(toRecord(query).handle || '').trim();
-    if (!handle) return null;
-    try {
-      const payload = await client.getUserByHandle(handle);
-      return toNullableObject(payload);
-    } catch {
-      return null;
-    }
+    if (!handle) throw new Error('USER_HANDLE_REQUIRED');
+    const payload = await client.getUserByHandle(handle);
+    return requireObjectPayload(payload as Record<string, unknown>, 'CORE_USER_BY_HANDLE_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.worldByIdGet, async (query) => {
     const worldId = String(toRecord(query).worldId || '').trim();
-    if (!worldId) return null;
-    try {
-      const payload = await client.getWorld(worldId);
-      return toNullableObject(payload);
-    } catch {
-      return null;
-    }
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
+    const payload = await client.getWorld(worldId);
+    return requireObjectPayload(payload as Record<string, unknown>, 'CORE_WORLD_GET_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.worldviewByIdGet, async (query) => {
     const worldId = String(toRecord(query).worldId || '').trim();
-    if (!worldId) return null;
-    try {
-      const payload = await client.getWorldview(worldId);
-      return toNullableObject(payload);
-    } catch {
-      return null;
-    }
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
+    const payload = await client.getWorldview(worldId);
+    return requireObjectPayload(payload as Record<string, unknown>, 'CORE_WORLDVIEW_GET_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentChatRouteResolve, async (query) => {

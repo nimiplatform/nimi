@@ -38,7 +38,7 @@ test('resolveSourceAndModel preserves explicit cloud provider and prefixes cloud
   assert.equal(resolved.source, 'cloud');
   assert.equal(resolved.modelId, 'cloud/qwen-plus');
   assert.equal(resolved.provider, 'dashscope');
-  assert.equal(resolved.fallbackPolicy, 1);
+  assert.equal(resolved.routePolicy, 2);
 });
 
 test('resolveSourceAndModel prefixes llama selectors for local routes', () => {

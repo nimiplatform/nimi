@@ -8,6 +8,8 @@ import {
   installLocalRuntimeVerifiedModel,
   importLocalRuntimeModel,
   importLocalRuntimeModelFile,
+  importLocalRuntimeAssetFile,
+  importLocalRuntimeAssetManifest,
   installLocalRuntimeModel,
   searchLocalRuntimeCatalog,
   listLocalRuntimeRepoGgufVariants,
@@ -34,6 +36,7 @@ import {
   listLocalRuntimeModels,
   pickLocalRuntimeManifestPath,
   pickLocalRuntimeArtifactManifestPath,
+  pickLocalRuntimeAssetManifestPath,
   pickLocalRuntimeModelFile,
   importLocalRuntimeArtifact,
   removeLocalRuntimeModel,
@@ -42,6 +45,7 @@ import {
   stopLocalRuntimeModel,
   scanLocalRuntimeOrphans,
   scanLocalRuntimeArtifactOrphans,
+  scanLocalRuntimeUnregisteredAssets,
   scaffoldLocalRuntimeOrphan,
   scaffoldLocalRuntimeArtifactOrphan,
   installLocalRuntimeVerifiedArtifact,
@@ -52,6 +56,12 @@ import type {
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeCatalogVariantDescriptor,
   LocalRuntimeArtifactKind,
+  LocalRuntimeAssetClass,
+  LocalRuntimeModelType,
+  LocalRuntimeSuggestionSource,
+  LocalRuntimeSuggestionConfidence,
+  LocalRuntimeAssetDeclaration,
+  LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeArtifactRecord,
   LocalRuntimeVerifiedArtifactDescriptor,
   LocalRuntimeAuditEvent,
@@ -73,6 +83,9 @@ import type {
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeImportArtifactPayload,
+  LocalRuntimeImportAssetFilePayload,
+  LocalRuntimeAssetFileImportResult,
+  LocalRuntimeAssetManifestImportResult,
   LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeInstallPlanDescriptor,
@@ -148,6 +161,12 @@ export {
 
 export type {
   LocalRuntimeArtifactKind,
+  LocalRuntimeAssetClass,
+  LocalRuntimeModelType,
+  LocalRuntimeSuggestionSource,
+  LocalRuntimeSuggestionConfidence,
+  LocalRuntimeAssetDeclaration,
+  LocalRuntimeUnregisteredAssetDescriptor,
   GgufVariantDescriptor,
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeCatalogVariantDescriptor,
@@ -172,6 +191,9 @@ export type {
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeImportArtifactPayload,
+  LocalRuntimeImportAssetFilePayload,
+  LocalRuntimeAssetFileImportResult,
+  LocalRuntimeAssetManifestImportResult,
   LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeInstallPlanDescriptor,
@@ -314,6 +336,7 @@ export type LocalRuntimeFacade = {
   listAudits: (query?: LocalRuntimeAuditQuery) => Promise<LocalRuntimeAuditEvent[]>;
   pickManifestPath: () => Promise<string | null>;
   pickArtifactManifestPath: () => Promise<string | null>;
+  pickAssetManifestPath: () => Promise<string | null>;
   queryByCapability: (capability: LocalRuntimeCapability) => Promise<LocalRuntimeModelRecord[]>;
   pollSnapshot: (localModelId?: string) => Promise<LocalRuntimeSnapshot>;
   subscribeDownloadProgress: (
@@ -323,6 +346,15 @@ export type LocalRuntimeFacade = {
   scanOrphans: (payload?: LocalRuntimeScanOrphansPayload) => Promise<OrphanModelFile[]>;
   scaffoldOrphan: (payload: LocalRuntimeScaffoldOrphanPayload) => Promise<LocalRuntimeInstallAcceptedResponse>;
   scanArtifactOrphans: () => Promise<OrphanArtifactFile[]>;
+  scanUnregisteredAssets: () => Promise<LocalRuntimeUnregisteredAssetDescriptor[]>;
+  importAssetFile: (
+    payload: LocalRuntimeImportAssetFilePayload,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeAssetFileImportResult>;
+  importAssetManifest: (
+    manifestPath: string,
+    options?: LocalRuntimeWriteOptions,
+  ) => Promise<LocalRuntimeAssetManifestImportResult>;
   scaffoldArtifactOrphan: (
     payload: LocalRuntimeScaffoldArtifactPayload,
     options?: LocalRuntimeWriteOptions,
@@ -371,6 +403,7 @@ export const localRuntime: LocalRuntimeFacade = {
   listAudits: listLocalRuntimeAudits,
   pickManifestPath: pickLocalRuntimeManifestPath,
   pickArtifactManifestPath: pickLocalRuntimeArtifactManifestPath,
+  pickAssetManifestPath: pickLocalRuntimeAssetManifestPath,
   queryByCapability: queryLocalRuntimeModelsByCapability,
   pollSnapshot: fetchLocalRuntimeSnapshot,
   subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
@@ -378,6 +411,9 @@ export const localRuntime: LocalRuntimeFacade = {
   scanOrphans: scanLocalRuntimeOrphans,
   scaffoldOrphan: scaffoldLocalRuntimeOrphan,
   scanArtifactOrphans: scanLocalRuntimeArtifactOrphans,
+  scanUnregisteredAssets: scanLocalRuntimeUnregisteredAssets,
+  importAssetFile: importLocalRuntimeAssetFile,
+  importAssetManifest: importLocalRuntimeAssetManifest,
   scaffoldArtifactOrphan: scaffoldLocalRuntimeArtifactOrphan,
 };
 

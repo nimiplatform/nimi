@@ -2,6 +2,7 @@ const MODEL_MANIFEST_FILE_NAME: &str = "manifest.json";
 const ARTIFACT_MANIFEST_FILE_NAME: &str = "artifact.manifest.json";
 const SUPPORTED_ARTIFACT_KINDS: &[&str] = &[
     "vae",
+    "ae",
     "llm",
     "clip",
     "controlnet",
@@ -47,6 +48,13 @@ fn is_managed_models_subdir(path: &std::path::Path) -> bool {
     path.join(MODEL_MANIFEST_FILE_NAME).exists() || path.join(ARTIFACT_MANIFEST_FILE_NAME).exists()
 }
 
+fn is_reserved_models_root_child(path: &std::path::Path) -> bool {
+    matches!(
+        path.file_name().and_then(|value| value.to_str()),
+        Some("resolved" | "artifacts")
+    )
+}
+
 fn scan_orphan_binary_candidates(
     models_root: &std::path::Path,
     registered_paths: &std::collections::HashSet<String>,
@@ -80,7 +88,7 @@ fn scan_orphan_binary_candidates(
                 size_bytes,
             });
         } else if path.is_dir() {
-            if is_managed_models_subdir(&path) {
+            if is_reserved_models_root_child(&path) || is_managed_models_subdir(&path) {
                 continue;
             }
             let sub_entries = match std::fs::read_dir(&path) {
@@ -176,7 +184,7 @@ fn resolve_orphan_artifact_slug(
         } else {
             format!("{base_slug}-{}", index + 1)
         };
-        let candidate_dir = models_root.join(&candidate);
+        let candidate_dir = artifact_dir(models_root, &format!("local-import/{candidate}"));
         if !candidate_dir.exists() || source_is_already_in_target_dir(source_path, &candidate_dir) {
             return Ok(candidate);
         }
@@ -188,6 +196,7 @@ fn scaffold_orphan_artifact_file(
     models_root: &std::path::Path,
     source_path: &std::path::Path,
     kind: &str,
+    engine_override: Option<&str>,
 ) -> Result<LocalAiScaffoldArtifactResult, String> {
     if !source_path.is_file() {
         return Err(format!(
@@ -213,7 +222,7 @@ fn scaffold_orphan_artifact_file(
     ));
     let artifact_slug = resolve_orphan_artifact_slug(models_root, &base_slug, source_path)?;
     let artifact_id = format!("local-import/{artifact_slug}");
-    let target_dir = models_root.join(&artifact_slug);
+    let target_dir = artifact_dir(models_root, artifact_id.as_str());
     std::fs::create_dir_all(&target_dir).map_err(|error| {
         format!(
             "LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED: cannot create artifact directory: {error}"
@@ -263,16 +272,31 @@ fn scaffold_orphan_artifact_file(
     };
 
     let artifact_engine = match normalized_kind.as_str() {
-        "vae" => "media",
-        "tokenizer" | "speaker_encoder" => "speech",
-        _ => "llama",
+        "vae" | "ae" | "clip" | "controlnet" | "lora" => "media",
+        "llm" => "llama",
+        _ => "",
     };
+    let resolved_engine = engine_override
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string())
+        .or_else(|| {
+            if artifact_engine.is_empty() {
+                None
+            } else {
+                Some(artifact_engine.to_string())
+            }
+        })
+        .ok_or_else(|| {
+            "LOCAL_AI_ARTIFACT_ORPHAN_ENGINE_REQUIRED: engine is required for this artifact kind"
+                .to_string()
+        })?;
 
     let manifest_path = target_dir.join(ARTIFACT_MANIFEST_FILE_NAME);
     let manifest = serde_json::json!({
         "artifactId": artifact_id,
         "kind": normalized_kind,
-        "engine": artifact_engine,
+        "engine": resolved_engine,
         "entry": file_name,
         "files": [file_name],
         "license": "unknown",
@@ -313,8 +337,9 @@ pub async fn runtime_local_artifacts_scaffold_orphan(
     let models_root = runtime_models_dir(&app)?;
     let source_path = std::path::PathBuf::from(&payload.path);
     let kind = payload.kind;
+    let engine = payload.engine;
     tauri::async_runtime::spawn_blocking(move || {
-        scaffold_orphan_artifact_file(&models_root, &source_path, kind.as_str())
+        scaffold_orphan_artifact_file(&models_root, &source_path, kind.as_str(), engine.as_deref())
     })
     .await
     .map_err(|error| format!("LOCAL_AI_ARTIFACT_ORPHAN_TASK_FAILED: {error}"))?

@@ -11,7 +11,7 @@ export type HookModLocalProfileEntry = {
     preferred: boolean;
     modelId?: string;
     artifactId?: string;
-    artifactKind?: 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
+    artifactKind?: 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
     templateId?: string;
     repo?: string;
     engine?: string;

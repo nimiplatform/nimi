@@ -67,20 +67,22 @@ use super::types::{
     default_artifact_roles_for_capabilities, default_endpoint_for_engine,
     default_fallback_engines_for_engine, default_logical_model_id,
     default_preferred_engine_for_capabilities, generate_ulid_string, normalize_local_engine,
-    now_iso_timestamp, resolved_model_dir, resolved_model_manifest_path,
-    slugify_local_model_id, CatalogVariantDescriptor, LocalAiArtifactRecord,
-    LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiAuditEvent, LocalAiCatalogItemDescriptor,
-    LocalAiDependencyApplyResult, LocalAiDependencyKind, LocalAiDependencyResolutionPlan,
-    LocalAiDeviceProfile, LocalAiDownloadControlPayload, LocalAiDownloadProgressEvent,
+    now_iso_timestamp, artifact_dir, resolved_model_dir, resolved_model_manifest_path,
+    slugify_local_model_id, CatalogVariantDescriptor, LocalAiArtifactKind, LocalAiArtifactRecord,
+    LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiAssetClass, LocalAiAssetDeclaration,
+    LocalAiAuditEvent, LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult,
+    LocalAiDependencyKind, LocalAiDependencyResolutionPlan, LocalAiDeviceProfile,
+    LocalAiDownloadControlPayload, LocalAiDownloadProgressEvent,
     LocalAiDownloadSessionSummary, LocalAiDownloadState, LocalAiInstallPlanDescriptor,
     LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord, LocalAiModelSource,
-    LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor, LocalAiOrphanScanPreference,
-    LocalAiProfileApplyResult, LocalAiProfileArtifactPlanEntry, LocalAiProfileDescriptor,
-    LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
+    LocalAiModelType, LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor,
+    LocalAiOrphanScanPreference, LocalAiProfileApplyResult, LocalAiProfileArtifactPlanEntry,
+    LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
     LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
-    LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiVerifiedArtifactDescriptor,
-    LocalAiVerifiedModelDescriptor, OrphanArtifactFile, OrphanModelFile,
-    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiSuggestionConfidence,
+    LocalAiSuggestionSource, LocalAiUnregisteredAssetDescriptor,
+    LocalAiVerifiedArtifactDescriptor, LocalAiVerifiedModelDescriptor, OrphanArtifactFile,
+    OrphanModelFile, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_artifacts::{find_verified_artifact, verified_artifact_list};
 use super::verified_models::{find_verified_model, verified_model_list};
@@ -101,5 +103,6 @@ include!("commands_import_file.rs");
 include!("commands_models_audit.rs");
 include!("commands_artifact_orphans.rs");
 include!("commands_orphan_scan.rs");
+include!("commands_assets_intake.rs");
 include!("commands_recommendation_feed.rs");
 include!("commands_reveal_tests.rs");

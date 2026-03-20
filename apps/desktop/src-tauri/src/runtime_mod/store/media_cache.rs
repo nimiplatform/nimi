@@ -98,7 +98,7 @@ pub fn put_media_cache(
     let normalized_mime = mime_type
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
-        .unwrap_or("application/octet-stream");
+        .ok_or_else(|| "media cache put failed: mimeType is required".to_string())?;
     let extension = normalize_extension(extension_hint, normalized_mime);
     let cache_key = sha256_hex(&bytes);
     let cache_dir = resolve_media_cache_dir()?;
@@ -198,5 +198,15 @@ mod media_cache_tests {
     fn normalize_extension_prefers_valid_audio_hint() {
         assert_eq!(normalize_extension(Some(".wav"), "application/octet-stream"), "wav");
         assert_eq!(normalize_extension(Some("mp3"), "application/octet-stream"), "mp3");
+    }
+
+    #[test]
+    fn put_media_cache_requires_mime_type() {
+        let result = super::put_media_cache("AQIDBA==", None, Some("mp3"));
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap_or_default(),
+            "media cache put failed: mimeType is required"
+        );
     }
 }

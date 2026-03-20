@@ -45,7 +45,7 @@ export async function tauriInvoke<T>(command: string, payload: unknown = {}): Pr
 
 export type RuntimeModMediaCachePutInput = {
   mediaBase64: string;
-  mimeType?: string;
+  mimeType: string;
   extensionHint?: string;
 };
 
@@ -73,9 +73,9 @@ function parseMediaCachePutResult(value: unknown): RuntimeModMediaCachePutResult
   const cacheKey = String(record.cacheKey || '').trim();
   const filePath = String(record.filePath || '').trim();
   const uri = String(record.uri || '').trim();
-  const mimeType = String(record.mimeType || '').trim() || 'application/octet-stream';
+  const mimeType = String(record.mimeType || '').trim();
   const sizeBytes = Number(record.sizeBytes);
-  if (!cacheKey || !filePath || !uri || !Number.isFinite(sizeBytes) || sizeBytes <= 0) {
+  if (!cacheKey || !filePath || !uri || !mimeType || !Number.isFinite(sizeBytes) || sizeBytes <= 0) {
     return null;
   }
   return {
@@ -110,22 +110,33 @@ function parseMediaCacheGcResult(value: unknown): RuntimeModMediaCacheGcResult |
 
 export async function runtimeModMediaCachePut(
   input: RuntimeModMediaCachePutInput,
-): Promise<RuntimeModMediaCachePutResult | null> {
+): Promise<RuntimeModMediaCachePutResult> {
   const invoke = readGlobalTauriInvoke();
   if (!invoke) {
-    return null;
+    throw new Error('RUNTIME_MOD_MEDIA_CACHE_UNAVAILABLE');
+  }
+  const mimeType = String(input.mimeType || '').trim();
+  if (!mimeType) {
+    throw new Error('RUNTIME_MOD_MEDIA_CACHE_MIME_TYPE_REQUIRED');
   }
   try {
     const result = await invoke('runtime_mod_media_cache_put', {
       payload: {
         mediaBase64: String(input.mediaBase64 || '').trim(),
-        mimeType: String(input.mimeType || '').trim() || undefined,
+        mimeType,
         extensionHint: String(input.extensionHint || '').trim() || undefined,
       },
     });
-    return parseMediaCachePutResult(result);
-  } catch {
-    return null;
+    const parsed = parseMediaCachePutResult(result);
+    if (!parsed) {
+      throw new Error('RUNTIME_MOD_MEDIA_CACHE_INVALID_RESULT');
+    }
+    return parsed;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('RUNTIME_MOD_MEDIA_CACHE_PUT_FAILED', { cause: error });
   }
 }
 

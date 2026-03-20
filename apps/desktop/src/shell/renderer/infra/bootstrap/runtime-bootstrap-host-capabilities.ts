@@ -300,7 +300,6 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                             ...request,
                             model,
                             route: resolved.source,
-                            fallback: 'deny',
                             connectorId: resolved.connectorId || undefined,
                             metadata: {
                                 ...(request.metadata || {}),
@@ -338,7 +337,6 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                             ...request,
                             model,
                             route: resolved.source,
-                            fallback: 'deny',
                             connectorId: resolved.connectorId || undefined,
                             metadata: {
                                 ...(request.metadata || {}),
@@ -367,7 +365,6 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                             ...request,
                             model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_EMBEDDING_MODEL_REQUIRED'),
                             route: resolved.source,
-                            fallback: 'deny',
                             connectorId: resolved.connectorId || undefined,
                             metadata: {
                                 ...(request.metadata || {}),

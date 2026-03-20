@@ -402,6 +402,7 @@ export function useRuntimeConfigModelManagementActions(
         engine: model.engine,
         localModelId,
       }, error);
+      await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'warning',
         message: translateRuntimeLocalText(

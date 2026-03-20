@@ -27,6 +27,12 @@ type WorldEventPayload = Awaited<ReturnType<typeof dataSync.loadWorldEvents>>;
 type WorldEventDetailDto = WorldEventPayload['items'][number];
 type WorldEventGraphSummaryDto = NonNullable<WorldEventPayload['eventGraphSummary']>;
 type WorldSemanticBundleDto = Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>;
+type WorldviewDetailDto = NonNullable<WorldSemanticBundleDto['worldview']>;
+type PowerSystemDto = RealmModel<'PowerSystemDto'>;
+type PowerSystemLevelDto = RealmModel<'PowerSystemLevelDto'>;
+type PowerSystemTabooDto = RealmModel<'PowerSystemTabooDto'>;
+type SpaceRealmDto = RealmModel<'SpaceRealmDto'>;
+type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
 type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
 type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
 type PublicWorldMediaBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldMediaBindings>>['items'][number];
@@ -40,16 +46,6 @@ const EVENT_HORIZON_TAG: Record<string, string> = {
   ONGOING: 'Ongoing',
   FUTURE: 'Future',
 };
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
-}
-
-function asRecordArray(value: unknown): Array<Record<string, unknown>> {
-  return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => Boolean(asRecord(item)))
-    : [];
-}
 
 function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
@@ -154,8 +150,8 @@ function toWorldEventSummary(raw: WorldEventPayload['eventGraphSummary']): World
   };
 }
 
-function toOperationRules(raw: unknown): WorldSemanticRule[] {
-  return asRecordArray(raw).reduce<WorldSemanticRule[]>((acc, item) => {
+function toOperationRules(raw?: PowerSystemDto['rules']): WorldSemanticRule[] {
+  return (raw ?? []).reduce<WorldSemanticRule[]>((acc, item) => {
     const key = readString(item.key);
     const title = readString(item.title);
     const value = readString(item.value);
@@ -165,21 +161,21 @@ function toOperationRules(raw: unknown): WorldSemanticRule[] {
   }, []);
 }
 
-function toSemanticLevels(raw: unknown, extraKey?: string): WorldSemanticLevel[] {
-  return asRecordArray(raw).reduce<WorldSemanticLevel[]>((acc, item) => {
+function toSemanticLevels(raw?: PowerSystemLevelDto[]): WorldSemanticLevel[] {
+  return (raw ?? []).reduce<WorldSemanticLevel[]>((acc, item) => {
     const name = readString(item.name);
     if (!name) return acc;
     acc.push({
       name,
       description: readString(item.description),
-      extra: extraKey ? readString(item[extraKey]) : null,
+      extra: readString(item.breakthroughCondition),
     });
     return acc;
   }, []);
 }
 
-function toTaboos(raw: unknown): WorldSemanticTaboo[] {
-  return asRecordArray(raw).reduce<WorldSemanticTaboo[]>((acc, item) => {
+function toTaboos(raw?: PowerSystemTabooDto[]): WorldSemanticTaboo[] {
+  return (raw ?? []).reduce<WorldSemanticTaboo[]>((acc, item) => {
     const name = readString(item.name) ?? readString(item.title);
     if (!name) return acc;
     acc.push({
@@ -191,8 +187,8 @@ function toTaboos(raw: unknown): WorldSemanticTaboo[] {
   }, []);
 }
 
-function toRealms(raw: unknown): WorldSemanticRealm[] {
-  return asRecordArray(raw).reduce<WorldSemanticRealm[]>((acc, item) => {
+function toRealms(raw?: SpaceRealmDto[]): WorldSemanticRealm[] {
+  return (raw ?? []).reduce<WorldSemanticRealm[]>((acc, item) => {
     const name = readString(item.name);
     if (!name) return acc;
     acc.push({
@@ -204,8 +200,8 @@ function toRealms(raw: unknown): WorldSemanticRealm[] {
   }, []);
 }
 
-function toLanguages(raw: unknown): WorldSemanticLanguage[] {
-  return asRecordArray(raw).reduce<WorldSemanticLanguage[]>((acc, item) => {
+function toLanguages(raw?: WorldLanguageDto[]): WorldSemanticLanguage[] {
+  return (raw ?? []).reduce<WorldSemanticLanguage[]>((acc, item) => {
     const name = readString(item.name);
     if (!name) return acc;
     acc.push({
@@ -251,14 +247,14 @@ function toWorldviewSnapshots(raw: Array<Record<string, unknown>>): WorldSemanti
 }
 
 function toSemanticBundle(raw: WorldSemanticBundleDto): WorldSemanticData {
-  const worldview = asRecord(raw.worldview);
-  const coreSystem = asRecord(worldview?.coreSystem);
-  const spaceTopology = asRecord(worldview?.spaceTopology);
-  const causality = asRecord(worldview?.causality);
-  const languages = asRecord(worldview?.languages);
+  const worldview: WorldviewDetailDto | null = raw.worldview;
+  const coreSystem = worldview?.coreSystem;
+  const spaceTopology = worldview?.spaceTopology;
+  const causality = worldview?.causality;
+  const languages = worldview?.languages;
 
   const operationRules = toOperationRules(coreSystem?.rules);
-  const powerSystems = asRecordArray(coreSystem?.powerSystems).reduce<WorldSemanticData['powerSystems']>((acc, item) => {
+  const powerSystems = (coreSystem?.powerSystems ?? []).reduce<WorldSemanticData['powerSystems']>((acc, item) => {
     const name = readString(item.name);
     if (!name) return acc;
     acc.push({
@@ -271,7 +267,7 @@ function toSemanticBundle(raw: WorldSemanticBundleDto): WorldSemanticData {
     });
     return acc;
   }, []);
-  const standaloneLevels = toSemanticLevels(coreSystem?.levels, 'breakthroughCondition');
+  const standaloneLevels = toSemanticLevels(coreSystem?.levels);
   const taboos = toTaboos(coreSystem?.taboos);
   const topology = spaceTopology
     ? {

@@ -28,6 +28,8 @@ import type {
   LocalRuntimeInstallVerifiedPayload,
   LocalRuntimeImportPayload,
   LocalRuntimeImportFilePayload,
+  LocalRuntimeImportAssetFilePayload,
+  LocalRuntimeAssetFileImportResult,
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeModelHealth,
   LocalRuntimeRecommendationFeedDescriptor,
@@ -46,6 +48,7 @@ import type {
   LocalRuntimeScaffoldArtifactResult,
   OrphanModelFile,
   OrphanArtifactFile,
+  LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeScaffoldOrphanPayload,
 } from './types';
 import { localIdsMatch, toCanonicalLocalLookupKey } from './local-id';
@@ -72,6 +75,7 @@ import {
   parseOrphanModelFile,
   parseRecommendationFeedDescriptor,
   parseScaffoldArtifactResult,
+  parseUnregisteredAssetDescriptor,
   readGlobalTauriEventListen,
   assertLifecycleWriteAllowed,
 } from './parsers';
@@ -108,6 +112,7 @@ function toArtifactKindFilter(kind?: LocalRuntimeListArtifactsPayload['kind']): 
   if (kind === 'controlnet') return 4;
   if (kind === 'lora') return 5;
   if (kind === 'auxiliary') return 6;
+  if (kind === 'ae') return 7;
   return 0;
 }
 
@@ -468,6 +473,12 @@ export async function pickLocalRuntimeArtifactManifestPath(): Promise<string | n
   return result || null;
 }
 
+export async function pickLocalRuntimeAssetManifestPath(): Promise<string | null> {
+  if (!hasTauriInvoke()) return null;
+  const result = await tauriInvoke<string | null>('runtime_local_pick_asset_manifest_path', {});
+  return result || null;
+}
+
 export async function pickLocalRuntimeModelFile(): Promise<string | null> {
   if (!hasTauriInvoke()) return null;
   const result = await tauriInvoke<string | null>('runtime_local_pick_model_file', {});
@@ -658,6 +669,10 @@ export async function revealLocalRuntimeModelInFolder(localModelId: string): Pro
   });
 }
 
+export async function revealLocalRuntimeModelsRootFolder(): Promise<void> {
+  await invokeLocalRuntimeCommand<void>('runtime_local_models_reveal_root_folder');
+}
+
 const LOCAL_AI_DOWNLOAD_PROGRESS_EVENT = 'local-ai://download-progress';
 
 export async function subscribeLocalRuntimeDownloadProgress(
@@ -712,6 +727,71 @@ export async function scaffoldLocalRuntimeArtifactOrphan(
     payload,
   });
   return parseScaffoldArtifactResult(result);
+}
+
+export async function scanLocalRuntimeUnregisteredAssets(): Promise<LocalRuntimeUnregisteredAssetDescriptor[]> {
+  const items = await invokeLocalRuntimeCommand<unknown[]>('runtime_local_assets_scan_unregistered');
+  return (Array.isArray(items) ? items : []).map((item) => parseUnregisteredAssetDescriptor(item));
+}
+
+function capabilitiesForModelType(modelType: NonNullable<LocalRuntimeImportAssetFilePayload['declaration']['modelType']>): string[] {
+  if (modelType === 'embedding') return ['embedding'];
+  if (modelType === 'image') return ['image'];
+  if (modelType === 'video') return ['video'];
+  if (modelType === 'tts') return ['tts'];
+  if (modelType === 'stt') return ['stt'];
+  if (modelType === 'music') return ['music'];
+  return ['chat'];
+}
+
+export async function importLocalRuntimeAssetFile(
+  payload: LocalRuntimeImportAssetFilePayload,
+  options?: LocalRuntimeWriteOptions,
+): Promise<LocalRuntimeAssetFileImportResult> {
+  const declaration = payload.declaration;
+  if (declaration.assetClass === 'artifact') {
+    const artifactKind = declaration.artifactKind;
+    if (!artifactKind) {
+      throw new Error('artifactKind is required for companion asset import');
+    }
+    const scaffolded = await scaffoldLocalRuntimeArtifactOrphan({
+      path: payload.filePath,
+      kind: artifactKind,
+      engine: declaration.engine,
+    }, options);
+    const artifact = await importLocalRuntimeArtifact({
+      manifestPath: scaffolded.manifestPath,
+    }, options);
+    return { assetClass: 'artifact', artifact };
+  }
+
+  if (!declaration.modelType) {
+    throw new Error('modelType is required for main model import');
+  }
+  const accepted = await importLocalRuntimeModelFile({
+    filePath: payload.filePath,
+    modelName: payload.modelName,
+    capabilities: capabilitiesForModelType(declaration.modelType),
+    engine: declaration.engine,
+    endpoint: payload.endpoint,
+  }, options);
+  return { assetClass: 'model', accepted };
+}
+
+export async function importLocalRuntimeAssetManifest(
+  manifestPath: string,
+  options?: LocalRuntimeWriteOptions,
+): Promise<import('./types').LocalRuntimeAssetManifestImportResult> {
+  const normalizedPath = String(manifestPath || '').trim();
+  if (!normalizedPath) {
+    throw new Error('manifestPath is required');
+  }
+  if (normalizedPath.endsWith('artifact.manifest.json')) {
+    const artifact = await importLocalRuntimeArtifact({ manifestPath: normalizedPath }, options);
+    return { assetClass: 'artifact', artifact };
+  }
+  const model = await importLocalRuntimeModel({ manifestPath: normalizedPath }, options);
+  return { assetClass: 'model', model };
 }
 
 export async function fetchLocalRuntimeSnapshot(localModelId?: string): Promise<LocalRuntimeSnapshot> {

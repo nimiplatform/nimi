@@ -1,9 +1,11 @@
 import type { RefObject } from 'react';
 import type {
+  LocalRuntimeAssetDeclaration,
   LocalRuntimeArtifactKind,
   LocalRuntimeArtifactRecord,
   LocalRuntimeCatalogItemDescriptor,
   GgufVariantDescriptor,
+  LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeVerifiedArtifactDescriptor,
   LocalRuntimeVerifiedModelDescriptor,
   OrphanArtifactFile,
@@ -19,11 +21,15 @@ import {
   LocalModelCenterActiveDownloadsSection,
   LocalModelCenterArtifactTasksSection,
   LocalModelCenterQuickPicksSection,
+  LocalModelCenterUnregisteredAssetsSection,
   LocalModelCenterVerifiedArtifactsSection,
 } from './runtime-config-local-model-center-sections';
 import type {
+  AssetClassOption,
+  AssetEngineOption,
   CapabilityOption,
   InstallEngineOption,
+  ModelTypeOption,
 } from './runtime-config-model-center-utils';
 import type { LocalModelOptionV11 } from './runtime-config-state-types';
 import type { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
@@ -46,8 +52,12 @@ type LocalModelCenterRuntimeViewProps = {
   filteredInstalledArtifacts: LocalRuntimeArtifactRecord[];
   filteredInstalledModels: LocalModelOptionV11[];
   hasSearchQuery: boolean;
-  importFileCapability: CapabilityOption;
+  importFileAssetClass: AssetClassOption;
+  importFileModelType: ModelTypeOption;
+  importFileArtifactKind: LocalRuntimeArtifactKind;
+  importFileAuxiliaryEngine: AssetEngineOption | '';
   importMenuRef: RefObject<HTMLDivElement | null>;
+  importingAssetPath: string | null;
   installing: boolean;
   installedArtifactsById: Map<string, LocalRuntimeArtifactRecord>;
   isArtifactPending: (templateId: string) => boolean;
@@ -57,9 +67,14 @@ type LocalModelCenterRuntimeViewProps = {
   loadingVerifiedArtifacts: boolean;
   loadingVerifiedModels: boolean;
   localHealthy: boolean;
+  assetImportError: string;
+  assetImportSessionByPath: Record<string, string>;
   onArtifactKindFilterChange: (value: 'all' | LocalRuntimeArtifactKind) => void;
   onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
-  onCapabilityChange: (capability: CapabilityOption) => void;
+  onAssetClassChange: (assetClass: AssetClassOption) => void;
+  onAssetModelTypeChange: (modelType: ModelTypeOption) => void;
+  onAssetArtifactKindChange: (kind: LocalRuntimeArtifactKind) => void;
+  onAssetAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
   onCatalogEngineOverrideChange: (itemId: string, engine: InstallEngineOption) => void;
@@ -67,7 +82,7 @@ type LocalModelCenterRuntimeViewProps = {
   onCloseImportFileDialog: () => void;
   onCloseVariantPicker: () => void;
   onHealthCheck: () => void;
-  onImportArtifact: () => void;
+  onOpenModelsFolder: () => void;
   onImportManifest: () => void;
   onInstallArtifact: (templateId: string) => void;
   onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
@@ -80,6 +95,7 @@ type LocalModelCenterRuntimeViewProps = {
   onRefresh: () => void;
   onRefreshArtifacts: () => void;
   onRefreshQuickPicks: () => void;
+  onRefreshUnregisteredAssets: () => void;
   onRemoveArtifact: (localArtifactId: string) => void;
   onRemoveModel: (localModelId: string) => void;
   onResumeDownload: DownloadState['onResumeDownload'];
@@ -90,11 +106,17 @@ type LocalModelCenterRuntimeViewProps = {
   onStopModel: (localModelId: string) => void;
   onToggleImportMenu: () => void;
   onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
+  onImportUnregisteredAsset: (path: string) => void;
+  onUnregisteredAssetClassChange: (path: string, assetClass: AssetClassOption) => void;
+  onUnregisteredModelTypeChange: (path: string, modelType: ModelTypeOption) => void;
+  onUnregisteredArtifactKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
+  onUnregisteredAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
   orphanCapabilities: Record<string, CapabilityOption>;
   orphanError: string;
   orphanFiles: OrphanModelFile[];
   orphanImportSessionByPath: Record<string, string>;
   relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedArtifactDescriptor[]>;
+  resolveUnregisteredAssetDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
   scaffoldingArtifactOrphan: string | null;
   scaffoldingOrphan: string | null;
   searchQuery: string;
@@ -102,6 +124,7 @@ type LocalModelCenterRuntimeViewProps = {
   selectedCatalogEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
   showImportFileDialog: boolean;
   showImportMenu: boolean;
+  canChooseImportFile: boolean;
   variantError: string;
   variantList: GgufVariantDescriptor[];
   variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
@@ -109,6 +132,7 @@ type LocalModelCenterRuntimeViewProps = {
   visibleArtifactTasks: ArtifactTaskEntry[];
   visibleVerifiedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
   downloads: DownloadState['activeDownloads'];
+  unregisteredAssets: LocalRuntimeUnregisteredAssetDescriptor[];
   onCancelDownload: DownloadState['onCancelDownload'];
   lastCheckedAt?: string | null;
 };
@@ -125,16 +149,36 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           importMenuRef={props.importMenuRef}
           showImportMenu={props.showImportMenu}
           showImportFileDialog={props.showImportFileDialog}
-          importFileCapability={props.importFileCapability}
+          importFileAssetClass={props.importFileAssetClass}
+          importFileModelType={props.importFileModelType}
+          importFileArtifactKind={props.importFileArtifactKind}
+          importFileAuxiliaryEngine={props.importFileAuxiliaryEngine}
           onHealthCheck={props.onHealthCheck}
           onRefresh={props.onRefresh}
+          onOpenModelsFolder={props.onOpenModelsFolder}
           onToggleImportMenu={props.onToggleImportMenu}
           onOpenImportFile={props.onOpenImportFile}
           onImportManifest={props.onImportManifest}
-          onImportArtifactManifest={props.onImportArtifact}
-          onCapabilityChange={props.onCapabilityChange}
+          onAssetClassChange={props.onAssetClassChange}
+          onModelTypeChange={props.onAssetModelTypeChange}
+          onArtifactKindChange={props.onAssetArtifactKindChange}
+          onAuxiliaryEngineChange={props.onAssetAuxiliaryEngineChange}
           onCloseImportFileDialog={props.onCloseImportFileDialog}
           onChooseImportFile={props.onChooseImportFile}
+          canChooseImportFile={props.canChooseImportFile}
+        />
+        <LocalModelCenterUnregisteredAssetsSection
+          assets={props.unregisteredAssets}
+          assetImportError={props.assetImportError}
+          assetImportSessionByPath={props.assetImportSessionByPath}
+          importingAssetPath={props.importingAssetPath}
+          resolveDraft={props.resolveUnregisteredAssetDraft}
+          onRefresh={props.onRefreshUnregisteredAssets}
+          onAssetClassChange={props.onUnregisteredAssetClassChange}
+          onModelTypeChange={props.onUnregisteredModelTypeChange}
+          onArtifactKindChange={props.onUnregisteredArtifactKindChange}
+          onAuxiliaryEngineChange={props.onUnregisteredAuxiliaryEngineChange}
+          onImport={props.onImportUnregisteredAsset}
         />
         <LocalModelCenterCatalogCard
           searchQuery={props.searchQuery}

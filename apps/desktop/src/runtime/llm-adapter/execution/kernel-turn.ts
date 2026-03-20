@@ -96,5 +96,5 @@ export async function executeLocalKernelTurn(input: ExecuteLocalKernelTurnInput)
         model: input.localProviderModel || '',
       },
     }],
-  } as ExecuteLocalKernelTurnResult;
+  };
 }

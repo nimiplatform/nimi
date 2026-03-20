@@ -1,30 +1,37 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   localRuntime,
+  type LocalRuntimeAssetDeclaration,
   type LocalRuntimeArtifactKind,
   type LocalRuntimeArtifactRecord,
   type LocalRuntimeCatalogItemDescriptor,
+  type LocalRuntimeUnregisteredAssetDescriptor,
   type LocalRuntimeVerifiedArtifactDescriptor,
   type LocalRuntimeVerifiedModelDescriptor,
-  type OrphanArtifactFile,
-  type OrphanModelFile,
 } from '@runtime/local-runtime';
 import {
+  defaultAssetDeclaration,
+  normalizeAssetClassOption,
+  normalizeCapabilityOption,
+  normalizeInstallEngine,
+  normalizeModelTypeOption,
   CAPABILITY_OPTIONS,
   PROGRESS_RETENTION_MS,
+  type AssetClassOption,
+  type AssetEngineOption,
   type CapabilityOption,
   type InstallEngineOption,
   type LocalModelCenterProps,
-  normalizeCapabilityOption,
-  normalizeInstallEngine,
+  type ModelTypeOption,
   parseTimestamp,
 } from './runtime-config-model-center-utils';
 import {
+  ARTIFACT_KIND_OPTIONS,
   filterInstalledArtifacts,
-  sortVerifiedArtifactsForDisplay,
-  sortVerifiedModelsForDisplay,
   isArtifactTaskTerminal,
   relatedArtifactsForModel,
+  sortVerifiedArtifactsForDisplay,
+  sortVerifiedModelsForDisplay,
   type ArtifactTaskEntry,
   type ArtifactTaskState,
 } from './runtime-config-local-model-center-helpers';
@@ -35,6 +42,71 @@ type UseLocalModelCenterRuntimeStateInput = {
   isModMode: boolean;
   props: LocalModelCenterProps;
 };
+
+function defaultEngineForModelType(modelType: ModelTypeOption): AssetEngineOption {
+  if (modelType === 'image' || modelType === 'video') {
+    return 'media';
+  }
+  if (modelType === 'tts' || modelType === 'stt') {
+    return 'speech';
+  }
+  if (modelType === 'music') {
+    return 'sidecar';
+  }
+  return 'llama';
+}
+
+function defaultEngineForArtifactKind(kind: LocalRuntimeArtifactKind): AssetEngineOption | '' {
+  if (kind === 'llm') {
+    return 'llama';
+  }
+  if (kind === 'auxiliary') {
+    return '';
+  }
+  return 'media';
+}
+
+function normalizeArtifactKind(kind: string | undefined): LocalRuntimeArtifactKind {
+  const normalized = String(kind || '').trim().toLowerCase();
+  return (ARTIFACT_KIND_OPTIONS.find((value) => value === normalized) || 'vae') as LocalRuntimeArtifactKind;
+}
+
+function normalizeAssetDeclaration(
+  declaration?: LocalRuntimeAssetDeclaration,
+): LocalRuntimeAssetDeclaration {
+  const assetClass = normalizeAssetClassOption(declaration?.assetClass);
+  if (assetClass === 'artifact') {
+    const artifactKind = normalizeArtifactKind(declaration?.artifactKind);
+    const engine = String(declaration?.engine || '').trim();
+    return {
+      assetClass,
+      artifactKind,
+      ...(engine ? { engine } : (artifactKind === 'auxiliary' ? {} : { engine: defaultEngineForArtifactKind(artifactKind) })),
+    };
+  }
+
+  const modelType = normalizeModelTypeOption(declaration?.modelType);
+  return {
+    assetClass,
+    modelType,
+    engine: String(declaration?.engine || '').trim() || defaultEngineForModelType(modelType),
+  };
+}
+
+function canImportDeclaration(declaration: LocalRuntimeAssetDeclaration): boolean {
+  if (declaration.assetClass === 'artifact') {
+    const artifactKind = declaration.artifactKind;
+    if (!artifactKind) {
+      return false;
+    }
+    if (artifactKind === 'auxiliary') {
+      return Boolean(String(declaration.engine || '').trim());
+    }
+    return true;
+  }
+  return Boolean(declaration.modelType);
+}
+
 export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalModelCenterRuntimeStateInput) {
   const [installing, setInstalling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,16 +127,17 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [artifactTasks, setArtifactTasks] = useState<ArtifactTaskEntry[]>([]);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
-  const [importFileCapability, setImportFileCapability] = useState<CapabilityOption>('chat');
+  const [importFileAssetClass, setImportFileAssetClass] = useState<AssetClassOption>('model');
+  const [importFileModelType, setImportFileModelType] = useState<ModelTypeOption>('chat');
+  const [importFileArtifactKind, setImportFileArtifactKind] = useState<LocalRuntimeArtifactKind>('vae');
+  const [importFileAuxiliaryEngine, setImportFileAuxiliaryEngine] = useState<AssetEngineOption | ''>('');
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
   const [catalogEngineOverrides, setCatalogEngineOverrides] = useState<Record<string, InstallEngineOption>>({});
-  const [orphanFiles, setOrphanFiles] = useState<OrphanModelFile[]>([]);
-  const [orphanCapabilities, setOrphanCapabilities] = useState<Record<string, CapabilityOption>>({});
-  const [artifactOrphanFiles, setArtifactOrphanFiles] = useState<OrphanArtifactFile[]>([]);
-  const [artifactOrphanKinds, setArtifactOrphanKinds] = useState<Record<string, LocalRuntimeArtifactKind>>({});
-  const orphanCapabilitiesRef = useRef(orphanCapabilities);
-  orphanCapabilitiesRef.current = orphanCapabilities;
+  const [unregisteredAssets, setUnregisteredAssets] = useState<LocalRuntimeUnregisteredAssetDescriptor[]>([]);
+  const [unregisteredAssetDrafts, setUnregisteredAssetDrafts] = useState<Record<string, LocalRuntimeAssetDeclaration>>({});
+  const autoImportAttemptedPathsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!showImportMenu) {
       return undefined;
@@ -77,6 +150,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showImportMenu]);
+
   const sortedModels = useMemo(
     () => [...props.state.local.models].sort((left, right) => {
       const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
@@ -88,6 +162,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     }),
     [props.state.local.models],
   );
+
   const filteredInstalledModels = useMemo(() => {
     if (!deferredSearchQuery.trim()) {
       return sortedModels;
@@ -99,6 +174,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       || model.engine.toLowerCase().includes(query)
     ));
   }, [deferredSearchQuery, sortedModels]);
+
   const sortedInstalledArtifacts = useMemo(
     () => [...installedArtifacts].sort((left, right) => {
       const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
@@ -110,37 +186,45 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     }),
     [installedArtifacts],
   );
+
   const filteredInstalledArtifacts = useMemo(
     () => filterInstalledArtifacts(sortedInstalledArtifacts, artifactKindFilter, deferredSearchQuery.toLowerCase().trim()),
     [artifactKindFilter, deferredSearchQuery, sortedInstalledArtifacts],
   );
+
   const installedArtifactIds = useMemo(
     () => new Set(sortedInstalledArtifacts.map((artifact) => toCanonicalLocalLookupKey(artifact.artifactId)).filter(Boolean)),
     [sortedInstalledArtifacts],
   );
+
   const installedArtifactsById = useMemo(
     () => new Map(sortedInstalledArtifacts.map((artifact) => [toCanonicalLocalLookupKey(artifact.artifactId), artifact] as const)),
     [sortedInstalledArtifacts],
   );
 
-  const isInstalled = useCallback((modelId: string) => {
-    return sortedModels.some((model) => toCanonicalLocalLookupKey(model.model) === toCanonicalLocalLookupKey(modelId));
-  }, [sortedModels]);
+  const isInstalled = useCallback((modelId: string) => (
+    sortedModels.some((model) => toCanonicalLocalLookupKey(model.model) === toCanonicalLocalLookupKey(modelId))
+  ), [sortedModels]);
+
   const inferredCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
     normalizeCapabilityOption(item.capabilities.find((capability) => (
       CAPABILITY_OPTIONS.includes(capability as CapabilityOption)
     )))
   ), []);
+
   const selectedCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
     catalogCapabilityOverrides[item.itemId] || inferredCatalogCapability(item)
   ), [catalogCapabilityOverrides, inferredCatalogCapability]);
+
   const selectedCatalogEngine = useCallback((item: LocalRuntimeCatalogItemDescriptor): InstallEngineOption => (
     catalogEngineOverrides[item.itemId] || normalizeInstallEngine(item.engine)
   ), [catalogEngineOverrides]);
+
   const searchQueryRef = useRef(deferredSearchQuery);
   searchQueryRef.current = deferredSearchQuery;
   const catalogCapabilityRef = useRef(catalogCapability);
   catalogCapabilityRef.current = catalogCapability;
+
   const refreshCatalogItems = useCallback(async () => {
     const query = searchQueryRef.current.trim();
     const capability = catalogCapabilityRef.current;
@@ -162,6 +246,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       setLoadingCatalog(false);
     }
   }, [isInstalled]);
+
   const refreshVerifiedModels = useCallback(async () => {
     setLoadingVerifiedModels(true);
     try {
@@ -173,6 +258,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       setLoadingVerifiedModels(false);
     }
   }, [isInstalled]);
+
   const refreshInstalledArtifacts = useCallback(async () => {
     setLoadingInstalledArtifacts(true);
     try {
@@ -185,6 +271,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       setLoadingInstalledArtifacts(false);
     }
   }, [artifactKindFilter]);
+
   const refreshVerifiedArtifacts = useCallback(async () => {
     setLoadingVerifiedArtifacts(true);
     try {
@@ -197,52 +284,58 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       setLoadingVerifiedArtifacts(false);
     }
   }, [artifactKindFilter]);
-  const refreshOrphanFiles = useCallback(async () => {
+
+  const refreshUnregisteredAssets = useCallback(async () => {
     try {
-      const preferences = Object.fromEntries(
-        Object.entries(orphanCapabilitiesRef.current)
-          .filter(([, capability]) => Boolean(capability))
-          .map(([path, capability]) => [path, { capability }]),
-      );
-      setOrphanFiles(await localRuntime.scanOrphans({ preferences }));
+      const rows = await localRuntime.scanUnregisteredAssets();
+      setUnregisteredAssets(rows);
+      setUnregisteredAssetDrafts((prev) => {
+        const next: Record<string, LocalRuntimeAssetDeclaration> = {};
+        for (const item of rows) {
+          const existing = prev[item.path];
+          if (existing) {
+            next[item.path] = existing;
+            continue;
+          }
+          if (item.declaration) {
+            next[item.path] = normalizeAssetDeclaration(item.declaration);
+          }
+        }
+        return next;
+      });
     } catch {
-      setOrphanFiles([]);
+      setUnregisteredAssets([]);
+      setUnregisteredAssetDrafts({});
     }
   }, []);
-  const refreshArtifactOrphanFiles = useCallback(async () => {
-    try {
-      setArtifactOrphanFiles(await localRuntime.scanArtifactOrphans());
-    } catch {
-      setArtifactOrphanFiles([]);
-    }
-  }, []);
-  const refreshAllOrphanFiles = useCallback(async () => {
-    await Promise.all([refreshOrphanFiles(), refreshArtifactOrphanFiles()]);
-  }, [refreshArtifactOrphanFiles, refreshOrphanFiles]);
+
   useEffect(() => {
     setCatalogDisplayCount(10);
   }, [deferredSearchQuery, catalogCapability]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       void refreshCatalogItems();
     }, 600);
     return () => clearTimeout(timer);
   }, [catalogCapability, deferredSearchQuery, refreshCatalogItems]);
+
   useEffect(() => {
     void refreshVerifiedModels();
   }, [refreshVerifiedModels]);
+
   useEffect(() => {
     void refreshInstalledArtifacts();
   }, [refreshInstalledArtifacts]);
+
   useEffect(() => {
     void refreshVerifiedArtifacts();
   }, [refreshVerifiedArtifacts]);
+
   useEffect(() => {
-    void refreshOrphanFiles();
-  }, [orphanCapabilities, refreshOrphanFiles]);
-  useEffect(() => {
-    void refreshArtifactOrphanFiles();
-  }, [refreshArtifactOrphanFiles]);
+    void refreshUnregisteredAssets();
+  }, [refreshUnregisteredAssets]);
+
   const visibleVerifiedArtifacts = useMemo(() => {
     const query = deferredSearchQuery.toLowerCase().trim();
     const candidates = verifiedArtifacts.filter((artifact) => {
@@ -275,6 +368,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     () => new Map(verifiedArtifacts.map((artifact) => [artifact.templateId, artifact] as const)),
     [verifiedArtifacts],
   );
+
   const visibleArtifactTasks = useMemo(
     () => artifactTasks.slice().sort((left, right) => right.updatedAtMs - left.updatedAtMs).slice(0, 4),
     [artifactTasks],
@@ -360,26 +454,16 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     }
   }, [installVerifiedArtifact, installedArtifactsById]);
 
-  const importArtifactManifest = useCallback(async () => {
-    setArtifactBusy(true);
-    try {
-      await props.onImportArtifact();
-      await refreshArtifactSections();
-      await refreshAllOrphanFiles();
-    } finally {
-      setArtifactBusy(false);
-    }
-  }, [props, refreshAllOrphanFiles, refreshArtifactSections]);
-
   const removeInstalledArtifact = useCallback(async (localArtifactId: string) => {
     setArtifactBusy(true);
     try {
       await props.onRemoveArtifact(localArtifactId);
       await refreshArtifactSections();
+      await refreshUnregisteredAssets();
     } finally {
       setArtifactBusy(false);
     }
-  }, [props, refreshArtifactSections]);
+  }, [props, refreshArtifactSections, refreshUnregisteredAssets]);
 
   const installVerifiedModel = useCallback(async (templateId: string) => {
     setInstalling(true);
@@ -391,27 +475,103 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [props]);
 
   const importActions = useLocalModelCenterImportActions({
-    artifactOrphanKinds,
     getInstallEngine: selectedCatalogEngine,
-    getLatestVerifiedCapability: selectedCatalogCapability,
     isModMode,
-    onRefreshAllOrphanFiles: refreshAllOrphanFiles,
+    onRefreshUnregisteredAssets: refreshUnregisteredAssets,
     onRefreshArtifactSections: refreshArtifactSections,
     onRefreshVerifiedModels: refreshVerifiedModels,
-    orphanCapabilities,
     props,
   });
 
-  const scaffoldArtifactOrphanImport = useCallback(async (orphanPath: string) => {
-    setArtifactBusy(true);
-    try {
-      await importActions.scaffoldArtifactOrphanImport(orphanPath);
-    } catch {
+  const resolveUnregisteredAssetDraft = useCallback((asset: LocalRuntimeUnregisteredAssetDescriptor): LocalRuntimeAssetDeclaration => (
+    unregisteredAssetDrafts[asset.path]
+    || normalizeAssetDeclaration(asset.declaration)
+    || defaultAssetDeclaration('model')
+  ), [unregisteredAssetDrafts]);
+
+  const setUnregisteredAssetDraft = useCallback((
+    assetPath: string,
+    nextDeclaration: LocalRuntimeAssetDeclaration,
+  ) => {
+    setUnregisteredAssetDrafts((prev) => ({
+      ...prev,
+      [assetPath]: nextDeclaration,
+    }));
+  }, []);
+
+  const setUnregisteredAssetClass = useCallback((assetPath: string, assetClass: AssetClassOption) => {
+    setUnregisteredAssetDraft(assetPath, defaultAssetDeclaration(assetClass));
+  }, [setUnregisteredAssetDraft]);
+
+  const setUnregisteredModelType = useCallback((assetPath: string, modelType: ModelTypeOption) => {
+    setUnregisteredAssetDraft(assetPath, {
+      assetClass: 'model',
+      modelType,
+      engine: defaultEngineForModelType(modelType),
+    });
+  }, [setUnregisteredAssetDraft]);
+
+  const setUnregisteredArtifactKind = useCallback((assetPath: string, artifactKind: LocalRuntimeArtifactKind) => {
+    const engine = defaultEngineForArtifactKind(artifactKind);
+    setUnregisteredAssetDraft(assetPath, {
+      assetClass: 'artifact',
+      artifactKind,
+      ...(engine ? { engine } : {}),
+    });
+  }, [setUnregisteredAssetDraft]);
+
+  const setUnregisteredAuxiliaryEngine = useCallback((assetPath: string, engine: AssetEngineOption | '') => {
+    setUnregisteredAssetDrafts((prev) => {
+      const current = normalizeAssetDeclaration(prev[assetPath] || {
+        assetClass: 'artifact',
+        artifactKind: 'auxiliary',
+      });
+      return {
+        ...prev,
+        [assetPath]: {
+          ...current,
+          assetClass: 'artifact',
+          artifactKind: 'auxiliary',
+          ...(engine ? { engine } : {}),
+        },
+      };
+    });
+  }, []);
+
+  const importUnregisteredAsset = useCallback(async (assetPath: string) => {
+    const asset = unregisteredAssets.find((item) => item.path === assetPath);
+    if (!asset) {
       return;
-    } finally {
-      setArtifactBusy(false);
     }
-  }, [importActions]);
+    const declaration = resolveUnregisteredAssetDraft(asset);
+    if (!canImportDeclaration(declaration)) {
+      return;
+    }
+    await importActions.importAssetFromPath(assetPath, declaration);
+  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets]);
+
+  useEffect(() => {
+    const currentPaths = new Set(unregisteredAssets.map((asset) => asset.path));
+    for (const path of autoImportAttemptedPathsRef.current) {
+      if (!currentPaths.has(path)) {
+        autoImportAttemptedPathsRef.current.delete(path);
+      }
+    }
+  }, [unregisteredAssets]);
+
+  useEffect(() => {
+    for (const asset of unregisteredAssets) {
+      const draft = resolveUnregisteredAssetDraft(asset);
+      if (!asset.autoImportable || !canImportDeclaration(draft)) {
+        continue;
+      }
+      if (autoImportAttemptedPathsRef.current.has(asset.path)) {
+        continue;
+      }
+      autoImportAttemptedPathsRef.current.add(asset.path);
+      void importActions.importAssetFromPath(asset.path, draft).catch(() => undefined);
+    }
+  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets]);
 
   const installCatalogVariant = useCallback(async (
     item: LocalRuntimeCatalogItemDescriptor,
@@ -426,14 +586,34 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     }
   }, [importActions]);
 
+  const importFileDeclaration = useMemo<LocalRuntimeAssetDeclaration>(() => {
+    if (importFileAssetClass === 'artifact') {
+      const engine = importFileArtifactKind === 'auxiliary'
+        ? String(importFileAuxiliaryEngine || '').trim()
+        : defaultEngineForArtifactKind(importFileArtifactKind);
+      return {
+        assetClass: 'artifact',
+        artifactKind: importFileArtifactKind,
+        ...(engine ? { engine } : {}),
+      };
+    }
+    return {
+      assetClass: 'model',
+      modelType: importFileModelType,
+      engine: defaultEngineForModelType(importFileModelType),
+    };
+  }, [importFileArtifactKind, importFileAssetClass, importFileAuxiliaryEngine, importFileModelType]);
+
   return {
     activeDownloads: importActions.activeDownloads,
     artifactBusy,
     artifactKindFilter,
-    artifactOrphanError: importActions.artifactOrphanError,
-    artifactOrphanFiles,
-    artifactOrphanKinds,
+    artifactOrphanError: '',
+    artifactOrphanFiles: [],
+    artifactOrphanKinds: {},
     artifactPendingTemplateIds,
+    assetImportError: importActions.assetImportError,
+    assetImportSessionByPath: importActions.assetImportSessionByPath,
     catalogCapability,
     catalogDisplayCount,
     catalogItems,
@@ -441,9 +621,13 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     deferredSearchQuery,
     filteredInstalledArtifacts,
     filteredInstalledModels,
-    importArtifactManifest,
-    importFileCapability,
+    importFileArtifactKind,
+    importFileAssetClass,
+    importFileAuxiliaryEngine,
+    importFileDeclaration,
+    importFileModelType,
     importMenuRef,
+    importingAssetPath: importActions.importingAssetPath,
     installCatalogVariant,
     installMissingArtifactsForModel,
     installVerifiedArtifact,
@@ -459,36 +643,44 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     onCancelDownload: importActions.onCancelDownload,
     onPauseDownload: importActions.onPauseDownload,
     onResumeDownload: importActions.onResumeDownload,
-    orphanCapabilities,
-    orphanError: importActions.orphanError,
-    orphanFiles,
-    orphanImportSessionByPath: importActions.orphanImportSessionByPath,
-    refreshAllOrphanFiles,
+    orphanCapabilities: {},
+    orphanError: '',
+    orphanFiles: [],
+    orphanImportSessionByPath: {},
     refreshArtifactSections,
+    refreshUnregisteredAssets,
     refreshVerifiedModels,
     relatedArtifactsByModelTemplate,
     removeInstalledArtifact,
-    scaffoldArtifactOrphanImport,
-    scaffoldOrphanImport: importActions.scaffoldOrphanImport,
-    scaffoldingArtifactOrphan: importActions.scaffoldingArtifactOrphan,
-    scaffoldingOrphan: importActions.scaffoldingOrphan,
+    resolveUnregisteredAssetDraft,
     searchQuery,
     selectedCatalogCapability,
     selectedCatalogEngine,
     setArtifactKindFilter,
-    setArtifactOrphanKinds,
     setCatalogCapability,
     setCatalogCapabilityOverrides,
     setCatalogDisplayCount,
     setCatalogEngineOverrides,
-    setImportFileCapability,
-    setOrphanCapabilities,
+    setImportFileArtifactKind,
+    setImportFileAssetClass,
+    setImportFileAuxiliaryEngine,
+    setImportFileModelType,
     setSearchQuery,
     setShowImportFileDialog,
     setShowImportMenu,
+    setUnregisteredArtifactKind,
+    setUnregisteredAssetClass,
+    setUnregisteredAuxiliaryEngine,
+    setUnregisteredModelType,
     showImportFileDialog,
     showImportMenu,
+    canChooseImportFile: canImportDeclaration(importFileDeclaration),
     toggleVariantPicker: importActions.toggleVariantPicker,
+    unregisteredAssetDrafts,
+    unregisteredAssets,
+    importPickedAssetFile: importActions.importPickedAssetFile,
+    importPickedAssetManifest: importActions.importPickedAssetManifest,
+    importUnregisteredAsset,
     variantError: importActions.variantError,
     variantList: importActions.variantList,
     variantPickerItem: importActions.variantPickerItem,

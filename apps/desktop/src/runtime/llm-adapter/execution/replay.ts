@@ -39,6 +39,39 @@ export type DesktopReplayFixture = {
   request_digest: string;
 };
 
+export type DesktopReplayArtifactBundleSummary = {
+  kind: 'artifacts';
+  artifactCount: number;
+  artifactIds: string[];
+  mimeTypes: string[];
+  totalBytes: number;
+  voiceAssetId?: string;
+};
+
+export type DesktopReplayTextSummary = {
+  kind: 'text';
+  textLength: number;
+  textPreview: string;
+  finishReason: number;
+};
+
+export type DesktopReplayEmbeddingSummary = {
+  kind: 'embedding';
+  vectorCount: number;
+};
+
+export type DesktopReplayTranscriptSummary = {
+  kind: 'transcript';
+  textLength: number;
+  textPreview: string;
+};
+
+export type DesktopReplaySummary =
+  | DesktopReplayArtifactBundleSummary
+  | DesktopReplayTextSummary
+  | DesktopReplayEmbeddingSummary
+  | DesktopReplayTranscriptSummary;
+
 export type DesktopReplayResult = {
   fixtureId: string;
   capability: string;
@@ -51,9 +84,8 @@ export type DesktopReplayResult = {
   resolvedModel: string;
   resolvedTargetModel?: string;
   routePolicy: 'local' | 'cloud';
-  fallbackPolicy: 'deny';
   jobId?: string;
-  artifactSummary?: Record<string, unknown>;
+  artifactSummary?: DesktopReplaySummary;
   reasonCode?: string;
   actionHint?: string;
   error?: string;
@@ -86,7 +118,64 @@ function decodeBase64Bytes(value: string): Uint8Array {
   throw new Error('DESKTOP_REPLAY_BASE64_UNAVAILABLE');
 }
 
-function summarizeArtifacts(artifacts: Array<{ artifactId?: string; mimeType?: string; bytes?: Uint8Array }> | undefined): Record<string, unknown> {
+type ReplayArtifact = {
+  artifactId?: string;
+  mimeType?: string;
+  bytes?: Uint8Array;
+};
+
+type DesktopReplayJobRequest =
+  | {
+    head: {
+      appId: string;
+      modelId: string;
+      routePolicy: number;
+      timeoutMs: number;
+      connectorId: string;
+    };
+    scenarioType: ScenarioType.VOICE_CLONE;
+    executionMode: ExecutionMode.ASYNC_JOB;
+    spec: {
+      spec: {
+        oneofKind: 'voiceClone';
+        voiceClone: {
+          targetModelId: string;
+          input: {
+            referenceAudioBytes?: Uint8Array;
+            referenceAudioMime?: string;
+            referenceAudioUri?: string;
+            text?: string;
+          };
+        };
+      };
+    };
+    extensions: [];
+  }
+  | {
+    head: {
+      appId: string;
+      modelId: string;
+      routePolicy: number;
+      timeoutMs: number;
+      connectorId: string;
+    };
+    scenarioType: ScenarioType.VOICE_DESIGN;
+    executionMode: ExecutionMode.ASYNC_JOB;
+    spec: {
+      spec: {
+        oneofKind: 'voiceDesign';
+        voiceDesign: {
+          targetModelId: string;
+          input: {
+            instructionText: string;
+          };
+        };
+      };
+    };
+    extensions: [];
+  };
+
+function summarizeArtifacts(artifacts: ReplayArtifact[] | undefined): DesktopReplayArtifactBundleSummary {
   const safeArtifacts = Array.isArray(artifacts) ? artifacts : [];
   let totalBytes = 0;
   const artifactIds: string[] = [];
@@ -97,6 +186,7 @@ function summarizeArtifacts(artifacts: Array<{ artifactId?: string; mimeType?: s
     totalBytes += artifact?.bytes instanceof Uint8Array ? artifact.bytes.length : 0;
   }
   return {
+    kind: 'artifacts',
     artifactCount: safeArtifacts.length,
     artifactIds: artifactIds.filter(Boolean),
     mimeTypes: mimeTypes.filter(Boolean),
@@ -116,7 +206,7 @@ function withFailure(base: Omit<DesktopReplayResult, 'status'>, error: unknown):
   };
 }
 
-async function submitAndCollect(runtime: Runtime, request: Record<string, unknown>, metadata: {
+async function submitAndCollect(runtime: Runtime, request: DesktopReplayJobRequest, metadata: {
   traceId: string;
   callerKind: 'desktop-core' | 'desktop-mod';
   callerId: string;
@@ -126,7 +216,7 @@ async function submitAndCollect(runtime: Runtime, request: Record<string, unknow
   traceId: string;
   jobId: string;
   modelResolved: string;
-  summary: Record<string, unknown>;
+  summary: DesktopReplayArtifactBundleSummary;
   voiceAssetId?: string;
 }> {
   const submitResponse = await runtime.ai.submitScenarioJob(request as never, {
@@ -194,7 +284,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
     resolvedModel: input.fixture.model_id,
     resolvedTargetModel: input.fixture.target_model_id || undefined,
     routePolicy: resolved.source,
-    fallbackPolicy: 'deny',
   };
 
   try {
@@ -216,7 +305,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
           appId: input.runtime.appId,
           modelId: resolved.modelId,
           routePolicy: resolved.routePolicy,
-          fallback: resolved.fallbackPolicy,
           timeoutMs: 120_000,
           connectorId: '',
         },
@@ -249,6 +337,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         traceId: String(response.traceId || callOptions.metadata.traceId || '').trim() || undefined,
         resolvedModel: String(response.modelResolved || input.fixture.model_id).trim(),
         artifactSummary: {
+          kind: 'text',
           textLength: text.length,
           textPreview: trimPreview(text),
           finishReason: Number(response.finishReason || 0),
@@ -267,7 +356,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
           appId: input.runtime.appId,
           modelId: resolved.modelId,
           routePolicy: resolved.routePolicy,
-          fallback: resolved.fallbackPolicy,
           timeoutMs: 120_000,
           connectorId: '',
         },
@@ -283,13 +371,14 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         },
         extensions: [],
       }, callOptions);
-      const vectors = extractEmbeddings((response.output as { fields?: Record<string, unknown> } | undefined)?.fields?.vectors);
+      const vectors = extractEmbeddings(response.output);
       return {
         ...base,
         status: 'passed',
         traceId: String(response.traceId || callOptions.metadata.traceId || '').trim() || undefined,
         resolvedModel: String(response.modelResolved || input.fixture.model_id).trim(),
         artifactSummary: {
+          kind: 'embedding',
           vectorCount: vectors.length,
         },
       };
@@ -304,7 +393,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         prompt: String(input.fixture.request.prompt || '').trim(),
         negativePrompt: String(input.fixture.request.negative_prompt || '').trim() || undefined,
         route: resolved.source,
-        fallback: 'deny',
         metadata,
       });
       return {
@@ -313,7 +401,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         traceId: String(response.trace?.traceId || metadata.traceId || '').trim() || undefined,
         resolvedModel: String(response.trace?.modelResolved || input.fixture.model_id).trim(),
         jobId: String(response.job?.jobId || '').trim() || undefined,
-        artifactSummary: summarizeArtifacts(response.artifacts as never),
+        artifactSummary: summarizeArtifacts(response.artifacts),
       };
     }
 
@@ -328,7 +416,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         language: String(input.fixture.request.language || '').trim() || undefined,
         audioFormat: String(input.fixture.request.audio_format || '').trim() || undefined,
         route: resolved.source,
-        fallback: 'deny',
         metadata,
       });
       return {
@@ -337,7 +424,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         traceId: String(response.trace?.traceId || metadata.traceId || '').trim() || undefined,
         resolvedModel: String(response.trace?.modelResolved || input.fixture.model_id).trim(),
         jobId: String(response.job?.jobId || '').trim() || undefined,
-        artifactSummary: summarizeArtifacts(response.artifacts as never),
+        artifactSummary: summarizeArtifacts(response.artifacts),
       };
     }
 
@@ -360,7 +447,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         mimeType: String(input.fixture.request.mime_type || '').trim() || undefined,
         language: String(input.fixture.request.language || '').trim() || undefined,
         route: resolved.source,
-        fallback: 'deny',
         metadata,
       });
       return {
@@ -370,6 +456,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
         resolvedModel: String(response.trace?.modelResolved || input.fixture.model_id).trim(),
         jobId: String(response.job?.jobId || '').trim() || undefined,
         artifactSummary: {
+          kind: 'transcript',
           textLength: String(response.text || '').trim().length,
           textPreview: trimPreview(String(response.text || '')),
         },
@@ -381,13 +468,12 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
       timeoutMs: 180_000,
       source: resolved.source,
     });
-    const workflowRequest = input.fixture.capability === 'voice.clone'
+    const workflowRequest: DesktopReplayJobRequest = input.fixture.capability === 'voice.clone'
       ? {
         head: {
           appId: input.runtime.appId,
           modelId: resolved.modelId,
           routePolicy: resolved.routePolicy,
-          fallback: resolved.fallbackPolicy,
           timeoutMs: 180_000,
           connectorId: '',
         },
@@ -421,7 +507,6 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
           appId: input.runtime.appId,
           modelId: resolved.modelId,
           routePolicy: resolved.routePolicy,
-          fallback: resolved.fallbackPolicy,
           timeoutMs: 180_000,
           connectorId: '',
         },
@@ -449,7 +534,7 @@ export async function runDesktopBridgeReplay(input: DesktopReplayInput): Promise
       jobId: collected.jobId,
       artifactSummary: {
         ...collected.summary,
-        ...(collected.voiceAssetId ? { voiceAssetId: collected.voiceAssetId } : {}),
+        voiceAssetId: collected.voiceAssetId,
       },
     };
   } catch (error) {

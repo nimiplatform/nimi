@@ -7,8 +7,12 @@ import type {
 } from './types-profiles';
 
 export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
-export type LocalRuntimeArtifactKind = 'vae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
+export type LocalRuntimeArtifactKind = 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
 export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeAssetClass = 'model' | 'artifact';
+export type LocalRuntimeModelType = 'chat' | 'embedding' | 'image' | 'video' | 'tts' | 'stt' | 'music';
+export type LocalRuntimeSuggestionSource = 'manifest' | 'folder' | 'download-metadata' | 'filename' | 'unknown';
+export type LocalRuntimeSuggestionConfidence = 'high' | 'low';
 
 export type LocalRuntimeModelRecord = {
   localModelId: string;
@@ -627,6 +631,25 @@ export type OrphanArtifactFile = {
   sizeBytes: number;
 };
 
+export type LocalRuntimeAssetDeclaration = {
+  assetClass: LocalRuntimeAssetClass;
+  modelType?: LocalRuntimeModelType;
+  artifactKind?: LocalRuntimeArtifactKind;
+  engine?: string;
+};
+
+export type LocalRuntimeUnregisteredAssetDescriptor = {
+  filename: string;
+  path: string;
+  sizeBytes: number;
+  declaration?: LocalRuntimeAssetDeclaration;
+  suggestionSource: LocalRuntimeSuggestionSource;
+  confidence: LocalRuntimeSuggestionConfidence;
+  autoImportable: boolean;
+  requiresManualReview: boolean;
+  folderName?: string;
+};
+
 export type LocalRuntimeOrphanScanPreference = {
   capability?: string;
   engine?: string;
@@ -646,6 +669,7 @@ export type LocalRuntimeScaffoldOrphanPayload = {
 export type LocalRuntimeScaffoldArtifactPayload = {
   path: string;
   kind: LocalRuntimeArtifactKind;
+  engine?: string;
 };
 
 export type LocalRuntimeScaffoldArtifactResult = {
@@ -653,3 +677,30 @@ export type LocalRuntimeScaffoldArtifactResult = {
   artifactId: string;
   kind: LocalRuntimeArtifactKind;
 };
+
+export type LocalRuntimeImportAssetFilePayload = {
+  filePath: string;
+  declaration: LocalRuntimeAssetDeclaration;
+  modelName?: string;
+  endpoint?: string;
+};
+
+export type LocalRuntimeAssetFileImportResult =
+  | {
+    assetClass: 'model';
+    accepted: LocalRuntimeInstallAcceptedResponse;
+  }
+  | {
+    assetClass: 'artifact';
+    artifact: LocalRuntimeArtifactRecord;
+  };
+
+export type LocalRuntimeAssetManifestImportResult =
+  | {
+    assetClass: 'model';
+    model: LocalRuntimeModelRecord;
+  }
+  | {
+    assetClass: 'artifact';
+    artifact: LocalRuntimeArtifactRecord;
+  };

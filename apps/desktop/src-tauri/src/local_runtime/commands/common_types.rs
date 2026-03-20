@@ -200,6 +200,7 @@ pub struct LocalAiScaffoldOrphanPayload {
 pub struct LocalAiScaffoldArtifactPayload {
     pub path: String,
     pub kind: String,
+    pub engine: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

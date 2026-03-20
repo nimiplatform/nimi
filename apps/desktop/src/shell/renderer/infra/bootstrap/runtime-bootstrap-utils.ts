@@ -51,6 +51,38 @@ export function toRecord(input: unknown): Record<string, unknown> {
   return input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
 }
 
+export function requireRecord(input: unknown, code: string): Record<string, unknown> {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error(code);
+  }
+  return input as Record<string, unknown>;
+}
+
+export function requireObjectPayload<T extends Record<string, unknown>>(input: unknown, code: string): T {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error(code);
+  }
+  return input as T;
+}
+
+export function requireItemsPayload<T extends { items: unknown[] }>(input: unknown, code: string): T {
+  const payload = requireObjectPayload<Record<string, unknown>>(input, code);
+  if (!Array.isArray(payload.items)) {
+    throw new Error(code);
+  }
+  return payload as T;
+}
+
+export function requireObjectArray<T extends Record<string, unknown>>(input: unknown, code: string): T[] {
+  if (!Array.isArray(input)) {
+    throw new Error(code);
+  }
+  if (input.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+    throw new Error(code);
+  }
+  return input as T[];
+}
+
 export const WORLD_DATA_API_CAPABILITIES = {
   accessMe: 'data-api.world.access.me',
   oasisGet: 'data-api.world.oasis.get',

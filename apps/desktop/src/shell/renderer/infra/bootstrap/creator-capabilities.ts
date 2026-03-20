@@ -1,10 +1,12 @@
 import type { RealmServiceArgs } from '@nimiplatform/sdk/realm';
-import { WORLD_DATA_API_CAPABILITIES, toRecord } from './runtime-bootstrap-utils';
+import {
+  WORLD_DATA_API_CAPABILITIES,
+  requireObjectArray,
+  requireObjectPayload,
+  requireRecord,
+  toRecord,
+} from './runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
-
-function toObjectOr<T extends Record<string, unknown>>(value: unknown, fallback: T): T {
-  return value && typeof value === 'object' ? (value as T) : fallback;
-}
 
 type CreatorAgentCreateInput = RealmServiceArgs<'CreatorService', 'creatorControllerCreateAgent'>[0];
 type CreatorAgentUpdateInput = RealmServiceArgs<'CreatorService', 'creatorControllerUpdateAgent'>[1];
@@ -15,26 +17,26 @@ export async function registerCreatorDataCapabilities(): Promise<void> {
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.CreatorService.creatorControllerListAgents()
     ));
-    return Array.isArray(payload) ? payload : [];
+    return requireObjectArray(payload, 'CREATOR_AGENT_LIST_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.creatorAgentsGet, async (query) => {
     const agentId = String(toRecord(query).agentId || '').trim();
     if (!agentId) {
-      return null;
+      throw new Error('CREATOR_AGENT_ID_REQUIRED');
     }
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.CreatorService.creatorControllerGetAgent(agentId)
     ));
-    return toObjectOr(payload, {});
+    return requireObjectPayload(payload, 'CREATOR_AGENT_GET_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.creatorAgentsCreate, async (query) => {
-    const input = toObjectOr(query, {} as Record<string, unknown>) as CreatorAgentCreateInput;
+    const input = requireRecord(query, 'CREATOR_AGENT_CREATE_INPUT_REQUIRED') as CreatorAgentCreateInput;
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.CreatorService.creatorControllerCreateAgent(input)
     ));
-    return toObjectOr(payload, {});
+    return requireObjectPayload(payload, 'CREATOR_AGENT_CREATE_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.creatorAgentsUpdate, async (query) => {
@@ -43,11 +45,11 @@ export async function registerCreatorDataCapabilities(): Promise<void> {
     if (!agentId) {
       throw new Error('CREATOR_AGENT_ID_REQUIRED');
     }
-    const patch = toObjectOr(record.patch, {} as Record<string, unknown>) as CreatorAgentUpdateInput;
+    const patch = requireRecord(record.patch, 'CREATOR_AGENT_PATCH_REQUIRED') as CreatorAgentUpdateInput;
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.CreatorService.creatorControllerUpdateAgent(agentId, patch)
     ));
-    return toObjectOr(payload, {});
+    return requireObjectPayload(payload, 'CREATOR_AGENT_UPDATE_CONTRACT_INVALID');
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.creatorAgentsBatchCreate, async (query) => {
@@ -60,6 +62,6 @@ export async function registerCreatorDataCapabilities(): Promise<void> {
     const payload = await withRuntimeOpenApiContext((realm) => (
       realm.services.CreatorService.creatorControllerBatchCreateAgents(input)
     ));
-    return toObjectOr(payload, { created: [], failed: [] });
+    return requireObjectPayload(payload, 'CREATOR_AGENT_BATCH_CREATE_CONTRACT_INVALID');
   });
 }

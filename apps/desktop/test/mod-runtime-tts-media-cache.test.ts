@@ -34,22 +34,37 @@ test('tts artifacts with bytes are cached to stable local uri for mod playback',
   assert.deepEqual(Array.from(artifacts[0]?.bytes || []), [1, 2, 3, 4]);
 });
 
-test('tts artifacts remain unchanged when desktop media cache is unavailable', async () => {
-  const originalArtifact = {
-    uri: '',
-    mimeType: 'audio/mpeg',
-    bytes: new Uint8Array([7, 8, 9]),
-  } as never;
-
-  const artifacts = await cacheSpeechArtifactsForDesktopPlayback({
-    artifacts: [originalArtifact],
+test('tts artifacts fail-close when desktop media cache write fails', async () => {
+  await assert.rejects(async () => cacheSpeechArtifactsForDesktopPlayback({
+    artifacts: [{
+      uri: '',
+      mimeType: 'audio/mpeg',
+      bytes: new Uint8Array([7, 8, 9]),
+    }] as never,
     audioFormat: 'mp3',
-    mediaCachePut: async () => null,
-  });
+    mediaCachePut: async () => {
+      throw new Error('RUNTIME_MOD_MEDIA_CACHE_UNAVAILABLE');
+    },
+  }), /RUNTIME_MOD_MEDIA_CACHE_UNAVAILABLE/);
+});
 
-  assert.equal(artifacts[0]?.uri || '', '');
-  assert.equal(artifacts[0]?.mimeType, 'audio/mpeg');
-  assert.deepEqual(Array.from(artifacts[0]?.bytes || []), [7, 8, 9]);
+test('tts artifacts fail-close when audio bytes are present but mimeType is missing', async () => {
+  await assert.rejects(async () => cacheSpeechArtifactsForDesktopPlayback({
+    artifacts: [{
+      uri: '',
+      mimeType: '',
+      bytes: new Uint8Array([7, 8, 9]),
+    }] as never,
+    audioFormat: 'mp3',
+    mediaCachePut: async () => ({
+      cacheKey: 'cache-voice-2',
+      filePath: '/tmp/cache-voice-2.mp3',
+      uri: 'file:///tmp/cache-voice-2.mp3',
+      mimeType: 'audio/mpeg',
+      sizeBytes: 3,
+      existed: false,
+    }),
+  }), /RUNTIME_MOD_MEDIA_CACHE_MIME_TYPE_REQUIRED/);
 });
 
 test('tts artifacts normalize audio/x-wav to audio/wav for renderer playback', async () => {

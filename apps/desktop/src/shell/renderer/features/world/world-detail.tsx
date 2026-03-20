@@ -9,7 +9,14 @@ import {
   OasisWorldDetailPage,
   type XianxiaWorldData,
 } from './world-detail-template';
-import type { WorldAuditItem, WorldAgent, WorldRecommendedAgent } from './world-detail-types';
+import type {
+  WorldAuditItem,
+  WorldAgent,
+  WorldEventsBundle,
+  WorldPublicAssetsData,
+  WorldRecommendedAgent,
+  WorldSemanticData,
+} from './world-detail-types';
 import type { WorldListItem } from './world-list-model';
 import {
   fetchWorldDetailWithAgents,
@@ -43,6 +50,33 @@ type DetailComputed = {
     scoreEwma: number;
   };
   featuredAgentCount: number;
+};
+
+const EMPTY_WORLD_EVENTS: WorldEventsBundle = {
+  items: [],
+  summary: null,
+};
+
+const EMPTY_WORLD_SEMANTIC: WorldSemanticData = {
+  operationTitle: null,
+  operationDescription: null,
+  operationRules: [],
+  powerSystems: [],
+  standaloneLevels: [],
+  taboos: [],
+  topology: null,
+  causality: null,
+  languages: [],
+  worldviewEvents: [],
+  worldviewSnapshots: [],
+  hasContent: false,
+};
+
+const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
+  lorebooks: [],
+  scenes: [],
+  mediaBindings: [],
+  mutations: [],
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -243,34 +277,28 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
 
   const detail = worldCompositeQuery.data;
   const initialLoading = worldCompositeQuery.isPending && !detail;
-  const initialError = worldCompositeQuery.isError && !detail;
+  const supplementalError = worldEventsQuery.isError
+    || worldSemanticQuery.isError
+    || worldAuditQuery.isError
+    || worldPublicAssetsQuery.isError;
+  let initialError = (worldCompositeQuery.isError && !detail) || supplementalError;
   const worldData = toXianxiaWorldData(world, detail);
 
   const agentRecords = Array.isArray(detail?.agents) ? (detail.agents as Array<Record<string, unknown>>) : [];
   const agents: WorldAgent[] = agentRecords.map((agent) => toWorldAgent(agent, world.createdAt));
 
-  const events = worldEventsQuery.data ?? { items: [], summary: null };
-  const semantic = worldSemanticQuery.data ?? {
-    operationTitle: null,
-    operationDescription: null,
-    operationRules: [],
-    powerSystems: [],
-    standaloneLevels: [],
-    taboos: [],
-    topology: null,
-    causality: null,
-    languages: [],
-    worldviewEvents: [],
-    worldviewSnapshots: [],
-    hasContent: false,
-  };
-  const audits: WorldAuditItem[] = worldAuditQuery.data ?? [];
-  const publicAssets = worldPublicAssetsQuery.data ?? {
-    lorebooks: [],
-    scenes: [],
-    mediaBindings: [],
-    mutations: [],
-  };
+  const events = worldEventsQuery.data ?? ((!isReady || worldEventsQuery.isPending) ? EMPTY_WORLD_EVENTS : null);
+  const semantic = worldSemanticQuery.data ?? ((!isReady || worldSemanticQuery.isPending) ? EMPTY_WORLD_SEMANTIC : null);
+  const audits = worldAuditQuery.data ?? ((!isReady || worldAuditQuery.isPending) ? [] : null);
+  const publicAssets = worldPublicAssetsQuery.data
+    ?? ((!isReady || worldPublicAssetsQuery.isPending) ? EMPTY_WORLD_PUBLIC_ASSETS : null);
+  if (!events || !semantic || !audits || !publicAssets) {
+    initialError = true;
+  }
+  const safeEvents = events ?? EMPTY_WORLD_EVENTS;
+  const safeSemantic = semantic ?? EMPTY_WORLD_SEMANTIC;
+  const safeAudits = audits ?? [];
+  const safePublicAssets = publicAssets ?? EMPTY_WORLD_PUBLIC_ASSETS;
 
   const handleChatAgent = (agent: WorldAgent) => {
     logRendererEvent({
@@ -383,10 +411,10 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         <OasisWorldDetailPage
           world={worldData}
           agents={agents}
-          events={events}
-          semantic={semantic}
-          audits={audits}
-          publicAssets={publicAssets}
+          events={safeEvents}
+          semantic={safeSemantic}
+          audits={safeAudits}
+          publicAssets={safePublicAssets}
           loading={initialLoading}
           error={initialError}
           agentsLoading={worldCompositeQuery.isPending}
@@ -407,10 +435,10 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         <NarrativeWorldDetailPage
           world={worldData}
           agents={agents}
-          events={events}
-          semantic={semantic}
-          audits={audits}
-          publicAssets={publicAssets}
+          events={safeEvents}
+          semantic={safeSemantic}
+          audits={safeAudits}
+          publicAssets={safePublicAssets}
           loading={initialLoading}
           error={initialError}
           agentsLoading={worldCompositeQuery.isPending}

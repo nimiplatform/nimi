@@ -1,5 +1,6 @@
 import type {
   GgufVariantDescriptor,
+  LocalRuntimeAssetDeclaration,
   LocalRuntimeAuditEvent,
   LocalRuntimeCatalogRecommendation,
   LocalRuntimeRecommendationActionState,
@@ -16,6 +17,8 @@ import type {
   LocalRuntimeScaffoldArtifactResult,
   LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeModelHealth,
+  LocalRuntimeModelType,
+  LocalRuntimeUnregisteredAssetDescriptor,
   OrphanArtifactFile,
   OrphanModelFile,
 } from './types';
@@ -290,6 +293,46 @@ export function parseOrphanArtifactFile(value: unknown): OrphanArtifactFile {
     filename: asString(record.filename),
     path: asString(record.path),
     sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : 0,
+  };
+}
+
+export function parseUnregisteredAssetDescriptor(value: unknown): LocalRuntimeUnregisteredAssetDescriptor {
+  const record = asRecord(value);
+  const declaration = asRecord(record.declaration);
+  const assetClass = asString(declaration.assetClass);
+  const modelType = asString(declaration.modelType);
+  const normalizedModelType = (
+    modelType === 'chat'
+    || modelType === 'embedding'
+    || modelType === 'image'
+    || modelType === 'video'
+    || modelType === 'tts'
+    || modelType === 'stt'
+    || modelType === 'music'
+  )
+    ? modelType as LocalRuntimeModelType
+    : undefined;
+  let parsedDeclaration: LocalRuntimeAssetDeclaration | undefined;
+  if (assetClass === 'model' || assetClass === 'artifact') {
+    parsedDeclaration = {
+      assetClass,
+      modelType: normalizedModelType,
+      artifactKind: asString(declaration.artifactKind)
+        ? normalizeArtifactKind(declaration.artifactKind)
+        : undefined,
+      engine: asString(declaration.engine) || undefined,
+    };
+  }
+  return {
+    filename: asString(record.filename),
+    path: asString(record.path),
+    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : 0,
+    declaration: parsedDeclaration,
+    suggestionSource: (asString(record.suggestionSource) || 'unknown') as LocalRuntimeUnregisteredAssetDescriptor['suggestionSource'],
+    confidence: (asString(record.confidence) || 'low') as LocalRuntimeUnregisteredAssetDescriptor['confidence'],
+    autoImportable: Boolean(record.autoImportable),
+    requiresManualReview: Boolean(record.requiresManualReview),
+    folderName: asString(record.folderName) || undefined,
   };
 }
 

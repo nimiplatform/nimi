@@ -192,7 +192,7 @@ mod tests {
     fn validate_import_artifact_manifest_path_requires_models_ancestor_and_file_name() {
         let temp = unique_temp_dir("artifact-manifest-path");
         let models_dir = temp.join("models");
-        let artifact_dir = models_dir.join("companion-artifact");
+        let artifact_dir = models_dir.join(artifact_relative_dir("companion-artifact"));
         fs::create_dir_all(&artifact_dir).expect("create artifact dir");
         let manifest_path = artifact_dir.join("artifact.manifest.json");
         fs::write(&manifest_path, "{}").expect("write artifact manifest");

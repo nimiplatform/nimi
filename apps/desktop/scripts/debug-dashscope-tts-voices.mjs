@@ -144,7 +144,6 @@ async function main() {
     const withRoute = await runtime.media.tts.listVoices({
       model,
       route: 'cloud',
-      fallback: 'deny',
     });
 
     let withoutRouteError = '';

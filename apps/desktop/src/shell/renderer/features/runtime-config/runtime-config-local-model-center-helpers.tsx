@@ -27,6 +27,7 @@ export {
 
 export const ARTIFACT_KIND_OPTIONS = [
   'vae',
+  'ae',
   'llm',
   'clip',
   'controlnet',
@@ -38,6 +39,8 @@ export function formatArtifactKindLabel(value: LocalRuntimeArtifactKind): string
   switch (value) {
     case 'vae':
       return 'VAE';
+    case 'ae':
+      return 'AE';
     case 'llm':
       return 'LLM';
     case 'clip':
@@ -126,11 +129,12 @@ export function sortVerifiedModelsForDisplay(
 
 const ARTIFACT_KIND_RANK: Record<LocalRuntimeArtifactKind, number> = {
   vae: 0,
-  llm: 1,
-  clip: 2,
-  controlnet: 3,
-  lora: 4,
-  auxiliary: 5,
+  ae: 1,
+  llm: 2,
+  clip: 3,
+  controlnet: 4,
+  lora: 5,
+  auxiliary: 6,
 };
 
 export function sortVerifiedArtifactsForDisplay(

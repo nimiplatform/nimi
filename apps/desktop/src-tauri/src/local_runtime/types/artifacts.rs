@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 pub enum LocalAiArtifactKind {
     Vae,
+    Ae,
     Llm,
     Clip,
     Controlnet,

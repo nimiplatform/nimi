@@ -120,7 +120,7 @@ function normalizeSpeechArtifactMimeType(value: string | undefined): string | un
 async function cacheSpeechArtifactForDesktopPlayback(input: {
     artifact: SpeechSynthesizeOutput['artifacts'][number];
     audioFormat?: string;
-    mediaCachePut?: (value: RuntimeModMediaCachePutInput) => Promise<RuntimeModMediaCachePutResult | null>;
+    mediaCachePut?: (value: RuntimeModMediaCachePutInput) => Promise<RuntimeModMediaCachePutResult>;
 }): Promise<SpeechSynthesizeOutput['artifacts'][number]> {
     const bytes = input.artifact.bytes instanceof Uint8Array && input.artifact.bytes.length > 0
         ? input.artifact.bytes
@@ -135,6 +135,9 @@ async function cacheSpeechArtifactForDesktopPlayback(input: {
             : input.artifact;
     }
     const mimeType = normalizeSpeechArtifactMimeType(input.artifact.mimeType);
+    if (!mimeType) {
+        throw new Error('RUNTIME_MOD_MEDIA_CACHE_MIME_TYPE_REQUIRED');
+    }
     const cached = await (input.mediaCachePut || runtimeModMediaCachePut)({
         mediaBase64: encodeBytesBase64(bytes),
         mimeType,
@@ -143,22 +146,23 @@ async function cacheSpeechArtifactForDesktopPlayback(input: {
             mimeType,
         }),
     });
-    if (!cached?.uri) {
-        return input.artifact;
+    if (!cached.uri) {
+        throw new Error('RUNTIME_MOD_MEDIA_CACHE_URI_REQUIRED');
+    }
+    const cachedMimeType = normalizeSpeechArtifactMimeType(cached.mimeType);
+    if (!cachedMimeType) {
+        throw new Error('RUNTIME_MOD_MEDIA_CACHE_MIME_TYPE_REQUIRED');
     }
     return {
         ...input.artifact,
         uri: cached.uri,
-        mimeType: normalizeSpeechArtifactMimeType(cached.mimeType)
-            || mimeType
-            || normalizeSpeechArtifactMimeType(input.artifact.mimeType)
-            || input.artifact.mimeType,
+        mimeType: cachedMimeType,
     };
 }
 export async function cacheSpeechArtifactsForDesktopPlayback(input: {
     artifacts: SpeechSynthesizeOutput['artifacts'];
     audioFormat?: string;
-    mediaCachePut?: (value: RuntimeModMediaCachePutInput) => Promise<RuntimeModMediaCachePutResult | null>;
+    mediaCachePut?: (value: RuntimeModMediaCachePutInput) => Promise<RuntimeModMediaCachePutResult>;
 }): Promise<SpeechSynthesizeOutput['artifacts']> {
     return Promise.all((input.artifacts || []).map((artifact) => cacheSpeechArtifactForDesktopPlayback({
         artifact,

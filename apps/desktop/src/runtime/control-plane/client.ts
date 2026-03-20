@@ -111,42 +111,24 @@ export class RuntimeControlPlaneClient {
   async verifyManifest(input: RuntimeControlManifestVerifyInput): Promise<RuntimeControlManifestVerifyResult> {
     return this.post(CONTROL_PLANE_ENDPOINTS.verifyManifest, input, {
       parse: parseManifestVerifyResult,
-      required: false,
-      fallback: {
-        verified: input.mode === 'local-dev' || input.mode === 'sideload',
-        issues: [],
-      },
     });
   }
 
   async verifySignature(input: RuntimeControlSignatureVerifyInput): Promise<RuntimeControlSignatureVerifyResult> {
     return this.post(CONTROL_PLANE_ENDPOINTS.verifySignature, input, {
       parse: parseSignatureVerifyResult,
-      required: false,
-      fallback: {
-        verified: input.mode === 'local-dev' || input.mode === 'sideload',
-        trustedSigner: false,
-        reasonCodes: ['CONTROL_PLANE_UNAVAILABLE'],
-      },
     });
   }
 
-  async issueGrant(input: RuntimeControlGrantIssueInput): Promise<RuntimeControlGrantIssueResult | null> {
+  async issueGrant(input: RuntimeControlGrantIssueInput): Promise<RuntimeControlGrantIssueResult> {
     return this.post(CONTROL_PLANE_ENDPOINTS.issueGrant, input, {
       parse: parseGrantIssueResult,
-      required: false,
-      fallback: null,
     });
   }
 
   async validateGrant(input: RuntimeControlGrantValidateInput): Promise<RuntimeControlGrantValidateResult> {
     return this.post(CONTROL_PLANE_ENDPOINTS.validateGrant, input, {
       parse: parseGrantValidateResult,
-      required: false,
-      fallback: {
-        valid: false,
-        reasonCodes: ['CONTROL_PLANE_UNAVAILABLE'],
-      },
     });
   }
 
@@ -154,8 +136,6 @@ export class RuntimeControlPlaneClient {
     const query = from ? `?from=${encodeURIComponent(from)}` : '';
     return this.get(`${CONTROL_PLANE_ENDPOINTS.fetchRevocations}${query}`, {
       parse: parseRevocationListResult,
-      required: false,
-      fallback: { items: [] },
     });
   }
 
@@ -166,10 +146,6 @@ export class RuntimeControlPlaneClient {
   }): Promise<RuntimeControlAuditSyncResult> {
     return this.post(CONTROL_PLANE_ENDPOINTS.syncAudit, input, {
       parse: parseAuditSyncResult,
-      required: false,
-      fallback: {
-        accepted: input.records.length,
-      },
     });
   }
 
@@ -177,8 +153,6 @@ export class RuntimeControlPlaneClient {
     path: string,
     options: {
       parse: (payload: JsonObject) => T | null;
-      required: boolean;
-      fallback: T;
     },
   ): Promise<T> {
     return this.request<T>('GET', path, undefined, options);
@@ -189,8 +163,6 @@ export class RuntimeControlPlaneClient {
     body: unknown,
     options: {
       parse: (payload: JsonObject) => T | null;
-      required: boolean;
-      fallback: T;
     },
   ): Promise<T> {
     return this.request<T>('POST', path, body, options);
@@ -202,8 +174,6 @@ export class RuntimeControlPlaneClient {
     body: unknown,
     options: {
       parse: (payload: JsonObject) => T | null;
-      required: boolean;
-      fallback: T;
     },
   ): Promise<T> {
     return requestControlPlaneJson<T>({
@@ -214,8 +184,6 @@ export class RuntimeControlPlaneClient {
       path,
       body,
       parse: options.parse,
-      required: options.required,
-      fallback: options.fallback,
     });
   }
 }
@@ -234,6 +202,14 @@ function readBoolean(value: unknown): boolean {
   return Boolean(value);
 }
 
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
 function readPositiveNumber(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
@@ -245,14 +221,20 @@ function asJsonObject(value: unknown): JsonObject | null {
     : null;
 }
 
-function parseManifestVerifyResult(payload: JsonObject): RuntimeControlManifestVerifyResult {
+function parseManifestVerifyResult(payload: JsonObject): RuntimeControlManifestVerifyResult | null {
+  if (!isBoolean(payload.verified) || !isStringArray(payload.issues)) {
+    return null;
+  }
   return {
     verified: readBoolean(payload.verified),
     issues: readStringArray(payload.issues),
   };
 }
 
-function parseSignatureVerifyResult(payload: JsonObject): RuntimeControlSignatureVerifyResult {
+function parseSignatureVerifyResult(payload: JsonObject): RuntimeControlSignatureVerifyResult | null {
+  if (!isBoolean(payload.verified) || !isBoolean(payload.trustedSigner) || !isStringArray(payload.reasonCodes)) {
+    return null;
+  }
   return {
     verified: readBoolean(payload.verified),
     trustedSigner: readBoolean(payload.trustedSigner),
@@ -275,7 +257,10 @@ function parseGrantIssueResult(payload: JsonObject): RuntimeControlGrantIssueRes
   };
 }
 
-function parseGrantValidateResult(payload: JsonObject): RuntimeControlGrantValidateResult {
+function parseGrantValidateResult(payload: JsonObject): RuntimeControlGrantValidateResult | null {
+  if (!isBoolean(payload.valid) || !isStringArray(payload.reasonCodes)) {
+    return null;
+  }
   return {
     valid: readBoolean(payload.valid),
     reasonCodes: readStringArray(payload.reasonCodes),
@@ -294,8 +279,11 @@ function parseRevocationRecord(payload: JsonObject): RuntimeControlRevocationRec
   };
 }
 
-function parseRevocationListResult(payload: JsonObject): RuntimeControlRevocationListResult {
-  const rows = Array.isArray(payload.items) ? payload.items : [];
+function parseRevocationListResult(payload: JsonObject): RuntimeControlRevocationListResult | null {
+  if (!Array.isArray(payload.items)) {
+    return null;
+  }
+  const rows = payload.items;
   return {
     items: rows
       .map((item) => asJsonObject(item))
@@ -304,8 +292,12 @@ function parseRevocationListResult(payload: JsonObject): RuntimeControlRevocatio
   };
 }
 
-function parseAuditSyncResult(payload: JsonObject): RuntimeControlAuditSyncResult {
+function parseAuditSyncResult(payload: JsonObject): RuntimeControlAuditSyncResult | null {
+  const accepted = readPositiveNumber(payload.accepted);
+  if (accepted === null) {
+    return null;
+  }
   return {
-    accepted: readPositiveNumber(payload.accepted) ?? 0,
+    accepted,
   };
 }

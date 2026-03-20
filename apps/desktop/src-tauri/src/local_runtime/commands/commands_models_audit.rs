@@ -173,3 +173,13 @@ pub fn runtime_local_models_reveal_in_folder(
     };
     reveal_path_in_os(target)
 }
+
+#[tauri::command]
+pub fn runtime_local_models_reveal_root_folder(app: AppHandle) -> Result<(), String> {
+    let models_root = runtime_models_dir(&app)?;
+    if !models_root.exists() {
+        std::fs::create_dir_all(&models_root)
+            .map_err(|e| format!("failed to create models dir: {e}"))?;
+    }
+    reveal_path_in_os(&models_root)
+}

@@ -90,7 +90,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model,
           route: preparedResolved.source,
-          fallback: 'deny',
           connectorId: preparedResolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, preparedResolved, request.metadata),
         });
@@ -112,7 +111,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model,
           route: preparedResolved.source,
-          fallback: 'deny',
           connectorId: preparedResolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, preparedResolved, request.metadata),
         });
@@ -134,7 +132,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_VIDEO_MODEL_REQUIRED'),
           route: resolved.source,
-          fallback: 'deny',
           connectorId: resolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, resolved, request.metadata),
         });
@@ -154,7 +151,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_VIDEO_MODEL_REQUIRED'),
           route: resolved.source,
-          fallback: 'deny',
           connectorId: resolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, resolved, request.metadata),
         });
@@ -176,7 +172,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
           route: resolved.source,
-          fallback: 'deny',
           connectorId: resolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, resolved, request.metadata),
         });
@@ -203,7 +198,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
           route: resolved.source,
-          fallback: 'deny',
           connectorId: resolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, resolved, request.metadata),
         });
@@ -223,7 +217,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
           route: resolved.source,
-          fallback: 'deny',
           connectorId: resolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, resolved, request.metadata),
         });
@@ -245,7 +238,6 @@ export function buildRuntimeMediaCapabilities(
           ...request,
           model: requireModel(request.model || resolved.model, 'MOD_RUNTIME_STT_MODEL_REQUIRED'),
           route: resolved.source,
-          fallback: 'deny',
           connectorId: resolved.connectorId || undefined,
           metadata: await buildRuntimeMediaMetadata(input, resolved, request.metadata),
         });
@@ -282,7 +274,6 @@ export function buildRuntimeMediaCapabilities(
               ...payload.input,
               model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_IMAGE_MODEL_REQUIRED'),
               route: preparedResolved.source,
-              fallback: 'deny',
               connectorId: preparedResolved.connectorId || undefined,
               metadata,
             },
@@ -298,7 +289,6 @@ export function buildRuntimeMediaCapabilities(
               ...payload.input,
               model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_VIDEO_MODEL_REQUIRED'),
               route: preparedResolved.source,
-              fallback: 'deny',
               connectorId: preparedResolved.connectorId || undefined,
               metadata,
             },
@@ -314,7 +304,6 @@ export function buildRuntimeMediaCapabilities(
               ...payload.input,
               model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_TTS_MODEL_REQUIRED'),
               route: preparedResolved.source,
-              fallback: 'deny',
               connectorId: preparedResolved.connectorId || undefined,
               metadata,
             },
@@ -329,7 +318,6 @@ export function buildRuntimeMediaCapabilities(
             ...payload.input,
             model: requireModel(payload.input.model || preparedResolved.model, 'MOD_RUNTIME_STT_MODEL_REQUIRED'),
             route: preparedResolved.source,
-            fallback: 'deny',
             connectorId: preparedResolved.connectorId || undefined,
             metadata,
           },

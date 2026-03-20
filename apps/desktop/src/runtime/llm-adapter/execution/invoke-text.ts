@@ -20,13 +20,6 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 const SCENARIO_TYPE_TEXT_GENERATE = 1;
 const EXECUTION_MODE_SYNC = 1;
 
-function asRecord(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return {};
-  }
-  return value as Record<string, unknown>;
-}
-
 function normalizeFinishReason(value: unknown): string {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 'UNKNOWN';
@@ -87,7 +80,6 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
         appId: runtime.appId,
         modelId: resolved.modelId,
         routePolicy: resolved.routePolicy,
-        fallback: resolved.fallbackPolicy,
         timeoutMs: TEXT_GENERATE_TIMEOUT_MS,
         connectorId: String(input.connectorId || ''),
       },
@@ -114,17 +106,15 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
       extensions: [],
     }, callOptions);
 
-    const responseRecord = asRecord(response);
-    const responseTraceId = String(responseRecord.traceId || '').trim() || runtimeTraceId;
+    const responseTraceId = String(response.traceId || '').trim() || runtimeTraceId;
     runtimeTraceId = responseTraceId;
-    const responseModelResolved = String(responseRecord.modelResolved || '').trim();
-    const responseFinishReasonRaw = Number(responseRecord.finishReason);
-    const responseRouteDecisionRaw = Number(responseRecord.routeDecision);
-    const usageRecord = asRecord(responseRecord.usage);
-    const usageInputTokensRaw = Number(usageRecord.inputTokens);
-    const usageOutputTokensRaw = Number(usageRecord.outputTokens);
-    const usageComputeMsRaw = Number(usageRecord.computeMs);
-    const text = extractTextFromGenerateOutput(responseRecord.output);
+    const responseModelResolved = String(response.modelResolved || '').trim();
+    const responseFinishReasonRaw = Number(response.finishReason);
+    const responseRouteDecisionRaw = Number(response.routeDecision);
+    const usageInputTokensRaw = Number(response.usage?.inputTokens);
+    const usageOutputTokensRaw = Number(response.usage?.outputTokens);
+    const usageComputeMsRaw = Number(response.usage?.computeMs);
+    const text = extractTextFromGenerateOutput(response.output);
     if (!text) {
       throw createNimiError({
         message: 'provider returned empty content',

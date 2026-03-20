@@ -12,6 +12,15 @@ export type ControlPlaneHttpError = Error & {
   reasonCode: ControlPlaneHttpErrorReasonCode;
 };
 
+export type ControlPlaneContractErrorReasonCode =
+  | 'control-plane/invalid-json'
+  | 'control-plane/invalid-response';
+
+export type ControlPlaneContractError = Error & {
+  code: 'CONTROL_PLANE_CONTRACT_ERROR';
+  reasonCode: ControlPlaneContractErrorReasonCode;
+};
+
 export function toControlPlaneHttpError(input: {
   status: number;
   statusText: string;
@@ -40,5 +49,15 @@ export function toControlPlaneHttpError(input: {
   error.code = 'CONTROL_PLANE_HTTP_ERROR';
   error.status = input.status;
   error.reasonCode = reasonCode;
+  return error;
+}
+
+export function toControlPlaneContractError(input: {
+  reasonCode: ControlPlaneContractErrorReasonCode;
+  detail: string;
+}): Error {
+  const error = new Error(`CONTROL_PLANE_CONTRACT_ERROR: ${input.detail}`) as ControlPlaneContractError;
+  error.code = 'CONTROL_PLANE_CONTRACT_ERROR';
+  error.reasonCode = input.reasonCode;
   return error;
 }

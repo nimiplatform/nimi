@@ -5,7 +5,7 @@ import {
   type ReactNode,
 } from 'react';
 import { i18n } from '@renderer/i18n';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+
 import { Tooltip } from '@renderer/components/tooltip.js';
 import {
   statusTextV11,
@@ -151,11 +151,11 @@ export function RuntimeSelect({
         </svg>
       </button>
       {open ? (
-      <ScrollShell
-        className={`absolute z-50 mt-1 min-w-full max-w-[min(28rem,calc(100vw-2rem))] border border-mint-100 bg-white shadow-lg ${menuClass}`}
-        viewportClassName="max-h-64"
-        contentClassName="py-1"
+      <div
+        className={`absolute z-50 mt-1 min-w-full max-w-[min(28rem,calc(100vw-2rem))] overflow-y-auto border border-mint-100 bg-white shadow-lg ${menuClass}`}
+        style={{ maxHeight: '16rem' }}
       >
+        <div className="py-1">
           {options.map((option) => {
             const selected = option.value === value;
             return (
@@ -191,7 +191,8 @@ export function RuntimeSelect({
               </button>
             );
           })}
-        </ScrollShell>
+        </div>
+      </div>
       ) : null}
     </div>
   );

@@ -43,6 +43,37 @@ fn ensure_resolved_manifest_location(
     Ok(())
 }
 
+fn ensure_artifact_manifest_location(
+    canonical_manifest: &Path,
+    canonical_root: &Path,
+    invalid_file_name_code: &str,
+) -> Result<(), String> {
+    let Ok(relative_path) = canonical_manifest.strip_prefix(canonical_root) else {
+        return Err(err(
+            "LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT",
+            format!(
+                "导入路径必须位于 runtime models 目录下: {}",
+                canonical_root.display()
+            ),
+        ));
+    };
+    let mut components = relative_path.components();
+    let Some(first) = components.next() else {
+        return Err(err(
+            invalid_file_name_code,
+            "仅支持导入 artifacts/<artifact-id>/artifact.manifest.json",
+        ));
+    };
+    let remaining = components.collect::<Vec<_>>();
+    if first.as_os_str() != "artifacts" || remaining.len() < 2 {
+        return Err(err(
+            invalid_file_name_code,
+            "仅支持导入 artifacts/<artifact-id>/artifact.manifest.json",
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn sha256_hex_for_file(path: &Path) -> Result<String, String> {
     let bytes = fs::read(path).map_err(|error| {
         err(
@@ -123,6 +154,7 @@ pub(super) fn assert_required_manifest_fields(
 pub(super) fn normalize_artifact_kind(value: &str) -> Result<LocalAiArtifactKind, String> {
     match value.trim().to_ascii_lowercase().as_str() {
         "vae" => Ok(LocalAiArtifactKind::Vae),
+        "ae" | "autoencoder" => Ok(LocalAiArtifactKind::Ae),
         "llm" => Ok(LocalAiArtifactKind::Llm),
         "clip" => Ok(LocalAiArtifactKind::Clip),
         "controlnet" => Ok(LocalAiArtifactKind::Controlnet),
@@ -282,6 +314,8 @@ fn validate_import_manifest_path_with_expected_file_name(
     if file_name != expected_file_name {
         let message = if expected_file_name == MODEL_MANIFEST_FILE_NAME {
             "仅支持导入 resolved/<logical-model-id>/manifest.json".to_string()
+        } else if expected_file_name == ARTIFACT_MANIFEST_FILE_NAME {
+            "仅支持导入 artifacts/<artifact-id>/artifact.manifest.json".to_string()
         } else {
             format!("仅支持导入 {expected_file_name}")
         };
@@ -319,6 +353,12 @@ fn validate_import_manifest_path_with_expected_file_name(
 
     if expected_file_name == MODEL_MANIFEST_FILE_NAME {
         ensure_resolved_manifest_location(
+            canonical_manifest.as_path(),
+            canonical_root.as_path(),
+            invalid_file_name_code,
+        )?;
+    } else if expected_file_name == ARTIFACT_MANIFEST_FILE_NAME {
+        ensure_artifact_manifest_location(
             canonical_manifest.as_path(),
             canonical_root.as_path(),
             invalid_file_name_code,

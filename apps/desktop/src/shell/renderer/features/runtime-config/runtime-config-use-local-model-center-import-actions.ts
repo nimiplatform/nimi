@@ -2,23 +2,20 @@ import { useCallback, useRef, useState } from 'react';
 import {
   localRuntime,
   type GgufVariantDescriptor,
-  type LocalRuntimeArtifactKind,
+  type LocalRuntimeAssetDeclaration,
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeDownloadProgressEvent,
 } from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
-import type { CapabilityOption, InstallEngineOption, LocalModelCenterProps } from './runtime-config-model-center-utils';
+import type { InstallEngineOption, LocalModelCenterProps } from './runtime-config-model-center-utils';
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
-  artifactOrphanKinds: Record<string, LocalRuntimeArtifactKind>;
   getInstallEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
-  getLatestVerifiedCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
   isModMode: boolean;
-  onRefreshAllOrphanFiles: () => Promise<void>;
+  onRefreshUnregisteredAssets: () => Promise<void>;
   onRefreshArtifactSections: () => Promise<void>;
   onRefreshVerifiedModels: () => Promise<void>;
-  orphanCapabilities: Record<string, CapabilityOption>;
   props: LocalModelCenterProps;
 };
 
@@ -27,40 +24,39 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const [variantList, setVariantList] = useState<GgufVariantDescriptor[]>([]);
   const [variantError, setVariantError] = useState('');
   const [loadingVariants, setLoadingVariants] = useState(false);
-  const [orphanImportSessionByPath, setOrphanImportSessionByPath] = useState<Record<string, string>>({});
-  const orphanImportSessionByPathRef = useRef<Record<string, string>>({});
-  const [scaffoldingOrphan, setScaffoldingOrphan] = useState<string | null>(null);
-  const [orphanError, setOrphanError] = useState('');
-  const [scaffoldingArtifactOrphan, setScaffoldingArtifactOrphan] = useState<string | null>(null);
-  const [artifactOrphanError, setArtifactOrphanError] = useState('');
+  const [assetImportSessionByPath, setAssetImportSessionByPath] = useState<Record<string, string>>({});
+  const assetImportSessionByPathRef = useRef<Record<string, string>>({});
+  const [importingAssetPath, setImportingAssetPath] = useState<string | null>(null);
+  const [assetImportError, setAssetImportError] = useState('');
 
-  const handleCompletedOrphanImport = useCallback((orphanPath: string, success: boolean, message?: string) => {
-    setOrphanImportSessionByPath((prev) => {
-      if (!(orphanPath in prev)) {
+  const handleCompletedAssetImport = useCallback((assetPath: string, success: boolean, message?: string) => {
+    setAssetImportSessionByPath((prev) => {
+      if (!(assetPath in prev)) {
         return prev;
       }
       const next = { ...prev };
-      delete next[orphanPath];
+      delete next[assetPath];
       return next;
     });
     if (success) {
       void input.props.onDiscover().finally(() => {
-        void input.onRefreshAllOrphanFiles();
+        void input.onRefreshArtifactSections();
+        void input.onRefreshUnregisteredAssets();
       });
       return;
     }
-    setOrphanError(message || 'Import failed');
-    void input.onRefreshAllOrphanFiles();
+    setAssetImportError(message || 'Import failed');
+    void input.onRefreshUnregisteredAssets();
   }, [input]);
 
   const handleSettledDownload = useCallback((event: LocalRuntimeDownloadProgressEvent) => {
-    const orphanPath = Object.entries(orphanImportSessionByPathRef.current)
+    const orphanPath = Object.entries(assetImportSessionByPathRef.current)
       .find(([, sessionId]) => sessionId === event.installSessionId)?.[0];
     if (orphanPath) {
-      handleCompletedOrphanImport(orphanPath, event.success, event.message);
+      handleCompletedAssetImport(orphanPath, event.success, event.message);
     }
     void input.onRefreshVerifiedModels();
-  }, [handleCompletedOrphanImport, input]);
+  }, [handleCompletedAssetImport, input]);
 
   const {
     activeDownloads,
@@ -74,48 +70,58 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onProgressSettled: handleSettledDownload,
   });
 
-  const scaffoldOrphanImport = useCallback((orphanPath: string) => {
-    setScaffoldingOrphan(orphanPath);
-    setOrphanError('');
-    void localRuntime.scaffoldOrphan({
-      path: orphanPath,
-      capabilities: [input.orphanCapabilities[orphanPath] || 'chat'],
-    }).then((accepted) => {
-      setOrphanImportSessionByPath((prev) => ({
-        ...prev,
-        [orphanPath]: accepted.installSessionId,
-      }));
-      setScaffoldingOrphan(null);
-      const currentProgress = getLatestProgressEvent(accepted.installSessionId);
-      if (currentProgress?.done) {
-        handleCompletedOrphanImport(orphanPath, currentProgress.success, currentProgress.message);
-      }
-    }).catch((error: unknown) => {
-      setScaffoldingOrphan(null);
-      setOrphanError(error instanceof Error ? error.message : String(error));
-    });
-  }, [getLatestProgressEvent, handleCompletedOrphanImport, input.orphanCapabilities]);
-
-  const scaffoldArtifactOrphanImport = useCallback(async (orphanPath: string) => {
-    const kind = input.artifactOrphanKinds[orphanPath] || 'vae';
-    setScaffoldingArtifactOrphan(orphanPath);
-    setArtifactOrphanError('');
+  const importAssetFromPath = useCallback(async (assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
+    setImportingAssetPath(assetPath);
+    setAssetImportError('');
     try {
-      await input.props.onScaffoldArtifactOrphan(orphanPath, kind);
-      await input.onRefreshArtifactSections();
-      await input.onRefreshAllOrphanFiles();
+      const imported = await localRuntime.importAssetFile({
+        filePath: assetPath,
+        declaration,
+      }, { caller: 'core' });
+      if (imported.assetClass === 'model') {
+        setAssetImportSessionByPath((prev) => ({
+          ...prev,
+          [assetPath]: imported.accepted.installSessionId,
+        }));
+        const currentProgress = getLatestProgressEvent(imported.accepted.installSessionId);
+        if (currentProgress?.done) {
+          handleCompletedAssetImport(assetPath, currentProgress.success, currentProgress.message);
+        }
+      } else {
+        await input.onRefreshArtifactSections();
+        await input.onRefreshUnregisteredAssets();
+      }
     } catch (error: unknown) {
-      setArtifactOrphanError(
-        error instanceof Error
-          ? error.message
-          : String(error || i18n.t('runtimeConfig.local.artifactImportFailed', {
-            defaultValue: 'Artifact import failed',
-          })),
+      setAssetImportError(
+        error instanceof Error ? error.message : String(error || 'Asset import failed'),
       );
       throw error;
     } finally {
-      setScaffoldingArtifactOrphan(null);
+      setImportingAssetPath(null);
     }
+  }, [getLatestProgressEvent, handleCompletedAssetImport, input]);
+
+  const importPickedAssetFile = useCallback(async (declaration: LocalRuntimeAssetDeclaration) => {
+    setAssetImportError('');
+    const filePath = await localRuntime.pickModelFile();
+    if (!filePath) {
+      return;
+    }
+    await importAssetFromPath(filePath, declaration);
+  }, [importAssetFromPath]);
+
+  const importPickedAssetManifest = useCallback(async () => {
+    setAssetImportError('');
+    const manifestPath = await localRuntime.pickAssetManifestPath();
+    if (!manifestPath) {
+      return;
+    }
+    const imported = await localRuntime.importAssetManifest(manifestPath, { caller: 'core' });
+    await input.props.onDiscover();
+    if (imported.assetClass === 'artifact') {
+      await input.onRefreshArtifactSections();
+    }
+    await input.onRefreshUnregisteredAssets();
   }, [input]);
 
   const closeVariantPicker = useCallback(() => {
@@ -156,28 +162,27 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     await input.props.onInstallCatalogItem(item, {
       entry: selectedVariant?.entry || variantFilename,
       files: selectedVariant?.files || [variantFilename],
-      capabilities: [input.getLatestVerifiedCapability(item)],
+      capabilities: [String(item.capabilities[0] || 'chat').trim() || 'chat'],
       engine: input.getInstallEngine(item),
     });
   }, [input, variantList]);
 
-  orphanImportSessionByPathRef.current = orphanImportSessionByPath;
+  assetImportSessionByPathRef.current = assetImportSessionByPath;
 
   return {
     activeDownloads,
-    artifactOrphanError,
     closeVariantPicker,
+    importAssetFromPath,
+    importPickedAssetFile,
+    importPickedAssetManifest,
+    assetImportError,
+    assetImportSessionByPath,
+    importingAssetPath,
     installCatalogVariant,
     loadingVariants,
     onCancelDownload,
     onPauseDownload,
     onResumeDownload,
-    orphanError,
-    orphanImportSessionByPath,
-    scaffoldArtifactOrphanImport,
-    scaffoldOrphanImport,
-    scaffoldingArtifactOrphan,
-    scaffoldingOrphan,
     toggleVariantPicker,
     variantError,
     variantList,

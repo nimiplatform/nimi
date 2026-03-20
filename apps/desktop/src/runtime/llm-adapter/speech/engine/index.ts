@@ -97,7 +97,6 @@ export class NimiSpeechEngine {
     const result = await runtime.media.tts.listVoices({
       model,
       route: routeSource,
-      fallback: 'deny',
       connectorId: normalizedInput.connectorId,
       metadata,
     });

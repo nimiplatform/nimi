@@ -67,7 +67,7 @@ fn install_verified_artifact_descriptor(
     }
 
     let models_root = runtime_models_dir(app)?;
-    let artifact_dir = models_root.join(slugify_local_model_id(descriptor.artifact_id.as_str()));
+    let artifact_dir = artifact_dir(models_root.as_path(), descriptor.artifact_id.as_str());
     if artifact_dir.exists() {
         std::fs::remove_dir_all(&artifact_dir).map_err(|error| {
             format!(

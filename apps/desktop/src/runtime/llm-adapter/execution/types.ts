@@ -36,7 +36,80 @@ export type ExecuteLocalKernelTurnInput = {
   fetchImpl?: FetchImpl;
 };
 
-export type ExecuteLocalKernelTurnResult = Record<string, unknown>;
+export type ExecuteLocalKernelAssistantMessage = {
+  text: string;
+  style: 'narration' | 'mixed';
+};
+
+export type ExecuteLocalKernelSceneCard = {
+  type: 'text';
+  content: string;
+};
+
+export type ExecuteLocalKernelStateDelta = {
+  narrativeDelta: string[];
+  storyDelta?: {
+    lastInput: string;
+    lastAssistant: string;
+    turnIndex: number;
+  };
+  sceneDelta?: {
+    lastInput: string;
+    lastAssistant: string;
+    turnIndex: number;
+  };
+  memoryWrites: string[];
+};
+
+export type ExecuteLocalKernelRuleDecision = {
+  ruleId: string;
+  decision: 'ALLOW' | 'DENY' | 'ALLOW_WITH_WARNING';
+  reason: string;
+};
+
+export type ExecuteLocalKernelNextAction = {
+  id: string;
+  label: '继续';
+  kind: 'free_input';
+};
+
+export type ExecuteLocalKernelPromptTrace = {
+  id: string;
+  sourceSegments: string[];
+  tokenRequested: number;
+  tokenActual: number;
+  droppedSegments: string[];
+  conflictResolutions: string[];
+  decision: 'ALLOW' | 'DENY' | 'ALLOW_WITH_WARNING';
+  decisionReason: string;
+};
+
+export type ExecuteLocalKernelAuditEvent = {
+  id: string;
+  turnIndex: number;
+  eventType: 'LOCAL_PROVIDER_EXECUTED';
+  reasonCode: string;
+  detail: {
+    provider: string;
+    model: string;
+  };
+};
+
+export type ExecuteLocalKernelTurnResult = {
+  requestId: string;
+  sessionId: string;
+  turnIndex: number;
+  assistantMessage: ExecuteLocalKernelAssistantMessage;
+  sceneCards?: ExecuteLocalKernelSceneCard[];
+  stateDelta: ExecuteLocalKernelStateDelta;
+  ruleDecisions: ExecuteLocalKernelRuleDecision[];
+  promptTraceId: string;
+  auditEventIds: string[];
+  nextActions: ExecuteLocalKernelNextAction[];
+  localOnly: true;
+  localPromptTrace: ExecuteLocalKernelPromptTrace;
+  localAuditEvents: ExecuteLocalKernelAuditEvent[];
+};
 
 export type InvokeModLlmInput = {
   modId: string;

@@ -1,5 +1,10 @@
 import type { RefObject } from 'react';
-import type { CapabilityOption } from './runtime-config-model-center-utils';
+import type { LocalRuntimeArtifactKind } from '@runtime/local-runtime';
+import type {
+  AssetClassOption,
+  AssetEngineOption,
+  ModelTypeOption,
+} from './runtime-config-model-center-utils';
 import {
   LocalModelCenterImportDialog,
   LocalModelCenterToolbar,
@@ -13,16 +18,23 @@ type LocalModelCenterImportControlsProps = {
   importMenuRef: RefObject<HTMLDivElement | null>;
   showImportMenu: boolean;
   showImportFileDialog: boolean;
-  importFileCapability: CapabilityOption;
+  importFileAssetClass: AssetClassOption;
+  importFileModelType: ModelTypeOption;
+  importFileArtifactKind: LocalRuntimeArtifactKind;
+  importFileAuxiliaryEngine: AssetEngineOption | '';
   onHealthCheck: () => void;
   onRefresh: () => void;
+  onOpenModelsFolder: () => void;
   onToggleImportMenu: () => void;
   onOpenImportFile: () => void;
   onImportManifest: () => void;
-  onImportArtifactManifest: () => void;
-  onCapabilityChange: (capability: CapabilityOption) => void;
+  onAssetClassChange: (assetClass: AssetClassOption) => void;
+  onModelTypeChange: (modelType: ModelTypeOption) => void;
+  onArtifactKindChange: (kind: LocalRuntimeArtifactKind) => void;
+  onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onCloseImportFileDialog: () => void;
   onChooseImportFile: () => void;
+  canChooseImportFile: boolean;
 };
 
 export function LocalModelCenterImportControls(props: LocalModelCenterImportControlsProps) {
@@ -37,17 +49,24 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
         showImportMenu={props.showImportMenu}
         onHealthCheck={props.onHealthCheck}
         onRefresh={props.onRefresh}
+        onOpenModelsFolder={props.onOpenModelsFolder}
         onToggleImportMenu={props.onToggleImportMenu}
         onOpenImportFile={props.onOpenImportFile}
         onImportManifest={props.onImportManifest}
-        onImportArtifactManifest={props.onImportArtifactManifest}
       />
       <LocalModelCenterImportDialog
         visible={props.showImportFileDialog}
-        capability={props.importFileCapability}
-        onCapabilityChange={props.onCapabilityChange}
+        assetClass={props.importFileAssetClass}
+        modelType={props.importFileModelType}
+        artifactKind={props.importFileArtifactKind}
+        auxiliaryEngine={props.importFileAuxiliaryEngine}
+        onAssetClassChange={props.onAssetClassChange}
+        onModelTypeChange={props.onModelTypeChange}
+        onArtifactKindChange={props.onArtifactKindChange}
+        onAuxiliaryEngineChange={props.onAuxiliaryEngineChange}
         onClose={props.onCloseImportFileDialog}
         onChooseFile={props.onChooseImportFile}
+        canChooseFile={props.canChooseImportFile}
       />
     </>
   );

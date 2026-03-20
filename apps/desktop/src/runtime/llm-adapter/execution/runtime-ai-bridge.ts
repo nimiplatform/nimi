@@ -5,7 +5,6 @@ import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
 
 const ROUTE_POLICY_LOCAL = 1;
 const ROUTE_POLICY_CLOUD = 2;
-const FALLBACK_POLICY_DENY = 1;
 const DEFAULT_LOCAL_WARM_TIMEOUT_MS = 60_000;
 const MAX_LOCAL_WARM_TIMEOUT_MS = 300_000;
 const LOCAL_WARM_PAGE_SIZE = 100;
@@ -63,7 +62,6 @@ export const RUNTIME_MODAL_EMBEDDING = 6;
 export type SourceAndModel = {
   source: InferenceRouteSource;
   routePolicy: number;
-  fallbackPolicy: number;
   modelId: string;
   endpoint: string;
   provider: string;
@@ -327,7 +325,6 @@ export function resolveSourceAndModel(input: {
   return {
     source,
     routePolicy,
-    fallbackPolicy: FALLBACK_POLICY_DENY,
     modelId: ensureRouteModelId(model, routePolicy, provider),
     endpoint: hasConnector ? '' : endpoint,
     provider,
@@ -432,42 +429,75 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-export function extractTextFromGenerateOutput(output: unknown): string {
-  const record = asRecord(output);
-  const fields = asRecord(record.fields);
-  const textValue = asRecord(fields.text);
-  const kind = asRecord(textValue.kind);
-  if (kind.oneofKind === 'stringValue') {
-    return String(kind.stringValue || '').trim();
+type DesktopScenarioOutput = {
+  output?: (
+    | {
+      oneofKind: 'textGenerate';
+      textGenerate: {
+        text: string;
+      };
+    }
+    | {
+      oneofKind: 'textEmbed';
+      textEmbed: {
+        vectors: Array<{
+          values: number[];
+        }>;
+      };
+    }
+    | {
+      oneofKind: 'imageGenerate';
+      imageGenerate: {
+        artifacts: unknown[];
+      };
+    }
+    | {
+      oneofKind: 'videoGenerate';
+      videoGenerate: {
+        artifacts: unknown[];
+      };
+    }
+    | {
+      oneofKind: 'speechTranscribe';
+      speechTranscribe: {
+        text: string;
+        artifacts: unknown[];
+      };
+    }
+    | {
+      oneofKind: 'speechSynthesize';
+      speechSynthesize: {
+        artifacts: unknown[];
+      };
+    }
+    | {
+      oneofKind: 'musicGenerate';
+      musicGenerate: {
+        artifacts: unknown[];
+      };
+    }
+    | {
+      oneofKind: undefined;
+    }
+  );
+};
+
+export function extractTextFromGenerateOutput(output: DesktopScenarioOutput | undefined): string {
+  const variant = output?.output;
+  if (variant?.oneofKind === 'textGenerate') {
+    return String(variant.textGenerate.text || '').trim();
   }
   return '';
 }
 
-export function extractEmbeddings(vectorsValue: unknown): number[][] {
-  const valueRecord = asRecord(vectorsValue);
-  const kindRecord = asRecord(valueRecord.kind);
-  const listValueRecord = asRecord(kindRecord.listValue ?? valueRecord.listValue);
-  const vectors = Array.isArray(vectorsValue)
-    ? vectorsValue
-    : Array.isArray(valueRecord.values)
-      ? valueRecord.values as unknown[]
-      : Array.isArray(listValueRecord.values)
-        ? listValueRecord.values as unknown[]
-        : [];
-  return vectors.map((entry) => {
-    const rowRecord = asRecord(entry);
-    const values = Array.isArray(rowRecord.values) ? rowRecord.values : [];
-    const row: number[] = [];
-    for (const value of values) {
-      const valueRecord = asRecord(value);
-      const kind = asRecord(valueRecord.kind);
-      if (kind.oneofKind === 'numberValue') {
-        const n = Number(kind.numberValue);
-        if (Number.isFinite(n)) row.push(n);
-      }
-    }
-    return row;
-  });
+export function extractEmbeddings(output: DesktopScenarioOutput | undefined): number[][] {
+  const variant = output?.output;
+  if (variant?.oneofKind !== 'textEmbed') {
+    return [];
+  }
+  return variant.textEmbed.vectors.map((vector: { values: number[] }) => vector.values
+    .map((value: number) => Number(value))
+    .filter((value: number) => Number.isFinite(value)));
 }
 
 import { toBase64, fromBase64 } from '../../util/encoding.js';
@@ -491,8 +521,17 @@ function parseDataUrl(input: string): {
   const normalized = String(input || '').trim();
   const match = normalized.match(/^data:([^;,]+)?(;base64)?,(.*)$/i);
   if (!match) return null;
+  const mimeType = String(match[1] || '').trim();
+  if (!mimeType) {
+    throw createNimiError({
+      message: 'audio data url missing mimeType',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_audio_mime_type',
+      source: 'runtime',
+    });
+  }
   return {
-    mimeType: String(match[1] || '').trim() || 'application/octet-stream',
+    mimeType,
     payload: String(match[3] || ''),
     isBase64: Boolean(match[2]),
   };
@@ -542,7 +581,15 @@ export async function resolveTranscribeAudio(input: {
         source: 'runtime',
       });
     }
-    return { audioBytes: decoded, mimeType: explicitMimeType || 'audio/wav' };
+    if (!explicitMimeType) {
+      throw createNimiError({
+        message: 'audio mimeType is required for raw base64 input',
+        reasonCode: ReasonCode.AI_INPUT_INVALID,
+        actionHint: 'set_audio_mime_type',
+        source: 'runtime',
+      });
+    }
+    return { audioBytes: decoded, mimeType: explicitMimeType };
   }
 
   const audioUri = String(input.audioUri || '').trim();
@@ -598,7 +645,16 @@ export async function resolveTranscribeAudio(input: {
     });
   }
   const responseMimeType = String(response.headers.get('content-type') || '').trim();
-  return { audioBytes, mimeType: explicitMimeType || responseMimeType || 'audio/wav' };
+  const resolvedMimeType = explicitMimeType || responseMimeType;
+  if (!resolvedMimeType) {
+    throw createNimiError({
+      message: 'audio fetch response missing mimeType',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'set_audio_mime_type',
+      source: 'runtime',
+    });
+  }
+  return { audioBytes, mimeType: resolvedMimeType };
 }
 
 function extractReasonCodeCandidate(value: unknown): string | null {

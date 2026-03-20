@@ -58,6 +58,7 @@ export {
   parseModelHealth,
   parseOrphanArtifactFile,
   parseOrphanModelFile,
+  parseUnregisteredAssetDescriptor,
   parseRecommendationFeedDescriptor,
   parseRecommendationFeedItemDescriptor,
   parseScaffoldArtifactResult,
@@ -179,6 +180,7 @@ export function parseVerifiedModelDescriptor(value: unknown): LocalRuntimeVerifi
 
 export function normalizeArtifactKind(value: unknown): LocalRuntimeArtifactKind {
   if (typeof value === 'number') {
+    if (value === 7) return 'ae';
     if (value === 2) return 'llm';
     if (value === 3) return 'clip';
     if (value === 4) return 'controlnet';
@@ -187,6 +189,7 @@ export function normalizeArtifactKind(value: unknown): LocalRuntimeArtifactKind 
     return 'vae';
   }
   const raw = asString(value).toLowerCase();
+  if (raw === 'local_artifact_kind_ae' || raw === '7' || raw === 'ae') return 'ae';
   if (raw === 'local_artifact_kind_llm' || raw === '2' || raw === 'llm') return 'llm';
   if (raw === 'local_artifact_kind_clip' || raw === '3' || raw === 'clip') return 'clip';
   if (raw === 'local_artifact_kind_controlnet' || raw === '4' || raw === 'controlnet') return 'controlnet';
