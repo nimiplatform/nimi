@@ -49,6 +49,7 @@ export type PublishResult = {
 };
 
 type ProgressCallback = (progress: PublishProgress) => void;
+const MAX_PUBLISH_ATTEMPTS = 3;
 
 function isObjectLike(value: unknown): value is object {
   return Boolean(value) && typeof value === 'object';
@@ -68,6 +69,21 @@ function readObjectArrayField(value: unknown, key: string): object[] {
   }
   const field = Reflect.get(value, key);
   return Array.isArray(field) ? field.filter(isObjectLike) : [];
+}
+
+async function retryOperation<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= MAX_PUBLISH_ATTEMPTS; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt >= MAX_PUBLISH_ATTEMPTS) {
+        throw error;
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 /**
@@ -112,7 +128,7 @@ export async function publishCharacterCardImport(params: {
       ownerType,
       ...(ownerType === 'WORLD_OWNED' && targetWorldId ? { worldId: targetWorldId } : {}),
     };
-    const agentResponse = await createCreatorAgent(agentPayload);
+    const agentResponse = await retryOperation(() => createCreatorAgent(agentPayload));
     const agentId = readStringField(agentResponse, 'id');
     result.agentIds[characterName] = agentId;
   } catch (err) {
@@ -140,7 +156,7 @@ export async function publishCharacterCardImport(params: {
         continue;
       }
       try {
-        const response = await createWorldRule(targetWorldId, worldRule);
+        const response = await retryOperation(() => createWorldRule(targetWorldId, worldRule));
         result.publishedWorldRuleIds.push(readStringField(response, 'id'));
       } catch (err) {
         errors.push({
@@ -168,7 +184,7 @@ export async function publishCharacterCardImport(params: {
       continue;
     }
     try {
-      const response = await createAgentRule(targetWorldId, agentId, agentRule);
+        const response = await retryOperation(() => createAgentRule(targetWorldId, agentId, agentRule));
       result.publishedAgentRuleIds.push(readStringField(response, 'id'));
     } catch (err) {
       errors.push({
@@ -216,13 +232,13 @@ export async function publishForgeWorkspacePlan(params: {
   if (!targetWorldId && plan.worldAction === 'CREATE') {
     onProgress?.({ phase: 'CREATING_WORLD', current: 0, total: 1, errors });
     try {
-      const draftResponse = await createWorldDraft({
+      const draftResponse = await retryOperation(() => createWorldDraft({
         name: worldName,
         description: worldDescription,
         sourceType: 'forge_workspace',
-      });
+      }));
       const draftId = readStringField(draftResponse, 'id');
-      const publishResponse = await publishWorldDraft(draftId);
+      const publishResponse = await retryOperation(() => publishWorldDraft(draftId));
       targetWorldId = readStringField(publishResponse, 'worldId') || readStringField(publishResponse, 'id');
       result.worldId = targetWorldId;
     } catch (err) {
@@ -253,7 +269,7 @@ export async function publishForgeWorkspacePlan(params: {
 
   if (createAgents.length > 0) {
     try {
-      const batchResponse = await batchCreateCreatorAgents({
+      const batchResponse = await retryOperation(() => batchCreateCreatorAgents({
         items: createAgents.map((item) => ({
           handle: item.handle || canonicalizeHandleSeed(item.displayName),
           displayName: item.displayName,
@@ -262,7 +278,7 @@ export async function publishForgeWorkspacePlan(params: {
           worldId: targetWorldId,
         })),
         continueOnError: true,
-      });
+      }));
 
       const created = readObjectArrayField(batchResponse, 'created');
       const unmatched = new Set(createAgents.map((item) => item.draftAgentId));
@@ -286,13 +302,13 @@ export async function publishForgeWorkspacePlan(params: {
             continue;
           }
           try {
-            const createdAgent = await createCreatorAgent({
+            const createdAgent = await retryOperation(() => createCreatorAgent({
               handle: planItem.handle || canonicalizeHandleSeed(planItem.displayName),
               displayName: planItem.displayName,
               concept: planItem.concept || planItem.displayName,
               ownerType: 'WORLD_OWNED',
               worldId: targetWorldId,
-            });
+            }));
             const id = readStringField(createdAgent, 'id');
             if (id) {
               result.draftAgentIds![draftAgentId] = id;
@@ -326,9 +342,9 @@ export async function publishForgeWorkspacePlan(params: {
       continue;
     }
     try {
-      await updateAgent(item.sourceAgentId, {
+      await retryOperation(() => updateAgent(item.sourceAgentId, {
         displayName: item.displayName,
-      });
+      }));
       result.draftAgentIds![item.draftAgentId] = item.sourceAgentId;
       result.agentIds[item.displayName] = item.sourceAgentId;
     } catch (err) {
@@ -367,7 +383,7 @@ export async function publishForgeWorkspacePlan(params: {
       continue;
     }
     try {
-      const response = await createWorldRule(targetWorldId, worldRule);
+      const response = await retryOperation(() => createWorldRule(targetWorldId, worldRule));
       result.publishedWorldRuleIds.push(readStringField(response, 'id'));
     } catch (err) {
       errors.push({
@@ -407,7 +423,7 @@ export async function publishForgeWorkspacePlan(params: {
     }
     for (const rule of bundle.rules) {
       try {
-        const response = await createAgentRule(targetWorldId, targetAgentId, rule);
+        const response = await retryOperation(() => createAgentRule(targetWorldId, targetAgentId, rule));
         result.publishedAgentRuleIds.push(readStringField(response, 'id'));
       } catch (err) {
         errors.push({
@@ -457,14 +473,14 @@ export async function publishNovelImport(params: {
   if (!targetWorldId) {
     onProgress?.({ phase: 'CREATING_WORLD', current: 0, total: 1, errors });
     try {
-      const draftResponse = await createWorldDraft({
+      const draftResponse = await retryOperation(() => createWorldDraft({
         name: worldName,
         description: worldDescription,
         sourceType: 'novel_import',
-      });
+      }));
       const draftId = readStringField(draftResponse, 'id');
 
-      const publishResponse = await publishWorldDraft(draftId);
+      const publishResponse = await retryOperation(() => publishWorldDraft(draftId));
       targetWorldId = readStringField(publishResponse, 'worldId') || readStringField(publishResponse, 'id');
       result.worldId = targetWorldId;
     } catch (err) {
@@ -496,10 +512,10 @@ export async function publishNovelImport(params: {
     }));
 
     try {
-      const batchResponse = await batchCreateCreatorAgents({
+      const batchResponse = await retryOperation(() => batchCreateCreatorAgents({
         items: agentItems,
         continueOnError: true,
-      });
+      }));
       const created = readObjectArrayField(batchResponse, 'created');
 
       for (const item of created) {
@@ -516,7 +532,7 @@ export async function publishNovelImport(params: {
           continue;
         }
         try {
-          const response = await createCreatorAgent(agentItem);
+          const response = await retryOperation(() => createCreatorAgent(agentItem));
           result.agentIds[bundle.characterName] = readStringField(response, 'id');
         } catch (innerErr) {
           errors.push({
@@ -539,7 +555,7 @@ export async function publishNovelImport(params: {
         continue;
       }
       try {
-        const response = await createWorldRule(targetWorldId, worldRule);
+        const response = await retryOperation(() => createWorldRule(targetWorldId, worldRule));
         result.publishedWorldRuleIds.push(readStringField(response, 'id'));
       } catch (err) {
         errors.push({
@@ -563,7 +579,7 @@ export async function publishNovelImport(params: {
 
     for (const rule of bundle.rules) {
       try {
-        const response = await createAgentRule(targetWorldId, agentId, rule);
+        const response = await retryOperation(() => createAgentRule(targetWorldId, agentId, rule));
         result.publishedAgentRuleIds.push(readStringField(response, 'id'));
       } catch (err) {
         errors.push({

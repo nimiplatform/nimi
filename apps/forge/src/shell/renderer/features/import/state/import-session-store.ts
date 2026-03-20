@@ -56,6 +56,52 @@ function createInitialNovelImport(): ImportSessionState['novelImport'] {
 }
 
 const NOVEL_STORAGE_PREFIX = 'nimi:forge:import:novel:';
+const NOVEL_IMPORT_STATES: NovelImportState[] = [
+  'IDLE',
+  'FILE_LOADED',
+  'CHUNKING',
+  'EXTRACTING',
+  'CHAPTER_REVIEW',
+  'ACCUMULATING',
+  'PAUSED',
+  'COMPLETED',
+];
+const NOVEL_IMPORT_MODES: NovelImportMode[] = ['auto', 'hybrid', 'manual'];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeNovelImportState(
+  value: unknown,
+): ImportSessionState['novelImport'] | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const progress = isRecord(value.progress) ? value.progress : {};
+  const current = Number(progress.current);
+  const total = Number(progress.total);
+  const machineState = typeof value.machineState === 'string' && NOVEL_IMPORT_STATES.includes(value.machineState as NovelImportState)
+    ? value.machineState as NovelImportState
+    : 'IDLE';
+  const mode = typeof value.mode === 'string' && NOVEL_IMPORT_MODES.includes(value.mode as NovelImportMode)
+    ? value.mode as NovelImportMode
+    : 'auto';
+  return {
+    machineState,
+    mode,
+    sourceManifest: isRecord(value.sourceManifest) ? value.sourceManifest as NovelSourceManifest : null,
+    accumulator: isRecord(value.accumulator) ? value.accumulator as NovelAccumulatorState : null,
+    currentChapterResult: isRecord(value.currentChapterResult)
+      ? value.currentChapterResult as ChapterExtractionArtifact
+      : null,
+    progress: {
+      current: Number.isFinite(current) && current >= 0 ? current : 0,
+      total: Number.isFinite(total) && total >= 0 ? total : 0,
+    },
+    error: typeof value.error === 'string' ? value.error : null,
+  };
+}
 
 type ImportSessionActions = {
   // Session lifecycle
@@ -291,14 +337,22 @@ export const useImportSessionStore = create<ImportSessionState & ImportSessionAc
         const raw = localStorage.getItem(`${NOVEL_STORAGE_PREFIX}${sessionId}`);
         if (!raw) return false;
         const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return false;
+        if (!isRecord(parsed)) return false;
+        const novelImport = sanitizeNovelImportState(parsed.novelImport);
+        if (!novelImport) return false;
 
         set({
-          sessionId: parsed.sessionId || sessionId,
+          sessionId: typeof parsed.sessionId === 'string' && parsed.sessionId.trim()
+            ? parsed.sessionId
+            : sessionId,
           sessionType: 'novel',
-          novelImport: parsed.novelImport || createInitialNovelImport(),
-          targetWorldId: parsed.targetWorldId || null,
-          targetWorldName: parsed.targetWorldName || null,
+          novelImport,
+          targetWorldId: typeof parsed.targetWorldId === 'string' && parsed.targetWorldId.trim()
+            ? parsed.targetWorldId
+            : null,
+          targetWorldName: typeof parsed.targetWorldName === 'string' && parsed.targetWorldName.trim()
+            ? parsed.targetWorldName
+            : null,
         });
         return true;
       } catch {

@@ -32,6 +32,8 @@ import type {
 } from '../types.js';
 import type { PublishProgress, PublishResult } from '../data/import-publish-client.js';
 
+const MAX_CHARACTER_CARD_SIZE_BYTES = 2_000_000;
+
 function mapManifestToRuleDrafts(
   manifest: CharacterCardSourceManifest,
 ) {
@@ -61,6 +63,15 @@ export function useCharacterCardImport() {
   const loadFile = useCallback(async (file: File) => {
     store.startCardImportSession();
     const activeSessionId = useImportSessionStore.getState().sessionId;
+    if (file.size > MAX_CHARACTER_CARD_SIZE_BYTES) {
+      const validation = {
+        valid: false,
+        errors: [`Character card file exceeds ${MAX_CHARACTER_CARD_SIZE_BYTES} bytes.`],
+        warnings: [],
+      };
+      store.setCardParsed(null, validation, null);
+      return { success: false, validation, sessionId: activeSessionId };
+    }
 
     const text = await file.text();
     const { card, rawCard, validation } = parseCharacterCardV2(text);

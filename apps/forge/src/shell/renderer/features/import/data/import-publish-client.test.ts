@@ -39,6 +39,34 @@ describe('publishCharacterCardImport', () => {
     expect(mockAgentDataClient.createCreatorAgent).not.toHaveBeenCalled();
     expect(mockWorldDataClient.createAgentRule).not.toHaveBeenCalled();
   });
+
+  it('retries transient agent creation failures before succeeding', async () => {
+    mockAgentDataClient.createCreatorAgent
+      .mockRejectedValueOnce(new Error('temporary failure'))
+      .mockResolvedValueOnce({ id: 'agent_1' });
+    mockWorldDataClient.createAgentRule.mockResolvedValue({ id: 'ar_1' });
+
+    const result = await publishCharacterCardImport({
+      characterName: 'Ari',
+      agentRules: [{
+        ruleKey: 'identity:self:core',
+        title: 'Core Identity',
+        statement: 'Ari is a brave scout.',
+        layer: 'DNA',
+        category: 'DEFINITION',
+        hardness: 'FIRM',
+        importance: 90,
+        provenance: 'CREATOR',
+      }],
+      worldRules: [],
+      targetWorldId: 'world_1',
+      ownerType: 'WORLD_OWNED',
+    });
+
+    expect(mockAgentDataClient.createCreatorAgent).toHaveBeenCalledTimes(2);
+    expect(result.agentIds.Ari).toBe('agent_1');
+    expect(result.errors).toEqual([]);
+  });
 });
 
 describe('publishForgeWorkspacePlan', () => {
