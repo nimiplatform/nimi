@@ -82,7 +82,12 @@ mod tests {
         let content = b"hello world model data for sha256 test";
         std::fs::write(&src, content).expect("write source");
 
-        let hash = copy_and_hash_file(&src, &dst, content.len() as u64, |_| {})
+        let hash = copy_and_hash_file(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            content.len() as u64,
+            |_| {},
+        )
             .expect("copy should succeed");
 
         // Verify content was copied
@@ -102,8 +107,8 @@ mod tests {
         let dst = tmp.path().join("empty_copy.bin");
         std::fs::write(&src, b"").expect("write empty source");
 
-        let hash =
-            copy_and_hash_file(&src, &dst, 0, |_| {}).expect("copy should succeed for empty file");
+        let hash = copy_and_hash_file(std::fs::File::open(&src).expect("open source"), &dst, 0, |_| {})
+            .expect("copy should succeed for empty file");
 
         let copied = std::fs::read(&dst).expect("read dest");
         assert!(copied.is_empty());
@@ -122,7 +127,12 @@ mod tests {
         let content = vec![0xABu8; 200 * 1024];
         std::fs::write(&src, &content).expect("write large source");
 
-        let hash = copy_and_hash_file(&src, &dst, content.len() as u64, |_| {})
+        let hash = copy_and_hash_file(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            content.len() as u64,
+            |_| {},
+        )
             .expect("copy should succeed");
 
         let copied = std::fs::read(&dst).expect("read dest");
@@ -143,9 +153,14 @@ mod tests {
         std::fs::write(&src, &content).expect("write source");
 
         let mut progress_calls = Vec::new();
-        let hash = copy_and_hash_file(&src, &dst, content.len() as u64, |bytes_copied| {
-            progress_calls.push(bytes_copied);
-        })
+        let hash = copy_and_hash_file(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            content.len() as u64,
+            |bytes_copied| {
+                progress_calls.push(bytes_copied);
+            },
+        )
         .expect("copy should succeed");
 
         // Should have at least 2 progress callbacks (2 chunks)
@@ -174,14 +189,9 @@ mod tests {
     fn copy_and_hash_file_fails_on_missing_source() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("nonexistent.gguf");
-        let dst = tmp.path().join("dest.gguf");
 
-        let result = copy_and_hash_file(&src, &dst, 0, |_| {});
-        let error = result.expect_err("should fail for missing source");
-        assert!(
-            error.contains("LOCAL_AI_FILE_IMPORT_READ_FAILED"),
-            "error should contain reason code, got: {error}"
-        );
+        let error = std::fs::File::open(&src).expect_err("missing source should fail at open");
+        assert_eq!(error.kind(), std::io::ErrorKind::NotFound);
     }
 
     #[test]
@@ -192,7 +202,12 @@ mod tests {
         // Dest inside a non-existent directory
         let dst = tmp.path().join("no-such-dir").join("deep").join("dest.bin");
 
-        let result = copy_and_hash_file(&src, &dst, 4, |_| {});
+        let result = copy_and_hash_file(
+            std::fs::File::open(&src).expect("open source"),
+            &dst,
+            4,
+            |_| {},
+        );
         let error = result.expect_err("should fail for invalid dest path");
         assert!(
             error.contains("LOCAL_AI_FILE_IMPORT_WRITE_FAILED"),

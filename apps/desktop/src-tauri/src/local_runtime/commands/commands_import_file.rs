@@ -1,16 +1,45 @@
+fn prepare_import_source_file(
+    raw_path: &str,
+) -> Result<(std::path::PathBuf, std::fs::File, u64), String> {
+    let source_path = std::path::PathBuf::from(raw_path);
+    let metadata = std::fs::symlink_metadata(&source_path).map_err(|_| {
+        format!(
+            "LOCAL_AI_FILE_IMPORT_NOT_FOUND: file does not exist or is not a file: {}",
+            raw_path
+        )
+    })?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!(
+            "LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: refusing symbolic link source: {}",
+            raw_path
+        ));
+    }
+    if !metadata.is_file() {
+        return Err(format!(
+            "LOCAL_AI_FILE_IMPORT_NOT_FOUND: file does not exist or is not a file: {}",
+            raw_path
+        ));
+    }
+
+    let canonical_path = source_path
+        .canonicalize()
+        .map_err(|error| format!("LOCAL_AI_FILE_IMPORT_CANONICALIZE_FAILED: {error}"))?;
+    let file = std::fs::File::open(&canonical_path)
+        .map_err(|error| format!("LOCAL_AI_FILE_IMPORT_READ_FAILED: cannot open source file: {error}"))?;
+    let file_size = file
+        .metadata()
+        .map_err(|error| format!("LOCAL_AI_FILE_IMPORT_READ_FAILED: cannot stat source file: {error}"))?
+        .len();
+    Ok((canonical_path, file, file_size))
+}
+
 #[tauri::command]
 pub fn runtime_local_models_import_file(
     app: AppHandle,
     payload: LocalAiModelsImportFilePayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
-    // Validate source file exists
-    let source_path = std::path::PathBuf::from(&payload.file_path);
-    if !source_path.is_file() {
-        return Err(format!(
-            "LOCAL_AI_FILE_IMPORT_NOT_FOUND: file does not exist or is not a file: {}",
-            payload.file_path
-        ));
-    }
+    let (canonical_source_path, source_file, file_size) =
+        prepare_import_source_file(&payload.file_path)?;
 
     // Validate capabilities
     let capabilities = normalize_and_validate_capabilities(&payload.capabilities)?;
@@ -37,7 +66,7 @@ pub fn runtime_local_models_import_file(
     )?;
 
     // Derive model name from filename if not provided
-    let file_name = source_path
+    let file_name = canonical_source_path
         .file_name()
         .and_then(|v| v.to_str())
         .unwrap_or("model")
@@ -50,7 +79,7 @@ pub fn runtime_local_models_import_file(
         .map(|v| v.to_string())
         .unwrap_or_else(|| {
             // Strip known extensions to derive a friendly name
-            let stem = source_path
+            let stem = canonical_source_path
                 .file_stem()
                 .and_then(|v| v.to_str())
                 .unwrap_or("model");
@@ -61,11 +90,6 @@ pub fn runtime_local_models_import_file(
     let slug = slugify_local_model_id(&model_id);
     let local_model_id = format!("file:{slug}");
     let install_session_id = next_install_session_id(&model_id);
-
-    // Get file size
-    let file_size = std::fs::metadata(&source_path)
-        .map(|m| m.len())
-        .unwrap_or(0);
 
     // Emit initial progress
     emit_download_progress_event(
@@ -111,7 +135,7 @@ pub fn runtime_local_models_import_file(
             &bg_model_id,
             &bg_local_model_id,
             &bg_slug,
-            &source_path,
+            source_file,
             &bg_file_name,
             file_size,
             &bg_capabilities,
@@ -121,4 +145,22 @@ pub fn runtime_local_models_import_file(
     });
 
     Ok(accepted)
+}
+
+#[cfg(all(test, unix))]
+mod commands_import_file_tests {
+    use super::*;
+
+    #[test]
+    fn prepare_import_source_file_rejects_symlink_sources() {
+        let temp_dir = tempfile::tempdir().expect("tempdir");
+        let real_path = temp_dir.path().join("model.gguf");
+        std::fs::write(&real_path, b"weights").expect("write file");
+        let link_path = temp_dir.path().join("model-link.gguf");
+        std::os::unix::fs::symlink(&real_path, &link_path).expect("symlink");
+
+        let error = prepare_import_source_file(link_path.to_string_lossy().as_ref())
+            .expect_err("symlink should be rejected");
+        assert!(error.contains("LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN"));
+    }
 }

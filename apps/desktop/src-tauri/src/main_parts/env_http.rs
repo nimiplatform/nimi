@@ -144,6 +144,10 @@ fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMa
     let mut header_map = HeaderMap::new();
     if let Some(values) = headers {
         for (name, value) in values {
+            let normalized_name = name.trim().to_ascii_lowercase();
+            if is_restricted_outbound_header(normalized_name.as_str()) {
+                return Err(format!("不允许覆盖受限请求头：{name}"));
+            }
             let header_name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
                 .map_err(|error| error.to_string())?;
             let header_value = reqwest::header::HeaderValue::from_str(&value)
@@ -168,6 +172,26 @@ fn validate_external_url(url: &Url) -> Result<(), String> {
     Err("仅支持 https 或 localhost/127.0.0.1 的 http 地址".to_string())
 }
 
+fn is_restricted_outbound_header(name: &str) -> bool {
+    matches!(
+        name,
+        "authorization"
+            | "connection"
+            | "content-length"
+            | "cookie"
+            | "forwarded"
+            | "host"
+            | "proxy-authorization"
+            | "te"
+            | "trailer"
+            | "transfer-encoding"
+            | "upgrade"
+            | "via"
+            | "x-real-ip"
+    ) || name.starts_with("proxy-")
+        || name.starts_with("x-forwarded-")
+}
+
 fn parse_oauth_redirect_uri(redirect_uri: &str) -> Result<(String, u16, String), String> {
     let url = Url::parse(redirect_uri).map_err(|error| error.to_string())?;
     if url.scheme() != "http" {
@@ -183,12 +207,42 @@ fn parse_oauth_redirect_uri(redirect_uri: &str) -> Result<(String, u16, String),
     let port = url
         .port_or_known_default()
         .ok_or_else(|| "OAuth redirect_uri 缺少端口".to_string())?;
+    if url.query().is_some() || url.fragment().is_some() {
+        return Err("OAuth redirect_uri 不允许携带 query 或 fragment".to_string());
+    }
     let path = if url.path().trim().is_empty() {
         "/".to_string()
     } else {
         url.path().to_string()
     };
     Ok((host, port, path))
+}
+
+fn normalize_oauth_callback_target(target: &str, expected_path: &str) -> Result<String, String> {
+    let normalized_target = target.trim();
+    if normalized_target.is_empty() {
+        return Err("OAuth callback 缺少请求 target".to_string());
+    }
+    if !normalized_target.starts_with('/') || normalized_target.starts_with("//") {
+        return Err("OAuth callback target 必须是绝对路径".to_string());
+    }
+    if normalized_target.contains('#') {
+        return Err("OAuth callback target 不允许包含 fragment".to_string());
+    }
+    let callback_url = format!("http://localhost{normalized_target}");
+    let parsed = Url::parse(callback_url.as_str()).map_err(|error| error.to_string())?;
+    if parsed.path() != expected_path {
+        return Err(format!(
+            "OAuth callback path 不匹配：expected={expected_path} actual={}",
+            parsed.path()
+        ));
+    }
+    let mut normalized = parsed.path().to_string();
+    if let Some(query) = parsed.query() {
+        normalized.push('?');
+        normalized.push_str(query);
+    }
+    Ok(normalized)
 }
 
 fn read_request_target(stream: &mut std::net::TcpStream) -> Result<String, String> {
@@ -337,12 +391,17 @@ fn oauth_listen_for_code_blocking(
                     .map_err(|error| error.to_string())?;
                 let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
                 let target = read_request_target(&mut stream)?;
-                if !target.starts_with(expected_path.as_str()) {
-                    write_oauth_callback_page(&mut stream, false);
-                    continue;
-                }
+                let normalized_target =
+                    match normalize_oauth_callback_target(target.as_str(), expected_path.as_str())
+                    {
+                        Ok(value) => value,
+                        Err(_) => {
+                            write_oauth_callback_page(&mut stream, false);
+                            continue;
+                        }
+                    };
 
-                let callback_url = format!("http://localhost:{port}{target}");
+                let callback_url = format!("http://localhost:{port}{normalized_target}");
                 let parsed =
                     Url::parse(callback_url.as_str()).map_err(|error| error.to_string())?;
                 let code = parsed
@@ -377,6 +436,55 @@ fn oauth_listen_for_code_blocking(
                 return Err(error.to_string());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod env_http_tests {
+    use super::*;
+
+    #[test]
+    fn sanitize_headers_rejects_ssrf_sensitive_overrides() {
+        let mut headers = HashMap::new();
+        headers.insert("Host".to_string(), "evil.example".to_string());
+        assert!(sanitize_headers(Some(headers)).is_err());
+    }
+
+    #[test]
+    fn sanitize_headers_allows_safe_custom_headers() {
+        let mut headers = HashMap::new();
+        headers.insert("Content-Type".to_string(), "application/json".to_string());
+        headers.insert("X-Nimi-Trace".to_string(), "trace-123".to_string());
+        let sanitized = sanitize_headers(Some(headers)).expect("headers should be accepted");
+        assert!(sanitized.contains_key("content-type"));
+        assert!(sanitized.contains_key("x-nimi-trace"));
+    }
+
+    #[test]
+    fn parse_oauth_redirect_uri_rejects_query_and_fragment() {
+        assert!(parse_oauth_redirect_uri("http://127.0.0.1:4100/oauth/callback?next=%2F")
+            .is_err());
+        assert!(parse_oauth_redirect_uri("http://127.0.0.1:4100/oauth/callback#done").is_err());
+    }
+
+    #[test]
+    fn normalize_oauth_callback_target_requires_exact_callback_path() {
+        assert_eq!(
+            normalize_oauth_callback_target(
+                "/oauth/callback?code=abc&state=123",
+                "/oauth/callback"
+            )
+            .unwrap(),
+            "/oauth/callback?code=abc&state=123"
+        );
+        assert!(
+            normalize_oauth_callback_target("/oauth/callback/extra?code=abc", "/oauth/callback")
+                .is_err()
+        );
+        assert!(
+            normalize_oauth_callback_target("//oauth/callback?code=abc", "/oauth/callback")
+                .is_err()
+        );
     }
 }
 

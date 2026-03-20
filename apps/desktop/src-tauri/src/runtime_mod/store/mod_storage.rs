@@ -5,7 +5,12 @@ use std::path::Component;
 use std::time::UNIX_EPOCH;
 
 const SQLITE_MAIN_FILE_NAME: &str = "main.db";
-const SQLITE_FORBIDDEN_TOKENS: [&str; 4] = ["attach", "detach", "vacuum into", "load_extension"];
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SqliteStatementKind {
+    Query,
+    Mutation,
+}
 
 fn validate_mod_storage_mod_id(mod_id: &str) -> Result<String, String> {
     let normalized = mod_id.trim();
@@ -124,14 +129,81 @@ fn open_mod_storage_sqlite(mod_id: &str) -> Result<Connection, String> {
     Ok(conn)
 }
 
-fn ensure_sql_is_allowed(sql: &str) -> Result<(), String> {
-    let normalized = sql.to_ascii_lowercase();
-    for token in SQLITE_FORBIDDEN_TOKENS {
-        if normalized.contains(token) {
-            return Err(format!("mod storage sqlite statement is forbidden: {token}"));
-        }
+fn trim_sql_statement(sql: &str) -> Result<&str, String> {
+    let trimmed = sql.trim();
+    if trimmed.is_empty() {
+        return Err("mod storage sqlite statement must not be empty".to_string());
     }
-    Ok(())
+    if trimmed.starts_with("--") || trimmed.starts_with("/*") {
+        return Err("mod storage sqlite statement must not start with comments".to_string());
+    }
+    let without_trailing = trimmed
+        .strip_suffix(';')
+        .map(str::trim_end)
+        .unwrap_or(trimmed);
+    if without_trailing.contains(';') {
+        return Err("mod storage sqlite statement must contain exactly one statement".to_string());
+    }
+    Ok(without_trailing)
+}
+
+fn first_sql_keyword(sql: &str) -> Result<String, String> {
+    let keyword = sql
+        .chars()
+        .skip_while(|ch| ch.is_whitespace())
+        .take_while(|ch| ch.is_ascii_alphabetic() || *ch == '_')
+        .collect::<String>()
+        .to_ascii_lowercase();
+    if keyword.is_empty() {
+        return Err("mod storage sqlite statement must start with a SQL keyword".to_string());
+    }
+    Ok(keyword)
+}
+
+fn contains_forbidden_sql_primitive(sql: &str) -> bool {
+    let normalized = sql.to_ascii_lowercase();
+    ["load_extension(", "readfile(", "writefile("]
+        .iter()
+        .any(|primitive| normalized.contains(primitive))
+}
+
+fn ensure_sql_is_allowed(
+    conn: &Connection,
+    sql: &str,
+    kind: SqliteStatementKind,
+) -> Result<(), String> {
+    let statement_sql = trim_sql_statement(sql)?;
+    if contains_forbidden_sql_primitive(statement_sql) {
+        return Err("mod storage sqlite statement uses a forbidden builtin primitive".to_string());
+    }
+    let keyword = first_sql_keyword(statement_sql)?;
+    let keyword_allowed = match kind {
+        SqliteStatementKind::Query => matches!(keyword.as_str(), "select" | "with"),
+        SqliteStatementKind::Mutation => matches!(
+            keyword.as_str(),
+            "alter" | "create" | "delete" | "drop" | "insert" | "replace" | "update" | "with"
+        ),
+    };
+    if !keyword_allowed {
+        return Err(format!(
+            "mod storage sqlite statement kind is not allowed: {keyword}"
+        ));
+    }
+
+    let statement = conn
+        .prepare(statement_sql)
+        .map_err(|error| format!("failed to prepare mod storage sqlite statement: {error}"))?;
+    let is_readonly = statement.readonly();
+    match kind {
+        SqliteStatementKind::Query if !is_readonly => Err(
+            "mod storage sqlite query must be readonly and select-like".to_string(),
+        ),
+        SqliteStatementKind::Mutation if is_readonly => Err(
+            "mod storage sqlite execute/transaction must be a write or schema statement"
+                .to_string(),
+        ),
+        _ => Ok(()),
+    }
 }
 
 fn json_to_sql_value(value: &JsonValue) -> Result<SqlValue, String> {
@@ -367,8 +439,8 @@ pub fn mod_storage_sqlite_query(
     _app: &AppHandle,
     payload: &RuntimeModStorageSqliteQueryPayload,
 ) -> Result<RuntimeModStorageSqliteQueryResultPayload, String> {
-    ensure_sql_is_allowed(&payload.sql)?;
     let conn = open_mod_storage_sqlite(&payload.mod_id)?;
+    ensure_sql_is_allowed(&conn, &payload.sql, SqliteStatementKind::Query)?;
     let rows = query_sqlite_rows(&conn, &payload.sql, payload.params.as_deref().unwrap_or(&[]))?;
     Ok(RuntimeModStorageSqliteQueryResultPayload { rows })
 }
@@ -377,8 +449,8 @@ pub fn mod_storage_sqlite_execute(
     _app: &AppHandle,
     payload: &RuntimeModStorageSqliteQueryPayload,
 ) -> Result<RuntimeModStorageSqliteExecuteResultPayload, String> {
-    ensure_sql_is_allowed(&payload.sql)?;
     let conn = open_mod_storage_sqlite(&payload.mod_id)?;
+    ensure_sql_is_allowed(&conn, &payload.sql, SqliteStatementKind::Mutation)?;
     let sql_params = payload
         .params
         .as_deref()
@@ -411,7 +483,7 @@ pub fn mod_storage_sqlite_transaction(
         .map_err(|error| format!("failed to start mod storage sqlite transaction: {error}"))?;
     let mut rows_affected: usize = 0;
     for statement in &payload.statements {
-        ensure_sql_is_allowed(&statement.sql)?;
+        ensure_sql_is_allowed(&tx, &statement.sql, SqliteStatementKind::Mutation)?;
         let sql_params = statement
             .params
             .as_deref()
@@ -472,10 +544,65 @@ mod mod_storage_tests {
 
     #[test]
     fn ensure_sql_is_allowed_blocks_escape_primitives() {
-        assert!(ensure_sql_is_allowed("select * from notes").is_ok());
-        assert!(ensure_sql_is_allowed("ATTACH DATABASE 'other.db' AS other").is_err());
-        assert!(ensure_sql_is_allowed("detach database other").is_err());
-        assert!(ensure_sql_is_allowed("vacuum into 'export.db'").is_err());
-        assert!(ensure_sql_is_allowed("select load_extension('unsafe')").is_err());
+        let conn = Connection::open_in_memory().expect("sqlite in-memory");
+        conn.execute("create table notes (id integer primary key, body text)", [])
+            .expect("create table");
+        assert!(ensure_sql_is_allowed(&conn, "select * from notes", SqliteStatementKind::Query)
+            .is_ok());
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "ATTACH DATABASE 'other.db' AS other",
+            SqliteStatementKind::Mutation
+        )
+        .is_err());
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "detach database other",
+            SqliteStatementKind::Mutation
+        )
+        .is_err());
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "vacuum into 'export.db'",
+            SqliteStatementKind::Mutation
+        )
+        .is_err());
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "select load_extension('unsafe')",
+            SqliteStatementKind::Query
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn ensure_sql_is_allowed_requires_query_execute_classification() {
+        let conn = Connection::open_in_memory().expect("sqlite in-memory");
+        conn.execute("create table notes (id integer primary key, body text)", [])
+            .expect("create table");
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "create table todos (id integer primary key)",
+            SqliteStatementKind::Mutation
+        )
+        .is_ok());
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "create table todos (id integer primary key)",
+            SqliteStatementKind::Query
+        )
+        .is_err());
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "with selected as (select * from notes) select * from selected",
+            SqliteStatementKind::Query
+        )
+        .is_ok());
+        assert!(ensure_sql_is_allowed(
+            &conn,
+            "select * from notes; delete from notes",
+            SqliteStatementKind::Query
+        )
+        .is_err());
     }
 }

@@ -401,7 +401,21 @@ fn execute_orphan_scaffold_import(
         copied_from_source = true;
         let mut last_emit_ms = 0u64;
         let copy_start = std::time::Instant::now();
-        match copy_and_hash_file(source_path, &dest_file, file_size, |bytes_copied| {
+        let source_file = match std::fs::File::open(source_path) {
+            Ok(file) => file,
+            Err(error) => {
+                finalize_orphan_scaffold_failure(
+                    app,
+                    &mut record,
+                    source_path,
+                    format!(
+                        "LOCAL_AI_ORPHAN_SOURCE_OPEN_FAILED: cannot open orphan source file: {error}"
+                    ),
+                );
+                return;
+            }
+        };
+        match copy_and_hash_file(source_file, &dest_file, file_size, |bytes_copied| {
             let elapsed = copy_start.elapsed();
             let elapsed_ms = elapsed.as_millis() as u64;
             if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_copied < file_size {

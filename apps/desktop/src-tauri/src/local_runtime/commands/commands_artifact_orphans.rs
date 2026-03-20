@@ -254,7 +254,12 @@ fn scaffold_orphan_artifact_file(
         match std::fs::rename(source_path, &dest_file) {
             Ok(_) => hash_existing_file_with_progress(&dest_file, |_| {})?,
             Err(_) => {
-                let copied_hash = copy_and_hash_file(source_path, &dest_file, file_size, |_| {})
+                let source_file = std::fs::File::open(source_path).map_err(|error| {
+                    format!(
+                        "LOCAL_AI_ARTIFACT_ORPHAN_READ_FAILED: cannot open source file: {error}"
+                    )
+                })?;
+                let copied_hash = copy_and_hash_file(source_file, &dest_file, file_size, |_| {})
                     .map_err(|error| {
                         format!(
                             "LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED: cannot stage artifact file: {error}"
@@ -443,9 +448,8 @@ mod orphan_tests {
         let source_path = source_root.path().join("companion.safetensors");
         fs::write(&source_path, b"artifact-bytes").expect("write source artifact");
 
-        let result =
-            scaffold_orphan_artifact_file(models_root.path(), &source_path, "vae")
-                .expect("scaffold artifact");
+        let result = scaffold_orphan_artifact_file(models_root.path(), &source_path, "vae", None)
+            .expect("scaffold artifact");
         assert_eq!(result.kind, "vae");
         assert!(result.artifact_id.starts_with("local-import/"));
         assert!(

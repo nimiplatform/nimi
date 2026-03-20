@@ -177,7 +177,7 @@ pub fn runtime_local_pick_model_file(app: AppHandle) -> Result<Option<String>, S
 }
 
 fn copy_and_hash_file<F>(
-    source: &std::path::Path,
+    mut reader: std::fs::File,
     dest: &std::path::Path,
     total_bytes: u64,
     mut on_progress: F,
@@ -185,8 +185,6 @@ fn copy_and_hash_file<F>(
 where
     F: FnMut(u64),
 {
-    let mut reader = std::fs::File::open(source)
-        .map_err(|e| format!("LOCAL_AI_FILE_IMPORT_READ_FAILED: cannot open source file: {e}"))?;
     let mut writer = std::fs::File::create(dest).map_err(|e| {
         format!("LOCAL_AI_FILE_IMPORT_WRITE_FAILED: cannot create target file: {e}")
     })?;
@@ -224,7 +222,7 @@ fn execute_file_import(
     model_id: &str,
     local_model_id: &str,
     slug: &str,
-    source_path: &std::path::Path,
+    source_file: std::fs::File,
     file_name: &str,
     file_size: u64,
     capabilities: &[String],
@@ -285,7 +283,7 @@ fn execute_file_import(
     // Copy file with progress reporting (throttled to ~200ms intervals).
     let mut last_emit_ms: u64 = 0;
     let copy_start = std::time::Instant::now();
-    let hash_result = copy_and_hash_file(source_path, &dest_file, file_size, |bytes_copied| {
+    let hash_result = copy_and_hash_file(source_file, &dest_file, file_size, |bytes_copied| {
         let elapsed = copy_start.elapsed();
         let elapsed_ms = elapsed.as_millis() as u64;
         if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_copied < file_size {

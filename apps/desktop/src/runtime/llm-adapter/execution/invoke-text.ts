@@ -19,6 +19,8 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 
 const SCENARIO_TYPE_TEXT_GENERATE = 1;
 const EXECUTION_MODE_SYNC = 1;
+const MAX_PROMPT_CHARS = 24_000;
+const MAX_SYSTEM_PROMPT_CHARS = 12_000;
 
 function normalizeFinishReason(value: unknown): string {
   const numeric = Number(value);
@@ -41,9 +43,59 @@ function normalizeRouteDecision(value: unknown): string {
   return `UNKNOWN_${Math.trunc(numeric)}`;
 }
 
+function hasDisallowedControlCharacters(value: string): boolean {
+  for (const char of value) {
+    const code = char.charCodeAt(0);
+    if (code === 9 || code === 10 || code === 13) {
+      continue;
+    }
+    if (code < 32 || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function sanitizeScenarioTextInput(
+  value: unknown,
+  fieldName: 'prompt' | 'systemPrompt',
+): string {
+  const normalized = String(value ?? '').replace(/\r\n?/g, '\n').trim();
+  const maxLength = fieldName === 'prompt' ? MAX_PROMPT_CHARS : MAX_SYSTEM_PROMPT_CHARS;
+
+  if (fieldName === 'prompt' && !normalized) {
+    throw createNimiError({
+      message: 'prompt must not be empty',
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'fix_input',
+      source: 'runtime',
+    });
+  }
+  if (normalized.length > maxLength) {
+    throw createNimiError({
+      message: `${fieldName} exceeds maximum length`,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'reduce_input',
+      source: 'runtime',
+    });
+  }
+  if (hasDisallowedControlCharacters(normalized)) {
+    throw createNimiError({
+      message: `${fieldName} contains unsupported control characters`,
+      reasonCode: ReasonCode.AI_INPUT_INVALID,
+      actionHint: 'fix_input',
+      source: 'runtime',
+    });
+  }
+
+  return normalized;
+}
+
 export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModLlmOutput> {
   const resolved = resolveSourceAndModel(input);
   let runtimeTraceId = '';
+  const prompt = sanitizeScenarioTextInput(input.prompt, 'prompt');
+  const systemPrompt = sanitizeScenarioTextInput(input.systemPrompt, 'systemPrompt');
 
   try {
     const runtime = getRuntimeClient();
@@ -91,11 +143,11 @@ export async function invokeModLlm(input: InvokeModLlmInput): Promise<InvokeModL
           textGenerate: {
             input: [{
               role: 'user',
-              content: String(input.prompt || '').trim(),
+              content: prompt,
               name: '',
               parts: [],
             }],
-            systemPrompt: String(input.systemPrompt || ''),
+            systemPrompt,
             tools: [],
             temperature: typeof input.temperature === 'number' ? input.temperature : 0,
             topP: 0,

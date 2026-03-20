@@ -47,7 +47,11 @@ pub fn manifest_to_model_record(
             total = total.saturating_add(file_size);
             seen_any = true;
         }
-        if seen_any { Some(total) } else { None }
+        if seen_any {
+            Some(total)
+        } else {
+            None
+        }
     });
 
     Ok(LocalAiModelRecord {
@@ -127,6 +131,7 @@ mod tests {
         validate_import_artifact_manifest_path, validate_import_manifest_path,
         validate_loopback_endpoint,
     };
+    use crate::local_runtime::types::artifact_relative_dir;
     use sha2::{Digest, Sha256};
     use std::fs;
     use std::path::PathBuf;

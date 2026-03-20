@@ -38,19 +38,24 @@ export function normalizeRealmBaseUrl(rawValue: unknown): string {
   if (!value) {
     return '';
   }
-  const normalized = value.replace(/\/$/, '');
-  try {
-    const parsed = new URL(normalized);
-    const host = parsed.hostname.toLowerCase();
-    const hasExplicitPort = parsed.port.trim().length > 0;
-    const isLoopbackHttp =
-      parsed.protocol === 'http:' && (host === 'localhost' || host === '127.0.0.1');
-    if (isLoopbackHttp && !hasExplicitPort) {
-      parsed.port = '3002';
-      return parsed.toString().replace(/\/$/, '');
+  const parsed = new URL(value.replace(/\/$/, ''));
+  const host = parsed.hostname.toLowerCase();
+  const hasExplicitPort = parsed.port.trim().length > 0;
+  const isLoopbackHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+
+  if (parsed.protocol === 'http:') {
+    if (!isLoopbackHost) {
+      throw new Error('Realm base URL must use https unless the host is loopback');
     }
-    return normalized;
-  } catch {
-    return normalized;
+    if (!hasExplicitPort) {
+      parsed.port = '3002';
+    }
+    return parsed.toString().replace(/\/$/, '');
   }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Unsupported Realm base URL protocol: ${parsed.protocol}`);
+  }
+
+  return parsed.toString().replace(/\/$/, '');
 }
