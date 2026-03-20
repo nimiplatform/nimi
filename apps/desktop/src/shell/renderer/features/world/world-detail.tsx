@@ -10,7 +10,6 @@ import {
   type XianxiaWorldData,
 } from './world-detail-template';
 import type {
-  WorldAuditItem,
   WorldAgent,
   WorldEventsBundle,
   WorldPublicAssetsData,

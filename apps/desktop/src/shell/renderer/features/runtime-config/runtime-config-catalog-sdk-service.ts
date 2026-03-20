@@ -14,7 +14,9 @@ import {
   type CatalogWorkflowModel,
   type ModelCatalogProviderEntry,
 } from '@nimiplatform/sdk/runtime';
-import type { JsonObject, JsonValue } from '../../bridge/runtime-bridge/types';
+
+type JsonObject = Record<string, unknown>;
+type JsonValue = unknown;
 
 const CATALOG_CALL_OPTIONS = {
   timeoutMs: 8000,

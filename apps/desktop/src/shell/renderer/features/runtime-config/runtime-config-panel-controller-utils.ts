@@ -1,5 +1,4 @@
-import { parseOptionalJsonObject } from '../../bridge/runtime-bridge/shared';
-import type { JsonObject } from '../../bridge/runtime-bridge/types';
+type JsonObject = Record<string, unknown>;
 
 export type RuntimeConfigBanner = {
   kind: 'success' | 'warning' | 'error' | 'info';
@@ -11,5 +10,5 @@ export type RuntimeConfigBanner = {
 export type SetRuntimeConfigBanner = (value: RuntimeConfigBanner | null) => void;
 
 export function asRecord(value: unknown): JsonObject {
-  return parseOptionalJsonObject(value) || {};
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
 }

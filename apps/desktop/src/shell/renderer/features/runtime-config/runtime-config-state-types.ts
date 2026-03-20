@@ -1,5 +1,6 @@
 import type { LocalRuntimeCatalogRecommendation } from '@runtime/local-runtime';
-import type { JsonObject } from '../../bridge/runtime-bridge/types';
+
+type JsonObject = Record<string, unknown>;
 
 export const CAPABILITIES_V11 = ['chat', 'image', 'video', 'tts', 'stt', 'embedding'] as const;
 export type CapabilityV11 = (typeof CAPABILITIES_V11)[number];

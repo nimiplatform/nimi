@@ -35,6 +35,7 @@ import {
   toRoutePolicy,
   toTraceInfo,
 } from './helpers.js';
+import { resolveStreamUsage } from '../internal/utils.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 import {
   runtimeGetScenarioArtifactsForMedia,
@@ -417,6 +418,7 @@ export async function runtimeStreamSpeechSynthesis(
       let streamRouteDecision = request.head.routePolicy || RoutePolicy.UNSPECIFIED;
       let streamMimeType = '';
       let sawArtifactChunk = false;
+      let streamUsage: ArtifactChunk['usage'] | undefined = undefined;
       for await (const event of stream) {
         switch (event.payload.oneofKind) {
           case 'started': {
@@ -459,6 +461,9 @@ export async function runtimeStreamSpeechSynthesis(
             };
             continue;
           }
+          case 'usage':
+            streamUsage = event.payload.usage;
+            continue;
           case 'completed': {
             const completedMimeType = streamMimeType || normalizeText(input.audioFormat);
             if (!completedMimeType) {
@@ -483,7 +488,7 @@ export async function runtimeStreamSpeechSynthesis(
               sequence: String(event.sequence || 0),
               chunk: new Uint8Array(0),
               eof: true,
-              usage: event.payload.completed.usage,
+              usage: resolveStreamUsage(streamUsage, event.payload.completed.usage),
               routeDecision: streamRouteDecision,
               modelResolved: streamModelResolved,
               traceId: normalizeText(event.traceId),

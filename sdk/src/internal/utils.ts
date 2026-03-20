@@ -40,3 +40,10 @@ export function readString(record: JsonObject, keys: string[]): string {
   }
   return '';
 }
+
+export function resolveStreamUsage<T>(
+  streamedUsage: T | null | undefined,
+  completedUsage: T | null | undefined,
+): T | undefined {
+  return streamedUsage ?? completedUsage ?? undefined;
+}

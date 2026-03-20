@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import type { RuntimeLocalManifestSummary } from '@renderer/bridge';
-import type { JsonObject } from '../../bridge/runtime-bridge/types';
-import { parseOptionalJsonObject } from '../../bridge/runtime-bridge/shared';
 import { normalizeLocalRuntimeProfilesDeclaration } from '@runtime/local-runtime';
 import {
   CAPABILITIES_V11,
@@ -17,8 +15,10 @@ import {
   selectOrderedConnectorsV11,
 } from '@renderer/features/runtime-config/runtime-config-selectors-v11';
 
+type JsonObject = Record<string, unknown>;
+
 function asRecord(value: unknown): JsonObject {
-  return parseOptionalJsonObject(value) || {};
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
 }
 
 function normalizeCapability(value: unknown): CapabilityV11 | null {

@@ -1,10 +1,10 @@
-import type { JsonObject } from '../../bridge/runtime-bridge/types';
-import { parseOptionalJsonObject } from '../../bridge/runtime-bridge/shared';
 import {
   DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeEndpointV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
+
+type JsonObject = Record<string, unknown>;
 
 const DEFAULT_RUNTIME_CONFIG = {
   schemaVersion: 1,
@@ -13,7 +13,7 @@ const DEFAULT_RUNTIME_CONFIG = {
 } as const;
 
 function asRecord(value: unknown): JsonObject {
-  return parseOptionalJsonObject(value) || {};
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
 }
 
 function readString(value: unknown): string {

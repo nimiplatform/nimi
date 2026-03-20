@@ -1281,6 +1281,134 @@ test('runtimeStreamSpeechSynthesis: completed event carries usage data', async (
   assert.equal(chunks[1]!.usage?.inputTokens, '100');
 });
 
+test('runtimeStreamSpeechSynthesis: usage event is used when completed omits usage', async () => {
+  const ctx = createMockCtx({
+    invokeWithClient: async (op) => op({
+      ai: {
+        streamScenario: async () => ({
+          async *[Symbol.asyncIterator]() {
+            yield {
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+              sequence: '0',
+              traceId: 'trace-usage-event',
+            };
+            yield {
+              payload: {
+                oneofKind: 'usage',
+                usage: { inputTokens: '12', outputTokens: '6', computeMs: '50' },
+              },
+              sequence: '1',
+              traceId: 'trace-usage-event',
+            };
+            yield {
+              payload: {
+                oneofKind: 'completed',
+                completed: {},
+              },
+              sequence: '2',
+              traceId: 'trace-usage-event',
+            };
+          },
+        }),
+      },
+    } as never),
+  });
+
+  const stream = await runtimeStreamSpeechSynthesis(ctx, {
+    model: 'tts-model',
+    text: 'usage event only',
+  });
+
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+
+  assert.equal(chunks.length, 2);
+  assert.equal(chunks[1]!.usage?.inputTokens, '12');
+  assert.equal(chunks[1]!.usage?.outputTokens, '6');
+});
+
+test('runtimeStreamSpeechSynthesis: usage event wins over completed usage when both exist', async () => {
+  const ctx = createMockCtx({
+    invokeWithClient: async (op) => op({
+      ai: {
+        streamScenario: async () => ({
+          async *[Symbol.asyncIterator]() {
+            yield {
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+              sequence: '0',
+            };
+            yield {
+              payload: {
+                oneofKind: 'usage',
+                usage: { inputTokens: '5', outputTokens: '2', computeMs: '10' },
+              },
+              sequence: '1',
+            };
+            yield {
+              payload: {
+                oneofKind: 'completed',
+                completed: { usage: { inputTokens: '100', outputTokens: '50', computeMs: '200' } },
+              },
+              sequence: '2',
+            };
+          },
+        }),
+      },
+    } as never),
+  });
+
+  const stream = await runtimeStreamSpeechSynthesis(ctx, {
+    model: 'tts-model',
+    text: 'usage precedence',
+  });
+
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+
+  assert.equal(chunks[1]!.usage?.inputTokens, '5');
+  assert.equal(chunks[1]!.usage?.outputTokens, '2');
+});
+
+test('runtimeStreamSpeechSynthesis: missing usage leaves eof chunk usage undefined', async () => {
+  const ctx = createMockCtx({
+    invokeWithClient: async (op) => op({
+      ai: {
+        streamScenario: async () => ({
+          async *[Symbol.asyncIterator]() {
+            yield {
+              payload: { oneofKind: 'delta', delta: artifactDelta(new Uint8Array([1]), 'audio/wav') },
+              sequence: '0',
+            };
+            yield {
+              payload: {
+                oneofKind: 'completed',
+                completed: {},
+              },
+              sequence: '1',
+            };
+          },
+        }),
+      },
+    } as never),
+  });
+
+  const stream = await runtimeStreamSpeechSynthesis(ctx, {
+    model: 'tts-model',
+    text: 'no usage',
+  });
+
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
+
+  assert.equal(chunks[1]!.usage, undefined);
+});
+
 // ---------------------------------------------------------------------------
 // runtimeStreamSpeechSynthesis: stream ends without completed (implicit end)
 // ---------------------------------------------------------------------------

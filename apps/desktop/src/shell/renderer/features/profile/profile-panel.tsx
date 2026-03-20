@@ -5,6 +5,7 @@ import {
   dataSync,
   getCachedContacts,
   isPendingSentRequestInContacts,
+  type SocialContactSnapshot,
 } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -17,7 +18,6 @@ import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
 import { toProfileData, type ProfileSource } from './profile-model';
 import { toFriendContact, type ContactRecord } from '@renderer/features/contacts/contacts-model';
-import type { SocialContactSnapshot } from '@runtime/data-sync/flows/profile-flow';
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {

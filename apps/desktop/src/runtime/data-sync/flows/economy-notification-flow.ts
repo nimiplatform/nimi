@@ -7,6 +7,7 @@ type MarkNotificationsReadInputDto = RealmModel<'MarkNotificationsReadInputDto'>
 type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
+type GiftTransactionRichDto = RealmModel<'GiftTransactionRichDto'>;
 type NotificationDto = RealmModel<'NotificationDto'>;
 type NotificationListResultDto = RealmModel<'NotificationListResultDto'>;
 type RejectGiftDto = RealmModel<'RejectGiftDto'>;
@@ -24,6 +25,13 @@ type DataSyncErrorEmitter = (
 ) => void;
 
 type DataSyncNotificationType = NonNullable<NotificationDto['type']>;
+
+function requireRecord<T extends Record<string, unknown>>(value: unknown, errorCode: string): T {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(errorCode);
+  }
+  return value as T;
+}
 
 function assertEconomyWriteOnline(action: string): void {
   if (getOfflineCoordinator().getTier() === 'L0') {
@@ -270,44 +278,17 @@ export async function loadGiftTransaction(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   id: string,
-) {
+): Promise<GiftTransactionRichDto> {
   const normalizedId = String(id || '').trim();
   if (!normalizedId) {
     throw new Error('礼物交易 ID 不能为空');
   }
   try {
-    const [received, sent] = await Promise.all([
-      callApi(
-        (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetReceivedGifts(100),
-        '加载礼物详情失败',
-      ),
-      callApi(
-        (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetSentGifts(100),
-        '加载礼物详情失败',
-      ),
-    ]);
-
-    const candidates = [
-      ...((received && typeof received === 'object' && Array.isArray((received as { items?: unknown[] }).items))
-        ? (received as { items: unknown[] }).items
-        : []),
-      ...((sent && typeof sent === 'object' && Array.isArray((sent as { items?: unknown[] }).items))
-        ? (sent as { items: unknown[] }).items
-        : []),
-    ];
-
-    const matched = candidates.find((item) => {
-      if (!item || typeof item !== 'object') {
-        return false;
-      }
-      return String((item as { id?: unknown }).id || '').trim() === normalizedId;
-    });
-
-    if (!matched) {
-      throw new Error('GIFT_TRANSACTION_NOT_FOUND');
-    }
-
-    return matched;
+    const payload = await callApi(
+      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetGiftTransaction(normalizedId),
+      '加载礼物详情失败',
+    );
+    return requireRecord<GiftTransactionRichDto>(payload, 'GIFT_TRANSACTION_CONTRACT_INVALID');
   } catch (error) {
     emitDataSyncError('load-gift-transaction', error, { id: normalizedId });
     throw error;

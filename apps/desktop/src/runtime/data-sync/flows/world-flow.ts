@@ -37,6 +37,14 @@ function toRecord(value: unknown): JsonObject | null {
   return isJsonObject(value) ? value : null;
 }
 
+function requireRecord(value: unknown, errorCode: string): JsonObject {
+  const record = toRecord(value);
+  if (!record) {
+    throw new Error(errorCode);
+  }
+  return record;
+}
+
 function toRecordArray(value: unknown): JsonObject[] {
   if (Array.isArray(value)) {
     return value
@@ -53,6 +61,13 @@ function toRecordArray(value: unknown): JsonObject[] {
     return toRecordArray(payload.data);
   }
   return [];
+}
+
+function requireRecordArray(value: unknown, errorCode: string): JsonObject[] {
+  if (!Array.isArray(value) || value.some((item) => !isJsonObject(item))) {
+    throw new Error(errorCode);
+  }
+  return value;
 }
 
 export async function loadWorldList(
@@ -87,16 +102,15 @@ export async function loadMainWorld(
   emitDataSyncError: DataSyncErrorEmitter,
 ): Promise<WorldDetailDto> {
   try {
-    const world = await callApi(
+    const payload = await callApi(
       (realm) => realm.services.WorldsService.worldControllerGetMainWorld(),
       'Failed to load main world',
     );
-    if (isJsonObject(world)) {
-      await (await getOfflineCacheManager()).syncWorldMetadata(
-        'main-world',
-        world as WorldDetailDto,
-      );
-    }
+    const world = requireRecord(payload, 'MAIN_WORLD_CONTRACT_INVALID') as WorldDetailDto;
+    await (await getOfflineCacheManager()).syncWorldMetadata(
+      'main-world',
+      world,
+    );
     return world;
   } catch (error) {
     if (isRealmOfflineError(error)) {
@@ -289,7 +303,7 @@ export async function loadWorldAgents(
       (realm) => realm.services.WorldsService.worldControllerGetWorldAgents(normalizedWorldId),
       'Failed to load world agents',
     );
-    return payload;
+    return requireRecordArray(payload, 'WORLD_AGENT_LIST_CONTRACT_INVALID') as WorldAgentSummaryDto[];
   } catch (error) {
     emitDataSyncError('load-world-agents', error, { worldId: normalizedWorldId });
     throw error;
@@ -320,13 +334,17 @@ export async function loadWorldDetailWithAgents(
       ),
       'Failed to load world detail with agents',
     );
-    if (payload) {
+    if (payload == null) {
+      return null;
+    }
+    const detail = requireRecord(payload, 'WORLD_DETAIL_WITH_AGENTS_CONTRACT_INVALID') as WorldDetailWithAgentsDto;
+    if (detail) {
       await (await getOfflineCacheManager()).syncWorldMetadata(
         cacheKey,
-        payload as WorldDetailWithAgentsDto,
+        detail,
       );
     }
-    return payload;
+    return detail;
   } catch (error) {
     if (isRealmOfflineError(error)) {
       const cached = await (await getOfflineCacheManager()).getCachedWorldMetadata<WorldDetailWithAgentsDto>(cacheKey);

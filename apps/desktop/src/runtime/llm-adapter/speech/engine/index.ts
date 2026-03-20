@@ -97,9 +97,10 @@ export class NimiSpeechEngine {
     const result = await runtime.media.tts.listVoices({
       model,
       route: routeSource,
+      fallback: 'deny',
       connectorId: normalizedInput.connectorId,
       metadata,
-    });
+    } as Parameters<typeof runtime.media.tts.listVoices>[0]);
     const voices = Array.isArray(result.voices) ? (result.voices as RuntimeVoiceLike[]) : [];
     return voices.map((voice) => ({
       id: String(voice.voiceId || '').trim(),

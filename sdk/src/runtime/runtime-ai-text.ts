@@ -29,6 +29,7 @@ import {
   toTraceInfo,
   toUsage,
 } from './helpers.js';
+import { resolveStreamUsage } from '../internal/utils.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 
 export async function runtimeGenerateText(
@@ -214,7 +215,7 @@ export async function runtimeStreamText(
           yield {
             type: 'finish' as const,
             finishReason: toFinishReason(event.payload.completed.finishReason as FinishReason),
-            usage: toUsage(streamUsage),
+            usage: toUsage(resolveStreamUsage(streamUsage, event.payload.completed.usage)),
             trace,
           };
           continue;

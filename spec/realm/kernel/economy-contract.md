@@ -30,6 +30,8 @@
 
 `MUST`: GiftTransaction 不承载独立提现完成态；接收方后续提现继续走通用 wallet withdrawal 流程，不得把 gift transaction 伪装成独立 claim ledger。
 
+`MUST`: 面向桌面/Web 的礼物详情读取必须提供按 transaction id 的 typed single-detail 查询；客户端不得通过有限窗口的 received/sent 列表扫描来拼装 detail。
+
 ## R-ECON-020 — 分成计划（Share Plan）
 
 Share Plan 字段与校验规则详见 `tables/share-plan-fields.yaml`。

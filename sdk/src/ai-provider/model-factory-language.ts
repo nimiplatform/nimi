@@ -23,6 +23,7 @@ import {
   toStreamOptions,
   toUsage,
 } from './helpers.js';
+import { resolveStreamUsage } from '../internal/utils.js';
 import { withOptionalHeadSubjectUserId } from './model-factory-shared.js';
 import {
   ExecutionMode,
@@ -215,7 +216,7 @@ export function createLanguageModelImpl(
                   controller.enqueue({
                     type: 'finish',
                     finishReason: toFinishReason(event.payload.completed.finishReason),
-                    usage: toUsage(streamUsage || event.payload.completed.usage),
+                    usage: toUsage(resolveStreamUsage(streamUsage, event.payload.completed.usage)),
                     providerMetadata: toProviderMetadata({
                       traceId: normalizeText(event.traceId) || undefined,
                       routeDecision: streamRouteDecision === RoutePolicy.CLOUD

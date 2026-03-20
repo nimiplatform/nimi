@@ -1,6 +1,5 @@
 import {
   assertRecord,
-  parseOptionalJsonObject,
   parseOptionalString,
   parseRequiredString,
 } from './shared.js';

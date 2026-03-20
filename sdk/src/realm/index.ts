@@ -40,17 +40,6 @@ export { listAgentCoreMemories, listAgentE2EMemories, recallAgentMemoriesForEnti
 
 // Realm client exports.
 export { Realm } from './client.js';
-export type {
-  RealmConnectionState,
-  RealmTelemetryEvent,
-  RealmTokenRefreshResult,
-  RealmFetchImpl,
-  RealmAuthOptions,
-  RealmRetryOptions,
-  RealmOptions,
-  RealmUnsafeRawModule,
-  RealmServiceRegistry,
-  RealmEventsModule,
-} from './client-types.js';
+export type { RealmConnectionState, RealmTelemetryEvent, RealmTokenRefreshResult, RealmFetchImpl, RealmAuthOptions, RealmRetryOptions, RealmOptions, RealmUnsafeRawModule, RealmServiceRegistry, RealmEventsModule } from './client-types.js';
 export type { RealmOperationKey, RealmOperationResult, RealmOperationResultMap } from './generated/operation-map.js';
 export * from './generated/property-enums.js';

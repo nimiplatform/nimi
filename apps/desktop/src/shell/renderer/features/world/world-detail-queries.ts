@@ -22,10 +22,8 @@ import type {
 } from './world-detail-types';
 
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
-type WorldDetailWithAgentsDto = NonNullable<Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>>;
 type WorldEventPayload = Awaited<ReturnType<typeof dataSync.loadWorldEvents>>;
 type WorldEventDetailDto = WorldEventPayload['items'][number];
-type WorldEventGraphSummaryDto = NonNullable<WorldEventPayload['eventGraphSummary']>;
 type WorldSemanticBundleDto = Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>;
 type WorldviewDetailDto = NonNullable<WorldSemanticBundleDto['worldview']>;
 type PowerSystemDto = RealmModel<'PowerSystemDto'>;

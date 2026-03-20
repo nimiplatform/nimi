@@ -1,5 +1,3 @@
-import type { JsonObject } from '../../bridge/runtime-bridge/types';
-import { parseOptionalJsonObject } from '../../bridge/runtime-bridge/shared';
 import {
   DEFAULT_LOCAL_ENDPOINT_V11,
   normalizeCapabilityV11,
@@ -13,6 +11,12 @@ import {
 } from './runtime-config-state-types';
 import type { RuntimeConfigSeedV11, StoredStateV11 } from './runtime-config-storage-defaults';
 import { createDefaultStateV11 } from './runtime-config-storage-defaults';
+
+type JsonObject = Record<string, unknown>;
+
+function parseOptionalJsonObject(value: unknown): JsonObject | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : undefined;
+}
 
 function normalizeLocalFromAny(
   seed: RuntimeConfigSeedV11,

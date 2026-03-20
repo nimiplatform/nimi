@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { desktopBridge } from '@renderer/bridge';
-import type { JsonObject } from '../../bridge/runtime-bridge/types';
 import { getOfflineCoordinator } from '@runtime/offline';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
@@ -10,6 +9,8 @@ import {
 } from './runtime-bridge-config';
 import { replaceConnectorsInState } from './runtime-config-connector-actions';
 import { asRecord, type SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
+
+type JsonObject = Record<string, unknown>;
 
 const RUNTIME_BRIDGE_CONFIG_RESTART_REQUIRED = 'CONFIG_RESTART_REQUIRED';
 

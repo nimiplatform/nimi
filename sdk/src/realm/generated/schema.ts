@@ -1322,6 +1322,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/economy/gifts/{giftTransactionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get gift transaction detail */
+        get: operations["EconomyController_getGiftTransaction"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/economy/gifts/received": {
         parameters: {
             query?: never;
@@ -9913,6 +9930,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GiftCatalogItemDto"][];
+                };
+            };
+        };
+    };
+    EconomyController_getGiftTransaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Gift Transaction ID */
+                giftTransactionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GiftTransactionRichDto"];
                 };
             };
         };

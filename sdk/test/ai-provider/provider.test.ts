@@ -723,6 +723,110 @@ test('createNimiAiProvider text streaming maps delta and finish events', async (
     && part.providerMetadata?.nimi?.modelResolved === 'chat/stream-resolved'));
 });
 
+test('createNimiAiProvider text streaming falls back to completed usage when the usage event is absent', async () => {
+  const runtime = createRuntimeStub({
+    streamGenerate: async function* () {
+      yield {
+        payload: {
+          oneofKind: 'completed',
+          completed: {
+            finishReason: 1,
+            usage: {
+              inputTokens: '8',
+              outputTokens: '5',
+            },
+          },
+        },
+      };
+    },
+  });
+
+  const model = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  })('chat/default');
+  const streamResult = await model.doStream({
+    prompt: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: 'hello',
+      }],
+    }],
+    providerOptions: {},
+  });
+
+  const reader = streamResult.stream.getReader();
+  const parts: Array<{
+    type?: string;
+    usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+  }> = [];
+  while (true) {
+    const next = await reader.read();
+    if (next.done) {
+      break;
+    }
+    parts.push(next.value as {
+      type?: string;
+      usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+    });
+  }
+
+  assert.ok(parts.some((part) => part.type === 'finish' && part.usage?.inputTokens?.total === 8 && part.usage?.outputTokens?.total === 5));
+});
+
+test('createNimiAiProvider text streaming returns empty usage totals when the stream never reports usage', async () => {
+  const runtime = createRuntimeStub({
+    streamGenerate: async function* () {
+      yield {
+        payload: {
+          oneofKind: 'completed',
+          completed: {
+            finishReason: 1,
+          },
+        },
+      };
+    },
+  });
+
+  const model = createNimiAiProvider({
+    runtime,
+    appId: APP_ID,
+    subjectUserId: SUBJECT_USER_ID,
+  })('chat/default');
+  const streamResult = await model.doStream({
+    prompt: [{
+      role: 'user',
+      content: [{
+        type: 'text',
+        text: 'hello',
+      }],
+    }],
+    providerOptions: {},
+  });
+
+  const reader = streamResult.stream.getReader();
+  const parts: Array<{
+    type?: string;
+    usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+  }> = [];
+  while (true) {
+    const next = await reader.read();
+    if (next.done) {
+      break;
+    }
+    parts.push(next.value as {
+      type?: string;
+      usage?: { inputTokens?: { total?: number }; outputTokens?: { total?: number } };
+    });
+  }
+
+  assert.ok(parts.some((part) => part.type === 'finish'
+    && part.usage?.inputTokens?.total === undefined
+    && part.usage?.outputTokens?.total === undefined));
+});
+
 test('createNimiAiProvider stream interruption requires explicit resubscribe', async () => {
   let streamGenerateCalls = 0;
   const runtime = createRuntimeStub({

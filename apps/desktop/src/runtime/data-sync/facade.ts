@@ -40,6 +40,7 @@ type MediaAssetDetailDto = RealmModel<'MediaAssetDetailDto'>;
 type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
+type GiftTransactionRichDto = RealmModel<'GiftTransactionRichDto'>;
 type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
 type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
 type NotificationDto = RealmModel<'NotificationDto'>;
@@ -355,7 +356,7 @@ export class DataSync {
   }
   createWithdrawal(payload: CreateWithdrawalDto) { return this.actions.createWithdrawal(payload); }
   loadGiftCatalog() { return this.actions.loadGiftCatalog(); }
-  loadGiftTransaction(id: string) { return this.actions.loadGiftTransaction(id); }
+  loadGiftTransaction(id: string): Promise<GiftTransactionRichDto> { return this.actions.loadGiftTransaction(id); }
   loadReceivedGifts(limit = 20, cursor?: string): Promise<ReceivedGiftsResponseDto> {
     return this.actions.loadReceivedGifts(limit, cursor);
   }
