@@ -18,19 +18,21 @@ type AuthTokensDto = RealmModel<'AuthTokensDto'>;
 type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
 type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
+function toAuthUserRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
 export function createDesktopAuthAdapter(): AuthPlatformAdapter {
   return {
+    supportsPasswordLogin: false,
     checkEmail: (email) =>
       dataSync.callApi(
         (realm) => realm.services.AuthService.checkEmail({ email }),
         '',
       ) as Promise<CheckEmailResponseDto>,
-
-    passwordLogin: (identifier, password) =>
-      dataSync.callApi(
-        (realm) => realm.services.AuthService.passwordLogin({ identifier, password }),
-        '邮箱登录失败',
-      ) as Promise<OAuthLoginResultDto>,
 
     requestEmailOtp: (email) =>
       dataSync.callApi(
@@ -88,7 +90,7 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
 
     loadCurrentUser: async () => {
       const user = await dataSync.loadCurrentUser().catch(() => null);
-      return user && typeof user === 'object' ? (user as Record<string, unknown>) : null;
+      return toAuthUserRecord(user);
     },
 
     applyToken: async (accessToken, refreshToken) => {

@@ -238,6 +238,9 @@ export async function handleEmailLogin(
   setters.setPending(true);
   setters.setLoginError(null);
   try {
+    if (typeof adapter.passwordLogin !== 'function') {
+      throw new Error('当前环境不支持密码登录，请使用邮箱验证码登录');
+    }
     const result = await adapter.passwordLogin(identifier, password);
 
     if (rememberMe) {

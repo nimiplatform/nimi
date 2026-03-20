@@ -64,6 +64,7 @@ export type UseAuthFlowReturn = {
   pendingTokens: AuthTokensDto | null;
   desktopCallbackRequest: DesktopCallbackRequest | null;
   desktopCallbackUserLabel: string;
+  supportsPasswordLogin: boolean;
 
   // Setters
   setEmail: (value: string) => void;
@@ -96,6 +97,20 @@ export type UseAuthFlowReturn = {
   handleWeb3Login: () => void;
 };
 
+function readLocationSignature(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return `${window.location.pathname}|${window.location.search}|${window.location.hash}`;
+}
+
+function toAuthUserRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
 export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
   const {
     adapter,
@@ -107,9 +122,15 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     setStatusBanner: externalSetStatusBanner,
   } = config;
 
-  const desktopCallbackRequest = useMemo(() => resolveDesktopCallbackRequestFromLocation(), []);
+  const [locationSignature, setLocationSignature] = useState(() => readLocationSignature());
+  const desktopCallbackRequest = useMemo(
+    () => resolveDesktopCallbackRequestFromLocation(),
+    [locationSignature],
+  );
   const persistedAuthSession = loadPersistedAuthSession();
   const persistedToken = String(persistedAuthSession?.accessToken || '').trim();
+  const supportsPasswordLogin =
+    adapter.supportsPasswordLogin !== false && typeof adapter.passwordLogin === 'function';
 
   const desktopCallbackToken = useMemo(() => {
     const tokenFromStore = String(authToken || '').trim();
@@ -122,17 +143,20 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
   const desktopCallbackUser = useMemo(() => {
     const tokenFromStore = String(authToken || '').trim();
     if (persistedToken && tokenFromStore && persistedToken !== tokenFromStore) {
-      if (persistedAuthSession?.user && typeof persistedAuthSession.user === 'object') {
-        return persistedAuthSession.user;
+      const persistedUser = toAuthUserRecord(persistedAuthSession?.user);
+      if (persistedUser) {
+        return persistedUser;
       }
     }
 
-    if (authUser && typeof authUser === 'object') {
-      return authUser as Record<string, unknown>;
+    const normalizedAuthUser = toAuthUserRecord(authUser);
+    if (normalizedAuthUser) {
+      return normalizedAuthUser;
     }
 
-    if (persistedAuthSession?.user && typeof persistedAuthSession.user === 'object') {
-      return persistedAuthSession.user;
+    const persistedUser = toAuthUserRecord(persistedAuthSession?.user);
+    if (persistedUser) {
+      return persistedUser;
     }
 
     return null;
@@ -199,6 +223,21 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     return () => { window.clearTimeout(timer); };
   }, [otpResendCountdown]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const syncLocationSignature = () => {
+      setLocationSignature(readLocationSignature());
+    };
+    window.addEventListener('popstate', syncLocationSignature);
+    window.addEventListener('hashchange', syncLocationSignature);
+    return () => {
+      window.removeEventListener('popstate', syncLocationSignature);
+      window.removeEventListener('hashchange', syncLocationSignature);
+    };
+  }, []);
+
   // Desktop callback storage sync
   useEffect(() => {
     if (!desktopCallbackRequest || typeof window === 'undefined') return;
@@ -208,7 +247,7 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
       const latestToken = String(latest?.accessToken || '').trim();
       if (!latestToken) return;
       const latestRefreshToken = String(latest?.refreshToken || '').trim();
-      const latestUser = latest?.user && typeof latest.user === 'object' ? latest.user : null;
+      const latestUser = toAuthUserRecord(latest?.user);
       void adapter.applyToken(latestToken, latestRefreshToken || undefined);
       externalSetAuthSession?.(latestUser, latestToken, latestRefreshToken || undefined);
     };
@@ -286,6 +325,15 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
           adapter,
         );
       } else {
+        if (!supportsPasswordLogin) {
+          void doRequestEmailOtp(
+            { preventDefault: () => undefined } as FormEvent,
+            normalizedEmail,
+            setters,
+            adapter,
+          );
+          return;
+        }
         setEmbeddedStage('credential');
         setView('main');
       }
@@ -402,6 +450,7 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     pendingTokens,
     desktopCallbackRequest,
     desktopCallbackUserLabel,
+    supportsPasswordLogin,
 
     // Setters
     setEmail,

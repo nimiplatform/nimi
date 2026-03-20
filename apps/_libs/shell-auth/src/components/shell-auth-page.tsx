@@ -322,7 +322,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
                 </div>
               ) : null}
 
-              {flow.view === 'main' && flow.embeddedStage === 'credential' ? (
+              {flow.view === 'main' && flow.embeddedStage === 'credential' && flow.supportsPasswordLogin ? (
                 <AnimateIn className="w-full">
                   <AuthViewEmailLogin
                     email={flow.email}

@@ -1,18 +1,21 @@
 import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { createElectronOAuthBridge } from './electron-oauth-bridge.js';
 import { getBridge } from '../../bridge/electron-bridge.js';
 
 let currentAccessToken = '';
+type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
 export function createRelayAuthAdapter(): AuthPlatformAdapter {
   currentAccessToken = '';
   const bridge = getBridge();
 
   return {
+    supportsPasswordLogin: true,
     checkEmail: (email) => bridge.auth.checkEmail({ email }) as ReturnType<AuthPlatformAdapter['checkEmail']>,
 
     passwordLogin: (identifier, password) =>
-      bridge.auth.passwordLogin({ identifier, password }) as ReturnType<AuthPlatformAdapter['passwordLogin']>,
+      bridge.auth.passwordLogin({ identifier, password }) as Promise<OAuthLoginResultDto>,
 
     requestEmailOtp: (email) =>
       bridge.auth.requestEmailOtp({ email }) as ReturnType<AuthPlatformAdapter['requestEmailOtp']>,

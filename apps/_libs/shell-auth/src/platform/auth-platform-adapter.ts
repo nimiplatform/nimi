@@ -12,7 +12,7 @@ type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
 export type AuthPlatformAdapter = {
   // API calls
   checkEmail: (email: string) => Promise<CheckEmailResponseDto>;
-  passwordLogin: (identifier: string, password: string) => Promise<OAuthLoginResultDto>;
+  passwordLogin?: (identifier: string, password: string) => Promise<OAuthLoginResultDto>;
   requestEmailOtp: (email: string) => Promise<{ success: boolean; message?: string }>;
   verifyEmailOtp: (email: string, code: string) => Promise<OAuthLoginResultDto>;
   verifyTwoFactor: (tempToken: string, code: string) => Promise<AuthTokensDto>;
@@ -21,6 +21,9 @@ export type AuthPlatformAdapter = {
   oauthLogin: (provider: string, accessToken: string) => Promise<OAuthLoginResultDto>;
   updatePassword: (newPassword: string) => Promise<void>;
   loadCurrentUser: () => Promise<Record<string, unknown> | null>;
+
+  // Capability flags
+  supportsPasswordLogin?: boolean;
 
   // Token management
   applyToken: (accessToken: string, refreshToken?: string) => Promise<void>;
