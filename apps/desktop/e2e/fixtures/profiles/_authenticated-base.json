@@ -149,7 +149,71 @@
         ],
         "events": [],
         "levelAudits": [],
-        "worldview": {},
+        "worldview": {
+          "id": "worldview-e2e-1",
+          "worldId": "world-e2e-1",
+          "version": 1,
+          "lifecycle": "ACTIVE",
+          "timeModel": {
+            "type": "CONTINUOUS",
+            "timeFlowRatio": 1,
+            "unit": "day"
+          },
+          "spaceTopology": {
+            "type": "GRAPH",
+            "boundary": "FINITE",
+            "dimensions": 3
+          },
+          "causality": {
+            "type": "DETERMINISTIC",
+            "maxChainDepth": 6,
+            "allowParadox": false
+          },
+          "coreSystem": {
+            "name": "Fixture World System",
+            "description": "Canonical E2E worldview payload for desktop integration tests.",
+            "rules": [
+              {
+                "key": "fixture_world_rule_1",
+                "title": "Fixture Rule",
+                "value": "Desktop E2E fixtures should match the backend worldview contract."
+              }
+            ],
+            "powerSystems": [
+              {
+                "id": "fixture-power-system",
+                "name": "Fixture Progression",
+                "description": "A minimal power system for desktop worldview rendering.",
+                "rules": [
+                  {
+                    "key": "fixture_power_rule_1",
+                    "title": "Fixture Progression Rule",
+                    "value": "Progression data is delivered in canonical world rule item form."
+                  }
+                ],
+                "levels": [
+                  {
+                    "name": "Stage One",
+                    "description": "Initial fixture stage"
+                  }
+                ]
+              }
+            ]
+          },
+          "languages": {
+            "languages": [
+              {
+                "id": "fixture-english",
+                "name": "English",
+                "category": "common",
+                "description": "Primary fixture language.",
+                "isCommon": true
+              }
+            ]
+          },
+          "createdAt": "2026-03-15T00:00:00.000Z",
+          "updatedAt": "2026-03-15T00:00:00.000Z"
+        },
         "worldviewEvents": [],
         "worldviewSnapshots": []
       }
