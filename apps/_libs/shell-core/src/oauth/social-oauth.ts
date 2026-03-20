@@ -157,11 +157,11 @@ function createCodeVerifier(): string {
 
 async function createCodeChallenge(codeVerifier: string): Promise<string> {
   const encoder = new TextEncoder();
-  if (typeof crypto !== 'undefined' && crypto.subtle) {
-    const digest = await crypto.subtle.digest('SHA-256', encoder.encode(codeVerifier));
-    return base64UrlEncode(new Uint8Array(digest));
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    throw new Error('PKCE requires crypto.subtle for S256 code challenge; plaintext fallback is forbidden');
   }
-  return codeVerifier;
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(codeVerifier));
+  return base64UrlEncode(new Uint8Array(digest));
 }
 
 function buildAuthorizeUrl(input: {
