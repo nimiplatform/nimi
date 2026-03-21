@@ -33,8 +33,6 @@ import {
   appendTurnsToSession,
   createLocalChatTurnRecord,
   listLocalChatSessions,
-  createLocalChatSession,
-  getSessionById,
   createSessionTurn,
   listLocalChatExactHistoryTurns,
   getInteractionSnapshot,
@@ -63,37 +61,7 @@ import {
   isAbortedError,
   upsertTransientFirstBeatMessage,
 } from './send-flow-helpers.js';
-
-async function ensureWorkingSession(input: {
-  selectedSessionId: string;
-  viewerId: string;
-  selectedTarget: RelayChatTurnSendInput['selectedTarget'];
-  chatContext: MainProcessChatContext;
-}): Promise<{ id: string }> {
-  const existingId = String(input.selectedSessionId || '').trim();
-  if (existingId) {
-    const existing = await getSessionById(existingId, input.viewerId);
-    if (existing) return existing;
-  }
-  if (!input.selectedTarget) throw new Error('RELAY_NO_TARGET');
-  const session = await createLocalChatSession({
-    targetId: input.selectedTarget.id,
-    viewerId: input.viewerId,
-    worldId: input.selectedTarget.worldId,
-  });
-  input.chatContext.setSelectedSessionId(session.id);
-  return session;
-}
-
-function createUserMessage(text: string): ChatMessage {
-  return {
-    id: `msg_${createUlid()}`,
-    role: 'user',
-    kind: 'text',
-    content: text,
-    timestamp: new Date(),
-  };
-}
+import { createUserMessage, ensureWorkingSession } from './send-flow-session.js';
 
 export async function runLocalChatTurnSend(input: {
   context: RelayChatTurnSendInput;

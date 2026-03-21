@@ -1,6 +1,4 @@
-// Relay session store — adapted from local-chat session-store/index.ts
-// Uses LedgerDb as storage backend, no mod SDK dependencies.
-
+// Relay session store — adapted from local-chat session-store/index.ts; uses LedgerDb as storage backend.
 import type {
   ChatMessage,
   ChatMessageMeta,
@@ -20,9 +18,7 @@ import type {
   LocalChatTurnWithBeats,
   RelationMemorySlot,
 } from '../chat-pipeline/types.js';
-
 import { createUlid } from '../chat-pipeline/ulid.js';
-
 import {
   nowIso,
   trimString,
@@ -43,7 +39,27 @@ import {
   cloneInteractionRecallDoc,
   cloneMediaAssetRecord,
 } from './normalizers.js';
-
+import {
+  EXACT_HISTORY_TURN_LIMIT,
+  buildConversationRecord,
+  beatsForTurn,
+  buildProjectionSession,
+  buildTurnRecord,
+  buildTurnWithBeats,
+  compareIsoTimestamp,
+  createProjectionTurnFromMessage,
+  findConversationForScope,
+  latestAuditFromSession,
+  latestTraceFromSession,
+  matchesViewerId,
+  mediaAssetsForConversation,
+  projectConversationToSession,
+  projectBeatToTurn,
+  turnsForConversation,
+  type BeatInsertInput,
+  type CreateConversationInput,
+  type TurnRecordInsertInput,
+} from './session-store-helpers.js';
 import {
   LOCAL_CHAT_SESSION_UPDATED_EVENT,
   STORE_BEATS,
@@ -60,7 +76,6 @@ import {
   persistMutation,
   emitSessionUpdated,
 } from './ledger-db.js';
-
 import {
   lexicalScore,
   findBestRelationMemoryMatch,
@@ -68,7 +83,6 @@ import {
   pruneRelationMemorySlots,
   withPreservedOverride,
 } from './relation-memory.js';
-
 export type {
   InteractionRecallDoc,
   InteractionSnapshot,
@@ -83,265 +97,27 @@ export type {
   LocalChatTurnWithBeats,
   RelationMemorySlot,
 };
-
 export type LocalChatTargetPreview = {
   targetId: string;
   latestLocalMessage: string | null;
   latestLocalMessageAt: string | null;
 };
-
-type CreateConversationInput = {
-  targetId: string;
-  viewerId: string;
-  worldId?: string | null;
-  title?: string;
-};
-
-type TurnRecordInsertInput = {
-  conversationId: string;
-  role: 'user' | 'assistant';
-  turnTxnId?: string | null;
-  turnId?: string;
-  seq?: number;
-  createdAt?: string;
-  beatCount?: number;
-};
-
-type BeatInsertInput = {
-  conversationId: string;
-  turnId: string;
-  role: 'user' | 'assistant';
-  kind: LocalChatStoredBeat['kind'];
-  content: string;
-  contextText: string;
-  semanticSummary?: string | null;
-  media?: LocalChatStoredBeat['media'];
-  timestamp?: string;
-  latencyMs?: number;
-  meta?: ChatMessageMeta;
-  promptTrace?: LocalChatPromptTrace | null;
-  audit?: LocalChatTurnAudit | null;
-  deliveryStatus?: LocalChatStoredBeat['deliveryStatus'];
-  beatId?: string;
-  beatIndex?: number;
-  beatCount?: number;
-  mediaSpec?: LocalChatMediaGenerationSpec;
-  mediaShadow?: LocalChatMediaArtifactShadow;
-};
-
-const EXACT_HISTORY_TURN_LIMIT = 8;
-
-function matchesViewerId(recordViewerId: string, viewerId?: string): boolean {
-  const normalizedViewerId = trimString(viewerId);
-  if (!normalizedViewerId) return true;
-  return trimString(recordViewerId) === normalizedViewerId;
-}
-
-function compareIsoTimestamp(left: string | null | undefined, right: string | null | undefined): number {
-  const leftMs = Date.parse(String(left || ''));
-  const rightMs = Date.parse(String(right || ''));
-  const normalizedLeft = Number.isFinite(leftMs) ? leftMs : 0;
-  const normalizedRight = Number.isFinite(rightMs) ? rightMs : 0;
-  return normalizedLeft - normalizedRight;
-}
-
-function buildConversationScopeKey(targetId: string, viewerId: string): string {
-  return `${trimString(viewerId)}::${trimString(targetId)}`;
-}
-
-function sortConversationRecords(records: LocalChatConversationRecord[]): LocalChatConversationRecord[] {
-  return [...records].sort((left, right) => (
-    compareIsoTimestamp(right.updatedAt, left.updatedAt)
-    || compareIsoTimestamp(right.createdAt, left.createdAt)
-    || left.id.localeCompare(right.id)
-  ));
-}
-
-function sortTurnRecords(records: LocalChatTurnRecord[]): LocalChatTurnRecord[] {
-  return [...records].sort((left, right) => (
-    left.seq - right.seq
-    || left.createdAt.localeCompare(right.createdAt)
-    || left.id.localeCompare(right.id)
-  ));
-}
-
-function sortStoredBeats(records: LocalChatStoredBeat[]): LocalChatStoredBeat[] {
-  return [...records].sort((left, right) => (
-    left.turnSeq - right.turnSeq
-    || left.beatIndex - right.beatIndex
-    || left.timestamp.localeCompare(right.timestamp)
-    || left.id.localeCompare(right.id)
-  ));
-}
-
-function turnsForConversation(conversationId: string): LocalChatTurnRecord[] {
-  return sortTurnRecords(
-    [...getLedgerCache().turnsById.values()].filter((turn) => turn.conversationId === conversationId),
-  );
-}
-
-function findConversationForScope(input: {
-  targetId: string;
-  viewerId: string;
-}): LocalChatConversationRecord | null {
-  const scopeKey = buildConversationScopeKey(input.targetId, input.viewerId);
-  return sortConversationRecords(
-    [...getLedgerCache().conversationsById.values()].filter((conversation) => (
-      buildConversationScopeKey(conversation.targetId, conversation.viewerId) === scopeKey
-    )),
-  )[0] || null;
-}
-
-function beatsForTurn(turnId: string): LocalChatStoredBeat[] {
-  return sortStoredBeats(
-    [...getLedgerCache().beatsById.values()].filter((beat) => beat.turnId === turnId),
-  );
-}
-
-function mediaAssetsForConversation(conversationId: string): LocalChatMediaAssetRecord[] {
-  return [...getLedgerCache().mediaAssetsById.values()]
-    .filter((asset) => asset.conversationId === conversationId)
-    .sort((left, right) => (
-      compareIsoTimestamp(right.lastHitAt, left.lastHitAt)
-      || compareIsoTimestamp(right.createdAt, left.createdAt)
-      || left.id.localeCompare(right.id)
-    ));
-}
-
-function buildTurnWithBeats(turn: LocalChatTurnRecord): LocalChatTurnWithBeats {
-  const beats = beatsForTurn(turn.id);
-  return {
-    ...cloneTurnRecord(turn),
-    beats: beats.map((beat) => cloneStoredBeat(beat)),
-  };
-}
-
-function projectBeatToTurn(turn: LocalChatTurnRecord, beat: LocalChatStoredBeat): LocalChatTurn {
-  return {
-    id: beat.id,
-    turnId: turn.id,
-    turnSeq: turn.seq,
-    beatIndex: beat.beatIndex,
-    beatCount: Math.max(turn.beatCount, beat.beatCount, beat.beatIndex + 1),
-    role: beat.role,
-    kind: beat.kind,
-    content: beat.content,
-    contextText: beat.contextText,
-    semanticSummary: beat.semanticSummary,
-    mediaSpec: beat.mediaSpec,
-    mediaShadow: beat.mediaShadow,
-    media: beat.media,
-    timestamp: beat.timestamp,
-    latencyMs: beat.latencyMs,
-    meta: beat.meta,
-    promptTrace: beat.promptTrace,
-    audit: beat.audit,
-  };
-}
-
-function projectConversationToSession(record: LocalChatConversationRecord): LocalChatSession {
-  const groupedTurns = turnsForConversation(record.id)
-    .map((turn) => buildTurnWithBeats(turn))
-    .filter((turn) => turn.beats.length > 0);
-  const turns = groupedTurns.flatMap((turn) => (
-    turn.beats.map((beat) => projectBeatToTurn(turn, beat))
-  ));
-  return {
-    id: record.id,
-    targetId: record.targetId,
-    viewerId: record.viewerId,
-    worldId: record.worldId,
-    title: record.title,
-    turns,
-    turnCount: groupedTurns.length,
-    messageCount: turns.length,
-    createdAt: record.createdAt,
-    updatedAt: record.updatedAt,
-  };
-}
-
-function latestTraceFromSession(session: LocalChatSession | null): LocalChatPromptTrace | null {
-  if (!session) return null;
-  for (let index = session.turns.length - 1; index >= 0; index -= 1) {
-    const turn = session.turns[index];
-    if (!turn || turn.role !== 'assistant') continue;
-    if (turn.promptTrace) return turn.promptTrace;
-  }
-  return null;
-}
-
-function latestAuditFromSession(session: LocalChatSession | null): LocalChatTurnAudit | null {
-  if (!session) return null;
-  for (let index = session.turns.length - 1; index >= 0; index -= 1) {
-    const turn = session.turns[index];
-    if (!turn || turn.role !== 'assistant') continue;
-    if (turn.audit) return turn.audit;
-  }
-  return null;
-}
-
-function createProjectionTurnFromMessage(
-  message: ChatMessage,
-  promptTrace?: LocalChatPromptTrace | null,
-  audit?: LocalChatTurnAudit | null,
-): LocalChatTurn {
-  const metaTurnId = trimString(message.meta?.turnId);
-  const beatIndex = Number.isFinite(message.meta?.beatIndex) ? Math.max(0, Number(message.meta?.beatIndex)) : 0;
-  const beatCount = Number.isFinite(message.meta?.beatCount) && Number(message.meta?.beatCount) > 0
-    ? Math.floor(Number(message.meta?.beatCount))
-    : 1;
-  return {
-    id: message.id,
-    turnId: metaTurnId || message.id,
-    turnSeq: 0,
-    beatIndex,
-    beatCount,
-    role: message.role,
-    kind: message.kind === 'voice' || message.kind === 'image' || message.kind === 'video'
-      ? message.kind
-      : 'text',
-    content: message.content,
-    contextText: message.content,
-    semanticSummary: null,
-    mediaSpec: message.meta?.mediaSpec,
-    mediaShadow: message.meta?.mediaShadow,
-    media: message.media,
-    timestamp: message.timestamp.toISOString(),
-    latencyMs: message.latencyMs,
-    meta: message.meta,
-    promptTrace: promptTrace || undefined,
-    audit: audit || undefined,
-  };
-}
-
-function buildProjectionSession(session: LocalChatSession): LocalChatSession {
-  return {
-    ...session,
-    turns: [...session.turns],
-  };
-}
-
 // ── Public API ──────────────────────────────────────────────────────
-
 export function isSyncableRelationMemorySlot(slot: Pick<RelationMemorySlot, 'portability' | 'sensitivity' | 'userOverride'>): boolean {
   return slot.portability === 'portable'
     && slot.sensitivity !== 'intimate'
     && slot.userOverride !== 'never-sync';
 }
-
 export function getLocalChatSessionUpdatedEventName(): string {
   return LOCAL_CHAT_SESSION_UPDATED_EVENT;
 }
-
 export function warmUpLedgerHydration(): void {
   void ensureLedgerHydrated();
 }
-
 export async function resetLocalChatConversationLedgerForTests(): Promise<void> {
   resetLedgerCache();
   await clearLedgerPersistence();
 }
-
 export async function listLocalChatSessions(targetId: string, viewerId?: string): Promise<LocalChatSession[]> {
   await ensureLedgerHydrated();
   const normalizedTargetId = trimString(targetId);
@@ -413,17 +189,11 @@ export async function createLocalChatSession(input: CreateConversationInput): Pr
   if (existing) {
     return buildProjectionSession(projectConversationToSession(existing));
   }
-  const createdAt = nowIso();
-  const conversation: LocalChatConversationRecord = {
-    id: `conv_${createUlid()}`,
+  const conversation = buildConversationRecord({
+    ...input,
     targetId,
     viewerId,
-    worldId: trimString(input.worldId) || null,
-    title: trimString(input.title) || 'Session',
-    createdAt,
-    updatedAt: createdAt,
-    lastTurnSeq: 0,
-  };
+  });
   getLedgerCache().conversationsById.set(conversation.id, conversation);
   await persistMutation({
     puts: {
@@ -525,22 +295,14 @@ export async function createLocalChatTurnRecord(input: TurnRecordInsertInput): P
   if (!conversation) {
     throw new Error('LOCAL_CHAT_CONVERSATION_NOT_FOUND');
   }
-  const createdAt = asIsoString(input.createdAt, nowIso());
-  const seq = Number.isFinite(input.seq) && Number(input.seq) > 0
-    ? Math.floor(Number(input.seq))
-    : conversation.lastTurnSeq + 1;
-  const turn: LocalChatTurnRecord = {
-    id: trimString(input.turnId) || `turn_${createUlid()}`,
+  const turn = {
+    ...buildTurnRecord(input, conversation.lastTurnSeq),
     conversationId: conversation.id,
-    seq,
-    role: input.role,
-    turnTxnId: trimString(input.turnTxnId) || null,
-    createdAt,
-    updatedAt: createdAt,
     beatCount: Number.isFinite(input.beatCount) && Number(input.beatCount) > 0
       ? Math.floor(Number(input.beatCount))
       : 0,
   };
+  const createdAt = turn.createdAt;
   ledgerCache.turnsById.set(turn.id, turn);
   const nextConversation: LocalChatConversationRecord = {
     ...conversation,
