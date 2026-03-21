@@ -68,25 +68,22 @@ test('toRuntimePrompt file part with http string maps to IMAGE_URL part', () => 
   assert.equal(msg.parts[0]!.imageUrl?.url, 'https://example.com/img.jpg');
 });
 
-test('toRuntimePrompt file part with non-URL string is skipped (v1 URL-only)', () => {
-  const result = toRuntimePrompt([
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'check this' },
-        { type: 'file', data: 'base64encodeddata...', mediaType: 'image/png' },
-      ],
+test('toRuntimePrompt file part with non-URL string fails closed for recognized media', () => {
+  assert.throws(
+    () => toRuntimePrompt([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'check this' },
+          { type: 'file', data: 'base64encodeddata...', mediaType: 'image/png' },
+        ],
+      },
+    ]),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.AI_INPUT_INVALID);
+      return true;
     },
-  ]);
-
-  assert.equal(result.hasNonSystemInput, true);
-  assert.equal(result.input.length, 1);
-  const msg = result.input[0]!;
-
-  // only the TEXT part should be present; non-URL string file part is skipped
-  assert.equal(msg.parts.length, 1);
-  assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[0]!.text, 'check this');
+  );
 });
 
 test('toRuntimePrompt file part with video mediaType maps to VIDEO_URL part', () => {
@@ -158,6 +155,23 @@ test('toRuntimePrompt preserves media-only messages and marks non-system input p
   assert.equal(result.input.length, 1);
   assert.equal(result.input[0]!.parts.length, 1);
   assert.equal(result.input[0]!.parts[0]!.type, ChatContentPartType.IMAGE_URL);
+});
+
+test('toRuntimePrompt rejects unsafe loopback media URLs', () => {
+  assert.throws(
+    () => toRuntimePrompt([
+      {
+        role: 'user',
+        content: [
+          { type: 'file', data: new URL('https://127.0.0.1/private.png'), mediaType: 'image/png' },
+        ],
+      },
+    ]),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.AI_INPUT_INVALID);
+      return true;
+    },
+  );
 });
 
 test('toRuntimePrompt reasoning part maps to TEXT part', () => {

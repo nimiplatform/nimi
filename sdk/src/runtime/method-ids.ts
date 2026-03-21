@@ -209,14 +209,18 @@ export const RuntimeLocalAnonymousMethodIds: readonly string[] = Object.freeze([
   RuntimeMethodIds.local.listLocalAudits,
 ]);
 
+const RuntimeStreamMethodIdSet: ReadonlySet<string> = new Set(RuntimeStreamMethodIds);
+const RuntimeWriteMethodIdSet: ReadonlySet<string> = new Set(RuntimeWriteMethodIds);
+const RuntimeLocalAnonymousMethodIdSet: ReadonlySet<string> = new Set(RuntimeLocalAnonymousMethodIds);
+
 export function isRuntimeStreamMethod(methodId: string): boolean {
-  return RuntimeStreamMethodIds.includes(methodId);
+  return RuntimeStreamMethodIdSet.has(methodId);
 }
 
 export function isRuntimeWriteMethod(methodId: string): boolean {
-  return RuntimeWriteMethodIds.includes(methodId);
+  return RuntimeWriteMethodIdSet.has(methodId);
 }
 
 export function isRuntimeLocalAnonymousMethod(methodId: string): boolean {
-  return RuntimeLocalAnonymousMethodIds.includes(methodId);
+  return RuntimeLocalAnonymousMethodIdSet.has(methodId);
 }

@@ -1,3 +1,5 @@
+import { createNimiError } from '../../runtime/errors.js';
+import { ReasonCode } from '../../types/index.js';
 import {
   resolveModRuntimeContext,
 } from '../internal/runtime-access.js';
@@ -13,7 +15,12 @@ export {
 function normalizeModId(modId: string): string {
   const normalized = String(modId || '').trim();
   if (!normalized) {
-    throw new Error('MOD_RUNTIME_CLIENT_MOD_ID_REQUIRED');
+    throw createNimiError({
+      message: 'mod runtime client mod id is required',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'provide_non_empty_mod_id',
+      source: 'sdk',
+    });
   }
   return normalized;
 }

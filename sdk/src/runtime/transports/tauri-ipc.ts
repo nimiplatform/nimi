@@ -236,6 +236,7 @@ export function createTauriIpcTransport(
   config: RuntimeTauriIpcTransportConfig,
 ): RuntimeTransport {
   const internalConfig = config as RuntimeTauriIpcTransportConfigInternal;
+  const openStreams = new Map<string, () => Promise<void>>();
   return {
     invokeUnary: async (input: RuntimeUnaryCall<RuntimeWireMessage>): Promise<RuntimeWireMessage> => {
       const invoke = ensureTauriInvoke();
@@ -343,6 +344,9 @@ export function createTauriIpcTransport(
           source: 'runtime',
         });
         done = true;
+        if (streamId) {
+          openStreams.delete(streamId);
+        }
         releaseAbortListener();
         if (unsubscribe) {
           unsubscribe();
@@ -395,6 +399,7 @@ export function createTauriIpcTransport(
           if (eventType === 'completed') {
             done = true;
             releaseAbortListener();
+            openStreams.delete(streamId);
             if (unsubscribe) {
               unsubscribe();
               unsubscribe = null;
@@ -423,12 +428,19 @@ export function createTauriIpcTransport(
         done = true;
         flush();
         releaseAbortListener();
+        if (streamId) {
+          openStreams.delete(streamId);
+        }
         if (unsubscribe) {
           unsubscribe();
           unsubscribe = null;
         }
         await closeRemoteStream();
       };
+
+      if (streamId) {
+        openStreams.set(streamId, close);
+      }
 
       if (input.signal) {
         if (input.signal.aborted) {
@@ -494,6 +506,11 @@ export function createTauriIpcTransport(
           source: 'runtime',
         });
       }
+    },
+    destroy: async (): Promise<void> => {
+      const closers = Array.from(openStreams.values());
+      openStreams.clear();
+      await Promise.allSettled(closers.map((close) => close()));
     },
   };
 }

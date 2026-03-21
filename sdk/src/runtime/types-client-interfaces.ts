@@ -389,4 +389,5 @@ export type RuntimeClient = {
   app: RuntimeAppClient;
   audit: RuntimeAuditClient;
   closeStream(streamId: string): Promise<void>;
+  close(): Promise<void>;
 };

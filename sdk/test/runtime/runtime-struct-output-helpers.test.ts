@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { extractEmbeddingVectors, extractGenerateText, extractSpeechTranscription } from '../../src/runtime/helpers.js';
+import {
+  decodeUtf8,
+  extractEmbeddingVectors,
+  extractGenerateText,
+  extractSpeechTranscription,
+  toProtoStruct,
+} from '../../src/runtime/helpers.js';
 import { ReasonCode } from '../../src/types/index.js';
 import { speechTranscribeOutput, textEmbedOutput, textGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 
@@ -64,4 +70,24 @@ test('extractSpeechTranscription fails closed for missing or mismatched output k
       return true;
     },
   );
+});
+
+test('toProtoStruct fails closed on non-JSON-safe runtime extensions', () => {
+  assert.throws(
+    () => toProtoStruct({ bad: () => 'nope' } as never),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.SDK_RUNTIME_REQUEST_ENCODE_FAILED);
+      return true;
+    },
+  );
+});
+
+test('decodeUtf8 uses TextDecoder when Buffer is unavailable', () => {
+  const originalBuffer = globalThis.Buffer;
+  try {
+    (globalThis as typeof globalThis & { Buffer?: typeof Buffer }).Buffer = undefined;
+    assert.equal(decodeUtf8(new Uint8Array([0xe4, 0xbd, 0xa0, 0xe5, 0xa5, 0xbd])), '你好');
+  } finally {
+    (globalThis as typeof globalThis & { Buffer?: typeof Buffer }).Buffer = originalBuffer;
+  }
 });

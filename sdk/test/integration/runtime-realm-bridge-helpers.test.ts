@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  asNimiError,
   buildRuntimeAuthMetadata,
   createRuntimeRealmBridgeHelpers,
   fetchRealmGrant,
   type RuntimeRealmBridgeContext,
 } from '../../src/runtime/index.js';
+import { ReasonCode } from '../../src/types/index.js';
 
 test('buildRuntimeAuthMetadata maps grant token and version into runtime metadata', () => {
   const metadata = buildRuntimeAuthMetadata({
@@ -98,6 +100,6 @@ test('fetchRealmGrant rejects missing scopes', async () => {
       subjectUserId: 'subject-bridge',
       scopes: [],
     }),
-    (error: unknown) => String((error as Error).message) === 'scopes is required',
+    (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.APP_SCOPE_MANIFEST_INVALID,
   );
 });

@@ -147,6 +147,12 @@ export function createLanguageModelImpl(
         }));
 
         const stream = new ReadableStream<LanguageModelV3StreamPart>({
+          async cancel() {
+            const iterator = runtimeStream[Symbol.asyncIterator]();
+            if (typeof iterator.return === 'function') {
+              await iterator.return(undefined);
+            }
+          },
           start(controller) {
             void (async () => {
               const textId = 'nimi-text-1';

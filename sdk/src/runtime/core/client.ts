@@ -257,5 +257,8 @@ export function createRuntimeClient(input: RuntimeClientConfig): RuntimeClient {
     closeStream: async (streamId: string) => {
       await transport.closeStream({ streamId });
     },
+    close: async () => {
+      await transport.destroy();
+    },
   };
 }

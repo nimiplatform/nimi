@@ -66,6 +66,20 @@ function parseRefreshExpiresIn(value: unknown): number | undefined {
   return undefined;
 }
 
+function resolvePositiveTimeoutMs(value: unknown, fallback: number): number {
+  const raw = value ?? fallback;
+  const timeoutMs = Number(raw);
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    throw createNimiError({
+      message: 'realm timeoutMs must be a positive finite number',
+      reasonCode: ReasonCode.SDK_REALM_CONFIG_INVALID,
+      actionHint: 'set_positive_realm_timeout_ms',
+      source: 'sdk',
+    });
+  }
+  return timeoutMs;
+}
+
 export class Realm {
   readonly services: RealmServiceRegistry;
 
@@ -90,8 +104,15 @@ export class Realm {
   constructor(options: RealmOptions) {
     this.baseUrl = resolveBaseUrl(options.baseUrl);
     const authProvided = hasOwn(options, 'auth');
-    const unauthenticated = authProvided && (options.auth == null || options.auth.accessToken == null);
-    if (!authProvided || (!unauthenticated && !options.auth?.accessToken)) {
+    if (!authProvided) {
+      throw createNimiError({
+        message: 'realm token is required (set auth explicitly to null or undefined for unauthenticated access)',
+        reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
+        actionHint: 'set_realm_auth_access_token',
+        source: 'sdk',
+      });
+    }
+    if (options.auth != null && !options.auth.accessToken) {
       throw createNimiError({
         message: 'realm token is required (set auth explicitly to null or undefined for unauthenticated access)',
         reasonCode: ReasonCode.SDK_REALM_TOKEN_REQUIRED,
@@ -113,11 +134,19 @@ export class Realm {
       once: (name, handler) => this.#eventBus.once(name, handler),
     };
 
+    const requestUnknown = (input: RealmRawRequestInput): Promise<unknown> => this.#requestUnknown(input);
+    const requestUnsafeRaw: RealmUnsafeRawModule['request'] = async <T>(
+      input: RealmRawRequestInput & { parseResponse?: (value: unknown) => T },
+    ): Promise<unknown | T> => {
+      const value = await requestUnknown(input);
+      if (typeof input.parseResponse === 'function') {
+        return input.parseResponse(value);
+      }
+      return value;
+    };
+
     const unsafeRaw: RealmUnsafeRawModule = {
-      request: async <T = unknown>(input: RealmRawRequestInput): Promise<T> => {
-        const value = await this.#requestUnknown(input);
-        return value as T;
-      },
+      request: requestUnsafeRaw,
     };
     this.unsafeRaw = unsafeRaw;
   }
@@ -143,8 +172,10 @@ export class Realm {
   async ready(input?: { timeoutMs?: number }): Promise<void> {
     await this.connect();
 
-    const timeoutMs = Number(input?.timeoutMs || this.#options.timeoutMs || DEFAULT_REALM_TIMEOUT_MS)
-      || DEFAULT_REALM_TIMEOUT_MS;
+    const timeoutMs = resolvePositiveTimeoutMs(
+      input?.timeoutMs ?? this.#options.timeoutMs,
+      DEFAULT_REALM_TIMEOUT_MS,
+    );
 
     await this.#requestUnknown({
       method: 'GET',
@@ -272,43 +303,23 @@ export class Realm {
       }
     }
 
-    const timeoutMs = Number(input.timeoutMs || this.#options.timeoutMs || DEFAULT_REALM_TIMEOUT_MS)
-      || DEFAULT_REALM_TIMEOUT_MS;
+    const timeoutMs = resolvePositiveTimeoutMs(
+      input.timeoutMs ?? this.#options.timeoutMs,
+      DEFAULT_REALM_TIMEOUT_MS,
+    );
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeoutController = timeoutMs > 0 ? new AbortController() : undefined;
-    const requestAbortController = new AbortController();
     let timeoutTriggered = false;
     let externalAbortTriggered = false;
     let refreshAttempted = false;
     let retryAttempt = 0;
 
-    const onTimeoutAbort = () => {
-      timeoutTriggered = true;
-      if (!requestAbortController.signal.aborted) {
-        requestAbortController.abort();
-      }
-    };
-    const onExternalAbort = () => {
-      externalAbortTriggered = true;
-      if (!requestAbortController.signal.aborted) {
-        requestAbortController.abort();
-      }
-    };
-
     try {
       if (timeoutController) {
-        timeoutController.signal.addEventListener('abort', onTimeoutAbort, { once: true });
         timer = setTimeout(() => {
           timeoutController.abort();
         }, timeoutMs);
-      }
-      if (input.signal) {
-        if (input.signal.aborted) {
-          onExternalAbort();
-        } else {
-          input.signal.addEventListener('abort', onExternalAbort, { once: true });
-        }
       }
 
       const methodName = normalizeText(input.method).toUpperCase();
@@ -324,6 +335,31 @@ export class Realm {
         });
       }
       while (true) {
+        const requestAbortController = new AbortController();
+        const abortRequest = () => {
+          if (!requestAbortController.signal.aborted) {
+            requestAbortController.abort();
+          }
+        };
+        const onTimeoutAbort = () => {
+          timeoutTriggered = true;
+          abortRequest();
+        };
+        const onExternalAbort = () => {
+          externalAbortTriggered = true;
+          abortRequest();
+        };
+        timeoutController?.signal.addEventListener('abort', onTimeoutAbort, { once: true });
+        if (timeoutController?.signal.aborted) {
+          onTimeoutAbort();
+        }
+        if (input.signal) {
+          if (input.signal.aborted) {
+            onExternalAbort();
+          } else {
+            input.signal.addEventListener('abort', onExternalAbort, { once: true });
+          }
+        }
         const headers = await this.#resolveHeaders(input.headers);
         try {
           const responseTuple = await (method as (url: string, options?: Record<string, unknown>) => Promise<unknown>)(
@@ -359,6 +395,7 @@ export class Realm {
                     this.#options.auth?.onTokenRefreshed?.(refreshResult);
                   } catch { /* observer callback must not break retry */ }
                   this.#emitTelemetry('realm.token_refreshed');
+                  retryAttempt += 1;
                   continue;
                 } catch (refreshError) {
                   try {
@@ -374,7 +411,7 @@ export class Realm {
                 continue;
               }
 
-              const bodyRecord = await readErrorBody(errorPayload);
+              const bodyRecord = readErrorBody(errorPayload);
               const mapped = extractResponseReasonCode(bodyRecord, response);
               throw createNimiError({
                 message: mapped.message,
@@ -412,8 +449,11 @@ export class Realm {
           }
 
           return responseTuple;
-        } catch (requestError) {
-          throw requestError;
+        } finally {
+          timeoutController?.signal.removeEventListener('abort', onTimeoutAbort);
+          if (input.signal) {
+            input.signal.removeEventListener('abort', onExternalAbort);
+          }
         }
       }
     } catch (error) {
@@ -450,12 +490,6 @@ export class Realm {
     } finally {
       if (timer) {
         clearTimeout(timer);
-      }
-      if (timeoutController) {
-        timeoutController.signal.removeEventListener('abort', onTimeoutAbort);
-      }
-      if (input.signal) {
-        input.signal.removeEventListener('abort', onExternalAbort);
       }
     }
   }
@@ -501,7 +535,7 @@ export class Realm {
     });
 
     if (!response.ok) {
-      const body = await readErrorBody(
+      const body = readErrorBody(
         await response.text().catch(() => ''),
       );
       const mapped = extractResponseReasonCode(body, response);
@@ -631,8 +665,13 @@ export class Realm {
         return null;
       }
       const payload = parts[1]!;
-      const padded = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const decoded = atob(padded);
+      const normalized = payload
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+        .padEnd(Math.ceil(payload.length / 4) * 4, '=');
+      const decoded = typeof atob === 'function'
+        ? atob(normalized)
+        : Buffer.from(normalized, 'base64').toString('utf8');
       const parsed = asRecord(JSON.parse(decoded));
       const exp = Number(parsed.exp);
       if (!Number.isFinite(exp) || exp <= 0) {

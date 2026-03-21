@@ -1,5 +1,5 @@
-import type { HookEventClient } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookEventClient } from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 export function createEventClient(input: {
   modId: string;

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import type { JsonObject } from '../internal/utils.js';
-import { loadStorageJsonFrom, saveStorageJsonTo } from './local-storage';
+import { loadStorageJsonFrom, saveStorageJsonTo } from './local-storage.js';
 import { setModSdkRuntimeModSettings, useModSdkRuntimeModSettings } from './internal/settings-access.js';
 
 export const RUNTIME_MOD_SETTINGS_STORAGE_KEY = 'nimi.runtime.mod-settings.v1';

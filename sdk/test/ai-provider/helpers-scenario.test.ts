@@ -102,6 +102,32 @@ test('executeScenarioJob preserves runtime scenario reasonCode when present', as
   );
 });
 
+test('executeScenarioJob reports aborts with OPERATION_ABORTED', async () => {
+  const runtime = createScenarioRuntime({
+    getScenarioJob: async () => ({
+      job: {
+        status: ScenarioJobStatus.RUNNING,
+      },
+    }),
+  });
+  const controller = new AbortController();
+  controller.abort();
+
+  await assert.rejects(
+    () => executeScenarioJob(
+      runtime,
+      DEFAULTS,
+      {} as RuntimeAiSubmitScenarioJobRequestInput,
+      1000,
+      controller.signal,
+    ),
+    (error: Error & { reasonCode?: string }) => {
+      assert.equal(error.reasonCode, ReasonCode.OPERATION_ABORTED);
+      return true;
+    },
+  );
+});
+
 test('toEmbeddingVectors filters non-ProtoValue entries from loose vectors', () => {
   const vectors = toEmbeddingVectors([
     {

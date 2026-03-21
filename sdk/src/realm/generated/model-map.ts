@@ -189,6 +189,7 @@ export type RealmGeneratedModelMap = {
   PPSlotConfigDto: components['schemas']['PPSlotConfigDto'];
   PPSlotConfigResponseDto: components['schemas']['PPSlotConfigResponseDto'];
   PPSlotItemDto: components['schemas']['PPSlotItemDto'];
+  PresenceStatus: components['schemas']['PresenceStatus'];
   ProposedChangeDto: components['schemas']['ProposedChangeDto'];
   PublicFilterDto: components['schemas']['PublicFilterDto'];
   PublicWorldLorebookDto: components['schemas']['PublicWorldLorebookDto'];

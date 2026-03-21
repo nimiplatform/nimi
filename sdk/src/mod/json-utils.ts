@@ -3,22 +3,36 @@ import type { JsonObject } from '../internal/utils.js';
 
 export { asRecord };
 
-/** Parse-only: returns the parsed JSON cast to T without shape validation. Use safeParseObject/safeParseArray for runtime-checked variants. */
-export function safeParseJson<T>(text: string, fallback: T): T {
+/**
+ * Parse JSON without pretending to validate shape.
+ * Use safeParseObject/safeParseArray for runtime-checked collection variants,
+ * or pass a validator when a typed result is required.
+ */
+export function safeParseJson(text: string, fallback: unknown): unknown;
+export function safeParseJson<T>(text: string, fallback: T, validate: (value: unknown) => value is T): T;
+export function safeParseJson<T>(
+  text: string,
+  fallback: T,
+  validate?: (value: unknown) => value is T,
+): T | unknown {
   try {
-    return JSON.parse(String(text || '')) as T;
+    const parsed = JSON.parse(String(text || '')) as unknown;
+    if (!validate) {
+      return parsed;
+    }
+    return validate(parsed) ? parsed : fallback;
   } catch {
     return fallback;
   }
 }
 
 export function safeParseObject(text: string): JsonObject {
-  const parsed = safeParseJson<unknown>(String(text || '{}'), {});
+  const parsed = safeParseJson(String(text || '{}'), {});
   return asRecord(parsed);
 }
 
 export function safeParseArray(text: string): unknown[] {
-  const parsed = safeParseJson<unknown>(String(text || '[]'), []);
+  const parsed = safeParseJson(String(text || '[]'), []);
   return Array.isArray(parsed) ? parsed : [];
 }
 

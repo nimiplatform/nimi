@@ -6,6 +6,7 @@ import type {
   RuntimeForAiProvider,
 } from './types.js';
 import {
+  ensureSafeExternalMediaUrl,
   executeScenarioJob,
   normalizeProviderError,
   normalizeText,
@@ -48,6 +49,9 @@ export function createTranscriptionModelImpl(
         const audioChunks = Array.isArray(options.audioChunks)
           ? options.audioChunks.filter((chunk): chunk is Uint8Array => chunk instanceof Uint8Array && chunk.length > 0)
           : [];
+        const audioUrl = normalizeText(options.audioUrl)
+          ? ensureSafeExternalMediaUrl(options.audioUrl, 'audioUrl')
+          : '';
         const audioSource = audioChunks.length > 0
           ? {
             source: {
@@ -64,11 +68,11 @@ export function createTranscriptionModelImpl(
                 audioBytes: options.audioBytes,
               },
             }
-            : normalizeText(options.audioUrl)
+            : audioUrl
               ? {
                 source: {
                   oneofKind: 'audioUri' as const,
-                  audioUri: normalizeText(options.audioUrl),
+                  audioUri: audioUrl,
                 },
               }
               : undefined;
@@ -103,7 +107,7 @@ export function createTranscriptionModelImpl(
           },
           extensions: [],
         }, defaults.subjectUserId);
-        const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, undefined);
+        const media = await executeScenarioJob(runtime, defaults, request, timeoutMs);
         if (!media.output?.output || media.output.output.oneofKind !== 'speechTranscribe') {
           throw createNimiError({
             message: 'runtime transcription result missing typed speechTranscribe output',

@@ -1,5 +1,5 @@
-import type { HookActionClient } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookActionClient } from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 export function createActionClient(input: {
   modId: string;

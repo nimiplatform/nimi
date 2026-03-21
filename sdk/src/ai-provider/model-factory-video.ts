@@ -4,6 +4,8 @@ import type {
   RuntimeForAiProvider,
 } from './types.js';
 import {
+  ensureSafeExternalMediaUrl,
+  ensureText,
   executeScenarioJob,
   normalizeProviderError,
   normalizeText,
@@ -27,6 +29,9 @@ export function createVideoModelImpl(
       try {
         const resolvedRoute = options.routePolicy || defaults.routePolicy;
         const timeoutMs = options.timeoutMs || defaults.timeoutMs || 0;
+        const prompt = options.mode === 't2v'
+          ? ensureText(options.prompt, 'prompt')
+          : normalizeText(options.prompt);
         const request = withOptionalHeadSubjectUserId({
           head: {
             appId: defaults.appId,
@@ -45,7 +50,7 @@ export function createVideoModelImpl(
             spec: {
               oneofKind: 'videoGenerate' as const,
               videoGenerate: {
-                prompt: normalizeText(options.prompt),
+                prompt,
                 negativePrompt: normalizeText(options.negativePrompt),
                 mode: toVideoModeValue(options.mode),
                 content: Array.isArray(options.content)
@@ -62,7 +67,7 @@ export function createVideoModelImpl(
                       type: 2,
                       role: toVideoRoleValue(entry.role),
                       text: '',
-                      imageUrl: { url: normalizeText(entry.imageUrl) },
+                      imageUrl: { url: ensureSafeExternalMediaUrl(entry.imageUrl, 'imageUrl') },
                     };
                   })
                   : [],

@@ -38,7 +38,10 @@ type RealmLike = {
   ready: () => Promise<void>;
   close: () => Promise<void>;
   unsafeRaw: {
-    request: <T>(input: RealmRawRequest) => Promise<T>;
+    request: {
+      (input: RealmRawRequest): Promise<unknown>;
+      <T>(input: RealmRawRequest & { parseResponse: (value: unknown) => T }): Promise<T>;
+    };
   };
   services: {
     RuntimeRealmGrantsService: {
@@ -129,13 +132,17 @@ async function orchestratePatternC(input: {
   subjectUserId: string;
 }): Promise<void> {
   const [policy, health] = await Promise.all([
-    input.realm.unsafeRaw.request<{ allowed: boolean }>({
+    input.realm.unsafeRaw.request({
       method: 'POST',
       path: '/api/auth/policy/check',
       body: {
         appId: input.appId,
         subjectUserId: input.subjectUserId,
         action: 'ai.generate',
+      },
+      parseResponse: (value) => {
+        const record = (value && typeof value === 'object') ? value as { allowed?: unknown } : {};
+        return { allowed: record.allowed === true };
       },
     }),
     input.runtime.health(),

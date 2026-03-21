@@ -4528,9 +4528,6 @@ export type components = {
         };
         AgentProfileDto: {
             activeWorldId?: string;
-            dna?: components["schemas"]["UserAgentDnaDto"] | null;
-            /** Format: date-time */
-            dnaConfirmedAt?: string | null;
             importance?: components["schemas"]["AgentImportance"];
             /** @description WORLD_OWNED ownership audit field */
             ownerWorldId?: string | null;
@@ -4693,6 +4690,8 @@ export type components = {
         };
         BindEmailDto: {
             email: string;
+            /** @description 6-digit OTP sent to the target email address */
+            emailOtpCode: string;
             password: string;
         };
         BlockUserBodyDto: {
@@ -4740,6 +4739,8 @@ export type components = {
             trigger: string;
         };
         ChangeEmailDto: {
+            /** @description 6-digit OTP sent to the new email address */
+            emailOtpCode: string;
             newEmail: string;
             password: string;
         };
@@ -5075,6 +5076,7 @@ export type components = {
             /** @description ID of the gift transaction to review */
             giftTransactionId: string;
             rating: components["schemas"]["ReviewRating"];
+            /** @description Comma-separated review tags */
             tags?: string;
         };
         CreateSatelliteDto: {
@@ -5644,8 +5646,12 @@ export type components = {
             title: string;
         };
         ListChatsResultDto: {
+            hasMore?: boolean;
             items: components["schemas"]["ChatViewDto"][];
             nextCursor: string | null;
+            page?: number;
+            pageSize?: number;
+            total?: number;
         };
         ListMessagesResultDto: {
             items: components["schemas"]["MessageViewDto"][];
@@ -6094,6 +6100,8 @@ export type components = {
             name: string;
             requirements?: string[];
         };
+        /** @enum {string} */
+        PresenceStatus: "online" | "invisible";
         ProposedChangeDto: {
             /** @description JSON Patch operation (add, remove, replace) */
             op: string;
@@ -6922,7 +6930,7 @@ export type components = {
             nsfwChatEnabled?: boolean;
             onlineStatusVisibility?: components["schemas"]["Visibility"];
             presenceEmoji?: string;
-            presenceStatus?: string;
+            presenceStatus?: components["schemas"]["PresenceStatus"];
             presenceText?: string;
             profileVisibility?: components["schemas"]["Visibility"];
             publicFilter?: components["schemas"]["PublicFilterDto"];
@@ -7241,7 +7249,7 @@ export type components = {
         WalletLoginDto: {
             chainId?: number;
             message: string;
-            nonce?: string;
+            nonce: string;
             signature: string;
             walletAddress: string;
             walletType?: string;

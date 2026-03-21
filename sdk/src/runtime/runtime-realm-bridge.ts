@@ -3,7 +3,9 @@ import type {
   RuntimeRealmBridgeContext,
   RuntimeRealmBridgeHelpers,
 } from './types.js';
+import { createNimiError } from './errors.js';
 import { normalizeText, ensureText } from './helpers.js';
+import { ReasonCode } from '../types/index.js';
 
 type FetchRealmGrantInput = {
   subjectUserId: string;
@@ -30,7 +32,12 @@ export async function fetchRealmGrant(
   const subjectUserId = ensureText(input.subjectUserId, 'subjectUserId');
   const scopes = toStringArray(input.scopes || []);
   if (scopes.length === 0) {
-    throw new Error('scopes is required');
+    throw createNimiError({
+      message: 'scopes is required',
+      reasonCode: ReasonCode.APP_SCOPE_MANIFEST_INVALID,
+      actionHint: 'provide_runtime_grant_scopes',
+      source: 'sdk',
+    });
   }
 
   const response = await context.realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant({

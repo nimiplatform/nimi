@@ -1,7 +1,6 @@
 import {
   asNimiError,
   createNimiError,
-  type RuntimeCallOptions,
   type RuntimeAiSubmitScenarioJobRequestInput,
 } from '../runtime/index.js';
 import type {
@@ -9,12 +8,17 @@ import type {
 } from '../runtime/generated/google/protobuf/struct.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
 import {
-  ROUTE_POLICY_CLOUD,
   type NimiArtifact,
   type RuntimeDefaults,
   type RuntimeForAiProvider,
 } from './types.js';
 import { asRecord, normalizeText } from '../internal/utils.js';
+import {
+  concatChunks,
+  ensureText,
+  fromRouteDecision,
+  toCallOptions,
+} from './helpers-shared.js';
 import {
   type CancelScenarioJobRequest,
   ExecutionMode,
@@ -46,59 +50,14 @@ function ensureScenarioJobReasonCode(value: unknown): string {
   });
 }
 
-function ensureText(value: unknown, fieldName: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw createNimiError({
-      message: `${fieldName} is required`,
-      reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
-      actionHint: `set_${fieldName}`,
-      source: 'sdk',
-    });
-  }
-  return normalized;
-}
-
-function fromRouteDecision(value: unknown): AiRoutePolicy {
-  return Number(value) === ROUTE_POLICY_CLOUD ? 'cloud' : 'local';
-}
-
-function concatChunks(chunks: Uint8Array[]): Uint8Array {
-  const total = chunks.reduce((size, chunk) => size + chunk.length, 0);
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return merged;
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 }
 
-function toCallOptions(
-  defaults: RuntimeDefaults,
-  input: {
-    timeoutMs?: number;
-    metadata?: RuntimeCallOptions['metadata'];
-  },
-): RuntimeCallOptions {
-  const timeoutMs = typeof input.timeoutMs === 'number'
-    ? input.timeoutMs
-    : defaults.timeoutMs;
-  const metadata = {
-    ...(defaults.metadata || {}),
-    ...(input.metadata || {}),
-  };
-
-  return {
-    timeoutMs,
-    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-  };
+function nextPollDelayMs(attempt: number): number {
+  return Math.min(2_000, 250 * Math.max(1, attempt));
 }
 
 export async function executeScenarioJob(
@@ -125,6 +84,7 @@ export async function executeScenarioJob(
   const startedAt = Date.now();
   const maxWaitMs = timeoutMs > 0 ? timeoutMs : 120000;
   let cancelIssued = false;
+  let pollAttempt = 0;
   const cancelRemoteJob = async (reason: string) => {
     if (cancelIssued) {
       return;
@@ -149,7 +109,7 @@ export async function executeScenarioJob(
       await cancelRemoteJob('aborted_by_abort_signal');
       throw createNimiError({
         message: 'scenario job aborted',
-        reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,
+        reasonCode: ReasonCode.OPERATION_ABORTED,
         actionHint: 'retry_scenario_job_request',
         source: 'sdk',
       });
@@ -211,7 +171,8 @@ export async function executeScenarioJob(
         source: 'runtime',
       });
     }
-    await sleep(250);
+    pollAttempt += 1;
+    await sleep(nextPollDelayMs(pollAttempt));
   }
 }
 

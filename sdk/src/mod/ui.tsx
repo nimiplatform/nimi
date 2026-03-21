@@ -5,7 +5,7 @@ import {
   getModSdkSlotHost,
   useModSdkAppStore,
   useModSdkUiExtensionContext,
-} from './internal/ui-access';
+} from './internal/ui-access.js';
 
 export function useAppStore<T>(selector: (state: unknown) => T): T {
   return useModSdkAppStore(selector);

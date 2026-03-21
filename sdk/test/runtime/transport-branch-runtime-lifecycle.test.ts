@@ -48,8 +48,8 @@ test('runtime-lifecycle: connectRuntime returns immediately if already ready', a
   await connectRuntime({
     appId: 'test',
     options: { transport: { type: 'tauri-ipc' } },
-    state: { status: 'ready' },
-    connectPromise: null,
+    getState: () => ({ status: 'ready' }),
+    getConnectPromise: () => null,
     setState: () => {},
     setConnectPromise: () => {},
     setClient: () => { clientSet = true; },
@@ -62,12 +62,13 @@ test('runtime-lifecycle: connectRuntime returns immediately if already ready', a
 test('runtime-lifecycle: connectRuntime returns existing promise if connecting', async () => {
   let resolveFn: () => void = () => {};
   const existingPromise = new Promise<void>((resolve) => { resolveFn = resolve; });
+  const state: RuntimeConnectionState = { status: 'connecting' };
 
   const connectPromise = connectRuntime({
     appId: 'test',
     options: { transport: { type: 'tauri-ipc' } },
-    state: { status: 'connecting' },
-    connectPromise: existingPromise,
+    getState: () => state,
+    getConnectPromise: () => existingPromise,
     setState: () => {},
     setConnectPromise: () => {},
     setClient: () => {},
@@ -81,13 +82,14 @@ test('runtime-lifecycle: connectRuntime returns existing promise if connecting',
 
 test('runtime-lifecycle: connectRuntime throws when no transport configured', async () => {
   let stateSet: RuntimeConnectionState | null = null;
+  let currentState: RuntimeConnectionState = { status: 'idle' };
   await assert.rejects(
     () => connectRuntime({
       appId: 'test',
       options: {}, // no transport
-      state: { status: 'idle' },
-      connectPromise: null,
-      setState: (s) => { stateSet = s; },
+      getState: () => currentState,
+      getConnectPromise: () => null,
+      setState: (s) => { stateSet = s; currentState = s; },
       setConnectPromise: () => {},
       setClient: () => {},
       emitConnected: () => {},
@@ -163,11 +165,14 @@ test('runtime-lifecycle: readyRuntime health unavailable without reason', async 
 // runtime-lifecycle: closeRuntime branches
 // ---------------------------------------------------------------------------
 
-test('runtime-lifecycle: closeRuntime returns early if already closed', () => {
+test('runtime-lifecycle: closeRuntime returns early if already closed', async () => {
   let stateSetCount = 0;
-  closeRuntime({
-    state: { status: 'closed' },
+  await closeRuntime({
+    getState: () => ({ status: 'closed' }),
+    getConnectPromise: () => null,
+    getClient: () => null,
     setState: () => { stateSetCount++; },
+    setConnectPromise: () => {},
     setClient: () => {},
     emitDisconnected: () => {},
     emitTelemetry: () => {},
@@ -175,13 +180,17 @@ test('runtime-lifecycle: closeRuntime returns early if already closed', () => {
   assert.equal(stateSetCount, 0);
 });
 
-test('runtime-lifecycle: closeRuntime transitions through closing to closed', () => {
+test('runtime-lifecycle: closeRuntime transitions through closing to closed', async () => {
   const states: string[] = [];
   let disconnectedAt = '';
   let telemetryName = '';
-  closeRuntime({
-    state: { status: 'ready' },
-    setState: (s) => { states.push(s.status); },
+  let currentState: RuntimeConnectionState = { status: 'ready' };
+  await closeRuntime({
+    getState: () => currentState,
+    getConnectPromise: () => null,
+    getClient: () => null,
+    setState: (s) => { currentState = s; states.push(s.status); },
+    setConnectPromise: () => {},
     setClient: () => {},
     emitDisconnected: (at) => { disconnectedAt = at; },
     emitTelemetry: (name) => { telemetryName = name; },
@@ -191,16 +200,46 @@ test('runtime-lifecycle: closeRuntime transitions through closing to closed', ()
   assert.equal(telemetryName, 'runtime.disconnected');
 });
 
-test('runtime-lifecycle: closeRuntime sets client to null', () => {
+test('runtime-lifecycle: closeRuntime sets client to null', async () => {
   let clientValue: unknown = 'not-null';
-  closeRuntime({
-    state: { status: 'ready' },
+  await closeRuntime({
+    getState: () => ({ status: 'ready' }),
+    getConnectPromise: () => null,
+    getClient: () => null,
     setState: () => {},
+    setConnectPromise: () => {},
     setClient: (c) => { clientValue = c; },
     emitDisconnected: () => {},
     emitTelemetry: () => {},
   });
   assert.equal(clientValue, null);
+});
+
+test('runtime-lifecycle: closeRuntime awaits client cleanup and clears pending connect promise', async () => {
+  let closed = false;
+  let connectPromise: Promise<void> | null = Promise.resolve();
+  let currentState: RuntimeConnectionState = { status: 'ready' };
+  await closeRuntime({
+    getState: () => currentState,
+    getConnectPromise: () => connectPromise,
+    getClient: () => ({
+      close: async () => {
+        closed = true;
+      },
+    } as never),
+    setState: (state) => {
+      currentState = state;
+    },
+    setConnectPromise: (promise) => {
+      connectPromise = promise;
+    },
+    setClient: () => {},
+    emitDisconnected: () => {},
+    emitTelemetry: () => {},
+  });
+  assert.equal(closed, true);
+  assert.equal(connectPromise, null);
+  assert.equal(currentState.status, 'closed');
 });
 
 // ---------------------------------------------------------------------------

@@ -21,6 +21,7 @@ export { MessageType } from './generated/models/MessageType.js';
 export { ModerationStatusString } from './generated/models/ModerationStatusString.js';
 export { OAuthProvider } from './generated/models/OAuthProvider.js';
 export { PostMediaType } from './generated/models/PostMediaType.js';
+export { PresenceStatus } from './generated/models/PresenceStatus.js';
 export { ReportReason } from './generated/models/ReportReason.js';
 export { ReviewRating } from './generated/models/ReviewRating.js';
 export { ScopeType } from './generated/models/ScopeType.js';

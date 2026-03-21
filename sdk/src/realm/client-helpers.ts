@@ -1,22 +1,12 @@
 import { ReasonCode } from '../types/index.js';
 import { asNimiError, createNimiError } from '../runtime/errors.js';
-import { asRecord, normalizeText, nowIso } from '../internal/utils.js';
+import { asRecord, normalizeText, nowIso, readString } from '../internal/utils.js';
 import type { JsonObject } from '../internal/utils.js';
 import type { NimiError } from '../types/index.js';
 
 export const DEFAULT_REALM_TIMEOUT_MS = 10000;
 
 export { asRecord, normalizeText, nowIso };
-
-function pickString(record: JsonObject, keys: string[]): string {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === 'string' && value.trim()) {
-      return value.trim();
-    }
-  }
-  return '';
-}
 
 export function hasValue(value: unknown): boolean {
   return value !== undefined && value !== null;
@@ -100,7 +90,7 @@ export function isResponse(value: unknown): value is Response {
   return typeof Response !== 'undefined' && value instanceof Response;
 }
 
-export async function readErrorBody(value: unknown): Promise<JsonObject> {
+export function readErrorBody(value: unknown): JsonObject {
   if (!value) {
     return {};
   }
@@ -132,24 +122,24 @@ export function extractResponseReasonCode(
   details: JsonObject;
 } {
   const nestedError = asRecord(body.error);
-  const rawReasonCode = pickString(body, ['reasonCode', 'reason_code'])
-    || pickString(nestedError, ['reasonCode', 'reason_code'])
+  const rawReasonCode = readString(body, ['reasonCode', 'reason_code'])
+    || readString(nestedError, ['reasonCode', 'reason_code'])
     || normalizeText(response.headers.get('x-reason-code'));
 
   const reasonCode = rawReasonCode || mapRealmStatusReasonCode(response.status);
   const code = mapRealmStatusReasonCode(response.status);
 
-  const actionHint = pickString(body, ['actionHint', 'action_hint'])
-    || pickString(nestedError, ['actionHint', 'action_hint'])
+  const actionHint = readString(body, ['actionHint', 'action_hint'])
+    || readString(nestedError, ['actionHint', 'action_hint'])
     || normalizeText(response.headers.get('x-action-hint'))
     || mapRealmStatusActionHint(response.status);
 
-  const traceId = pickString(body, ['traceId', 'trace_id'])
-    || pickString(nestedError, ['traceId', 'trace_id'])
+  const traceId = readString(body, ['traceId', 'trace_id'])
+    || readString(nestedError, ['traceId', 'trace_id'])
     || normalizeText(response.headers.get('x-trace-id'));
 
-  const message = pickString(body, ['message'])
-    || pickString(nestedError, ['message'])
+  const message = readString(body, ['message'])
+    || readString(nestedError, ['message'])
     || `${response.status} ${response.statusText}`;
 
   const retryable = response.status === 429 || response.status >= 500;

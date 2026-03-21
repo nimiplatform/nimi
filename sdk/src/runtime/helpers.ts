@@ -496,8 +496,13 @@ export function toProtoStruct(input: Record<string, unknown> | undefined): Struc
   }
   try {
     return Struct.fromJson(input as never);
-  } catch {
-    return undefined;
+  } catch (error) {
+    throw createNimiError({
+      message: `failed to encode proto struct: ${error instanceof Error ? error.message : 'unknown error'}`,
+      reasonCode: ReasonCode.SDK_RUNTIME_REQUEST_ENCODE_FAILED,
+      actionHint: 'remove_non_json_extension_values',
+      source: 'sdk',
+    });
   }
 }
 
@@ -620,9 +625,10 @@ export function decodeUtf8(input: Uint8Array): string {
   if (typeof TextDecoder !== 'undefined') {
     return new TextDecoder('utf-8').decode(input);
   }
-  let output = '';
-  for (let index = 0; index < input.length; index += 1) {
-    output += String.fromCharCode(input[index] || 0);
-  }
-  return output;
+  throw createNimiError({
+    message: 'utf-8 decoder unavailable',
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'use_node_or_text_decoder_runtime',
+    source: 'sdk',
+  });
 }

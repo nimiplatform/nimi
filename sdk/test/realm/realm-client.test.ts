@@ -158,6 +158,39 @@ test('Realm exposes unsafeRaw as the explicit escape hatch', () => {
   assert.equal(typeof realm.unsafeRaw.request, 'function');
 });
 
+test('Realm unsafeRaw.request only returns typed data through explicit parsing', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (): Promise<Response> => {
+    return new Response(JSON.stringify({ allowed: true }), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json',
+      },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-parser.nimi.xyz',
+      auth: null,
+    });
+
+    const result = await realm.unsafeRaw.request({
+      method: 'GET',
+      path: '/api/policy',
+      parseResponse: (value) => {
+        const record = (value && typeof value === 'object') ? value as { allowed?: unknown } : {};
+        return { allowed: record.allowed === true };
+      },
+    });
+
+    assert.deepEqual(result, { allowed: true });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('Realm services facade uses instance config (no global OpenAPI mutation)', async () => {
   const originalFetch = globalThis.fetch;
   const calls: string[] = [];
@@ -859,6 +892,11 @@ test('Realm.decodeTokenExpiry parses valid and invalid JWTs', () => {
   // Malformed base64
   const malformedJwt = 'header.!!!invalid-base64!!!.signature';
   assert.equal(Realm.decodeTokenExpiry(malformedJwt), null);
+
+  const base64UrlPayload = Buffer.from(JSON.stringify({ sub: 'user-1', exp: 1700000001 }))
+    .toString('base64url');
+  const base64UrlJwt = `header.${base64UrlPayload}.signature`;
+  assert.equal(Realm.decodeTokenExpiry(base64UrlJwt)?.expiresAt, 1700000001 * 1000);
 });
 
 test('Realm explicit unauthenticated mode does not send Authorization header (SDKREALM-016)', async () => {
@@ -931,6 +969,18 @@ test('Realm ready() fails closed on probe failure and still emits error event', 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test('Realm rejects non-positive timeoutMs values', async () => {
+  const realm = new Realm({
+    baseUrl: 'https://realm-timeout-invalid.nimi.xyz',
+    auth: null,
+  });
+
+  await assert.rejects(
+    () => realm.ready({ timeoutMs: 0 }),
+    (error: unknown) => asNimiError(error, { source: 'sdk' }).reasonCode === ReasonCode.SDK_REALM_CONFIG_INVALID,
+  );
 });
 
 test('Realm services support path-first call pattern for mixed path/query methods', async () => {

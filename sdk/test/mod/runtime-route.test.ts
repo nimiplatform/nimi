@@ -139,3 +139,13 @@ test('parseRuntimeRouteOptions keeps local adapter and go runtime metadata', () 
   assert.equal(parsed?.selected.goRuntimeStatus, 'active');
   assert.equal(parsed?.local.models[0]?.goRuntimeLocalModelId, '01JTESTLOCALAIMODEL');
 });
+
+test('parseRuntimeRouteBinding drops unknown adapters instead of widening to arbitrary strings', () => {
+  const parsed = parseRuntimeRouteBinding({
+    source: 'local',
+    model: 'local-model',
+    adapter: 'totally_unknown_adapter',
+  });
+
+  assert.equal(parsed?.adapter, undefined);
+});

@@ -159,19 +159,19 @@ export async function resolveOptionalRuntimeSubjectUserId(input: {
 }): Promise<string | undefined> {
   const direct = normalizeText(input.explicit);
   if (direct) {
-    return direct || undefined;
+    return direct;
   }
 
   const configured = normalizeText(input.subjectContext?.subjectUserId);
   if (configured) {
-    return configured || undefined;
+    return configured;
   }
 
   const resolver = input.subjectContext?.getSubjectUserId;
   if (typeof resolver === 'function') {
     const resolved = normalizeText(await resolver());
     if (resolved) {
-      return resolved || undefined;
+      return resolved;
     }
   }
 

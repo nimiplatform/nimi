@@ -323,8 +323,8 @@ export class Runtime {
     await connectRuntime({
       appId: this.appId,
       options: this.#options,
-      state: this.#state,
-      connectPromise: this.#connectPromise,
+      getState: () => this.#state,
+      getConnectPromise: () => this.#connectPromise,
       setState: (state) => {
         this.#state = state;
       },
@@ -358,10 +358,15 @@ export class Runtime {
   }
 
   async close(): Promise<void> {
-    closeRuntime({
-      state: this.#state,
+    await closeRuntime({
+      getState: () => this.#state,
+      getConnectPromise: () => this.#connectPromise,
+      getClient: () => this.#client,
       setState: (state) => {
         this.#state = state;
+      },
+      setConnectPromise: (promise) => {
+        this.#connectPromise = promise;
       },
       setClient: (client) => {
         this.#client = client;
@@ -480,6 +485,9 @@ export class Runtime {
         source: 'runtime',
       }),
       onRecovered: (attempt) => {
+        if (this.#state.status === 'closing' || this.#state.status === 'closed') {
+          return;
+        }
         if (this.#state.status !== 'ready') {
           const at = nowIso();
           this.#state = {
@@ -496,6 +504,9 @@ export class Runtime {
         }
       },
       onRetry: (normalized, attempt, backoffMs, maxAttempts) => {
+        if (this.#state.status === 'closing' || this.#state.status === 'closed') {
+          return;
+        }
         const at = nowIso();
         this.#client = null;
         this.#state = {
@@ -519,6 +530,12 @@ export class Runtime {
         });
       },
       onTerminalError: (normalized) => {
+        if (
+          normalized.reasonCode === ReasonCode.OPERATION_ABORTED
+          && (this.#state.status === 'closing' || this.#state.status === 'closed')
+        ) {
+          return;
+        }
         this.#eventBus.emit('error', {
           error: normalized,
           at: nowIso(),

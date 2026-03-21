@@ -5,7 +5,7 @@
 - SDK work starts only after runtime gates are green.
 
 ## Hard Boundaries
-- Public surface is the single package `@nimiplatform/sdk` with stable subpaths such as `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`, `@nimiplatform/sdk/mod`, `@nimiplatform/sdk/mod/shell`, and `@nimiplatform/sdk/mod/lifecycle`.
+- Public surface is the single package `@nimiplatform/sdk` with stable subpaths such as `@nimiplatform/sdk/runtime`, `@nimiplatform/sdk/realm`, `@nimiplatform/sdk/mod`, `@nimiplatform/sdk/mod/shell`, `@nimiplatform/sdk/mod/lifecycle`, and `@nimiplatform/sdk/mod/storage`.
 - Do not add legacy split packages, private deep imports, or public `Parameters<T>` / `ReturnType<T>` facade signatures.
 - Do not cross private `realm` and `runtime` boundaries.
 - Generated code is read-only: `sdk/src/runtime/generated/**`, `sdk/src/realm/generated/**`.

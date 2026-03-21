@@ -588,6 +588,18 @@ export function createNodeGrpcTransport(
     stream.cancel();
   };
 
+  const destroyInternal = async (): Promise<void> => {
+    const streamIds = Array.from(openStreams.keys());
+    await Promise.allSettled(streamIds.map((streamId) => closeStreamInternal({ streamId })));
+    const runtime = runtimePromise
+      ? await runtimePromise.catch(() => null)
+      : null;
+    runtimePromise = null;
+    if (runtime) {
+      runtime.client.close();
+    }
+  };
+
   return {
     invokeUnary: async (input: RuntimeUnaryCall<RuntimeWireMessage>): Promise<RuntimeWireMessage> => {
       try {
@@ -628,6 +640,17 @@ export function createNodeGrpcTransport(
         throw asNimiError(error, {
           reasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_CLOSE_FAILED,
           actionHint: 'retry_close_or_drop_stream',
+          source: 'runtime',
+        });
+      }
+    },
+    destroy: async (): Promise<void> => {
+      try {
+        await destroyInternal();
+      } catch (error) {
+        throw asNimiError(error, {
+          reasonCode: ReasonCode.SDK_RUNTIME_NODE_GRPC_STREAM_CLOSE_FAILED,
+          actionHint: 'retry_close_or_recreate_runtime_client',
           source: 'runtime',
         });
       }

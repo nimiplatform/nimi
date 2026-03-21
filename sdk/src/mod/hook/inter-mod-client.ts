@@ -1,5 +1,5 @@
-import type { HookInterModClient } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookInterModClient } from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 export function createInterModClient(input: {
   modId: string;

@@ -63,6 +63,17 @@ test('createScopeModule enforces app binding and manifest validation', () => {
   }
   assert.ok(emptyScopesError);
   assert.equal(asNimiError(emptyScopesError, { source: 'sdk' }).reasonCode, 'APP_SCOPE_MANIFEST_INVALID');
+
+  let missingManifestError: unknown = null;
+  try {
+    scope.registerAppScopes({
+      manifest: undefined as never,
+    });
+  } catch (error) {
+    missingManifestError = error;
+  }
+  assert.ok(missingManifestError);
+  assert.equal(asNimiError(missingManifestError, { source: 'sdk' }).reasonCode, 'APP_SCOPE_MANIFEST_INVALID');
 });
 
 test('createScopeModule covers publish/revoke conflict branches', () => {
@@ -124,4 +135,19 @@ test('createScopeModule covers publish/revoke conflict branches', () => {
   }
   assert.ok(revokedVersionError);
   assert.equal(asNimiError(revokedVersionError, { source: 'sdk' }).reasonCode, 'APP_SCOPE_REVOKED');
+
+  scope.registerAppScopes({
+    manifest: {
+      manifestVersion: '1.0.0',
+      scopes: ['app.nimi.scope.coverage.chat.read'],
+    },
+  });
+  let republishRevokedError: unknown = null;
+  try {
+    scope.publishCatalog();
+  } catch (error) {
+    republishRevokedError = error;
+  }
+  assert.ok(republishRevokedError);
+  assert.equal(asNimiError(republishRevokedError, { source: 'sdk' }).reasonCode, 'APP_SCOPE_REVOKED');
 });

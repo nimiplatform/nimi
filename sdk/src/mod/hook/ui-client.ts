@@ -1,5 +1,5 @@
-import type { HookUiClient } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookUiClient } from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 export function createUiClient(input: {
   modId: string;

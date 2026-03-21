@@ -1,5 +1,5 @@
-import type { HookDataClient } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookDataClient } from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 export function createDataClient(input: {
   modId: string;

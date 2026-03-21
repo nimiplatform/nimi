@@ -14,23 +14,33 @@ import type {
 export async function connectRuntime(input: {
   appId: string;
   options: RuntimeOptions;
-  state: RuntimeConnectionState;
-  connectPromise: Promise<void> | null;
+  getState: () => RuntimeConnectionState;
+  getConnectPromise: () => Promise<void> | null;
   setState: (state: RuntimeConnectionState) => void;
   setConnectPromise: (promise: Promise<void> | null) => void;
   setClient: (client: RuntimeClient | null) => void;
   emitConnected: (at: string) => void;
   emitTelemetry: (name: string, data?: JsonObject) => void;
 }): Promise<void> {
-  if (input.state.status === 'ready') {
+  const state = input.getState();
+  if (state.status === 'ready') {
     return;
   }
-  if (input.connectPromise) {
-    return input.connectPromise;
+  if (state.status === 'closing' || state.status === 'closed') {
+    throw createNimiError({
+      message: 'runtime is closing or closed',
+      reasonCode: ReasonCode.OPERATION_ABORTED,
+      actionHint: 'create_new_runtime_instance',
+      source: 'sdk',
+    });
+  }
+  const existingConnectPromise = input.getConnectPromise();
+  if (existingConnectPromise) {
+    return existingConnectPromise;
   }
 
   input.setState({
-    ...input.state,
+    ...input.getState(),
     status: 'connecting',
   });
 
@@ -45,14 +55,20 @@ export async function connectRuntime(input: {
         source: 'sdk',
       });
     }
-    input.setClient(createRuntimeClient({
+    const client = createRuntimeClient({
       appId: input.appId,
       transport,
       defaults: input.options.defaults,
       auth: input.options.auth,
-    }));
+    });
+    const nextState = input.getState();
+    if (nextState.status === 'closing' || nextState.status === 'closed') {
+      await client.close();
+      return;
+    }
+    input.setClient(client);
     input.setState({
-      ...input.state,
+      ...input.getState(),
       status: 'ready',
       connectedAt,
     });
@@ -65,10 +81,13 @@ export async function connectRuntime(input: {
   try {
     await connectPromise;
   } catch (error) {
-    input.setState({
-      ...input.state,
-      status: 'idle',
-    });
+    const currentState = input.getState();
+    if (currentState.status !== 'closing' && currentState.status !== 'closed') {
+      input.setState({
+        ...currentState,
+        status: 'idle',
+      });
+    }
     throw error;
   } finally {
     input.setConnectPromise(null);
@@ -101,27 +120,41 @@ export async function readyRuntime(input: {
   input.markReady(nowIso());
 }
 
-export function closeRuntime(input: {
-  state: RuntimeConnectionState;
+export async function closeRuntime(input: {
+  getState: () => RuntimeConnectionState;
+  getConnectPromise: () => Promise<void> | null;
+  getClient: () => RuntimeClient | null;
   setState: (state: RuntimeConnectionState) => void;
+  setConnectPromise: (promise: Promise<void> | null) => void;
   setClient: (client: RuntimeClient | null) => void;
   emitDisconnected: (at: string) => void;
   emitTelemetry: (name: string, data?: JsonObject) => void;
-}): void {
-  if (input.state.status === 'closed') {
+}): Promise<void> {
+  if (input.getState().status === 'closed') {
     return;
   }
 
   input.setState({
-    ...input.state,
+    ...input.getState(),
     status: 'closing',
   });
 
+  const pendingConnect = input.getConnectPromise();
+  if (pendingConnect) {
+    await pendingConnect.catch(() => {});
+  }
+
+  const client = input.getClient();
+  if (client) {
+    await client.close().catch(() => {});
+  }
+
   input.setClient(null);
+  input.setConnectPromise(null);
 
   const at = nowIso();
   input.setState({
-    ...input.state,
+    ...input.getState(),
     status: 'closed',
   });
   input.emitDisconnected(at);

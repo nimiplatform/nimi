@@ -5,6 +5,7 @@ import type {
 } from './types.js';
 import { createNimiError } from '../runtime/index.js';
 import {
+  ensureText,
   executeScenarioJob,
   normalizeProviderError,
   normalizeText,
@@ -43,7 +44,7 @@ export function createSpeechModelImpl(
             spec: {
               oneofKind: 'speechSynthesize' as const,
               speechSynthesize: {
-                text: normalizeText(options.text),
+                text: ensureText(options.text, 'text'),
                 language: normalizeText(options.language),
                 audioFormat: normalizeText(options.audioFormat),
                 sampleRateHz: Number(options.sampleRateHz || 0),

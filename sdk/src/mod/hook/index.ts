@@ -1,15 +1,15 @@
-import type { HookClient } from '../types';
-import { createActionClient } from './action-client';
-import { createAuditClient, createMetaClient } from './meta-client';
-import { createEventClient } from './event-client';
-import { createDataClient } from './data-client';
-import { createStorageClient } from './storage-client';
-import { createTurnClient } from './turn-client';
-import { createUiClient } from './ui-client';
-import { createInterModClient } from './inter-mod-client';
-import { createProfileClient } from './profile-client';
-import { getHookRuntimes, normalizeHookModId } from './shared';
-import type { ModRuntimeContextInput } from '../types/runtime-mod';
+import type { HookClient } from '../types/index.js';
+import { createActionClient } from './action-client.js';
+import { createAuditClient, createMetaClient } from './meta-client.js';
+import { createEventClient } from './event-client.js';
+import { createDataClient } from './data-client.js';
+import { createStorageClient } from './storage-client.js';
+import { createTurnClient } from './turn-client.js';
+import { createUiClient } from './ui-client.js';
+import { createInterModClient } from './inter-mod-client.js';
+import { createProfileClient } from './profile-client.js';
+import { getHookRuntimes, normalizeHookModId } from './shared.js';
+import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
 
 export function createHookClient(modId: string, context?: ModRuntimeContextInput): HookClient {
   const normalizedModId = normalizeHookModId(modId);

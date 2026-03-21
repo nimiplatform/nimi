@@ -23,6 +23,14 @@ import {
   type RuntimeForAiProvider,
 } from './types.js';
 import { asRecord, normalizeText } from '../internal/utils.js';
+import {
+  concatChunks,
+  ensureSafeExternalMediaUrl,
+  ensureText,
+  fromRouteDecision,
+  toCallOptions,
+} from './helpers-shared.js';
+export { ensureSafeExternalMediaUrl, ensureText, fromRouteDecision, toCallOptions };
 export {
   collectArtifacts,
   executeScenarioJob,
@@ -33,19 +41,6 @@ export {
   toSpeechTranscriptionFromScenarioOutput,
 } from './helpers-scenario.js';
 export { asRecord, normalizeText };
-
-export function ensureText(value: unknown, fieldName: string): string {
-  const normalized = normalizeText(value);
-  if (!normalized) {
-    throw createNimiError({
-      message: `${fieldName} is required`,
-      reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
-      actionHint: `set_${fieldName}`,
-      source: 'sdk',
-    });
-  }
-  return normalized;
-}
 
 export function parseCount(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
@@ -62,10 +57,6 @@ export function resolveRoutePolicy(value: AiRoutePolicy | undefined): number {
   return value === 'cloud'
     ? ROUTE_POLICY_CLOUD
     : ROUTE_POLICY_LOCAL;
-}
-
-export function fromRouteDecision(value: unknown): AiRoutePolicy {
-  return Number(value) === ROUTE_POLICY_CLOUD ? 'cloud' : 'local';
 }
 
 export function toProviderMetadata(input: {
@@ -231,12 +222,12 @@ function extractPromptText(content: unknown): string {
 function extractFileUrl(part: Record<string, unknown>): string | undefined {
   const data = part.data;
   if (data instanceof URL) {
-    return data.toString();
+    return ensureSafeExternalMediaUrl(data.toString(), 'file.data');
   }
   if (typeof data === 'string') {
     const trimmed = data.trim();
     if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
+      return ensureSafeExternalMediaUrl(trimmed, 'file.data');
     }
     // v1: skip non-URL strings (base64, data URIs) — URL-only policy
   }
@@ -340,37 +331,55 @@ function extractContentParts(
       const mediaType = normalizeText(record.mediaType);
       if (mediaType && mediaType.startsWith('image/')) {
         const url = extractFileUrl(record);
-        if (url) {
-          result.push({
-            type: ChatContentPartType.IMAGE_URL,
-            text: '',
-            imageUrl: { url, detail: 'auto' },
-            videoUrl: '',
-            audioUrl: '',
+        if (!url) {
+          throw createNimiError({
+            message: 'image file parts require a public https URL source',
+            reasonCode: ReasonCode.AI_INPUT_INVALID,
+            actionHint: 'set_image_file_https_url',
+            source: 'sdk',
           });
         }
+        result.push({
+          type: ChatContentPartType.IMAGE_URL,
+          text: '',
+          imageUrl: { url, detail: 'auto' },
+          videoUrl: '',
+          audioUrl: '',
+        });
       } else if (mediaType && mediaType.startsWith('video/')) {
         const url = extractFileUrl(record);
-        if (url) {
-          result.push({
-            type: ChatContentPartType.VIDEO_URL,
-            text: '',
-            imageUrl: undefined,
-            videoUrl: url,
-            audioUrl: '',
+        if (!url) {
+          throw createNimiError({
+            message: 'video file parts require a public https URL source',
+            reasonCode: ReasonCode.AI_INPUT_INVALID,
+            actionHint: 'set_video_file_https_url',
+            source: 'sdk',
           });
         }
+        result.push({
+          type: ChatContentPartType.VIDEO_URL,
+          text: '',
+          imageUrl: undefined,
+          videoUrl: url,
+          audioUrl: '',
+        });
       } else if (mediaType && mediaType.startsWith('audio/')) {
         const url = extractFileUrl(record);
-        if (url) {
-          result.push({
-            type: ChatContentPartType.AUDIO_URL,
-            text: '',
-            imageUrl: undefined,
-            videoUrl: '',
-            audioUrl: url,
+        if (!url) {
+          throw createNimiError({
+            message: 'audio file parts require a public https URL source',
+            reasonCode: ReasonCode.AI_INPUT_INVALID,
+            actionHint: 'set_audio_file_https_url',
+            source: 'sdk',
           });
         }
+        result.push({
+          type: ChatContentPartType.AUDIO_URL,
+          text: '',
+          imageUrl: undefined,
+          videoUrl: '',
+          audioUrl: url,
+        });
       } else if (mediaType) {
         throw createUnsupportedTextChatPartError();
       }
@@ -381,23 +390,14 @@ function extractContentParts(
 }
 
 export function extractGenerateText(output: unknown): string {
-  const value = output as ScenarioOutput | undefined;
+  const value = (output && typeof output === 'object')
+    ? output as ScenarioOutput
+    : undefined;
   const variant = value?.output;
   if (variant?.oneofKind === 'textGenerate') {
     return normalizeText(variant.textGenerate.text);
   }
   return '';
-}
-
-export function concatChunks(chunks: Uint8Array[]): Uint8Array {
-  const total = chunks.reduce((size, chunk) => size + chunk.length, 0);
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return merged;
 }
 
 export function toBase64(value: Uint8Array): string {
@@ -499,11 +499,12 @@ export function toUtf8(value: Uint8Array): string {
   if (typeof TextDecoder !== 'undefined') {
     return new TextDecoder('utf-8').decode(value);
   }
-  let output = '';
-  for (let index = 0; index < value.length; index += 1) {
-    output += String.fromCharCode(value[index] || 0);
-  }
-  return output;
+  throw createNimiError({
+    message: 'utf-8 decoder unavailable',
+    reasonCode: ReasonCode.SDK_RUNTIME_RESPONSE_DECODE_FAILED,
+    actionHint: 'use_node_or_text_decoder_runtime',
+    source: 'sdk',
+  });
 }
 
 export function toProtoStruct(input: Record<string, unknown> | undefined): any {
@@ -512,8 +513,13 @@ export function toProtoStruct(input: Record<string, unknown> | undefined): any {
   }
   try {
     return Struct.fromJson(input as never);
-  } catch {
-    return undefined;
+  } catch (error) {
+    throw createNimiError({
+      message: `failed to encode proto struct: ${error instanceof Error ? error.message : 'unknown error'}`,
+      reasonCode: ReasonCode.SDK_AI_PROVIDER_CONFIG_INVALID,
+      actionHint: 'remove_non_json_extension_values',
+      source: 'sdk',
+    });
   }
 }
 
@@ -572,27 +578,6 @@ export function ensureRuntime(config: NimiAiProviderConfig): {
   };
 }
 
-
-export function toCallOptions(
-  defaults: RuntimeDefaults,
-  input: {
-    timeoutMs?: number;
-    metadata?: RuntimeCallOptions['metadata'];
-  },
-): RuntimeCallOptions {
-  const timeoutMs = typeof input.timeoutMs === 'number'
-    ? input.timeoutMs
-    : defaults.timeoutMs;
-  const metadata = {
-    ...(defaults.metadata || {}),
-    ...(input.metadata || {}),
-  };
-
-  return {
-    timeoutMs,
-    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-  };
-}
 
 export function toStreamOptions(
   defaults: RuntimeDefaults,

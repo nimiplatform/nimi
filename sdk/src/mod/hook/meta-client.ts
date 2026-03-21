@@ -1,5 +1,5 @@
-import type { HookAuditClient, HookMetaClient } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookAuditClient, HookMetaClient } from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 function assertOwnModId(currentModId: string, requestedModId?: string): string {
   const normalizedCurrent = String(currentModId || '').trim();

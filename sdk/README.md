@@ -18,6 +18,7 @@ SDK 已完成单包收敛：
 - `@nimiplatform/sdk/mod`
 - `@nimiplatform/sdk/mod/shell`
 - `@nimiplatform/sdk/mod/lifecycle`
+- `@nimiplatform/sdk/mod/storage`
 
 ## Guardrails
 

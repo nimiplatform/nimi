@@ -111,6 +111,7 @@ export type RuntimeTransport = {
   invokeUnary(input: RuntimeUnaryCall<RuntimeWireMessage>): Promise<RuntimeWireMessage>;
   openStream(input: RuntimeOpenStreamCall<RuntimeWireMessage>): Promise<AsyncIterable<RuntimeWireMessage>>;
   closeStream(input: RuntimeStreamCloseCall): Promise<void>;
+  destroy(): Promise<void>;
 };
 
 export type RuntimeClientFactory = {

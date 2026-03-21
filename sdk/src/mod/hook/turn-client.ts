@@ -1,5 +1,5 @@
-import type { HookTurnClient } from '../types';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookTurnClient } from '../types/index.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 export function createTurnClient(input: {
   modId: string;

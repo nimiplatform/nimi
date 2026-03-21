@@ -279,12 +279,185 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
   ctx: RuntimeInternalContext,
   input: ScenarioJobSubmitInput,
 ): Promise<SubmitScenarioJobRequest> {
-  const timeoutMs = Number(
-    (input.input as { timeoutMs?: unknown }).timeoutMs || ctx.options.timeoutMs || 0,
-  );
-  const route = toRoutePolicy((input.input as { route?: NimiRoutePolicy }).route);
-  const connectorId = normalizeText((input.input as { connectorId?: string }).connectorId);
+  switch (input.modal) {
+    case 'image': {
+      const value = input.input;
+      const base = await buildBaseSubmitScenarioJobRequest(ctx, input.modal, value);
+      return {
+        ...base,
+        spec: {
+          spec: {
+            oneofKind: 'imageGenerate',
+            imageGenerate: {
+              prompt: normalizeText(value.prompt),
+              negativePrompt: normalizeText(value.negativePrompt),
+              n: Number(value.n || 0),
+              size: normalizeText(value.size),
+              aspectRatio: normalizeText(value.aspectRatio),
+              quality: normalizeText(value.quality),
+              style: normalizeText(value.style),
+              seed: String(value.seed || 0),
+              referenceImages: Array.isArray(value.referenceImages) ? value.referenceImages : [],
+              mask: normalizeText(value.mask),
+              responseFormat: normalizeText(value.responseFormat),
+            },
+          },
+        },
+      };
+    }
+    case 'video': {
+      const value = input.input;
+      const base = await buildBaseSubmitScenarioJobRequest(ctx, input.modal, value);
+      const options = value.options || {};
+      const videoContent = Array.isArray(value.content)
+        ? value.content.map((entry) => {
+          if (entry.type === 'text') {
+            return {
+              type: VideoContentType.TEXT,
+              role: toVideoContentRole(entry.role || 'prompt'),
+              text: normalizeText(entry.text),
+              imageUrl: undefined,
+            };
+          }
+          return {
+            type: VideoContentType.IMAGE_URL,
+            role: toVideoContentRole(entry.role),
+            text: '',
+            imageUrl: { url: normalizeText(entry.imageUrl) },
+          };
+        })
+        : [];
 
+      return {
+        ...base,
+        spec: {
+          spec: {
+            oneofKind: 'videoGenerate',
+            videoGenerate: {
+              prompt: normalizeText(value.prompt),
+              negativePrompt: normalizeText(value.negativePrompt),
+              mode: toVideoMode(value.mode),
+              content: videoContent,
+              options: {
+                resolution: normalizeText(options.resolution),
+                ratio: normalizeText(options.ratio),
+                durationSec: Number(options.durationSec || 0),
+                frames: Number(options.frames || 0),
+                fps: Number(options.fps || 0),
+                seed: String(options.seed || 0),
+                cameraFixed: Boolean(options.cameraFixed),
+                watermark: Boolean(options.watermark),
+                generateAudio: Boolean(options.generateAudio),
+                draft: Boolean(options.draft),
+                serviceTier: normalizeText(options.serviceTier),
+                executionExpiresAfterSec: Number(options.executionExpiresAfterSec || 0),
+                returnLastFrame: Boolean(options.returnLastFrame),
+              },
+            },
+          },
+        },
+      };
+    }
+    case 'tts': {
+      const value = input.input;
+      const base = await buildBaseSubmitScenarioJobRequest(ctx, input.modal, value);
+      return {
+        ...base,
+        spec: {
+          spec: {
+            oneofKind: 'speechSynthesize',
+            speechSynthesize: {
+              text: normalizeText(value.text),
+              language: normalizeText(value.language),
+              audioFormat: normalizeText(value.audioFormat),
+              sampleRateHz: Number(value.sampleRateHz || 0),
+              speed: Number(value.speed || 0),
+              pitch: Number(value.pitch || 0),
+              volume: Number(value.volume || 0),
+              emotion: normalizeText(value.emotion),
+              voiceRef: toVoiceRef(value.voice),
+              timingMode: toSpeechTimingMode(value.timingMode),
+              voiceRenderHints: value.voiceRenderHints
+                ? {
+                  stability: Number(value.voiceRenderHints.stability || 0),
+                  similarityBoost: Number(value.voiceRenderHints.similarityBoost || 0),
+                  style: Number(value.voiceRenderHints.style || 0),
+                  useSpeakerBoost: Boolean(value.voiceRenderHints.useSpeakerBoost),
+                  speed: Number(value.voiceRenderHints.speed || 0),
+                }
+                : undefined,
+            },
+          },
+        },
+      };
+    }
+    case 'music': {
+      const value = input.input;
+      const base = await buildBaseSubmitScenarioJobRequest(ctx, input.modal, value);
+      return {
+        ...base,
+        spec: {
+          spec: {
+            oneofKind: 'musicGenerate',
+            musicGenerate: {
+              prompt: normalizeText(value.prompt),
+              negativePrompt: normalizeText(value.negativePrompt),
+              lyrics: normalizeText(value.lyrics),
+              style: normalizeText(value.style),
+              title: normalizeText(value.title),
+              durationSeconds: Number(value.durationSeconds || 0),
+              instrumental: Boolean(value.instrumental),
+            },
+          },
+        },
+      };
+    }
+    case 'stt': {
+      const value = input.input;
+      const base = await buildBaseSubmitScenarioJobRequest(ctx, input.modal, value);
+      return {
+        ...base,
+        spec: {
+          spec: {
+            oneofKind: 'speechTranscribe',
+            speechTranscribe: {
+              mimeType: ensureText(value.mimeType, 'mimeType'),
+              language: normalizeText(value.language),
+              timestamps: Boolean(value.timestamps),
+              diarization: Boolean(value.diarization),
+              speakerCount: Number(value.speakerCount || 0),
+              prompt: normalizeText(value.prompt),
+              audioSource: toSpeechTranscribeAudioSource(value.audio),
+              responseFormat: normalizeText(value.responseFormat),
+            },
+          },
+        },
+      };
+    }
+  }
+}
+
+type ScenarioCommonInput = {
+  model: string;
+  subjectUserId?: string;
+  route?: NimiRoutePolicy;
+  timeoutMs?: number;
+  connectorId?: string;
+  metadata?: Record<string, string>;
+  idempotencyKey?: string;
+  requestId?: string;
+  labels?: Record<string, string>;
+  extensions?: JsonObject;
+};
+
+async function buildBaseSubmitScenarioJobRequest(
+  ctx: RuntimeInternalContext,
+  modal: ScenarioJobSubmitInput['modal'],
+  input: ScenarioCommonInput,
+): Promise<SubmitScenarioJobRequest> {
+  const timeoutMs = Number(input.timeoutMs || ctx.options.timeoutMs || 0);
+  const route = toRoutePolicy(input.route);
+  const connectorId = normalizeText(input.connectorId);
   const subjectUserId = runtimeAiRequestRequiresSubject({
     request: {
       head: {
@@ -292,210 +465,67 @@ export async function runtimeBuildSubmitScenarioJobRequestForMedia(
         connectorId,
       },
     },
-    metadata: (input.input as { metadata?: Record<string, string> }).metadata,
+    metadata: input.metadata,
   })
-    ? await ctx.resolveSubjectUserId((input.input as { subjectUserId?: string }).subjectUserId)
-    : await ctx.resolveOptionalSubjectUserId((input.input as { subjectUserId?: string }).subjectUserId);
+    ? await ctx.resolveSubjectUserId(input.subjectUserId)
+    : await ctx.resolveOptionalSubjectUserId(input.subjectUserId);
   const head = await ctx.normalizeScenarioHead({
     head: {
       appId: ctx.appId,
       subjectUserId: subjectUserId || '',
-      modelId: ensureText((input.input as { model: string }).model, 'model'),
+      modelId: ensureText(input.model, 'model'),
       routePolicy: route,
       timeoutMs,
       connectorId,
     },
-    metadata: (input.input as { metadata?: Record<string, string> }).metadata,
+    metadata: input.metadata,
   });
 
-  const base: SubmitScenarioJobRequest = {
+  return {
     head,
-    scenarioType: scenarioTypeFromModal(input.modal),
+    scenarioType: scenarioTypeFromModal(modal),
     executionMode: ExecutionMode.ASYNC_JOB,
-    requestId: normalizeText((input.input as { requestId?: string }).requestId),
-    idempotencyKey: normalizeText((input.input as { idempotencyKey?: string }).idempotencyKey),
-    labels: toLabels((input.input as { labels?: Record<string, string> }).labels),
+    requestId: normalizeText(input.requestId),
+    idempotencyKey: normalizeText(input.idempotencyKey),
+    labels: toLabels(input.labels),
     spec: { spec: { oneofKind: undefined } },
-    extensions: toScenarioExtensions(
-      input.modal,
-      (input.input as { extensions?: JsonObject }).extensions,
-    ),
+    extensions: toScenarioExtensions(modal, input.extensions),
   };
+}
 
-  if (input.modal === 'image') {
-    const value = input.input as ImageGenerateInput;
-    return {
-      ...base,
-      spec: {
-        spec: {
-          oneofKind: 'imageGenerate',
-          imageGenerate: {
-            prompt: normalizeText(value.prompt),
-            negativePrompt: normalizeText(value.negativePrompt),
-            n: Number(value.n || 0),
-            size: normalizeText(value.size),
-            aspectRatio: normalizeText(value.aspectRatio),
-            quality: normalizeText(value.quality),
-            style: normalizeText(value.style),
-            seed: String(value.seed || 0),
-            referenceImages: Array.isArray(value.referenceImages) ? value.referenceImages : [],
-            mask: normalizeText(value.mask),
-            responseFormat: normalizeText(value.responseFormat),
-          },
-        },
-      },
-    };
-  }
-
-  if (input.modal === 'video') {
-    const value = input.input as VideoGenerateInput;
-    const options = value.options || {};
-    const videoContent = Array.isArray(value.content)
-      ? value.content.map((entry) => {
-        if (entry.type === 'text') {
-          return {
-            type: VideoContentType.TEXT,
-            role: toVideoContentRole(entry.role || 'prompt'),
-            text: normalizeText(entry.text),
-            imageUrl: undefined,
-          };
-        }
-        return {
-          type: VideoContentType.IMAGE_URL,
-          role: toVideoContentRole(entry.role),
-          text: '',
-          imageUrl: { url: normalizeText(entry.imageUrl) },
-        };
-      })
-      : [];
-
-    return {
-      ...base,
-      spec: {
-        spec: {
-          oneofKind: 'videoGenerate',
-          videoGenerate: {
-            prompt: normalizeText(value.prompt),
-            negativePrompt: normalizeText(value.negativePrompt),
-            mode: toVideoMode(value.mode),
-            content: videoContent,
-            options: {
-              resolution: normalizeText(options.resolution),
-              ratio: normalizeText(options.ratio),
-              durationSec: Number(options.durationSec || 0),
-              frames: Number(options.frames || 0),
-              fps: Number(options.fps || 0),
-              seed: String(options.seed || 0),
-              cameraFixed: Boolean(options.cameraFixed),
-              watermark: Boolean(options.watermark),
-              generateAudio: Boolean(options.generateAudio),
-              draft: Boolean(options.draft),
-              serviceTier: normalizeText(options.serviceTier),
-              executionExpiresAfterSec: Number(options.executionExpiresAfterSec || 0),
-              returnLastFrame: Boolean(options.returnLastFrame),
-            },
-          },
-        },
-      },
-    };
-  }
-
-  if (input.modal === 'tts') {
-    const value = input.input as SpeechSynthesizeInput;
-    return {
-      ...base,
-      spec: {
-        spec: {
-          oneofKind: 'speechSynthesize',
-          speechSynthesize: {
-            text: normalizeText(value.text),
-            language: normalizeText(value.language),
-            audioFormat: normalizeText(value.audioFormat),
-            sampleRateHz: Number(value.sampleRateHz || 0),
-            speed: Number(value.speed || 0),
-            pitch: Number(value.pitch || 0),
-            volume: Number(value.volume || 0),
-            emotion: normalizeText(value.emotion),
-            voiceRef: toVoiceRef(value.voice),
-            timingMode: toSpeechTimingMode(value.timingMode),
-            voiceRenderHints: value.voiceRenderHints
-              ? {
-                stability: Number(value.voiceRenderHints.stability || 0),
-                similarityBoost: Number(value.voiceRenderHints.similarityBoost || 0),
-                style: Number(value.voiceRenderHints.style || 0),
-                useSpeakerBoost: Boolean(value.voiceRenderHints.useSpeakerBoost),
-                speed: Number(value.voiceRenderHints.speed || 0),
-              }
-              : undefined,
-          },
-        },
-      },
-    };
-  }
-
-  if (input.modal === 'music') {
-    const value = input.input as MusicGenerateInput;
-    return {
-      ...base,
-      spec: {
-        spec: {
-          oneofKind: 'musicGenerate',
-          musicGenerate: {
-            prompt: normalizeText(value.prompt),
-            negativePrompt: normalizeText(value.negativePrompt),
-            lyrics: normalizeText(value.lyrics),
-            style: normalizeText(value.style),
-            title: normalizeText(value.title),
-            durationSeconds: Number(value.durationSeconds || 0),
-            instrumental: Boolean(value.instrumental),
-          },
-        },
-      },
-    };
-  }
-
-  const value = input.input as SpeechTranscribeInput;
-  const audioSource = value.audio.kind === 'bytes'
-    ? {
-      source: {
-        oneofKind: 'audioBytes' as const,
-        audioBytes: value.audio.bytes,
-      },
-    }
-    : value.audio.kind === 'url'
-      ? {
+function toSpeechTranscribeAudioSource(
+  audio: SpeechTranscribeInput['audio'],
+): {
+  source:
+    | { oneofKind: 'audioBytes'; audioBytes: Uint8Array }
+    | { oneofKind: 'audioUri'; audioUri: string }
+    | { oneofKind: 'audioChunks'; audioChunks: { chunks: Uint8Array[] } };
+} {
+  switch (audio.kind) {
+    case 'bytes':
+      return {
         source: {
-          oneofKind: 'audioUri' as const,
-          audioUri: normalizeText(value.audio.url),
+          oneofKind: 'audioBytes',
+          audioBytes: audio.bytes,
         },
-      }
-      : {
+      };
+    case 'url':
+      return {
         source: {
-          oneofKind: 'audioChunks' as const,
+          oneofKind: 'audioUri',
+          audioUri: normalizeText(audio.url),
+        },
+      };
+    case 'chunks':
+      return {
+        source: {
+          oneofKind: 'audioChunks',
           audioChunks: {
-            chunks: value.audio.chunks,
+            chunks: audio.chunks,
           },
         },
       };
-
-  return {
-    ...base,
-    spec: {
-      spec: {
-        oneofKind: 'speechTranscribe',
-        speechTranscribe: {
-          mimeType: ensureText(value.mimeType, 'mimeType'),
-          language: normalizeText(value.language),
-          timestamps: Boolean(value.timestamps),
-          diarization: Boolean(value.diarization),
-          speakerCount: Number(value.speakerCount || 0),
-          prompt: normalizeText(value.prompt),
-          audioSource,
-          responseFormat: normalizeText(value.responseFormat),
-        },
-      },
-    },
-  };
+  }
 }
 
 function toVoiceRef(voice: string | undefined): {

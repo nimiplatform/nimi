@@ -86,3 +86,41 @@ test('withRealmContextLock calls connect before task and close after', async () 
     Realm.prototype.close = originalClose;
   }
 });
+
+test('withRealmContextLock does not serialize different realmBaseUrl values behind one global queue', async () => {
+  const originalConnect = Realm.prototype.connect;
+  const originalClose = Realm.prototype.close;
+  const events: string[] = [];
+  let releaseFirst!: () => void;
+  const firstGate = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+
+  Realm.prototype.connect = async function patchedConnect() { /* noop */ };
+  Realm.prototype.close = async function patchedClose() { /* noop */ };
+
+  try {
+    const first = withRealmContextLock({ realmBaseUrl: 'https://realm-a.nimi.xyz', accessToken: 'token-a' }, async () => {
+      events.push('task:a:start');
+      await firstGate;
+      events.push('task:a:end');
+      return 'a';
+    });
+
+    const second = withRealmContextLock({ realmBaseUrl: 'https://realm-b.nimi.xyz', accessToken: 'token-b' }, async () => {
+      events.push('task:b');
+      return 'b';
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.deepEqual(events, ['task:a:start', 'task:b']);
+
+    releaseFirst();
+    assert.deepEqual(await Promise.all([first, second]), ['a', 'b']);
+  } finally {
+    releaseFirst?.();
+    Realm.prototype.connect = originalConnect;
+    Realm.prototype.close = originalClose;
+  }
+});

@@ -10,6 +10,18 @@ export type NimiError = Error & {
   details?: Record<string, unknown>;
 };
 
+export function isNimiErrorLike(error: unknown): error is NimiError {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const record = error as Record<string, unknown>;
+  return typeof record.reasonCode === 'string'
+    && typeof record.actionHint === 'string'
+    && typeof record.traceId === 'string'
+    && typeof record.retryable === 'boolean'
+    && typeof record.source === 'string';
+}
+
 export type VersionCompatibilityStatus = {
   state: 'unknown' | 'compatible' | 'incompatible';
   compatible: boolean;
@@ -20,13 +32,33 @@ export type VersionCompatibilityStatus = {
   reason?: 'metadata_missing' | 'runtime_version_unparseable' | 'major_mismatch';
 };
 
-export type ScopeName = string;
+declare const nimiBrand: unique symbol;
 
-export type ScopeCatalogVersion = string;
+type BrandedString<Brand extends string> = string & { readonly [nimiBrand]?: Brand };
 
-export type CatalogHash = string;
+export type ScopeName = BrandedString<'ScopeName'>;
 
-export type ExternalPrincipalId = string;
+export type ScopeCatalogVersion = BrandedString<'ScopeCatalogVersion'>;
+
+export type CatalogHash = BrandedString<'CatalogHash'>;
+
+export type ExternalPrincipalId = BrandedString<'ExternalPrincipalId'>;
+
+export function asScopeName(value: string): ScopeName {
+  return value as ScopeName;
+}
+
+export function asScopeCatalogVersion(value: string): ScopeCatalogVersion {
+  return value as ScopeCatalogVersion;
+}
+
+export function asCatalogHash(value: string): CatalogHash {
+  return value as CatalogHash;
+}
+
+export function asExternalPrincipalId(value: string): ExternalPrincipalId {
+  return value as ExternalPrincipalId;
+}
 
 export type ScopeDomain = 'realm' | 'runtime' | 'app';
 
@@ -204,7 +236,6 @@ export const ReasonCode = {
   APP_AUTHORIZATION_DENIED: 'APP_AUTHORIZATION_DENIED',
   APP_CONSENT_INVALID: 'APP_CONSENT_INVALID',
   APP_CONSENT_MISSING: 'APP_CONSENT_MISSING',
-  AUTH_CONTEXT_MISSING: 'AUTH_CONTEXT_MISSING',
   APP_DELEGATION_DEPTH_EXCEEDED: 'APP_DELEGATION_DEPTH_EXCEEDED',
   APP_DELEGATION_FORBIDDEN: 'APP_DELEGATION_FORBIDDEN',
   APP_GRANT_INVALID: 'APP_GRANT_INVALID',
@@ -221,6 +252,7 @@ export const ReasonCode = {
   APP_SCOPE_MANIFEST_INVALID: 'APP_SCOPE_MANIFEST_INVALID',
   APP_SCOPE_NAMESPACE_FORBIDDEN: 'APP_SCOPE_NAMESPACE_FORBIDDEN',
   APP_SCOPE_REVOKED: 'APP_SCOPE_REVOKED',
+  AUTH_CONTEXT_MISSING: 'AUTH_CONTEXT_MISSING',
   APP_TOKEN_EXPIRED: 'APP_TOKEN_EXPIRED',
   APP_TOKEN_REVOKED: 'APP_TOKEN_REVOKED',
   BUILD_REGISTRATION_FAILED: 'BUILD_REGISTRATION_FAILED',
@@ -411,7 +443,7 @@ export type NimiErrorCode = keyof typeof ReasonCode;
 
 export type ReasonCodeValue = typeof ReasonCode[keyof typeof ReasonCode];
 
-const RETRYABLE_REASON_CODES: ReadonlySet<string> = new Set([
+const RETRYABLE_REASON_CODES: ReadonlySet<ReasonCodeValue> = new Set([
   ReasonCode.AI_PROVIDER_RATE_LIMITED,
   ReasonCode.AI_PROVIDER_UNAVAILABLE,
   ReasonCode.AI_PROVIDER_TIMEOUT,
@@ -422,5 +454,5 @@ const RETRYABLE_REASON_CODES: ReadonlySet<string> = new Set([
 ]);
 
 export function isRetryableReasonCode(code: string): boolean {
-  return RETRYABLE_REASON_CODES.has(code);
+  return RETRYABLE_REASON_CODES.has(code as ReasonCodeValue);
 }

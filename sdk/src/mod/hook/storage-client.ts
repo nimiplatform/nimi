@@ -1,5 +1,5 @@
-import type { HookStorageClient } from '../types/storage';
-import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade';
+import type { HookStorageClient } from '../types/storage.js';
+import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 function normalizeStoragePath(path: string): string {
   const normalized = String(path || '').trim().replace(/\\/g, '/');
@@ -49,7 +49,7 @@ export function createStorageClient(input: {
       }),
       list: (path) => input.runtime.storage.files.list({
         modId: input.modId,
-        path: normalizeStoragePath(path),
+        ...(path ? { path: normalizeStoragePath(path) } : {}),
       }),
       stat: (path) => input.runtime.storage.files.stat({
         modId: input.modId,

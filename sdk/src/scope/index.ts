@@ -1,6 +1,7 @@
 import { createNimiError } from '../runtime/index.js';
 import { normalizeText } from '../runtime/helpers.js';
 import type {
+  CatalogHash,
   ScopeCatalogDescriptor,
   ScopeCatalogEntry,
   ScopeCatalogPublishResult,
@@ -13,15 +14,20 @@ import type {
   ScopeRevokeAppScopesInput,
   ScopeCatalogRevokeResult,
 } from '../types/index.js';
-import { ReasonCode } from '../types/index.js';
+import {
+  asCatalogHash,
+  asScopeCatalogVersion,
+  asScopeName,
+  ReasonCode,
+} from '../types/index.js';
 import {
   GENERATED_REALM_SCOPES,
   GENERATED_RUNTIME_SCOPES,
 } from './generated/catalog.js';
 import { sha256Hex } from './sha256.js';
 
-const DEFAULT_REALM_SCOPES: readonly ScopeName[] = GENERATED_REALM_SCOPES;
-const DEFAULT_RUNTIME_SCOPES: readonly ScopeName[] = GENERATED_RUNTIME_SCOPES;
+const DEFAULT_REALM_SCOPES: readonly ScopeName[] = normalizeScopeList(GENERATED_REALM_SCOPES);
+const DEFAULT_RUNTIME_SCOPES: readonly ScopeName[] = normalizeScopeList(GENERATED_RUNTIME_SCOPES);
 
 type ScopeModuleState = {
   appId: string;
@@ -47,10 +53,10 @@ export type ScopeModule = {
   resolvePublishedCatalogVersion(version?: ScopeCatalogVersion): ScopeCatalogVersion;
 };
 
-function normalizeScopeList(scopes: ScopeName[]): ScopeName[] {
-  return Array.from(new Set((Array.isArray(scopes) ? scopes : [])
+function normalizeScopeList(scopes: readonly (ScopeName | string)[] | undefined): ScopeName[] {
+  return Array.from(new Set((scopes || [])
     .map((scope) => normalizeText(scope))
-    .filter((scope) => scope.length > 0))).sort();
+    .filter((scope) => scope.length > 0))).sort().map(asScopeName);
 }
 
 function ensureAppId(input: unknown): string {
@@ -66,7 +72,7 @@ function ensureAppId(input: unknown): string {
   return appId;
 }
 
-function ensureManifestVersion(value: unknown): string {
+function ensureManifestVersion(value: unknown): ScopeCatalogVersion {
   const manifestVersion = normalizeText(value);
   if (!manifestVersion) {
     throw createNimiError({
@@ -76,7 +82,7 @@ function ensureManifestVersion(value: unknown): string {
       source: 'sdk',
     });
   }
-  return manifestVersion;
+  return asScopeCatalogVersion(manifestVersion);
 }
 
 function ensureScopeNamespace(scope: ScopeName, appId: string): void {
@@ -107,15 +113,15 @@ function ensureScopes(input: ScopeManifest, appId: string): ScopeName[] {
   return scopes;
 }
 
-function createCatalogHash(manifestVersion: string, scopes: ScopeName[]): string {
+function createCatalogHash(manifestVersion: ScopeCatalogVersion, scopes: ScopeName[]): CatalogHash {
   const hashInput = JSON.stringify({
     manifestVersion,
     scopes,
   });
-  return sha256Hex(hashInput);
+  return asCatalogHash(sha256Hex(hashInput));
 }
 
-function createDraftEntry(manifestVersion: string, scopes: ScopeName[]): ScopeCatalogEntry {
+function createDraftEntry(manifestVersion: ScopeCatalogVersion, scopes: ScopeName[]): ScopeCatalogEntry {
   return {
     scopeCatalogVersion: manifestVersion,
     catalogHash: createCatalogHash(manifestVersion, scopes),
@@ -124,18 +130,18 @@ function createDraftEntry(manifestVersion: string, scopes: ScopeName[]): ScopeCa
   };
 }
 
-function bumpDraftVersion(version: string): string {
+function bumpDraftVersion(version: ScopeCatalogVersion | string): ScopeCatalogVersion {
   const normalized = normalizeText(version);
   if (!normalized) {
-    return '1.0.0-r1';
+    return asScopeCatalogVersion('1.0.0-r1');
   }
   const match = normalized.match(/^(.*)-r(\d+)$/);
   if (!match) {
-    return `${normalized}-r1`;
+    return asScopeCatalogVersion(`${normalized}-r1`);
   }
-  const prefix = match[1] || normalized;
+  const prefix = match[1] ?? '';
   const revision = Number(match[2] || 0) + 1;
-  return `${prefix}-r${revision}`;
+  return asScopeCatalogVersion(`${prefix}-r${revision}`);
 }
 
 function latestPublished(state: ScopeModuleState): ScopeCatalogEntry | null {
@@ -174,7 +180,7 @@ export function createScopeModule(input: { appId: string }): ScopeModule {
 
   const state: ScopeModuleState = {
     appId,
-    draftManifestVersion: '1.0.0',
+    draftManifestVersion: asScopeCatalogVersion('1.0.0'),
     draftScopes: null,
     publishedVersions: new Map(),
     publishOrder: [],
@@ -194,7 +200,7 @@ export function createScopeModule(input: { appId: string }): ScopeModule {
       });
     }
 
-    const resolved = requested || latest.scopeCatalogVersion;
+    const resolved = asScopeCatalogVersion(requested || latest.scopeCatalogVersion);
     const published = state.publishedVersions.get(resolved);
     if (!published) {
       throw createNimiError({
@@ -233,7 +239,7 @@ export function createScopeModule(input: { appId: string }): ScopeModule {
 
       const latest = latestPublished(state);
       const latestStatus = latest && state.revokedVersions.has(latest.scopeCatalogVersion)
-        ? { ...latest, status: 'revoked' as const }
+        ? { ...latest, status: 'revoked' as ScopeCatalogEntry['status'] }
         : latest;
       const draft = state.draftScopes
         ? createDraftEntry(state.draftManifestVersion, state.draftScopes)
@@ -256,6 +262,14 @@ export function createScopeModule(input: { appId: string }): ScopeModule {
     }): ScopeCatalogEntry {
       ensureInputAppId(appId, normalizeText(inputValue.appId));
       const manifest = inputValue.manifest;
+      if (!manifest) {
+        throw createNimiError({
+          message: 'scope manifest is required',
+          reasonCode: ReasonCode.APP_SCOPE_MANIFEST_INVALID,
+          actionHint: 'set_scope_manifest',
+          source: 'sdk',
+        });
+      }
       const manifestVersion = ensureManifestVersion(manifest?.manifestVersion);
       const scopes = ensureScopes(manifest, appId);
       state.draftManifestVersion = manifestVersion;
@@ -278,6 +292,14 @@ export function createScopeModule(input: { appId: string }): ScopeModule {
       const scopes = [...state.draftScopes];
       const catalogHash = createCatalogHash(version, scopes);
       const existing = state.publishedVersions.get(version);
+      if (existing && state.revokedVersions.has(version)) {
+        throw createNimiError({
+          message: `scope catalog version "${version}" is revoked and must use a new version`,
+          reasonCode: ReasonCode.APP_SCOPE_REVOKED,
+          actionHint: 'bump_scope_manifest_version',
+          source: 'sdk',
+        });
+      }
       if (existing && existing.catalogHash !== catalogHash) {
         throw createNimiError({
           message: `scope catalog version "${version}" already exists with different content`,
@@ -295,7 +317,7 @@ export function createScopeModule(input: { appId: string }): ScopeModule {
       };
 
       state.publishedVersions.set(version, entry);
-      if (!state.publishOrder.includes(version)) {
+      if (!existing) {
         state.publishOrder.push(version);
       }
       state.draftScopes = null;
