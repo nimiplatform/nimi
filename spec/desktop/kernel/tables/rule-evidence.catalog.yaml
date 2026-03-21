@@ -1,0 +1,85 @@
+desktop_kernel_consistency:
+  type: static_gate
+  command: pnpm check:desktop-spec-kernel-consistency
+  path: scripts/check-desktop-spec-kernel-consistency.mjs
+  description: Kernel rule integrity and source/spec consistency checks for desktop domain.
+desktop_lint_gate:
+  type: lint_gate
+  command: pnpm --filter @nimiplatform/desktop lint
+  path: apps/desktop/package.json
+  description: TypeScript/ESLint/Rust compile gates for desktop app implementation.
+desktop_test_gate:
+  type: test_gate
+  command: pnpm --filter @nimiplatform/desktop test
+  path: apps/desktop/package.json
+  description: Desktop quality + unit tests for behavior regression coverage.
+desktop_e2e_smoke_gate:
+  type: e2e_gate
+  command: pnpm check:desktop-e2e-smoke
+  path: apps/desktop/package.json
+  description: Desktop WebDriver smoke scenarios for Linux PR hard gate coverage.
+desktop_e2e_journey_gate:
+  type: e2e_gate
+  command: pnpm check:desktop-e2e-journeys
+  path: apps/desktop/package.json
+  description: Desktop WebDriver journey matrix for release/nightly key path coverage.
+desktop_rust_test_gate:
+  type: rust_test_gate
+  command: cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml
+  path: apps/desktop/src-tauri/Cargo.toml
+  description: Tauri backend integration test gate for desktop runtime boundary behavior.
+desktop_rust_clippy_gate:
+  type: rust_static_gate
+  command: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets
+  path: apps/desktop/src-tauri/Cargo.toml
+  description: Tauri backend static analysis gate for desktop runtime boundary behavior.
+desktop_macos_manual_smoke_policy:
+  type: manual_policy
+  command: spec-only
+  path: spec/desktop/testing-gates.md
+  description: Structured macOS non-blocking manual smoke checklist for menu-bar and packaged shell behavior.
+desktop_e2e_failure_artifacts_gate:
+  type: ci_artifact_policy
+  command: upload apps/desktop/reports/e2e/**
+  path: .github/workflows/ci.yml
+  description: CI must retain desktop E2E screenshots, HTML, browser logs, backend logs, driver logs, and scenario manifests on failure.
+desktop_e2e_ci_evidence_report:
+  type: ci_evidence_report
+  command: pnpm --filter @nimiplatform/desktop run report:desktop-e2e-evidence
+  path: apps/desktop/scripts/generate-desktop-e2e-evidence.mjs
+  description: Generates structured Linux/Windows desktop E2E pass-fail evidence from reports/e2e artifacts.
+desktop_0315_e2e_audit_report:
+  type: audit_report
+  command: report-only
+  path: dev/report/0315-e2e-audit.md
+  description: Audit record for 0315 desktop E2E hard-cut completion, residual blockers, and non-blocking clippy policy.
+desktop_mods_smoke_gate:
+  type: smoke_gate
+  command: pnpm check:desktop-mods-smoke --all
+  path: scripts/check-desktop-mods-smoke.mjs
+  description: Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory.
+runtime_mod_hook_hardcut_gate:
+  type: static_gate
+  command: pnpm check:runtime-mod-hook-hardcut
+  path: scripts/check-runtime-mod-hook-hardcut.mjs
+  description: Cross-layer runtime-aligned mod and hook surface hard-cut guard.
+desktop_cloud_runtime_only_gate:
+  type: static_gate
+  command: pnpm check:desktop-cloud-runtime-only
+  path: scripts/check-desktop-cloud-runtime-only.mjs
+  description: Enforces cloud connector routing through runtime-owned APIs only.
+desktop_runtime_config_path_gate:
+  type: static_gate
+  command: pnpm check:desktop-no-legacy-runtime-config-path
+  path: package.json
+  description: Forbids desktop fallback to the retired .nimi/runtime/config.json path.
+desktop_local_ai_bridge_gate:
+  type: static_gate
+  command: pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands
+  path: package.json
+  description: Forbids direct legacy local_ai command literals outside the managed bridge surface.
+desktop_mod_capabilities_gate:
+  type: static_gate
+  command: pnpm check:no-legacy-mod-permissions-field
+  path: package.json
+  description: Enforces capabilities-only mod manifests and runtime registration surfaces.

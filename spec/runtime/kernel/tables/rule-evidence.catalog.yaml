@@ -1,0 +1,36 @@
+runtime_kernel_consistency:
+  type: static_gate
+  command: pnpm check:runtime-spec-kernel-consistency
+  path: scripts/check-runtime-spec-kernel-consistency.mjs
+  description: >-
+    Kernel rule integrity, reason code coverage, error mapping matrix,
+    RPC migration parity, provider catalog alignment, and domain doc
+    compliance checks for Runtime domain.
+runtime_go_test:
+  type: test_gate
+  command: cd runtime && make test
+  path: runtime/Makefile
+  description: >-
+    Go unit and integration tests verifying runtime service behavior.
+    Rules with this evidence have behavioral test coverage in the
+    corresponding service package.
+runtime_go_lint:
+  type: lint_gate
+  command: cd runtime && golangci-lint run ./...
+  path: runtime/.golangci.yml
+  description: Go static analysis gate for runtime implementation.
+runtime_proto_linkage:
+  type: static_gate
+  command: pnpm check:runtime-proto-spec-linkage
+  path: scripts/check-runtime-proto-spec-linkage.mjs
+  description: Proto definition and spec rule linkage validation.
+runtime_provider_checks:
+  type: static_gate
+  command: pnpm check:runtime-provider-capability-token-canonicalization && pnpm check:runtime-provider-activation-alignment && pnpm check:runtime-provider-endpoint-ssot
+  path: scripts/check-runtime-provider-capability-token-canonicalization.mjs
+  description: Provider catalog, capability token, activation, and endpoint single-source-of-truth validation.
+runtime_catalog_drift:
+  type: static_gate
+  command: pnpm check:runtime-catalog-drift
+  path: scripts/check-runtime-catalog-drift.mjs
+  description: Runtime catalog definition consistency and drift detection.

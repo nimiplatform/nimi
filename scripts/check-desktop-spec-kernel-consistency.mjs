@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const cwd = process.cwd();
 const desktopRoot = path.join(cwd, 'spec/desktop');
@@ -68,7 +68,7 @@ function read(rel) {
 }
 
 function readYaml(rel) {
-  return YAML.parse(read(rel));
+  return readYamlWithFragments(path.join(cwd, rel));
 }
 
 function fileExists(rel) {
@@ -804,9 +804,12 @@ function checkBridgeReasonCodeCoverage() {
 function checkLocalRuntimeIpcConsistency() {
   const tablePath = 'spec/desktop/kernel/tables/ipc-commands.yaml';
   const rustPath = 'apps/desktop/src-tauri/src/main_parts/app_bootstrap.rs';
-  const tsPath = 'apps/desktop/src/runtime/local-runtime/commands.ts';
-  if (!fileExists(tablePath) || !fileExists(rustPath) || !fileExists(tsPath)) {
-    fail(`local-runtime IPC parity inputs missing: ${[tablePath, rustPath, tsPath].filter((rel) => !fileExists(rel)).join(', ')}`);
+  const tsPaths = [
+    'apps/desktop/src/runtime/local-runtime/commands.ts',
+    'apps/desktop/src/runtime/local-runtime/commands-pickers.ts',
+  ];
+  if (!fileExists(tablePath) || !fileExists(rustPath) || tsPaths.some((rel) => !fileExists(rel))) {
+    fail(`local-runtime IPC parity inputs missing: ${[tablePath, rustPath, ...tsPaths].filter((rel) => !fileExists(rel)).join(', ')}`);
     return;
   }
 
@@ -826,17 +829,20 @@ function checkLocalRuntimeIpcConsistency() {
     [...read(rustPath).matchAll(/local_runtime::commands::(runtime_local_[a-z0-9_]+)/gu)]
       .map((match) => match[1]),
   );
-  const tsCommands = new Set(
-    [
-      ...read(tsPath).matchAll(/\binvokeLocalAiCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
-      ...read(tsPath).matchAll(/\binvokeLocalRuntimeCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
-      ...read(tsPath).matchAll(/\btauriInvoke(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
-    ].map((match) => match[1]),
-  );
+  const tsCommandMatches = tsPaths.flatMap((rel) => {
+    const content = read(rel);
+    return [
+      ...content.matchAll(/\binvokeLocalAiCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+      ...content.matchAll(/\binvokeLocalRuntimeCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+      ...content.matchAll(/\btauriInvoke(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+    ];
+  });
+  const tsCommands = new Set(tsCommandMatches.map((match) => match[1]));
+  const tsLabel = tsPaths.join(', ');
 
   compareCommandSets(`${tablePath} vs ${rustPath}`, specCommands, rustCommands);
-  compareCommandSets(`${tablePath} vs ${tsPath}`, specCommands, tsCommands);
-  compareCommandSets(`${rustPath} vs ${tsPath}`, rustCommands, tsCommands);
+  compareCommandSets(`${tablePath} vs ${tsLabel}`, specCommands, tsCommands);
+  compareCommandSets(`${rustPath} vs ${tsLabel}`, rustCommands, tsCommands);
 }
 
 function compareCommandSets(label, expected, actual) {

@@ -4,6 +4,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 import { createCatalogChecks } from './runtime-spec-catalog-checks.mjs';
 import { checkConfigOverrideTraceability } from './runtime-config-override-traceability.mjs';
+import { readYamlWithFragments } from './read-yaml-with-fragments.mjs';
 
 const cwd = process.cwd();
 const runtimeRoot = path.join(cwd, 'spec/runtime');
@@ -120,7 +121,7 @@ function read(rel) {
 }
 
 function readYaml(rel) {
-  return YAML.parse(read(rel));
+  return readYamlWithFragments(path.join(cwd, rel));
 }
 
 for (const rel of kernelFiles) {

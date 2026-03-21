@@ -1,0 +1,1164 @@
+- rule_id: D-AUTH-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-AUTH-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_test_gate
+- rule_id: D-AUTH-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_test_gate
+- rule_id: D-AUTH-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "External Agent revocation & audit; Rust backend test coverage"
+- rule_id: D-BOOT-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+    - desktop_runtime_config_path_gate
+- rule_id: D-BOOT-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-BOOT-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-BOOT-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-DSYNC-000
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-DSYNC-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-ERR-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - runtime_mod_hook_hardcut_gate
+- rule_id: D-HOOK-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - runtime_mod_hook_hardcut_gate
+- rule_id: D-HOOK-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-HOOK-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-IPC-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-IPC-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_journey_gate
+- rule_id: D-IPC-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_runtime_config_path_gate
+- rule_id: D-IPC-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-IPC-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-IPC-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-IPC-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-IPC-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-IPC-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_journey_gate
+- rule_id: D-IPC-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-IPC-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_local_ai_bridge_gate
+- rule_id: D-IPC-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_cloud_runtime_only_gate
+- rule_id: D-IPC-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-LLM-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_cloud_runtime_only_gate
+- rule_id: D-LLM-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-LLM-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-LLM-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-LLM-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-LLM-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-LLM-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_mods_smoke_gate
+- rule_id: D-LLM-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-LLM-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_test_gate
+    - desktop_mods_smoke_gate
+- rule_id: D-LLM-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "Device profile matching & engine support; Rust backend coverage"
+- rule_id: D-LLM-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "Recommendation memory budget & tier assignment; Rust backend coverage"
+- rule_id: D-LLM-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "Dependency resolution phase ordering; Rust backend coverage"
+- rule_id: D-LLM-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "Model registry identity resolution; Rust backend coverage"
+- rule_id: D-LLM-014
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "Download atomicity & staging; Rust backend coverage"
+- rule_id: D-MBAR-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MBAR-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MBAR-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MBAR-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MBAR-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_mod_capabilities_gate
+- rule_id: D-MOD-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_mods_smoke_gate
+- rule_id: D-MOD-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-014
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-015
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-016
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-017
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-018
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-MOD-019
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-NET-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-NET-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-NET-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-NET-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-NET-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-NET-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-NET-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SEC-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "Error message credential scrubbing; Rust backend test validates redaction patterns"
+- rule_id: D-SEC-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "External Agent token state machine; Rust backend test coverage"
+- rule_id: D-SEC-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "External Agent scope binding model; Rust backend test coverage"
+- rule_id: D-SEC-014
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+  note: "External Agent execution context verification; Rust backend test coverage"
+- rule_id: D-SHELL-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-SHELL-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-SHELL-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-SHELL-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-011
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-012
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-014
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STATE-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STATE-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STATE-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STATE-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STATE-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-009
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-STRM-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-006
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-007
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-TEL-008
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-CODEGEN-001
+  status: covered
+  evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
+- rule_id: D-CODEGEN-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_mod_capabilities_gate
+- rule_id: D-CODEGEN-016
+  status: covered
+  evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
+- rule_id: D-CODEGEN-020
+  status: covered
+  evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
+- rule_id: D-CODEGEN-030
+  status: covered
+  evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
+- rule_id: D-CODEGEN-040
+  status: covered
+  evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
+- rule_id: D-CODEGEN-050
+  status: covered
+  evidence_refs: [desktop_kernel_consistency, desktop_lint_gate, desktop_test_gate]
+- rule_id: D-CODEGEN-060
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-CODEGEN-070
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-OFFLINE-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-OFFLINE-002
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-OFFLINE-003
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-OFFLINE-004
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-OFFLINE-005
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+- rule_id: D-GATE-001
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_e2e_smoke_gate
+    - desktop_e2e_journey_gate
+- rule_id: D-GATE-010
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_test_gate
+- rule_id: D-GATE-020
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_rust_test_gate
+    - desktop_rust_clippy_gate
+    - desktop_0315_e2e_audit_report
+- rule_id: D-GATE-030
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_e2e_smoke_gate
+- rule_id: D-GATE-040
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_e2e_journey_gate
+- rule_id: D-GATE-050
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_e2e_smoke_gate
+- rule_id: D-GATE-060
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_e2e_journey_gate
+    - desktop_macos_manual_smoke_policy
+- rule_id: D-GATE-070
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_e2e_smoke_gate
+    - desktop_e2e_journey_gate
+    - desktop_e2e_failure_artifacts_gate
+    - desktop_e2e_ci_evidence_report
+    - desktop_0315_e2e_audit_report
+- rule_id: D-GATE-080
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency

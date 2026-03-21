@@ -3,7 +3,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import YAML from 'yaml';
+import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -677,8 +677,7 @@ function renderGeneratedIndex(entries) {
 }
 
 async function parseYamlFile(filePath) {
-  const raw = await fs.readFile(filePath, 'utf8');
-  return YAML.parse(raw);
+  return readYamlWithFragments(filePath);
 }
 
 async function main() {
