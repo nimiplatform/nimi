@@ -4,6 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
+const runtimeCommandPickersPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands-pickers.ts');
 const runtimeIndexPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/index.ts');
 const localModelCenterPath = path.resolve(
   process.cwd(),
@@ -17,12 +18,17 @@ const localModelCenterSectionsPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx',
 );
+const localModelCenterCatalogSectionsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-catalog-sections.tsx',
+);
 const localModelCenterHelpersPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-helpers.tsx',
 );
 
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
+const runtimeCommandPickersSource = readFileSync(runtimeCommandPickersPath, 'utf-8');
 const runtimeIndexSource = readFileSync(runtimeIndexPath, 'utf-8');
 const localModelCenterSource = [
   localModelCenterPath,
@@ -31,11 +37,12 @@ const localModelCenterSource = [
   .map((filePath) => readFileSync(filePath, 'utf-8'))
   .join('\n');
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
+const localModelCenterCatalogSectionsSource = readFileSync(localModelCenterCatalogSectionsPath, 'utf-8');
 const localModelCenterHelpersSource = readFileSync(localModelCenterHelpersPath, 'utf-8');
 
 test('local runtime exposes unified asset intake command surface', () => {
   assert.match(runtimeCommandsSource, /runtime_local_assets_scan_unregistered/);
-  assert.match(runtimeCommandsSource, /runtime_local_pick_asset_manifest_path/);
+  assert.match(runtimeCommandPickersSource, /runtime_local_pick_asset_manifest_path/);
   assert.match(runtimeCommandsSource, /export async function scanLocalRuntimeUnregisteredAssets/);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetFile/);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetManifest/);
@@ -69,7 +76,7 @@ test('artifact kind helpers keep ae as a first-class companion asset', () => {
 });
 
 test('artifact tasks still expose retry only for failed verified installs', () => {
-  assert.match(localModelCenterSectionsSource, /task\.taskKind === 'verified-install'/);
-  assert.match(localModelCenterSectionsSource, /Retry/);
-  assert.match(localModelCenterSectionsSource, /props\.onRetryTask\(task\.templateId\)/);
+  assert.match(localModelCenterCatalogSectionsSource, /task\.taskKind === 'verified-install'/);
+  assert.match(localModelCenterCatalogSectionsSource, /Retry/);
+  assert.match(localModelCenterCatalogSectionsSource, /props\.onRetryTask\(task\.templateId\)/);
 });

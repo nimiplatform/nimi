@@ -1,4 +1,3 @@
-import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type {
   GgufVariantDescriptor,
@@ -79,6 +78,12 @@ import {
   readGlobalTauriEventListen,
   assertLifecycleWriteAllowed,
 } from './parsers';
+export {
+  pickLocalRuntimeArtifactManifestPath,
+  pickLocalRuntimeAssetManifestPath,
+  pickLocalRuntimeManifestPath,
+  pickLocalRuntimeModelFile,
+} from './commands-pickers';
 
 type LocalClient = ReturnType<typeof getPlatformClient>['runtime']['local'];
 
@@ -459,30 +464,6 @@ export async function listLocalRuntimeAudits(query?: LocalRuntimeAuditQuery): Pr
     payload: query || undefined,
   });
   return (Array.isArray(events) ? events : []).map((item) => parseAuditEvent(item));
-}
-
-export async function pickLocalRuntimeManifestPath(): Promise<string | null> {
-  if (!hasTauriInvoke()) return null;
-  const result = await tauriInvoke<string | null>('runtime_local_pick_manifest_path', {});
-  return result || null;
-}
-
-export async function pickLocalRuntimeArtifactManifestPath(): Promise<string | null> {
-  if (!hasTauriInvoke()) return null;
-  const result = await tauriInvoke<string | null>('runtime_local_pick_artifact_manifest_path', {});
-  return result || null;
-}
-
-export async function pickLocalRuntimeAssetManifestPath(): Promise<string | null> {
-  if (!hasTauriInvoke()) return null;
-  const result = await tauriInvoke<string | null>('runtime_local_pick_asset_manifest_path', {});
-  return result || null;
-}
-
-export async function pickLocalRuntimeModelFile(): Promise<string | null> {
-  if (!hasTauriInvoke()) return null;
-  const result = await tauriInvoke<string | null>('runtime_local_pick_model_file', {});
-  return result || null;
 }
 
 export async function importLocalRuntimeModelFile(
