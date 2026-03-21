@@ -15,7 +15,7 @@ func isCanonicalProviderName(raw string) bool {
 	if trimmed == "" {
 		return false
 	}
-	if canonicalProviderKey(trimmed) != trimmed {
+	if normalizedProviderKey(trimmed) != trimmed {
 		return false
 	}
 	switch trimmed {
@@ -26,7 +26,7 @@ func isCanonicalProviderName(raw string) bool {
 	}
 }
 
-func canonicalProviderKey(raw string) string {
+func normalizedProviderKey(raw string) string {
 	return strings.ToLower(strings.TrimSpace(raw))
 }
 

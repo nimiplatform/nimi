@@ -81,16 +81,16 @@ func NewFromFile(path string) (*Registry, error) {
 				lastHealthAt = parsed.UTC()
 			}
 		}
-		registry.models[item.ModelID] = Entry{
+		registry.Upsert(Entry{
 			ModelID:      strings.TrimSpace(item.ModelID),
 			Version:      strings.TrimSpace(item.Version),
-			Status:       runtimev1.ModelStatus(item.Status),
+			Status:       normalizePersistedModelStatus(item.Status),
 			Capabilities: append([]string(nil), item.Capabilities...),
 			Files:        append([]string(nil), item.Files...),
 			LastHealthAt: lastHealthAt,
 			Source:       strings.TrimSpace(item.Source),
 			ProviderHint: ProviderHint(strings.TrimSpace(item.ProviderHint)),
-		}
+		})
 	}
 	return registry, nil
 }
@@ -136,5 +136,22 @@ func (r *Registry) SaveToFile(path string) error {
 	if err := os.WriteFile(tempPath, payload, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(tempPath, trimmed)
+	if err := os.Rename(tempPath, trimmed); err != nil {
+		_ = os.Remove(tempPath)
+		return err
+	}
+	return nil
+}
+
+func normalizePersistedModelStatus(value int32) runtimev1.ModelStatus {
+	switch runtimev1.ModelStatus(value) {
+	case runtimev1.ModelStatus_MODEL_STATUS_UNSPECIFIED,
+		runtimev1.ModelStatus_MODEL_STATUS_PULLING,
+		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		runtimev1.ModelStatus_MODEL_STATUS_FAILED,
+		runtimev1.ModelStatus_MODEL_STATUS_REMOVED:
+		return runtimev1.ModelStatus(value)
+	default:
+		return runtimev1.ModelStatus_MODEL_STATUS_UNSPECIFIED
+	}
 }

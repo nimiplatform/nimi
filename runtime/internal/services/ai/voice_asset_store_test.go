@@ -2,6 +2,7 @@ package ai
 
 import (
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -97,5 +98,67 @@ func TestVoiceAssetStoreCompleteAndTimeoutJob(t *testing.T) {
 	timedOutAsset, ok := store.getAsset(timeoutAsset.GetVoiceAssetId())
 	if !ok || timedOutAsset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED {
 		t.Fatalf("expected failed asset after timeout, got ok=%v asset=%#v", ok, timedOutAsset)
+	}
+}
+
+func TestVoiceAssetStorePrunesExpiredTerminalJobsAndAssets(t *testing.T) {
+	store := newVoiceAssetStore()
+	job, asset := store.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app-1",
+			SubjectUserId: "user-1",
+			ModelId:       "dashscope/qwen3-tts-vc",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+				TargetModelId: "dashscope/qwen3-tts-vc",
+				Input: &runtimev1.VoiceV2VInput{
+					ReferenceAudioUri:  "https://example.com/reference.wav",
+					ReferenceAudioMime: "audio/wav",
+				},
+			}},
+		},
+		Provider: "dashscope",
+	})
+	if job == nil || asset == nil {
+		t.Fatalf("expected submitted voice workflow")
+	}
+	if !store.completeJob(job.GetJobId(), "provider-job", "voice-ref", nil, nil) {
+		t.Fatalf("expected completed voice workflow")
+	}
+
+	store.mu.Lock()
+	store.jobs[job.GetJobId()].terminalAt = time.Now().UTC().Add(-voiceAssetStoreRetentionWindow - time.Minute)
+	store.mu.Unlock()
+
+	if nextJob, nextAsset := store.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "app-1",
+			SubjectUserId: "user-1",
+			ModelId:       "dashscope/qwen3-tts-vc",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceClone{VoiceClone: &runtimev1.VoiceCloneScenarioSpec{
+				TargetModelId: "dashscope/qwen3-tts-vc",
+				Input: &runtimev1.VoiceV2VInput{
+					ReferenceAudioUri:  "https://example.com/reference.wav",
+					ReferenceAudioMime: "audio/wav",
+				},
+			}},
+		},
+		Provider: "dashscope",
+	}); nextJob == nil || nextAsset == nil {
+		t.Fatalf("expected fresh submitted voice workflow")
+	}
+
+	if _, ok := store.getJob(job.GetJobId()); ok {
+		t.Fatalf("expected expired terminal voice job to be pruned")
+	}
+	if _, ok := store.getAsset(asset.GetVoiceAssetId()); ok {
+		t.Fatalf("expected expired terminal voice asset to be pruned")
 	}
 }

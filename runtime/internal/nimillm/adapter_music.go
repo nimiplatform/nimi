@@ -118,6 +118,9 @@ func ExecuteStabilityMusic(
 	if err != nil {
 		return nil, nil, "", err
 	}
+	if body == nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	return musicArtifactsFromBody(AdapterStabilityMusic, body, spec, extensions, ""), ArtifactUsage(spec.GetPrompt(), body.Bytes, 480), "", nil
 }
 

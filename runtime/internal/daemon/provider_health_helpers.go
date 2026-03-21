@@ -70,17 +70,6 @@ func engineKindForName(engineName string) (engine.EngineKind, bool) {
 	}
 }
 
-func cloneStringMap(input map[string]string) map[string]string {
-	if len(input) == 0 {
-		return nil
-	}
-	cloned := make(map[string]string, len(input))
-	for key, value := range input {
-		cloned[key] = value
-	}
-	return cloned
-}
-
 func (d *Daemon) setProviderFailureHint(providerName string, hint string) {
 	key := strings.TrimSpace(strings.ToLower(providerName))
 	value := strings.TrimSpace(hint)

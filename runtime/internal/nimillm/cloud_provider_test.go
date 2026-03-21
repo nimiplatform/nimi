@@ -34,8 +34,12 @@ func TestCloudProviderPickBackendRoutesByPrefix(t *testing.T) {
 
 func TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback(t *testing.T) {
 	health := providerhealth.New()
-	health.Mark("cloud-openai", false, "down")
-	health.Mark("cloud-nimillm", true, "healthy")
+	if err := health.Mark("cloud-openai", false, "down"); err != nil {
+		t.Fatalf("Mark openai unhealthy: %v", err)
+	}
+	if err := health.Mark("cloud-nimillm", true, "healthy"); err != nil {
+		t.Fatalf("Mark nimillm healthy: %v", err)
+	}
 
 	provider := NewCloudProvider(CloudConfig{
 		Providers: map[string]ProviderCredentials{

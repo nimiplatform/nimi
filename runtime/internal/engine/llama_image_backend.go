@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,19 +53,12 @@ func llamaImageBackendEngineConfig(cfg *LlamaImageBackendConfig) (EngineConfig, 
 		return EngineConfig{}, fmt.Errorf("llama image backend disabled")
 	}
 	address := strings.TrimSpace(cfg.Address)
-	hostPortParts := strings.Split(address, ":")
-	if len(hostPortParts) < 2 {
+	_, portValue, err := net.SplitHostPort(address)
+	if err != nil {
 		return EngineConfig{}, fmt.Errorf("invalid image backend address %q", address)
 	}
-	portValue := strings.TrimSpace(hostPortParts[len(hostPortParts)-1])
-	port := 0
-	for _, ch := range portValue {
-		if ch < '0' || ch > '9' {
-			return EngineConfig{}, fmt.Errorf("invalid image backend port in %q", address)
-		}
-		port = port*10 + int(ch-'0')
-	}
-	if port <= 0 {
+	port, err := strconv.Atoi(strings.TrimSpace(portValue))
+	if err != nil || port <= 0 || port > 65535 {
 		return EngineConfig{}, fmt.Errorf("invalid image backend port in %q", address)
 	}
 	command := strings.TrimSpace(cfg.Command)

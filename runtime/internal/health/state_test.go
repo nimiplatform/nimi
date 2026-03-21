@@ -4,6 +4,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestNewStateInitialStatus(t *testing.T) {
@@ -56,6 +58,12 @@ func TestSetActivity(t *testing.T) {
 	if snap.QueueDepth != 5 || snap.ActiveWorkflows != 2 || snap.ActiveInferenceJobs != 3 {
 		t.Fatalf("activity: queue=%d wf=%d inf=%d", snap.QueueDepth, snap.ActiveWorkflows, snap.ActiveInferenceJobs)
 	}
+
+	s.SetActivity(-1, -2, -3)
+	snap = s.Snapshot()
+	if snap.QueueDepth != 0 || snap.ActiveWorkflows != 0 || snap.ActiveInferenceJobs != 0 {
+		t.Fatalf("negative activity values should be clamped to zero: %+v", snap)
+	}
 }
 
 func TestSetResource(t *testing.T) {
@@ -64,6 +72,12 @@ func TestSetResource(t *testing.T) {
 	snap := s.Snapshot()
 	if snap.CPUMilli != 100 || snap.MemoryBytes != 200 || snap.VRAMBytes != 300 {
 		t.Fatalf("resource: cpu=%d mem=%d vram=%d", snap.CPUMilli, snap.MemoryBytes, snap.VRAMBytes)
+	}
+
+	s.SetResource(-100, -200, -300)
+	snap = s.Snapshot()
+	if snap.CPUMilli != 0 || snap.MemoryBytes != 0 || snap.VRAMBytes != 0 {
+		t.Fatalf("negative resource values should be clamped to zero: %+v", snap)
 	}
 }
 
@@ -165,8 +179,6 @@ func TestSubscribeSlowConsumerDropsOldest(t *testing.T) {
 	}
 	s.SetStatus(StatusReady, "recovered")
 
-	// Wait a bit and drain channel.
-	time.Sleep(20 * time.Millisecond)
 	var last Snapshot
 	for {
 		select {
@@ -179,6 +191,26 @@ func TestSubscribeSlowConsumerDropsOldest(t *testing.T) {
 done:
 	if last.Status != StatusReady {
 		t.Fatalf("slow consumer should receive latest: got=%v want=READY", last.Status)
+	}
+}
+
+func TestStatusConstantsMatchProtoEnum(t *testing.T) {
+	tests := []struct {
+		name string
+		got  Status
+		want runtimev1.RuntimeHealthStatus
+	}{
+		{"UNSPECIFIED", StatusUnspecified, runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_UNSPECIFIED},
+		{"STOPPED", StatusStopped, runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_STOPPED},
+		{"STARTING", StatusStarting, runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_STARTING},
+		{"READY", StatusReady, runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_READY},
+		{"DEGRADED", StatusDegraded, runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_DEGRADED},
+		{"STOPPING", StatusStopping, runtimev1.RuntimeHealthStatus_RUNTIME_HEALTH_STATUS_STOPPING},
+	}
+	for _, tt := range tests {
+		if int32(tt.got) != int32(tt.want) {
+			t.Fatalf("%s status drifted: got=%d want=%d", tt.name, tt.got, tt.want)
+		}
 	}
 }
 

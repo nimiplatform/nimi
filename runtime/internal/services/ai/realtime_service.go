@@ -412,7 +412,7 @@ func dialLlamaRealtime(ctx context.Context, backend *nimillm.Backend, modelID st
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
-	connection, err := websocket.DialConfig(config)
+	connection, err := config.DialContext(ctx)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}

@@ -19,10 +19,13 @@ type resultTaskStore struct {
 }
 
 type resultStore struct {
-	mu    sync.RWMutex
-	ttl   time.Duration
-	tasks map[string]*resultTaskStore
+	mu            sync.RWMutex
+	ttl           time.Duration
+	lastCleanupAt time.Time
+	tasks         map[string]*resultTaskStore
 }
+
+const resultStoreCleanupInterval = 30 * time.Second
 
 func newResultStore(ttl time.Duration) *resultStore {
 	if ttl <= 0 {
@@ -52,7 +55,7 @@ func (s *resultStore) Write(taskID string, nodeID string, slot string, value *st
 		task.nodes[nodeID] = node
 	}
 	node[slot] = cloneStruct(value)
-	s.cleanupExpiredLocked(time.Now().UTC())
+	s.maybeCleanupExpiredLocked(time.Now().UTC())
 }
 
 func (s *resultStore) Read(taskID string, nodeID string, slot string) (*structpb.Struct, bool) {
@@ -115,6 +118,7 @@ func (s *resultStore) cleanupExpiredLocked(now time.Time) {
 	if s.ttl <= 0 {
 		return
 	}
+	s.lastCleanupAt = now
 	for taskID, task := range s.tasks {
 		if task == nil || task.doneAt.IsZero() {
 			continue
@@ -123,6 +127,13 @@ func (s *resultStore) cleanupExpiredLocked(now time.Time) {
 			delete(s.tasks, taskID)
 		}
 	}
+}
+
+func (s *resultStore) maybeCleanupExpiredLocked(now time.Time) {
+	if !s.lastCleanupAt.IsZero() && now.Sub(s.lastCleanupAt) < resultStoreCleanupInterval {
+		return
+	}
+	s.cleanupExpiredLocked(now)
 }
 
 type artifactMeta struct {
@@ -297,5 +308,9 @@ func sanitizeSegment(value string) string {
 		return "_"
 	}
 	replacer := strings.NewReplacer("/", "_", "\\", "_", " ", "_", ":", "_")
-	return replacer.Replace(trimmed)
+	sanitized := replacer.Replace(trimmed)
+	for strings.Contains(sanitized, "..") {
+		sanitized = strings.ReplaceAll(sanitized, "..", "_")
+	}
+	return sanitized
 }

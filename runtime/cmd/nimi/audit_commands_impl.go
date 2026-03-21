@@ -311,7 +311,7 @@ func runRuntimeAuditExport(args []string) error {
 
 	outputPath := strings.TrimSpace(*output)
 	if outputPath != "" {
-		if err := os.WriteFile(outputPath, resp.Payload, 0o644); err != nil {
+		if err := os.WriteFile(outputPath, resp.Payload, 0o600); err != nil {
 			return fmt.Errorf("write output file %s: %w", outputPath, err)
 		}
 	}

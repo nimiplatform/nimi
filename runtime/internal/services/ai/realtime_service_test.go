@@ -96,6 +96,42 @@ func TestUploadArtifactRejectsInvalidMime(t *testing.T) {
 	}
 }
 
+func TestUploadArtifactStoresNormalizedMimeType(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	stream := &mockUploadArtifactStream{
+		ctx: context.Background(),
+		reqs: []*runtimev1.UploadArtifactRequest{
+			{
+				Payload: &runtimev1.UploadArtifactRequest_Metadata{
+					Metadata: &runtimev1.UploadArtifactMetadata{
+						AppId:         "nimi.desktop",
+						SubjectUserId: "user-001",
+						MimeType:      "Audio/WAV",
+					},
+				},
+			},
+			{
+				Payload: &runtimev1.UploadArtifactRequest_Chunk{
+					Chunk: &runtimev1.UploadArtifactChunk{
+						Sequence: 0,
+						Bytes:    []byte("wave-bytes"),
+					},
+				},
+			},
+		},
+	}
+
+	if err := svc.UploadArtifact(stream); err != nil {
+		t.Fatalf("upload artifact: %v", err)
+	}
+	if stream.resp == nil || stream.resp.GetArtifact() == nil {
+		t.Fatal("expected upload response artifact")
+	}
+	if got := stream.resp.GetArtifact().GetMimeType(); got != "audio/wav" {
+		t.Fatalf("unexpected normalized mime type: %q", got)
+	}
+}
+
 func TestRealtimeSessionLifecycle(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{
@@ -149,7 +185,7 @@ func TestRealtimeSessionLifecycle(t *testing.T) {
 			{
 				Item: &runtimev1.RealtimeInputItem_Audio{
 					Audio: &runtimev1.RealtimeAudioInput{
-						Source: &runtimev1.RealtimeAudioInput_AudioBytes{AudioBytes: []byte("pcm")},
+						Source:    &runtimev1.RealtimeAudioInput_AudioBytes{AudioBytes: []byte("pcm")},
 						EndOfTurn: true,
 					},
 				},

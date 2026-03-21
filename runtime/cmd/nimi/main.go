@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"github.com/nimiplatform/nimi/runtime/internal/texttarget"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -104,6 +105,14 @@ func normalizeRootArgs(args []string) []string {
 	return args
 }
 
+func durationMillisecondsInt32(value time.Duration) (int32, error) {
+	millis := value.Milliseconds()
+	if millis < 0 || millis > math.MaxInt32 {
+		return 0, fmt.Errorf("timeout exceeds maximum supported duration of %s", (time.Duration(math.MaxInt32) * time.Millisecond).String())
+	}
+	return int32(millis), nil
+}
+
 func runTopLevelRun(args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -138,6 +147,10 @@ func runTopLevelRun(args []string) error {
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
+	}
+	timeoutMs, err := durationMillisecondsInt32(timeout)
+	if err != nil {
+		return err
 	}
 	target, err := resolveOnboardingRunTarget(cfg, promptValue, *modelFlag, *providerFlag, *localTarget, *cloudTarget)
 	if err != nil {
@@ -196,7 +209,7 @@ func runTopLevelRun(args []string) error {
 			ModelId:       modelID,
 			RoutePolicy:   routePolicy,
 			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(timeout.Milliseconds()),
+			TimeoutMs:     timeoutMs,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,

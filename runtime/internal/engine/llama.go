@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 	"os/exec"
-	"runtime"
 	"sort"
 	"strings"
 )
@@ -58,7 +57,7 @@ func llamaCommand(cfg EngineConfig) *exec.Cmd {
 
 // llamaBinaryName returns the expected binary name within the engines directory.
 func llamaBinaryName() string {
-	if runtime.GOOS == "windows" {
+	if currentGOOS() == "windows" {
 		return "local-ai.exe"
 	}
 	return "local-ai"

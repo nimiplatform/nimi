@@ -273,6 +273,33 @@ func TestRunRuntimeModInstallGitHubRequiresSubpathWhenMultipleManifests(t *testi
 	}
 }
 
+func TestParseManifestYAMLSupportsQuotedAndMultilineValues(t *testing.T) {
+	manifest, err := parseManifestYAML([]byte(strings.TrimSpace(`
+id: world.nimi.demo
+name: "Demo Mod"
+version: 0.2.0
+description: |
+  Line one
+  Line two
+license: MIT
+capabilities:
+  - "runtime.ai.text.generate"
+  - runtime.ai.audio.synthesize
+`)))
+	if err != nil {
+		t.Fatalf("parseManifestYAML: %v", err)
+	}
+	if manifest.Name != "Demo Mod" {
+		t.Fatalf("name mismatch: %#v", manifest)
+	}
+	if manifest.Description != "Line one\nLine two\n" {
+		t.Fatalf("description mismatch: %q", manifest.Description)
+	}
+	if got := strings.Join(manifest.Capabilities, ","); got != "runtime.ai.text.generate,runtime.ai.audio.synthesize" {
+		t.Fatalf("capabilities mismatch: %q", got)
+	}
+}
+
 func TestRunRuntimeModInstallRejectsInvalidGitHubRepoReference(t *testing.T) {
 	err := runRuntimeMod([]string{
 		"install",

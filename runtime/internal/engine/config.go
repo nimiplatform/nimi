@@ -1,6 +1,10 @@
 package engine
 
-import "time"
+import (
+	"strconv"
+	"strings"
+	"time"
+)
 
 // EngineKind identifies a supported local AI engine.
 type EngineKind string
@@ -210,16 +214,14 @@ func DefaultSpeechConfig() EngineConfig {
 
 // Endpoint returns the HTTP base URL for the engine.
 func (c EngineConfig) Endpoint() string {
-	if trimmed := c.Address; trimmed != "" {
+	if trimmed := strings.TrimSpace(c.Address); trimmed != "" {
 		if c.HealthMode == HealthModeTCP {
 			return trimmed
 		}
-		if len(trimmed) > 0 && trimmed != "" {
-			if containsScheme(trimmed) {
-				return trimmed
-			}
-			return "http://" + trimmed
+		if containsScheme(trimmed) {
+			return trimmed
 		}
+		return "http://" + trimmed
 	}
 	return "http://127.0.0.1:" + itoa(c.Port)
 }
@@ -235,23 +237,5 @@ func containsScheme(value string) bool {
 
 // itoa converts an int to string without importing strconv in this file.
 func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	buf := [20]byte{}
-	pos := len(buf)
-	neg := n < 0
-	if neg {
-		n = -n
-	}
-	for n > 0 {
-		pos--
-		buf[pos] = byte('0' + n%10)
-		n /= 10
-	}
-	if neg {
-		pos--
-		buf[pos] = '-'
-	}
-	return string(buf[pos:])
+	return strconv.Itoa(n)
 }

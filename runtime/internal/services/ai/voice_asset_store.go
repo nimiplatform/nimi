@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const (
+	maxVoiceAssetEventBacklog      = 128
+	maxRetainedTerminalVoiceJobs   = 1024
+	voiceAssetStoreRetentionWindow = 30 * time.Minute
+)
+
 type voiceScenarioJobRecord struct {
 	job         *runtimev1.ScenarioJob
 	assetID     string
@@ -19,6 +26,9 @@ type voiceScenarioJobRecord struct {
 	subscribers map[uint64]chan *runtimev1.ScenarioJobEvent
 	nextSubID   uint64
 	nextSeq     uint64
+	createdAt   time.Time
+	updatedAt   time.Time
+	terminalAt  time.Time
 }
 
 type voiceWorkflowSubmitInput struct {
@@ -156,11 +166,14 @@ func (s *voiceAssetStore) submit(input *voiceWorkflowSubmitInput) (*runtimev1.Sc
 		assetID:     assetID,
 		events:      make([]*runtimev1.ScenarioJobEvent, 0, 4),
 		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+		createdAt:   now.AsTime(),
+		updatedAt:   now.AsTime(),
 	}
 	s.mu.Lock()
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
 	s.jobs[jobID] = record
 	s.assets[assetID] = cloneVoiceAsset(asset)
+	s.pruneLocked(now.AsTime())
 	s.mu.Unlock()
 	return cloneScenarioJob(job), cloneVoiceAsset(asset)
 }
@@ -200,12 +213,16 @@ func (s *voiceAssetStore) cancelJob(jobID string, reason string) (*runtimev1.Sce
 	record.job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 	record.job.ReasonCode = runtimev1.ReasonCode_ACTION_EXECUTED
 	record.job.ReasonDetail = strings.TrimSpace(reason)
-	record.job.UpdatedAt = timestamppb.New(time.Now().UTC())
+	nowTime := time.Now().UTC()
+	record.updatedAt = nowTime
+	record.terminalAt = nowTime
+	record.job.UpdatedAt = timestamppb.New(nowTime)
 	if asset := s.assets[record.assetID]; asset != nil {
 		asset.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_FAILED
-		asset.UpdatedAt = timestamppb.New(time.Now().UTC())
+		asset.UpdatedAt = timestamppb.New(nowTime)
 	}
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED)
+	s.pruneLocked(nowTime)
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
 	return job, true
@@ -282,11 +299,17 @@ func (s *voiceAssetStore) transitionJob(
 		return false
 	}
 	record.job.Status = status
-	record.job.UpdatedAt = timestamppb.New(time.Now().UTC())
+	nowTime := time.Now().UTC()
+	record.updatedAt = nowTime
+	if isTerminalScenarioJobStatus(status) {
+		record.terminalAt = nowTime
+	}
+	record.job.UpdatedAt = timestamppb.New(nowTime)
 	if mutate != nil {
 		mutate(record)
 	}
 	s.publishLocked(record, eventType)
+	s.pruneLocked(nowTime)
 	s.mu.Unlock()
 	return true
 }
@@ -410,11 +433,76 @@ func (s *voiceAssetStore) publishLocked(record *voiceScenarioJobRecord, eventTyp
 		Job:       cloneScenarioJob(record.job),
 	}
 	record.events = append(record.events, event)
+	if len(record.events) > maxVoiceAssetEventBacklog {
+		record.events = cloneScenarioJobEvents(record.events[len(record.events)-maxVoiceAssetEventBacklog:])
+	}
 	for _, ch := range record.subscribers {
 		select {
 		case ch <- cloneScenarioJobEvent(event):
 		default:
 		}
+	}
+}
+
+func (s *voiceAssetStore) pruneLocked(now time.Time) {
+	cutoff := now.Add(-voiceAssetStoreRetentionWindow)
+	type candidate struct {
+		jobID string
+		at    time.Time
+	}
+	terminal := make([]candidate, 0, len(s.jobs))
+	for jobID, record := range s.jobs {
+		if record == nil || record.job == nil {
+			s.deleteJobLocked(jobID)
+			continue
+		}
+		if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+			continue
+		}
+		terminalAt := voiceJobRecordTimestamp(record)
+		if !terminalAt.IsZero() && terminalAt.Before(cutoff) {
+			s.deleteJobLocked(jobID)
+			continue
+		}
+		terminal = append(terminal, candidate{jobID: jobID, at: terminalAt})
+	}
+	if len(terminal) <= maxRetainedTerminalVoiceJobs {
+		return
+	}
+	sort.Slice(terminal, func(i int, j int) bool {
+		return terminal[i].at.Before(terminal[j].at)
+	})
+	for _, item := range terminal[:len(terminal)-maxRetainedTerminalVoiceJobs] {
+		s.deleteJobLocked(item.jobID)
+	}
+}
+
+func (s *voiceAssetStore) deleteJobLocked(jobID string) {
+	record := s.jobs[jobID]
+	delete(s.jobs, jobID)
+	if record == nil {
+		return
+	}
+	if strings.TrimSpace(record.assetID) != "" {
+		delete(s.assets, record.assetID)
+	}
+	for subID, ch := range record.subscribers {
+		delete(record.subscribers, subID)
+		close(ch)
+	}
+}
+
+func voiceJobRecordTimestamp(record *voiceScenarioJobRecord) time.Time {
+	if record == nil {
+		return time.Time{}
+	}
+	switch {
+	case !record.terminalAt.IsZero():
+		return record.terminalAt
+	case !record.updatedAt.IsZero():
+		return record.updatedAt
+	default:
+		return record.createdAt
 	}
 }
 

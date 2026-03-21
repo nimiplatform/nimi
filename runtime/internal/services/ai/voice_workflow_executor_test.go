@@ -164,6 +164,18 @@ func TestStepFunVoiceCloneWorkflowSuccess(t *testing.T) {
 	}
 }
 
+func TestEstimateVoiceWorkflowUsageIsDeterministic(t *testing.T) {
+	req := voiceCloneRequest()
+	first := estimateVoiceWorkflowUsage(req)
+	second := estimateVoiceWorkflowUsage(req)
+	if first == nil || second == nil {
+		t.Fatalf("expected usage estimate")
+	}
+	if first.GetComputeMs() != second.GetComputeMs() {
+		t.Fatalf("expected deterministic compute estimate, got %d vs %d", first.GetComputeMs(), second.GetComputeMs())
+	}
+}
+
 func TestStepFunVoiceCloneWorkflowRequiresText(t *testing.T) {
 	req := voiceCloneRequest()
 	req.Head.ModelId = "stepfun/step-tts-2"

@@ -15,17 +15,18 @@ import (
 )
 
 func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*aiReplayPayload, error) {
+	requestDigest := fixture.requestDigest()
 	payload := &aiReplayPayload{
 		FixtureID:           fixture.FixtureID,
 		Capability:          fixture.Capability,
 		Layer:               "L0_PROVIDER_RAW",
-		RequestDigest:       fixture.requestDigest(),
+		RequestDigest:       requestDigest,
 		ResolvedProvider:    strings.TrimSpace(fixture.Provider),
 		ResolvedModel:       strings.TrimSpace(fixture.ModelID),
 		ResolvedTargetModel: strings.TrimSpace(fixture.TargetModelID),
 		RoutePolicy:         "cloud",
 		FallbackPolicy:      "deny",
-		TraceID:             "provider-raw-" + fixture.requestDigest()[:12],
+		TraceID:             providerReplayTraceID(requestDigest),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -40,7 +41,7 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 	}
 	apiKey := strings.TrimSpace(os.Getenv("NIMI_LIVE_" + providerEnvToken(record.ID) + "_API_KEY"))
 	if apiKey == "" {
-		return nil, fmt.Errorf("missing NIMI_LIVE_%s_API_KEY", providerEnvToken(record.ID))
+		return nil, fmt.Errorf("missing provider replay API key")
 	}
 	backend := nimillm.NewBackend("gold-"+record.ID, baseURL, apiKey, timeout)
 	if backend == nil {
@@ -164,6 +165,17 @@ func executeProviderRawReplay(timeout time.Duration, fixture *aiGoldFixture) (*a
 		return nil, fmt.Errorf("unsupported capability %q", fixture.Capability)
 	}
 	return payload, nil
+}
+
+func providerReplayTraceID(requestDigest string) string {
+	trimmed := strings.TrimSpace(requestDigest)
+	if len(trimmed) > 12 {
+		trimmed = trimmed[:12]
+	}
+	if trimmed == "" {
+		trimmed = "missing"
+	}
+	return "provider-raw-" + trimmed
 }
 
 func providerEnvToken(providerID string) string {

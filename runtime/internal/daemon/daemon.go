@@ -50,11 +50,12 @@ type Daemon struct {
 var (
 	engineCrashAttemptPattern    = regexp.MustCompile(`attempt=(\d+)/(\d+)`)
 	engineCrashExitStatusPattern = regexp.MustCompile(`exit status (\d+)`)
+	runtimeEnvMu                 sync.RWMutex
 )
 
 func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
 	if value := strings.TrimSpace(cfg.LocalStatePath); value != "" {
-		_ = os.Setenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value)
+		runtimeSetenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value)
 	}
 	state := health.NewState()
 	grpcServer, err := grpcserver.New(cfg, state, logger, version)
@@ -66,7 +67,7 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 		logger:               logger,
 		state:                state,
 		grpc:                 grpcServer,
-		http:                 httpserver.New(cfg.HTTPAddr, state, logger),
+		http:                 httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker()),
 		aiHealth:             nil,
 		auditStore:           nil,
 		newEngineManager:     engine.NewManager,
@@ -78,7 +79,6 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 func (d *Daemon) Run(ctx context.Context) error {
 	d.aiHealth = d.grpc.AIHealthTracker()
 	d.auditStore = d.grpc.AuditStore()
-	d.http.SetAIHealthTracker(d.aiHealth)
 	d.state.SetStatus(health.StatusStarting, "booting")
 	d.grpc.SyncServingState()
 
@@ -157,7 +157,6 @@ func (d *Daemon) shutdown() error {
 	grpcErr := d.grpc.Stop(ctx)
 
 	d.state.SetStatus(health.StatusStopped, "stopped")
-	d.grpc.SyncServingState()
 
 	if httpErr != nil {
 		return fmt.Errorf("shutdown http: %w", httpErr)
@@ -219,7 +218,7 @@ func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 			}
 			previous := providerhealth.Snapshot{}
 			if d.aiHealth != nil {
-				previous = d.aiHealth.Snapshot(target.Name)
+				previous = d.aiHealth.SnapshotOf(target.Name)
 			}
 			if err := d.probeAIProviderFn(ctx, client, target); err != nil {
 				if ctx.Err() != nil {
@@ -227,8 +226,9 @@ func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 				}
 				err = d.decorateProviderProbeError(target.Name, err)
 				if d.aiHealth != nil {
-					d.aiHealth.Mark(target.Name, false, err.Error())
-					appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.Snapshot(target.Name))
+					if markErr := d.aiHealth.Mark(target.Name, false, err.Error()); markErr == nil {
+						appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.SnapshotOf(target.Name))
+					}
 				}
 				if firstErr == "" {
 					firstErr = fmt.Sprintf("ai-provider:%s unavailable (%v)", target.Name, err)
@@ -237,8 +237,9 @@ func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 			}
 			healthyCount++
 			if d.aiHealth != nil {
-				d.aiHealth.Mark(target.Name, true, "")
-				appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.Snapshot(target.Name))
+				if markErr := d.aiHealth.Mark(target.Name, true, ""); markErr == nil {
+					appendProviderHealthAudit(d.auditStore, target.Name, previous, d.aiHealth.SnapshotOf(target.Name))
+				}
 			}
 		}
 
@@ -296,9 +297,9 @@ func configuredAIProviderTargets(cfg config.Config) []aiProviderTarget {
 		})
 	}
 
-	add("local", os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
-	add("local-media", os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
-	add("local-sidecar", os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), os.Getenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
+	add("local", runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
+	add("local-media", runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
+	add("local-sidecar", runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
 	for _, target := range config.ResolveCloudProviderTargets(cfg.Providers) {
 		add(cloudProviderTargetName(target.CanonicalID), target.BaseURL, target.APIKey)
 	}
@@ -322,12 +323,11 @@ func probeAIProvider(ctx context.Context, client *http.Client, target aiProvider
 	var lastErr error
 	for _, path := range paths {
 		endpoint := resolveProbeEndpoint(target.Base, path)
-		req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 		if err != nil {
 			lastErr = err
 			continue
 		}
-		req = req.WithContext(ctx)
 		if target.APIKey != "" {
 			req.Header.Set("Authorization", "Bearer "+target.APIKey)
 		}
@@ -473,7 +473,7 @@ func resolveManagedLlamaModelsConfigPath() string {
 	return filepath.Join(home, ".nimi", "runtime", "llama-models.yaml")
 }
 
-func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) bool {
+func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) {
 	trimmedDetail := strings.TrimSpace(detail)
 	if trimmedDetail == "" {
 		trimmedDetail = "managed llama bootstrap failed"
@@ -483,14 +483,14 @@ func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) bool {
 	d.logger.Error("managed llama bootstrap failed", "detail", trimmedDetail)
 	d.setProviderFailureHint("local", reason)
 	if d.aiHealth != nil {
-		previous := d.aiHealth.Snapshot("local")
-		d.aiHealth.Mark("local", false, reason)
-		appendProviderHealthAudit(d.auditStore, "local", previous, d.aiHealth.Snapshot("local"))
+		previous := d.aiHealth.SnapshotOf("local")
+		if err := d.aiHealth.Mark("local", false, reason); err == nil {
+			appendProviderHealthAudit(d.auditStore, "local", previous, d.aiHealth.SnapshotOf("local"))
+		}
 	}
 	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLlama), "local", trimmedDetail)
 	d.state.SetStatus(health.StatusDegraded, reason)
 	d.grpc.SyncServingState()
-	return true
 }
 
 func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCode int) {
@@ -563,7 +563,8 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		svc.SetManagedMediaDiffusersBackendConfig(false, "")
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 		if err := svc.SyncManagedLlamaAssets(ctx); err != nil {
-			skipLlamaBootstrap = d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
+			d.recordManagedLlamaBootstrapFailure(fmt.Sprintf("sync managed llama assets: %v", err))
+			skipLlamaBootstrap = true
 		}
 	}
 
@@ -618,9 +619,10 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			reason := fmt.Sprintf("engine bootstrap failed (%s: %s)", failure.kind, failure.detail)
 			d.setProviderFailureHint(providerName, reason)
 			if d.aiHealth != nil {
-				previous := d.aiHealth.Snapshot(providerName)
-				d.aiHealth.Mark(providerName, false, reason)
-				appendProviderHealthAudit(d.auditStore, providerName, previous, d.aiHealth.Snapshot(providerName))
+				previous := d.aiHealth.SnapshotOf(providerName)
+				if err := d.aiHealth.Mark(providerName, false, reason); err == nil {
+					appendProviderHealthAudit(d.auditStore, providerName, previous, d.aiHealth.SnapshotOf(providerName))
+				}
 			}
 			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), providerName, failure.detail)
 		}
@@ -688,10 +690,10 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 	if trimmed == "" {
 		return
 	}
-	_ = os.Setenv(envKey, trimmed+"/v1")
+	runtimeSetenv(envKey, trimmed+"/v1")
 	if aiSvc := d.grpc.AIService(); aiSvc != nil {
 		if providerID, apiKeyEnv, ok := localProviderEnvBinding(kind); ok {
-			aiSvc.SetLocalProviderEndpoint(providerID, trimmed+"/v1", os.Getenv(apiKeyEnv))
+			aiSvc.SetLocalProviderEndpoint(providerID, trimmed+"/v1", runtimeGetenv(apiKeyEnv))
 		}
 	}
 	d.logger.Info("engine endpoint env injected",
@@ -700,6 +702,18 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 		"endpoint", trimmed,
 		"env", envKey,
 	)
+}
+
+func runtimeSetenv(key string, value string) {
+	runtimeEnvMu.Lock()
+	defer runtimeEnvMu.Unlock()
+	_ = os.Setenv(key, value)
+}
+
+func runtimeGetenv(key string) string {
+	runtimeEnvMu.RLock()
+	defer runtimeEnvMu.RUnlock()
+	return os.Getenv(key)
 }
 
 func engineUnhealthyReasonMatches(reason string, engineName string) bool {

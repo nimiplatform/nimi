@@ -2264,6 +2264,31 @@ func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
 	}
 }
 
+func TestLocalImportManifestRejectsSymlinkOutsideModelsRoot(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := t.TempDir()
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	outsideDir := t.TempDir()
+	outsideManifest := filepath.Join(outsideDir, "manifest.json")
+	if err := os.WriteFile(outsideManifest, []byte(`{"model_id":"local/outside","engine":"llama","capabilities":["chat"]}`), 0o600); err != nil {
+		t.Fatalf("write outside manifest: %v", err)
+	}
+	linkedManifest := filepath.Join(modelsRoot, "resolved", "nimi", "symlinked", "manifest.json")
+	if err := os.MkdirAll(filepath.Dir(linkedManifest), 0o755); err != nil {
+		t.Fatalf("create linked manifest dir: %v", err)
+	}
+	if err := os.Symlink(outsideManifest, linkedManifest); err != nil {
+		t.Fatalf("create manifest symlink: %v", err)
+	}
+
+	_, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: linkedManifest})
+	if err == nil {
+		t.Fatal("expected symlinked manifest outside root to be rejected")
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalModel(symlink outside root)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+}
+
 func TestLocalCollectDeviceProfileIncludesExtraPorts(t *testing.T) {
 	svc := newTestService(t)
 	resp, err := svc.CollectDeviceProfile(context.Background(), &runtimev1.CollectDeviceProfileRequest{
@@ -2782,6 +2807,70 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	}
 	if event.GetOperation() != "append_inference_audit" {
 		t.Fatalf("unexpected restored operation: %s", event.GetOperation())
+	}
+}
+
+func TestStartLocalModelSanitizesBootstrapFailureDetail(t *testing.T) {
+	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
+		return endpointProbeResult{
+			healthy:  false,
+			detail:   "probe request failed: connection refused",
+			probeURL: endpoint,
+		}
+	})
+	svc.SetEngineManager(&mockEngineManager{
+		startErr: fmt.Errorf("bootstrap failed for /tmp/private-model on 127.0.0.1:1234"),
+	})
+	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
+		ModelId:      "local/bootstrap-sanitize",
+		Capabilities: []string{"chat"},
+		Engine:       "llama",
+	})
+
+	resp, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
+		LocalModelId: installed.GetLocalModelId(),
+	})
+	if err != nil {
+		t.Fatalf("start local model: %v", err)
+	}
+	detail := resp.GetModel().GetHealthDetail()
+	if !strings.Contains(detail, "bootstrap_error=managed_engine_bootstrap_failed") {
+		t.Fatalf("expected sanitized bootstrap marker, got %q", detail)
+	}
+	if strings.Contains(detail, "/tmp/private-model") {
+		t.Fatalf("bootstrap detail should not leak filesystem paths: %q", detail)
+	}
+}
+
+func TestAppendInferenceAuditBoundsFieldLengths(t *testing.T) {
+	svc := newTestService(t)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-trace-id", strings.Repeat("t", localAuditFieldMaxLen+10),
+		"x-nimi-app-id", "app.test",
+		"x-nimi-domain", "runtime.local_runtime",
+	))
+	_, err := svc.AppendInferenceAudit(ctx, &runtimev1.AppendInferenceAuditRequest{
+		EventType: strings.Repeat("e", localAuditFieldMaxLen+10),
+		Detail:    strings.Repeat("d", localAuditFieldMaxLen+10),
+	})
+	if err != nil {
+		t.Fatalf("AppendInferenceAudit: %v", err)
+	}
+
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+	if len(svc.audits) == 0 {
+		t.Fatal("expected audit event to be recorded")
+	}
+	event := svc.audits[0]
+	if len(event.GetEventType()) != localAuditFieldMaxLen {
+		t.Fatalf("event type should be truncated to %d, got %d", localAuditFieldMaxLen, len(event.GetEventType()))
+	}
+	if len(event.GetDetail()) != localAuditFieldMaxLen {
+		t.Fatalf("detail should be truncated to %d, got %d", localAuditFieldMaxLen, len(event.GetDetail()))
+	}
+	if len(event.GetTraceId()) != localAuditFieldMaxLen {
+		t.Fatalf("trace id should be truncated to %d, got %d", localAuditFieldMaxLen, len(event.GetTraceId()))
 	}
 }
 

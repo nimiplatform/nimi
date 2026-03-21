@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -97,43 +96,58 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		GRPCAddr:                      readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
-		HTTPAddr:                      readString("NIMI_RUNTIME_HTTP_ADDR", nimillm.FirstNonEmpty(fileCfg.HTTPAddr, defaultHTTPAddr)),
-		ShutdownTimeout:               10 * time.Second,
-		LocalStatePath:                resolveLocalStatePath(fileCfg),
-		LocalModelsPath:               resolveLocalModelsPath(fileCfg),
-		DefaultLocalTextModel:         readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL", fileCfg.DefaultLocalTextModel, ""),
-		DefaultCloudProvider:          strings.TrimSpace(fileCfg.DefaultCloudProvider),
-		AllowLoopbackProviderEndpoint: readBoolWithFileConfigFallback("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", nil, false),
-		SessionTTLMinSeconds:          sessionTTLMinSeconds,
-		SessionTTLMaxSeconds:          sessionTTLMaxSeconds,
-		AIHealthIntervalSeconds:       aiHealthIntervalSeconds,
-		AIHTTPTimeoutSeconds:          aiHTTPTimeoutSeconds,
-		ModelCatalogCustomDir:         resolveModelCatalogCustomDir(fileCfg),
-		GlobalConcurrencyLimit:        globalConcurrencyLimit,
-		PerAppConcurrencyLimit:        perAppConcurrencyLimit,
-		IdempotencyCapacity:           idempotencyCapacity,
-		MaxDelegationDepth:            maxDelegationDepth,
-		AuditRingBufferSize:           auditRingBufferSize,
-		UsageStatsBufferSize:          usageStatsBufferSize,
-		LocalAuditCapacity:            localAuditCapacity,
-		LogLevel:                      readStringWithFileConfigFallback("NIMI_RUNTIME_LOG_LEVEL", fileCfg.LogLevel, "info"),
-		AuthJWTIssuer:                 readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_ISSUER", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Issuer }), ""),
-		AuthJWTAudience:               readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
-		AuthJWTJWKSURL:                readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
-		Providers:                     resolvedProviders,
-		EngineLlamaEnabled:            readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_ENABLED", llamaEnabledFromFile, false),
-		EngineLlamaVersion:            readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), "3.12.1"),
-		EngineLlamaPort:               engineLlamaPort,
-		EngineMediaEnabled:            readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_ENABLED", mediaEnabledFromFile, false),
-		EngineMediaVersion:            readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_VERSION", fileConfigEngineString(fileCfg, "media", "version"), "0.1.0"),
-		EngineMediaPort:               engineMediaPort,
-		EngineSpeechEnabled:           readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_ENABLED", speechEnabledFromFile, false),
-		EngineSpeechVersion:           readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_VERSION", fileConfigEngineString(fileCfg, "speech", "version"), "0.1.0"),
-		EngineSpeechPort:              engineSpeechPort,
-		EngineSidecarEnabled:          readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_ENABLED", nil, false),
-		EngineSidecarVersion:          readString("NIMI_RUNTIME_ENGINE_SIDECAR_VERSION", ""),
-		EngineSidecarPort:             engineSidecarPort,
+		GRPCAddr:                readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
+		HTTPAddr:                readString("NIMI_RUNTIME_HTTP_ADDR", nimillm.FirstNonEmpty(fileCfg.HTTPAddr, defaultHTTPAddr)),
+		ShutdownTimeout:         10 * time.Second,
+		LocalStatePath:          resolveLocalStatePath(fileCfg),
+		LocalModelsPath:         resolveLocalModelsPath(fileCfg),
+		DefaultLocalTextModel:   readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL", fileCfg.DefaultLocalTextModel, ""),
+		DefaultCloudProvider:    strings.TrimSpace(fileCfg.DefaultCloudProvider),
+		SessionTTLMinSeconds:    sessionTTLMinSeconds,
+		SessionTTLMaxSeconds:    sessionTTLMaxSeconds,
+		AIHealthIntervalSeconds: aiHealthIntervalSeconds,
+		AIHTTPTimeoutSeconds:    aiHTTPTimeoutSeconds,
+		ModelCatalogCustomDir:   resolveModelCatalogCustomDir(fileCfg),
+		GlobalConcurrencyLimit:  globalConcurrencyLimit,
+		PerAppConcurrencyLimit:  perAppConcurrencyLimit,
+		IdempotencyCapacity:     idempotencyCapacity,
+		MaxDelegationDepth:      maxDelegationDepth,
+		AuditRingBufferSize:     auditRingBufferSize,
+		UsageStatsBufferSize:    usageStatsBufferSize,
+		LocalAuditCapacity:      localAuditCapacity,
+		LogLevel:                readStringWithFileConfigFallback("NIMI_RUNTIME_LOG_LEVEL", fileCfg.LogLevel, "info"),
+		AuthJWTIssuer:           readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_ISSUER", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Issuer }), ""),
+		AuthJWTAudience:         readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
+		AuthJWTJWKSURL:          readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
+		Providers:               resolvedProviders,
+		EngineLlamaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), "3.12.1"),
+		EngineLlamaPort:         engineLlamaPort,
+		EngineMediaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_VERSION", fileConfigEngineString(fileCfg, "media", "version"), "0.1.0"),
+		EngineMediaPort:         engineMediaPort,
+		EngineSpeechVersion:     readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_VERSION", fileConfigEngineString(fileCfg, "speech", "version"), "0.1.0"),
+		EngineSpeechPort:        engineSpeechPort,
+		EngineSidecarVersion:    readString("NIMI_RUNTIME_ENGINE_SIDECAR_VERSION", ""),
+		EngineSidecarPort:       engineSidecarPort,
+	}
+	cfg.AllowLoopbackProviderEndpoint, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", nil, false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.EngineLlamaEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_ENABLED", llamaEnabledFromFile, false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.EngineMediaEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_ENABLED", mediaEnabledFromFile, false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.EngineSpeechEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_ENABLED", speechEnabledFromFile, false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.EngineSidecarEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_ENABLED", nil, false)
+	if err != nil {
+		return Config{}, err
 	}
 
 	localBaseURL := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"))
@@ -192,18 +206,20 @@ func readIntWithFileConfigFallback(envKey string, fileValue *int, fallback int) 
 }
 
 // readBoolWithFileConfigFallback implements three-level fallback: env > fileConfig > default.
-func readBoolWithFileConfigFallback(envKey string, fileValue *bool, fallback bool) bool {
+func readBoolWithFileConfigFallback(envKey string, fileValue *bool, fallback bool) (bool, error) {
 	raw := strings.TrimSpace(strings.ToLower(os.Getenv(envKey)))
 	switch raw {
 	case "true", "1", "yes":
-		return true
+		return true, nil
 	case "false", "0", "no":
-		return false
-	default:
+		return false, nil
+	case "":
 		if fileValue != nil {
-			return *fileValue
+			return *fileValue, nil
 		}
-		return fallback
+		return fallback, nil
+	default:
+		return false, fmt.Errorf("parse %s: invalid boolean %q", envKey, raw)
 	}
 }
 
@@ -342,26 +358,4 @@ func readString(envKey string, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-func readStringSliceJSONWithFileConfigFallback(envKey string, fileValue []string) ([]string, error) {
-	if raw := strings.TrimSpace(os.Getenv(envKey)); raw != "" {
-		var parsed []string
-		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-			return nil, err
-		}
-		return normalizeStringSlice(parsed), nil
-	}
-	return normalizeStringSlice(fileValue), nil
-}
-
-func readStringMapJSONWithFileConfigFallback(envKey string, fileValue map[string]string) (map[string]string, error) {
-	if raw := strings.TrimSpace(os.Getenv(envKey)); raw != "" {
-		parsed := make(map[string]string)
-		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-			return nil, err
-		}
-		return normalizeStringMap(parsed), nil
-	}
-	return normalizeStringMap(fileValue), nil
 }

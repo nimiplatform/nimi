@@ -77,6 +77,8 @@ func (s *State) Snapshot() Snapshot {
 func (s *State) SetStatus(status Status, reason string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// Health writers may project upstream transitions from different subsystems,
+	// so the state store intentionally accepts any explicit status transition.
 	s.snapshot.Status = status
 	s.snapshot.Reason = reason
 	s.snapshot.SampledAt = time.Now().UTC()
@@ -86,9 +88,9 @@ func (s *State) SetStatus(status Status, reason string) {
 func (s *State) SetActivity(queueDepth int32, activeWorkflows int32, activeInferenceJobs int32) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.snapshot.QueueDepth = queueDepth
-	s.snapshot.ActiveWorkflows = activeWorkflows
-	s.snapshot.ActiveInferenceJobs = activeInferenceJobs
+	s.snapshot.QueueDepth = clampInt32NonNegative(queueDepth)
+	s.snapshot.ActiveWorkflows = clampInt32NonNegative(activeWorkflows)
+	s.snapshot.ActiveInferenceJobs = clampInt32NonNegative(activeInferenceJobs)
 	s.snapshot.SampledAt = time.Now().UTC()
 	s.broadcastLocked()
 }
@@ -96,15 +98,16 @@ func (s *State) SetActivity(queueDepth int32, activeWorkflows int32, activeInfer
 func (s *State) SetResource(cpuMilli int64, memoryBytes int64, vramBytes int64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.snapshot.CPUMilli = cpuMilli
-	s.snapshot.MemoryBytes = memoryBytes
-	s.snapshot.VRAMBytes = vramBytes
+	s.snapshot.CPUMilli = clampInt64NonNegative(cpuMilli)
+	s.snapshot.MemoryBytes = clampInt64NonNegative(memoryBytes)
+	s.snapshot.VRAMBytes = clampInt64NonNegative(vramBytes)
 	s.snapshot.SampledAt = time.Now().UTC()
 	s.broadcastLocked()
 }
 
 // Subscribe returns a channel that receives health updates.
 // The returned cancel function MUST be called by consumers when done.
+// Cancel is idempotent and safe to call multiple times.
 func (s *State) Subscribe(buffer int) (<-chan Snapshot, func()) {
 	if buffer < 1 {
 		buffer = 1
@@ -137,6 +140,8 @@ func (s *State) Subscribe(buffer int) (<-chan Snapshot, func()) {
 
 func (s *State) broadcastLocked() {
 	for _, ch := range s.watchers {
+		// Keep only the latest snapshot under pressure. Slow consumers with
+		// small buffers can miss intermediate transitions by design.
 		// Keep only latest snapshot under pressure.
 		select {
 		case ch <- s.snapshot:
@@ -154,4 +159,18 @@ func (s *State) broadcastLocked() {
 		default:
 		}
 	}
+}
+
+func clampInt32NonNegative(value int32) int32 {
+	if value < 0 {
+		return 0
+	}
+	return value
+}
+
+func clampInt64NonNegative(value int64) int64 {
+	if value < 0 {
+		return 0
+	}
+	return value
 }

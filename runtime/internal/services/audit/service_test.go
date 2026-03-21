@@ -20,8 +20,12 @@ import (
 func TestListAIProviderHealth(t *testing.T) {
 	state := health.NewState()
 	tracker := providerhealth.New()
-	tracker.Mark("cloud-nimillm", true, "")
-	tracker.Mark("cloud-dashscope", false, "timeout")
+	if err := tracker.Mark("cloud-nimillm", true, ""); err != nil {
+		t.Fatalf("Mark healthy provider: %v", err)
+	}
+	if err := tracker.Mark("cloud-dashscope", false, "timeout"); err != nil {
+		t.Fatalf("Mark unhealthy provider: %v", err)
+	}
 
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
 	resp, err := svc.ListAIProviderHealth(context.Background(), nil)
@@ -57,7 +61,9 @@ func TestListAIProviderHealthEmptyWhenNoTracker(t *testing.T) {
 func TestSubscribeAIProviderHealthEvents(t *testing.T) {
 	state := health.NewState()
 	tracker := providerhealth.New()
-	tracker.Mark("cloud-nimillm", true, "")
+	if err := tracker.Mark("cloud-nimillm", true, ""); err != nil {
+		t.Fatalf("Mark healthy provider: %v", err)
+	}
 
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
 
@@ -83,7 +89,9 @@ func TestSubscribeAIProviderHealthEvents(t *testing.T) {
 		t.Fatalf("baseline sub-health mismatch: got=%d want=1", len(first.GetSubHealth()))
 	}
 
-	tracker.Mark("cloud-nimillm", false, "timeout")
+	if err := tracker.Mark("cloud-nimillm", false, "timeout"); err != nil {
+		t.Fatalf("Mark unhealthy provider: %v", err)
+	}
 	if !waitForProviderEvents(stream, 2, 300*time.Millisecond) {
 		t.Fatalf("expected update provider event")
 	}
@@ -557,7 +565,9 @@ func TestSubscribeRuntimeHealthEventsSlowConsumerClosed(t *testing.T) {
 func TestSubscribeAIProviderHealthEventsSlowConsumerClosed(t *testing.T) {
 	state := health.NewState()
 	tracker := providerhealth.New()
-	tracker.Mark("cloud-nimillm", true, "")
+	if err := tracker.Mark("cloud-nimillm", true, ""); err != nil {
+		t.Fatalf("Mark healthy provider: %v", err)
+	}
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -570,7 +580,9 @@ func TestSubscribeAIProviderHealthEventsSlowConsumerClosed(t *testing.T) {
 
 	time.Sleep(20 * time.Millisecond)
 	for i := 0; i < 32; i++ {
-		tracker.Mark("cloud-nimillm", i%2 == 0, "flip")
+		if err := tracker.Mark("cloud-nimillm", i%2 == 0, "flip"); err != nil {
+			t.Fatalf("Mark provider flip: %v", err)
+		}
 		time.Sleep(2 * time.Millisecond)
 	}
 	close(stream.gate)

@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+var errRelayOverflow = errors.New("streamutil: relay overflow")
+
 type RelayOptions[T any] struct {
 	Budget              int
 	MaxConsecutiveDrops int
@@ -38,11 +40,15 @@ func NewRelay[T any](opts RelayOptions[T]) *Relay[T] {
 	if maxDrops < 1 {
 		maxDrops = 1
 	}
+	overflowErr := opts.CloseErr
+	if overflowErr == nil {
+		overflowErr = errRelayOverflow
+	}
 	return &Relay[T]{
 		queue:               make([]T, 0, budget),
 		budget:              budget,
 		maxConsecutiveDrops: maxDrops,
-		overflowErr:         opts.CloseErr,
+		overflowErr:         overflowErr,
 		isTerminal:          opts.IsTerminal,
 		notify:              make(chan struct{}, 1),
 	}
@@ -53,7 +59,7 @@ func (r *Relay[T]) Enqueue(item T) error {
 	defer r.mu.Unlock()
 
 	if r.closed {
-		return r.closedErrLocked()
+		return r.resultErr
 	}
 
 	if len(r.queue) < r.budget {
@@ -71,16 +77,15 @@ func (r *Relay[T]) Enqueue(item T) error {
 	r.consecutiveDrops++
 	if isTerminal {
 		if idx := r.firstDroppableLocked(); idx >= 0 {
-			r.queue = append(r.queue[:idx], r.queue[idx+1:]...)
-			r.queue = append(r.queue, item)
+			r.replaceDroppedLocked(idx, item)
 		} else {
 			r.closed = true
 			r.resultErr = r.overflowErr
 			r.signalLocked()
-			return r.closedErrLocked()
+			return r.resultErr
 		}
 	} else {
-		r.queue = append(r.queue[1:], item)
+		r.dropHeadAndAppendLocked(item)
 	}
 
 	r.signalLocked()
@@ -91,16 +96,17 @@ func (r *Relay[T]) Enqueue(item T) error {
 		}
 		r.closed = true
 		r.resultErr = r.overflowErr
-		return r.closedErrLocked()
+		return r.resultErr
 	}
 	if r.pendingClose && isTerminal {
 		r.closed = true
 		r.resultErr = r.overflowErr
-		return r.closedErrLocked()
+		return r.resultErr
 	}
 	return nil
 }
 
+// Close requests a clean shutdown; Run() returns nil after draining queued items.
 func (r *Relay[T]) Close() {
 	r.mu.Lock()
 	r.pendingClose = false
@@ -129,13 +135,12 @@ func (r *Relay[T]) next(ctx context.Context) (T, error) {
 	for {
 		r.mu.Lock()
 		if len(r.queue) > 0 {
-			item := r.queue[0]
-			r.queue = r.queue[1:]
+			item := r.dequeueLocked()
 			r.mu.Unlock()
 			return item, nil
 		}
 		if r.closed {
-			err := r.closedErrLocked()
+			err := r.resultErr
 			r.mu.Unlock()
 			if err == nil {
 				return zero, io.EOF
@@ -147,12 +152,44 @@ func (r *Relay[T]) next(ctx context.Context) (T, error) {
 
 		select {
 		case <-ctx.Done():
+			// Cancellation maps to EOF so stream owners can treat client disconnects as clean shutdowns.
+			// Deadlines still propagate as errors because they indicate an unexpected timeout.
 			if errors.Is(ctx.Err(), context.Canceled) {
 				return zero, io.EOF
 			}
 			return zero, ctx.Err()
 		case <-notify:
 		}
+	}
+}
+
+func (r *Relay[T]) dequeueLocked() T {
+	item := r.queue[0]
+	r.shiftLeftFromLocked(0)
+	if len(r.queue) < r.budget {
+		r.pendingClose = false
+	}
+	return item
+}
+
+func (r *Relay[T]) dropHeadAndAppendLocked(item T) {
+	r.shiftLeftFromLocked(0)
+	r.queue = append(r.queue, item)
+}
+
+func (r *Relay[T]) replaceDroppedLocked(idx int, item T) {
+	r.shiftLeftFromLocked(idx)
+	r.queue = append(r.queue, item)
+}
+
+func (r *Relay[T]) shiftLeftFromLocked(idx int) {
+	last := len(r.queue) - 1
+	copy(r.queue[idx:], r.queue[idx+1:])
+	var zero T
+	r.queue[last] = zero
+	r.queue = r.queue[:last]
+	if len(r.queue) == 0 {
+		r.queue = r.queue[:0]
 	}
 }
 
@@ -166,10 +203,6 @@ func (r *Relay[T]) firstDroppableLocked() int {
 		}
 	}
 	return -1
-}
-
-func (r *Relay[T]) closedErrLocked() error {
-	return r.resultErr
 }
 
 func (r *Relay[T]) signalLocked() {

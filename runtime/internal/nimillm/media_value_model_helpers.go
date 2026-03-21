@@ -66,9 +66,9 @@ func ValueAsInt64(value any) int64 {
 	return 0
 }
 
-// ValueAsInt32 converts a generic value to an int32 via int64. Returns 0 for
-// negative values or overflow.
-func ValueAsInt32(value any) int32 {
+// ValueAsPositiveInt32 converts a generic value to an int32 via int64.
+// Returns 0 for negative values or overflow.
+func ValueAsPositiveInt32(value any) int32 {
 	parsed := ValueAsInt64(value)
 	if parsed <= 0 {
 		return 0
@@ -77,6 +77,10 @@ func ValueAsInt32(value any) int32 {
 		return 0
 	}
 	return int32(parsed)
+}
+
+func ValueAsInt32(value any) int32 {
+	return ValueAsPositiveInt32(value)
 }
 
 // MapField returns the value of a key from a map[string]any, or nil if the

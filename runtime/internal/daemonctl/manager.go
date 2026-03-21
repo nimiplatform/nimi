@@ -1,11 +1,10 @@
 package daemonctl
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
-	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"io"
 	"os"
 	"os/exec"
@@ -13,13 +12,22 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/entrypoint"
 )
 
+type Mode string
+
 const (
-	ModeStopped    = "stopped"
-	ModeBackground = "background"
-	ModeExternal   = "external"
+	ModeStopped    Mode = "stopped"
+	ModeBackground Mode = "background"
+	ModeExternal   Mode = "external"
 )
+
+func (m Mode) String() string {
+	return string(m)
+}
 
 type Paths struct {
 	LockFile     string
@@ -35,11 +43,11 @@ type Metadata struct {
 	ConfigPath string `json:"configPath,omitempty"`
 	LogPath    string `json:"logPath,omitempty"`
 	StartedAt  string `json:"startedAt,omitempty"`
-	Mode       string `json:"mode"`
+	Mode       Mode   `json:"mode"`
 }
 
 type Status struct {
-	Mode            string `json:"mode"`
+	Mode            Mode   `json:"mode"`
 	Process         string `json:"process"`
 	PID             int    `json:"pid,omitempty"`
 	GRPCAddr        string `json:"grpc,omitempty"`
@@ -64,7 +72,7 @@ func (s Status) ExitCode() int {
 }
 
 type StartResult struct {
-	Mode          string `json:"mode"`
+	Mode          Mode   `json:"mode"`
 	PID           int    `json:"pid"`
 	GRPCAddr      string `json:"grpc"`
 	ConfigPath    string `json:"config"`
@@ -76,10 +84,10 @@ type StartResult struct {
 }
 
 type StopResult struct {
-	AlreadyStopped bool   `json:"alreadyStopped"`
-	Stopped        bool   `json:"stopped"`
-	PID            int    `json:"pid,omitempty"`
-	Mode           string `json:"mode,omitempty"`
+	AlreadyStopped bool `json:"alreadyStopped"`
+	Stopped        bool `json:"stopped"`
+	PID            int  `json:"pid,omitempty"`
+	Mode           Mode `json:"mode,omitempty"`
 }
 
 type Manager struct {
@@ -94,6 +102,7 @@ type Manager struct {
 	now            func() time.Time
 	sleep          func(time.Duration)
 	readTail       func(path string, lines int) (string, error)
+	followLogsCtx  func() context.Context
 	writeAtomic    func(path string, content []byte, mode os.FileMode) error
 	readFile       func(path string) ([]byte, error)
 	removeFile     func(path string) error
@@ -114,6 +123,7 @@ func NewManager(version string) *Manager {
 		now:            time.Now,
 		sleep:          time.Sleep,
 		readTail:       readTailLines,
+		followLogsCtx:  context.Background,
 		writeAtomic:    writeBytesAtomic,
 		readFile:       os.ReadFile,
 		removeFile: func(path string) error {
@@ -223,10 +233,7 @@ func (m *Manager) Stop(timeout time.Duration, force bool) (StopResult, error) {
 	if timeout <= 0 {
 		timeout = 10 * time.Second
 	}
-	cfg, cfgErr := m.loadStatusConfig()
-	if cfgErr != nil {
-		cfg = defaultStatusConfig()
-	}
+	cfg := m.statusConfig()
 	status, err := m.statusWithConfig(cfg, config.RuntimeConfigPath(), false)
 	if err != nil {
 		return StopResult{}, err
@@ -265,21 +272,15 @@ func (m *Manager) Stop(timeout time.Duration, force bool) (StopResult, error) {
 }
 
 func (m *Manager) Status() (Status, error) {
-	cfg, cfgErr := m.loadStatusConfig()
-	if cfgErr != nil {
-		cfg = defaultStatusConfig()
-	}
+	cfg := m.statusConfig()
 	return m.statusWithConfig(cfg, config.RuntimeConfigPath(), true)
 }
 
-func (m *Manager) PrintLogs(w io.Writer, tail int, follow bool) error {
+func (m *Manager) PrintLogs(ctx context.Context, w io.Writer, tail int, follow bool) error {
 	if tail <= 0 {
 		tail = 200
 	}
-	cfg, cfgErr := m.loadStatusConfig()
-	if cfgErr != nil {
-		cfg = defaultStatusConfig()
-	}
+	cfg := m.statusConfig()
 	status, err := m.statusWithConfig(cfg, config.RuntimeConfigPath(), false)
 	if err != nil {
 		return err
@@ -308,11 +309,18 @@ func (m *Manager) PrintLogs(w io.Writer, tail int, follow bool) error {
 	if !follow {
 		return nil
 	}
-	return m.followLogFile(status.LogPath, w)
+	if ctx == nil {
+		ctx = m.followLogsCtx()
+	}
+	return m.followLogFile(ctx, status.LogPath, w)
 }
 
-func (m *Manager) loadStatusConfig() (config.Config, error) {
-	return m.loadConfig()
+func (m *Manager) statusConfig() config.Config {
+	cfg, err := m.loadConfig()
+	if err != nil {
+		return defaultStatusConfig()
+	}
+	return cfg
 }
 
 func (m *Manager) statusWithConfig(cfg config.Config, configPath string, probe bool) (Status, error) {
@@ -373,8 +381,8 @@ func (m *Manager) statusWithConfig(cfg config.Config, configPath string, probe b
 	}
 	if metadataExists && metadata.PID == lockPID {
 		status.Mode = ModeBackground
-		status.GRPCAddr = nimillm.FirstNonEmpty(strings.TrimSpace(metadata.GRPCAddr), status.GRPCAddr)
-		status.ConfigPath = nimillm.FirstNonEmpty(strings.TrimSpace(metadata.ConfigPath), status.ConfigPath)
+		status.GRPCAddr = firstNonEmptyString(strings.TrimSpace(metadata.GRPCAddr), status.GRPCAddr)
+		status.ConfigPath = firstNonEmptyString(strings.TrimSpace(metadata.ConfigPath), status.ConfigPath)
 		status.LogPath = strings.TrimSpace(metadata.LogPath)
 		status.StartedAt = strings.TrimSpace(metadata.StartedAt)
 		status.Version = strings.TrimSpace(metadata.Version)
@@ -395,7 +403,7 @@ func (m *Manager) statusWithConfig(cfg config.Config, configPath string, probe b
 	return status, nil
 }
 
-func (m *Manager) followLogFile(path string, w io.Writer) error {
+func (m *Manager) followLogFile(ctx context.Context, path string, w io.Writer) error {
 	file, err := m.openFile(path)
 	if err != nil {
 		return err
@@ -410,6 +418,11 @@ func (m *Manager) followLogFile(path string, w io.Writer) error {
 	buffer := make([]byte, 8192)
 
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		stat, err := m.statFile(path)
 		if err != nil {
 			return err
@@ -447,7 +460,9 @@ func (m *Manager) followLogFile(path string, w io.Writer) error {
 				}
 			}
 		}
-		m.sleep(250 * time.Millisecond)
+		if err := sleepContext(ctx, 250*time.Millisecond, m.sleep); err != nil {
+			return err
+		}
 	}
 }
 
@@ -473,7 +488,7 @@ func (m *Manager) writeMetadata(paths Paths, metadata Metadata) error {
 	}
 	raw, err := json.MarshalIndent(metadata, "", "  ")
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal runtime metadata: %w", err)
 	}
 	raw = append(raw, '\n')
 	if err := m.writeAtomic(paths.MetadataFile, raw, 0o600); err != nil {
@@ -558,7 +573,6 @@ func defaultStartProcess(executable string, logPath string) (int, error) {
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	cmd.Stdin = nil
-	cmd.Env = os.Environ()
 
 	if err := cmd.Start(); err != nil {
 		return 0, fmt.Errorf("start background runtime: %w", err)
@@ -601,11 +615,46 @@ func isInstalledOrBuiltBinary(path string) bool {
 }
 
 func readTailLines(path string, lines int) (string, error) {
-	content, err := os.ReadFile(path)
+	if lines <= 0 {
+		return "", nil
+	}
+	file, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
-	text := strings.ReplaceAll(string(content), "\r\n", "\n")
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return "", err
+	}
+	size := info.Size()
+	if size == 0 {
+		return "", nil
+	}
+
+	const chunkSize = 8192
+	const maxTailReadBytes = 256 * 1024
+
+	collected := make([]byte, 0, minInt(int(size), maxTailReadBytes))
+	offset := size
+	newlineCount := 0
+	targetNewlines := lines + 1
+	for offset > 0 && newlineCount <= targetNewlines && len(collected) < maxTailReadBytes {
+		start := offset - chunkSize
+		if start < 0 {
+			start = 0
+		}
+		block := make([]byte, int(offset-start))
+		if _, err := file.ReadAt(block, start); err != nil && err != io.EOF {
+			return "", err
+		}
+		collected = append(block, collected...)
+		newlineCount += bytes.Count(block, []byte{'\n'})
+		offset = start
+	}
+
+	text := strings.ReplaceAll(string(collected), "\r\n", "\n")
 	parts := strings.Split(text, "\n")
 	if len(parts) > 0 && parts[len(parts)-1] == "" {
 		parts = parts[:len(parts)-1]
@@ -635,6 +684,37 @@ func minDuration(left time.Duration, right time.Duration) time.Duration {
 	if left <= 0 {
 		return right
 	}
+	if left < right {
+		return left
+	}
+	return right
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func sleepContext(ctx context.Context, delay time.Duration, sleeper func(time.Duration)) error {
+	if ctx == nil {
+		sleeper(delay)
+		return nil
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func minInt(left int, right int) int {
 	if left < right {
 		return left
 	}

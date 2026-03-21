@@ -2,15 +2,22 @@ package scheduler
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 )
 
+const (
+	DefaultGlobalConcurrency = 8
+	DefaultPerAppConcurrency = 2
+)
+
 // Config defines runtime queue limits.
 type Config struct {
-	GlobalConcurrency   int
-	PerAppConcurrency   int
+	GlobalConcurrency int
+	PerAppConcurrency int
+	// Zero disables starvation reporting.
 	StarvationThreshold time.Duration
 }
 
@@ -25,68 +32,101 @@ type Scheduler struct {
 	global chan struct{}
 
 	mu                  sync.Mutex
-	perApp              map[string]chan struct{}
+	perApp              map[string]*appSemaphore
 	perSize             int
 	starvationThreshold time.Duration
+}
+
+type appSemaphore struct {
+	sem  chan struct{}
+	refs int
 }
 
 func New(cfg Config) *Scheduler {
 	global := cfg.GlobalConcurrency
 	if global <= 0 {
-		global = 8
+		global = DefaultGlobalConcurrency
 	}
 	perApp := cfg.PerAppConcurrency
 	if perApp <= 0 {
-		perApp = 2
+		perApp = DefaultPerAppConcurrency
 	}
 	return &Scheduler{
 		global:              make(chan struct{}, global),
-		perApp:              make(map[string]chan struct{}),
+		perApp:              make(map[string]*appSemaphore),
 		perSize:             perApp,
 		starvationThreshold: cfg.StarvationThreshold,
 	}
 }
 
-func (s *Scheduler) perAppSemaphore(appID string) chan struct{} {
+func normalizeAppID(appID string) string {
 	appID = strings.TrimSpace(appID)
 	if appID == "" {
 		appID = "_default"
 	}
+	return appID
+}
+
+func (s *Scheduler) perAppSemaphore(appID string) (string, *appSemaphore) {
+	appID = normalizeAppID(appID)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	sem, ok := s.perApp[appID]
 	if ok {
-		return sem
+		sem.refs++
+		return appID, sem
 	}
-	sem = make(chan struct{}, s.perSize)
+	sem = &appSemaphore{
+		sem:  make(chan struct{}, s.perSize),
+		refs: 1,
+	}
 	s.perApp[appID] = sem
-	return sem
+	return appID, sem
+}
+
+func (s *Scheduler) releaseAppReference(appID string, sem *appSemaphore) {
+	if sem == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	current, ok := s.perApp[appID]
+	if !ok || current != sem {
+		return
+	}
+	if current.refs > 0 {
+		current.refs--
+	}
+	if current.refs == 0 && len(current.sem) == 0 {
+		delete(s.perApp, appID)
+	}
 }
 
 func (s *Scheduler) Acquire(ctx context.Context, appID string) (func(), AcquireResult, error) {
 	started := time.Now()
-	perApp := s.perAppSemaphore(appID)
+	appKey, perApp := s.perAppSemaphore(appID)
 
 	select {
 	case s.global <- struct{}{}:
 	case <-ctx.Done():
-		return nil, AcquireResult{}, ctx.Err()
+		s.releaseAppReference(appKey, perApp)
+		return nil, AcquireResult{}, fmt.Errorf("scheduler acquire: %w", ctx.Err())
 	}
 	select {
-	case perApp <- struct{}{}:
+	case perApp.sem <- struct{}{}:
 	case <-ctx.Done():
 		<-s.global
-		return nil, AcquireResult{}, ctx.Err()
+		s.releaseAppReference(appKey, perApp)
+		return nil, AcquireResult{}, fmt.Errorf("scheduler acquire: %w", ctx.Err())
 	}
 
-	released := false
+	var once sync.Once
 	release := func() {
-		if released {
-			return
-		}
-		released = true
-		<-perApp
-		<-s.global
+		once.Do(func() {
+			<-perApp.sem
+			<-s.global
+			s.releaseAppReference(appKey, perApp)
+		})
 	}
 	waited := time.Since(started)
 	return release, AcquireResult{

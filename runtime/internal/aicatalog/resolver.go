@@ -318,8 +318,8 @@ func (r *Resolver) SupportsScenarioForSubject(subjectUserID string, providerType
 	}
 	capabilities := make(map[string]struct{}, len(model.Capabilities))
 	for _, capability := range model.Capabilities {
-		normalized := aicapabilities.NormalizeCatalogCapability(capability)
-		if normalized == "" {
+		normalized, err := aicapabilities.NormalizeCatalogCapability(capability)
+		if err != nil {
 			continue
 		}
 		capabilities[normalized] = struct{}{}

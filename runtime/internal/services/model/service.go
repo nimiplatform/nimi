@@ -54,7 +54,11 @@ func (s *Service) SetPullExecutor(executor pullExecutor) {
 }
 
 func (s *Service) ListModels(context.Context, *runtimev1.ListModelsRequest) (*runtimev1.ListModelsResponse, error) {
-	return &runtimev1.ListModelsResponse{Models: s.registry.ListDescriptors()}, nil
+	models, err := s.registry.ListDescriptors()
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ListModelsResponse{Models: models}, nil
 }
 
 func (s *Service) PullModel(_ context.Context, req *runtimev1.PullModelRequest) (*runtimev1.PullModelResponse, error) {

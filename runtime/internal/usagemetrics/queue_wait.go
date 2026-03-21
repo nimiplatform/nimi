@@ -13,7 +13,8 @@ const queueWaitMetadataKey = "x-nimi-queue-wait-ms"
 
 type queueWaitKey struct{}
 
-// QueueWaitRecorder records per-request queue wait in milliseconds.
+// QueueWaitRecorder records per-request queue wait in milliseconds. Nil
+// receivers are treated as zero-valued no-ops so detached helpers stay safe.
 type QueueWaitRecorder struct {
 	mu     sync.RWMutex
 	waitMs int64
@@ -27,9 +28,6 @@ func WithQueueWaitRecorder(ctx context.Context) (context.Context, *QueueWaitReco
 
 // SetQueueWaitMS sets queue wait when a recorder exists in context.
 func SetQueueWaitMS(ctx context.Context, waitMs int64) {
-	if waitMs < 0 {
-		waitMs = 0
-	}
 	recorder, ok := RecorderFromContext(ctx)
 	if !ok || recorder == nil {
 		return
@@ -78,7 +76,8 @@ func (r *QueueWaitRecorder) Value() int64 {
 	return r.waitMs
 }
 
-// QueueWaitTrailer builds grpc trailer metadata for queue wait.
+// QueueWaitTrailer builds grpc trailer metadata for queue wait. Negative input
+// is clamped so callers can safely use the helper outside recorder-backed flows.
 func QueueWaitTrailer(waitMs int64) metadata.MD {
 	if waitMs < 0 {
 		waitMs = 0

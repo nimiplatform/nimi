@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -57,9 +59,16 @@ func TestEngineConfigEndpoint(t *testing.T) {
 	if got := cfg.Endpoint(); got != "http://127.0.0.1:5678" {
 		t.Errorf("expected http://127.0.0.1:5678, got %s", got)
 	}
+
+	cfg.Address = "  localhost:1234  "
+	if got := cfg.Endpoint(); got != "http://localhost:1234" {
+		t.Fatalf("expected trimmed endpoint, got %q", got)
+	}
 }
 
 func TestItoa(t *testing.T) {
+	maxInt := int(^uint(0) >> 1)
+	minInt := -maxInt - 1
 	tests := []struct {
 		input int
 		want  string
@@ -69,6 +78,7 @@ func TestItoa(t *testing.T) {
 		{1234, "1234"},
 		{-5, "-5"},
 		{8000, "8000"},
+		{minInt, strconv.FormatInt(int64(minInt), 10)},
 	}
 	for _, tt := range tests {
 		if got := itoa(tt.input); got != tt.want {
@@ -363,14 +373,7 @@ func TestLlamaExpectedSHA256(t *testing.T) {
 	}))
 	defer server.Close()
 
-	originalBaseURL := llamaReleaseBaseURL
-	originalClient := llamaReleaseHTTPClient
-	llamaReleaseBaseURL = server.URL
-	llamaReleaseHTTPClient = server.Client()
-	t.Cleanup(func() {
-		llamaReleaseBaseURL = originalBaseURL
-		llamaReleaseHTTPClient = originalClient
-	})
+	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
 	hash, err := llamaExpectedSHA256(version, asset)
 	if err != nil {
@@ -387,14 +390,7 @@ func TestLlamaExpectedSHA256MissingAsset(t *testing.T) {
 	}))
 	defer server.Close()
 
-	originalBaseURL := llamaReleaseBaseURL
-	originalClient := llamaReleaseHTTPClient
-	llamaReleaseBaseURL = server.URL
-	llamaReleaseHTTPClient = server.Client()
-	t.Cleanup(func() {
-		llamaReleaseBaseURL = originalBaseURL
-		llamaReleaseHTTPClient = originalClient
-	})
+	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
 	_, err := llamaExpectedSHA256("3.12.1", "local-ai-v3.12.1-linux-amd64")
 	if err == nil {
@@ -651,9 +647,9 @@ func TestDownloadFromURLSuccess(t *testing.T) {
 	defer server.Close()
 
 	destDir := filepath.Join(t.TempDir(), "engines", "test")
-	binaryPath, hash, err := downloadFromURL(server.URL+"/fake-binary", destDir, "test-binary")
+	binaryPath, hash, err := downloadFromURLWithExpectedSHA256(server.URL+"/fake-binary", destDir, "test-binary", "")
 	if err != nil {
-		t.Fatalf("downloadFromURL: %v", err)
+		t.Fatalf("downloadFromURLWithExpectedSHA256: %v", err)
 	}
 
 	if hash != expectedHash {
@@ -689,7 +685,7 @@ func TestDownloadFromURLHTTPError(t *testing.T) {
 	defer server.Close()
 
 	destDir := filepath.Join(t.TempDir(), "engines", "test")
-	_, _, err := downloadFromURL(server.URL+"/missing", destDir, "test-binary")
+	_, _, err := downloadFromURLWithExpectedSHA256(server.URL+"/missing", destDir, "test-binary", "")
 	if err == nil {
 		t.Fatal("expected error for HTTP 404, got nil")
 	}
@@ -719,6 +715,54 @@ func TestDownloadFromURLHashMismatch(t *testing.T) {
 	}
 	if !errors.Is(err, ErrEngineBinaryHashMismatch) {
 		t.Fatalf("expected ErrEngineBinaryHashMismatch, got %v", err)
+	}
+}
+
+func TestManagerEnsureLlamaFailsWhenRegistryPersistFails(t *testing.T) {
+	if !LlamaSupervisedPlatformSupported() {
+		t.Skipf("unsupported platform: %s", PlatformString())
+	}
+
+	const version = "3.12.1"
+	asset, err := llamaAssetName(version)
+	if err != nil {
+		t.Fatalf("llamaAssetName: %v", err)
+	}
+	fakeBinary := []byte("#!/bin/sh\necho hello\n")
+	sum := sha256.Sum256(fakeBinary)
+	expectedHash := hex.EncodeToString(sum[:])
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v3.12.1/" + asset:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(fakeBinary)
+		case "/v3.12.1/" + llamaChecksumAssetName(version):
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(expectedHash + "  " + asset + "\n"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mgr, err := NewManager(logger, t.TempDir(), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	blocker := filepath.Join(t.TempDir(), "registry-parent")
+	if err := os.WriteFile(blocker, []byte("file"), 0o644); err != nil {
+		t.Fatalf("write blocker: %v", err)
+	}
+	mgr.registry.path = filepath.Join(blocker, "registry.json")
+
+	_, err = mgr.ensureLlama(context.Background(), DefaultLlamaConfig())
+	if err == nil {
+		t.Fatal("expected ensureLlama to fail when registry persist fails")
+	}
+	if !strings.Contains(err.Error(), "persist llama registry entry") {
+		t.Fatalf("unexpected ensureLlama error: %v", err)
 	}
 }
 
@@ -757,6 +801,23 @@ func TestManagerStopAllEmpty(t *testing.T) {
 
 	// StopAll on empty manager should not panic.
 	mgr.StopAll()
+}
+
+func TestManagerStopEngineRemovesSupervisor(t *testing.T) {
+	dir := t.TempDir()
+	mgr, err := NewManager(nil, dir, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	sup := NewSupervisor(EngineConfig{Kind: EngineMedia, ShutdownTimeout: time.Second}, nil, nil)
+	mgr.supervisors[EngineMedia] = sup
+
+	if err := mgr.StopEngine(EngineMedia); err != nil {
+		t.Fatalf("StopEngine: %v", err)
+	}
+	if _, exists := mgr.supervisors[EngineMedia]; exists {
+		t.Fatal("expected stopped supervisor to be removed from manager map")
+	}
 }
 
 func TestManagerEngineEndpointNotStarted(t *testing.T) {

@@ -1,9 +1,11 @@
 package providerhealth
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -33,25 +35,43 @@ type item struct {
 }
 
 type Tracker struct {
-	mu          sync.RWMutex
-	items       map[string]item
-	nextWatchID uint64
-	watchers    map[uint64]chan Snapshot
+	mu                       sync.RWMutex
+	items                    map[string]item
+	nextWatchID              uint64
+	watchers                 map[uint64]chan Snapshot
+	now                      func() time.Time
+	onDroppedNotification    func(Snapshot)
+	droppedNotificationCount atomic.Uint64
 }
 
-func New() *Tracker {
+type Config struct {
+	Now                   func() time.Time
+	OnDroppedNotification func(Snapshot)
+}
+
+func New(configs ...Config) *Tracker {
+	cfg := Config{}
+	if len(configs) > 0 {
+		cfg = configs[0]
+	}
+	nowFn := cfg.Now
+	if nowFn == nil {
+		nowFn = func() time.Time { return time.Now().UTC() }
+	}
 	return &Tracker{
-		items:    make(map[string]item),
-		watchers: make(map[uint64]chan Snapshot),
+		items:                 make(map[string]item),
+		watchers:              make(map[uint64]chan Snapshot),
+		now:                   nowFn,
+		onDroppedNotification: cfg.OnDroppedNotification,
 	}
 }
 
-func (t *Tracker) Mark(name string, healthy bool, reason string) {
+func (t *Tracker) Mark(name string, healthy bool, reason string) error {
 	key := strings.TrimSpace(strings.ToLower(name))
 	if key == "" {
-		return
+		return fmt.Errorf("providerhealth.Mark: empty provider name")
 	}
-	now := time.Now().UTC()
+	now := t.now()
 
 	t.mu.Lock()
 	current := t.items[key]
@@ -78,20 +98,30 @@ func (t *Tracker) Mark(name string, healthy bool, reason string) {
 		current.lastReason != next.lastReason ||
 		current.consecutiveFailures != next.consecutiveFailures
 	t.items[key] = next
+	var watchers []chan Snapshot
+	var snapshot Snapshot
 	if notify {
-		t.broadcastLocked(Snapshot{
+		snapshot = Snapshot{
 			Name:                key,
 			State:               next.state,
 			LastReason:          next.lastReason,
 			ConsecutiveFailures: next.consecutiveFailures,
 			LastChangedAt:       next.lastChangedAt,
 			LastCheckedAt:       next.lastCheckedAt,
-		})
+		}
+		watchers = make([]chan Snapshot, 0, len(t.watchers))
+		for _, watcher := range t.watchers {
+			watchers = append(watchers, watcher)
+		}
 	}
 	t.mu.Unlock()
+	if notify {
+		t.broadcast(snapshot, watchers)
+	}
+	return nil
 }
 
-func (t *Tracker) Snapshot(name string) Snapshot {
+func (t *Tracker) SnapshotOf(name string) Snapshot {
 	key := strings.TrimSpace(strings.ToLower(name))
 	if key == "" {
 		return Snapshot{}
@@ -113,13 +143,7 @@ func (t *Tracker) Snapshot(name string) Snapshot {
 }
 
 func (t *Tracker) IsHealthy(name string) bool {
-	snapshot := t.Snapshot(name)
-	switch snapshot.State {
-	case StateUnhealthy:
-		return false
-	default:
-		return true
-	}
+	return t.SnapshotOf(name).State == StateHealthy
 }
 
 func (t *Tracker) List() []Snapshot {
@@ -148,6 +172,10 @@ func (t *Tracker) Subscribe(buffer int) (<-chan Snapshot, func()) {
 	}
 
 	t.mu.Lock()
+	if t.nextWatchID == ^uint64(0) {
+		t.mu.Unlock()
+		panic("providerhealth.Subscribe: watcher id overflow")
+	}
 	t.nextWatchID++
 	id := t.nextWatchID
 	ch := make(chan Snapshot, buffer)
@@ -166,8 +194,18 @@ func (t *Tracker) Subscribe(buffer int) (<-chan Snapshot, func()) {
 	return ch, cancel
 }
 
-func (t *Tracker) broadcastLocked(snapshot Snapshot) {
-	for _, ch := range t.watchers {
+func (t *Tracker) WatcherCount() int {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return len(t.watchers)
+}
+
+func (t *Tracker) DroppedNotifications() uint64 {
+	return t.droppedNotificationCount.Load()
+}
+
+func (t *Tracker) broadcast(snapshot Snapshot, watchers []chan Snapshot) {
+	for _, ch := range watchers {
 		select {
 		case ch <- snapshot:
 			continue
@@ -176,6 +214,10 @@ func (t *Tracker) broadcastLocked(snapshot Snapshot) {
 		select {
 		case <-ch:
 		default:
+		}
+		t.droppedNotificationCount.Add(1)
+		if t.onDroppedNotification != nil {
+			t.onDroppedNotification(snapshot)
 		}
 		select {
 		case ch <- snapshot:

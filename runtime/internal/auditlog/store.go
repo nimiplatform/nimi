@@ -1,6 +1,7 @@
 package auditlog
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -8,8 +9,10 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -19,19 +22,6 @@ const (
 	defaultMaxEvents = 20000
 	defaultMaxUsage  = 50000
 )
-
-type usageSample struct {
-	Timestamp     time.Time
-	AppID         string
-	SubjectUserID string
-	CallerKind    runtimev1.CallerKind
-	CallerID      string
-	Capability    string
-	ModelID       string
-	Success       bool
-	Usage         *runtimev1.UsageStats
-	QueueWaitMs   int64
-}
 
 // UsageInput is a write contract for runtime usage accounting.
 type UsageInput struct {
@@ -53,7 +43,7 @@ type Store struct {
 	maxEvents int
 	maxUsage  int
 	events    []*runtimev1.AuditEventRecord
-	usage     []usageSample
+	usage     []UsageInput
 }
 
 func New(maxEvents int, maxUsage int) *Store {
@@ -67,7 +57,7 @@ func New(maxEvents int, maxUsage int) *Store {
 		maxEvents: maxEvents,
 		maxUsage:  maxUsage,
 		events:    make([]*runtimev1.AuditEventRecord, 0, maxEvents),
-		usage:     make([]usageSample, 0, maxUsage),
+		usage:     make([]UsageInput, 0, maxUsage),
 	}
 }
 
@@ -75,25 +65,27 @@ func (s *Store) AppendEvent(event *runtimev1.AuditEventRecord) {
 	if event == nil {
 		return
 	}
-	copy := cloneAuditEvent(event)
-	if copy.GetAuditId() == "" {
-		copy.AuditId = ulid.Make().String()
+	eventCopy := cloneAuditEvent(event)
+	if eventCopy.GetAuditId() == "" {
+		eventCopy.AuditId = ulid.Make().String()
 	}
-	if copy.GetTimestamp() == nil {
-		copy.Timestamp = timestamppb.New(time.Now().UTC())
+	if eventCopy.GetTimestamp() == nil {
+		eventCopy.Timestamp = timestamppb.New(time.Now().UTC())
 	}
-	if copy.GetTraceId() == "" {
-		copy.TraceId = ulid.Make().String()
+	if eventCopy.GetTraceId() == "" {
+		eventCopy.TraceId = ulid.Make().String()
 	}
 	// K-AUDIT-017: mask sensitive fields in payload before storage.
-	if copy.Payload != nil {
-		maskSensitiveFields(copy.Payload.GetFields())
+	if eventCopy.Payload != nil {
+		maskSensitiveFields(eventCopy.Payload.GetFields())
 	}
 
 	s.mu.Lock()
-	s.events = append(s.events, copy)
-	if overflow := len(s.events) - s.maxEvents; overflow > 0 {
-		s.events = append([]*runtimev1.AuditEventRecord(nil), s.events[overflow:]...)
+	if len(s.events) == s.maxEvents {
+		copy(s.events, s.events[1:])
+		s.events[len(s.events)-1] = eventCopy
+	} else {
+		s.events = append(s.events, eventCopy)
 	}
 	s.mu.Unlock()
 }
@@ -107,7 +99,7 @@ func (s *Store) RecordUsage(input UsageInput) {
 		ts = time.Now().UTC()
 	}
 
-	item := usageSample{
+	item := UsageInput{
 		Timestamp:     ts,
 		AppID:         strings.TrimSpace(input.AppID),
 		SubjectUserID: strings.TrimSpace(input.SubjectUserID),
@@ -121,28 +113,26 @@ func (s *Store) RecordUsage(input UsageInput) {
 	}
 
 	s.mu.Lock()
-	s.usage = append(s.usage, item)
-	if overflow := len(s.usage) - s.maxUsage; overflow > 0 {
-		s.usage = append([]usageSample(nil), s.usage[overflow:]...)
+	if len(s.usage) == s.maxUsage {
+		copy(s.usage, s.usage[1:])
+		s.usage[len(s.usage)-1] = item
+	} else {
+		s.usage = append(s.usage, item)
 	}
 	s.mu.Unlock()
 }
 
-func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) *runtimev1.ListAuditEventsResponse {
+func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) (*runtimev1.ListAuditEventsResponse, error) {
+	filterDigest := eventFilterDigest(req)
 	s.mu.RLock()
-	source := make([]*runtimev1.AuditEventRecord, len(s.events))
-	for i, event := range s.events {
-		source[i] = cloneAuditEvent(event)
-	}
-	s.mu.RUnlock()
-
-	filtered := make([]*runtimev1.AuditEventRecord, 0, len(source))
-	for _, event := range source {
+	filtered := make([]*runtimev1.AuditEventRecord, 0, len(s.events))
+	for _, event := range s.events {
 		if !matchesEventFilter(event, req) {
 			continue
 		}
-		filtered = append(filtered, event)
+		filtered = append(filtered, cloneAuditEvent(event))
 	}
+	s.mu.RUnlock()
 
 	sort.Slice(filtered, func(i, j int) bool {
 		left := filtered[i].GetTimestamp().AsTime()
@@ -153,8 +143,11 @@ func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) *runtimev1.Lis
 		return left.After(right)
 	})
 
-	start := parsePageToken(req.GetPageToken())
-	if start < 0 || start > len(filtered) {
+	start, err := parsePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		return nil, err
+	}
+	if start > len(filtered) {
 		start = 0
 	}
 
@@ -171,21 +164,18 @@ func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) *runtimev1.Lis
 	}
 	nextToken := ""
 	if end < len(filtered) {
-		nextToken = pagination.Encode(strconv.Itoa(end), "")
+		nextToken = pagination.Encode(strconv.Itoa(end), filterDigest)
 	}
 
 	return &runtimev1.ListAuditEventsResponse{
 		Events:        filtered[start:end],
 		NextPageToken: nextToken,
-	}
+	}, nil
 }
 
-func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) *runtimev1.ListUsageStatsResponse {
-	s.mu.RLock()
-	samples := append([]usageSample(nil), s.usage...)
-	s.mu.RUnlock()
-
+func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) (*runtimev1.ListUsageStatsResponse, error) {
 	window := normalizeWindow(req.GetWindow())
+	filterDigest := usageFilterDigest(req, window)
 	type usageKey struct {
 		AppID         string
 		SubjectUserID string
@@ -198,7 +188,8 @@ func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) *runtimev1.ListU
 	}
 
 	agg := make(map[usageKey]*runtimev1.UsageStatRecord)
-	for _, sample := range samples {
+	s.mu.RLock()
+	for _, sample := range s.usage {
 		if !matchesUsageFilter(sample, req) {
 			continue
 		}
@@ -240,6 +231,7 @@ func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) *runtimev1.ListU
 			item.ComputeMs += sample.Usage.GetComputeMs()
 		}
 	}
+	s.mu.RUnlock()
 
 	records := make([]*runtimev1.UsageStatRecord, 0, len(agg))
 	for _, item := range agg {
@@ -257,8 +249,11 @@ func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) *runtimev1.ListU
 		return left.After(right)
 	})
 
-	start := parsePageToken(req.GetPageToken())
-	if start < 0 || start > len(records) {
+	start, err := parsePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		return nil, err
+	}
+	if start > len(records) {
 		start = 0
 	}
 
@@ -275,13 +270,13 @@ func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) *runtimev1.ListU
 	}
 	nextToken := ""
 	if end < len(records) {
-		nextToken = pagination.Encode(strconv.Itoa(end), "")
+		nextToken = pagination.Encode(strconv.Itoa(end), filterDigest)
 	}
 
 	return &runtimev1.ListUsageStatsResponse{
 		Records:       records[start:end],
 		NextPageToken: nextToken,
-	}
+	}, nil
 }
 
 func matchesEventFilter(event *runtimev1.AuditEventRecord, req *runtimev1.ListAuditEventsRequest) bool {
@@ -315,7 +310,7 @@ func matchesEventFilter(event *runtimev1.AuditEventRecord, req *runtimev1.ListAu
 	return true
 }
 
-func matchesUsageFilter(sample usageSample, req *runtimev1.ListUsageStatsRequest) bool {
+func matchesUsageFilter(sample UsageInput, req *runtimev1.ListUsageStatsRequest) bool {
 	if req == nil {
 		return true
 	}
@@ -354,7 +349,7 @@ func normalizeWindow(window runtimev1.UsageWindow) runtimev1.UsageWindow {
 }
 
 func truncateByWindow(ts time.Time, window runtimev1.UsageWindow) time.Time {
-	switch normalizeWindow(window) {
+	switch window {
 	case runtimev1.UsageWindow_USAGE_WINDOW_DAY:
 		y, m, d := ts.UTC().Date()
 		return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
@@ -365,19 +360,22 @@ func truncateByWindow(ts time.Time, window runtimev1.UsageWindow) time.Time {
 	}
 }
 
-func parsePageToken(token string) int {
+func parsePageToken(token string, filterDigest string) (int, error) {
 	if strings.TrimSpace(token) == "" {
-		return 0
+		return 0, nil
 	}
-	cursor, _, err := pagination.Decode(token)
+	cursor, err := pagination.ValidatePageToken(token, filterDigest)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	value, convErr := strconv.Atoi(cursor)
 	if convErr != nil || value < 0 {
-		return 0
+		return 0, fmt.Errorf(
+			"auditlog.parsePageToken: %w",
+			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID),
+		)
 	}
-	return value
+	return value, nil
 }
 
 func cloneAuditEvent(input *runtimev1.AuditEventRecord) *runtimev1.AuditEventRecord {
@@ -385,11 +383,11 @@ func cloneAuditEvent(input *runtimev1.AuditEventRecord) *runtimev1.AuditEventRec
 		return nil
 	}
 	cloned := proto.Clone(input)
-	copy, ok := cloned.(*runtimev1.AuditEventRecord)
+	recordCopy, ok := cloned.(*runtimev1.AuditEventRecord)
 	if !ok {
 		return nil
 	}
-	return copy
+	return recordCopy
 }
 
 func cloneUsage(input *runtimev1.UsageStats) *runtimev1.UsageStats {
@@ -397,17 +395,29 @@ func cloneUsage(input *runtimev1.UsageStats) *runtimev1.UsageStats {
 		return nil
 	}
 	cloned := proto.Clone(input)
-	copy, ok := cloned.(*runtimev1.UsageStats)
+	statsCopy, ok := cloned.(*runtimev1.UsageStats)
 	if !ok {
 		return nil
 	}
-	return copy
+	return statsCopy
 }
 
 // sensitiveKeyPatterns are patterns for keys whose values must be masked
 // per K-AUDIT-017.
 var sensitiveKeyPatterns = []string{
-	"api_key", "credential", "secret", "authorization", "password",
+	"api_key",
+	"credential",
+	"secret",
+	"authorization",
+	"password",
+	"private_key",
+	"privatekey",
+	"passphrase",
+	"cookie",
+	"bearer",
+	"signature",
+	"session_id",
+	"sessionid",
 }
 
 // exemptTokenKeys are token-related keys that should NOT be masked.
@@ -474,4 +484,44 @@ func maskSensitiveFields(fields map[string]*structpb.Value) {
 			}
 		}
 	}
+}
+
+func eventFilterDigest(req *runtimev1.ListAuditEventsRequest) string {
+	if req == nil {
+		return pagination.FilterDigest()
+	}
+	return pagination.FilterDigest(
+		strings.TrimSpace(req.GetAppId()),
+		strings.TrimSpace(req.GetSubjectUserId()),
+		strings.TrimSpace(req.GetDomain()),
+		req.GetReasonCode().String(),
+		req.GetCallerKind().String(),
+		strings.TrimSpace(req.GetCallerId()),
+		formatPageTime(req.GetFromTime()),
+		formatPageTime(req.GetToTime()),
+	)
+}
+
+func usageFilterDigest(req *runtimev1.ListUsageStatsRequest, window runtimev1.UsageWindow) string {
+	if req == nil {
+		return pagination.FilterDigest(window.String())
+	}
+	return pagination.FilterDigest(
+		strings.TrimSpace(req.GetAppId()),
+		strings.TrimSpace(req.GetSubjectUserId()),
+		req.GetCallerKind().String(),
+		strings.TrimSpace(req.GetCallerId()),
+		strings.TrimSpace(req.GetCapability()),
+		strings.TrimSpace(req.GetModelId()),
+		formatPageTime(req.GetFromTime()),
+		formatPageTime(req.GetToTime()),
+		window.String(),
+	)
+}
+
+func formatPageTime(ts *timestamppb.Timestamp) string {
+	if ts == nil {
+		return ""
+	}
+	return ts.AsTime().UTC().Format(time.RFC3339Nano)
 }

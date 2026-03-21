@@ -1,6 +1,7 @@
 package pagination
 
 import (
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -98,6 +99,9 @@ func TestFilterDigest_Deterministic(t *testing.T) {
 	if d1 == d3 {
 		t.Error("different inputs should produce different digests")
 	}
+	if len(d1) != 64 {
+		t.Fatalf("expected sha256 hex digest length 64, got %d", len(d1))
+	}
 }
 
 func TestEncode_OpaqueFormat(t *testing.T) {
@@ -105,5 +109,17 @@ func TestEncode_OpaqueFormat(t *testing.T) {
 	// Token should not contain raw integers — it's opaque
 	if token == "123" {
 		t.Error("token should be opaque, not raw integer")
+	}
+}
+
+func TestDecode_RejectsOversizedToken(t *testing.T) {
+	oversized := strings.Repeat("a", maxEncodedTokenBytes+1)
+	_, _, err := Decode(oversized)
+	if err == nil {
+		t.Fatal("expected error for oversized token")
+	}
+	reason, ok := grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_PAGE_TOKEN_INVALID {
+		t.Fatalf("expected PAGE_TOKEN_INVALID for oversized token, got %v ok=%v", reason, ok)
 	}
 }

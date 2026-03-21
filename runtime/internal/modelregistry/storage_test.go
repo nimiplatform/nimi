@@ -1,8 +1,11 @@
 package modelregistry
 
 import (
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -66,13 +69,87 @@ func TestRegistrySaveAndLoad(t *testing.T) {
 	}
 }
 
+func TestNewFromFileNormalizesDefaultsAndInvalidStatus(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "model-registry.json")
+
+	payload := persistedRegistry{
+		SchemaVersion: 1,
+		Entries: []persistedEntry{
+			{
+				ModelID: " dashscope/gpt-test ",
+				Status:  999,
+				Source:  "dashscope",
+			},
+		},
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatalf("write payload: %v", err)
+	}
+
+	loaded, err := NewFromFile(path)
+	if err != nil {
+		t.Fatalf("NewFromFile: %v", err)
+	}
+
+	item, ok := loaded.Get("dashscope/gpt-test")
+	if !ok {
+		t.Fatal("expected normalized entry to be loaded")
+	}
+	if item.Version != "latest" {
+		t.Fatalf("expected version default, got=%q", item.Version)
+	}
+	if item.ProviderHint != ProviderHintDashScope {
+		t.Fatalf("expected inferred provider hint, got=%q", item.ProviderHint)
+	}
+	if item.Status != runtimev1.ModelStatus_MODEL_STATUS_UNSPECIFIED {
+		t.Fatalf("expected invalid status to normalize to unspecified, got=%v", item.Status)
+	}
+}
+
+func TestSaveToFileRemovesTempFileOnRenameFailure(t *testing.T) {
+	dir := t.TempDir()
+	registry := New()
+	registry.Upsert(Entry{
+		ModelID: "qwen2.5",
+		Status:  runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+	})
+
+	targetDir := filepath.Join(dir, "target")
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		t.Fatalf("mkdir target dir: %v", err)
+	}
+
+	err := registry.SaveToFile(targetDir)
+	if err == nil {
+		t.Fatal("expected rename failure when target path is a directory")
+	}
+
+	entries, readErr := os.ReadDir(dir)
+	if readErr != nil {
+		t.Fatalf("read dir: %v", readErr)
+	}
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.Name(), "target.tmp.") {
+			t.Fatalf("unexpected temp file left behind: %s", entry.Name())
+		}
+	}
+}
+
 func TestInferNativeProjectionForMediaModel(t *testing.T) {
-	projection := InferNativeProjection(
+	projection, err := InferNativeProjection(
 		"local/wan2.2-video",
 		[]string{"video.generate"},
 		[]string{"transformer.gguf", "vae.safetensors"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 	)
+	if err != nil {
+		t.Fatalf("infer native projection: %v", err)
+	}
 
 	if projection.PreferredEngine != "media" {
 		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
@@ -89,12 +166,15 @@ func TestInferNativeProjectionForMediaModel(t *testing.T) {
 }
 
 func TestInferNativeProjectionForSpeechModel(t *testing.T) {
-	projection := InferNativeProjection(
+	projection, err := InferNativeProjection(
 		"speech/whisper-large-v3",
 		[]string{"audio.transcribe"},
 		[]string{"model.bin"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 	)
+	if err != nil {
+		t.Fatalf("infer native projection: %v", err)
+	}
 
 	if projection.PreferredEngine != "speech" {
 		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
@@ -114,12 +194,15 @@ func TestInferNativeProjectionForSpeechModel(t *testing.T) {
 }
 
 func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
-	projection := InferNativeProjection(
+	projection, err := InferNativeProjection(
 		"speech/qwen3tts",
 		[]string{"voice_workflow.tts_v2v"},
 		[]string{"model.safetensors"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 	)
+	if err != nil {
+		t.Fatalf("infer native projection: %v", err)
+	}
 
 	if projection.PreferredEngine != "speech" {
 		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
@@ -139,12 +222,15 @@ func TestInferNativeProjectionForVoiceWorkflowModel(t *testing.T) {
 }
 
 func TestInferNativeProjectionForLlamaModel(t *testing.T) {
-	projection := InferNativeProjection(
+	projection, err := InferNativeProjection(
 		"llama/qwen3-chat",
 		[]string{"text.generate"},
 		[]string{"model.gguf", "tokenizer.json"},
 		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
 	)
+	if err != nil {
+		t.Fatalf("infer native projection: %v", err)
+	}
 
 	if projection.PreferredEngine != "llama" {
 		t.Fatalf("preferred engine mismatch: %q", projection.PreferredEngine)
@@ -171,6 +257,89 @@ func TestInferNativeProjectionFallbackEnginesExcludesDiffusers(t *testing.T) {
 	filtered := publicFallbackEngines([]string{"media.diffusers", "sidecar", "media.diffusers"})
 	if len(filtered) != 1 || filtered[0] != "sidecar" {
 		t.Fatalf("fallback engines should filter diffusers: %#v", filtered)
+	}
+}
+
+func TestInferNativeProjectionFailsClosedOnCorruptResolvedManifest(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("NIMI_RUNTIME_LOCAL_MODELS_ROOT", root)
+
+	manifestDir := filepath.Join(root, "resolved", "local", "qwen2.5")
+	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
+		t.Fatalf("mkdir manifest dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(manifestDir, "manifest.json"), []byte("{invalid"), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	_, err := InferNativeProjection("local/qwen2.5", []string{"text.generate"}, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	if err == nil {
+		t.Fatal("expected corrupt manifest to fail closed")
+	}
+	if !strings.Contains(err.Error(), "parse resolved manifest") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolvedBundleManifestCandidatesStayUnderRoot(t *testing.T) {
+	resolvedRoot := filepath.Join(t.TempDir(), "resolved")
+	candidates := resolvedBundleManifestCandidates(resolvedRoot, "local/../../../etc/passwd")
+	if len(candidates) != 0 {
+		t.Fatalf("expected traversal candidates to be rejected, got=%v", candidates)
+	}
+}
+
+func TestInferNativeProjectionUnionsHostRequirements(t *testing.T) {
+	projection, err := InferNativeProjection(
+		"local/multi-modal",
+		[]string{"video.generate", "audio.transcribe"},
+		nil,
+		runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+	)
+	if err != nil {
+		t.Fatalf("infer native projection: %v", err)
+	}
+	if !projection.HostRequirements.GetGpuRequired() {
+		t.Fatal("expected GPU requirement to be preserved")
+	}
+	if !projection.HostRequirements.GetPythonRuntimeRequired() {
+		t.Fatal("expected python runtime requirement to be preserved")
+	}
+	got := projection.HostRequirements.GetRequiredBackends()
+	want := []string{"diffusers", "stable-diffusion.cpp", "whispercpp"}
+	if len(got) != len(want) {
+		t.Fatalf("required backends mismatch: got=%v want=%v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("required backends mismatch: got=%v want=%v", got, want)
+		}
+	}
+}
+
+func TestRegistryListDescriptorsPropagatesProjectionError(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("NIMI_RUNTIME_LOCAL_MODELS_ROOT", root)
+
+	manifestDir := filepath.Join(root, "resolved", "local", "qwen2.5")
+	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
+		t.Fatalf("mkdir manifest dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(manifestDir, "manifest.json"), []byte("{invalid"), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	registry := New()
+	registry.Upsert(Entry{
+		ModelID:      "local/qwen2.5",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"text.generate"},
+	})
+
+	_, err := registry.ListDescriptors()
+	if err == nil {
+		t.Fatal("expected descriptor listing to propagate projection error")
 	}
 }
 

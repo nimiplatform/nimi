@@ -27,11 +27,12 @@ func defaultStopProcess(pid int, force bool) error {
 	if force {
 		sig = syscall.SIGKILL
 	}
-	if err := syscall.Kill(-pid, sig); err == syscall.ESRCH {
+	err := syscall.Kill(-pid, sig)
+	if err == syscall.ESRCH {
 		return nil
-	} else if err == syscall.EINVAL || err == syscall.EPERM {
-		return syscall.Kill(pid, sig)
-	} else {
-		return err
 	}
+	if err == syscall.EINVAL || err == syscall.EPERM {
+		return syscall.Kill(pid, sig)
+	}
+	return err
 }

@@ -2,6 +2,7 @@ package grpcerr
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -39,12 +40,10 @@ func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options
 
 	metadata := make(map[string]string)
 	for key, value := range options.Metadata {
-		trimmedKey := key
-		trimmedValue := value
-		if trimmedKey == "" || trimmedValue == "" {
+		if key == "" || value == "" {
 			continue
 		}
-		metadata[trimmedKey] = trimmedValue
+		metadata[key] = value
 	}
 	if options.ActionHint != "" {
 		metadata["action_hint"] = options.ActionHint
@@ -85,8 +84,9 @@ func WithReasonCodeOptions(code codes.Code, reason runtimev1.ReasonCode, options
 	})
 	if err != nil {
 		// WithDetails can only fail if the proto serialization fails,
-		// which should never happen for ErrorInfo. Fall back to plain status.
-		return st.Err()
+		// which should never happen for ErrorInfo. Surface the serialization
+		// failure explicitly instead of discarding the original cause.
+		return fmt.Errorf("grpcerr.WithReasonCodeOptions: attach ErrorInfo: %w", err)
 	}
 	return detailed.Err()
 }

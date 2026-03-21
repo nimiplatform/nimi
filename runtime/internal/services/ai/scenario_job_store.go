@@ -580,7 +580,7 @@ func (s *Service) executeScenarioAsyncJob(
 				job.ProviderJobId = providerJobID
 			}
 			job.ReasonCode = reasonCode
-			job.ReasonDetail = strings.TrimSpace(err.Error())
+			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reasonCode)
 		}); !ok {
 			s.logger.Warn("scenario job transition to terminal failed", "job_id", jobID, "status", statusValue.String())
 		}

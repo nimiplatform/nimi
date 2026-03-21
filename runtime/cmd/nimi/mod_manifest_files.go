@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 func resolvePrimarySourceFile(modDir string) (string, error) {
@@ -42,7 +44,11 @@ func loadManifest(modDir string) (modManifest, error) {
 	}
 	for _, candidate := range yamlCandidates {
 		if raw, err := os.ReadFile(candidate); err == nil {
-			manifest := normalizeManifest(parseManifestYAML(raw), modDir)
+			manifest, parseErr := parseManifestYAML(raw)
+			if parseErr != nil {
+				return modManifest{}, parseErr
+			}
+			manifest = normalizeManifest(manifest, modDir)
 			if validateErr := validateManifestCapabilities(manifest); validateErr != nil {
 				return modManifest{}, validateErr
 			}
@@ -95,58 +101,26 @@ func parseManifestJSON(raw []byte) (modManifest, error) {
 	return manifest, nil
 }
 
-func parseManifestYAML(raw []byte) modManifest {
-	lines := strings.Split(string(raw), "\n")
-	manifest := modManifest{}
-	capabilities := make([]string, 0)
-	inCapabilities := false
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-
-		if strings.HasPrefix(trimmed, "capabilities:") {
-			inCapabilities = true
-			continue
-		}
-		if inCapabilities {
-			if strings.HasPrefix(trimmed, "-") {
-				item := strings.TrimSpace(strings.TrimPrefix(trimmed, "-"))
-				item = trimQuotes(item)
-				if item != "" {
-					capabilities = append(capabilities, item)
-				}
-				continue
-			}
-			if !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
-				inCapabilities = false
-			}
-		}
-
-		key, value, ok := strings.Cut(trimmed, ":")
-		if !ok {
-			continue
-		}
-		key = strings.TrimSpace(key)
-		value = trimQuotes(strings.TrimSpace(value))
-		switch key {
-		case "id":
-			manifest.ID = value
-		case "name":
-			manifest.Name = value
-		case "version":
-			manifest.Version = value
-		case "description":
-			manifest.Description = value
-		case "license":
-			manifest.License = value
-		}
+func parseManifestYAML(raw []byte) (modManifest, error) {
+	var payload struct {
+		ID           string   `yaml:"id"`
+		Name         string   `yaml:"name"`
+		Version      string   `yaml:"version"`
+		Description  string   `yaml:"description"`
+		License      string   `yaml:"license"`
+		Capabilities []string `yaml:"capabilities"`
 	}
-
-	manifest.Capabilities = capabilities
-	return manifest
+	if err := yaml.Unmarshal(raw, &payload); err != nil {
+		return modManifest{}, fmt.Errorf("parse mod.manifest.yaml: %w", err)
+	}
+	return modManifest{
+		ID:           payload.ID,
+		Name:         payload.Name,
+		Version:      payload.Version,
+		Description:  payload.Description,
+		License:      payload.License,
+		Capabilities: payload.Capabilities,
+	}, nil
 }
 
 func normalizeManifest(manifest modManifest, modDir string) modManifest {

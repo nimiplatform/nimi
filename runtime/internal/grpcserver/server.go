@@ -7,6 +7,8 @@ import (
 	"net"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
@@ -55,7 +57,10 @@ const (
 func New(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
 	addr := cfg.GRPCAddr
 	auditStore := auditlog.New(cfg.AuditRingBufferSize, cfg.UsageStatsBufferSize)
-	idempotencyStore := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
+	idempotencyStore, err := idempotency.New(24*time.Hour, cfg.IdempotencyCapacity)
+	if err != nil {
+		return nil, fmt.Errorf("configure idempotency store: %w", err)
+	}
 	appRegistry := appregistry.New()
 	scopeCatalog := scopecatalog.New(func(operation string, version string, code runtimev1.ReasonCode) {
 		appendAuditEvent(auditStore, auditEventInput{
@@ -284,5 +289,9 @@ func capitalizeFirst(s string) string {
 	if s == "" {
 		return s
 	}
-	return strings.ToUpper(s[:1]) + s[1:]
+	firstRune, width := utf8.DecodeRuneInString(s)
+	if firstRune == utf8.RuneError && width == 0 {
+		return s
+	}
+	return string(unicode.ToUpper(firstRune)) + s[width:]
 }

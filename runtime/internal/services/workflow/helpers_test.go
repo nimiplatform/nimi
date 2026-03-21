@@ -120,6 +120,16 @@ func TestValidateDefinitionAcceptsExtractEdgeBinding(t *testing.T) {
 	}
 }
 
+func TestStructFromMapReturnsEmptyStructForInvalidValues(t *testing.T) {
+	value := structFromMap(map[string]any{"invalid": make(chan int)})
+	if value == nil {
+		t.Fatal("expected non-nil struct")
+	}
+	if len(value.GetFields()) != 0 {
+		t.Fatalf("invalid values should collapse to an empty struct, got %#v", value.AsMap())
+	}
+}
+
 func templateNode(nodeID string) *runtimev1.WorkflowNode {
 	return &runtimev1.WorkflowNode{
 		NodeId:   nodeID,

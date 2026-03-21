@@ -18,12 +18,14 @@ import (
 
 func newGrantServiceForTest() *Service {
 	registry := appregistry.New()
-	registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
+	if err := registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
 		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
 		RuntimeRequired: true,
 		RealmRequired:   true,
 		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, nil)
+	}, nil); err != nil {
+		panic(err)
+	}
 	return NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), registry, scopecatalog.New())
 }
 
@@ -93,12 +95,14 @@ func TestGrantAuthorizeValidateRevoke(t *testing.T) {
 
 func TestGrantServiceAuditUsesIncomingTraceID(t *testing.T) {
 	registry := appregistry.New()
-	registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
+	if err := registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
 		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
 		RuntimeRequired: true,
 		RealmRequired:   true,
 		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, nil)
+	}, nil); err != nil {
+		t.Fatalf("Upsert: %v", err)
+	}
 	store := auditlog.New(16, 16)
 	svc := NewWithDependencies(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -127,7 +131,10 @@ func TestGrantServiceAuditUsesIncomingTraceID(t *testing.T) {
 		t.Fatalf("authorize: %v", err)
 	}
 
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	resp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("list grant audit events: %v", err)
+	}
 	if len(resp.GetEvents()) == 0 {
 		t.Fatalf("expected grant audit event")
 	}

@@ -86,7 +86,13 @@ func runRuntimeProviders(args []string) error {
 	for {
 		providers, sampledAt, err := fetchProviderSnapshots(sourceValue, *httpAddr, *grpcAddr, timeout)
 		if err != nil {
-			return err
+			fmt.Fprintf(os.Stderr, "provider watch fetch failed: %v\n", err)
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-ticker.C:
+				continue
+			}
 		}
 		signature := providersSignature(providers)
 		if !hasBaseline {

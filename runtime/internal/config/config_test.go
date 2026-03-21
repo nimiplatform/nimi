@@ -12,12 +12,10 @@ import (
 func setLlamaSupervisedPlatformForTest(t *testing.T, supported bool, platform string) {
 	t.Helper()
 	originalSupported := llamaSupervisedPlatformSupported
-	originalPlatformString := llamaPlatformString
 	llamaSupervisedPlatformSupported = func() bool { return supported }
-	llamaPlatformString = func() string { return platform }
+	_ = platform
 	t.Cleanup(func() {
 		llamaSupervisedPlatformSupported = originalSupported
-		llamaPlatformString = originalPlatformString
 	})
 }
 

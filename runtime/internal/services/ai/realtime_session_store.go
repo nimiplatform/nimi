@@ -30,12 +30,19 @@ type realtimeSessionRecord struct {
 type realtimeSessionStore struct {
 	mu       sync.RWMutex
 	sessions map[string]*realtimeSessionRecord
+	onDrop   func(string, *runtimev1.RealtimeEvent)
 }
 
 func newRealtimeSessionStore() *realtimeSessionStore {
 	return &realtimeSessionStore{
 		sessions: make(map[string]*realtimeSessionRecord),
 	}
+}
+
+func (s *realtimeSessionStore) setDropReporter(report func(string, *runtimev1.RealtimeEvent)) {
+	s.mu.Lock()
+	s.onDrop = report
+	s.mu.Unlock()
 }
 
 func (s *realtimeSessionStore) create(record *realtimeSessionRecord) *realtimeSessionRecord {
@@ -64,8 +71,8 @@ func (s *realtimeSessionStore) appendEvent(sessionID string, event *runtimev1.Re
 	if !ok || event == nil {
 		return nil, false
 	}
+	var dropped *runtimev1.RealtimeEvent
 	record.mu.Lock()
-	defer record.mu.Unlock()
 	record.nextSeq++
 	cloned := cloneRealtimeEvent(event)
 	cloned.Sequence = record.nextSeq
@@ -80,6 +87,16 @@ func (s *realtimeSessionStore) appendEvent(sessionID string, event *runtimev1.Re
 		select {
 		case record.reader <- cloneRealtimeEvent(cloned):
 		default:
+			dropped = cloneRealtimeEvent(cloned)
+		}
+	}
+	record.mu.Unlock()
+	if dropped != nil {
+		s.mu.RLock()
+		report := s.onDrop
+		s.mu.RUnlock()
+		if report != nil {
+			report(strings.TrimSpace(sessionID), dropped)
 		}
 	}
 	return cloneRealtimeEvent(cloned), true

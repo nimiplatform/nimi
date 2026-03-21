@@ -6,32 +6,39 @@ func TestNormalizeCatalogCapability(t *testing.T) {
 	tests := []struct {
 		input string
 		want  string
+		ok    bool
 	}{
-		{TextGenerate, TextGenerate},
-		{TextEmbed, TextEmbed},
-		{ImageGenerate, ImageGenerate},
-		{VideoGenerate, VideoGenerate},
-		{AudioSynthesize, AudioSynthesize},
-		{AudioTranscribe, AudioTranscribe},
-		{VoiceWorkflowTTSV2V, VoiceWorkflowTTSV2V},
-		{VoiceWorkflowTTST2V, VoiceWorkflowTTST2V},
-		{MusicGenerate, MusicGenerate},
-		{MusicGenerateIteration, MusicGenerateIteration},
-		{"TEXT.GENERATE", TextGenerate},
-		{"  text.generate  ", TextGenerate},
-		{"unknown.cap", ""},
-		{"", ""},
+		{TextGenerate, TextGenerate, true},
+		{TextGenerateVision, TextGenerateVision, true},
+		{TextGenerateAudio, TextGenerateAudio, true},
+		{TextGenerateVideo, TextGenerateVideo, true},
+		{TextEmbed, TextEmbed, true},
+		{ImageGenerate, ImageGenerate, true},
+		{VideoGenerate, VideoGenerate, true},
+		{AudioSynthesize, AudioSynthesize, true},
+		{AudioTranscribe, AudioTranscribe, true},
+		{VoiceWorkflowTTSV2V, VoiceWorkflowTTSV2V, true},
+		{VoiceWorkflowTTST2V, VoiceWorkflowTTST2V, true},
+		{MusicGenerate, MusicGenerate, true},
+		{MusicGenerateIteration, MusicGenerateIteration, true},
+		{"TEXT.GENERATE", TextGenerate, true},
+		{"  text.generate  ", TextGenerate, true},
+		{"unknown.cap", "", false},
+		{"", "", false},
 	}
 	for _, tt := range tests {
-		got := NormalizeCatalogCapability(tt.input)
+		got, err := NormalizeCatalogCapability(tt.input)
 		if got != tt.want {
 			t.Errorf("NormalizeCatalogCapability(%q) = %q, want %q", tt.input, got, tt.want)
+		}
+		if (err == nil) != tt.ok {
+			t.Errorf("NormalizeCatalogCapability(%q) err = %v, ok=%v", tt.input, err, tt.ok)
 		}
 	}
 }
 
 func TestHasCatalogCapability(t *testing.T) {
-	caps := []string{"text.generate", "image.generate", "music.generate.iteration"}
+	caps := []string{"text.generate", "IMAGE.GENERATE", "music.generate.iteration"}
 
 	if !HasCatalogCapability(caps, TextGenerate) {
 		t.Fatal("should find text.generate")
@@ -48,9 +55,12 @@ func TestHasCatalogCapability(t *testing.T) {
 }
 
 func TestHasCatalogCapabilityCaseInsensitive(t *testing.T) {
-	caps := []string{"TEXT.GENERATE"}
+	caps := []string{"TEXT.GENERATE", "Text.Generate.Video"}
 	if !HasCatalogCapability(caps, "text.generate") {
 		t.Fatal("should match case-insensitively")
+	}
+	if !HasCatalogCapability(caps, TextGenerateVideo) {
+		t.Fatal("should match mixed-case capability entries")
 	}
 }
 

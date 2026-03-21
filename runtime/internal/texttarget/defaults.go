@@ -10,6 +10,8 @@ import (
 
 const BundledDefaultLocalTextModel = "qwen2.5"
 
+var localQualifiedPrefixes = []string{"local", "llama", "media", "speech", "sidecar"}
+
 func ResolveLocalDefaultModel(cfg config.Config) string {
 	if value := strings.TrimSpace(cfg.DefaultLocalTextModel); value != "" {
 		return value
@@ -22,9 +24,8 @@ func EnsureLocalQualifiedModel(modelID string) string {
 	if normalized == "" {
 		return ""
 	}
-	lower := strings.ToLower(normalized)
-	if strings.HasPrefix(lower, "local/") || strings.HasPrefix(lower, "llama/") || strings.HasPrefix(lower, "media/") || strings.HasPrefix(lower, "speech/") || strings.HasPrefix(lower, "sidecar/") {
-		return normalized
+	if prefix, remainder, ok := splitCanonicalLocalPrefix(normalized); ok {
+		return prefix + "/" + remainder
 	}
 	return "local/" + normalized
 }
@@ -34,7 +35,11 @@ func EnsureLocalLatestModelRef(modelID string) string {
 	if qualified == "" {
 		return ""
 	}
-	if strings.Contains(qualified, "@") || strings.Count(qualified, ":") == 1 {
+	_, remainder, ok := strings.Cut(qualified, "/")
+	if !ok {
+		return qualified
+	}
+	if strings.Contains(remainder, "@") || strings.Contains(remainder, ":") {
 		return qualified
 	}
 	return qualified + "@latest"
@@ -48,7 +53,7 @@ func ResolveCloudProvider(cfg config.Config, providerHint string) (string, confi
 		}
 		target, ok := cfg.Providers[canonical]
 		if !ok {
-			return "", config.RuntimeFileTarget{}, fmt.Errorf("provider %s is not configured", canonical)
+			return "", config.RuntimeFileTarget{}, fmt.Errorf("provider %q is not configured", canonical)
 		}
 		return canonical, target, nil
 	}
@@ -58,21 +63,28 @@ func ResolveCloudProvider(cfg config.Config, providerHint string) (string, confi
 	}
 	target, ok := cfg.Providers[providerName]
 	if !ok {
-		return "", config.RuntimeFileTarget{}, fmt.Errorf("default cloud provider %s is not configured", providerName)
+		return "", config.RuntimeFileTarget{}, fmt.Errorf("default cloud provider %q is not configured", providerName)
 	}
 	return providerName, target, nil
 }
 
 func ResolveProviderDefaultTextModel(cfg config.Config, providerName string) (string, string, error) {
-	target := cfg.Providers[strings.TrimSpace(providerName)]
+	canonicalProvider := strings.TrimSpace(providerName)
+	if canonicalProvider == "" {
+		return "", "", fmt.Errorf("provider name is required")
+	}
+	target, ok := cfg.Providers[canonicalProvider]
+	if !ok {
+		return "", "", fmt.Errorf("provider %q is not configured", canonicalProvider)
+	}
 	if value := strings.TrimSpace(target.DefaultModel); value != "" {
 		return value, "config", nil
 	}
-	record, ok := providerregistry.Lookup(strings.TrimSpace(providerName))
+	record, ok := providerregistry.Lookup(canonicalProvider)
 	if ok && strings.TrimSpace(record.DefaultTextModel) != "" {
 		return strings.TrimSpace(record.DefaultTextModel), "catalog", nil
 	}
-	return "", "", fmt.Errorf("provider %s has no default text model. Run 'nimi provider set %s --default-model <model>'", providerName, providerName)
+	return "", "", fmt.Errorf("provider %q has no default text model", canonicalProvider)
 }
 
 func LooksLikeQualifiedRemoteModel(modelID string) bool {
@@ -81,7 +93,7 @@ func LooksLikeQualifiedRemoteModel(modelID string) bool {
 		return false
 	}
 	prefix, rest, ok := strings.Cut(normalized, "/")
-	if !ok || strings.TrimSpace(rest) == "" {
+	if !ok || rest == "" {
 		return false
 	}
 	prefix = strings.TrimSpace(prefix)
@@ -90,6 +102,23 @@ func LooksLikeQualifiedRemoteModel(modelID string) bool {
 	}
 	_, ok = config.ResolveCanonicalProviderID(prefix)
 	return ok
+}
+
+func splitCanonicalLocalPrefix(modelID string) (string, string, bool) {
+	prefix, remainder, ok := strings.Cut(modelID, "/")
+	if !ok {
+		return "", "", false
+	}
+	remainder = strings.TrimSpace(remainder)
+	if remainder == "" {
+		return "", "", false
+	}
+	for _, candidate := range localQualifiedPrefixes {
+		if strings.EqualFold(strings.TrimSpace(prefix), candidate) {
+			return candidate, remainder, true
+		}
+	}
+	return "", "", false
 }
 
 func IsHighLevelQualifiedModel(modelID string) bool {

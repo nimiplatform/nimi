@@ -1,13 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"github.com/nimiplatform/nimi/runtime/internal/daemonctl"
 	"io"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/daemonctl"
 )
 
 type stubDaemonManager struct {
@@ -32,7 +34,7 @@ func (s stubDaemonManager) Status() (daemonctl.Status, error) {
 	return s.status, s.statusErr
 }
 
-func (s stubDaemonManager) PrintLogs(_ io.Writer, _ int, _ bool) error {
+func (s stubDaemonManager) PrintLogs(_ context.Context, _ io.Writer, _ int, _ bool) error {
 	return s.logsErr
 }
 

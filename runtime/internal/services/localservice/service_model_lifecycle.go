@@ -78,9 +78,7 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 
 	failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 	detail := appendWarnings(modelProbeFailureDetail(current, probe, registration), warnings)
-	if bootstrapErr != nil {
-		detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-	}
+	detail = appendSanitizedBootstrapFailureDetail(detail, bootstrapErr)
 	if strings.TrimSpace(probe.probeURL) != "" {
 		detail += "; probe_url=" + probe.probeURL
 	}
@@ -148,9 +146,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			}
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 			detail := modelProbeFailureDetail(model, probe, registration)
-			if bootstrapErr != nil {
-				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-			}
+			detail = appendSanitizedBootstrapFailureDetail(detail, bootstrapErr)
 			if strings.TrimSpace(probe.probeURL) != "" {
 				detail += "; probe_url=" + probe.probeURL
 			}
@@ -188,9 +184,7 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 			health := modelHealth(model)
 			detail := modelProbeFailureDetail(model, probe, registration)
-			if bootstrapErr != nil {
-				detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
-			}
+			detail = appendSanitizedBootstrapFailureDetail(detail, bootstrapErr)
 			if strings.TrimSpace(probe.probeURL) != "" {
 				detail += "; probe_url=" + probe.probeURL
 			}
@@ -205,6 +199,16 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		return result[i].GetLocalModelId() < result[j].GetLocalModelId()
 	})
 	return &runtimev1.CheckLocalModelHealthResponse{Models: result}, nil
+}
+
+func appendSanitizedBootstrapFailureDetail(detail string, err error) string {
+	if err == nil {
+		return detail
+	}
+	if strings.TrimSpace(detail) == "" {
+		return "bootstrap_error=managed_engine_bootstrap_failed"
+	}
+	return detail + "; bootstrap_error=managed_engine_bootstrap_failed"
 }
 
 func (s *Service) shouldWarmLocalModelOnStart(

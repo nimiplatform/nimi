@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
@@ -421,6 +422,36 @@ func TestRunRuntimeConfigSetConcurrentWriteConflict(t *testing.T) {
 	}
 	if fileCfg.GRPCAddr != "127.0.0.1:50101" {
 		t.Fatalf("grpc addr mismatch after concurrent set: %q", fileCfg.GRPCAddr)
+	}
+}
+
+func TestAcquireConfigWriteLockRemovesStalePIDLock(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	lockPath := configPath + ".lock"
+	staleLock := configWriteLockMetadata{
+		PID:       99999999,
+		CreatedAt: time.Now().Add(-configWriteLockStaleAfter).UTC().Format(time.RFC3339Nano),
+	}
+	raw, err := json.Marshal(staleLock)
+	if err != nil {
+		t.Fatalf("marshal stale lock: %v", err)
+	}
+	if err := os.WriteFile(lockPath, raw, 0o600); err != nil {
+		t.Fatalf("write stale lock: %v", err)
+	}
+
+	release, err := acquireConfigWriteLock(configPath)
+	if err != nil {
+		t.Fatalf("acquireConfigWriteLock: %v", err)
+	}
+	defer release()
+
+	metadata, _, err := readConfigWriteLockMetadata(lockPath)
+	if err != nil {
+		t.Fatalf("readConfigWriteLockMetadata: %v", err)
+	}
+	if metadata == nil || metadata.PID != os.Getpid() {
+		t.Fatalf("lock metadata mismatch: %#v", metadata)
 	}
 }
 

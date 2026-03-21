@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -146,7 +147,9 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 	s.mu.Lock()
 	s.apps[appID+"::"+instanceID] = registration
 	s.mu.Unlock()
-	s.registry.Upsert(appID, req.GetModeManifest(), req.GetCapabilities())
+	if err := s.registry.Upsert(appID, req.GetModeManifest(), req.GetCapabilities()); err != nil {
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+	}
 
 	s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
 	s.logger.Info("app registered", "app_id", appID, "app_instance_id", instanceID)

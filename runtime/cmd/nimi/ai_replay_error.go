@@ -73,7 +73,11 @@ func extractActionHintFromText(value string) string {
 	}
 	if marker := "actionHint="; strings.Contains(text, marker) {
 		segment := strings.SplitN(text, marker, 2)[1]
-		return strings.Fields(segment)[0]
+		fields := strings.Fields(segment)
+		if len(fields) == 0 {
+			return ""
+		}
+		return fields[0]
 	}
 	return ""
 }

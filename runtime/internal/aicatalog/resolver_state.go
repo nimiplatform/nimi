@@ -367,8 +367,8 @@ func collectProviderCapabilities(models []ModelEntry) []string {
 	seen := map[string]struct{}{}
 	for _, model := range models {
 		for _, capability := range model.Capabilities {
-			normalized := aicapabilities.NormalizeCatalogCapability(capability)
-			if normalized == "" {
+			normalized, err := aicapabilities.NormalizeCatalogCapability(capability)
+			if err != nil {
 				continue
 			}
 			seen[normalized] = struct{}{}

@@ -21,6 +21,7 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
 	}
 	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
 	if err != nil {
@@ -98,6 +99,7 @@ func TestDaemonRunWaitsForBackgroundWorkersToStop(t *testing.T) {
 		LocalStatePath:          filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:     64,
 		UsageStatsBufferSize:    64,
+		IdempotencyCapacity:     32,
 		AIHealthIntervalSeconds: 1,
 		AIHTTPTimeoutSeconds:    1,
 		Providers: map[string]config.RuntimeFileTarget{

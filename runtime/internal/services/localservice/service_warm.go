@@ -260,6 +260,12 @@ func (s *Service) recordWarmKey(key string) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if _, exists := s.warmedModelKeys[key]; !exists && len(s.warmedModelKeys) >= 512 {
+		for staleKey := range s.warmedModelKeys {
+			delete(s.warmedModelKeys, staleKey)
+			break
+		}
+	}
 	s.warmedModelKeys[key] = struct{}{}
 }
 

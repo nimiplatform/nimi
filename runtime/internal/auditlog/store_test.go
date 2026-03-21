@@ -31,11 +31,14 @@ func TestStoreListEventsAndUsage(t *testing.T) {
 		Timestamp:     timestamppb.New(now.Add(time.Second)),
 	})
 
-	eventResp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	eventResp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{
 		AppId:    "nimi.desktop",
 		Domain:   "runtime.ai",
 		PageSize: 10,
 	})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
 	if got := len(eventResp.GetEvents()); got != 2 {
 		t.Fatalf("expected 2 events, got %d", got)
 	}
@@ -71,12 +74,15 @@ func TestStoreListEventsAndUsage(t *testing.T) {
 		},
 	})
 
-	usageResp := store.ListUsage(&runtimev1.ListUsageStatsRequest{
+	usageResp, err := store.ListUsage(&runtimev1.ListUsageStatsRequest{
 		AppId:      "nimi.desktop",
 		Capability: "runtime.ai.generate",
 		Window:     runtimev1.UsageWindow_USAGE_WINDOW_MINUTE,
 		PageSize:   10,
 	})
+	if err != nil {
+		t.Fatalf("ListUsage: %v", err)
+	}
 	if got := len(usageResp.GetRecords()); got != 1 {
 		t.Fatalf("expected 1 usage record, got %d", got)
 	}
@@ -124,11 +130,14 @@ func TestStoreListUsageByCallerKindAndCapability(t *testing.T) {
 		Success:       true,
 	})
 
-	desktopCore := store.ListUsage(&runtimev1.ListUsageStatsRequest{
+	desktopCore, err := store.ListUsage(&runtimev1.ListUsageStatsRequest{
 		AppId:      "nimi.desktop",
 		CallerKind: runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
 		Window:     runtimev1.UsageWindow_USAGE_WINDOW_MINUTE,
 	})
+	if err != nil {
+		t.Fatalf("ListUsage(desktop-core): %v", err)
+	}
 	if len(desktopCore.GetRecords()) != 1 {
 		t.Fatalf("expected 1 desktop-core record, got=%d", len(desktopCore.GetRecords()))
 	}
@@ -136,11 +145,14 @@ func TestStoreListUsageByCallerKindAndCapability(t *testing.T) {
 		t.Fatalf("unexpected caller id: %s", desktopCore.GetRecords()[0].GetCallerId())
 	}
 
-	aiCapability := store.ListUsage(&runtimev1.ListUsageStatsRequest{
+	aiCapability, err := store.ListUsage(&runtimev1.ListUsageStatsRequest{
 		AppId:      "nimi.desktop",
 		Capability: "runtime.ai.generate",
 		Window:     runtimev1.UsageWindow_USAGE_WINDOW_MINUTE,
 	})
+	if err != nil {
+		t.Fatalf("ListUsage(capability): %v", err)
+	}
 	if len(aiCapability.GetRecords()) != 2 {
 		t.Fatalf("expected 2 runtime.ai.generate records, got=%d", len(aiCapability.GetRecords()))
 	}
@@ -157,7 +169,10 @@ func TestListEventsPageSizeDefault50(t *testing.T) {
 		})
 	}
 
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	resp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
 	if len(resp.Events) != 50 {
 		t.Fatalf("default page size should be 50, got %d", len(resp.Events))
 	}
@@ -178,9 +193,12 @@ func TestListEventsPageSizeMaxCap200(t *testing.T) {
 	}
 
 	// Request 500 — should be capped to 200 (K-PAGE-005).
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	resp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{
 		PageSize: 500,
 	})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
 	if len(resp.Events) != 200 {
 		t.Fatalf("page size should be capped at 200, got %d", len(resp.Events))
 	}
@@ -197,9 +215,12 @@ func TestListEventsPageSizeExact200(t *testing.T) {
 		})
 	}
 
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	resp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{
 		PageSize: 200,
 	})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
 	if len(resp.Events) != 200 {
 		t.Fatalf("page size 200 should be allowed, got %d", len(resp.Events))
 	}
@@ -225,10 +246,13 @@ func TestAuditRetentionPolicyEnforced(t *testing.T) {
 	}
 
 	// Query all retained events (page size larger than buffer).
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	resp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{
 		Domain:   "retention",
 		PageSize: 200,
 	})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
 	if got := len(resp.Events); got != bufSize {
 		t.Fatalf("expected %d retained events, got %d", bufSize, got)
 	}

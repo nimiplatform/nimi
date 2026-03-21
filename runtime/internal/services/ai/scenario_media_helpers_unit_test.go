@@ -379,6 +379,12 @@ func TestReasonCodeFromMediaErrorAndVoiceRef(t *testing.T) {
 	if got := reasonCodeFromMediaError(status.Error(codes.Canceled, "cancel")); got != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("unexpected canceled reason: %v", got)
 	}
+	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.InvalidArgument, "https://secret.invalid/path?api_key=abc"), runtimev1.ReasonCode_AI_INPUT_INVALID); got != "provider rejected request parameters" {
+		t.Fatalf("unexpected sanitized invalid-argument detail: %q", got)
+	}
+	if got := sanitizeScenarioJobReasonDetail(status.Error(codes.ResourceExhausted, "token quota exceeded"), runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED); got != "provider rate limit reached" {
+		t.Fatalf("unexpected sanitized rate-limit detail: %q", got)
+	}
 
 	spec := &runtimev1.SpeechSynthesizeScenarioSpec{VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF, Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "voice-1"}}}
 	if got := resolveScenarioVoiceRef(spec); got != "voice-1" {

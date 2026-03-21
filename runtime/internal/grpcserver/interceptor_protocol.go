@@ -39,7 +39,9 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 
 			resp, callErr := handler(ctx, req)
 			if callErr == nil {
-				store.Save(info.FullMethod, appID, meta.ParticipantID, meta.IdempotencyKey, requestHash, resp)
+				if message, ok := resp.(proto.Message); ok && message != nil {
+					store.Save(info.FullMethod, appID, meta.ParticipantID, meta.IdempotencyKey, requestHash, message)
+				}
 			}
 			return resp, callErr
 		}

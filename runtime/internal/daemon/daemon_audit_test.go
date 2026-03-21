@@ -10,6 +10,15 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 )
 
+func mustListAuditEvents(t *testing.T, store *auditlog.Store, req *runtimev1.ListAuditEventsRequest) *runtimev1.ListAuditEventsResponse {
+	t.Helper()
+	resp, err := store.ListEvents(req)
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
+	return resp
+}
+
 func TestAppendProviderHealthAuditOnTransition(t *testing.T) {
 	store := auditlog.New(32, 32)
 	before := providerhealth.Snapshot{
@@ -23,7 +32,7 @@ func TestAppendProviderHealthAuditOnTransition(t *testing.T) {
 	}
 
 	appendProviderHealthAudit(store, "cloud-nimillm", before, after)
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.ai",
 	})
 	if len(resp.GetEvents()) != 1 {
@@ -59,7 +68,7 @@ func TestAppendProviderHealthAuditNoTransitionNoEvent(t *testing.T) {
 	}
 
 	appendProviderHealthAudit(store, "cloud-nimillm", before, after)
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	resp := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.ai",
 	})
 	if len(resp.GetEvents()) != 0 {

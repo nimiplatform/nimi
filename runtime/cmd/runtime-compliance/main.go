@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -16,10 +13,6 @@ import (
 type testRef struct {
 	Package string
 	Name    string
-}
-
-func (r testRef) key() string {
-	return r.Package + ":" + r.Name
 }
 
 func (r testRef) String() string {
@@ -39,12 +32,6 @@ type checklistItemSpec struct {
 	Requirement string
 	Tests       []testRef
 	Commands    []commandCheckSpec
-}
-
-type goTestEvent struct {
-	Action  string `json:"Action"`
-	Package string `json:"Package"`
-	Test    string `json:"Test"`
 }
 
 type commandCheckResult struct {
@@ -83,8 +70,7 @@ func main() {
 
 	passedTests, testErr := collectPassingTests()
 	if testErr != nil {
-		fmt.Fprintf(os.Stderr, "collect tests failed: %v\n", testErr)
-		os.Exit(1)
+		fatalf("collect tests failed: %v", testErr)
 	}
 
 	checklist := runtimeChecklist()
@@ -110,72 +96,23 @@ func main() {
 
 	raw, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "marshal report failed: %v\n", err)
-		os.Exit(1)
+		fatalf("marshal report failed: %v", err)
 	}
 	fmt.Println(string(raw))
 
 	if strings.TrimSpace(*outputPath) != "" {
 		if err := os.MkdirAll(filepath.Dir(*outputPath), 0o755); err != nil {
-			fmt.Fprintf(os.Stderr, "create output dir failed: %v\n", err)
-			os.Exit(1)
+			fatalf("create output dir failed: %v", err)
 		}
 		if err := os.WriteFile(*outputPath, raw, 0o644); err != nil {
-			fmt.Fprintf(os.Stderr, "write output failed: %v\n", err)
-			os.Exit(1)
+			fatalf("write output failed: %v", err)
 		}
 	}
 
 	if *gate && report.Summary.Failed > 0 {
+		fmt.Fprintf(os.Stderr, "gate failed: %d checklist item(s) did not pass\n", report.Summary.Failed)
 		os.Exit(1)
 	}
-}
-
-func collectPassingTests() (map[string]bool, error) {
-	passed, err := collectPassingTestsOnce()
-	if err == nil {
-		return passed, nil
-	}
-	time.Sleep(500 * time.Millisecond)
-	retried, retryErr := collectPassingTestsOnce()
-	if retryErr == nil {
-		return retried, nil
-	}
-	return nil, fmt.Errorf("first attempt: %w; retry attempt: %w", err, retryErr)
-}
-
-func collectPassingTestsOnce() (map[string]bool, error) {
-	cmd := exec.Command("go", "test", "./...", "-json", "-count=1")
-	cmd.Dir = "."
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	passed := make(map[string]bool)
-	scanner := bufio.NewScanner(stdout)
-	scanner.Buffer(make([]byte, 0, 1024), 2*1024*1024)
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		var event goTestEvent
-		if err := json.Unmarshal(line, &event); err != nil {
-			continue
-		}
-		if event.Action == "pass" && strings.TrimSpace(event.Test) != "" {
-			passed[event.Package+":"+event.Test] = true
-		}
-	}
-	if scanErr := scanner.Err(); scanErr != nil {
-		return nil, scanErr
-	}
-	if waitErr := cmd.Wait(); waitErr != nil {
-		return nil, waitErr
-	}
-	return passed, nil
 }
 
 func evaluateItem(item checklistItemSpec, passedTests map[string]bool) checklistItemResult {
@@ -189,7 +126,7 @@ func evaluateItem(item checklistItemSpec, passedTests map[string]bool) checklist
 	}
 
 	for _, ref := range item.Tests {
-		key := ref.key()
+		key := ref.String()
 		result.Tests = append(result.Tests, ref.String())
 		if !passedTests[key] {
 			result.FailedTests = append(result.FailedTests, ref.String())
@@ -208,583 +145,13 @@ func evaluateItem(item checklistItemSpec, passedTests map[string]bool) checklist
 	return result
 }
 
-func runCommandCheck(spec commandCheckSpec) commandCheckResult {
-	result := commandCheckResult{
-		Name:    spec.Name,
-		Command: spec.Binary + " " + strings.Join(spec.Args, " "),
-		Dir:     spec.Dir,
-		Passed:  false,
+func reportMalformedTestEvents(count int) {
+	if count > 0 {
+		fmt.Fprintf(os.Stderr, "warning: ignored %d malformed go test event(s)\n", count)
 	}
-
-	binaryPath, err := resolveBinary(spec.Binary)
-	if err != nil {
-		result.Detail = err.Error()
-		return result
-	}
-
-	cmd := exec.Command(binaryPath, spec.Args...)
-	if strings.TrimSpace(spec.Dir) != "" {
-		cmd.Dir = spec.Dir
-	}
-	raw, err := cmd.CombinedOutput()
-	if err != nil {
-		detail := strings.TrimSpace(string(raw))
-		if detail == "" {
-			detail = err.Error()
-		}
-		if len(detail) > 800 {
-			detail = detail[:800] + "...(truncated)"
-		}
-		result.Detail = detail
-		return result
-	}
-	result.Passed = true
-	return result
 }
 
-func resolveBinary(name string) (string, error) {
-	if strings.TrimSpace(name) == "" {
-		return "", errors.New("empty binary name")
-	}
-	if path, err := exec.LookPath(name); err == nil {
-		return path, nil
-	}
-	if name == "buf" {
-		out, err := exec.Command("go", "env", "GOPATH").Output()
-		if err == nil {
-			candidate := filepath.Join(strings.TrimSpace(string(out)), "bin", "buf")
-			if info, statErr := os.Stat(candidate); statErr == nil && !info.IsDir() {
-				return candidate, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("binary %q not found", name)
-}
-
-func runtimeChecklist() []checklistItemSpec {
-	const (
-		pkgAppRegistry = "github.com/nimiplatform/nimi/runtime/internal/appregistry"
-		pkgApp         = "github.com/nimiplatform/nimi/runtime/internal/services/app"
-		pkgAuthn       = "github.com/nimiplatform/nimi/runtime/internal/authn"
-		pkgAuditLog    = "github.com/nimiplatform/nimi/runtime/internal/auditlog"
-		pkgAuditSvc    = "github.com/nimiplatform/nimi/runtime/internal/services/audit"
-		pkgAI          = "github.com/nimiplatform/nimi/runtime/internal/services/ai"
-		pkgConnector   = "github.com/nimiplatform/nimi/runtime/internal/services/connector"
-		pkgDaemon      = "github.com/nimiplatform/nimi/runtime/internal/daemon"
-		pkgGrant       = "github.com/nimiplatform/nimi/runtime/internal/services/grant"
-		pkgGrpc        = "github.com/nimiplatform/nimi/runtime/internal/grpcserver"
-		pkgModel       = "github.com/nimiplatform/nimi/runtime/internal/services/model"
-		pkgNimillm     = "github.com/nimiplatform/nimi/runtime/internal/nimillm"
-		pkgProtocol    = "github.com/nimiplatform/nimi/runtime/internal/protocol"
-		pkgScheduler   = "github.com/nimiplatform/nimi/runtime/internal/scheduler"
-		pkgLocalService = "github.com/nimiplatform/nimi/runtime/internal/services/localservice"
-		pkgWorkflow     = "github.com/nimiplatform/nimi/runtime/internal/services/workflow"
-		pkgKnowledge    = "github.com/nimiplatform/nimi/runtime/internal/services/knowledge"
-		pkgConfig       = "github.com/nimiplatform/nimi/runtime/internal/config"
-		pkgGrpcErr      = "github.com/nimiplatform/nimi/runtime/internal/grpcerr"
-		pkgAuth         = "github.com/nimiplatform/nimi/runtime/internal/services/auth"
-		pkgStreamutil   = "github.com/nimiplatform/nimi/runtime/internal/streamutil"
-	)
-
-	return []checklistItemSpec{
-		{
-			ID:          "RS-11-01",
-			Requirement: "gRPC schema freeze + breaking-change check",
-			Commands: []commandCheckSpec{
-				{Name: "buf-build", Dir: "../proto", Binary: "buf", Args: []string{"build"}},
-				{Name: "buf-breaking", Dir: "../proto", Binary: "buf", Args: []string{"breaking", "--against", "../runtime/proto/runtime-v1.baseline.binpb"}},
-			},
-		},
-		{
-			ID:          "RS-11-02",
-			Requirement: "strict-only version negotiation",
-			Tests: []testRef{
-				{Package: pkgGrpc, Name: "TestUnaryProtocolInterceptorRejectsMissingMetadata"},
-				{Package: pkgGrpc, Name: "TestUnaryProtocolInterceptorRejectsVersionMinorMismatch"},
-			},
-		},
-		{
-			ID:          "RS-11-03",
-			Requirement: "auth/grant chain tests",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantAuthorizeValidateRevoke"},
-			},
-		},
-		{
-			ID:          "RS-11-04",
-			Requirement: "ExternalPrincipal -> App authorization (preset + custom)",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantAuthorizeValidateRevoke"},
-				{Package: pkgGrant, Name: "TestGrantResourceSelectorsSubsetAndOutOfScopeDeny"},
-			},
-		},
-		{
-			ID:          "RS-11-05",
-			Requirement: "token delegation (subset + ttl + depth + cascade revoke)",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantDelegateChain"},
-			},
-		},
-		{
-			ID:          "RS-11-06",
-			Requirement: "delegate second-hop rejected",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantDelegateChain"},
-			},
-		},
-		{
-			ID:          "RS-11-07",
-			Requirement: "resource selector subset + out-of-scope deny",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantResourceSelectorsSubsetAndOutOfScopeDeny"},
-			},
-		},
-		{
-			ID:          "RS-11-08",
-			Requirement: "consent required + consent invalid deny",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantAuthorizeRejectsMissingOrInvalidConsent"},
-			},
-		},
-		{
-			ID:          "RS-11-09",
-			Requirement: "policy update invalidates existing token immediately",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestGrantPolicyUpdateInvalidatesExistingToken"},
-			},
-		},
-		{
-			ID:          "RS-11-10",
-			Requirement: "app mode violations (domain/scope/worldRelation/manifest)",
-			Tests: []testRef{
-				{Package: pkgAppRegistry, Name: "TestValidateManifestRejectsLiteExtensionWorldRelation"},
-				{Package: pkgAppRegistry, Name: "TestValidateDomainAndScopesRejectsModeViolationsWithActionHint"},
-			},
-		},
-		{
-			ID:          "RS-11-11",
-			Requirement: "app mode actionHint mapping",
-			Tests: []testRef{
-				{Package: pkgAppRegistry, Name: "TestValidateDomainAndScopesRejectsModeViolationsWithActionHint"},
-			},
-		},
-		{
-			ID:          "RS-11-12",
-			Requirement: "Scenario Execute/Stream request-response schema",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateSuccess"},
-				{Package: pkgAI, Name: "TestStreamScenarioTextGenerateSequence"},
-			},
-		},
-		{
-			ID:          "RS-11-13",
-			Requirement: "scenario stream envelope contract",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestStreamScenarioTextGenerateSequence"},
-			},
-		},
-		{
-			ID:          "RS-11-14",
-			Requirement: "AI reason-code mapping (timeout/unavailable/filter/auth/rate-limit/internal)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestStreamScenarioTextGenerateTimeoutEmitsFailedEvent"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ContentFilter"},
-				{Package: pkgNimillm, Name: "TestBackendStreamGenerateTextBrokenChunkReturnsReasonCode"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderAuthFailed"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderRateLimited"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderInternal"},
-			},
-		},
-		{
-			ID:          "RS-11-15",
-			Requirement: "AI route policy regression (explicit route + no silent fallback)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateFallbackDenied"},
-				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsUnavailableExplicitPrefixWithoutFallback"}, // pragma: allowlist secret
-			},
-		},
-		{
-			ID:          "RS-11-16",
-			Requirement: "model management contract (pull/list/remove/health)",
-			Tests: []testRef{
-				{Package: pkgModel, Name: "TestModelLifecycle"},
-				{Package: pkgModel, Name: "TestModelRegistryPersistence"},
-			},
-		},
-		{
-			ID:          "RS-11-17",
-			Requirement: "attribution metadata regression (callerKind/callerId/surfaceId)",
-			Tests: []testRef{
-				{Package: pkgGrpc, Name: "TestUnaryAuditInterceptorCapturesCallerMetadataForAI"},
-				{Package: pkgGrpc, Name: "TestStreamAuditInterceptorCapturesCallerMetadataForAI"},
-			},
-		},
-		{
-			ID:          "RS-11-18",
-			Requirement: "ListUsageStats consistency (desktop/mod/third-party)",
-			Tests: []testRef{
-				{Package: pkgAuditLog, Name: "TestStoreListUsageByCallerKindAndCapability"},
-			},
-		},
-		{
-			ID:          "RS-11-19",
-			Requirement: "GetRuntimeHealth/SubscribeRuntimeHealthEvents contract",
-			Tests: []testRef{
-				{Package: pkgAuditSvc, Name: "TestGetRuntimeHealthContract"},
-				{Package: pkgAuditSvc, Name: "TestSubscribeRuntimeHealthEvents"},
-			},
-		},
-		{
-			ID:          "RS-11-20",
-			Requirement: "DAG state machine",
-			Tests: []testRef{
-				{Package: pkgWorkflow, Name: "TestWorkflowSubmitGetSubscribe"},
-				{Package: pkgWorkflow, Name: "TestWorkflowCancel"},
-			},
-		},
-		{
-			ID:          "RS-11-21",
-			Requirement: "GPU arbitration regression",
-			Tests: []testRef{
-				{Package: pkgScheduler, Name: "TestSchedulerPerAppConcurrencyIsolation"},
-				{Package: pkgScheduler, Name: "TestSchedulerMarksStarvationWhenWaitExceedsThreshold"},
-			},
-		},
-		{
-			ID:          "RS-11-22",
-			Requirement: "audit field completeness",
-			Tests: []testRef{
-				{Package: pkgGrpc, Name: "TestUnaryAuditInterceptorCapturesGrantAuditFields"},
-			},
-		},
-		{
-			ID:          "RS-11-23",
-			Requirement: "local and cloud routing regression",
-			Tests: []testRef{
-				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRoutesByPrefix"},
-				{Package: pkgAI, Name: "TestExecuteScenarioTextGenerateSuccess"},
-			},
-		},
-		{
-			ID:          "RS-11-24",
-			Requirement: "cloud-nimillm naming unified (no cloud-litellm or legacy alias)",
-			Tests: []testRef{
-				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRoutesByPrefix"},
-				{Package: pkgNimillm, Name: "TestCloudProviderPickBackendRejectsLegacyAliasPrefix"},
-			},
-		},
-		{
-			ID:          "RS-11-25",
-			Requirement: "no legacy litellm references outside explicit reject allowlist (zero-legacy static scan)",
-			Commands: []commandCheckSpec{
-				{
-					Name:   "legacy-cloud-provider-key-scan",
-					Dir:    "..",
-					Binary: "node",
-					Args:   []string{"scripts/check-no-legacy-cloud-provider-keys.mjs"},
-				},
-			},
-		},
-		{
-			ID:          "RS-11-26",
-			Requirement: "error-mapping-matrix provider error classification",
-			Tests: []testRef{
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderAuthFailed"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderRateLimited"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderInternal"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_ProviderUnavailable"},
-				{Package: pkgNimillm, Name: "TestMapProviderRequestError_DeadlineExceeded"},
-			},
-		},
-		{
-			ID:          "RS-11-27",
-			Requirement: "scenario job reason code coverage",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/GetScenarioJob_NotFound_ReasonCode"},
-				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/CancelScenarioJob_NotFound_ReasonCode"},
-				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/CancelScenarioJob_NotCancellable_ReasonCode"},
-				{Package: pkgAI, Name: "TestScenarioJobReasonCodeClassification/SubmitScenarioJob_OptionUnsupported_ImageN"},
-			},
-		},
-		{
-			ID:          "RS-11-28",
-			Requirement: "workflow reason code coverage",
-			Tests: []testRef{
-				{Package: pkgWorkflow, Name: "TestValidateDefinitionRejectsDuplicateInputSlot"},
-				{Package: pkgWorkflow, Name: "TestValidateDefinitionRejectsCycle"},
-				{Package: pkgWorkflow, Name: "TestValidateDefinitionRejectsMergeNOfMOutOfRange"},
-				{Package: pkgWorkflow, Name: "TestGetWorkflowNotFoundReasonCode"},
-				{Package: pkgWorkflow, Name: "TestCancelWorkflowNotFoundReasonCode"},
-			},
-		},
-		{
-			ID:          "RS-11-29",
-			Requirement: "grant token chain reason code coverage",
-			Tests: []testRef{
-				{Package: pkgGrant, Name: "TestListTokenChainRootRequiredReasonCode"},
-				{Package: pkgGrant, Name: "TestListTokenChainRootNotFoundReasonCode"},
-			},
-		},
-		{
-			ID:          "RS-11-30",
-			Requirement: "realm primitive contract coverage (timeflow/economy graduated, others skeletonized)",
-			Tests: []testRef{
-				{Package: pkgProtocol, Name: "TestRealmPrimitiveContractSkeletonCoverage"},
-				{Package: pkgProtocol, Name: "TestValidateTimeflowContractAcceptsCanonicalPayload"},
-				{Package: pkgProtocol, Name: "TestValidateEconomyContractAcceptsCanonicalPayload"},
-			},
-		},
-		{
-			ID:          "RS-11-31",
-			Requirement: "alg=none JWT rejection (K-AUTHN-003)",
-			Tests: []testRef{
-				{Package: pkgAuthn, Name: "TestValidateAlgNoneTokenRejected"},
-			},
-		},
-		{
-			ID:          "RS-11-32",
-			Requirement: "7-state scenario job machine enumeration (K-JOB-002)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestScenarioJobStateEnumerationMatchesSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-33",
-			Requirement: "interceptor chain 6-layer order (K-DAEMON-005)",
-			Tests: []testRef{
-				{Package: pkgGrpc, Name: "TestInterceptorChainOrderMatchesSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-34",
-			Requirement: "stream close modes (K-STREAM-001)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestStreamCloseModeDoneTrueCarriesUsage"},
-				{Package: pkgAI, Name: "TestStreamCloseModeTerminalEventOnError"},
-			},
-		},
-		{
-			ID:          "RS-11-35",
-			Requirement: "stream chunk minimum 32 bytes (K-STREAM-006)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestStreamChunkMinBytes"},
-			},
-		},
-		{
-			ID:          "RS-11-36",
-			Requirement: "connector check order: owner → status → credential (K-AUTH-005)",
-			Tests: []testRef{
-				{Package: pkgConnector, Name: "TestConnectorCheckOrderOwnerBeforeStatusBeforeCredential"},
-			},
-		},
-		{
-			ID:          "RS-11-37",
-			Requirement: "6 local connector categories (K-LOCAL-001)",
-			Tests: []testRef{
-				{Package: pkgConnector, Name: "TestEnsureLocalConnectorsCreatesExactly6Categories"},
-			},
-		},
-		{
-			ID:          "RS-11-38",
-			Requirement: "audit event 6 mandatory fields (K-AUDIT-001)",
-			Tests: []testRef{
-				{Package: pkgGrpc, Name: "TestAuditEventMandatoryFieldsCompleteness"},
-			},
-		},
-		{
-			ID:          "RS-11-39",
-			Requirement: "audit sensitive field masking (K-AUDIT-017)",
-			Tests: []testRef{
-				{Package: pkgAuditLog, Name: "TestAppendEventMasksPayload"},
-				{Package: pkgAuditLog, Name: "TestMaskValue"},
-			},
-		},
-		{
-			ID:          "RS-11-40",
-			Requirement: "key source managed/inline mutual exclusion (K-KEYSRC-002)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestValidateKeySourceConflict"},
-			},
-		},
-		{
-			ID:          "RS-11-41",
-			Requirement: "go vet passes",
-			Commands: []commandCheckSpec{
-				{Name: "go-vet", Binary: "go", Args: []string{"vet", "./..."}},
-			},
-		},
-		{
-			ID:          "RS-11-42",
-			Requirement: "daemon health state transitions on startup/shutdown",
-			Tests: []testRef{
-				{Package: pkgDaemon, Name: "TestDaemonRunTransitionsStartupAndShutdownStates"},
-			},
-		},
-		{
-			ID:          "RS-11-43",
-			Requirement: "stream close modes B/C/D",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestScenarioJobStoreSubscribeBranches"},
-				{Package: pkgAuditSvc, Name: "TestExportAuditEventsEofTrue"},
-				{Package: pkgAuditSvc, Name: "TestSubscribeRuntimeHealthEventsReturnsCancelledOnStopping"},
-			},
-		},
-		{
-			ID:          "RS-11-44",
-			Requirement: "auth service TTL bounds",
-			Tests: []testRef{
-				{Package: pkgAuthn, Name: "TestValidateAcceptsClockSkewWithinSixtySeconds"},
-				{Package: pkgAuthn, Name: "TestValidateRejectsClockSkewBeyondSixtySeconds"},
-				{Package: "github.com/nimiplatform/nimi/runtime/internal/services/auth", Name: "TestOpenSessionRejectsTTLBounds"},
-			},
-		},
-		{
-			ID:          "RS-11-45",
-			Requirement: "AppMode matrix and lite extension rejection",
-			Tests: []testRef{
-				{Package: pkgAppRegistry, Name: "TestValidateDomainAndScopesRejectsModeViolationsWithActionHint"},
-				{Package: "github.com/nimiplatform/nimi/runtime/internal/services/auth", Name: "TestRegisterAppRejectsLiteExtensionManifestAtServiceBoundary"},
-			},
-		},
-		{
-			ID:          "RS-11-46",
-			Requirement: "media idempotency conflict maps to ALREADY_EXISTS",
-			Tests: []testRef{
-				{Package: "github.com/nimiplatform/nimi/runtime/internal/grpcerr", Name: "TestWithReasonCodeAlreadyExistsForMediaIdempotencyConflict"},
-			},
-		},
-		{
-			ID:          "RS-11-47",
-			Requirement: "structured error completeness",
-			Tests: []testRef{
-				{Package: "github.com/nimiplatform/nimi/runtime/internal/grpcerr", Name: "TestWithReasonCodeOptions_WritesActionHintAndRetryableMetadata"},
-				{Package: "github.com/nimiplatform/nimi/runtime/internal/grpcerr", Name: "TestWithReasonCodeOptions_EncodesStructuredFieldsInStatusMessage"},
-				{Package: pkgNimillm, Name: "TestMapProviderHTTPError_BadRequestModelNotFound"},
-			},
-		},
-		{
-			ID:          "RS-11-48",
-			Requirement: "key source subject_user_id requirement",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestPrepareScenarioRequestRequiresSubjectForTokenAPI"},
-			},
-		},
-		{
-			ID:          "RS-11-49",
-			Requirement: "local model lifecycle state machine enumeration (K-LOCAL-005)",
-			Tests: []testRef{
-				{Package: pkgLocalService, Name: "TestLocalModelLifecycleTransitionsMatchSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-50",
-			Requirement: "local service lifecycle state machine enumeration (K-LOCAL-005)",
-			Tests: []testRef{
-				{Package: pkgLocalService, Name: "TestLocalServiceLifecycleTransitionsMatchSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-51",
-			Requirement: "connector status state machine (K-RPC-011)",
-			Tests: []testRef{
-				{Package: pkgConnector, Name: "TestConnectorStatusTransitionsMatchSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-52",
-			Requirement: "connector delete flow state machine (K-RPC-011)",
-			Tests: []testRef{
-				{Package: pkgConnector, Name: "TestConnectorDeleteFlowTransitionsMatchSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-53",
-			Requirement: "revoke session idempotency (K-AUTHSVC-005)",
-			Tests: []testRef{
-				{Package: pkgAuth, Name: "TestRevokeSessionIdempotent"},
-			},
-		},
-		{
-			ID:          "RS-11-54",
-			Requirement: "AI timeout defaults match spec (K-DAEMON-008)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestAITimeoutDefaultsMatchSpec"},
-				{Package: pkgAI, Name: "TestMinStreamChunkBytesMatchesSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-55",
-			Requirement: "scenario job subscribe terminal then close (K-STREAM-005)",
-			Tests: []testRef{
-				{Package: pkgAI, Name: "TestSubscribeJobEventsTerminalThenClose"},
-			},
-		},
-		{
-			ID:          "RS-11-56",
-			Requirement: "audit retention policy enforcement (K-AUDIT-020)",
-			Tests: []testRef{
-				{Package: pkgAuditLog, Name: "TestAuditRetentionPolicyEnforced"},
-			},
-		},
-		{
-			ID:          "RS-11-57",
-			Requirement: "config defaults match spec schema (K-CFG-014/016/017)",
-			Tests: []testRef{
-				{Package: pkgConfig, Name: "TestConfigDefaultsMatchSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-58",
-			Requirement: "reason code enum values match spec (K-RPC-011)",
-			Tests: []testRef{
-				{Package: pkgGrpcErr, Name: "TestReasonCodeEnumValuesMatchSpec"},
-			},
-		},
-		{
-			ID:          "RS-11-59",
-			Requirement: "AppService security baseline and optional fields (K-APP-002/K-APP-005)",
-			Tests: []testRef{
-				{Package: pkgApp, Name: "TestSendAppMessageOptionalFields"},
-				{Package: pkgApp, Name: "TestSendAppMessageRejectsOversizedPayload"},
-				{Package: pkgApp, Name: "TestSendAppMessageRateLimitEnforced"},
-				{Package: pkgApp, Name: "TestSendAppMessageLoopDetected"},
-				{Package: pkgApp, Name: "TestSendAppMessageRequiresRegisteredAppSession"},
-			},
-		},
-		{
-			ID:          "RS-11-60",
-			Requirement: "ExportAuditEvents sequence from 0 (K-AUDIT-009)",
-			Tests: []testRef{
-				{Package: pkgAuditSvc, Name: "TestExportAuditEventsSequenceStartsFromZero"},
-			},
-		},
-		{
-			ID:          "RS-11-61",
-			Requirement: "ModelStatus state machine compliance (K-MODEL-008)",
-			Tests: []testRef{
-				{Package: pkgModel, Name: "TestPullModelTransitionsThroughPullingState"},
-				{Package: pkgModel, Name: "TestModelStatusTransitionsMatchSpec"},
-				{Package: pkgModel, Name: "TestRemoveModelRejectsIllegalSourceState"},
-			},
-		},
-		{
-			ID:          "RS-11-62",
-			Requirement: "KnowledgeService reason-code alignment (K-KNOW-002/K-KNOW-003/K-KNOW-005)",
-			Tests: []testRef{
-				{Package: pkgKnowledge, Name: "TestBuildIndexExistingNoOverwriteReasonCode"},
-				{Package: pkgKnowledge, Name: "TestSearchIndexNotFoundReturnsEmpty"},
-			},
-		},
-		{
-			ID:          "RS-11-63",
-			Requirement: "streaming backpressure baseline (K-STREAM-011/K-STREAM-012/K-STREAM-013)",
-			Tests: []testRef{
-				{Package: pkgApp, Name: "TestSubscribeAppMessagesSlowConsumerClosed"},
-				{Package: pkgAuditSvc, Name: "TestSubscribeRuntimeHealthEventsSlowConsumerClosed"},
-				{Package: pkgAuditSvc, Name: "TestSubscribeAIProviderHealthEventsSlowConsumerClosed"},
-				{Package: pkgStreamutil, Name: "TestStreamBackpressureCloses"},
-				{Package: pkgWorkflow, Name: "TestSubscribeWorkflowEventsTerminalEventPriority"},
-			},
-		},
-	}
+func fatalf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
+	os.Exit(1)
 }

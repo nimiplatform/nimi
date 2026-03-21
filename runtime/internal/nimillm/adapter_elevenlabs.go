@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -67,7 +68,7 @@ func ExecuteElevenLabsTTS(
 	outputFormat := resolveElevenLabsOutputFormat(spec)
 
 	// Build request URL: POST /v1/text-to-speech/{voice_id}
-	endpoint := "/v1/text-to-speech/" + voiceID
+	endpoint := "/v1/text-to-speech/" + url.PathEscape(voiceID)
 	requestURL := JoinURL(baseURL, endpoint)
 	if outputFormat != "" {
 		requestURL += "?output_format=" + outputFormat

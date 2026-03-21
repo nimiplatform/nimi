@@ -112,15 +112,15 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 		return fmt.Errorf("build catalog request: %w", err)
 	}
 
-	resp, err = client.Do(req)
+	catalogResp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("catalog probe failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer catalogResp.Body.Close()
 
-	body, _ = io.ReadAll(io.LimitReader(resp.Body, 1<<20))
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("catalog probe returned status %d: %s", resp.StatusCode, string(body))
+	body, _ = io.ReadAll(io.LimitReader(catalogResp.Body, 1<<20))
+	if catalogResp.StatusCode < 200 || catalogResp.StatusCode >= 300 {
+		return fmt.Errorf("catalog probe returned status %d: %s", catalogResp.StatusCode, string(body))
 	}
 
 	payload := struct {

@@ -2,7 +2,6 @@ package nimillm
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"strings"
@@ -25,6 +24,8 @@ type JSONOrBinaryBody struct {
 	Text  string
 	MIME  string
 }
+
+const maxJSONOrBinaryResponseBytes = 32 << 20
 
 // DoJSONOrBinaryRequest performs an HTTP request with a JSON body and returns
 // the response parsed as either JSON (extracting text/audio fields) or raw
@@ -63,7 +64,7 @@ func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string
 		_ = json.NewDecoder(response.Body).Decode(&payload)
 		return nil, MapProviderHTTPError(response.StatusCode, payload)
 	}
-	raw, err := io.ReadAll(response.Body)
+	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
@@ -88,14 +89,28 @@ func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string
 				ValueAsString(MapField(parsed["data"], "audio_base64")),
 				ValueAsString(MapField(parsed["output"], "audio")),
 			)); b64 != "" {
-				decoded, decodeErr := base64.StdEncoding.DecodeString(b64)
-				if decodeErr == nil {
+				decoded, ok := DecodeBase64ArtifactPayload(b64)
+				if ok {
 					return &JSONOrBinaryBody{Bytes: decoded, MIME: contentType}, nil
 				}
 			}
 		}
 	}
 	return &JSONOrBinaryBody{Bytes: raw, MIME: contentType}, nil
+}
+
+func readLimitedResponseBody(reader io.Reader, limit int64) ([]byte, error) {
+	if limit <= 0 {
+		return io.ReadAll(reader)
+	}
+	raw, err := io.ReadAll(io.LimitReader(reader, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(raw)) > limit {
+		return nil, io.ErrUnexpectedEOF
+	}
+	return raw, nil
 }
 
 // DoJSONRequest performs an HTTP request expecting a JSON response. If body is

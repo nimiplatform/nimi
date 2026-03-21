@@ -207,13 +207,15 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 
 // IsContentFilterMessage checks if an error message indicates content filtering.
 func IsContentFilterMessage(message string) bool {
-	if message == "" {
+	normalized := strings.ToLower(strings.TrimSpace(message))
+	if normalized == "" {
 		return false
 	}
-	return strings.Contains(message, "content filter") ||
-		strings.Contains(message, "content policy") ||
-		strings.Contains(message, "safety") ||
-		strings.Contains(message, "blocked")
+	return strings.Contains(normalized, "content filter") ||
+		strings.Contains(normalized, "content policy") ||
+		strings.Contains(normalized, "safety filter") ||
+		strings.Contains(normalized, "blocked by safety") ||
+		strings.Contains(normalized, "blocked by policy")
 }
 
 // IsStreamUnsupported checks if the response indicates streaming is not supported.

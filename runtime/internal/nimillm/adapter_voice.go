@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -152,7 +153,16 @@ func resolveVoiceWorkflowBaseURL(provider string, cfg MediaAdapterConfig, extPay
 	}
 	if extPayload != nil {
 		if value := strings.TrimSpace(ValueAsString(extPayload["base_url"])); value != "" {
-			return normalizeBaseURL(value)
+			overrideURL := normalizeBaseURL(value)
+			defaultBaseURL := normalizeBaseURL(cfg.BaseURL)
+			if defaultBaseURL == "" {
+				if record, ok := providerregistry.Lookup(strings.TrimSpace(strings.ToLower(provider))); ok {
+					defaultBaseURL = normalizeBaseURL(record.DefaultEndpoint)
+				}
+			}
+			if sameVoiceWorkflowOrigin(defaultBaseURL, overrideURL) {
+				return overrideURL
+			}
 		}
 	}
 	baseURL := normalizeBaseURL(cfg.BaseURL)
@@ -171,7 +181,11 @@ func voiceWorkflowHeaders(provider string, apiKey string, extPayload map[string]
 	headers := map[string]string{}
 	if rawHeaders, ok := extPayload["headers"].(map[string]any); ok {
 		for key, value := range rawHeaders {
-			headers[strings.TrimSpace(key)] = strings.TrimSpace(ValueAsString(value))
+			headerName := strings.TrimSpace(key)
+			if !allowVoiceWorkflowHeader(headerName) {
+				continue
+			}
+			headers[headerName] = strings.TrimSpace(ValueAsString(value))
 		}
 	}
 	if provider == "elevenlabs" && strings.TrimSpace(apiKey) != "" {
@@ -181,6 +195,33 @@ func voiceWorkflowHeaders(provider string, apiKey string, extPayload map[string]
 		headers[apiKeyHeader] = strings.TrimSpace(apiKey)
 	}
 	return headers
+}
+
+func sameVoiceWorkflowOrigin(baseURL string, candidate string) bool {
+	if strings.TrimSpace(baseURL) == "" || strings.TrimSpace(candidate) == "" {
+		return false
+	}
+	baseParsed, err := url.Parse(baseURL)
+	if err != nil {
+		return false
+	}
+	candidateParsed, err := url.Parse(candidate)
+	if err != nil {
+		return false
+	}
+	return strings.EqualFold(baseParsed.Scheme, candidateParsed.Scheme) && strings.EqualFold(baseParsed.Host, candidateParsed.Host)
+}
+
+func allowVoiceWorkflowHeader(name string) bool {
+	lower := strings.ToLower(strings.TrimSpace(name))
+	if lower == "" {
+		return false
+	}
+	switch lower {
+	case "authorization", "host", "cookie", "content-length", "transfer-encoding", "connection":
+		return false
+	}
+	return strings.HasPrefix(lower, "x-")
 }
 
 // extractVoiceWorkflowVoiceRef extracts a voice reference from the provider response.

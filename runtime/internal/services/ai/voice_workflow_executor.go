@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
@@ -143,7 +142,7 @@ func (s *Service) executeVoiceWorkflowJob(
 		if reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 			reasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
 		}
-		s.voiceAssets.failJob(jobID, reasonCode, err.Error())
+		s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode))
 		return
 	}
 	if ctx.Err() != nil {
@@ -338,10 +337,16 @@ func estimateVoiceWorkflowUsage(req *runtimev1.SubmitScenarioJobRequest) *runtim
 	if inputTokens <= 0 {
 		inputTokens = 1
 	}
+	computeMs := int64(50)
+	if inputTokens < 25 {
+		computeMs += inputTokens
+	} else {
+		computeMs += 25
+	}
 	return &runtimev1.UsageStats{
 		InputTokens:  inputTokens,
 		OutputTokens: 1,
-		ComputeMs:    int64(50 + time.Now().UnixNano()%25),
+		ComputeMs:    computeMs,
 	}
 }
 

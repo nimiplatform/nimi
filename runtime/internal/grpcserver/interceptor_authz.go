@@ -42,12 +42,13 @@ func newStreamAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.St
 		if authorizer == nil {
 			return handler(srv, ss)
 		}
-		if info.FullMethod != "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents" {
+		capability, required := protectedCapabilityForStream(info.FullMethod)
+		if !required {
 			return handler(srv, ss)
 		}
 		tokenID, secret, _ := envelope.ParseAccessTokenFromContext(ss.Context())
 		appID := appIDFromMetadata(ss.Context())
-		if reasonCode, _, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, "runtime.audit.export"); !ok {
+		if reasonCode, _, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, capability); !ok {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
 		}
 		return handler(srv, ss)
@@ -78,6 +79,15 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 			return "runtime.app_auth.policy.override", true
 		}
 		return "", false
+	default:
+		return "", false
+	}
+}
+
+func protectedCapabilityForStream(fullMethod string) (string, bool) {
+	switch fullMethod {
+	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
+		return "runtime.audit.export", true
 	default:
 		return "", false
 	}

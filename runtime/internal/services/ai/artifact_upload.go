@@ -40,9 +40,11 @@ func (s *Service) UploadArtifact(stream runtimev1.RuntimeAiService_UploadArtifac
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
 			}
 			meta = part.Metadata
-			if err := validateUploadArtifactMetadata(meta); err != nil {
+			normalizedMimeType, err := validateUploadArtifactMetadata(meta)
+			if err != nil {
 				return err
 			}
+			meta.MimeType = normalizedMimeType
 		case *runtimev1.UploadArtifactRequest_Chunk:
 			if meta == nil {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
@@ -84,21 +86,21 @@ func (s *Service) UploadArtifact(stream runtimev1.RuntimeAiService_UploadArtifac
 	})
 }
 
-func validateUploadArtifactMetadata(meta *runtimev1.UploadArtifactMetadata) error {
+func validateUploadArtifactMetadata(meta *runtimev1.UploadArtifactMetadata) (string, error) {
 	if meta == nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
 	}
 	if strings.TrimSpace(meta.GetAppId()) == "" || strings.TrimSpace(meta.GetSubjectUserId()) == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
 	}
 	mimeType := strings.ToLower(strings.TrimSpace(meta.GetMimeType()))
 	switch {
 	case strings.HasPrefix(mimeType, "image/"),
 		strings.HasPrefix(mimeType, "audio/"),
 		strings.HasPrefix(mimeType, "video/"):
-		return nil
+		return mimeType, nil
 	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
 	}
 }
 

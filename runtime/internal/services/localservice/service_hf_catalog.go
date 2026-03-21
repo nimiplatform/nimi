@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,6 +19,7 @@ const (
 	hfCatalogDefaultLimit = 50
 	hfCatalogMinLimit     = 1
 	hfCatalogMaxLimit     = 80
+	hfCatalogMaxBodyBytes = 4 << 20
 )
 
 type hfCatalogSearchRequest struct {
@@ -99,7 +101,7 @@ func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]
 	}
 
 	var rows []hfModelSearchEntry
-	if err := json.NewDecoder(resp.Body).Decode(&rows); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, hfCatalogMaxBodyBytes)).Decode(&rows); err != nil {
 		return nil, fmt.Errorf("decode hf response: %w", err)
 	}
 

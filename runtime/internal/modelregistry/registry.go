@@ -110,11 +110,14 @@ func (r *Registry) List() []Entry {
 	return items
 }
 
-func (r *Registry) ListDescriptors() []*runtimev1.ModelDescriptor {
+func (r *Registry) ListDescriptors() ([]*runtimev1.ModelDescriptor, error) {
 	entries := r.List()
 	out := make([]*runtimev1.ModelDescriptor, 0, len(entries))
 	for _, item := range entries {
-		projection := InferNativeProjection(item.ModelID, item.Capabilities, item.Files, item.Status)
+		projection, err := InferNativeProjection(item.ModelID, item.Capabilities, item.Files, item.Status)
+		if err != nil {
+			return nil, err
+		}
 		desc := &runtimev1.ModelDescriptor{
 			ModelId:           item.ModelID,
 			Version:           item.Version,
@@ -135,7 +138,7 @@ func (r *Registry) ListDescriptors() []*runtimev1.ModelDescriptor {
 		}
 		out = append(out, desc)
 	}
-	return out
+	return out, nil
 }
 
 func cloneEntry(input Entry) Entry {

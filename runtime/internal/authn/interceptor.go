@@ -51,7 +51,7 @@ func authenticate(ctx context.Context, v *Validator) (context.Context, error) {
 		return ctx, nil
 	}
 
-	identity, err := v.Validate(token)
+	identity, err := v.ValidateContext(ctx, token)
 	if err != nil {
 		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}

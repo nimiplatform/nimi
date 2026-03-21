@@ -50,12 +50,6 @@ func DownloadBinary(baseDir string, kind EngineKind, version string) (binaryPath
 	return downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256)
 }
 
-// downloadFromURL downloads a binary from url into destDir/binaryName.
-// It performs atomic write (via .download tmp file), SHA256 hashing, and chmod 0755.
-func downloadFromURL(url, destDir, binaryName string) (string, string, error) {
-	return downloadFromURLWithExpectedSHA256(url, destDir, binaryName, "")
-}
-
 func downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256 string) (string, string, error) {
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return "", "", fmt.Errorf("%w: create engine directory: %v", ErrEngineBinaryDownloadFailed, err)
@@ -79,9 +73,10 @@ func downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256 
 	if err != nil {
 		return "", "", fmt.Errorf("%w: create temp file: %v", ErrEngineBinaryDownloadFailed, err)
 	}
+	shouldRemoveTmp := true
 	defer func() {
 		out.Close()
-		if err != nil {
+		if shouldRemoveTmp {
 			_ = os.Remove(tmpPath)
 		}
 	}()
@@ -109,6 +104,7 @@ func downloadFromURLWithExpectedSHA256(url, destDir, binaryName, expectedSHA256 
 	if err = os.Rename(tmpPath, destPath); err != nil {
 		return "", "", fmt.Errorf("%w: rename engine binary: %v", ErrEngineBinaryDownloadFailed, err)
 	}
+	shouldRemoveTmp = false
 
 	return destPath, hash, nil
 }

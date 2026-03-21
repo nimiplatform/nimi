@@ -61,7 +61,7 @@ func ResolveAsyncTaskStatus(payload map[string]any) string {
 // IsAsyncTaskPendingStatus returns true if the status text indicates the task
 // is still in progress.
 func IsAsyncTaskPendingStatus(statusText string) bool {
-	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	switch statusText {
 	case "", "submitted", "queued", "pending", "running", "processing", "in_progress":
 		return true
 	default:
@@ -72,7 +72,7 @@ func IsAsyncTaskPendingStatus(statusText string) bool {
 // IsAsyncTaskFailedStatus returns true if the status text indicates the task
 // has failed.
 func IsAsyncTaskFailedStatus(statusText string) bool {
-	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	switch statusText {
 	case "failed", "error":
 		return true
 	default:
@@ -83,7 +83,7 @@ func IsAsyncTaskFailedStatus(statusText string) bool {
 // IsAsyncTaskCanceledStatus returns true if the status text indicates the task
 // was canceled before completion.
 func IsAsyncTaskCanceledStatus(statusText string) bool {
-	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	switch statusText {
 	case "canceled", "cancelled":
 		return true
 	default:
@@ -94,7 +94,7 @@ func IsAsyncTaskCanceledStatus(statusText string) bool {
 // IsAsyncTaskExpiredStatus returns true if the status text indicates the task
 // expired before completion.
 func IsAsyncTaskExpiredStatus(statusText string) bool {
-	switch strings.ToLower(strings.TrimSpace(statusText)) {
+	switch statusText {
 	case "expired":
 		return true
 	default:
@@ -194,8 +194,8 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 		if trimmed == "" {
 			continue
 		}
-		decoded, err := base64.StdEncoding.DecodeString(trimmed)
-		if err == nil && len(decoded) > 0 {
+		decoded, ok := DecodeBase64ArtifactPayload(trimmed)
+		if ok {
 			return decoded, FirstNonEmpty(
 				ValueAsString(payload["mime_type"]),
 				ValueAsString(MapField(payload["artifact"], "mime_type")),
@@ -366,11 +366,18 @@ func DecodeBase64ArtifactPayload(raw string) ([]byte, bool) {
 		}
 		encoded = strings.TrimSpace(encoded[separator+1:])
 	}
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil || len(decoded) == 0 {
-		return nil, false
+	for _, encoding := range []*base64.Encoding{
+		base64.StdEncoding,
+		base64.RawStdEncoding,
+		base64.URLEncoding,
+		base64.RawURLEncoding,
+	} {
+		decoded, err := encoding.DecodeString(encoded)
+		if err == nil && len(decoded) > 0 {
+			return decoded, true
+		}
 	}
-	return decoded, true
+	return nil, false
 }
 
 // ExtractSpeechArtifactFromResponseBody extracts speech audio bytes and MIME

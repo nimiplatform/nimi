@@ -258,7 +258,11 @@ func modelIDBase(value string) string {
 
 func supportsTTSCapability(capabilities []string) bool {
 	for _, capability := range capabilities {
-		if aicapabilities.NormalizeCatalogCapability(capability) == aicapabilities.AudioSynthesize {
+		normalized, err := aicapabilities.NormalizeCatalogCapability(capability)
+		if err != nil {
+			continue
+		}
+		if normalized == aicapabilities.AudioSynthesize {
 			return true
 		}
 	}
@@ -436,6 +440,47 @@ func reasonCodeFromMediaError(err error) runtimev1.ReasonCode {
 		return runtimev1.ReasonCode_AI_INPUT_INVALID
 	default:
 		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
+	}
+}
+
+func sanitizeScenarioJobReasonDetail(err error, reasonCode runtimev1.ReasonCode) string {
+	if err == nil {
+		return ""
+	}
+	switch reasonCode {
+	case runtimev1.ReasonCode_ACTION_EXECUTED:
+		return "request canceled"
+	case runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
+		return "provider request timed out"
+	case runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED:
+		return "provider rate limit reached"
+	case runtimev1.ReasonCode_AI_MODEL_NOT_FOUND:
+		return "requested model not found"
+	case runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED:
+		return "requested route is unsupported"
+	case runtimev1.ReasonCode_AI_INPUT_INVALID,
+		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED:
+		return "provider rejected request parameters"
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		return "provider request failed"
+	}
+	switch st.Code() {
+	case codes.Canceled:
+		return "request canceled"
+	case codes.DeadlineExceeded:
+		return "provider request timed out"
+	case codes.ResourceExhausted:
+		return "provider rate limit reached"
+	case codes.NotFound:
+		return "requested model not found"
+	case codes.InvalidArgument, codes.FailedPrecondition:
+		return "provider rejected request parameters"
+	case codes.Unauthenticated, codes.PermissionDenied:
+		return "provider authentication failed"
+	default:
+		return "provider request failed"
 	}
 }
 

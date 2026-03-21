@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -151,6 +153,40 @@ func TestRunRuntimeAuditExportJSON(t *testing.T) {
 	}
 	if string(decoded) != "{\"line\":1}\n{\"line\":2}\n" {
 		t.Fatalf("export payload mismatch: %q", string(decoded))
+	}
+}
+
+func TestRunRuntimeAuditExportWritesSecureOutputFile(t *testing.T) {
+	service := &cmdTestRuntimeAuditService{
+		exportChunks: []*runtimev1.AuditExportChunk{
+			{
+				ExportId: "export-1",
+				Sequence: 1,
+				Chunk:    []byte("{\"line\":1}\n"),
+				Eof:      true,
+				MimeType: "application/x-ndjson",
+			},
+		},
+	}
+	addr, shutdown := startCmdTestRuntimeAuditServer(t, service)
+	defer shutdown()
+
+	outputPath := filepath.Join(t.TempDir(), "audit.ndjson")
+	if err := runRuntimeAudit([]string{
+		"export",
+		"--grpc-addr", addr,
+		"--format", "ndjson",
+		"--output", outputPath,
+	}); err != nil {
+		t.Fatalf("runRuntimeAudit export: %v", err)
+	}
+
+	info, err := os.Stat(outputPath)
+	if err != nil {
+		t.Fatalf("stat export output: %v", err)
+	}
+	if perms := info.Mode().Perm(); perms != 0o600 {
+		t.Fatalf("output permissions mismatch: got=%o want=600", perms)
 	}
 }
 

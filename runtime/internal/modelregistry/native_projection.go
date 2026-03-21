@@ -2,6 +2,8 @@ package modelregistry
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,13 +26,23 @@ type NativeProjection struct {
 	HostRequirements *runtimev1.LocalHostRequirements
 }
 
-func InferNativeProjection(modelID string, capabilities []string, files []string, status runtimev1.ModelStatus) NativeProjection {
+const (
+	maxResolvedBundleSearchDepth   = 8
+	maxResolvedBundleManifestReads = 256
+	resolvedBundleManifestFileName = "manifest.json"
+)
+
+var errResolvedBundleSearchComplete = errors.New("resolved bundle manifest search complete")
+
+func InferNativeProjection(modelID string, capabilities []string, files []string, status runtimev1.ModelStatus) (NativeProjection, error) {
 	normalizedModelID := strings.TrimSpace(modelID)
 	normalizedCaps := normalizeStrings(capabilities)
 	normalizedFiles := normalizeStrings(files)
 
-	if manifestProjection, ok := loadResolvedBundleProjection(normalizedModelID, status); ok {
-		return manifestProjection
+	if manifestProjection, ok, err := loadResolvedBundleProjection(normalizedModelID, status); err != nil {
+		return NativeProjection{}, err
+	} else if ok {
+		return manifestProjection, nil
 	}
 
 	projection := NativeProjection{
@@ -43,46 +55,43 @@ func InferNativeProjection(modelID string, capabilities []string, files []string
 		WarmState:        warmStateForModelStatus(status),
 		HostRequirements: inferHostRequirements(normalizedCaps),
 	}
-	if projection.LogicalModelID == "" {
-		projection.LogicalModelID = normalizedModelID
-	}
-	return projection
+	return projection, nil
 }
 
 type resolvedBundleManifest struct {
-	LogicalModelID   string                 `json:"logical_model_id"`
-	ModelID          string                 `json:"model_id"`
-	Family           string                 `json:"family"`
-	Capabilities     []string               `json:"capabilities"`
-	ArtifactRoles    []string               `json:"artifact_roles"`
-	PreferredEngine  string                 `json:"preferred_engine"`
-	FallbackEngines  []string               `json:"fallback_engines"`
+	LogicalModelID   string                           `json:"logical_model_id"`
+	ModelID          string                           `json:"model_id"`
+	Family           string                           `json:"family"`
+	Capabilities     []string                         `json:"capabilities"`
+	ArtifactRoles    []string                         `json:"artifact_roles"`
+	PreferredEngine  string                           `json:"preferred_engine"`
+	FallbackEngines  []string                         `json:"fallback_engines"`
 	HostRequirements *runtimev1.LocalHostRequirements `json:"-"`
 }
 
 type resolvedBundleManifestDisk struct {
-	LogicalModelID   string            `json:"logical_model_id"`
-	ModelID          string            `json:"model_id"`
-	Family           string            `json:"family"`
-	Capabilities     []string          `json:"capabilities"`
-	ArtifactRoles    []string          `json:"artifact_roles"`
-	PreferredEngine  string            `json:"preferred_engine"`
-	FallbackEngines  []string          `json:"fallback_engines"`
-	HostRequirements map[string]any    `json:"host_requirements"`
+	LogicalModelID   string         `json:"logical_model_id"`
+	ModelID          string         `json:"model_id"`
+	Family           string         `json:"family"`
+	Capabilities     []string       `json:"capabilities"`
+	ArtifactRoles    []string       `json:"artifact_roles"`
+	PreferredEngine  string         `json:"preferred_engine"`
+	FallbackEngines  []string       `json:"fallback_engines"`
+	HostRequirements map[string]any `json:"host_requirements"`
 }
 
-func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) (NativeProjection, bool) {
-	manifestPath := resolvedBundleManifestPath(modelID)
+func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) (NativeProjection, bool, error) {
+	manifestPath, err := resolvedBundleManifestPath(modelID)
 	if strings.TrimSpace(manifestPath) == "" {
-		return NativeProjection{}, false
+		return NativeProjection{}, false, err
 	}
 	raw, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return NativeProjection{}, false
+		return NativeProjection{}, false, fmt.Errorf("read resolved manifest %q: %w", manifestPath, err)
 	}
 	var disk resolvedBundleManifestDisk
 	if err := json.Unmarshal(raw, &disk); err != nil {
-		return NativeProjection{}, false
+		return NativeProjection{}, false, fmt.Errorf("parse resolved manifest %q: %w", manifestPath, err)
 	}
 	projection := NativeProjection{
 		LogicalModelID:   firstNonEmpty(disk.LogicalModelID, disk.ModelID, modelID),
@@ -97,28 +106,29 @@ func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) 
 	if projection.HostRequirements == nil {
 		projection.HostRequirements = inferHostRequirements(disk.Capabilities)
 	}
-	return projection, true
+	return projection, true, nil
 }
 
-func resolvedBundleManifestPath(modelID string) string {
+func resolvedBundleManifestPath(modelID string) (string, error) {
 	normalizedModelID := strings.TrimSpace(modelID)
 	if normalizedModelID == "" {
-		return ""
+		return "", nil
 	}
 	modelsRoot := resolvedBundlesRoot()
 	if strings.TrimSpace(modelsRoot) == "" {
-		return ""
+		return "", nil
 	}
 	candidates := resolvedBundleManifestCandidates(modelsRoot, normalizedModelID)
 	for _, candidate := range candidates {
 		if fileExists(candidate) {
-			return candidate
+			return candidate, nil
 		}
 	}
-	if discovered := findResolvedBundleManifestByModelID(modelsRoot, normalizedModelID); strings.TrimSpace(discovered) != "" {
-		return discovered
+	discovered, err := findResolvedBundleManifestByModelID(modelsRoot, normalizedModelID)
+	if strings.TrimSpace(discovered) != "" || err != nil {
+		return discovered, err
 	}
-	return ""
+	return "", nil
 }
 
 func resolvedBundlesRoot() string {
@@ -140,7 +150,7 @@ func resolvedBundleManifestCandidates(resolvedRoot string, modelID string) []str
 	candidates := make([]string, 0, 4)
 	add := func(parts ...string) {
 		candidate := filepath.Join(append([]string{resolvedRoot}, parts...)...)
-		if candidate == "" {
+		if !pathWithinRoot(resolvedRoot, candidate) {
 			return
 		}
 		for _, existing := range candidates {
@@ -169,33 +179,79 @@ func trimPublicLocalPrefix(modelID string) (string, bool) {
 	return normalized, false
 }
 
-func findResolvedBundleManifestByModelID(resolvedRoot string, modelID string) string {
+func pathWithinRoot(root string, candidate string) bool {
+	normalizedRoot := filepath.Clean(strings.TrimSpace(root))
+	normalizedCandidate := filepath.Clean(strings.TrimSpace(candidate))
+	if normalizedRoot == "" || normalizedCandidate == "" {
+		return false
+	}
+	rel, err := filepath.Rel(normalizedRoot, normalizedCandidate)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
+}
+
+func relativePathDepth(path string) int {
+	normalized := filepath.Clean(strings.TrimSpace(path))
+	if normalized == "." || normalized == "" {
+		return 0
+	}
+	return len(strings.Split(normalized, string(filepath.Separator)))
+}
+
+func findResolvedBundleManifestByModelID(resolvedRoot string, modelID string) (string, error) {
 	expectedComparable := comparableResolvedModelID(modelID)
 	if expectedComparable == "" {
-		return ""
+		return "", nil
 	}
 	var discovered string
-	_ = filepath.WalkDir(resolvedRoot, func(path string, d fs.DirEntry, err error) error {
-		if err != nil || discovered != "" {
+	manifestReads := 0
+	err := filepath.WalkDir(resolvedRoot, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d == nil {
 			return nil
 		}
-		if d == nil || d.IsDir() || !strings.EqualFold(d.Name(), "manifest.json") {
+		rel, err := filepath.Rel(resolvedRoot, path)
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && relativePathDepth(rel) > maxResolvedBundleSearchDepth {
+			return fs.SkipDir
+		}
+		if d.IsDir() || !strings.EqualFold(d.Name(), resolvedBundleManifestFileName) {
 			return nil
+		}
+		manifestReads++
+		if manifestReads > maxResolvedBundleManifestReads {
+			return fmt.Errorf("resolved manifest search exceeded %d files for %q", maxResolvedBundleManifestReads, modelID)
 		}
 		raw, readErr := os.ReadFile(path)
 		if readErr != nil {
-			return nil
+			return fmt.Errorf("read resolved manifest %q: %w", path, readErr)
 		}
 		var disk resolvedBundleManifestDisk
 		if jsonErr := json.Unmarshal(raw, &disk); jsonErr != nil {
-			return nil
+			return fmt.Errorf("parse resolved manifest %q: %w", path, jsonErr)
 		}
 		if comparableResolvedModelID(disk.ModelID) == expectedComparable || comparableResolvedModelID(disk.LogicalModelID) == expectedComparable {
 			discovered = path
+			return errResolvedBundleSearchComplete
 		}
 		return nil
 	})
-	return discovered
+	if errors.Is(err, errResolvedBundleSearchComplete) {
+		return discovered, nil
+	}
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
+	}
+	return discovered, nil
 }
 
 func comparableResolvedModelID(modelID string) string {
@@ -356,6 +412,9 @@ func inferPreferredEngine(capabilities []string) string {
 }
 
 func inferFallbackEngines(capabilities []string) []string {
+	// Inferred projections only expose a preferred engine. Fallback engines are
+	// sourced from resolved bundle manifests once the runtime has typed metadata.
+	_ = capabilities
 	return nil
 }
 
@@ -400,21 +459,36 @@ func warmStateForModelStatus(status runtimev1.ModelStatus) runtimev1.LocalWarmSt
 
 func inferHostRequirements(capabilities []string) *runtimev1.LocalHostRequirements {
 	requirements := &runtimev1.LocalHostRequirements{}
+	requiredBackends := make(map[string]struct{})
+	addBackends := func(values ...string) {
+		for _, value := range values {
+			if trimmed := strings.TrimSpace(value); trimmed != "" {
+				requiredBackends[trimmed] = struct{}{}
+			}
+		}
+	}
 	for _, capability := range capabilities {
 		switch strings.ToLower(strings.TrimSpace(capability)) {
 		case "image.generate", "image.edit", "video.generate", "i2v":
 			requirements.GpuRequired = true
 			requirements.PythonRuntimeRequired = true
-			requirements.RequiredBackends = []string{"stable-diffusion.cpp", "diffusers"}
+			addBackends("stable-diffusion.cpp", "diffusers")
 		case "audio.transcribe":
-			requirements.RequiredBackends = []string{"whispercpp"}
+			addBackends("whispercpp")
 		case "audio.synthesize":
-			requirements.RequiredBackends = []string{"kokoro"}
+			addBackends("kokoro")
 		case "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
 			requirements.GpuRequired = true
 			requirements.PythonRuntimeRequired = true
-			requirements.RequiredBackends = []string{"qwen3tts"}
+			addBackends("qwen3tts")
 		}
+	}
+	if len(requiredBackends) > 0 {
+		requirements.RequiredBackends = make([]string, 0, len(requiredBackends))
+		for backend := range requiredBackends {
+			requirements.RequiredBackends = append(requirements.RequiredBackends, backend)
+		}
+		sort.Strings(requirements.RequiredBackends)
 	}
 	if !requirements.GetGpuRequired() && !requirements.GetPythonRuntimeRequired() && len(requirements.GetRequiredBackends()) == 0 {
 		return &runtimev1.LocalHostRequirements{

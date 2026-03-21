@@ -14,6 +14,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
@@ -51,7 +52,10 @@ func New(state *health.State, logger *slog.Logger, providerTrack *providerhealth
 
 func (s *Service) ListAuditEvents(_ context.Context, req *runtimev1.ListAuditEventsRequest) (*runtimev1.ListAuditEventsResponse, error) {
 	if s.store != nil {
-		resp := s.store.ListEvents(req)
+		resp, err := s.store.ListEvents(req)
+		if err != nil {
+			return nil, err
+		}
 		if len(resp.GetEvents()) > 0 || req.GetPageToken() != "" {
 			return resp, nil
 		}
@@ -73,8 +77,12 @@ func (s *Service) ListAuditEvents(_ context.Context, req *runtimev1.ListAuditEve
 		pageSize = 200
 	}
 
-	start := parsePageToken(req.GetPageToken())
-	if start < 0 || start > len(filtered) {
+	filterDigest := auditEventsPageDigest(req)
+	start, err := parsePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		return nil, err
+	}
+	if start > len(filtered) {
 		start = 0
 	}
 	end := start + pageSize
@@ -84,7 +92,7 @@ func (s *Service) ListAuditEvents(_ context.Context, req *runtimev1.ListAuditEve
 
 	nextToken := ""
 	if end < len(filtered) {
-		nextToken = formatPageToken(end)
+		nextToken = formatPageToken(end, filterDigest)
 	}
 
 	return &runtimev1.ListAuditEventsResponse{
@@ -155,7 +163,10 @@ func (s *Service) ExportAuditEvents(req *runtimev1.ExportAuditEventsRequest, str
 
 func (s *Service) ListUsageStats(_ context.Context, req *runtimev1.ListUsageStatsRequest) (*runtimev1.ListUsageStatsResponse, error) {
 	if s.store != nil {
-		resp := s.store.ListUsage(req)
+		resp, err := s.store.ListUsage(req)
+		if err != nil {
+			return nil, err
+		}
 		if len(resp.GetRecords()) > 0 || req.GetPageToken() != "" {
 			return resp, nil
 		}
@@ -194,7 +205,37 @@ func (s *Service) ListUsageStats(_ context.Context, req *runtimev1.ListUsageStat
 	if req.GetCallerId() != "" && req.GetCallerId() != record.GetCallerId() {
 		return &runtimev1.ListUsageStatsResponse{Records: []*runtimev1.UsageStatRecord{}}, nil
 	}
-	return &runtimev1.ListUsageStatsResponse{Records: []*runtimev1.UsageStatRecord{record}}, nil
+
+	filtered := []*runtimev1.UsageStatRecord{record}
+	filterDigest := usageStatsPageDigest(req, record.GetWindow())
+	start, err := parsePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
+		return nil, err
+	}
+	if start > len(filtered) {
+		start = 0
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = 50
+	} else if pageSize > 200 {
+		pageSize = 200
+	}
+	end := start + pageSize
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+
+	nextToken := ""
+	if end < len(filtered) {
+		nextToken = formatPageToken(end, filterDigest)
+	}
+
+	return &runtimev1.ListUsageStatsResponse{
+		Records:       filtered[start:end],
+		NextPageToken: nextToken,
+	}, nil
 }
 
 func (s *Service) GetRuntimeHealth(context.Context, *runtimev1.GetRuntimeHealthRequest) (*runtimev1.GetRuntimeHealthResponse, error) {
@@ -566,26 +607,29 @@ func matchesAuditFilter(event *runtimev1.AuditEventRecord, req *runtimev1.ListAu
 	return true
 }
 
-func parsePageToken(token string) int {
+func parsePageToken(token string, filterDigest string) (int, error) {
 	if strings.TrimSpace(token) == "" {
-		return 0
+		return 0, nil
 	}
-	cursor, _, err := pagination.Decode(token)
+	cursor, err := pagination.ValidatePageToken(token, filterDigest)
 	if err != nil {
-		return 0
+		return 0, err
 	}
 	value, convErr := strconv.Atoi(cursor)
 	if convErr != nil || value < 0 {
-		return 0
+		return 0, fmt.Errorf(
+			"audit.parsePageToken: %w",
+			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID),
+		)
 	}
-	return value
+	return value, nil
 }
 
-func formatPageToken(offset int) string {
+func formatPageToken(offset int, filterDigest string) string {
 	if offset <= 0 {
 		return ""
 	}
-	return pagination.Encode(strconv.Itoa(offset), "")
+	return pagination.Encode(strconv.Itoa(offset), filterDigest)
 }
 
 func marshalAuditEvents(events []*runtimev1.AuditEventRecord) ([]byte, error) {
@@ -621,6 +665,46 @@ func gzipCompress(payload []byte) ([]byte, error) {
 		return nil, err
 	}
 	return buffer.Bytes(), nil
+}
+
+func auditEventsPageDigest(req *runtimev1.ListAuditEventsRequest) string {
+	if req == nil {
+		return pagination.FilterDigest()
+	}
+	return pagination.FilterDigest(
+		strings.TrimSpace(req.GetAppId()),
+		strings.TrimSpace(req.GetSubjectUserId()),
+		strings.TrimSpace(req.GetDomain()),
+		req.GetReasonCode().String(),
+		req.GetCallerKind().String(),
+		strings.TrimSpace(req.GetCallerId()),
+		formatPageTime(req.GetFromTime()),
+		formatPageTime(req.GetToTime()),
+	)
+}
+
+func usageStatsPageDigest(req *runtimev1.ListUsageStatsRequest, window runtimev1.UsageWindow) string {
+	if req == nil {
+		return pagination.FilterDigest(window.String())
+	}
+	return pagination.FilterDigest(
+		strings.TrimSpace(req.GetAppId()),
+		strings.TrimSpace(req.GetSubjectUserId()),
+		req.GetCallerKind().String(),
+		strings.TrimSpace(req.GetCallerId()),
+		strings.TrimSpace(req.GetCapability()),
+		strings.TrimSpace(req.GetModelId()),
+		formatPageTime(req.GetFromTime()),
+		formatPageTime(req.GetToTime()),
+		window.String(),
+	)
+}
+
+func formatPageTime(ts *timestamppb.Timestamp) string {
+	if ts == nil {
+		return ""
+	}
+	return ts.AsTime().UTC().Format(time.RFC3339Nano)
 }
 
 func splitChunks(data []byte, chunkSize int) [][]byte {

@@ -153,7 +153,10 @@ func TestAppendEventMasksPayload(t *testing.T) {
 		Payload:   payload,
 	})
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	events, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
 	if len(events.Events) != 1 {
 		t.Fatalf("expected 1 event, got %d", len(events.Events))
 	}

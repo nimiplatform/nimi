@@ -7,8 +7,11 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
+
+var llamaReleaseMu sync.RWMutex
 
 var llamaReleaseBaseURL = "https://github.com/mudler/LocalAI/releases/download"
 
@@ -17,7 +20,7 @@ var llamaReleaseHTTPClient = &http.Client{
 }
 
 func llamaReleaseAssetURL(version string, assetName string) string {
-	trimmedBase := strings.TrimSuffix(strings.TrimSpace(llamaReleaseBaseURL), "/")
+	trimmedBase := strings.TrimSuffix(strings.TrimSpace(currentLlamaReleaseBaseURL()), "/")
 	trimmedVersion := strings.TrimSpace(version)
 	trimmedAsset := strings.TrimSpace(assetName)
 	return fmt.Sprintf("%s/v%s/%s", trimmedBase, trimmedVersion, trimmedAsset)
@@ -37,7 +40,7 @@ func llamaExpectedSHA256(version string, assetName string) (string, error) {
 		return "", fmt.Errorf("%w: llama asset is required", ErrEngineBinaryDownloadFailed)
 	}
 	checksumURL := llamaChecksumURL(version)
-	resp, err := llamaReleaseHTTPClient.Get(checksumURL)
+	resp, err := currentLlamaReleaseHTTPClient().Get(checksumURL)
 	if err != nil {
 		return "", fmt.Errorf("%w: fetch llama checksums: %v", ErrEngineBinaryDownloadFailed, err)
 	}
@@ -78,4 +81,31 @@ func parseLlamaChecksum(r io.Reader, assetName string) (string, error) {
 		return "", fmt.Errorf("%w: read checksums: %v", ErrEngineBinaryDownloadFailed, err)
 	}
 	return "", fmt.Errorf("%w: checksum for %s not found", ErrEngineBinaryDownloadFailed, needle)
+}
+
+func currentLlamaReleaseBaseURL() string {
+	llamaReleaseMu.RLock()
+	defer llamaReleaseMu.RUnlock()
+	return llamaReleaseBaseURL
+}
+
+func currentLlamaReleaseHTTPClient() *http.Client {
+	llamaReleaseMu.RLock()
+	defer llamaReleaseMu.RUnlock()
+	return llamaReleaseHTTPClient
+}
+
+func setLlamaReleaseSourceForTest(baseURL string, client *http.Client) func() {
+	llamaReleaseMu.Lock()
+	prevBaseURL := llamaReleaseBaseURL
+	prevClient := llamaReleaseHTTPClient
+	llamaReleaseBaseURL = baseURL
+	llamaReleaseHTTPClient = client
+	llamaReleaseMu.Unlock()
+	return func() {
+		llamaReleaseMu.Lock()
+		llamaReleaseBaseURL = prevBaseURL
+		llamaReleaseHTTPClient = prevClient
+		llamaReleaseMu.Unlock()
+	}
 }

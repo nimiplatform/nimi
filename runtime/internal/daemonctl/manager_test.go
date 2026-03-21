@@ -2,14 +2,16 @@ package daemonctl
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
 
 func newTestManager(t *testing.T) (*Manager, Paths, map[int]bool) {
@@ -415,7 +417,7 @@ func TestManagerPrintLogsTailsManagedLog(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	if err := manager.PrintLogs(&out, 2, false); err != nil {
+	if err := manager.PrintLogs(context.Background(), &out, 2, false); err != nil {
 		t.Fatalf("PrintLogs: %v", err)
 	}
 	if strings.TrimSpace(out.String()) != "two\nthree" {
@@ -429,7 +431,7 @@ func TestManagerPrintLogsFailsForExternalMode(t *testing.T) {
 	writePID(t, paths.LockFile, 112)
 
 	var out bytes.Buffer
-	err := manager.PrintLogs(&out, 10, false)
+	err := manager.PrintLogs(context.Background(), &out, 10, false)
 	if err == nil {
 		t.Fatalf("expected external-mode log error")
 	}

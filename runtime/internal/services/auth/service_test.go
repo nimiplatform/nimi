@@ -439,7 +439,10 @@ func TestAuthServiceAuditUsesIncomingTraceID(t *testing.T) {
 		t.Fatalf("register app: %v", err)
 	}
 
-	resp := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	resp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("list auth audit events: %v", err)
+	}
 	if len(resp.GetEvents()) == 0 {
 		t.Fatalf("expected auth audit event")
 	}

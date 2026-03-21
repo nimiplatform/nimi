@@ -27,6 +27,7 @@ type Supervisor struct {
 
 	mu                  sync.RWMutex
 	cmd                 *exec.Cmd
+	process             *supervisedProcess
 	status              EngineStatus
 	pid                 int
 	startedAt           time.Time
@@ -34,6 +35,12 @@ type Supervisor struct {
 	consecutiveFailures int
 	cancel              context.CancelFunc
 	runEpoch            uint64
+}
+
+type supervisedProcess struct {
+	cmd     *exec.Cmd
+	done    chan struct{}
+	waitErr error
 }
 
 // NewSupervisor creates a new engine process supervisor.
@@ -79,9 +86,11 @@ func (s *Supervisor) Stop() error {
 	s.mu.Lock()
 	cancel := s.cancel
 	cmd := s.cmd
+	process := s.process
 	s.runEpoch++
 	s.cancel = nil
 	s.cmd = nil
+	s.process = nil
 	s.pid = 0
 	s.mu.Unlock()
 
@@ -95,17 +104,11 @@ func (s *Supervisor) Stop() error {
 		return nil
 	}
 
-	reaped := make(chan struct{})
-	go func() {
-		_, _ = cmd.Process.Wait()
-		close(reaped)
-	}()
-
 	// SIGTERM first.
 	if err := signalSupervisorProcess(cmd.Process.Pid, syscall.SIGTERM); err != nil {
 		// Process already dead.
 		select {
-		case <-reaped:
+		case <-process.done:
 		case <-time.After(100 * time.Millisecond):
 		}
 		s.setStatus(StatusStopped, "process already exited")
@@ -114,13 +117,13 @@ func (s *Supervisor) Stop() error {
 	}
 
 	select {
-	case <-reaped:
+	case <-process.done:
 		s.setStatus(StatusStopped, "graceful shutdown")
 	case <-time.After(s.cfg.ShutdownTimeout):
 		// Force kill.
 		_ = signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL)
 		select {
-		case <-reaped:
+		case <-process.done:
 		case <-time.After(1 * time.Second):
 			s.logger.Warn("engine process did not reap after SIGKILL",
 				"engine", s.cfg.Kind,
@@ -253,10 +256,16 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		return nil
 	}
 	s.cmd = cmd
+	process := &supervisedProcess{
+		cmd:  cmd,
+		done: make(chan struct{}),
+	}
+	s.process = process
 	s.pid = cmd.Process.Pid
 	s.startedAt = time.Now()
 	s.mu.Unlock()
 
+	go waitSupervisorProcess(process)
 	s.writePIDFile()
 
 	s.logger.Info("engine process started",
@@ -386,47 +395,23 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 	healthTicker := time.NewTicker(s.cfg.HealthInterval)
 	defer healthTicker.Stop()
 
-	processDone := make(chan error, 1)
-	go func() {
-		s.mu.RLock()
-		cmd := s.cmd
-		s.mu.RUnlock()
-		if cmd != nil {
-			processDone <- cmd.Wait()
-		}
-	}()
+	process := s.currentProcess()
+	if process == nil {
+		return
+	}
 
 	for {
-		// Prioritize crash handling: if process exited, do not keep incrementing
-		// health failure counters in a race with processDone.
-		select {
-		case <-ctx.Done():
+		// Prioritize crash handling: if the process exited, do not keep
+		// incrementing health failure counters in a race with process shutdown.
+		if s.handleObservedProcessExit(ctx, process, epoch) {
 			return
-		case err := <-processDone:
-			if !s.isRunEpochActive(epoch) {
-				return
-			}
-			s.logger.Warn("engine process exited unexpectedly",
-				"engine", s.cfg.Kind,
-				"error", err,
-			)
-			s.handleCrash(ctx, err, epoch)
-			return
-		default:
 		}
 
 		select {
 		case <-ctx.Done():
 			return
-		case err := <-processDone:
-			if !s.isRunEpochActive(epoch) {
-				return
-			}
-			s.logger.Warn("engine process exited unexpectedly",
-				"engine", s.cfg.Kind,
-				"error", err,
-			)
-			s.handleCrash(ctx, err, epoch)
+		case <-process.done:
+			s.handleExitedProcess(ctx, process, epoch)
 			return
 		case <-healthTicker.C:
 			if !s.isRunEpochActive(epoch) {
@@ -463,6 +448,46 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 			}
 		}
 	}
+}
+
+func waitSupervisorProcess(process *supervisedProcess) {
+	if process == nil || process.cmd == nil {
+		return
+	}
+	process.waitErr = process.cmd.Wait()
+	close(process.done)
+}
+
+func (s *Supervisor) currentProcess() *supervisedProcess {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.process
+}
+
+func (s *Supervisor) handleObservedProcessExit(ctx context.Context, process *supervisedProcess, epoch uint64) bool {
+	if process == nil {
+		return false
+	}
+	select {
+	case <-ctx.Done():
+		return true
+	case <-process.done:
+		s.handleExitedProcess(ctx, process, epoch)
+		return true
+	default:
+		return false
+	}
+}
+
+func (s *Supervisor) handleExitedProcess(ctx context.Context, process *supervisedProcess, epoch uint64) {
+	if !s.isRunEpochActive(epoch) {
+		return
+	}
+	s.logger.Warn("engine process exited unexpectedly",
+		"engine", s.cfg.Kind,
+		"error", process.waitErr,
+	)
+	s.handleCrash(ctx, process.waitErr, epoch)
 }
 
 func (s *Supervisor) handleCrash(ctx context.Context, procErr error, epoch uint64) {
@@ -554,11 +579,16 @@ func (s *Supervisor) writePIDFile() {
 	if path == "" {
 		return
 	}
-	_ = os.MkdirAll(filepath.Dir(path), 0o755)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		s.logger.Warn("failed to create engine pid directory", "engine", s.cfg.Kind, "path", path, "error", err)
+		return
+	}
 	s.mu.RLock()
 	pid := s.pid
 	s.mu.RUnlock()
-	_ = os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o644)
+	if err := os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o644); err != nil {
+		s.logger.Warn("failed to write engine pid file", "engine", s.cfg.Kind, "path", path, "error", err)
+	}
 }
 
 func (s *Supervisor) removePIDFile() {
@@ -637,15 +667,4 @@ func (s *Supervisor) isRunEpochActive(epoch uint64) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.runEpoch == epoch
-}
-
-func processAlive(pid int) bool {
-	if pid <= 0 {
-		return false
-	}
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-	return process.Signal(syscall.Signal(0)) == nil
 }

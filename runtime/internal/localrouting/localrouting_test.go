@@ -22,13 +22,15 @@ func TestProviderSupportsCapability(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		if got := ProviderSupportsCapability(tc.provider, tc.capability); got != tc.want {
-			t.Fatalf("ProviderSupportsCapability(%q, %q): got=%v want=%v", tc.provider, tc.capability, got, tc.want)
-		}
+		t.Run(tc.provider+"-"+tc.capability, func(t *testing.T) {
+			if got := ProviderSupportsCapability(tc.provider, tc.capability); got != tc.want {
+				t.Errorf("ProviderSupportsCapability(%q, %q): got=%v want=%v", tc.provider, tc.capability, got, tc.want)
+			}
+		})
 	}
 }
 
-func TestPreferenceOrderWindowsHardCutByCapability(t *testing.T) {
+func TestPreferenceOrderHardCutByCapability(t *testing.T) {
 	testCases := map[string][]string{
 		"text.generate":    {"llama"},
 		"text.embed":       {"llama"},
@@ -41,9 +43,11 @@ func TestPreferenceOrderWindowsHardCutByCapability(t *testing.T) {
 	}
 
 	for capability, want := range testCases {
-		if got := PreferenceOrder("windows", capability); !reflect.DeepEqual(got, want) {
-			t.Fatalf("PreferenceOrder(windows, %q): got=%v want=%v", capability, got, want)
-		}
+		t.Run(capability, func(t *testing.T) {
+			if got := PreferenceOrder("windows", capability); !reflect.DeepEqual(got, want) {
+				t.Fatalf("PreferenceOrder(windows, %q): got=%v want=%v", capability, got, want)
+			}
+		})
 	}
 }
 
@@ -53,5 +57,26 @@ func TestPreferenceOrderNonWindowsFiltersUnsupportedFallbacks(t *testing.T) {
 	}
 	if got, want := PreferenceOrder("linux", "image.generate"), []string{"media"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("PreferenceOrder(linux, image.generate): got=%v want=%v", got, want)
+	}
+}
+
+func TestNormalizeAndRankingHelpers(t *testing.T) {
+	if got := NormalizeCapability("  CHAT "); got != "text.generate" {
+		t.Fatalf("NormalizeCapability alias mismatch: %q", got)
+	}
+	if got := NormalizeProvider(" Speech "); got != "speech" {
+		t.Fatalf("NormalizeProvider mismatch: %q", got)
+	}
+	if !IsKnownProvider("Media") {
+		t.Fatal("expected Media to be recognized as known provider")
+	}
+	if IsKnownProvider("custom") {
+		t.Fatal("did not expect custom to be recognized as known provider")
+	}
+	if got := PreferenceRank("linux", "text.generate", "llama"); got != 0 {
+		t.Fatalf("PreferenceRank mismatch: %d", got)
+	}
+	if got := PreferenceRank("linux", "text.generate", "media"); got != 1 {
+		t.Fatalf("unexpected fallback rank: %d", got)
 	}
 }

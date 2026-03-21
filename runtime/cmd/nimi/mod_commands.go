@@ -146,6 +146,10 @@ func runRuntimeModInstall(args []string) error {
 		return err
 	}
 
+	if sourcePositional != "" && strings.TrimSpace(*sourceFlag) != "" {
+		return fmt.Errorf("source positional argument and --source are mutually exclusive")
+	}
+
 	source := strings.TrimSpace(*sourceFlag)
 	if source == "" && sourcePositional != "" {
 		source = sourcePositional

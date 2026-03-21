@@ -43,7 +43,7 @@ var providerEnvBindings = []providerEnvBinding{
 func resolveCloudProviders(fileTargets map[string]RuntimeFileTarget) map[string]RuntimeFileTarget {
 	resolved := make(map[string]RuntimeFileTarget, len(fileTargets)+len(providerEnvBindings))
 	for providerName, target := range fileTargets {
-		resolved[canonicalProviderKey(providerName)] = target
+		resolved[normalizedProviderKey(providerName)] = target
 	}
 
 	for _, binding := range providerEnvBindings {
@@ -118,16 +118,6 @@ func resolveProviderAPIKeyWithBinding(target RuntimeFileTarget, fallbackEnvKey s
 	return value
 }
 
-func resolveProviderBinding(raw string) (providerEnvBinding, bool) {
-	canonical := canonicalProviderKey(raw)
-	for _, binding := range providerEnvBindings {
-		if binding.canonicalID == canonical {
-			return binding, true
-		}
-	}
-	return providerEnvBinding{}, false
-}
-
 // NormalizeProviderName strips non-alphanumeric characters and lowercases.
 func NormalizeProviderName(raw string) string {
 	trimmed := strings.TrimSpace(strings.ToLower(raw))
@@ -143,6 +133,10 @@ func NormalizeProviderName(raw string) string {
 		}
 		if char >= '0' && char <= '9' {
 			builder.WriteRune(char)
+			continue
+		}
+		if char == '_' {
+			builder.WriteRune(char)
 		}
 	}
 	return builder.String()
@@ -151,7 +145,7 @@ func NormalizeProviderName(raw string) string {
 // ResolveCanonicalProviderID maps a config.json provider key to its canonical provider ID.
 // Returns ("", false) for local providers or unknown names.
 func ResolveCanonicalProviderID(raw string) (string, bool) {
-	switch canonicalProviderKey(raw) {
+	switch normalizedProviderKey(raw) {
 	case "nimillm":
 		return "nimillm", true
 	case "openai":

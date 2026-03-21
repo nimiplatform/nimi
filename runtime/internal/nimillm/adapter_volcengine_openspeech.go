@@ -21,6 +21,8 @@ import (
 // AdapterBytedanceOpenSpeech is the adapter identifier for Bytedance OpenSpeech TTS/STT.
 const AdapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 
+const bytedanceOpenSpeechMaxInlineAudioBytes = 10 << 20
+
 // ExecuteBytedanceOpenSpeech handles TTS and STT scenario jobs via the Bytedance
 // OpenSpeech API. It replaces the former Service.executeBytedanceOpenSpeech
 // method, accepting a MediaAdapterConfig instead of reading from service config.
@@ -117,6 +119,9 @@ func ExecuteBytedanceOpenSpeech(
 		}
 		if spec.GetLanguage() != "" {
 			payload["language"] = spec.GetLanguage()
+		}
+		if len(audioBytes) > bytedanceOpenSpeechMaxInlineAudioBytes {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		if len(scenarioExtensions) > 0 {
 			opts := scenarioExtensions

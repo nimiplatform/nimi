@@ -2,6 +2,7 @@ package envelope
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"google.golang.org/grpc/metadata"
@@ -22,7 +23,7 @@ func validMD() metadata.MD {
 		"x-nimi-key-source", "LOCAL",
 		"x-nimi-provider-type", "openai",
 		"x-nimi-provider-endpoint", "https://api.openai.com",
-		"x-nimi-provider-api-key", "sk-test",
+		"x-nimi-provider-api-key", "test-api-key",
 	)
 }
 
@@ -108,7 +109,7 @@ func TestValidateIdempotencyRequiresCallerFields(t *testing.T) {
 	}
 }
 
-func TestParseSemver(t *testing.T) {
+func TestParseMajorMinorSemver(t *testing.T) {
 	tests := []struct {
 		input string
 		major int
@@ -123,9 +124,9 @@ func TestParseSemver(t *testing.T) {
 		{"1.x.0", 0, 0, false},
 	}
 	for _, tt := range tests {
-		major, minor, ok := parseSemver(tt.input)
+		major, minor, ok := parseMajorMinorSemver(tt.input)
 		if ok != tt.ok || major != tt.major || minor != tt.minor {
-			t.Errorf("parseSemver(%q): got=(%d,%d,%v) want=(%d,%d,%v)", tt.input, major, minor, ok, tt.major, tt.minor, tt.ok)
+			t.Errorf("parseMajorMinorSemver(%q): got=(%d,%d,%v) want=(%d,%d,%v)", tt.input, major, minor, ok, tt.major, tt.minor, tt.ok)
 		}
 	}
 }
@@ -220,6 +221,34 @@ func TestParseAccessTokenFromContextMissingMetadata(t *testing.T) {
 	if err == nil {
 		t.Fatal("should fail without metadata")
 	}
+	if !errors.Is(err, ErrEnvelopeMetadataMissing) {
+		t.Fatalf("expected wrapped metadata missing error, got=%v", err)
+	}
+}
+
+func TestParseSessionFromContext(t *testing.T) {
+	md := metadata.Pairs(
+		"x-nimi-session-id", "sess-id",
+		"x-nimi-session-token", "sess-token",
+	)
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	sessionID, sessionToken, err := ParseSessionFromContext(ctx)
+	if err != nil {
+		t.Fatalf("ParseSessionFromContext: %v", err)
+	}
+	if sessionID != "sess-id" || sessionToken != "sess-token" {
+		t.Fatalf("session: id=%q token=%q", sessionID, sessionToken)
+	}
+}
+
+func TestParseSessionFromContextMissingMetadata(t *testing.T) {
+	_, _, err := ParseSessionFromContext(context.Background())
+	if err == nil {
+		t.Fatal("should fail without metadata")
+	}
+	if !errors.Is(err, ErrEnvelopeMetadataMissing) {
+		t.Fatalf("expected wrapped metadata missing error, got=%v", err)
+	}
 }
 
 func TestParseCredentialMetadataFromContext(t *testing.T) {
@@ -227,17 +256,17 @@ func TestParseCredentialMetadataFromContext(t *testing.T) {
 		"x-nimi-key-source", "LOCAL",
 		"x-nimi-provider-type", "openai",
 		"x-nimi-provider-endpoint", "https://api.openai.com",
-		"x-nimi-provider-api-key", "sk-test",
+		"x-nimi-provider-api-key", "test-api-key",
 	)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
-	source, provType, endpoint, apiKey, err := ParseCredentialMetadataFromContext(ctx)
+	credentialMeta, err := ParseCredentialMetadataFromContext(ctx)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
-	if source != "local" {
-		t.Fatalf("source should be lowercased: got=%q", source)
+	if credentialMeta.Source != "local" {
+		t.Fatalf("source should be lowercased: got=%q", credentialMeta.Source)
 	}
-	if provType != "openai" || endpoint != "https://api.openai.com" || apiKey != "sk-test" {
-		t.Fatalf("credential metadata: type=%q endpoint=%q key=%q", provType, endpoint, apiKey)
+	if credentialMeta.ProviderType != "openai" || credentialMeta.Endpoint != "https://api.openai.com" || credentialMeta.APIKey != "test-api-key" {
+		t.Fatalf("credential metadata: type=%q endpoint=%q key=%q", credentialMeta.ProviderType, credentialMeta.Endpoint, credentialMeta.APIKey)
 	}
 }

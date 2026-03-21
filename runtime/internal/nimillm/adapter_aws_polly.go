@@ -25,6 +25,9 @@ func ExecuteAWSPollyTTS(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
+	if apiKey == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
+	}
 
 	if scenarioModal(req) != runtimev1.Modal_MODAL_TTS {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)

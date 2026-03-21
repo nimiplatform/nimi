@@ -22,43 +22,8 @@ import (
 //   - Link-local (169.254.0.0/16, fe80::/10) and ULA (fc00::/7) addresses
 //     are always blocked.
 func ValidateEndpoint(rawURL string, allowLoopback bool) error {
-	parsed, err := parseAndNormalize(rawURL)
-	if err != nil {
-		return err
-	}
-
-	host := parsed.Hostname()
-	isLoopback := isLoopbackHost(host)
-
-	// HTTPS enforcement (K-SEC-001).
-	if parsed.Scheme != "https" {
-		if parsed.Scheme == "http" && allowLoopback && isLoopback {
-			// Allowed: HTTP to loopback when flag is set (K-SEC-002).
-		} else {
-			return fmt.Errorf("endpointsec: HTTPS required for endpoint %q", rawURL)
-		}
-	}
-
-	// Resolve and check IPs.
-	ips, err := net.DefaultResolver.LookupHost(context.Background(), host)
-	if err != nil {
-		return fmt.Errorf("endpointsec: DNS resolution failed for %q: %w", host, err)
-	}
-	for _, ipStr := range ips {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			continue
-		}
-		// K-SEC-002: reject loopback IPs regardless of scheme when not allowed.
-		if !allowLoopback && ip.IsLoopback() {
-			return fmt.Errorf("endpointsec: resolved IP %s for %q is loopback and allow_loopback_provider_endpoint=false", ipStr, host)
-		}
-		if err := checkIP(ip); err != nil {
-			return fmt.Errorf("endpointsec: resolved IP %s for %q is blocked: %w", ipStr, host, err)
-		}
-	}
-
-	return nil
+	_, _, err := resolveValidatedEndpoint(rawURL, allowLoopback)
+	return err
 }
 
 // NewPinnedTransport creates an *http.Transport that pins the DNS resolution
@@ -68,11 +33,10 @@ func ValidateEndpoint(rawURL string, allowLoopback bool) error {
 // Returns an error if the URL fails validation or DNS resolution yields
 // only blocked addresses.
 func NewPinnedTransport(rawURL string, allowLoopback bool) (*http.Transport, error) {
-	parsed, err := parseAndNormalize(rawURL)
+	parsed, safeIPs, err := resolveValidatedEndpoint(rawURL, allowLoopback)
 	if err != nil {
 		return nil, err
 	}
-
 	host := parsed.Hostname()
 	port := parsed.Port()
 	if port == "" {
@@ -83,46 +47,13 @@ func NewPinnedTransport(rawURL string, allowLoopback bool) (*http.Transport, err
 		}
 	}
 
-	isLoopback := isLoopbackHost(host)
-
-	// HTTPS enforcement (K-SEC-001).
-	if parsed.Scheme != "https" {
-		if parsed.Scheme == "http" && allowLoopback && isLoopback {
-			// Allowed.
-		} else {
-			return nil, fmt.Errorf("endpointsec: HTTPS required for endpoint %q", rawURL)
-		}
-	}
-
-	// Resolve DNS and pick first safe IP.
-	ips, err := net.DefaultResolver.LookupHost(context.Background(), host)
-	if err != nil {
-		return nil, fmt.Errorf("endpointsec: DNS resolution failed for %q: %w", host, err)
-	}
-
-	var pinnedIP string
-	for _, ipStr := range ips {
-		ip := net.ParseIP(ipStr)
-		if ip == nil {
-			continue
-		}
-		// K-SEC-002: reject loopback IPs regardless of scheme when not allowed.
-		if !allowLoopback && ip.IsLoopback() {
-			continue
-		}
-		if err := checkIP(ip); err != nil {
-			continue
-		}
-		pinnedIP = ipStr
-		break
-	}
-	if pinnedIP == "" {
-		return nil, fmt.Errorf("endpointsec: no safe IP found for %q", host)
-	}
-
-	pinnedAddr := net.JoinHostPort(pinnedIP, port)
+	pinnedAddr := net.JoinHostPort(safeIPs[0], port)
 
 	transport := &http.Transport{
+		MaxIdleConns:        10,
+		MaxIdleConnsPerHost: 5,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
 			dialer := &net.Dialer{Timeout: 10 * time.Second}
 			return dialer.DialContext(ctx, network, pinnedAddr)
@@ -137,6 +68,51 @@ func NewPinnedTransport(rawURL string, allowLoopback bool) (*http.Transport, err
 	}
 
 	return transport, nil
+}
+
+func resolveValidatedEndpoint(rawURL string, allowLoopback bool) (*url.URL, []string, error) {
+	parsed, err := parseAndNormalize(rawURL)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	host := parsed.Hostname()
+	isLoopback := isLoopbackHost(host)
+	if parsed.Scheme != "https" {
+		if parsed.Scheme != "http" || !allowLoopback || !isLoopback {
+			return nil, nil, fmt.Errorf("endpointsec: HTTPS required for endpoint %q", rawURL)
+		}
+	}
+
+	ips, err := net.DefaultResolver.LookupHost(context.Background(), host)
+	if err != nil {
+		return nil, nil, fmt.Errorf("endpointsec: DNS resolution failed for %q: %w", host, err)
+	}
+
+	safeIPs := make([]string, 0, len(ips))
+	for _, ipStr := range ips {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			continue
+		}
+		if !allowLoopback && ip.IsLoopback() {
+			if parsed.Scheme == "http" {
+				return nil, nil, fmt.Errorf("endpointsec: resolved IP %s for %q is loopback and allow_loopback_provider_endpoint=false", ipStr, host)
+			}
+			continue
+		}
+		if err := checkIP(ip); err != nil {
+			if parsed.Scheme == "http" {
+				return nil, nil, fmt.Errorf("endpointsec: resolved IP %s for %q is blocked: %w", ipStr, host, err)
+			}
+			continue
+		}
+		safeIPs = append(safeIPs, ipStr)
+	}
+	if len(safeIPs) == 0 {
+		return nil, nil, fmt.Errorf("endpointsec: no safe IP found for %q", host)
+	}
+	return parsed, safeIPs, nil
 }
 
 func parseAndNormalize(rawURL string) (*url.URL, error) {
@@ -162,6 +138,12 @@ func parseAndNormalize(rawURL string) (*url.URL, error) {
 // checkIP rejects link-local and ULA addresses per K-SEC-002.
 // RFC 1918 private addresses (10/8, 172.16/12, 192.168/16) are allowed.
 func checkIP(ip net.IP) error {
+	if ip == nil {
+		return fmt.Errorf("invalid IP address")
+	}
+	if ip.IsUnspecified() {
+		return fmt.Errorf("unspecified address")
+	}
 	if ip4 := ip.To4(); ip4 != nil {
 		// Link-local: 169.254.0.0/16
 		if ip4[0] == 169 && ip4[1] == 254 {

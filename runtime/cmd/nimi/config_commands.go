@@ -141,7 +141,7 @@ func runRuntimeConfigGet(args []string) error {
 	}
 
 	path := strings.TrimSpace(config.RuntimeConfigPath())
-	if strings.TrimSpace(path) == "" {
+	if path == "" {
 		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
 	}
 
@@ -167,7 +167,7 @@ func runRuntimeConfigValidate(args []string) error {
 	}
 
 	path := strings.TrimSpace(config.RuntimeConfigPath())
-	if strings.TrimSpace(path) == "" {
+	if path == "" {
 		return newConfigCommandError(configReasonSchemaInvalid, "set HOME or NIMI_RUNTIME_CONFIG_PATH", fmt.Errorf("runtime config path is empty"))
 	}
 

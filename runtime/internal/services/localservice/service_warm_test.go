@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -254,5 +255,15 @@ func TestWarmLocalModelRetriesManagedProbeUntilReady(t *testing.T) {
 	}
 	if time.Since(startedAt) < 2*warmManagedProbeRetryInterval {
 		t.Fatalf("expected warm call to wait across probe retries")
+	}
+}
+
+func TestRecordWarmKeyCapsCacheSize(t *testing.T) {
+	svc := newTestService(t)
+	for i := 0; i < 600; i++ {
+		svc.recordWarmKey(fmt.Sprintf("key-%d", i))
+	}
+	if got := len(svc.warmedModelKeys); got > 512 {
+		t.Fatalf("warm key cache should stay bounded, got %d", got)
 	}
 }

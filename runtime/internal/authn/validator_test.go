@@ -18,19 +18,26 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type testWriterError struct {
+	message string
+}
+
+func (e *testWriterError) Error() string {
+	return e.message
+}
+
 type jwksTestServer struct {
-	t        *testing.T
 	server   *httptest.Server
 	mu       sync.Mutex
 	document jwksDocument
 	status   int
 	hits     int
+	err      error
 }
 
 func newJWKSTestServer(t *testing.T, document jwksDocument) *jwksTestServer {
 	t.Helper()
 	s := &jwksTestServer{
-		t:        t,
 		document: document,
 		status:   http.StatusOK,
 	}
@@ -48,9 +55,17 @@ func newJWKSTestServer(t *testing.T, document jwksDocument) *jwksTestServer {
 
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(doc); err != nil {
-			t.Fatalf("encode jwks response: %v", err)
+			s.mu.Lock()
+			s.err = &testWriterError{message: "encode jwks response: " + err.Error()}
+			s.mu.Unlock()
+			http.Error(w, "jwks encode error", http.StatusInternalServerError)
 		}
 	}))
+	t.Cleanup(func() {
+		if err := s.LastError(); err != nil {
+			t.Error(err)
+		}
+	})
 	return s
 }
 
@@ -78,6 +93,12 @@ func (s *jwksTestServer) HitCount() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.hits
+}
+
+func (s *jwksTestServer) LastError() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.err
 }
 
 func generateRSAKey(t *testing.T) *rsa.PrivateKey {

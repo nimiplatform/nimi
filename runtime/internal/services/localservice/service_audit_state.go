@@ -98,20 +98,20 @@ func (s *Service) AppendInferenceAudit(ctx context.Context, req *runtimev1.Appen
 	)
 	event := &runtimev1.LocalAuditEvent{
 		Id:            "audit_" + ulid.Make().String(),
-		EventType:     strings.TrimSpace(req.GetEventType()),
+		EventType:     boundedLocalAuditField(req.GetEventType()),
 		OccurredAt:    nowISO(),
-		Source:        strings.TrimSpace(req.GetSource()),
-		Modality:      strings.TrimSpace(req.GetModality()),
-		ReasonCode:    strings.TrimSpace(req.GetReasonCode()),
-		Detail:        strings.TrimSpace(req.GetDetail()),
-		ModelId:       strings.TrimSpace(req.GetModel()),
-		LocalModelId:  strings.TrimSpace(req.GetLocalModelId()),
+		Source:        boundedLocalAuditField(req.GetSource()),
+		Modality:      boundedLocalAuditField(req.GetModality()),
+		ReasonCode:    boundedLocalAuditField(req.GetReasonCode()),
+		Detail:        boundedLocalAuditField(req.GetDetail()),
+		ModelId:       boundedLocalAuditField(req.GetModel()),
+		LocalModelId:  boundedLocalAuditField(req.GetLocalModelId()),
 		Payload:       mergeInferencePayload(req),
-		TraceId:       traceID,
-		AppId:         appID,
-		Domain:        domain,
-		Operation:     operation,
-		SubjectUserId: subjectUserID,
+		TraceId:       boundedLocalAuditField(traceID),
+		AppId:         boundedLocalAuditField(appID),
+		Domain:        boundedLocalAuditField(domain),
+		Operation:     boundedLocalAuditField(operation),
+		SubjectUserId: boundedLocalAuditField(subjectUserID),
 	}
 	if event.GetEventType() == "" {
 		event.EventType = "inference_invoked"
@@ -134,19 +134,19 @@ func (s *Service) AppendRuntimeAudit(ctx context.Context, req *runtimev1.AppendR
 	)
 	event := &runtimev1.LocalAuditEvent{
 		Id:            "audit_" + ulid.Make().String(),
-		EventType:     defaultString(strings.TrimSpace(req.GetEventType()), "runtime_event"),
+		EventType:     defaultString(boundedLocalAuditField(req.GetEventType()), "runtime_event"),
 		OccurredAt:    nowISO(),
 		Source:        "local",
 		ReasonCode:    "",
 		Detail:        "",
-		ModelId:       strings.TrimSpace(req.GetModelId()),
-		LocalModelId:  strings.TrimSpace(req.GetLocalModelId()),
+		ModelId:       boundedLocalAuditField(req.GetModelId()),
+		LocalModelId:  boundedLocalAuditField(req.GetLocalModelId()),
 		Payload:       cloneStruct(req.GetPayload()),
-		TraceId:       traceID,
-		AppId:         appID,
-		Domain:        domain,
-		Operation:     operation,
-		SubjectUserId: subjectUserID,
+		TraceId:       boundedLocalAuditField(traceID),
+		AppId:         boundedLocalAuditField(appID),
+		Domain:        boundedLocalAuditField(domain),
+		Operation:     boundedLocalAuditField(operation),
+		SubjectUserId: boundedLocalAuditField(subjectUserID),
 	}
 	s.mu.Lock()
 	s.appendRuntimeAuditLocked(event)
@@ -210,6 +210,16 @@ func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
 		PrincipalId:   "runtime.local_runtime",
 		PrincipalType: "runtime_service",
 	})
+}
+
+const localAuditFieldMaxLen = 1024
+
+func boundedLocalAuditField(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if len(trimmed) <= localAuditFieldMaxLen {
+		return trimmed
+	}
+	return trimmed[:localAuditFieldMaxLen]
 }
 
 func matchesLocalAuditFilter(event *runtimev1.LocalAuditEvent, req *runtimev1.ListLocalAuditsRequest, eventTypes map[string]bool) bool {

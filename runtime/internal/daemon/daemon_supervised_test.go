@@ -27,9 +27,10 @@ import (
 func newTestDaemon(t *testing.T, logger *slog.Logger) *Daemon {
 	t.Helper()
 	daemon, err := New(config.Config{
-		GRPCAddr:       "127.0.0.1:0",
-		HTTPAddr:       "127.0.0.1:0",
-		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+		GRPCAddr:            "127.0.0.1:0",
+		HTTPAddr:            "127.0.0.1:0",
+		LocalStatePath:      filepath.Join(t.TempDir(), "local-state.json"),
+		IdempotencyCapacity: 32,
 	}, logger, "test")
 	if err != nil {
 		t.Fatalf("create daemon: %v", err)
@@ -166,6 +167,7 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
 		EngineLlamaEnabled:   true,
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "3.12.1",
@@ -194,7 +196,7 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.lifecycle",
 	})
 	startupFailures := make([]*runtimev1.AuditEventRecord, 0, len(events.GetEvents()))
@@ -219,6 +221,7 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
 		EngineMediaEnabled:   true,
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
@@ -272,6 +275,7 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
 		EngineMediaEnabled:   true,
 		EngineMediaPort:      8321,
 		EngineMediaVersion:   "0.1.0",
@@ -317,7 +321,7 @@ func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 	store := auditlog.New(32, 32)
 	appendEngineCrashAudit(store, "llama", "crash=exit status 7 attempt=2/5 restarting")
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{
 		Domain: "runtime.engine",
 	})
 	if len(events.GetEvents()) != 1 {
@@ -353,6 +357,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 		LocalStatePath:         filepath.Join(t.TempDir(), "local-state.json"),
 		AuditRingBufferSize:    64,
 		UsageStatsBufferSize:   64,
+		IdempotencyCapacity:    32,
 		EngineLlamaEnabled:     true,
 		EngineLlamaAutoManaged: true,
 		EngineLlamaPort:        1234,
@@ -390,7 +395,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
 	}
 
-	localProvider := daemon.aiHealth.Snapshot("local")
+	localProvider := daemon.aiHealth.SnapshotOf("local")
 	if localProvider.State != providerhealth.StateUnhealthy {
 		t.Fatalf("expected local provider unhealthy after bootstrap failure, got=%s", localProvider.State)
 	}
@@ -398,7 +403,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 		t.Fatalf("unexpected local provider reason: %s", localProvider.LastReason)
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
 	if len(events) != 1 {
 		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
 	}
@@ -423,9 +428,10 @@ func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *test
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")
 
 	cfg := config.Config{
-		GRPCAddr:       "127.0.0.1:0",
-		HTTPAddr:       "127.0.0.1:0",
-		LocalStatePath: filepath.Join(t.TempDir(), "local-state.json"),
+		GRPCAddr:            "127.0.0.1:0",
+		HTTPAddr:            "127.0.0.1:0",
+		LocalStatePath:      filepath.Join(t.TempDir(), "local-state.json"),
+		IdempotencyCapacity: 32,
 	}
 	daemon, err := New(cfg, logger, "test")
 	if err != nil {
@@ -513,6 +519,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		LocalModelsPath:      localModelsPath,
 		AuditRingBufferSize:  64,
 		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
 		EngineLlamaEnabled:   true,
 		EngineLlamaPort:      1234,
 		EngineLlamaVersion:   "3.12.1",
@@ -583,7 +590,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
 	}
 
-	localProvider := daemon.aiHealth.Snapshot("local")
+	localProvider := daemon.aiHealth.SnapshotOf("local")
 	if localProvider.State != providerhealth.StateUnhealthy {
 		t.Fatalf("expected local provider unhealthy after asset sync failure, got=%s", localProvider.State)
 	}
@@ -591,7 +598,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		t.Fatalf("unexpected local provider reason: %s", localProvider.LastReason)
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
 	if len(events) != 1 {
 		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
 	}

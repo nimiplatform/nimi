@@ -171,7 +171,8 @@ func localModelSupportsTextGenerateCapability(model *runtimev1.LocalModelRecord,
 		if normalized == "" {
 			continue
 		}
-		if aicapabilities.NormalizeCatalogCapability(normalized) == capability {
+		normalizedCapability, err := aicapabilities.NormalizeCatalogCapability(normalized)
+		if err == nil && normalizedCapability == capability {
 			return true
 		}
 		for _, alias := range localTextGenerateCapabilityAliases(capability) {

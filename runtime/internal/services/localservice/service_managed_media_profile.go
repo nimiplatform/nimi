@@ -305,7 +305,7 @@ func (s *Service) ResolveManagedArtifactPath(_ context.Context, localArtifactID 
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(resolveLocalModelsPath(s.localModelsPath), filepath.FromSlash(relPath)), nil
+	return filepath.Join(s.resolvedLocalModelsPath(), filepath.FromSlash(relPath)), nil
 }
 
 func (s *Service) resolveManagedModelEntryPath(model *runtimev1.LocalModelRecord) (string, error) {
@@ -313,7 +313,7 @@ func (s *Service) resolveManagedModelEntryPath(model *runtimev1.LocalModelRecord
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	return resolveManagedEntryRelativePath(
-		resolveLocalModelsPath(s.localModelsPath),
+		s.resolvedLocalModelsPath(),
 		model.GetModelId(),
 		model.GetSource().GetRepo(),
 		model.GetEntry(),
@@ -325,11 +325,18 @@ func (s *Service) resolveManagedArtifactEntryPath(artifact *runtimev1.LocalArtif
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	return resolveManagedEntryRelativePath(
-		resolveLocalModelsPath(s.localModelsPath),
+		s.resolvedLocalModelsPath(),
 		artifact.GetArtifactId(),
 		artifact.GetSource().GetRepo(),
 		artifact.GetEntry(),
 	)
+}
+
+func (s *Service) resolvedLocalModelsPath() string {
+	s.mu.RLock()
+	localModelsPath := s.localModelsPath
+	s.mu.RUnlock()
+	return resolveLocalModelsPath(localModelsPath)
 }
 
 func resolveManagedEntryRelativePath(modelsRoot string, itemID string, sourceRepo string, entry string) (string, error) {

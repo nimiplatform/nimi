@@ -30,7 +30,7 @@ func writeBytesAtomic(path string, content []byte, mode os.FileMode) error {
 	if path == "" {
 		return fmt.Errorf("runtime config path is empty")
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create runtime config directory: %w", err)
 	}
 	tmpPath := path + ".tmp"
@@ -95,7 +95,7 @@ func LoadFileConfig(path string) (FileConfig, error) {
 		return FileConfig{}, fmt.Errorf("parse runtime config file %q: %w", path, err)
 	}
 	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return FileConfig{}, fmt.Errorf("parse runtime config file %q: %w", path, err)
+		return FileConfig{}, fmt.Errorf("parse runtime config file %q: unexpected trailing content", path)
 	}
 	parsed, err = migrateFileConfig(path, content, parsed)
 	if err != nil {

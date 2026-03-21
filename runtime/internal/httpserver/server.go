@@ -22,12 +22,12 @@ type Server struct {
 	aiHealth *providerhealth.Tracker
 }
 
-func New(addr string, state *health.State, logger *slog.Logger) *Server {
+func New(addr string, state *health.State, logger *slog.Logger, aiHealth *providerhealth.Tracker) *Server {
 	s := &Server{
 		addr:     addr,
 		state:    state,
 		logger:   logger,
-		aiHealth: nil,
+		aiHealth: aiHealth,
 	}
 
 	mux := http.NewServeMux()
@@ -40,12 +40,11 @@ func New(addr string, state *health.State, logger *slog.Logger) *Server {
 		Addr:              addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 3 * time.Second,
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	return s
-}
-
-func (s *Server) SetAIHealthTracker(tracker *providerhealth.Tracker) {
-	s.aiHealth = tracker
 }
 
 func (s *Server) Serve() error {
@@ -57,23 +56,32 @@ func (s *Server) Serve() error {
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
-	return s.http.Shutdown(ctx)
+	if err := s.http.Shutdown(ctx); err != nil {
+		return fmt.Errorf("shutdown http: %w", err)
+	}
+	return nil
 }
 
-func (s *Server) handleLive(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
+func (s *Server) handleLive(w http.ResponseWriter, req *http.Request) {
+	if !allowReadMethod(w, req) {
+		return
+	}
+	s.writeJSON(w, http.StatusOK, map[string]any{
 		"ok": true,
 	})
 }
 
-func (s *Server) handleReady(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleReady(w http.ResponseWriter, req *http.Request) {
+	if !allowReadMethod(w, req) {
+		return
+	}
 	snapshot := s.state.Snapshot()
 	statusCode := http.StatusServiceUnavailable
 	if snapshot.Status.Ready() {
 		statusCode = http.StatusOK
 	}
 
-	writeJSON(w, statusCode, map[string]any{
+	s.writeJSON(w, statusCode, map[string]any{
 		"ok":         snapshot.Status.Ready(),
 		"status":     snapshot.Status.String(),
 		"reason":     snapshot.Reason,
@@ -81,10 +89,13 @@ func (s *Server) handleReady(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
-func (s *Server) handleRuntimeHealth(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleRuntimeHealth(w http.ResponseWriter, req *http.Request) {
+	if !allowReadMethod(w, req) {
+		return
+	}
 	snapshot := s.state.Snapshot()
 	providers := providerSnapshotsPayload(s.aiHealth)
-	writeJSON(w, http.StatusOK, map[string]any{
+	s.writeJSON(w, http.StatusOK, map[string]any{
 		"status":                snapshot.Status.String(),
 		"status_code":           int32(snapshot.Status),
 		"reason":                snapshot.Reason,
@@ -104,8 +115,9 @@ func providerSnapshotsPayload(tracker *providerhealth.Tracker) []map[string]any 
 		return []map[string]any{}
 	}
 	snapshots := tracker.List()
+	// Reserve room for every provider plus one possible aggregated cloud entry.
 	out := make([]map[string]any, 0, len(snapshots)+1)
-	cloudSubHealth := make([]map[string]any, 0, len(snapshots))
+	cloudSubHealth := make([]map[string]any, 0, minInt(len(snapshots), 4))
 	cloudState := string(providerhealth.StateHealthy)
 	cloudReason := ""
 	cloudConsecutiveFailures := 0
@@ -166,7 +178,7 @@ func providerSnapshotsPayload(tracker *providerhealth.Tracker) []map[string]any 
 }
 
 func stringFromAny(value any) string {
-	return strings.TrimSpace(fmt.Sprint(value))
+	return fmt.Sprint(value)
 }
 
 func formatTimestamp(value time.Time) string {
@@ -176,10 +188,31 @@ func formatTimestamp(value time.Time) string {
 	return value.UTC().Format(time.RFC3339Nano)
 }
 
-func writeJSON(w http.ResponseWriter, statusCode int, body map[string]any) {
+func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, body map[string]any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		s.logger.Error("encode http response", "status", statusCode, "error", err)
 	}
+}
+
+func allowReadMethod(w http.ResponseWriter, req *http.Request) bool {
+	if req == nil {
+		return true
+	}
+	switch req.Method {
+	case http.MethodGet, http.MethodHead:
+		return true
+	default:
+		w.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return false
+	}
+}
+
+func minInt(left int, right int) int {
+	if left < right {
+		return left
+	}
+	return right
 }

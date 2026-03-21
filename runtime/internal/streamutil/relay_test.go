@@ -2,6 +2,7 @@ package streamutil
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -99,5 +100,61 @@ func TestStreamBackpressureRetainsTerminalEvent(t *testing.T) {
 	}
 	if !hasTerminal {
 		t.Fatal("expected terminal event to remain queued")
+	}
+}
+
+func TestRelayOverflowWithoutCloseErrStillFailsClosed(t *testing.T) {
+	relay := NewRelay(RelayOptions[relayEvent]{
+		Budget:              1,
+		MaxConsecutiveDrops: 1,
+	})
+
+	if err := relay.Enqueue(relayEvent{ID: 1}); err != nil {
+		t.Fatalf("enqueue 1: %v", err)
+	}
+	err := relay.Enqueue(relayEvent{ID: 2})
+	if !errors.Is(err, errRelayOverflow) {
+		t.Fatalf("expected default overflow error, got %v", err)
+	}
+}
+
+func TestRelayPendingCloseClearsAfterQueueRecovers(t *testing.T) {
+	relay := NewRelay(RelayOptions[relayEvent]{
+		Budget:              2,
+		MaxConsecutiveDrops: 1,
+		CloseErr:            status.Error(codes.ResourceExhausted, "slow consumer"),
+		IsTerminal: func(event relayEvent) bool {
+			return event.Terminal
+		},
+	})
+
+	if err := relay.Enqueue(relayEvent{ID: 1}); err != nil {
+		t.Fatalf("enqueue 1: %v", err)
+	}
+	if err := relay.Enqueue(relayEvent{ID: 2}); err != nil {
+		t.Fatalf("enqueue 2: %v", err)
+	}
+	if err := relay.Enqueue(relayEvent{ID: 3}); err != nil {
+		t.Fatalf("enqueue overflow: %v", err)
+	}
+	if !relay.pendingClose {
+		t.Fatal("expected pending close after drop budget exceeded")
+	}
+
+	item, err := relay.next(context.Background())
+	if err != nil {
+		t.Fatalf("next: %v", err)
+	}
+	if item.ID != 2 {
+		t.Fatalf("unexpected dequeued item: %+v", item)
+	}
+	if relay.pendingClose {
+		t.Fatal("pending close should clear once the queue drops below budget")
+	}
+	if err := relay.Enqueue(relayEvent{ID: 4, Terminal: true}); err != nil {
+		t.Fatalf("enqueue terminal after recovery: %v", err)
+	}
+	if relay.closed {
+		t.Fatal("relay should remain open after recovery")
 	}
 }

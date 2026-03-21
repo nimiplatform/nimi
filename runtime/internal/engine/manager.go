@@ -184,7 +184,7 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 		Platform:    PlatformString(),
 		InstalledAt: time.Now().UTC().Format(time.RFC3339),
 	}); err != nil {
-		m.logger.Warn("persist registry entry failed", "error", err)
+		return cfg, fmt.Errorf("persist llama registry entry version %s at %s: %w", cfg.Version, binaryPath, err)
 	}
 
 	cfg.BinaryPath = binaryPath
@@ -238,6 +238,11 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 	if err := sup.Stop(); err != nil {
 		return err
 	}
+	m.mu.Lock()
+	if current, exists := m.supervisors[kind]; exists && current == sup {
+		delete(m.supervisors, kind)
+	}
+	m.mu.Unlock()
 	if kind == EngineLlama {
 		if err := m.stopLlamaImageBackend(); err != nil {
 			return err

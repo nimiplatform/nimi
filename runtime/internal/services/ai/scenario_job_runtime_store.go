@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -9,6 +10,16 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	maxScenarioJobEventBacklog        = 128
+	maxRetainedTerminalScenarioJobs   = 1024
+	maxScenarioUploadedArtifacts      = 1024
+	maxScenarioIdempotencyBindings    = 2048
+	scenarioJobRetention              = 30 * time.Minute
+	scenarioUploadedArtifactRetention = 30 * time.Minute
+	scenarioIdempotencyRetention      = 30 * time.Minute
 )
 
 type scenarioJobRecord struct {
@@ -20,6 +31,9 @@ type scenarioJobRecord struct {
 	done        chan struct{}
 	doneClosed  bool
 	cancel      context.CancelFunc
+	createdAt   time.Time
+	updatedAt   time.Time
+	terminalAt  time.Time
 }
 
 type uploadedArtifactRecord struct {
@@ -27,19 +41,25 @@ type uploadedArtifactRecord struct {
 	subjectUserID string
 	traceID       string
 	artifact      *runtimev1.ScenarioArtifact
+	storedAt      time.Time
+}
+
+type scenarioIdempotencyBinding struct {
+	jobID   string
+	boundAt time.Time
 }
 
 type scenarioJobStore struct {
 	mu          sync.RWMutex
 	jobs        map[string]*scenarioJobRecord
-	idempotency map[string]string
+	idempotency map[string]scenarioIdempotencyBinding
 	uploads     map[string]*uploadedArtifactRecord
 }
 
 func newScenarioJobStore() *scenarioJobStore {
 	return &scenarioJobStore{
 		jobs:        make(map[string]*scenarioJobRecord),
-		idempotency: make(map[string]string),
+		idempotency: make(map[string]scenarioIdempotencyBinding),
 		uploads:     make(map[string]*uploadedArtifactRecord),
 	}
 }
@@ -52,7 +72,8 @@ func (s *scenarioJobStore) create(job *runtimev1.ScenarioJob, cancel context.Can
 	if id == "" {
 		return nil
 	}
-	now := timestamppb.New(time.Now().UTC())
+	nowTime := time.Now().UTC()
+	now := timestamppb.New(nowTime)
 	if job.GetCreatedAt() == nil {
 		job.CreatedAt = now
 	}
@@ -68,11 +89,14 @@ func (s *scenarioJobStore) create(job *runtimev1.ScenarioJob, cancel context.Can
 		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
 		done:        make(chan struct{}),
 		cancel:      cancel,
+		createdAt:   nowTime,
+		updatedAt:   nowTime,
 	}
 
 	s.mu.Lock()
 	s.jobs[id] = record
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
+	s.pruneLocked(nowTime)
 	s.mu.Unlock()
 	return cloneScenarioJob(record.job)
 }
@@ -99,7 +123,8 @@ func (s *scenarioJobStore) getByIdempotency(scopeKey string) (*runtimev1.Scenari
 		return nil, false
 	}
 	s.mu.RLock()
-	jobID, ok := s.idempotency[key]
+	binding, ok := s.idempotency[key]
+	jobID := strings.TrimSpace(binding.jobID)
 	record := s.jobs[jobID]
 	if !ok || record == nil {
 		s.mu.RUnlock()
@@ -118,7 +143,11 @@ func (s *scenarioJobStore) bindIdempotency(scopeKey string, jobID string) {
 	}
 	s.mu.Lock()
 	if _, exists := s.jobs[id]; exists {
-		s.idempotency[key] = id
+		s.idempotency[key] = scenarioIdempotencyBinding{
+			jobID:   id,
+			boundAt: time.Now().UTC(),
+		}
+		s.pruneLocked(time.Now().UTC())
 	}
 	s.mu.Unlock()
 }
@@ -145,14 +174,18 @@ func (s *scenarioJobStore) transition(
 	if status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
 		record.job.Status = status
 	}
-	record.job.UpdatedAt = timestamppb.New(time.Now().UTC())
+	nowTime := time.Now().UTC()
+	record.updatedAt = nowTime
+	record.job.UpdatedAt = timestamppb.New(nowTime)
 	if isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.doneClosed {
 		record.doneClosed = true
+		record.terminalAt = nowTime
 		close(record.done)
 	}
 	if eventType != runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED {
 		s.publishLocked(record, eventType)
 	}
+	s.pruneLocked(nowTime)
 	job := cloneScenarioJob(record.job)
 	s.mu.Unlock()
 	return job, true
@@ -238,13 +271,16 @@ func (s *scenarioJobStore) storeUploadedArtifact(appID string, subjectUserID str
 		return nil
 	}
 	cloned := cloneScenarioArtifact(artifact)
+	nowTime := time.Now().UTC()
 	s.mu.Lock()
 	s.uploads[artifactID] = &uploadedArtifactRecord{
 		appID:         strings.TrimSpace(appID),
 		subjectUserID: strings.TrimSpace(subjectUserID),
 		traceID:       strings.TrimSpace(traceID),
 		artifact:      cloned,
+		storedAt:      nowTime,
 	}
+	s.pruneLocked(nowTime)
 	s.mu.Unlock()
 	return cloneScenarioArtifact(cloned)
 }
@@ -310,6 +346,9 @@ func (s *scenarioJobStore) publishLocked(record *scenarioJobRecord, eventType ru
 		Job:       cloneScenarioJob(record.job),
 	}
 	record.events = append(record.events, event)
+	if len(record.events) > maxScenarioJobEventBacklog {
+		record.events = cloneScenarioJobEvents(record.events[len(record.events)-maxScenarioJobEventBacklog:])
+	}
 	for _, ch := range record.subscribers {
 		select {
 		case ch <- cloneScenarioJobEvent(event):
@@ -325,6 +364,141 @@ func (s *scenarioJobStore) publishLocked(record *scenarioJobRecord, eventType ru
 		default:
 		}
 	}
+}
+
+func (s *scenarioJobStore) pruneLocked(now time.Time) {
+	s.pruneJobsLocked(now)
+	s.pruneUploadsLocked(now)
+	s.pruneIdempotencyLocked(now)
+}
+
+func (s *scenarioJobStore) pruneJobsLocked(now time.Time) {
+	cutoff := now.Add(-scenarioJobRetention)
+	type candidate struct {
+		jobID string
+		at    time.Time
+	}
+	terminal := make([]candidate, 0, len(s.jobs))
+	for jobID, record := range s.jobs {
+		if record == nil || record.job == nil {
+			s.deleteJobLocked(jobID)
+			continue
+		}
+		if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
+			continue
+		}
+		terminalAt := scenarioJobRecordTimestamp(record)
+		if !terminalAt.IsZero() && terminalAt.Before(cutoff) {
+			s.deleteJobLocked(jobID)
+			continue
+		}
+		terminal = append(terminal, candidate{jobID: jobID, at: terminalAt})
+	}
+	if len(terminal) <= maxRetainedTerminalScenarioJobs {
+		return
+	}
+	sort.Slice(terminal, func(i int, j int) bool {
+		return terminal[i].at.Before(terminal[j].at)
+	})
+	for _, item := range terminal[:len(terminal)-maxRetainedTerminalScenarioJobs] {
+		s.deleteJobLocked(item.jobID)
+	}
+}
+
+func (s *scenarioJobStore) pruneUploadsLocked(now time.Time) {
+	cutoff := now.Add(-scenarioUploadedArtifactRetention)
+	type candidate struct {
+		artifactID string
+		at         time.Time
+	}
+	uploads := make([]candidate, 0, len(s.uploads))
+	for artifactID, record := range s.uploads {
+		if record == nil || record.artifact == nil {
+			delete(s.uploads, artifactID)
+			continue
+		}
+		if !record.storedAt.IsZero() && record.storedAt.Before(cutoff) {
+			delete(s.uploads, artifactID)
+			continue
+		}
+		uploads = append(uploads, candidate{artifactID: artifactID, at: record.storedAt})
+	}
+	if len(uploads) <= maxScenarioUploadedArtifacts {
+		return
+	}
+	sort.Slice(uploads, func(i int, j int) bool {
+		return uploads[i].at.Before(uploads[j].at)
+	})
+	for _, item := range uploads[:len(uploads)-maxScenarioUploadedArtifacts] {
+		delete(s.uploads, item.artifactID)
+	}
+}
+
+func (s *scenarioJobStore) pruneIdempotencyLocked(now time.Time) {
+	cutoff := now.Add(-scenarioIdempotencyRetention)
+	type candidate struct {
+		key string
+		at  time.Time
+	}
+	bindings := make([]candidate, 0, len(s.idempotency))
+	for key, binding := range s.idempotency {
+		jobID := strings.TrimSpace(binding.jobID)
+		if jobID == "" || s.jobs[jobID] == nil {
+			delete(s.idempotency, key)
+			continue
+		}
+		if !binding.boundAt.IsZero() && binding.boundAt.Before(cutoff) {
+			delete(s.idempotency, key)
+			continue
+		}
+		bindings = append(bindings, candidate{key: key, at: binding.boundAt})
+	}
+	if len(bindings) <= maxScenarioIdempotencyBindings {
+		return
+	}
+	sort.Slice(bindings, func(i int, j int) bool {
+		return bindings[i].at.Before(bindings[j].at)
+	})
+	for _, item := range bindings[:len(bindings)-maxScenarioIdempotencyBindings] {
+		delete(s.idempotency, item.key)
+	}
+}
+
+func (s *scenarioJobStore) deleteJobLocked(jobID string) {
+	record := s.jobs[jobID]
+	delete(s.jobs, jobID)
+	if record == nil {
+		return
+	}
+	for subID, ch := range record.subscribers {
+		delete(record.subscribers, subID)
+		close(ch)
+	}
+}
+
+func scenarioJobRecordTimestamp(record *scenarioJobRecord) time.Time {
+	if record == nil {
+		return time.Time{}
+	}
+	switch {
+	case !record.terminalAt.IsZero():
+		return record.terminalAt
+	case !record.updatedAt.IsZero():
+		return record.updatedAt
+	default:
+		return record.createdAt
+	}
+}
+
+func cloneScenarioJobEvents(input []*runtimev1.ScenarioJobEvent) []*runtimev1.ScenarioJobEvent {
+	if len(input) == 0 {
+		return nil
+	}
+	out := make([]*runtimev1.ScenarioJobEvent, 0, len(input))
+	for _, event := range input {
+		out = append(out, cloneScenarioJobEvent(event))
+	}
+	return out
 }
 
 func cloneScenarioArtifact(input *runtimev1.ScenarioArtifact) *runtimev1.ScenarioArtifact {

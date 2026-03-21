@@ -1,7 +1,9 @@
 package pagination
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -9,6 +11,8 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
+
+const maxEncodedTokenBytes = 1024
 
 // tokenPayload is the internal structure encoded in an opaque page token.
 type tokenPayload struct {
@@ -23,7 +27,10 @@ func Encode(cursor string, filterDigest string) string {
 		Cursor:       cursor,
 		FilterDigest: filterDigest,
 	}
-	data, _ := json.Marshal(payload)
+	data, err := json.Marshal(payload)
+	if err != nil {
+		panic(fmt.Sprintf("pagination.Encode: marshal token payload: %v", err))
+	}
 	return base64.RawURLEncoding.EncodeToString(data)
 }
 
@@ -33,13 +40,22 @@ func Decode(token string) (cursor string, filterDigest string, err error) {
 	if token == "" {
 		return "", "", nil
 	}
+	if len(token) > maxEncodedTokenBytes {
+		return "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+	}
 	data, decodeErr := base64.RawURLEncoding.DecodeString(token)
 	if decodeErr != nil {
-		return "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+		return "", "", fmt.Errorf(
+			"pagination.Decode: base64 decode: %w",
+			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID),
+		)
 	}
 	var payload tokenPayload
 	if unmarshalErr := json.Unmarshal(data, &payload); unmarshalErr != nil {
-		return "", "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
+		return "", "", fmt.Errorf(
+			"pagination.Decode: unmarshal payload: %w",
+			grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PAGE_TOKEN_INVALID),
+		)
 	}
 	return payload.Cursor, payload.FilterDigest, nil
 }
@@ -63,6 +79,10 @@ func ValidatePageToken(token string, currentFilterDigest string) (cursor string,
 // FilterDigest computes a deterministic digest string from filter parameters.
 // This is used to detect filter changes between pagination requests.
 func FilterDigest(parts ...string) string {
-	data, _ := json.Marshal(parts)
-	return fmt.Sprintf("%x", data)
+	data, err := json.Marshal(parts)
+	if err != nil {
+		panic(fmt.Sprintf("pagination.FilterDigest: marshal parts: %v", err))
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }

@@ -31,6 +31,7 @@ func TestEnsureLocalQualifiedModel(t *testing.T) {
 		{"media/flux.1-schnell", "media/flux.1-schnell"},
 		{"speech/kokoro-82m", "speech/kokoro-82m"},
 		{"sidecar/musicgen", "sidecar/musicgen"},
+		{"LOCAL/qwen2.5", "local/qwen2.5"},
 		{"", ""},
 		{"  ", ""},
 	}
@@ -50,6 +51,7 @@ func TestEnsureLocalLatestModelRef(t *testing.T) {
 		{"local/qwen2.5", "local/qwen2.5@latest"},
 		{"local/qwen2.5@v1", "local/qwen2.5@v1"},
 		{"local/qwen2.5:fp16", "local/qwen2.5:fp16"},
+		{"local/vendor/model:fp16", "local/vendor/model:fp16"},
 		{"", ""},
 	}
 	for _, tt := range tests {
@@ -62,7 +64,7 @@ func TestEnsureLocalLatestModelRef(t *testing.T) {
 func TestResolveCloudProviderWithHint(t *testing.T) {
 	cfg := config.Config{
 		Providers: map[string]config.RuntimeFileTarget{
-			"openai": {BaseURL: "https://api.openai.com", APIKey: "sk-test"},
+			"openai": {BaseURL: "https://api.openai.com", APIKey: "test-api-key"},
 		},
 	}
 	name, target, err := ResolveCloudProvider(cfg, "openai")
@@ -72,7 +74,7 @@ func TestResolveCloudProviderWithHint(t *testing.T) {
 	if name != "openai" {
 		t.Fatalf("name: got=%q want=%q", name, "openai")
 	}
-	if target.APIKey != "sk-test" {
+	if target.APIKey != "test-api-key" {
 		t.Fatalf("api key: got=%q", target.APIKey)
 	}
 }
@@ -109,6 +111,20 @@ func TestResolveCloudProviderNoDefault(t *testing.T) {
 	}
 }
 
+func TestResolveCloudProviderUsesQuotedProviderNames(t *testing.T) {
+	cfg := config.Config{
+		DefaultCloudProvider: "openai",
+		Providers:            map[string]config.RuntimeFileTarget{},
+	}
+	_, _, err := ResolveCloudProvider(cfg, "")
+	if err == nil {
+		t.Fatal("expected missing default provider config to fail")
+	}
+	if got := err.Error(); got != `default cloud provider "openai" is not configured` {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestLooksLikeQualifiedRemoteModel(t *testing.T) {
 	tests := []struct {
 		input string
@@ -125,6 +141,38 @@ func TestLooksLikeQualifiedRemoteModel(t *testing.T) {
 		if got := LooksLikeQualifiedRemoteModel(tt.input); got != tt.want {
 			t.Errorf("LooksLikeQualifiedRemoteModel(%q) = %v, want %v", tt.input, got, tt.want)
 		}
+	}
+}
+
+func TestResolveProviderDefaultTextModelRequiresConfiguredProvider(t *testing.T) {
+	cfg := config.Config{
+		Providers: map[string]config.RuntimeFileTarget{
+			"openai": {},
+		},
+	}
+
+	_, _, err := ResolveProviderDefaultTextModel(cfg, "anthropic")
+	if err == nil {
+		t.Fatal("expected missing provider configuration to fail")
+	}
+	if got := err.Error(); got != `provider "anthropic" is not configured` {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveProviderDefaultTextModelOmitsCLIInstructions(t *testing.T) {
+	cfg := config.Config{
+		Providers: map[string]config.RuntimeFileTarget{
+			"custom": {},
+		},
+	}
+
+	_, _, err := ResolveProviderDefaultTextModel(cfg, "custom")
+	if err == nil {
+		t.Fatal("expected no-default-model error")
+	}
+	if got := err.Error(); got != `provider "custom" has no default text model` {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
@@ -147,5 +195,37 @@ func TestIsHighLevelQualifiedModel(t *testing.T) {
 		if got := IsHighLevelQualifiedModel(tt.input); got != tt.want {
 			t.Errorf("IsHighLevelQualifiedModel(%q) = %v, want %v", tt.input, got, tt.want)
 		}
+	}
+}
+
+func TestResolveInternalDefaultAlias(t *testing.T) {
+	cfg := config.Config{
+		DefaultLocalTextModel: "qwen3",
+		DefaultCloudProvider:  "openai",
+		Providers: map[string]config.RuntimeFileTarget{
+			"openai": {DefaultModel: "gpt-4.1"},
+		},
+	}
+
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{input: "local/default", want: "local/qwen3"},
+		{input: "cloud/default", want: "openai/gpt-4.1"},
+		{input: "openai/default", want: "openai/gpt-4.1"},
+		{input: "openai/gpt-4.1", want: "openai/gpt-4.1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got, err := ResolveInternalDefaultAlias(cfg, tt.input)
+			if err != nil {
+				t.Fatalf("ResolveInternalDefaultAlias(%q): %v", tt.input, err)
+			}
+			if got != tt.want {
+				t.Fatalf("ResolveInternalDefaultAlias(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
 	}
 }

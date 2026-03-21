@@ -146,3 +146,9 @@ func (s *cmdTestRuntimeAIService) mediaSubmitMetadata() metadata.MD {
 	defer s.mu.Unlock()
 	return s.mediaSubmitMD.Copy()
 }
+
+func TestExtractActionHintFromTextHandlesEmptyMarker(t *testing.T) {
+	if got := extractActionHintFromText("RUNTIME_FAILED actionHint="); got != "" {
+		t.Fatalf("expected empty action hint, got %q", got)
+	}
+}

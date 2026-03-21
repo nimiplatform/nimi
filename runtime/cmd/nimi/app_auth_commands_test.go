@@ -69,6 +69,12 @@ func TestRunRuntimeAppAuthAuthorizeJSON(t *testing.T) {
 	if asString(payload["token_id"]) != "token-1" {
 		t.Fatalf("token id mismatch: %v", payload["token_id"])
 	}
+	if _, ok := payload["secret"]; ok {
+		t.Fatalf("secret should be redacted by default: %#v", payload)
+	}
+	if payload["secret_redacted"] != true {
+		t.Fatalf("secret_redacted mismatch: %#v", payload)
+	}
 	req := service.lastAuthorizeRequest()
 	if got := req.GetDomain(); got != "app-auth" {
 		t.Fatalf("domain mismatch: %q", got)
@@ -82,6 +88,44 @@ func TestRunRuntimeAppAuthAuthorizeJSON(t *testing.T) {
 	md := service.lastAuthorizeMetadata()
 	if got := firstMD(md, "x-nimi-caller-id"); got != "cli:app-auth-authorize" {
 		t.Fatalf("caller-id mismatch: %q", got)
+	}
+}
+
+func TestRunRuntimeAppAuthAuthorizeJSONShowSecret(t *testing.T) {
+	service := &cmdTestRuntimeAppAuthService{
+		authorizeResponse: &runtimev1.AuthorizeExternalPrincipalResponse{
+			TokenId: "token-1",
+			AppId:   "nimi.desktop",
+			Secret:  "secret-1",
+		},
+	}
+	addr, shutdown := startCmdTestRuntimeAppAuthServer(t, service)
+	defer shutdown()
+
+	output, err := captureStdoutFromRun(func() error {
+		return runRuntimeAppAuth([]string{
+			"authorize",
+			"--grpc-addr", addr,
+			"--app-id", "nimi.desktop",
+			"--external-principal-id", "openclaw-agent",
+			"--external-type", "agent",
+			"--subject-user-id", "user-1",
+			"--policy-mode", "preset",
+			"--preset", "full",
+			"--show-secret",
+			"--json",
+		})
+	})
+	if err != nil {
+		t.Fatalf("runRuntimeAppAuth authorize: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(output), &payload); err != nil {
+		t.Fatalf("unmarshal authorize output: %v output=%q", err, output)
+	}
+	if asString(payload["secret"]) != "secret-1" {
+		t.Fatalf("secret mismatch: %#v", payload)
 	}
 }
 

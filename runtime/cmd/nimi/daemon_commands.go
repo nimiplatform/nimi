@@ -1,22 +1,24 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/nimiplatform/nimi/runtime/internal/daemonctl"
 	"io"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/daemonctl"
 )
 
 type daemonManager interface {
 	Start(timeout time.Duration) (daemonctl.StartResult, error)
 	Stop(timeout time.Duration, force bool) (daemonctl.StopResult, error)
 	Status() (daemonctl.Status, error)
-	PrintLogs(w io.Writer, tail int, follow bool) error
+	PrintLogs(ctx context.Context, w io.Writer, tail int, follow bool) error
 }
 
 var daemonManagerFactory = func() daemonManager {
@@ -44,7 +46,7 @@ func (e cliExitError) ExitCode() int {
 
 func runRuntimeStart(args []string) error {
 	fs := flag.NewFlagSet("nimi start", flag.ContinueOnError)
-	fs.SetOutput(os.Stdout)
+	fs.SetOutput(os.Stderr)
 	timeoutRaw := fs.String("timeout", "15s", "startup timeout")
 	jsonOutput := fs.Bool("json", false, "output json")
 	if err := fs.Parse(args); err != nil {
@@ -69,7 +71,7 @@ func runRuntimeStart(args []string) error {
 	}
 
 	printCLIHeader(os.Stdout, "Started Nimi Runtime")
-	printCLIField(os.Stdout, "mode", result.Mode)
+	printCLIField(os.Stdout, "mode", result.Mode.String())
 	printCLIField(os.Stdout, "pid", fmt.Sprintf("%d", result.PID))
 	printCLIField(os.Stdout, "grpc", result.GRPCAddr)
 	printCLIField(os.Stdout, "config", result.ConfigPath)
@@ -88,7 +90,7 @@ func runRuntimeStart(args []string) error {
 
 func runRuntimeStop(args []string) error {
 	fs := flag.NewFlagSet("nimi stop", flag.ContinueOnError)
-	fs.SetOutput(os.Stdout)
+	fs.SetOutput(os.Stderr)
 	timeoutRaw := fs.String("timeout", "10s", "shutdown timeout")
 	force := fs.Bool("force", false, "force kill the runtime process")
 	jsonOutput := fs.Bool("json", false, "output json")
@@ -120,15 +122,15 @@ func runRuntimeStop(args []string) error {
 	}
 	printCLIHeader(os.Stdout, "Stopped Nimi Runtime")
 	printCLIField(os.Stdout, "pid", fmt.Sprintf("%d", result.PID))
-	if strings.TrimSpace(result.Mode) != "" {
-		printCLIField(os.Stdout, "mode", result.Mode)
+	if strings.TrimSpace(result.Mode.String()) != "" {
+		printCLIField(os.Stdout, "mode", result.Mode.String())
 	}
 	return nil
 }
 
 func runRuntimeStatus(args []string) error {
 	fs := flag.NewFlagSet("nimi status", flag.ContinueOnError)
-	fs.SetOutput(os.Stdout)
+	fs.SetOutput(os.Stderr)
 	jsonOutput := fs.Bool("json", false, "output json")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -146,7 +148,7 @@ func runRuntimeStatus(args []string) error {
 		fmt.Println(string(out))
 	} else {
 		printCLIHeader(os.Stdout, "Nimi Runtime")
-		printCLIField(os.Stdout, "mode", status.Mode)
+		printCLIField(os.Stdout, "mode", status.Mode.String())
 		printCLIField(os.Stdout, "process", status.Process)
 		if status.PID > 0 {
 			printCLIField(os.Stdout, "pid", fmt.Sprintf("%d", status.PID))
@@ -187,7 +189,7 @@ func runRuntimeStatus(args []string) error {
 
 func runRuntimeLogs(args []string) error {
 	fs := flag.NewFlagSet("nimi logs", flag.ContinueOnError)
-	fs.SetOutput(os.Stdout)
+	fs.SetOutput(os.Stderr)
 	follow := fs.Bool("follow", false, "follow runtime logs")
 	fs.BoolVar(follow, "f", false, "follow runtime logs")
 	tailRaw := fs.String("tail", "200", "number of lines to show")
@@ -202,5 +204,5 @@ func runRuntimeLogs(args []string) error {
 	if tail <= 0 {
 		return fmt.Errorf("parse tail: tail must be > 0")
 	}
-	return daemonManagerFactory().PrintLogs(os.Stdout, tail, *follow)
+	return daemonManagerFactory().PrintLogs(context.Background(), os.Stdout, tail, *follow)
 }

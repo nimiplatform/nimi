@@ -162,9 +162,10 @@ func (s *Service) setModelHealthDetail(localModelID string, detail string) {
 	if record == nil {
 		return
 	}
-	record.HealthDetail = strings.TrimSpace(detail)
-	record.UpdatedAt = nowISO()
-	s.models[id] = cloneLocalModel(record)
+	cloned := cloneLocalModel(record)
+	cloned.HealthDetail = strings.TrimSpace(detail)
+	cloned.UpdatedAt = nowISO()
+	s.models[id] = cloned
 	s.persistStateLocked()
 }
 
@@ -179,8 +180,9 @@ func (s *Service) setServiceHealthDetail(serviceID string, detail string) {
 	if record == nil {
 		return
 	}
-	record.Detail = strings.TrimSpace(detail)
-	record.UpdatedAt = nowISO()
-	s.services[id] = cloneServiceDescriptor(record)
+	cloned := cloneServiceDescriptor(record)
+	cloned.Detail = strings.TrimSpace(detail)
+	cloned.UpdatedAt = nowISO()
+	s.services[id] = cloned
 	s.persistStateLocked()
 }

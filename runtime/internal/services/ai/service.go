@@ -118,6 +118,18 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 	if perAppConc <= 0 {
 		perAppConc = 2
 	}
+	realtimeSessions := newRealtimeSessionStore()
+	realtimeSessions.setDropReporter(func(sessionID string, event *runtimev1.RealtimeEvent) {
+		if logger == nil || event == nil {
+			return
+		}
+		logger.Warn(
+			"realtime event dropped because reader channel is full",
+			"session_id", strings.TrimSpace(sessionID),
+			"event_type", event.GetEventType().String(),
+			"sequence", event.GetSequence(),
+		)
+	})
 	svc := &Service{
 		logger:                   logger,
 		config:                   cfg,
@@ -126,7 +138,7 @@ func newFromProviderConfig(logger *slog.Logger, registry *modelregistry.Registry
 		registry:                 registry,
 		scheduler:                scheduler.New(scheduler.Config{GlobalConcurrency: globalConc, PerAppConcurrency: perAppConc, StarvationThreshold: 30 * time.Second}),
 		scenarioJobs:             newScenarioJobStore(),
-		realtimeSessions:         newRealtimeSessionStore(),
+		realtimeSessions:         realtimeSessions,
 		voiceAssets:              newVoiceAssetStore(),
 		connStore:                connStore,
 		streamFirstPacketTimeout: defaultStreamFirstTimeout,

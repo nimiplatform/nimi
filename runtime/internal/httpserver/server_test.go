@@ -25,11 +25,14 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	state.SetActivity(2, 1, 3)
 	state.SetResource(200, 1024, 2048)
 
-	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	tracker := providerhealth.New()
-	tracker.Mark("cloud-nimillm", true, "")
-	tracker.Mark("cloud-dashscope", false, "timeout")
-	server.SetAIHealthTracker(tracker)
+	if err := tracker.Mark("cloud-nimillm", true, ""); err != nil {
+		t.Fatalf("Mark healthy provider: %v", err)
+	}
+	if err := tracker.Mark("cloud-dashscope", false, "timeout"); err != nil {
+		t.Fatalf("Mark unhealthy provider: %v", err)
+	}
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), tracker)
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodGet, "/v1/runtime/health", nil)
@@ -67,5 +70,21 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	}
 	if len(subHealth) != 2 {
 		t.Fatalf("sub_health length mismatch: got=%d want=2", len(subHealth))
+	}
+}
+
+func TestHandleRuntimeHealthRejectsNonReadMethods(t *testing.T) {
+	state := health.NewState()
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/health", nil)
+	server.handleRuntimeHealth(recorder, request)
+
+	if recorder.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status mismatch: got=%d want=%d", recorder.Code, http.StatusMethodNotAllowed)
+	}
+	if got := recorder.Header().Get("Allow"); got != "GET, HEAD" {
+		t.Fatalf("allow header mismatch: got=%q", got)
 	}
 }

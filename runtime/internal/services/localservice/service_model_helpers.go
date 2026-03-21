@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -119,7 +120,18 @@ func validateResolvedModelManifestPath(manifestPath string, modelsRoot string) e
 	if cleanModelsRoot == "." || cleanModelsRoot == "" {
 		return fmt.Errorf("models root required")
 	}
-	rel, err := filepath.Rel(cleanModelsRoot, cleanManifestPath)
+	resolvedModelsRoot, err := filepath.EvalSymlinks(cleanModelsRoot)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("models root invalid: %w", err)
+		}
+		resolvedModelsRoot = cleanModelsRoot
+	}
+	resolvedManifestPath, err := filepath.EvalSymlinks(cleanManifestPath)
+	if err != nil {
+		return fmt.Errorf("manifest path invalid: %w", err)
+	}
+	rel, err := filepath.Rel(resolvedModelsRoot, resolvedManifestPath)
 	if err != nil {
 		return fmt.Errorf("manifest path invalid: %w", err)
 	}

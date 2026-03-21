@@ -57,7 +57,7 @@ func TestValidateTimeflowContractRejectsInvalidDriftBudget(t *testing.T) {
 		"catchUpPolicy":             "FAST_FORWARD",
 		"rewindAllowed":             false,
 	})
-	if err == nil || err.Error() != "driftBudgetSecondsPerHour must be in [0, 120]" {
+	if err == nil || err.Error() != "validate timeflow contract: driftBudgetSecondsPerHour must be in [0, 120]" {
 		t.Fatalf("ValidateTimeflowContract() error = %v", err)
 	}
 }
@@ -83,7 +83,7 @@ func TestValidateEconomyContractRejectsNonConservingPayload(t *testing.T) {
 		"conservationRequired":    false,
 		"inflationPolicy":         "PROGRAMMATIC",
 	})
-	if err == nil || err.Error() != "conservationRequired must be true in V0.1" {
+	if err == nil || err.Error() != "validate economy contract: conservationRequired must be true in V0.1" {
 		t.Fatalf("ValidateEconomyContract() error = %v", err)
 	}
 }

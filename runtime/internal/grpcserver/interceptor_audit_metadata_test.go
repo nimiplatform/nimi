@@ -6,33 +6,29 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestInferRequestIdentityFromScenarioHead(t *testing.T) {
-	req := &runtimev1.ExecuteScenarioRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId:         "nimi.desktop",
-			SubjectUserId: "user-001",
-			ModelId:       "model-a",
-		},
+func TestMethodDescriptorMapsConnectorService(t *testing.T) {
+	domain, operation, capability := methodDescriptor("/runtime.v1.RuntimeConnectorService/CreateConnector")
+	if domain != "runtime.connector" {
+		t.Fatalf("domain mismatch: %q", domain)
 	}
-	appID, subjectUserID, modelID := inferRequestIdentity(req)
-	if appID != "nimi.desktop" {
-		t.Fatalf("app_id mismatch: got=%q want=%q", appID, "nimi.desktop")
+	if operation != "create_connector" {
+		t.Fatalf("operation mismatch: %q", operation)
 	}
-	if subjectUserID != "user-001" {
-		t.Fatalf("subject_user_id mismatch: got=%q want=%q", subjectUserID, "user-001")
-	}
-	if modelID != "model-a" {
-		t.Fatalf("model_id mismatch: got=%q want=%q", modelID, "model-a")
+	if capability != "runtime.connector.create_connector" {
+		t.Fatalf("capability mismatch: %q", capability)
 	}
 }
 
-func TestAppIDFromRequestFallsBackToScenarioHead(t *testing.T) {
-	req := &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{
-			AppId: "nimi.desktop",
-		},
+func TestCloneUsageReturnsTypedClone(t *testing.T) {
+	input := &runtimev1.UsageStats{InputTokens: 12}
+	cloned := cloneUsage(input)
+	if cloned == nil {
+		t.Fatal("expected cloned usage")
 	}
-	if got := appIDFromRequest(req); got != "nimi.desktop" {
-		t.Fatalf("app_id mismatch: got=%q want=%q", got, "nimi.desktop")
+	if cloned == input {
+		t.Fatal("expected clone to allocate a distinct struct")
+	}
+	if cloned.GetInputTokens() != 12 {
+		t.Fatalf("usage mismatch: %d", cloned.GetInputTokens())
 	}
 }

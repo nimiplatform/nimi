@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
@@ -19,9 +20,13 @@ import (
 )
 
 func TestUnaryProtocolInterceptorRejectsMissingMetadata(t *testing.T) {
-	interceptor := newUnaryProtocolInterceptor(idempotency.New(0, 0))
+	store, err := idempotency.New(time.Hour, 16)
+	if err != nil {
+		t.Fatalf("New idempotency store: %v", err)
+	}
+	interceptor := newUnaryProtocolInterceptor(store)
 	handlerCalled := false
-	_, err := interceptor(context.Background(), &runtimev1.RemoveModelRequest{
+	_, err = interceptor(context.Background(), &runtimev1.RemoveModelRequest{
 		AppId:   "nimi.desktop",
 		ModelId: "local/model",
 	}, &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeModelService/RemoveModel"}, func(_ context.Context, _ any) (any, error) {
@@ -35,13 +40,17 @@ func TestUnaryProtocolInterceptorRejectsMissingMetadata(t *testing.T) {
 		t.Fatalf("handler must not be called")
 	}
 	st, ok := status.FromError(err)
-	if !ok || st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
+	if !ok || st.Code() != codes.InvalidArgument || st.Message() != "missing protocol envelope metadata" {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestUnaryProtocolInterceptorReplaysIdempotentWrite(t *testing.T) {
-	interceptor := newUnaryProtocolInterceptor(idempotency.New(0, 0))
+	store, err := idempotency.New(time.Hour, 16)
+	if err != nil {
+		t.Fatalf("New idempotency store: %v", err)
+	}
+	interceptor := newUnaryProtocolInterceptor(store)
 	callCount := 0
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-protocol-version", "1.0.0",
@@ -88,7 +97,11 @@ func TestUnaryProtocolInterceptorReplaysIdempotentWrite(t *testing.T) {
 }
 
 func TestUnaryProtocolInterceptorRejectsVersionMinorMismatch(t *testing.T) {
-	interceptor := newUnaryProtocolInterceptor(idempotency.New(0, 0))
+	store, err := idempotency.New(time.Hour, 16)
+	if err != nil {
+		t.Fatalf("New idempotency store: %v", err)
+	}
+	interceptor := newUnaryProtocolInterceptor(store)
 	handlerCalled := false
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"x-nimi-protocol-version", "1.0.0",
@@ -100,7 +113,7 @@ func TestUnaryProtocolInterceptorRejectsVersionMinorMismatch(t *testing.T) {
 		"x-nimi-caller-kind", "third-party-service",
 		"x-nimi-caller-id", "nimi-cli",
 	))
-	_, err := interceptor(ctx, &runtimev1.RemoveModelRequest{
+	_, err = interceptor(ctx, &runtimev1.RemoveModelRequest{
 		AppId:   "nimi.desktop",
 		ModelId: "local/model",
 	}, &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeModelService/RemoveModel"}, func(_ context.Context, _ any) (any, error) {
@@ -114,19 +127,21 @@ func TestUnaryProtocolInterceptorRejectsVersionMinorMismatch(t *testing.T) {
 		t.Fatalf("handler must not be called on version mismatch")
 	}
 	st, ok := status.FromError(err)
-	if !ok || st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
+	if !ok || st.Code() != codes.InvalidArgument || st.Message() != "protocol versions must share major and minor components" {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 	registry := appregistry.New()
-	registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
+	if err := registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
 		AppMode:         runtimev1.AppMode_APP_MODE_FULL,
 		RuntimeRequired: true,
 		RealmRequired:   true,
 		WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
-	}, nil)
+	}, nil); err != nil {
+		t.Fatalf("Upsert: %v", err)
+	}
 	grantSvc := grantservice.NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), registry, scopecatalog.New())
 	authorizeResp, err := grantSvc.AuthorizeExternalPrincipal(context.Background(), &runtimev1.AuthorizeExternalPrincipalRequest{
 		Domain:                "app-auth",

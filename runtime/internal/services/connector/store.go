@@ -3,6 +3,7 @@ package connector
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,19 +21,19 @@ const (
 
 // ConnectorRecord is the persistent representation of a connector.
 type ConnectorRecord struct {
-	ConnectorID   string                            `json:"connector_id"`
-	Kind          runtimev1.ConnectorKind           `json:"kind"`
-	OwnerType     runtimev1.ConnectorOwnerType      `json:"owner_type"`
-	OwnerID       string                            `json:"owner_id"`
-	Provider      string                            `json:"provider"`
-	Endpoint      string                            `json:"endpoint"`
-	Label         string                            `json:"label"`
-	Status        runtimev1.ConnectorStatus         `json:"status"`
-	LocalCategory runtimev1.LocalConnectorCategory  `json:"local_category"`
-	HasCredential bool                              `json:"has_credential"`
-	CreatedAt     int64                             `json:"created_at"`
-	UpdatedAt     int64                             `json:"updated_at"`
-	DeletePending bool                              `json:"delete_pending,omitempty"`
+	ConnectorID   string                           `json:"connector_id"`
+	Kind          runtimev1.ConnectorKind          `json:"kind"`
+	OwnerType     runtimev1.ConnectorOwnerType     `json:"owner_type"`
+	OwnerID       string                           `json:"owner_id"`
+	Provider      string                           `json:"provider"`
+	Endpoint      string                           `json:"endpoint"`
+	Label         string                           `json:"label"`
+	Status        runtimev1.ConnectorStatus        `json:"status"`
+	LocalCategory runtimev1.LocalConnectorCategory `json:"local_category"`
+	HasCredential bool                             `json:"has_credential"`
+	CreatedAt     int64                            `json:"created_at"`
+	UpdatedAt     int64                            `json:"updated_at"`
+	DeletePending bool                             `json:"delete_pending,omitempty"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
@@ -307,6 +308,7 @@ func (s *ConnectorStore) loadRegistryLocked() ([]ConnectorRecord, error) {
 		return nil, fmt.Errorf("read registry: %w", err)
 	}
 	if len(strings.TrimSpace(string(data))) == 0 {
+		slog.Warn("connector registry file is whitespace-only; treating as empty store", "path", s.registryPath)
 		return nil, nil
 	}
 	var records []ConnectorRecord

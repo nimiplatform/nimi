@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -23,11 +24,12 @@ import (
 const clockSkew = 60 * time.Second
 
 const (
-	defaultJWKSCacheTTL      = 5 * time.Minute
-	defaultJWKSFallbackTTL   = 2 * time.Minute
-	defaultJWKSRequestTimout = 5 * time.Second
-	refreshCoalesceWindow    = 1 * time.Second
-	maxJWKSBodyBytes         = 1 << 20
+	defaultJWKSCacheTTL       = 5 * time.Minute
+	defaultJWKSFallbackTTL    = 2 * time.Minute
+	defaultJWKSRequestTimeout = 5 * time.Second
+	refreshCoalesceWindow     = 1 * time.Second
+	maxJWKSBodyBytes          = 1 << 20
+	minimumRSAKeyBits         = 2048
 )
 
 var ErrEmptyToken = errors.New("empty token")
@@ -83,7 +85,7 @@ func NewValidator(jwksURL, issuer, audience string) (*Validator, error) {
 		cacheTTL:    defaultJWKSCacheTTL,
 		fallbackTTL: defaultJWKSFallbackTTL,
 		httpClient: &http.Client{
-			Timeout: defaultJWKSRequestTimout,
+			Timeout: defaultJWKSRequestTimeout,
 		},
 		signingKeys: map[string]cachedSigningKey{},
 	}, nil
@@ -92,10 +94,15 @@ func NewValidator(jwksURL, issuer, audience string) (*Validator, error) {
 // Validate parses and verifies a JWT token string.
 // Returns the identity on success, or an error on failure.
 func (v *Validator) Validate(tokenString string) (*Identity, error) {
+	return v.ValidateContext(context.Background(), tokenString)
+}
+
+// ValidateContext parses and verifies a JWT token string with caller cancellation.
+func (v *Validator) ValidateContext(ctx context.Context, tokenString string) (*Identity, error) {
 	if strings.TrimSpace(tokenString) == "" {
 		return nil, ErrEmptyToken
 	}
-	if strings.TrimSpace(v.jwksURL) == "" {
+	if v.jwksURL == "" {
 		return nil, fmt.Errorf("no jwks url configured")
 	}
 
@@ -121,7 +128,7 @@ func (v *Validator) Validate(tokenString string) (*Identity, error) {
 		if alg == "" {
 			return nil, fmt.Errorf("token missing alg")
 		}
-		key, resolveErr := v.resolveSigningKey(kid, alg)
+		key, resolveErr := v.resolveSigningKey(ctx, kid, alg)
 		if resolveErr != nil {
 			return nil, resolveErr
 		}
@@ -159,17 +166,16 @@ func (v *Validator) Validate(tokenString string) (*Identity, error) {
 	return identity, nil
 }
 
-func (v *Validator) resolveSigningKey(kid, tokenAlg string) (crypto.PublicKey, error) {
-	now := time.Now()
+func (v *Validator) resolveSigningKey(ctx context.Context, kid, tokenAlg string) (crypto.PublicKey, error) {
 	if key, fetchedAt, ok := v.cacheLookup(kid); ok {
-		age := now.Sub(fetchedAt)
+		age := time.Since(fetchedAt)
 		if age <= v.cacheTTL {
 			if err := ensureAlgorithmCompatibility(tokenAlg, key); err != nil {
 				return nil, err
 			}
 			return key.publicKey, nil
 		}
-		if err := v.refreshJWKS(true, kid); err != nil {
+		if err := v.refreshJWKS(ctx, true, kid); err != nil {
 			if age <= v.cacheTTL+v.fallbackTTL {
 				if compatErr := ensureAlgorithmCompatibility(tokenAlg, key); compatErr == nil {
 					return key.publicKey, nil
@@ -186,7 +192,7 @@ func (v *Validator) resolveSigningKey(kid, tokenAlg string) (crypto.PublicKey, e
 		return nil, fmt.Errorf("signing key not found for kid %q", kid)
 	}
 
-	if err := v.refreshJWKS(true, kid); err != nil {
+	if err := v.refreshJWKS(ctx, true, kid); err != nil {
 		return nil, fmt.Errorf("refresh jwks for missing kid %q: %w", kid, err)
 	}
 	refreshed, _, ok := v.cacheLookup(kid)
@@ -206,7 +212,7 @@ func (v *Validator) cacheLookup(kid string) (cachedSigningKey, time.Time, bool) 
 	return key, v.fetchedAt, ok
 }
 
-func (v *Validator) refreshJWKS(force bool, requiredKid string) error {
+func (v *Validator) refreshJWKS(ctx context.Context, force bool, requiredKid string) error {
 	v.refreshMu.Lock()
 	defer v.refreshMu.Unlock()
 
@@ -229,7 +235,7 @@ func (v *Validator) refreshJWKS(force bool, requiredKid string) error {
 		}
 	}
 
-	req, err := http.NewRequest(http.MethodGet, v.jwksURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.jwksURL, nil)
 	if err != nil {
 		return fmt.Errorf("build jwks request: %w", err)
 	}
@@ -315,8 +321,12 @@ func parseRSAJWK(entry jwkEntry) (crypto.PublicKey, error) {
 	if exponent <= 0 {
 		return nil, fmt.Errorf("invalid rsa exponent")
 	}
+	modulus := new(big.Int).SetBytes(nBytes)
+	if modulus.BitLen() < minimumRSAKeyBits {
+		return nil, fmt.Errorf("rsa modulus too small")
+	}
 	return &rsa.PublicKey{
-		N: new(big.Int).SetBytes(nBytes),
+		N: modulus,
 		E: exponent,
 	}, nil
 }
@@ -333,10 +343,16 @@ func parseECJWK(entry jwkEntry) (crypto.PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("decode ec y: %w", err)
 	}
+	curve := elliptic.P256()
+	x := new(big.Int).SetBytes(xBytes)
+	y := new(big.Int).SetBytes(yBytes)
+	if !curve.IsOnCurve(x, y) {
+		return nil, fmt.Errorf("ec point not on curve")
+	}
 	return &ecdsa.PublicKey{
-		Curve: elliptic.P256(),
-		X:     new(big.Int).SetBytes(xBytes),
-		Y:     new(big.Int).SetBytes(yBytes),
+		Curve: curve,
+		X:     x,
+		Y:     y,
 	}, nil
 }
 

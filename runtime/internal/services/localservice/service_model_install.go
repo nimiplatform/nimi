@@ -222,7 +222,10 @@ func (s *Service) installLocalModelRecord(
 	s.mu.RUnlock()
 
 	now := nowISO()
-	projection := modelregistry.InferNativeProjection(modelID, capabilities, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	projection, err := modelregistry.InferNativeProjection(modelID, capabilities, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	if err != nil {
+		return nil, fmt.Errorf("infer native projection: %w", err)
+	}
 	if projectionOverride != nil {
 		if value := strings.TrimSpace(projectionOverride.LogicalModelID); value != "" {
 			projection.LogicalModelID = value

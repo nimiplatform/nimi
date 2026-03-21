@@ -3,11 +3,16 @@ package idempotency
 import (
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func TestStoreBasicSaveAndLoad(t *testing.T) {
-	s := New(time.Hour, 100)
-	s.Save("method", "app1", "user1", "key1", "hash1", "response1")
+	s, err := New(time.Hour, 100)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	s.Save("method", "app1", "user1", "key1", "hash1", wrapperspb.String("response1"))
 
 	resp, hit, conflict := s.Load("method", "app1", "user1", "key1", "hash1")
 	if !hit {
@@ -16,14 +21,18 @@ func TestStoreBasicSaveAndLoad(t *testing.T) {
 	if conflict {
 		t.Fatal("unexpected conflict")
 	}
-	if resp != "response1" {
-		t.Fatalf("got %v, want response1", resp)
+	value, ok := resp.(*wrapperspb.StringValue)
+	if !ok || value.GetValue() != "response1" {
+		t.Fatalf("got %#v, want response1", resp)
 	}
 }
 
 func TestStoreConflictDetection(t *testing.T) {
-	s := New(time.Hour, 100)
-	s.Save("method", "app1", "user1", "key1", "hash1", "response1")
+	s, err := New(time.Hour, 100)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	s.Save("method", "app1", "user1", "key1", "hash1", wrapperspb.String("response1"))
 
 	_, hit, conflict := s.Load("method", "app1", "user1", "key1", "different-hash")
 	if hit {
@@ -35,7 +44,10 @@ func TestStoreConflictDetection(t *testing.T) {
 }
 
 func TestStoreMiss(t *testing.T) {
-	s := New(time.Hour, 100)
+	s, err := New(time.Hour, 100)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 
 	_, hit, conflict := s.Load("method", "app1", "user1", "key1", "hash1")
 	if hit || conflict {
@@ -44,8 +56,11 @@ func TestStoreMiss(t *testing.T) {
 }
 
 func TestStoreTTLExpiration(t *testing.T) {
-	s := New(1*time.Millisecond, 100)
-	s.Save("method", "app1", "user1", "key1", "hash1", "response1")
+	s, err := New(1*time.Millisecond, 100)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	s.Save("method", "app1", "user1", "key1", "hash1", wrapperspb.String("response1"))
 	time.Sleep(5 * time.Millisecond)
 
 	_, hit, _ := s.Load("method", "app1", "user1", "key1", "hash1")
@@ -55,11 +70,14 @@ func TestStoreTTLExpiration(t *testing.T) {
 }
 
 func TestStoreLRUEviction(t *testing.T) {
-	s := New(time.Hour, 3) // capacity=3
+	s, err := New(time.Hour, 3)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 
-	s.Save("m", "a", "u", "k1", "h1", "r1")
-	s.Save("m", "a", "u", "k2", "h2", "r2")
-	s.Save("m", "a", "u", "k3", "h3", "r3")
+	s.Save("m", "a", "u", "k1", "h1", wrapperspb.String("r1"))
+	s.Save("m", "a", "u", "k2", "h2", wrapperspb.String("r2"))
+	s.Save("m", "a", "u", "k3", "h3", wrapperspb.String("r3"))
 
 	// All 3 should be present.
 	for _, k := range []string{"k1", "k2", "k3"} {
@@ -71,12 +89,15 @@ func TestStoreLRUEviction(t *testing.T) {
 
 	// Add a 4th entry, should evict the LRU (k1, since k2/k3 were accessed by Load).
 	// But Load refreshes LRU, so k1 was also refreshed. Let's test without Load refresh.
-	s2 := New(time.Hour, 3)
-	s2.Save("m", "a", "u", "k1", "h1", "r1")
-	s2.Save("m", "a", "u", "k2", "h2", "r2")
-	s2.Save("m", "a", "u", "k3", "h3", "r3")
+	s2, err := New(time.Hour, 3)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	s2.Save("m", "a", "u", "k1", "h1", wrapperspb.String("r1"))
+	s2.Save("m", "a", "u", "k2", "h2", wrapperspb.String("r2"))
+	s2.Save("m", "a", "u", "k3", "h3", wrapperspb.String("r3"))
 	// Don't Load (no LRU refresh), add k4 — k1 should be evicted.
-	s2.Save("m", "a", "u", "k4", "h4", "r4")
+	s2.Save("m", "a", "u", "k4", "h4", wrapperspb.String("r4"))
 
 	_, hit, _ := s2.Load("m", "a", "u", "k1", "h1")
 	if hit {
@@ -89,17 +110,20 @@ func TestStoreLRUEviction(t *testing.T) {
 }
 
 func TestStoreLRURefreshOnLoad(t *testing.T) {
-	s := New(time.Hour, 3)
+	s, err := New(time.Hour, 3)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
 
-	s.Save("m", "a", "u", "k1", "h1", "r1")
-	s.Save("m", "a", "u", "k2", "h2", "r2")
-	s.Save("m", "a", "u", "k3", "h3", "r3")
+	s.Save("m", "a", "u", "k1", "h1", wrapperspb.String("r1"))
+	s.Save("m", "a", "u", "k2", "h2", wrapperspb.String("r2"))
+	s.Save("m", "a", "u", "k3", "h3", wrapperspb.String("r3"))
 
 	// Access k1 to move it to back of LRU.
 	s.Load("m", "a", "u", "k1", "h1")
 
 	// Add k4 — k2 should be evicted (oldest unaccessed).
-	s.Save("m", "a", "u", "k4", "h4", "r4")
+	s.Save("m", "a", "u", "k4", "h4", wrapperspb.String("r4"))
 
 	_, hit, _ := s.Load("m", "a", "u", "k2", "h2")
 	if hit {
@@ -111,9 +135,28 @@ func TestStoreLRURefreshOnLoad(t *testing.T) {
 	}
 }
 
-func TestStoreCapacityDefault(t *testing.T) {
-	s := New(time.Hour, 0) // should default to 10000
-	if s.capacity != 10000 {
-		t.Fatalf("default capacity should be 10000, got %d", s.capacity)
+func TestStoreNewRejectsInvalidConfig(t *testing.T) {
+	if _, err := New(0, 100); err == nil {
+		t.Fatal("expected invalid ttl error")
+	}
+	if _, err := New(time.Hour, 0); err == nil {
+		t.Fatal("expected invalid capacity error")
+	}
+}
+
+func TestStoreKeyPreservesWhitespaceAndAvoidsDelimiterCollisions(t *testing.T) {
+	s, err := New(time.Hour, 4)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	left := s.key("a::b", "c", "d", "e")
+	right := s.key("a", "b::c", "d", "e")
+	if left == right {
+		t.Fatal("distinct tuples should not collide")
+	}
+	trimmed := s.key("method", "app", "user", "key")
+	padded := s.key(" method ", "app", "user", "key")
+	if trimmed == padded {
+		t.Fatal("whitespace must remain significant")
 	}
 }

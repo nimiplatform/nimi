@@ -2,6 +2,7 @@ package endpointsec
 
 import (
 	"net"
+	"strings"
 	"testing"
 )
 
@@ -17,7 +18,7 @@ func TestValidateEndpoint_HTTPSAccepted(t *testing.T) {
 	// HTTPS should pass validation (DNS resolution may fail in test env, that's OK).
 	err := ValidateEndpoint("https://example.com/v1", false)
 	// May fail due to DNS but should NOT fail with "HTTPS required".
-	if err != nil && contains(err.Error(), "HTTPS required") {
+	if err != nil && strings.Contains(err.Error(), "HTTPS required") {
 		t.Fatalf("HTTPS should be accepted: %v", err)
 	}
 }
@@ -85,6 +86,15 @@ func TestCheckIP_Private_IPv4_Allowed(t *testing.T) {
 	}
 }
 
+func TestCheckIP_UnspecifiedBlocked(t *testing.T) {
+	for _, addr := range []string{"0.0.0.0", "::"} {
+		ip := net.ParseIP(addr)
+		if err := checkIP(ip); err == nil {
+			t.Fatalf("expected unspecified address %s to be blocked", addr)
+		}
+	}
+}
+
 func TestCheckIP_Public_IPv4(t *testing.T) {
 	ip := net.ParseIP("8.8.8.8")
 	if err := checkIP(ip); err != nil {
@@ -112,6 +122,12 @@ func TestNewPinnedTransport_HTTPSToPublic(t *testing.T) {
 	}
 	if transport.TLSClientConfig == nil || transport.TLSClientConfig.ServerName != "example.com" {
 		t.Fatal("expected TLS ServerName to be preserved")
+	}
+	if transport.MaxIdleConns != 10 || transport.MaxIdleConnsPerHost != 5 {
+		t.Fatalf("unexpected idle connection defaults: %+v", transport)
+	}
+	if transport.IdleConnTimeout == 0 || transport.TLSHandshakeTimeout == 0 {
+		t.Fatalf("expected timeout defaults to be configured")
 	}
 }
 
@@ -149,17 +165,4 @@ func TestIsLoopbackHost(t *testing.T) {
 			t.Errorf("isLoopbackHost(%q) = %v, want %v", tt.host, got, tt.expected)
 		}
 	}
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsSubstr(s, substr))
-}
-
-func containsSubstr(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

@@ -16,6 +16,24 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func mustListAuditEvents(t *testing.T, store *auditlog.Store, req *runtimev1.ListAuditEventsRequest) *runtimev1.ListAuditEventsResponse {
+	t.Helper()
+	resp, err := store.ListEvents(req)
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
+	return resp
+}
+
+func mustListUsageStats(t *testing.T, store *auditlog.Store, req *runtimev1.ListUsageStatsRequest) *runtimev1.ListUsageStatsResponse {
+	t.Helper()
+	resp, err := store.ListUsage(req)
+	if err != nil {
+		t.Fatalf("ListUsage: %v", err)
+	}
+	return resp
+}
+
 func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 	store := auditlog.New(128, 128)
 	interceptor := newUnaryAuditInterceptor(store)
@@ -47,7 +65,7 @@ func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("unary response must not be nil")
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
 	if len(events.GetEvents()) != 1 {
 		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
 	}
@@ -68,7 +86,7 @@ func TestUnaryAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("trace id mismatch: %s", event.GetTraceId())
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.execute_scenario"})
+	usage := mustListUsageStats(t, store, &runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.execute_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -150,7 +168,7 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("stream interceptor returned error: %v", err)
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
 	if len(events.GetEvents()) != 1 {
 		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
 	}
@@ -171,7 +189,7 @@ func TestStreamAuditInterceptorCapturesCallerMetadataForAI(t *testing.T) {
 		t.Fatalf("trace id mismatch: %s", event.GetTraceId())
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_scenario"})
+	usage := mustListUsageStats(t, store, &runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -218,7 +236,7 @@ func TestUnaryAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 		t.Fatalf("unexpected reason: %s", st.Message())
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
 	if len(events.GetEvents()) != 1 {
 		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
 	}
@@ -262,7 +280,7 @@ func TestStreamAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 		t.Fatalf("unexpected reason: %s", st.Message())
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
 	if len(events.GetEvents()) != 1 {
 		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
 	}
@@ -293,7 +311,7 @@ func TestUnaryAuditInterceptorUsesRecordedQueueWaitMs(t *testing.T) {
 		t.Fatalf("unary interceptor returned error: %v", err)
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.execute_scenario"})
+	usage := mustListUsageStats(t, store, &runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.execute_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -333,7 +351,7 @@ func TestStreamAuditInterceptorUsesRecordedQueueWaitMs(t *testing.T) {
 		t.Fatalf("stream interceptor returned error: %v", err)
 	}
 
-	usage := store.ListUsage(&runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_scenario"})
+	usage := mustListUsageStats(t, store, &runtimev1.ListUsageStatsRequest{Capability: "runtime.ai.stream_scenario"})
 	if len(usage.GetRecords()) != 1 {
 		t.Fatalf("expected 1 usage record, got=%d", len(usage.GetRecords()))
 	}
@@ -383,7 +401,7 @@ func TestUnaryAuditInterceptorCapturesGrantAuditFields(t *testing.T) {
 		t.Fatalf("unary interceptor returned error: %v", err)
 	}
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{Domain: "runtime.grant"})
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.grant"})
 	if len(events.GetEvents()) != 1 {
 		t.Fatalf("expected 1 grant audit event, got=%d", len(events.GetEvents()))
 	}
@@ -464,7 +482,7 @@ func TestAuditEventMandatoryFieldsCompleteness(t *testing.T) {
 		}, nil
 	})
 
-	events := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{})
 	if len(events.GetEvents()) == 0 {
 		t.Fatal("expected at least one audit event")
 	}

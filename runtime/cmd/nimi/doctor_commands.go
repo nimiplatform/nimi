@@ -110,7 +110,7 @@ func runRuntimeDoctor(args []string) error {
 	if runtimeStatus, err := doctorStatusProvider(); err == nil && runtimeStatus.Process == "running" {
 		items = append(items, doctorItem{
 			Name:   "runtime mode",
-			Value:  runtimeStatus.Mode,
+			Value:  runtimeStatus.Mode.String(),
 			Status: "ok",
 		})
 	}

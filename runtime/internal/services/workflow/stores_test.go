@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -71,5 +72,26 @@ func TestArtifactStoreLifecycle(t *testing.T) {
 	}
 	if _, statErr := os.Stat(meta.Path); !os.IsNotExist(statErr) {
 		t.Fatalf("artifact file should be removed, statErr=%v", statErr)
+	}
+}
+
+func TestSanitizeSegmentRemovesDotDotSequences(t *testing.T) {
+	if got := sanitizeSegment("../task/..\\node"); strings.Contains(got, "..") {
+		t.Fatalf("sanitizeSegment should remove dotdot traversal, got %q", got)
+	}
+}
+
+func TestResultStoreWriteSkipsFrequentCleanup(t *testing.T) {
+	store := newResultStore(10 * time.Millisecond)
+	store.tasks["expired"] = &resultTaskStore{
+		nodes:  map[string]map[string]*structpb.Struct{},
+		doneAt: time.Now().UTC().Add(-time.Second),
+	}
+	store.lastCleanupAt = time.Now().UTC()
+
+	store.Write("task-1", "node-1", "output", structFromMap(map[string]any{"value": "ok"}))
+
+	if _, exists := store.tasks["expired"]; !exists {
+		t.Fatalf("frequent writes should not trigger cleanup on every call")
 	}
 }

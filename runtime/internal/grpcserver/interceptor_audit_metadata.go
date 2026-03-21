@@ -215,6 +215,8 @@ func methodDescriptor(fullMethod string) (string, string, string) {
 		domain = "runtime.app"
 	case strings.Contains(service, "RuntimeAuditService"):
 		domain = "runtime.audit"
+	case strings.Contains(service, "RuntimeConnectorService"):
+		domain = "runtime.connector"
 	}
 
 	operation := camelToSnake(method)
@@ -246,11 +248,11 @@ func cloneUsage(input *runtimev1.UsageStats) *runtimev1.UsageStats {
 		return nil
 	}
 	cloned := proto.Clone(input)
-	copy, ok := cloned.(*runtimev1.UsageStats)
+	clonedUsage, ok := cloned.(*runtimev1.UsageStats)
 	if !ok {
 		return nil
 	}
-	return copy
+	return clonedUsage
 }
 
 func cloneAnyProto(input any) any {

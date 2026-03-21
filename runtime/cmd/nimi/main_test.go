@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -80,6 +81,13 @@ func TestFetchProviderSnapshotsInvalidSource(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "expected http|grpc") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDurationMillisecondsInt32RejectsOverflow(t *testing.T) {
+	_, err := durationMillisecondsInt32((time.Duration(int64(^uint32(0)>>1)) + 1) * time.Millisecond)
+	if err == nil {
+		t.Fatal("expected overflow error")
 	}
 }
 

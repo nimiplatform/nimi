@@ -64,10 +64,10 @@ func WithClock(now func() time.Time) Option {
 
 func New(logger *slog.Logger, opts ...Option) *Service {
 	svc := &Service{
-		logger:      logger,
-		subscribers: make(map[uint64]subscriber),
-		now:         time.Now,
-		rateLimiter: newAppRateLimiter(),
+		logger:       logger,
+		subscribers:  make(map[uint64]subscriber),
+		now:          time.Now,
+		rateLimiter:  newAppRateLimiter(),
 		loopDetector: newAppLoopDetector(),
 	}
 	for _, opt := range opts {
@@ -235,11 +235,11 @@ func matches(sub subscriber, event *runtimev1.AppMessageEvent) bool {
 
 func cloneEvent(event *runtimev1.AppMessageEvent) *runtimev1.AppMessageEvent {
 	cloned := proto.Clone(event)
-	copy, ok := cloned.(*runtimev1.AppMessageEvent)
+	out, ok := cloned.(*runtimev1.AppMessageEvent)
 	if !ok {
 		return &runtimev1.AppMessageEvent{}
 	}
-	return copy
+	return out
 }
 
 func clonePayload(input *structpb.Struct) *structpb.Struct {
@@ -247,9 +247,9 @@ func clonePayload(input *structpb.Struct) *structpb.Struct {
 		return nil
 	}
 	cloned := proto.Clone(input)
-	copy, ok := cloned.(*structpb.Struct)
+	out, ok := cloned.(*structpb.Struct)
 	if !ok {
 		return nil
 	}
-	return copy
+	return out
 }

@@ -1,12 +1,17 @@
 package appregistry
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/proto"
 )
+
+var ErrEmptyAppID = errors.New("empty app id")
 
 // Record is a registered app snapshot used by grant/auth checks.
 type Record struct {
@@ -28,10 +33,10 @@ func New() *Registry {
 	}
 }
 
-func (r *Registry) Upsert(appID string, manifest *runtimev1.AppModeManifest, capabilities []string) {
+func (r *Registry) Upsert(appID string, manifest *runtimev1.AppModeManifest, capabilities []string) error {
 	appID = strings.TrimSpace(appID)
 	if appID == "" {
-		return
+		return fmt.Errorf("appregistry.Upsert: %w", ErrEmptyAppID)
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -41,6 +46,7 @@ func (r *Registry) Upsert(appID string, manifest *runtimev1.AppModeManifest, cap
 		Capabilities: append([]string(nil), capabilities...),
 		UpdatedAt:    time.Now().UTC(),
 	}
+	return nil
 }
 
 func (r *Registry) Get(appID string) (Record, bool) {
@@ -49,8 +55,8 @@ func (r *Registry) Get(appID string) (Record, bool) {
 		return Record{}, false
 	}
 	r.mu.RLock()
+	defer r.mu.RUnlock()
 	record, ok := r.apps[appID]
-	r.mu.RUnlock()
 	if !ok {
 		return Record{}, false
 	}
@@ -63,12 +69,11 @@ func cloneManifest(input *runtimev1.AppModeManifest) *runtimev1.AppModeManifest 
 	if input == nil {
 		return nil
 	}
-	return &runtimev1.AppModeManifest{
-		AppMode:         input.GetAppMode(),
-		RuntimeRequired: input.GetRuntimeRequired(),
-		RealmRequired:   input.GetRealmRequired(),
-		WorldRelation:   input.GetWorldRelation(),
+	cloned, ok := proto.Clone(input).(*runtimev1.AppModeManifest)
+	if !ok {
+		return nil
 	}
+	return cloned
 }
 
 func ValidateManifest(manifest *runtimev1.AppModeManifest) (runtimev1.ReasonCode, string, bool) {
@@ -108,6 +113,9 @@ func ValidateDomainAndScopes(manifest *runtimev1.AppModeManifest, domain string,
 	}
 
 	domain = strings.ToLower(strings.TrimSpace(domain))
+	if domain == "" {
+		return runtimev1.ReasonCode_APP_MODE_DOMAIN_FORBIDDEN, "provide_domain_for_scope_validation", false
+	}
 	hasRealm := false
 	hasRuntime := false
 	for _, raw := range scopes {

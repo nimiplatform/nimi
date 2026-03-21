@@ -44,6 +44,7 @@ func runRuntimeAppAuthAuthorize(args []string) error {
 	accessTokenID := fs.String("access-token-id", "", "protected access token id")
 	accessTokenSecret := fs.String("access-token-secret", "", "protected access token secret")
 	jsonOutput := fs.Bool("json", false, "output json")
+	showSecret := fs.Bool("show-secret", false, "include token secret in output")
 	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
 	callerID := fs.String("caller-id", "nimi-cli", "caller id metadata")
 	surfaceID := fs.String("surface-id", "runtime-cli", "surface id metadata")
@@ -122,7 +123,7 @@ func runRuntimeAppAuthAuthorize(args []string) error {
 		expiresAt = ts.AsTime().UTC().Format(time.RFC3339Nano)
 	}
 	if *jsonOutput {
-		out, err := json.MarshalIndent(map[string]any{
+		payload := map[string]any{
 			"token_id":                     resp.GetTokenId(),
 			"app_id":                       resp.GetAppId(),
 			"subject_user_id":              resp.GetSubjectUserId(),
@@ -132,10 +133,15 @@ func runRuntimeAppAuthAuthorize(args []string) error {
 			"issued_scope_catalog_version": resp.GetIssuedScopeCatalogVersion(),
 			"can_delegate":                 resp.GetCanDelegate(),
 			"expires_at":                   expiresAt,
-			"secret":                       resp.GetSecret(),
 			"resource_selectors":           selectorsAsMap(resp.GetResourceSelectors()),
 			"consent_ref":                  consentAsMap(resp.GetConsentRef()),
-		}, "", "  ")
+		}
+		if *showSecret {
+			payload["secret"] = resp.GetSecret()
+		} else {
+			payload["secret_redacted"] = true
+		}
+		out, err := json.MarshalIndent(payload, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -311,6 +317,7 @@ func runRuntimeAppAuthDelegate(args []string) error {
 	resourceSelectorsFile := fs.String("resource-selectors-file", "", "resource selectors file (protojson)")
 	ttlSeconds := fs.Int("ttl-seconds", 1800, "token ttl in seconds")
 	jsonOutput := fs.Bool("json", false, "output json")
+	showSecret := fs.Bool("show-secret", false, "include token secret in output")
 	callerKind := fs.String("caller-kind", "third-party-service", "caller kind metadata")
 	callerID := fs.String("caller-id", "nimi-cli", "caller id metadata")
 	surfaceID := fs.String("surface-id", "runtime-cli", "surface id metadata")
@@ -357,13 +364,18 @@ func runRuntimeAppAuthDelegate(args []string) error {
 		expiresAt = ts.AsTime().UTC().Format(time.RFC3339Nano)
 	}
 	if *jsonOutput {
-		out, err := json.MarshalIndent(map[string]any{
+		payload := map[string]any{
 			"token_id":         resp.GetTokenId(),
 			"parent_token_id":  resp.GetParentTokenId(),
 			"effective_scopes": resp.GetEffectiveScopes(),
 			"expires_at":       expiresAt,
-			"secret":           resp.GetSecret(),
-		}, "", "  ")
+		}
+		if *showSecret {
+			payload["secret"] = resp.GetSecret()
+		} else {
+			payload["secret_redacted"] = true
+		}
+		out, err := json.MarshalIndent(payload, "", "  ")
 		if err != nil {
 			return err
 		}

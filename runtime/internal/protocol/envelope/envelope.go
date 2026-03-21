@@ -16,6 +16,8 @@ const (
 	PlatformProtocolVersion = "1.0.0"
 )
 
+var ErrEnvelopeMetadataMissing = fmt.Errorf("envelope metadata missing")
+
 type Metadata struct {
 	ProtocolVersion            string
 	ParticipantProtocolVersion string
@@ -36,7 +38,7 @@ type Metadata struct {
 func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "missing protocol envelope metadata")
 	}
 
 	meta := Metadata{
@@ -57,41 +59,41 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 	}
 
 	if meta.ProtocolVersion == "" || meta.ParticipantProtocolVersion == "" || meta.ParticipantID == "" || meta.Domain == "" {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "missing required protocol envelope headers")
 	}
 	if !strictVersionCompatible(meta.ProtocolVersion, meta.ParticipantProtocolVersion) {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "protocol versions must share major and minor components")
 	}
 	if requireIdempotency && meta.IdempotencyKey == "" {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "idempotency key is required")
 	}
 	if requireIdempotency && (meta.CallerKind == "" || meta.CallerID == "") {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "caller kind and caller id are required with idempotency")
 	}
 
 	if requestAppID := appIDFromRequest(req); requestAppID != "" && meta.AppID != "" && requestAppID != meta.AppID {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT, "request app id conflicts with envelope app id")
 	}
 	if requestDomain := domainFromRequest(req); requestDomain != "" && meta.Domain != "" && requestDomain != meta.Domain {
-		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT, "request domain conflicts with envelope domain")
 	}
 
 	return meta, nil
 }
 
 func strictVersionCompatible(platformVersion string, participantVersion string) bool {
-	pMajor, pMinor, ok := parseSemver(platformVersion)
+	pMajor, pMinor, ok := parseMajorMinorSemver(platformVersion)
 	if !ok {
 		return false
 	}
-	cMajor, cMinor, ok := parseSemver(participantVersion)
+	cMajor, cMinor, ok := parseMajorMinorSemver(participantVersion)
 	if !ok {
 		return false
 	}
 	return pMajor == cMajor && pMinor == cMinor
 }
 
-func parseSemver(value string) (int, int, bool) {
+func parseMajorMinorSemver(value string) (int, int, bool) {
 	parts := strings.Split(strings.TrimSpace(value), ".")
 	if len(parts) != 3 {
 		return 0, 0, false
@@ -115,8 +117,8 @@ func first(md metadata.MD, key string) string {
 	return strings.TrimSpace(values[0])
 }
 
-func protocolError(reason runtimev1.ReasonCode) error {
-	return grpcerr.WithReasonCode(codes.InvalidArgument, reason)
+func protocolError(reason runtimev1.ReasonCode, message string) error {
+	return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, reason, grpcerr.ReasonOptions{Message: message})
 }
 
 func appIDFromRequest(req any) string {
@@ -144,7 +146,7 @@ func NormalizeProtocolVersion(value string) string {
 	if value == "" {
 		return PlatformProtocolVersion
 	}
-	if _, _, ok := parseSemver(value); !ok {
+	if _, _, ok := parseMajorMinorSemver(value); !ok {
 		return PlatformProtocolVersion
 	}
 	return value
@@ -209,7 +211,7 @@ func ParseDomainFromContext(ctx context.Context) string {
 func ParseAccessTokenFromContext(ctx context.Context) (string, string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", "", fmt.Errorf("metadata missing")
+		return "", "", fmt.Errorf("parse access token from context: %w", ErrEnvelopeMetadataMissing)
 	}
 	tokenID := first(md, "x-nimi-access-token-id")
 	secret := first(md, "x-nimi-access-token-secret")
@@ -219,21 +221,29 @@ func ParseAccessTokenFromContext(ctx context.Context) (string, string, error) {
 func ParseSessionFromContext(ctx context.Context) (string, string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", "", fmt.Errorf("metadata missing")
+		return "", "", fmt.Errorf("parse session from context: %w", ErrEnvelopeMetadataMissing)
 	}
 	sessionID := first(md, "x-nimi-session-id")
 	sessionToken := first(md, "x-nimi-session-token")
 	return sessionID, sessionToken, nil
 }
 
-func ParseCredentialMetadataFromContext(ctx context.Context) (string, string, string, string, error) {
+type CredentialMetadata struct {
+	Source       string
+	ProviderType string
+	Endpoint     string
+	APIKey       string
+}
+
+func ParseCredentialMetadataFromContext(ctx context.Context) (CredentialMetadata, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", "", "", "", fmt.Errorf("metadata missing")
+		return CredentialMetadata{}, fmt.Errorf("parse credential metadata from context: %w", ErrEnvelopeMetadataMissing)
 	}
-	source := strings.ToLower(first(md, "x-nimi-key-source"))
-	providerType := first(md, "x-nimi-provider-type")
-	endpoint := first(md, "x-nimi-provider-endpoint")
-	apiKey := first(md, "x-nimi-provider-api-key")
-	return source, providerType, endpoint, apiKey, nil
+	return CredentialMetadata{
+		Source:       strings.ToLower(first(md, "x-nimi-key-source")),
+		ProviderType: first(md, "x-nimi-provider-type"),
+		Endpoint:     first(md, "x-nimi-provider-endpoint"),
+		APIKey:       first(md, "x-nimi-provider-api-key"),
+	}, nil
 }
