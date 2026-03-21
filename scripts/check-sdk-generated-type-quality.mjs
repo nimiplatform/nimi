@@ -23,6 +23,32 @@ function expectRegex(source, regex, description) {
   }
 }
 
+function extractSchemaBlock(source, schemaName) {
+  const schemaMarker = `        ${schemaName}: {`;
+  const startIndex = source.indexOf(schemaMarker);
+  if (startIndex === -1) {
+    return null;
+  }
+
+  const nextSchemaMatch = /\n {8}[A-Za-z0-9_$]+: \{/.exec(source.slice(startIndex + schemaMarker.length));
+  if (!nextSchemaMatch) {
+    return source.slice(startIndex);
+  }
+
+  return source.slice(startIndex, startIndex + schemaMarker.length + nextSchemaMatch.index);
+}
+
+function expectSchemaExcludesField(source, schemaName, fieldName, description) {
+  const schemaBlock = extractSchemaBlock(source, schemaName);
+  if (!schemaBlock) {
+    failures.push(`${description} (missing schema ${schemaName})`);
+    return;
+  }
+  if (new RegExp(`\\b${fieldName}\\??:`).test(schemaBlock)) {
+    failures.push(description);
+  }
+}
+
 function collectSchemaUnknownMapPaths(source) {
   const lines = source.split('\n');
   const results = [];
@@ -121,8 +147,14 @@ expectRegex(
 
 expectRegex(
   schema,
-  /AgentProfileDto:\s*{[\s\S]*?dna\?: components\["schemas"\]\["UserAgentDnaDto"\] \| null;/,
-  'AgentProfileDto.dna must use UserAgentDnaDto instead of an empty object',
+  /AgentProfileDto:\s*{[\s\S]*?activeWorldId\?: string;[\s\S]*?importance\?: components\["schemas"\]\["AgentImportance"\];[\s\S]*?ownerWorldId\?: string \| null;[\s\S]*?ownershipType\?: components\["schemas"\]\["AgentOwnershipType"\];[\s\S]*?state\?: components\["schemas"\]\["AgentState"\];[\s\S]*?stats\?: components\["schemas"\]\["AgentStatsDto"\];[\s\S]*?worldId\?: string;/,
+  'AgentProfileDto must expose the current public agent profile shape',
+);
+expectSchemaExcludesField(
+  schema,
+  'AgentProfileDto',
+  'dna',
+  'AgentProfileDto must not expose public dna',
 );
 
 expectRegex(

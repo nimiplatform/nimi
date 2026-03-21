@@ -176,9 +176,17 @@ type _GuardUserProfileGiftStats = Assert<IsEqual<
   } | undefined
 >>;
 
-type _GuardAgentProfileDna = Assert<IsEqual<
-  components['schemas']['AgentProfileDto']['dna'],
-  components['schemas']['UserAgentDnaDto'] | null | undefined
+type _GuardAgentProfileDto = Assert<IsEqual<
+  components['schemas']['AgentProfileDto'],
+  {
+    activeWorldId?: string;
+    importance?: components['schemas']['AgentImportance'];
+    ownerWorldId?: string | null;
+    ownershipType?: components['schemas']['AgentOwnershipType'];
+    state?: components['schemas']['AgentState'];
+    stats?: components['schemas']['AgentStatsDto'];
+    worldId?: string;
+  }
 >>;
 
 type _GuardFriendListResult = Assert<IsEqual<
