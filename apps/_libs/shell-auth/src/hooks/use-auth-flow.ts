@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import type { AuthView, EmbeddedAuthStage, DesktopCallbackRequest } from '../types/auth-types.js';
@@ -25,7 +25,7 @@ import {
 import {
   resolveDesktopCallbackRequestFromLocation,
 } from '../logic/desktop-callback-helpers.js';
-import { getUserDisplayLabel } from '../logic/error-helpers.js';
+import { getUserDisplayLabel, toErrorMessage } from '../logic/error-helpers.js';
 
 type AuthTokensDto = RealmModel<'AuthTokensDto'>;
 
@@ -179,6 +179,16 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
   const [tempToken, setTempToken] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorReturnView, setTwoFactorReturnView] = useState<AuthView>('main');
+  const authSessionSetterRef = useRef(externalSetAuthSession ?? (() => {}));
+  const statusBannerSetterRef = useRef(externalSetStatusBanner ?? (() => {}));
+
+  useEffect(() => {
+    authSessionSetterRef.current = externalSetAuthSession ?? (() => {});
+  }, [externalSetAuthSession]);
+
+  useEffect(() => {
+    statusBannerSetterRef.current = externalSetStatusBanner ?? (() => {});
+  }, [externalSetStatusBanner]);
 
   const setters: AuthMenuSetters = useMemo(() => ({
     setView,
@@ -190,9 +200,9 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     setTempToken,
     setTwoFactorCode,
     setTwoFactorReturnView,
-    setStatusBanner: externalSetStatusBanner ?? (() => {}),
-    setAuthSession: externalSetAuthSession ?? (() => {}),
-  }), [externalSetStatusBanner, externalSetAuthSession]);
+    setStatusBanner: (banner) => statusBannerSetterRef.current(banner),
+    setAuthSession: (user, token, refreshToken) => authSessionSetterRef.current(user, token, refreshToken),
+  }), []);
 
   const desktopCtx: DesktopCallbackContext = useMemo(() => ({
     desktopCallbackRequest,
@@ -314,10 +324,9 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
         setEmbeddedStage('credential');
         setView('main');
       }
-    }).catch(() => {
+    }).catch((error) => {
       setPending(false);
-      setEmbeddedStage('credential');
-      setView('main');
+      setLoginError(toErrorMessage(error, '邮箱检查失败，请重试'));
     });
   };
 

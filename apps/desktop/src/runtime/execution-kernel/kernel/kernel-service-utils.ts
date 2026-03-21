@@ -9,6 +9,7 @@ import { emitRuntimeLog } from '../../telemetry/logger';
 import { extractRuntimeErrorFields } from '../../telemetry/error-fields';
 import type { SandboxManager } from '../sandbox/sandbox-manager';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createSecureIdSuffix } from '../../id.js';
 
 export type RuntimeContext = {
   manifest: ModManifest;
@@ -27,7 +28,7 @@ export function buildDecisionRecord(
   reasonCodes: string[],
 ): DecisionRecord {
   return {
-    decisionId: `decision:${stage}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`,
+    decisionId: `decision:${stage}:${Date.now().toString(36)}:${createSecureIdSuffix()}`,
     modId,
     version,
     stage,

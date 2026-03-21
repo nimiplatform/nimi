@@ -4,7 +4,7 @@
 
 import type { TauriOAuthBridge } from './oauth-types.js';
 import type { SocialOauthProvider } from './social-oauth.js';
-import { startSocialOauth, toOauthProvider } from './social-oauth.js';
+import { resolveProviderLabel, startSocialOauth } from './social-oauth.js';
 import { toErrorMessage } from './oauth-helpers.js';
 
 export type OAuthLoginInput = {
@@ -13,19 +13,19 @@ export type OAuthLoginInput = {
   oauthLogin: (provider: string, accessToken: string) => Promise<Record<string, unknown>>;
   onSuccess: (result: {
     accessToken: string;
-    refreshToken: string;
+    refreshToken?: string;
     user: Record<string, unknown>;
   }) => void;
   onError: (message: string) => void;
 };
 
 export async function handleSocialLogin(input: OAuthLoginInput): Promise<void> {
-  const providerLabel = input.provider === 'TWITTER' ? 'Twitter' : 'TikTok';
+  const providerLabel = resolveProviderLabel(input.provider);
   try {
     const oauthResult = await startSocialOauth(input.provider, input.bridge);
 
     const data = await input.oauthLogin(
-      toOauthProvider(oauthResult.provider),
+      oauthResult.provider,
       oauthResult.accessToken,
     );
 
@@ -41,13 +41,19 @@ export async function handleSocialLogin(input: OAuthLoginInput): Promise<void> {
       return;
     }
 
-    const user = (tokens.user && typeof tokens.user === 'object' && !Array.isArray(tokens.user))
-      ? tokens.user as Record<string, unknown>
+    const rawUser = (data.user && typeof data.user === 'object' && !Array.isArray(data.user))
+      ? data.user
+      : tokens.user;
+    const user = (rawUser && typeof rawUser === 'object' && !Array.isArray(rawUser))
+      ? rawUser as Record<string, unknown>
       : {};
+    const refreshToken = typeof tokens.refreshToken === 'string' && tokens.refreshToken.trim()
+      ? tokens.refreshToken.trim()
+      : undefined;
 
     input.onSuccess({
       accessToken: String(tokens.accessToken || ''),
-      refreshToken: String(tokens.refreshToken || ''),
+      refreshToken,
       user,
     });
   } catch (error) {

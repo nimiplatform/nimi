@@ -7,6 +7,8 @@ type LifecycleEntry = {
   history: Array<{ from: LifecycleState; to: LifecycleState; at: string }>;
 };
 
+const MAX_HISTORY_ENTRIES = 100;
+
 const VALID_TRANSITIONS: Record<LifecycleState, LifecycleState[]> = {
   DISCOVERED: ['VERIFIED', 'INSTALLED', 'UNINSTALLED'],
   VERIFIED: ['INSTALLED', 'UNINSTALLED'],
@@ -22,6 +24,11 @@ export class LifecycleManager {
   private readonly entries = new Map<string, LifecycleEntry>();
 
   set(modId: string, version: string, state: LifecycleState): void {
+    const validation = this.validateTransition(modId, version, state);
+    if (!validation.valid) {
+      throw new Error(validation.reasonCode);
+    }
+
     const k = this.key(modId, version);
     const existing = this.entries.get(k);
     const now = new Date().toISOString();
@@ -29,6 +36,9 @@ export class LifecycleManager {
     if (existing) {
       const historyItem = { from: existing.state, to: state, at: now };
       existing.history.push(historyItem);
+      if (existing.history.length > MAX_HISTORY_ENTRIES) {
+        existing.history.splice(0, existing.history.length - MAX_HISTORY_ENTRIES);
+      }
       existing.state = state;
       existing.updatedAt = now;
     } else {

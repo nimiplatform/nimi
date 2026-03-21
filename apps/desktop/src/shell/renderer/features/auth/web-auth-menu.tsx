@@ -13,6 +13,7 @@ import { DesktopShellAuthPage } from '@nimiplatform/shell-auth';
 import '@nimiplatform/shell-auth/styles.css';
 import { desktopOAuthBridge } from './desktop-auth-adapter.js';
 import { createDesktopAuthAdapter } from './desktop-auth-adapter.js';
+import { toAuthUserRecord } from './auth-session-utils.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { StatusBanner } from '@renderer/app-shell/providers/store-types.js';
 
@@ -22,13 +23,6 @@ const SlotHost = lazy(async () => {
   const mod = await import('@renderer/mod-ui/host/slot-host');
   return { default: mod.SlotHost };
 });
-
-function toAuthUserRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
 
 export function WebAuthMenu(props: { mode?: WebAuthMenuMode }) {
   const flags = getShellFeatureFlags();

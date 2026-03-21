@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import type { GoogleWindow } from '@nimiplatform/shell-auth';
+import type { ShellAuthWindow } from '@nimiplatform/shell-auth';
 import { getGoogleClientId, loadGoogleScript } from '@nimiplatform/shell-auth';
 import { resolveSocialOauthConfig, startSocialOauth } from '@nimiplatform/shell-core/oauth';
 import { desktopOAuthBridge } from '@renderer/features/auth/desktop-auth-adapter.js';
@@ -89,7 +89,7 @@ export function ProfilePage() {
       throw new Error(t('Profile.googleOauthClientIdMissing'));
     }
     await loadGoogleScript();
-    const win = window as GoogleWindow;
+    const win = window as ShellAuthWindow;
     const initTokenClient = win.google?.accounts?.oauth2?.initTokenClient;
     if (!initTokenClient) {
       throw new Error(t('Profile.googleOauthInitFailed'));

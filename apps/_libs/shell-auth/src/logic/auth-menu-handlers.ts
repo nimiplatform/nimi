@@ -3,10 +3,9 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { OAuthLoginState } from '@nimiplatform/sdk/realm';
 import {
   startSocialOauth,
-  toOauthProvider,
   type SocialOauthProvider,
 } from '@nimiplatform/shell-core/oauth';
-import type { AuthView, DesktopCallbackRequest, GoogleWindow } from '../types/auth-types.js';
+import type { AuthView, DesktopCallbackRequest, ShellAuthWindow } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { persistAuthSession } from './auth-session-storage.js';
 import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
@@ -151,7 +150,7 @@ export async function handleGoogleLogin(
   setters.setPending(true);
   try {
     await loadGoogleScript();
-    const win = window as GoogleWindow;
+    const win = window as ShellAuthWindow;
     const initTokenClient = win.google?.accounts?.oauth2?.initTokenClient;
     if (!initTokenClient) {
       throw new Error('Google OAuth 初始化失败');
@@ -204,7 +203,7 @@ export async function handleSocialLogin(
   try {
     const oauthResult = await startSocialOauth(provider, adapter.oauthBridge);
     const result = await adapter.oauthLogin(
-      toOauthProvider(oauthResult.provider),
+      oauthResult.provider,
       oauthResult.accessToken,
     );
     await handleLoginResult(result, `${providerLabel} 登录成功。`, setters, desktopCtx, adapter);

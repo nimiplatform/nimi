@@ -33,6 +33,12 @@ test('feed profile modal ownership: HomeView keeps feed profile state locally', 
   assert.doesNotMatch(homeViewSource, /selectedProfileId/);
 });
 
+test('feed profile modal ownership: Toast timer does not depend on unstable inline callbacks', () => {
+  assert.match(homeViewSource, /const onCloseRef = useRef\(onClose\)/);
+  assert.match(homeViewSource, /onCloseRef\.current = onClose/);
+  assert.match(homeViewSource, /setTimeout\(\(\) => \{\s*onCloseRef\.current\(\);\s*\}, 3000\)/s);
+});
+
 test('feed profile modal ownership: Explore feed forwards post author open to PostCard', () => {
   assert.match(exploreViewSource, /onPostAuthorOpen\?:\s*\(target:\s*PostCardAuthorProfileTarget\)\s*=>\s*void;/);
   assert.match(exploreViewSource, /onOpenAuthorProfile=\{props\.onPostAuthorOpen\}/);

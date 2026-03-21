@@ -1,4 +1,5 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { capabilityMatches } from '../../hook/contracts/capabilities.js';
 type SandboxProfile = {
   profileId: string;
   modId: string;
@@ -10,27 +11,6 @@ type SandboxProfile = {
 
 export class SandboxManager {
   private readonly profiles = new Map<string, SandboxProfile>();
-
-  private capabilityMatches(pattern: string, capability: string): boolean {
-    const normalizedPattern = String(pattern || '').trim();
-    const normalizedCapability = String(capability || '').trim();
-    if (!normalizedPattern || !normalizedCapability) {
-      return false;
-    }
-    if (normalizedPattern === '*') {
-      return true;
-    }
-    if (normalizedPattern === normalizedCapability) {
-      return true;
-    }
-    if (normalizedPattern.includes('*')) {
-      const escaped = normalizedPattern
-        .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*/g, '.*');
-      return new RegExp(`^${escaped}$`).test(normalizedCapability);
-    }
-    return false;
-  }
 
   create(input: { modId: string; version: string; capabilities: string[] }): string {
     const profileId = `sandbox:${input.modId}:${input.version}:${Date.now().toString(36)}`;
@@ -60,15 +40,17 @@ export class SandboxManager {
   }
 
   destroyByMod(modId: string, version: string): number {
-    let count = 0;
+    const toDelete: string[] = [];
     for (const [id, profile] of this.profiles) {
       if (profile.modId === modId && profile.version === version) {
         profile.active = false;
-        this.profiles.delete(id);
-        count += 1;
+        toDelete.push(id);
       }
     }
-    return count;
+    for (const id of toDelete) {
+      this.profiles.delete(id);
+    }
+    return toDelete.length;
   }
 
   checkCapability(profileId: string, capability: string): {
@@ -82,7 +64,7 @@ export class SandboxManager {
     if (!profile.active) {
       return { allowed: false, reasonCode: ReasonCode.SANDBOX_PROFILE_INACTIVE };
     }
-    const matchedPattern = profile.capabilities.find((cap) => this.capabilityMatches(cap, capability));
+    const matchedPattern = profile.capabilities.find((cap) => capabilityMatches(cap, capability));
     if (matchedPattern) {
       if (matchedPattern === '*') {
         return { allowed: true, reasonCode: ReasonCode.SANDBOX_WILDCARD_GRANT };

@@ -1,4 +1,4 @@
-import type { GoogleWindow } from '../types/auth-types.js';
+import type { ShellAuthWindow } from '../types/auth-types.js';
 import { readEnv } from '@nimiplatform/shell-core/oauth';
 
 export function getGoogleClientId(): string {
@@ -16,7 +16,7 @@ export function loadGoogleScript(): Promise<void> {
       return;
     }
 
-    const win = window as GoogleWindow;
+    const win = window as ShellAuthWindow;
     if (win.google?.accounts?.oauth2?.initTokenClient) {
       resolve();
       return;
@@ -24,6 +24,10 @@ export function loadGoogleScript(): Promise<void> {
 
     const existingScript = document.getElementById('google-identity-services');
     if (existingScript) {
+      if (existingScript.getAttribute('data-loaded') === 'true') {
+        resolve();
+        return;
+      }
       existingScript.addEventListener('load', () => resolve());
       existingScript.addEventListener('error', () =>
         reject(new Error('Failed to load Google Identity Services script')));
@@ -35,7 +39,10 @@ export function loadGoogleScript(): Promise<void> {
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve();
+    script.onload = () => {
+      script.setAttribute('data-loaded', 'true');
+      resolve();
+    };
     script.onerror = () => reject(new Error('Failed to load Google Identity Services script'));
     document.head.appendChild(script);
   });

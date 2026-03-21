@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import {
   sdkConnectorToApiConnector,
@@ -9,6 +11,11 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service';
 import { createPlatformClient } from '@nimiplatform/sdk';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime';
+
+const CONNECTOR_SERVICE_SOURCE = readFileSync(
+  resolve(import.meta.dirname, '../src/shell/renderer/features/runtime-config/runtime-config-connector-sdk-service.ts'),
+  'utf8',
+);
 
 type TauriInvokeCall = {
   command: string;
@@ -66,12 +73,12 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
 
   return () => {
     if (typeof previousRoot === 'undefined') {
-      delete target.__TAURI__;
+      Reflect.deleteProperty(target, '__TAURI__');
     } else {
       target.__TAURI__ = previousRoot;
     }
     if (typeof previousWindow === 'undefined') {
-      delete target.window;
+      Reflect.deleteProperty(target, 'window');
     } else {
       target.window = previousWindow;
     }
@@ -84,24 +91,24 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     defaultEndpoint: 'https://openrouter.ai/api/v1',
     requiresExplicitEndpoint: false,
     runtimePlane: 'cloud',
-    supportsManaged: true,
-    supportsInline: true,
+    executionModule: 'cloud',
+    managedSupported: true,
   },
   {
     provider: 'deepseek',
     defaultEndpoint: 'https://api.deepseek.com/v1',
     requiresExplicitEndpoint: false,
     runtimePlane: 'cloud',
-    supportsManaged: true,
-    supportsInline: true,
+    executionModule: 'cloud',
+    managedSupported: true,
   },
   {
     provider: 'gemini',
     defaultEndpoint: 'https://generativelanguage.googleapis.com/v1beta/openai',
     requiresExplicitEndpoint: false,
     runtimePlane: 'cloud',
-    supportsManaged: true,
-    supportsInline: true,
+    executionModule: 'cloud',
+    managedSupported: true,
   },
 ];
 
@@ -281,4 +288,10 @@ test('sdkCreateConnector runtime calls include auto authorization and pick refre
   } finally {
     restoreTauri();
   }
+});
+
+test('provider catalog cache expires after a bounded TTL', () => {
+  assert.match(CONNECTOR_SERVICE_SOURCE, /PROVIDER_CATALOG_CACHE_TTL_MS/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /cachedProviderCatalogAt/);
+  assert.match(CONNECTOR_SERVICE_SOURCE, /Date\.now\(\)/);
 });

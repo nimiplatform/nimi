@@ -53,7 +53,7 @@ function extractErrorChain(error: unknown): string[] {
 export function SlotHost(props: SlotHostProps) {
   const { slot, base, context } = props;
   const resolution = runtimeSlotRegistry.resolve(slot);
-  const [retryingModId, setRetryingModId] = useState<string>('');
+  const [retryingModId, setRetryingModId] = useState<string | null>(null);
   const localManifestSummaries = useAppStore((state) => state.localManifestSummaries);
   const runtimeModDisabledIds = useAppStore((state) => state.runtimeModDisabledIds);
   const runtimeModUninstalledIds = useAppStore((state) => state.runtimeModUninstalledIds);
@@ -83,7 +83,7 @@ export function SlotHost(props: SlotHostProps) {
         setStatusBanner,
       });
     } finally {
-      setRetryingModId('');
+      setRetryingModId(null);
     }
   }, [
     context,

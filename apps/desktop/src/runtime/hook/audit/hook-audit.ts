@@ -3,20 +3,40 @@ import type { AuditStats, HookCallRecord } from '../contracts/types.js';
 const DEFAULT_MAX_RECORDS = 10_000;
 
 export class HookAuditTrail {
-  private readonly records: HookCallRecord[] = [];
+  private readonly records: Array<HookCallRecord | undefined>;
   private readonly maxRecords: number;
+  private startIndex = 0;
+  private recordCount = 0;
 
   constructor(maxRecords: number = DEFAULT_MAX_RECORDS) {
     this.maxRecords = maxRecords;
+    this.records = new Array<HookCallRecord | undefined>(maxRecords);
   }
 
   append(record: HookCallRecord): void {
-    if (this.records.length >= this.maxRecords) {
-      // Evict oldest 20% to avoid constant shifting
-      const evictCount = Math.max(1, Math.floor(this.maxRecords * 0.2));
-      this.records.splice(0, evictCount);
+    if (this.maxRecords <= 0) {
+      return;
     }
-    this.records.push(record);
+
+    const writeIndex = (this.startIndex + this.recordCount) % this.maxRecords;
+    this.records[writeIndex] = record;
+    if (this.recordCount < this.maxRecords) {
+      this.recordCount += 1;
+      return;
+    }
+
+    this.startIndex = (this.startIndex + 1) % this.maxRecords;
+  }
+
+  private snapshot(): HookCallRecord[] {
+    const result: HookCallRecord[] = [];
+    for (let index = 0; index < this.recordCount; index += 1) {
+      const record = this.records[(this.startIndex + index) % this.maxRecords];
+      if (record) {
+        result.push(record);
+      }
+    }
+    return result;
   }
 
   query(filter?: {
@@ -27,7 +47,7 @@ export class HookAuditTrail {
     since?: string;
     limit?: number;
   }): HookCallRecord[] {
-    let result = this.records;
+    let result = this.snapshot();
 
     if (filter) {
       result = result.filter((item) => {
@@ -40,17 +60,15 @@ export class HookAuditTrail {
       });
     }
 
-    if (filter?.limit && filter.limit > 0) {
-      result = result.slice(-filter.limit);
-    }
-
-    return result;
+    const limit = filter?.limit && filter.limit > 0 ? filter.limit : undefined;
+    return limit ? result.slice(-limit) : result;
   }
 
   stats(modId?: string): AuditStats {
+    const snapshot = this.snapshot();
     const subset = modId
-      ? this.records.filter((r) => r.modId === modId)
-      : this.records;
+      ? snapshot.filter((r) => r.modId === modId)
+      : snapshot;
 
     const byHookType: Record<string, { calls: number; denials: number }> = {};
     const byMod: Record<string, { calls: number; denials: number }> = {};
@@ -92,14 +110,16 @@ export class HookAuditTrail {
   }
 
   export(): HookCallRecord[] {
-    return [...this.records];
+    return this.snapshot();
   }
 
   clear(): void {
-    this.records.length = 0;
+    this.records.fill(undefined);
+    this.startIndex = 0;
+    this.recordCount = 0;
   }
 
   get size(): number {
-    return this.records.length;
+    return this.recordCount;
   }
 }

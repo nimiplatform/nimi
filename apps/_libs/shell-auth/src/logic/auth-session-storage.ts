@@ -1,4 +1,5 @@
 import { isWebShellMode } from '@nimiplatform/shell-core/shell-mode';
+import { z } from 'zod';
 
 export const WEB_AUTH_SESSION_KEY = 'nimi.web.auth.session.v1';
 
@@ -6,6 +7,11 @@ export type PersistedWebAuthSession = {
   user?: Record<string, unknown> | null;
   updatedAt: string;
 };
+
+const persistedWebAuthSessionSchema = z.object({
+  user: z.record(z.string(), z.unknown()).nullable().optional(),
+  updatedAt: z.string().optional(),
+});
 
 function hasLocalStorage(): boolean {
   return typeof globalThis !== 'undefined' && typeof globalThis.localStorage !== 'undefined';
@@ -31,15 +37,15 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
   try {
     const raw = globalThis.localStorage.getItem(WEB_AUTH_SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedWebAuthSession;
-    if (!parsed || typeof parsed !== 'object') return null;
+    const parsed = persistedWebAuthSessionSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) return null;
 
-    const user = normalizeUser(parsed.user);
+    const user = normalizeUser(parsed.data.user);
 
     return {
       ...(user ? { user } : {}),
-      updatedAt: typeof parsed.updatedAt === 'string'
-        ? parsed.updatedAt
+      updatedAt: typeof parsed.data.updatedAt === 'string'
+        ? parsed.data.updatedAt
         : new Date().toISOString(),
     };
   } catch {

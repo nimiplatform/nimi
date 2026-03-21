@@ -17,8 +17,10 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
   const listNodesCatalogCalls: Array<Record<string, unknown>> = [];
 
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     localManifestSummaries: [{
       id: 'world.nimi.local-chat',
+      path: '/mods/world.nimi.local-chat/manifest.json',
       manifest: {
         ai: {
           profiles: [{
@@ -37,7 +39,7 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
         },
       },
     }],
-  })) as typeof useAppStore.getState;
+  })) as unknown as typeof useAppStore.getState;
 
   localRuntime.resolveProfile = (async (input: Record<string, unknown>) => {
     resolveProfileCalls.push(input);
@@ -58,6 +60,8 @@ test('profile snapshot resolver maps canonical capability tokens for mod-facing 
         deviceProfile: {
           os: 'darwin',
           arch: 'arm64',
+          totalRamBytes: 0,
+          availableRamBytes: 0,
           gpu: { available: true },
           python: { available: true },
           npu: { available: false, ready: false },

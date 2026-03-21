@@ -23,6 +23,7 @@ function createDaemonStatus(input: Partial<RuntimeBridgeDaemonStatus>): RuntimeB
   return {
     running: false,
     managed: false,
+    launchMode: 'INVALID',
     grpcAddr: DEFAULT_GRPC_ADDR,
     ...input,
   };
@@ -45,14 +46,14 @@ test('stopped daemon marks local runtime unreachable with detailed reason', () =
   assert.equal(next.local.lastCheckedAt, CHECKED_AT);
   assert.equal(
     next.local.lastDetail,
-    'runtime daemon stopped (127.0.0.1:46371): RUNTIME_BRIDGE_DAEMON_START_TIMEOUT',
+    'runtime daemon stopped (127.0.0.1:46371) · mode=INVALID: RUNTIME_BRIDGE_DAEMON_START_TIMEOUT',
   );
 });
 
 test('same stopped snapshot keeps previous object reference', () => {
   const previous = createBaseState();
   previous.local.status = 'unreachable';
-  previous.local.lastDetail = 'runtime daemon stopped (127.0.0.1:46371)';
+  previous.local.lastDetail = 'runtime daemon stopped (127.0.0.1:46371) · mode=INVALID';
 
   const next = applyRuntimeDaemonStatusToConfigState(
     previous,
@@ -94,7 +95,7 @@ test('polling running daemon recovers unreachable state to idle', () => {
 
   assert.equal(next.local.status, 'idle');
   assert.equal(next.local.lastCheckedAt, CHECKED_AT);
-  assert.equal(next.local.lastDetail, 'runtime daemon running (127.0.0.1:46371)');
+  assert.equal(next.local.lastDetail, 'runtime daemon running (127.0.0.1:46371) · mode=INVALID');
 });
 
 test('action mode enforces running detail refresh even when already idle', () => {
@@ -112,7 +113,7 @@ test('action mode enforces running detail refresh even when already idle', () =>
 
   assert.equal(next.local.status, 'idle');
   assert.equal(next.local.lastCheckedAt, CHECKED_AT);
-  assert.equal(next.local.lastDetail, 'runtime daemon running (127.0.0.1:46371)');
+  assert.equal(next.local.lastDetail, 'runtime daemon running (127.0.0.1:46371) · mode=INVALID');
 });
 
 test('running detail includes launch mode when provided', () => {

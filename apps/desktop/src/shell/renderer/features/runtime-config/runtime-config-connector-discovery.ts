@@ -16,6 +16,22 @@ type HealthResult = {
   checkedAt: string;
 };
 
+type RuntimeNodeCapability = 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding';
+
+function normalizeRuntimeNodeCapability(value: unknown): RuntimeNodeCapability {
+  switch (String(value || '').trim()) {
+    case 'image':
+    case 'video':
+    case 'tts':
+    case 'stt':
+    case 'embedding':
+      return String(value) as RuntimeNodeCapability;
+    case 'chat':
+    default:
+      return 'chat';
+  }
+}
+
 function statusFromRuntimeHealth(status: number): ProviderStatusV11 {
   // RuntimeHealthStatus enum: 0=UNSPECIFIED, 1=STOPPED, 2=STARTING, 3=READY, 4=DEGRADED, 5=STOPPING
   if (status === 3) return 'healthy';
@@ -68,7 +84,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
   }));
   const nodeMatrix = (nodes || []).map((n) => ({
     nodeId: n.nodeId || '',
-    capability: ((n.capabilities || [])[0] || 'chat') as any,
+    capability: normalizeRuntimeNodeCapability((n.capabilities || [])[0]),
     serviceId: n.serviceId || '',
     provider: n.provider || 'llama',
     adapter: (n.adapter || 'openai_compat_adapter') as
@@ -80,7 +96,7 @@ export async function discoverLocalModelsFromEndpoint(state: RuntimeConfigStateV
     available: n.available !== false,
     providerHints: n.providerHints,
     reasonCode: n.reasonCode,
-  }));
+}));
   return { endpoint, discovered, models: normalizedModels, nodeMatrix, rawModels: models };
 }
 

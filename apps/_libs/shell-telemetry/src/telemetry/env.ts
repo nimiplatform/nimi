@@ -42,5 +42,5 @@ export function shouldForwardRendererLogLevel(level: 'debug' | 'info' | 'warn' |
 }
 
 export function hasTauriInvoke(): boolean {
-  return typeof (window as Window & { __TAURI__?: { core?: { invoke?: unknown } } }).__TAURI__?.core?.invoke === 'function';
+  return typeof window.__TAURI__?.core?.invoke === 'function';
 }

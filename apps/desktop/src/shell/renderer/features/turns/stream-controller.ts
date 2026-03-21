@@ -5,6 +5,8 @@ export const STREAM_FIRST_PACKET_TIMEOUT_MS = 10_000;
 export const STREAM_TEXT_TOTAL_TIMEOUT_MS = 120_000;
 export const STREAM_SPEECH_TOTAL_TIMEOUT_MS = 45_000;
 export const STREAM_VIDEO_TOTAL_TIMEOUT_MS = 300_000;
+export const STREAM_TERMINAL_STATE_TTL_MS = 60_000;
+export const STREAM_MAX_CACHED_STATES = 50;
 
 export type StreamPhase = 'idle' | 'waiting' | 'streaming' | 'done' | 'error' | 'cancelled';
 
@@ -34,6 +36,7 @@ const activeStreams = new Map<string, StreamState>();
 const abortControllers = new Map<string, AbortController>();
 const firstPacketTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const totalTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const terminalCleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const listeners = new Set<StreamListener>();
 
 function emptyState(chatId: string): StreamState {
@@ -74,6 +77,55 @@ function clearTimers(chatId: string) {
   }
 }
 
+function clearTerminalCleanup(chatId: string) {
+  const cleanupTimer = terminalCleanupTimers.get(chatId);
+  if (cleanupTimer) {
+    clearTimeout(cleanupTimer);
+    terminalCleanupTimers.delete(chatId);
+  }
+}
+
+function isTerminalPhase(phase: StreamPhase): boolean {
+  return phase === 'done' || phase === 'error' || phase === 'cancelled';
+}
+
+function enforceStreamCacheLimit() {
+  if (activeStreams.size <= STREAM_MAX_CACHED_STATES) {
+    return;
+  }
+
+  for (const [chatId, state] of activeStreams) {
+    if (activeStreams.size <= STREAM_MAX_CACHED_STATES) {
+      return;
+    }
+    if (isTerminalPhase(state.phase)) {
+      clearStream(chatId);
+    }
+  }
+
+  while (activeStreams.size > STREAM_MAX_CACHED_STATES) {
+    const oldest = activeStreams.keys().next();
+    if (oldest.done || oldest.value == null) {
+      return;
+    }
+    clearStream(oldest.value);
+  }
+}
+
+function setStreamState(chatId: string, state: StreamState) {
+  activeStreams.delete(chatId);
+  activeStreams.set(chatId, state);
+  enforceStreamCacheLimit();
+}
+
+function scheduleTerminalCleanup(chatId: string) {
+  clearTerminalCleanup(chatId);
+  const timer = setTimeout(() => {
+    clearStream(chatId);
+  }, STREAM_TERMINAL_STATE_TTL_MS);
+  terminalCleanupTimers.set(chatId, timer);
+}
+
 export function getStreamState(chatId: string): StreamState {
   return activeStreams.get(chatId) || emptyState(chatId);
 }
@@ -92,6 +144,7 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
 
   const abortController = new AbortController();
   abortControllers.set(chatId, abortController);
+  clearTerminalCleanup(chatId);
 
   const state: StreamState = {
     chatId,
@@ -105,7 +158,7 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
     traceId: null,
     cancelSource: null,
   };
-  activeStreams.set(chatId, state);
+  setStreamState(chatId, state);
 
   // First packet timeout
   const fpt = setTimeout(() => {
@@ -118,8 +171,9 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
         interrupted: true,
         cancelSource: 'timeout',
       };
-      activeStreams.set(chatId, errorState);
+      setStreamState(chatId, errorState);
       clearTimers(chatId);
+      scheduleTerminalCleanup(chatId);
       notify(errorState);
       logRendererEvent({
         level: 'warn',
@@ -142,9 +196,11 @@ export function startStream(chatId: string, totalTimeoutMs = STREAM_TEXT_TOTAL_T
         interrupted: true,
         cancelSource: 'timeout',
       };
-      activeStreams.set(chatId, errorState);
+      setStreamState(chatId, errorState);
       clearTimers(chatId);
       abortController.abort();
+      abortControllers.delete(chatId);
+      scheduleTerminalCleanup(chatId);
       notify(errorState);
       logRendererEvent({
         level: 'warn',
@@ -174,7 +230,7 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
       partialText: current.partialText + event.textDelta,
       firstPacketAt: isFirst ? Date.now() : current.firstPacketAt,
     };
-    activeStreams.set(chatId, updated);
+    setStreamState(chatId, updated);
 
     // Clear first-packet timer on first delta
     if (isFirst) {
@@ -194,9 +250,10 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
       ...current,
       phase: 'done',
     };
-    activeStreams.set(chatId, doneState);
+    setStreamState(chatId, doneState);
     clearTimers(chatId);
     abortControllers.delete(chatId);
+    scheduleTerminalCleanup(chatId);
     notify(doneState);
     return;
   }
@@ -216,9 +273,10 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
         reasonCode,
         traceId: event.traceId ?? current.traceId,
       };
-      activeStreams.set(chatId, backpressureState);
+      setStreamState(chatId, backpressureState);
       clearTimers(chatId);
       abortControllers.delete(chatId);
+      scheduleTerminalCleanup(chatId);
       notify(backpressureState);
       return;
     }
@@ -231,9 +289,10 @@ export function feedStreamEvent(chatId: string, event: StreamEvent) {
       reasonCode,
       traceId: event.traceId ?? current.traceId,
     };
-    activeStreams.set(chatId, errorState);
+    setStreamState(chatId, errorState);
     clearTimers(chatId);
     abortControllers.delete(chatId);
+    scheduleTerminalCleanup(chatId);
     notify(errorState);
     return;
   }
@@ -257,8 +316,9 @@ export function cancelStream(chatId: string) {
     interrupted: current.partialText.length > 0,
     cancelSource: 'user',
   };
-  activeStreams.set(chatId, cancelledState);
+  setStreamState(chatId, cancelledState);
   clearTimers(chatId);
+  scheduleTerminalCleanup(chatId);
   notify(cancelledState);
 
   logRendererEvent({
@@ -273,4 +333,12 @@ export function clearStream(chatId: string) {
   activeStreams.delete(chatId);
   abortControllers.delete(chatId);
   clearTimers(chatId);
+  clearTerminalCleanup(chatId);
+}
+
+export function clearAllStreams() {
+  for (const chatId of Array.from(activeStreams.keys())) {
+    clearStream(chatId);
+  }
+  listeners.clear();
 }

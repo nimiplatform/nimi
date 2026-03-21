@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { i18n } from '@renderer/i18n';
 import {
   desktopBridge,
   type CatalogConsentReason,
@@ -66,6 +67,10 @@ function withRemovedModId(modIds: string[], modId: string): string[] {
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'unknown error');
+}
+
+function tModHub(key: string, options: Record<string, unknown> & { defaultValue: string }): string {
+  return i18n.t(key, options);
 }
 
 function formatConsentSummary(input: {
@@ -444,7 +449,11 @@ export function useModHubPageModel(): ModHubPageModel {
       const message = safeErrorMessage(error);
       useAppStore.getState().setStatusBanner({
         kind: 'error',
-        message: `Mod ${normalizedModId} 操作失败：${message}`,
+        message: tModHub('ModHub.runtimeActionFailed', {
+          modId: normalizedModId,
+          message,
+          defaultValue: 'Mod {{modId}} action failed: {{message}}',
+        }),
       });
       logRendererEvent({
         level: 'warn',
@@ -504,7 +513,13 @@ export function useModHubPageModel(): ModHubPageModel {
     appStore.setStatusBanner({
       kind: input.result.requiresUserConsent || input.result.advisoryIds.length > 0 ? 'warning' : 'success',
       message: input.result.requiresUserConsent
-        ? `Mod ${result.modId} 已安装，但需要重新确认后才会启用${consentSummary ? `：${consentSummary}` : ''}`
+        ? tModHub('ModHub.installRequiresConsent', {
+          modId: result.modId,
+          consentSummary,
+          defaultValue: consentSummary
+            ? 'Mod {{modId}} installed, but it must be re-confirmed before enabling: {{consentSummary}}'
+            : 'Mod {{modId}} installed, but it must be re-confirmed before enabling.',
+        })
         : input.successMessage,
     });
   }, []);
@@ -522,7 +537,10 @@ export function useModHubPageModel(): ModHubPageModel {
       const result = await desktopBridge.installCatalogMod({ packageId: normalizedModId });
       await finalizeInstalledManifest({
         result,
-        successMessage: `Mod ${normalizedModId} 已从 catalog 安装`,
+        successMessage: tModHub('ModHub.installFromCatalogSuccess', {
+          modId: normalizedModId,
+          defaultValue: 'Mod {{modId}} installed from catalog',
+        }),
       });
     });
   }, [finalizeInstalledManifest, mergedMods, runRuntimeAction]);
@@ -535,7 +553,11 @@ export function useModHubPageModel(): ModHubPageModel {
       const result = await desktopBridge.updateInstalledMod({ packageId: normalizedModId });
       await finalizeInstalledManifest({
         result,
-        successMessage: `Mod ${normalizedModId} 已更新到 ${result.release.version}`,
+        successMessage: tModHub('ModHub.updateSuccess', {
+          modId: normalizedModId,
+          version: result.release.version,
+          defaultValue: 'Mod {{modId}} updated to {{version}}',
+        }),
         rollbackOnFailure: true,
       });
     });
@@ -568,7 +590,10 @@ export function useModHubPageModel(): ModHubPageModel {
       await syncSingleRuntimeModShellState(normalizedModId);
       appStore.setStatusBanner({
         kind: 'success',
-        message: `Mod ${normalizedModId} 已启用`,
+        message: tModHub('ModHub.enableSuccess', {
+          modId: normalizedModId,
+          defaultValue: 'Mod {{modId}} enabled',
+        }),
       });
     });
   }, [runRuntimeAction]);
@@ -588,7 +613,10 @@ export function useModHubPageModel(): ModHubPageModel {
       appStore.closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({
         kind: 'info',
-        message: `Mod ${normalizedModId} 已禁用`,
+        message: tModHub('ModHub.disableSuccess', {
+          modId: normalizedModId,
+          defaultValue: 'Mod {{modId}} disabled',
+        }),
       });
     });
   }, [runRuntimeAction]);
@@ -614,7 +642,10 @@ export function useModHubPageModel(): ModHubPageModel {
       closeModWorkspaceTab(modTabId);
       appStore.setStatusBanner({
         kind: 'info',
-        message: `Mod ${normalizedModId} 已卸载`,
+        message: tModHub('ModHub.uninstallSuccess', {
+          modId: normalizedModId,
+          defaultValue: 'Mod {{modId}} uninstalled',
+        }),
       });
     });
   }, [closeModWorkspaceTab, runRuntimeAction]);

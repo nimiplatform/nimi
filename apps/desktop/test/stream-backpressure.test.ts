@@ -172,3 +172,10 @@ test('D-STRM-009: StreamEvent error variant includes reasonCode field', () => {
     'StreamEvent error variant must include optional reasonCode field',
   );
 });
+
+test('D-STRM-009: terminal stream states are bounded and scheduled for cleanup', () => {
+  assert.match(streamControllerSource, /STREAM_TERMINAL_STATE_TTL_MS = 60_000/);
+  assert.match(streamControllerSource, /STREAM_MAX_CACHED_STATES = 50/);
+  assert.match(streamControllerSource, /scheduleTerminalCleanup/);
+  assert.match(streamControllerSource, /clearAllStreams/);
+});

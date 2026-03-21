@@ -1,12 +1,13 @@
 import { appendRuntimeAudit, queryRuntimeAudit } from '../../runtime-store/tauri-bridge';
 import type { HookActionAuditFilter, HookActionAuditRecord } from '../contracts/action.js';
+import { createSecureIdSuffix } from '../../id.js';
 
 function toIsoNow(): string {
   return new Date().toISOString();
 }
 
 function createAuditId(): string {
-  return `hook-action:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 9)}`;
+  return `hook-action:${Date.now().toString(36)}:${createSecureIdSuffix()}`;
 }
 
 function normalizeString(value: unknown): string {

@@ -9,7 +9,7 @@ import { i18n } from '@renderer/i18n';
 type RenderFusedRoutePanelInput = {
   entry: UiExtensionRegistration;
   detail?: string;
-  retryingModId: string;
+  retryingModId: string | null;
   context: UiExtensionContext;
   onRetryMod: (modId: string) => void;
   fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;

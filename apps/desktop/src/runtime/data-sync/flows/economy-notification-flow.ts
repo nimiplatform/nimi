@@ -16,6 +16,7 @@ type SendGiftDto = RealmModel<'SendGiftDto'>;
 type SparkCheckoutSessionDto = RealmModel<'SparkCheckoutSessionDto'>;
 type SparkPackageDto = RealmModel<'SparkPackageDto'>;
 type UnreadNotificationCountDto = RealmModel<'UnreadNotificationCountDto'>;
+type GiftListFetcher = (realm: Realm, limit: number, cursor?: string) => Promise<ReceivedGiftsResponseDto>;
 
 type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
@@ -31,6 +32,44 @@ function requireRecord<T extends Record<string, unknown>>(value: unknown, errorC
     throw new Error(errorCode);
   }
   return value as T;
+}
+
+function requireGiftPage(value: unknown): ReceivedGiftsResponseDto {
+  const record = requireRecord<ReceivedGiftsResponseDto>(value, 'GIFT_TRANSACTION_CONTRACT_INVALID');
+  if (!Array.isArray(record.items)) {
+    throw new Error('GIFT_TRANSACTION_CONTRACT_INVALID');
+  }
+  return record;
+}
+
+async function findGiftTransactionInFeed(
+  callApi: DataSyncApiCaller,
+  fetchPage: GiftListFetcher,
+  id: string,
+): Promise<GiftTransactionRichDto | null> {
+  const visitedCursors = new Set<string>();
+  let cursor: string | undefined;
+
+  while (true) {
+    const payload = await callApi(
+      (realm) => fetchPage(realm, 50, cursor),
+      '加载礼物详情失败',
+    );
+    const page = requireGiftPage(payload);
+    const match = page.items.find((item) => item?.id === id);
+    if (match) {
+      return requireRecord<GiftTransactionRichDto>(match, 'GIFT_TRANSACTION_CONTRACT_INVALID');
+    }
+
+    const nextCursor = typeof page.nextCursor === 'string' && page.nextCursor.trim()
+      ? page.nextCursor.trim()
+      : '';
+    if (!nextCursor || visitedCursors.has(nextCursor)) {
+      return null;
+    }
+    visitedCursors.add(nextCursor);
+    cursor = nextCursor;
+  }
 }
 
 function assertEconomyWriteOnline(action: string): void {
@@ -284,11 +323,25 @@ export async function loadGiftTransaction(
     throw new Error('礼物交易 ID 不能为空');
   }
   try {
-    const payload = await callApi(
-      (realm) => realm.services.EconomyCurrencyGiftsService.economyControllerGetGiftTransaction(normalizedId),
-      '加载礼物详情失败',
+    const receivedGift = await findGiftTransactionInFeed(
+      callApi,
+      (realm, limit, cursor) => realm.services.EconomyCurrencyGiftsService.economyControllerGetReceivedGifts(limit, cursor),
+      normalizedId,
     );
-    return requireRecord<GiftTransactionRichDto>(payload, 'GIFT_TRANSACTION_CONTRACT_INVALID');
+    if (receivedGift) {
+      return receivedGift;
+    }
+
+    const sentGift = await findGiftTransactionInFeed(
+      callApi,
+      (realm, limit, cursor) => realm.services.EconomyCurrencyGiftsService.economyControllerGetSentGifts(limit, cursor),
+      normalizedId,
+    );
+    if (sentGift) {
+      return sentGift;
+    }
+
+    throw new Error('GIFT_TRANSACTION_NOT_FOUND');
   } catch (error) {
     emitDataSyncError('load-gift-transaction', error, { id: normalizedId });
     throw error;

@@ -43,6 +43,16 @@ import {
   storeIdempotencyRecord,
 } from './action-service-ledger.js';
 
+export function resolveVerifyTicketTtlMs(
+  ttlSeconds: number | undefined,
+  verifyTicketWindowMs: number,
+): number {
+  if (typeof ttlSeconds !== 'number' || !Number.isFinite(ttlSeconds) || ttlSeconds <= 0) {
+    return verifyTicketWindowMs;
+  }
+  return Math.max(5, Math.min(ttlSeconds, 900)) * 1000;
+}
+
 export async function runVerifyPhase(
   ctx: ActionServiceContext,
   input: {
@@ -103,7 +113,7 @@ export async function runVerifyPhase(
 
   const inputDigest = await toInputDigest(input.input);
   const nowMs = ctx.now();
-  const ttlMs = Math.max(5, Math.min(Number(input.ttlSeconds || 0) || 0, 900)) * 1000 || ctx.verifyTicketWindowMs;
+  const ttlMs = resolveVerifyTicketTtlMs(input.ttlSeconds, ctx.verifyTicketWindowMs);
   const verifyTicket = createVerifyTicket(entry.descriptor.actionId);
   const expiresAt = sanitizeIsoFromMs(nowMs + ttlMs);
   await upsertActionVerifyTicket({

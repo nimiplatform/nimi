@@ -177,7 +177,7 @@ test('D-STRM-010: polling detects terminal FAILED and stops', async () => {
   const deps = makeDeps({
     pollResponses: [
       { status: 'RUNNING' },
-      { status: 'FAILED', reasonCode: ReasonCode.AI_PROVIDER_ERROR, reasonDetail: 'GPU OOM' },
+      { status: 'FAILED', reasonCode: ReasonCode.AI_PROVIDER_INTERNAL, reasonDetail: 'GPU OOM' },
     ],
     pollDelayMs: 5,
   });

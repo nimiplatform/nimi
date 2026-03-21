@@ -74,6 +74,15 @@ export function DesktopParticleBackgroundLight(
     };
 
     const noise3D = createNoise3D();
+    const connectDistanceSq = CONFIG.connectDistance * CONFIG.connectDistance;
+    const neighborOffsets = [
+      [0, 0],
+      [1, -1],
+      [1, 0],
+      [1, 1],
+      [0, 1],
+    ] as const;
+    const spatialBuckets = new Map<string, number[]>();
 
     function computeCurl(x: number, y: number, z: number) {
       const eps = 0.1;
@@ -209,52 +218,103 @@ export function DesktopParticleBackgroundLight(
       let lineIndex = 0;
       const linePosArray = lineGeometry.attributes['position']!.array as Float32Array;
       const lineOpArray = lineGeometry.attributes['opacity']!.array as Float32Array;
+      const registerPair = (i: number, j: number) => {
+        const i3 = i * 3;
+        const j3 = j * 3;
+        const dx = positions[i3]! - positions[j3]!;
+        const dy = positions[i3 + 1]! - positions[j3 + 1]!;
+        const dz = positions[i3 + 2]! - positions[j3 + 2]!;
+        const distSq = dx * dx + dy * dy + dz * dz;
 
+        if (distSq >= connectDistanceSq) {
+          return;
+        }
+
+        const dist = Math.sqrt(distSq);
+        if (lineIndex < MAX_LINES) {
+          const alpha = 1.0 - dist / CONFIG.connectDistance;
+          const l6 = lineIndex * 6;
+          const l2 = lineIndex * 2;
+          linePosArray[l6] = positions[i3]!;
+          linePosArray[l6 + 1] = positions[i3 + 1]!;
+          linePosArray[l6 + 2] = positions[i3 + 2]!;
+          linePosArray[l6 + 3] = positions[j3]!;
+          linePosArray[l6 + 4] = positions[j3 + 1]!;
+          linePosArray[l6 + 5] = positions[j3 + 2]!;
+          lineOpArray[l2] = alpha * 0.25;
+          lineOpArray[l2 + 1] = alpha * 0.25;
+          lineIndex++;
+        }
+
+        if (dist <= 0.1) {
+          return;
+        }
+
+        const forceCohesion = (dist / CONFIG.connectDistance) * CONFIG.cohesionForce;
+        const fx = (dx / dist) * forceCohesion;
+        const fy = (dy / dist) * forceCohesion;
+        flockingForces[i * 2]! -= fx;
+        flockingForces[i * 2 + 1]! -= fy;
+        flockingForces[j * 2]! += fx;
+        flockingForces[j * 2 + 1]! += fy;
+
+        if (dist >= CONFIG.separationDistance) {
+          return;
+        }
+
+        const forceSep = (1.0 - dist / CONFIG.separationDistance) * CONFIG.separationForce;
+        const sx = (dx / dist) * forceSep;
+        const sy = (dy / dist) * forceSep;
+        flockingForces[i * 2]! += sx;
+        flockingForces[i * 2 + 1]! += sy;
+        flockingForces[j * 2]! -= sx;
+        flockingForces[j * 2 + 1]! -= sy;
+      };
+
+      // Bucket particles into local cells so each frame only compares nearby neighbors.
+      spatialBuckets.clear();
       for (let i = 0; i < CONFIG.particleCount; i++) {
         const i3 = i * 3;
-        const px = positions[i3]!;
-        const py = positions[i3 + 1]!;
+        const cellX = Math.floor(positions[i3]! / CONFIG.connectDistance);
+        const cellY = Math.floor(positions[i3 + 1]! / CONFIG.connectDistance);
+        const bucketKey = `${cellX},${cellY}`;
+        const bucket = spatialBuckets.get(bucketKey);
+        if (bucket) {
+          bucket.push(i);
+        } else {
+          spatialBuckets.set(bucketKey, [i]);
+        }
+      }
 
-        for (let j = i + 1; j < CONFIG.particleCount; j++) {
-          const j3 = j * 3;
-          const dx = px - positions[j3]!;
-          const dy = py - positions[j3 + 1]!;
-          const dz = positions[i3 + 2]! - positions[j3 + 2]!;
-          const distSq = dx * dx + dy * dy + dz * dz;
+      for (const [bucketKey, bucket] of spatialBuckets.entries()) {
+        const [cellXText, cellYText] = bucketKey.split(',');
+        const cellX = Number(cellXText);
+        const cellY = Number(cellYText);
+        for (const [offsetX, offsetY] of neighborOffsets) {
+          const neighborBucket = spatialBuckets.get(`${cellX + offsetX},${cellY + offsetY}`);
+          if (!neighborBucket) {
+            continue;
+          }
 
-          if (distSq < CONFIG.connectDistance * CONFIG.connectDistance) {
-            const dist = Math.sqrt(distSq);
-            if (lineIndex < MAX_LINES) {
-              const alpha = 1.0 - dist / CONFIG.connectDistance;
-              const l6 = lineIndex * 6;
-              const l2 = lineIndex * 2;
-              linePosArray[l6] = positions[i3]!;
-              linePosArray[l6 + 1] = positions[i3 + 1]!;
-              linePosArray[l6 + 2] = positions[i3 + 2]!;
-              linePosArray[l6 + 3] = positions[j3]!;
-              linePosArray[l6 + 4] = positions[j3 + 1]!;
-              linePosArray[l6 + 5] = positions[j3 + 2]!;
-              lineOpArray[l2] = alpha * 0.25;
-              lineOpArray[l2 + 1] = alpha * 0.25;
-              lineIndex++;
-            }
-            if (dist > 0.1) {
-              const forceCohesion = (dist / CONFIG.connectDistance) * CONFIG.cohesionForce;
-              const fx = (dx / dist) * forceCohesion;
-              const fy = (dy / dist) * forceCohesion;
-              flockingForces[i * 2]! -= fx;
-              flockingForces[i * 2 + 1]! -= fy;
-              flockingForces[j * 2]! += fx;
-              flockingForces[j * 2 + 1]! += fy;
-              if (dist < CONFIG.separationDistance) {
-                const forceSep = (1.0 - dist / CONFIG.separationDistance) * CONFIG.separationForce;
-                const sx = (dx / dist) * forceSep;
-                const sy = (dy / dist) * forceSep;
-                flockingForces[i * 2]! += sx;
-                flockingForces[i * 2 + 1]! += sy;
-                flockingForces[j * 2]! -= sx;
-                flockingForces[j * 2 + 1]! -= sy;
+          if (offsetX === 0 && offsetY === 0) {
+            for (let i = 0; i < bucket.length; i++) {
+              const left = bucket[i];
+              if (left === undefined) {
+                continue;
               }
+              for (let j = i + 1; j < bucket.length; j++) {
+                const right = bucket[j];
+                if (right !== undefined) {
+                  registerPair(left, right);
+                }
+              }
+            }
+            continue;
+          }
+
+          for (const left of bucket) {
+            for (const right of neighborBucket) {
+              registerPair(left, right);
             }
           }
         }
@@ -291,22 +351,23 @@ export function DesktopParticleBackgroundLight(
           const dcx = -px;
           const dcy = -py;
           const distCenter = Math.sqrt(dcx * dcx + dcy * dcy);
+          const safeDistCenter = Math.max(distCenter, 0.001);
 
           if (distCenter > CONFIG.centerStopRadius) {
             const strength = (distCenter - CONFIG.centerStopRadius) * 0.05 * CONFIG.centerAttractForce;
-            mx = (dcx / distCenter) * strength * 100;
-            my = (dcy / distCenter) * strength * 100;
+            mx = (dcx / safeDistCenter) * strength * 100;
+            my = (dcy / safeDistCenter) * strength * 100;
           } else if (distCenter > 5) {
-            mx = (dcy / distCenter) * CONFIG.centerVortexForce * 50;
-            my = (-dcx / distCenter) * CONFIG.centerVortexForce * 50;
+            mx = (dcy / safeDistCenter) * CONFIG.centerVortexForce * 50;
+            my = (-dcx / safeDistCenter) * CONFIG.centerVortexForce * 50;
             const pushStrength = (1.0 - distCenter / CONFIG.centerStopRadius) * 20;
-            mx -= (dcx / distCenter) * pushStrength;
-            my -= (dcy / distCenter) * pushStrength;
+            mx -= (dcx / safeDistCenter) * pushStrength;
+            my -= (dcy / safeDistCenter) * pushStrength;
           }
 
           const wave = Math.sin(time * 2 + i) * 5;
-          mx += (dcy / distCenter) * wave;
-          my += (-dcx / distCenter) * wave;
+          mx += (dcy / safeDistCenter) * wave;
+          my += (-dcx / safeDistCenter) * wave;
         } else {
           const dx = px - mouse3D.x;
           const dy = py - mouse3D.y;

@@ -154,7 +154,7 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
   };
 }
 
-export async function getRuntimeDefaults() {
+export async function getRuntimeDefaults(): Promise<RuntimeDefaults> {
   if (!hasTauriInvoke()) {
     return applyEnvOverrides(readRuntimeDefaultsFallback());
   }

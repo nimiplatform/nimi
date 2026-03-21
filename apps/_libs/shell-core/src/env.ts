@@ -8,6 +8,9 @@ type GlobalEnvCarrier = typeof globalThis & {
 };
 
 function normalizeEnvValue(value: ImportMetaEnvValue): string {
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
   return String(value || '').trim();
 }
 

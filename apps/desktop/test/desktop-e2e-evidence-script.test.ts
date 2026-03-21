@@ -96,8 +96,8 @@ test('desktop E2E evidence records blocking residual risks when journeys fail', 
     });
 
     assert.equal(evidence.ok, false);
-    assert.ok(evidence.residualRisks.some((risk) => risk.includes('journeys outcome is failure')));
-    assert.ok(evidence.residualRisks.some((risk) => risk.includes('no desktop E2E scenario artifacts')));
+    assert.ok(evidence.residualRisks.some((risk: string) => risk.includes('journeys outcome is failure')));
+    assert.ok(evidence.residualRisks.some((risk: string) => risk.includes('no desktop E2E scenario artifacts')));
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

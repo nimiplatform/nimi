@@ -51,14 +51,14 @@ test('desktop updater artifact validation accepts aligned updater assets', () =>
 test('desktop updater artifact validation rejects missing signatures and bundle mismatch', () => {
   const fixture = makeArtifactFixture();
   try {
-    fs.unlinkSync(fixture.artifacts[1]);
+    fs.unlinkSync(fixture.artifacts[1]!);
     const violations = collectDesktopUpdaterArtifactViolations({
       artifacts: fixture.artifacts.filter((artifactPath) => !artifactPath.endsWith('.sig')),
       expectedBundle: 'nsis',
     });
 
-    assert.ok(violations.some((line) => line.includes('no updater signature artifacts')));
-    assert.ok(violations.some((line) => line.includes('expected updater bundle type nsis')));
+    assert.ok(violations.some((line: string) => line.includes('no updater signature artifacts')));
+    assert.ok(violations.some((line: string) => line.includes('expected updater bundle type nsis')));
   } finally {
     fixture.cleanup();
   }
@@ -67,13 +67,13 @@ test('desktop updater artifact validation rejects missing signatures and bundle 
 test('desktop updater artifact validation rejects invalid latest.json payloads', () => {
   const fixture = makeArtifactFixture();
   try {
-    fs.writeFileSync(fixture.artifacts[2], '{not-json');
+    fs.writeFileSync(fixture.artifacts[2]!, '{not-json');
     const violations = collectDesktopUpdaterArtifactViolations({
       artifacts: fixture.artifacts,
       expectedBundle: 'app',
     });
 
-    assert.ok(violations.some((line) => line.includes('latest.json is not valid JSON')));
+    assert.ok(violations.some((line: string) => line.includes('latest.json is not valid JSON')));
   } finally {
     fixture.cleanup();
   }
@@ -83,7 +83,7 @@ test('desktop updater artifact validation rejects empty platform maps', () => {
   const fixture = makeArtifactFixture();
   try {
     fs.writeFileSync(
-      fixture.artifacts[2],
+      fixture.artifacts[2]!,
       `${JSON.stringify({ version: '0.1.0', platforms: {} }, null, 2)}\n`,
     );
     const violations = collectDesktopUpdaterArtifactViolations({
@@ -91,7 +91,7 @@ test('desktop updater artifact validation rejects empty platform maps', () => {
       expectedBundle: 'app',
     });
 
-    assert.ok(violations.some((line) => line.includes('latest.json platforms is empty')));
+    assert.ok(violations.some((line: string) => line.includes('latest.json platforms is empty')));
   } finally {
     fixture.cleanup();
   }

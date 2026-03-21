@@ -62,7 +62,7 @@ test('hydrateLocalRouteBindingFromOptions prefers fresh local model go-runtime m
       goRuntimeLocalModelId: 'go-active',
       goRuntimeStatus: 'active',
     },
-    resolvedDefault: null,
+    resolvedDefault: undefined,
     local: {
       models: [{
         localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',
@@ -104,7 +104,7 @@ test('hydrateLocalRouteBindingFromOptions clears stale removed go-runtime metada
       provider: 'localai',
       engine: 'localai',
     },
-    resolvedDefault: null,
+    resolvedDefault: undefined,
     local: {
       models: [{
         localModelId: '01KK5M5ZNHWYK9WV1QWKSW48WG',

@@ -38,8 +38,8 @@ test('write-back guard: state changes should not be written when bridge read fai
 
   // Write-back guard: should NOT call set if read never succeeded
   if (runtimeBridgeReadSucceeded) {
-    const nextConfig = buildRuntimeBridgeConfigFromState(state, {});
-    void mockSetRuntimeBridgeConfig(JSON.stringify(nextConfig));
+    void buildRuntimeBridgeConfigFromState(state, {});
+    void mockSetRuntimeBridgeConfig();
   }
 
   assert.equal(setRuntimeBridgeConfigCalled, false, 'setRuntimeBridgeConfig must not be called when bridge read failed');

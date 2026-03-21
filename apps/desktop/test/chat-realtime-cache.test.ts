@@ -3,6 +3,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import assert from 'node:assert/strict';
 
 type ChatViewDto = RealmModel<'ChatViewDto'>;
+type ListChatsResultDto = RealmModel<'ListChatsResultDto'>;
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 
 import {
@@ -104,7 +105,7 @@ describe('D-OFFLINE-004: conflict handling uses the latest server timestamp', ()
       current: {
         items: [currentChat],
         nextCursor: null,
-      } as unknown as { items: ChatViewDto[] },
+      } as ListChatsResultDto,
       chatId: 'chat-1',
       message: staleMessage,
     });

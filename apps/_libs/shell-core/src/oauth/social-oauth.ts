@@ -75,8 +75,12 @@ function parseExtra(value: string): Record<string, string> {
   }
 }
 
-function resolveProviderLabel(provider: SocialOauthProvider): string {
+export function resolveProviderLabel(provider: SocialOauthProvider): string {
   return provider === 'TWITTER' ? 'Twitter' : 'TikTok';
+}
+
+export function toOauthProvider(provider: SocialOauthProvider): string {
+  return provider === 'TWITTER' ? 'TWITTER' : 'TIKTOK';
 }
 
 function normalizeProviderUrl(value: string, fallback: string): string {
@@ -265,8 +269,4 @@ export async function startSocialOauth(
   } finally {
     void listenTask.catch(() => undefined);
   }
-}
-
-export function toOauthProvider(provider: SocialOauthProvider): string {
-  return provider === 'TWITTER' ? 'TWITTER' : 'TIKTOK';
 }

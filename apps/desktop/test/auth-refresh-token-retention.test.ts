@@ -62,14 +62,17 @@ test('setAuthSession keeps existing refresh token when refreshToken is undefined
 });
 
 test('auth menu storage sync forwards persisted refresh token when available', () => {
-  assert.match(authFlowSource, /externalSetAuthSession\?\.\(latestUser, latestToken, latestRefreshToken \|\| undefined\)/);
-  assert.match(authFlowSource, /void adapter\.applyToken\(latestToken, latestRefreshToken \|\| undefined\)/);
+  assert.match(
+    authFlowSource,
+    /setAuthSession: \(user, token, refreshToken\) => authSessionSetterRef\.current\(user, token, refreshToken\)/,
+  );
+  assert.match(authFlowSource, /void adapter\.applyToken\(''\)/);
 });
 
-test('desktop authorization keeps refresh token in auth store', () => {
+test('desktop authorization preserves refresh token by leaving it undefined in auth store update', () => {
   assert.match(
     authMenuHandlersExtSource,
-    /setAuthSession\(\s*normalizedUser,\s*accessToken,\s*latestPersistedAuthSession\?\.refreshToken \|\| undefined,\s*\)/,
+    /setAuthSession\(\s*normalizedUser,\s*accessToken,\s*undefined,\s*\)/,
   );
 });
 

@@ -69,6 +69,25 @@ test('control-plane audit sync fails close on invalid response shape', async () 
   );
 });
 
+test('control-plane audit sync accepts zero accepted records as a valid non-negative count', async () => {
+  const client = createClient(async () => new Response(JSON.stringify({
+    accepted: 0,
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  }));
+
+  const result = await client.syncAudit({
+    source: 'runtime-kernel',
+    records: [{
+      eventType: 'AUDIT_EVENT',
+      occurredAt: '2026-03-20T00:00:00.000Z',
+    }],
+  });
+
+  assert.equal(result.accepted, 0);
+});
+
 test('control-plane revocation fetch fails close on transport failure', async () => {
   const client = createClient(async () => {
     throw new Error('ECONNREFUSED');

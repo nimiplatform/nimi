@@ -120,8 +120,8 @@ test('desktop release evidence reports updater and release-sync violations', () 
     });
 
     assert.equal(evidence.ok, false);
-    assert.ok(evidence.releaseSyncViolations.some((line) => line.includes('sha256 mismatch')));
-    assert.ok(evidence.updaterViolations.some((line) => line.includes('no updater signature artifacts')));
+    assert.ok(evidence.releaseSyncViolations.some((line: string) => line.includes('sha256 mismatch')));
+    assert.ok(evidence.updaterViolations.some((line: string) => line.includes('no updater signature artifacts')));
   } finally {
     fixture.cleanup();
   }

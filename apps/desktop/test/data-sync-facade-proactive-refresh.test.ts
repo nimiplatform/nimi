@@ -36,7 +36,7 @@ test('DataSync proactive refresh success updates tokens, persists hot state, and
   globalThis.setTimeout = ((callback: () => void, delayMs?: number) => {
     scheduled.push({ callback, delayMs: Number(delayMs || 0) });
     return Symbol('timeout') as never;
-  }) as typeof globalThis.setTimeout;
+  }) as unknown as typeof globalThis.setTimeout;
   globalThis.clearTimeout = (() => undefined) as typeof globalThis.clearTimeout;
 
   try {

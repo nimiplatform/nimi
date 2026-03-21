@@ -133,7 +133,7 @@ export function ContactsView(props: ContactsViewProps) {
     });
   }, [props.blockedContacts]);
 
-  // 跟踪已接受的好友请求（用于在列表中显示"Added"状态）
+  // 处理联系人侧栏拖拽缩放。
   useEffect(() => {
     const onMouseMove = (event: globalThis.MouseEvent) => {
       if (!resizingRef.current || !containerRef.current) {
@@ -570,9 +570,9 @@ export function ContactsView(props: ContactsViewProps) {
               setRejectedRequests(prev => new Set(prev).add(req.userId));
             }}
           />
-        ) : selectedContact ? (
+        ) : selectedContact && selectedProfile ? (
           <ContactDetailView
-            profile={selectedProfile!}
+            profile={selectedProfile}
             loading={profileLoading}
             error={profileError}
             onClose={() => {
@@ -609,6 +609,12 @@ export function ContactsView(props: ContactsViewProps) {
             } : undefined}
             showMessageButton={!selectedProfile?.isAgent}
           />
+        ) : selectedContact ? (
+          <div className="flex h-full items-center justify-center bg-white">
+            <p className="text-sm text-gray-500">
+              {t('ProfileView.loading', { defaultValue: 'Loading profile...' })}
+            </p>
+          </div>
         ) : (
           // 空状态 - 显示 Nimi Logo
           <div className="h-full flex items-center justify-center bg-white">

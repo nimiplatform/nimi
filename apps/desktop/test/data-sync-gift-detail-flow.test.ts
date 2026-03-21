@@ -15,29 +15,24 @@ function createEmitter(errors: DataSyncError[]) {
   };
 }
 
-test('loadGiftTransaction uses the typed single-detail API', async () => {
+test('loadGiftTransaction scans received gifts before sent gifts', async () => {
   let receivedListCalls = 0;
   let sentListCalls = 0;
-  let detailCalls = 0;
 
   const result = await loadGiftTransaction(
     async (task) => task({
       services: {
         EconomyCurrencyGiftsService: {
-          economyControllerGetGiftTransaction: async (giftTransactionId: string) => {
-            detailCalls += 1;
-            return {
-              id: giftTransactionId,
-              status: 'PENDING',
-            };
-          },
           economyControllerGetReceivedGifts: async () => {
             receivedListCalls += 1;
-            return { items: [] };
+            return {
+              items: [{ id: 'gift-1', status: 'PENDING' }],
+              nextCursor: null,
+            };
           },
           economyControllerGetSentGifts: async () => {
             sentListCalls += 1;
-            return { items: [] };
+            return { items: [], nextCursor: null };
           },
         },
       },
@@ -47,17 +42,16 @@ test('loadGiftTransaction uses the typed single-detail API', async () => {
   );
 
   assert.equal(result.id, 'gift-1');
-  assert.equal(detailCalls, 1);
-  assert.equal(receivedListCalls, 0);
+  assert.equal(receivedListCalls, 1);
   assert.equal(sentListCalls, 0);
 });
 
-test('loadGiftTransaction fails close on invalid detail payloads', async () => {
+test('loadGiftTransaction fails close on invalid page payloads', async () => {
   const errors: DataSyncError[] = [];
 
   await assert.rejects(
     () => loadGiftTransaction(
-      async () => 'invalid-detail' as never,
+      async () => 'invalid-page' as never,
       createEmitter(errors),
       'gift-1',
     ),
@@ -68,14 +62,19 @@ test('loadGiftTransaction fails close on invalid detail payloads', async () => {
   assert.equal(errors[0]!.action, 'load-gift-transaction');
 });
 
-test('loadGiftTransaction surfaces not-found errors from the detail API', async () => {
+test('loadGiftTransaction surfaces not-found errors after scanning both feeds', async () => {
   const errors: DataSyncError[] = [];
 
   await assert.rejects(
     () => loadGiftTransaction(
-      async () => {
-        throw new Error('GIFT_TRANSACTION_NOT_FOUND');
-      },
+      async (task) => task({
+        services: {
+          EconomyCurrencyGiftsService: {
+            economyControllerGetReceivedGifts: async () => ({ items: [], nextCursor: null }),
+            economyControllerGetSentGifts: async () => ({ items: [], nextCursor: null }),
+          },
+        },
+      } as never),
       createEmitter(errors),
       'gift-missing',
     ),

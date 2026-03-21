@@ -31,6 +31,14 @@ test('report modal reason list matches backend enum contract', () => {
   assert.match(reportModalSource, /ReportReason\.OTHER/);
 });
 
+test('report modal preserves failure feedback instead of silently closing on submit errors', () => {
+  assert.match(reportModalSource, /const \[submitError, setSubmitError\] = useState<string \| null>\(null\)/);
+  assert.match(reportModalSource, /catch \(error\)/);
+  assert.match(reportModalSource, /setSubmitError/);
+  assert.match(postCardSource, /ui\.setShowReportModal\(false\)/);
+  assert.match(postCardSource, /throw error/);
+});
+
 test('edit post no longer shows coming soon path', () => {
   assert.doesNotMatch(postCardUiSource, /coming soon/i);
   assert.match(postCardUiSource, /setShowEditVisibilityModal\(true\)/);

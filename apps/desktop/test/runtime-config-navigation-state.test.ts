@@ -140,7 +140,7 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
         provider: 'nimi_media',
         adapter: 'nimi_media_native_adapter',
         available: false,
-        reasonCode: ReasonCode.LOCAL_PROVIDER_ATTACHED_ONLY,
+        reasonCode: ReasonCode.ACTION_CONTEXT_INVALID,
         providerHints: {
           nimiMedia: {
             preferredAdapter: 'nimi_media_native_adapter',
@@ -157,12 +157,16 @@ test('normalizeStoredStateV11: accepts v12 snapshots and preserves local provide
   };
 
   const result = normalizeStoredStateV11(seed, stored as never);
+  const providerHints = result.local.nodeMatrix[0]?.providerHints as {
+    nimiMedia?: { preferredAdapter?: string };
+    extra?: { runtime_support_class?: string };
+  } | undefined;
   assert.equal(result.version, 12);
   assert.equal(result.local.models[0]?.engine, 'nimi_media');
   assert.equal(result.local.nodeMatrix[0]?.provider, 'nimi_media');
   assert.equal(result.local.nodeMatrix[0]?.serviceId, 'svc-nimi-media');
-  assert.equal(result.local.nodeMatrix[0]?.providerHints?.nimiMedia?.driver, undefined);
-  assert.equal(result.local.nodeMatrix[0]?.providerHints?.extra?.runtime_support_class, 'attached_only');
+  assert.equal(providerHints?.nimiMedia?.preferredAdapter, 'nimi_media_native_adapter');
+  assert.equal(providerHints?.extra?.runtime_support_class, 'attached_only');
 });
 
 test('normalizeStoredStateV11: connectors always empty (bridge is source of truth)', () => {

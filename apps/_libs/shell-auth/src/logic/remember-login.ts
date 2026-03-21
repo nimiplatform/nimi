@@ -9,11 +9,7 @@ function normalizeRememberedLogin(value: unknown): {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return { login: null, migrated: false };
   }
-  const record = value as {
-    email?: unknown;
-    rememberMe?: unknown;
-    password?: unknown;
-  };
+  const record = Object.fromEntries(Object.entries(value));
   const email = typeof record.email === 'string' ? record.email.trim() : '';
   if (!email) {
     return { login: null, migrated: false };

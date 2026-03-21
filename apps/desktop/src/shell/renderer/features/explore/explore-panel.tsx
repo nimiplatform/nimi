@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -276,10 +276,14 @@ export function ExplorePanel() {
     const worlds = worldsQuery.data ?? [];
     return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, scoreEwma: w.scoreEwma, name: w.name }]));
   }, [worldsQuery.data]);
+  const worldsDataVersion = useMemo(
+    () => (worldsQuery.data ?? []).map((world) => `${world.id}:${world.bannerUrl || ''}:${world.scoreEwma ?? ''}`).join('|'),
+    [worldsQuery.data],
+  );
 
   // Fetch agents for sidebar
   const agentsQuery = useQuery({
-    queryKey: ['explore-agents', authStatus, selectedCategory, searchText],
+    queryKey: ['explore-agents', authStatus, selectedCategory, searchText, worldsDataVersion],
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = searchText.trim() || undefined;
@@ -305,13 +309,6 @@ export function ExplorePanel() {
   });
 
   const agents = agentsQuery.data ?? [];
-  
-  // Refetch agents when worlds data is loaded to ensure worldBannerUrl is populated
-  useEffect(() => {
-    if (worldsQuery.data && agentsQuery.data) {
-      agentsQuery.refetch();
-    }
-  }, [worldsQuery.data]);
 
   const categories = useMemo(() => {
     const dynamicTags = new Set<string>();

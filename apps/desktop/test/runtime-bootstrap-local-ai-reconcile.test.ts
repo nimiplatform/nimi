@@ -10,6 +10,7 @@ test('reconcileLocalRuntimeBootstrapState reconciles desktop and go-runtime mode
     capabilities: ['image'],
     engine: 'localai',
     entry: 'z_image_turbo-Q4_K.gguf',
+    files: ['z_image_turbo-Q4_K.gguf'],
     license: 'apache-2.0',
     source: {
       repo: 'repo',
@@ -20,6 +21,7 @@ test('reconcileLocalRuntimeBootstrapState reconciles desktop and go-runtime mode
     status: 'installed' as const,
     installedAt: '2026-03-08T00:00:00Z',
     updatedAt: '2026-03-08T00:00:00Z',
+    tags: ['image'],
   }];
   const logs: Array<Record<string, unknown>> = [];
   const result = await reconcileLocalRuntimeBootstrapState({

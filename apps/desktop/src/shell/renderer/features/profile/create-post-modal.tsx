@@ -39,6 +39,10 @@ type CreatePostModalProps = {
   initialPost?: EditablePostSeed | null;
 };
 
+const POPULAR_TAGS = [
+  'ai', 'design', 'music', 'art', 'photography', 'travel', 'food', 'fashion',
+  'technology', 'gaming', 'sports', 'news', 'science', 'history', 'nature',
+];
 
 export function CreatePostModal({ open, onClose, onComplete, onUploadStart, initialPost = null }: CreatePostModalProps) {
   const { t } = useTranslation();
@@ -81,12 +85,6 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     locationButtonRef: locationBtnRef,
     tagButtonRef: tagBtnRef,
   });
-
-  // Popular tags for suggestions
-  const POPULAR_TAGS = [
-    'ai', 'design', 'music', 'art', 'photography', 'travel', 'food', 'fashion',
-    'technology', 'gaming', 'sports', 'news', 'science', 'history', 'nature'
-  ];
 
   const filteredTags = tagSearch.trim()
     ? POPULAR_TAGS.filter(tag => tag.toLowerCase().includes(tagSearch.toLowerCase()))
@@ -174,6 +172,14 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     setSelectedTags([]);
     setSelectedMediaRef(null);
   }, [closeAllPanels, initialPost, open]);
+
+  useEffect(() => {
+    return () => {
+      if (selectedFileRef.current) {
+        URL.revokeObjectURL(selectedFileRef.current.previewUrl);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) {

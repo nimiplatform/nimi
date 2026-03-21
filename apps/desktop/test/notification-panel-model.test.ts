@@ -116,6 +116,7 @@ describe('notification model mapping', () => {
           isRead: false,
           actor: {
             id: 'user-9',
+            createdAt: '2026-03-15T00:00:00.000Z',
             displayName: 'Sender',
             handle: '@sender',
             avatarUrl: null,

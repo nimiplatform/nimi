@@ -23,11 +23,11 @@ export type AuthFormModel = AuthFormState & AuthFormActions & {
   canSubmit: boolean;
 };
 
-export function getAuthErrorMessage(error: unknown): string {
+export function getAuthErrorMessage(error: unknown, fallbackMessage: string): string {
   if (error instanceof Error && error.message) {
     return error.message;
   }
-  return '登录失败，请稍后重试';
+  return fallbackMessage;
 }
 
 export function useAuthFormState(): AuthFormModel {

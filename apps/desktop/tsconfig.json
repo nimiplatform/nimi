@@ -6,6 +6,8 @@
       "@renderer/*": ["src/shell/renderer/*"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
+      "@nimiplatform/shell-auth": ["../_libs/shell-auth/src/index.ts"],
+      "@nimiplatform/shell-auth/*": ["../_libs/shell-auth/src/*"],
       "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"]
     },
     "target": "ES2022",
@@ -35,7 +37,8 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "test/**/*.mjs",
+    "test/**/*.d.ts",
+    "test/**/*.ts",
     "vite.config.ts"
   ]
 }

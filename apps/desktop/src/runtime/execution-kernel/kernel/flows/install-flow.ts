@@ -1,13 +1,5 @@
 import type { DecisionRecord, InstallInput, LifecycleState, ModManifest } from '../../contracts/types';
-
-type RuntimeContext = {
-  manifest: ModManifest;
-  grantedCapabilities: string[];
-  sandboxProfileId: string;
-  instanceId: string;
-  state: LifecycleState;
-  mode: InstallInput['mode'];
-};
+import type { RuntimeContext } from '../kernel-service-utils';
 
 type InstallFlowInput = {
   input: InstallInput;
@@ -39,7 +31,7 @@ type InstallFlowInput = {
     grantedCapabilities: string[];
   }) => { ok: boolean; instanceId: string };
   setLifecycle: (modId: string, version: string, state: LifecycleState) => void;
-  registerInstalled: (modId: string, version: string) => void;
+  registerInstalled: (modId: string, version: string, dependencies: string[]) => void;
   setContext: (key: string, context: RuntimeContext) => void;
   setCapabilityBaseline: (modId: string, capabilities: string[]) => void;
   makeDecision: (
@@ -156,7 +148,7 @@ export async function runInstallFlow({
   }
 
   setLifecycle(input.modId, input.version, 'INSTALLED');
-  registerInstalled(input.modId, input.version);
+  registerInstalled(input.modId, input.version, manifest.dependencies || []);
   setContext(keyFor(input.modId, input.version), {
     manifest,
     grantedCapabilities: policy.grantedCapabilities,

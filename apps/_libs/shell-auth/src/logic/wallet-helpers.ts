@@ -1,4 +1,4 @@
-import type { WalletType, WalletProvider, GoogleWindow } from '../types/auth-types.js';
+import type { WalletType, WalletProvider, ShellAuthWindow } from '../types/auth-types.js';
 
 export function parseChainId(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -23,7 +23,7 @@ export function resolveWalletProvider(walletType: WalletType): WalletProvider | 
     return null;
   }
 
-  const win = window as GoogleWindow;
+  const win = window as ShellAuthWindow;
   if (walletType === 'metamask') {
     const provider = win.ethereum;
     if (!provider) {

@@ -56,13 +56,15 @@ test('desktop replay voice design uses async-job enum values without injecting s
 
   assert.equal(result.status, 'passed');
   assert.ok(capturedRequest);
-  assert.equal(capturedRequest?.scenarioType, ScenarioType.VOICE_DESIGN);
-  assert.equal(capturedRequest?.executionMode, ExecutionMode.ASYNC_JOB);
+  const request = capturedRequest as Record<string, unknown>;
+  assert.equal(request.scenarioType, ScenarioType.VOICE_DESIGN);
+  assert.equal(request.executionMode, ExecutionMode.ASYNC_JOB);
 
-  const head = (capturedRequest?.head || {}) as Record<string, unknown>;
+  const head = (request.head || {}) as Record<string, unknown>;
   assert.equal(head.subjectUserId, undefined);
 
-  const metadata = ((capturedOptions?.metadata || {}) as Record<string, unknown>);
+  const options = (capturedOptions || {}) as Record<string, unknown>;
+  const metadata = ((options.metadata || {}) as Record<string, unknown>);
   assert.equal(metadata.callerKind, 'desktop-core');
   assert.equal(metadata.callerId, 'core.desktop.ai-gold-path');
   assert.equal(metadata.surfaceId, 'desktop.renderer');

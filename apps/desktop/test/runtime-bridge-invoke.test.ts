@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
-import { toBridgeNimiError, toBridgeUserError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
+import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
 
-test('toBridgeUserError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
-  const error = toBridgeUserError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
+test('toBridgeNimiError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
+  const error = toBridgeNimiError(new Error('LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload'));
   assert.equal(error.reasonCode, 'LOCAL_LIFECYCLE_WRITE_DENIED');
   assert.equal(error.message, 'LOCAL_LIFECYCLE_WRITE_DENIED: caller=sideload');
   assert.equal(
@@ -14,8 +14,8 @@ test('toBridgeUserError maps LOCAL_LIFECYCLE_WRITE_DENIED reason code', () => {
   );
 });
 
-test('toBridgeUserError keeps generic fallback for unknown runtime reason', () => {
-  const error = toBridgeUserError(new Error('SOME_UNKNOWN_RUNTIME_REASON'));
+test('toBridgeNimiError keeps generic fallback for unknown runtime reason', () => {
+  const error = toBridgeNimiError(new Error('SOME_UNKNOWN_RUNTIME_REASON'));
   assert.equal(error.message, 'SOME_UNKNOWN_RUNTIME_REASON');
   assert.equal(
     String(error.details?.userMessage || ''),
@@ -23,8 +23,8 @@ test('toBridgeUserError keeps generic fallback for unknown runtime reason', () =
   );
 });
 
-test('toBridgeUserError maps LOCAL_AI_HF_DOWNLOAD_DISK_FULL reason code', () => {
-  const error = toBridgeUserError(new Error('LOCAL_AI_HF_DOWNLOAD_DISK_FULL: no space left on device'));
+test('toBridgeNimiError maps LOCAL_AI_HF_DOWNLOAD_DISK_FULL reason code', () => {
+  const error = toBridgeNimiError(new Error('LOCAL_AI_HF_DOWNLOAD_DISK_FULL: no space left on device'));
   assert.equal(error.reasonCode, 'LOCAL_AI_HF_DOWNLOAD_DISK_FULL');
   assert.equal(
     String(error.details?.userMessage || ''),
@@ -32,8 +32,8 @@ test('toBridgeUserError maps LOCAL_AI_HF_DOWNLOAD_DISK_FULL reason code', () => 
   );
 });
 
-test('toBridgeUserError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID reason code', () => {
-  const error = toBridgeUserError(
+test('toBridgeNimiError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID reason code', () => {
+  const error = toBridgeNimiError(
     new Error('LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID: unsupported file'),
   );
   assert.equal(error.reasonCode, 'LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID');
@@ -43,8 +43,8 @@ test('toBridgeUserError maps LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID
   );
 });
 
-test('toBridgeUserError maps LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID reason code', () => {
-  const error = toBridgeUserError(
+test('toBridgeNimiError maps LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID reason code', () => {
+  const error = toBridgeNimiError(
     new Error('LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID: unsupported kind'),
   );
   assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID');
@@ -54,8 +54,8 @@ test('toBridgeUserError maps LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID reason code',
   );
 });
 
-test('toBridgeUserError maps LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND reason code', () => {
-  const error = toBridgeUserError(
+test('toBridgeNimiError maps LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND reason code', () => {
+  const error = toBridgeNimiError(
     new Error('LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND: file does not exist'),
   );
   assert.equal(error.reasonCode, 'LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND');

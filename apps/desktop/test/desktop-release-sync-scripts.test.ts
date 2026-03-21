@@ -74,7 +74,7 @@ test('desktop release sync fails on generated manifest drift', () => {
     fs.writeFileSync(runtimeManifestPath, JSON.stringify(current, null, 2));
 
     const violations = collectDesktopReleaseSyncViolations(fixture.desktopRoot, '1.2.3');
-    assert.ok(violations.some((line) => line.includes('sha256 mismatch')));
+    assert.ok(violations.some((line: string) => line.includes('sha256 mismatch')));
   } finally {
     fixture.cleanup();
   }

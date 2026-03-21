@@ -37,6 +37,14 @@ test('send gift modal renders explicit loading, failure, retry, and empty catalo
   assert.match(modalSource, /giftOptions\.length === 0/);
 });
 
+test('send gift modal uses a synchronous ref guard to block double-submit races', () => {
+  assert.match(modalSource, /useRef/);
+  assert.match(modalSource, /const sendingRef = useRef\(false\)/);
+  assert.match(modalSource, /if \(sendingRef\.current \|\| !selectedGiftId \|\| !props\.receiverId\)/);
+  assert.match(modalSource, /sendingRef\.current = true/);
+  assert.match(modalSource, /sendingRef\.current = false/);
+});
+
 test('send gift modal uses explicit receiverIsAgent instead of handle-prefix inference', () => {
   assert.match(modalSource, /receiverIsAgent\?: boolean;/);
   assert.match(modalSource, /kind=\{props\.receiverIsAgent === true \? 'agent' : 'human'\}/);

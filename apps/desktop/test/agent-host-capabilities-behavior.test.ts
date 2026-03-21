@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { AgentMemoryRecord, RealmModel } from '@nimiplatform/sdk/realm';
 import test from 'node:test';
 import {
   createAgentCoreDataCapabilityHandlers,
@@ -8,6 +8,19 @@ import {
 } from '../src/shell/renderer/infra/bootstrap/core-capabilities';
 
 type MemoryStatsResponseDto = RealmModel<'MemoryStatsResponseDto'>;
+
+function makeMemoryRecord(id: string, overrides: Partial<AgentMemoryRecord> = {}): AgentMemoryRecord {
+  return {
+    id,
+    category: 'CORE',
+    content: `${id} content`,
+    createdAt: '2026-03-01T00:00:00Z',
+    entityId: null,
+    importance: 1,
+    type: 'CORE_FACT',
+    ...overrides,
+  };
+}
 
 test('agent chat route capability fails close on missing agentId, invalid payload, and remote errors', async () => {
   resetAgentCoreDataStateForTesting();
@@ -53,7 +66,7 @@ test('agent memory core list uses cache-only semantics and rejects missing agent
 
   seedAgentMemoryIndexForTesting({
     agentId: 'agent-cache',
-    core: [{ id: 'core-1' }],
+    core: [makeMemoryRecord('core-1')],
   });
   let requestCount = 0;
   const cachedHandlers = createAgentCoreDataCapabilityHandlers({
@@ -66,7 +79,7 @@ test('agent memory core list uses cache-only semantics and rejects missing agent
   });
   const cached = await cachedHandlers.agentMemoryCoreList({ agentId: 'agent-cache', limit: 1 });
   assert.deepEqual(cached, {
-    items: [{ id: 'core-1' }],
+    items: [makeMemoryRecord('core-1')],
     source: 'local-index-only',
   });
   assert.equal(requestCount, 0);
@@ -89,7 +102,7 @@ test('agent memory e2e list requires entity context and only serves cached slice
   resetAgentCoreDataStateForTesting();
 
   const missingEntityHandlers = createAgentCoreDataCapabilityHandlers({
-    resolveCurrentUserId: async () => null,
+    resolveCurrentUserId: async () => undefined,
   });
   await assert.rejects(
     () => missingEntityHandlers.agentMemoryE2EList({ agentId: 'agent-e2e' }),
@@ -99,7 +112,7 @@ test('agent memory e2e list requires entity context and only serves cached slice
   seedAgentMemoryIndexForTesting({
     agentId: 'agent-e2e',
     entityId: 'user-1',
-    e2e: [{ id: 'e2e-1' }],
+    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
   });
   let requestCount = 0;
   const cachedHandlers = createAgentCoreDataCapabilityHandlers({
@@ -115,7 +128,7 @@ test('agent memory e2e list requires entity context and only serves cached slice
     entityId: 'user-1',
   });
   assert.deepEqual(cached, {
-    items: [{ id: 'e2e-1' }],
+    items: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
     source: 'local-index-only',
     entityId: 'user-1',
   });
@@ -141,9 +154,9 @@ test('agent memory recall only returns local data when cache already satisfies t
 
   seedAgentMemoryIndexForTesting({
     agentId: 'agent-recall',
-    core: [{ id: 'core-1' }],
+    core: [makeMemoryRecord('core-1')],
     entityId: 'user-1',
-    e2e: [{ id: 'e2e-1' }],
+    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
   });
   let requestCount = 0;
   const localHandlers = createAgentCoreDataCapabilityHandlers({
@@ -160,9 +173,12 @@ test('agent memory recall only returns local data when cache already satisfies t
     topK: 2,
   });
   assert.deepEqual(localOnly, {
-    items: [{ id: 'e2e-1' }, { id: 'core-1' }],
-    core: [{ id: 'core-1' }],
-    e2e: [{ id: 'e2e-1' }],
+    items: [
+      makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' }),
+      makeMemoryRecord('core-1'),
+    ],
+    core: [makeMemoryRecord('core-1')],
+    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
     entityId: 'user-1',
     recallSource: 'local-index-only',
   });
@@ -171,7 +187,7 @@ test('agent memory recall only returns local data when cache already satisfies t
   resetAgentCoreDataStateForTesting();
   seedAgentMemoryIndexForTesting({
     agentId: 'agent-recall',
-    core: [{ id: 'core-1' }],
+    core: [makeMemoryRecord('core-1')],
     entityId: 'user-1',
     e2e: [],
   });
@@ -198,7 +214,7 @@ test('agent memory stats require cached stats or remote success and do not synth
   const cachedStats: MemoryStatsResponseDto = {
     coreCount: 1,
     e2eCount: 2,
-    profileCount: 3,
+    uniqueEntities: 3,
   } as MemoryStatsResponseDto;
   seedAgentMemoryIndexForTesting({
     agentId: 'agent-stats',
@@ -223,9 +239,9 @@ test('agent memory stats require cached stats or remote success and do not synth
   resetAgentCoreDataStateForTesting();
   seedAgentMemoryIndexForTesting({
     agentId: 'agent-stats',
-    core: [{ id: 'core-1' }],
+    core: [makeMemoryRecord('core-1')],
     entityId: 'user-1',
-    e2e: [{ id: 'e2e-1' }],
+    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
   });
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
     client: {

@@ -533,7 +533,7 @@ fn is_loopback_bind_address(bind_address: &str) -> bool {
     };
     if let Ok(url) = url::Url::parse(parsed.as_str()) {
         if let Some(host) = url.host_str() {
-            return host == "127.0.0.1" || host == "localhost" || host == "::1";
+            return host == "127.0.0.1" || host == "::1";
         }
     }
     false

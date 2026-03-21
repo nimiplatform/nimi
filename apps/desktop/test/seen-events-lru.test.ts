@@ -24,9 +24,8 @@ test('D-NET-006: seenEvents capacity is 3000', () => {
 });
 
 test('D-NET-006: seenEvents evicts oldest entry', () => {
-  // Map.keys().next().value gives the oldest entry in insertion order
   assert.ok(
-    realtimeSource.includes('.keys()'),
-    'seenEvents eviction must iterate keys for oldest entry',
+    realtimeSource.includes('const { done, value: oldest } = seen.keys().next()'),
+    'seenEvents eviction must explicitly guard iterator exhaustion before deleting oldest entry',
   );
 });

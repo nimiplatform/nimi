@@ -18,7 +18,7 @@ test('local endpoint GET /models ok → status healthy', async () => {
   assert.equal(result.provider, 'llama');
   assert.equal(result.detail, '');
   assert.equal(mockFetch.mock.callCount(), 1);
-  const callArgs = mockFetch.mock.calls[0]!.arguments;
+  const callArgs = mockFetch.mock.calls[0]!.arguments as unknown as [RequestInfo | URL, RequestInit?];
   assert.ok(String(callArgs[0]).endsWith('/v1/models'));
 });
 

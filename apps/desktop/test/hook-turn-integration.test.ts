@@ -74,7 +74,7 @@ test('D-HOOK-003: hook registration supports multiple source types', () => {
   // HookSourceType must enumerate all 5 source types
   const sourceTypeMatch = typesSource.match(/HookSourceType\s*=\s*([^;]+)/);
   assert.ok(sourceTypeMatch, 'types source must define HookSourceType');
-  const sourceTypeDef = sourceTypeMatch[1];
+  const sourceTypeDef = sourceTypeMatch[1]!;
 
   assert.ok(sourceTypeDef.includes("'builtin'"), 'HookSourceType must include builtin');
   assert.ok(sourceTypeDef.includes("'injected'"), 'HookSourceType must include injected');

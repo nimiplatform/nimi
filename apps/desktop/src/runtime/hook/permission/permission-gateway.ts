@@ -35,7 +35,7 @@ function isProtectedCapability(capabilityKey: string): boolean {
     return true;
   }
   for (const token of PROTECTED_CAPABILITY_TOKENS) {
-    if (normalized.includes(token)) {
+    if (normalized.startsWith(`${token}.`)) {
       return true;
     }
   }

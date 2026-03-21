@@ -48,6 +48,7 @@ test('runDesktopUpdateCheck short-circuits unavailable updater without invoking 
     throw new Error('desktopUpdateCheck should not be called');
   };
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     setDesktopReleaseInfo: () => {},
     setDesktopReleaseError: () => {},
     setStatusBanner: (nextBanner: { kind: string; message: string } | null) => {
@@ -89,6 +90,7 @@ test('silent desktop update checks no-op when updater is unavailable', async () 
     throw new Error('desktopUpdateCheck should not be called');
   };
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     setDesktopReleaseInfo: () => {},
     setDesktopReleaseError: () => {},
     setStatusBanner: () => {
@@ -140,6 +142,7 @@ test('runDesktopUpdateInstall short-circuits unavailable updater before download
     throw new Error('desktopUpdateInstall should not be called');
   };
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     setDesktopReleaseInfo: () => {},
     setDesktopReleaseError: () => {},
     setStatusBanner: (nextBanner: { kind: string; message: string } | null) => {

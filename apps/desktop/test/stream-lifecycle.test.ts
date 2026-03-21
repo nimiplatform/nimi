@@ -23,18 +23,20 @@ if (typeof globalThis.sessionStorage === 'undefined') {
 }
 
 import {
-  startStream,
-  feedStreamEvent,
-  cancelStream,
-  getStreamState,
-  clearStream,
-  subscribeStream,
+    startStream,
+    feedStreamEvent,
+    cancelStream,
+    getStreamState,
+    clearStream,
+    clearAllStreams,
+    subscribeStream,
 } from '../src/shell/renderer/features/turns/stream-controller';
 
 const TEST_CHAT = 'test-chat-stream';
 
 test.afterEach(() => {
   clearStream(TEST_CHAT);
+  clearAllStreams();
 });
 
 test('D-STRM-001: startStream sets phase to waiting', () => {
@@ -127,4 +129,13 @@ test('D-STRM: events after done are ignored', () => {
 test('D-STRM: idle state for unknown chatId', () => {
   const state = getStreamState('unknown-chat');
   assert.equal(state.phase, 'idle');
+});
+
+test('D-STRM: clearAllStreams clears cached states across chats', () => {
+  startStream(TEST_CHAT);
+  startStream('second-chat');
+  clearAllStreams();
+
+  assert.equal(getStreamState(TEST_CHAT).phase, 'idle');
+  assert.equal(getStreamState('second-chat').phase, 'idle');
 });

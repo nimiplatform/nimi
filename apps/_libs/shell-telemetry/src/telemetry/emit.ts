@@ -31,6 +31,26 @@ function shouldMirrorRendererLogToConsole(
   return true;
 }
 
+function mirrorRendererLogToConsole(payload: RendererLogPayload): void {
+  const details = payload.details && Object.keys(payload.details).length > 0
+    ? payload.details
+    : undefined;
+  const args = details ? [payload.message, details] : [payload.message];
+  switch (payload.level) {
+    case 'debug':
+      console.debug(...args);
+      return;
+    case 'warn':
+      console.warn(...args);
+      return;
+    case 'error':
+      console.error(...args);
+      return;
+    default:
+      console.info(...args);
+  }
+}
+
 export function toRendererLogMessage(message: unknown): RendererLogMessage {
   const normalized = String(message || '').trim();
   if (normalized.startsWith('action:') || normalized.startsWith('phase:')) {
@@ -73,10 +93,7 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
   persistRendererLogForDebug(normalized);
 
   if (shouldMirrorRendererLogToConsole(normalized.level, normalized.area, normalized.message)) {
-    persistRendererLogForDebug({
-      ...normalized,
-      area: `${normalized.area}.console-mirror`,
-    });
+    mirrorRendererLogToConsole(normalized);
   }
 
   if (!shouldForwardRendererLogLevel(normalized.level)) {
@@ -87,7 +104,7 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
     return;
   }
 
-  const invokeFn = (window as Window & { __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } } }).__TAURI__?.core?.invoke;
+  const invokeFn = window.__TAURI__?.core?.invoke;
   if (typeof invokeFn !== 'function') {
     return;
   }

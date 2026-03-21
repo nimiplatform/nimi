@@ -417,10 +417,10 @@ export function AddContactModal(props: AddContactModalProps) {
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeDasharray="60" strokeDashoffset="20" />
                 </svg>
-                Sending...
+                {t('Contacts.sending', { defaultValue: 'Sending...' })}
               </span>
             ) : (
-              'Add Contact'
+              t('Contacts.addContactTitle', { defaultValue: 'Add Contact' })
             )}
           </button>
         </div>

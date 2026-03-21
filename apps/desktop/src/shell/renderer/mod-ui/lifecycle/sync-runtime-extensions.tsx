@@ -8,25 +8,16 @@ import { runtimeSlotRegistry } from '@renderer/mod-ui/registry/slot-registry';
 import { RuntimeQueryPanel } from '@renderer/mod-ui/host/runtime-query-panel';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { i18n } from '@renderer/i18n';
-import { shouldMountRouteTab } from './route-lifecycle';
-
-const SLOT_ALLOWLIST = new Set<UiSlotId>([
-  'auth.login.form.footer',
-  'chat.sidebar.header',
-  'chat.chat.list.item.trailing',
-  'chat.turn.input.toolbar',
-  'settings.panel.section',
-  'ui-extension.app.sidebar.mods',
-  'ui-extension.app.content.routes',
-  'ui-extension.runtime.devtools.panel',
-]);
+import { UI_SLOT_IDS } from '@renderer/ui/slots';
 
 function normalizeSlot(slot: string): UiSlotId | null {
-  const normalized = String(slot || '').trim() as UiSlotId;
-  if (!SLOT_ALLOWLIST.has(normalized)) {
-    return null;
-  }
-  return normalized;
+  const normalized = String(slot || '').trim();
+  return UI_SLOT_IDS.find((candidate) => candidate === normalized) ?? null;
+}
+
+function normalizeModRouteTabId(tabId: string): `mod:${string}` | null {
+  const normalized = String(tabId || '').trim();
+  return normalized.startsWith('mod:') ? normalized as `mod:${string}` : null;
 }
 
 function normalizeStrategy(value: unknown): 'replace' | 'wrap' | 'append' | 'hide' {
@@ -241,7 +232,11 @@ function syncRuntimeUiExtensions(options: {
                       });
                       return;
                     }
-                    context.openModTab(tabId as `mod:${string}`, entry.modId, label);
+                    const modTabId = normalizeModRouteTabId(tabId);
+                    if (!modTabId) {
+                      return;
+                    }
+                    context.openModTab(modTabId, entry.modId, label);
                     return;
                   }
                   context.setActiveTab(tabId);
@@ -283,13 +278,17 @@ function syncRuntimeUiExtensions(options: {
             if (!tabId) {
               return null;
             }
+            const modTabId = normalizeModRouteTabId(tabId);
+            if (!modTabId) {
+              return null;
+            }
 
             const Component = extension.component as ComponentType<{
               extensionId: string;
               modId: string;
             }>;
             const active = context.activeTab === tabId;
-            if (!shouldMountRouteTab(tabId, context.activeTab, useAppStore.getState().modWorkspaceTabs)) {
+            if (!context.isModTabRetained(modTabId)) {
               return null;
             }
 
@@ -299,7 +298,7 @@ function syncRuntimeUiExtensions(options: {
                   className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
                   style={active ? undefined : { display: 'none' }}
                   aria-hidden={!active}
-                  data-lifecycle-state={context.getModLifecycleState(tabId as `mod:${string}`)}
+                  data-lifecycle-state={context.getModLifecycleState(modTabId)}
                 >
                   <Component extensionId={extensionId} modId={entry.modId} />
                 </div>

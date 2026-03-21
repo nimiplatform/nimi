@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { toBridgeUserError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
+import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
 
 // ---------------------------------------------------------------------------
 // D-SEC-006 — Model integrity verification
@@ -64,7 +64,7 @@ test('D-SEC-006: empty hash list produces LOCAL_AI_MODEL_HASHES_EMPTY error', ()
   );
 
   // 2. Bridge error map translates the code for the renderer (behavioral)
-  const error = toBridgeUserError(
+  const error = toBridgeNimiError(
     new Error('LOCAL_AI_MODEL_HASHES_EMPTY: hashes are empty'),
   );
   assert.equal(
@@ -95,7 +95,7 @@ test('D-SEC-006: mismatched hash produces LOCAL_AI_IMPORT_HASH_MISMATCH error', 
   );
 
   // 2. Bridge error map translates the code for the renderer (behavioral)
-  const error = toBridgeUserError(
+  const error = toBridgeNimiError(
     new Error('LOCAL_AI_IMPORT_HASH_MISMATCH: hash mismatch for model.gguf'),
   );
   assert.equal(

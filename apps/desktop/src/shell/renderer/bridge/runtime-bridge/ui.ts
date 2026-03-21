@@ -8,11 +8,25 @@ import {
   type OpenExternalUrlResult,
 } from './types';
 
-export async function openExternalUrl(url: string): Promise<OpenExternalUrlResult> {
+function normalizeExternalUrl(url: string): string {
   const normalized = String(url || '').trim();
   if (!normalized) {
     throw new Error('URL 不能为空');
   }
+
+  const baseUrl =
+    typeof window !== 'undefined' && window.location
+      ? window.location.href
+      : 'https://nimi.invalid';
+  const parsed = new URL(normalized, baseUrl);
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`仅支持 http/https 链接：${parsed.protocol}`);
+  }
+  return parsed.toString();
+}
+
+export async function openExternalUrl(url: string): Promise<OpenExternalUrlResult> {
+  const normalized = normalizeExternalUrl(url);
 
   if (!hasTauriInvoke()) {
     const openedWindow = window.open(normalized, '_blank', 'noopener,noreferrer');

@@ -160,6 +160,7 @@ export class HookContractRegistry {
           },
         );
       }
+      return;
     }
   }
 

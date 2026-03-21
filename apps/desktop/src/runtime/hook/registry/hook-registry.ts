@@ -9,6 +9,36 @@ export class HookRegistry {
     handler: TurnHookHandler;
   }>>();
 
+  private detachRegistration(registrationId: string): HookRegistration | undefined {
+    const registration = this.registrations.get(registrationId);
+    if (!registration) {
+      return undefined;
+    }
+    if (registration.hookType === 'turn-hook') {
+      const point = registration.target as TurnHookPoint;
+      const list = this.turnHooks.get(point) || [];
+      this.turnHooks.set(
+        point,
+        list.filter((item) => item.registrationId !== registrationId),
+      );
+    }
+    return registration;
+  }
+
+  private markRemoved(registrationId: string, reason: string): HookRegistration | undefined {
+    const registration = this.detachRegistration(registrationId);
+    if (!registration) {
+      return undefined;
+    }
+    const removed: HookRegistration = {
+      ...registration,
+      status: 'REMOVED',
+      statusReason: reason,
+    };
+    this.registrations.set(registrationId, removed);
+    return removed;
+  }
+
   register(input: Omit<HookRegistration, 'registrationId' | 'createdAt' | 'status'>): HookRegistration {
     const registration: HookRegistration = {
       ...input,
@@ -87,23 +117,28 @@ export class HookRegistry {
   }
 
   unregisterAll(modId: string): void {
+    const toRemove: string[] = [];
     for (const [id, reg] of this.registrations) {
-      if (reg.modId === modId) {
-        this.registrations.set(id, { ...reg, status: 'REMOVED' });
+      if (reg.modId === modId && reg.status !== 'REMOVED') {
+        toRemove.push(id);
       }
     }
-    for (const [point, hooks] of this.turnHooks) {
-      this.turnHooks.set(point, hooks.filter((h) => h.modId !== modId));
+    for (const registrationId of toRemove) {
+      this.markRemoved(registrationId, 'UNREGISTER_ALL');
     }
   }
 
-  updateStatus(registrationId: string, status: HookRegistration['status']): void {
+  updateStatus(registrationId: string, status: HookRegistration['status'], statusReason?: string): void {
     const value = this.registrations.get(registrationId);
     if (!value) return;
+    if (status === 'REMOVED') {
+      this.markRemoved(registrationId, statusReason || 'STATUS_REMOVED');
+      return;
+    }
     this.registrations.set(registrationId, {
       ...value,
       status,
-      statusReason: status === 'REMOVED' ? 'MANUAL_REMOVE' : value.statusReason,
+      statusReason,
     });
   }
 
@@ -113,6 +148,7 @@ export class HookRegistry {
     target: string;
   }): number {
     let removed = 0;
+    const toRemove: string[] = [];
     for (const [id, reg] of this.registrations) {
       if (
         reg.modId === input.modId
@@ -120,21 +156,12 @@ export class HookRegistry {
         && reg.target === input.target
         && reg.status !== 'REMOVED'
       ) {
-        this.registrations.set(id, {
-          ...reg,
-          status: 'REMOVED',
-          statusReason: 'UNREGISTER_BY_TARGET',
-        });
-        removed += 1;
+        toRemove.push(id);
       }
     }
-    if (input.hookType === 'turn-hook') {
-      const point = input.target as TurnHookPoint;
-      const list = this.turnHooks.get(point) || [];
-      this.turnHooks.set(
-        point,
-        list.filter((item) => item.modId !== input.modId),
-      );
+    for (const registrationId of toRemove) {
+      this.markRemoved(registrationId, 'UNREGISTER_BY_TARGET');
+      removed += 1;
     }
     return removed;
   }
@@ -148,22 +175,7 @@ export class HookRegistry {
       return false;
     }
 
-    this.registrations.set(registrationId, {
-      ...registration,
-      status: 'REMOVED',
-      statusReason: 'UNREGISTER_BY_REGISTRATION_ID',
-    });
-
-    if (registration.hookType === 'turn-hook') {
-      const point = registration.target as TurnHookPoint;
-      const list = this.turnHooks.get(point) || [];
-      this.turnHooks.set(
-        point,
-        list.filter((item) => item.registrationId !== registrationId),
-      );
-    }
-
-    return true;
+    return Boolean(this.markRemoved(registrationId, 'UNREGISTER_BY_ID'));
   }
 
   listCapabilities(modId: string): string[] {

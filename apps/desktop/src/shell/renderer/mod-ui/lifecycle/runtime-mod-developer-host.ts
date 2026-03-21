@@ -11,6 +11,8 @@ import {
   unregisterRuntimeMods,
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { i18n } from '@renderer/i18n';
 import { refreshRuntimeModDeveloperHostState, syncRuntimeModShellState } from './runtime-mod-shell-state';
 import { removeRuntimeModStyles } from './runtime-mod-styles';
 
@@ -20,6 +22,27 @@ function normalizeModId(modId: string): string {
 
 function safeErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || 'unknown error');
+}
+
+function reportDeveloperHostSubscriptionError(stage: string, error: unknown): void {
+  const message = safeErrorMessage(error);
+  useAppStore.getState().setStatusBanner({
+    kind: 'error',
+    message: i18n.t('ModUI.developerHostSubscriptionError', {
+      stage,
+      error: message,
+      defaultValue: `Runtime mod developer host failed during ${stage}: ${message}`,
+    }),
+  });
+  logRendererEvent({
+    level: 'error',
+    area: 'mod-ui',
+    message: 'mod-ui:developer-host-subscription-failed',
+    details: {
+      stage,
+      error: message,
+    },
+  });
 }
 
 export async function reconcileRuntimeLocalMods(input?: {
@@ -82,18 +105,46 @@ export async function reconcileRuntimeLocalMods(input?: {
 }
 
 let runtimeModDeveloperHostSubscriptionsAttached = false;
+let runtimeModDeveloperHostSubscriptionsPromise: Promise<void> | null = null;
 
 export async function attachRuntimeModDeveloperHostSubscriptions(): Promise<void> {
-  if (runtimeModDeveloperHostSubscriptionsAttached || !desktopBridge.hasTauriInvoke()) {
+  if (!desktopBridge.hasTauriInvoke()) {
     return;
   }
-  runtimeModDeveloperHostSubscriptionsAttached = true;
-  await desktopBridge.subscribeRuntimeModSourceChanged(async () => {
-    await reconcileRuntimeLocalMods();
-  });
-  await desktopBridge.subscribeRuntimeModReloadResult((event: RuntimeModReloadResult) => {
-    useAppStore.getState().pushRuntimeModReloadResults([event]);
-  });
+  if (runtimeModDeveloperHostSubscriptionsAttached) {
+    return;
+  }
+  if (runtimeModDeveloperHostSubscriptionsPromise) {
+    return runtimeModDeveloperHostSubscriptionsPromise;
+  }
+
+  runtimeModDeveloperHostSubscriptionsPromise = (async () => {
+    try {
+      await desktopBridge.subscribeRuntimeModSourceChanged(async () => {
+        try {
+          await reconcileRuntimeLocalMods();
+        } catch (error) {
+          reportDeveloperHostSubscriptionError('source-change', error);
+        }
+      });
+      await desktopBridge.subscribeRuntimeModReloadResult((event: RuntimeModReloadResult) => {
+        try {
+          useAppStore.getState().pushRuntimeModReloadResults([event]);
+        } catch (error) {
+          reportDeveloperHostSubscriptionError('reload-result', error);
+        }
+      });
+      runtimeModDeveloperHostSubscriptionsAttached = true;
+    } catch (error) {
+      runtimeModDeveloperHostSubscriptionsAttached = false;
+      reportDeveloperHostSubscriptionError('attach', error);
+      throw error;
+    } finally {
+      runtimeModDeveloperHostSubscriptionsPromise = null;
+    }
+  })();
+
+  return runtimeModDeveloperHostSubscriptionsPromise;
 }
 
 export function getRegisteredRuntimeLocalModIds(): string[] {

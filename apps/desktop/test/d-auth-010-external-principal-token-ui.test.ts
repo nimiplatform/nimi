@@ -25,7 +25,9 @@ test('D-AUTH-010: external principal token UI flow preserves required structure'
   assert.match(externalAgentUiSource, /await revokeExternalAgentToken\(resolvedTokenId\);/);
   assert.match(externalAgentUiSource, /setIssuedToken\(''\);/);
   assert.match(externalAgentUiSource, /const gatewayEnabled = !statusText\.includes/);
-  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !gatewayEnabled\} onClick=\{handleIssueToken\}/);
+  assert.match(externalAgentUiSource, /const ttlIsPositiveInteger =/);
+  assert.match(externalAgentUiSource, /ttlValidationMessage/);
+  assert.match(externalAgentUiSource, /disabled=\{busy \|\| !gatewayEnabled \|\| !ttlIsPositiveInteger\} onClick=\{handleIssueToken\}/);
   assert.match(externalAgentUiSource, /disabled=\{busy \|\| !gatewayEnabled \|\| !tokenId\.trim\(\)\}/);
   assert.match(externalAgentUiSource, /disabled=\{busy \|\| !gatewayEnabled\}/);
 });

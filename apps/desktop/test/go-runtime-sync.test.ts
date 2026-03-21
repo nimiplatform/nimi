@@ -2,25 +2,33 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { __internal } from '../src/runtime/local-runtime/go-runtime-sync.js';
+import type { GoRuntimeModelEntry } from '../src/runtime/local-runtime/go-runtime-sync-types.js';
+
+function makeGoRuntimeModelEntry(overrides: Partial<GoRuntimeModelEntry>): GoRuntimeModelEntry {
+  return {
+    localModelId: '01JMODEL',
+    modelId: 'shared-model',
+    engine: 'localai',
+    status: 'active',
+    endpoint: 'http://127.0.0.1:1234/v1',
+    capabilities: ['chat'],
+    entry: 'model.gguf',
+    license: 'apache-2.0',
+    source: {
+      repo: 'nimiplatform/shared-model',
+      revision: 'main',
+    },
+    hashes: {},
+    installedAt: '2026-03-01T00:00:00Z',
+    updatedAt: '2026-03-01T00:00:00Z',
+    ...overrides,
+  };
+}
 
 test('findGoRuntimeModel prefers exact localModelId before modelId+engine', () => {
   const models = [
-    {
-      localModelId: '01JLOCALAI',
-      modelId: 'shared-model',
-      engine: 'localai',
-      status: 'active',
-      endpoint: 'http://127.0.0.1:1234/v1',
-      capabilities: ['image'],
-    },
-    {
-      localModelId: '01JNEXA',
-      modelId: 'shared-model',
-      engine: 'nexa',
-      status: 'active',
-      endpoint: 'http://127.0.0.1:18181/v1',
-      capabilities: ['embedding'],
-    },
+    makeGoRuntimeModelEntry({ localModelId: '01JLOCALAI', capabilities: ['image'] }),
+    makeGoRuntimeModelEntry({ localModelId: '01JNEXA', engine: 'nexa', endpoint: 'http://127.0.0.1:18181/v1', capabilities: ['embedding'] }),
   ];
 
   const resolved = __internal.findGoRuntimeModel(models, {
@@ -35,22 +43,8 @@ test('findGoRuntimeModel prefers exact localModelId before modelId+engine', () =
 
 test('findGoRuntimeModel resolves duplicate modelId by engine', () => {
   const models = [
-    {
-      localModelId: '01JLOCALAI',
-      modelId: 'shared-model',
-      engine: 'localai',
-      status: 'active',
-      endpoint: 'http://127.0.0.1:1234/v1',
-      capabilities: ['chat'],
-    },
-    {
-      localModelId: '01JNEXA',
-      modelId: 'shared-model',
-      engine: 'nexa',
-      status: 'installed',
-      endpoint: 'http://127.0.0.1:18181/v1',
-      capabilities: ['embedding'],
-    },
+    makeGoRuntimeModelEntry({ localModelId: '01JLOCALAI', capabilities: ['chat'] }),
+    makeGoRuntimeModelEntry({ localModelId: '01JNEXA', engine: 'nexa', status: 'installed', endpoint: 'http://127.0.0.1:18181/v1', capabilities: ['embedding'] }),
   ];
 
   const resolved = __internal.findGoRuntimeModel(models, {
@@ -64,14 +58,7 @@ test('findGoRuntimeModel resolves duplicate modelId by engine', () => {
 
 test('findGoRuntimeModel ignores removed fallback duplicates', () => {
   const models = [
-    {
-      localModelId: '01JREMOVED',
-      modelId: 'shared-model',
-      engine: 'localai',
-      status: 'removed',
-      endpoint: 'http://127.0.0.1:1234/v1',
-      capabilities: ['image'],
-    },
+    makeGoRuntimeModelEntry({ localModelId: '01JREMOVED', status: 'removed', capabilities: ['image'] }),
   ];
 
   const resolved = __internal.findGoRuntimeModel(models, {
@@ -85,22 +72,8 @@ test('findGoRuntimeModel ignores removed fallback duplicates', () => {
 
 test('findGoRuntimeModel prefers non-removed duplicate over removed fallback', () => {
   const models = [
-    {
-      localModelId: '01JREMOVED',
-      modelId: 'shared-model',
-      engine: 'localai',
-      status: 'removed',
-      endpoint: 'http://127.0.0.1:1234/v1',
-      capabilities: ['image'],
-    },
-    {
-      localModelId: '01JACTIVE',
-      modelId: 'shared-model',
-      engine: 'localai',
-      status: 'active',
-      endpoint: 'http://127.0.0.1:1234/v1',
-      capabilities: ['image'],
-    },
+    makeGoRuntimeModelEntry({ localModelId: '01JREMOVED', status: 'removed', capabilities: ['image'] }),
+    makeGoRuntimeModelEntry({ localModelId: '01JACTIVE', capabilities: ['image'] }),
   ];
 
   const resolved = __internal.findGoRuntimeModel(models, {

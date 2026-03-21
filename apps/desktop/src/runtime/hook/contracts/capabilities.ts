@@ -190,6 +190,32 @@ export function normalizeCapabilityKey(value: string): HookCapabilityKey {
   return String(value || '').trim();
 }
 
+function matchesWildcardPattern(pattern: string, capabilityKey: string): boolean {
+  const parts = pattern.split('*');
+  let cursor = 0;
+
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    if (!part) {
+      continue;
+    }
+    const foundAt = capabilityKey.indexOf(part, cursor);
+    if (foundAt < 0) {
+      return false;
+    }
+    if (index === 0 && !pattern.startsWith('*') && foundAt !== 0) {
+      return false;
+    }
+    cursor = foundAt + part.length;
+  }
+
+  const lastPart = parts.length > 0 ? parts[parts.length - 1] || '' : '';
+  if (!pattern.endsWith('*') && lastPart) {
+    return capabilityKey.endsWith(lastPart);
+  }
+  return pattern.endsWith('*') || cursor === capabilityKey.length;
+}
+
 export function capabilityMatches(pattern: string, capabilityKey: string): boolean {
   const normalizedPattern = normalizeCapabilityKey(pattern);
   const normalizedCapability = normalizeCapabilityKey(capabilityKey);
@@ -203,11 +229,7 @@ export function capabilityMatches(pattern: string, capabilityKey: string): boole
     return true;
   }
   if (normalizedPattern.includes('*')) {
-    const escaped = normalizedPattern
-      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-      .replace(/\*/g, '.*');
-    const wildcardRegex = new RegExp(`^${escaped}$`);
-    return wildcardRegex.test(normalizedCapability);
+    return matchesWildcardPattern(normalizedPattern, normalizedCapability);
   }
   return false;
 }

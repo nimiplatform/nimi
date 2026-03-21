@@ -10,6 +10,7 @@ use crate::runtime_mod::store::{
 use super::{
     secure_random_hex, ExternalAgentActionScope, ExternalAgentClaims, ExternalAgentGatewayState,
     ExternalAgentIssueTokenPayload, ExternalAgentIssueTokenResult, ExternalAgentRevokeTokenPayload,
+    EXTERNAL_AGENT_TOKEN_AUDIENCE,
 };
 
 fn now_unix_secs() -> usize {
@@ -120,6 +121,7 @@ pub async fn issue_token(
     let token_id = build_token_id(principal_id, subject_account_id, mode)?;
     let claims = ExternalAgentClaims {
         sub: subject_account_id.to_string(),
+        aud: EXTERNAL_AGENT_TOKEN_AUDIENCE.to_string(),
         principal_id: principal_id.to_string(),
         principal_type: "external-agent".to_string(),
         mode: mode.to_string(),
@@ -200,7 +202,5 @@ pub async fn revoke_token(
     }
     let revoked_at = chrono::Utc::now().to_rfc3339();
     let _ = revoke_external_agent_token_record(&conn, token_id, &revoked_at)?;
-    let mut guard = state.inner.lock().await;
-    guard.revoked_token_ids.insert(token_id.to_string());
     Ok(())
 }

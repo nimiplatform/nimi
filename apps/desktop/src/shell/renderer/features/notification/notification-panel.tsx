@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -86,29 +86,36 @@ export function NotificationPanel() {
   const navigateToGiftInbox = useAppStore((state) => state.navigateToGiftInbox);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const { t } = useTranslation();
-  const [items, setItems] = useState<NotificationItemView[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasNext, setHasNext] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [activeFilter, setActiveFilter] = useState<NotificationFilterTab>('all');
   const [rejectingItem, setRejectingItem] = useState<NotificationItemView | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [markingAllRead, setMarkingAllRead] = useState(false);
   const [pendingItemAction, setPendingItemAction] = useState<PendingItemAction | null>(null);
   const [optimisticUnreadCount, setOptimisticUnreadCount] = useState<number | null>(null);
+  const [readOverrides, setReadOverrides] = useState<Record<string, true>>({});
 
   const serverFilter = useMemo(
     () => getNotificationServerFilter(activeFilter),
     [activeFilter],
   );
 
-  const notificationsQuery = useQuery({
+  const notificationsQuery = useInfiniteQuery({
     queryKey: notificationQueryKeys.page(authStatus, serverFilter),
-    queryFn: async () => dataSync.loadNotifications({
+    initialPageParam: '',
+    queryFn: async ({ pageParam }) => dataSync.loadNotifications({
       limit: PAGE_SIZE,
+      ...(pageParam ? { cursor: String(pageParam) } : {}),
       ...(serverFilter ? { type: serverFilter } : {}),
     }),
     enabled: authStatus === 'authenticated',
+    getNextPageParam: (lastPage) => {
+      const parsed = toNotificationListView(
+        lastPage,
+        t('NotificationPanel.title', { defaultValue: 'Notification' }),
+        i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+      );
+      return parsed.nextCursor || undefined;
+    },
   });
   const unreadCountQuery = useQuery({
     queryKey: notificationQueryKeys.unreadCount(authStatus),
@@ -119,23 +126,38 @@ export function NotificationPanel() {
   });
 
   useEffect(() => {
-    const parsed = toNotificationListView(
-      notificationsQuery.data,
-      t('NotificationPanel.title', { defaultValue: 'Notification' }),
-      i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-    );
-    setItems(parsed.items);
-    setNextCursor(parsed.nextCursor);
-    setHasNext(parsed.hasNext);
-  }, [notificationsQuery.data, t]);
-
-  useEffect(() => {
     if (unreadCountQuery.data) {
       setOptimisticUnreadCount(null);
     }
   }, [unreadCountQuery.data]);
 
+  useEffect(() => {
+    setReadOverrides({});
+  }, [authStatus, serverFilter]);
+
   const unreadCount = optimisticUnreadCount ?? parseUnreadCount(unreadCountQuery.data);
+
+  const items = useMemo(() => {
+    if (!notificationsQuery.data) {
+      return [];
+    }
+
+    const byId = new Map<string, NotificationItemView>();
+    for (const page of notificationsQuery.data.pages) {
+      const parsed = toNotificationListView(
+        page,
+        t('NotificationPanel.title', { defaultValue: 'Notification' }),
+        i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+      );
+      for (const item of parsed.items) {
+        byId.set(item.id, item);
+      }
+    }
+
+    return Array.from(byId.values()).map((item) => (
+      readOverrides[item.id] ? { ...item, isRead: true } : item
+    ));
+  }, [notificationsQuery.data, readOverrides, t]);
 
   const filteredItems = useMemo(() => {
     if (activeFilter === 'all') {
@@ -172,19 +194,24 @@ export function NotificationPanel() {
       return;
     }
 
-    const previousItems = items;
     const previousUnreadCount = unreadCount;
+    const hadReadOverride = Boolean(readOverrides[notificationId]);
 
-    setItems((previous) => previous.map((item) => (
-      item.id === notificationId ? { ...item, isRead: true } : item
-    )));
+    setReadOverrides((previous) => ({ ...previous, [notificationId]: true }));
     updateUnreadCount(Math.max(0, previousUnreadCount - 1));
 
     try {
       await dataSync.markNotificationRead(notificationId);
       await refreshNotifications();
     } catch (error) {
-      setItems(previousItems);
+      setReadOverrides((previous) => {
+        if (hadReadOverride) {
+          return previous;
+        }
+        const next = { ...previous };
+        delete next[notificationId];
+        return next;
+      });
       updateUnreadCount(previousUnreadCount);
       setStatusBanner({
         kind: 'error',
@@ -198,18 +225,24 @@ export function NotificationPanel() {
       return;
     }
 
-    const previousItems = items;
+    const previousReadOverrides = readOverrides;
     const previousUnreadCount = unreadCount;
 
     setMarkingAllRead(true);
-    setItems((previous) => previous.map((item) => ({ ...item, isRead: true })));
+    setReadOverrides((previous) => {
+      const next = { ...previous };
+      for (const item of items) {
+        next[item.id] = true;
+      }
+      return next;
+    });
     updateUnreadCount(0);
 
     try {
       await dataSync.markNotificationsRead({ markAllBefore: new Date().toISOString() });
       await refreshNotifications();
     } catch (error) {
-      setItems(previousItems);
+      setReadOverrides(previousReadOverrides);
       updateUnreadCount(previousUnreadCount);
       setStatusBanner({
         kind: 'error',
@@ -364,40 +397,16 @@ export function NotificationPanel() {
   };
 
   const loadMore = async () => {
-    if (!hasNext || !nextCursor || loadingMore) {
+    if (!notificationsQuery.hasNextPage || notificationsQuery.isFetchingNextPage) {
       return;
     }
-    setLoadingMore(true);
     try {
-      const result = await dataSync.loadNotifications({
-        limit: PAGE_SIZE,
-        cursor: nextCursor,
-        ...(serverFilter ? { type: serverFilter } : {}),
-      });
-      const parsed = toNotificationListView(
-        result,
-        t('NotificationPanel.title', { defaultValue: 'Notification' }),
-        i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
-      );
-      setItems((previous) => {
-        const byId = new Map<string, NotificationItemView>();
-        for (const item of previous) {
-          byId.set(item.id, item);
-        }
-        for (const item of parsed.items) {
-          byId.set(item.id, item);
-        }
-        return Array.from(byId.values());
-      });
-      setNextCursor(parsed.nextCursor);
-      setHasNext(parsed.hasNext);
+      await notificationsQuery.fetchNextPage();
     } catch (error) {
       setStatusBanner({
         kind: 'error',
         message: toErrorMessage(error, t('NotificationPanel.loadMoreError')),
       });
-    } finally {
-      setLoadingMore(false);
     }
   };
 
@@ -729,17 +738,17 @@ export function NotificationPanel() {
           );
         })}
 
-        {hasNext ? (
+        {notificationsQuery.hasNextPage ? (
           <div className="flex justify-center pt-2">
             <button
               type="button"
               onClick={() => {
                 void loadMore();
               }}
-              disabled={loadingMore}
+              disabled={notificationsQuery.isFetchingNextPage}
               className="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
-              {loadingMore
+              {notificationsQuery.isFetchingNextPage
                 ? t('NotificationPanel.loadingMore', { defaultValue: 'Loading...' })
                 : t('NotificationPanel.loadMore', { defaultValue: 'Load More' })}
             </button>

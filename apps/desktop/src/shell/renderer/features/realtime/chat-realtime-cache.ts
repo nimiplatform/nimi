@@ -11,6 +11,19 @@ export type NormalizedChatUpdatePayload = {
   message: MessageViewDto;
 };
 
+const MESSAGE_TYPES = new Set<MessageViewDto['type']>([
+  'TEXT',
+  'IMAGE',
+  'VIDEO',
+  'POST_REF',
+  'USER_REF',
+  'LINK_REF',
+  'GIFT',
+  'FRIEND_REQUEST',
+  'SYSTEM',
+  'RECALL',
+]);
+
 type ChatMergeInput = {
   current: ListChatsResultDto | undefined;
   message: MessageViewDto;
@@ -43,6 +56,13 @@ function normalizeDateString(value: unknown): string {
     }
   }
   return new Date().toISOString();
+}
+
+function normalizeMessageType(value: unknown): MessageViewDto['type'] | null {
+  const normalized = normalizeString(value);
+  return MESSAGE_TYPES.has(normalized as MessageViewDto['type'])
+    ? (normalized as MessageViewDto['type'])
+    : null;
 }
 
 function resolveMessageTimestamp(message: MessageViewDto): number {
@@ -126,7 +146,7 @@ export function normalizeRealtimeMessagePayload(payload: unknown): MessageViewDt
   const id = normalizeString(record.id);
   const chatId = normalizeString(record.chatId || record.roomId);
   const senderId = normalizeString(record.senderId);
-  const type = normalizeString(record.type);
+  const type = normalizeMessageType(record.type);
   if (!id || !chatId || !senderId || !type) {
     return null;
   }
@@ -138,7 +158,7 @@ export function normalizeRealtimeMessagePayload(payload: unknown): MessageViewDt
     id,
     chatId,
     senderId,
-    type: type as MessageViewDto['type'],
+    type,
     clientMessageId: normalizeString(record.clientMessageId) || undefined,
     payload: normalizePayload(record.payload),
     text:

@@ -13,7 +13,7 @@ type RenderSlotEntryInput = {
   slot: UiSlotId;
   context: UiExtensionContext;
   fusedRuntimeMods: Record<string, { reason: string; lastError: string; at: string }>;
-  retryingModId: string;
+  retryingModId: string | null;
   onRetryMod: (modId: string) => void;
   onRenderFailure: (entry: UiExtensionRegistration, error: unknown) => void;
 };

@@ -19,6 +19,8 @@ test('product-side profile and contacts models do not infer agent identity from 
   assert.doesNotMatch(friendLimitSource, /startsWith\('~'\)/);
   assert.match(profileModelSource, /isAgent:\s*raw\.isAgent === true/);
   assert.match(contactsModelSource, /const isAgent = item\.isAgent === true/);
+  assert.match(contactsModelSource, /item\.tags\.map\(\(tag\) => String\(tag\)\)/);
+  assert.doesNotMatch(contactsModelSource, /item\.tags\.map\(\(t\) => String\(t\)\)/);
 });
 
 test('product-side social and explore flows do not infer agent identity from handle prefixes', () => {

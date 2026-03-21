@@ -165,6 +165,7 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
         capabilityKey: string;
         target?: string;
     }): {
+        allowed: true;
         sourceType: HookSourceType;
         reasonCodes: string[];
     } {
@@ -374,6 +375,9 @@ export class DesktopHookRuntimeService implements DesktopHookRuntimeFacade {
             capabilityKey: 'runtime.profile.read.agent',
             startedAt,
         });
+        if (!permission.allowed) {
+            throw new Error('HOOK_PERMISSION_DENIED');
+        }
         this.agentProfileReadFilters.set(input.modId, {
             modId: input.modId,
             sourceType: permission.sourceType,

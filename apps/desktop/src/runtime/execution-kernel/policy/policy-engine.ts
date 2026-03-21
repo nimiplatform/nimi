@@ -1,4 +1,4 @@
-import type { AccessMode } from '../contracts/types';
+import { isAccessMode, type AccessMode } from '../contracts/types';
 import { RuntimeControlPlaneClient } from '../../control-plane/client';
 import { resolveCodegenCapabilityDecision } from '@runtime/mod/codegen/capability-catalog';
 
@@ -28,6 +28,14 @@ export class PolicyEngine {
     reasonCodes: string[];
     grantedCapabilities: string[];
   }> {
+    if (!isAccessMode(input.mode)) {
+      return {
+        ok: false,
+        reasonCodes: ['DISCOVERY_MODE_UNKNOWN'],
+        grantedCapabilities: [],
+      };
+    }
+
     const requested = Array.from(new Set(input.requestedCapabilities || []));
     const sourceType = String(input.sourceType || '').trim().toLowerCase();
     const hasWildcard = requested.some((item) => item === '*' || item.endsWith(':*'));

@@ -71,8 +71,8 @@ function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
   seen.set(normalizedKey, Date.now());
   if (seen.size > SEEN_EVENT_LIMIT) {
     // Evict the least recently used entry (first in Map iteration order)
-    const oldest = seen.keys().next().value;
-    if (oldest) {
+    const { done, value: oldest } = seen.keys().next();
+    if (!done && oldest !== undefined) {
       seen.delete(oldest);
     }
   }

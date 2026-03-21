@@ -7,30 +7,29 @@ import {
   initI18n,
 } from '../src/shell/renderer/i18n';
 
-type StorageLike = {
-  getItem: (key: string) => string | null;
-  setItem: (key: string, value: string) => void;
-  removeItem: (key: string) => void;
-};
-
 if (typeof globalThis.localStorage === 'undefined') {
   const store = new Map<string, string>();
-  (globalThis as typeof globalThis & { localStorage?: StorageLike }).localStorage = {
+  (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage = {
+    length: 0,
+    clear: () => {
+      store.clear();
+    },
     getItem: (key) => store.get(key) ?? null,
+    key: (index) => Array.from(store.keys())[index] ?? null,
     setItem: (key, value) => {
       store.set(key, value);
     },
     removeItem: (key) => {
       store.delete(key);
     },
-  };
+  } as Storage;
 }
 
 if (typeof globalThis.document === 'undefined') {
-  (globalThis as typeof globalThis & { document?: { title: string; documentElement: { lang: string } } }).document = {
+  (globalThis as typeof globalThis & { document?: Document }).document = {
     title: '',
-    documentElement: { lang: 'en' },
-  };
+    documentElement: { lang: 'en' } as HTMLElement,
+  } as Document;
 }
 
 test('changeLocale synchronizes document title and lang', async () => {

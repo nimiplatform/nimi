@@ -210,7 +210,7 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string');
 }
 
-function readPositiveNumber(value: unknown): number | null {
+function readNonNegativeNumber(value: unknown): number | null {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
@@ -293,7 +293,7 @@ function parseRevocationListResult(payload: JsonObject): RuntimeControlRevocatio
 }
 
 function parseAuditSyncResult(payload: JsonObject): RuntimeControlAuditSyncResult | null {
-  const accepted = readPositiveNumber(payload.accepted);
+  const accepted = readNonNegativeNumber(payload.accepted);
   if (accepted === null) {
     return null;
   }

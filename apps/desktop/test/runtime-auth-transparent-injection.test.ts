@@ -17,9 +17,9 @@ type TauriRuntime = {
   };
 };
 
-type MutableGlobalTauri = typeof globalThis & {
+type MutableGlobalTauri = Record<string, unknown> & {
   __TAURI__?: TauriRuntime;
-  window?: { __TAURI__?: TauriRuntime };
+  window?: Record<string, unknown> & { __TAURI__?: TauriRuntime };
 };
 
 function toBase64Url(input: string): string {
@@ -49,7 +49,7 @@ function unwrapPayload(payload: unknown): Record<string, unknown> {
 }
 
 function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
-  const target = globalThis as MutableGlobalTauri;
+  const target = globalThis as unknown as MutableGlobalTauri;
   const previousRoot = target.__TAURI__;
   const previousWindow = target.window;
   const runtime: TauriRuntime = {
@@ -80,7 +80,7 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
     }
 
     if (typeof previousWindow === 'undefined') {
-      delete target.window;
+      target.window = undefined;
     } else {
       target.window = previousWindow;
     }
@@ -93,12 +93,12 @@ async function invokeGenerateWithoutSubject(): Promise<void> {
       appId: getPlatformClient().runtime.appId,
       modelId: 'cloud/default',
       routePolicy: 2,
-      fallback: 1,
       timeoutMs: 1000,
       connectorId: '',
     },
     scenarioType: 1,
     executionMode: 1,
+    extensions: [],
     spec: {
       spec: {
         oneofKind: 'textGenerate',
@@ -107,6 +107,7 @@ async function invokeGenerateWithoutSubject(): Promise<void> {
             role: 'user',
             content: 'hello',
             name: '',
+            parts: [],
           }],
           systemPrompt: '',
           tools: [],
@@ -125,12 +126,12 @@ async function invokeLocalGenerateWithoutSubject(): Promise<void> {
       appId: getPlatformClient().runtime.appId,
       modelId: 'llama/bartowski/Qwen_Qwen3.5-0.8B-GGUF',
       routePolicy: 1,
-      fallback: 1,
       timeoutMs: 60_000,
       connectorId: '',
     },
     scenarioType: 1,
     executionMode: 1,
+    extensions: [],
     spec: {
       spec: {
         oneofKind: 'textGenerate',
@@ -139,6 +140,7 @@ async function invokeLocalGenerateWithoutSubject(): Promise<void> {
             role: 'user',
             content: 'hello',
             name: '',
+            parts: [],
           }],
           systemPrompt: '',
           tools: [],
@@ -155,11 +157,24 @@ function findUnaryCallByMethodId(
   calls: TauriInvokeCall[],
   methodId: string,
 ): TauriInvokeCall | undefined {
-  return calls.findLast((item) => item.command === 'runtime_bridge_unary' && item.payload.methodId === methodId);
+  for (let index = calls.length - 1; index >= 0; index -= 1) {
+    const item = calls[index];
+    if (item?.command === 'runtime_bridge_unary' && item.payload.methodId === methodId) {
+      return item;
+    }
+  }
+  return undefined;
 }
 
 function assertUnaryRequestContains(calls: TauriInvokeCall[], expectedText: string): void {
-  const unaryCall = calls.findLast((item) => item.command === 'runtime_bridge_unary');
+  let unaryCall: TauriInvokeCall | undefined;
+  for (let index = calls.length - 1; index >= 0; index -= 1) {
+    const item = calls[index];
+    if (item?.command === 'runtime_bridge_unary') {
+      unaryCall = item;
+      break;
+    }
+  }
   assert.ok(unaryCall);
   const requestBytesBase64 = String(unaryCall.payload.requestBytesBase64 || '').trim();
   assert.ok(requestBytesBase64.length > 0);
@@ -293,7 +308,7 @@ test('platform local read-only calls omit authorization even when token provider
       accessTokenProvider: () => 'stale-realm-token',
     });
 
-    await getPlatformClient().runtime.local.listLocalModels({});
+    await getPlatformClient().runtime.local.listLocalModels({} as never);
     await getPlatformClient().runtime.local.warmLocalModel({
       localModelId: 'local-model-1',
       timeoutMs: 60_000,

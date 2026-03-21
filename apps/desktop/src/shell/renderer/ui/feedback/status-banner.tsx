@@ -2,6 +2,16 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 
+const STATUS_BANNER_MAX_MESSAGE_LENGTH = 200;
+
+function formatStatusBannerMessage(value: string): string {
+  const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+  if (normalized.length <= STATUS_BANNER_MAX_MESSAGE_LENGTH) {
+    return normalized;
+  }
+  return `${normalized.slice(0, STATUS_BANNER_MAX_MESSAGE_LENGTH - 3).trimEnd()}...`;
+}
+
 export function StatusBanner() {
   const { t } = useTranslation();
   const statusBanner = useAppStore((state) => state.statusBanner);
@@ -25,11 +35,12 @@ export function StatusBanner() {
         : statusBanner.kind === 'error'
           ? 'border-red-200 bg-red-50 text-red-700'
           : 'border-gray-200 bg-gray-100 text-gray-700';
+  const message = formatStatusBannerMessage(statusBanner.message);
 
   return (
     <div className={`fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg border px-3 py-2 text-sm shadow-lg ${colorClass}`}>
       <div className="flex items-center justify-between gap-3">
-        <span>{statusBanner.message}</span>
+        <span>{message}</span>
         <div className="flex items-center gap-2">
           {statusBanner.actionLabel && statusBanner.onAction ? (
             <button

@@ -1,10 +1,10 @@
 use axum::http::{header, HeaderMap};
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 use crate::runtime_mod::store::{get_external_agent_token_record, open_db};
 
-use super::{ExternalAgentClaims, ExternalAgentGatewayState};
+use super::{ExternalAgentClaims, ExternalAgentGatewayState, EXTERNAL_AGENT_TOKEN_AUDIENCE};
 
 pub fn bearer_token(headers: &HeaderMap) -> Result<String, String> {
     let raw = headers
@@ -30,6 +30,15 @@ pub async fn verify_external_agent_token(
 ) -> Result<ExternalAgentClaims, String> {
     let mut validation = Validation::new(Algorithm::HS256);
     validation.validate_exp = true;
+    validation.set_issuer(&[state.config.issuer.as_str()]);
+    validation.set_audience(&[EXTERNAL_AGENT_TOKEN_AUDIENCE]);
+    validation.required_spec_claims = HashSet::from([
+        "exp".to_string(),
+        "iss".to_string(),
+        "sub".to_string(),
+        "jti".to_string(),
+        "aud".to_string(),
+    ]);
     let decoded = decode::<ExternalAgentClaims>(
         token,
         &DecodingKey::from_secret(state.config.jws_secret.as_bytes()),
@@ -105,10 +114,6 @@ pub async fn verify_external_agent_token(
         .with_timezone(&chrono::Utc);
     if expires_at <= chrono::Utc::now() {
         return Err("EXTERNAL_AGENT_TOKEN_EXPIRED".to_string());
-    }
-    let guard = state.inner.lock().await;
-    if guard.revoked_token_ids.contains(claims.jti.as_str()) {
-        return Err("EXTERNAL_AGENT_TOKEN_REVOKED".to_string());
     }
     Ok(claims)
 }

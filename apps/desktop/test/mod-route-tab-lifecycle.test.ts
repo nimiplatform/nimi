@@ -14,7 +14,8 @@ test('route tab pages keep opened mod tabs mounted and stop using LRU eviction',
 
   assert.match(contextSource, /isModTabOpen: \(tabId\) => isRouteTabOpen/);
   assert.match(contextSource, /isModTabRetained/);
-  assert.match(syncSource, /shouldMountRouteTab/);
+  assert.match(syncSource, /context\.isModTabRetained/);
+  assert.doesNotMatch(syncSource, /useAppStore\.getState\(\)\.modWorkspaceTabs/);
   assert.doesNotMatch(syncSource, /activatedTabPages/);
 
   assert.match(contextSource, /getModLifecycleState/);

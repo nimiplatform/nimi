@@ -85,7 +85,7 @@ test('createResolveRuntimeBinding infers cloud source for cloud provider', async
     const resolve = createResolveRuntimeBinding(() => fields);
     const result = await resolve({ modId: 'test-mod' });
     assert.equal(result.source, 'cloud');
-    assert.equal(result.engine, undefined);
+    assert.equal('engine' in result ? (result as { engine?: string }).engine : undefined, undefined);
 });
 test('createResolveRuntimeBinding preserves localModelId and adapter for local binding', async () => {
     const fields = createMockFields({
@@ -111,7 +111,7 @@ test('createResolveRuntimeBinding preserves localModelId and adapter for local b
     });
     assert.equal(result.model, 'llama/z-image-turbo');
     assert.equal(result.modelId, 'z-image-turbo');
-    assert.equal(result.localModelId, 'file:z-image-turbo');
+    assert.equal('localModelId' in result ? result.localModelId : undefined, 'file:z-image-turbo');
     assert.equal(result.adapter, 'llama_native_adapter');
-    assert.equal(result.localProviderModel, 'z-image-turbo');
+    assert.equal('localProviderModel' in result ? result.localProviderModel : undefined, 'z-image-turbo');
 });

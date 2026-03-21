@@ -23,10 +23,16 @@ test('showModTabLimitBanner emits the configured warning and routes users to mod
   });
 
   assert.ok(captured);
-  assert.equal(captured.kind, 'warning');
-  assert.equal(captured.message, '最多同时打开 5 个 Mod，请先关闭一个再继续。');
-  assert.equal(captured.actionLabel, '前往 Mods');
+  const banner = captured as {
+    kind: 'warning';
+    message: string;
+    actionLabel: string;
+    onAction: () => void;
+  };
+  assert.equal(banner.kind, 'warning');
+  assert.equal(banner.message, '最多同时打开 5 个 Mod，请先关闭一个再继续。');
+  assert.equal(banner.actionLabel, '前往 Mods');
 
-  captured.onAction();
+  banner.onAction();
   assert.equal(activeTab, 'mods');
 });

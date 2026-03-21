@@ -31,9 +31,9 @@ export class RegistryGateway {
     ok: boolean;
     reasonCode: string;
   } {
-    const sourceRef = String(ref || '');
+    const sourceRef = String(ref || '').trim();
     if (!sourceRef) {
-      return { ok: true, reasonCode: ReasonCode.SOURCE_DEFAULTED };
+      return { ok: false, reasonCode: ReasonCode.DISCOVERY_SOURCE_UNTRUSTED };
     }
 
     const blocked = BLOCKED_SOURCES.some((prefix) =>

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -19,6 +19,7 @@ pub const EXTERNAL_AGENT_ACTION_REQUEST_EVENT: &str = "external-agent://action-r
 pub const EXTERNAL_AGENT_EVENT_TTL_SECS: i64 = 15 * 60;
 pub const EXTERNAL_AGENT_MAX_EVENTS_PER_EXECUTION: usize = 64;
 pub const EXTERNAL_AGENT_MAX_EXECUTION_STREAMS: usize = 500;
+pub const EXTERNAL_AGENT_TOKEN_AUDIENCE: &str = "nimi-external-agent";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -147,6 +148,7 @@ pub struct ExternalAgentGatewayStatus {
 #[serde(rename_all = "camelCase")]
 pub struct ExternalAgentClaims {
     pub sub: String,
+    pub aud: String,
     pub principal_id: String,
     pub principal_type: String,
     pub mode: String,
@@ -223,7 +225,6 @@ impl ExternalAgentGatewayConfig {
 #[derive(Default)]
 pub struct ExternalAgentGatewayInner {
     pub actions: HashMap<String, ExternalAgentActionDescriptor>,
-    pub revoked_token_ids: HashSet<String>,
     pub completion_waiters:
         HashMap<String, oneshot::Sender<ExternalAgentExecutionCompletionPayload>>,
     pub execution_owners: HashMap<String, ExternalAgentExecutionOwner>,
@@ -519,12 +520,6 @@ pub async fn external_agent_verify_execution_context(
     }
 
     let guard = state.inner.lock().await;
-    if guard
-        .revoked_token_ids
-        .contains(payload.auth_token_id.as_str())
-    {
-        return Ok(false);
-    }
     if !guard.completion_waiters.contains_key(execution_id.as_str()) {
         return Ok(false);
     }

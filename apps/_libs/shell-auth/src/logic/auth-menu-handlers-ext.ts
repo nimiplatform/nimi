@@ -34,6 +34,18 @@ function redactErrorMessage(error: unknown): string {
   return 'wallet login failed';
 }
 
+function firstStringEntry(value: unknown): string {
+  if (!Array.isArray(value)) {
+    return '';
+  }
+  for (const entry of value) {
+    if (typeof entry === 'string' && entry.trim()) {
+      return entry.trim();
+    }
+  }
+  return '';
+}
+
 // ---------------------------------------------------------------------------
 // handleRequestEmailOtp
 // ---------------------------------------------------------------------------
@@ -271,8 +283,8 @@ export async function handleWalletLogin(
 
     const accounts = await provider.request({
       method: 'eth_requestAccounts',
-    }) as string[];
-    const walletAddress = String(accounts?.[0] || '').trim();
+    });
+    const walletAddress = firstStringEntry(accounts);
     if (!walletAddress) {
       throw new Error('钱包未返回地址');
     }
@@ -293,10 +305,11 @@ export async function handleWalletLogin(
       throw new Error('无效的钱包签名挑战');
     }
 
-    const signature = await provider.request({
+    const signatureResult = await provider.request({
       method: 'personal_sign',
       params: [challengeMessage, walletAddress],
-    }) as string;
+    });
+    const signature = typeof signatureResult === 'string' ? signatureResult.trim() : '';
     if (!signature) {
       throw new Error('钱包签名失败');
     }

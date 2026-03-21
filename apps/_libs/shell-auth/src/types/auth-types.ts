@@ -49,7 +49,7 @@ export type WalletProvider = {
 // Google window extension
 // ---------------------------------------------------------------------------
 
-export type GoogleWindow = Window & {
+export type ShellAuthWindow = Window & {
   google?: {
     accounts?: {
       oauth2?: {
@@ -58,8 +58,8 @@ export type GoogleWindow = Window & {
           scope: string;
           callback: (response: { access_token?: string }) => void;
         }) => { requestAccessToken: () => void };
-      };
-    };
+  };
+};
   };
   ethereum?: WalletProvider;
   okxwallet?: WalletProvider;

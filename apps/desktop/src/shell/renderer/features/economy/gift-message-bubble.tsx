@@ -34,6 +34,7 @@ interface GiftMessageBubbleProps {
 export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageBubbleProps) {
   const { t } = useTranslation();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const queryClient = useQueryClient();
   const [actionLoading, setActionLoading] = useState<'accept' | 'reject' | null>(null);
 
@@ -56,8 +57,13 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     try {
       await dataSync.acceptGift(payload.giftTransactionId);
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
-    } catch {
-      // silently ignore
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error
+          ? error.message
+          : t('GiftBubble.acceptFailed', { defaultValue: 'Failed to accept gift' }),
+      });
     } finally {
       setActionLoading(null);
     }
@@ -73,8 +79,13 @@ export function GiftMessageBubble({ payload, isMe, currentUserId }: GiftMessageB
     try {
       await dataSync.rejectGift(payload.giftTransactionId, {});
       await queryClient.invalidateQueries({ queryKey: ['gift-transaction', payload.giftTransactionId] });
-    } catch {
-      // silently ignore
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error
+          ? error.message
+          : t('GiftBubble.rejectFailed', { defaultValue: 'Failed to reject gift' }),
+      });
     } finally {
       setActionLoading(null);
     }

@@ -5,6 +5,14 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { desktopBridge } from '@renderer/bridge';
+import { i18n } from '@renderer/i18n';
+import {
+  isExpectedAnonymousSessionError,
+  toAuthTokensDto,
+  toAuthUserRecord,
+  toCheckEmailResponseDto,
+  toOAuthLoginResultDto,
+} from './auth-session-utils.js';
 
 export const desktopOAuthBridge: TauriOAuthBridge = {
   hasTauriInvoke: () => desktopBridge.hasTauriInvoke(),
@@ -18,39 +26,38 @@ type AuthTokensDto = RealmModel<'AuthTokensDto'>;
 type CheckEmailResponseDto = RealmModel<'CheckEmailResponseDto'>;
 type OAuthLoginResultDto = RealmModel<'OAuthLoginResultDto'>;
 
-function toAuthUserRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
 export function createDesktopAuthAdapter(): AuthPlatformAdapter {
   return {
     supportsPasswordLogin: false,
-    checkEmail: (email) =>
-      dataSync.callApi(
-        (realm) => realm.services.AuthService.checkEmail({ email }),
-        '',
-      ) as Promise<CheckEmailResponseDto>,
+    checkEmail: async (email): Promise<CheckEmailResponseDto> =>
+      toCheckEmailResponseDto(
+        await dataSync.callApi(
+          (realm) => realm.services.AuthService.checkEmail({ email }),
+          '',
+        ),
+      ),
 
     requestEmailOtp: (email) =>
       dataSync.callApi(
         (realm) => realm.services.AuthService.requestEmailOtp({ email }),
-        '发送验证码失败',
+        i18n.t('Auth.requestEmailOtpFailed', { defaultValue: 'Failed to send verification code' }),
       ),
 
-    verifyEmailOtp: (email, code) =>
-      dataSync.callApi(
-        (realm) => realm.services.AuthService.verifyEmailOtp({ email, code }),
-        '验证码登录失败',
-      ) as Promise<OAuthLoginResultDto>,
+    verifyEmailOtp: async (email, code): Promise<OAuthLoginResultDto> =>
+      toOAuthLoginResultDto(
+        await dataSync.callApi(
+          (realm) => realm.services.AuthService.verifyEmailOtp({ email, code }),
+          i18n.t('Auth.verifyEmailOtpFailed', { defaultValue: 'Failed to sign in with email code' }),
+        ),
+      ),
 
-    verifyTwoFactor: (tempToken, code) =>
-      dataSync.callApi(
-        (realm) => realm.services.AuthService.verifyTwoFactor({ tempToken, code }),
-        '2FA 验证失败',
-      ) as Promise<AuthTokensDto>,
+    verifyTwoFactor: async (tempToken, code): Promise<AuthTokensDto> =>
+      toAuthTokensDto(
+        await dataSync.callApi(
+          (realm) => realm.services.AuthService.verifyTwoFactor({ tempToken, code }),
+          i18n.t('Auth.verifyTwoFactorFailed', { defaultValue: 'Two-factor verification failed' }),
+        ),
+      ),
 
     walletChallenge: (input) =>
       dataSync.callApi(
@@ -59,38 +66,49 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
           chainId: input.chainId,
           walletType: input.walletType,
         }),
-        '获取钱包签名挑战失败',
+        i18n.t('Auth.walletChallengeFailed', { defaultValue: 'Failed to get wallet challenge' }),
       ),
 
-    walletLogin: (input) =>
-      dataSync.callApi(
-        (realm) => realm.services.AuthService.walletLogin({
+    walletLogin: async (input): Promise<OAuthLoginResultDto> =>
+      toOAuthLoginResultDto(
+        await dataSync.callApi(
+          (realm) => realm.services.AuthService.walletLogin({
           walletAddress: input.walletAddress,
           chainId: input.chainId,
           nonce: input.nonce,
           message: input.message,
           signature: input.signature,
           walletType: input.walletType,
-        }),
-        '钱包登录失败',
-      ) as Promise<OAuthLoginResultDto>,
+          }),
+          i18n.t('Auth.walletLoginFailed', { defaultValue: 'Wallet sign-in failed' }),
+        ),
+      ),
 
-    oauthLogin: (provider, accessToken) =>
-      dataSync.callApi(
-        (realm) => realm.services.AuthService.oauthLogin({
-          provider: provider as OAuthProvider,
-          accessToken,
-        }),
-        'OAuth 登录失败',
-      ) as Promise<OAuthLoginResultDto>,
+    oauthLogin: async (provider, accessToken): Promise<OAuthLoginResultDto> =>
+      toOAuthLoginResultDto(
+        await dataSync.callApi(
+          (realm) => realm.services.AuthService.oauthLogin({
+            provider: provider as OAuthProvider,
+            accessToken,
+          }),
+          i18n.t('Auth.oauthLoginFailed', { defaultValue: 'OAuth sign-in failed' }),
+        ),
+      ),
 
     updatePassword: async (newPassword) => {
       await dataSync.updatePassword({ newPassword });
     },
 
     loadCurrentUser: async () => {
-      const user = await dataSync.loadCurrentUser().catch(() => null);
-      return toAuthUserRecord(user);
+      try {
+        const user = await dataSync.loadCurrentUser();
+        return toAuthUserRecord(user);
+      } catch (error) {
+        if (isExpectedAnonymousSessionError(error)) {
+          return null;
+        }
+        throw error;
+      }
     },
 
     applyToken: async (accessToken, refreshToken) => {

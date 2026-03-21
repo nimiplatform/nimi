@@ -4,15 +4,14 @@ import type {
   HookActionResult,
 } from '../../contracts/action.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
+import { createSecureIdSuffix } from '../../../id.js';
 
 export function createExecutionId(actionId: string): string {
-  const suffix = Math.random().toString(36).slice(2, 8);
-  return `act:${actionId}:${Date.now().toString(36)}:${suffix}`;
+  return `act:${actionId}:${Date.now().toString(36)}:${createSecureIdSuffix()}`;
 }
 
 export function createVerifyTicket(actionId: string): string {
-  const suffix = Math.random().toString(36).slice(2, 10);
-  return `verify:${actionId}:${Date.now().toString(36)}:${suffix}`;
+  return `verify:${actionId}:${Date.now().toString(36)}:${createSecureIdSuffix()}`;
 }
 
 export function sanitizeActionId(value: string): string {

@@ -1,4 +1,3 @@
-import { startTransition } from 'react';
 import type { AppStoreSet, AppStoreState } from './store-types';
 import { MAX_OPEN_MOD_TABS, type OpenModWorkspaceTabResult } from './mod-workspace-policy';
 import {
@@ -117,40 +116,38 @@ export function createModWorkspaceSlice(set: AppStoreSet): ModWorkspaceSlice {
       }),
     openModWorkspaceTab: (tabId, title, modId) => {
       let result: OpenModWorkspaceTabResult = 'rejected-limit';
-      startTransition(() => {
-        set((state) => {
-          const now = Date.now();
-          const existing = state.modWorkspaceTabs.find((tab) => tab.tabId === tabId);
-          if (existing) {
-            result = 'activated-existing';
-            return {
-              activeTab: tabId,
-              modWorkspaceTabs: state.modWorkspaceTabs.map((tab) => (
-                tab.tabId === tabId
-                  ? { ...tab, title, modId, lastAccessedAt: now }
-                  : tab
-              )),
-            };
-          }
-          if (state.modWorkspaceTabs.length >= MAX_OPEN_MOD_TABS) {
-            result = 'rejected-limit';
-            return {};
-          }
-          result = 'opened';
+      set((state) => {
+        const now = Date.now();
+        const existing = state.modWorkspaceTabs.find((tab) => tab.tabId === tabId);
+        if (existing) {
+          result = 'activated-existing';
           return {
             activeTab: tabId,
-            modWorkspaceTabs: [
-              ...state.modWorkspaceTabs,
-              {
-                tabId,
-                modId,
-                title,
-                fused: Boolean(state.fusedRuntimeMods[modId]),
-                lastAccessedAt: now,
-              },
-            ],
+            modWorkspaceTabs: state.modWorkspaceTabs.map((tab) => (
+              tab.tabId === tabId
+                ? { ...tab, title, modId, lastAccessedAt: now }
+                : tab
+            )),
           };
-        });
+        }
+        if (state.modWorkspaceTabs.length >= MAX_OPEN_MOD_TABS) {
+          result = 'rejected-limit';
+          return {};
+        }
+        result = 'opened';
+        return {
+          activeTab: tabId,
+          modWorkspaceTabs: [
+            ...state.modWorkspaceTabs,
+            {
+              tabId,
+              modId,
+              title,
+              fused: Boolean(state.fusedRuntimeMods[modId]),
+              lastAccessedAt: now,
+            },
+          ],
+        };
       });
       return result;
     },

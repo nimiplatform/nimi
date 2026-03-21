@@ -263,10 +263,6 @@ export function toBridgeNimiError(error: unknown): NimiError {
   return normalized;
 }
 
-export function toBridgeUserError(error: unknown): NimiError {
-  return toBridgeNimiError(error);
-}
-
 function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
   if (command !== 'http_request') {
     return {};

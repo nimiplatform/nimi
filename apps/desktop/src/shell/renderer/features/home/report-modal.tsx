@@ -19,6 +19,7 @@ export function ReportModal({
   const [selectedReason, setSelectedReason] = useState<keyof typeof ReportReason | ''>('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const reportReasons = [
     { value: ReportReason.SPAM, label: t('Home.reportReasons.spam', { defaultValue: 'Spam' }) },
     { value: ReportReason.NSFW, label: t('Home.reportReasons.nsfw', { defaultValue: 'NSFW content' }) },
@@ -32,11 +33,18 @@ export function ReportModal({
       return;
     }
     setIsSubmitting(true);
+    setSubmitError(null);
     try {
       await onSubmit({
         reason: selectedReason,
         description: description.trim() || undefined,
       });
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : t('Home.reportSubmitFailed', { defaultValue: 'Failed to submit report' }),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -104,6 +112,12 @@ export function ReportModal({
             className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-[#4ECCA3] focus:outline-none focus:ring-1 focus:ring-[#4ECCA3]"
           />
         </div>
+
+        {submitError ? (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+        ) : null}
 
         <div className="flex gap-3">
           <button

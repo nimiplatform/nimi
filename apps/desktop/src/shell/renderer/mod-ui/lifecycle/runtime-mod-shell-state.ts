@@ -40,13 +40,14 @@ export async function refreshRuntimeManifestSummaries(): Promise<RuntimeLocalMan
 }
 
 export async function syncRuntimeModShellState(
-  manifests: RuntimeLocalManifestSummary[] = useAppStore.getState().localManifestSummaries,
+  manifests?: RuntimeLocalManifestSummary[],
 ): Promise<string[]> {
+  const effectiveManifests = manifests ?? useAppStore.getState().localManifestSummaries;
   const registeredRuntimeModIds = listRegisteredRuntimeModIds();
   const appStore = useAppStore.getState();
   appStore.setRegisteredRuntimeModIds(registeredRuntimeModIds);
   await syncRuntimeModStyles({
-    manifests,
+    manifests: effectiveManifests,
     activeModIds: registeredRuntimeModIds,
   });
   syncRuntimeUiExtensionsToRegistry();
@@ -59,11 +60,12 @@ export async function syncRuntimeModShellState(
  */
 export async function syncSingleRuntimeModShellState(
   targetModId: string,
-  manifests: RuntimeLocalManifestSummary[] = useAppStore.getState().localManifestSummaries,
+  manifests?: RuntimeLocalManifestSummary[],
 ): Promise<void> {
+  const effectiveManifests = manifests ?? useAppStore.getState().localManifestSummaries;
   const registeredRuntimeModIds = listRegisteredRuntimeModIds();
   const appStore = useAppStore.getState();
   appStore.setRegisteredRuntimeModIds(registeredRuntimeModIds);
-  await syncSingleRuntimeModStyles(targetModId, manifests, registeredRuntimeModIds);
+  await syncSingleRuntimeModStyles(targetModId, effectiveManifests, registeredRuntimeModIds);
   syncSingleModUiExtensions(targetModId);
 }

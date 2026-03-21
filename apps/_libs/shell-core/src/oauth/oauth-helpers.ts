@@ -1,4 +1,4 @@
-import { readBundledEnv } from '../env.js';
+export { readBundledEnv as readEnv } from '../env.js';
 
 // ---------------------------------------------------------------------------
 // OAuth helpers — extracted from Desktop auth-helpers.ts (common parts)
@@ -11,14 +11,6 @@ const DESKTOP_CALLBACK_STATE_VERSION = 'v1';
 const DESKTOP_CALLBACK_PORT_MIN = 1024;
 const DESKTOP_CALLBACK_PORT_MAX = 65535;
 const GENERIC_AUTH_ERROR_MESSAGE = 'Authentication failed. Please try again.';
-
-// ---------------------------------------------------------------------------
-// Environment helpers
-// ---------------------------------------------------------------------------
-
-export function readEnv(name: string): string {
-  return readBundledEnv(name);
-}
 
 // ---------------------------------------------------------------------------
 // URL / loopback helpers
@@ -73,6 +65,19 @@ function createSecureRandomUint32(): number {
   const values = new Uint32Array(1);
   secureCrypto.getRandomValues(values);
   return values[0] ?? 0;
+}
+
+function createUniformRandomInt(maxExclusive: number): number {
+  if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+    throw new Error('maxExclusive must be a positive integer');
+  }
+  const maxUint32 = 0x1_0000_0000;
+  const limit = maxUint32 - (maxUint32 % maxExclusive);
+  let candidate = createSecureRandomUint32();
+  while (candidate >= limit) {
+    candidate = createSecureRandomUint32();
+  }
+  return candidate % maxExclusive;
 }
 
 function normalizeFlowKind(flowKind: string | undefined): string {
@@ -168,7 +173,7 @@ function constantTimeEquals(left: string, right: string): boolean {
 
 export function createDesktopCallbackRedirectUri(): string {
   const span = DESKTOP_CALLBACK_PORT_MAX - DESKTOP_CALLBACK_PORT_MIN + 1;
-  const port = DESKTOP_CALLBACK_PORT_MIN + (createSecureRandomUint32() % span);
+  const port = DESKTOP_CALLBACK_PORT_MIN + createUniformRandomInt(span);
   return `http://127.0.0.1:${port}${DESKTOP_CALLBACK_PATH}`;
 }
 

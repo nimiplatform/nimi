@@ -20,6 +20,7 @@ export class HookRuntimePermissionService {
     capabilityKey: string;
     startedAt: number;
   }): {
+    allowed: true;
     sourceType: HookSourceType;
     reasonCodes: string[];
   } {
@@ -55,6 +56,7 @@ export class HookRuntimePermissionService {
     }
 
     return {
+      allowed: true,
       sourceType: resolvedSourceType,
       reasonCodes: permission.reasonCodes,
     };

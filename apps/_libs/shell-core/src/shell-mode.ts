@@ -36,6 +36,7 @@ function isMacDesktopEnvironment(): boolean {
   if (typeof navigator === 'undefined') {
     return false;
   }
+  // Prefer User-Agent Client Hints when available; navigator.platform is kept only as a legacy fallback.
   const userAgentDataPlatform = (navigator as Navigator & {
     userAgentData?: { platform?: string };
   }).userAgentData?.platform;

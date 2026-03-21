@@ -19,12 +19,13 @@ export function readDataSyncHotState(): DataSyncHotState | null {
   if (!snapshot || typeof snapshot !== 'object') {
     return null;
   }
-  let realmBaseUrl = '';
-  try {
-    realmBaseUrl = normalizeRealmBaseUrl(snapshot.realmBaseUrl);
-  } catch {
-    return null;
-  }
+  const realmBaseUrl = (() => {
+    try {
+      return normalizeRealmBaseUrl(snapshot.realmBaseUrl);
+    } catch {
+      return '';
+    }
+  })();
   if (!realmBaseUrl) {
     return null;
   }

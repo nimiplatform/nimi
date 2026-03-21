@@ -31,4 +31,9 @@ describe('notification panel action wiring', () => {
     assert.match(source, /notificationsQuery\.isError && items\.length === 0/);
     assert.match(source, /NotificationPanel\.loadError/);
   });
+
+  test('notification list stays query-backed instead of duplicating page state in local items state', () => {
+    assert.match(source, /useInfiniteQuery\(/);
+    assert.doesNotMatch(source, /const \[items,\s*setItems\]/);
+  });
 });

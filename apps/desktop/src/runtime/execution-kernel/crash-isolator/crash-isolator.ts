@@ -18,10 +18,23 @@ export class CrashIsolator {
     this.cooldownMs = options?.cooldownMs ?? DEFAULT_COOLDOWN_MS;
   }
 
+  private isCooldownExpired(entry: CrashEntry): boolean {
+    return Date.now() - new Date(entry.lastAt).getTime() >= this.cooldownMs;
+  }
+
+  private isEntryDisabled(entry: CrashEntry): boolean {
+    return entry.disabled && !this.isCooldownExpired(entry);
+  }
+
   report(modId: string): number {
     const now = new Date().toISOString();
     const existing = this.entries.get(modId);
     if (existing) {
+      if (this.isCooldownExpired(existing)) {
+        existing.count = 0;
+        existing.disabled = false;
+        existing.firstAt = now;
+      }
       existing.count += 1;
       existing.lastAt = now;
       if (existing.count >= this.threshold) {
@@ -44,16 +57,7 @@ export class CrashIsolator {
     if (!entry) {
       return false;
     }
-    if (!entry.disabled) {
-      return false;
-    }
-    const elapsed = Date.now() - new Date(entry.lastAt).getTime();
-    if (elapsed >= this.cooldownMs) {
-      entry.disabled = false;
-      entry.count = 0;
-      return false;
-    }
-    return true;
+    return this.isEntryDisabled(entry);
   }
 
   reset(modId: string): void {
@@ -75,15 +79,15 @@ export class CrashIsolator {
     }
     return {
       crashCount: entry.count,
-      disabled: this.shouldDisable(modId),
+      disabled: this.isEntryDisabled(entry),
       lastCrashAt: entry.lastAt,
     };
   }
 
   listDisabled(): string[] {
     const result: string[] = [];
-    for (const [modId] of this.entries) {
-      if (this.shouldDisable(modId)) {
+    for (const [modId, entry] of this.entries) {
+      if (this.isEntryDisabled(entry)) {
         result.push(modId);
       }
     }

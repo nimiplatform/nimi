@@ -6,11 +6,19 @@ type ResolvedDependency = {
   order: number;
 };
 
-export class DependencyResolver {
-  private readonly installed = new Map<string, string>();
+type InstalledDependency = {
+  version: string;
+  dependencies: string[];
+};
 
-  registerInstalled(modId: string, version: string): void {
-    this.installed.set(modId, version);
+export class DependencyResolver {
+  private readonly installed = new Map<string, InstalledDependency>();
+
+  registerInstalled(modId: string, version: string, dependencies: string[] = []): void {
+    this.installed.set(modId, {
+      version,
+      dependencies: [...dependencies],
+    });
   }
 
   unregisterInstalled(modId: string): void {
@@ -69,24 +77,65 @@ export class DependencyResolver {
   private detectCycle(
     rootId: string,
     dependencies: string[],
-    visited: Set<string> = new Set(),
   ): string[] | null {
-    for (const dep of dependencies) {
-      if (dep === rootId) {
-        return [dep, rootId];
+    const visit = (
+      currentDependencies: string[],
+      trail: string[],
+      visited: Set<string>,
+    ): string[] | null => {
+      for (const dep of currentDependencies) {
+        if (dep === rootId) {
+          return [...trail, dep];
+        }
+        if (visited.has(dep)) {
+          continue;
+        }
+        const installed = this.installed.get(dep);
+        if (!installed) {
+          continue;
+        }
+        visited.add(dep);
+        const cycle = visit(installed.dependencies, [...trail, dep], visited);
+        visited.delete(dep);
+        if (cycle) {
+          return cycle;
+        }
       }
-      if (visited.has(dep)) {
-        continue;
-      }
-      visited.add(dep);
-    }
-    return null;
+      return null;
+    };
+
+    return visit(dependencies, [rootId], new Set<string>());
   }
 
   private topologicalSort(dependencies: string[]): ResolvedDependency[] {
-    return dependencies.map((dep, index) => ({
+    const directDependencies = new Set(dependencies);
+    const ordered: string[] = [];
+    const visiting = new Set<string>();
+    const visited = new Set<string>();
+
+    const visit = (dependencyId: string) => {
+      if (visited.has(dependencyId) || visiting.has(dependencyId)) {
+        return;
+      }
+      visiting.add(dependencyId);
+      const installed = this.installed.get(dependencyId);
+      for (const nextDependency of installed?.dependencies || []) {
+        if (directDependencies.has(nextDependency)) {
+          visit(nextDependency);
+        }
+      }
+      visiting.delete(dependencyId);
+      visited.add(dependencyId);
+      ordered.push(dependencyId);
+    };
+
+    for (const dependency of dependencies) {
+      visit(dependency);
+    }
+
+    return ordered.map((dep, index) => ({
       id: dep,
-      version: this.installed.get(dep) || 'unknown',
+      version: this.installed.get(dep)?.version || 'unknown',
       order: index,
     }));
   }

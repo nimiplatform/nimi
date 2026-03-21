@@ -17,11 +17,13 @@ const CONNECTOR_CALL_OPTIONS = {
 };
 const CONNECTOR_MODELS_PAGE_SIZE = 200;
 const CONNECTOR_MODELS_MAX_PAGES = 200;
+const PROVIDER_CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const CONNECTOR_KIND_REMOTE_MANAGED = 2;
 const CONNECTOR_OWNER_TYPE_SYSTEM = 1;
 
 let cachedProviderCatalog: ProviderCatalogEntry[] | null = null;
+let cachedProviderCatalogAt = 0;
 
 type RuntimeConnectorLike = {
   connectorId: string;
@@ -56,12 +58,19 @@ function runtimeAdmin() {
 }
 
 export async function sdkListProviderCatalog(): Promise<ProviderCatalogEntry[]> {
-  if (cachedProviderCatalog) return cachedProviderCatalog;
+  const now = Date.now();
+  if (
+    cachedProviderCatalog
+    && now - cachedProviderCatalogAt < PROVIDER_CATALOG_CACHE_TTL_MS
+  ) {
+    return cachedProviderCatalog;
+  }
   const response = await runtimeAdmin().listProviderCatalog({}, CONNECTOR_CALL_OPTIONS);
   const providers = Array.isArray(response.providers)
     ? (response.providers as ProviderCatalogEntry[])
     : [];
   cachedProviderCatalog = providers;
+  cachedProviderCatalogAt = now;
   return providers;
 }
 

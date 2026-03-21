@@ -1,3 +1,4 @@
+import { i18n } from '@renderer/i18n';
 import type { ActionDefinition, QueryDefinition, QueryResultsMap, SelectedIndexMap } from './types';
 
 export type RuntimeQueryPanelViewProps = {
@@ -38,7 +39,9 @@ export function RuntimeQueryPanelView(props: RuntimeQueryPanelViewProps) {
                   className="rounded-md bg-gray-800 px-2 py-1 text-xs text-white hover:bg-gray-700 disabled:opacity-60"
                   disabled={props.loadingQueryId === query.id}
                 >
-                  {props.loadingQueryId === query.id ? '加载中...' : '运行'}
+                  {props.loadingQueryId === query.id
+                    ? i18n.t('ModUI.queryLoading', { defaultValue: 'Loading...' })
+                    : i18n.t('ModUI.queryRun', { defaultValue: 'Run' })}
                 </button>
               </div>
               {records.length > 0 ? (

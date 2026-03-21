@@ -66,7 +66,7 @@ export default defineConfig(({ mode }) => {
   const fsAllowList = resolveFsAllowList(env);
   return {
     root: path.resolve(__dirname, 'src/shell/renderer'),
-    envPrefix: ['VITE_', 'NIMI_'],
+    envPrefix: ['VITE_'],
     define: {
       'globalThis.__NIMI_IMPORT_META_ENV__': 'import.meta.env',
       'import.meta.env.VITE_NIMI_DESKTOP_VERSION': JSON.stringify(desktopPackageVersion()),
@@ -103,6 +103,10 @@ export default defineConfig(({ mode }) => {
         {
           find: '@nimiplatform/sdk',
           replacement: path.resolve(__dirname, '../../sdk/src'),
+        },
+        {
+          find: '@nimiplatform/shell-auth',
+          replacement: path.resolve(__dirname, '../_libs/shell-auth/src'),
         },
         {
           find: '@nimiplatform/shell-core',

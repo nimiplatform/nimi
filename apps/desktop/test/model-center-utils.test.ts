@@ -18,6 +18,7 @@ import {
   shouldShowRuntimeProfileInstallSection,
   sortProgressSessions,
   statusLabel,
+  type ProgressSessionState,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
 
 // ---------------------------------------------------------------------------
@@ -297,7 +298,7 @@ describe('parseTimestamp', () => {
 // ---------------------------------------------------------------------------
 
 describe('pruneProgressSessions', () => {
-  const makeSession = (done: boolean, updatedAtMs: number) => ({
+  const makeSession = (done: boolean, updatedAtMs: number): ProgressSessionState => ({
     event: {
       installSessionId: `session-${updatedAtMs}`,
       modelId: 'test-model',
@@ -324,7 +325,7 @@ describe('pruneProgressSessions', () => {
   });
 
   test('non-done sessions → not pruned, same reference', () => {
-    const sessions = {
+    const sessions: Record<string, ReturnType<typeof makeSession>> = {
       s1: makeSession(false, Date.now() - PROGRESS_RETENTION_MS - 10000),
     };
     const result = pruneProgressSessions(sessions, Date.now());
@@ -333,7 +334,7 @@ describe('pruneProgressSessions', () => {
 
   test('done but within retention → not pruned, same reference', () => {
     const now = Date.now();
-    const sessions = {
+    const sessions: Record<string, ReturnType<typeof makeSession>> = {
       s1: makeSession(true, now - 1000),
     };
     const result = pruneProgressSessions(sessions, now);
@@ -342,7 +343,7 @@ describe('pruneProgressSessions', () => {
 
   test('done and past retention → pruned, new object', () => {
     const now = Date.now();
-    const sessions = {
+    const sessions: Record<string, ReturnType<typeof makeSession>> = {
       s1: makeSession(true, now - PROGRESS_RETENTION_MS - 1),
       s2: makeSession(false, now - 5000),
     };
@@ -355,7 +356,7 @@ describe('pruneProgressSessions', () => {
 
   test('all done and expired → empty object', () => {
     const now = Date.now();
-    const sessions = {
+    const sessions: Record<string, ReturnType<typeof makeSession>> = {
       s1: makeSession(true, now - PROGRESS_RETENTION_MS - 100),
       s2: makeSession(true, now - PROGRESS_RETENTION_MS - 200),
     };
@@ -374,7 +375,7 @@ describe('sortProgressSessions', () => {
     state: 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled',
     createdAtMs: number,
     updatedAtMs: number,
-  ) => ({
+  ): ProgressSessionState => ({
     event: {
       installSessionId,
       modelId: installSessionId,

@@ -76,6 +76,26 @@ export type FeaturedWorldCardData = {
   creatorAvatarUrl: string | null;
 };
 
+function toSafeBackgroundImage(rawUrl: string | null | undefined): string | null {
+  const normalized = String(rawUrl || '').trim();
+  if (!normalized) {
+    return null;
+  }
+  try {
+    const baseUrl =
+      typeof window !== 'undefined' && typeof window.location?.href === 'string'
+        ? window.location.href
+        : 'https://nimi.invalid';
+    const parsed = new URL(normalized, baseUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return `url(${JSON.stringify(parsed.toString())})`;
+  } catch {
+    return null;
+  }
+}
+
 function PublicBadge({ size = 'normal' }: { size?: 'normal' | 'small' }) {
   const dotSize = size === 'small' ? 'h-1 w-1' : 'h-1.5 w-1.5';
   const textSize = size === 'small' ? 'text-[9px]' : 'text-[10px]';
@@ -476,8 +496,9 @@ export function TopAgentCard({
     return num.toString();
   };
 
-  const backgroundStyle = backgroundUrl
-    ? { backgroundImage: `url(${backgroundUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+  const safeBackgroundImage = toSafeBackgroundImage(backgroundUrl);
+  const backgroundStyle = safeBackgroundImage
+    ? { backgroundImage: safeBackgroundImage, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: palette.ring };
 
   return (

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { toBridgeUserError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
+import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/invoke';
 
 // ---------------------------------------------------------------------------
 // D-SEC-001 — Endpoint loopback restriction
@@ -16,7 +16,7 @@ import { toBridgeUserError } from '../src/shell/renderer/bridge/runtime-bridge/i
 // this test because its module transitively depends on `@runtime/local-runtime`
 // which requires the Tauri environment.  Instead, we source-scan to verify the
 // TypeScript layer implements the correct loopback rules, and use behavioral
-// tests on the bridge error code map via `toBridgeUserError`.
+// tests on the bridge error code map via `toBridgeNimiError`.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -125,7 +125,7 @@ test('D-SEC-001: remote address fails loopback check', () => {
 test('D-SEC-001: failure produces LOCAL_AI_ENDPOINT_NOT_LOOPBACK error', () => {
   // The bridge error code mapping must translate the Rust-originated error
   // code into a user-facing message.
-  const error = toBridgeUserError(
+  const error = toBridgeNimiError(
     new Error('LOCAL_AI_ENDPOINT_NOT_LOOPBACK: endpoint host must be loopback'),
   );
   assert.equal(

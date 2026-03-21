@@ -1,12 +1,12 @@
 import type { HookActionDescriptor, HookActionDescriptorView } from '../contracts/action.js';
 import { assertActionDescriptorMatrix } from '../services/action-descriptor-validator.js';
 
-function normalizeVerifyPolicy(value: unknown): 'required' | 'optional' | 'none' {
+function normalizeVerifyPolicy(value: unknown): 'required' | 'optional' | 'none' | null {
   const normalized = String(value || '').trim();
   if (normalized === 'required' || normalized === 'optional' || normalized === 'none') {
     return normalized;
   }
-  return 'optional';
+  return null;
 }
 
 function normalizeIdempotencyPolicy(value: unknown): 'required-for-write' | '' {
@@ -22,6 +22,11 @@ export function assertActionDescriptorFinalState(
   assertActionDescriptorMatrix(actionId, descriptor);
 
   const verifyPolicy = normalizeVerifyPolicy(descriptor.verifyPolicy);
+  if (verifyPolicy === null) {
+    throw new Error(
+      `descriptor invalid for ${actionId}: unknown verifyPolicy=${String(descriptor.verifyPolicy || '').trim() || '<empty>'}`,
+    );
+  }
   const idempotencyPolicy = normalizeIdempotencyPolicy(descriptor.idempotencyPolicy);
   const operation = descriptor.operation === 'write' ? 'write' : 'read';
 

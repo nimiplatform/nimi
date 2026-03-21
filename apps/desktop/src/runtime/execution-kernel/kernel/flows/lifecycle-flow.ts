@@ -5,19 +5,10 @@ import type {
   KernelStage,
   LifecycleInput,
   LifecycleState,
-  ModManifest,
   UpdateInput,
 } from '../../contracts/types';
+import type { RuntimeContext } from '../kernel-service-utils';
 import { ReasonCode } from '@nimiplatform/sdk/types';
-
-type RuntimeContext = {
-  manifest: ModManifest;
-  grantedCapabilities: string[];
-  sandboxProfileId: string;
-  instanceId: string;
-  state: LifecycleState;
-  mode: InstallInput['mode'];
-};
 
 type LifecycleAuditInput = {
   appendAudit: (entry: {
@@ -164,6 +155,7 @@ export async function runUpdateFlow(input: {
   disable: (lifecycle: LifecycleInput) => Promise<{ state: LifecycleState }>;
   install: (install: InstallInput) => Promise<{ state: LifecycleState }>;
   enable: (lifecycle: LifecycleInput) => Promise<{ state: LifecycleState }>;
+  getLifecycle: (modId: string, version: string) => LifecycleState | undefined;
   deleteContext: (key: string) => void;
   setLifecycle: (modId: string, version: string, state: LifecycleState) => void;
   keyFor: (modId: string, version: string) => string;
@@ -205,6 +197,11 @@ export async function runUpdateFlow(input: {
       targetVersion: input.update.targetVersion,
     };
   } catch (error) {
+    const targetState = input.getLifecycle(input.update.modId, input.update.targetVersion);
+    if (targetState && targetState !== 'UNINSTALLED') {
+      input.deleteContext(input.keyFor(input.update.modId, input.update.targetVersion));
+      input.setLifecycle(input.update.modId, input.update.targetVersion, 'UNINSTALLED');
+    }
     try {
       await input.enable({
         modId: input.update.modId,

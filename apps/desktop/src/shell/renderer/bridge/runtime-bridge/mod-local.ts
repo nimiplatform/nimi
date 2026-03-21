@@ -342,7 +342,11 @@ export async function subscribeRuntimeModReloadResult(
     return () => {};
   }
   const unsubscribe = await Promise.resolve(listen(RUNTIME_MOD_RELOAD_RESULT_EVENT, (event) => {
-    listener(parseRuntimeModReloadResults([event.payload])[0]!);
+    const parsed = parseRuntimeModReloadResults([event.payload]);
+    const first = parsed[0];
+    if (first) {
+      listener(first);
+    }
   }));
   if (typeof unsubscribe === 'function') {
     return unsubscribe;

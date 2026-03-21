@@ -37,6 +37,7 @@ test('otp flow asks for password setup when account still has no password', () =
         expiresIn: 900,
         user: {
           id: 'user-1',
+          createdAt: '2026-03-01T00:00:00Z',
           handle: '@user1',
           displayName: 'User 1',
           status: 'ACTIVE',
@@ -59,6 +60,7 @@ test('otp flow skips password setup when account already has password', () => {
         expiresIn: 900,
         user: {
           id: 'user-1',
+          createdAt: '2026-03-01T00:00:00Z',
           handle: '@user1',
           displayName: 'User 1',
           status: 'ACTIVE',

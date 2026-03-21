@@ -15,7 +15,7 @@ export type {
   WebAuthMenuMode,
   WalletType,
   WalletProvider,
-  GoogleWindow,
+  ShellAuthWindow,
   DesktopCallbackRequest,
   RememberedLogin,
   AuthMenuProps,

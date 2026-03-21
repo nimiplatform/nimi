@@ -80,7 +80,7 @@ test('D-SHELL-010: runtimeStatus=failed for mod with register failure', () => {
   const row = toRuntimeModRow(makeSummary() as never, 0, {
     isInstalled: true,
     isEnabled: true,
-    failure: { modId: 'world.nimi.observable', error: 'init failed' },
+    failure: { modId: 'world.nimi.observable', sourceType: 'sideload', stage: 'setup', error: 'init failed' },
   });
   assert.equal(row.runtimeStatus, 'failed');
 });
@@ -107,7 +107,7 @@ test('D-SHELL-010: runtimeError is populated from failure', () => {
   const row = toRuntimeModRow(makeSummary() as never, 0, {
     isInstalled: true,
     isEnabled: true,
-    failure: { modId: 'world.nimi.observable', error: 'module parse error' },
+    failure: { modId: 'world.nimi.observable', sourceType: 'sideload', stage: 'setup', error: 'module parse error' },
   });
   assert.equal(row.runtimeError, 'module parse error');
 });
@@ -126,7 +126,7 @@ test('D-SHELL-010: failed/conflict mods sort before enabled in management view',
   const failedMod = toRuntimeModRow(makeSummary({ id: 'mod.failed', name: 'Failed' }) as never, 0, {
     isInstalled: true,
     isEnabled: true,
-    failure: { modId: 'mod.failed', error: 'fail' },
+    failure: { modId: 'mod.failed', sourceType: 'sideload', stage: 'setup', error: 'fail' },
   });
   const enabledMod = toRuntimeModRow(makeSummary({ id: 'mod.ok', name: 'OK' }) as never, 1, {
     isInstalled: true,

@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {
+  LocalRuntimeVerifiedArtifactDescriptor,
+  LocalRuntimeVerifiedModelDescriptor,
+} from '../src/runtime/local-runtime/index.js';
 
 import {
   isRecommendedDescriptor,
   relatedArtifactsForModel,
   sortVerifiedArtifactsForDisplay,
   sortVerifiedModelsForDisplay,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-helpers.tsx';
+} from '../src/shell/renderer/features/runtime-config/runtime-config-local-model-center-helpers.js';
 
 test('sortVerifiedModelsForDisplay prioritizes recommended entries', () => {
   const sorted = sortVerifiedModelsForDisplay([
@@ -123,7 +127,7 @@ test('sortVerifiedArtifactsForDisplay keeps recommended VAE and LLM ahead of gen
 });
 
 test('relatedArtifactsForModel ignores recommended tag when matching image families', () => {
-  const model = {
+  const model: LocalRuntimeVerifiedModelDescriptor = {
     templateId: 'verified.image.z_image_turbo',
     title: 'Z-Image Turbo (GGUF)',
     description: 'Recommended image model',
@@ -143,7 +147,7 @@ test('relatedArtifactsForModel ignores recommended tag when matching image famil
     tags: ['image', 'verified', 'recommended', 'z-image'],
   };
 
-  const artifacts = [
+  const artifacts: LocalRuntimeVerifiedArtifactDescriptor[] = [
     {
       templateId: 'verified.artifact.z_image.vae',
       title: 'Z-Image AE VAE',

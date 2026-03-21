@@ -1,3 +1,4 @@
+import type { AuditStats, HookCallRecord, HookType } from '../contracts/types.js';
 import { HookAuditTrail } from '../audit/hook-audit.js';
 import { PermissionGateway } from '../permission/permission-gateway.js';
 import { HookRegistry } from '../registry/hook-registry.js';
@@ -11,11 +12,18 @@ export interface MetaServiceInput {
 export class HookRuntimeMetaService {
   constructor(private readonly context: MetaServiceInput) {}
 
-  getAudit(filter?: Parameters<HookAuditTrail['query']>[0]) {
+  getAudit(filter?: {
+    modId?: string;
+    hookType?: HookType;
+    target?: string;
+    decision?: HookCallRecord['decision'];
+    since?: string;
+    limit?: number;
+  }): HookCallRecord[] {
     return this.context.audit.query(filter);
   }
 
-  getAuditStats(modId?: Parameters<HookAuditTrail['stats']>[0]) {
+  getAuditStats(modId?: string): AuditStats {
     return this.context.audit.stats(modId);
   }
 

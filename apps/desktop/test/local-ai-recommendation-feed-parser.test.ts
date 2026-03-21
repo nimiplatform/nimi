@@ -119,21 +119,22 @@ test('parseRecommendationFeedDescriptor drops items with invalid entry format', 
 
 test('parseRecommendationFeedDescriptor drops items with invalid source or missing install payload identity', () => {
   const payload = recommendationFeedFixture();
+  const baseItem = payload.items[0]!;
   payload.items = [
     {
-      ...payload.items[0],
+      ...baseItem,
       itemId: 'invalid-source',
       source: 'other-index',
     },
     {
-      ...payload.items[0],
+      ...baseItem,
       itemId: 'missing-install-model-id',
       installPayload: {
-        ...payload.items[0]!.installPayload,
+        ...baseItem.installPayload,
         modelId: '',
       },
     },
-  ];
+  ] as typeof payload.items;
 
   const parsed = parseRecommendationFeedDescriptor(payload, parseDeviceProfile);
   assert.equal(parsed.items.length, 0);

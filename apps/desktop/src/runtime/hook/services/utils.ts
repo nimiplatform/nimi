@@ -1,4 +1,5 @@
 import type { HookCallRecord, HookDecision, HookSourceType, HookType } from '../contracts/types.js';
+import { createSecureIdSuffix } from '../../id.js';
 
 export interface PermissionInput {
   modId: string;
@@ -27,7 +28,7 @@ export interface AuditInput {
 
 export function createHookRecord(input: AuditInput): HookCallRecord {
   return {
-    callId: `hook:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`,
+    callId: `hook:${Date.now().toString(36)}:${createSecureIdSuffix()}`,
     modId: input.modId,
     hookType: input.hookType,
     target: input.target,
@@ -42,5 +43,6 @@ export function normalizeSourceType(value: string): HookSourceType {
   if (value === 'builtin') return 'builtin';
   if (value === 'injected') return 'injected';
   if (value === 'core') return 'core';
+  if (value === 'codegen') return 'codegen';
   return 'sideload';
 }

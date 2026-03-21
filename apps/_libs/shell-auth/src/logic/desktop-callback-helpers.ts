@@ -1,16 +1,12 @@
 import type { DesktopCallbackRequest } from '../types/auth-types.js';
 import {
-  normalizeLoopbackCallbackUrl as normalizeSharedLoopbackCallbackUrl,
+  normalizeLoopbackCallbackUrl,
   createDesktopCallbackState as createSharedDesktopCallbackState,
   validateDesktopCallbackState as validateSharedDesktopCallbackState,
   createDesktopCallbackRedirectUri as createSharedDesktopCallbackRedirectUri,
   readEnv,
 } from '@nimiplatform/shell-core/oauth';
 import { toErrorMessage } from './error-helpers.js';
-
-export function normalizeLoopbackCallbackUrl(rawUrl: string): string | null {
-  return normalizeSharedLoopbackCallbackUrl(rawUrl);
-}
 
 export function readLocationQueryParams(): URLSearchParams {
   if (typeof window === 'undefined') {

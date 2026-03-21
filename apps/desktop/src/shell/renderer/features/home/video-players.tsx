@@ -38,14 +38,20 @@ export function NativeVideoPlayer({ src, poster }: { src: string; poster?: strin
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const handlePlayClick = () => {
+  const handlePlayClick = async () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
-      } else {
-        videoRef.current.play();
+        setIsPlaying(false);
+        return;
       }
-      setIsPlaying(!isPlaying);
+
+      try {
+        await videoRef.current.play();
+        setIsPlaying(true);
+      } catch {
+        setIsPlaying(false);
+      }
     }
   };
 

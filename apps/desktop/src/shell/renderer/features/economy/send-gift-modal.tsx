@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
   const [selectedGiftId, setSelectedGiftId] = useState('');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const catalogQuery = useQuery({
     queryKey: ['gift-catalog'],
@@ -46,6 +47,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
       setSelectedGiftId('');
       setMessage('');
       setSending(false);
+      sendingRef.current = false;
       setError(null);
     }
   }, [props.open]);
@@ -58,9 +60,10 @@ export function SendGiftModal(props: SendGiftModalProps) {
   }, [giftOptions, props.open]);
 
   const handleSend = async () => {
-    if (!selectedGiftId || !props.receiverId) {
+    if (sendingRef.current || !selectedGiftId || !props.receiverId) {
       return;
     }
+    sendingRef.current = true;
     setSending(true);
     setError(null);
     try {
@@ -74,6 +77,7 @@ export function SendGiftModal(props: SendGiftModalProps) {
     } catch (sendError) {
       setError(sendError instanceof Error ? sendError.message : t('GiftSend.sendGiftFailed', { defaultValue: 'Failed to send gift' }));
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };

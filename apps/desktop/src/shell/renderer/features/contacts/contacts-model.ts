@@ -100,9 +100,9 @@ export function toFriendContact(item: ContactPayload): ContactRecord {
   // Parse tags from various possible formats
   let tags: string[] | undefined;
   if (Array.isArray(item.tags)) {
-    tags = item.tags.map((t) => String(t));
+    tags = item.tags.map((tag) => String(tag));
   } else if (typeof item.tags === 'string') {
-    tags = item.tags.split(',').map((t) => t.trim()).filter(Boolean);
+    tags = item.tags.split(',').map((tag) => tag.trim()).filter(Boolean);
   }
   
   // Parse age

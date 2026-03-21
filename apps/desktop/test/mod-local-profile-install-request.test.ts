@@ -18,9 +18,9 @@ function createHost() {
   });
 }
 
-function installWindowConfirm(confirm: (message: string) => boolean): () => void {
-  const globals = globalThis as typeof globalThis & {
-    window?: { confirm?: (message: string) => boolean };
+function installWindowConfirm(confirm: (message?: string) => boolean): () => void {
+  const globals = globalThis as unknown as {
+    window?: Record<string, unknown> & { confirm?: (message?: string) => boolean };
   };
   const previous = globals.window;
   globals.window = { ...(previous || {}), confirm };
@@ -29,7 +29,7 @@ function installWindowConfirm(confirm: (message: string) => boolean): () => void
       globals.window = previous;
       return;
     }
-    delete globals.window;
+    globals.window = undefined;
   };
 }
 
@@ -40,13 +40,15 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
 
   let confirmMessage = '';
   const restoreWindow = installWindowConfirm((message) => {
-    confirmMessage = message;
+    confirmMessage = message ?? '';
     return true;
   });
 
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     localManifestSummaries: [{
       id: 'world.nimi.local-image',
+      path: '/mods/world.nimi.local-image/manifest.json',
       manifest: {
         ai: {
           profiles: [{
@@ -59,7 +61,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
         },
       },
     }],
-  })) as typeof useAppStore.getState;
+  })) as unknown as typeof useAppStore.getState;
 
   let resolved = 0;
   let applied = 0;
@@ -78,7 +80,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
         planId: 'plan-balanced-fast',
         modId: 'world.nimi.local-image',
         capability: 'image',
-        deviceProfile: { os: 'darwin', arch: 'arm64', gpu: { available: true }, python: { available: true }, npu: { available: false, ready: false }, diskFreeBytes: 0, ports: [] },
+        deviceProfile: { os: 'darwin', arch: 'arm64', totalRamBytes: 0, availableRamBytes: 0, gpu: { available: true }, python: { available: true }, npu: { available: false, ready: false }, diskFreeBytes: 0, ports: [] },
         entries: [],
         selectionRationale: [],
         preflightDecisions: [],
@@ -87,7 +89,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
       artifactEntries: [],
       warnings: [],
     };
-  }) as typeof localRuntime.resolveProfile;
+  }) as unknown as typeof localRuntime.resolveProfile;
   localRuntime.applyProfile = (async () => {
     applied += 1;
     return {
@@ -139,8 +141,10 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
   const originalGetProfileInstallStatus = localRuntime.getProfileInstallStatus;
 
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     localManifestSummaries: [{
       id: 'world.nimi.local-image',
+      path: '/mods/world.nimi.local-image/manifest.json',
       manifest: {
         ai: {
           profiles: [{
@@ -153,7 +157,7 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
         },
       },
     }],
-  })) as typeof useAppStore.getState;
+  })) as unknown as typeof useAppStore.getState;
 
   let observedCapability = '';
   localRuntime.getProfileInstallStatus = (async (input?: Record<string, unknown>) => {
@@ -191,8 +195,10 @@ test('requestProfileInstall returns declined without executing install when host
   const restoreWindow = installWindowConfirm(() => false);
 
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     localManifestSummaries: [{
       id: 'world.nimi.local-image',
+      path: '/mods/world.nimi.local-image/manifest.json',
       manifest: {
         ai: {
           profiles: [{
@@ -205,7 +211,7 @@ test('requestProfileInstall returns declined without executing install when host
         },
       },
     }],
-  })) as typeof useAppStore.getState;
+  })) as unknown as typeof useAppStore.getState;
 
   let resolved = 0;
   let applied = 0;
@@ -248,8 +254,10 @@ test('requestProfileInstall returns LOCAL_AI_PROFILE_NOT_FOUND when the selected
   });
 
   useAppStore.getState = (() => ({
+    ...originalGetState(),
     localManifestSummaries: [{
       id: 'world.nimi.local-image',
+      path: '/mods/world.nimi.local-image/manifest.json',
       manifest: {
         ai: {
           profiles: [{
@@ -262,7 +270,7 @@ test('requestProfileInstall returns LOCAL_AI_PROFILE_NOT_FOUND when the selected
         },
       },
     }],
-  })) as typeof useAppStore.getState;
+  })) as unknown as typeof useAppStore.getState;
 
   let resolved = 0;
   let applied = 0;

@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { RuntimeFieldMap, StatusBanner } from '@renderer/app-shell/providers/app-store';
+import { i18n } from '@renderer/i18n';
 import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   RUNTIME_CONFIG_STORAGE_KEY_V11,
@@ -66,7 +67,12 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
     }
 
     if (!hadStoredState && shouldEmitResetLog) {
-      input.setStatusBanner({ kind: 'info', message: '配置结构已升级，请重新确认模型绑定。' });
+      input.setStatusBanner({
+        kind: 'info',
+        message: i18n.t('RuntimeConfig.structureUpgraded', {
+          defaultValue: 'Configuration structure upgraded. Please re-confirm model bindings.',
+        }),
+      });
     }
   }, [
     input.bootstrapReady,

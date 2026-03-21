@@ -65,6 +65,14 @@ function parseOptionalString(value: unknown): string | undefined {
   return normalized || undefined;
 }
 
+function parsePositiveNumber(value: unknown): number | undefined {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return undefined;
+  }
+  return numeric;
+}
+
 export function parseOauthTokenExchangeResult(value: unknown): OauthTokenExchangeResult {
   const record = assertRecord(value, 'oauth_token_exchange returned invalid payload');
   const raw = record.raw && typeof record.raw === 'object' && !Array.isArray(record.raw)
@@ -74,7 +82,7 @@ export function parseOauthTokenExchangeResult(value: unknown): OauthTokenExchang
     accessToken: parseRequiredString(record.accessToken, 'accessToken', 'oauth_token_exchange'),
     refreshToken: parseOptionalString(record.refreshToken),
     tokenType: parseOptionalString(record.tokenType),
-    expiresIn: Number.isFinite(Number(record.expiresIn)) ? Number(record.expiresIn) : undefined,
+    expiresIn: parsePositiveNumber(record.expiresIn),
     scope: parseOptionalString(record.scope),
     raw,
   };

@@ -274,7 +274,11 @@ describe('RuntimeHealthCoordinator', () => {
     assert.equal(coordinator.getSnapshot().streamConnected, false);
 
     now += 61_000;
-    watchdog?.();
+    const triggerWatchdog = watchdog as (() => void) | null;
+    if (!triggerWatchdog) {
+      throw new Error('watchdog callback was not installed');
+    }
+    triggerWatchdog();
     await flushMicrotasks();
 
     assert.equal(healthCalls, 2);

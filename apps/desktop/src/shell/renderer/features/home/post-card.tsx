@@ -234,6 +234,7 @@ export function PostCard(input: PostCardProps) {
         kind: 'success',
         message: i18n.t('Home.reportSubmitted', { defaultValue: 'Report submitted successfully' }),
       });
+      ui.setShowReportModal(false);
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -242,8 +243,7 @@ export function PostCard(input: PostCardProps) {
           i18n.t('Home.reportSubmitFailed', { defaultValue: 'Failed to submit report' }),
         ),
       });
-    } finally {
-      ui.setShowReportModal(false);
+      throw error;
     }
   }, [post.id, setStatusBanner, ui]);
 
@@ -377,11 +377,11 @@ export function PostCard(input: PostCardProps) {
     }
   }, [post.id, savedPostsStorageKey, savedPostsUpdatedEvent, setStatusBanner, ui]);
 
-  const handleAddFriend = useCallback(async () => {
+  const handleAddFriend = useCallback(async (message?: string) => {
     if (!authorId) {
       throw new Error(i18n.t('Home.missingAuthorForFriendRequest', { defaultValue: 'Cannot add friend: user ID not found' }));
     }
-    await dataSync.requestOrAcceptFriend(authorId);
+    await dataSync.requestOrAcceptFriend(authorId, message);
     ui.setIsFriend(true);
     setStatusBanner({
       kind: 'success',

@@ -38,9 +38,9 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
     monitor.setRealmSocketConnected(false);
 
     assert.equal(changes.length, 1);
-    assert.equal(changes[0].from, 'L0');
-    assert.equal(changes[0].to, 'L1');
-    assert.equal(changes[0].reason, 'realm_offline');
+    assert.equal(changes[0]!.from, 'L0');
+    assert.equal(changes[0]!.to, 'L1');
+    assert.equal(changes[0]!.reason, 'realm_offline');
   });
 
   test('D-OFFLINE-001: transition L0→L2 emits correct change event', () => {
@@ -51,9 +51,9 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
     monitor.setRuntimeReachable(false);
 
     assert.equal(changes.length, 1);
-    assert.equal(changes[0].from, 'L0');
-    assert.equal(changes[0].to, 'L2');
-    assert.equal(changes[0].reason, 'runtime_offline');
+    assert.equal(changes[0]!.from, 'L0');
+    assert.equal(changes[0]!.to, 'L2');
+    assert.equal(changes[0]!.reason, 'runtime_offline');
   });
 
   test('D-OFFLINE-001: transition L1→L0 on realm reconnect', () => {
@@ -68,9 +68,9 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
 
     assert.equal(manager.getCurrentTier(), 'L0');
     assert.equal(changes.length, 1);
-    assert.equal(changes[0].from, 'L1');
-    assert.equal(changes[0].to, 'L0');
-    assert.equal(changes[0].reason, 'realm_reconnect');
+    assert.equal(changes[0]!.from, 'L1');
+    assert.equal(changes[0]!.to, 'L0');
+    assert.equal(changes[0]!.reason, 'realm_reconnect');
   });
 
   test('D-OFFLINE-001: transition L2→L0 on runtime reconnect', () => {

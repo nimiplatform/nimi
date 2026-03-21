@@ -1,5 +1,9 @@
 export type AccessMode = 'local-dev' | 'sideload';
 
+export function isAccessMode(value: unknown): value is AccessMode {
+  return value === 'local-dev' || value === 'sideload';
+}
+
 export type KernelStage =
   | 'discovery'
   | 'manifest/compat'

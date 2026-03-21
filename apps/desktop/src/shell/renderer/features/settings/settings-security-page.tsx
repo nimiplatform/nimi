@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -21,14 +21,20 @@ export function SecurityPage() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [twoFactorSecret, setTwoFactorSecret] = useState('');
   const [twoFactorUri, setTwoFactorUri] = useState('');
+  const [revealTwoFactorSecret, setRevealTwoFactorSecret] = useState(false);
   const [preparingTwoFactor, setPreparingTwoFactor] = useState(false);
-  const [loginAlerts, setLoginAlerts] = useState(true);
   const [saving, setSaving] = useState(false);
   const passwordsMatch = newPw === confirmPw;
 
   useEffect(() => {
     setTwoFactor(initialTwoFactorEnabled);
   }, [initialTwoFactorEnabled]);
+
+  useEffect(() => {
+    if (!twoFactor) {
+      setRevealTwoFactorSecret(false);
+    }
+  }, [twoFactor]);
 
   useEffect(() => {
     if (!twoFactor || initialTwoFactorEnabled || twoFactorSecret || preparingTwoFactor) {
@@ -54,6 +60,7 @@ export function SecurityPage() {
     initialTwoFactorEnabled,
     preparingTwoFactor,
     setStatusBanner,
+    t,
     twoFactor,
     twoFactorSecret,
   ]);
@@ -62,6 +69,24 @@ export function SecurityPage() {
     const latest = await dataSync.loadCurrentUser();
     const normalized = parseOptionalJsonObject(latest) ?? null;
     setAuthSession(normalized, authToken, refreshToken || undefined);
+  };
+
+  const copyTwoFactorValue = async (value: string, successKey: string, successDefaultValue: string) => {
+    if (!value.trim() || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      setStatusBanner({
+        kind: 'success',
+        message: t(successKey, { defaultValue: successDefaultValue }),
+      });
+    } catch (error) {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('SecuritySettings.copySecretFailed', { defaultValue: 'Failed to copy secret' }),
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -113,6 +138,7 @@ export function SecurityPage() {
       if (!twoFactor) {
         setTwoFactorSecret('');
         setTwoFactorUri('');
+        setRevealTwoFactorSecret(false);
       }
 
       setStatusBanner({
@@ -128,6 +154,13 @@ export function SecurityPage() {
       setSaving(false);
     }
   };
+
+  const maskedTwoFactorSecret = revealTwoFactorSecret
+    ? twoFactorSecret
+    : '•'.repeat(Math.max(8, Math.min(twoFactorSecret.length, 24)));
+  const maskedTwoFactorUri = revealTwoFactorSecret
+    ? twoFactorUri
+    : '•'.repeat(Math.max(12, Math.min(twoFactorUri.length, 32)));
 
   return (
     <PageShell
@@ -206,11 +239,51 @@ export function SecurityPage() {
         {twoFactor && !initialTwoFactorEnabled ? (
           <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <p className="text-xs font-medium text-gray-700">{t('SecuritySettings.newTwoFactorSetup')}</p>
-            {twoFactorSecret ? (
-              <p className="mt-1 break-all text-xs text-gray-500">Secret: {twoFactorSecret}</p>
-            ) : null}
-            {twoFactorUri ? (
-              <p className="mt-1 break-all text-xs text-gray-400">URI: {twoFactorUri}</p>
+            {twoFactorSecret || twoFactorUri ? (
+              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                {twoFactorSecret ? (
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                      {t('SecuritySettings.secretLabel', { defaultValue: 'Secret' })}
+                    </p>
+                    <p className="break-all font-mono text-xs text-gray-700">{maskedTwoFactorSecret}</p>
+                  </div>
+                ) : null}
+                {twoFactorUri ? (
+                  <div className="mt-3 space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                      {t('SecuritySettings.uriLabel', { defaultValue: 'URI' })}
+                    </p>
+                    <p className="break-all font-mono text-[11px] text-gray-500">{maskedTwoFactorUri}</p>
+                  </div>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRevealTwoFactorSecret((current) => !current)}
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                  >
+                    {revealTwoFactorSecret
+                      ? t('SecuritySettings.hideSecret', { defaultValue: 'Hide secret' })
+                      : t('SecuritySettings.revealSecret', { defaultValue: 'Reveal secret' })}
+                  </button>
+                  {twoFactorSecret ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void copyTwoFactorValue(
+                          twoFactorSecret,
+                          'SecuritySettings.copySecretSuccess',
+                          'Secret copied',
+                        );
+                      }}
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-100"
+                    >
+                      {t('SecuritySettings.copySecret', { defaultValue: 'Copy secret' })}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             ) : null}
             <div className="mt-3">
               <label className="mb-2 block text-xs font-medium text-gray-700">
@@ -244,22 +317,6 @@ export function SecurityPage() {
             />
           </div>
         ) : null}
-      </section>
-
-      {/* Login Alerts */}
-      <section className="mt-8">
-        <SectionTitle description={t('SecuritySettings.loginAlertsDescription')}>
-          {t('SecuritySettings.loginAlertsTitle')}
-        </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
-          <SettingRow
-            icon={<BellIcon className="h-5 w-5" />}
-            title={t('SecuritySettings.emailAlertsLabel')}
-            description={t('SecuritySettings.emailAlertsDescription')}
-            checked={loginAlerts}
-            onChange={setLoginAlerts}
-          />
-        </div>
       </section>
 
       {/* Active Sessions */}
@@ -439,15 +496,6 @@ function CheckIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 6 9 17l-5-5" />
-    </svg>
-  );
-}
-
-function BellIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
     </svg>
   );
 }

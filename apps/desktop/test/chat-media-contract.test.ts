@@ -6,7 +6,7 @@ import {
   createCanonicalChatMediaPayload,
   extractChatMediaAssetId,
   resolveCanonicalChatMediaUrl,
-} from '../src/shell/renderer/features/turns/chat-media-contract.ts';
+} from '../src/shell/renderer/features/turns/chat-media-contract.js';
 
 const turnInputSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/turns/turn-input.tsx'),

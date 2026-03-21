@@ -18,7 +18,7 @@ export function AddFriendModal({
   author: PostCardAuthorPreview;
   isOpen: boolean;
   onClose: () => void;
-  onAddFriend: () => Promise<void>;
+  onAddFriend: (message?: string) => Promise<void>;
 }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -31,15 +31,15 @@ export function AddFriendModal({
     setLoading(true);
     setError(null);
     try {
-      await onAddFriend();
-      setLoading(false);
+      await onAddFriend(message.trim() || undefined);
       setMessage('');
       onClose();
     } catch (nextError) {
-      setLoading(false);
       setError(nextError instanceof Error ? nextError.message : t('Home.failedToAddFriend', { defaultValue: 'Failed to add friend' }));
+    } finally {
+      setLoading(false);
     }
-  }, [loading, onAddFriend, onClose]);
+  }, [loading, message, onAddFriend, onClose, t]);
 
   const handleClose = useCallback(() => {
     if (!loading) {

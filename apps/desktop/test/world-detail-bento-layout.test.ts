@@ -8,8 +8,8 @@ import {
   mapCultivationRingsData,
   mapRealmConstellationData,
   resolveCoreRuleLayout,
-} from '../src/shell/renderer/features/world/world-detail-layout.ts';
-import type { WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types.ts';
+} from '../src/shell/renderer/features/world/world-detail-layout.js';
+import type { WorldSemanticData } from '../src/shell/renderer/features/world/world-detail-types.js';
 
 // scenario_id: world.surface-layout
 const worldTemplateSource = readFileSync(

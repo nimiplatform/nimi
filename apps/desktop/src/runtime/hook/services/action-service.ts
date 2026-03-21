@@ -29,6 +29,7 @@ import {
   DEFAULT_VERIFY_TICKET_WINDOW_MS,
 } from './action-service-types.js';
 import { runPhase, runVerifyPhase } from './action-service-preflight.js';
+import { emitRuntimeLog } from '@runtime/telemetry/logger';
 
 export type { ActionServiceInput } from './action-service-types.js';
 
@@ -77,8 +78,16 @@ export class HookRuntimeActionService {
     for (const listener of this.ctx.registryListeners) {
       try {
         listener(event);
-      } catch {
+      } catch (error) {
         // Listener failures must not block action registry mutation.
+        emitRuntimeLog({
+          level: 'warn',
+          area: 'hook-action',
+          message: 'registry-listener-failed',
+          details: {
+            error: error instanceof Error ? error.message : String(error || 'unknown error'),
+          },
+        });
       }
     }
   }

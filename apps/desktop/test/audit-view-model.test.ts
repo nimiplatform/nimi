@@ -177,25 +177,25 @@ describe('filterAuditEvents', () => {
   test('filter by eventType', () => {
     const result = filterAuditEvents({ audits: events, eventType: 'inference_invoked', source: 'all', modality: 'all', reasonCodeQuery: '' });
     assert.equal(result.length, 1);
-    assert.equal(result[0].id, '1');
+    assert.equal(result[0]!.id, '1');
   });
 
   test('filter by source', () => {
     const result = filterAuditEvents({ audits: events, eventType: 'all', source: 'cloud', modality: 'all', reasonCodeQuery: '' });
     assert.equal(result.length, 1);
-    assert.equal(result[0].id, '2');
+    assert.equal(result[0]!.id, '2');
   });
 
   test('filter by modality', () => {
     const result = filterAuditEvents({ audits: events, eventType: 'all', source: 'all', modality: 'chat', reasonCodeQuery: '' });
     assert.equal(result.length, 1);
-    assert.equal(result[0].id, '1');
+    assert.equal(result[0]!.id, '1');
   });
 
   test('filter by reasonCode query (case insensitive)', () => {
     const result = filterAuditEvents({ audits: events, eventType: 'all', source: 'all', modality: 'all', reasonCodeQuery: 'timeout' });
     assert.equal(result.length, 1);
-    assert.equal(result[0].id, '2');
+    assert.equal(result[0]!.id, '2');
   });
 
   test('filter by time range', () => {
@@ -213,7 +213,7 @@ describe('filterAuditEvents', () => {
       timeRange: { from: '2026-03-02T00:00:00Z', to: '2026-03-02T23:59:59Z' },
     });
     assert.equal(result.length, 1);
-    assert.equal(result[0].id, '2');
+    assert.equal(result[0]!.id, '2');
   });
 
   test('combined filters', () => {
@@ -225,7 +225,7 @@ describe('filterAuditEvents', () => {
       reasonCodeQuery: 'ok',
     });
     assert.equal(result.length, 1);
-    assert.equal(result[0].id, '1');
+    assert.equal(result[0]!.id, '1');
   });
 
   test('empty audits → empty result', () => {
@@ -247,10 +247,10 @@ describe('summarizeAuditEventTypes', () => {
     ];
     const result = summarizeAuditEventTypes(events);
     assert.equal(result.length, 2);
-    assert.equal(result[0].eventType, 'inference_invoked');
-    assert.equal(result[0].count, 2);
-    assert.equal(result[1].eventType, 'inference_failed');
-    assert.equal(result[1].count, 1);
+    assert.equal(result[0]!.eventType, 'inference_invoked');
+    assert.equal(result[0]!.count, 2);
+    assert.equal(result[1]!.eventType, 'inference_failed');
+    assert.equal(result[1]!.count, 1);
   });
 
   test('empty audits → empty result', () => {
@@ -271,8 +271,8 @@ describe('summarizeAuditSources', () => {
     ];
     const result = summarizeAuditSources(events);
     assert.equal(result.length, 2);
-    assert.equal(result[0].source, 'local');
-    assert.equal(result[0].count, 2);
+    assert.equal(result[0]!.source, 'local');
+    assert.equal(result[0]!.count, 2);
   });
 
   test('ignores "-" source', () => {
@@ -295,8 +295,8 @@ describe('summarizeAuditModalities', () => {
     ];
     const result = summarizeAuditModalities(events);
     assert.equal(result.length, 2);
-    assert.equal(result[0].modality, 'chat');
-    assert.equal(result[0].count, 2);
+    assert.equal(result[0]!.modality, 'chat');
+    assert.equal(result[0]!.count, 2);
   });
 });
 
@@ -313,8 +313,8 @@ describe('summarizeAuditReasons', () => {
     ];
     const result = summarizeAuditReasons(events);
     assert.equal(result.length, 2);
-    assert.equal(result[0].reasonCode, TEST_REASON_OK);
-    assert.equal(result[0].count, 2);
+    assert.equal(result[0]!.reasonCode, TEST_REASON_OK);
+    assert.equal(result[0]!.count, 2);
   });
 
   test('sorted by count desc then alphabetically', () => {
@@ -324,8 +324,8 @@ describe('summarizeAuditReasons', () => {
       makeEvent({ reasonCode: TEST_REASON_B_ERROR }),
     ];
     const result = summarizeAuditReasons(events);
-    assert.equal(result[0].reasonCode, TEST_REASON_B_ERROR);
-    assert.equal(result[1].reasonCode, TEST_REASON_A_ERROR);
+    assert.equal(result[0]!.reasonCode, TEST_REASON_B_ERROR);
+    assert.equal(result[1]!.reasonCode, TEST_REASON_A_ERROR);
   });
 });
 

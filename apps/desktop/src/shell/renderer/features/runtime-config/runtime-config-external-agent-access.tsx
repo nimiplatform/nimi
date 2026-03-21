@@ -25,6 +25,11 @@ export function ExternalAgentAccessPanel() {
   const [busy, setBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [tokens, setTokens] = useState<ExternalAgentTokenRecord[]>([]);
+  const ttlRaw = Number(ttlSeconds);
+  const ttlIsPositiveInteger = /^\d+$/.test(ttlSeconds.trim()) && Number.isInteger(ttlRaw) && ttlRaw > 0;
+  const ttlValidationMessage = ttlSeconds.trim() && !ttlIsPositiveInteger
+    ? t('runtimeConfig.eaa.ttlPositiveInteger', { defaultValue: 'TTL must be a positive integer.' })
+    : '';
 
   const refreshGateway = async () => {
     try {
@@ -57,7 +62,10 @@ export function ExternalAgentAccessPanel() {
       setBusy(true);
       setErrorMessage('');
       try {
-        const ttlRaw = Number(ttlSeconds);
+        if (!ttlIsPositiveInteger) {
+          setErrorMessage(t('runtimeConfig.eaa.ttlPositiveInteger', { defaultValue: 'TTL must be a positive integer.' }));
+          return;
+        }
         const actions = actionsInput
           .split(',')
           .map((item) => item.trim())
@@ -67,7 +75,7 @@ export function ExternalAgentAccessPanel() {
           mode,
           subjectAccountId,
           actions,
-          ttlSeconds: Number.isFinite(ttlRaw) && ttlRaw > 0 ? ttlRaw : 3600,
+          ttlSeconds: ttlRaw,
         });
         setIssuedToken(issued.token);
         setTokenId(issued.tokenId);
@@ -164,6 +172,9 @@ export function ExternalAgentAccessPanel() {
             placeholder="3600"
           />
         </div>
+        {ttlValidationMessage ? (
+          <p className="text-xs text-amber-600">{ttlValidationMessage}</p>
+        ) : null}
 
         <Input
           label={t('runtimeConfig.eaa.actionScopes', { defaultValue: 'Action Scopes (comma separated)' })}
@@ -173,7 +184,7 @@ export function ExternalAgentAccessPanel() {
         />
 
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" disabled={busy || !gatewayEnabled} onClick={handleIssueToken}>
+          <Button variant="secondary" size="sm" disabled={busy || !gatewayEnabled || !ttlIsPositiveInteger} onClick={handleIssueToken}>
             {busy
               ? t('runtimeConfig.eaa.issuing', { defaultValue: 'Issuing...' })
               : t('runtimeConfig.eaa.issueToken', { defaultValue: 'Issue Token' })}

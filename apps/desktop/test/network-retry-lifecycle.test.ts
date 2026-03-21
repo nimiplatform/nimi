@@ -89,7 +89,7 @@ test('D-NET-003: recovered event is emitted after successful retry (behavioral)'
   const recoveredEvents = events.filter((e) => e.type === 'recovered');
   assert.equal(retryingEvents.length, 1, 'should emit exactly one retrying event');
   assert.equal(recoveredEvents.length, 1, 'should emit exactly one recovered event');
-  assert.equal(recoveredEvents[0].retryCount, 1, 'recovered retryCount should be 1');
+  assert.equal(recoveredEvents[0]!.retryCount, 1, 'recovered retryCount should be 1');
 });
 
 /* ---------- D-NET-003: retry events include exhausted state ---------- */
@@ -120,7 +120,7 @@ test('D-NET-003: exhausted event is emitted when retries are exceeded (behaviora
   const exhaustedEvents = events.filter((e) => e.type === 'retry_exhausted');
   assert.equal(retryingEvents.length, 1, 'should emit retrying event for intermediate attempt');
   assert.equal(exhaustedEvents.length, 1, 'should emit exactly one retry_exhausted event');
-  assert.equal(exhaustedEvents[0].type, 'retry_exhausted');
+  assert.equal(exhaustedEvents[0]!.type, 'retry_exhausted');
 });
 
 /* ---------- D-NET-001: retryable codes include 408, 429, 500, 502, 503, 504 ---------- */

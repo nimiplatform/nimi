@@ -18,11 +18,11 @@ type ForwardedRendererLog = {
 };
 
 if (typeof globalThis.window === 'undefined') {
-  (globalThis as Record<string, unknown>).window = {};
+  (globalThis as unknown as Record<string, unknown>).window = {};
 }
 if (typeof globalThis.sessionStorage === 'undefined') {
   const store = new Map<string, string>();
-  (globalThis as Record<string, unknown>).sessionStorage = {
+  (globalThis as unknown as Record<string, unknown>).sessionStorage = {
     getItem: (key: string) => store.get(key) ?? null,
     setItem: (key: string, value: string) => store.set(key, value),
     removeItem: (key: string) => store.delete(key),
@@ -31,7 +31,7 @@ if (typeof globalThis.sessionStorage === 'undefined') {
 }
 
 function withTauriInvoke(invokeImpl: TauriInvoke): void {
-  const windowRecord = globalThis.window as Record<string, unknown>;
+  const windowRecord = globalThis.window as unknown as Record<string, unknown>;
   windowRecord.__TAURI__ = {
     core: {
       invoke: invokeImpl,
@@ -40,8 +40,8 @@ function withTauriInvoke(invokeImpl: TauriInvoke): void {
 }
 
 function clearTelemetryTestState(): void {
-  const globalRecord = globalThis as Record<string, unknown>;
-  const windowRecord = globalThis.window as Record<string, unknown>;
+  const globalRecord = globalThis as unknown as Record<string, unknown>;
+  const windowRecord = globalThis.window as unknown as Record<string, unknown>;
   setRuntimeLogger(null);
   resetRendererTelemetryStateForTest();
   (globalThis.sessionStorage as { clear?: () => void }).clear?.();
@@ -51,12 +51,12 @@ function clearTelemetryTestState(): void {
 }
 
 test.beforeEach(() => {
-  (globalThis as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
+  (globalThis as unknown as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
     VITE_NIMI_DEBUG_BOOT: '1',
     VITE_NIMI_VERBOSE_RENDERER_LOGS: '1',
   };
   clearTelemetryTestState();
-  (globalThis as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
+  (globalThis as unknown as Record<string, unknown>).__NIMI_RENDERER_ENV__ = {
     VITE_NIMI_DEBUG_BOOT: '1',
     VITE_NIMI_VERBOSE_RENDERER_LOGS: '1',
   };
