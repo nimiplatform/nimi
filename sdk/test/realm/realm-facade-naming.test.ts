@@ -21,7 +21,8 @@ test('realm facade exposes naming-normalized public helpers', () => {
   assert.equal(typeof ({} as _GetMeResult), 'object');
   assert.equal(typeof realm.OAuthProvider, 'object');
   assert.equal(typeof realm.PostMediaType, 'object');
-  assert.equal(typeof realm.sendAgentChannelMessage, 'function');
+  assert.equal(typeof realm.requestDataExport, 'function');
+  assert.equal(typeof realm.listAgentCoreMemories, 'function');
 });
 
 test('realm facade does not expose removed DTO symbols or legacy naming symbols', () => {
@@ -42,4 +43,5 @@ test('realm facade does not expose removed DTO symbols or legacy naming symbols'
   assert.equal('Me2faPrepareResponseDto' in realm, false);
   assert.equal('SocialV1DefaultVisibilityService' in realm, false);
   assert.equal('SocialFourDimensionalAttributesService' in realm, false);
+  assert.equal('sendAgentChannelMessage' in realm, false);
 });
