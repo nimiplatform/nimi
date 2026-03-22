@@ -1,0 +1,40 @@
+contract_id: SOCIAL-CONTRACT-001
+domain: social
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../social-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/relationship/src/friendship.service.ts
+rule_id_prefix: R-SOC-
+rules:
+  - rule_id: R-SOC-001
+    level: must
+    title: friendship-graph-is-canonical
+    statement: "Friendship is the canonical admission graph for realm-level social relationships."
+  - rule_id: R-SOC-002
+    level: must
+    title: ordered-pair-uniqueness
+    statement: "Friendship uses an ordered pair uniqueness model so the same pair cannot produce duplicate canonical rows."
+  - rule_id: R-SOC-003
+    level: must
+    title: social-defines-admission-not-execution
+    statement: "Social defines relationship and admission facts and does not define agent-chat runtime, model routing, or turn execution."
+  - rule_id: R-SOC-004
+    level: must
+    title: social-gates-human-chat-agent-chat-stays-outside
+    statement: "Social may gate human chat via preconditions, but canonical chat surface lives in Realm Chat and agent chat runtime stays outside Realm."
+entities:
+  - name: Friendship
+    prisma_model: Friendship
+    required_fields: [id, accountIdL, accountIdH, kind, status]
+    json_fields: []
+api_surface:
+  required_operations:
+    - GET /api/human/relationships/me
+    - POST /api/human/relationships
+  secondary_operations: []

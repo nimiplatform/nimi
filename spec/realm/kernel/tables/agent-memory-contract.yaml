@@ -1,0 +1,51 @@
+contract_id: AGENT-MEMORY-CONTRACT-001
+domain: agent-memory
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../agent-memory-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/agent/src/domains/agent-memory.service.ts
+rule_id_prefix: R-MEM-
+rules:
+  - rule_id: R-MEM-001
+    level: must
+    title: continuity-facts-only
+    statement: "Agent Memory stores continuity facts only and excludes prompt/runtime orchestration."
+  - rule_id: R-MEM-002
+    level: must
+    title: fixed-memory-classes
+    statement: "Memory class is fixed to PUBLIC_SHARED, WORLD_SHARED, or DYADIC."
+  - rule_id: R-MEM-003
+    level: must
+    title: dyadic-isolation
+    statement: "DYADIC memory is strictly isolated by agentId and userId."
+  - rule_id: R-MEM-004
+    level: must
+    title: explicit-memory-write
+    statement: "Memory writes are explicit, auditable, and provenance-bearing."
+  - rule_id: R-MEM-005
+    level: must
+    title: private-delete-boundary
+    statement: "Private deletion rights apply to DYADIC memory and must not silently damage shared continuity."
+  - rule_id: R-MEM-006
+    level: must
+    title: no-auto-materialization
+    statement: "History and state may inform memory writes but do not auto-materialize memory by default; run-mode permissions must remain explicit in the commit authorization matrix."
+entities:
+  - name: AgentMemoryEntry
+    prisma_model: AgentMemory
+    required_fields: [id, agentId, type, content, importance]
+    json_fields: [metadata]
+api_surface:
+  required_operations:
+    - GET /api/agent/accounts/{id}/memory/core
+    - GET /api/agent/accounts/{id}/memory/events
+    - POST /api/agent/accounts/{id}/memory/events
+    - GET /api/agent/accounts/{id}/memory/profiles
+    - POST /api/agent/accounts/{id}/memory/commits
+  secondary_operations: []

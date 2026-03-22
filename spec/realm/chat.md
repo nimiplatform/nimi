@@ -4,8 +4,8 @@
 
 ## 0. Normative Imports
 
-- `kernel/boundary-vocabulary-contract.md`: `R-BOUND-005`, `R-BOUND-010`
-- `kernel/interop-mapping-contract.md`: `R-INTEROP-001`
+- `kernel/chat-contract.md`: `R-CHAT-001`, `R-CHAT-002`, `R-CHAT-003`, `R-CHAT-004`
+- `kernel/social-contract.md`: `R-SOC-003`, `R-SOC-004`
 
 ## 1. Scope
 
@@ -15,8 +15,8 @@ Chat 是 Realm 的正式通域，负责 canonical chat surface。
 
 ## 2. Reading Path
 
-1. `kernel/boundary-vocabulary-contract.md`
-2. `kernel/tables/public-vocabulary.yaml`
+1. `kernel/chat-contract.md`
+2. `kernel/social-contract.md`
 3. `social.md`
 4. `app-interconnect-model.md`
 

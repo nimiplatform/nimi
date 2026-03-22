@@ -4,11 +4,23 @@
 
 | File | Source |
 |---|---|
-| `public-vocabulary.md` | `tables/public-vocabulary.yaml` |
-| `realm-asset-types.md` | `tables/realm-asset-types.yaml` |
+| `rule-catalog.md` | `tables/rule-catalog.yaml` |
+| `rule-evidence.md` | `tables/rule-evidence.yaml` |
+| `commit-authorization-matrix.md` | `tables/commit-authorization-matrix.yaml` |
+| `truth-contract.md` | `tables/truth-contract.yaml` |
+| `world-state-contract.md` | `tables/world-state-contract.yaml` |
+| `world-history-contract.md` | `tables/world-history-contract.yaml` |
+| `agent-memory-contract.md` | `tables/agent-memory-contract.yaml` |
+| `chat-contract.md` | `tables/chat-contract.yaml` |
+| `social-contract.md` | `tables/social-contract.yaml` |
+| `economy-contract.md` | `tables/economy-contract.yaml` |
+| `asset-contract.md` | `tables/asset-contract.yaml` |
+| `transit-contract.md` | `tables/transit-contract.yaml` |
+| `domain-enums.md` | `tables/domain-enums.yaml` |
+| `domain-state-machines.md` | `tables/domain-state-machines.yaml` |
+| `open-spec-alignment-map.md` | `tables/open-spec-alignment-map.yaml` |
+| `under-spec-registry.md` | `tables/under-spec-registry.yaml` |
 | `creator-key-tiers.md` | `tables/creator-key-tiers.yaml` |
+| `realm-asset-types.md` | `tables/realm-asset-types.yaml` |
 | `revenue-event-types.md` | `tables/revenue-event-types.yaml` |
 | `share-plan-fields.md` | `tables/share-plan-fields.yaml` |
-| `primitive-mapping-status.md` | `tables/primitive-mapping-status.yaml` |
-| `primitive-graduation-log.md` | `tables/primitive-graduation-log.yaml` |
-| `rule-evidence.md` | `tables/rule-evidence.yaml` |

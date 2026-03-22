@@ -10,7 +10,6 @@ const mockWorldDataClient = vi.hoisted(() => ({
   getWorldState: vi.fn(),
   listWorldLorebooks: vi.fn(),
   listWorldMediaBindings: vi.fn(),
-  listWorldMutations: vi.fn(),
 }));
 
 vi.mock('@renderer/data/world-data-client.js', () => mockWorldDataClient);
@@ -29,10 +28,10 @@ function createWrapper() {
 describe('useWorldResourceQueries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockWorldDataClient.getWorldState.mockResolvedValue({ worldId: 'w1', version: 'state-v1', payload: {} });
+    mockWorldDataClient.getWorldState.mockResolvedValue({ worldId: 'w1', version: 'state-v1', items: [] });
     mockWorldDataClient.listWorldLorebooks.mockResolvedValue({ worldId: 'w1', items: [] });
     mockWorldDataClient.listWorldMediaBindings.mockResolvedValue({ worldId: 'w1', items: [] });
-    mockWorldDataClient.listWorldMutations.mockResolvedValue({ worldId: 'w1', items: [] });
+    mockWorldDataClient.listWorldHistory.mockResolvedValue({ worldId: 'w1', version: 'history-v1', items: [] });
   });
 
   it('returns all expected query objects', () => {
@@ -46,8 +45,8 @@ describe('useWorldResourceQueries', () => {
     expect(result.current).toHaveProperty('worldsQuery');
     expect(result.current).toHaveProperty('stateQuery');
     expect(result.current).toHaveProperty('historyQuery');
+    expect(result.current).toHaveProperty('maintenanceTimeline');
     expect(result.current).toHaveProperty('lorebooksQuery');
-    expect(result.current).toHaveProperty('mutationsQuery');
     expect(result.current).toHaveProperty('mediaBindingsQuery');
   });
 
@@ -66,7 +65,6 @@ describe('useWorldResourceQueries', () => {
     expect(mockWorldDataClient.getWorldState).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldHistory).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldLorebooks).not.toHaveBeenCalled();
-    expect(mockWorldDataClient.listWorldMutations).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldMediaBindings).not.toHaveBeenCalled();
   });
 
@@ -178,5 +176,71 @@ describe('useWorldResourceQueries', () => {
       level: 'PRIMARY',
       locationRefs: ['loc1'],
     });
+  });
+
+  it('maintenanceTimeline derives entries from state records and history events', async () => {
+    mockWorldDataClient.getWorldState.mockResolvedValue({
+      worldId: 'w1',
+      version: 'state-v1',
+      items: [
+        {
+          id: 'state-1',
+          worldId: 'w1',
+          targetPath: 'forge.workspace.world',
+          metadata: { reason: 'manual save' },
+          createdBy: 'user-1',
+          committedAt: '2026-02-02T00:00:00Z',
+        },
+      ],
+    });
+    mockWorldDataClient.listWorldHistory.mockResolvedValue({
+      worldId: 'w1',
+      version: 'history-v1',
+      items: [
+        {
+          id: 'event-row-1',
+          eventId: 'evt-1',
+          worldId: 'w1',
+          title: 'Founding',
+          happenedAt: '2026-01-01T00:00:00Z',
+          eventType: 'WORLD_EVENT',
+          summary: 'The realm begins',
+          cause: null,
+          process: null,
+          result: null,
+          timeRef: null,
+          locationRefs: [],
+          characterRefs: [],
+          dependsOnEventIds: [],
+          evidenceRefs: [],
+          payload: {},
+          createdBy: 'user-1',
+          committedAt: '2026-01-01T00:00:00Z',
+        },
+      ],
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => useWorldResourceQueries({ enabled: true, worldId: 'w1' }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.historyQuery.isSuccess).toBe(true));
+
+    expect(result.current.maintenanceTimeline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'state-1',
+          mutationType: 'SETTING_CHANGE',
+          targetPath: 'forge.workspace.world',
+        }),
+        expect.objectContaining({
+          id: 'evt-1',
+          mutationType: 'EVENT_BATCH_UPSERT',
+          title: 'Founding',
+        }),
+      ]),
+    );
   });
 });

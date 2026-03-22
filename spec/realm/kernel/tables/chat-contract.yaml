@@ -1,0 +1,47 @@
+contract_id: CHAT-CONTRACT-001
+domain: chat
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../chat-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/chat/src/domains/chat.service.ts
+rule_id_prefix: R-CHAT-
+rules:
+  - rule_id: R-CHAT-001
+    level: must
+    title: chat-is-realm-domain
+    statement: "Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, and sync surface."
+  - rule_id: R-CHAT-002
+    level: must
+    title: human-human-direct-only-in-v1
+    statement: "Realm Chat v1 supports only HUMAN_HUMAN DIRECT chat; non-human participants and non-direct shapes must fail-close."
+  - rule_id: R-CHAT-003
+    level: must
+    title: social-gates-chat-but-does-not-own-it
+    statement: "Social gates human chat admission, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat."
+  - rule_id: R-CHAT-004
+    level: must
+    title: agent-chat-runtime-stays-outside
+    statement: "Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1."
+entities:
+  - name: ChatThread
+    prisma_model: Chat
+    required_fields: [id, type, accountIdL, accountIdH, createdAt, updatedAt]
+    json_fields: []
+api_surface:
+  required_operations:
+    - GET /api/human/chats
+    - POST /api/human/chats
+    - GET /api/human/chats/{chatId}
+    - GET /api/human/chats/{chatId}/messages
+    - GET /api/human/chats/{chatId}/sync
+    - POST /api/human/chats/{chatId}/messages
+    - PATCH /api/human/chats/{chatId}/messages/{messageId}
+    - POST /api/human/chats/{chatId}/messages/{messageId}/recall
+    - POST /api/human/chats/{chatId}/read
+  secondary_operations: []

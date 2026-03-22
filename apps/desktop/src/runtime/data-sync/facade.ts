@@ -12,7 +12,6 @@ import type {
   WorldHistoryPayload,
   WorldLorebookListPayload,
   WorldMediaBindingListPayload,
-  WorldMutationListPayload,
   WorldSceneListPayload,
 } from './flows/world-flow';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
@@ -311,7 +310,6 @@ export class DataSync {
   loadWorldLorebooks(worldId: string): Promise<WorldLorebookListPayload> { return this.actions.loadWorldLorebooks(worldId); }
   loadWorldScenes(worldId: string): Promise<WorldSceneListPayload> { return this.actions.loadWorldScenes(worldId); }
   loadWorldMediaBindings(worldId: string): Promise<WorldMediaBindingListPayload> { return this.actions.loadWorldMediaBindings(worldId); }
-  loadWorldMutations(worldId: string): Promise<WorldMutationListPayload> { return this.actions.loadWorldMutations(worldId); }
   loadSceneQuota(): Promise<SceneQuotaDto> { return this.actions.loadSceneQuota(); }
   startWorldTransit(input: {
     agentId: string;

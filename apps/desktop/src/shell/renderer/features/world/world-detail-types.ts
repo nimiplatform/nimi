@@ -244,21 +244,10 @@ export type WorldMediaBindingItem = {
   };
 };
 
-export type WorldMutationItem = {
-  id: string;
-  mutationType: string;
-  title: string;
-  summary: string;
-  targetPath: string;
-  reason?: string | null;
-  createdAt: string;
-};
-
 export type WorldPublicAssetsData = {
   lorebooks: WorldLorebookItem[];
   scenes: WorldSceneItem[];
   mediaBindings: WorldMediaBindingItem[];
-  mutations: WorldMutationItem[];
 };
 
 export type WorldDetailLayoutCard<Key extends string = string> = {

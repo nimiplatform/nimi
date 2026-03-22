@@ -1,0 +1,48 @@
+contract_id: ASSET-CONTRACT-001
+domain: asset
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../asset-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/asset/src/asset/asset.service.ts
+rule_id_prefix: R-ASSET-
+rules:
+  - rule_id: R-ASSET-001
+    level: must
+    title: creator-owned-asset-model
+    statement: "Realm assets are creator-owned publishable works with stable identity, visibility, lifecycle, and release semantics."
+  - rule_id: R-ASSET-002
+    level: must
+    title: asset-not-core-archive
+    statement: "Asset storage is distinct from world truth, world history, and agent memory; app-private archives must not masquerade as realm assets."
+  - rule_id: R-ASSET-003
+    level: must
+    title: explicit-idempotent-asset-mutation
+    statement: "Asset mutations are explicit, idempotent, and auditable."
+  - rule_id: R-ASSET-004
+    level: must
+    title: app-consume-boundary-safe
+    statement: "Apps may reference assets but cannot usurp asset ownership or release truth."
+entities:
+  - name: RealmAsset
+    prisma_model: Asset
+    required_fields: [id, creatorId, assetType, visibility, status]
+    json_fields: [metadata]
+  - name: AssetReleaseEvent
+    prisma_model: AssetReleaseEvent
+    required_fields: [id, assetId, releaseType, publishedAt]
+    json_fields: [payload]
+api_surface:
+  required_operations:
+    - GET /api/assets
+    - POST /api/assets
+    - GET /api/assets/{assetId}
+    - PATCH /api/assets/{assetId}
+  secondary_operations:
+    - POST /api/assets/{assetId}/publish
+    - POST /api/assets/{assetId}/archive

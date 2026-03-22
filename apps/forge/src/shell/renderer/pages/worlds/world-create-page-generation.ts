@@ -8,7 +8,7 @@ import type {
   WorldStudioCreateStep,
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
-import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
+import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { listAgentRules, listCreatorAgents } from '@renderer/data/world-data-client.js';
 import type {
   ForgeWorkspacePatch,
@@ -93,7 +93,7 @@ function buildAssetBindingsDraft(snapshot: ForgeWorkspaceSnapshot) {
 }
 type UseWorldCreatePageGenerationInput = {
   activeDraftId: string;
-  mutations: ReturnType<typeof useWorldMutations>;
+  commitActions: ReturnType<typeof useWorldCommitActions>;
   navigate: (to: string) => void;
   patchWorkspaceSnapshot: (patch: ForgeWorkspacePatch) => void;
   retryConcurrency: number;
@@ -547,7 +547,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
       input.patchWorkspaceSnapshot({ workspaceVersion });
     }
     requireWorldName(input.snapshot.worldStateDraft.name, 'FORGE_DRAFT_WORLD_NAME_REQUIRED');
-    const result = await input.mutations.saveDraftMutation.mutateAsync({
+    const result = await input.commitActions.saveDraftMutation.mutateAsync({
       draftId: input.activeDraftId || undefined,
       sourceType: input.sourceMode,
       sourceRef: input.snapshot.sourceRef || '',
@@ -598,7 +598,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     if (!draftId) {
       throw new Error('Draft id is required before publishing.');
     }
-    const published = await input.mutations.publishDraftMutation.mutateAsync({
+    const published = await input.commitActions.publishDraftMutation.mutateAsync({
       draftId,
       reason: 'Forge manual publish',
     });
@@ -626,7 +626,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
             .map((entry, index) => toAgentCreatePayload(entry, worldId, index));
 
           if (agentsToCreate.length > 0) {
-            const createdAgents = await input.mutations.batchCreateCreatorAgentsMutation.mutateAsync({
+            const createdAgents = await input.commitActions.batchCreateCreatorAgentsMutation.mutateAsync({
               items: agentsToCreate,
               continueOnError: true,
             });
@@ -660,7 +660,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
             if (!payload) return;
 
             if (existingIdentityRule?.id) {
-              await input.mutations.updateAgentRuleMutation.mutateAsync({
+              await input.commitActions.updateAgentRuleMutation.mutateAsync({
                 worldId,
                 agentId,
                 ruleId: String(existingIdentityRule.id),
@@ -684,7 +684,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
               return;
             }
 
-            await input.mutations.createAgentRuleMutation.mutateAsync({
+            await input.commitActions.createAgentRuleMutation.mutateAsync({
               worldId,
               agentId,
               payload,

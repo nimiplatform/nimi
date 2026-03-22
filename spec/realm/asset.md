@@ -4,8 +4,7 @@
 
 ## 0. Normative Imports
 
-- `kernel/boundary-vocabulary-contract.md`: `R-BOUND-004`, `R-BOUND-010`
-- `kernel/asset-contract.md`: `R-ASSET-001`, `R-ASSET-010`, `R-ASSET-020`
+- `kernel/asset-contract.md`: `R-ASSET-001`, `R-ASSET-002`, `R-ASSET-003`, `R-ASSET-004`
 
 ## 1. Scope
 
@@ -15,6 +14,7 @@ Asset 负责 creator-owned 可发布资产与发布记录，不承担叙事运�
 
 1. `kernel/asset-contract.md`
 2. `kernel/tables/realm-asset-types.yaml`
+3. `kernel/tables/asset-contract.yaml`
 3. `creator-revenue-policy.md`
 4. `app-interconnect-model.md`
 

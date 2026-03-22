@@ -4,96 +4,143 @@ evidence_catalog:
     type: static_gate
     command: pnpm check:realm-spec-kernel-consistency
     path: scripts/check-realm-spec-kernel-consistency.mjs
-    description: Kernel rule integrity, vocabulary alignment, creator asset field coverage, economy arithmetic, primitive mapping status, and graduation log checks for Realm domain.
-  realm_timeflow_contract_test:
-    type: test_gate
-    command: cd runtime && go test ./internal/protocol -run TestValidateTimeflowContractAcceptsCanonicalPayload -count=1
-    path: runtime/internal/protocol/realm_primitives_contract_test.go
-    description: Executable contract test for graduated timeflow primitive mapping.
-  realm_economy_contract_test:
-    type: test_gate
-    command: cd runtime && go test ./internal/protocol -run TestValidateEconomyContractAcceptsCanonicalPayload -count=1
-    path: runtime/internal/protocol/realm_primitives_contract_test.go
-    description: Executable contract test for graduated economy primitive mapping.
-  runtime_compliance_gate:
+    description: Kernel rule integrity, thin-domain constraints, and legacy hard-cut enforcement for Realm open spec.
+  realm_kernel_docs_drift:
     type: static_gate
-    command: cd runtime && go run ./cmd/runtime-compliance --gate
-    path: runtime/cmd/runtime-compliance/main.go
-    description: Runtime compliance gate including realm primitive contract coverage checklist.
+    command: pnpm check:realm-spec-kernel-docs-drift
+    path: scripts/generate-realm-spec-kernel-docs.mjs
+    description: Generated kernel doc drift gate for Realm open spec.
 
 rules:
-  - rule_id: R-BOUND-001
+  - rule_id: R-TRUTH-001
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-BOUND-002
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRUTH-002
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-BOUND-003
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRUTH-003
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-BOUND-004
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRUTH-004
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-BOUND-005
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRUTH-005
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-BOUND-010
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRUTH-006
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ASSET-001
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WSTATE-001
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ASSET-010
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WSTATE-002
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ASSET-011
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WSTATE-003
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ASSET-012
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WSTATE-004
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ASSET-020
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WSTATE-005
     status: covered
-    evidence_refs: [realm_kernel_consistency]
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WSTATE-006
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WHIST-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WHIST-002
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WHIST-003
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WHIST-004
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WHIST-005
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-WHIST-006
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-MEM-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-MEM-002
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-MEM-003
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-MEM-004
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-MEM-005
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-MEM-006
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-CHAT-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-CHAT-002
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-CHAT-003
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-CHAT-004
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-SOC-001
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-SOC-002
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-SOC-003
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-SOC-004
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
   - rule_id: R-ECON-001
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-010
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-ECON-002
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-011
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-ECON-003
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-020
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-ECON-004
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-021
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-ASSET-001
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-022
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-ASSET-002
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-023
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-ASSET-003
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-024
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-ASSET-004
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-025
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRANSIT-001
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-030
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRANSIT-002
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-ECON-040
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRANSIT-003
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-INTEROP-001
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRANSIT-004
     status: covered
-    evidence_refs: [realm_kernel_consistency]
-  - rule_id: R-INTEROP-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_timeflow_contract_test, realm_economy_contract_test, runtime_compliance_gate]
-  - rule_id: R-INTEROP-002a
-    status: covered
-    evidence_refs: [realm_kernel_consistency, runtime_compliance_gate]
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]

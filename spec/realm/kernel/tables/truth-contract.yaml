@@ -1,0 +1,67 @@
+contract_id: TRUTH-CONTRACT-001
+domain: truth
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../truth-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/world/src/world-rule.service.ts
+    - ../nimi-backend/libs/domains/world/src/agent-rule.service.ts
+    - ../nimi-backend/libs/domains/world/src/world-release.service.ts
+    - ../nimi-backend/libs/domains/world/src/projection/projection.service.ts
+rule_id_prefix: R-TRUTH-
+rules:
+  - rule_id: R-TRUTH-001
+    level: must
+    title: realm-truth-scope
+    statement: "Realm canonical truth is limited to world truth and agent truth; runtime story output is not truth by default."
+  - rule_id: R-TRUTH-002
+    level: must
+    title: world-rule-canonical
+    statement: "World truth is anchored by WorldRule entries and WorldRelease snapshots; Worldview is computed projection only."
+  - rule_id: R-TRUTH-003
+    level: must
+    title: agent-rule-canonical
+    statement: "Agent truth is anchored by AgentRule entries bound to world scope; agent truth defines identity and durable behavioral boundaries only."
+  - rule_id: R-TRUTH-004
+    level: must
+    title: creator-only-truth-write
+    statement: "Truth writes are reserved for creator or control-plane authority and cannot be produced by runtime story execution."
+  - rule_id: R-TRUTH-005
+    level: must
+    title: truth-write-audited
+    statement: "Truth changes are explicit, versioned, transactional, and auditable; projection updates cannot masquerade as truth writes."
+  - rule_id: R-TRUTH-006
+    level: must
+    title: truth-app-independent
+    statement: "Realm truth remains app-independent and cannot be owned by a single app, renderer, or model route."
+entities:
+  - name: WorldRule
+    prisma_model: WorldRule
+    required_fields: [id, worldId, ruleKey, title, statement, domain, hardness, scope, status, version]
+    json_fields: [structured, dependsOn, conflictsWith]
+  - name: AgentRule
+    prisma_model: AgentRule
+    required_fields: [id, agentId, ruleKey, title, statement, layer, hardness, scope, status, version]
+    json_fields: [structured, dependsOn, conflictsWith]
+  - name: WorldRelease
+    prisma_model: WorldRelease
+    required_fields: [id, worldId, versionTag, worldRuleChecksum, agentRuleChecksum]
+    json_fields: [metadata]
+api_surface:
+  required_operations:
+    - GET /api/world/by-id/{worldId}/rules
+    - POST /api/world/by-id/{worldId}/rules
+    - PATCH /api/world/by-id/{worldId}/rules/{ruleId}
+    - POST /api/world/by-id/{worldId}/rules/{ruleId}/deprecate
+    - POST /api/world/by-id/{worldId}/rules/{ruleId}/archive
+    - GET /api/world/by-id/{worldId}/agents/{agentId}/rules
+    - POST /api/world/by-id/{worldId}/agents/{agentId}/rules
+    - PATCH /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}
+    - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate
+    - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive
+  secondary_operations: []

@@ -28,7 +28,6 @@ const mockWorldDataClient = vi.hoisted(() => ({
   getWorldState: vi.fn(),
   listWorldLorebooks: vi.fn(),
   listWorldMediaBindings: vi.fn(),
-  listWorldMutations: vi.fn(),
   getMyWorldAccess: vi.fn(),
   resolveWorldLanding: vi.fn(),
   getWorldDraft: vi.fn(),
@@ -39,7 +38,7 @@ const mockWorldDataClient = vi.hoisted(() => ({
 
 vi.mock('@renderer/data/world-data-client.js', () => mockWorldDataClient);
 
-import { useWorldMutations } from './use-world-mutations.js';
+import { useWorldCommitActions } from './use-world-commit-actions.js';
 
 function buildDraftPayload() {
   return {
@@ -85,14 +84,14 @@ function createWrapper() {
   };
 }
 
-describe('useWorldMutations', () => {
+describe('useWorldCommitActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('returns all expected mutation objects', () => {
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     expect(result.current).toHaveProperty('saveDraftMutation');
     expect(result.current).toHaveProperty('publishDraftMutation');
@@ -117,7 +116,7 @@ describe('useWorldMutations', () => {
     mockWorldDataClient.createWorldDraft.mockResolvedValue({ id: 'new-draft' });
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await act(async () => {
       result.current.saveDraftMutation.mutate({
@@ -138,7 +137,7 @@ describe('useWorldMutations', () => {
     mockWorldDataClient.updateWorldDraft.mockResolvedValue({ id: 'existing-draft' });
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await act(async () => {
       result.current.saveDraftMutation.mutate({
@@ -158,7 +157,7 @@ describe('useWorldMutations', () => {
 
   it('deleteEventMutation fails close because world history is append-only', async () => {
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await expect(result.current.deleteEventMutation.mutateAsync()).rejects.toThrow(
       /WORLD_HISTORY_APPEND_ONLY/,
@@ -167,7 +166,7 @@ describe('useWorldMutations', () => {
 
   it('syncMediaBindingsMutation fails close because media bindings are projection read-only', async () => {
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await expect(
       result.current.syncMediaBindingsMutation.mutateAsync({
@@ -187,7 +186,7 @@ describe('useWorldMutations', () => {
     });
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await act(async () => {
       result.current.saveMaintenanceMutation.mutate({
@@ -218,7 +217,7 @@ describe('useWorldMutations', () => {
     mockWorldDataClient.createWorldRule.mockResolvedValue({ id: 'wr-1' });
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await act(async () => {
       result.current.createWorldRuleMutation.mutate({
@@ -255,7 +254,7 @@ describe('useWorldMutations', () => {
     mockWorldDataClient.archiveAgentRule.mockResolvedValue({ id: 'ar-1' });
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+    const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await act(async () => {
       result.current.archiveAgentRuleMutation.mutate({

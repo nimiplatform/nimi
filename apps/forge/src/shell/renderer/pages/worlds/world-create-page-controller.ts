@@ -13,7 +13,7 @@ import type {
   WorldStudioCreateStep,
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
-import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
+import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { useCreatorWorldStore } from '@renderer/state/creator-world-store.js';
 import {
   toForgeWorkspaceSnapshot,
@@ -37,14 +37,14 @@ import { useWorldCreatePageGeneration } from './world-create-page-generation';
 import { useWorldCreatePageSource } from './world-create-page-source';
 
 type UseWorldCreatePageModelInput = {
-  mutations: ReturnType<typeof useWorldMutations>;
+  commitActions: ReturnType<typeof useWorldCommitActions>;
   navigate: (to: string) => void;
   resumeDraftId: string;
   userId: string;
 };
 
 export function useWorldCreatePageModel({
-  mutations,
+  commitActions,
   navigate,
   resumeDraftId,
   userId,
@@ -239,7 +239,7 @@ export function useWorldCreatePageModel({
     publishDraft,
   } = useWorldCreatePageGeneration({
     activeDraftId,
-    mutations,
+    commitActions,
     navigate,
     patchWorkspaceSnapshot,
     retryConcurrency,

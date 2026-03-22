@@ -1,0 +1,48 @@
+contract_id: WORLD-HISTORY-CONTRACT-001
+domain: world-history
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../world-history-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/world/src/world-control.service.ts
+rule_id_prefix: R-WHIST-
+rules:
+  - rule_id: R-WHIST-001
+    level: must
+    title: canonical-happened-facts
+    statement: "World History stores canonical happened facts only, never arbitrary story traces."
+  - rule_id: R-WHIST-002
+    level: must
+    title: explicit-history-append
+    statement: "History append is explicit; story-stop persistence cannot auto-convert runtime output into world history."
+  - rule_id: R-WHIST-003
+    level: must
+    title: typed-history-provenance
+    statement: "Each history event carries typed provenance including appId, sessionId, actorRefs, reason, and evidenceRefs."
+  - rule_id: R-WHIST-004
+    level: must
+    title: no-shared-history-for-non-canon-runs
+    statement: "Replay and private continuity app runs must not append shared world history; only CANON_MUTATION matrix entries may do so."
+  - rule_id: R-WHIST-005
+    level: must
+    title: append-only-history
+    statement: "World History is append-only; correction uses superseding or invalidation records instead of silent deletion."
+  - rule_id: R-WHIST-006
+    level: must
+    title: archive-not-history
+    statement: "App-owned narrative archives must not be represented as Realm canonical world history."
+entities:
+  - name: WorldHistoryEvent
+    prisma_model: WorldHistoryEvent
+    required_fields: [id, worldId, appId, sessionId, eventType, title, happenedAt, visibility, schemaId, schemaVersion, reason, committedAt]
+    json_fields: [payload, actorRefs, evidenceRefs, relatedStateRefs, supersedes, invalidates]
+api_surface:
+  required_operations:
+    - GET /api/worlds/{worldId}/history
+    - POST /api/worlds/{worldId}/history/appends
+  secondary_operations: []

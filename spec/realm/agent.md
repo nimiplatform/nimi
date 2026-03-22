@@ -4,8 +4,9 @@
 
 ## 0. Normative Imports
 
-- `kernel/boundary-vocabulary-contract.md`: `R-BOUND-002`, `R-BOUND-010`
-- `kernel/interop-mapping-contract.md`: `R-INTEROP-001`, `R-INTEROP-002`
+- `kernel/truth-contract.md`: `R-TRUTH-002`, `R-TRUTH-003`, `R-TRUTH-004`, `R-TRUTH-005`, `R-TRUTH-006`
+- `kernel/agent-memory-contract.md`: `R-MEM-001`, `R-MEM-002`, `R-MEM-003`, `R-MEM-004`, `R-MEM-005`, `R-MEM-006`
+- `kernel/world-state-contract.md`: `R-WSTATE-002`, `R-WSTATE-003`, `R-WSTATE-004`
 
 ## 1. Scope
 
@@ -13,7 +14,7 @@ Agent 是 Realm 的组合边界：`Truth` 定义身份与规则真相，`Agent M
 
 ## 2. Reading Path
 
-1. `kernel/boundary-vocabulary-contract.md`
+1. `kernel/truth-contract.md`
 2. `truth.md`
 3. `agent-memory.md`
 4. `app-interconnect-model.md`

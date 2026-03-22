@@ -4,7 +4,7 @@
 
 ## FG-AGENT-001: Agent CRUD
 
-Forge provides full agent lifecycle management for both `WORLD_OWNED` and `MASTER_OWNED` agents, aligned with `R-BOUND-002`.
+Forge provides full agent lifecycle management for both `WORLD_OWNED` and `MASTER_OWNED` agents, aligned with `R-TRUTH-003`.
 
 ### Operations
 

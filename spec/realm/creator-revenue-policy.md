@@ -4,7 +4,7 @@
 
 ## 0. Normative Imports
 
-- `kernel/economy-contract.md`: `R-ECON-010`, `R-ECON-020`, `R-ECON-021`, `R-ECON-022`, `R-ECON-023`, `R-ECON-024`, `R-ECON-025`, `R-ECON-030`, `R-ECON-040`
+- `kernel/economy-contract.md`: `R-ECON-001`, `R-ECON-002`, `R-ECON-003`, `R-ECON-004`
 - `kernel/tables/revenue-event-types.yaml`: revenue event types
 - `kernel/tables/share-plan-fields.yaml`: share plan fields
 

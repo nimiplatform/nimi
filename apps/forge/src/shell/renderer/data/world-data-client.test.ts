@@ -12,7 +12,6 @@ const mockWorldControlController = {
   worldControlControllerGetState: vi.fn(),
   worldControlControllerCommitState: vi.fn(),
   worldControlControllerListMyWorlds: vi.fn(),
-  worldControlControllerListWorldMutations: vi.fn(),
   worldControlControllerListWorldHistory: vi.fn(),
   worldControlControllerAppendWorldHistory: vi.fn(),
   worldControlControllerListWorldLorebooks: vi.fn(),
@@ -236,11 +235,6 @@ describe('world-data-client', () => {
   it('listMyWorlds', async () => {
     await wdc.listMyWorlds();
     expect(mockWorldControlController.worldControlControllerListMyWorlds).toHaveBeenCalledOnce();
-  });
-
-  it('listWorldMutations passes worldId', async () => {
-    await wdc.listWorldMutations('w1');
-    expect(mockWorldControlController.worldControlControllerListWorldMutations).toHaveBeenCalledWith('w1');
   });
 
   it('listWorldHistory passes worldId', async () => {

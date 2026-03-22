@@ -100,7 +100,6 @@ export const WORLD_DATA_API_CAPABILITIES = {
   mediaBindingsList: 'data-api.world.media-bindings.list',
   draftsList: 'data-api.world.drafts.list',
   worldsMine: 'data-api.world.worlds.mine',
-  mutationsList: 'data-api.world.mutations.list',
   creatorAgentsList: 'data-api.creator.agents.list',
   creatorAgentsGet: 'data-api.creator.agents.get',
   creatorAgentsCreate: 'data-api.creator.agents.create',

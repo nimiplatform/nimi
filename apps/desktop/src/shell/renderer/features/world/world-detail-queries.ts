@@ -8,7 +8,6 @@ import type {
   WorldHistoryItem,
   WorldLorebookItem,
   WorldMediaBindingItem,
-  WorldMutationItem,
   WorldPublicAssetsData,
   WorldSceneItem,
   WorldSemanticData,
@@ -34,7 +33,6 @@ type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
 type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
 type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
 type PublicWorldMediaBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldMediaBindings>>['items'][number];
-type PublicWorldMutationDto = Awaited<ReturnType<typeof dataSync.loadWorldMutations>>['items'][number];
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
@@ -417,18 +415,6 @@ function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBin
   };
 }
 
-function toWorldMutationItem(raw: PublicWorldMutationDto): WorldMutationItem {
-  return {
-    id: requireString(raw.id, 'mutation_id'),
-    mutationType: requireString(raw.mutationType, 'mutation_type'),
-    title: requireString(raw.title, 'mutation_title'),
-    summary: requireString(raw.summary, 'mutation_summary'),
-    targetPath: requireString(raw.targetPath, 'mutation_target_path'),
-    reason: readString(raw.reason),
-    createdAt: requireString(raw.createdAt, 'mutation_created_at'),
-  };
-}
-
 function buildWorldHistorySummary(items: WorldHistoryItem[]): WorldHistoryBundle['summary'] {
   if (items.length === 0) {
     return null;
@@ -504,18 +490,16 @@ export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAudit
 
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
-  const [lorebooksPayload, scenesPayload, mediaBindingsPayload, mutationsPayload] = await Promise.all([
+  const [lorebooksPayload, scenesPayload, mediaBindingsPayload] = await Promise.all([
     dataSync.loadWorldLorebooks(normalizedWorldId),
     dataSync.loadWorldScenes(normalizedWorldId),
     dataSync.loadWorldMediaBindings(normalizedWorldId),
-    dataSync.loadWorldMutations(normalizedWorldId),
   ]);
 
   return {
     lorebooks: lorebooksPayload.items.map(toWorldLorebookItem),
     scenes: scenesPayload.items.map(toWorldSceneItem),
     mediaBindings: mediaBindingsPayload.items.map(toWorldMediaBindingItem),
-    mutations: mutationsPayload.items.map(toWorldMutationItem),
   };
 }
 

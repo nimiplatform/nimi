@@ -236,7 +236,7 @@ test('overview and content boundaries stay explicit after the refactor', () => {
   assert.match(worldContentSource, /data-testid="world-detail-governance-card"/);
   assert.match(worldContentSource, /<WorldKnowledgeCard lorebooks=\{publicAssets\.lorebooks\} \/>/);
   assert.match(worldContentSource, /<WorldRuntimeSummaryCard/);
-  assert.match(worldContentSource, /<WorldGovernanceCard audits=\{audits\} mutations=\{publicAssets\.mutations\} auditsLoading=\{auditsLoading\} \/>/);
+  assert.match(worldContentSource, /<WorldGovernanceCard audits=\{audits\} auditsLoading=\{auditsLoading\} \/>/);
   assert.doesNotMatch(worldContentSource, /runtimeFacts\.flowRatio/);
   assert.doesNotMatch(worldContentSource, /WorldDetail\.xianxia\.v2\.runtimeFacts\.flowRatio/);
   assert.doesNotMatch(worldContentSource, /mutation\.targetPath/);

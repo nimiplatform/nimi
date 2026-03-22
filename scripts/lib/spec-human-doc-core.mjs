@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import YAML from 'yaml';
 
-const RULE_HEADING_RE = /^##\s+((?:K|S|D|P|R|F)-[A-Z]+-\d{3})\s+(.*)$/;
+const RULE_HEADING_RE = /^##\s+((?:K|S|D|P|R|F)-[A-Z]+-\d{3}[a-z]?)\b(?:\s+[—-]\s+(.*)|\s+(.*))?$/;
 
 export function parseKernelRules(content) {
   const rules = new Map();
@@ -24,7 +24,7 @@ export function parseKernelRules(content) {
     if (match) {
       flush();
       currentId = match[1];
-      currentTitle = match[2];
+      currentTitle = match[2] || match[3] || '';
       bodyLines = [];
     } else if (currentId) {
       if (/^##\s/.test(line) && !RULE_HEADING_RE.test(line)) {

@@ -4,8 +4,7 @@
 
 ## 0. Normative Imports
 
-- `kernel/boundary-vocabulary-contract.md`: `R-BOUND-002`, `R-BOUND-010`
-- `kernel/interop-mapping-contract.md`: `R-INTEROP-001`, `R-INTEROP-002`
+- `kernel/agent-memory-contract.md`: `R-MEM-001`, `R-MEM-002`, `R-MEM-003`, `R-MEM-004`, `R-MEM-005`, `R-MEM-006`
 
 ## 1. Scope
 
@@ -13,8 +12,8 @@ Agent Memory 负责表达 Agent 的连续性记忆，不承担 prompt/runtime or
 
 ## 2. Reading Path
 
-1. `kernel/boundary-vocabulary-contract.md`
-2. `kernel/interop-mapping-contract.md`
+1. `kernel/agent-memory-contract.md`
+2. `kernel/tables/agent-memory-contract.yaml`
 3. `agent.md`
 4. `app-interconnect-model.md`
 

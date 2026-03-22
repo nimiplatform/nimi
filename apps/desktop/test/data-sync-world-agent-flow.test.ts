@@ -67,10 +67,6 @@ describe('D-DSYNC-005: world flow source scanning', () => {
       'loadWorldMediaBindings must be exported from world-flow',
     );
     assert.ok(
-      worldFlowSource.includes('export async function loadWorldMutations'),
-      'loadWorldMutations must be exported from world-flow',
-    );
-    assert.ok(
       worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldLorebooks'),
       'loadWorldLorebooks must use the public WorldsService lorebooks endpoint',
     );
@@ -83,8 +79,8 @@ describe('D-DSYNC-005: world flow source scanning', () => {
       'loadWorldMediaBindings must use the public WorldsService media bindings endpoint',
     );
     assert.ok(
-      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldMutations'),
-      'loadWorldMutations must use the public WorldsService mutations endpoint',
+      !worldFlowSource.includes('worldControllerGetWorldMutations'),
+      'world-flow must not depend on the removed public mutations endpoint',
     );
   });
 });

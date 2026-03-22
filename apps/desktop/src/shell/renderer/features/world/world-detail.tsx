@@ -76,7 +76,6 @@ const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
   lorebooks: [],
   scenes: [],
   mediaBindings: [],
-  mutations: [],
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {

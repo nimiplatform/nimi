@@ -29,10 +29,10 @@ import {
 } from '@renderer/state/creator-world-workspace.js';
 import {
   useWorldResourceQueries,
-  type WorldMutationSummary,
+  type WorldMaintenanceTimelineItem,
 } from '@renderer/hooks/use-world-queries.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
-import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
+import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
 import {
@@ -254,13 +254,13 @@ export function WorldMaintainPageView({
   }, [persistForUser, snapshot, userId]);
 
   // Queries
-  const { stateQuery, historyQuery, lorebooksQuery, mutationsQuery } = useWorldResourceQueries({
+  const { stateQuery, historyQuery, lorebooksQuery, maintenanceTimeline } = useWorldResourceQueries({
     enabled: Boolean(effectiveWorldId),
     worldId: effectiveWorldId,
   });
 
   // Mutations
-  const mutations = useWorldMutations();
+  const commitActions = useWorldCommitActions();
   const agentListQuery = useAgentListQuery(Boolean(effectiveWorldId));
 
   // Local UI state
@@ -402,7 +402,7 @@ export function WorldMaintainPageView({
         ...snapshot.eventsDraft.secondary,
       ].map((event) => toHistoryAppend(event, [relatedStateRef]));
 
-      await mutations.syncEventsMutation.mutateAsync({
+      await commitActions.syncEventsMutation.mutateAsync({
         worldId: effectiveWorldId,
         historyAppends: upserts,
         reason: 'Forge manual sync',
@@ -413,7 +413,7 @@ export function WorldMaintainPageView({
     } catch (err) {
       setError(`Failed to sync events: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [effectiveWorldId, snapshot.eventsDraft, mutations.syncEventsMutation, queryClient, stateQuery.data]);
+  }, [effectiveWorldId, snapshot.eventsDraft, commitActions.syncEventsMutation, queryClient, stateQuery.data]);
 
   const onSyncLorebooks = useCallback(async () => {
     setNotice('Lorebooks are read-only projections. Edit WorldRule or AgentRule instead.');
@@ -429,21 +429,21 @@ export function WorldMaintainPageView({
   }, [queryClient, effectiveWorldId]);
 
   // Derived
-  const working = mutations.saveMaintenanceMutation.isPending
-    || mutations.syncEventsMutation.isPending
-    || mutations.syncMediaBindingsMutation.isPending;
+  const working = commitActions.saveMaintenanceMutation.isPending
+    || commitActions.syncEventsMutation.isPending
+    || commitActions.syncMediaBindingsMutation.isPending;
   const truthWorking = worldRulesQuery.isFetching
     || agentRulesQuery.isFetching
-    || mutations.createWorldRuleMutation.isPending
-    || mutations.updateWorldRuleMutation.isPending
-    || mutations.deprecateWorldRuleMutation.isPending
-    || mutations.archiveWorldRuleMutation.isPending
-    || mutations.createAgentRuleMutation.isPending
-    || mutations.updateAgentRuleMutation.isPending
-    || mutations.deprecateAgentRuleMutation.isPending
-    || mutations.archiveAgentRuleMutation.isPending;
+    || commitActions.createWorldRuleMutation.isPending
+    || commitActions.updateWorldRuleMutation.isPending
+    || commitActions.deprecateWorldRuleMutation.isPending
+    || commitActions.archiveWorldRuleMutation.isPending
+    || commitActions.createAgentRuleMutation.isPending
+    || commitActions.updateAgentRuleMutation.isPending
+    || commitActions.deprecateAgentRuleMutation.isPending
+    || commitActions.archiveAgentRuleMutation.isPending;
 
-  const mutationsList: WorldMutationSummary[] = mutationsQuery.data || [];
+  const mutationsList: WorldMaintenanceTimelineItem[] = maintenanceTimeline;
   const dirtyLabels = Object.entries(workspaceSnapshot.unsavedChangesByPanel)
     .filter(([, dirty]) => dirty)
     .map(([key]) => key);
@@ -602,7 +602,7 @@ export function WorldMaintainPageView({
       onEventGraphLayoutChange,
       onEventSyncModeChange: () => undefined,
       saveMaintenance: async () => {
-        await mutations.saveMaintenanceMutation.mutateAsync({
+        await commitActions.saveMaintenanceMutation.mutateAsync({
           worldId: effectiveWorldId,
           worldState: workspaceSnapshot.worldStateDraft,
           reason: 'Forge manual save',
@@ -692,7 +692,7 @@ export function WorldMaintainPageView({
             onClick={async () => {
               if (!effectiveWorldId) return;
               try {
-                await mutations.saveMaintenanceMutation.mutateAsync({
+                await commitActions.saveMaintenanceMutation.mutateAsync({
                   worldId: effectiveWorldId,
                   worldState: workspaceSnapshot.worldStateDraft,
                   reason: 'Forge manual save',
@@ -737,35 +737,35 @@ export function WorldMaintainPageView({
         agentRulesLoading={agentRulesQuery.isLoading}
         working={working || truthWorking}
         onCreateWorldRule={async (payload) => {
-          await mutations.createWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, payload });
+          await commitActions.createWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, payload });
           await invalidateTruthQueries();
         }}
         onUpdateWorldRule={async (ruleId, payload) => {
-          await mutations.updateWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId, payload });
+          await commitActions.updateWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId, payload });
           await invalidateTruthQueries();
         }}
         onDeprecateWorldRule={async (ruleId) => {
-          await mutations.deprecateWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId });
+          await commitActions.deprecateWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId });
           await invalidateTruthQueries();
         }}
         onArchiveWorldRule={async (ruleId) => {
-          await mutations.archiveWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId });
+          await commitActions.archiveWorldRuleMutation.mutateAsync({ worldId: effectiveWorldId, ruleId });
           await invalidateTruthQueries();
         }}
         onCreateAgentRule={async (agentId, payload) => {
-          await mutations.createAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, payload });
+          await commitActions.createAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, payload });
           await invalidateTruthQueries();
         }}
         onUpdateAgentRule={async (agentId, ruleId, payload) => {
-          await mutations.updateAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId, payload });
+          await commitActions.updateAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId, payload });
           await invalidateTruthQueries();
         }}
         onDeprecateAgentRule={async (agentId, ruleId) => {
-          await mutations.deprecateAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId });
+          await commitActions.deprecateAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId });
           await invalidateTruthQueries();
         }}
         onArchiveAgentRule={async (agentId, ruleId) => {
-          await mutations.archiveAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId });
+          await commitActions.archiveAgentRuleMutation.mutateAsync({ worldId: effectiveWorldId, agentId, ruleId });
           await invalidateTruthQueries();
         }}
         setNotice={setNotice}

@@ -470,13 +470,4 @@ export async function registerWorldDataCapabilities(): Promise<void> {
       )
     ));
   });
-
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.mutationsList, async (query) => {
-    const worldId = String(toRecord(query).worldId || '').trim();
-    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
-    const payload = await withRuntimeOpenApiContext((realm) => (
-      realm.services.WorldControlService.worldControlControllerListWorldMutations(worldId)
-    ));
-    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_MUTATION_LIST_CONTRACT_INVALID');
-  });
 }

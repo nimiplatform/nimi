@@ -4974,31 +4974,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerListWorldMutations": {
-    "operationId": "WorldControlController_listWorldMutations",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/mutations",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldMutations",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldControlService.worldControlControllerListWorldScenes": {
     "operationId": "WorldControlController_listWorldScenes",
     "method": "GET",
@@ -5670,31 +5645,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldsService.worldControllerGetWorldMutations": {
-    "operationId": "WorldController_getWorldMutations",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/mutations",
-    "service": "WorldsService",
-    "methodName": "worldControllerGetWorldMutations",
-    "tag": "Worlds",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldsService.worldControllerGetWorldScenes": {
     "operationId": "WorldController_getWorldScenes",
     "method": "GET",
@@ -6085,7 +6035,6 @@ export const REALM_SERVICE_METHODS = {
     "worldControlControllerListWorldHistory": "WorldControlService.worldControlControllerListWorldHistory",
     "worldControlControllerListWorldLorebooks": "WorldControlService.worldControlControllerListWorldLorebooks",
     "worldControlControllerListWorldMediaBindings": "WorldControlService.worldControlControllerListWorldMediaBindings",
-    "worldControlControllerListWorldMutations": "WorldControlService.worldControlControllerListWorldMutations",
     "worldControlControllerListWorldScenes": "WorldControlService.worldControlControllerListWorldScenes",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
@@ -6116,7 +6065,6 @@ export const REALM_SERVICE_METHODS = {
     "worldControllerGetWorldLevelAudits": "WorldsService.worldControllerGetWorldLevelAudits",
     "worldControllerGetWorldLorebooks": "WorldsService.worldControllerGetWorldLorebooks",
     "worldControllerGetWorldMediaBindings": "WorldsService.worldControllerGetWorldMediaBindings",
-    "worldControllerGetWorldMutations": "WorldsService.worldControllerGetWorldMutations",
     "worldControllerGetWorldScenes": "WorldsService.worldControllerGetWorldScenes",
     "worldControllerGetWorldview": "WorldsService.worldControllerGetWorldview",
     "worldControllerListWorlds": "WorldsService.worldControllerListWorlds",

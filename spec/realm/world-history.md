@@ -4,8 +4,7 @@
 
 ## 0. Normative Imports
 
-- `kernel/boundary-vocabulary-contract.md`: `R-BOUND-001`, `R-BOUND-010`
-- `kernel/interop-mapping-contract.md`: `R-INTEROP-001`, `R-INTEROP-002`
+- `kernel/world-history-contract.md`: `R-WHIST-001`, `R-WHIST-002`, `R-WHIST-003`, `R-WHIST-004`, `R-WHIST-005`, `R-WHIST-006`
 
 ## 1. Scope
 
@@ -13,8 +12,8 @@ World History 负责持有已经成为世界真相的公共历史事件，并只
 
 ## 2. Reading Path
 
-1. `kernel/boundary-vocabulary-contract.md`
-2. `kernel/interop-mapping-contract.md`
+1. `kernel/world-history-contract.md`
+2. `kernel/tables/world-history-contract.yaml`
 3. `world.md`
 4. `app-interconnect-model.md`
 

@@ -56,11 +56,11 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-005 — World 数据流
 
-世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldScenes`、`loadWorldMediaBindings`、`loadWorldMutations`、`loadMainWorld`、`loadWorldLevelAudits`。
+世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldScenes`、`loadWorldMediaBindings`、`loadMainWorld`、`loadWorldLevelAudits`。
 
 - 使用基础设施：上下文锁、错误日志。
 - `loadWorldSemanticBundle` 返回的 `worldview.coreSystem.rules` 必须是 ordered rule item array（`key / title / value`），不得回退为 JSON object map。
-- `loadWorldMutations` 返回的 public/detail mutation 数据必须显式携带 `title / summary / createdAt`；`title / summary` 由 realm 提供，不由 desktop 现场生成。
+- creator audit 读取统一来自 `WorldStateDto.items` 与 `WorldHistoryListDto.items`；Desktop 不再定义独立 world mutation 读取面。
 
 ## D-DSYNC-006 — Economy 数据流
 

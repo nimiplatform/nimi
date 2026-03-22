@@ -22,9 +22,8 @@ test('top agent cards sanitize banner URLs before interpolating them into backgr
   assert.doesNotMatch(exploreCardsSource, /backgroundImage: `url\(\$\{backgroundUrl\}\)`/);
 });
 
-test('explore panel keys agent queries by world data version instead of refetching in an effect loop', () => {
-  assert.match(explorePanelSource, /const worldsDataVersion = useMemo/);
-  assert.match(explorePanelSource, /queryKey: \['explore-agents', authStatus, selectedCategory, searchText, worldsDataVersion\]/);
+test('explore panel keeps agent queries declarative without imperative refetch loops', () => {
+  assert.match(explorePanelSource, /queryKey: \['explore-agents', authStatus, selectedCategory, searchText\]/);
   assert.doesNotMatch(explorePanelSource, /agentsQuery\.refetch\(\)/);
 });
 

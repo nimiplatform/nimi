@@ -1,0 +1,52 @@
+contract_id: ECONOMY-CONTRACT-001
+domain: economy
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../economy-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.ts
+    - ../nimi-backend/libs/domains/economy/src/subscription/subscription.service.ts
+rule_id_prefix: R-ECON-
+rules:
+  - rule_id: R-ECON-001
+    level: must
+    title: creator-world-economy-is-auditable
+    statement: "World creator economy and access economics remain auditable, explicit, and separate from narrative runtime."
+  - rule_id: R-ECON-002
+    level: must
+    title: compute-not-billed-as-realm-truth
+    statement: "AI compute route cost is not modeled as Realm core truth or hidden world mutation."
+  - rule_id: R-ECON-003
+    level: must
+    title: revenue-share-is-explicit
+    statement: "Revenue and settlement logic use explicit event types and share plans with append-only accounting."
+  - rule_id: R-ECON-004
+    level: must
+    title: no-hidden-cross-domain-economics
+    statement: "Apps cannot hide economic state changes inside narrative history or memory commits."
+entities:
+  - name: CreatorKey
+    prisma_model: CreatorKey
+    required_fields: [id, creatorId, tier, status]
+    json_fields: []
+  - name: SharePlan
+    prisma_model: SharePlan
+    required_fields: [id, eventType, status]
+    json_fields: [participants, metadata]
+  - name: RevenueEvent
+    prisma_model: RevenueEvent
+    required_fields: [id, eventType, traceId]
+    json_fields: [payload]
+api_surface:
+  required_operations:
+    - GET /api/economy/subscription
+    - POST /api/economy/reviews
+    - GET /api/economy/gifts/received
+    - GET /api/economy/gifts/sent
+  secondary_operations:
+    - GET /api/economy/balances

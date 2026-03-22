@@ -6,49 +6,49 @@
 
 | Type | Granularity | Owner Model | Mutation Model | Lifecycle | Internal Structure | Release Model | Source |
 |---|---|---|---|---|---|---|---|
-| `NovelAsset` | book | creator-owned personal asset | evolving serialized asset | draft -> published -> maintained -> archived | volumes[] + chapters[] + chapter order + publishedChapterCursor | append-only NovelReleaseEvent | `R-ASSET-010` |
+| `NovelAsset` | book | creator-owned personal asset | evolving serialized asset | draft -> published -> maintained -> archived | volumes[] + chapters[] + chapter order + publishedChapterCursor | append-only NovelReleaseEvent | `R-ASSET-001` |
 
 ## Metadata Fields
 
 | Field | Category | Type | Required | Source |
 |---|---|---|---|---|
-| `title` | identity | `string` | true | `R-ASSET-011` |
-| `subtitle` | identity | `string` | false | `R-ASSET-011` |
-| `owner` | identity | `AssetOwner` | true | `R-ASSET-011` |
-| `genreTags` | discovery | `string[]` | true | `R-ASSET-011` |
-| `summary` | discovery | `string` | true | `R-ASSET-011` |
-| `language` | discovery | `string` | true | `R-ASSET-011` |
-| `maturity` | discovery | `string` | true | `R-ASSET-011` |
-| `visibility` | discovery | `AssetVisibility` | true | `R-ASSET-011` |
-| `serializationStatus` | serialization | `string` | true | `R-ASSET-011` |
-| `publishedChapterCursor` | serialization | `integer` | true | `R-ASSET-011` |
-| `volumeCount` | serialization | `integer` | true | `R-ASSET-011` |
-| `chapterCount` | serialization | `integer` | true | `R-ASSET-011` |
-| `coverAssetRef` | media | `string` | false | `R-ASSET-011` |
+| `title` | identity | `string` | true | `R-ASSET-001` |
+| `subtitle` | identity | `string` | false | `R-ASSET-001` |
+| `owner` | identity | `AssetOwner` | true | `R-ASSET-001` |
+| `genreTags` | discovery | `string[]` | true | `R-ASSET-001` |
+| `summary` | discovery | `string` | true | `R-ASSET-001` |
+| `language` | discovery | `string` | true | `R-ASSET-001` |
+| `maturity` | discovery | `string` | true | `R-ASSET-001` |
+| `visibility` | discovery | `AssetVisibility` | true | `R-ASSET-001` |
+| `serializationStatus` | serialization | `string` | true | `R-ASSET-001` |
+| `publishedChapterCursor` | serialization | `integer` | true | `R-ASSET-001` |
+| `volumeCount` | serialization | `integer` | true | `R-ASSET-001` |
+| `chapterCount` | serialization | `integer` | true | `R-ASSET-001` |
+| `coverAssetRef` | media | `string` | false | `R-ASSET-001` |
 
 ## Structure Fields
 
 | Field | Type | Required | Source |
 |---|---|---|---|
-| `volumes` | `Volume[]` | true | `R-ASSET-012` |
-| `chapters` | `Chapter[]` | true | `R-ASSET-012` |
-| `chapterOrder` | `string[]` | true | `R-ASSET-012` |
-| `publishedChapterCursor` | `integer` | true | `R-ASSET-012` |
+| `volumes` | `Volume[]` | true | `R-ASSET-001` |
+| `chapters` | `Chapter[]` | true | `R-ASSET-001` |
+| `chapterOrder` | `string[]` | true | `R-ASSET-001` |
+| `publishedChapterCursor` | `integer` | true | `R-ASSET-001` |
 
 ## Release Event Fields
 
 | Field | Type | Required | Source |
 |---|---|---|---|
-| `assetId` | `string` | true | `R-ASSET-012` |
-| `releaseId` | `string` | true | `R-ASSET-012` |
-| `publishedChapters` | `string[]` | true | `R-ASSET-012` |
-| `publishedAt` | `datetime` | true | `R-ASSET-012` |
-| `traceId` | `string` | true | `R-ASSET-012` |
-| `operator` | `string` | true | `R-ASSET-012` |
+| `assetId` | `string` | true | `R-ASSET-003` |
+| `releaseId` | `string` | true | `R-ASSET-003` |
+| `publishedChapters` | `string[]` | true | `R-ASSET-003` |
+| `publishedAt` | `datetime` | true | `R-ASSET-003` |
+| `traceId` | `string` | true | `R-ASSET-003` |
+| `operator` | `string` | true | `R-ASSET-003` |
 
 ## Mutation Invariants
 
-- NovelAsset is the primary publishable entity; volumes and chapters remain internal structure. (`R-ASSET-010`)
-- Serialized publish retries must not duplicate chapter exposure. (`R-ASSET-020`)
-- Successful publishes append release events instead of replacing history. (`R-ASSET-020`)
-- Routine updates must not silently rewind already published chapters. (`R-ASSET-020`)
+- NovelAsset is the primary publishable entity; volumes and chapters remain internal structure. (`R-ASSET-001`)
+- Serialized publish retries must not duplicate chapter exposure. (`R-ASSET-003`)
+- Successful publishes append release events instead of replacing history. (`R-ASSET-003`)
+- Routine updates must not silently rewind already published chapters. (`R-ASSET-003`)

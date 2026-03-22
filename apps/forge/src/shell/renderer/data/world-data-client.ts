@@ -558,10 +558,6 @@ export async function listMyWorlds() {
   return realm().services.WorldControlService.worldControlControllerListMyWorlds();
 }
 
-export async function listWorldMutations(worldId: string) {
-  return realm().services.WorldControlService.worldControlControllerListWorldMutations(worldId);
-}
-
 // ── History & Lorebooks ────────────────────────────────────
 
 export async function listWorldHistory(worldId: string) {

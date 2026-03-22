@@ -1,0 +1,49 @@
+version: 1
+updated_at: '2026-03-22'
+owner: '@team'
+mappings:
+  - external_id: REALM-KERNEL-TRUTH
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/truth-contract.md
+    local_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-WORLD-STATE
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/world-state-contract.md
+    local_anchor: spec/realm/kernel/world-state-contract.md#R-WSTATE-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-WORLD-HISTORY
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/world-history-contract.md
+    local_anchor: spec/realm/kernel/world-history-contract.md#R-WHIST-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-AGENT-MEMORY
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/agent-memory-contract.md
+    local_anchor: spec/realm/kernel/agent-memory-contract.md#R-MEM-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-CHAT
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/chat-contract.md
+    local_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-SOCIAL
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/social-contract.md
+    local_anchor: spec/realm/kernel/social-contract.md#R-SOC-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-ECONOMY
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/economy-contract.md
+    local_anchor: spec/realm/kernel/economy-contract.md#R-ECON-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-ASSET
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/asset-contract.md
+    local_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-001
+    coverage_status: aligned
+  - external_id: REALM-KERNEL-TRANSIT
+    external_type: closed_spec_bridge
+    external_path: ../spec/realm/kernel/transit-contract.md
+    local_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-001
+    coverage_status: aligned

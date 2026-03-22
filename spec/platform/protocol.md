@@ -26,7 +26,7 @@
 2. 授权与 scope：P-PROTO-020、P-PROTO-030、P-PROTO-035、P-PROTO-040。
 3. World-App 与模式边界：P-PROTO-050、P-PROTO-060。
 4. 六原语与一致性：P-PROTO-070、P-PROTO-100–105。
-5. 下游实现锚点：`spec/runtime/kernel/auth-service.md`、`spec/runtime/kernel/grant-service.md`、`spec/sdk/kernel/scope-contract.md`、`spec/realm/kernel/interop-mapping-contract.md`。
+5. 下游实现锚点：`spec/runtime/kernel/auth-service.md`、`spec/runtime/kernel/grant-service.md`、`spec/sdk/kernel/scope-contract.md`、`spec/realm/kernel/world-state-contract.md`、`spec/realm/kernel/world-history-contract.md`、`spec/realm/kernel/agent-memory-contract.md`、`spec/realm/kernel/transit-contract.md`。
 
 ## 3. 事实源映射
 

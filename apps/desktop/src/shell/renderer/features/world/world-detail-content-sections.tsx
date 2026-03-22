@@ -549,15 +549,13 @@ function WorldRuntimeSummaryCard({
 
 function WorldGovernanceCard({
   audits,
-  mutations,
   auditsLoading,
 }: {
   audits: WorldAuditItem[];
-  mutations: WorldPublicAssetsData['mutations'];
   auditsLoading?: boolean;
 }) {
   const { t } = useTranslation();
-  if (!audits.length && !mutations.length && !auditsLoading) {
+  if (!audits.length && !auditsLoading) {
     return null;
   }
 
@@ -587,22 +585,6 @@ function WorldGovernanceCard({
           )}
         </SectionShell>
       ) : null}
-
-      {mutations.length ? (
-        <SectionShell title={t('WorldDetail.xianxia.v2.extended.mutationsTitle')} subtitle={t('WorldDetail.xianxia.v2.extended.mutationsSubtitle')}>
-          <div className="grid gap-3">
-            {mutations.slice(0, 8).map((mutation) => (
-              <div key={mutation.id} className="rounded-2xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/56 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm font-semibold text-[#effff8]">{mutation.title}</div>
-                  <div className="text-[11px] text-[#86f0ca]/72">{formatDateTime(mutation.createdAt) || 'N/A'}</div>
-                </div>
-                <div className="mt-2 text-sm leading-relaxed text-[#d8efe4]/66">{mutation.summary}</div>
-              </div>
-            ))}
-          </div>
-        </SectionShell>
-      ) : null}
     </div>
   );
 }
@@ -621,7 +603,7 @@ export function WorldExtendedSection({
   auditsLoading?: boolean;
 }) {
   const hasKnowledge = publicAssets.lorebooks.length > 0;
-  const hasGovernance = audits.length > 0 || publicAssets.mutations.length > 0 || Boolean(auditsLoading);
+  const hasGovernance = audits.length > 0 || Boolean(auditsLoading);
   const hasRuntimeOrGovernance = hasGovernance || world.agentCount > 0 || publicAssets.lorebooks.length > 0 || publicAssets.scenes.length > 0;
 
   if (!hasKnowledge && !hasRuntimeOrGovernance && !semantic.worldviewEvents.length && !semantic.worldviewSnapshots.length) {
@@ -643,7 +625,7 @@ export function WorldExtendedSection({
           </div>
           {hasGovernance ? (
             <div className="xl:col-span-7">
-              <WorldGovernanceCard audits={audits} mutations={publicAssets.mutations} auditsLoading={auditsLoading} />
+              <WorldGovernanceCard audits={audits} auditsLoading={auditsLoading} />
             </div>
           ) : null}
         </div>

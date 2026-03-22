@@ -4,14 +4,14 @@
 
 ## 0. Normative Imports
 
-- `kernel/economy-contract.md`: `R-ECON-001`, `R-ECON-011`, `R-ECON-030`
+- `kernel/economy-contract.md`: `R-ECON-001`, `R-ECON-003`
 - `kernel/tables/creator-key-tiers.yaml`: creator key pricing
 
 ## 1. Scope
 
 World creator economy defines creator-key access economics and append-only settlement semantics for world-facing creation rights.
 
-Gift settlement remains part of the same audited economy surface: `R-ECON-011` governs Spark payment on send and Gem delivery on accept.
+Gift, revenue, and settlement semantics remain under the single explicit event/share-plan accounting model defined by `R-ECON-003`.
 
 ## 2. Reading Path
 

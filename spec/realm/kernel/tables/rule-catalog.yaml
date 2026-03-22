@@ -1,0 +1,223 @@
+id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-[0-9]{3}$'
+generated_at: '2026-03-22T00:00:00Z'
+rules:
+  - rule_id: R-TRUTH-001
+    domain: truth
+    level: must
+    statement: Realm canonical truth is limited to creator-governed world truth and agent truth; runtime story output never becomes truth by default.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-002
+    domain: truth
+    level: must
+    statement: World truth is anchored by WorldRule plus WorldRelease; Worldview is projection not truth.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-003
+    domain: truth
+    level: must
+    statement: Agent truth is anchored by AgentRule and defines durable identity boundaries only.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-004
+    domain: truth
+    level: must
+    statement: Truth writes are reserved for creator or control-plane authority.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-005
+    domain: truth
+    level: must
+    statement: Truth changes must be explicit, versioned, transactional, and auditable.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-006
+    domain: truth
+    level: must
+    statement: Realm truth must remain app-independent and cannot be owned by a single runtime path.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-WSTATE-001
+    domain: world-state
+    level: must
+    statement: World State expresses durable shared present only and excludes story runtime.
+    source: spec/realm/kernel/world-state-contract.md
+  - rule_id: R-WSTATE-002
+    domain: world-state
+    level: must
+    statement: State mutation uses an explicit commit envelope with fixed provenance fields.
+    source: spec/realm/kernel/world-state-contract.md
+  - rule_id: R-WSTATE-003
+    domain: world-state
+    level: must
+    statement: World State scope is limited to durable shared scopes WORLD, ENTITY, or RELATION.
+    source: spec/realm/kernel/world-state-contract.md
+  - rule_id: R-WSTATE-004
+    domain: world-state
+    level: must
+    statement: effectClass is fixed to NONE, MEMORY_ONLY, STATE_ONLY, or STATE_AND_HISTORY.
+    source: spec/realm/kernel/world-state-contract.md
+  - rule_id: R-WSTATE-005
+    domain: world-state
+    level: must
+    statement: State writes require explicit app authorization through an appId/schemaId/schemaVersion/effectClass to runMode matrix and fail-close schema validation.
+    source: spec/realm/kernel/world-state-contract.md
+  - rule_id: R-WSTATE-006
+    domain: world-state
+    level: must
+    statement: Creator tooling and authorized apps use the same explicit state commit model.
+    source: spec/realm/kernel/world-state-contract.md
+  - rule_id: R-WHIST-001
+    domain: world-history
+    level: must
+    statement: World History stores canonical happened facts only, not arbitrary story traces.
+    source: spec/realm/kernel/world-history-contract.md
+  - rule_id: R-WHIST-002
+    domain: world-history
+    level: must
+    statement: History append is explicit and cannot be implied by stopping a story run.
+    source: spec/realm/kernel/world-history-contract.md
+  - rule_id: R-WHIST-003
+    domain: world-history
+    level: must
+    statement: Each history event carries typed provenance including appId, sessionId, actorRefs, reason, and evidenceRefs.
+    source: spec/realm/kernel/world-history-contract.md
+  - rule_id: R-WHIST-004
+    domain: world-history
+    level: must
+    statement: Replay and private continuity runs must not append shared world history; only CANON_MUTATION matrix entries may do so.
+    source: spec/realm/kernel/world-history-contract.md
+  - rule_id: R-WHIST-005
+    domain: world-history
+    level: must
+    statement: World History is append-only and corrections use superseding or invalidation records.
+    source: spec/realm/kernel/world-history-contract.md
+  - rule_id: R-WHIST-006
+    domain: world-history
+    level: must
+    statement: App-owned narrative archives must not be represented as Realm canonical world history.
+    source: spec/realm/kernel/world-history-contract.md
+  - rule_id: R-MEM-001
+    domain: agent-memory
+    level: must
+    statement: Agent Memory stores continuity facts only and excludes prompt or runtime orchestration.
+    source: spec/realm/kernel/agent-memory-contract.md
+  - rule_id: R-MEM-002
+    domain: agent-memory
+    level: must
+    statement: Memory class is fixed to PUBLIC_SHARED, WORLD_SHARED, or DYADIC.
+    source: spec/realm/kernel/agent-memory-contract.md
+  - rule_id: R-MEM-003
+    domain: agent-memory
+    level: must
+    statement: DYADIC memory is strictly isolated by agentId and userId.
+    source: spec/realm/kernel/agent-memory-contract.md
+  - rule_id: R-MEM-004
+    domain: agent-memory
+    level: must
+    statement: Memory writes are explicit, auditable, and provenance-bearing.
+    source: spec/realm/kernel/agent-memory-contract.md
+  - rule_id: R-MEM-005
+    domain: agent-memory
+    level: must
+    statement: Private deletion rights apply to DYADIC memory without damaging shared continuity.
+    source: spec/realm/kernel/agent-memory-contract.md
+  - rule_id: R-MEM-006
+    domain: agent-memory
+    level: must
+    statement: History and state may inform memory writes but do not auto-materialize memory by default; run-mode permissions remain explicit in the commit authorization matrix.
+    source: spec/realm/kernel/agent-memory-contract.md
+  - rule_id: R-CHAT-001
+    domain: chat
+    level: must
+    statement: Realm owns Chat as a realm domain and provides the canonical thread, message, read-state, and sync surface.
+    source: spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-002
+    domain: chat
+    level: must
+    statement: Realm Chat v1 supports only HUMAN_HUMAN DIRECT chat; non-human participants and non-direct shapes must fail-close.
+    source: spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-003
+    domain: chat
+    level: must
+    statement: Social gates human chat admission, but canonical chat threads, messages, read state, and sync cursor semantics belong to Chat.
+    source: spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-004
+    domain: chat
+    level: must
+    statement: Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1.
+    source: spec/realm/kernel/chat-contract.md
+  - rule_id: R-SOC-001
+    domain: social
+    level: must
+    statement: Friendship is the canonical admission graph for realm-level social relationships.
+    source: spec/realm/kernel/social-contract.md
+  - rule_id: R-SOC-002
+    domain: social
+    level: must
+    statement: Friendship uses ordered-pair uniqueness and cannot produce duplicate canonical rows.
+    source: spec/realm/kernel/social-contract.md
+  - rule_id: R-SOC-003
+    domain: social
+    level: must
+    statement: Social defines relationship and admission facts and does not define agent-chat runtime, model routing, or turn execution.
+    source: spec/realm/kernel/social-contract.md
+  - rule_id: R-SOC-004
+    domain: social
+    level: must
+    statement: Social may gate human chat via preconditions, but canonical chat surface lives in Realm Chat and agent chat runtime stays outside Realm.
+    source: spec/realm/kernel/social-contract.md
+  - rule_id: R-ECON-001
+    domain: economy
+    level: must
+    statement: World creator economy and access economics remain auditable and separate from narrative runtime.
+    source: spec/realm/kernel/economy-contract.md
+  - rule_id: R-ECON-002
+    domain: economy
+    level: must
+    statement: AI compute route cost is not modeled as Realm core truth or hidden world mutation.
+    source: spec/realm/kernel/economy-contract.md
+  - rule_id: R-ECON-003
+    domain: economy
+    level: must
+    statement: Revenue and settlement logic use explicit event types and append-only accounting.
+    source: spec/realm/kernel/economy-contract.md
+  - rule_id: R-ECON-004
+    domain: economy
+    level: must
+    statement: Apps cannot hide economic state changes inside narrative history or memory commits.
+    source: spec/realm/kernel/economy-contract.md
+  - rule_id: R-ASSET-001
+    domain: asset
+    level: must
+    statement: Realm assets are creator-owned publishable works with stable identity and lifecycle.
+    source: spec/realm/kernel/asset-contract.md
+  - rule_id: R-ASSET-002
+    domain: asset
+    level: must
+    statement: Asset storage is distinct from truth, history, and memory.
+    source: spec/realm/kernel/asset-contract.md
+  - rule_id: R-ASSET-003
+    domain: asset
+    level: must
+    statement: Asset mutations are explicit, idempotent, and auditable.
+    source: spec/realm/kernel/asset-contract.md
+  - rule_id: R-ASSET-004
+    domain: asset
+    level: must
+    statement: Apps may reference assets but cannot usurp asset ownership or release truth.
+    source: spec/realm/kernel/asset-contract.md
+  - rule_id: R-TRANSIT-001
+    domain: transit
+    level: must
+    statement: Transit is a continuity protocol for cross-world movement and not a narrative engine.
+    source: spec/realm/kernel/transit-contract.md
+  - rule_id: R-TRANSIT-002
+    domain: transit
+    level: must
+    statement: Transit preserves identity continuity while allowing world-context change.
+    source: spec/realm/kernel/transit-contract.md
+  - rule_id: R-TRANSIT-003
+    domain: transit
+    level: must
+    statement: Transit state changes are explicit, state-machine governed, and auditable.
+    source: spec/realm/kernel/transit-contract.md
+  - rule_id: R-TRANSIT-004
+    domain: transit
+    level: must
+    statement: Transit may hand off durable references but app-local runtime checkpoints stay outside Realm.
+    source: spec/realm/kernel/transit-contract.md

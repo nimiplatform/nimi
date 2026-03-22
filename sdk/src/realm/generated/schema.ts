@@ -2837,23 +2837,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/by-id/{id}/mutations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List public world mutations */
-        get: operations["WorldController_getWorldMutations"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/world/by-id/{id}/return": {
         parameters: {
             query?: never;
@@ -3448,23 +3431,6 @@ export type paths = {
         };
         /** List world media bindings */
         get: operations["WorldControlController_listWorldMediaBindings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/mutations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List world mutations for state/history audit timeline */
-        get: operations["WorldControlController_listWorldMutations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5087,21 +5053,6 @@ export type components = {
             items: components["schemas"]["PublicWorldMediaBindingDto"][];
             worldId: string;
         };
-        PublicWorldMutationDto: {
-            createdAt: string;
-            id: string;
-            /** @enum {string} */
-            mutationType: "SETTING_CHANGE" | "RULE_UPDATE" | "LOREBOOK_OVERRIDE" | "TABOO_CHANGE" | "LOCATION_CHANGE" | "EVENT_CREATE" | "EVENT_UPDATE" | "EVENT_DELETE" | "EVENT_BATCH_UPSERT";
-            reason?: string;
-            summary: string;
-            targetPath: string;
-            title: string;
-            worldId: string;
-        };
-        PublicWorldMutationListDto: {
-            items: components["schemas"]["PublicWorldMutationDto"][];
-            worldId: string;
-        };
         PublicWorldSceneDto: {
             activeEntities: string[];
             description: string;
@@ -6583,22 +6534,6 @@ export type components = {
         };
         WorldMediaBindingListDto: {
             items: components["schemas"]["WorldMediaBindingDetailDto"][];
-            worldId: string;
-        };
-        WorldMutationListDto: {
-            items: components["schemas"]["WorldMutationSummaryDto"][];
-            worldId: string;
-        };
-        WorldMutationSummaryDto: {
-            createdAt: string;
-            creatorId: string;
-            id: string;
-            /** @enum {string} */
-            mutationType: "SETTING_CHANGE" | "RULE_UPDATE" | "LOREBOOK_OVERRIDE" | "TABOO_CHANGE" | "LOCATION_CHANGE" | "EVENT_CREATE" | "EVENT_UPDATE" | "EVENT_DELETE" | "EVENT_BATCH_UPSERT";
-            reason?: string;
-            summary: string;
-            targetPath: string;
-            title: string;
             worldId: string;
         };
         WorldRecommendedAgentDto: {
@@ -11147,28 +11082,6 @@ export interface operations {
             };
         };
     };
-    WorldController_getWorldMutations: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicWorldMutationListDto"];
-                };
-            };
-        };
-    };
     WorldController_returnToMainWorld: {
         parameters: {
             query?: never;
@@ -12166,28 +12079,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorldMediaBindingListDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_listWorldMutations: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldMutationListDto"];
                 };
             };
         };

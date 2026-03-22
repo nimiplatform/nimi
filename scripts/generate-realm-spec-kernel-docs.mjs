@@ -7,19 +7,30 @@ import YAML from 'yaml';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
-
 const tablesDir = path.join(repoRoot, 'spec', 'realm', 'kernel', 'tables');
 const outDir = path.join(repoRoot, 'spec', 'realm', 'kernel', 'generated');
 
 const specs = [
-  { input: 'public-vocabulary.yaml', output: 'public-vocabulary.md', render: renderPublicVocabulary },
-  { input: 'realm-asset-types.yaml', output: 'realm-asset-types.md', render: renderRealmAssetTypes },
+  { input: 'rule-catalog.yaml', output: 'rule-catalog.md', render: renderRuleCatalog },
+  { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
+  { input: 'commit-authorization-matrix.yaml', output: 'commit-authorization-matrix.md', render: renderCommitAuthorizationMatrix },
+  { input: 'truth-contract.yaml', output: 'truth-contract.md', render: renderContract },
+  { input: 'world-state-contract.yaml', output: 'world-state-contract.md', render: renderContract },
+  { input: 'world-history-contract.yaml', output: 'world-history-contract.md', render: renderContract },
+  { input: 'agent-memory-contract.yaml', output: 'agent-memory-contract.md', render: renderContract },
+  { input: 'chat-contract.yaml', output: 'chat-contract.md', render: renderContract },
+  { input: 'social-contract.yaml', output: 'social-contract.md', render: renderContract },
+  { input: 'economy-contract.yaml', output: 'economy-contract.md', render: renderContract },
+  { input: 'asset-contract.yaml', output: 'asset-contract.md', render: renderContract },
+  { input: 'transit-contract.yaml', output: 'transit-contract.md', render: renderContract },
+  { input: 'domain-enums.yaml', output: 'domain-enums.md', render: renderDomainEnums },
+  { input: 'domain-state-machines.yaml', output: 'domain-state-machines.md', render: renderDomainStateMachines },
+  { input: 'open-spec-alignment-map.yaml', output: 'open-spec-alignment-map.md', render: renderOpenSpecAlignmentMap },
+  { input: 'under-spec-registry.yaml', output: 'under-spec-registry.md', render: renderUnderSpecRegistry },
   { input: 'creator-key-tiers.yaml', output: 'creator-key-tiers.md', render: renderCreatorKeyTiers },
+  { input: 'realm-asset-types.yaml', output: 'realm-asset-types.md', render: renderRealmAssetTypes },
   { input: 'revenue-event-types.yaml', output: 'revenue-event-types.md', render: renderRevenueEventTypes },
   { input: 'share-plan-fields.yaml', output: 'share-plan-fields.md', render: renderSharePlanFields },
-  { input: 'primitive-mapping-status.yaml', output: 'primitive-mapping-status.md', render: renderPrimitiveMappingStatus },
-  { input: 'primitive-graduation-log.yaml', output: 'primitive-graduation-log.md', render: renderPrimitiveGraduationLog },
-  { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
 function normalizeMarkdown(markdown) {
@@ -36,99 +47,165 @@ function header(title, sourceName) {
   ].join('\n'));
 }
 
-function renderPublicVocabulary(doc, sourceName) {
-  const boundaries = Array.isArray(doc?.boundaries) ? doc.boundaries : [];
-  let out = header('Generated Public Vocabulary', sourceName);
+function escapeCell(value) {
+  return String(value ?? '').replace(/\|/gu, '\\|').replace(/\r?\n/gu, '<br/>').trim();
+}
 
-  for (const boundary of boundaries) {
-    const domain = String(boundary?.domain || '').trim();
-    const source = String(boundary?.source_rule || '').trim();
-    if (!domain) continue;
+function renderContract(doc, sourceName) {
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  const entities = Array.isArray(doc?.entities) ? doc.entities : [];
+  const requiredOps = Array.isArray(doc?.api_surface?.required_operations) ? doc.api_surface.required_operations : [];
+  const secondaryOps = Array.isArray(doc?.api_surface?.secondary_operations) ? doc.api_surface.secondary_operations : [];
 
-    out += `## ${domain} (\`${source}\`)\n\n`;
+  let out = header(`Generated ${String(doc?.domain || 'Contract').replace(/\b\w/gu, (m) => m.toUpperCase())} Contract`, sourceName);
+  out += `**Contract:** \`${String(doc?.contract_id || '').trim() || '—'}\`\n\n`;
+  out += `**Domain:** \`${String(doc?.domain || '').trim() || '—'}\`\n\n`;
+  out += `**Version:** \`${String(doc?.version || '').trim() || '—'}\`\n\n`;
 
-    const vocabulary = Array.isArray(boundary?.vocabulary) ? boundary.vocabulary : [];
-    if (vocabulary.length > 0) {
-      out += '| Term | Description |\n';
-      out += '|---|---|\n';
-      for (const entry of vocabulary) {
-        out += `| \`${String(entry?.term || '')}\` | ${String(entry?.description || '')} |\n`;
-      }
-      out += '\n';
-    }
-
-    const lifecycle = String(boundary?.lifecycle || '').trim();
-    if (lifecycle) {
-      out += `**Lifecycle:** ${lifecycle}\n\n`;
-    }
-
-    const changeDomains = String(boundary?.change_domains || '').trim();
-    if (changeDomains) {
-      out += `**Change Domains:** ${changeDomains}\n\n`;
-    }
-
-    const deleteSemantic = String(boundary?.knowledge_delete_semantic || '').trim();
-    if (deleteSemantic) {
-      out += `**Knowledge Delete Semantic:** ${deleteSemantic}\n\n`;
-    }
-
-    const ownershipModel = String(boundary?.ownership_model || '').trim();
-    if (ownershipModel) {
-      out += `**Ownership Model:** ${ownershipModel}\n\n`;
-    }
-
-    const memoryEntryPoints = String(boundary?.memory_entry_points || '').trim();
-    if (memoryEntryPoints) {
-      out += `**Memory Entry Points:** ${memoryEntryPoints}\n\n`;
-    }
-
-    const relationshipLifecycle = String(boundary?.relationship_lifecycle || '').trim();
-    if (relationshipLifecycle) {
-      out += `**Relationship Lifecycle:** ${relationshipLifecycle}\n\n`;
-    }
-
-    const relationshipTypes = String(boundary?.relationship_types || '').trim();
-    if (relationshipTypes) {
-      out += `**Relationship Types:** ${relationshipTypes}\n\n`;
-    }
+  out += '## Rules\n\n';
+  out += '| Rule ID | Level | Title | Statement |\n';
+  out += '|---|---|---|---|\n';
+  for (const rule of rules) {
+    out += `| \`${escapeCell(rule?.rule_id)}\` | \`${escapeCell(rule?.level)}\` | ${escapeCell(rule?.title)} | ${escapeCell(rule?.statement)} |\n`;
   }
 
+  out += '\n## Entities\n\n';
+  out += '| Entity | Prisma Model | Required Fields | JSON Fields |\n';
+  out += '|---|---|---|---|\n';
+  for (const entity of entities) {
+    out += `| \`${escapeCell(entity?.name)}\` | \`${escapeCell(entity?.prisma_model)}\` | ${escapeCell((entity?.required_fields || []).join(', '))} | ${escapeCell((entity?.json_fields || []).join(', '))} |\n`;
+  }
+
+  out += '\n## API Surface\n\n';
+  out += '**Required operations**\n\n';
+  for (const operation of requiredOps) out += `- \`${String(operation)}\`\n`;
+  out += '\n**Secondary operations**\n\n';
+  for (const operation of secondaryOps) out += `- \`${String(operation)}\`\n`;
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuleCatalog(doc, sourceName) {
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Rule Catalog', sourceName);
+  out += `**Rule Pattern:** \`${String(doc?.id_pattern || '').trim() || '—'}\`\n\n`;
+  out += '| Rule ID | Domain | Level | Source | Statement |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const rule of rules) {
+    out += `| \`${escapeCell(rule?.rule_id)}\` | ${escapeCell(rule?.domain)} | \`${escapeCell(rule?.level)}\` | \`${escapeCell(rule?.source)}\` | ${escapeCell(rule?.statement)} |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderRuleEvidence(doc, sourceName) {
+  const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object' ? doc.evidence_catalog : {};
+  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
+  let out = header('Generated Rule Evidence', sourceName);
+  out += '| Evidence Ref | Type | Command | Path | Description |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const [ref, entry] of Object.entries(catalog)) {
+    out += `| \`${ref}\` | \`${escapeCell(entry?.type)}\` | \`${escapeCell(entry?.command)}\` | \`${escapeCell(entry?.path)}\` | ${escapeCell(entry?.description)} |\n`;
+  }
+  out += '\n## Rule Coverage Matrix\n\n';
+  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '|---|---|---|\n';
+  for (const row of rules) {
+    const refs = Array.isArray(row?.evidence_refs) ? row.evidence_refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
+    out += `| \`${escapeCell(row?.rule_id)}\` | \`${escapeCell(row?.status)}\` | ${refs || '—'} |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderCommitAuthorizationMatrix(doc, sourceName) {
+  const runModes = Array.isArray(doc?.run_modes) ? doc.run_modes : [];
+  const appPolicies = Array.isArray(doc?.app_policies) ? doc.app_policies : [];
+  let out = header('Generated Commit Authorization Matrix', sourceName);
+  out += `**Description:** ${escapeCell(doc?.description || '—')}\n\n`;
+  out += '## Run Modes\n\n';
+  out += '| Run Mode | Allow State Commit | Allow History Append | Allowed Memory Types | Source Rules |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const row of runModes) {
+    out += `| \`${escapeCell(row?.run_mode)}\` | ${row?.allow_state_commit ? 'true' : 'false'} | ${row?.allow_history_append ? 'true' : 'false'} | ${escapeCell((row?.allowed_memory_types || []).join(', '))} | ${escapeCell((row?.source_rules || []).join(', '))} |\n`;
+  }
+  out += '\n## App Policies\n\n';
+  out += '| App ID | Schema ID | Version | Effect Class | Run Mode | Allowed Scopes | Allowed Memory Types | Source Rules |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
+  for (const row of appPolicies) {
+    out += `| \`${escapeCell(row?.app_id)}\` | \`${escapeCell(row?.schema_id)}\` | \`${escapeCell(row?.schema_version)}\` | \`${escapeCell(row?.effect_class)}\` | \`${escapeCell(row?.run_mode)}\` | ${escapeCell((row?.allowed_scopes || []).join(', '))} | ${escapeCell((row?.allowed_memory_types || []).join(', '))} | ${escapeCell((row?.source_rules || []).join(', '))} |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDomainEnums(doc, sourceName) {
+  const enums = Array.isArray(doc?.enums) ? doc.enums : [];
+  let out = header('Generated Domain Enums', sourceName);
+  out += '| Enum ID | Domain | Values | Source Rules |\n';
+  out += '|---|---|---|---|\n';
+  for (const row of enums) {
+    out += `| \`${escapeCell(row?.enum_id)}\` | ${escapeCell(row?.domain)} | ${escapeCell((row?.values || []).join(', '))} | ${escapeCell((row?.source_rules || []).join(', '))} |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDomainStateMachines(doc, sourceName) {
+  const machines = Array.isArray(doc?.state_machines) ? doc.state_machines : [];
+  let out = header('Generated Domain State Machines', sourceName);
+  for (const machine of machines) {
+    out += `## ${String(machine?.machine_id || '').trim()}\n\n`;
+    out += `**Domain:** ${escapeCell(machine?.domain)}\n\n`;
+    out += `**Initial State:** \`${escapeCell(machine?.initial_state)}\`\n\n`;
+    out += `**States:** ${escapeCell((machine?.states || []).join(', '))}\n\n`;
+    out += '| From | To | Event |\n';
+    out += '|---|---|---|\n';
+    for (const transition of Array.isArray(machine?.transitions) ? machine.transitions : []) {
+      out += `| \`${escapeCell(transition?.from)}\` | \`${escapeCell(transition?.to)}\` | \`${escapeCell(transition?.event)}\` |\n`;
+    }
+    out += `\n**Source Rules:** ${escapeCell((machine?.source_rules || []).join(', '))}\n\n`;
+  }
+  return normalizeMarkdown(out);
+}
+
+function renderOpenSpecAlignmentMap(doc, sourceName) {
+  const mappings = Array.isArray(doc?.mappings) ? doc.mappings : [];
+  let out = header('Generated Open Spec Alignment Map', sourceName);
+  out += '| External ID | Type | External Path | Local Anchor | Coverage |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const row of mappings) {
+    out += `| \`${escapeCell(row?.external_id)}\` | \`${escapeCell(row?.external_type)}\` | \`${escapeCell(row?.external_path)}\` | \`${escapeCell(row?.local_anchor)}\` | \`${escapeCell(row?.coverage_status)}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderUnderSpecRegistry(doc, sourceName) {
+  const rows = Array.isArray(doc?.under_spec) ? doc.under_spec : [];
+  let out = header('Generated Under-Spec Registry', sourceName);
+  out += '| ID | Rule ID | Status | Summary | Resolution | Deferred To |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const row of rows) {
+    out += `| \`${escapeCell(row?.id)}\` | \`${escapeCell(row?.rule_id)}\` | \`${escapeCell(row?.status)}\` | ${escapeCell(row?.summary)} | ${escapeCell(row?.resolution)} | \`${escapeCell(row?.deferred_to)}\` |\n`;
+  }
+  out += '\n';
   return normalizeMarkdown(out);
 }
 
 function renderCreatorKeyTiers(doc, sourceName) {
   const tiers = Array.isArray(doc?.tiers) ? doc.tiers : [];
   const constraints = Array.isArray(doc?.constraints) ? doc.constraints : [];
-  const pricingModel = String(doc?.pricing_model || '').trim();
-
   let out = header('Generated Creator Key Tiers', sourceName);
-
-  if (pricingModel) {
-    out += `**Pricing Model:** \`${pricingModel}\`\n\n`;
-  }
-
-  out += '## Tiers\n\n';
+  out += `**Pricing Model:** \`${escapeCell(doc?.pricing_model)}\`\n\n`;
   out += '| Tier | Key Range | Unit Price (USD) | Capacity | Cumulative Keys | Cumulative Revenue (USD) | Source |\n';
   out += '|---|---|---|---|---|---|---|\n';
   for (const tier of tiers) {
-    const tierNum = String(tier?.tier ?? '').trim();
-    const keyRange = String(tier?.key_range || '').trim();
-    const unitPrice = String(tier?.unit_price_usd ?? '').trim();
-    const capacity = String(tier?.capacity ?? '').trim();
-    const cumulativeKeys = tier?.cumulative_keys != null ? String(tier.cumulative_keys) : '-';
-    const cumulativeRevenue = tier?.cumulative_revenue_usd != null ? String(tier.cumulative_revenue_usd) : '-';
-    const source = String(tier?.source_rule || '').trim();
-    out += `| ${tierNum} | ${keyRange} | ${unitPrice} | ${capacity} | ${cumulativeKeys} | ${cumulativeRevenue} | \`${source}\` |\n`;
+    out += `| ${escapeCell(tier?.tier)} | ${escapeCell(tier?.key_range)} | ${escapeCell(tier?.unit_price_usd)} | ${escapeCell(tier?.capacity)} | ${escapeCell(tier?.cumulative_keys)} | ${escapeCell(tier?.cumulative_revenue_usd)} | \`${escapeCell(tier?.source_rule)}\` |\n`;
   }
-
-  if (constraints.length > 0) {
-    out += '\n## Constraints\n\n';
-    for (const constraint of constraints) {
-      out += `- ${String(constraint)}\n`;
-    }
-    out += '\n';
-  }
-
+  out += '\n## Constraints\n\n';
+  for (const constraint of constraints) out += `- ${String(constraint)}\n`;
+  out += '\n';
   return normalizeMarkdown(out);
 }
 
@@ -140,80 +217,54 @@ function renderRealmAssetTypes(doc, sourceName) {
   const mutationInvariants = Array.isArray(doc?.mutation_invariants) ? doc.mutation_invariants : [];
 
   let out = header('Generated Realm Asset Types', sourceName);
-
   out += '## Asset Types\n\n';
   out += '| Type | Granularity | Owner Model | Mutation Model | Lifecycle | Internal Structure | Release Model | Source |\n';
   out += '|---|---|---|---|---|---|---|---|\n';
   for (const asset of assetTypes) {
-    const type = String(asset?.type || '').trim();
-    if (!type) continue;
-    out += `| \`${type}\` | ${String(asset?.granularity || '').trim()} | ${String(asset?.owner_model || '').trim()} | ${String(asset?.mutation_model || '').trim()} | ${String(asset?.lifecycle || '').trim()} | ${String(asset?.internal_structure || '').trim()} | ${String(asset?.release_model || '').trim()} | \`${String(asset?.source_rule || '').trim()}\` |\n`;
+    out += `| \`${escapeCell(asset?.type)}\` | ${escapeCell(asset?.granularity)} | ${escapeCell(asset?.owner_model)} | ${escapeCell(asset?.mutation_model)} | ${escapeCell(asset?.lifecycle)} | ${escapeCell(asset?.internal_structure)} | ${escapeCell(asset?.release_model)} | \`${escapeCell(asset?.source_rule)}\` |\n`;
   }
 
   out += '\n## Metadata Fields\n\n';
   out += '| Field | Category | Type | Required | Source |\n';
   out += '|---|---|---|---|---|\n';
   for (const field of metadataFields) {
-    const name = String(field?.field || '').trim();
-    if (!name) continue;
-    out += `| \`${name}\` | ${String(field?.category || '').trim()} | \`${String(field?.type || '').trim()}\` | ${String(field?.required ?? '').trim()} | \`${String(field?.source_rule || '').trim()}\` |\n`;
+    out += `| \`${escapeCell(field?.field)}\` | ${escapeCell(field?.category)} | \`${escapeCell(field?.type)}\` | ${escapeCell(field?.required)} | \`${escapeCell(field?.source_rule)}\` |\n`;
   }
 
   out += '\n## Structure Fields\n\n';
   out += '| Field | Type | Required | Source |\n';
   out += '|---|---|---|---|\n';
   for (const field of structureFields) {
-    const name = String(field?.field || '').trim();
-    if (!name) continue;
-    out += `| \`${name}\` | \`${String(field?.type || '').trim()}\` | ${String(field?.required ?? '').trim()} | \`${String(field?.source_rule || '').trim()}\` |\n`;
+    out += `| \`${escapeCell(field?.field)}\` | \`${escapeCell(field?.type)}\` | ${escapeCell(field?.required)} | \`${escapeCell(field?.source_rule)}\` |\n`;
   }
 
   out += '\n## Release Event Fields\n\n';
   out += '| Field | Type | Required | Source |\n';
   out += '|---|---|---|---|\n';
   for (const field of releaseEventFields) {
-    const name = String(field?.field || '').trim();
-    if (!name) continue;
-    out += `| \`${name}\` | \`${String(field?.type || '').trim()}\` | ${String(field?.required ?? '').trim()} | \`${String(field?.source_rule || '').trim()}\` |\n`;
+    out += `| \`${escapeCell(field?.field)}\` | \`${escapeCell(field?.type)}\` | ${escapeCell(field?.required)} | \`${escapeCell(field?.source_rule)}\` |\n`;
   }
 
-  if (mutationInvariants.length > 0) {
-    out += '\n## Mutation Invariants\n\n';
-    for (const invariant of mutationInvariants) {
-      out += `- ${String(invariant?.rule || '').trim()} (\`${String(invariant?.source_rule || '').trim()}\`)\n`;
-    }
-    out += '\n';
+  out += '\n## Mutation Invariants\n\n';
+  for (const rule of mutationInvariants) {
+    out += `- ${escapeCell(rule?.rule)} (\`${escapeCell(rule?.source_rule)}\`)\n`;
   }
-
+  out += '\n';
   return normalizeMarkdown(out);
 }
 
 function renderRevenueEventTypes(doc, sourceName) {
   const eventTypes = Array.isArray(doc?.event_types) ? doc.event_types : [];
   const contextRules = Array.isArray(doc?.context_rules) ? doc.context_rules : [];
-
   let out = header('Generated Revenue Event Types', sourceName);
-
-  out += '## Event Types\n\n';
-  out += '| Type | Description | Subject to Share | Source |\n';
+  out += '| Type | Description | Subject To Share | Source |\n';
   out += '|---|---|---|---|\n';
   for (const event of eventTypes) {
-    const type = String(event?.type || '').trim();
-    const description = String(event?.description || '').trim();
-    const subjectToShare = String(event?.subject_to_share ?? '').trim();
-    const source = String(event?.source_rule || '').trim();
-    if (!type) continue;
-    out += `| \`${type}\` | ${description} | ${subjectToShare} | \`${source}\` |\n`;
+    out += `| \`${escapeCell(event?.type)}\` | ${escapeCell(event?.description)} | ${escapeCell(event?.subject_to_share)} | \`${escapeCell(event?.source_rule)}\` |\n`;
   }
-
-  if (contextRules.length > 0) {
-    out += '\n## Context Rules\n\n';
-    for (const rule of contextRules) {
-      out += `- ${String(rule)}\n`;
-    }
-    out += '\n';
-  }
-
+  out += '\n## Context Rules\n\n';
+  for (const rule of contextRules) out += `- ${String(rule)}\n`;
+  out += '\n';
   return normalizeMarkdown(out);
 }
 
@@ -221,134 +272,19 @@ function renderSharePlanFields(doc, sourceName) {
   const fields = Array.isArray(doc?.fields) ? doc.fields : [];
   const validationRules = Array.isArray(doc?.validation_rules) ? doc.validation_rules : [];
   const ledgers = Array.isArray(doc?.ledgers) ? doc.ledgers : [];
-
   let out = header('Generated Share Plan Fields', sourceName);
-
-  out += '## Fields\n\n';
   out += '| Field | Type | Required | Constraint | Source |\n';
   out += '|---|---|---|---|---|\n';
   for (const field of fields) {
-    const name = String(field?.field || '').trim();
-    const type = String(field?.type || '').trim();
-    const required = String(field?.required ?? '').trim();
-    const constraint = String(field?.constraint || '').trim();
-    const source = String(field?.source_rule || '').trim();
-    if (!name) continue;
-    out += `| \`${name}\` | \`${type}\` | ${required} | ${constraint || '-'} | \`${source}\` |\n`;
-
-    const subfields = Array.isArray(field?.subfields) ? field.subfields : [];
-    if (subfields.length > 0) {
-      for (const sub of subfields) {
-        out += `| \u00a0\u00a0\u00a0\u00a0\`${String(sub)}\` | - | - | - | - |\n`;
-      }
-    }
-
-    const values = Array.isArray(field?.values) ? field.values : [];
-    if (values.length > 0) {
-      out += `| \u00a0\u00a0\u00a0\u00a0*values:* ${values.map((v) => `\`${String(v)}\``).join(', ')} | - | - | - | - |\n`;
-    }
+    out += `| \`${escapeCell(field?.field)}\` | \`${escapeCell(field?.type)}\` | ${escapeCell(field?.required)} | ${escapeCell(field?.constraint || '-')} | \`${escapeCell(field?.source_rule)}\` |\n`;
   }
-
-  if (validationRules.length > 0) {
-    out += '\n## Validation Rules\n\n';
-    for (const rule of validationRules) {
-      const text = String(rule?.rule || '').trim();
-      const source = String(rule?.source_rule || '').trim();
-      out += `- ${text} (\`${source}\`)\n`;
-    }
-    out += '\n';
-  }
-
-  if (ledgers.length > 0) {
-    out += '## Ledgers\n\n';
-    out += '| Name | Purpose | Source |\n';
-    out += '|---|---|---|\n';
-    for (const ledger of ledgers) {
-      const name = String(ledger?.name || '').trim();
-      const purpose = String(ledger?.purpose || '').trim();
-      const source = String(ledger?.source_rule || '').trim();
-      out += `| \`${name}\` | ${purpose} | \`${source}\` |\n`;
-    }
-    out += '\n';
-  }
-
-  return normalizeMarkdown(out);
-}
-
-function renderPrimitiveMappingStatus(doc, sourceName) {
-  const mappings = Array.isArray(doc?.mappings) ? doc.mappings : [];
-  const validStatuses = Array.isArray(doc?.valid_statuses) ? doc.valid_statuses : [];
-
-  let out = header('Generated Primitive Mapping Status', sourceName);
-
-  out += '## Mappings\n\n';
-  out += '| Primitive | Platform Rule | Code Anchor | Status | Acceptance Gate | Gap | Source |\n';
-  out += '|---|---|---|---|---|---|---|\n';
-  for (const mapping of mappings) {
-    const primitive = String(mapping?.primitive || '').trim();
-    const platformRule = String(mapping?.platform_rule || '').trim();
-    const codeAnchor = String(mapping?.code_anchor || '').trim();
-    const status = String(mapping?.status || '').trim();
-    const acceptanceGate = String(mapping?.acceptance_gate || '').trim();
-    const gap = String(mapping?.gap || '').trim();
-    const source = String(mapping?.source_rule || '').trim();
-    if (!primitive) continue;
-    out += `| \`${primitive}\` | \`${platformRule}\` | ${codeAnchor} | \`${status}\` | ${acceptanceGate} | ${gap} | \`${source}\` |\n`;
-  }
-
-  if (validStatuses.length > 0) {
-    out += '\n## Valid Statuses\n\n';
-    for (const status of validStatuses) {
-      out += `- \`${String(status)}\`\n`;
-    }
-    out += '\n';
-  }
-
-  return normalizeMarkdown(out);
-}
-
-function renderPrimitiveGraduationLog(doc, sourceName) {
-  const entries = Array.isArray(doc?.entries) ? doc.entries : [];
-  let out = header('Generated Primitive Graduation Log', sourceName);
-
-  out += '| Primitive | Graduated At | Status | Test | CI Gate | Source |\n';
-  out += '|---|---|---|---|---|---|\n';
-  for (const entry of entries) {
-    const primitive = String(entry?.primitive || '').trim();
-    if (!primitive) continue;
-    const graduatedAt = String(entry?.graduated_at || '').trim() || '—';
-    const status = String(entry?.status || '').trim() || '—';
-    const testName = String(entry?.test_name || '').trim() || '—';
-    const ciCommand = String(entry?.ci_command || '').trim() || '—';
-    const source = String(entry?.source_rule || '').trim() || '—';
-    out += `| \`${primitive}\` | ${graduatedAt} | \`${status}\` | \`${testName}\` | \`${ciCommand}\` | \`${source}\` |\n`;
-  }
-  out += '\n';
-
-  return normalizeMarkdown(out);
-}
-
-function renderRuleEvidence(doc, sourceName) {
-  const catalog = doc?.evidence_catalog && typeof doc.evidence_catalog === 'object'
-    ? doc.evidence_catalog
-    : {};
-  const rules = Array.isArray(doc?.rules) ? doc.rules : [];
-  let out = header('Generated Rule Evidence', sourceName);
-  out += '| Evidence Ref | Type | Command | Path | Description |\n';
-  out += '|---|---|---|---|---|\n';
-  for (const [ref, value] of Object.entries(catalog)) {
-    const item = value && typeof value === 'object' ? value : {};
-    out += `| \`${ref}\` | \`${String(item.type || '').trim() || '—'}\` | \`${String(item.command || '').trim() || '—'}\` | \`${String(item.path || '').trim() || '—'}\` | ${String(item.description || '').trim() || '—'} |\n`;
-  }
-  out += '\n## Rule Coverage Matrix\n\n';
-  out += '| Rule ID | Status | Evidence Refs |\n';
+  out += '\n## Validation Rules\n\n';
+  for (const rule of validationRules) out += `- ${escapeCell(rule?.rule)} (\`${escapeCell(rule?.source_rule)}\`)\n`;
+  out += '\n## Ledgers\n\n';
+  out += '| Name | Purpose | Source |\n';
   out += '|---|---|---|\n';
-  for (const item of rules) {
-    const ruleId = String(item?.rule_id || '').trim();
-    if (!ruleId) continue;
-    const refs = Array.isArray(item?.evidence_refs) ? item.evidence_refs : [];
-    const refsText = refs.length > 0 ? refs.map((ref) => `\`${String(ref)}\``).join(', ') : '—';
-    out += `| \`${ruleId}\` | \`${String(item?.status || '').trim() || '—'}\` | ${refsText} |\n`;
+  for (const ledger of ledgers) {
+    out += `| \`${escapeCell(ledger?.name)}\` | ${escapeCell(ledger?.purpose)} | \`${escapeCell(ledger?.source_rule)}\` |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);
@@ -368,18 +304,15 @@ function renderGeneratedIndex(entries) {
     out += `\n| \`${entry.output}\` | \`tables/${entry.input}\` |`;
   }
   out += '\n';
-
   return normalizeMarkdown(out);
 }
 
 async function parseYamlFile(filePath) {
-  const raw = await fs.readFile(filePath, 'utf8');
-  return YAML.parse(raw);
+  return YAML.parse(await fs.readFile(filePath, 'utf8'));
 }
 
 async function main() {
   const checkMode = process.argv.includes('--check');
-
   await fs.mkdir(outDir, { recursive: true });
 
   const renderedEntries = [];
@@ -390,6 +323,9 @@ async function main() {
     renderedEntries.push({ ...spec, outputPath, rendered: spec.render(parsed, spec.input) });
   }
 
+  const expectedFiles = new Set(renderedEntries.map((entry) => entry.output).concat('index.md'));
+  const existingFiles = (await fs.readdir(outDir)).filter((entry) => entry.endsWith('.md'));
+  const staleFiles = existingFiles.filter((entry) => !expectedFiles.has(entry));
   const indexPath = path.join(outDir, 'index.md');
   const indexRendered = renderGeneratedIndex(specs);
 
@@ -400,25 +336,21 @@ async function main() {
       try {
         current = await fs.readFile(entry.outputPath, 'utf8');
       } catch {
-        drifted.push(entry.outputPath);
+        drifted.push(path.relative(repoRoot, entry.outputPath));
         continue;
       }
-      if (current !== entry.rendered) drifted.push(entry.outputPath);
+      if (current !== entry.rendered) drifted.push(path.relative(repoRoot, entry.outputPath));
     }
-
-    let currentIndex = '';
     try {
-      currentIndex = await fs.readFile(indexPath, 'utf8');
+      const currentIndex = await fs.readFile(indexPath, 'utf8');
+      if (currentIndex !== indexRendered) drifted.push(path.relative(repoRoot, indexPath));
     } catch {
-      drifted.push(indexPath);
+      drifted.push(path.relative(repoRoot, indexPath));
     }
-    if (currentIndex !== indexRendered) drifted.push(indexPath);
-
+    for (const stale of staleFiles) drifted.push(path.relative(repoRoot, path.join(outDir, stale)));
     if (drifted.length > 0) {
       process.stderr.write('realm kernel generated docs drift detected:\n');
-      for (const file of drifted) {
-        process.stderr.write(`  - ${path.relative(repoRoot, file)}\n`);
-      }
+      for (const file of drifted) process.stderr.write(`  - ${file}\n`);
       process.stderr.write('run `pnpm generate:realm-spec-kernel-docs` to regenerate.\n');
       process.exitCode = 1;
       return;
@@ -427,6 +359,9 @@ async function main() {
     return;
   }
 
+  for (const stale of staleFiles) {
+    await fs.unlink(path.join(outDir, stale));
+  }
   for (const entry of renderedEntries) {
     await fs.writeFile(entry.outputPath, entry.rendered, 'utf8');
   }

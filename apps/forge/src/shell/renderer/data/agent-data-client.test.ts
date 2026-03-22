@@ -46,27 +46,30 @@ describe('agent-data-client', () => {
   });
 
   it('createCreatorAgent passes payload', async () => {
-    const payload = { displayName: 'Agent 1', concept: 'test' };
+    const payload = {
+      displayName: 'Agent 1',
+      handle: 'agent-1',
+      concept: 'test',
+      worldId: 'world-1',
+    };
     await adc.createCreatorAgent(payload);
-    expect(mockCreatorService.creatorControllerCreateAgent).toHaveBeenCalledWith({
-      ...payload,
-      handle: 'Agent 1',
-    });
+    expect(mockCreatorService.creatorControllerCreateAgent).toHaveBeenCalledWith(payload);
   });
 
   it('batchCreateCreatorAgents passes items and continueOnError', async () => {
-    const payload = { items: [{ name: 'A' }], continueOnError: true };
+    const payload = {
+      items: [{
+        displayName: 'A',
+        handle: 'agent-a',
+        concept: 'A',
+        worldId: 'world-1',
+      }],
+      continueOnError: true,
+    };
     await adc.batchCreateCreatorAgents(payload);
     expect(mockCreatorService.creatorControllerBatchCreateAgents).toHaveBeenCalledWith({
       continueOnError: true,
-      items: [
-        {
-          name: 'A',
-          handle: 'A',
-          displayName: 'A',
-          concept: 'A',
-        },
-      ],
+      items: payload.items,
     });
   });
 

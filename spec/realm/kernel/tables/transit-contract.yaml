@@ -1,0 +1,42 @@
+contract_id: TRANSIT-CONTRACT-001
+domain: transit
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../transit-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/world/src/transit.service.ts
+rule_id_prefix: R-TRANSIT-
+rules:
+  - rule_id: R-TRANSIT-001
+    level: must
+    title: transit-is-continuity-protocol
+    statement: "Transit is a continuity protocol for cross-world movement and not a narrative engine."
+  - rule_id: R-TRANSIT-002
+    level: must
+    title: preserve-identity-continuity
+    statement: "Transit preserves identity continuity while allowing world-context change and cannot mutate truth by side effect."
+  - rule_id: R-TRANSIT-003
+    level: must
+    title: explicit-state-machine
+    statement: "Transit state changes are explicit, state-machine governed, and auditable."
+  - rule_id: R-TRANSIT-004
+    level: must
+    title: runtime-checkpoints-stay-outside
+    statement: "Transit may hand off durable state and memory references but app-local runtime checkpoints stay outside Realm."
+entities:
+  - name: TransitSession
+    prisma_model: Transit
+    required_fields: [id, agentId, sourceWorldId, targetWorldId, status]
+    json_fields: [context]
+api_surface:
+  required_operations:
+    - POST /api/world/by-id/{id}/transit
+    - POST /api/world/by-id/{id}/return
+    - GET /api/world/transit/active/{agentId}
+    - POST /api/world/transit/{id}/complete
+  secondary_operations: []

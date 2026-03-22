@@ -13,12 +13,11 @@ import {
   getWorldState,
   listWorldLorebooks,
   listWorldMediaBindings,
-  listWorldMutations,
 } from '@renderer/data/world-data-client.js';
 
 type WorldDraftListPayload = Awaited<ReturnType<typeof listWorldDrafts>>;
 type WorldListPayload = Awaited<ReturnType<typeof listMyWorlds>>;
-type WorldMutationListPayload = Awaited<ReturnType<typeof listWorldMutations>>;
+type WorldStatePayload = Awaited<ReturnType<typeof getWorldState>>;
 type WorldHistoryListPayload = Awaited<ReturnType<typeof listWorldHistory>>;
 type WorldHistoryListItem = WorldHistoryListPayload extends { items?: Array<infer Item> } ? Item : never;
 type WorldHistoryEvidenceRef = WorldHistoryListItem extends { evidenceRefs?: Array<infer Ref> } ? Ref : never;
@@ -78,7 +77,7 @@ export type WorldSummary = {
   updatedAt: string;
 };
 
-export type WorldMutationSummary = {
+export type WorldMaintenanceTimelineItem = {
   id: string;
   worldId: string;
   mutationType:
@@ -91,6 +90,8 @@ export type WorldMutationSummary = {
     | 'EVENT_UPDATE'
     | 'EVENT_DELETE'
     | 'EVENT_BATCH_UPSERT';
+  title: string;
+  summary: string;
   targetPath: string;
   reason: string | null;
   creatorId: string;
@@ -116,6 +117,7 @@ export type WorldHistorySummary = {
   evidenceRefs: WorldHistoryEvidenceRef[];
   confidence: number;
   needsEvidence: boolean;
+  eventType: string | null;
   createdBy: string;
   updatedBy: string;
   createdAt: string;
@@ -150,35 +152,6 @@ function toWorldSummaryList(payload: WorldListPayload): WorldSummary[] {
       ),
       description: toStringOrNull(item.description),
       updatedAt: requireNonEmptyString(item.updatedAt, 'FORGE_WORLD_UPDATED_AT_INVALID'),
-    }))
-    .filter((item) => Boolean(item.id));
-}
-
-function toMutationSummaryList(payload: WorldMutationListPayload): WorldMutationSummary[] {
-  const items = payload.items ?? [];
-  return items
-    .map((item) => ({
-      id: requireNonEmptyString(item.id, 'FORGE_WORLD_MUTATION_ID_INVALID'),
-      worldId: requireNonEmptyString(item.worldId, 'FORGE_WORLD_MUTATION_WORLD_ID_INVALID'),
-      mutationType: requireEnumValue(
-        item.mutationType,
-        [
-          'SETTING_CHANGE',
-          'RULE_UPDATE',
-          'LOREBOOK_OVERRIDE',
-          'TABOO_CHANGE',
-          'LOCATION_CHANGE',
-          'EVENT_CREATE',
-          'EVENT_UPDATE',
-          'EVENT_DELETE',
-          'EVENT_BATCH_UPSERT',
-        ] as const,
-        'FORGE_WORLD_MUTATION_TYPE_INVALID',
-      ),
-      targetPath: requireNonEmptyString(item.targetPath, 'FORGE_WORLD_MUTATION_TARGET_PATH_INVALID'),
-      reason: toStringOrNull(item.reason),
-      creatorId: requireNonEmptyString(item.creatorId, 'FORGE_WORLD_MUTATION_CREATOR_ID_INVALID'),
-      createdAt: requireNonEmptyString(item.createdAt, 'FORGE_WORLD_MUTATION_CREATED_AT_INVALID'),
     }))
     .filter((item) => Boolean(item.id));
 }
@@ -220,6 +193,7 @@ function toHistorySummaryList(payload: WorldHistoryListPayload): WorldHistorySum
         timelineSeq: index + 1,
         level,
         eventHorizon,
+        eventType,
         parentEventId: null,
         title,
         summary: toStringOrNull(typeof item.summary === 'string' ? item.summary : null),
@@ -252,6 +226,46 @@ function toHistorySummaryList(payload: WorldHistoryListPayload): WorldHistorySum
       };
     })
     .filter((item) => Boolean(item.id));
+}
+
+function toMaintenanceTimeline(
+  statePayload: WorldStatePayload | undefined,
+  historyItems: WorldHistorySummary[] | undefined,
+): WorldMaintenanceTimelineItem[] {
+  const stateItems = Array.isArray(statePayload?.items)
+    ? statePayload.items
+    : [];
+  const stateTimeline = stateItems.map((item) => ({
+    id: requireNonEmptyString(item.id, 'FORGE_WORLD_STATE_RECORD_ID_INVALID'),
+    worldId: requireNonEmptyString(item.worldId, 'FORGE_WORLD_STATE_RECORD_WORLD_ID_INVALID'),
+    mutationType: 'SETTING_CHANGE' as const,
+    title: 'State commit',
+    summary: requireNonEmptyString(item.targetPath, 'FORGE_WORLD_STATE_RECORD_TARGET_PATH_INVALID'),
+    targetPath: requireNonEmptyString(item.targetPath, 'FORGE_WORLD_STATE_RECORD_TARGET_PATH_INVALID'),
+    reason: toStringOrNull(
+      item.metadata && typeof item.metadata === 'object' && !Array.isArray(item.metadata)
+        ? item.metadata.reason as string | null | undefined
+        : null,
+    ),
+    creatorId: requireNonEmptyString(item.createdBy, 'FORGE_WORLD_STATE_RECORD_CREATED_BY_INVALID'),
+    createdAt: requireNonEmptyString(item.committedAt, 'FORGE_WORLD_STATE_RECORD_COMMITTED_AT_INVALID'),
+  }));
+
+  const historyTimeline = (historyItems ?? []).map((item) => ({
+    id: requireNonEmptyString(item.id, 'FORGE_WORLD_HISTORY_TIMELINE_ID_INVALID'),
+    worldId: requireNonEmptyString(item.worldId, 'FORGE_WORLD_HISTORY_TIMELINE_WORLD_ID_INVALID'),
+    mutationType: 'EVENT_BATCH_UPSERT' as const,
+    title: requireNonEmptyString(item.title, 'FORGE_WORLD_HISTORY_TIMELINE_TITLE_INVALID'),
+    summary: item.summary ?? item.eventType ?? item.timeRef ?? item.title,
+    targetPath: `history:${item.eventType || 'WORLD_EVENT'}`,
+    reason: null,
+    creatorId: requireNonEmptyString(item.createdBy, 'FORGE_WORLD_HISTORY_TIMELINE_CREATED_BY_INVALID'),
+    createdAt: requireNonEmptyString(item.createdAt, 'FORGE_WORLD_HISTORY_TIMELINE_CREATED_AT_INVALID'),
+  }));
+
+  return [...stateTimeline, ...historyTimeline].sort(
+    (left, right) => right.createdAt.localeCompare(left.createdAt) || right.id.localeCompare(left.id),
+  );
 }
 
 export function useWorldResourceQueries(input: {
@@ -296,13 +310,6 @@ export function useWorldResourceQueries(input: {
     queryFn: async () => toHistorySummaryList(await listWorldHistory(input.worldId)),
   });
 
-  const mutationsQuery = useQuery({
-    queryKey: ['forge', 'world', 'mutations', input.worldId],
-    enabled: input.enabled && Boolean(input.worldId),
-    retry: false,
-    queryFn: async () => toMutationSummaryList(await listWorldMutations(input.worldId)),
-  });
-
   const mediaBindingsQuery = useQuery({
     queryKey: ['forge', 'world', 'media-bindings', input.worldId],
     enabled: input.enabled && Boolean(input.worldId),
@@ -315,8 +322,8 @@ export function useWorldResourceQueries(input: {
     worldsQuery,
     stateQuery,
     historyQuery,
+    maintenanceTimeline: toMaintenanceTimeline(stateQuery.data, historyQuery.data),
     lorebooksQuery,
-    mutationsQuery,
     mediaBindingsQuery,
   };
 }

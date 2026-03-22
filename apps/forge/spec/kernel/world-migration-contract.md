@@ -46,7 +46,6 @@ Approximately 25 data query functions require rewriting:
 | `data.query.worlds.media-bindings.list` | `realmClient.worlds.listMediaBindings(worldId, params)` |
 | `data.query.worlds.media-bindings.batch-upsert` | `realmClient.worlds.batchUpsertMediaBindings(worldId, body)` |
 | `data.query.worlds.media-bindings.delete` | `realmClient.worlds.deleteMediaBinding(worldId, bindingId)` |
-| `data.query.worlds.mutations.list` | `realmClient.worlds.listMutations(worldId)` |
 | `data.query.worlds.scenes.list` | `realmClient.worlds.listScenes(worldId, params)` |
 | `data.query.creator.agents.list` | `realmClient.creator.listAgents()` |
 | `data.query.creator.agents.create` | `realmClient.creator.createAgent(body)` |
@@ -103,7 +102,7 @@ These panels are hosted inside the workbench `WORLD_TRUTH` panel for an existing
 | Events | `ui/maintain/events-panel.tsx` | Workbench world truth |
 | Lorebooks | `ui/maintain/lorebooks-panel.tsx` | Workbench world truth |
 | Event Graph | `ui/maintain/event-graph-maintenance.tsx` | Workbench world truth |
-| Mutations | `ui/maintain/mutations-panel.tsx` | Workbench world truth |
+| Timeline | `ui/maintain/world-base-panel.tsx` + `state/history timeline` | Workbench world truth |
 
 ### Operations
 
@@ -166,7 +165,6 @@ All required backend APIs already exist. No new backend work needed for World ma
 | World Rules | `GET/POST /api/world/by-id/:worldId/rules`, `PATCH /api/world/by-id/:worldId/rules/:ruleId`, `POST /api/world/by-id/:worldId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/rules/:ruleId/archive` | `world-rules.controller.ts` |
 | Agent Rules | `GET/POST /api/world/by-id/:worldId/agents/:agentId/rules`, `PATCH /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/archive` | `agent-rules.controller.ts` |
 | Media Bindings | `GET /api/worlds/:worldId/media-bindings` (read-only projection) | `world-control.controller.ts` |
-| Mutations | `GET /api/worlds/:worldId/mutations` | `world-control.controller.ts` |
 | Scenes | `GET /api/worlds/:worldId/scenes` | `world-control.controller.ts` |
 ## FG-WORLD-007: Quality Gate Integration
 

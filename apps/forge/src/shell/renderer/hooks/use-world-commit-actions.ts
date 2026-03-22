@@ -1,7 +1,7 @@
 /**
- * Forge World Mutations (FG-WORLD-002)
+ * Forge World Commit Actions (FG-WORLD-002)
  *
- * Replaces World-Studio's useWorldStudioMutations hook.
+ * Replaces World-Studio's legacy write-action hook.
  * Uses direct SDK realm client calls via world-data-client instead of hookClient.
  */
 
@@ -48,7 +48,7 @@ type SaveDraftInput = {
   targetWorldId?: string;
 };
 
-export function useWorldMutations() {
+export function useWorldCommitActions() {
   const saveDraftMutation = useMutation({
     mutationFn: async (input: SaveDraftInput) => {
       if (input.draftId) {

@@ -3,11 +3,11 @@ fields:
   - field: sharePlanId
     type: string
     required: true
-    source_rule: R-ECON-020
+    source_rule: R-ECON-003
   - field: eventType
     type: string
     required: true
-    source_rule: R-ECON-020
+    source_rule: R-ECON-003
   - field: participants
     type: array
     required: true
@@ -15,42 +15,42 @@ fields:
       - role
       - accountId
       - percentageBps
-    source_rule: R-ECON-020
+    source_rule: R-ECON-003
   - field: effectiveFrom
     type: datetime
     required: true
-    source_rule: R-ECON-020
+    source_rule: R-ECON-003
   - field: effectiveTo
     type: datetime
     required: false
-    source_rule: R-ECON-020
+    source_rule: R-ECON-003
   - field: status
     type: enum
     required: true
     values: [draft, active, retired]
-    source_rule: R-ECON-020
+    source_rule: R-ECON-003
   - field: settlementWindowSeconds
     type: int
     required: true
     constraint: "60..86400"
-    source_rule: R-ECON-020
+    source_rule: R-ECON-003
 
 validation_rules:
   - rule: "participants.percentageBps 总和必须等于 10000"
-    source_rule: R-ECON-021
+    source_rule: R-ECON-003
   - rule: "world_* 事件中必须存在 creator 角色"
-    source_rule: R-ECON-022
+    source_rule: R-ECON-003
   - rule: "extension_app_world_trade 事件中必须存在 platform + creator + extension_app 三方角色"
-    source_rule: R-ECON-023
+    source_rule: R-ECON-003
   - rule: "active 计划变更后仅影响新事件，不回写历史分账"
-    source_rule: R-ECON-024
+    source_rule: R-ECON-003
   - rule: "同一 eventType 同一时刻最多一个 active Share Plan，激活新计划须先退休前计划"
-    source_rule: R-ECON-025
+    source_rule: R-ECON-003
 
 ledgers:
   - name: key_fiat_earmarked_ledger
     purpose: "Creator Key 法币专项收入"
-    source_rule: R-ECON-030
+    source_rule: R-ECON-001
   - name: ops_spark_gem_ledger
     purpose: "Spark/Gem 运营分账与结算"
-    source_rule: R-ECON-030
+    source_rule: R-ECON-003

@@ -505,9 +505,8 @@ test('Realm services support path-first call pattern for mixed path/query method
     await realm.services.WorldsService.worldControllerGetWorldLorebooks('world-7');
     await realm.services.WorldsService.worldControllerGetWorldScenes('world-7');
     await realm.services.WorldsService.worldControllerGetWorldMediaBindings('world-7');
-    await realm.services.WorldsService.worldControllerGetWorldMutations('world-7');
 
-    assert.equal(urls.length, 10);
+    assert.equal(urls.length, 9);
 
     const listMessagesUrl = new URL(urls[0] || '');
     assert.equal(listMessagesUrl.pathname, '/api/human/chats/chat-123/messages');
@@ -540,9 +539,6 @@ test('Realm services support path-first call pattern for mixed path/query method
 
     const mediaBindingsUrl = new URL(urls[8] || '');
     assert.equal(mediaBindingsUrl.pathname, '/api/world/by-id/world-7/media-bindings');
-
-    const mutationsUrl = new URL(urls[9] || '');
-    assert.equal(mutationsUrl.pathname, '/api/world/by-id/world-7/mutations');
   } finally {
     globalThis.fetch = originalFetch;
   }

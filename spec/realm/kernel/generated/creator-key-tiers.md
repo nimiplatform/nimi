@@ -4,8 +4,6 @@
 > Source: `spec/realm/kernel/tables/creator-key-tiers.yaml`
 **Pricing Model:** `non_uniform_step`
 
-## Tiers
-
 | Tier | Key Range | Unit Price (USD) | Capacity | Cumulative Keys | Cumulative Revenue (USD) | Source |
 |---|---|---|---|---|---|---|
 | 1 | 1-20 | 20 | 20 | 20 | 400 | `R-ECON-001` |
@@ -15,7 +13,7 @@
 | 5 | 201-400 | 800 | 200 | 400 | 197900 | `R-ECON-001` |
 | 6 | 401-700 | 2000 | 300 | 700 | 797900 | `R-ECON-001` |
 | 7 | 701-1000 | 5000 | 300 | 1000 | 2297900 | `R-ECON-001` |
-| 8 | 1001+ | 10000 | open | - | - | `R-ECON-001` |
+| 8 | 1001+ | 10000 | open |  |  | `R-ECON-001` |
 
 ## Constraints
 

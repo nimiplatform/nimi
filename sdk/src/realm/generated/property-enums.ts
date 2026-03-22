@@ -591,20 +591,6 @@ export const PublicWorldMediaBindingTargetType = {
 
 export type PublicWorldMediaBindingTargetType = (typeof PublicWorldMediaBindingTargetType)[keyof typeof PublicWorldMediaBindingTargetType];
 
-export const PublicWorldMutationType = {
-  SETTING_CHANGE: "SETTING_CHANGE",
-  RULE_UPDATE: "RULE_UPDATE",
-  LOREBOOK_OVERRIDE: "LOREBOOK_OVERRIDE",
-  TABOO_CHANGE: "TABOO_CHANGE",
-  LOCATION_CHANGE: "LOCATION_CHANGE",
-  EVENT_CREATE: "EVENT_CREATE",
-  EVENT_UPDATE: "EVENT_UPDATE",
-  EVENT_DELETE: "EVENT_DELETE",
-  EVENT_BATCH_UPSERT: "EVENT_BATCH_UPSERT",
-} as const satisfies Record<string, components['schemas']['PublicWorldMutationDto']['mutationType']>;
-
-export type PublicWorldMutationType = (typeof PublicWorldMutationType)[keyof typeof PublicWorldMutationType];
-
 export const RequestDataExportFormat = {
   JSON: "JSON",
   CSV: "CSV",
@@ -1072,20 +1058,6 @@ export const WorldMediaBindingDetailTargetType = {
 } as const satisfies Record<string, components['schemas']['WorldMediaBindingDetailDto']['targetType']>;
 
 export type WorldMediaBindingDetailTargetType = (typeof WorldMediaBindingDetailTargetType)[keyof typeof WorldMediaBindingDetailTargetType];
-
-export const WorldMutationSummaryMutationType = {
-  SETTING_CHANGE: "SETTING_CHANGE",
-  RULE_UPDATE: "RULE_UPDATE",
-  LOREBOOK_OVERRIDE: "LOREBOOK_OVERRIDE",
-  TABOO_CHANGE: "TABOO_CHANGE",
-  LOCATION_CHANGE: "LOCATION_CHANGE",
-  EVENT_CREATE: "EVENT_CREATE",
-  EVENT_UPDATE: "EVENT_UPDATE",
-  EVENT_DELETE: "EVENT_DELETE",
-  EVENT_BATCH_UPSERT: "EVENT_BATCH_UPSERT",
-} as const satisfies Record<string, components['schemas']['WorldMutationSummaryDto']['mutationType']>;
-
-export type WorldMutationSummaryMutationType = (typeof WorldMutationSummaryMutationType)[keyof typeof WorldMutationSummaryMutationType];
 
 export const WorldRecommendedAgentImportance = {
   PRIMARY: "PRIMARY",

@@ -8,7 +8,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CreateWorkbench } from '@world-engine/ui/create/create-workbench.js';
-import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
+import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useWorldCreatePageModel } from './world-create-page-controller.js';
 import { WorldCreateRuleTruthPreview } from './world-create-rule-truth-preview.js';
@@ -32,7 +32,7 @@ export function WorldCreatePageView({
   const [searchParams] = useSearchParams();
   const resumeDraftId = resumeDraftIdProp ?? (searchParams.get('draftId') || '');
   const userId = useAppStore((state) => state.auth?.user?.id || '');
-  const mutations = useWorldMutations();
+  const commitActions = useWorldCommitActions();
   const navigateWithinForge = (to: string) => {
     if (embedded && workspaceId && to.startsWith('/worlds/')) {
       navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`);
@@ -49,7 +49,7 @@ export function WorldCreatePageView({
     status,
     workflow,
   } = useWorldCreatePageModel({
-    mutations,
+    commitActions,
     navigate: navigateWithinForge,
     resumeDraftId,
     userId,

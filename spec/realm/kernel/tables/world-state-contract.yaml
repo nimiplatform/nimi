@@ -1,0 +1,48 @@
+contract_id: WORLD-STATE-CONTRACT-001
+domain: world-state
+status: ACTIVE
+version: 2026-03-22
+owner: '@team'
+sources:
+  human_spec: ../world-state-contract.md
+  openapi:
+    - ../nimi-backend/api-nimi.yaml
+  prisma: ../nimi-backend/prisma/schema.prisma
+  services:
+    - ../nimi-backend/libs/domains/world/src/world-control.service.ts
+rule_id_prefix: R-WSTATE-
+rules:
+  - rule_id: R-WSTATE-001
+    level: must
+    title: shared-present-only
+    statement: "World State expresses durable shared present only and excludes story runtime or prompt context."
+  - rule_id: R-WSTATE-002
+    level: must
+    title: explicit-commit-envelope
+    statement: "State mutation uses an explicit commit envelope with worldId, appId, sessionId, effectClass, scope, schemaId, schemaVersion, actorRefs, reason, and evidenceRefs."
+  - rule_id: R-WSTATE-003
+    level: must
+    title: durable-scope-only
+    statement: "World State scope is limited to WORLD, ENTITY, or RELATION durable scopes."
+  - rule_id: R-WSTATE-004
+    level: must
+    title: fixed-effect-classes
+    statement: "effectClass is fixed to NONE, MEMORY_ONLY, STATE_ONLY, or STATE_AND_HISTORY."
+  - rule_id: R-WSTATE-005
+    level: must
+    title: fail-close-state-write
+    statement: "State writes require explicit app authorization through an appId/schemaId/schemaVersion/effectClass to runMode matrix and fail-close schema validation."
+  - rule_id: R-WSTATE-006
+    level: must
+    title: single-state-commit-model
+    statement: "Creator tooling and authorized apps use the same explicit state commit model; hidden legacy write paths are forbidden."
+entities:
+  - name: WorldStateRecord
+    prisma_model: WorldStateRecord
+    required_fields: [id, worldId, appId, sessionId, scope, scopeKey, schemaId, schemaVersion, version, effectClass, reason, committedAt]
+    json_fields: [payload, actorRefs, evidenceRefs, metadata]
+api_surface:
+  required_operations:
+    - GET /api/worlds/{worldId}/state
+    - POST /api/worlds/{worldId}/state/commits
+  secondary_operations: []

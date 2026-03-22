@@ -1,52 +1,60 @@
-# Realm Kernel Authority
+# Realm Kernel Index
 
-## Scope
+## Contracts
 
-Realm kernel is the single authoritative source for cross-domain realm public boundary, creator asset, and interop rules.
-Every realm domain document must explicitly reference kernel Rule IDs; it must not duplicate kernel prose.
+- `truth-contract.md` (`R-TRUTH-*`)
+- `world-state-contract.md` (`R-WSTATE-*`)
+- `world-history-contract.md` (`R-WHIST-*`)
+- `agent-memory-contract.md` (`R-MEM-*`)
+- `chat-contract.md` (`R-CHAT-*`)
+- `social-contract.md` (`R-SOC-*`)
+- `economy-contract.md` (`R-ECON-*`)
+- `asset-contract.md` (`R-ASSET-*`)
+- `transit-contract.md` (`R-TRANSIT-*`)
 
-## Rule ID Format
+## Tables
 
-`R-<DOMAIN>-NNN[letter]`
+- `tables/rule-catalog.yaml`
+- `tables/rule-evidence.yaml`
+- `tables/commit-authorization-matrix.yaml`
+- `tables/truth-contract.yaml`
+- `tables/world-state-contract.yaml`
+- `tables/world-history-contract.yaml`
+- `tables/agent-memory-contract.yaml`
+- `tables/chat-contract.yaml`
+- `tables/social-contract.yaml`
+- `tables/economy-contract.yaml`
+- `tables/asset-contract.yaml`
+- `tables/transit-contract.yaml`
+- `tables/domain-enums.yaml`
+- `tables/domain-state-machines.yaml`
+- `tables/open-spec-alignment-map.yaml`
+- `tables/under-spec-registry.yaml`
+- `tables/creator-key-tiers.yaml`
+- `tables/realm-asset-types.yaml`
+- `tables/revenue-event-types.yaml`
+- `tables/share-plan-fields.yaml`
 
-| Domain | Mnemonic | Kernel Document |
-|---|---|---|
-| `BOUND` | Boundary vocabulary | `boundary-vocabulary-contract.md` |
-| `ASSET` | Creator asset contract | `asset-contract.md` |
-| `ECON` | Economy contract | `economy-contract.md` |
-| `INTEROP` | Interop mapping | `interop-mapping-contract.md` |
+## Generated
 
-## Numbering Convention
-
-- Base rule IDs use three digits (`R-BOUND-001`).
-- Lowercase suffixes are reserved for anchored subclauses that need independent evidence or acceptance tracking (`R-INTEROP-002a`).
-- 001–00x: domain invariants
-- 010–01x: first increment segment
-- 020–02x: second segment
-- 030+: extended segments
-
-## Document Ownership Matrix
-
-| Kernel Document | Rule ID Range | Description |
-|---|---|---|
-| `boundary-vocabulary-contract.md` | `R-BOUND-*` | World/Agent/Social/Asset/Chat public vocabulary and boundaries |
-| `asset-contract.md` | `R-ASSET-*` | Creator asset types, NovelAsset requirements, release invariants |
-| `economy-contract.md` | `R-ECON-*` | Creator Key, pricing, revenue distribution |
-| `interop-mapping-contract.md` | `R-INTEROP-*` | Six primitive → realm mapping + graduation criteria |
-
-## Structured Fact Sources
-
-| Table | Kernel Document | Description |
-|---|---|---|
-| `tables/public-vocabulary.yaml` | `boundary-vocabulary-contract.md` | Unified vocabulary (5 boundary stubs) |
-| `tables/realm-asset-types.yaml` | `asset-contract.md` | Creator asset types and NovelAsset field contract |
-| `tables/creator-key-tiers.yaml` | `economy-contract.md` | Tier pricing table |
-| `tables/revenue-event-types.yaml` | `economy-contract.md` | Revenue event types |
-| `tables/share-plan-fields.yaml` | `economy-contract.md` | Share plan fields and validation |
-| `tables/primitive-mapping-status.yaml` | `interop-mapping-contract.md` | Six primitive mapping status |
-| `tables/primitive-graduation-log.yaml` | `interop-mapping-contract.md` | Graduated primitive evidence log |
-| `tables/rule-evidence.yaml` | `interop-mapping-contract.md` | Realm formal rule → executable evidence mapping |
-
-## Downstream Reference Constraint
-
-Domain documents under `spec/realm/` must reference at least one `R-*` Rule ID for each kernel import.
+- `generated/index.md`
+- `generated/rule-catalog.md`
+- `generated/rule-evidence.md`
+- `generated/commit-authorization-matrix.md`
+- `generated/truth-contract.md`
+- `generated/world-state-contract.md`
+- `generated/world-history-contract.md`
+- `generated/agent-memory-contract.md`
+- `generated/chat-contract.md`
+- `generated/social-contract.md`
+- `generated/economy-contract.md`
+- `generated/asset-contract.md`
+- `generated/transit-contract.md`
+- `generated/domain-enums.md`
+- `generated/domain-state-machines.md`
+- `generated/open-spec-alignment-map.md`
+- `generated/under-spec-registry.md`
+- `generated/creator-key-tiers.md`
+- `generated/realm-asset-types.md`
+- `generated/revenue-event-types.md`
+- `generated/share-plan-fields.md`

@@ -4,37 +4,54 @@
 > Source: `spec/realm/kernel/tables/rule-evidence.yaml`
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
-| `realm_kernel_consistency` | `static_gate` | `pnpm check:realm-spec-kernel-consistency` | `scripts/check-realm-spec-kernel-consistency.mjs` | Kernel rule integrity, vocabulary alignment, creator asset field coverage, economy arithmetic, primitive mapping status, and graduation log checks for Realm domain. |
-| `realm_timeflow_contract_test` | `test_gate` | `cd runtime && go test ./internal/protocol -run TestValidateTimeflowContractAcceptsCanonicalPayload -count=1` | `runtime/internal/protocol/realm_primitives_contract_test.go` | Executable contract test for graduated timeflow primitive mapping. |
-| `realm_economy_contract_test` | `test_gate` | `cd runtime && go test ./internal/protocol -run TestValidateEconomyContractAcceptsCanonicalPayload -count=1` | `runtime/internal/protocol/realm_primitives_contract_test.go` | Executable contract test for graduated economy primitive mapping. |
-| `runtime_compliance_gate` | `static_gate` | `cd runtime && go run ./cmd/runtime-compliance --gate` | `runtime/cmd/runtime-compliance/main.go` | Runtime compliance gate including realm primitive contract coverage checklist. |
+| `realm_kernel_consistency` | `static_gate` | `pnpm check:realm-spec-kernel-consistency` | `scripts/check-realm-spec-kernel-consistency.mjs` | Kernel rule integrity, thin-domain constraints, and legacy hard-cut enforcement for Realm open spec. |
+| `realm_kernel_docs_drift` | `static_gate` | `pnpm check:realm-spec-kernel-docs-drift` | `scripts/generate-realm-spec-kernel-docs.mjs` | Generated kernel doc drift gate for Realm open spec. |
 
 ## Rule Coverage Matrix
 
 | Rule ID | Status | Evidence Refs |
 |---|---|---|
-| `R-BOUND-001` | `covered` | `realm_kernel_consistency` |
-| `R-BOUND-002` | `covered` | `realm_kernel_consistency` |
-| `R-BOUND-003` | `covered` | `realm_kernel_consistency` |
-| `R-BOUND-004` | `covered` | `realm_kernel_consistency` |
-| `R-BOUND-005` | `covered` | `realm_kernel_consistency` |
-| `R-BOUND-010` | `covered` | `realm_kernel_consistency` |
-| `R-ASSET-001` | `covered` | `realm_kernel_consistency` |
-| `R-ASSET-010` | `covered` | `realm_kernel_consistency` |
-| `R-ASSET-011` | `covered` | `realm_kernel_consistency` |
-| `R-ASSET-012` | `covered` | `realm_kernel_consistency` |
-| `R-ASSET-020` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-001` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-010` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-011` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-020` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-021` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-022` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-023` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-024` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-025` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-030` | `covered` | `realm_kernel_consistency` |
-| `R-ECON-040` | `covered` | `realm_kernel_consistency` |
-| `R-INTEROP-001` | `covered` | `realm_kernel_consistency` |
-| `R-INTEROP-002` | `covered` | `realm_kernel_consistency`, `realm_timeflow_contract_test`, `realm_economy_contract_test`, `runtime_compliance_gate` |
-| `R-INTEROP-002a` | `covered` | `realm_kernel_consistency`, `runtime_compliance_gate` |
+| `R-TRUTH-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRUTH-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRUTH-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRUTH-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRUTH-005` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRUTH-006` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WSTATE-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WSTATE-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WSTATE-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WSTATE-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WSTATE-005` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WSTATE-006` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WHIST-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WHIST-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WHIST-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WHIST-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WHIST-005` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-WHIST-006` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-MEM-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-MEM-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-MEM-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-MEM-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-MEM-005` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-MEM-006` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-CHAT-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-CHAT-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-CHAT-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-CHAT-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-SOC-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-SOC-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-SOC-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-SOC-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ECON-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ECON-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ECON-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ECON-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ASSET-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ASSET-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ASSET-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-ASSET-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRANSIT-001` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRANSIT-002` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRANSIT-003` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
+| `R-TRANSIT-004` | `covered` | `realm_kernel_consistency`, `realm_kernel_docs_drift` |
