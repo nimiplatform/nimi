@@ -9,11 +9,12 @@ import {
   getAgentSoulPrime,
   listCreatorKeys,
   type ForgeAgentDetailResponse,
+  type ForgeAgentSoulPrimePayload,
   type ForgeCreatorAgentListItem,
   type ForgeCreatorKeyListItem,
 } from '@renderer/data/agent-data-client.js';
 
-type AgentSoulPrimePayload = Awaited<ReturnType<typeof getAgentSoulPrime>>;
+type AgentSoulPrimePayload = ForgeAgentSoulPrimePayload;
 type AgentListPayload = Awaited<ReturnType<typeof listCreatorAgents>>;
 type AgentDetailPayload = Awaited<ReturnType<typeof getAgent>>;
 type CreatorKeyListPayload = Awaited<ReturnType<typeof listCreatorKeys>>;
@@ -141,12 +142,12 @@ export function useAgentDetailQuery(agentId: string) {
   });
 }
 
-export function useAgentSoulPrimeQuery(agentId: string) {
+export function useAgentSoulPrimeQuery(worldId: string, agentId: string) {
   return useQuery({
-    queryKey: ['forge', 'agents', 'soul-prime', agentId],
-    enabled: Boolean(agentId),
+    queryKey: ['forge', 'agents', 'soul-prime', worldId, agentId],
+    enabled: Boolean(worldId) && Boolean(agentId),
     retry: false,
-    queryFn: async (): Promise<AgentSoulPrimePayload> => await getAgentSoulPrime(agentId),
+    queryFn: async (): Promise<AgentSoulPrimePayload> => await getAgentSoulPrime(worldId, agentId),
   });
 }
 

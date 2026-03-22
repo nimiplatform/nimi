@@ -37,9 +37,8 @@ Approximately 25 data query functions require rewriting:
 | `data.query.worlds.mine` | `realmClient.worlds.listMine()` |
 | `data.query.worlds.maintenance.get` | `realmClient.worlds.getMaintenance(worldId)` |
 | `data.query.worlds.maintenance.update` | `realmClient.worlds.updateMaintenance(worldId, body)` |
-| `data.query.worlds.events.list` | `realmClient.worlds.listEvents(worldId)` |
-| `data.query.worlds.events.batch-upsert` | `realmClient.worlds.batchUpsertEvents(worldId, body)` |
-| `data.query.worlds.events.delete` | `realmClient.worlds.deleteEvent(worldId, eventId)` |
+| `data.query.worlds.history.list` | `realmClient.worlds.listHistory(worldId)` |
+| `data.query.worlds.history.append` | `realmClient.worlds.appendHistory(worldId, body)` |
 | `data.query.worlds.lorebooks.list` | `realmClient.worlds.listLorebooks(worldId)` |
 | `data.query.worlds.lorebooks.batch-upsert` | `realmClient.worlds.batchUpsertLorebooks(worldId, body)` |
 | `data.query.worlds.lorebooks.delete` | `realmClient.worlds.deleteLorebook(worldId, lorebookId)` |
@@ -107,7 +106,7 @@ These panels are hosted inside the workbench `WORLD_TRUTH` panel for an existing
 ### Operations
 
 - `save-maintenance` — Patch world metadata + worldview
-- `sync-events` — Batch upsert events (merge or replace mode)
+- `append-history` — Append canonical world-history facts
 - `sync-lorebooks` — Batch upsert lorebooks
 - `reload-remote` — Refetch from server, replace local snapshot
 

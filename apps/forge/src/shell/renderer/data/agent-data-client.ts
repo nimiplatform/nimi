@@ -16,9 +16,11 @@ type CreateCreatorAgentInput = RealmServiceArgs<'CreatorService', 'creatorContro
 type BatchCreateCreatorAgentsInput = RealmServiceArgs<'CreatorService', 'creatorControllerBatchCreateAgents'>[0];
 type UpdateAgentInput = RealmServiceArgs<'CreatorService', 'creatorControllerUpdateAgent'>[1];
 type UpdateAgentDnaInput = RealmServiceArgs<'AgentsService', 'agentControllerUpdateDna'>[1];
-type UpdateAgentSoulPrimeInput = RealmServiceArgs<'AgentsService', 'agentControllerUpdateSoulPrime'>[1];
+type CreateAgentRuleInput = RealmServiceArgs<'AgentRulesService', 'agentRulesControllerCreateRule'>[2];
+type UpdateAgentRuleInput = RealmServiceArgs<'AgentRulesService', 'agentRulesControllerUpdateRule'>[3];
 type CreateCreatorKeyInput = RealmServiceArgs<'CreatorService', 'creatorControllerCreateKey'>[0];
 type UpdateAgentVisibilityInput = RealmServiceArgs<'AgentsService', 'agentControllerUpdateVisibility'>[1];
+type AgentRuleListPayload = Array<Record<string, unknown>>;
 export type ForgeCreateCreatorAgentInput = CreateCreatorAgentInput | {
   handle?: string;
   displayName?: string;
@@ -35,9 +37,16 @@ export type ForgeUpdateAgentDnaInput = UpdateAgentDnaInput | {
   dna?: UpdateAgentDnaInput['dna'];
   [key: string]: unknown;
 };
-export type ForgeUpdateAgentSoulPrimeInput = UpdateAgentSoulPrimeInput | {
-  soulPrime?: UpdateAgentSoulPrimeInput['soulPrime'];
-  [key: string]: unknown;
+export type ForgeSoulPrimeStructured = {
+  backstory?: string;
+  coreValues?: string;
+  personalityDescription?: string;
+  guidelines?: string;
+  catchphrase?: string;
+};
+export type ForgeUpdateAgentSoulPrimeInput = {
+  text?: string;
+  structured?: ForgeSoulPrimeStructured;
 };
 export type ForgeCreateCreatorKeyInput = CreateCreatorKeyInput | {
   name?: string;
@@ -93,8 +102,29 @@ export type ForgeCreatorKeyListItem = {
 export type ForgeCreatorKeyListResponse = {
   items: ForgeCreatorKeyListItem[];
 };
+export type ForgeAgentSoulPrimePayload = {
+  ruleId: string;
+  ruleKey: 'identity:soul_prime:core';
+  text: string;
+  statement: string;
+  structured: ForgeSoulPrimeStructured;
+} | null;
 
 type LooseObject = { [key: string]: unknown };
+type SoulPrimeFieldKey = keyof ForgeSoulPrimeStructured;
+type SoulPrimeFieldConfig = {
+  key: SoulPrimeFieldKey;
+  label: string;
+};
+
+const SOUL_PRIME_RULE_KEY = 'identity:soul_prime:core';
+const SOUL_PRIME_RULE_FIELDS: SoulPrimeFieldConfig[] = [
+  { key: 'backstory', label: 'Backstory' },
+  { key: 'coreValues', label: 'Core Values' },
+  { key: 'personalityDescription', label: 'Personality Description' },
+  { key: 'guidelines', label: 'Guidelines' },
+  { key: 'catchphrase', label: 'Catchphrase' },
+];
 
 function isLooseObject(value: unknown): value is LooseObject {
   return Boolean(value) && typeof value === 'object';
@@ -110,6 +140,97 @@ function toStringOrNull(value: unknown): string | null {
   }
   const normalized = value.trim();
   return normalized ? normalized : null;
+}
+
+function normalizeSoulPrimeStructured(value: unknown): ForgeSoulPrimeStructured | null {
+  const source = toLooseObject(value);
+  const normalized = SOUL_PRIME_RULE_FIELDS.reduce<ForgeSoulPrimeStructured>((acc, field) => {
+    const content = toStringOrNull(source[field.key]);
+    if (content) {
+      acc[field.key] = content;
+    }
+    return acc;
+  }, {});
+  return Object.keys(normalized).length > 0 ? normalized : null;
+}
+
+function renderSoulPrimeText(value: ForgeSoulPrimeStructured | null): string {
+  if (!value) {
+    return '';
+  }
+  return SOUL_PRIME_RULE_FIELDS
+    .map((field) => {
+      const content = toStringOrNull(value[field.key]);
+      return content ? `${field.label}: ${content}` : null;
+    })
+    .filter((entry): entry is string => entry !== null)
+    .join('\n\n');
+}
+
+function parseSoulPrimeText(text: string): ForgeSoulPrimeStructured | null {
+  const normalizedText = text.trim();
+  if (!normalizedText) {
+    return null;
+  }
+
+  const sections = normalizedText.split(/\n\s*\n+/);
+  const parsed: ForgeSoulPrimeStructured = {};
+  let matchedFieldCount = 0;
+
+  for (const section of sections) {
+    const trimmedSection = section.trim();
+    const matchedField = SOUL_PRIME_RULE_FIELDS.find((field) =>
+      trimmedSection.toLowerCase().startsWith(`${field.label.toLowerCase()}:`),
+    );
+    if (!matchedField) {
+      continue;
+    }
+    const content = toStringOrNull(trimmedSection.slice(matchedField.label.length + 1));
+    if (content) {
+      parsed[matchedField.key] = content;
+      matchedFieldCount += 1;
+    }
+  }
+
+  if (matchedFieldCount > 0) {
+    return Object.keys(parsed).length > 0 ? parsed : null;
+  }
+
+  return { guidelines: normalizedText };
+}
+
+function buildSoulPrimeStatement(value: ForgeSoulPrimeStructured): string {
+  return renderSoulPrimeText(value);
+}
+
+function toSoulPrimeRule(rule: unknown): ForgeAgentSoulPrimePayload {
+  const source = toLooseObject(rule);
+  if (String(source.ruleKey || '').trim() !== SOUL_PRIME_RULE_KEY) {
+    return null;
+  }
+  const structured = normalizeSoulPrimeStructured(source.structured) ?? parseSoulPrimeText(String(source.statement || ''));
+  if (!structured) {
+    return null;
+  }
+  const ruleId = String(source.id || '').trim();
+  if (!ruleId) {
+    return null;
+  }
+  return {
+    ruleId,
+    ruleKey: SOUL_PRIME_RULE_KEY,
+    statement: String(source.statement || '').trim(),
+    text: renderSoulPrimeText(structured),
+    structured,
+  };
+}
+
+function toSoulPrimeRuleInput(payload: ForgeUpdateAgentSoulPrimeInput): ForgeSoulPrimeStructured {
+  const structured = payload.structured ?? parseSoulPrimeText(String(payload.text || ''));
+  if (!structured) {
+    throw new Error('FORGE_SOUL_PRIME_EMPTY');
+  }
+  return structured;
 }
 
 function normalizeCreatorAgentListItem(value: unknown): ForgeCreatorAgentListItem | null {
@@ -272,16 +393,68 @@ export async function updateAgentDna(agentId: string, dna: ForgeUpdateAgentDnaIn
   );
 }
 
-export async function getAgentSoulPrime(agentId: string) {
-  return realm().services.AgentsService.agentControllerGetSoulPrime(agentId);
+export async function getAgentSoulPrime(
+  worldId: string,
+  agentId: string,
+): Promise<ForgeAgentSoulPrimePayload> {
+  const rules = await realm().services.AgentRulesService.agentRulesControllerListRules(
+    worldId,
+    agentId,
+    'ACTIVE',
+    'DNA',
+  );
+  return (rules as AgentRuleListPayload)
+    .map((rule) => toSoulPrimeRule(rule))
+    .find((rule): rule is NonNullable<ForgeAgentSoulPrimePayload> => rule !== null) ?? null;
 }
 
-export async function updateAgentSoulPrime(agentId: string, soulPrime: ForgeUpdateAgentSoulPrimeInput) {
-  return realm().services.AgentsService.agentControllerUpdateSoulPrime(
+export async function updateAgentSoulPrime(
+  worldId: string,
+  agentId: string,
+  soulPrime: ForgeUpdateAgentSoulPrimeInput,
+) {
+  const structured = toSoulPrimeRuleInput(soulPrime);
+  const statement = buildSoulPrimeStatement(structured);
+  const existing = await getAgentSoulPrime(worldId, agentId);
+
+  const payload = {
+    title: 'Soul Prime',
+    statement,
+    category: 'DEFINITION',
+    hardness: 'FIRM',
+    scope: 'SELF',
+    importance: 100,
+    structured,
+    provenance: 'CREATOR',
+    sourceRef: 'forge.soul-prime-editor',
+  } satisfies Partial<CreateAgentRuleInput> & Partial<UpdateAgentRuleInput>;
+
+  if (existing) {
+    return realm().services.AgentRulesService.agentRulesControllerUpdateRule(
+      worldId,
+      agentId,
+      existing.ruleId,
+      payload satisfies UpdateAgentRuleInput,
+    );
+  }
+
+  return realm().services.AgentRulesService.agentRulesControllerCreateRule(
+    worldId,
     agentId,
-    'soulPrime' in soulPrime
-      ? soulPrime as UpdateAgentSoulPrimeInput
-      : { soulPrime: soulPrime as UpdateAgentSoulPrimeInput['soulPrime'] },
+    {
+      ruleKey: SOUL_PRIME_RULE_KEY,
+      title: 'Soul Prime',
+      statement,
+      layer: 'DNA',
+      category: 'DEFINITION',
+      hardness: 'FIRM',
+      scope: 'SELF',
+      importance: 100,
+      priority: 100,
+      structured,
+      provenance: 'CREATOR',
+      sourceRef: 'forge.soul-prime-editor',
+    } satisfies CreateAgentRuleInput,
   );
 }
 

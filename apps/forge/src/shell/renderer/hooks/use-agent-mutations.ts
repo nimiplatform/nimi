@@ -33,8 +33,12 @@ export function useAgentMutations() {
   });
 
   const updateSoulPrimeMutation = useMutation({
-    mutationFn: async (input: { agentId: string; soulPrime: ForgeUpdateAgentSoulPrimeInput }) =>
-      await updateAgentSoulPrime(input.agentId, input.soulPrime),
+    mutationFn: async (input: {
+      worldId: string;
+      agentId: string;
+      soulPrime: ForgeUpdateAgentSoulPrimeInput;
+    }) =>
+      await updateAgentSoulPrime(input.worldId, input.agentId, input.soulPrime),
   });
 
   const createKeyMutation = useMutation({

@@ -15,10 +15,14 @@ const mockCreatorService = {
 const mockAgentsService = {
   getAgentByHandle: vi.fn(),
   agentControllerUpdateDna: vi.fn(),
-  agentControllerGetSoulPrime: vi.fn(),
-  agentControllerUpdateSoulPrime: vi.fn(),
   agentControllerGetVisibility: vi.fn(),
   agentControllerUpdateVisibility: vi.fn(),
+};
+
+const mockAgentRulesService = {
+  agentRulesControllerListRules: vi.fn(),
+  agentRulesControllerCreateRule: vi.fn(),
+  agentRulesControllerUpdateRule: vi.fn(),
 };
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -27,6 +31,7 @@ vi.mock('@nimiplatform/sdk', () => ({
       services: {
         CreatorService: mockCreatorService,
         AgentsService: mockAgentsService,
+        AgentRulesService: mockAgentRulesService,
       },
     },
   }),
@@ -102,15 +107,52 @@ describe('agent-data-client', () => {
     expect(mockAgentsService.agentControllerUpdateDna).toHaveBeenCalledWith('a1', { dna });
   });
 
-  it('getAgentSoulPrime passes agentId', async () => {
-    await adc.getAgentSoulPrime('a1');
-    expect(mockAgentsService.agentControllerGetSoulPrime).toHaveBeenCalledWith('a1');
+  it('getAgentSoulPrime reads Soul Prime from canonical AgentRule truth', async () => {
+    mockAgentRulesService.agentRulesControllerListRules.mockResolvedValue([
+      {
+        id: 'rule-1',
+        ruleKey: 'identity:soul_prime:core',
+        statement: 'Guidelines: You are a kind helper.',
+        structured: { guidelines: 'You are a kind helper.' },
+      },
+    ]);
+
+    const result = await adc.getAgentSoulPrime('world-1', 'a1');
+
+    expect(mockAgentRulesService.agentRulesControllerListRules).toHaveBeenCalledWith(
+      'world-1',
+      'a1',
+      'ACTIVE',
+      'DNA',
+    );
+    expect(result).toEqual({
+      ruleId: 'rule-1',
+      ruleKey: 'identity:soul_prime:core',
+      statement: 'Guidelines: You are a kind helper.',
+      text: 'Guidelines: You are a kind helper.',
+      structured: { guidelines: 'You are a kind helper.' },
+    });
   });
 
-  it('updateAgentSoulPrime passes agentId and payload', async () => {
+  it('updateAgentSoulPrime creates canonical Soul Prime truth when missing', async () => {
+    mockAgentRulesService.agentRulesControllerListRules.mockResolvedValue([]);
+    mockAgentRulesService.agentRulesControllerCreateRule.mockResolvedValue({ id: 'rule-1' });
+
     const sp = { text: 'You are a kind helper.' };
-    await adc.updateAgentSoulPrime('a1', sp);
-    expect(mockAgentsService.agentControllerUpdateSoulPrime).toHaveBeenCalledWith('a1', { soulPrime: sp });
+    await adc.updateAgentSoulPrime('world-1', 'a1', sp);
+    expect(mockAgentRulesService.agentRulesControllerCreateRule).toHaveBeenCalledWith(
+      'world-1',
+      'a1',
+      expect.objectContaining({
+        ruleKey: 'identity:soul_prime:core',
+        layer: 'DNA',
+        category: 'DEFINITION',
+        hardness: 'FIRM',
+        scope: 'SELF',
+        importance: 100,
+        structured: { guidelines: 'You are a kind helper.' },
+      }),
+    );
   });
 
   // API Keys

@@ -99,6 +99,26 @@ describe('useAgentMutations', () => {
     expect(mockAgentDataClient.updateAgentDna).toHaveBeenCalledWith('a1', { personality: 'cheerful' });
   });
 
+  it('updateSoulPrimeMutation calls updateAgentSoulPrime with worldId + agentId', async () => {
+    mockAgentDataClient.updateAgentSoulPrime.mockResolvedValue({});
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useAgentMutations(), { wrapper });
+
+    await act(async () => {
+      result.current.updateSoulPrimeMutation.mutate({
+        worldId: 'world-1',
+        agentId: 'a1',
+        soulPrime: { text: 'Guidelines: Stay in character.' },
+      });
+    });
+
+    await vi.waitFor(() => expect(result.current.updateSoulPrimeMutation.isSuccess).toBe(true));
+    expect(mockAgentDataClient.updateAgentSoulPrime).toHaveBeenCalledWith('world-1', 'a1', {
+      text: 'Guidelines: Stay in character.',
+    });
+  });
+
   it('revokeKeyMutation calls revokeCreatorKey with keyId', async () => {
     mockAgentDataClient.revokeCreatorKey.mockResolvedValue({});
 

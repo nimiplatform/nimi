@@ -149,6 +149,41 @@ describe('useAgentDetailQuery', () => {
   });
 });
 
+describe('useAgentSoulPrimeQuery', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('fetches Soul Prime via worldId + agentId', async () => {
+    mockAgentDataClient.getAgentSoulPrime.mockResolvedValue({
+      ruleId: 'rule-1',
+      ruleKey: 'identity:soul_prime:core',
+      text: 'Guidelines: Stay in character.',
+      statement: 'Guidelines: Stay in character.',
+      structured: { guidelines: 'Stay in character.' },
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useAgentSoulPrimeQuery('world-1', 'agent-1'), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(mockAgentDataClient.getAgentSoulPrime).toHaveBeenCalledWith('world-1', 'agent-1');
+    expect(result.current.data?.ruleKey).toBe('identity:soul_prime:core');
+  });
+
+  it('stays idle without worldId', async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useAgentSoulPrimeQuery('', 'agent-1'), { wrapper });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(mockAgentDataClient.getAgentSoulPrime).not.toHaveBeenCalled();
+    expect(result.current.fetchStatus).toBe('idle');
+  });
+});
+
 describe('useCreatorKeysQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();

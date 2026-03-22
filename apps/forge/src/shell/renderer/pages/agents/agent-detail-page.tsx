@@ -29,7 +29,6 @@ export default function AgentDetailPage() {
   const [activeTab, setActiveTab] = useState<TabId>('profile');
 
   const agentQuery = useAgentDetailQuery(agentId || '');
-  const soulPrimeQuery = useAgentSoulPrimeQuery(agentId || '');
   const keysQuery = useCreatorKeysQuery();
   const mutations = useAgentMutations();
   const queryClient = useQueryClient();
@@ -41,6 +40,7 @@ export default function AgentDetailPage() {
   ];
 
   const agent = agentQuery.data;
+  const soulPrimeQuery = useAgentSoulPrimeQuery(agent?.worldId || '', agentId || '');
 
   if (!agentId) {
     return (
@@ -136,8 +136,17 @@ export default function AgentDetailPage() {
               await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'detail', agentId] });
             }}
             onSaveSoulPrime={async (soulPrime) => {
-              await mutations.updateSoulPrimeMutation.mutateAsync({ agentId, soulPrime });
-              await queryClient.invalidateQueries({ queryKey: ['forge', 'agents', 'soul-prime', agentId] });
+              if (!agent.worldId) {
+                throw new Error('FORGE_AGENT_WORLD_ID_REQUIRED');
+              }
+              await mutations.updateSoulPrimeMutation.mutateAsync({
+                worldId: agent.worldId,
+                agentId,
+                soulPrime,
+              });
+              await queryClient.invalidateQueries({
+                queryKey: ['forge', 'agents', 'soul-prime', agent.worldId, agentId],
+              });
             }}
             savingDna={mutations.updateDnaMutation.isPending}
             savingSoulPrime={mutations.updateSoulPrimeMutation.isPending}

@@ -434,7 +434,10 @@ export function DnaTab({
       <div className="border-t border-neutral-800 pt-6">
         <h3 className="mb-1 text-sm font-semibold text-white">{t('agentDetail.soulPrime', 'Soul Prime')}</h3>
         <p className="mb-3 text-xs text-neutral-500">
-          {t('agentDetail.soulPrimeHint', 'The core system prompt that defines this agent\'s identity and behavior.')}
+          {t(
+            'agentDetail.soulPrimeHint',
+            'Writes the canonical agent truth rule. Use labeled sections like Backstory:, Core Values:, Guidelines:, and Catchphrase: when needed.',
+          )}
         </p>
         {soulPrimeLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -446,7 +449,10 @@ export function DnaTab({
               value={soulPrimeText}
               onChange={(e) => setSoulPrimeText(e.target.value)}
               rows={10}
-              placeholder={t('agentDetail.soulPrimePlaceholder', "Enter the agent's soul prime / system prompt...")}
+              placeholder={t(
+                'agentDetail.soulPrimePlaceholder',
+                'Backstory: ...\n\nCore Values: ...\n\nGuidelines: ...',
+              )}
               className="w-full resize-y rounded border border-neutral-700 bg-neutral-800 px-3 py-2 font-mono text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
             />
             <div className="mt-3 flex justify-end">
