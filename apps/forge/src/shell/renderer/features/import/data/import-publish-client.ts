@@ -102,11 +102,6 @@ function buildImportDraftPayload(input: {
         secondary: [],
       },
     },
-    workflowState: {
-      workspaceVersion: crypto.randomUUID(),
-      createStep: 'REVIEW',
-      selectedCharacters: [],
-    },
   };
 }
 

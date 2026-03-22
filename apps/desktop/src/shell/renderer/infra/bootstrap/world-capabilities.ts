@@ -159,15 +159,11 @@ function requireCreateWorldDraftInput(input: unknown, code: string): CreateWorld
   const draftPayload = record.draftPayload === undefined
     ? undefined
     : requireWorldDraftPayload(record.draftPayload, code);
-  const pipelineState = record.pipelineState === undefined
-    ? undefined
-    : requireRecord(record.pipelineState, code);
   const sourceRef = toOptionalString(record.sourceRef);
   const targetWorldId = toOptionalString(record.targetWorldId);
   return {
     sourceType,
     ...(draftPayload ? { draftPayload } : {}),
-    ...(pipelineState ? { pipelineState } : {}),
     ...(sourceRef ? { sourceRef } : {}),
     ...(targetWorldId ? { targetWorldId } : {}),
   };
@@ -182,10 +178,6 @@ function requireWorldDraftPayload(
   const truthDraft = requireRecord(record.truthDraft, code);
   const stateDraft = requireRecord(record.stateDraft, code);
   const historyDraft = requireRecord(record.historyDraft, code);
-  const workflowState = requireRecord(record.workflowState, code);
-  const assetBindingsDraft = record.assetBindingsDraft === undefined
-    ? undefined
-    : requireRecord(record.assetBindingsDraft, code);
 
   if (!Array.isArray(truthDraft.worldRules) || !Array.isArray(truthDraft.agentRules)) {
     throw new Error(code);
@@ -210,8 +202,6 @@ function requireWorldDraftPayload(
       ...historyDraft,
       events: requireRecord(historyDraft.events, code),
     },
-    workflowState,
-    ...(assetBindingsDraft ? { assetBindingsDraft } : {}),
   } as NonNullable<CreateWorldDraftInput['draftPayload']>;
 }
 

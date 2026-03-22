@@ -1,27 +1,52 @@
-# World Public Boundary
+---
+id: SPEC-REALM-WORLD-001
+title: Realm World Domain
+status: active
+owner: "@team"
+updated: 2026-03-23
+---
 
-> Domain: Realm / World
+# Realm World Boundary
 
-## 0. Normative Imports
+## Normative Imports
 
-- `kernel/truth-contract.md`: `R-TRUTH-001`, `R-TRUTH-002`, `R-TRUTH-003`, `R-TRUTH-004`, `R-TRUTH-005`, `R-TRUTH-006`
-- `kernel/world-state-contract.md`: `R-WSTATE-001`, `R-WSTATE-002`, `R-WSTATE-003`, `R-WSTATE-004`, `R-WSTATE-005`, `R-WSTATE-006`
-- `kernel/world-history-contract.md`: `R-WHIST-001`, `R-WHIST-002`, `R-WHIST-003`, `R-WHIST-004`, `R-WHIST-005`, `R-WHIST-006`
-- `kernel/transit-contract.md`: `R-TRANSIT-001`, `R-TRANSIT-002`, `R-TRANSIT-003`, `R-TRANSIT-004`
+- `kernel/truth-contract.md`: `R-TRUTH-001..006`
+- `kernel/world-state-contract.md`: `R-WSTATE-001..006`
+- `kernel/world-history-contract.md`: `R-WHIST-001..006`
+- `kernel/transit-contract.md`: `R-TRANSIT-001..004`
 
-## 1. Scope
+## Scope
 
-World 是 Realm 的组合边界：`Truth / World State / World History` 构成 canonical world core，`Transit` 提供跨世界连续性入口。`OASIS` 是唯一系统主世界，作为默认入口、默认返回点与跨世界中转锚点存在于该组合边界内。
+World 在闭源 `nimi-realm` 中不再是厚 narrative runtime 域，而是一个组合边界：
 
-## 2. Reading Path
+- `Truth`: 世界是什么
+- `World State`: 世界现在变成了什么样
+- `World History`: 世界已经发生了什么
+- `Transit`: 跨世界连续性迁移
+- `World Drafts`: creator control-plane 上的最小发布候选稿，只承载显式可发布到 `Truth / World State / World History` 的内容
+
+`OASIS` 是 Realm 内唯一系统主世界，属于该组合边界的正式组成：它提供默认入口、默认返回点与跨世界中转锚点，但不是额外第五核心域。
+
+## Draft Boundary
+
+`world-drafts` 在 Realm 中是 control-plane 对象，不是 editor/runtime 对象。
+
+- 允许进入 Realm draft 的只有：`importSource`、`truthDraft`、`stateDraft`、`historyDraft`
+- Forge 本地持有：workspace step、导入任务、phase1/phase2 中间产物、资产生成状态、review UI state、未准备发布的草稿
+- cross-device 恢复只保证最小 publish candidate，不保证恢复完整编辑器过程态
+- 资产展示绑定不属于 canonical world draft；如需落库，必须走显式 media-binding 路径
+
+## Reading Path
 
 1. `kernel/truth-contract.md`
-2. `truth.md`
-3. `world-state.md`
-4. `world-history.md`
-5. `kernel/transit-contract.md`
-6. `app-interconnect-model.md`
+2. `kernel/world-state-contract.md`
+3. `kernel/world-history-contract.md`
+4. `kernel/transit-contract.md`
+5. `kernel/tables/rule-catalog.yaml`
+6. `kernel/tables/truth-contract.yaml`
+7. `kernel/tables/world-state-contract.yaml`
+8. `kernel/tables/world-history-contract.yaml`
 
-## 3. Non-goals
+## Non-goals
 
-No story runtime, narrative spine, satellite, turn pacing, or prompt assembly state is kept here.
+No story runtime, narrative spine, satellite, turn pacing, prompt assembly state, draft workflow state, asset generation state, or editor checkpoint state is kept here.

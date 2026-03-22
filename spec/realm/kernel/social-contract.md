@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-SOCIAL-001
+title: Realm Social Kernel Contract
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
+
 # Social Contract
 
 > Domain: social
@@ -5,7 +13,7 @@
 
 ## Scope
 
-This contract defines the canonical social admission layer for `nimi` Realm open spec.
+This contract defines the canonical social admission layer for `nimi-realm`.
 
 ## R-SOC-001
 

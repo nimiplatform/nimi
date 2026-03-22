@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-MEM-001
+title: Realm Agent Memory Kernel Contract
+status: active
+owner: "@team"
+updated: 2026-03-22
+---
+
 # Agent Memory Contract
 
 > Domain: agent-memory
@@ -5,7 +13,7 @@
 
 ## Scope
 
-This contract defines continuity memory for `nimi` Realm open spec.
+This contract defines continuity memory for `nimi-realm`.
 
 ## R-MEM-001
 

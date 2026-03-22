@@ -1,15 +1,15 @@
 contract_id: SOCIAL-CONTRACT-001
 domain: social
 status: ACTIVE
-version: 2026-03-22
+version: 2026-03-21
 owner: '@team'
 sources:
   human_spec: ../social-contract.md
   openapi:
-    - ../nimi-backend/api-nimi.yaml
-  prisma: ../nimi-backend/prisma/schema.prisma
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
   services:
-    - ../nimi-backend/libs/domains/relationship/src/friendship.service.ts
+    - ../../nimi-backend/libs/domains/relationship/src/friendship.service.ts
 rule_id_prefix: R-SOC-
 rules:
   - rule_id: R-SOC-001
@@ -33,8 +33,14 @@ entities:
     prisma_model: Friendship
     required_fields: [id, accountIdL, accountIdH, kind, status]
     json_fields: []
+  - name: SocialPrecondition
+    prisma_model: Friendship
+    required_fields: [kind, status]
+    json_fields: []
 api_surface:
   required_operations:
     - GET /api/human/relationships/me
     - POST /api/human/relationships
+    - PATCH /api/human/relationships/{id}
+    - DELETE /api/human/relationships/{id}
   secondary_operations: []

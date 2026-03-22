@@ -1,22 +1,33 @@
-# Social Public Boundary
+---
+id: SPEC-REALM-SOCIAL-001
+title: Realm Social Domain
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
 
-> Domain: Realm / Social
+# Realm Social Domain
 
-## 0. Normative Imports
+## Normative Imports
 
-- `kernel/social-contract.md`: `R-SOC-001`, `R-SOC-002`, `R-SOC-003`, `R-SOC-004`
+- `kernel/social-contract.md`: `R-SOC-001..004`
 
-## 1. Scope
+## Scope
 
-Social 负责 relationship / admission / precondition 语义，并为 human chat 提供准入边界。
+Thin guide only. Kernel contracts and tables are authoritative.
 
-## 2. Reading Path
+## Reading Path
 
 1. `kernel/social-contract.md`
-2. `kernel/tables/social-contract.yaml`
-3. `chat.md`
-4. `app-interconnect-model.md`
+2. `kernel/tables/rule-catalog.yaml`
 
-## 3. Non-goals
+## Non-goals
 
-No recommendation ranking, blacklist / anti-abuse internals, or chat runtime is defined here.
+No duplicate rule prose beyond kernel references.
+
+## Relationship Boundary
+
+- `Friendship` is the normative V1 social graph for `R-SOC-001`.
+- `Friendship` owns user-visible friend state and admission facts.
+- `AccountRelationship` is a separate extension graph for richer semantics such as partner, business, ally, rival, or enemy edges.
+- `AccountRelationship` does not replace `Friendship` and must not be used as proof for friendship or app admission rules.

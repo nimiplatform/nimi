@@ -1,18 +1,18 @@
 contract_id: TRUTH-CONTRACT-001
 domain: truth
 status: ACTIVE
-version: 2026-03-22
+version: 2026-03-21
 owner: '@team'
 sources:
   human_spec: ../truth-contract.md
   openapi:
-    - ../nimi-backend/api-nimi.yaml
-  prisma: ../nimi-backend/prisma/schema.prisma
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
   services:
-    - ../nimi-backend/libs/domains/world/src/world-rule.service.ts
-    - ../nimi-backend/libs/domains/world/src/agent-rule.service.ts
-    - ../nimi-backend/libs/domains/world/src/world-release.service.ts
-    - ../nimi-backend/libs/domains/world/src/projection/projection.service.ts
+    - ../../nimi-backend/libs/domains/world/src/world-rule.service.ts
+    - ../../nimi-backend/libs/domains/world/src/agent-rule.service.ts
+    - ../../nimi-backend/libs/domains/world/src/world-release.service.ts
+    - ../../nimi-backend/libs/domains/world/src/projection/projection.service.ts
 rule_id_prefix: R-TRUTH-
 rules:
   - rule_id: R-TRUTH-001
@@ -30,7 +30,7 @@ rules:
   - rule_id: R-TRUTH-004
     level: must
     title: creator-only-truth-write
-    statement: "Truth writes are reserved for creator or control-plane authority and cannot be produced by runtime story execution."
+    statement: "Truth writes are reserved for creator/control-plane authority and cannot be produced by runtime story execution."
   - rule_id: R-TRUTH-005
     level: must
     title: truth-write-audited
@@ -76,8 +76,9 @@ api_surface:
     - PATCH /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}
     - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/deprecate
     - POST /api/world/by-id/{worldId}/agents/{agentId}/rules/{ruleId}/archive
-  secondary_operations:
     - GET /api/world/by-id/{id}
     - GET /api/world/by-id/{id}/worldview
     - GET /api/world/by-id/{id}/lorebooks
+  secondary_operations:
+    - GET /api/world
     - GET /api/world/by-id/{id}/media-bindings

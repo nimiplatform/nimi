@@ -4,288 +4,351 @@ import fs from 'node:fs';
 import path from 'node:path';
 import YAML from 'yaml';
 
-const cwd = process.cwd();
-const realmRoot = path.join(cwd, 'spec', 'realm');
-const kernelRoot = path.join(realmRoot, 'kernel');
-const tablesRoot = path.join(kernelRoot, 'tables');
+const PROJECT_ROOT = process.cwd();
+const REALM_ROOT = path.join(PROJECT_ROOT, 'spec', 'realm');
+const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
+const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
 
-const RULE_ID_RE = /^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-\d{3}$/u;
-const RULE_HEADING_RE = /^##\s+(R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-\d{3})\b/gmu;
-const RULE_REF_RE = /\bR-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-\d{3}\b/gu;
-const FORBIDDEN_PATTERNS = [
-  /boundary-vocabulary-contract\.md/iu,
-  /interop-mapping-contract\.md/iu,
-  /public-vocabulary/iu,
-  /primitive-mapping/iu,
-  /\bR-BOUND-\d{3}\b/u,
-  /\bR-INTEROP-\d{3}[a-z]?\b/u,
-  /\bWorldMutation\b/u,
-  /\/mutations\b/u,
+const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'MEM', 'CHAT', 'SOC', 'ECON', 'ASSET', 'TRANSIT'];
+const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
+const RULE_ID_PATTERN = new RegExp(`^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`);
+
+const RULE_CATALOG_PATH = path.join(TABLES_DIR, 'rule-catalog.yaml');
+const RULE_EVIDENCE_PATH = path.join(TABLES_DIR, 'rule-evidence.yaml');
+const DOMAIN_ENUMS_PATH = path.join(TABLES_DIR, 'domain-enums.yaml');
+const DOMAIN_STATE_MACHINES_PATH = path.join(TABLES_DIR, 'domain-state-machines.yaml');
+const OPEN_SPEC_ALIGNMENT_MAP_PATH = path.join(TABLES_DIR, 'open-spec-alignment-map.yaml');
+const COMMIT_AUTHORIZATION_MATRIX_PATH = path.join(TABLES_DIR, 'commit-authorization-matrix.yaml');
+
+const DOMAIN_DOCS = [
+  path.join(REALM_ROOT, 'truth.md'),
+  path.join(REALM_ROOT, 'world-state.md'),
+  path.join(REALM_ROOT, 'world-history.md'),
+  path.join(REALM_ROOT, 'agent-memory.md'),
+  path.join(REALM_ROOT, 'world.md'),
+  path.join(REALM_ROOT, 'agent.md'),
+  path.join(REALM_ROOT, 'social.md'),
+  path.join(REALM_ROOT, 'economy.md'),
+  path.join(REALM_ROOT, 'asset.md'),
+  path.join(REALM_ROOT, 'transit.md'),
+  path.join(REALM_ROOT, 'chat.md'),
 ];
 
-const REQUIRED_KERNEL_DOCS = [
-  'index.md',
-  'truth-contract.md',
-  'world-state-contract.md',
-  'world-history-contract.md',
-  'agent-memory-contract.md',
-  'chat-contract.md',
-  'social-contract.md',
-  'economy-contract.md',
-  'asset-contract.md',
-  'transit-contract.md',
+const BRIDGE_DOCS = [
+  path.join(REALM_ROOT, 'app-interconnect-model.md'),
+  path.join(REALM_ROOT, 'world-creator-economy.md'),
+  path.join(REALM_ROOT, 'creator-revenue-policy.md'),
+  path.join(REALM_ROOT, 'realm-interop-mapping.md'),
 ];
 
-const REQUIRED_TABLES = [
-  'rule-catalog.yaml',
-  'rule-evidence.yaml',
-  'commit-authorization-matrix.yaml',
-  'truth-contract.yaml',
-  'world-state-contract.yaml',
-  'world-history-contract.yaml',
-  'agent-memory-contract.yaml',
-  'chat-contract.yaml',
-  'social-contract.yaml',
-  'economy-contract.yaml',
-  'asset-contract.yaml',
-  'transit-contract.yaml',
-  'domain-enums.yaml',
-  'domain-state-machines.yaml',
-  'open-spec-alignment-map.yaml',
-  'under-spec-registry.yaml',
-  'creator-key-tiers.yaml',
-  'realm-asset-types.yaml',
-  'revenue-event-types.yaml',
-  'share-plan-fields.yaml',
-];
-
-const THIN_DOMAIN_DOCS = [
-  'truth.md',
-  'world-state.md',
-  'world-history.md',
-  'agent-memory.md',
-  'world.md',
-  'agent.md',
-  'chat.md',
-  'social.md',
-  'economy.md',
-  'asset.md',
-  'transit.md',
-  'world-creator-economy.md',
-  'creator-revenue-policy.md',
-  'app-interconnect-model.md',
-  'realm-interop-mapping.md',
-];
-
-let failed = false;
-
-function fail(message) {
-  failed = true;
-  console.error(`ERROR: ${message}`);
+function toPosix(filePath) {
+  return filePath.replace(/\\/g, '/');
 }
 
-function readYaml(relPath) {
-  return YAML.parse(fs.readFileSync(path.join(cwd, relPath), 'utf8'));
+function rel(absPath) {
+  return toPosix(path.relative(PROJECT_ROOT, absPath));
 }
 
-function readText(relPath) {
-  return fs.readFileSync(path.join(cwd, relPath), 'utf8');
+function readYaml(absPath) {
+  const raw = fs.readFileSync(absPath, 'utf8');
+  return YAML.parse(raw) ?? {};
 }
 
-function fileExists(relPath) {
-  return fs.existsSync(path.join(cwd, relPath));
+function asStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => typeof item === 'string' && item.trim().length > 0);
 }
 
-function listMarkdownFiles(dir) {
-  return fs.readdirSync(dir).filter((entry) => entry.endsWith('.md')).sort((a, b) => a.localeCompare(b));
+function pushIssue(issues, scope, message) {
+  issues.push({ scope, message });
 }
 
-function collectRuleHeadings(relPath) {
-  const text = readText(relPath);
-  return new Set([...text.matchAll(RULE_HEADING_RE)].map((match) => match[1]));
+function splitAnchor(value) {
+  const [filePath, anchor] = value.split('#');
+  return { filePath: filePath.trim(), anchor: (anchor ?? '').trim() };
 }
 
-function hasSection(content, name) {
-  return new RegExp(`^##\\s+(?:\\d+\\.\\s+)?${name}\\b`, 'imu').test(content);
+function hasAnchor(content, anchor) {
+  if (!anchor) return true;
+  return content.includes(anchor) || content.includes(`## ${anchor}`) || content.includes(`### ${anchor}`);
 }
 
-function collectSourceRules(value, sink) {
-  if (Array.isArray(value)) {
-    for (const item of value) collectSourceRules(item, sink);
-    return;
+function collectMarkdownRuleIds(absPath) {
+  const lines = fs.readFileSync(absPath, 'utf8').split(/\r?\n/);
+  return lines
+    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
+    .filter(Boolean);
+}
+
+function resolveEvidence(profiles, entry) {
+  const resolved = { openapi: [], prisma_models: [], service_files: [], test_files: [] };
+  const merge = (source) => {
+    if (!source) return;
+    resolved.openapi.push(...asStringArray(source.openapi));
+    resolved.prisma_models.push(...asStringArray(source.prisma_models));
+    resolved.service_files.push(...asStringArray(source.service_files));
+    resolved.test_files.push(...asStringArray(source.test_files));
+  };
+  for (const ref of asStringArray(entry.profile_refs)) merge(profiles[ref]);
+  merge(entry);
+  resolved.openapi = [...new Set(resolved.openapi)];
+  resolved.prisma_models = [...new Set(resolved.prisma_models)];
+  resolved.service_files = [...new Set(resolved.service_files)];
+  resolved.test_files = [...new Set(resolved.test_files)];
+  return resolved;
+}
+
+function getContractTables() {
+  return fs
+    .readdirSync(TABLES_DIR)
+    .filter((file) => file.endsWith('-contract.yaml'))
+    .sort((a, b) => a.localeCompare(b))
+    .map((file) => {
+      const yamlPath = path.join(TABLES_DIR, file);
+      const mdPath = path.join(KERNEL_ROOT, file.replace(/\.yaml$/, '.md'));
+      return { yamlPath, mdPath, doc: readYaml(yamlPath) };
+    });
+}
+
+function main() {
+  const issues = [];
+  const contractTables = getContractTables();
+  const catalog = readYaml(RULE_CATALOG_PATH);
+  const evidence = readYaml(RULE_EVIDENCE_PATH);
+  const enums = readYaml(DOMAIN_ENUMS_PATH);
+  const stateMachines = readYaml(DOMAIN_STATE_MACHINES_PATH);
+  const alignment = readYaml(OPEN_SPEC_ALIGNMENT_MAP_PATH);
+  const commitAuthorization = readYaml(COMMIT_AUTHORIZATION_MATRIX_PATH);
+
+  if (catalog.id_pattern !== EXPECTED_ID_PATTERN) {
+    pushIssue(issues, 'rule-catalog', `id_pattern must equal ${EXPECTED_ID_PATTERN}`);
   }
-  if (!value || typeof value !== 'object') return;
-  for (const [key, inner] of Object.entries(value)) {
-    if (key === 'source_rule' || key === 'rule_id') {
-      if (typeof inner === 'string' && inner.trim()) sink.add(inner.trim());
+
+  const catalogRules = Array.isArray(catalog.rules) ? catalog.rules : [];
+  const catalogRuleIds = new Set();
+  for (const row of catalogRules) {
+    const ruleId = String(row.rule_id || '').trim();
+    if (!RULE_ID_PATTERN.test(ruleId)) {
+      pushIssue(issues, 'rule-catalog', `invalid rule_id: ${ruleId || '<empty>'}`);
       continue;
     }
-    if (key === 'source_rules' && Array.isArray(inner)) {
-      for (const item of inner) {
-        if (typeof item === 'string' && item.trim()) sink.add(item.trim());
-      }
+    if (catalogRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `duplicate rule_id: ${ruleId}`);
+    catalogRuleIds.add(ruleId);
+    const source = String(row.source || '').trim();
+    if (!source) {
+      pushIssue(issues, 'rule-catalog', `${ruleId}: source is required`);
+    } else if (!fs.existsSync(path.join(PROJECT_ROOT, source))) {
+      pushIssue(issues, 'rule-catalog', `${ruleId}: source file not found ${source}`);
+    }
+  }
+
+  const contractRuleIds = new Set();
+  for (const contract of contractTables) {
+    if (!fs.existsSync(contract.mdPath)) {
+      pushIssue(issues, 'contract-doc', `missing contract doc ${rel(contract.mdPath)}`);
       continue;
     }
-    collectSourceRules(inner, sink);
-  }
-}
-
-for (const rel of REQUIRED_KERNEL_DOCS.map((file) => path.posix.join('spec/realm/kernel', file))) {
-  if (!fileExists(rel)) fail(`missing kernel doc: ${rel}`);
-}
-
-for (const rel of REQUIRED_TABLES.map((file) => path.posix.join('spec/realm/kernel/tables', file))) {
-  if (!fileExists(rel)) fail(`missing kernel table: ${rel}`);
-}
-
-for (const rel of THIN_DOMAIN_DOCS.map((file) => path.posix.join('spec/realm', file))) {
-  if (!fileExists(rel)) fail(`missing realm domain doc: ${rel}`);
-}
-
-const contractDocs = REQUIRED_KERNEL_DOCS.filter((file) => file.endsWith('-contract.md'));
-const definedRuleIds = new Set();
-for (const file of contractDocs) {
-  const rel = path.posix.join('spec/realm/kernel', file);
-  for (const ruleId of collectRuleHeadings(rel)) {
-    if (!RULE_ID_RE.test(ruleId)) fail(`${rel}: invalid rule heading ${ruleId}`);
-    definedRuleIds.add(ruleId);
-  }
-}
-
-const ruleCatalog = readYaml('spec/realm/kernel/tables/rule-catalog.yaml');
-if (String(ruleCatalog?.id_pattern || '') !== '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-[0-9]{3}$') {
-  fail('spec/realm/kernel/tables/rule-catalog.yaml: id_pattern must match current rule families');
-}
-
-const catalogRuleIds = new Set();
-for (const row of Array.isArray(ruleCatalog?.rules) ? ruleCatalog.rules : []) {
-  const ruleId = String(row?.rule_id || '').trim();
-  if (!RULE_ID_RE.test(ruleId)) {
-    fail(`rule-catalog: invalid rule_id ${ruleId || '<empty>'}`);
-    continue;
-  }
-  catalogRuleIds.add(ruleId);
-  const source = String(row?.source || '').trim();
-  if (!source) fail(`rule-catalog: ${ruleId} missing source`);
-  else if (!fileExists(source)) fail(`rule-catalog: ${ruleId} source file not found ${source}`);
-}
-
-for (const file of REQUIRED_TABLES.filter((entry) => entry.endsWith('-contract.yaml'))) {
-  const rel = path.posix.join('spec/realm/kernel/tables', file);
-  const doc = readYaml(rel);
-  const mdRel = path.posix.join('spec/realm/kernel', file.replace(/\.yaml$/u, '.md'));
-  const headings = collectRuleHeadings(mdRel);
-  for (const row of Array.isArray(doc?.rules) ? doc.rules : []) {
-    const ruleId = String(row?.rule_id || '').trim();
-    if (!RULE_ID_RE.test(ruleId)) {
-      fail(`${rel}: invalid rule_id ${ruleId || '<empty>'}`);
-      continue;
-    }
-    if (!headings.has(ruleId)) fail(`${mdRel}: missing heading for ${ruleId}`);
-    if (!definedRuleIds.has(ruleId)) fail(`${rel}: rule_id ${ruleId} missing from kernel docs`);
-  }
-}
-
-for (const ruleId of definedRuleIds) {
-  if (!catalogRuleIds.has(ruleId)) fail(`rule-catalog: missing catalog entry for ${ruleId}`);
-}
-for (const ruleId of catalogRuleIds) {
-  if (!definedRuleIds.has(ruleId)) fail(`rule-catalog: unexpected catalog entry ${ruleId}`);
-}
-
-const sourceRuleRefs = new Set();
-for (const file of REQUIRED_TABLES) {
-  collectSourceRules(readYaml(path.posix.join('spec/realm/kernel/tables', file)), sourceRuleRefs);
-}
-for (const ref of sourceRuleRefs) {
-  if (!RULE_ID_RE.test(ref)) continue;
-  if (!definedRuleIds.has(ref)) fail(`kernel tables reference undefined rule ${ref}`);
-}
-
-const ruleEvidence = readYaml('spec/realm/kernel/tables/rule-evidence.yaml');
-const evidenceCatalog = ruleEvidence?.evidence_catalog && typeof ruleEvidence.evidence_catalog === 'object'
-  ? ruleEvidence.evidence_catalog
-  : null;
-if (!evidenceCatalog) {
-  fail('rule-evidence.yaml: evidence_catalog must be an object');
-} else {
-  for (const [name, entry] of Object.entries(evidenceCatalog)) {
-    const command = String(entry?.command || '').trim();
-    const targetPath = String(entry?.path || '').trim();
-    if (!command) fail(`rule-evidence.yaml: evidence_catalog.${name} missing command`);
-    if (!targetPath) fail(`rule-evidence.yaml: evidence_catalog.${name} missing path`);
-    else if (!fileExists(targetPath)) fail(`rule-evidence.yaml: evidence_catalog.${name} path does not exist: ${targetPath}`);
-  }
-}
-
-const coveredRuleIds = new Set();
-for (const row of Array.isArray(ruleEvidence?.rules) ? ruleEvidence.rules : []) {
-  const ruleId = String(row?.rule_id || '').trim();
-  const status = String(row?.status || '').trim().toLowerCase();
-  const refs = Array.isArray(row?.evidence_refs) ? row.evidence_refs : [];
-  if (!RULE_ID_RE.test(ruleId)) {
-    fail(`rule-evidence.yaml: invalid rule_id ${ruleId || '<empty>'}`);
-    continue;
-  }
-  if (!definedRuleIds.has(ruleId)) fail(`rule-evidence.yaml: unknown rule ${ruleId}`);
-  if (coveredRuleIds.has(ruleId)) fail(`rule-evidence.yaml: duplicate rule row ${ruleId}`);
-  coveredRuleIds.add(ruleId);
-  if (status !== 'covered' && status !== 'na') fail(`rule-evidence.yaml: ${ruleId} invalid status ${status || '<empty>'}`);
-  if (status === 'covered' && refs.length === 0) fail(`rule-evidence.yaml: ${ruleId} covered row requires evidence_refs`);
-  for (const ref of refs.map((item) => String(item || '').trim())) {
-    if (!ref) fail(`rule-evidence.yaml: ${ruleId} contains empty evidence ref`);
-    else if (!evidenceCatalog || !Object.prototype.hasOwnProperty.call(evidenceCatalog, ref)) {
-      fail(`rule-evidence.yaml: ${ruleId} references unknown evidence ref ${ref}`);
-    }
-  }
-}
-for (const ruleId of definedRuleIds) {
-  if (!coveredRuleIds.has(ruleId)) fail(`rule-evidence.yaml: missing row for ${ruleId}`);
-}
-
-const alignmentMap = readYaml('spec/realm/kernel/tables/open-spec-alignment-map.yaml');
-if (!Array.isArray(alignmentMap?.mappings) || alignmentMap.mappings.length === 0) {
-  fail('open-spec-alignment-map.yaml: mappings must not be empty');
-}
-
-for (const file of THIN_DOMAIN_DOCS) {
-  const rel = path.posix.join('spec/realm', file);
-  const content = readText(rel);
-  for (const sectionName of ['Normative Imports', 'Scope', 'Reading Path', 'Non-goals']) {
-    if (!hasSection(content, sectionName)) fail(`${rel}: missing section ${sectionName}`);
-  }
-  if ([...content.matchAll(RULE_HEADING_RE)].length > 0) fail(`${rel}: thin domain doc must not define kernel rule headings`);
-  const refs = new Set([...content.matchAll(RULE_REF_RE)].map((match) => match[0]));
-  if (refs.size === 0) fail(`${rel}: must reference at least one kernel rule`);
-  for (const ruleId of refs) {
-    if (!definedRuleIds.has(ruleId)) fail(`${rel}: references undefined rule ${ruleId}`);
-  }
-}
-
-for (const scanRoot of [realmRoot, path.join(cwd, 'apps', 'forge', 'spec'), path.join(cwd, 'spec', 'desktop')]) {
-  if (!fs.existsSync(scanRoot)) continue;
-  const queue = [scanRoot];
-  while (queue.length > 0) {
-    const current = queue.pop();
-    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
-      const absPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        queue.push(absPath);
+    const mdRuleIds = new Set(collectMarkdownRuleIds(contract.mdPath));
+    for (const rule of Array.isArray(contract.doc.rules) ? contract.doc.rules : []) {
+      const ruleId = String(rule.rule_id || '').trim();
+      if (!RULE_ID_PATTERN.test(ruleId)) {
+        pushIssue(issues, 'contract-table', `${rel(contract.yamlPath)} has invalid rule_id ${ruleId || '<empty>'}`);
         continue;
       }
-      if (!entry.isFile()) continue;
-      const content = fs.readFileSync(absPath, 'utf8');
-      for (const pattern of FORBIDDEN_PATTERNS) {
-        if (pattern.test(content)) {
-          fail(`${path.relative(cwd, absPath)} contains forbidden legacy reference matching ${pattern}`);
-        }
+      if (contractRuleIds.has(ruleId)) pushIssue(issues, 'contract-table', `duplicate contract rule_id ${ruleId}`);
+      contractRuleIds.add(ruleId);
+      if (!mdRuleIds.has(ruleId)) {
+        pushIssue(issues, 'contract-doc', `${rel(contract.mdPath)} missing heading for ${ruleId}`);
       }
     }
   }
+
+  if (catalogRuleIds.size !== contractRuleIds.size) {
+    pushIssue(issues, 'rule-catalog', `catalog rule count ${catalogRuleIds.size} does not match contract total ${contractRuleIds.size}`);
+  }
+  for (const ruleId of contractRuleIds) {
+    if (!catalogRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `missing catalog entry for ${ruleId}`);
+  }
+  for (const ruleId of catalogRuleIds) {
+    if (!contractRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `unexpected catalog entry ${ruleId}`);
+  }
+
+  const evidenceRules = evidence.rules ?? {};
+  const profiles = evidence.profiles ?? {};
+  for (const ruleId of contractRuleIds) {
+    const entry = evidenceRules[ruleId];
+    if (!entry) {
+      pushIssue(issues, 'rule-evidence', `missing evidence entry for ${ruleId}`);
+      continue;
+    }
+    const resolved = resolveEvidence(profiles, entry);
+    if (!String(entry.spec_anchor || '').trim()) {
+      pushIssue(issues, 'rule-evidence', `${ruleId}: spec_anchor is required`);
+    } else {
+      const { filePath, anchor } = splitAnchor(String(entry.spec_anchor || ''));
+      const absPath = path.join(PROJECT_ROOT, filePath);
+      if (!fs.existsSync(absPath)) {
+        pushIssue(issues, 'rule-evidence', `${ruleId}: spec_anchor file not found ${filePath}`);
+      } else if (anchor && !hasAnchor(fs.readFileSync(absPath, 'utf8'), anchor)) {
+        pushIssue(issues, 'rule-evidence', `${ruleId}: spec_anchor missing anchor ${anchor}`);
+      }
+    }
+    if (resolved.openapi.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: openapi evidence is empty`);
+    if (resolved.prisma_models.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: prisma evidence is empty`);
+    if (resolved.service_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: service evidence is empty`);
+    if (resolved.test_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: test evidence is empty`);
+  }
+  for (const extraRuleId of Object.keys(evidenceRules)) {
+    if (!contractRuleIds.has(extraRuleId)) pushIssue(issues, 'rule-evidence', `unexpected evidence entry ${extraRuleId}`);
+  }
+
+  for (const row of Array.isArray(enums.enums) ? enums.enums : []) {
+    const enumId = String(row.enum_id || '').trim();
+    if (!enumId) pushIssue(issues, 'domain-enums', 'enum_id must be non-empty');
+    if (asStringArray(row.values).length === 0) pushIssue(issues, 'domain-enums', `${enumId}: values must be non-empty`);
+    for (const ruleId of asStringArray(row.source_rules)) {
+      if (!contractRuleIds.has(ruleId)) pushIssue(issues, 'domain-enums', `${enumId}: unknown source rule ${ruleId}`);
+    }
+  }
+
+  for (const row of Array.isArray(stateMachines.state_machines) ? stateMachines.state_machines : []) {
+    const machineId = String(row.machine_id || '').trim();
+    if (!machineId) pushIssue(issues, 'domain-state-machines', 'machine_id must be non-empty');
+    if (asStringArray(row.states).length === 0) pushIssue(issues, 'domain-state-machines', `${machineId}: states must be non-empty`);
+    for (const ruleId of asStringArray(row.source_rules)) {
+      if (!contractRuleIds.has(ruleId)) pushIssue(issues, 'domain-state-machines', `${machineId}: unknown source rule ${ruleId}`);
+    }
+  }
+
+  const runModeRows = Array.isArray(commitAuthorization.run_modes) ? commitAuthorization.run_modes : [];
+  const appPolicyRows = Array.isArray(commitAuthorization.app_policies) ? commitAuthorization.app_policies : [];
+  const runModes = new Map();
+
+  if (runModeRows.length === 0) pushIssue(issues, 'commit-authorization-matrix', 'run_modes must be non-empty');
+  for (const row of runModeRows) {
+    const runMode = String(row.run_mode || '').trim();
+    if (!runMode) {
+      pushIssue(issues, 'commit-authorization-matrix', 'run_mode must be non-empty');
+      continue;
+    }
+    if (runModes.has(runMode)) {
+      pushIssue(issues, 'commit-authorization-matrix', `duplicate run_mode ${runMode}`);
+      continue;
+    }
+    runModes.set(runMode, row);
+    if (typeof row.allow_state_commit !== 'boolean') {
+      pushIssue(issues, 'commit-authorization-matrix', `${runMode}: allow_state_commit must be boolean`);
+    }
+    if (typeof row.allow_history_append !== 'boolean') {
+      pushIssue(issues, 'commit-authorization-matrix', `${runMode}: allow_history_append must be boolean`);
+    }
+    for (const ruleId of asStringArray(row.source_rules)) {
+      if (!contractRuleIds.has(ruleId)) {
+        pushIssue(issues, 'commit-authorization-matrix', `${runMode}: unknown source rule ${ruleId}`);
+      }
+    }
+  }
+
+  for (const requiredRunMode of ['REPLAY', 'PRIVATE_CONTINUITY', 'CANON_MUTATION']) {
+    if (!runModes.has(requiredRunMode)) {
+      pushIssue(issues, 'commit-authorization-matrix', `missing run_mode ${requiredRunMode}`);
+    }
+  }
+
+  const seenPolicies = new Set();
+  if (appPolicyRows.length === 0) pushIssue(issues, 'commit-authorization-matrix', 'app_policies must be non-empty');
+  for (const row of appPolicyRows) {
+    const appId = String(row.app_id || '').trim();
+    const schemaId = String(row.schema_id || '').trim();
+    const schemaVersion = String(row.schema_version || '').trim();
+    const effectClass = String(row.effect_class || '').trim();
+    const runMode = String(row.run_mode || '').trim();
+    const policyId = [appId, schemaId, schemaVersion, effectClass].join('|');
+
+    if (!appId || !schemaId || !schemaVersion || !effectClass) {
+      pushIssue(issues, 'commit-authorization-matrix', `invalid app_policies row ${policyId || '<empty>'}`);
+      continue;
+    }
+    if (seenPolicies.has(policyId)) {
+      pushIssue(issues, 'commit-authorization-matrix', `duplicate app policy ${policyId}`);
+      continue;
+    }
+    seenPolicies.add(policyId);
+
+    if (!['MEMORY_ONLY', 'STATE_ONLY', 'STATE_AND_HISTORY'].includes(effectClass)) {
+      pushIssue(issues, 'commit-authorization-matrix', `${policyId}: invalid effect_class ${effectClass}`);
+    }
+
+    const runModeRow = runModes.get(runMode);
+    if (!runModeRow) {
+      pushIssue(issues, 'commit-authorization-matrix', `${policyId}: unknown run_mode ${runMode}`);
+      continue;
+    }
+
+    const allowedScopes = asStringArray(row.allowed_scopes);
+    const allowedMemoryTypes = asStringArray(row.allowed_memory_types);
+    const runModeAllowedMemoryTypes = asStringArray(runModeRow.allowed_memory_types);
+
+    if (allowedScopes.length === 0) {
+      pushIssue(issues, 'commit-authorization-matrix', `${policyId}: allowed_scopes must be non-empty`);
+    }
+    if (effectClass === 'MEMORY_ONLY' && allowedMemoryTypes.length === 0) {
+      pushIssue(issues, 'commit-authorization-matrix', `${policyId}: MEMORY_ONLY policies must declare allowed_memory_types`);
+    }
+    if ((effectClass === 'STATE_ONLY' || effectClass === 'STATE_AND_HISTORY') && runModeRow.allow_state_commit !== true) {
+      pushIssue(issues, 'commit-authorization-matrix', `${policyId}: ${runMode} cannot authorize shared state writes`);
+    }
+    if (effectClass === 'STATE_AND_HISTORY' && runModeRow.allow_history_append !== true) {
+      pushIssue(issues, 'commit-authorization-matrix', `${policyId}: ${runMode} cannot authorize world history append`);
+    }
+    for (const memoryType of allowedMemoryTypes) {
+      if (!runModeAllowedMemoryTypes.includes(memoryType)) {
+        pushIssue(issues, 'commit-authorization-matrix', `${policyId}: memory type ${memoryType} exceeds run mode ${runMode}`);
+      }
+    }
+    for (const ruleId of asStringArray(row.source_rules)) {
+      if (!contractRuleIds.has(ruleId)) {
+        pushIssue(issues, 'commit-authorization-matrix', `${policyId}: unknown source rule ${ruleId}`);
+      }
+    }
+  }
+
+  const alignmentMappings = Array.isArray(alignment.mappings) ? alignment.mappings : [];
+  if (alignmentMappings.length === 0) pushIssue(issues, 'alignment-map', 'mappings must be non-empty');
+  for (const row of alignmentMappings) {
+    const externalId = String(row.external_id || '').trim();
+    const externalPath = String(row.external_path || '').trim();
+    const localAnchor = String(row.local_anchor || '').trim();
+    if (!externalId) pushIssue(issues, 'alignment-map', 'external_id must be non-empty');
+    if (!externalPath) pushIssue(issues, 'alignment-map', `${externalId}: external_path is required`);
+    if (!localAnchor) {
+      pushIssue(issues, 'alignment-map', `${externalId}: local_anchor is required`);
+    } else {
+      const { filePath, anchor } = splitAnchor(localAnchor);
+      const absPath = path.join(PROJECT_ROOT, filePath);
+      if (!fs.existsSync(absPath)) {
+        pushIssue(issues, 'alignment-map', `${externalId}: local anchor file not found ${filePath}`);
+      } else if (anchor && !hasAnchor(fs.readFileSync(absPath, 'utf8'), anchor)) {
+        pushIssue(issues, 'alignment-map', `${externalId}: local anchor missing ${anchor}`);
+      }
+    }
+    if (String(row.coverage_status || '').trim() !== 'mapped') {
+      pushIssue(issues, 'alignment-map', `${externalId}: coverage_status must be mapped`);
+    }
+  }
+
+  for (const docPath of [...DOMAIN_DOCS, ...BRIDGE_DOCS]) {
+    if (!fs.existsSync(docPath)) pushIssue(issues, 'docs', `missing doc ${rel(docPath)}`);
+  }
+
+  if (issues.length > 0) {
+    for (const issue of issues) {
+      console.error(`[${issue.scope}] ${issue.message}`);
+    }
+    process.exit(1);
+  }
+
+  console.log(`Realm kernel consistency check passed (${contractTables.length} contract tables).`);
 }
 
-const generatedDir = path.join(kernelRoot, 'generated');
-if (!fs.existsSync(generatedDir)) fail('spec/realm/kernel/generated directory is missing');
-
-if (failed) process.exit(1);
-console.log('realm-spec-kernel-consistency: OK');
+main();

@@ -103,11 +103,6 @@ const buildDraftPayload = () => ({
       secondary: [],
     },
   },
-  workflowState: {
-    workspaceVersion: 'ws-1',
-    createStep: 'REVIEW',
-    selectedCharacters: [],
-  },
 });
 
 describe('world-data-client', () => {
@@ -159,6 +154,41 @@ describe('world-data-client', () => {
     };
     await wdc.createWorldDraft(body);
     expect(mockWorldControlController.worldControlControllerCreateDraft).toHaveBeenCalledWith(body);
+  });
+
+  it('createWorldDraft forwards explicit future historical events', async () => {
+    await wdc.createWorldDraft({
+      sourceType: 'TEXT',
+      sourceRef: 'manual',
+      draftPayload: {
+        ...buildDraftPayload(),
+        historyDraft: {
+          events: {
+            primary: [],
+            secondary: [],
+            futureHistorical: [{ eventType: 'world.future', title: 'Future', happenedAt: '2026-03-24T00:00:00.000Z' }],
+          },
+        },
+      },
+    });
+
+    expect(mockWorldControlController.worldControlControllerCreateDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        draftPayload: expect.objectContaining({
+          historyDraft: expect.objectContaining({
+            events: expect.objectContaining({
+              futureHistorical: [
+                expect.objectContaining({
+                  eventType: 'world.future',
+                  title: 'Future',
+                  happenedAt: '2026-03-24T00:00:00.000Z',
+                }),
+              ],
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
   it('getWorldDraft passes draftId', async () => {

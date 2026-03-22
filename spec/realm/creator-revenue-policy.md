@@ -1,24 +1,42 @@
+---
+id: SPEC-REALM-CREATOR-REVENUE-POLICY-001
+title: Realm Creator Revenue Policy Bridge
+status: active
+owner: "@team"
+updated: 2026-03-16
+---
+
 # Creator Revenue Policy
 
-> Domain: Realm / Economy
+## Normative Imports
 
-## 0. Normative Imports
+- `kernel/economy-contract.md` (`R-ECON-001..011`)
 
-- `kernel/economy-contract.md`: `R-ECON-001`, `R-ECON-002`, `R-ECON-003`, `R-ECON-004`
-- `kernel/tables/revenue-event-types.yaml`: revenue event types
-- `kernel/tables/share-plan-fields.yaml`: share plan fields
+## Scope
 
-## 1. Scope
+Bridge-only policy alignment. This file preserves the legacy open revenue anchors while mapping them onto the current kernel execution anchors and tables.
 
-Creator Revenue Policy defines revenue event types, share plan constraints, and append-only accounting for creator-facing settlement.
+## Mapping Declaration
 
-## 2. Reading Path
+| Legacy Open Anchor | Current Kernel Anchor |
+| --- | --- |
+| `R-ECON-010` | `R-ECON-003`, `R-ECON-010` |
+| `R-ECON-020` | `R-ECON-003`, `R-ECON-004` |
+| `R-ECON-021` | `R-ECON-004` |
+| `R-ECON-022` | `R-ECON-005`, `R-ECON-009` |
+| `R-ECON-023` | `R-ECON-006`, `R-ECON-008` |
+| `R-ECON-024` | `R-ECON-003`, `R-ECON-010` |
+| `R-ECON-025` | `R-ECON-004`, `R-ECON-010` |
+| `R-ECON-040` | `R-ECON-003`, `R-ECON-004` |
+
+## Reading Path
 
 1. `kernel/economy-contract.md`
-2. `kernel/tables/revenue-event-types.yaml`
-3. `kernel/tables/share-plan-fields.yaml`
-4. `world-creator-economy.md`
+2. `kernel/tables/rule-catalog.yaml`
+3. `agent.md`
 
-## 3. Non-goals
+## Non-goals
 
-No runtime AI compute billing, hidden settlement inside narrative history, or second ledger model is defined here.
+- No independent share-plan model in open spec.
+- No override of backend ledger semantics.
+- No duplication of open-spec execution formulas.

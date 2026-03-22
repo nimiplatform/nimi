@@ -26,7 +26,7 @@ world-drafts:
     status: existing
     feature: world-create
     controller: world-control.controller.ts
-    description: Create new world draft
+    description: Create minimal publish-candidate world draft (`importSource`, `truthDraft`, `stateDraft`, `historyDraft` only)
 
   - method: GET
     path: /api/world-drafts
@@ -40,14 +40,14 @@ world-drafts:
     status: existing
     feature: world-create
     controller: world-control.controller.ts
-    description: Get draft detail
+    description: Get minimal publish-candidate draft detail (no workflow/editor process state)
 
   - method: PATCH
     path: /api/world-drafts/{draftId}
     status: existing
     feature: world-create
     controller: world-control.controller.ts
-    description: Update draft
+    description: Update minimal publish-candidate draft
 
   - method: POST
     path: /api/world-drafts/{draftId}/publish

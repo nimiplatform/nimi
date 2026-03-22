@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-WSTATE-001
+title: Realm World State Kernel Contract
+status: active
+owner: "@team"
+updated: 2026-03-22
+---
+
 # World State Contract
 
 > Domain: world-state
@@ -5,7 +13,7 @@
 
 ## Scope
 
-This contract defines the shared present-state layer for `nimi` Realm open spec.
+This contract defines the shared present-state layer for `nimi-realm`.
 
 ## R-WSTATE-001
 

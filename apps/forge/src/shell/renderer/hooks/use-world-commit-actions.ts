@@ -43,7 +43,6 @@ type SaveDraftInput = {
   sourceType: ForgeCreateWorldDraftInput['sourceType'];
   sourceRef: string;
   status: 'DRAFT' | 'SYNTHESIZE' | 'REVIEW' | 'PUBLISH' | 'FAILED';
-  pipelineState: NonNullable<ForgeCreateWorldDraftInput['pipelineState']>;
   draftPayload: NonNullable<ForgeCreateWorldDraftInput['draftPayload']>;
   targetWorldId?: string;
 };
@@ -54,7 +53,6 @@ export function useWorldCommitActions() {
       if (input.draftId) {
         const patch: ForgeUpdateWorldDraftInput = {
           status: input.status,
-          pipelineState: input.pipelineState,
           draftPayload: input.draftPayload,
         };
         return await updateWorldDraft(input.draftId, patch);
@@ -63,7 +61,6 @@ export function useWorldCommitActions() {
         sourceType: input.sourceType,
         sourceRef: input.sourceRef,
         targetWorldId: input.targetWorldId,
-        pipelineState: input.pipelineState,
         draftPayload: input.draftPayload,
       };
       return await createWorldDraft(payload);

@@ -1,0 +1,82 @@
+version: 2026-03-10
+owner: '@team'
+description: >
+  Registry of backend API modules that are NOT governed by Realm Kernel Spec AISC rules
+  but are required for product functionality. These modules are infrastructure or
+  product features outside the core world/agent/social/economy/chat domains.
+
+modules:
+  - module: ExploreModule
+    path: nimi-backend/apps/api/src/modules/explore
+    reason: Search/discovery aggregation layer; no domain-specific AISC rules apply
+    product_area: discovery
+
+  - module: InvitationModule
+    path: nimi-backend/apps/api/src/modules/invitation
+    reason: Invitation system for user onboarding; not in kernel scope
+    product_area: growth
+
+  - module: WorldSurfaceModule
+    path: nimi-backend/apps/api/src/modules/world-surface
+    reason: World surface rendering layer; primarily serves UI composition
+    product_area: world-presentation
+
+  - module: PostModule
+    path: nimi-backend/apps/api/src/modules/post
+    reason: Content publishing system; not governed by kernel contracts
+    product_area: content
+
+  - module: SearchModule
+    path: nimi-backend/apps/api/src/modules/search
+    reason: Full-text search infrastructure; not in kernel scope
+    product_area: discovery
+
+  - module: TranslationModule
+    path: nimi-backend/apps/api/src/modules/translation
+    reason: Content translation infrastructure; not in kernel scope
+    product_area: i18n
+
+  - module: MediaModule
+    path: nimi-backend/apps/api/src/modules/media
+    reason: Media upload/processing infrastructure; not in kernel scope
+    product_area: infrastructure
+
+  - module: NotificationModule
+    path: nimi-backend/apps/api/src/modules/notification
+    reason: Push notification delivery; not in kernel scope
+    product_area: infrastructure
+
+  - module: DiscoveryEngineModule
+    path: nimi-backend/libs/domains/discovery-engine
+    reason: Recommendation/embedding engine; not in kernel scope
+    product_area: discovery
+
+  - module: GovernanceModule
+    path: nimi-backend/apps/api/src/modules/governance
+    reason: Content moderation/reporting; not in kernel scope
+    product_area: trust-safety
+
+  - module: CoreModule
+    path: nimi-backend/libs/core
+    reason: Shared infrastructure utilities (Redis, config, health); not in kernel scope
+    product_area: infrastructure
+
+  - module: BlockchainModule
+    path: nimi-backend/libs/infra/blockchain
+    reason: On-chain integration infrastructure; not in kernel scope
+    product_area: blockchain
+
+  - module: IndexerApp
+    path: nimi-backend/apps/indexer
+    reason: Blockchain event indexer application; not in kernel scope
+    product_area: blockchain
+
+  - module: AssetDomainModule
+    path: nimi-backend/libs/domains/asset
+    reason: On-chain asset management domain; not in kernel scope
+    product_area: blockchain
+
+  - module: AssetSyncSchedulerModule
+    path: nimi-backend/apps/scheduler/src/modules/asset-sync
+    reason: Blockchain asset synchronization scheduler; not in kernel scope
+    product_area: blockchain

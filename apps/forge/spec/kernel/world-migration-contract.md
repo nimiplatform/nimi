@@ -19,6 +19,8 @@ World-Studio (`world.nimi.world-studio`) is a runtime mod in the desktop app. Fo
 
 Forge no longer exposes world create/maintain as isolated top-level creator flows. They are embedded inside a higher-level **Forge workspace shell** that owns local review drafts, import evidence, agent drafts, and publish planning.
 
+Realm `world-drafts` remain available, but only as minimal publish candidates for `Truth / World State / World History`. Forge-local workspace state remains authoritative for editor workflow, extraction progress, and asset generation.
+
 ## FG-WORLD-002: Data Query Rewrite
 
 World-Studio accesses backend via `hookClient.data.query(capabilityId, params)`. Forge replaces these with direct SDK realm client calls.
@@ -85,6 +87,12 @@ Inherits from WS-TASK-001 through WS-TASK-006:
 - Single-flight execution (max 1 active task)
 - Pause/resume/cancel for Phase 1 extraction
 - Checkpoint-based recovery on reload
+
+### Draft Persistence Boundary
+
+- Forge local workspace persists: `createStep`, extraction/checkpoint progress, review UI state, selected start-time/editor choices, asset generation state
+- Realm `world-drafts` persist only: `importSource`, `truthDraft`, `stateDraft`, `historyDraft`
+- Resuming from a remote draft restores only minimal reviewable candidate data; it does not reconstruct full editor process state
 
 ## FG-WORLD-004: MAINTAIN Pipeline
 
@@ -180,5 +188,6 @@ Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine
 
 `media-bindings` remain world-display APIs only:
 - they bind existing assets, or create assets inline for world display during world workflows
+- they are not part of Realm `world-draft` payloads
 - they do not provide the canonical asset reference for social post publishing
 - post publishing references `Post.media[].assetId` directly

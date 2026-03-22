@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-TRANSIT-001
+title: Realm Transit Kernel Contract
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
+
 # Transit Contract
 
 > Domain: transit
@@ -5,7 +13,7 @@
 
 ## Scope
 
-This contract defines cross-world continuity transfer in `nimi` Realm open spec.
+This contract defines cross-world continuity transfer in `nimi-realm`.
 
 ## R-TRANSIT-001
 

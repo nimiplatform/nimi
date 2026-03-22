@@ -1,14 +1,14 @@
 version: 1
-updated_at: '2026-03-22'
+updated_at: 2026-03-22
 owner: '@team'
-description: Registry of acknowledged under-specified items after the Realm hard-cut sync.
+description: Registry of acknowledged under-specified items after the hard-cut realm refactor.
 under_spec:
   - id: U1
     rule_id: R-WSTATE-003
     category: under-spec
     status: acknowledged
-    summary: Entity and relation state schemas remain app-specific
-    detail: ENTITY and RELATION durable state schemas are intentionally introduced through an explicit schema registry instead of a universal JSON shape.
+    summary: World State relation scope shape remains intentionally narrow
+    detail: ENTITY and RELATION durable state schemas are intentionally app-specific and will be introduced via explicit schema registry, not via one universal JSON shape.
     impact: medium
     resolution: define schema registry per authorized app integration
     deferred_to: world-state-schema-registry
@@ -16,8 +16,8 @@ under_spec:
     rule_id: R-WHIST-003
     category: under-spec
     status: acknowledged
-    summary: Canonical happened-fact taxonomy still needs a common event catalog
-    detail: Provenance envelope is fixed, but the cross-app event taxonomy for canonical world history remains intentionally deferred.
+    summary: canonical happened-fact taxonomy still needs a common event catalog
+    detail: provenance envelope is fixed, but the cross-app event taxonomy for canonical world history is intentionally deferred.
     impact: high
     resolution: define shared history event catalog after first world-connected app integrations land
     deferred_to: world-history-event-catalog

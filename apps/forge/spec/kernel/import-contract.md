@@ -41,6 +41,7 @@ The Novel Text import pipeline SHALL:
 9. Support two extraction modes: Auto (all chapters, review at end) and Manual (pause per chapter).
 10. Persist accumulator state to localStorage for crash recovery.
 11. End in a local reviewable draft state; publish happens only after explicit user confirmation.
+12. When publishing world creation, only the minimal publish candidate may be sent to Realm draft storage; extraction workflow state stays local.
 
 ### FG-IMPORT-003 — Source Fidelity Manifest
 
@@ -79,6 +80,7 @@ This means:
 - canonical review drafts do **not** stay inside `useImportSessionStore`
 - Character Card and Novel imports both end by updating the current workspace review state
 - publish reads the unified workspace draft truth, not the import page's transient local state
+- Realm `world-drafts` receive only the final minimal candidate payload, not parser/extractor workflow internals
 
 ### FG-IMPORT-008 — Publish Safety
 

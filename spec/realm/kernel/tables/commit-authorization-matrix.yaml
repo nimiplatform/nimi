@@ -43,3 +43,11 @@ app_policies:
     allowed_scopes: [WORLD]
     allowed_memory_types: []
     source_rules: [R-WSTATE-005, R-WSTATE-006, R-WHIST-004]
+  - app_id: forge
+    schema_id: agent.memory.commit
+    schema_version: '1'
+    effect_class: MEMORY_ONLY
+    run_mode: CANON_MUTATION
+    allowed_scopes: [WORLD]
+    allowed_memory_types: [PUBLIC_SHARED, WORLD_SHARED, DYADIC]
+    source_rules: [R-MEM-004, R-MEM-006]

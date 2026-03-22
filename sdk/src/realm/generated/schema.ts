@@ -3918,9 +3918,6 @@ export type components = {
         };
         CreateWorldDraftDto: {
             draftPayload?: components["schemas"]["WorldDraftPayloadDto"];
-            pipelineState?: {
-                [key: string]: unknown;
-            };
             sourceRef?: string;
             /** @enum {string} */
             sourceType: "TEXT" | "FILE";
@@ -5365,9 +5362,6 @@ export type components = {
         };
         UpdateWorldDraftDto: {
             draftPayload?: components["schemas"]["WorldDraftPayloadDto"];
-            pipelineState?: {
-                [key: string]: unknown;
-            };
             /** @enum {string} */
             status?: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
         };
@@ -5883,17 +5877,6 @@ export type components = {
             score: components["schemas"]["WorldComputedScoreDto"];
             time: components["schemas"]["WorldComputedTimeDto"];
         };
-        WorldDraftAssetBindingsDraftDto: {
-            characterPortraits?: {
-                [key: string]: unknown;
-            };
-            locationImages?: {
-                [key: string]: unknown;
-            };
-            worldCover?: {
-                [key: string]: unknown;
-            };
-        };
         WorldDraftDetailDto: {
             createdAt: string;
             draftPayload?: {
@@ -5901,9 +5884,6 @@ export type components = {
             };
             id: string;
             ownerUserId: string;
-            pipelineState?: {
-                [key: string]: unknown;
-            };
             publishResult?: {
                 [key: string]: unknown;
             };
@@ -5917,15 +5897,33 @@ export type components = {
             updatedAt: string;
         };
         WorldDraftHistoryBucketsDto: {
-            primary: {
-                [key: string]: unknown;
-            }[];
-            secondary: {
-                [key: string]: unknown;
-            }[];
+            futureHistorical?: components["schemas"]["WorldDraftHistoryEventDto"][];
+            primary: components["schemas"]["WorldDraftHistoryEventDto"][];
+            secondary: components["schemas"]["WorldDraftHistoryEventDto"][];
         };
         WorldDraftHistoryDraftDto: {
             events: components["schemas"]["WorldDraftHistoryBucketsDto"];
+        };
+        WorldDraftHistoryEventDto: {
+            cause?: string;
+            characterRefs?: string[];
+            dependsOnEventIds?: string[];
+            eventId?: string;
+            eventType: string;
+            evidenceRefs?: {
+                [key: string]: unknown;
+            }[];
+            happenedAt: string;
+            locationRefs?: string[];
+            occurredAt?: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            process?: string;
+            result?: string;
+            summary?: string;
+            timeRef?: string;
+            title: string;
         };
         WorldDraftImportSourceDto: {
             sourceRef?: string;
@@ -5934,12 +5932,10 @@ export type components = {
             sourceType: "TEXT" | "FILE";
         };
         WorldDraftPayloadDto: {
-            assetBindingsDraft?: components["schemas"]["WorldDraftAssetBindingsDraftDto"];
             historyDraft: components["schemas"]["WorldDraftHistoryDraftDto"];
             importSource: components["schemas"]["WorldDraftImportSourceDto"];
             stateDraft: components["schemas"]["WorldDraftStateDraftDto"];
             truthDraft: components["schemas"]["WorldDraftTruthDraftDto"];
-            workflowState: components["schemas"]["WorldDraftWorkflowStateDto"];
         };
         WorldDraftStateDraftDto: {
             worldState: {
@@ -5964,22 +5960,28 @@ export type components = {
             agentRules: {
                 [key: string]: unknown;
             }[];
-            worldRules: {
-                [key: string]: unknown;
-            }[];
+            worldRules: components["schemas"]["WorldDraftTruthRuleDto"][];
         };
-        WorldDraftWorkflowStateDto: {
-            createStep?: string;
-            futureEventsText?: string;
-            parseJob?: {
+        WorldDraftTruthRuleDto: {
+            category: string;
+            conflictsWith?: string[];
+            dependsOn?: string[];
+            domain: string;
+            hardness: string;
+            overrides?: string;
+            priority?: number;
+            provenance: string;
+            reasoning?: string;
+            ruleKey: string;
+            scope: string;
+            sourceRef?: string;
+            statement: string;
+            structured?: {
                 [key: string]: unknown;
             };
-            phase1Artifact?: {
-                [key: string]: unknown;
-            };
-            selectedCharacters?: string[];
-            selectedStartTimeId?: string;
-            workspaceVersion: string;
+            title: string;
+            validFrom?: string;
+            validUntil?: string;
         };
         WorldEventEvidenceRefDto: {
             confidence: number;

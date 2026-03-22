@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-ASSET-001
+title: Realm Asset Kernel Contract
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
+
 # Asset Contract
 
 > Domain: asset
@@ -5,7 +13,7 @@
 
 ## Scope
 
-This contract defines creator-owned publishable assets in `nimi` Realm open spec.
+This contract defines creator-owned publishable assets in `nimi-realm`.
 
 ## R-ASSET-001
 

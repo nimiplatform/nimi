@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-INDEX-001
+title: Realm Kernel Index
+status: active
+owner: "@team"
+updated: 2026-03-22
+---
+
 # Realm Kernel Index
 
 ## Contracts
@@ -30,10 +38,6 @@
 - `tables/domain-state-machines.yaml`
 - `tables/open-spec-alignment-map.yaml`
 - `tables/under-spec-registry.yaml`
-- `tables/creator-key-tiers.yaml`
-- `tables/realm-asset-types.yaml`
-- `tables/revenue-event-types.yaml`
-- `tables/share-plan-fields.yaml`
 
 ## Generated
 
@@ -54,7 +58,3 @@
 - `generated/domain-state-machines.md`
 - `generated/open-spec-alignment-map.md`
 - `generated/under-spec-registry.md`
-- `generated/creator-key-tiers.md`
-- `generated/realm-asset-types.md`
-- `generated/revenue-event-types.md`
-- `generated/share-plan-fields.md`

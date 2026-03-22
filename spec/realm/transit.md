@@ -1,21 +1,27 @@
+---
+id: SPEC-REALM-TRANSIT-001
+title: Realm Transit Domain
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
+
 # Realm Transit Domain
 
-> Domain: Realm / Transit
+## Normative Imports
 
-## 0. Normative Imports
+- `kernel/transit-contract.md`: `R-TRANSIT-001..004`
 
-- `kernel/transit-contract.md`: `R-TRANSIT-001`, `R-TRANSIT-002`, `R-TRANSIT-003`, `R-TRANSIT-004`
-
-## 1. Scope
+## Scope
 
 Transit 负责跨世界连续性迁移，不负责 narrative 编排或补剧情逻辑。Creator world 之间不得直接跃迁，跨世界连续性必须经由 `OASIS` 这一默认返回点与中转锚点。
 
-## 2. Reading Path
+## Reading Path
 
 1. `kernel/transit-contract.md`
 2. `kernel/tables/transit-contract.yaml`
 3. `kernel/tables/domain-state-machines.yaml`
 
-## 3. Non-goals
+## Non-goals
 
 No time-gap fill, no synthetic story generation, and no local runtime checkpoint migration is defined here.

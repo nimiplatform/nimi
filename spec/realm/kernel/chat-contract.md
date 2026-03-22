@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-CHAT-001
+title: Realm Chat Kernel Contract
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
+
 # Chat Contract
 
 > Domain: chat
@@ -5,11 +13,11 @@
 
 ## Scope
 
-This contract defines the canonical Realm chat surface for `nimi` open spec.
+This contract defines the canonical Realm chat surface for `nimi-realm`.
 
 ## R-CHAT-001
 
-Realm owns Chat as a realm domain. Chat provides the canonical thread, message, and read-sync surface for realm-managed communication.
+Realm owns Chat as a realm domain. Chat provides the canonical thread/message/read-sync surface for realm-managed communication.
 
 ## R-CHAT-002
 

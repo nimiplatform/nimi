@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type WorldDraftWorkflowStateDto = components['schemas']['WorldDraftWorkflowStateDto'];
+export type WorldDraftHistoryEventDto = components['schemas']['WorldDraftHistoryEventDto'];

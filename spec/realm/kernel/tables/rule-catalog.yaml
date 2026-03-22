@@ -1,5 +1,5 @@
 id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-[0-9]{3}$'
-generated_at: '2026-03-22T00:00:00Z'
+generated_at: '2026-03-21T00:00:00Z'
 rules:
   - rule_id: R-TRUTH-001
     domain: truth
@@ -30,6 +30,16 @@ rules:
     domain: truth
     level: must
     statement: Realm truth must remain app-independent and cannot be owned by a single runtime path.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-007
+    domain: truth
+    level: must
+    statement: OASIS is the unique system main world in Realm truth and cannot be creator-owned or replaced by creator convention.
+    source: spec/realm/kernel/truth-contract.md
+  - rule_id: R-TRUTH-008
+    domain: truth
+    level: must
+    statement: GET /api/world/oasis is a formal Realm truth read surface for the system main world.
     source: spec/realm/kernel/truth-contract.md
   - rule_id: R-WSTATE-001
     domain: world-state
@@ -220,4 +230,14 @@ rules:
     domain: transit
     level: must
     statement: Transit may hand off durable references but app-local runtime checkpoints stay outside Realm.
+    source: spec/realm/kernel/transit-contract.md
+  - rule_id: R-TRANSIT-005
+    domain: transit
+    level: must
+    statement: OASIS is the default return point and transit hub for creator-world continuity transfer.
+    source: spec/realm/kernel/transit-contract.md
+  - rule_id: R-TRANSIT-006
+    domain: transit
+    level: must
+    statement: Creator worlds must not transit directly to other creator worlds; transit stays single-hop via OASIS and excludes scene quota/runtime gating.
     source: spec/realm/kernel/transit-contract.md

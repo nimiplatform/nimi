@@ -1,16 +1,16 @@
 contract_id: ECONOMY-CONTRACT-001
 domain: economy
 status: ACTIVE
-version: 2026-03-22
+version: 2026-03-21
 owner: '@team'
 sources:
   human_spec: ../economy-contract.md
   openapi:
-    - ../nimi-backend/api-nimi.yaml
-  prisma: ../nimi-backend/prisma/schema.prisma
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
   services:
-    - ../nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.ts
-    - ../nimi-backend/libs/domains/economy/src/subscription/subscription.service.ts
+    - ../../nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.ts
+    - ../../nimi-backend/libs/domains/economy/src/subscription/subscription.service.ts
 rule_id_prefix: R-ECON-
 rules:
   - rule_id: R-ECON-001

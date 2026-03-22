@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/sdk",
-  "version": "0.4.59",
+  "version": "0.4.61",
   "license": "Apache-2.0",
   "private": false,
   "publishConfig": {
@@ -72,7 +72,7 @@
   "scripts": {
     "build": "node ../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
     "lint": "tsc --noEmit",
-    "test": "tsx --test test/**/*.test.ts"
+    "test": "tsx --test --test-concurrency=1 test/**/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",

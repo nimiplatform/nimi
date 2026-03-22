@@ -1,24 +1,36 @@
+---
+id: SPEC-REALM-WORLD-CREATOR-ECONOMY-001
+title: Realm World Creator Economy Bridge
+status: active
+owner: "@team"
+updated: 2026-03-16
+---
+
 # World Creator Economy
 
-> Domain: Realm / Economy
+## Normative Imports
 
-## 0. Normative Imports
+- `kernel/economy-contract.md` (`R-ECON-001..011`)
 
-- `kernel/economy-contract.md`: `R-ECON-001`, `R-ECON-003`
-- `kernel/tables/creator-key-tiers.yaml`: creator key pricing
+## Scope
 
-## 1. Scope
+Bridge-only document for creator economy semantics. Kernel authority remains in `spec/realm/kernel/economy-contract.md`; this file preserves the legacy open bridge anchors while mirroring the local hard-cut semantics.
 
-World creator economy defines creator-key access economics and append-only settlement semantics for world-facing creation rights.
+## Mapping Declaration
 
-Gift, revenue, and settlement semantics remain under the single explicit event/share-plan accounting model defined by `R-ECON-003`.
+| Legacy Open Anchor | Current Kernel Anchor |
+| --- | --- |
+| `R-ECON-001` | `R-ECON-001`, `R-ECON-008` |
+| `R-ECON-030` | `R-ECON-001`, `R-ECON-003` |
 
-## 2. Reading Path
+## Reading Path
 
 1. `kernel/economy-contract.md`
-2. `kernel/tables/creator-key-tiers.yaml`
-3. `creator-revenue-policy.md`
+2. `kernel/tables/rule-catalog.yaml`
+3. `truth.md`
 
-## 3. Non-goals
+## Non-goals
 
-No runtime AI compute billing, hidden narrative mutation pricing, or duplicate settlement logic is defined here.
+- No standalone pricing table definition in open spec.
+- No new revenue policy rule IDs in realm.
+- No duplication of open-spec frozen narrative sections.

@@ -1,23 +1,27 @@
+---
+id: SPEC-REALM-ECONOMY-001
+title: Realm Economy Domain
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
+
 # Realm Economy Domain
 
-> Domain: Realm / Economy
+## Normative Imports
 
-## 0. Normative Imports
+- `kernel/economy-contract.md`: `R-ECON-001..004`
 
-- `kernel/economy-contract.md`: `R-ECON-001`, `R-ECON-002`, `R-ECON-003`, `R-ECON-004`
-
-## 1. Scope
+## Scope
 
 Thin guide only. Kernel contracts and tables are authoritative.
 
-## 2. Reading Path
+## Reading Path
 
 1. `kernel/economy-contract.md`
-2. `kernel/tables/economy-contract.yaml`
-3. `kernel/tables/creator-key-tiers.yaml`
-4. `kernel/tables/revenue-event-types.yaml`
-5. `kernel/tables/share-plan-fields.yaml`
+2. `kernel/tables/rule-catalog.yaml`
+3. `kernel/tables/economy-contract.yaml`
 
-## 3. Non-goals
+## Non-goals
 
-No generated content or execution-state content is defined in this domain doc.
+No generated content or execution-state content in this domain doc.

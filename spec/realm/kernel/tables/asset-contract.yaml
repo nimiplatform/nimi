@@ -1,15 +1,15 @@
 contract_id: ASSET-CONTRACT-001
 domain: asset
 status: ACTIVE
-version: 2026-03-22
+version: 2026-03-21
 owner: '@team'
 sources:
   human_spec: ../asset-contract.md
   openapi:
-    - ../nimi-backend/api-nimi.yaml
-  prisma: ../nimi-backend/prisma/schema.prisma
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
   services:
-    - ../nimi-backend/libs/domains/asset/src/asset/asset.service.ts
+    - ../../nimi-backend/libs/domains/asset/src/asset/asset.service.ts
 rule_id_prefix: R-ASSET-
 rules:
   - rule_id: R-ASSET-001
@@ -33,6 +33,10 @@ entities:
     prisma_model: Asset
     required_fields: [id, creatorId, assetType, visibility, status]
     json_fields: [metadata]
+  - name: NovelAsset
+    prisma_model: Asset
+    required_fields: [id, creatorId, assetType]
+    json_fields: [structure, metadata]
   - name: AssetReleaseEvent
     prisma_model: AssetReleaseEvent
     required_fields: [id, assetId, releaseType, publishedAt]

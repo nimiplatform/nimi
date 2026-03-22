@@ -6,10 +6,10 @@ owner: '@team'
 sources:
   human_spec: ../agent-memory-contract.md
   openapi:
-    - ../nimi-backend/api-nimi.yaml
-  prisma: ../nimi-backend/prisma/schema.prisma
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
   services:
-    - ../nimi-backend/libs/domains/agent/src/domains/agent-memory.service.ts
+    - ../../nimi-backend/libs/domains/agent/src/domains/agent-memory.service.ts
 rule_id_prefix: R-MEM-
 rules:
   - rule_id: R-MEM-001
@@ -40,7 +40,7 @@ entities:
   - name: AgentMemoryEntry
     prisma_model: AgentMemory
     required_fields: [id, agentId, type, content, importance]
-    json_fields: [metadata]
+    json_fields: [metadata, actorRefs, evidenceRefs]
 api_surface:
   required_operations:
     - GET /api/agent/accounts/{id}/memory/core

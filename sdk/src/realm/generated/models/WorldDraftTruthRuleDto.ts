@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type WorldDraftAssetBindingsDraftDto = components['schemas']['WorldDraftAssetBindingsDraftDto'];
+export type WorldDraftTruthRuleDto = components['schemas']['WorldDraftTruthRuleDto'];

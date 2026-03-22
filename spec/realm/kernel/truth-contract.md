@@ -1,3 +1,11 @@
+---
+id: SPEC-REALM-KERNEL-TRUTH-001
+title: Realm Truth Kernel Contract
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
+
 # Truth Contract
 
 > Domain: truth
@@ -5,7 +13,7 @@
 
 ## Scope
 
-This contract defines the canonical truth layer for `nimi` Realm open spec.
+This contract defines the canonical truth layer for `nimi-realm`.
 
 ## R-TRUTH-001
 
@@ -21,7 +29,7 @@ Agent truth must be anchored by `AgentRule` entries bound to a world scope. Agen
 
 ## R-TRUTH-004
 
-Truth writes are reserved for creator or control-plane authority. Apps may read truth but must not mutate truth through runtime story execution paths.
+Truth writes are reserved for creator/control-plane authority. Apps may read truth but must not mutate truth through runtime story execution paths.
 
 ## R-TRUTH-005
 

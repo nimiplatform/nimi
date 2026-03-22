@@ -4,12 +4,14 @@ import { runPhase1ExtractionFromChunks, runPhase2DraftGeneration } from '@world-
 import { splitSourceText } from '@world-engine/engine/chunker.js';
 import { toFailedChunkIndices } from '@world-engine/services/event-graph-map.js';
 import type {
+  EventNodeDraft,
   WorldLorebookDraftRow,
   WorldStudioCreateStep,
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldCommitActions } from '@renderer/hooks/use-world-commit-actions.js';
 import { listAgentRules, listCreatorAgents } from '@renderer/data/world-data-client.js';
+import type { ForgeDraftHistoryEvent } from '@renderer/data/world-data-client.js';
 import type {
   ForgeWorkspacePatch,
   ForgeWorkspaceSnapshot,
@@ -74,21 +76,65 @@ function requireWorldName(value: unknown, code: string): string {
   return normalized;
 }
 
-function buildAssetBindingsDraft(snapshot: ForgeWorkspaceSnapshot) {
-  const worldCover = asRecord(snapshot.assets.worldCover);
-  const characterPortraits = asRecord(snapshot.assets.characterPortraits);
-  const locationImages = asRecord(snapshot.assets.locationImages);
-  if (
-    Object.keys(worldCover).length === 0
-    && Object.keys(characterPortraits).length === 0
-    && Object.keys(locationImages).length === 0
-  ) {
+function parseFutureHistoricalDraft(value: string): ForgeDraftHistoryEvent[] | undefined {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
     return undefined;
   }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(normalized);
+  } catch {
+    throw new Error('FORGE_DRAFT_FUTURE_EVENTS_REQUIRED');
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error('FORGE_DRAFT_FUTURE_EVENTS_REQUIRED');
+  }
+  return parsed.map((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error('FORGE_DRAFT_FUTURE_EVENTS_REQUIRED');
+    }
+    const record = item as JsonObject;
+    const eventType = String(record.eventType || '').trim();
+    const title = String(record.title || '').trim();
+    const happenedAt = String(record.happenedAt || '').trim();
+    if (!eventType || !title || !happenedAt) {
+      throw new Error('FORGE_DRAFT_FUTURE_EVENTS_REQUIRED');
+    }
+    return record as ForgeDraftHistoryEvent;
+  });
+}
+
+function toDraftHistoryEvent(
+  event: EventNodeDraft,
+  eventType: 'world.primary' | 'world.secondary',
+): ForgeDraftHistoryEvent {
   return {
-    ...(Object.keys(worldCover).length > 0 ? { worldCover } : {}),
-    ...(Object.keys(characterPortraits).length > 0 ? { characterPortraits } : {}),
-    ...(Object.keys(locationImages).length > 0 ? { locationImages } : {}),
+    eventId: typeof event.id === 'string' ? event.id : undefined,
+    eventType,
+    title: String(event.title || '').trim(),
+    happenedAt: String(event.timeRef || new Date().toISOString()),
+    summary: typeof event.summary === 'string' ? event.summary : undefined,
+    cause: typeof event.cause === 'string' ? event.cause : undefined,
+    process: typeof event.process === 'string' ? event.process : undefined,
+    result: typeof event.result === 'string' ? event.result : undefined,
+    timeRef: typeof event.timeRef === 'string' ? event.timeRef : undefined,
+    locationRefs: Array.isArray(event.locationRefs) ? event.locationRefs : [],
+    characterRefs: Array.isArray(event.characterRefs) ? event.characterRefs : [],
+    dependsOnEventIds: Array.isArray(event.dependsOnEventIds) ? event.dependsOnEventIds : [],
+    evidenceRefs: Array.isArray(event.evidenceRefs) ? event.evidenceRefs : [],
+    payload: {
+      timelineSeq: Number(event.timelineSeq || 0),
+      level: event.level === 'SECONDARY' ? 'SECONDARY' : 'PRIMARY',
+      eventHorizon: event.eventHorizon === 'ONGOING'
+        ? 'ONGOING'
+        : event.eventHorizon === 'FUTURE'
+          ? 'FUTURE'
+          : 'PAST',
+      parentEventId: typeof event.parentEventId === 'string' ? event.parentEventId : null,
+      confidence: Number.isFinite(Number(event.confidence)) ? Number(event.confidence) : 0.5,
+      needsEvidence: Boolean(event.needsEvidence),
+    },
   };
 }
 type UseWorldCreatePageGenerationInput = {
@@ -547,16 +593,12 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
       input.patchWorkspaceSnapshot({ workspaceVersion });
     }
     requireWorldName(input.snapshot.worldStateDraft.name, 'FORGE_DRAFT_WORLD_NAME_REQUIRED');
+    const futureHistorical = parseFutureHistoricalDraft(input.snapshot.futureEventsText || '');
     const result = await input.commitActions.saveDraftMutation.mutateAsync({
       draftId: input.activeDraftId || undefined,
       sourceType: input.sourceMode,
       sourceRef: input.snapshot.sourceRef || '',
       status: toDraftStatus(input.snapshot.createStep),
-      pipelineState: {
-        createStep: input.snapshot.createStep,
-        parseJob: input.snapshot.parseJob,
-        phase1Artifact: input.snapshot.phase1Artifact,
-      },
       draftPayload: {
         importSource: {
           sourceType: input.sourceMode,
@@ -571,18 +613,14 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
           worldState: input.snapshot.worldStateDraft,
         },
         historyDraft: {
-          events: input.snapshot.eventsDraft,
+          events: {
+            primary: input.snapshot.eventsDraft.primary.map((event) =>
+              toDraftHistoryEvent(event, 'world.primary')),
+            secondary: input.snapshot.eventsDraft.secondary.map((event) =>
+              toDraftHistoryEvent(event, 'world.secondary')),
+            ...(futureHistorical && futureHistorical.length > 0 ? { futureHistorical } : {}),
+          },
         },
-        workflowState: {
-          workspaceVersion,
-          createStep: input.snapshot.createStep,
-          parseJob: input.snapshot.parseJob,
-          phase1Artifact: input.snapshot.phase1Artifact || undefined,
-          selectedCharacters: input.snapshot.selectedCharacters,
-          selectedStartTimeId: input.snapshot.selectedStartTimeId || undefined,
-          futureEventsText: input.snapshot.futureEventsText || undefined,
-        },
-        assetBindingsDraft: buildAssetBindingsDraft(input.snapshot),
       },
     });
     const record = asRecord(result);

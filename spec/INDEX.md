@@ -344,16 +344,14 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖 Realm Truth、World 
 
 1. `spec/realm/kernel/asset-contract.md`
 2. `spec/realm/kernel/tables/asset-contract.yaml`
-2. `spec/realm/kernel/tables/realm-asset-types.yaml`
 3. 受影响 domain 文档（`asset.md` / `app-interconnect-model.md`）
 
 ### 修改创作者经济 / 定价 / 收入
 
 1. `spec/realm/kernel/economy-contract.md`
 2. `spec/realm/kernel/tables/economy-contract.yaml`
-2. `spec/realm/kernel/tables/creator-key-tiers.yaml`
-3. `spec/realm/kernel/tables/revenue-event-types.yaml`
-4. `spec/realm/kernel/tables/share-plan-fields.yaml`
+3. `spec/realm/world-creator-economy.md`
+4. `spec/realm/creator-revenue-policy.md`
 5. 受影响 domain 文档（`economy.md` / `world-creator-economy.md` / `creator-revenue-policy.md`）
 
 ### 修改原语互操作映射

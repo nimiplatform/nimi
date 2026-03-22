@@ -40,14 +40,8 @@ function buildDraftPayload(overrides?: Record<string, unknown>) {
       events: {
         primary: [{ id: 'e1', title: 'P1' }],
         secondary: [{ id: 'e2', title: 'S1' }],
+        futureHistorical: [{ eventType: 'world.future', title: 'F1', happenedAt: '2026-03-19T00:00:00.000Z' }],
       },
-    },
-    workflowState: {
-      workspaceVersion: 'ws-1',
-      createStep: 'DRAFT',
-      futureEventsText: '[{}]',
-      selectedStartTimeId: 't-1',
-      selectedCharacters: ['Alice'],
     },
     ...overrides,
   };
@@ -62,22 +56,7 @@ describe('useWorldCreatePageDraftPersistence', () => {
     mockGetWorldDraft.mockResolvedValue({
       status: 'REVIEW',
       sourceRef: 'book.txt',
-      pipelineState: {
-        createStep: 'DRAFT',
-        parseJob: { phase: 'done', chunkTotal: 4 },
-        phase1Artifact: { updatedAt: '2026-03-19T00:00:00.000Z' },
-      },
-      draftPayload: buildDraftPayload({
-        workflowState: {
-          workspaceVersion: 'ws-1',
-          createStep: 'DRAFT',
-          futureEventsText: '[{}]',
-          selectedStartTimeId: 't-1',
-          selectedCharacters: ['Alice'],
-          parseJob: { phase: 'done', chunkTotal: 4 },
-          phase1Artifact: { updatedAt: '2026-03-19T00:00:00.000Z' },
-        },
-      }),
+      draftPayload: buildDraftPayload(),
     });
 
     const patchWorkspaceSnapshot = vi.fn();
@@ -104,7 +83,6 @@ describe('useWorldCreatePageDraftPersistence', () => {
         sourceText: 'hello world',
         sourceRef: 'draft-ref',
         worldStateDraft: { name: 'Realm' },
-        workspaceVersion: 'ws-1',
         worldviewPatch: { timeModel: { timeFlowRatio: 2 } },
         ruleTruthDraft: expect.objectContaining({
           worldRules: [
@@ -118,8 +96,9 @@ describe('useWorldCreatePageDraftPersistence', () => {
             }),
           ],
         }),
-        futureEventsText: '[{}]',
-        selectedStartTimeId: 't-1',
+        futureEventsText: JSON.stringify([
+          { eventType: 'world.future', title: 'F1', happenedAt: '2026-03-19T00:00:00.000Z' },
+        ]),
         selectedCharacters: ['Alice'],
         lorebooksDraft: [],
         eventsDraft: {
@@ -137,6 +116,12 @@ describe('useWorldCreatePageDraftPersistence', () => {
         }),
       }),
     );
+    const restoredPatch = patchWorkspaceSnapshot.mock.calls[0]?.[0];
+    expect(restoredPatch).not.toHaveProperty('workspaceVersion');
+    expect(restoredPatch).not.toHaveProperty('selectedStartTimeId');
+    expect(restoredPatch).not.toHaveProperty('parseJob');
+    expect(restoredPatch).not.toHaveProperty('phase1Artifact');
+    expect(restoredPatch).not.toHaveProperty('assets');
     expect(setCreateStep).toHaveBeenCalledWith('DRAFT');
   });
 
@@ -172,7 +157,6 @@ describe('useWorldCreatePageDraftPersistence', () => {
           },
         ],
       },
-      pipelineState: {},
     });
 
     const patchWorkspaceSnapshot = vi.fn();
@@ -198,13 +182,7 @@ describe('useWorldCreatePageDraftPersistence', () => {
   it('falls back from REVIEW status to DRAFT when createStep is missing', async () => {
     mockGetWorldDraft.mockResolvedValue({
       status: 'REVIEW',
-      draftPayload: buildDraftPayload({
-        workflowState: {
-          workspaceVersion: 'ws-2',
-          selectedCharacters: [],
-        },
-      }),
-      pipelineState: {},
+      draftPayload: buildDraftPayload(),
     });
 
     const setCreateStep = vi.fn();
@@ -262,12 +240,7 @@ describe('useWorldCreatePageDraftPersistence', () => {
         historyDraft: {
           events: { primary: [], secondary: [] },
         },
-        workflowState: {
-          workspaceVersion: 'ws-3',
-          selectedCharacters: ['Alice'],
-        },
       }),
-      pipelineState: {},
     });
 
     const patchWorkspaceSnapshot = vi.fn();
@@ -290,7 +263,6 @@ describe('useWorldCreatePageDraftPersistence', () => {
     expect(patchWorkspaceSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceText: 'truth first',
-        workspaceVersion: 'ws-3',
         worldviewPatch: {
           timeModel: { timeFlowRatio: 5 },
           resources: { resources: ['Mana'] },

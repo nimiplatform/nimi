@@ -50,6 +50,9 @@ type UpdateWorldRuleInput = RealmServiceArgs<'WorldRulesService', 'worldRulesCon
 type CommitWorldStateWrite = NonNullable<CommitWorldStateInput['writes']>[number];
 type AppendWorldHistoryItem = NonNullable<AppendWorldHistoryInput['historyAppends']>[number];
 type AppendWorldHistoryRelatedStateRef = NonNullable<AppendWorldHistoryItem['relatedStateRefs']>[number];
+export type ForgeDraftHistoryEvent = NonNullable<
+  NonNullable<CreateWorldDraftInput['draftPayload']>['historyDraft']
+>['events']['primary'][number];
 type ListAgentRulesQuery = {
   layer?: RealmServiceArgs<'AgentRulesService', 'agentRulesControllerListRules'>[2];
   status?: RealmServiceArgs<'AgentRulesService', 'agentRulesControllerListRules'>[3];
@@ -103,42 +106,25 @@ export type ForgeDraftStateDraft = {
 };
 export type ForgeDraftHistoryDraft = {
   events: {
-    primary: JsonObject[];
-    secondary: JsonObject[];
+    primary: ForgeDraftHistoryEvent[];
+    secondary: ForgeDraftHistoryEvent[];
+    futureHistorical?: ForgeDraftHistoryEvent[];
   };
-};
-export type ForgeDraftAssetBindingsDraft = {
-  worldCover?: JsonObject;
-  characterPortraits?: JsonObject;
-  locationImages?: JsonObject;
-};
-export type ForgeDraftWorkflowState = {
-  workspaceVersion: string;
-  createStep?: string;
-  parseJob?: JsonObject;
-  phase1Artifact?: JsonObject;
-  selectedCharacters?: string[];
-  selectedStartTimeId?: string;
-  futureEventsText?: string;
 };
 export type ForgeDraftPayload = {
   importSource: ForgeDraftImportSource;
   truthDraft: ForgeDraftTruthDraft;
   stateDraft: ForgeDraftStateDraft;
   historyDraft: ForgeDraftHistoryDraft;
-  workflowState: ForgeDraftWorkflowState;
-  assetBindingsDraft?: ForgeDraftAssetBindingsDraft;
 };
 export type ForgeCreateWorldDraftInput = {
   sourceType: CreateWorldDraftInput['sourceType'];
   sourceRef?: string;
   targetWorldId?: string;
-  pipelineState?: CreateWorldDraftInput['pipelineState'];
   draftPayload: ForgeDraftPayload;
 };
 export type ForgeUpdateWorldDraftInput = {
   status?: UpdateWorldDraftInput['status'];
-  pipelineState?: UpdateWorldDraftInput['pipelineState'];
   draftPayload?: ForgeDraftPayload;
 };
 export type ForgePublishWorldDraftInput = PublishWorldDraftInput;
@@ -354,15 +340,44 @@ function buildStateWrite(
   };
 }
 
+function buildDraftHistoryEvent(value: unknown): ForgeDraftHistoryEvent {
+  const record = requireRecord(value, 'FORGE_DRAFT_HISTORY_EVENT_INVALID');
+  const evidenceRefs = record.evidenceRefs;
+  if (evidenceRefs !== undefined && !Array.isArray(evidenceRefs)) {
+    throw new Error('FORGE_DRAFT_HISTORY_EVIDENCE_REFS_INVALID');
+  }
+  return {
+    eventId: optionalString(record.eventId),
+    eventType: requireString(record.eventType, 'FORGE_DRAFT_HISTORY_EVENT_TYPE_REQUIRED'),
+    title: requireString(record.title, 'FORGE_DRAFT_HISTORY_TITLE_REQUIRED'),
+    happenedAt: requireString(record.happenedAt, 'FORGE_DRAFT_HISTORY_HAPPENED_AT_REQUIRED'),
+    occurredAt: optionalString(record.occurredAt),
+    timeRef: optionalString(record.timeRef),
+    summary: optionalString(record.summary),
+    cause: optionalString(record.cause),
+    process: optionalString(record.process),
+    result: optionalString(record.result),
+    locationRefs: optionalStringArray(record.locationRefs, 'FORGE_DRAFT_HISTORY_LOCATION_REFS_INVALID'),
+    characterRefs: optionalStringArray(record.characterRefs, 'FORGE_DRAFT_HISTORY_CHARACTER_REFS_INVALID'),
+    dependsOnEventIds: optionalStringArray(record.dependsOnEventIds, 'FORGE_DRAFT_HISTORY_DEPENDS_ON_INVALID'),
+    payload: record.payload === undefined
+      ? undefined
+      : requireRecord(record.payload, 'FORGE_DRAFT_HISTORY_PAYLOAD_INVALID'),
+    ...(Array.isArray(evidenceRefs) ? { evidenceRefs: requireObjectArray(evidenceRefs, 'FORGE_DRAFT_HISTORY_EVIDENCE_REFS_INVALID') } : {}),
+  };
+}
+
 function buildDraftPayload(value: ForgeDraftPayload): NonNullable<CreateWorldDraftInput['draftPayload']> {
   const importSource = requireRecord(value.importSource, 'FORGE_DRAFT_IMPORT_SOURCE_REQUIRED');
   const truthDraft = requireRecord(value.truthDraft, 'FORGE_DRAFT_TRUTH_REQUIRED');
   const stateDraft = requireRecord(value.stateDraft, 'FORGE_DRAFT_STATE_REQUIRED');
   const historyDraft = requireRecord(value.historyDraft, 'FORGE_DRAFT_HISTORY_REQUIRED');
-  const workflowState = requireRecord(value.workflowState, 'FORGE_DRAFT_WORKFLOW_REQUIRED');
   const events = requireRecord(historyDraft.events, 'FORGE_DRAFT_HISTORY_EVENTS_REQUIRED');
   const worldState = requireRecord(stateDraft.worldState, 'FORGE_DRAFT_WORLD_STATE_REQUIRED');
   requireString(worldState.name, 'FORGE_DRAFT_WORLD_NAME_REQUIRED');
+  const futureHistorical = Array.isArray(events.futureHistorical)
+    ? events.futureHistorical.map((item) => buildDraftHistoryEvent(item))
+    : [];
 
   return {
     importSource: {
@@ -379,34 +394,13 @@ function buildDraftPayload(value: ForgeDraftPayload): NonNullable<CreateWorldDra
     },
     historyDraft: {
       events: {
-        primary: requireObjectArray(events.primary, 'FORGE_DRAFT_PRIMARY_EVENTS_REQUIRED'),
-        secondary: requireObjectArray(events.secondary, 'FORGE_DRAFT_SECONDARY_EVENTS_REQUIRED'),
+        primary: requireObjectArray(events.primary, 'FORGE_DRAFT_PRIMARY_EVENTS_REQUIRED')
+          .map((item) => buildDraftHistoryEvent(item)),
+        secondary: requireObjectArray(events.secondary, 'FORGE_DRAFT_SECONDARY_EVENTS_REQUIRED')
+          .map((item) => buildDraftHistoryEvent(item)),
+        ...(futureHistorical.length > 0 ? { futureHistorical } : {}),
       },
     },
-    workflowState: {
-      workspaceVersion: requireString(workflowState.workspaceVersion, 'FORGE_DRAFT_WORKSPACE_VERSION_REQUIRED'),
-      createStep: optionalString(workflowState.createStep),
-      parseJob: workflowState.parseJob === undefined ? undefined : requireRecord(workflowState.parseJob, 'FORGE_DRAFT_PARSE_JOB_INVALID'),
-      phase1Artifact: workflowState.phase1Artifact === undefined ? undefined : requireRecord(workflowState.phase1Artifact, 'FORGE_DRAFT_PHASE1_ARTIFACT_INVALID'),
-      selectedCharacters: optionalStringArray(workflowState.selectedCharacters, 'FORGE_DRAFT_SELECTED_CHARACTERS_INVALID'),
-      selectedStartTimeId: optionalString(workflowState.selectedStartTimeId),
-      futureEventsText: optionalString(workflowState.futureEventsText),
-    },
-    ...(value.assetBindingsDraft
-      ? {
-        assetBindingsDraft: {
-          ...(value.assetBindingsDraft.worldCover
-            ? { worldCover: requireRecord(value.assetBindingsDraft.worldCover, 'FORGE_DRAFT_WORLD_COVER_INVALID') }
-            : {}),
-          ...(value.assetBindingsDraft.characterPortraits
-            ? { characterPortraits: requireRecord(value.assetBindingsDraft.characterPortraits, 'FORGE_DRAFT_CHARACTER_PORTRAITS_INVALID') }
-            : {}),
-          ...(value.assetBindingsDraft.locationImages
-            ? { locationImages: requireRecord(value.assetBindingsDraft.locationImages, 'FORGE_DRAFT_LOCATION_IMAGES_INVALID') }
-            : {}),
-        },
-      }
-      : {}),
   };
 }
 
@@ -492,7 +486,6 @@ export async function createWorldDraft(payload: ForgeCreateWorldDraftInput) {
     sourceType: payload.sourceType,
     sourceRef: payload.sourceRef,
     targetWorldId: payload.targetWorldId,
-    pipelineState: payload.pipelineState,
     draftPayload,
   });
 }
@@ -508,7 +501,6 @@ export async function listWorldDrafts() {
 export async function updateWorldDraft(draftId: string, patch: ForgeUpdateWorldDraftInput) {
   return realm().services.WorldControlService.worldControlControllerUpdateDraft(draftId, {
     status: patch.status,
-    pipelineState: patch.pipelineState,
     draftPayload: patch.draftPayload ? buildDraftPayload(patch.draftPayload) : undefined,
   });
 }

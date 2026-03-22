@@ -1,158 +1,178 @@
-version: 1
-evidence_catalog:
-  realm_kernel_consistency:
-    type: static_gate
-    command: pnpm check:realm-spec-kernel-consistency
-    path: scripts/check-realm-spec-kernel-consistency.mjs
-    description: Kernel rule integrity, thin-domain constraints, and legacy hard-cut enforcement for Realm open spec.
-  realm_kernel_docs_drift:
-    type: static_gate
-    command: pnpm check:realm-spec-kernel-docs-drift
-    path: scripts/generate-realm-spec-kernel-docs.mjs
-    description: Generated kernel doc drift gate for Realm open spec.
-
+version: 2026-03-22
+owner: '@team'
+description: Hard-cut rule-to-evidence map for the refactored realm kernel.
+profiles:
+  truth:
+    openapi:
+      - GET /api/world/oasis
+      - GET /api/world/by-id/{worldId}/rules
+      - POST /api/world/by-id/{worldId}/rules
+      - GET /api/world/by-id/{worldId}/agents/{agentId}/rules
+      - GET /api/world/by-id/{id}
+      - GET /api/world/by-id/{id}/worldview
+      - GET /api/world/by-id/{id}/lorebooks
+    prisma_models: [World, WorldRule, AgentRule, WorldRelease, Worldview, WorldLorebook]
+    service_files:
+      - nimi-backend/libs/domains/world/src/world-rule.service.ts
+      - nimi-backend/libs/domains/world/src/agent-rule.service.ts
+      - nimi-backend/libs/domains/world/src/world-release.service.ts
+      - nimi-backend/libs/domains/world/src/projection/projection.service.ts
+    test_files:
+      - nimi-backend/libs/domains/world/src/world-rule.service.spec.ts
+      - nimi-backend/libs/domains/world/src/agent-rule.service.spec.ts
+      - nimi-backend/libs/domains/world/src/world-release.service.spec.ts
+      - tests/arch/world.spec.ts
+  world_state:
+    openapi:
+      - GET /api/worlds/{worldId}/state
+      - POST /api/worlds/{worldId}/state/commits
+    prisma_models: [WorldStateRecord]
+    service_files:
+      - nimi-backend/libs/common/src/realm-commit-policy.ts
+      - nimi-backend/libs/domains/world/src/world-control.service.ts
+      - nimi-backend/libs/domains/world/src/world-truth-validator.service.ts
+    test_files:
+      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
+      - nimi-backend/libs/domains/world/src/world-truth-validator.service.spec.ts
+      - tests/arch/world.spec.ts
+  world_history:
+    openapi:
+      - GET /api/worlds/{worldId}/history
+      - POST /api/worlds/{worldId}/history/appends
+    prisma_models: [WorldHistoryEvent]
+    service_files:
+      - nimi-backend/libs/common/src/realm-commit-policy.ts
+      - nimi-backend/libs/domains/world/src/world-control.service.ts
+    test_files:
+      - nimi-backend/libs/domains/world/src/world-events-summary-contract.spec.ts
+      - nimi-backend/libs/domains/world/src/world-events-facts-list-batch-contract.spec.ts
+      - tests/arch/world.spec.ts
+  agent_memory:
+    openapi:
+      - GET /api/agent/accounts/{id}/memory/core
+      - GET /api/agent/accounts/{id}/memory/dyadic/{userId}
+      - POST /api/agent/accounts/{id}/memory/commits
+      - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}
+      - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}
+    prisma_models: [AgentMemory]
+    service_files:
+      - nimi-backend/libs/common/src/realm-commit-policy.ts
+      - nimi-backend/libs/domains/agent/src/domains/agent-memory.service.ts
+      - nimi-backend/apps/api/src/modules/agent/agent.controller.ts
+    test_files:
+      - nimi-backend/libs/domains/agent/src/domains/agent-memory.service.spec.ts
+      - nimi-backend/apps/api/src/modules/agent/agent.controller.spec.ts
+      - tests/arch/agent.spec.ts
+  chat:
+    openapi:
+      - GET /api/human/chats
+      - POST /api/human/chats
+      - GET /api/human/chats/{chatId}
+      - GET /api/human/chats/{chatId}/messages
+      - GET /api/human/chats/{chatId}/sync
+      - POST /api/human/chats/{chatId}/messages
+      - PATCH /api/human/chats/{chatId}/messages/{messageId}
+      - POST /api/human/chats/{chatId}/messages/{messageId}/recall
+      - POST /api/human/chats/{chatId}/read
+    prisma_models: [Chat, Message]
+    service_files:
+      - nimi-backend/libs/domains/chat/src/domains/chat.service.ts
+      - nimi-backend/apps/api/src/modules/chat/chat.controller.ts
+    test_files:
+      - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
+      - nimi-backend/apps/api/src/modules/chat/chat.controller.spec.ts
+      - tests/arch/agent.spec.ts
+      - tests/arch/social.spec.ts
+  social:
+    openapi:
+      - GET /api/human/relationships/me
+      - POST /api/human/relationships
+    prisma_models: [Friendship]
+    service_files:
+      - nimi-backend/libs/domains/relationship/src/friendship.service.ts
+    test_files:
+      - nimi-backend/libs/domains/relationship/src/friendship.service.spec.ts
+      - tests/arch/agent.spec.ts
+  economy:
+    openapi:
+      - GET /api/economy/subscription
+      - POST /api/economy/reviews
+    prisma_models: [Subscription, RevenueEvent, SharePlan]
+    service_files:
+      - nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.ts
+      - nimi-backend/libs/domains/economy/src/subscription/subscription.service.ts
+    test_files:
+      - nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.spec.ts
+      - nimi-backend/libs/domains/economy/src/subscription/subscription.service.spec.ts
+      - tests/arch/economy.spec.ts
+  asset:
+    openapi:
+      - GET /api/assets
+      - POST /api/assets
+    prisma_models: [Asset, AssetReleaseEvent]
+    service_files:
+      - nimi-backend/libs/domains/asset/src/asset/asset.service.ts
+    test_files:
+      - nimi-backend/apps/scheduler/src/modules/asset-sync/asset-sync.scheduler.spec.ts
+      - nimi-backend/libs/domains/media-asset/src/media-asset.service.spec.ts
+  transit:
+    openapi:
+      - POST /api/world/by-id/{id}/transit
+      - POST /api/world/by-id/{id}/return
+      - GET /api/world/transit/active/{agentId}
+      - POST /api/world/transit/{id}/complete
+    prisma_models: [Transit]
+    service_files:
+      - nimi-backend/libs/domains/world/src/transit.service.ts
+    test_files:
+      - nimi-backend/libs/domains/world/src/transit.service.spec.ts
+      - tests/arch/world.spec.ts
 rules:
-  - rule_id: R-TRUTH-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRUTH-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRUTH-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRUTH-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRUTH-005
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRUTH-006
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRUTH-007
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRUTH-008
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WSTATE-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WSTATE-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WSTATE-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WSTATE-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WSTATE-005
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WSTATE-006
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WHIST-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WHIST-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WHIST-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WHIST-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WHIST-005
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-WHIST-006
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-MEM-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-MEM-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-MEM-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-MEM-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-MEM-005
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-MEM-006
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-CHAT-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-CHAT-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-CHAT-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-CHAT-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-SOC-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-SOC-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-SOC-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-SOC-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ECON-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ECON-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ECON-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ECON-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ASSET-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ASSET-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ASSET-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-ASSET-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRANSIT-001
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRANSIT-002
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRANSIT-003
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRANSIT-004
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRANSIT-005
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
-  - rule_id: R-TRANSIT-006
-    status: covered
-    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  R-TRUTH-001: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-001, profile_refs: [truth] }
+  R-TRUTH-002: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-002, profile_refs: [truth] }
+  R-TRUTH-003: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-003, profile_refs: [truth] }
+  R-TRUTH-004: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-004, profile_refs: [truth] }
+  R-TRUTH-005: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-005, profile_refs: [truth] }
+  R-TRUTH-006: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-006, profile_refs: [truth] }
+  R-TRUTH-007: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-007, profile_refs: [truth] }
+  R-TRUTH-008: { domain: truth, spec_anchor: spec/realm/kernel/truth-contract.md#R-TRUTH-008, profile_refs: [truth] }
+  R-WSTATE-001: { domain: world-state, spec_anchor: spec/realm/kernel/world-state-contract.md#R-WSTATE-001, profile_refs: [world_state] }
+  R-WSTATE-002: { domain: world-state, spec_anchor: spec/realm/kernel/world-state-contract.md#R-WSTATE-002, profile_refs: [world_state] }
+  R-WSTATE-003: { domain: world-state, spec_anchor: spec/realm/kernel/world-state-contract.md#R-WSTATE-003, profile_refs: [world_state] }
+  R-WSTATE-004: { domain: world-state, spec_anchor: spec/realm/kernel/world-state-contract.md#R-WSTATE-004, profile_refs: [world_state] }
+  R-WSTATE-005: { domain: world-state, spec_anchor: spec/realm/kernel/world-state-contract.md#R-WSTATE-005, profile_refs: [world_state] }
+  R-WSTATE-006: { domain: world-state, spec_anchor: spec/realm/kernel/world-state-contract.md#R-WSTATE-006, profile_refs: [world_state] }
+  R-WHIST-001: { domain: world-history, spec_anchor: spec/realm/kernel/world-history-contract.md#R-WHIST-001, profile_refs: [world_history] }
+  R-WHIST-002: { domain: world-history, spec_anchor: spec/realm/kernel/world-history-contract.md#R-WHIST-002, profile_refs: [world_history] }
+  R-WHIST-003: { domain: world-history, spec_anchor: spec/realm/kernel/world-history-contract.md#R-WHIST-003, profile_refs: [world_history] }
+  R-WHIST-004: { domain: world-history, spec_anchor: spec/realm/kernel/world-history-contract.md#R-WHIST-004, profile_refs: [world_history] }
+  R-WHIST-005: { domain: world-history, spec_anchor: spec/realm/kernel/world-history-contract.md#R-WHIST-005, profile_refs: [world_history] }
+  R-WHIST-006: { domain: world-history, spec_anchor: spec/realm/kernel/world-history-contract.md#R-WHIST-006, profile_refs: [world_history] }
+  R-MEM-001: { domain: agent-memory, spec_anchor: spec/realm/kernel/agent-memory-contract.md#R-MEM-001, profile_refs: [agent_memory] }
+  R-MEM-002: { domain: agent-memory, spec_anchor: spec/realm/kernel/agent-memory-contract.md#R-MEM-002, profile_refs: [agent_memory] }
+  R-MEM-003: { domain: agent-memory, spec_anchor: spec/realm/kernel/agent-memory-contract.md#R-MEM-003, profile_refs: [agent_memory] }
+  R-MEM-004: { domain: agent-memory, spec_anchor: spec/realm/kernel/agent-memory-contract.md#R-MEM-004, profile_refs: [agent_memory] }
+  R-MEM-005: { domain: agent-memory, spec_anchor: spec/realm/kernel/agent-memory-contract.md#R-MEM-005, profile_refs: [agent_memory] }
+  R-MEM-006: { domain: agent-memory, spec_anchor: spec/realm/kernel/agent-memory-contract.md#R-MEM-006, profile_refs: [agent_memory] }
+  R-CHAT-001: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-001, profile_refs: [chat] }
+  R-CHAT-002: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-002, profile_refs: [chat] }
+  R-CHAT-003: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-003, profile_refs: [chat] }
+  R-CHAT-004: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-004, profile_refs: [chat] }
+  R-SOC-001: { domain: social, spec_anchor: spec/realm/kernel/social-contract.md#R-SOC-001, profile_refs: [social] }
+  R-SOC-002: { domain: social, spec_anchor: spec/realm/kernel/social-contract.md#R-SOC-002, profile_refs: [social] }
+  R-SOC-003: { domain: social, spec_anchor: spec/realm/kernel/social-contract.md#R-SOC-003, profile_refs: [social] }
+  R-SOC-004: { domain: social, spec_anchor: spec/realm/kernel/social-contract.md#R-SOC-004, profile_refs: [social] }
+  R-ECON-001: { domain: economy, spec_anchor: spec/realm/kernel/economy-contract.md#R-ECON-001, profile_refs: [economy] }
+  R-ECON-002: { domain: economy, spec_anchor: spec/realm/kernel/economy-contract.md#R-ECON-002, profile_refs: [economy] }
+  R-ECON-003: { domain: economy, spec_anchor: spec/realm/kernel/economy-contract.md#R-ECON-003, profile_refs: [economy] }
+  R-ECON-004: { domain: economy, spec_anchor: spec/realm/kernel/economy-contract.md#R-ECON-004, profile_refs: [economy] }
+  R-ASSET-001: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-001, profile_refs: [asset] }
+  R-ASSET-002: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-002, profile_refs: [asset] }
+  R-ASSET-003: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-003, profile_refs: [asset] }
+  R-ASSET-004: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-004, profile_refs: [asset] }
+  R-TRANSIT-001: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-001, profile_refs: [transit] }
+  R-TRANSIT-002: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-002, profile_refs: [transit] }
+  R-TRANSIT-003: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-003, profile_refs: [transit] }
+  R-TRANSIT-004: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-004, profile_refs: [transit] }
+  R-TRANSIT-005: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-005, profile_refs: [transit] }
+  R-TRANSIT-006: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-006, profile_refs: [transit] }

@@ -1,22 +1,27 @@
-# Realm World State Public Boundary
+---
+id: SPEC-REALM-WORLD-STATE-001
+title: Realm World State Domain
+status: active
+owner: "@team"
+updated: 2026-03-21
+---
 
-> Domain: Realm / World State
+# Realm World State Domain
 
-## 0. Normative Imports
+## Normative Imports
 
-- `kernel/world-state-contract.md`: `R-WSTATE-001`, `R-WSTATE-002`, `R-WSTATE-003`, `R-WSTATE-004`, `R-WSTATE-005`, `R-WSTATE-006`
+- `kernel/world-state-contract.md`: `R-WSTATE-001..006`
 
-## 1. Scope
+## Scope
 
 World State 负责表达“世界现在变成了什么样”。它是持久共享状态层，不是 narrative runtime。
 
-## 2. Reading Path
+## Reading Path
 
 1. `kernel/world-state-contract.md`
 2. `kernel/tables/world-state-contract.yaml`
-3. `world.md`
-4. `app-interconnect-model.md`
+3. `kernel/tables/domain-state-machines.yaml`
 
-## 3. Non-goals
+## Non-goals
 
 No story-local arc state, prompt context, turn pacing, or renderer control variables are defined here.

@@ -1,6 +1,5 @@
 import {
   listAgentDyadicMemories,
-  listAgentMemoryProfiles,
   listAgentCoreMemories,
   type AgentMemoryRecord,
 } from '@nimiplatform/sdk/realm';
@@ -63,9 +62,9 @@ function createAgentCoreDataClient(): AgentCoreDataClient {
         limit: query?.limit,
       })
     )),
-    listAgentMemoryProfiles: (agentId) => withRuntimeOpenApiContext((realm) => (
-      listAgentMemoryProfiles(realm, { agentId })
-    )),
+    listAgentMemoryProfiles: async (_agentId) => {
+      throw new Error('AGENT_MEMORY_PROFILES_UNAVAILABLE');
+    },
     listMyFriendsWithDetails: (limit) => withRuntimeOpenApiContext((realm) => (
       realm.services.MeService.listMyFriendsWithDetails(undefined, limit)
     )),

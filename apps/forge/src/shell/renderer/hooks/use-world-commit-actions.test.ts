@@ -66,11 +66,6 @@ function buildDraftPayload() {
     historyDraft: {
       events: { primary: [], secondary: [] },
     },
-    workflowState: {
-      workspaceVersion: 'ws-1',
-      createStep: 'REVIEW',
-      selectedCharacters: [],
-    },
   };
 }
 
@@ -122,7 +117,6 @@ describe('useWorldCommitActions', () => {
         sourceType: 'TEXT',
         sourceRef: 'ref1',
         status: 'DRAFT',
-        pipelineState: {},
         draftPayload: buildDraftPayload(),
       });
     });
@@ -144,7 +138,6 @@ describe('useWorldCommitActions', () => {
         sourceType: 'TEXT',
         sourceRef: 'ref1',
         status: 'REVIEW',
-        pipelineState: {},
         draftPayload: buildDraftPayload(),
       });
     });

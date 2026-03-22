@@ -6,10 +6,10 @@ owner: '@team'
 sources:
   human_spec: ../chat-contract.md
   openapi:
-    - ../nimi-backend/api-nimi.yaml
-  prisma: ../nimi-backend/prisma/schema.prisma
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
   services:
-    - ../nimi-backend/libs/domains/chat/src/domains/chat.service.ts
+    - ../../nimi-backend/libs/domains/chat/src/domains/chat.service.ts
 rule_id_prefix: R-CHAT-
 rules:
   - rule_id: R-CHAT-001
@@ -33,6 +33,10 @@ entities:
     prisma_model: Chat
     required_fields: [id, type, accountIdL, accountIdH, createdAt, updatedAt]
     json_fields: []
+  - name: ChatMessage
+    prisma_model: Message
+    required_fields: [id, chatId, senderId, type, createdAt]
+    json_fields: [payload, interaction, diagnostics]
 api_surface:
   required_operations:
     - GET /api/human/chats
