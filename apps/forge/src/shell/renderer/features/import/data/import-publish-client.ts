@@ -164,8 +164,8 @@ export async function publishCharacterCardImport(params: {
       handle: canonicalizeHandleSeed(characterName),
       displayName: characterName,
       concept: agentRules.find((r) => r.ruleKey === 'identity:self:core')?.statement.slice(0, 200) ?? characterName,
-      ownerType,
-      ...(ownerType === 'WORLD_OWNED' && targetWorldId ? { worldId: targetWorldId } : {}),
+      ownershipType: ownerType as 'MASTER_OWNED' | 'WORLD_OWNED',
+      worldId: targetWorldId,
     };
     const agentResponse = await retryOperation(() => createCreatorAgent(agentPayload));
     const agentId = readStringField(agentResponse, 'id');
@@ -318,7 +318,7 @@ export async function publishForgeWorkspacePlan(params: {
           handle: item.handle || canonicalizeHandleSeed(item.displayName),
           displayName: item.displayName,
           concept: item.concept || item.displayName,
-          ownerType: 'WORLD_OWNED',
+          ownershipType: 'WORLD_OWNED' as const,
           worldId: targetWorldId,
         })),
         continueOnError: true,
@@ -350,7 +350,7 @@ export async function publishForgeWorkspacePlan(params: {
               handle: planItem.handle || canonicalizeHandleSeed(planItem.displayName),
               displayName: planItem.displayName,
               concept: planItem.concept || planItem.displayName,
-              ownerType: 'WORLD_OWNED',
+              ownershipType: 'WORLD_OWNED' as const,
               worldId: targetWorldId,
             }));
             const id = readStringField(createdAgent, 'id');
@@ -557,7 +557,7 @@ export async function publishNovelImport(params: {
       handle: canonicalizeHandleSeed(bundle.characterName),
       displayName: bundle.characterName,
       concept: bundle.rules.find((r) => r.ruleKey === 'identity:self:core')?.statement.slice(0, 200) ?? bundle.characterName,
-      ownerType: 'WORLD_OWNED',
+      ownershipType: 'WORLD_OWNED' as const,
       worldId: targetWorldId,
     }));
 

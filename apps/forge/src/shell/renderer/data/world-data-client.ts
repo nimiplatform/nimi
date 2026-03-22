@@ -9,6 +9,7 @@
 
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { RealmServiceArgs, RealmServiceResult } from '@nimiplatform/sdk/realm';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 function realm() {
@@ -46,6 +47,9 @@ type CreateCreatorAgentInput = RealmServiceArgs<'CreatorService', 'creatorContro
 type BatchCreateCreatorAgentsInput = RealmServiceArgs<'CreatorService', 'creatorControllerBatchCreateAgents'>[0];
 type CreateWorldRuleInput = RealmServiceArgs<'WorldRulesService', 'worldRulesControllerCreateRule'>[1];
 type UpdateWorldRuleInput = RealmServiceArgs<'WorldRulesService', 'worldRulesControllerUpdateRule'>[2];
+type CommitWorldStateWrite = NonNullable<CommitWorldStateInput['writes']>[number];
+type AppendWorldHistoryItem = NonNullable<AppendWorldHistoryInput['historyAppends']>[number];
+type AppendWorldHistoryRelatedStateRef = NonNullable<AppendWorldHistoryItem['relatedStateRefs']>[number];
 type ListAgentRulesQuery = {
   layer?: RealmServiceArgs<'AgentRulesService', 'agentRulesControllerListRules'>[2];
   status?: RealmServiceArgs<'AgentRulesService', 'agentRulesControllerListRules'>[3];
@@ -60,8 +64,8 @@ export type ForgeWorldStateWriteInput = {
   scope: 'WORLD' | 'ENTITY' | 'RELATION';
   scopeKey: string;
   targetPath?: string;
-  payload: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
+  payload: JsonObject;
+  metadata?: JsonObject;
 };
 export type ForgeWorldHistoryAppendInput = {
   eventId?: string;
@@ -87,7 +91,7 @@ export type ForgeWorldHistoryAppendInput = {
   }>;
   supersedes?: string[];
   invalidates?: string[];
-  payload?: Record<string, unknown>;
+  payload?: JsonObject;
 };
 export type ForgeDraftImportSource = {
   sourceType: 'TEXT' | 'FILE';
@@ -95,28 +99,28 @@ export type ForgeDraftImportSource = {
   sourceText?: string;
 };
 export type ForgeDraftTruthDraft = {
-  worldRules: Record<string, unknown>[];
-  agentRules: Record<string, unknown>[];
+  worldRules: JsonObject[];
+  agentRules: JsonObject[];
 };
 export type ForgeDraftStateDraft = {
-  worldState: Record<string, unknown>;
+  worldState: JsonObject;
 };
 export type ForgeDraftHistoryDraft = {
   events: {
-    primary: Record<string, unknown>[];
-    secondary: Record<string, unknown>[];
+    primary: JsonObject[];
+    secondary: JsonObject[];
   };
 };
 export type ForgeDraftAssetBindingsDraft = {
-  worldCover?: Record<string, unknown>;
-  characterPortraits?: Record<string, unknown>;
-  locationImages?: Record<string, unknown>;
+  worldCover?: JsonObject;
+  characterPortraits?: JsonObject;
+  locationImages?: JsonObject;
 };
 export type ForgeDraftWorkflowState = {
   workspaceVersion: string;
   createStep?: string;
-  parseJob?: Record<string, unknown>;
-  phase1Artifact?: Record<string, unknown>;
+  parseJob?: JsonObject;
+  phase1Artifact?: JsonObject;
   selectedCharacters?: string[];
   selectedStartTimeId?: string;
   futureEventsText?: string;
@@ -141,14 +145,13 @@ export type ForgeUpdateWorldDraftInput = {
   pipelineState?: UpdateWorldDraftInput['pipelineState'];
   draftPayload?: ForgeDraftPayload;
 };
-export type ForgePublishWorldDraftInput = PublishWorldDraftInput & { [key: string]: unknown };
+export type ForgePublishWorldDraftInput = PublishWorldDraftInput;
 export type ForgeCommitWorldStateInput = {
   writes?: ForgeWorldStateWriteInput[];
   reason: string;
   sessionId: string;
   ifSnapshotVersion?: string;
   commit?: MutationCommitEnvelope;
-  [key: string]: unknown;
 };
 export type ForgeAppendWorldHistoryInput = {
   historyAppends?: ForgeWorldHistoryAppendInput[];
@@ -156,36 +159,20 @@ export type ForgeAppendWorldHistoryInput = {
   sessionId: string;
   ifSnapshotVersion?: string;
   commit?: MutationCommitEnvelope;
-  [key: string]: unknown;
 };
-export type ForgeCreateWorldRuleInput = Partial<CreateWorldRuleInput> & {
-  [key: string]: unknown;
-};
-export type ForgeUpdateWorldRuleInput = UpdateWorldRuleInput | {
-  ruleKey?: string;
-  title?: string;
-  statement?: string;
-  [key: string]: unknown;
-};
-export type ForgeCreateAgentRuleInput = Partial<CreateAgentRuleInput> & {
-  [key: string]: unknown;
-};
-export type ForgeUpdateAgentRuleInput = UpdateAgentRuleInput | {
-  ruleKey?: string;
-  title?: string;
-  statement?: string;
-  [key: string]: unknown;
-};
+export type ForgeCreateWorldRuleInput = Partial<CreateWorldRuleInput>;
+export type ForgeUpdateWorldRuleInput = UpdateWorldRuleInput;
+export type ForgeCreateAgentRuleInput = Partial<CreateAgentRuleInput>;
+export type ForgeUpdateAgentRuleInput = UpdateAgentRuleInput;
 export type ForgeBatchCreateCreatorAgentsInput = {
-  items: Array<CreateCreatorAgentInput | { [key: string]: unknown }>;
+  items: ForgeCreateWorldCreatorAgentInput[];
   continueOnError?: boolean;
 };
-export type ForgeCreateWorldCreatorAgentInput = CreateCreatorAgentInput | {
+export type ForgeCreateWorldCreatorAgentInput = Partial<CreateCreatorAgentInput> & {
   name?: string;
   displayName?: string;
   handle?: string;
   concept?: string;
-  [key: string]: unknown;
 };
 
 function normalizeWorldAccessResponse(response: unknown): ForgeWorldAccessResult {
@@ -193,11 +180,11 @@ function normalizeWorldAccessResponse(response: unknown): ForgeWorldAccessResult
     ? response as ForgeWorldAccessResponse
     : null;
 
-  if (!access || !('hasActiveAccess' in access)) {
+  if (!access || typeof access.hasActiveAccess !== 'boolean') {
     throw new Error('FORGE_WORLD_ACCESS_CONTRACT_INVALID');
   }
 
-  return { hasAccess: Boolean(access.hasActiveAccess) };
+  return { hasAccess: access.hasActiveAccess };
 }
 
 function buildForgeMutationCommit(input: {
@@ -233,14 +220,14 @@ function buildForgeMutationCommit(input: {
   };
 }
 
-function requireRecord(value: unknown, code: string): Record<string, unknown> {
+function requireRecord(value: unknown, code: string): JsonObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(code);
   }
-  return value as Record<string, unknown>;
+  return value as JsonObject;
 }
 
-function requireObjectArray<T extends Record<string, unknown>>(value: unknown, code: string): T[] {
+function requireObjectArray<T extends JsonObject>(value: unknown, code: string): T[] {
   if (!Array.isArray(value)) {
     throw new Error(code);
   }
@@ -272,7 +259,7 @@ function optionalStringArray(value: unknown, code: string): string[] | undefined
     .filter((item) => item.length > 0);
 }
 
-function optionalStructured(value: unknown, code: string): Record<string, unknown> | undefined {
+function optionalStructured(value: unknown, code: string): JsonObject | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -301,15 +288,15 @@ function requireEnum<const Values extends readonly string[]>(
 
 function buildHistoryAppend(
   value: unknown,
-): ForgeWorldHistoryAppendInput {
+): AppendWorldHistoryItem {
   const record = requireRecord(value, 'FORGE_WORLD_HISTORY_APPEND_INVALID');
   const payload = record.payload === undefined
     ? undefined
     : requireRecord(record.payload, 'FORGE_WORLD_HISTORY_PAYLOAD_INVALID');
-  const relatedStateRefs = requireObjectArray<Record<string, unknown>>(
+  const relatedStateRefs = requireObjectArray<JsonObject>(
     record.relatedStateRefs,
     'FORGE_WORLD_HISTORY_RELATED_STATE_REFS_INVALID',
-  ).map((item) => ({
+  ).map<AppendWorldHistoryRelatedStateRef>((item) => ({
       recordId: requireString(item.recordId, 'FORGE_WORLD_HISTORY_RELATED_STATE_RECORD_REQUIRED'),
       scope: requireEnum(
         item.scope,
@@ -346,7 +333,7 @@ function buildHistoryAppend(
     locationRefs: optionalStringArray(record.locationRefs, 'FORGE_WORLD_HISTORY_LOCATION_REFS_INVALID'),
     characterRefs: optionalStringArray(record.characterRefs, 'FORGE_WORLD_HISTORY_CHARACTER_REFS_INVALID'),
     dependsOnEventIds: optionalStringArray(record.dependsOnEventIds, 'FORGE_WORLD_HISTORY_DEPENDS_ON_INVALID'),
-    evidenceRefs: evidenceRefs as ForgeWorldHistoryAppendInput['evidenceRefs'],
+    evidenceRefs: evidenceRefs as AppendWorldHistoryItem['evidenceRefs'],
     relatedStateRefs,
     supersedes: optionalStringArray(record.supersedes, 'FORGE_WORLD_HISTORY_SUPERSEDES_INVALID'),
     invalidates: optionalStringArray(record.invalidates, 'FORGE_WORLD_HISTORY_INVALIDATES_INVALID'),
@@ -356,7 +343,7 @@ function buildHistoryAppend(
 
 function buildStateWrite(
   value: unknown,
-): ForgeWorldStateWriteInput {
+): CommitWorldStateWrite {
   const record = requireRecord(value, 'FORGE_WORLD_STATE_WRITE_INVALID');
   const payload = requireRecord(record.payload, 'FORGE_WORLD_STATE_PAYLOAD_REQUIRED');
   const metadata = record.metadata === undefined
@@ -471,18 +458,20 @@ function buildAgentRuleInput(payload: ForgeCreateAgentRuleInput): CreateAgentRul
 }
 
 function buildCreatorAgentInput(payload: ForgeCreateWorldCreatorAgentInput): CreateCreatorAgentInput {
-  const fallbackName = 'name' in payload ? payload.name : '';
-  const handle = String(payload.handle || payload.displayName || fallbackName || '').trim();
-  const displayName = String(payload.displayName || fallbackName || '').trim();
-  const concept = String(payload.concept || payload.displayName || fallbackName || '').trim();
+  const handle = requireString(payload.handle, 'FORGE_CREATOR_AGENT_HANDLE_REQUIRED');
+  const concept = requireString(payload.concept, 'FORGE_CREATOR_AGENT_CONCEPT_REQUIRED');
+  const worldId = requireString(payload.worldId, 'FORGE_CREATOR_AGENT_WORLD_ID_REQUIRED');
+  const displayName = optionalString(payload.displayName);
   if (!handle || !concept) {
     throw new Error('FORGE_CREATOR_AGENT_INPUT_INVALID');
   }
+  const { name: _name, ...rest } = payload;
   return {
-    ...payload,
+    ...rest,
     handle,
-    displayName,
     concept,
+    worldId,
+    ...(displayName ? { displayName } : {}),
   };
 }
 
@@ -562,7 +551,7 @@ export async function commitWorldState(worldId: string, patch: ForgeCommitWorldS
       sessionId: patch.sessionId,
       existing: patch.commit,
     }),
-  } as unknown as CommitWorldStateInput);
+  });
 }
 
 export async function listMyWorlds() {
@@ -595,7 +584,7 @@ export async function appendWorldHistory(worldId: string, payload: ForgeAppendWo
       sessionId: payload.sessionId,
       existing: payload.commit,
     }),
-  } as unknown as AppendWorldHistoryInput);
+  });
 }
 
 export async function listWorldLorebooks(worldId: string) {

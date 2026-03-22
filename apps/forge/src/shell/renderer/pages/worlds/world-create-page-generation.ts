@@ -672,9 +672,13 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
 	                  scope: payload.scope as 'SELF' | 'DYAD' | 'GROUP' | 'WORLD' | undefined,
 	                  importance: typeof payload.importance === 'number' ? payload.importance : undefined,
 	                  priority: typeof payload.priority === 'number' ? payload.priority : undefined,
-                  provenance: payload.provenance,
-                  reasoning: payload.reasoning,
-                  structured: payload.structured,
+                  provenance: typeof payload.provenance === 'string'
+                    ? payload.provenance as 'SYSTEM' | 'CREATOR' | 'WORLD_INHERITED' | 'NARRATIVE_EMERGED' | undefined
+                    : undefined,
+                  reasoning: typeof payload.reasoning === 'string' ? payload.reasoning : undefined,
+                  structured: payload.structured && typeof payload.structured === 'object' && !Array.isArray(payload.structured)
+                    ? payload.structured as JsonObject
+                    : undefined,
                 },
               });
               return;

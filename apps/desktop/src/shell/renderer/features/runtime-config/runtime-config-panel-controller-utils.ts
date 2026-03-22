@@ -1,4 +1,4 @@
-type JsonObject = Record<string, unknown>;
+import type { JsonObject } from '@runtime/net/json';
 
 export type RuntimeConfigBanner = {
   kind: 'success' | 'warning' | 'error' | 'info';

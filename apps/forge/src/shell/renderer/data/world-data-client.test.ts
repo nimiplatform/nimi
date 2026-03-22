@@ -136,6 +136,15 @@ describe('world-data-client', () => {
 
     mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasCreatorAccess: true });
     await expect(wdc.getMyWorldAccess()).rejects.toThrow('FORGE_WORLD_ACCESS_CONTRACT_INVALID');
+
+    mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasActiveAccess: 'true' });
+    await expect(wdc.getMyWorldAccess()).rejects.toThrow('FORGE_WORLD_ACCESS_CONTRACT_INVALID');
+
+    mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasActiveAccess: 1 });
+    await expect(wdc.getMyWorldAccess()).rejects.toThrow('FORGE_WORLD_ACCESS_CONTRACT_INVALID');
+
+    mockWorldControlController.worldControlControllerGetMyAccess.mockResolvedValue({ hasActiveAccess: {} });
+    await expect(wdc.getMyWorldAccess()).rejects.toThrow('FORGE_WORLD_ACCESS_CONTRACT_INVALID');
   });
 
   it('resolveWorldLanding', async () => {
@@ -358,24 +367,59 @@ describe('world-data-client', () => {
     expect(mockCreatorService.creatorControllerListAgents).toHaveBeenCalledOnce();
   });
 
-  it('createCreatorAgent passes payload', async () => {
-    const body = { name: 'Agent1' };
+  it('createCreatorAgent passes payload without synthesizing required fields', async () => {
+    const body = {
+      handle: 'agent-1',
+      displayName: 'Agent 1',
+      concept: 'Guardian of the first gate',
+      ownershipType: 'MASTER_OWNED' as const,
+      worldId: 'world-1',
+    };
     await wdc.createCreatorAgent(body);
     expect(mockCreatorService.creatorControllerCreateAgent).toHaveBeenCalledWith({
-      name: 'Agent1',
-      handle: 'Agent1',
-      displayName: 'Agent1',
-      concept: 'Agent1',
+      handle: 'agent-1',
+      displayName: 'Agent 1',
+      concept: 'Guardian of the first gate',
+      ownershipType: 'MASTER_OWNED',
+      worldId: 'world-1',
     });
   });
 
-  it('batchCreateCreatorAgents passes payload', async () => {
-    const body = { items: [{ name: 'A1' }] };
+  it('batchCreateCreatorAgents passes payload without synthesizing required fields', async () => {
+    const body = {
+      items: [{
+        handle: 'agent-a1',
+        displayName: 'A1',
+        concept: 'Archive keeper',
+        ownershipType: 'WORLD_OWNED' as const,
+        worldId: 'world-1',
+      }],
+    };
     await wdc.batchCreateCreatorAgents(body);
     expect(mockCreatorService.creatorControllerBatchCreateAgents).toHaveBeenCalledWith({
-      items: [{ name: 'A1', handle: 'A1', displayName: 'A1', concept: 'A1' }],
+      items: [{
+        handle: 'agent-a1',
+        displayName: 'A1',
+        concept: 'Archive keeper',
+        ownershipType: 'WORLD_OWNED',
+        worldId: 'world-1',
+      }],
       continueOnError: false,
     });
+  });
+
+  it('createCreatorAgent rejects missing handle or concept', async () => {
+    await expect(
+      wdc.createCreatorAgent({ displayName: 'Missing handle', concept: 'still invalid', worldId: 'world-1' }),
+    ).rejects.toThrow('FORGE_CREATOR_AGENT_HANDLE_REQUIRED');
+
+    await expect(
+      wdc.createCreatorAgent({ handle: 'missing-concept', displayName: 'Missing concept', worldId: 'world-1' }),
+    ).rejects.toThrow('FORGE_CREATOR_AGENT_CONCEPT_REQUIRED');
+
+    await expect(
+      wdc.createCreatorAgent({ handle: 'missing-world', displayName: 'Missing world', concept: 'still invalid' }),
+    ).rejects.toThrow('FORGE_CREATOR_AGENT_WORLD_ID_REQUIRED');
   });
 
 });

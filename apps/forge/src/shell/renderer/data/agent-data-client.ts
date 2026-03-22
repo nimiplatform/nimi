@@ -24,9 +24,8 @@ export type ForgeCreateCreatorAgentInput = CreateCreatorAgentInput | {
   displayName?: string;
   name?: string;
   concept?: string;
-  ownerType?: string;
+  ownershipType?: CreateCreatorAgentInput['ownershipType'];
   worldId?: string;
-  [key: string]: unknown;
 };
 export type ForgeBatchCreateCreatorAgentsInput = {
   items: ForgeCreateCreatorAgentInput[];
@@ -213,14 +212,24 @@ export async function listCreatorAgents() {
 }
 
 function normalizeCreateCreatorAgentInput(payload: ForgeCreateCreatorAgentInput): CreateCreatorAgentInput {
-  if ('handle' in payload && 'concept' in payload) {
-    return payload as CreateCreatorAgentInput;
+  const handle = String(payload.handle || '').trim();
+  const concept = String(payload.concept || '').trim();
+  const worldId = String(payload.worldId || '').trim();
+  const displayName = String(payload.displayName || '').trim();
+
+  if (!handle || !concept || !worldId) {
+    throw new Error('FORGE_CREATOR_AGENT_INPUT_INVALID');
   }
+
+  const rest = 'name' in payload
+    ? (({ name: _name, ...value }: typeof payload & { name?: string }) => value)(payload)
+    : payload;
   return {
-    ...payload,
-    handle: String(payload.handle || payload.displayName || payload.name || '').trim(),
-    displayName: String(payload.displayName || payload.name || '').trim(),
-    concept: String(payload.concept || payload.displayName || payload.name || '').trim(),
+    ...rest,
+    handle,
+    concept,
+    worldId,
+    ...(displayName ? { displayName } : {}),
   };
 }
 

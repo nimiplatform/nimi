@@ -15,6 +15,10 @@ type AppendWorldHistoryInput = RealmServiceArgs<'WorldControlService', 'worldCon
 type MutationCommitEnvelope = NonNullable<CommitWorldStateInput['commit']>;
 type MutationActorRef = MutationCommitEnvelope['actorRefs'][number];
 type MutationEvidenceRef = NonNullable<MutationCommitEnvelope['evidenceRefs']>[number];
+type CommitWorldStateWrite = NonNullable<CommitWorldStateInput['writes']>[number];
+type AppendWorldHistoryItem = NonNullable<AppendWorldHistoryInput['historyAppends']>[number];
+type AppendWorldHistoryRelatedStateRef = NonNullable<AppendWorldHistoryItem['relatedStateRefs']>[number];
+type AppendWorldHistoryEvidenceRef = NonNullable<AppendWorldHistoryItem['evidenceRefs']>[number];
 
 function toStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -47,6 +51,27 @@ function requireStringValue(value: unknown, code: string): string {
 
 function requireSourceType(value: unknown, code: string): CreateWorldDraftInput['sourceType'] {
   if (value === 'TEXT' || value === 'FILE') {
+    return value;
+  }
+  throw new Error(code);
+}
+
+function requireMutationScope(value: unknown, code: string): MutationCommitEnvelope['scope'] {
+  if (value === 'WORLD' || value === 'ENTITY' || value === 'RELATION') {
+    return value;
+  }
+  throw new Error(code);
+}
+
+function requireHistoryVisibility(value: unknown, code: string): AppendWorldHistoryItem['visibility'] {
+  if (value === 'PUBLIC' || value === 'WORLD' || value === 'RESTRICTED') {
+    return value;
+  }
+  throw new Error(code);
+}
+
+function requireWorldRecordScope(value: unknown, code: string): CommitWorldStateWrite['scope'] {
+  if (value === 'WORLD' || value === 'ENTITY' || value === 'RELATION') {
     return value;
   }
   throw new Error(code);
@@ -91,7 +116,7 @@ function requireMutationCommitEnvelope(input: unknown, code: string): MutationCo
   const sessionId = String(record.sessionId || '').trim();
   const schemaId = String(record.schemaId || '').trim();
   const schemaVersion = String(record.schemaVersion || '').trim();
-  const scope = String(record.scope || '').trim();
+  const scope = requireMutationScope(record.scope, code);
   const reason = String(record.reason || '').trim();
   const effectClass = record.effectClass;
   if (
@@ -100,7 +125,6 @@ function requireMutationCommitEnvelope(input: unknown, code: string): MutationCo
     || !sessionId
     || !schemaId
     || !schemaVersion
-    || !scope
     || !reason
     || (
       effectClass !== 'NONE'
@@ -191,39 +215,69 @@ function requireWorldDraftPayload(
   } as NonNullable<CreateWorldDraftInput['draftPayload']>;
 }
 
-function requireCommitWorldStateInput(input: unknown, code: string): CommitWorldStateInput {
-  const record = requireRecord(input, code);
-  const commit = requireMutationCommitEnvelope(record.commit, code);
-  const ifSnapshotVersion = toOptionalString(record.ifSnapshotVersion);
-  const reason = toOptionalString(record.reason);
-  const writes = requireObjectArray<Record<string, unknown>>(record.writes, code).map((item) => ({
-    scope: item.scope === 'ENTITY' || item.scope === 'RELATION' ? item.scope : 'WORLD',
+function requireCommitWorldStateWrite(input: unknown, code: string): CommitWorldStateWrite {
+  const item = requireRecord(input, code);
+  return {
+    scope: requireWorldRecordScope(item.scope, code),
     scopeKey: requireStringValue(item.scopeKey, code),
     targetPath: toOptionalString(item.targetPath),
     payload: requireRecord(item.payload, code),
     ...(item.metadata === undefined ? {} : { metadata: requireRecord(item.metadata, code) }),
-  })) as unknown[];
+  };
+}
+
+function requireAppendWorldHistoryRelatedStateRefs(
+  input: unknown,
+  code: string,
+): AppendWorldHistoryRelatedStateRef[] {
+  return requireObjectArray<Record<string, unknown>>(input, code).map((ref) => ({
+    recordId: requireStringValue(ref.recordId, code),
+    scope: requireWorldRecordScope(ref.scope, code),
+    scopeKey: requireStringValue(ref.scopeKey, code),
+    version: toOptionalString(ref.version),
+  }));
+}
+
+function requireAppendWorldHistoryEvidenceRefs(
+  input: unknown,
+  code: string,
+): AppendWorldHistoryEvidenceRef[] {
+  return requireObjectArray<Record<string, unknown>>(input, code).map((ref) => ({
+    segmentId: requireStringValue(ref.segmentId, code),
+    offsetStart: Number(requireStringValue(ref.offsetStart, code)),
+    offsetEnd: Number(requireStringValue(ref.offsetEnd, code)),
+    excerpt: requireStringValue(ref.excerpt, code),
+    ...(toOptionalString(ref.sourceType) ? { sourceType: toOptionalString(ref.sourceType) } : {}),
+    ...(Number.isFinite(Number(ref.confidence)) ? { confidence: Number(ref.confidence) } : {}),
+  }));
+}
+
+export function parseCommitWorldStateInput(input: unknown, code: string): CommitWorldStateInput {
+  const record = requireRecord(input, code);
+  const commit = requireMutationCommitEnvelope(record.commit, code);
+  const ifSnapshotVersion = toOptionalString(record.ifSnapshotVersion);
+  const reason = toOptionalString(record.reason);
+  const writes = requireObjectArray<Record<string, unknown>>(record.writes, code)
+    .map((item) => requireCommitWorldStateWrite(item, code));
   return {
     commit,
     writes,
     ...(ifSnapshotVersion ? { ifSnapshotVersion } : {}),
     ...(reason ? { reason } : {}),
-  } as unknown as CommitWorldStateInput;
+  };
 }
 
-function requireAppendWorldHistoryInput(input: unknown, code: string): AppendWorldHistoryInput {
-  const record = requireRecord(input, code);
-  const commit = requireMutationCommitEnvelope(record.commit, code);
-  const historyAppends = requireObjectArray<Record<string, unknown>>(record.historyAppends, code).map((item) => ({
+function requireAppendWorldHistoryItem(input: unknown, code: string): AppendWorldHistoryItem {
+  const item = requireRecord(input, code);
+  return {
     eventId: toOptionalString(item.eventId),
     eventType: requireStringValue(item.eventType, code),
     title: requireStringValue(item.title, code),
     happenedAt: requireStringValue(item.happenedAt, code),
-    visibility: item.visibility === 'WORLD' || item.visibility === 'RESTRICTED'
-      ? item.visibility
-      : item.visibility === 'PUBLIC'
-        ? 'PUBLIC'
-        : undefined,
+    operation: item.operation === 'APPEND' || item.operation === 'SUPERSEDE' || item.operation === 'INVALIDATE'
+      ? item.operation
+      : (() => { throw new Error(code); })(),
+    visibility: requireHistoryVisibility(item.visibility, code),
     summary: toOptionalString(item.summary),
     cause: toOptionalString(item.cause),
     process: toOptionalString(item.process),
@@ -234,19 +288,19 @@ function requireAppendWorldHistoryInput(input: unknown, code: string): AppendWor
     dependsOnEventIds: toStringArray(item.dependsOnEventIds),
     evidenceRefs: item.evidenceRefs === undefined
       ? undefined
-      : requireObjectArray<Record<string, unknown>>(item.evidenceRefs, code),
-    relatedStateRefs: item.relatedStateRefs === undefined
-      ? undefined
-      : requireObjectArray<Record<string, unknown>>(item.relatedStateRefs, code).map((ref) => ({
-        recordId: requireStringValue(ref.recordId, code),
-        scope: ref.scope === 'ENTITY' || ref.scope === 'RELATION' ? ref.scope : 'WORLD',
-        scopeKey: requireStringValue(ref.scopeKey, code),
-        version: toOptionalString(ref.version),
-      })),
+      : requireAppendWorldHistoryEvidenceRefs(item.evidenceRefs, code),
+    relatedStateRefs: requireAppendWorldHistoryRelatedStateRefs(item.relatedStateRefs, code),
     supersedes: toStringArray(item.supersedes),
     invalidates: toStringArray(item.invalidates),
     payload: item.payload === undefined ? undefined : requireRecord(item.payload, code),
-  })) as unknown as AppendWorldHistoryInput['historyAppends'];
+  };
+}
+
+export function parseAppendWorldHistoryInput(input: unknown, code: string): AppendWorldHistoryInput {
+  const record = requireRecord(input, code);
+  const commit = requireMutationCommitEnvelope(record.commit, code);
+  const historyAppends = requireObjectArray<Record<string, unknown>>(record.historyAppends, code)
+    .map((item) => requireAppendWorldHistoryItem(item, code));
   const ifSnapshotVersion = toOptionalString(record.ifSnapshotVersion);
   const reason = toOptionalString(record.reason);
   return {
@@ -254,7 +308,7 @@ function requireAppendWorldHistoryInput(input: unknown, code: string): AppendWor
     historyAppends,
     ...(ifSnapshotVersion ? { ifSnapshotVersion } : {}),
     ...(reason ? { reason } : {}),
-  } as unknown as AppendWorldHistoryInput;
+  };
 }
 
 export async function registerWorldDataCapabilities(): Promise<void> {
@@ -351,7 +405,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerCommitState(
         worldId,
-        requireCommitWorldStateInput(record.payload, 'WORLD_STATE_COMMIT_INPUT_REQUIRED'),
+        parseCommitWorldStateInput(record.payload, 'WORLD_STATE_COMMIT_INPUT_REQUIRED'),
       )
     ));
   });
@@ -412,7 +466,7 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return withRuntimeOpenApiContext((realm) => (
       realm.services.WorldControlService.worldControlControllerAppendWorldHistory(
         worldId,
-        requireAppendWorldHistoryInput(record.payload, 'WORLD_HISTORY_APPEND_INPUT_REQUIRED'),
+        parseAppendWorldHistoryInput(record.payload, 'WORLD_HISTORY_APPEND_INPUT_REQUIRED'),
       )
     ));
   });

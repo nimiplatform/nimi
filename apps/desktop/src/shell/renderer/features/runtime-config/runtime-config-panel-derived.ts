@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { RuntimeLocalManifestSummary } from '@renderer/bridge';
+import type { JsonObject } from '@runtime/net/json';
 import { normalizeLocalRuntimeProfilesDeclaration } from '@runtime/local-runtime';
 import {
   CAPABILITIES_V11,
@@ -14,8 +15,6 @@ import {
   selectFilteredLocalModelsV11,
   selectOrderedConnectorsV11,
 } from '@renderer/features/runtime-config/runtime-config-selectors-v11';
-
-type JsonObject = Record<string, unknown>;
 
 function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};

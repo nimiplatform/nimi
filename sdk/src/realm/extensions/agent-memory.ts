@@ -1,5 +1,6 @@
 import type { RealmModel, RealmServiceResult } from '../generated/type-helpers.js';
 import type { Realm } from '../client.js';
+import type { JsonObject } from '../../internal/utils.js';
 import { createNimiError } from '../../runtime/errors.js';
 import { normalizeText } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
@@ -46,7 +47,7 @@ export type AgentMemoryCommitInput = {
   userId?: string;
   worldId?: string;
   importance?: number;
-  metadata?: Record<string, unknown>;
+  metadata?: JsonObject;
 };
 
 export type AgentMemoryRecord = RealmModel<'AgentMemoryRecordDto'>;

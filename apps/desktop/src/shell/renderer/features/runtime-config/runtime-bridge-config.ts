@@ -3,8 +3,7 @@ import {
   normalizeEndpointV11,
   type RuntimeConfigStateV11,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
-
-type JsonObject = Record<string, unknown>;
+import type { JsonObject } from '@runtime/net/json';
 
 const DEFAULT_RUNTIME_CONFIG = {
   schemaVersion: 1,
