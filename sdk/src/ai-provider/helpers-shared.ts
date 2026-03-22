@@ -70,7 +70,11 @@ function isPrivateIPv4(hostname: string): boolean {
   if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) {
     return false;
   }
-  const [a, b] = octets;
+  const a = octets[0];
+  const b = octets[1];
+  if (a === undefined || b === undefined) {
+    return false;
+  }
   return a === 0
     || a === 10
     || a === 127
@@ -94,7 +98,8 @@ function isLocalIPv6(hostname: string): boolean {
     return true;
   }
   const mappedV4 = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  return mappedV4 ? isPrivateIPv4(mappedV4[1]) : false;
+  const mappedHost = mappedV4?.[1];
+  return mappedHost ? isPrivateIPv4(mappedHost) : false;
 }
 
 function isPublicHttpsUrl(raw: string): { ok: true; url: string } | { ok: false; reason: string } {

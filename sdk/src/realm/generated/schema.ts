@@ -56,91 +56,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/accounts/{id}/approvals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Agent Approvals */
-        get: operations["AgentController_getApprovals"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/approvals/{approvalId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve an approval item */
-        post: operations["AgentController_approve"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/approvals/{approvalId}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Cancel a pending or scheduled approval */
-        post: operations["AgentController_cancel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/approvals/{approvalId}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reject an approval item */
-        post: operations["AgentController_reject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/approvals/{approvalId}/retry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Retry a failed approval (re-publish) */
-        post: operations["AgentController_retry"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/accounts/{id}/avatar": {
         parameters: {
             query?: never;
@@ -175,7 +90,7 @@ export type paths = {
         patch: operations["AgentController_updateDna"];
         trace?: never;
     };
-    "/api/agent/accounts/{id}/force-action": {
+    "/api/agent/accounts/{id}/memory/commits": {
         parameters: {
             query?: never;
             header?: never;
@@ -184,8 +99,8 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Trigger Agent to think and generate content */
-        post: operations["AgentController_forceAction"];
+        /** Commit continuity memory explicitly */
+        post: operations["AgentController_commitMemory"];
         delete?: never;
         options?: never;
         head?: never;
@@ -199,7 +114,7 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** List Core memories (Agent's own experiences, no Entity info) */
+        /** List shared continuity memories */
         get: operations["AgentController_listCoreMemories"];
         put?: never;
         post?: never;
@@ -209,28 +124,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/accounts/{id}/memory/e2e/{entityId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List E2E memories for a specific Entity (isolated) */
-        get: operations["AgentController_listE2EMemories"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete all E2E memories for an Entity
-         * @description Entity can request deletion of all their interaction memories with this Agent. Does NOT affect Core memories or E2E memories with other entities.
-         */
-        delete: operations["AgentController_deleteAllE2EMemories"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/e2e/{entityId}/{memoryId}": {
+    "/api/agent/accounts/{id}/memory/dyadic/{userId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -241,10 +135,30 @@ export type paths = {
         put?: never;
         post?: never;
         /**
-         * Delete a specific E2E memory
-         * @description Entity can delete their own E2E memories with this Agent. Cannot delete Core memories.
+         * Delete all DYADIC memories for a user
+         * @description Private deletion does not affect shared memory classes.
          */
-        delete: operations["AgentController_deleteE2EMemory"];
+        delete: operations["AgentController_deleteAllDyadicMemories"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete one DYADIC memory
+         * @description Private deletion applies only to DYADIC continuity memory for the requesting user.
+         */
+        delete: operations["AgentController_deleteDyadicMemory"];
         options?: never;
         head?: never;
         patch?: never;
@@ -320,35 +234,15 @@ export type paths = {
         patch: operations["AgentController_updateUserProfile"];
         trace?: never;
     };
-    "/api/agent/accounts/{id}/memory/recall/{entityId}": {
+    "/api/agent/accounts/{id}/memory/profiles/{userId}/dyadic": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Recall memories for Entity interaction (Core + E2E[entityId])
-         * @description Returns Core memories + E2E memories for this specific Entity only. Enforces "no gossip" principle - E2E[A] content is never returned when recalling for Entity B.
-         */
-        get: operations["AgentController_recallForEntity"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get memory statistics for Agent */
-        get: operations["AgentController_getMemoryStats"];
+        /** List DYADIC memories for one user profile */
+        get: operations["AgentController_listDyadicMemories"];
         put?: never;
         post?: never;
         delete?: never;
@@ -422,23 +316,6 @@ export type paths = {
         put?: never;
         /** Suspend Agent (Sleep) */
         post: operations["AgentController_suspend"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/tasks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Agent Tasks */
-        get: operations["AgentController_getTasks"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2747,8 +2624,7 @@ export type paths = {
         /** List worlds (defaults to ACTIVE) */
         get: operations["WorldController_listWorlds"];
         put?: never;
-        /** Create a sub-world (requires Pro/Max subscription) */
-        post: operations["WorldController_createWorld"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2893,15 +2769,15 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/by-id/{id}/events": {
+    "/api/world/by-id/{id}/history": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List public world events */
-        get: operations["WorldController_getWorldEvents"];
+        /** List public canonical world history */
+        get: operations["WorldController_getWorldHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3021,7 +2897,7 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Transit into a sub-world (checks scene quota) */
+        /** Create a transit into this world */
         post: operations["WorldController_transitToWorld"];
         delete?: never;
         options?: never;
@@ -3287,23 +3163,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/me/scene-quota": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get current scene quota usage */
-        get: operations["WorldController_getSceneQuota"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/world/oasis": {
         parameters: {
             query?: never;
@@ -3410,623 +3269,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/satellites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create a satellite (contextual memory fragment) */
-        post: operations["SatelliteController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/by-event/{eventId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List satellites attached to a spine event */
-        get: operations["SatelliteController_findBySpineEvent"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/by-scene/{worldId}/{sceneId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List satellites in a scene */
-        get: operations["SatelliteController_findByScene"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/by-spine/{spineId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List satellites for a spine */
-        get: operations["SatelliteController_findBySpine"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/search/{worldId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Search satellites by content similarity */
-        get: operations["SatelliteController_searchSimilar"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/synthetic": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create a synthetic memory (from time gap fill) */
-        post: operations["SatelliteController_createSyntheticMemory"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/synthetic/pending/{agentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List pending synthetic memories for an agent */
-        get: operations["SatelliteController_getPendingSyntheticMemories"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/synthetic/{satelliteId}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Verify (canonize or reject) a synthetic memory */
-        patch: operations["SatelliteController_verifySyntheticMemory"];
-        trace?: never;
-    };
-    "/api/world/satellites/{satelliteId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a satellite by ID */
-        get: operations["SatelliteController_findById"];
-        put?: never;
-        post?: never;
-        /** Delete a satellite */
-        delete: operations["SatelliteController_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/satellites/{satelliteId}/touch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Record a reference to a satellite (extends TTL) */
-        post: operations["SatelliteController_touchReference"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/by-agent/{agentId}/growth-projection": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get growth projection for an agent */
-        get: operations["SoulEvolutionController_getGrowthProjection"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/by-agent/{agentId}/metrics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Query consensus metrics for an agent */
-        get: operations["SoulEvolutionController_getMetrics"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/by-agent/{agentId}/metrics/aggregate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Aggregate consensus metrics for an agent */
-        post: operations["SoulEvolutionController_aggregateMetrics"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/by-agent/{agentId}/metrics/latest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get latest consensus metrics for an agent */
-        get: operations["SoulEvolutionController_getLatestMetrics"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/by-agent/{agentId}/proposals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List mutation proposals for an agent */
-        get: operations["SoulEvolutionController_getProposals"];
-        put?: never;
-        /** Create a mutation proposal for an agent */
-        post: operations["SoulEvolutionController_createProposal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/by-agent/{agentId}/proposals/pending": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List pending mutation proposals for an agent */
-        get: operations["SoulEvolutionController_getPendingProposals"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/proposals/{proposalId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a specific mutation proposal */
-        get: operations["SoulEvolutionController_getProposal"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/soul-evolution/proposals/{proposalId}/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Review (approve/reject) a mutation proposal */
-        patch: operations["SoulEvolutionController_reviewProposal"];
-        trace?: never;
-    };
-    "/api/world/spine/branches/{branchId}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Archive a branch (cannot archive CANON) */
-        post: operations["NarrativeSpineController_archiveBranch"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/branches/{branchId}/merge/{targetBranchId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Merge a WHATIF branch into a target branch */
-        post: operations["NarrativeSpineController_mergeBranch"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/by-id/{spineId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get narrative spine by ID */
-        get: operations["NarrativeSpineController_getSpine"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/by-id/{spineId}/branches": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List branches for a narrative spine */
-        get: operations["NarrativeSpineController_getBranches"];
-        put?: never;
-        /** Create a new branch (fork from event) */
-        post: operations["NarrativeSpineController_createBranch"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/by-id/{spineId}/branches/default": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get default (CANON) branch for a narrative spine */
-        get: operations["NarrativeSpineController_getDefaultBranch"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/by-id/{spineId}/branches/{branchId}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Append an event to a narrative spine branch */
-        post: operations["NarrativeSpineController_appendEvent"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/by-id/{spineId}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List narrative spine events */
-        get: operations["NarrativeSpineController_getEvents"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Find existing narrative spine for a world/user/agent/story tuple */
-        get: operations["NarrativeSpineController_findSpine"];
-        put?: never;
-        /** Get or create narrative spine for a world/user/agent/story tuple */
-        post: operations["NarrativeSpineController_getOrCreateSpine"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Publish a complete event + satellite chain onto a story-scoped spine */
-        post: operations["NarrativeSpineController_publishStorySpine"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/events/{eventId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a specific narrative spine event */
-        get: operations["NarrativeSpineController_getEvent"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update a narrative spine event */
-        patch: operations["NarrativeSpineController_updateEvent"];
-        trace?: never;
-    };
-    "/api/world/spine/events/{eventId}/causal-chain": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get causal chain for an event */
-        get: operations["NarrativeSpineController_getCausalChain"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/spine/events/{eventId}/children": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get child events of an event */
-        get: operations["NarrativeSpineController_getEventChildren"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/time-gaps/by-spine/{spineId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List time gaps for a spine */
-        get: operations["TimeGapController_findBySpine"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/time-gaps/detect/{spineId}/{agentId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Detect time gap for a spine */
-        get: operations["TimeGapController_detectGap"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/time-gaps/pending/mine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List pending time gaps for current user */
-        get: operations["TimeGapController_findPendingGaps"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/time-gaps/{gapId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a specific time gap */
-        get: operations["TimeGapController_getGap"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/time-gaps/{gapId}/collapse": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Trigger collapse for a time gap (generate synthetic memories) */
-        post: operations["TimeGapController_collapseGap"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/time-gaps/{gapId}/skip": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Skip a time gap (no synthetic memories) */
-        post: operations["TimeGapController_skipGap"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/world/transit": {
         parameters: {
             query?: never;
@@ -4037,8 +3279,7 @@ export type paths = {
         /** List my transits */
         get: operations["TransitController_listTransits"];
         put?: never;
-        /** Create a transit session */
-        post: operations["TransitController_createTransit"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4054,6 +3295,23 @@ export type paths = {
         };
         /** Get active transit for an agent */
         get: operations["TransitController_getActiveTransit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/world/transit/scene-quota/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get current scene quota usage */
+        get: operations["TransitController_getSceneQuota"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4096,23 +3354,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/transit/{id}/checkpoints": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add a checkpoint to a transit session */
-        post: operations["TransitController_addCheckpoint"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/world/transit/{id}/complete": {
         parameters: {
             query?: never;
@@ -4124,40 +3365,6 @@ export type paths = {
         put?: never;
         /** Complete a transit session */
         post: operations["TransitController_complete"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/transit/{id}/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update transit session data */
-        patch: operations["TransitController_updateSession"];
-        trace?: never;
-    };
-    "/api/world/transit/{id}/session/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start transit session data */
-        post: operations["TransitController_startSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4181,15 +3388,15 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/worlds/{worldId}/events": {
+    "/api/worlds/{worldId}/history": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List world events */
-        get: operations["WorldControlController_listWorldEvents"];
+        /** List canonical world history */
+        get: operations["WorldControlController_listWorldHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4198,7 +3405,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/worlds/{worldId}/events/batch-upsert": {
+    "/api/worlds/{worldId}/history/appends": {
         parameters: {
             query?: never;
             header?: never;
@@ -4207,29 +3414,9 @@ export type paths = {
         };
         get?: never;
         put?: never;
-        /** Batch upsert world events */
-        post: operations["WorldControlController_batchUpsertWorldEvents"];
+        /** Append canonical world history changes */
+        post: operations["WorldControlController_appendWorldHistory"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/events/{eventId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete world event (logical archive)
-         * @description Marks event as archived; does not physically hard-delete history.
-         */
-        delete: operations["WorldControlController_deleteWorldEvent"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4252,24 +3439,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/worlds/{worldId}/maintenance": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get world maintenance payload */
-        get: operations["WorldControlController_getMaintenance"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update world maintenance payload */
-        patch: operations["WorldControlController_updateMaintenance"];
-        trace?: never;
-    };
     "/api/worlds/{worldId}/media-bindings": {
         parameters: {
             query?: never;
@@ -4287,40 +3456,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/worlds/{worldId}/media-bindings/batch-upsert": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Batch upsert world media bindings */
-        post: operations["WorldControlController_batchUpsertWorldMediaBindings"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/media-bindings/{bindingId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete world media binding */
-        delete: operations["WorldControlController_deleteWorldMediaBinding"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/worlds/{worldId}/mutations": {
         parameters: {
             query?: never;
@@ -4328,25 +3463,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** List world mutations for maintenance timeline */
+        /** List world mutations for state/history audit timeline */
         get: operations["WorldControlController_listWorldMutations"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/narrative-contexts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List world narrative contexts for story startup and diagnostics */
-        get: operations["WorldControlController_listWorldNarrativeContexts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4362,10 +3480,44 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        /** List world scenes for narrative startup aggregation */
+        /** List canonical world scenes */
         get: operations["WorldControlController_listWorldScenes"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/{worldId}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get canonical world state payload */
+        get: operations["WorldControlController_getState"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/{worldId}/state/commits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Commit canonical world state changes */
+        post: operations["WorldControlController_commitState"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4390,14 +3542,6 @@ export type components = {
         ActivateAgentResultDto: {
             state: components["schemas"]["AgentState"];
             success: boolean;
-        };
-        AddCheckpointDto: {
-            data?: {
-                [key: string]: unknown;
-            };
-            name: string;
-            /** @enum {string} */
-            status: "PASSED" | "FAILED" | "SKIPPED";
         };
         AddFriendBodyDto: {
             requestMessage?: string;
@@ -4463,17 +3607,44 @@ export type components = {
          * @enum {string}
          */
         AgentImportance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
-        AgentMemoryRecordDto: {
+        AgentMemoryCommitEnvelopeDto: {
+            actorRefs: components["schemas"]["MutationActorRefDto"][];
+            appId: string;
             /** @enum {string} */
-            category: "CORE" | "E2E";
+            effectClass: "MEMORY_ONLY";
+            evidenceRefs?: components["schemas"]["MutationEvidenceRefDto"][];
+            reason: string;
+            schemaId: string;
+            schemaVersion: string;
+            /** @enum {string} */
+            scope: "WORLD";
+            sessionId: string;
+            worldId: string;
+        };
+        AgentMemoryRecordDto: {
+            actorRefs: components["schemas"]["MutationActorRefDto"][];
+            appId: string;
+            commitId: string;
             content: string;
             /** Format: date-time */
             createdAt: string;
-            entityId: string | null;
+            createdBy: string;
+            /** @enum {string} */
+            effectClass: "MEMORY_ONLY";
+            evidenceRefs?: components["schemas"]["MutationEvidenceRefDto"][] | null;
             id: string;
             importance: number;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            reason: string;
+            schemaId: string;
+            schemaVersion: string;
+            sessionId: string;
             /** @enum {string} */
-            type: "CORE_FACT" | "EPISODIC" | "SEMANTIC" | "PROCEDURAL" | "CULTURAL";
+            type: "PUBLIC_SHARED" | "WORLD_SHARED" | "DYADIC";
+            userId: string | null;
+            worldId: string | null;
         };
         AgentMetadataDto: {
             /** @description Agent current active worldId */
@@ -4627,19 +3798,13 @@ export type components = {
          * @enum {string}
          */
         AgentWakeStrategy: "PASSIVE" | "PROACTIVE";
-        AggregateMetricsDto: {
-            segmentKey?: string;
-            /** Format: date-time */
-            windowEnd: string;
-            /** Format: date-time */
-            windowStart: string;
-        };
         /** @enum {string} */
         ApiKeyType: "PERSONAL" | "ENTERPRISE";
-        ApproveRequestDto: {
-            contentText?: string;
-            /** @description ISO datetime to schedule the publish action */
-            publishAt?: string;
+        AppendWorldHistoryDto: {
+            commit: components["schemas"]["MutationCommitEnvelopeDto"];
+            historyAppends: components["schemas"]["WorldHistoryAppendItemDto"][];
+            ifSnapshotVersion?: string;
+            reason?: string;
         };
         Auth2faVerifyDto: {
             code: string;
@@ -4677,17 +3842,6 @@ export type components = {
             created: components["schemas"]["BatchCreateAgentCreatedDto"][];
             failed: components["schemas"]["BatchCreateAgentFailedDto"][];
         };
-        BatchUpsertWorldEventsDto: {
-            eventUpserts: components["schemas"]["WorldEventUpsertDto"][];
-            ifSnapshotVersion?: string;
-            /** @enum {string} */
-            mode?: "merge" | "replace";
-            reason?: string;
-        };
-        BatchUpsertWorldMediaBindingsDto: {
-            bindingUpserts: components["schemas"]["WorldMediaBindingUpsertDto"][];
-            reason?: string;
-        };
         BindEmailDto: {
             email: string;
             /** @description 6-digit OTP sent to the target email address */
@@ -4717,11 +3871,6 @@ export type components = {
             /** @description Minimum withdrawal amount in Gems */
             minAmount: string;
             reason?: string | null;
-        };
-        CausalChainDto: {
-            depth: number;
-            events: components["schemas"]["NarrativeSpineEventDetailDto"][];
-            rootEventId: string;
         };
         CausalityModelDto: {
             allowParadox?: boolean;
@@ -4800,14 +3949,23 @@ export type components = {
             id: string;
             name: string;
         };
-        CollapseGapDto: {
-            /** @description Custom prompt for synthetic memory generation (max 500 chars) */
-            generationPrompt?: string;
-            /**
-             * @description Number of memories to generate
-             * @default 3
-             */
-            memoryCount: number;
+        CommitAgentMemoryDto: {
+            commit: components["schemas"]["AgentMemoryCommitEnvelopeDto"];
+            content: string;
+            importance?: number;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            type: "PUBLIC_SHARED" | "WORLD_SHARED" | "DYADIC";
+            userId?: string;
+            worldId?: string;
+        };
+        CommitWorldStateDto: {
+            commit: components["schemas"]["MutationCommitEnvelopeDto"];
+            ifSnapshotVersion?: string;
+            reason?: string;
+            writes: components["schemas"]["WorldStateWriteDto"][];
         };
         ConnectDashboardLinkDto: {
             url: string;
@@ -4816,35 +3974,13 @@ export type components = {
             accountId: string;
             onboardingUrl: string;
         };
-        ConsensusMetricDetailDto: {
-            agentId: string;
-            count: number;
-            /** Format: date-time */
-            createdAt: string;
-            eventTypes: string[];
-            id: string;
-            mean: number;
-            metricKey: string;
-            p50: number;
-            p90: number;
-            segmentKey?: string;
-            sourceVersion: string;
-            stddev: number;
-            sum: number;
-            /** Format: date-time */
-            windowEnd: string;
-            /** Format: date-time */
-            windowStart: string;
-        };
         /** @enum {string} */
         ContentRatingString: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
         CreateAgentDto: {
-            agentLorebooks?: components["schemas"]["CreateAgentLorebookDto"][];
-            alternateGreetings?: string[];
             concept: string;
             description?: string;
             displayName?: string;
-            /** @description Pre-built AgentDna JSON. When provided, skips LLM DNA generation. */
+            /** @description Canonical AgentDna JSON. Agent creation fails closed when this payload is absent or invalid. */
             dna?: {
                 [key: string]: unknown;
             };
@@ -4852,32 +3988,13 @@ export type components = {
             dnaPrimary?: components["schemas"]["DnaPrimaryType"];
             /** @description Secondary DNA traits (max 3 recommended) */
             dnaSecondary?: components["schemas"]["DnaSecondaryTrait"][];
-            exampleDialogue?: string;
-            greeting?: string;
             handle: string;
             /** @description Ownership mode: MASTER_OWNED (default) or WORLD_OWNED */
             ownershipType?: components["schemas"]["AgentOwnershipType"];
-            postHistoryInstructions?: string;
             referenceImageUrl?: string;
             rules?: components["schemas"]["CreateAgentRulesDto"];
-            scenario?: string;
-            systemPromptBase?: string;
-            wakeStrategy?: components["schemas"]["AgentWakeStrategy"];
-            /** @description Required when ownershipType is WORLD_OWNED */
-            worldId?: string;
-        };
-        CreateAgentLorebookDto: {
-            constant?: boolean;
-            /** @description Lorebook content. Empty content entries are ignored by create pipeline. */
-            content: string;
-            enabled?: boolean;
-            insertionOrder?: number;
-            keywords?: string[];
-            name?: string;
-            priority?: number;
-            secondaryKeys?: string[];
-            selective?: boolean;
-            source?: string;
+            /** @description Required for active agent creation. All active agents are world-bound. */
+            worldId: string;
         };
         CreateAgentResponseDto: {
             dna: {
@@ -4978,17 +4095,6 @@ export type components = {
             width?: number;
             worldId?: string;
         };
-        CreateBranchDto: {
-            /**
-             * @default WHATIF
-             * @enum {string}
-             */
-            branchType: "CANON" | "WHATIF";
-            description?: string;
-            /** @description Event ID where branch forks */
-            forkEventId: string;
-            forkReason?: string;
-        };
         CreateConnectOnboardingDto: {
             /** @description URL to redirect if user needs to refresh onboarding */
             refreshUrl: string;
@@ -5000,27 +4106,6 @@ export type components = {
             eventType: string;
             importance?: number;
             userId?: string;
-        };
-        CreateMutationProposalDto: {
-            /** @description Confidence score (0-1) */
-            confidence: number;
-            /** @description Evidence metric IDs */
-            evidenceMetricIds: string[];
-            expectedImpact?: string;
-            proposedChange: components["schemas"]["ProposedChangeDto"][];
-        };
-        CreateNarrativeSpineEventDto: {
-            /** @description Additional causal links */
-            causalLinks?: string[];
-            gravityField?: components["schemas"]["GravityFieldDto"];
-            /** @description Caller-supplied ULID for idempotent publish */
-            id?: string;
-            /** @default 1 */
-            narrativeWeight: number;
-            /** @description Parent event ID for causal linking */
-            parentEventId?: string;
-            payload: components["schemas"]["SpineEventPayloadDto"];
-            sceneId?: string;
         };
         CreatePortalSessionDto: {
             /** @description URL to return to after portal */
@@ -5079,29 +4164,6 @@ export type components = {
             /** @description Comma-separated review tags */
             tags?: string;
         };
-        CreateSatelliteDto: {
-            content: string;
-            /** @enum {string} */
-            gravityPhase?: "GESTATION" | "CORE" | "SEDIMENTATION";
-            /** @description Caller-supplied ULID for idempotent publish */
-            id?: string;
-            metadata?: components["schemas"]["SatelliteMetadataDto"];
-            /** @default 1 */
-            narrativeWeight: number;
-            /**
-             * @default REAL
-             * @enum {string}
-             */
-            provenance: "REAL" | "SYNTHETIC";
-            sceneId?: string;
-            spineEventId?: string;
-            spineId?: string;
-            /** @description TTL in seconds */
-            ttl?: number;
-            /** @enum {string} */
-            type: "INNER_VOICE" | "CONTEXT" | "WORLD_BUILDING" | "RELATIONSHIP_MOMENT" | "SCENE_STATE" | "EMOTION" | "DETAIL" | "ATMOSPHERE";
-            worldId: string;
-        };
         CreateSparkCheckoutDto: {
             /** @description URL to redirect on cancel */
             cancelUrl: string;
@@ -5118,34 +4180,12 @@ export type components = {
             /** @description Target tier */
             tier: components["schemas"]["SubscriptionTier"];
         };
-        CreateSyntheticMemoryDto: {
-            /** @default 0.5 */
-            confidence: number;
-            content: string;
-            gapId: string;
-            metadata?: components["schemas"]["SatelliteMetadataDto"];
-            /** @enum {string} */
-            type: "INNER_VOICE" | "CONTEXT" | "WORLD_BUILDING" | "RELATIONSHIP_MOMENT" | "SCENE_STATE" | "EMOTION" | "DETAIL" | "ATMOSPHERE";
-        };
-        CreateTransitDto: {
-            agentId: string;
-            carriedState?: {
-                [key: string]: unknown;
-            };
-            fromWorldId?: string;
-            reason?: string;
-            toWorldId: string;
-            /** @enum {string} */
-            transitType: "INBOUND" | "OUTBOUND";
-        };
         CreateWithdrawalDto: {
             /** @description Amount of Gems to withdraw */
             gemAmount: string;
         };
         CreateWorldDraftDto: {
-            draftPayload?: {
-                [key: string]: unknown;
-            };
+            draftPayload?: components["schemas"]["WorldDraftPayloadDto"];
             pipelineState?: {
                 [key: string]: unknown;
             };
@@ -5153,18 +4193,6 @@ export type components = {
             /** @enum {string} */
             sourceType: "TEXT" | "FILE";
             targetWorldId?: string;
-        };
-        CreateWorldDto: {
-            bannerUrl?: string;
-            /** @enum {string} */
-            contentRating?: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
-            description?: string;
-            iconUrl?: string;
-            motto?: string;
-            /** @example Crystal Garden */
-            name: string;
-            overview?: string;
-            tagline?: string;
         };
         CreateWorldRuleDto: {
             /** @enum {string} */
@@ -5192,6 +4220,16 @@ export type components = {
             title: string;
             validFrom?: string;
             validUntil?: string;
+        };
+        CreateWorldTransitDto: {
+            agentId: string;
+            context?: components["schemas"]["TransitContextDto"];
+            fromWorldId?: string;
+            /**
+             * @default INBOUND
+             * @enum {string}
+             */
+            transitType: "INBOUND" | "OUTBOUND";
         };
         CreatorAgentResponseDto: {
             capabilities?: components["schemas"]["UserAgentDnaDto"];
@@ -5317,6 +4355,17 @@ export type components = {
         DeleteAgentOperationResponseDto: {
             success: boolean;
         };
+        DeleteAllDyadicMemoriesResponseDto: {
+            agentId: string;
+            deletedCount: number;
+            userId: string;
+        };
+        DeleteDyadicMemoryResponseDto: {
+            agentId: string;
+            deletedAt: string;
+            memoryId: string;
+            userId: string;
+        };
         DesktopChatRouteRequestDto: {
             /** @description Required for AGENT */
             agentId?: string;
@@ -5332,12 +4381,6 @@ export type components = {
             reason: string;
             /** @enum {string} */
             sessionClass: "HUMAN_DIRECT" | "AGENT_LOCAL";
-        };
-        DetectedGapDto: {
-            duration?: components["schemas"]["TimeGapDurationDto"];
-            gap?: components["schemas"]["TimeGapDetailDto"];
-            /** @description Whether a gap was detected */
-            hasGap: boolean;
         };
         /**
          * @description Primary DNA personality archetype
@@ -5430,15 +4473,6 @@ export type components = {
             traceId?: string;
             width?: number;
             worldId?: string;
-        };
-        ForceActionDto: {
-            /** @enum {string} */
-            action: "POST" | "REPLY";
-            context?: string;
-        };
-        ForceActionResponseDto: {
-            message?: string;
-            success: boolean;
         };
         FriendProfileDto: {
             agent?: components["schemas"]["AgentMetadataDto"];
@@ -5579,40 +4613,6 @@ export type components = {
             importance?: string;
             term: string;
         };
-        GravityFieldDto: {
-            attractedTypes?: string[];
-            /** @enum {string} */
-            decay?: "LINEAR" | "EXPONENTIAL" | "STEP";
-            radius?: number;
-            /** @description Gravity strength (0-1) */
-            strength: number;
-            /** @enum {string} */
-            type: "EMOTIONAL" | "NARRATIVE" | "CAUSAL" | "TEMPORAL";
-        };
-        GrowthProjectionDto: {
-            /**
-             * Format: date-time
-             * @description Calculation timestamp
-             */
-            calculatedAt: string;
-            /**
-             * Format: date-time
-             * @description Cache expiration timestamp
-             */
-            expiresAt: string;
-            /** @description Key growth areas */
-            growthAreas: string[];
-            /** @description Overall maturity score (0-100) */
-            maturityScore: number;
-            /** @description Maturity vector X component (experience) */
-            maturityX: number;
-            /** @description Maturity vector Y component (complexity) */
-            maturityY: number;
-            /** @description Maturity vector Z component (depth) */
-            maturityZ: number;
-            /** @description Projected growth trajectory */
-            trajectory: string;
-        };
         InjectEventResponseDto: {
             /** @description Error message if failed */
             error?: string;
@@ -5692,24 +4692,6 @@ export type components = {
         Me2faVerifyDto: {
             code: string;
         };
-        MediaAssetCreateDto: {
-            durationSec?: number;
-            hashSha256?: string;
-            height?: number;
-            label?: string;
-            /** @enum {string} */
-            mediaType: "IMAGE" | "VIDEO";
-            mimeType?: string;
-            /** @enum {string} */
-            provenance?: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
-            /** @enum {string} */
-            provider?: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
-            sizeBytes?: number;
-            sourceRef?: string;
-            storageRef: string;
-            tags?: string[];
-            width?: number;
-        };
         MediaAssetDetailDto: {
             agentId?: string | null;
             createdAt: string;
@@ -5769,11 +4751,6 @@ export type components = {
             storageRef: string;
             uploadUrl: string;
         };
-        MemoryStatsResponseDto: {
-            coreCount: number;
-            e2eCount: number;
-            uniqueEntities: number;
-        };
         /** @enum {string} */
         MessageType: "TEXT" | "IMAGE" | "VIDEO" | "POST_REF" | "USER_REF" | "LINK_REF" | "GIFT" | "FRIEND_REQUEST" | "SYSTEM" | "RECALL";
         MessageViewDto: {
@@ -5798,93 +4775,28 @@ export type components = {
         };
         /** @enum {string} */
         ModerationStatusString: "ACTIVE" | "UNDER_REVIEW" | "FLAGGED" | "BANNED";
-        MutationProposalDetailDto: {
-            agentId: string;
-            confidence: number;
-            /** Format: date-time */
-            createdAt: string;
-            evidenceMetricIds: string[];
-            expectedImpact?: string;
-            id: string;
-            proposedChange: components["schemas"]["ProposedChangeDto"][];
-            rejectReason?: string;
-            /** Format: date-time */
-            reviewedAt?: string;
-            reviewedBy?: string;
+        MutationActorRefDto: {
+            actorId: string;
+            actorType: string;
+            role?: string;
+        };
+        MutationCommitEnvelopeDto: {
+            actorRefs: components["schemas"]["MutationActorRefDto"][];
+            appId: string;
             /** @enum {string} */
-            status: "PENDING" | "APPROVED" | "REJECTED";
-        };
-        NarrativeConflictDto: {
-            description: string;
-            id: string;
-            name: string;
-            parties?: string[];
-            status?: string;
-        };
-        NarrativeHooksDto: {
-            genre?: string[];
-            plotPatterns?: string[];
-            taboos?: string[];
-            themes?: string[];
-            toneStyle?: string;
-        };
-        NarrativePlotPointDto: {
-            description: string;
-            id: string;
-            importance?: string;
-            name: string;
-        };
-        NarrativeSpineBranchDetailDto: {
-            /** @enum {string} */
-            branchType: "CANON" | "WHATIF";
-            /** Format: date-time */
-            createdAt: string;
-            eventCount: number;
-            forkEventId?: string;
-            id: string;
-            parentBranchId?: string;
-            spineId: string;
-            /** @enum {string} */
-            status: "ACTIVE" | "ARCHIVED" | "CANONICAL";
-        };
-        NarrativeSpineDetailDto: {
-            agentId: string;
-            branchCount: number;
-            /** Format: date-time */
-            createdAt: string;
-            eventCount: number;
-            id: string;
-            storyId: string;
-            /** Format: date-time */
-            updatedAt: string;
-            userId: string;
+            effectClass: "NONE" | "MEMORY_ONLY" | "STATE_ONLY" | "STATE_AND_HISTORY";
+            evidenceRefs?: components["schemas"]["MutationEvidenceRefDto"][];
+            reason: string;
+            schemaId: string;
+            schemaVersion: string;
+            scope: string;
+            sessionId: string;
             worldId: string;
         };
-        NarrativeSpineEventDetailDto: {
-            branchId: string;
-            canonFlag: boolean;
-            causalLinks: string[];
-            /** Format: date-time */
-            createdAt: string;
-            directorsCut?: {
-                [key: string]: unknown;
-            };
-            gravityField?: {
-                [key: string]: unknown;
-            };
-            id: string;
-            narrativeWeight: number;
-            parentEventId?: string;
-            payload: {
-                [key: string]: unknown;
-            };
-            sceneId?: string;
-            sequence: number;
-            spineId: string;
-            /** Format: date-time */
-            timestamp: string;
-            /** @enum {string} */
-            type: "DIALOGUE" | "ACTION" | "THOUGHT" | "OBSERVATION" | "EMOTION" | "DECISION" | "MEMORY" | "GRAVITY" | "SYSTEM" | "TIMESKIP" | "BRANCH_POINT";
+        MutationEvidenceRefDto: {
+            kind: string;
+            refId: string;
+            uri?: string;
         };
         NotificationActivityDto: {
             /** @default true */
@@ -6102,15 +5014,6 @@ export type components = {
         };
         /** @enum {string} */
         PresenceStatus: "online" | "invisible";
-        ProposedChangeDto: {
-            /** @description JSON Patch operation (add, remove, replace) */
-            op: string;
-            /** @description JSON Pointer path */
-            path: string;
-            value?: {
-                [key: string]: unknown;
-            };
-        };
         PublicFilterDto: {
             minViewerAssetTier?: number;
             minViewerInfluenceTier?: number;
@@ -6121,6 +5024,33 @@ export type components = {
             viewerCity?: string;
             viewerCountryCode?: string;
             viewerGenders?: string[];
+        };
+        PublicWorldHistoryEventDto: {
+            cause?: string;
+            characterRefs: string[];
+            committedAt: string;
+            dependsOnEventIds: string[];
+            eventId: string;
+            eventType: string;
+            evidenceRefs: components["schemas"]["WorldEventEvidenceRefDto"][];
+            happenedAt: string;
+            id: string;
+            locationRefs: string[];
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            process?: string;
+            result?: string;
+            summary?: string;
+            timeRef?: string;
+            title: string;
+            /** @enum {string} */
+            visibility?: "PUBLIC" | "WORLD" | "RESTRICTED";
+            worldId: string;
+        };
+        PublicWorldHistoryListDto: {
+            items: components["schemas"]["PublicWorldHistoryEventDto"][];
+            worldId: string;
         };
         PublicWorldLorebookDto: {
             content: string;
@@ -6183,17 +5113,12 @@ export type components = {
             items: components["schemas"]["PublicWorldSceneDto"][];
             worldId: string;
         };
-        PublishNarrativeSpineDto: {
-            events: components["schemas"]["CreateNarrativeSpineEventDto"][];
-            satellites: components["schemas"]["CreateSatelliteDto"][];
-        };
         PublishWorldDraftDto: {
             reason?: string;
         };
         PublishWorldDraftResultDto: {
             draftId: string;
             publishedAt: string;
-            storyProjectionStats?: components["schemas"]["WorldStoryProjectionSummaryDto"];
             worldId: string;
             worldviewVersion: number;
         };
@@ -6205,9 +5130,6 @@ export type components = {
             refreshToken?: string;
         };
         RejectGiftDto: {
-            reason?: string;
-        };
-        RejectRequestDto: {
             reason?: string;
         };
         RelationshipResponseDto: {
@@ -6327,11 +5249,6 @@ export type components = {
             revieweeId: string;
             reviewerId: string;
         };
-        ReviewProposalDto: {
-            /** @enum {string} */
-            action: "APPROVED" | "REJECTED";
-            reason?: string;
-        };
         /** @enum {string} */
         ReviewRating: "POSITIVE" | "NEGATIVE";
         ReviewStatsDto: {
@@ -6358,53 +5275,11 @@ export type components = {
             /** @description Published runtime scope catalog version used when minting the grant */
             version: string;
         };
-        SatelliteDetailDto: {
-            content: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            expiresAt?: string;
-            gapId?: string;
-            /** @enum {string} */
-            gravityPhase?: "GESTATION" | "CORE" | "SEDIMENTATION";
-            id: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            narrativeWeight: number;
-            /** @enum {string} */
-            provenance: "REAL" | "SYNTHETIC";
-            referencedCount: number;
-            sceneId?: string;
-            spineEventId?: string;
-            spineId?: string;
-            ttl?: number;
-            /** @enum {string} */
-            type: "INNER_VOICE" | "CONTEXT" | "WORLD_BUILDING" | "RELATIONSHIP_MOMENT" | "SCENE_STATE" | "EMOTION" | "DETAIL" | "ATMOSPHERE";
-            verificationStatus?: string;
-            worldId: string;
-        };
-        SatelliteMetadataDto: {
-            emotionTags?: string[];
-            importance?: number;
-            /** @enum {string} */
-            source?: "USER_INPUT" | "AGENT_THOUGHT" | "SYSTEM_GENERATED" | "GAP_FILL";
-            /** @enum {string} */
-            visibility?: "PUBLIC" | "AGENT_ONLY" | "CREATOR_ONLY";
-        };
         SceneConnectionDto: {
             bidirectional?: boolean;
             conditions?: string[];
             from: string;
             to: string;
-        };
-        SceneContextDto: {
-            sceneId: string;
-            sceneName?: string;
-            sceneState?: {
-                [key: string]: unknown;
-            };
-            timeContext?: string;
         };
         SceneDefinitionDto: {
             description?: string;
@@ -6415,6 +5290,12 @@ export type components = {
             };
             /** @enum {string} */
             tier?: "TIER0_SANCTUARY" | "TIER1_TRANSIT" | "TIER2_ACTIVE";
+        };
+        SceneQuotaDto: {
+            quota: number;
+            /** @enum {string} */
+            tier: "FREE" | "PRO" | "MAX";
+            used: number;
         };
         SceneTimeConfigDto: {
             defaults: components["schemas"]["SceneTimeSettingsDto"];
@@ -6562,16 +5443,6 @@ export type components = {
             name: string;
             traits?: string[];
         };
-        SpineEventPayloadDto: {
-            content: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            participants?: string[];
-            sceneContext?: components["schemas"]["SceneContextDto"];
-            /** @enum {string} */
-            type: "DIALOGUE" | "ACTION" | "THOUGHT" | "OBSERVATION" | "EMOTION" | "DECISION" | "MEMORY" | "GRAVITY" | "SYSTEM" | "TIMESKIP" | "BRANCH_POINT";
-        };
         StartChatInputDto: {
             asFriendRequest?: boolean;
             /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
@@ -6648,38 +5519,6 @@ export type components = {
             name: string;
             phases?: string[];
         };
-        TimeGapDetailDto: {
-            agentId: string;
-            /** @enum {string} */
-            collapseStatus: "PENDING" | "GENERATING" | "COLLAPSED" | "SKIPPED";
-            /** Format: date-time */
-            createdAt: string;
-            id: string;
-            /** Format: date-time */
-            lastActiveAt: string;
-            /** @description Real gap duration in milliseconds */
-            realGapDuration: number;
-            /** Format: date-time */
-            returnedAt: string;
-            spineId: string;
-            syntheticMemoryIds: string[];
-            userId: string;
-            /** @description World gap duration in milliseconds */
-            worldGapDuration: number;
-            worldId: string;
-        };
-        TimeGapDurationDto: {
-            /** @description Whether gap exceeds threshold for synthetic memory */
-            exceedsThreshold: boolean;
-            /** @description Real time gap formatted (e.g., "2d 5h 30m") */
-            realGapFormatted: string;
-            /** @description Real time gap in milliseconds */
-            realGapMs: number;
-            /** @description World time gap formatted */
-            worldGapFormatted: string;
-            /** @description World time gap in milliseconds */
-            worldGapMs: number;
-        };
         TimeModelDto: {
             allowReverse?: boolean;
             calendarSystem?: components["schemas"]["CalendarSystemDto"];
@@ -6689,44 +5528,31 @@ export type components = {
             type: "TICK_BASED" | "CONTINUOUS" | "RELATIVE";
             unit?: string;
         };
-        TransitCheckpointDto: {
-            data?: {
+        TransitContextDto: {
+            handoffRefs?: {
                 [key: string]: unknown;
             };
-            name: string;
-            /** @enum {string} */
-            status: "PASSED" | "FAILED" | "SKIPPED";
-            /** Format: date-time */
-            timestamp: string;
+            memoryRefIds?: string[];
+            reason?: string;
+            stateRecordIds?: string[];
         };
         TransitDetailDto: {
             agentId: string;
             /** Format: date-time */
             arrivedAt?: string | null;
+            context?: components["schemas"]["TransitContextDto"] | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             departedAt: string;
             fromWorldId?: string | null;
             id: string;
-            sessionData?: components["schemas"]["TransitSessionDataDto"] | null;
             /** @enum {string} */
             status: "ACTIVE" | "COMPLETED" | "ABANDONED";
             toWorldId: string;
             /** @enum {string} */
             transitType: "INBOUND" | "OUTBOUND";
             userId: string;
-        };
-        TransitSessionDataDto: {
-            carriedState?: {
-                [key: string]: unknown;
-            };
-            checkpoints?: components["schemas"]["TransitCheckpointDto"][];
-            /** Format: date-time */
-            endedAt?: string;
-            reason?: string;
-            /** Format: date-time */
-            startedAt: string;
         };
         TranslateRequestDto: {
             /**
@@ -6829,11 +5655,6 @@ export type components = {
             width?: number;
             worldId?: string;
         };
-        UpdateNarrativeSpineEventDto: {
-            canonFlag?: boolean;
-            gravityField?: components["schemas"]["GravityFieldDto"];
-            narrativeWeight?: number;
-        };
         UpdateNsfwConsentResponseDto: {
             /** @description The new NSFW setting */
             enabled: boolean;
@@ -6858,12 +5679,6 @@ export type components = {
         UpdateRelationshipDto: {
             context?: string;
             strength?: number;
-        };
-        UpdateSessionDataDto: {
-            carriedState?: {
-                [key: string]: unknown;
-            };
-            reason?: string;
         };
         UpdateSoulPrimeDto: {
             /** @description Soul Prime configuration */
@@ -6941,19 +5756,12 @@ export type components = {
             walletVisibility?: components["schemas"]["Visibility"];
         };
         UpdateWorldDraftDto: {
-            draftPayload?: {
-                [key: string]: unknown;
-            };
+            draftPayload?: components["schemas"]["WorldDraftPayloadDto"];
             pipelineState?: {
                 [key: string]: unknown;
             };
             /** @enum {string} */
             status?: "DRAFT" | "SYNTHESIZE" | "REVIEW" | "PUBLISH" | "FAILED";
-        };
-        UpdateWorldMaintenanceDto: {
-            ifSnapshotVersion?: string;
-            reason?: string;
-            worldPatch?: components["schemas"]["WorldPatchDto"];
         };
         UpdateWorldRuleDto: {
             /** @enum {string} */
@@ -7203,11 +6011,6 @@ export type components = {
          * @enum {string}
          */
         VerificationTier: "COMMUNITY" | "VERIFIED" | "OFFICIAL";
-        VerifySyntheticMemoryDto: {
-            reason?: string;
-            /** @enum {string} */
-            status: "canonized" | "rejected";
-        };
         /** @enum {string} */
         Visibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
         VisualGuideDto: {
@@ -7480,6 +6283,17 @@ export type components = {
             score: components["schemas"]["WorldComputedScoreDto"];
             time: components["schemas"]["WorldComputedTimeDto"];
         };
+        WorldDraftAssetBindingsDraftDto: {
+            characterPortraits?: {
+                [key: string]: unknown;
+            };
+            locationImages?: {
+                [key: string]: unknown;
+            };
+            worldCover?: {
+                [key: string]: unknown;
+            };
+        };
         WorldDraftDetailDto: {
             createdAt: string;
             draftPayload?: {
@@ -7502,6 +6316,36 @@ export type components = {
             targetWorldId?: string;
             updatedAt: string;
         };
+        WorldDraftHistoryBucketsDto: {
+            primary: {
+                [key: string]: unknown;
+            }[];
+            secondary: {
+                [key: string]: unknown;
+            }[];
+        };
+        WorldDraftHistoryDraftDto: {
+            events: components["schemas"]["WorldDraftHistoryBucketsDto"];
+        };
+        WorldDraftImportSourceDto: {
+            sourceRef?: string;
+            sourceText?: string;
+            /** @enum {string} */
+            sourceType: "TEXT" | "FILE";
+        };
+        WorldDraftPayloadDto: {
+            assetBindingsDraft?: components["schemas"]["WorldDraftAssetBindingsDraftDto"];
+            historyDraft: components["schemas"]["WorldDraftHistoryDraftDto"];
+            importSource: components["schemas"]["WorldDraftImportSourceDto"];
+            stateDraft: components["schemas"]["WorldDraftStateDraftDto"];
+            truthDraft: components["schemas"]["WorldDraftTruthDraftDto"];
+            workflowState: components["schemas"]["WorldDraftWorkflowStateDto"];
+        };
+        WorldDraftStateDraftDto: {
+            worldState: {
+                [key: string]: unknown;
+            };
+        };
         WorldDraftSummaryDto: {
             id: string;
             publishedAt?: string;
@@ -7516,31 +6360,26 @@ export type components = {
         WorldDraftSummaryListDto: {
             items: components["schemas"]["WorldDraftSummaryDto"][];
         };
-        WorldEventDetailDto: {
-            cause?: string;
-            characterRefs: string[];
-            confidence: number;
-            createdAt: string;
-            createdBy: string;
-            dependsOnEventIds: string[];
-            /** @enum {string} */
-            eventHorizon: "PAST" | "ONGOING" | "FUTURE";
-            evidenceRefs: components["schemas"]["WorldEventEvidenceRefDto"][];
-            id: string;
-            /** @enum {string} */
-            level: "PRIMARY" | "SECONDARY";
-            locationRefs: string[];
-            needsEvidence: boolean;
-            parentEventId?: string;
-            process?: string;
-            result?: string;
-            summary?: string;
-            timeRef?: string;
-            timelineSeq: number;
-            title: string;
-            updatedAt: string;
-            updatedBy: string;
-            worldId: string;
+        WorldDraftTruthDraftDto: {
+            agentRules: {
+                [key: string]: unknown;
+            }[];
+            worldRules: {
+                [key: string]: unknown;
+            }[];
+        };
+        WorldDraftWorkflowStateDto: {
+            createStep?: string;
+            futureEventsText?: string;
+            parseJob?: {
+                [key: string]: unknown;
+            };
+            phase1Artifact?: {
+                [key: string]: unknown;
+            };
+            selectedCharacters?: string[];
+            selectedStartTimeId?: string;
+            workspaceVersion: string;
         };
         WorldEventEvidenceRefDto: {
             confidence: number;
@@ -7558,41 +6397,78 @@ export type components = {
             segmentId: string;
             sourceType?: string;
         };
-        WorldEventGraphSummaryDto: {
-            eventCharacterCoverage: number;
-            eventLocationCoverage: number;
-            missingEvidenceCount: number;
-            primaryCount: number;
-            primaryEvidenceCoverage: number;
-            secondaryCount: number;
-            totalCount: number;
-        };
-        WorldEventListDto: {
-            editorSnapshotVersion?: string;
-            eventGraphSummary?: components["schemas"]["WorldEventGraphSummaryDto"];
-            items: components["schemas"]["WorldEventDetailDto"][];
-            worldId: string;
-        };
-        WorldEventUpsertDto: {
+        WorldHistoryAppendItemDto: {
             cause?: string;
             characterRefs?: string[];
-            confidence?: number;
             dependsOnEventIds?: string[];
-            /** @enum {string} */
-            eventHorizon?: "PAST" | "ONGOING" | "FUTURE";
+            eventId?: string;
+            eventType: string;
             evidenceRefs?: components["schemas"]["WorldEventEvidenceRefInputDto"][];
-            id?: string;
-            /** @enum {string} */
-            level: "PRIMARY" | "SECONDARY";
+            happenedAt: string;
+            invalidates?: string[];
             locationRefs?: string[];
-            needsEvidence?: boolean;
-            parentEventId?: string;
+            /** @enum {string} */
+            operation: "APPEND" | "SUPERSEDE" | "INVALIDATE";
+            payload?: {
+                [key: string]: unknown;
+            };
             process?: string;
+            relatedStateRefs: components["schemas"]["WorldHistoryRelatedStateRefDto"][];
             result?: string;
             summary?: string;
+            supersedes?: string[];
             timeRef?: string;
-            timelineSeq: number;
             title: string;
+            /** @enum {string} */
+            visibility: "PUBLIC" | "WORLD" | "RESTRICTED";
+        };
+        WorldHistoryEventDto: {
+            actorRefs: components["schemas"]["MutationActorRefDto"][];
+            appId: string;
+            cause?: string;
+            characterRefs: string[];
+            commitId: string;
+            committedAt: string;
+            createdBy: string;
+            dependsOnEventIds: string[];
+            eventId: string;
+            eventType: string;
+            evidenceRefs: components["schemas"]["WorldEventEvidenceRefDto"][];
+            happenedAt: string;
+            id: string;
+            invalidatedAt?: string | null;
+            invalidates: string[];
+            locationRefs: string[];
+            /** @enum {string} */
+            operation: "APPEND" | "SUPERSEDE" | "INVALIDATE";
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            process?: string;
+            relatedStateRefs: components["schemas"]["WorldHistoryRelatedStateRefDto"][];
+            result?: string;
+            schemaId: string;
+            schemaVersion: string;
+            sessionId: string;
+            summary?: string;
+            supersedes: string[];
+            timeRef?: string;
+            title: string;
+            /** @enum {string} */
+            visibility: "PUBLIC" | "WORLD" | "RESTRICTED";
+            worldId: string;
+        };
+        WorldHistoryListDto: {
+            items: components["schemas"]["WorldHistoryEventDto"][];
+            version: string;
+            worldId: string;
+        };
+        WorldHistoryRelatedStateRefDto: {
+            recordId: string;
+            /** @enum {string} */
+            scope: "WORLD" | "ENTITY" | "RELATION";
+            scopeKey: string;
+            version?: string;
         };
         WorldLandingDecisionDto: {
             reason?: string;
@@ -7664,14 +6540,6 @@ export type components = {
             items: components["schemas"]["WorldLorebookDetailDto"][];
             worldId: string;
         };
-        WorldMaintenanceDto: {
-            editorSnapshotVersion?: string;
-            eventSummary?: components["schemas"]["WorldEventGraphSummaryDto"];
-            lorebooks: components["schemas"]["WorldLorebookDetailDto"][];
-            storyProjectionSummary?: components["schemas"]["WorldStoryProjectionSummaryDto"];
-            world: components["schemas"]["WorldPatchDto"];
-            readonly worldview?: components["schemas"]["WorldviewPatchDto"];
-        };
         WorldMediaAssetDetailDto: {
             durationSec?: number;
             hashSha256?: string;
@@ -7717,21 +6585,6 @@ export type components = {
             items: components["schemas"]["WorldMediaBindingDetailDto"][];
             worldId: string;
         };
-        WorldMediaBindingUpsertDto: {
-            asset?: components["schemas"]["MediaAssetCreateDto"];
-            assetId?: string;
-            conditions?: {
-                [key: string]: string;
-            };
-            intentPrompt?: string;
-            priority?: number;
-            /** @enum {string} */
-            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
-            tags?: string[];
-            targetId: string;
-            /** @enum {string} */
-            targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-        };
         WorldMutationListDto: {
             items: components["schemas"]["WorldMutationSummaryDto"][];
             worldId: string;
@@ -7747,49 +6600,6 @@ export type components = {
             targetPath: string;
             title: string;
             worldId: string;
-        };
-        WorldNarrativeContextDetailDto: {
-            createdAt: string;
-            derivedFromSpineSeq?: number;
-            id: string;
-            narrativeSetting: {
-                [key: string]: unknown;
-            };
-            narrativeState: {
-                [key: string]: unknown;
-            };
-            /** @enum {string} */
-            scope: "CANON" | "STORY" | "SUBJECT" | "RELATION";
-            scopeKey: string;
-            storyId?: string;
-            subjectId?: string;
-            /** @enum {string} */
-            subjectType?: "AGENT" | "PLAYER" | "FACTION";
-            targetSubjectId?: string;
-            /** @enum {string} */
-            targetSubjectType?: "AGENT" | "PLAYER" | "FACTION";
-            updatedAt: string;
-            worldId: string;
-        };
-        WorldNarrativeContextListDto: {
-            items: components["schemas"]["WorldNarrativeContextDetailDto"][];
-            worldId: string;
-        };
-        WorldPatchDto: {
-            bannerUrl?: string;
-            /** @enum {string} */
-            contentRating?: "UNRATED" | "G" | "PG13" | "R18" | "EXPLICIT";
-            description?: string;
-            era?: string;
-            genre?: string;
-            iconUrl?: string;
-            motto?: string;
-            name?: string;
-            overview?: string;
-            /** @enum {string} */
-            status?: "DRAFT" | "PENDING_REVIEW" | "ACTIVE" | "SUSPENDED" | "ARCHIVED";
-            tagline?: string;
-            themes?: string[];
         };
         WorldRecommendedAgentDto: {
             avatarUrl?: string;
@@ -7861,10 +6671,48 @@ export type components = {
             items: components["schemas"]["WorldSceneDetailDto"][];
             worldId: string;
         };
-        WorldStoryProjectionSummaryDto: {
-            latestProjectedAt?: string;
-            missingContextCount: number;
-            storyCount: number;
+        WorldStateDto: {
+            items: components["schemas"]["WorldStateRecordDto"][];
+            version: string;
+            worldId: string;
+        };
+        WorldStateRecordDto: {
+            actorRefs: components["schemas"]["MutationActorRefDto"][];
+            appId: string;
+            commitId: string;
+            committedAt: string;
+            createdBy: string;
+            /** @enum {string} */
+            effectClass: "STATE_ONLY";
+            evidenceRefs?: components["schemas"]["MutationEvidenceRefDto"][] | null;
+            id: string;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            schemaId: string;
+            schemaVersion: string;
+            /** @enum {string} */
+            scope: "WORLD" | "ENTITY" | "RELATION";
+            scopeKey: string;
+            sessionId: string;
+            targetPath: string;
+            version: string;
+            worldId: string;
+        };
+        WorldStateWriteDto: {
+            metadata?: {
+                [key: string]: unknown;
+            };
+            payload: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            scope: "WORLD" | "ENTITY" | "RELATION";
+            scopeKey: string;
+            targetPath?: string;
         };
         WorldSummaryDto: {
             description?: string;
@@ -7899,8 +6747,6 @@ export type components = {
             /** @enum {string} */
             lifecycle: "ACTIVE" | "MAINTENANCE" | "FROZEN" | "ARCHIVED";
             locations?: components["schemas"]["WorldviewLocationsDto"];
-            narrativeAssets?: components["schemas"]["WorldviewNarrativeAssetsDto"];
-            narrativeHooks?: components["schemas"]["NarrativeHooksDto"];
             resources?: components["schemas"]["ResourceDefinitionDto"];
             spaceTopology: components["schemas"]["SpaceTopologyDto"];
             structures?: {
@@ -7923,26 +6769,6 @@ export type components = {
         WorldviewLocationsDto: {
             landmarks?: components["schemas"]["LocationLandmarkDto"][];
             regions?: components["schemas"]["LocationRegionDto"][];
-        };
-        WorldviewNarrativeAssetsDto: {
-            conflicts?: components["schemas"]["NarrativeConflictDto"][];
-            plotPoints?: components["schemas"]["NarrativePlotPointDto"][];
-        };
-        WorldviewPatchDto: {
-            causality?: components["schemas"]["CausalityModelDto"];
-            coreSystem?: components["schemas"]["PowerSystemDto"];
-            existences?: components["schemas"]["ExistenceDefinitionDto"];
-            languages?: components["schemas"]["WorldviewLanguagesDto"];
-            /** @enum {string} */
-            lifecycle?: "ACTIVE" | "MAINTENANCE" | "FROZEN" | "ARCHIVED";
-            narrativeHooks?: components["schemas"]["NarrativeHooksDto"];
-            resources?: components["schemas"]["ResourceDefinitionDto"];
-            spaceTopology?: components["schemas"]["SpaceTopologyDto"];
-            structures?: {
-                [key: string]: unknown;
-            };
-            timeModel?: components["schemas"]["TimeModelDto"];
-            visualGuide?: components["schemas"]["VisualGuideDto"];
         };
         WorldviewTruthRuleSummaryDto: {
             /** @enum {string} */
@@ -8073,126 +6899,6 @@ export interface operations {
             };
         };
     };
-    AgentController_getApprovals: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_approve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Approval ID */
-                approvalId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApproveRequestDto"];
-            };
-        };
-        responses: {
-            /** @description Approval approved (immediate or scheduled) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_cancel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Approval ID */
-                approvalId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Approval cancelled */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_reject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Approval ID */
-                approvalId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RejectRequestDto"];
-            };
-        };
-        responses: {
-            /** @description Approval rejected */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_retry: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Approval ID */
-                approvalId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Approval status reset for retry */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     AgentController_selectAvatar: {
         parameters: {
             query?: never;
@@ -8241,7 +6947,7 @@ export interface operations {
             };
         };
     };
-    AgentController_forceAction: {
+    AgentController_commitMemory: {
         parameters: {
             query?: never;
             header?: never;
@@ -8253,17 +6959,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ForceActionDto"];
+                "application/json": components["schemas"]["CommitAgentMemoryDto"];
             };
         };
         responses: {
-            /** @description Force action triggered successfully */
-            200: {
+            /** @description Memory commit created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ForceActionResponseDto"];
+                    "application/json": components["schemas"]["AgentMemoryRecordDto"];
                 };
             };
         };
@@ -8293,15 +6999,13 @@ export interface operations {
             };
         };
     };
-    AgentController_listE2EMemories: {
+    AgentController_deleteAllDyadicMemories: {
         parameters: {
-            query?: {
-                limit?: number;
-            };
+            query?: never;
             header?: never;
             path: {
-                /** @description Entity ID (e.g., User ID) */
-                entityId: string;
+                /** @description User ID requesting deletion */
+                userId: string;
                 /** @description Agent ID */
                 id: string;
             };
@@ -8309,49 +7013,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description List of E2E memories for this Entity */
+            /** @description All DYADIC memories for this user deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
+                    "application/json": components["schemas"]["DeleteAllDyadicMemoriesResponseDto"];
                 };
             };
         };
     };
-    AgentController_deleteAllE2EMemories: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Entity ID requesting deletion */
-                entityId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description All E2E memories for this Entity deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_deleteE2EMemory: {
+    AgentController_deleteDyadicMemory: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 /** @description Memory ID to delete */
                 memoryId: string;
-                /** @description Entity ID (must match memory's subjectId) */
-                entityId: string;
+                /** @description User ID (must match the dyadic memory owner) */
+                userId: string;
                 /** @description Agent ID */
                 id: string;
             };
@@ -8359,12 +7040,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description E2E memory deleted */
+            /** @description DYADIC memory deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeleteDyadicMemoryResponseDto"];
+                };
             };
         };
     };
@@ -8429,7 +7112,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Key event deleted */
-            200: {
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8508,16 +7191,15 @@ export interface operations {
             };
         };
     };
-    AgentController_recallForEntity: {
+    AgentController_listDyadicMemories: {
         parameters: {
             query?: {
                 limit?: number;
-                query?: string;
             };
             header?: never;
             path: {
-                /** @description Entity ID interacting with Agent */
-                entityId: string;
+                /** @description User ID */
+                userId: string;
                 /** @description Agent ID */
                 id: string;
             };
@@ -8525,36 +7207,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Recalled memories (Core + relevant E2E) */
+            /** @description List of DYADIC memories for this user */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["AgentMemoryRecordDto"][];
-                };
-            };
-        };
-    };
-    AgentController_getMemoryStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Memory statistics */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MemoryStatsResponseDto"];
                 };
             };
         };
@@ -8715,26 +7374,6 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Agent suspended successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_getTasks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -12196,29 +10835,6 @@ export interface operations {
             };
         };
     };
-    WorldController_createWorld: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateWorldDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldDetailDto"];
-                };
-            };
-        };
-    };
     WorldControlController_getMyAccess: {
         parameters: {
             query?: never;
@@ -12441,7 +11057,7 @@ export interface operations {
             };
         };
     };
-    WorldController_getWorldEvents: {
+    WorldController_getWorldHistory: {
         parameters: {
             query?: never;
             header?: never;
@@ -12458,7 +11074,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorldEventListDto"];
+                    "application/json": components["schemas"]["PublicWorldHistoryListDto"];
                 };
             };
         };
@@ -12605,13 +11221,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateWorldTransitDto"];
+            };
+        };
         responses: {
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
             };
         };
     };
@@ -13079,23 +11701,6 @@ export interface operations {
             };
         };
     };
-    WorldController_getSceneQuota: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     WorldController_getMainWorld: {
         parameters: {
             query?: never;
@@ -13319,963 +11924,6 @@ export interface operations {
             };
         };
     };
-    SatelliteController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateSatelliteDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"];
-                };
-            };
-        };
-    };
-    SatelliteController_findBySpineEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine Event ID */
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"][];
-                };
-            };
-        };
-    };
-    SatelliteController_findByScene: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Scene ID */
-                sceneId: string;
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"][];
-                };
-            };
-        };
-    };
-    SatelliteController_findBySpine: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"][];
-                };
-            };
-        };
-    };
-    SatelliteController_searchSimilar: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"][];
-                };
-            };
-        };
-    };
-    SatelliteController_createSyntheticMemory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateSyntheticMemoryDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"];
-                };
-            };
-        };
-    };
-    SatelliteController_getPendingSyntheticMemories: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"][];
-                };
-            };
-        };
-    };
-    SatelliteController_verifySyntheticMemory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Satellite ID */
-                satelliteId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifySyntheticMemoryDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"];
-                };
-            };
-        };
-    };
-    SatelliteController_findById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Satellite ID */
-                satelliteId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"];
-                };
-            };
-        };
-    };
-    SatelliteController_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Satellite ID */
-                satelliteId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SatelliteController_touchReference: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Satellite ID */
-                satelliteId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SatelliteDetailDto"];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_getGrowthProjection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GrowthProjectionDto"];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_getMetrics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConsensusMetricDetailDto"][];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_aggregateMetrics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AggregateMetricsDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConsensusMetricDetailDto"][];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_getLatestMetrics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ConsensusMetricDetailDto"][];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_getProposals: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MutationProposalDetailDto"][];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_createProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateMutationProposalDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MutationProposalDetailDto"];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_getPendingProposals: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MutationProposalDetailDto"][];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_getProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Proposal ID */
-                proposalId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MutationProposalDetailDto"];
-                };
-            };
-        };
-    };
-    SoulEvolutionController_reviewProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Proposal ID */
-                proposalId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewProposalDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MutationProposalDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_archiveBranch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Branch ID */
-                branchId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_mergeBranch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Target branch ID */
-                targetBranchId: string;
-                /** @description Source branch ID */
-                branchId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getSpine: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getBranches: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"][];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_createBranch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateBranchDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getDefaultBranch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineBranchDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_appendEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Branch ID */
-                branchId: string;
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateNarrativeSpineEventDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getEvents: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"][];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_findSpine: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-                /** @description Runtime story instance ID */
-                storyId: string;
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getOrCreateSpine: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-                /** @description Runtime story instance ID */
-                storyId: string;
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_publishStorySpine: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-                /** @description Runtime story instance ID */
-                storyId: string;
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PublishNarrativeSpineDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Event ID */
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_updateEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Event ID */
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateNarrativeSpineEventDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getCausalChain: {
-        parameters: {
-            query?: {
-                depth?: number;
-            };
-            header?: never;
-            path: {
-                /** @description Event ID */
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CausalChainDto"];
-                };
-            };
-        };
-    };
-    NarrativeSpineController_getEventChildren: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Event ID */
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NarrativeSpineEventDetailDto"][];
-                };
-            };
-        };
-    };
-    TimeGapController_findBySpine: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimeGapDetailDto"][];
-                };
-            };
-        };
-    };
-    TimeGapController_detectGap: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                agentId: string;
-                /** @description Spine ID */
-                spineId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DetectedGapDto"];
-                };
-            };
-        };
-    };
-    TimeGapController_findPendingGaps: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimeGapDetailDto"][];
-                };
-            };
-        };
-    };
-    TimeGapController_getGap: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Time Gap ID */
-                gapId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimeGapDetailDto"];
-                };
-            };
-        };
-    };
-    TimeGapController_collapseGap: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Time Gap ID */
-                gapId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CollapseGapDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimeGapDetailDto"];
-                };
-            };
-        };
-    };
-    TimeGapController_skipGap: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Time Gap ID */
-                gapId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimeGapDetailDto"];
-                };
-            };
-        };
-    };
     TransitController_listTransits: {
         parameters: {
             query?: {
@@ -14299,29 +11947,6 @@ export interface operations {
             };
         };
     };
-    TransitController_createTransit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTransitDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransitDetailDto"];
-                };
-            };
-        };
-    };
     TransitController_getActiveTransit: {
         parameters: {
             query?: never;
@@ -14340,6 +11965,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    TransitController_getSceneQuota: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SceneQuotaDto"];
                 };
             };
         };
@@ -14388,32 +12032,6 @@ export interface operations {
             };
         };
     };
-    TransitController_addCheckpoint: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Transit ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddCheckpointDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransitDetailDto"];
-                };
-            };
-        };
-    };
     TransitController_complete: {
         parameters: {
             query?: never;
@@ -14432,54 +12050,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransitDetailDto"];
-                };
-            };
-        };
-    };
-    TransitController_updateSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Transit ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateSessionDataDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransitDetailDto"];
-                };
-            };
-        };
-    };
-    TransitController_startSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Transit ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransitSessionDataDto"];
                 };
             };
         };
@@ -14503,7 +12073,7 @@ export interface operations {
             };
         };
     };
-    WorldControlController_listWorldEvents: {
+    WorldControlController_listWorldHistory: {
         parameters: {
             query?: never;
             header?: never;
@@ -14520,12 +12090,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorldEventListDto"];
+                    "application/json": components["schemas"]["WorldHistoryListDto"];
                 };
             };
         };
     };
-    WorldControlController_batchUpsertWorldEvents: {
+    WorldControlController_appendWorldHistory: {
         parameters: {
             query?: never;
             header?: never;
@@ -14537,7 +12107,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BatchUpsertWorldEventsDto"];
+                "application/json": components["schemas"]["AppendWorldHistoryDto"];
             };
         };
         responses: {
@@ -14546,31 +12116,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorldEventListDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_deleteWorldEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World event ID */
-                eventId: string;
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldEventListDto"];
+                    "application/json": components["schemas"]["WorldHistoryListDto"];
                 };
             };
         };
@@ -14597,54 +12143,6 @@ export interface operations {
             };
         };
     };
-    WorldControlController_getMaintenance: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldMaintenanceDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_updateMaintenance: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateWorldMaintenanceDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldMaintenanceDto"];
-                };
-            };
-        };
-    };
     WorldControlController_listWorldMediaBindings: {
         parameters: {
             query?: {
@@ -14655,56 +12153,6 @@ export interface operations {
             };
             header?: never;
             path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldMediaBindingListDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_batchUpsertWorldMediaBindings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BatchUpsertWorldMediaBindingsDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldMediaBindingListDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_deleteWorldMediaBinding: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Media binding ID */
-                bindingId: string;
                 /** @description World ID */
                 worldId: string;
             };
@@ -14744,36 +12192,6 @@ export interface operations {
             };
         };
     };
-    WorldControlController_listWorldNarrativeContexts: {
-        parameters: {
-            query?: {
-                take?: number;
-                targetSubjectId?: string;
-                targetSubjectType?: "AGENT" | "PLAYER" | "FACTION";
-                subjectId?: string;
-                subjectType?: "AGENT" | "PLAYER" | "FACTION";
-                storyId?: string;
-                scope?: "CANON" | "STORY" | "SUBJECT" | "RELATION";
-            };
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldNarrativeContextListDto"];
-                };
-            };
-        };
-    };
     WorldControlController_listWorldScenes: {
         parameters: {
             query?: {
@@ -14795,6 +12213,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorldSceneListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_getState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldStateDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_commitState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommitWorldStateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldStateDto"];
                 };
             };
         };

@@ -35,9 +35,8 @@ export function writeRealmFacade(repoRoot) {
   lines.push('// Typed adapter exports.');
   lines.push("export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';");
   lines.push("export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';");
-  lines.push("export type { SendAgentChannelMessageInput, SendAgentChannelMessageOutput } from './extensions/agent-channel.js';");
-  lines.push("export type { AgentEntityMemorySliceInput, AgentMemoryRecallInput, AgentMemoryRecallOutput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';");
-  lines.push("export { listAgentCoreMemories, listAgentE2EMemories, recallAgentMemoriesForEntity } from './extensions/agent-memory.js';");
+  lines.push("export type { AgentMemoryCommitInput, AgentMemoryCommitOutput, AgentMemoryListInput, AgentMemoryProfileListOutput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';");
+  lines.push("export { commitAgentMemories, listAgentCoreMemories, listAgentDyadicMemories, listAgentMemoryProfiles } from './extensions/agent-memory.js';");
   lines.push('');
   lines.push('// Realm client exports.');
   lines.push("export { Realm } from './client.js';");

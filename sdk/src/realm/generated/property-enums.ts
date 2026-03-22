@@ -3,14 +3,6 @@
 
 import type { components } from './schema.js';
 
-export const AddCheckpointStatus = {
-  PASSED: "PASSED",
-  FAILED: "FAILED",
-  SKIPPED: "SKIPPED",
-} as const satisfies Record<string, components['schemas']['AddCheckpointDto']['status']>;
-
-export type AddCheckpointStatus = (typeof AddCheckpointStatus)[keyof typeof AddCheckpointStatus];
-
 export const AgentCommunicationFormality = {
   CASUAL: "casual",
   FORMAL: "formal",
@@ -35,19 +27,28 @@ export const AgentCommunicationSentiment = {
 
 export type AgentCommunicationSentiment = (typeof AgentCommunicationSentiment)[keyof typeof AgentCommunicationSentiment];
 
-export const AgentMemoryRecordCategory = {
-  CORE: "CORE",
-  E2E: "E2E",
-} as const satisfies Record<string, components['schemas']['AgentMemoryRecordDto']['category']>;
+export const AgentMemoryCommitEnvelopeEffectClass = {
+  MEMORY_ONLY: "MEMORY_ONLY",
+} as const satisfies Record<string, components['schemas']['AgentMemoryCommitEnvelopeDto']['effectClass']>;
 
-export type AgentMemoryRecordCategory = (typeof AgentMemoryRecordCategory)[keyof typeof AgentMemoryRecordCategory];
+export type AgentMemoryCommitEnvelopeEffectClass = (typeof AgentMemoryCommitEnvelopeEffectClass)[keyof typeof AgentMemoryCommitEnvelopeEffectClass];
+
+export const AgentMemoryCommitEnvelopeScope = {
+  WORLD: "WORLD",
+} as const satisfies Record<string, components['schemas']['AgentMemoryCommitEnvelopeDto']['scope']>;
+
+export type AgentMemoryCommitEnvelopeScope = (typeof AgentMemoryCommitEnvelopeScope)[keyof typeof AgentMemoryCommitEnvelopeScope];
+
+export const AgentMemoryRecordEffectClass = {
+  MEMORY_ONLY: "MEMORY_ONLY",
+} as const satisfies Record<string, components['schemas']['AgentMemoryRecordDto']['effectClass']>;
+
+export type AgentMemoryRecordEffectClass = (typeof AgentMemoryRecordEffectClass)[keyof typeof AgentMemoryRecordEffectClass];
 
 export const AgentMemoryRecordType = {
-  CORE_FACT: "CORE_FACT",
-  EPISODIC: "EPISODIC",
-  SEMANTIC: "SEMANTIC",
-  PROCEDURAL: "PROCEDURAL",
-  CULTURAL: "CULTURAL",
+  PUBLIC_SHARED: "PUBLIC_SHARED",
+  WORLD_SHARED: "WORLD_SHARED",
+  DYADIC: "DYADIC",
 } as const satisfies Record<string, components['schemas']['AgentMemoryRecordDto']['type']>;
 
 export type AgentMemoryRecordType = (typeof AgentMemoryRecordType)[keyof typeof AgentMemoryRecordType];
@@ -127,13 +128,6 @@ export const BatchCreateAgentCreatedOwnershipType = {
 
 export type BatchCreateAgentCreatedOwnershipType = (typeof BatchCreateAgentCreatedOwnershipType)[keyof typeof BatchCreateAgentCreatedOwnershipType];
 
-export const BatchUpsertWorldEventsMode = {
-  MERGE: "merge",
-  REPLACE: "replace",
-} as const satisfies Record<string, components['schemas']['BatchUpsertWorldEventsDto']['mode']>;
-
-export type BatchUpsertWorldEventsMode = (typeof BatchUpsertWorldEventsMode)[keyof typeof BatchUpsertWorldEventsMode];
-
 export const CausalityModelType = {
   DETERMINISTIC: "DETERMINISTIC",
   PROBABILISTIC: "PROBABILISTIC",
@@ -148,6 +142,14 @@ export const ChatSyncMode = {
 } as const satisfies Record<string, components['schemas']['ChatSyncResultDto']['mode']>;
 
 export type ChatSyncMode = (typeof ChatSyncMode)[keyof typeof ChatSyncMode];
+
+export const CommitAgentMemoryType = {
+  PUBLIC_SHARED: "PUBLIC_SHARED",
+  WORLD_SHARED: "WORLD_SHARED",
+  DYADIC: "DYADIC",
+} as const satisfies Record<string, components['schemas']['CommitAgentMemoryDto']['type']>;
+
+export type CommitAgentMemoryType = (typeof CommitAgentMemoryType)[keyof typeof CommitAgentMemoryType];
 
 export const CreateAgentRuleCategory = {
   CONSTRAINT: "CONSTRAINT",
@@ -209,13 +211,6 @@ export const CreateAudioDirectUploadOwnerKind = {
 
 export type CreateAudioDirectUploadOwnerKind = (typeof CreateAudioDirectUploadOwnerKind)[keyof typeof CreateAudioDirectUploadOwnerKind];
 
-export const CreateBranchType = {
-  CANON: "CANON",
-  WHATIF: "WHATIF",
-} as const satisfies Record<string, components['schemas']['CreateBranchDto']['branchType']>;
-
-export type CreateBranchType = (typeof CreateBranchType)[keyof typeof CreateBranchType];
-
 export const CreateReportTargetType = {
   USER: "USER",
   POST: "POST",
@@ -224,64 +219,6 @@ export const CreateReportTargetType = {
 } as const satisfies Record<string, components['schemas']['CreateReportDto']['targetType']>;
 
 export type CreateReportTargetType = (typeof CreateReportTargetType)[keyof typeof CreateReportTargetType];
-
-export const CreateSatelliteGravityPhase = {
-  GESTATION: "GESTATION",
-  CORE: "CORE",
-  SEDIMENTATION: "SEDIMENTATION",
-} as const satisfies Record<string, components['schemas']['CreateSatelliteDto']['gravityPhase']>;
-
-export type CreateSatelliteGravityPhase = (typeof CreateSatelliteGravityPhase)[keyof typeof CreateSatelliteGravityPhase];
-
-export const CreateSatelliteProvenance = {
-  REAL: "REAL",
-  SYNTHETIC: "SYNTHETIC",
-} as const satisfies Record<string, components['schemas']['CreateSatelliteDto']['provenance']>;
-
-export type CreateSatelliteProvenance = (typeof CreateSatelliteProvenance)[keyof typeof CreateSatelliteProvenance];
-
-export const CreateSatelliteType = {
-  INNER_VOICE: "INNER_VOICE",
-  CONTEXT: "CONTEXT",
-  WORLD_BUILDING: "WORLD_BUILDING",
-  RELATIONSHIP_MOMENT: "RELATIONSHIP_MOMENT",
-  SCENE_STATE: "SCENE_STATE",
-  EMOTION: "EMOTION",
-  DETAIL: "DETAIL",
-  ATMOSPHERE: "ATMOSPHERE",
-} as const satisfies Record<string, components['schemas']['CreateSatelliteDto']['type']>;
-
-export type CreateSatelliteType = (typeof CreateSatelliteType)[keyof typeof CreateSatelliteType];
-
-export const CreateSyntheticMemoryType = {
-  INNER_VOICE: "INNER_VOICE",
-  CONTEXT: "CONTEXT",
-  WORLD_BUILDING: "WORLD_BUILDING",
-  RELATIONSHIP_MOMENT: "RELATIONSHIP_MOMENT",
-  SCENE_STATE: "SCENE_STATE",
-  EMOTION: "EMOTION",
-  DETAIL: "DETAIL",
-  ATMOSPHERE: "ATMOSPHERE",
-} as const satisfies Record<string, components['schemas']['CreateSyntheticMemoryDto']['type']>;
-
-export type CreateSyntheticMemoryType = (typeof CreateSyntheticMemoryType)[keyof typeof CreateSyntheticMemoryType];
-
-export const CreateTransitType = {
-  INBOUND: "INBOUND",
-  OUTBOUND: "OUTBOUND",
-} as const satisfies Record<string, components['schemas']['CreateTransitDto']['transitType']>;
-
-export type CreateTransitType = (typeof CreateTransitType)[keyof typeof CreateTransitType];
-
-export const CreateWorldContentRating = {
-  UNRATED: "UNRATED",
-  G: "G",
-  PG13: "PG13",
-  R18: "R18",
-  EXPLICIT: "EXPLICIT",
-} as const satisfies Record<string, components['schemas']['CreateWorldDto']['contentRating']>;
-
-export type CreateWorldContentRating = (typeof CreateWorldContentRating)[keyof typeof CreateWorldContentRating];
 
 export const CreateWorldDraftSourceType = {
   TEXT: "TEXT",
@@ -341,6 +278,13 @@ export const CreateWorldRuleScope = {
 } as const satisfies Record<string, components['schemas']['CreateWorldRuleDto']['scope']>;
 
 export type CreateWorldRuleScope = (typeof CreateWorldRuleScope)[keyof typeof CreateWorldRuleScope];
+
+export const CreateWorldTransitType = {
+  INBOUND: "INBOUND",
+  OUTBOUND: "OUTBOUND",
+} as const satisfies Record<string, components['schemas']['CreateWorldTransitDto']['transitType']>;
+
+export type CreateWorldTransitType = (typeof CreateWorldTransitType)[keyof typeof CreateWorldTransitType];
 
 export const CreatorCapabilitiesAllowedActionsItem = {
   INJECT_EVENT: "INJECT_EVENT",
@@ -454,30 +398,6 @@ export const FinalizeMediaAssetOwnerKind = {
 
 export type FinalizeMediaAssetOwnerKind = (typeof FinalizeMediaAssetOwnerKind)[keyof typeof FinalizeMediaAssetOwnerKind];
 
-export const ForceAction = {
-  POST: "POST",
-  REPLY: "REPLY",
-} as const satisfies Record<string, components['schemas']['ForceActionDto']['action']>;
-
-export type ForceAction = (typeof ForceAction)[keyof typeof ForceAction];
-
-export const GravityFieldDecay = {
-  LINEAR: "LINEAR",
-  EXPONENTIAL: "EXPONENTIAL",
-  STEP: "STEP",
-} as const satisfies Record<string, components['schemas']['GravityFieldDto']['decay']>;
-
-export type GravityFieldDecay = (typeof GravityFieldDecay)[keyof typeof GravityFieldDecay];
-
-export const GravityFieldType = {
-  EMOTIONAL: "EMOTIONAL",
-  NARRATIVE: "NARRATIVE",
-  CAUSAL: "CAUSAL",
-  TEMPORAL: "TEMPORAL",
-} as const satisfies Record<string, components['schemas']['GravityFieldDto']['type']>;
-
-export type GravityFieldType = (typeof GravityFieldType)[keyof typeof GravityFieldType];
-
 export const InjectWorldEventScope = {
   GLOBAL: "GLOBAL",
   REGIONAL: "REGIONAL",
@@ -498,31 +418,6 @@ export const InjectWorldEventType = {
 } as const satisfies Record<string, components['schemas']['InjectWorldEventDto']['eventType']>;
 
 export type InjectWorldEventType = (typeof InjectWorldEventType)[keyof typeof InjectWorldEventType];
-
-export const MediaAssetCreateMediaType = {
-  IMAGE: "IMAGE",
-  VIDEO: "VIDEO",
-} as const satisfies Record<string, components['schemas']['MediaAssetCreateDto']['mediaType']>;
-
-export type MediaAssetCreateMediaType = (typeof MediaAssetCreateMediaType)[keyof typeof MediaAssetCreateMediaType];
-
-export const MediaAssetCreateProvenance = {
-  UPLOADED: "UPLOADED",
-  GENERATED: "GENERATED",
-  IMPORTED: "IMPORTED",
-  REFERENCE: "REFERENCE",
-} as const satisfies Record<string, components['schemas']['MediaAssetCreateDto']['provenance']>;
-
-export type MediaAssetCreateProvenance = (typeof MediaAssetCreateProvenance)[keyof typeof MediaAssetCreateProvenance];
-
-export const MediaAssetCreateProvider = {
-  CF_IMAGE: "CF_IMAGE",
-  CF_STREAM: "CF_STREAM",
-  S3_OBJECT: "S3_OBJECT",
-  EXTERNAL_URL: "EXTERNAL_URL",
-} as const satisfies Record<string, components['schemas']['MediaAssetCreateDto']['provider']>;
-
-export type MediaAssetCreateProvider = (typeof MediaAssetCreateProvider)[keyof typeof MediaAssetCreateProvider];
 
 export const MediaAssetDetailDeliveryAccess = {
   PUBLIC: "PUBLIC",
@@ -606,44 +501,14 @@ export const MediaDirectUploadSessionStatus = {
 
 export type MediaDirectUploadSessionStatus = (typeof MediaDirectUploadSessionStatus)[keyof typeof MediaDirectUploadSessionStatus];
 
-export const MutationProposalDetailStatus = {
-  PENDING: "PENDING",
-  APPROVED: "APPROVED",
-  REJECTED: "REJECTED",
-} as const satisfies Record<string, components['schemas']['MutationProposalDetailDto']['status']>;
+export const MutationCommitEnvelopeEffectClass = {
+  NONE: "NONE",
+  MEMORY_ONLY: "MEMORY_ONLY",
+  STATE_ONLY: "STATE_ONLY",
+  STATE_AND_HISTORY: "STATE_AND_HISTORY",
+} as const satisfies Record<string, components['schemas']['MutationCommitEnvelopeDto']['effectClass']>;
 
-export type MutationProposalDetailStatus = (typeof MutationProposalDetailStatus)[keyof typeof MutationProposalDetailStatus];
-
-export const NarrativeSpineBranchDetailBranchType = {
-  CANON: "CANON",
-  WHATIF: "WHATIF",
-} as const satisfies Record<string, components['schemas']['NarrativeSpineBranchDetailDto']['branchType']>;
-
-export type NarrativeSpineBranchDetailBranchType = (typeof NarrativeSpineBranchDetailBranchType)[keyof typeof NarrativeSpineBranchDetailBranchType];
-
-export const NarrativeSpineBranchDetailStatus = {
-  ACTIVE: "ACTIVE",
-  ARCHIVED: "ARCHIVED",
-  CANONICAL: "CANONICAL",
-} as const satisfies Record<string, components['schemas']['NarrativeSpineBranchDetailDto']['status']>;
-
-export type NarrativeSpineBranchDetailStatus = (typeof NarrativeSpineBranchDetailStatus)[keyof typeof NarrativeSpineBranchDetailStatus];
-
-export const NarrativeSpineEventDetailType = {
-  DIALOGUE: "DIALOGUE",
-  ACTION: "ACTION",
-  THOUGHT: "THOUGHT",
-  OBSERVATION: "OBSERVATION",
-  EMOTION: "EMOTION",
-  DECISION: "DECISION",
-  MEMORY: "MEMORY",
-  GRAVITY: "GRAVITY",
-  SYSTEM: "SYSTEM",
-  TIMESKIP: "TIMESKIP",
-  BRANCH_POINT: "BRANCH_POINT",
-} as const satisfies Record<string, components['schemas']['NarrativeSpineEventDetailDto']['type']>;
-
-export type NarrativeSpineEventDetailType = (typeof NarrativeSpineEventDetailType)[keyof typeof NarrativeSpineEventDetailType];
+export type MutationCommitEnvelopeEffectClass = (typeof MutationCommitEnvelopeEffectClass)[keyof typeof MutationCommitEnvelopeEffectClass];
 
 export const NotificationType = {
   FRIEND_REQUEST_RECEIVED: "friend_request_received",
@@ -680,6 +545,14 @@ export const PermissionCheckAction = {
 } as const satisfies Record<string, components['schemas']['PermissionCheckResponseDto']['action']>;
 
 export type PermissionCheckAction = (typeof PermissionCheckAction)[keyof typeof PermissionCheckAction];
+
+export const PublicWorldHistoryEventVisibility = {
+  PUBLIC: "PUBLIC",
+  WORLD: "WORLD",
+  RESTRICTED: "RESTRICTED",
+} as const satisfies Record<string, components['schemas']['PublicWorldHistoryEventDto']['visibility']>;
+
+export type PublicWorldHistoryEventVisibility = (typeof PublicWorldHistoryEventVisibility)[keyof typeof PublicWorldHistoryEventVisibility];
 
 export const PublicWorldMediaAssetMediaType = {
   IMAGE: "IMAGE",
@@ -740,58 +613,6 @@ export const RequestDataExportFormat = {
 
 export type RequestDataExportFormat = (typeof RequestDataExportFormat)[keyof typeof RequestDataExportFormat];
 
-export const ReviewProposalAction = {
-  APPROVED: "APPROVED",
-  REJECTED: "REJECTED",
-} as const satisfies Record<string, components['schemas']['ReviewProposalDto']['action']>;
-
-export type ReviewProposalAction = (typeof ReviewProposalAction)[keyof typeof ReviewProposalAction];
-
-export const SatelliteDetailGravityPhase = {
-  GESTATION: "GESTATION",
-  CORE: "CORE",
-  SEDIMENTATION: "SEDIMENTATION",
-} as const satisfies Record<string, components['schemas']['SatelliteDetailDto']['gravityPhase']>;
-
-export type SatelliteDetailGravityPhase = (typeof SatelliteDetailGravityPhase)[keyof typeof SatelliteDetailGravityPhase];
-
-export const SatelliteDetailProvenance = {
-  REAL: "REAL",
-  SYNTHETIC: "SYNTHETIC",
-} as const satisfies Record<string, components['schemas']['SatelliteDetailDto']['provenance']>;
-
-export type SatelliteDetailProvenance = (typeof SatelliteDetailProvenance)[keyof typeof SatelliteDetailProvenance];
-
-export const SatelliteDetailType = {
-  INNER_VOICE: "INNER_VOICE",
-  CONTEXT: "CONTEXT",
-  WORLD_BUILDING: "WORLD_BUILDING",
-  RELATIONSHIP_MOMENT: "RELATIONSHIP_MOMENT",
-  SCENE_STATE: "SCENE_STATE",
-  EMOTION: "EMOTION",
-  DETAIL: "DETAIL",
-  ATMOSPHERE: "ATMOSPHERE",
-} as const satisfies Record<string, components['schemas']['SatelliteDetailDto']['type']>;
-
-export type SatelliteDetailType = (typeof SatelliteDetailType)[keyof typeof SatelliteDetailType];
-
-export const SatelliteMetadataSource = {
-  USER_INPUT: "USER_INPUT",
-  AGENT_THOUGHT: "AGENT_THOUGHT",
-  SYSTEM_GENERATED: "SYSTEM_GENERATED",
-  GAP_FILL: "GAP_FILL",
-} as const satisfies Record<string, components['schemas']['SatelliteMetadataDto']['source']>;
-
-export type SatelliteMetadataSource = (typeof SatelliteMetadataSource)[keyof typeof SatelliteMetadataSource];
-
-export const SatelliteMetadataVisibility = {
-  PUBLIC: "PUBLIC",
-  AGENT_ONLY: "AGENT_ONLY",
-  CREATOR_ONLY: "CREATOR_ONLY",
-} as const satisfies Record<string, components['schemas']['SatelliteMetadataDto']['visibility']>;
-
-export type SatelliteMetadataVisibility = (typeof SatelliteMetadataVisibility)[keyof typeof SatelliteMetadataVisibility];
-
 export const SceneDefinitionTier = {
   TIER0_SANCTUARY: "TIER0_SANCTUARY",
   TIER1_TRANSIT: "TIER1_TRANSIT",
@@ -799,6 +620,14 @@ export const SceneDefinitionTier = {
 } as const satisfies Record<string, components['schemas']['SceneDefinitionDto']['tier']>;
 
 export type SceneDefinitionTier = (typeof SceneDefinitionTier)[keyof typeof SceneDefinitionTier];
+
+export const SceneQuotaTier = {
+  FREE: "FREE",
+  PRO: "PRO",
+  MAX: "MAX",
+} as const satisfies Record<string, components['schemas']['SceneQuotaDto']['tier']>;
+
+export type SceneQuotaTier = (typeof SceneQuotaTier)[keyof typeof SceneQuotaTier];
 
 export const SceneTimeSettingsTier = {
   TIER0_SANCTUARY: "TIER0_SANCTUARY",
@@ -824,31 +653,6 @@ export const SpaceTopologyType = {
 
 export type SpaceTopologyType = (typeof SpaceTopologyType)[keyof typeof SpaceTopologyType];
 
-export const SpineEventPayloadType = {
-  DIALOGUE: "DIALOGUE",
-  ACTION: "ACTION",
-  THOUGHT: "THOUGHT",
-  OBSERVATION: "OBSERVATION",
-  EMOTION: "EMOTION",
-  DECISION: "DECISION",
-  MEMORY: "MEMORY",
-  GRAVITY: "GRAVITY",
-  SYSTEM: "SYSTEM",
-  TIMESKIP: "TIMESKIP",
-  BRANCH_POINT: "BRANCH_POINT",
-} as const satisfies Record<string, components['schemas']['SpineEventPayloadDto']['type']>;
-
-export type SpineEventPayloadType = (typeof SpineEventPayloadType)[keyof typeof SpineEventPayloadType];
-
-export const TimeGapDetailCollapseStatus = {
-  PENDING: "PENDING",
-  GENERATING: "GENERATING",
-  COLLAPSED: "COLLAPSED",
-  SKIPPED: "SKIPPED",
-} as const satisfies Record<string, components['schemas']['TimeGapDetailDto']['collapseStatus']>;
-
-export type TimeGapDetailCollapseStatus = (typeof TimeGapDetailCollapseStatus)[keyof typeof TimeGapDetailCollapseStatus];
-
 export const TimeModelType = {
   TICK_BASED: "TICK_BASED",
   CONTINUOUS: "CONTINUOUS",
@@ -856,14 +660,6 @@ export const TimeModelType = {
 } as const satisfies Record<string, components['schemas']['TimeModelDto']['type']>;
 
 export type TimeModelType = (typeof TimeModelType)[keyof typeof TimeModelType];
-
-export const TransitCheckpointStatus = {
-  PASSED: "PASSED",
-  FAILED: "FAILED",
-  SKIPPED: "SKIPPED",
-} as const satisfies Record<string, components['schemas']['TransitCheckpointDto']['status']>;
-
-export type TransitCheckpointStatus = (typeof TransitCheckpointStatus)[keyof typeof TransitCheckpointStatus];
 
 export const TransitDetailStatus = {
   ACTIVE: "ACTIVE",
@@ -1001,13 +797,6 @@ export const UserAgentCommunicationSentiment = {
 
 export type UserAgentCommunicationSentiment = (typeof UserAgentCommunicationSentiment)[keyof typeof UserAgentCommunicationSentiment];
 
-export const VerifySyntheticMemoryStatus = {
-  CANONIZED: "canonized",
-  REJECTED: "rejected",
-} as const satisfies Record<string, components['schemas']['VerifySyntheticMemoryDto']['status']>;
-
-export type VerifySyntheticMemoryStatus = (typeof VerifySyntheticMemoryStatus)[keyof typeof VerifySyntheticMemoryStatus];
-
 export const WorldAccessRecordMaintainRole = {
   OWNER: "OWNER",
   MAINTAINER: "MAINTAINER",
@@ -1140,6 +929,13 @@ export const WorldDraftDetailStatus = {
 
 export type WorldDraftDetailStatus = (typeof WorldDraftDetailStatus)[keyof typeof WorldDraftDetailStatus];
 
+export const WorldDraftImportSourceType = {
+  TEXT: "TEXT",
+  FILE: "FILE",
+} as const satisfies Record<string, components['schemas']['WorldDraftImportSourceDto']['sourceType']>;
+
+export type WorldDraftImportSourceType = (typeof WorldDraftImportSourceType)[keyof typeof WorldDraftImportSourceType];
+
 export const WorldDraftSummarySourceType = {
   TEXT: "TEXT",
   FILE: "FILE",
@@ -1157,35 +953,45 @@ export const WorldDraftSummaryStatus = {
 
 export type WorldDraftSummaryStatus = (typeof WorldDraftSummaryStatus)[keyof typeof WorldDraftSummaryStatus];
 
-export const WorldEventDetailEventHorizon = {
-  PAST: "PAST",
-  ONGOING: "ONGOING",
-  FUTURE: "FUTURE",
-} as const satisfies Record<string, components['schemas']['WorldEventDetailDto']['eventHorizon']>;
+export const WorldHistoryAppendItemOperation = {
+  APPEND: "APPEND",
+  SUPERSEDE: "SUPERSEDE",
+  INVALIDATE: "INVALIDATE",
+} as const satisfies Record<string, components['schemas']['WorldHistoryAppendItemDto']['operation']>;
 
-export type WorldEventDetailEventHorizon = (typeof WorldEventDetailEventHorizon)[keyof typeof WorldEventDetailEventHorizon];
+export type WorldHistoryAppendItemOperation = (typeof WorldHistoryAppendItemOperation)[keyof typeof WorldHistoryAppendItemOperation];
 
-export const WorldEventDetailLevel = {
-  PRIMARY: "PRIMARY",
-  SECONDARY: "SECONDARY",
-} as const satisfies Record<string, components['schemas']['WorldEventDetailDto']['level']>;
+export const WorldHistoryAppendItemVisibility = {
+  PUBLIC: "PUBLIC",
+  WORLD: "WORLD",
+  RESTRICTED: "RESTRICTED",
+} as const satisfies Record<string, components['schemas']['WorldHistoryAppendItemDto']['visibility']>;
 
-export type WorldEventDetailLevel = (typeof WorldEventDetailLevel)[keyof typeof WorldEventDetailLevel];
+export type WorldHistoryAppendItemVisibility = (typeof WorldHistoryAppendItemVisibility)[keyof typeof WorldHistoryAppendItemVisibility];
 
-export const WorldEventUpsertEventHorizon = {
-  PAST: "PAST",
-  ONGOING: "ONGOING",
-  FUTURE: "FUTURE",
-} as const satisfies Record<string, components['schemas']['WorldEventUpsertDto']['eventHorizon']>;
+export const WorldHistoryEventOperation = {
+  APPEND: "APPEND",
+  SUPERSEDE: "SUPERSEDE",
+  INVALIDATE: "INVALIDATE",
+} as const satisfies Record<string, components['schemas']['WorldHistoryEventDto']['operation']>;
 
-export type WorldEventUpsertEventHorizon = (typeof WorldEventUpsertEventHorizon)[keyof typeof WorldEventUpsertEventHorizon];
+export type WorldHistoryEventOperation = (typeof WorldHistoryEventOperation)[keyof typeof WorldHistoryEventOperation];
 
-export const WorldEventUpsertLevel = {
-  PRIMARY: "PRIMARY",
-  SECONDARY: "SECONDARY",
-} as const satisfies Record<string, components['schemas']['WorldEventUpsertDto']['level']>;
+export const WorldHistoryEventVisibility = {
+  PUBLIC: "PUBLIC",
+  WORLD: "WORLD",
+  RESTRICTED: "RESTRICTED",
+} as const satisfies Record<string, components['schemas']['WorldHistoryEventDto']['visibility']>;
 
-export type WorldEventUpsertLevel = (typeof WorldEventUpsertLevel)[keyof typeof WorldEventUpsertLevel];
+export type WorldHistoryEventVisibility = (typeof WorldHistoryEventVisibility)[keyof typeof WorldHistoryEventVisibility];
+
+export const WorldHistoryRelatedStateRefScope = {
+  WORLD: "WORLD",
+  ENTITY: "ENTITY",
+  RELATION: "RELATION",
+} as const satisfies Record<string, components['schemas']['WorldHistoryRelatedStateRefDto']['scope']>;
+
+export type WorldHistoryRelatedStateRefScope = (typeof WorldHistoryRelatedStateRefScope)[keyof typeof WorldHistoryRelatedStateRefScope];
 
 export const WorldLandingDecisionTarget = {
   NO_ACCESS: "NO_ACCESS",
@@ -1267,36 +1073,6 @@ export const WorldMediaBindingDetailTargetType = {
 
 export type WorldMediaBindingDetailTargetType = (typeof WorldMediaBindingDetailTargetType)[keyof typeof WorldMediaBindingDetailTargetType];
 
-export const WorldMediaBindingUpsertSlot = {
-  WORLD_ICON: "WORLD_ICON",
-  WORLD_BANNER: "WORLD_BANNER",
-  WORLD_GALLERY: "WORLD_GALLERY",
-  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
-  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
-  SCENE_BACKGROUND: "SCENE_BACKGROUND",
-  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
-  EVENT_CG: "EVENT_CG",
-  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
-  AGENT_AVATAR: "AGENT_AVATAR",
-  AGENT_PORTRAIT: "AGENT_PORTRAIT",
-  AGENT_EXPRESSION: "AGENT_EXPRESSION",
-  AGENT_OUTFIT: "AGENT_OUTFIT",
-  AGENT_CANDIDATE: "AGENT_CANDIDATE",
-  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
-} as const satisfies Record<string, components['schemas']['WorldMediaBindingUpsertDto']['slot']>;
-
-export type WorldMediaBindingUpsertSlot = (typeof WorldMediaBindingUpsertSlot)[keyof typeof WorldMediaBindingUpsertSlot];
-
-export const WorldMediaBindingUpsertTargetType = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORLD_EVENT: "WORLD_EVENT",
-  WORLDVIEW: "WORLDVIEW",
-} as const satisfies Record<string, components['schemas']['WorldMediaBindingUpsertDto']['targetType']>;
-
-export type WorldMediaBindingUpsertTargetType = (typeof WorldMediaBindingUpsertTargetType)[keyof typeof WorldMediaBindingUpsertTargetType];
-
 export const WorldMutationSummaryMutationType = {
   SETTING_CHANGE: "SETTING_CHANGE",
   RULE_UPDATE: "RULE_UPDATE",
@@ -1310,51 +1086,6 @@ export const WorldMutationSummaryMutationType = {
 } as const satisfies Record<string, components['schemas']['WorldMutationSummaryDto']['mutationType']>;
 
 export type WorldMutationSummaryMutationType = (typeof WorldMutationSummaryMutationType)[keyof typeof WorldMutationSummaryMutationType];
-
-export const WorldNarrativeContextDetailScope = {
-  CANON: "CANON",
-  STORY: "STORY",
-  SUBJECT: "SUBJECT",
-  RELATION: "RELATION",
-} as const satisfies Record<string, components['schemas']['WorldNarrativeContextDetailDto']['scope']>;
-
-export type WorldNarrativeContextDetailScope = (typeof WorldNarrativeContextDetailScope)[keyof typeof WorldNarrativeContextDetailScope];
-
-export const WorldNarrativeContextDetailSubjectType = {
-  AGENT: "AGENT",
-  PLAYER: "PLAYER",
-  FACTION: "FACTION",
-} as const satisfies Record<string, components['schemas']['WorldNarrativeContextDetailDto']['subjectType']>;
-
-export type WorldNarrativeContextDetailSubjectType = (typeof WorldNarrativeContextDetailSubjectType)[keyof typeof WorldNarrativeContextDetailSubjectType];
-
-export const WorldNarrativeContextDetailTargetSubjectType = {
-  AGENT: "AGENT",
-  PLAYER: "PLAYER",
-  FACTION: "FACTION",
-} as const satisfies Record<string, components['schemas']['WorldNarrativeContextDetailDto']['targetSubjectType']>;
-
-export type WorldNarrativeContextDetailTargetSubjectType = (typeof WorldNarrativeContextDetailTargetSubjectType)[keyof typeof WorldNarrativeContextDetailTargetSubjectType];
-
-export const WorldPatchContentRating = {
-  UNRATED: "UNRATED",
-  G: "G",
-  PG13: "PG13",
-  R18: "R18",
-  EXPLICIT: "EXPLICIT",
-} as const satisfies Record<string, components['schemas']['WorldPatchDto']['contentRating']>;
-
-export type WorldPatchContentRating = (typeof WorldPatchContentRating)[keyof typeof WorldPatchContentRating];
-
-export const WorldPatchStatus = {
-  DRAFT: "DRAFT",
-  PENDING_REVIEW: "PENDING_REVIEW",
-  ACTIVE: "ACTIVE",
-  SUSPENDED: "SUSPENDED",
-  ARCHIVED: "ARCHIVED",
-} as const satisfies Record<string, components['schemas']['WorldPatchDto']['status']>;
-
-export type WorldPatchStatus = (typeof WorldPatchStatus)[keyof typeof WorldPatchStatus];
 
 export const WorldRecommendedAgentImportance = {
   PRIMARY: "PRIMARY",
@@ -1426,6 +1157,28 @@ export const WorldRuleStatus = {
 
 export type WorldRuleStatus = (typeof WorldRuleStatus)[keyof typeof WorldRuleStatus];
 
+export const WorldStateRecordEffectClass = {
+  STATE_ONLY: "STATE_ONLY",
+} as const satisfies Record<string, components['schemas']['WorldStateRecordDto']['effectClass']>;
+
+export type WorldStateRecordEffectClass = (typeof WorldStateRecordEffectClass)[keyof typeof WorldStateRecordEffectClass];
+
+export const WorldStateRecordScope = {
+  WORLD: "WORLD",
+  ENTITY: "ENTITY",
+  RELATION: "RELATION",
+} as const satisfies Record<string, components['schemas']['WorldStateRecordDto']['scope']>;
+
+export type WorldStateRecordScope = (typeof WorldStateRecordScope)[keyof typeof WorldStateRecordScope];
+
+export const WorldStateWriteScope = {
+  WORLD: "WORLD",
+  ENTITY: "ENTITY",
+  RELATION: "RELATION",
+} as const satisfies Record<string, components['schemas']['WorldStateWriteDto']['scope']>;
+
+export type WorldStateWriteScope = (typeof WorldStateWriteScope)[keyof typeof WorldStateWriteScope];
+
 export const WorldSummaryStatus = {
   DRAFT: "DRAFT",
   PENDING_REVIEW: "PENDING_REVIEW",
@@ -1444,15 +1197,6 @@ export const WorldviewDetailLifecycle = {
 } as const satisfies Record<string, components['schemas']['WorldviewDetailDto']['lifecycle']>;
 
 export type WorldviewDetailLifecycle = (typeof WorldviewDetailLifecycle)[keyof typeof WorldviewDetailLifecycle];
-
-export const WorldviewPatchLifecycle = {
-  ACTIVE: "ACTIVE",
-  MAINTENANCE: "MAINTENANCE",
-  FROZEN: "FROZEN",
-  ARCHIVED: "ARCHIVED",
-} as const satisfies Record<string, components['schemas']['WorldviewPatchDto']['lifecycle']>;
-
-export type WorldviewPatchLifecycle = (typeof WorldviewPatchLifecycle)[keyof typeof WorldviewPatchLifecycle];
 
 export const WorldviewTruthRuleSummaryCategory = {
   CONSTRAINT: "CONSTRAINT",

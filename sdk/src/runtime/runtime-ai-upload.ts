@@ -151,7 +151,10 @@ function normalizeEndpoint(config: RuntimeNodeGrpcTransportConfig): string {
 
 async function loadGrpcModule(): Promise<GrpcModule> {
   if (!grpcModulePromise) {
-    grpcModulePromise = import('@grpc/grpc-js');
+    const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+      specifier: string,
+    ) => Promise<unknown>;
+    grpcModulePromise = dynamicImport('@grpc/grpc-js') as Promise<GrpcModule>;
   }
   return grpcModulePromise;
 }

@@ -2,7 +2,6 @@ import { asRecord, normalizeText, type JsonObject } from './internal/utils.js';
 import { Realm } from './realm/client.js';
 import type { RealmFetchImpl, RealmTokenRefreshResult } from './realm/client-types.js';
 import type { RealmServiceArgs, RealmServiceResult } from './realm/generated/type-helpers.js';
-import { sendAgentChannelMessage, type SendAgentChannelMessageInput, type SendAgentChannelMessageOutput } from './realm/extensions/agent-channel.js';
 import { createNimiError } from './runtime/errors.js';
 import { Runtime } from './runtime/runtime.js';
 import type { ListConnectorsRequest, ListConnectorsResponse } from './runtime/generated/runtime/v1/connector.js';
@@ -77,15 +76,21 @@ type PlatformDomains = {
     listFriends: (limit?: number, cursor?: string) => Promise<ListMyFriendsResult>;
   };
   world: {
+    getWorldTruth: RealmServices['WorldsService']['worldControllerGetWorld'];
+    getWorldviewTruth: RealmServices['WorldsService']['worldControllerGetWorldview'];
     getWorld: RealmServices['WorldsService']['worldControllerGetWorld'];
     getWorldview: RealmServices['WorldsService']['worldControllerGetWorldview'];
     getWorldDetailWithAgents: RealmServices['WorldsService']['worldControllerGetWorldDetailWithAgents'];
+    getWorldState: RealmServices['WorldControlService']['worldControlControllerGetState'];
+    commitWorldState: RealmServices['WorldControlService']['worldControlControllerCommitState'];
+    listWorldHistory: RealmServices['WorldControlService']['worldControlControllerListWorldHistory'];
+    appendWorldHistory: RealmServices['WorldControlService']['worldControlControllerAppendWorldHistory'];
     listMyWorlds: RealmServices['WorldControlService']['worldControlControllerListMyWorlds'];
     listWorldScenes: RealmServices['WorldsService']['worldControllerGetWorldScenes'];
     listWorldLorebooks: RealmServices['WorldsService']['worldControllerGetWorldLorebooks'];
     listWorldMediaBindings: RealmServices['WorldsService']['worldControllerGetWorldMediaBindings'];
     listWorldMutations: RealmServices['WorldsService']['worldControllerGetWorldMutations'];
-    listWorldEvents: RealmServices['WorldsService']['worldControllerGetWorldEvents'];
+    getWorldHistory: RealmServices['WorldsService']['worldControllerGetWorldHistory'];
     listWorldLevelAudits: RealmServices['WorldsService']['worldControllerGetWorldLevelAudits'];
   };
   creator: {
@@ -102,7 +107,6 @@ type PlatformDomains = {
     finalizeAsset: RealmServices['MediaService']['finalizeMediaAsset'];
     getAsset: RealmServices['MediaService']['getMediaAsset'];
     createPost: RealmServices['PostService']['createPost'];
-    sendAgentChannelMessage: (input: SendAgentChannelMessageInput) => Promise<SendAgentChannelMessageOutput>;
   };
   runtimeAdmin: {
     listProviderCatalog: RuntimeConnectorModule['listProviderCatalog'];
@@ -303,15 +307,21 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       listFriends: (limit, cursor) => realm.services.MeService.listMyFriendsWithDetails(cursor, limit),
     },
     world: {
+      getWorldTruth: (worldId) => realm.services.WorldsService.worldControllerGetWorld(worldId),
+      getWorldviewTruth: (worldId) => realm.services.WorldsService.worldControllerGetWorldview(worldId),
       getWorld: (worldId) => realm.services.WorldsService.worldControllerGetWorld(worldId),
       getWorldview: (worldId) => realm.services.WorldsService.worldControllerGetWorldview(worldId),
       getWorldDetailWithAgents: (worldId, take = 4) => realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, take),
+      getWorldState: (worldId) => realm.services.WorldControlService.worldControlControllerGetState(worldId),
+      commitWorldState: (worldId, input) => realm.services.WorldControlService.worldControlControllerCommitState(worldId, input),
+      listWorldHistory: (worldId) => realm.services.WorldControlService.worldControlControllerListWorldHistory(worldId),
+      appendWorldHistory: (worldId, input) => realm.services.WorldControlService.worldControlControllerAppendWorldHistory(worldId, input),
       listMyWorlds: () => realm.services.WorldControlService.worldControlControllerListMyWorlds(),
       listWorldScenes: (worldId) => realm.services.WorldsService.worldControllerGetWorldScenes(worldId),
       listWorldLorebooks: (worldId) => realm.services.WorldsService.worldControllerGetWorldLorebooks(worldId),
       listWorldMediaBindings: (worldId) => realm.services.WorldsService.worldControllerGetWorldMediaBindings(worldId),
       listWorldMutations: (worldId) => realm.services.WorldsService.worldControllerGetWorldMutations(worldId),
-      listWorldEvents: (worldId) => realm.services.WorldsService.worldControllerGetWorldEvents(worldId),
+      getWorldHistory: (worldId) => realm.services.WorldsService.worldControllerGetWorldHistory(worldId),
       listWorldLevelAudits: (worldId, take) => realm.services.WorldsService.worldControllerGetWorldLevelAudits(worldId, take),
     },
     creator: {
@@ -332,7 +342,6 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       finalizeAsset: (assetId, input = {}) => realm.services.MediaService.finalizeMediaAsset(assetId, input),
       getAsset: (assetId) => realm.services.MediaService.getMediaAsset(assetId),
       createPost: (input) => realm.services.PostService.createPost(input),
-      sendAgentChannelMessage: (input) => sendAgentChannelMessage(realm, input),
     },
     runtimeAdmin: {
       listProviderCatalog: (input = {}, options) => runtime.connector.listProviderCatalog(input, options),

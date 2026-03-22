@@ -1,4 +1,3 @@
-import type { RealmOperationResult } from './generated/operation-map.js';
 import type { RealmGeneratedServiceRegistry } from './generated/service-registry.js';
 import type { components } from './generated/schema.js';
 
@@ -8,8 +7,8 @@ type IsEqual<A, B> = (
 );
 
 type _ListCoreMemoriesArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListCoreMemories']>;
-type _ListE2EMemoriesArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListE2EMemories']>;
-type _RecallMemoriesArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerRecallForEntity']>;
+type _ListDyadicMemoriesArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListDyadicMemories']>;
+type _CommitMemoryArgs = Parameters<RealmGeneratedServiceRegistry['AgentsService']['agentControllerCommitMemory']>;
 type _IssueGrantArgs = Parameters<RealmGeneratedServiceRegistry['CreatorModsControlPlaneService']['creatorModsControllerIssueGrant']>;
 type _IssueRuntimeRealmGrantArgs = Parameters<RealmGeneratedServiceRegistry['RuntimeRealmGrantsService']['issueRuntimeRealmGrant']>;
 type _ListFriendsWithDetailsResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['MeService']['listMyFriendsWithDetails']>>;
@@ -17,11 +16,11 @@ type _GetCreatorAgentResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['
 type _UpdateCreatorAgentResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorService']['creatorControllerUpdateAgent']>>;
 
 type _ListCoreMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListCoreMemories']>>;
-type _ListE2EMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListE2EMemories']>>;
-type _RecallMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerRecallForEntity']>>;
+type _ListDyadicMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListDyadicMemories']>>;
+type _CommitMemoryResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerCommitMemory']>>;
+type _ListUserProfilesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListUserProfiles']>>;
 type _IssueGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorModsControlPlaneService']['creatorModsControllerIssueGrant']>>;
 type _IssueRuntimeRealmGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['RuntimeRealmGrantsService']['issueRuntimeRealmGrant']>>;
-type _GetMemoryStatsResult = RealmOperationResult<'AgentsService.agentControllerGetMemoryStats'>;
 type _RequestDataExportArgs = Parameters<RealmGeneratedServiceRegistry['MeaccountdataService']['requestDataExport']>;
 type _RequestAccountDeletionArgs = Parameters<RealmGeneratedServiceRegistry['MeaccountdataService']['requestAccountDeletion']>;
 type _RequestDataExportResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['MeaccountdataService']['requestDataExport']>>;
@@ -80,53 +79,9 @@ type _GuardWorldviewGlossary = Assert<IsEqual<
   components['schemas']['WorldviewDetailDto']['glossary'],
   components['schemas']['WorldviewGlossaryDto'] | undefined
 >>;
-type _GuardWorldviewNarrativeAssets = Assert<IsEqual<
-  components['schemas']['WorldviewDetailDto']['narrativeAssets'],
-  components['schemas']['WorldviewNarrativeAssetsDto'] | undefined
->>;
 type _GuardWorldviewVisualGuide = Assert<IsEqual<
   components['schemas']['WorldviewDetailDto']['visualGuide'],
   components['schemas']['VisualGuideDto'] | undefined
->>;
-type _GuardWorldviewNarrativeHooks = Assert<IsEqual<
-  components['schemas']['WorldviewDetailDto']['narrativeHooks'],
-  components['schemas']['NarrativeHooksDto'] | undefined
->>;
-type _GuardWorldviewPatchTimeModel = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['timeModel'],
-  components['schemas']['TimeModelDto'] | undefined
->>;
-type _GuardWorldviewPatchSpaceTopology = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['spaceTopology'],
-  components['schemas']['SpaceTopologyDto'] | undefined
->>;
-type _GuardWorldviewPatchCausality = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['causality'],
-  components['schemas']['CausalityModelDto'] | undefined
->>;
-type _GuardWorldviewPatchCoreSystem = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['coreSystem'],
-  components['schemas']['PowerSystemDto'] | undefined
->>;
-type _GuardWorldviewPatchExistences = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['existences'],
-  components['schemas']['ExistenceDefinitionDto'] | undefined
->>;
-type _GuardWorldviewPatchLanguages = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['languages'],
-  components['schemas']['WorldviewLanguagesDto'] | undefined
->>;
-type _GuardWorldviewPatchResources = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['resources'],
-  components['schemas']['ResourceDefinitionDto'] | undefined
->>;
-type _GuardWorldviewPatchVisualGuide = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['visualGuide'],
-  components['schemas']['VisualGuideDto'] | undefined
->>;
-type _GuardWorldviewPatchNarrativeHooks = Assert<IsEqual<
-  components['schemas']['WorldviewPatchDto']['narrativeHooks'],
-  components['schemas']['NarrativeHooksDto'] | undefined
 >>;
 type _GuardWorldviewCausalityKarmaEnabled = Assert<IsEqual<
   components['schemas']['CausalityModelDto']['karmaEnabled'],
@@ -151,15 +106,6 @@ type _GuardPowerSystemChildren = Assert<IsEqual<
 type _GuardSpaceTopologyRealms = Assert<IsEqual<
   components['schemas']['SpaceTopologyDto']['realms'],
   components['schemas']['SpaceRealmDto'][] | undefined
->>;
-
-type _GuardMemoryStats = Assert<IsEqual<
-  components['schemas']['MemoryStatsResponseDto'],
-  {
-    coreCount: number;
-    e2eCount: number;
-    uniqueEntities: number;
-  }
 >>;
 
 type _GuardUserPrivateGiftStats = Assert<IsEqual<
@@ -194,14 +140,6 @@ type _GuardFriendListResult = Assert<IsEqual<
   components['schemas']['FriendProfileListDto']
 >>;
 
-type _GuardApproveRequestDto = Assert<IsEqual<
-  components['schemas']['ApproveRequestDto'],
-  {
-    contentText?: string;
-    publishAt?: string;
-  }
->>;
-
 type _GuardCreateKeyEventDto = Assert<IsEqual<
   components['schemas']['CreateKeyEventDto'],
   {
@@ -232,11 +170,6 @@ type _GuardUpdateUserProfileDto = Assert<IsEqual<
     profileSummary?: string;
     traits?: components['schemas']['UpdateUserProfileTraitsDto'];
   }
->>;
-
-type _GuardMutationProposalDetailDto = Assert<IsEqual<
-  components['schemas']['MutationProposalDetailDto']['proposedChange'],
-  components['schemas']['ProposedChangeDto'][]
 >>;
 
 type _GuardSendMessagePayload = Assert<IsEqual<
@@ -300,26 +233,58 @@ type _GuardListCoreResult = Assert<IsEqual<
   components['schemas']['AgentMemoryRecordDto'][]
 >>;
 
-type _GuardListE2EFirstArg = Assert<_ListE2EMemoriesArgs[0] extends string ? true : false>;
-type _GuardListE2ESecondArg = Assert<_ListE2EMemoriesArgs[1] extends string ? true : false>;
-type _GuardListE2EThirdArg = Assert<_ListE2EMemoriesArgs[2] extends number | undefined ? true : false>;
-type _GuardListE2EResult = Assert<IsEqual<
-  _ListE2EMemoriesResult,
+type _GuardListDyadicFirstArg = Assert<_ListDyadicMemoriesArgs[0] extends string ? true : false>;
+type _GuardListDyadicSecondArg = Assert<_ListDyadicMemoriesArgs[1] extends string ? true : false>;
+type _GuardListDyadicThirdArg = Assert<_ListDyadicMemoriesArgs[2] extends number | undefined ? true : false>;
+type _GuardListDyadicResult = Assert<IsEqual<
+  _ListDyadicMemoriesResult,
   components['schemas']['AgentMemoryRecordDto'][]
 >>;
 
-type _GuardRecallFirstArg = Assert<_RecallMemoriesArgs[0] extends string ? true : false>;
-type _GuardRecallSecondArg = Assert<_RecallMemoriesArgs[1] extends string ? true : false>;
-type _GuardRecallThirdArg = Assert<_RecallMemoriesArgs[2] extends number | undefined ? true : false>;
-type _GuardRecallFourthArg = Assert<_RecallMemoriesArgs[3] extends string | undefined ? true : false>;
-type _GuardRecallResult = Assert<IsEqual<
-  _RecallMemoriesResult,
-  components['schemas']['AgentMemoryRecordDto'][]
+type _GuardCommitMemoryFirstArg = Assert<_CommitMemoryArgs[0] extends string ? true : false>;
+type _GuardCommitMemoryBody = Assert<IsEqual<
+  _CommitMemoryArgs[1],
+  components['schemas']['CommitAgentMemoryDto']
 >>;
-
-type _GuardMemoryStatsResult = Assert<IsEqual<
-  _GetMemoryStatsResult,
-  components['schemas']['MemoryStatsResponseDto']
+type _GuardCommitMemoryResult = Assert<IsEqual<
+  _CommitMemoryResult,
+  components['schemas']['AgentMemoryRecordDto']
+>>;
+type _GuardAgentMemoryRecordCommitId = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['commitId'],
+  string
+>>;
+type _GuardAgentMemoryRecordAppId = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['appId'],
+  string
+>>;
+type _GuardAgentMemoryRecordSessionId = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['sessionId'],
+  string
+>>;
+type _GuardAgentMemoryRecordEffectClass = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['effectClass'],
+  'MEMORY_ONLY'
+>>;
+type _GuardAgentMemoryRecordSchemaId = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['schemaId'],
+  string
+>>;
+type _GuardAgentMemoryRecordSchemaVersion = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['schemaVersion'],
+  string
+>>;
+type _GuardAgentMemoryRecordReason = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['reason'],
+  string
+>>;
+type _GuardAgentMemoryRecordCreatedBy = Assert<IsEqual<
+  components['schemas']['AgentMemoryRecordDto']['createdBy'],
+  string
+>>;
+type _GuardListUserProfilesResult = Assert<IsEqual<
+  _ListUserProfilesResult,
+  unknown
 >>;
 
 type _GuardIssueGrantBody = Assert<IsEqual<

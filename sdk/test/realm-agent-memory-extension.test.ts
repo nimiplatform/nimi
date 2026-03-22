@@ -3,23 +3,45 @@ import test from 'node:test';
 
 import type { Realm } from '../src/realm/client.js';
 import {
+  type AgentMemoryCommitEnvelope,
+  commitAgentMemories,
   listAgentCoreMemories,
-  listAgentE2EMemories,
-  recallAgentMemoriesForEntity,
+  listAgentDyadicMemories,
+  listAgentMemoryProfiles,
 } from '../src/realm/extensions/agent-memory.js';
 import { ReasonCode } from '../src/types/index.js';
 
+const memoryCommit: AgentMemoryCommitEnvelope = {
+  worldId: 'world-1',
+  appId: 'sdk-test',
+  sessionId: 'sdk-test-session',
+  effectClass: 'MEMORY_ONLY',
+  scope: 'WORLD',
+  schemaId: 'agent.memory.commit',
+  schemaVersion: '1',
+  actorRefs: [
+    {
+      actorId: 'agent-1',
+      actorType: 'AGENT',
+      role: 'owner',
+    },
+  ],
+  reason: 'sdk test commit',
+};
+
 function createRealmMock(overrides?: {
   listCore?: (agentId: string, limit?: number) => Promise<unknown[]>;
-  listE2E?: (agentId: string, entityId: string, limit?: number) => Promise<unknown[]>;
-  recall?: (agentId: string, entityId: string, limit?: number, query?: string) => Promise<unknown>;
+  listDyadic?: (agentId: string, userId: string, limit?: number) => Promise<unknown[]>;
+  listProfiles?: (agentId: string) => Promise<unknown>;
+  commit?: (agentId: string, body: Record<string, unknown>) => Promise<unknown>;
 }): Realm {
   return {
     services: {
       AgentsService: {
         agentControllerListCoreMemories: overrides?.listCore ?? (async () => []),
-        agentControllerListE2EMemories: overrides?.listE2E ?? (async () => []),
-        agentControllerRecallForEntity: overrides?.recall ?? (async () => ({ hits: [] })),
+        agentControllerListDyadicMemories: overrides?.listDyadic ?? (async () => []),
+        agentControllerListUserProfiles: overrides?.listProfiles ?? (async () => ({ items: [] })),
+        agentControllerCommitMemory: overrides?.commit ?? (async () => ({ id: 'memory-1' })),
       },
     },
   } as unknown as Realm;
@@ -36,16 +58,21 @@ test('agent memory helpers reject missing ids with NimiError', async () => {
   );
 
   await assert.rejects(
-    () => listAgentE2EMemories(createRealmMock(), { agentId: 'agent-1', entityId: '' }),
+    () => listAgentDyadicMemories(createRealmMock(), { agentId: 'agent-1', userId: '' }),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
-      assert.equal((error as { actionHint?: string }).actionHint, 'provide_entity_id');
+      assert.equal((error as { actionHint?: string }).actionHint, 'provide_user_id');
       return true;
     },
   );
 
   await assert.rejects(
-    () => recallAgentMemoriesForEntity(createRealmMock(), { agentId: '', entityId: 'entity-1' }),
+    () => commitAgentMemories(createRealmMock(), {
+      agentId: '',
+      commit: memoryCommit,
+      type: 'PUBLIC_SHARED',
+      content: 'memory',
+    }),
     (error: unknown) => {
       assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.ACTION_INPUT_INVALID);
       assert.equal((error as { actionHint?: string }).actionHint, 'provide_agent_id');
@@ -64,54 +91,75 @@ test('agent memory helpers propagate service failures', async () => {
   );
 
   await assert.rejects(
-    () => recallAgentMemoriesForEntity(createRealmMock({
-      recall: async () => { throw failure; },
-    }), { agentId: 'agent-1', entityId: 'entity-1' }),
+    () => commitAgentMemories(createRealmMock({
+      commit: async () => { throw failure; },
+    }), {
+      agentId: 'agent-1',
+      commit: memoryCommit,
+      type: 'PUBLIC_SHARED',
+      content: 'memory',
+    }),
     failure,
   );
 });
 
-test('agent memory helpers forward ids, limits, and trimmed query', async () => {
+test('agent memory helpers forward ids, limits, and trimmed payloads', async () => {
   let coreArgs: { agentId: string; limit?: number } | null = null;
-  let e2eArgs: { agentId: string; entityId: string; limit?: number } | null = null;
-  let recallArgs: { agentId: string; entityId: string; limit?: number; query?: string } | null = null;
+  let dyadicArgs: { agentId: string; userId: string; limit?: number } | null = null;
+  let profileArgs: { agentId: string } | null = null;
+  let commitArgs: { agentId: string; body: Record<string, unknown> } | null = null;
+
   const realm = createRealmMock({
     listCore: async (agentId, limit) => {
       coreArgs = { agentId, limit };
       return [{ id: 'core-1' }];
     },
-    listE2E: async (agentId, entityId, limit) => {
-      e2eArgs = { agentId, entityId, limit };
-      return [{ id: 'e2e-1' }];
+    listDyadic: async (agentId, userId, limit) => {
+      dyadicArgs = { agentId, userId, limit };
+      return [{ id: 'dyadic-1' }];
     },
-    recall: async (agentId, entityId, limit, query) => {
-      recallArgs = { agentId, entityId, limit, query };
-      return { hits: [{ id: 'recall-1' }] };
+    listProfiles: async (agentId) => {
+      profileArgs = { agentId };
+      return { items: [{ userId: 'user-1' }] };
+    },
+    commit: async (agentId, body) => {
+      commitArgs = { agentId, body };
+      return { id: 'memory-1' };
     },
   });
 
   const core = await listAgentCoreMemories(realm, { agentId: ' agent-1 ', limit: 5 });
-  const e2e = await listAgentE2EMemories(realm, {
+  const dyadic = await listAgentDyadicMemories(realm, {
     agentId: ' agent-1 ',
-    entityId: ' entity-1 ',
+    userId: ' user-1 ',
     limit: 7,
   });
-  const recall = await recallAgentMemoriesForEntity(realm, {
+  const profiles = await listAgentMemoryProfiles(realm, { agentId: ' agent-1 ' });
+  const commit = await commitAgentMemories(realm, {
     agentId: ' agent-1 ',
-    entityId: ' entity-1 ',
-    limit: 9,
-    query: '  favorite memory  ',
+    commit: memoryCommit,
+    type: 'DYADIC',
+    content: '  favorite detail  ',
+    userId: ' user-1 ',
   });
 
   assert.deepEqual(core, [{ id: 'core-1' }]);
-  assert.deepEqual(e2e, [{ id: 'e2e-1' }]);
-  assert.deepEqual(recall, { hits: [{ id: 'recall-1' }] });
+  assert.deepEqual(dyadic, [{ id: 'dyadic-1' }]);
+  assert.deepEqual(profiles, { items: [{ userId: 'user-1' }] });
+  assert.deepEqual(commit, { id: 'memory-1' });
   assert.deepEqual(coreArgs, { agentId: 'agent-1', limit: 5 });
-  assert.deepEqual(e2eArgs, { agentId: 'agent-1', entityId: 'entity-1', limit: 7 });
-  assert.deepEqual(recallArgs, {
+  assert.deepEqual(dyadicArgs, { agentId: 'agent-1', userId: 'user-1', limit: 7 });
+  assert.deepEqual(profileArgs, { agentId: 'agent-1' });
+  assert.deepEqual(commitArgs, {
     agentId: 'agent-1',
-    entityId: 'entity-1',
-    limit: 9,
-    query: 'favorite memory',
+    body: {
+      commit: memoryCommit,
+      type: 'DYADIC',
+      content: 'favorite detail',
+      userId: 'user-1',
+      worldId: undefined,
+      importance: undefined,
+      metadata: undefined,
+    },
   });
 });

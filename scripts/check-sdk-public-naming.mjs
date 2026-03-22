@@ -30,7 +30,8 @@ const REQUIRED_REALM_FACADE_SYMBOLS = [
   'requestDataExport',
   'requestAccountDeletion',
   'listAgentCoreMemories',
-  'recallAgentMemoriesForEntity',
+  'listAgentDyadicMemories',
+  'commitAgentMemories',
 ];
 
 const FORBIDDEN_REALM_FACADE_SYMBOLS = [

@@ -269,65 +269,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "AgentsService.agentControllerApprove": {
-    "operationId": "AgentController_approve",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/approvals/{approvalId}/approve",
-    "service": "AgentsService",
-    "methodName": "agentControllerApprove",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "approvalId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "AgentsService.agentControllerCancel": {
-    "operationId": "AgentController_cancel",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/approvals/{approvalId}/cancel",
-    "service": "AgentsService",
-    "methodName": "agentControllerCancel",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "approvalId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
   "AgentsService.agentControllerCheckHandle": {
     "operationId": "AgentController_checkHandle",
     "method": "GET",
@@ -343,6 +284,32 @@ export const REALM_OPERATION_MAP = {
     ],
     "successContentTypes": [],
     "hasSuccessBody": false
+  },
+  "AgentsService.agentControllerCommitMemory": {
+    "operationId": "AgentController_commitMemory",
+    "method": "POST",
+    "path": "/api/agent/accounts/{id}/memory/commits",
+    "service": "AgentsService",
+    "methodName": "agentControllerCommitMemory",
+    "tag": "Agents",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerCreate": {
     "operationId": "AgentController_create",
@@ -412,12 +379,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "AgentsService.agentControllerDeleteAllE2EMemories": {
-    "operationId": "AgentController_deleteAllE2EMemories",
+  "AgentsService.agentControllerDeleteAllDyadicMemories": {
+    "operationId": "AgentController_deleteAllDyadicMemories",
     "method": "DELETE",
-    "path": "/api/agent/accounts/{id}/memory/e2e/{entityId}",
+    "path": "/api/agent/accounts/{id}/memory/dyadic/{userId}",
     "service": "AgentsService",
-    "methodName": "agentControllerDeleteAllE2EMemories",
+    "methodName": "agentControllerDeleteAllDyadicMemories",
     "tag": "Agents",
     "parameters": [
       {
@@ -427,7 +394,7 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       },
       {
-        "name": "entityId",
+        "name": "userId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -438,15 +405,17 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
-  "AgentsService.agentControllerDeleteE2EMemory": {
-    "operationId": "AgentController_deleteE2EMemory",
+  "AgentsService.agentControllerDeleteDyadicMemory": {
+    "operationId": "AgentController_deleteDyadicMemory",
     "method": "DELETE",
-    "path": "/api/agent/accounts/{id}/memory/e2e/{entityId}/{memoryId}",
+    "path": "/api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}",
     "service": "AgentsService",
-    "methodName": "agentControllerDeleteE2EMemory",
+    "methodName": "agentControllerDeleteDyadicMemory",
     "tag": "Agents",
     "parameters": [
       {
@@ -456,7 +425,7 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       },
       {
-        "name": "entityId",
+        "name": "userId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -473,8 +442,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerDeleteKeyEvent": {
     "operationId": "AgentController_deleteKeyEvent",
@@ -500,84 +471,10 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
-      "200"
+      "204"
     ],
     "successContentTypes": [],
     "hasSuccessBody": false
-  },
-  "AgentsService.agentControllerForceAction": {
-    "operationId": "AgentController_forceAction",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/force-action",
-    "service": "AgentsService",
-    "methodName": "agentControllerForceAction",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerGetApprovals": {
-    "operationId": "AgentController_getApprovals",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/approvals",
-    "service": "AgentsService",
-    "methodName": "agentControllerGetApprovals",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "AgentsService.agentControllerGetMemoryStats": {
-    "operationId": "AgentController_getMemoryStats",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/stats",
-    "service": "AgentsService",
-    "methodName": "agentControllerGetMemoryStats",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
   },
   "AgentsService.agentControllerGetRelationships": {
     "operationId": "AgentController_getRelationships",
@@ -626,29 +523,6 @@ export const REALM_OPERATION_MAP = {
       "application/json"
     ],
     "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerGetTasks": {
-    "operationId": "AgentController_getTasks",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/tasks",
-    "service": "AgentsService",
-    "methodName": "agentControllerGetTasks",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
   },
   "AgentsService.agentControllerGetUserProfile": {
     "operationId": "AgentController_getUserProfile",
@@ -735,12 +609,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "AgentsService.agentControllerListE2EMemories": {
-    "operationId": "AgentController_listE2EMemories",
+  "AgentsService.agentControllerListDyadicMemories": {
+    "operationId": "AgentController_listDyadicMemories",
     "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/e2e/{entityId}",
+    "path": "/api/agent/accounts/{id}/memory/profiles/{userId}/dyadic",
     "service": "AgentsService",
-    "methodName": "agentControllerListE2EMemories",
+    "methodName": "agentControllerListDyadicMemories",
     "tag": "Agents",
     "parameters": [
       {
@@ -750,7 +624,7 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       },
       {
-        "name": "entityId",
+        "name": "userId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -843,79 +717,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "AgentsService.agentControllerRecallForEntity": {
-    "operationId": "AgentController_recallForEntity",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/recall/{entityId}",
-    "service": "AgentsService",
-    "methodName": "agentControllerRecallForEntity",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "entityId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "limit",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "query",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerReject": {
-    "operationId": "AgentController_reject",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/approvals/{approvalId}/reject",
-    "service": "AgentsService",
-    "methodName": "agentControllerReject",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "approvalId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
   "AgentsService.agentControllerRemoveRelationship": {
     "operationId": "AgentController_removeRelationship",
     "method": "DELETE",
@@ -934,35 +735,6 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "AgentsService.agentControllerRetry": {
-    "operationId": "AgentController_retry",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/approvals/{approvalId}/retry",
-    "service": "AgentsService",
-    "methodName": "agentControllerRetry",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "approvalId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
     "successStatusCodes": [
       "200"
     ],
@@ -3585,439 +3357,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "NarrativeSpineService.narrativeSpineControllerAppendEvent": {
-    "operationId": "NarrativeSpineController_appendEvent",
-    "method": "POST",
-    "path": "/api/world/spine/by-id/{spineId}/branches/{branchId}/events",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerAppendEvent",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "branchId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerArchiveBranch": {
-    "operationId": "NarrativeSpineController_archiveBranch",
-    "method": "POST",
-    "path": "/api/world/spine/branches/{branchId}/archive",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerArchiveBranch",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "branchId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerCreateBranch": {
-    "operationId": "NarrativeSpineController_createBranch",
-    "method": "POST",
-    "path": "/api/world/spine/by-id/{spineId}/branches",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerCreateBranch",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerFindSpine": {
-    "operationId": "NarrativeSpineController_findSpine",
-    "method": "GET",
-    "path": "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerFindSpine",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "storyId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetBranches": {
-    "operationId": "NarrativeSpineController_getBranches",
-    "method": "GET",
-    "path": "/api/world/spine/by-id/{spineId}/branches",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetBranches",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetCausalChain": {
-    "operationId": "NarrativeSpineController_getCausalChain",
-    "method": "GET",
-    "path": "/api/world/spine/events/{eventId}/causal-chain",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetCausalChain",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "depth",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetDefaultBranch": {
-    "operationId": "NarrativeSpineController_getDefaultBranch",
-    "method": "GET",
-    "path": "/api/world/spine/by-id/{spineId}/branches/default",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetDefaultBranch",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetEvent": {
-    "operationId": "NarrativeSpineController_getEvent",
-    "method": "GET",
-    "path": "/api/world/spine/events/{eventId}",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetEvent",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetEventChildren": {
-    "operationId": "NarrativeSpineController_getEventChildren",
-    "method": "GET",
-    "path": "/api/world/spine/events/{eventId}/children",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetEventChildren",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetEvents": {
-    "operationId": "NarrativeSpineController_getEvents",
-    "method": "GET",
-    "path": "/api/world/spine/by-id/{spineId}/events",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetEvents",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetOrCreateSpine": {
-    "operationId": "NarrativeSpineController_getOrCreateSpine",
-    "method": "POST",
-    "path": "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetOrCreateSpine",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "storyId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerGetSpine": {
-    "operationId": "NarrativeSpineController_getSpine",
-    "method": "GET",
-    "path": "/api/world/spine/by-id/{spineId}",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerGetSpine",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerMergeBranch": {
-    "operationId": "NarrativeSpineController_mergeBranch",
-    "method": "POST",
-    "path": "/api/world/spine/branches/{branchId}/merge/{targetBranchId}",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerMergeBranch",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "branchId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "targetBranchId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerPublishStorySpine": {
-    "operationId": "NarrativeSpineController_publishStorySpine",
-    "method": "POST",
-    "path": "/api/world/spine/by-world/{worldId}/by-story/{storyId}/by-agent/{agentId}/publish",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerPublishStorySpine",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "storyId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "NarrativeSpineService.narrativeSpineControllerUpdateEvent": {
-    "operationId": "NarrativeSpineController_updateEvent",
-    "method": "PATCH",
-    "path": "/api/world/spine/events/{eventId}",
-    "service": "NarrativeSpineService",
-    "methodName": "narrativeSpineControllerUpdateEvent",
-    "tag": "Narrative Spine",
-    "parameters": [
-      {
-        "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "NotificationService.getUnreadCount": {
     "operationId": "getUnreadCount",
     "method": "GET",
@@ -4533,274 +3872,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "SatelliteNarrativeService.satelliteControllerCreate": {
-    "operationId": "SatelliteController_create",
-    "method": "POST",
-    "path": "/api/world/satellites",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerCreate",
-    "tag": "Satellite (Narrative)",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerCreateSyntheticMemory": {
-    "operationId": "SatelliteController_createSyntheticMemory",
-    "method": "POST",
-    "path": "/api/world/satellites/synthetic",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerCreateSyntheticMemory",
-    "tag": "Satellite (Narrative)",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerDelete": {
-    "operationId": "SatelliteController_delete",
-    "method": "DELETE",
-    "path": "/api/world/satellites/{satelliteId}",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerDelete",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "satelliteId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "204"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "SatelliteNarrativeService.satelliteControllerFindById": {
-    "operationId": "SatelliteController_findById",
-    "method": "GET",
-    "path": "/api/world/satellites/{satelliteId}",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerFindById",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "satelliteId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerFindByScene": {
-    "operationId": "SatelliteController_findByScene",
-    "method": "GET",
-    "path": "/api/world/satellites/by-scene/{worldId}/{sceneId}",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerFindByScene",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "sceneId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerFindBySpine": {
-    "operationId": "SatelliteController_findBySpine",
-    "method": "GET",
-    "path": "/api/world/satellites/by-spine/{spineId}",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerFindBySpine",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerFindBySpineEvent": {
-    "operationId": "SatelliteController_findBySpineEvent",
-    "method": "GET",
-    "path": "/api/world/satellites/by-event/{eventId}",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerFindBySpineEvent",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerGetPendingSyntheticMemories": {
-    "operationId": "SatelliteController_getPendingSyntheticMemories",
-    "method": "GET",
-    "path": "/api/world/satellites/synthetic/pending/{agentId}",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerGetPendingSyntheticMemories",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerSearchSimilar": {
-    "operationId": "SatelliteController_searchSimilar",
-    "method": "GET",
-    "path": "/api/world/satellites/search/{worldId}",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerSearchSimilar",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerTouchReference": {
-    "operationId": "SatelliteController_touchReference",
-    "method": "POST",
-    "path": "/api/world/satellites/{satelliteId}/touch",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerTouchReference",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "satelliteId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SatelliteNarrativeService.satelliteControllerVerifySyntheticMemory": {
-    "operationId": "SatelliteController_verifySyntheticMemory",
-    "method": "PATCH",
-    "path": "/api/world/satellites/synthetic/{satelliteId}/verify",
-    "service": "SatelliteNarrativeService",
-    "methodName": "satelliteControllerVerifySyntheticMemory",
-    "tag": "Satellite (Narrative)",
-    "parameters": [
-      {
-        "name": "satelliteId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "SearchService.searchPosts": {
     "operationId": "searchPosts",
     "method": "GET",
@@ -5133,384 +4204,6 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "SoulEvolutionService.soulEvolutionControllerAggregateMetrics": {
-    "operationId": "SoulEvolutionController_aggregateMetrics",
-    "method": "POST",
-    "path": "/api/world/soul-evolution/by-agent/{agentId}/metrics/aggregate",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerAggregateMetrics",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerCreateProposal": {
-    "operationId": "SoulEvolutionController_createProposal",
-    "method": "POST",
-    "path": "/api/world/soul-evolution/by-agent/{agentId}/proposals",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerCreateProposal",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerGetGrowthProjection": {
-    "operationId": "SoulEvolutionController_getGrowthProjection",
-    "method": "GET",
-    "path": "/api/world/soul-evolution/by-agent/{agentId}/growth-projection",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerGetGrowthProjection",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerGetLatestMetrics": {
-    "operationId": "SoulEvolutionController_getLatestMetrics",
-    "method": "GET",
-    "path": "/api/world/soul-evolution/by-agent/{agentId}/metrics/latest",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerGetLatestMetrics",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerGetMetrics": {
-    "operationId": "SoulEvolutionController_getMetrics",
-    "method": "GET",
-    "path": "/api/world/soul-evolution/by-agent/{agentId}/metrics",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerGetMetrics",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerGetPendingProposals": {
-    "operationId": "SoulEvolutionController_getPendingProposals",
-    "method": "GET",
-    "path": "/api/world/soul-evolution/by-agent/{agentId}/proposals/pending",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerGetPendingProposals",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerGetProposal": {
-    "operationId": "SoulEvolutionController_getProposal",
-    "method": "GET",
-    "path": "/api/world/soul-evolution/proposals/{proposalId}",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerGetProposal",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "proposalId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerGetProposals": {
-    "operationId": "SoulEvolutionController_getProposals",
-    "method": "GET",
-    "path": "/api/world/soul-evolution/by-agent/{agentId}/proposals",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerGetProposals",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SoulEvolutionService.soulEvolutionControllerReviewProposal": {
-    "operationId": "SoulEvolutionController_reviewProposal",
-    "method": "PATCH",
-    "path": "/api/world/soul-evolution/proposals/{proposalId}/review",
-    "service": "SoulEvolutionService",
-    "methodName": "soulEvolutionControllerReviewProposal",
-    "tag": "Soul Evolution",
-    "parameters": [
-      {
-        "name": "proposalId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TimeGapNarrativeService.timeGapControllerCollapseGap": {
-    "operationId": "TimeGapController_collapseGap",
-    "method": "POST",
-    "path": "/api/world/time-gaps/{gapId}/collapse",
-    "service": "TimeGapNarrativeService",
-    "methodName": "timeGapControllerCollapseGap",
-    "tag": "TimeGap (Narrative)",
-    "parameters": [
-      {
-        "name": "gapId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TimeGapNarrativeService.timeGapControllerDetectGap": {
-    "operationId": "TimeGapController_detectGap",
-    "method": "GET",
-    "path": "/api/world/time-gaps/detect/{spineId}/{agentId}",
-    "service": "TimeGapNarrativeService",
-    "methodName": "timeGapControllerDetectGap",
-    "tag": "TimeGap (Narrative)",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "agentId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TimeGapNarrativeService.timeGapControllerFindBySpine": {
-    "operationId": "TimeGapController_findBySpine",
-    "method": "GET",
-    "path": "/api/world/time-gaps/by-spine/{spineId}",
-    "service": "TimeGapNarrativeService",
-    "methodName": "timeGapControllerFindBySpine",
-    "tag": "TimeGap (Narrative)",
-    "parameters": [
-      {
-        "name": "spineId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TimeGapNarrativeService.timeGapControllerFindPendingGaps": {
-    "operationId": "TimeGapController_findPendingGaps",
-    "method": "GET",
-    "path": "/api/world/time-gaps/pending/mine",
-    "service": "TimeGapNarrativeService",
-    "methodName": "timeGapControllerFindPendingGaps",
-    "tag": "TimeGap (Narrative)",
-    "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TimeGapNarrativeService.timeGapControllerGetGap": {
-    "operationId": "TimeGapController_getGap",
-    "method": "GET",
-    "path": "/api/world/time-gaps/{gapId}",
-    "service": "TimeGapNarrativeService",
-    "methodName": "timeGapControllerGetGap",
-    "tag": "TimeGap (Narrative)",
-    "parameters": [
-      {
-        "name": "gapId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TimeGapNarrativeService.timeGapControllerSkipGap": {
-    "operationId": "TimeGapController_skipGap",
-    "method": "POST",
-    "path": "/api/world/time-gaps/{gapId}/skip",
-    "service": "TimeGapNarrativeService",
-    "methodName": "timeGapControllerSkipGap",
-    "tag": "TimeGap (Narrative)",
-    "parameters": [
-      {
-        "name": "gapId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "TransitsService.transitControllerAbandon": {
     "operationId": "TransitController_abandon",
     "method": "POST",
@@ -5528,32 +4221,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TransitsService.transitControllerAddCheckpoint": {
-    "operationId": "TransitController_addCheckpoint",
-    "method": "POST",
-    "path": "/api/world/transit/{id}/checkpoints",
-    "service": "TransitsService",
-    "methodName": "transitControllerAddCheckpoint",
-    "tag": "Transits",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
     "successStatusCodes": [
       "200"
     ],
@@ -5587,25 +4254,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "TransitsService.transitControllerCreateTransit": {
-    "operationId": "TransitController_createTransit",
-    "method": "POST",
-    "path": "/api/world/transit",
-    "service": "TransitsService",
-    "methodName": "transitControllerCreateTransit",
-    "tag": "Transits",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "TransitsService.transitControllerGetActiveTransit": {
     "operationId": "TransitController_getActiveTransit",
     "method": "GET",
@@ -5621,6 +4269,24 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       }
     ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "TransitsService.transitControllerGetSceneQuota": {
+    "operationId": "TransitController_getSceneQuota",
+    "method": "GET",
+    "path": "/api/world/transit/scene-quota/me",
+    "service": "TransitsService",
+    "methodName": "transitControllerGetSceneQuota",
+    "tag": "Transits",
+    "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
@@ -5685,57 +4351,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TransitsService.transitControllerStartSession": {
-    "operationId": "TransitController_startSession",
-    "method": "POST",
-    "path": "/api/world/transit/{id}/session/start",
-    "service": "TransitsService",
-    "methodName": "transitControllerStartSession",
-    "tag": "Transits",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "TransitsService.transitControllerUpdateSession": {
-    "operationId": "TransitController_updateSession",
-    "method": "PATCH",
-    "path": "/api/world/transit/{id}/session",
-    "service": "TransitsService",
-    "methodName": "transitControllerUpdateSession",
-    "tag": "Transits",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
     "successStatusCodes": [
       "200"
     ],
@@ -6085,12 +4700,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerBatchUpsertWorldEvents": {
-    "operationId": "WorldControlController_batchUpsertWorldEvents",
+  "WorldControlService.worldControlControllerAppendWorldHistory": {
+    "operationId": "WorldControlController_appendWorldHistory",
     "method": "POST",
-    "path": "/api/worlds/{worldId}/events/batch-upsert",
+    "path": "/api/worlds/{worldId}/history/appends",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerBatchUpsertWorldEvents",
+    "methodName": "worldControlControllerAppendWorldHistory",
     "tag": "World Control",
     "parameters": [
       {
@@ -6111,12 +4726,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings": {
-    "operationId": "WorldControlController_batchUpsertWorldMediaBindings",
+  "WorldControlService.worldControlControllerCommitState": {
+    "operationId": "WorldControlController_commitState",
     "method": "POST",
-    "path": "/api/worlds/{worldId}/media-bindings/batch-upsert",
+    "path": "/api/worlds/{worldId}/state/commits",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerBatchUpsertWorldMediaBindings",
+    "methodName": "worldControlControllerCommitState",
     "tag": "World Control",
     "parameters": [
       {
@@ -6156,68 +4771,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerDeleteWorldEvent": {
-    "operationId": "WorldControlController_deleteWorldEvent",
-    "method": "DELETE",
-    "path": "/api/worlds/{worldId}/events/{eventId}",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerDeleteWorldEvent",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "WorldControlService.worldControlControllerDeleteWorldMediaBinding": {
-    "operationId": "WorldControlController_deleteWorldMediaBinding",
-    "method": "DELETE",
-    "path": "/api/worlds/{worldId}/media-bindings/{bindingId}",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerDeleteWorldMediaBinding",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "bindingId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldControlService.worldControlControllerGetDraft": {
     "operationId": "WorldControlController_getDraft",
     "method": "GET",
@@ -6243,21 +4796,14 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerGetMaintenance": {
-    "operationId": "WorldControlController_getMaintenance",
+  "WorldControlService.worldControlControllerGetMyAccess": {
+    "operationId": "WorldControlController_getMyAccess",
     "method": "GET",
-    "path": "/api/worlds/{worldId}/maintenance",
+    "path": "/api/world-control/access/me",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerGetMaintenance",
+    "methodName": "worldControlControllerGetMyAccess",
     "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
+    "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
@@ -6268,14 +4814,21 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerGetMyAccess": {
-    "operationId": "WorldControlController_getMyAccess",
+  "WorldControlService.worldControlControllerGetState": {
+    "operationId": "WorldControlController_getState",
     "method": "GET",
-    "path": "/api/world-control/access/me",
+    "path": "/api/worlds/{worldId}/state",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerGetMyAccess",
+    "methodName": "worldControlControllerGetState",
     "tag": "World Control",
-    "parameters": [],
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
@@ -6322,12 +4875,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerListWorldEvents": {
-    "operationId": "WorldControlController_listWorldEvents",
+  "WorldControlService.worldControlControllerListWorldHistory": {
+    "operationId": "WorldControlController_listWorldHistory",
     "method": "GET",
-    "path": "/api/worlds/{worldId}/events",
+    "path": "/api/worlds/{worldId}/history",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldEvents",
+    "methodName": "worldControlControllerListWorldHistory",
     "tag": "World Control",
     "parameters": [
       {
@@ -6446,73 +4999,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerListWorldNarrativeContexts": {
-    "operationId": "WorldControlController_listWorldNarrativeContexts",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/narrative-contexts",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldNarrativeContexts",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "take",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "targetSubjectId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetSubjectType",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "subjectId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "subjectType",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "storyId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "scope",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldControlService.worldControlControllerListWorldScenes": {
     "operationId": "WorldControlController_listWorldScenes",
     "method": "GET",
@@ -6604,32 +5090,6 @@ export const REALM_OPERATION_MAP = {
     "parameters": [
       {
         "name": "draftId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "WorldControlService.worldControlControllerUpdateMaintenance": {
-    "operationId": "WorldControlController_updateMaintenance",
-    "method": "PATCH",
-    "path": "/api/worlds/{worldId}/maintenance",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerUpdateMaintenance",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -7005,25 +5465,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldsService.worldControllerCreateWorld": {
-    "operationId": "WorldController_createWorld",
-    "method": "POST",
-    "path": "/api/world",
-    "service": "WorldsService",
-    "methodName": "worldControllerCreateWorld",
-    "tag": "Worlds",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldsService.worldControllerGetMainWorld": {
     "operationId": "WorldController_getMainWorld",
     "method": "GET",
@@ -7041,22 +5482,6 @@ export const REALM_OPERATION_MAP = {
       "application/json"
     ],
     "hasSuccessBody": true
-  },
-  "WorldsService.worldControllerGetSceneQuota": {
-    "operationId": "WorldController_getSceneQuota",
-    "method": "GET",
-    "path": "/api/world/me/scene-quota",
-    "service": "WorldsService",
-    "methodName": "worldControllerGetSceneQuota",
-    "tag": "Worlds",
-    "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
   },
   "WorldsService.worldControllerGetWorld": {
     "operationId": "WorldController_getWorld",
@@ -7139,12 +5564,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldsService.worldControllerGetWorldEvents": {
-    "operationId": "WorldController_getWorldEvents",
+  "WorldsService.worldControllerGetWorldHistory": {
+    "operationId": "WorldController_getWorldHistory",
     "method": "GET",
-    "path": "/api/world/by-id/{id}/events",
+    "path": "/api/world/by-id/{id}/history",
     "service": "WorldsService",
-    "methodName": "worldControllerGetWorldEvents",
+    "methodName": "worldControllerGetWorldHistory",
     "tag": "Worlds",
     "parameters": [
       {
@@ -7383,13 +5808,16 @@ export const REALM_OPERATION_MAP = {
         "valueType": "string"
       }
     ],
-    "hasBody": false,
-    "bodyRequired": false,
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
     "successStatusCodes": [
       "201"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   }
 } as const;
 
@@ -7406,32 +5834,24 @@ export const REALM_SERVICE_METHODS = {
   },
   "AgentsService": {
     "agentControllerActivate": "AgentsService.agentControllerActivate",
-    "agentControllerApprove": "AgentsService.agentControllerApprove",
-    "agentControllerCancel": "AgentsService.agentControllerCancel",
     "agentControllerCheckHandle": "AgentsService.agentControllerCheckHandle",
+    "agentControllerCommitMemory": "AgentsService.agentControllerCommitMemory",
     "agentControllerCreate": "AgentsService.agentControllerCreate",
     "agentControllerCreateKeyEvent": "AgentsService.agentControllerCreateKeyEvent",
     "agentControllerDelete": "AgentsService.agentControllerDelete",
-    "agentControllerDeleteAllE2EMemories": "AgentsService.agentControllerDeleteAllE2EMemories",
-    "agentControllerDeleteE2EMemory": "AgentsService.agentControllerDeleteE2EMemory",
+    "agentControllerDeleteAllDyadicMemories": "AgentsService.agentControllerDeleteAllDyadicMemories",
+    "agentControllerDeleteDyadicMemory": "AgentsService.agentControllerDeleteDyadicMemory",
     "agentControllerDeleteKeyEvent": "AgentsService.agentControllerDeleteKeyEvent",
-    "agentControllerForceAction": "AgentsService.agentControllerForceAction",
-    "agentControllerGetApprovals": "AgentsService.agentControllerGetApprovals",
-    "agentControllerGetMemoryStats": "AgentsService.agentControllerGetMemoryStats",
     "agentControllerGetRelationships": "AgentsService.agentControllerGetRelationships",
     "agentControllerGetSoulPrime": "AgentsService.agentControllerGetSoulPrime",
-    "agentControllerGetTasks": "AgentsService.agentControllerGetTasks",
     "agentControllerGetUserProfile": "AgentsService.agentControllerGetUserProfile",
     "agentControllerGetVisibility": "AgentsService.agentControllerGetVisibility",
     "agentControllerListCoreMemories": "AgentsService.agentControllerListCoreMemories",
-    "agentControllerListE2EMemories": "AgentsService.agentControllerListE2EMemories",
+    "agentControllerListDyadicMemories": "AgentsService.agentControllerListDyadicMemories",
     "agentControllerListKeyEvents": "AgentsService.agentControllerListKeyEvents",
     "agentControllerListUserProfiles": "AgentsService.agentControllerListUserProfiles",
     "agentControllerMakePublic": "AgentsService.agentControllerMakePublic",
-    "agentControllerRecallForEntity": "AgentsService.agentControllerRecallForEntity",
-    "agentControllerReject": "AgentsService.agentControllerReject",
     "agentControllerRemoveRelationship": "AgentsService.agentControllerRemoveRelationship",
-    "agentControllerRetry": "AgentsService.agentControllerRetry",
     "agentControllerSelectAvatar": "AgentsService.agentControllerSelectAvatar",
     "agentControllerSetRelationship": "AgentsService.agentControllerSetRelationship",
     "agentControllerSuspend": "AgentsService.agentControllerSuspend",
@@ -7588,23 +6008,6 @@ export const REALM_SERVICE_METHODS = {
     "enableTwoFactor": "MeTwoFactorService.enableTwoFactor",
     "prepareTwoFactor": "MeTwoFactorService.prepareTwoFactor"
   },
-  "NarrativeSpineService": {
-    "narrativeSpineControllerAppendEvent": "NarrativeSpineService.narrativeSpineControllerAppendEvent",
-    "narrativeSpineControllerArchiveBranch": "NarrativeSpineService.narrativeSpineControllerArchiveBranch",
-    "narrativeSpineControllerCreateBranch": "NarrativeSpineService.narrativeSpineControllerCreateBranch",
-    "narrativeSpineControllerFindSpine": "NarrativeSpineService.narrativeSpineControllerFindSpine",
-    "narrativeSpineControllerGetBranches": "NarrativeSpineService.narrativeSpineControllerGetBranches",
-    "narrativeSpineControllerGetCausalChain": "NarrativeSpineService.narrativeSpineControllerGetCausalChain",
-    "narrativeSpineControllerGetDefaultBranch": "NarrativeSpineService.narrativeSpineControllerGetDefaultBranch",
-    "narrativeSpineControllerGetEvent": "NarrativeSpineService.narrativeSpineControllerGetEvent",
-    "narrativeSpineControllerGetEventChildren": "NarrativeSpineService.narrativeSpineControllerGetEventChildren",
-    "narrativeSpineControllerGetEvents": "NarrativeSpineService.narrativeSpineControllerGetEvents",
-    "narrativeSpineControllerGetOrCreateSpine": "NarrativeSpineService.narrativeSpineControllerGetOrCreateSpine",
-    "narrativeSpineControllerGetSpine": "NarrativeSpineService.narrativeSpineControllerGetSpine",
-    "narrativeSpineControllerMergeBranch": "NarrativeSpineService.narrativeSpineControllerMergeBranch",
-    "narrativeSpineControllerPublishStorySpine": "NarrativeSpineService.narrativeSpineControllerPublishStorySpine",
-    "narrativeSpineControllerUpdateEvent": "NarrativeSpineService.narrativeSpineControllerUpdateEvent"
-  },
   "NotificationService": {
     "getUnreadCount": "NotificationService.getUnreadCount",
     "listNotifications": "NotificationService.listNotifications",
@@ -7635,19 +6038,6 @@ export const REALM_SERVICE_METHODS = {
   "RuntimeRealmGrantsService": {
     "issueRuntimeRealmGrant": "RuntimeRealmGrantsService.issueRuntimeRealmGrant"
   },
-  "SatelliteNarrativeService": {
-    "satelliteControllerCreate": "SatelliteNarrativeService.satelliteControllerCreate",
-    "satelliteControllerCreateSyntheticMemory": "SatelliteNarrativeService.satelliteControllerCreateSyntheticMemory",
-    "satelliteControllerDelete": "SatelliteNarrativeService.satelliteControllerDelete",
-    "satelliteControllerFindById": "SatelliteNarrativeService.satelliteControllerFindById",
-    "satelliteControllerFindByScene": "SatelliteNarrativeService.satelliteControllerFindByScene",
-    "satelliteControllerFindBySpine": "SatelliteNarrativeService.satelliteControllerFindBySpine",
-    "satelliteControllerFindBySpineEvent": "SatelliteNarrativeService.satelliteControllerFindBySpineEvent",
-    "satelliteControllerGetPendingSyntheticMemories": "SatelliteNarrativeService.satelliteControllerGetPendingSyntheticMemories",
-    "satelliteControllerSearchSimilar": "SatelliteNarrativeService.satelliteControllerSearchSimilar",
-    "satelliteControllerTouchReference": "SatelliteNarrativeService.satelliteControllerTouchReference",
-    "satelliteControllerVerifySyntheticMemory": "SatelliteNarrativeService.satelliteControllerVerifySyntheticMemory"
-  },
   "SearchService": {
     "searchPosts": "SearchService.searchPosts",
     "searchUsers": "SearchService.searchUsers"
@@ -7660,35 +6050,13 @@ export const REALM_SERVICE_METHODS = {
     "v1DefaultVisibilityControllerValidateAgentVisibility": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerValidateAgentVisibility",
     "v1DefaultVisibilityControllerValidateUserVisibility": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerValidateUserVisibility"
   },
-  "SoulEvolutionService": {
-    "soulEvolutionControllerAggregateMetrics": "SoulEvolutionService.soulEvolutionControllerAggregateMetrics",
-    "soulEvolutionControllerCreateProposal": "SoulEvolutionService.soulEvolutionControllerCreateProposal",
-    "soulEvolutionControllerGetGrowthProjection": "SoulEvolutionService.soulEvolutionControllerGetGrowthProjection",
-    "soulEvolutionControllerGetLatestMetrics": "SoulEvolutionService.soulEvolutionControllerGetLatestMetrics",
-    "soulEvolutionControllerGetMetrics": "SoulEvolutionService.soulEvolutionControllerGetMetrics",
-    "soulEvolutionControllerGetPendingProposals": "SoulEvolutionService.soulEvolutionControllerGetPendingProposals",
-    "soulEvolutionControllerGetProposal": "SoulEvolutionService.soulEvolutionControllerGetProposal",
-    "soulEvolutionControllerGetProposals": "SoulEvolutionService.soulEvolutionControllerGetProposals",
-    "soulEvolutionControllerReviewProposal": "SoulEvolutionService.soulEvolutionControllerReviewProposal"
-  },
-  "TimeGapNarrativeService": {
-    "timeGapControllerCollapseGap": "TimeGapNarrativeService.timeGapControllerCollapseGap",
-    "timeGapControllerDetectGap": "TimeGapNarrativeService.timeGapControllerDetectGap",
-    "timeGapControllerFindBySpine": "TimeGapNarrativeService.timeGapControllerFindBySpine",
-    "timeGapControllerFindPendingGaps": "TimeGapNarrativeService.timeGapControllerFindPendingGaps",
-    "timeGapControllerGetGap": "TimeGapNarrativeService.timeGapControllerGetGap",
-    "timeGapControllerSkipGap": "TimeGapNarrativeService.timeGapControllerSkipGap"
-  },
   "TransitsService": {
     "transitControllerAbandon": "TransitsService.transitControllerAbandon",
-    "transitControllerAddCheckpoint": "TransitsService.transitControllerAddCheckpoint",
     "transitControllerComplete": "TransitsService.transitControllerComplete",
-    "transitControllerCreateTransit": "TransitsService.transitControllerCreateTransit",
     "transitControllerGetActiveTransit": "TransitsService.transitControllerGetActiveTransit",
+    "transitControllerGetSceneQuota": "TransitsService.transitControllerGetSceneQuota",
     "transitControllerGetTransit": "TransitsService.transitControllerGetTransit",
-    "transitControllerListTransits": "TransitsService.transitControllerListTransits",
-    "transitControllerStartSession": "TransitsService.transitControllerStartSession",
-    "transitControllerUpdateSession": "TransitsService.transitControllerUpdateSession"
+    "transitControllerListTransits": "TransitsService.transitControllerListTransits"
   },
   "TranslationService": {
     "translateText": "TranslationService.translateText"
@@ -7706,26 +6074,22 @@ export const REALM_SERVICE_METHODS = {
     "searchUsers": "UserService.searchUsers"
   },
   "WorldControlService": {
-    "worldControlControllerBatchUpsertWorldEvents": "WorldControlService.worldControlControllerBatchUpsertWorldEvents",
-    "worldControlControllerBatchUpsertWorldMediaBindings": "WorldControlService.worldControlControllerBatchUpsertWorldMediaBindings",
+    "worldControlControllerAppendWorldHistory": "WorldControlService.worldControlControllerAppendWorldHistory",
+    "worldControlControllerCommitState": "WorldControlService.worldControlControllerCommitState",
     "worldControlControllerCreateDraft": "WorldControlService.worldControlControllerCreateDraft",
-    "worldControlControllerDeleteWorldEvent": "WorldControlService.worldControlControllerDeleteWorldEvent",
-    "worldControlControllerDeleteWorldMediaBinding": "WorldControlService.worldControlControllerDeleteWorldMediaBinding",
     "worldControlControllerGetDraft": "WorldControlService.worldControlControllerGetDraft",
-    "worldControlControllerGetMaintenance": "WorldControlService.worldControlControllerGetMaintenance",
     "worldControlControllerGetMyAccess": "WorldControlService.worldControlControllerGetMyAccess",
+    "worldControlControllerGetState": "WorldControlService.worldControlControllerGetState",
     "worldControlControllerListDrafts": "WorldControlService.worldControlControllerListDrafts",
     "worldControlControllerListMyWorlds": "WorldControlService.worldControlControllerListMyWorlds",
-    "worldControlControllerListWorldEvents": "WorldControlService.worldControlControllerListWorldEvents",
+    "worldControlControllerListWorldHistory": "WorldControlService.worldControlControllerListWorldHistory",
     "worldControlControllerListWorldLorebooks": "WorldControlService.worldControlControllerListWorldLorebooks",
     "worldControlControllerListWorldMediaBindings": "WorldControlService.worldControlControllerListWorldMediaBindings",
     "worldControlControllerListWorldMutations": "WorldControlService.worldControlControllerListWorldMutations",
-    "worldControlControllerListWorldNarrativeContexts": "WorldControlService.worldControlControllerListWorldNarrativeContexts",
     "worldControlControllerListWorldScenes": "WorldControlService.worldControlControllerListWorldScenes",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
-    "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft",
-    "worldControlControllerUpdateMaintenance": "WorldControlService.worldControlControllerUpdateMaintenance"
+    "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft"
   },
   "WorldpostService": {
     "getWorldPosts": "WorldpostService.getWorldPosts"
@@ -7744,13 +6108,11 @@ export const REALM_SERVICE_METHODS = {
     "worldRulesControllerValidateRules": "WorldRulesService.worldRulesControllerValidateRules"
   },
   "WorldsService": {
-    "worldControllerCreateWorld": "WorldsService.worldControllerCreateWorld",
     "worldControllerGetMainWorld": "WorldsService.worldControllerGetMainWorld",
-    "worldControllerGetSceneQuota": "WorldsService.worldControllerGetSceneQuota",
     "worldControllerGetWorld": "WorldsService.worldControllerGetWorld",
     "worldControllerGetWorldAgents": "WorldsService.worldControllerGetWorldAgents",
     "worldControllerGetWorldDetailWithAgents": "WorldsService.worldControllerGetWorldDetailWithAgents",
-    "worldControllerGetWorldEvents": "WorldsService.worldControllerGetWorldEvents",
+    "worldControllerGetWorldHistory": "WorldsService.worldControllerGetWorldHistory",
     "worldControllerGetWorldLevelAudits": "WorldsService.worldControllerGetWorldLevelAudits",
     "worldControllerGetWorldLorebooks": "WorldsService.worldControllerGetWorldLorebooks",
     "worldControllerGetWorldMediaBindings": "WorldsService.worldControllerGetWorldMediaBindings",

@@ -99,14 +99,15 @@ expectRegex(
 
 expectRegex(
   schema,
-  /WorldviewDetailDto:\s*{[\s\S]*?existences\?: components\["schemas"\]\["ExistenceDefinitionDto"\];[\s\S]*?glossary\?: components\["schemas"\]\["WorldviewGlossaryDto"\];[\s\S]*?locations\?: components\["schemas"\]\["WorldviewLocationsDto"\];[\s\S]*?narrativeAssets\?: components\["schemas"\]\["WorldviewNarrativeAssetsDto"\];[\s\S]*?narrativeHooks\?: components\["schemas"\]\["NarrativeHooksDto"\];[\s\S]*?resources\?: components\["schemas"\]\["ResourceDefinitionDto"\];[\s\S]*?visualGuide\?: components\["schemas"\]\["VisualGuideDto"\];/,
+  /WorldviewDetailDto:\s*{[\s\S]*?existences\?: components\["schemas"\]\["ExistenceDefinitionDto"\];[\s\S]*?glossary\?: components\["schemas"\]\["WorldviewGlossaryDto"\];[\s\S]*?locations\?: components\["schemas"\]\["WorldviewLocationsDto"\];[\s\S]*?resources\?: components\["schemas"\]\["ResourceDefinitionDto"\];[\s\S]*?visualGuide\?: components\["schemas"\]\["VisualGuideDto"\];/,
   'WorldviewDetailDto must expose named schemas for stable semantic blocks instead of unknown maps',
 );
 
-expectRegex(
+expectSchemaExcludesField(
   schema,
-  /WorldviewPatchDto:\s*{[\s\S]*?causality\?: components\["schemas"\]\["CausalityModelDto"\];[\s\S]*?coreSystem\?: components\["schemas"\]\["PowerSystemDto"\];[\s\S]*?existences\?: components\["schemas"\]\["ExistenceDefinitionDto"\];[\s\S]*?languages\?: components\["schemas"\]\["WorldviewLanguagesDto"\];[\s\S]*?narrativeHooks\?: components\["schemas"\]\["NarrativeHooksDto"\];[\s\S]*?resources\?: components\["schemas"\]\["ResourceDefinitionDto"\];[\s\S]*?spaceTopology\?: components\["schemas"\]\["SpaceTopologyDto"\];[\s\S]*?timeModel\?: components\["schemas"\]\["TimeModelDto"\];[\s\S]*?visualGuide\?: components\["schemas"\]\["VisualGuideDto"\];/,
-  'WorldviewPatchDto must keep named nested DTOs for stable worldview modules',
+  'WorldviewDetailDto',
+  'narrativeAssets',
+  'WorldviewDetailDto must not expose narrativeAssets after the hard-cut',
 );
 
 expectRegex(
@@ -125,12 +126,6 @@ expectRegex(
   schema,
   /SpaceTopologyDto:\s*{[\s\S]*?realms\?: components\["schemas"\]\["SpaceRealmDto"\]\[];/,
   'SpaceTopologyDto must expose stable realms field consumed by first-party apps',
-);
-
-expectRegex(
-  schema,
-  /MemoryStatsResponseDto:\s*{\s*coreCount: number;\s*e2eCount: number;\s*uniqueEntities: number;\s*};/,
-  'MemoryStatsResponseDto must expose its scalar fields instead of an empty object',
 );
 
 expectRegex(
@@ -155,12 +150,6 @@ expectSchemaExcludesField(
   'AgentProfileDto',
   'dna',
   'AgentProfileDto must not expose public dna',
-);
-
-expectRegex(
-  schema,
-  /ApproveRequestDto:\s*{\s*contentText\?: string;\s*[\s\S]*?publishAt\?: string;\s*};/,
-  'ApproveRequestDto must expose its request fields instead of an empty object',
 );
 
 expectRegex(
@@ -219,12 +208,6 @@ expectRegex(
 
 expectRegex(
   schema,
-  /MutationProposalDetailDto:\s*{[\s\S]*?proposedChange: components\["schemas"\]\["ProposedChangeDto"\]\[];[\s\S]*?status: "PENDING" \| "APPROVED" \| "REJECTED";/,
-  'MutationProposalDetailDto.proposedChange must reference ProposedChangeDto[] instead of an empty object',
-);
-
-expectRegex(
-  schema,
   /SendMessageInputDto:\s*{[\s\S]*?payload\?:\s*{\s*\[key: string\]: unknown;\s*};/,
   'SendMessageInputDto.payload must stay an explicit dynamic map instead of collapsing to an empty object',
 );
@@ -261,8 +244,14 @@ expectRegex(
 
 expectRegex(
   schema,
-  /AgentMemoryRecordDto:\s*{[\s\S]*?category: "CORE" \| "E2E";[\s\S]*?content: string;[\s\S]*?type: /,
-  'AgentMemoryRecordDto must be generated for agent memory list/recall surfaces',
+  /AgentMemoryRecordDto:\s*{[\s\S]*?actorRefs: components\["schemas"\]\["MutationActorRefDto"\]\[];[\s\S]*?appId: string;[\s\S]*?commitId: string;[\s\S]*?content: string;[\s\S]*?createdBy: string;[\s\S]*?effectClass: "MEMORY_ONLY";[\s\S]*?importance: number;[\s\S]*?reason: string;[\s\S]*?schemaId: string;[\s\S]*?schemaVersion: string;[\s\S]*?sessionId: string;[\s\S]*?type: "PUBLIC_SHARED" \| "WORLD_SHARED" \| "DYADIC";[\s\S]*?userId: string \| null;[\s\S]*?worldId: string \| null;/,
+  'AgentMemoryRecordDto must expose persisted provenance alongside the hard-cut shared\/dyadic memory contract',
+);
+
+expectRegex(
+  schema,
+  /CommitAgentMemoryDto:\s*{[\s\S]*?commit: components\["schemas"\]\["AgentMemoryCommitEnvelopeDto"\];[\s\S]*?content: string;[\s\S]*?metadata\?: \{\s*\[key: string\]: unknown;\s*\};[\s\S]*?type: "PUBLIC_SHARED" \| "WORLD_SHARED" \| "DYADIC";/,
+  'CommitAgentMemoryDto must require a commit envelope and preserve typed memory fields',
 );
 
 expectRegex(
@@ -279,14 +268,14 @@ expectRegex(
 
 expectRegex(
   operationMap,
-  /"AgentsService\.agentControllerListE2EMemories":[\s\S]*?"name": "entityId"[\s\S]*?"name": "limit"[\s\S]*?"valueType": "number"[\s\S]*?"hasSuccessBody": true/,
-  'agentControllerListE2EMemories must keep typed params + success body',
+  /"AgentsService\.agentControllerListDyadicMemories":[\s\S]*?"name": "userId"[\s\S]*?"name": "limit"[\s\S]*?"valueType": "number"[\s\S]*?"hasSuccessBody": true/,
+  'agentControllerListDyadicMemories must keep typed params + success body',
 );
 
 expectRegex(
   operationMap,
-  /"AgentsService\.agentControllerRecallForEntity":[\s\S]*?"name": "query"[\s\S]*?"valueType": "string"[\s\S]*?"name": "limit"[\s\S]*?"valueType": "number"[\s\S]*?"hasSuccessBody": true/,
-  'agentControllerRecallForEntity must keep typed query/limit params + success body',
+  /"AgentsService\.agentControllerCommitMemory":[\s\S]*?"requestBodyContentType": "application\/json"[\s\S]*?"hasSuccessBody": true/,
+  'agentControllerCommitMemory must keep typed request and success bodies',
 );
 
 expectRegex(
