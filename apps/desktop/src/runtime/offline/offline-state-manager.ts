@@ -43,7 +43,7 @@ export class OfflineStateManager {
 
     if (!runtime.reachable) {
       nextTier = 'L2';
-    } else if (!realm.reachable) {
+    } else if (!realm.restReachable) {
       nextTier = 'L1';
     } else {
       nextTier = 'L0';

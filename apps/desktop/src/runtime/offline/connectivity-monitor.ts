@@ -7,21 +7,23 @@ type ConnectivityListener = (status: ConnectivityStatus) => void;
  * Fed by: Socket.IO events, REST request results, bootstrap status.
  */
 export class ConnectivityMonitor {
-  private realmReachable = true;
+  private realmRestReachable = true;
+  private realmSocketReachable = true;
   private runtimeReachable = true;
-  private realmLastCheckedAt = Date.now();
+  private realmRestLastCheckedAt = Date.now();
+  private realmSocketLastCheckedAt = Date.now();
   private runtimeLastCheckedAt = Date.now();
   private readonly listeners = new Set<ConnectivityListener>();
 
   setRealmSocketConnected(connected: boolean): void {
-    this.realmReachable = connected;
-    this.realmLastCheckedAt = Date.now();
+    this.realmSocketReachable = connected;
+    this.realmSocketLastCheckedAt = Date.now();
     this.emit();
   }
 
   setRealmRestReachable(reachable: boolean): void {
-    this.realmReachable = reachable;
-    this.realmLastCheckedAt = Date.now();
+    this.realmRestReachable = reachable;
+    this.realmRestLastCheckedAt = Date.now();
     this.emit();
   }
 
@@ -33,7 +35,12 @@ export class ConnectivityMonitor {
 
   getStatus(): ConnectivityStatus {
     return {
-      realm: { reachable: this.realmReachable, lastCheckedAt: this.realmLastCheckedAt },
+      realm: {
+        restReachable: this.realmRestReachable,
+        socketReachable: this.realmSocketReachable,
+        lastRestCheckedAt: this.realmRestLastCheckedAt,
+        lastSocketCheckedAt: this.realmSocketLastCheckedAt,
+      },
       runtime: { reachable: this.runtimeReachable, lastCheckedAt: this.runtimeLastCheckedAt },
     };
   }

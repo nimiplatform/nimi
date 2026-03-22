@@ -20,8 +20,14 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
 
   test('D-OFFLINE-001: L1 when runtime reachable but realm unreachable', () => {
     manager.start();
-    monitor.setRealmSocketConnected(false);
+    monitor.setRealmRestReachable(false);
     assert.equal(manager.getCurrentTier(), 'L1');
+  });
+
+  test('D-OFFLINE-001: socket disconnect alone does not degrade to L1', () => {
+    manager.start();
+    monitor.setRealmSocketConnected(false);
+    assert.equal(manager.getCurrentTier(), 'L0');
   });
 
   test('D-OFFLINE-001: L2 when runtime unreachable', () => {
@@ -35,7 +41,7 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
     const changes: OfflineTierChange[] = [];
     manager.onChange((change) => changes.push(change));
 
-    monitor.setRealmSocketConnected(false);
+    monitor.setRealmRestReachable(false);
 
     assert.equal(changes.length, 1);
     assert.equal(changes[0]!.from, 'L0');
@@ -58,13 +64,13 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
 
   test('D-OFFLINE-001: transition L1→L0 on realm reconnect', () => {
     manager.start();
-    monitor.setRealmSocketConnected(false);
+    monitor.setRealmRestReachable(false);
     assert.equal(manager.getCurrentTier(), 'L1');
 
     const changes: OfflineTierChange[] = [];
     manager.onChange((change) => changes.push(change));
 
-    monitor.setRealmSocketConnected(true);
+    monitor.setRealmRestReachable(true);
 
     assert.equal(manager.getCurrentTier(), 'L0');
     assert.equal(changes.length, 1);
@@ -76,13 +82,13 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
   test('D-OFFLINE-001: transition L2→L0 on runtime reconnect', () => {
     manager.start();
     monitor.setRuntimeReachable(false);
-    monitor.setRealmSocketConnected(false);
+    monitor.setRealmRestReachable(false);
     assert.equal(manager.getCurrentTier(), 'L2');
 
     const changes: OfflineTierChange[] = [];
     manager.onChange((change) => changes.push(change));
 
-    monitor.setRealmSocketConnected(true);
+    monitor.setRealmRestReachable(true);
     monitor.setRuntimeReachable(true);
 
     assert.equal(manager.getCurrentTier(), 'L0');
@@ -100,7 +106,7 @@ describe('D-OFFLINE-001: offline degradation tier system', () => {
 
     manager.stop();
 
-    monitor.setRealmSocketConnected(false);
+    monitor.setRealmRestReachable(false);
     monitor.setRuntimeReachable(false);
 
     assert.equal(manager.getCurrentTier(), 'L0');

@@ -117,8 +117,9 @@ export class OfflineCoordinator {
 
   markRealmRestReachable(reachable: boolean): void {
     this.start();
+    const wasReachable = this.monitor.getStatus().realm.restReachable;
     this.monitor.setRealmRestReachable(reachable);
-    if (!reachable) {
+    if (!reachable && !wasReachable) {
       void this.scheduleRealmReconnect();
     }
   }

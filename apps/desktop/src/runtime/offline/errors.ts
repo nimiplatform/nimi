@@ -36,7 +36,7 @@ export function isNimiErrorLike(error: unknown): error is NimiError {
 
 export function isRealmOfflineError(error: unknown): boolean {
   if (isNimiErrorLike(error)) {
-    return Boolean(error.retryable) || REALM_OFFLINE_REASON_CODES.has(error.reasonCode);
+    return REALM_OFFLINE_REASON_CODES.has(error.reasonCode);
   }
   const message = getErrorMessage(error, '');
   return /REALM_UNAVAILABLE|network|fetch failed|failed to fetch|load failed|timeout/i.test(message);

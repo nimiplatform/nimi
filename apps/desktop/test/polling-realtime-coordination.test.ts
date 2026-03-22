@@ -96,17 +96,21 @@ describe('D-NET-007: polling/realtime coordination', () => {
 });
 
 describe('D-OFFLINE-001: realm reachability via socket lifecycle', () => {
-  test('D-OFFLINE-001: socket connect sets realm reachable', () => {
+  test('D-OFFLINE-001: socket connect updates socket reachability signal', () => {
     assert.ok(
       onConnectBody.includes('offlineCoordinator.markRealmSocketReachable(true)'),
       'onConnect must call offlineCoordinator.markRealmSocketReachable(true)',
     );
   });
 
-  test('D-OFFLINE-001: socket disconnect sets realm unreachable', () => {
+  test('D-OFFLINE-001: socket disconnect updates socket reachability signal only', () => {
     assert.ok(
       onDisconnectBody.includes('offlineCoordinator.markRealmSocketReachable(false)'),
       'onDisconnect must call offlineCoordinator.markRealmSocketReachable(false)',
+    );
+    assert.ok(
+      !onDisconnectBody.includes('markRealmRestReachable(false)'),
+      'onDisconnect must not mark REST reachability false',
     );
   });
 

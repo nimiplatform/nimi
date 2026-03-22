@@ -11,7 +11,12 @@ export type OfflineTierChange = {
 };
 
 export type ConnectivityStatus = {
-  realm: { reachable: boolean; lastCheckedAt: number };
+  realm: {
+    restReachable: boolean;
+    socketReachable: boolean;
+    lastRestCheckedAt: number;
+    lastSocketCheckedAt: number;
+  };
   runtime: { reachable: boolean; lastCheckedAt: number };
 };
 
