@@ -6,6 +6,10 @@ boundaries:
         description: "世界实体，Nimi OASIS 核心资产"
       - term: Worldview
         description: "世界观，规则根 1:1 绑定 world；coreSystem.rules 使用 ordered rule item array（key/title/value）"
+      - term: WorldStateRecord
+        description: "世界共享当前状态记录（canonical present state）"
+      - term: WorldHistoryEvent
+        description: "世界 canonical happened fact 记录"
       - term: WorldAccessControl
         description: "创建/维护/发布权限控制"
       - term: WorldMutation
@@ -25,10 +29,12 @@ boundaries:
         description: "归属类型 (MASTER_OWNED / WORLD_OWNED)"
       - term: AgentWorldBinding
         description: "Agent-World 绑定"
-      - term: AgentMemory
-        description: "记忆入口 (core / e2e)"
+      - term: AgentRule
+        description: "Agent truth / identity 边界规则"
+      - term: AgentMemoryEntry
+        description: "Agent continuity memory entry"
     ownership_model: "MASTER_OWNED (用户直属) / WORLD_OWNED (世界托管)"
-    memory_entry_points: "core (基础人格记忆) / e2e (对话记忆)"
+    memory_boundary: "public continuity memory boundary only"
     source_rule: R-BOUND-002
 
   - domain: social
@@ -61,3 +67,17 @@ boundaries:
     change_domains: "metadata/structure/releases/archive"
     ownership_model: "creator-owned personal asset"
     source_rule: R-BOUND-004
+
+  - domain: chat
+    vocabulary:
+      - term: ChatThread
+        description: "Realm canonical human chat thread"
+      - term: ChatMessage
+        description: "Realm canonical human chat message"
+      - term: ChatSyncCursor
+        description: "消息同步与增量读取游标"
+      - term: ChatAdmission
+        description: "由 Social precondition 决定的聊天准入"
+    supported_shape: "HUMAN_HUMAN + DIRECT only (v1)"
+    excluded_shape: "agent chat, group, channel"
+    source_rule: R-BOUND-005

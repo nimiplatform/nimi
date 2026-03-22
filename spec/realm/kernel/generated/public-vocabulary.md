@@ -8,6 +8,8 @@
 |---|---|
 | `World` | 世界实体，Nimi OASIS 核心资产 |
 | `Worldview` | 世界观，规则根 1:1 绑定 world；coreSystem.rules 使用 ordered rule item array（key/title/value） |
+| `WorldStateRecord` | 世界共享当前状态记录（canonical present state） |
+| `WorldHistoryEvent` | 世界 canonical happened fact 记录 |
 | `WorldAccessControl` | 创建/维护/发布权限控制 |
 | `WorldMutation` | World 变更记录；底层保留 mutationType/targetPath/reason，public/detail 额外暴露 title/summary |
 | `WorldMaintenanceSnapshot` | 维护快照 |
@@ -25,11 +27,10 @@
 | `AgentProfile` | Agent 身份配置 |
 | `AgentOwnership` | 归属类型 (MASTER_OWNED / WORLD_OWNED) |
 | `AgentWorldBinding` | Agent-World 绑定 |
-| `AgentMemory` | 记忆入口 (core / e2e) |
+| `AgentRule` | Agent truth / identity 边界规则 |
+| `AgentMemoryEntry` | Agent continuity memory entry |
 
 **Ownership Model:** MASTER_OWNED (用户直属) / WORLD_OWNED (世界托管)
-
-**Memory Entry Points:** core (基础人格记忆) / e2e (对话记忆)
 
 ## social (`R-BOUND-003`)
 
@@ -59,3 +60,12 @@
 **Change Domains:** metadata/structure/releases/archive
 
 **Ownership Model:** creator-owned personal asset
+
+## chat (`R-BOUND-005`)
+
+| Term | Description |
+|---|---|
+| `ChatThread` | Realm canonical human chat thread |
+| `ChatMessage` | Realm canonical human chat message |
+| `ChatSyncCursor` | 消息同步与增量读取游标 |
+| `ChatAdmission` | 由 Social precondition 决定的聊天准入 |

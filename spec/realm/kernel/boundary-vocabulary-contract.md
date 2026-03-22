@@ -4,7 +4,7 @@
 
 ## R-BOUND-001 — World Public Boundary
 
-World 在 public 范围提供跨域可依赖边界语义：标识（worldId, worldviewId）、访问（WorldAccessControl）、生命周期（draft → published → maintained）、变更入口（world/worldview/events/lorebooks/mutations）。知识资产删除语义为逻辑归档（archive）。
+World 在 public 范围提供跨域可依赖边界语义：标识（worldId, worldviewId）、truth/state/history 读取入口、访问（WorldAccessControl）、生命周期（draft → published → maintained）、变更入口（world/worldview/events/lorebooks/mutations）。知识资产删除语义为逻辑归档（archive）。
 
 其中：
 
@@ -12,15 +12,15 @@ World 在 public 范围提供跨域可依赖边界语义：标识（worldId, wor
 - `WorldMutation` 作为技术审计记录保留 `mutationType / targetPath / reason`，同时 public/detail 展示面必须携带 `title / summary`。
 - `World.rules` 只承载基础规则卡片；扩展知识应进入 `WorldLorebook`。
 
-Public vocabulary: World, Worldview, WorldAccessControl, WorldMutation, WorldMaintenanceSnapshot。
+Public vocabulary: World, Worldview, WorldStateRecord, WorldHistoryEvent, WorldAccessControl, WorldMutation, WorldMaintenanceSnapshot。
 
 职责分离：`@nimiplatform/nimi` 声明边界词汇。`realm (closed-source)` 实现治理细则。
 
 ## R-BOUND-002 — Agent Public Boundary
 
-Agent 在 public 范围提供跨域可依赖边界：标识（agentId）、归属（ownerType: MASTER_OWNED / WORLD_OWNED）、绑定（worldId）、记忆入口（memory.core / memory.e2e）。
+Agent 在 public 范围提供跨域可依赖边界：标识（agentId）、归属（ownerType: MASTER_OWNED / WORLD_OWNED）、绑定（worldId）、truth identity boundary、continuity memory boundary。
 
-Public vocabulary: AgentProfile, AgentOwnership, AgentWorldBinding, AgentMemory。
+Public vocabulary: AgentProfile, AgentOwnership, AgentWorldBinding, AgentRule, AgentMemoryEntry。
 
 ## R-BOUND-003 — Social Public Boundary
 
@@ -33,6 +33,12 @@ Public vocabulary: Friendship, RelationshipType, RelationshipStatus, SocialPreco
 Asset 在 public 范围提供跨域可依赖边界：标识（assetId, assetType）、归属（creator-owned personal asset）、可见性（draft/private/public）、生命周期（draft → published → maintained → archived）、发布记录（AssetReleaseEvent / NovelReleaseEvent）、变更入口（metadata/structure/releases/archive）。
 
 Public vocabulary: RealmAsset, AssetOwner, AssetVisibility, AssetReleaseEvent, NovelAsset。
+
+## R-BOUND-005 — Chat Public Boundary
+
+Chat 在 public 范围提供跨域可依赖边界：thread（chatId, type=DIRECT）、message、read-state、sync cursor、chat admission。当前 Realm Chat v1 只支持 `HUMAN_HUMAN + DIRECT`。
+
+Public vocabulary: ChatThread, ChatMessage, ChatSyncCursor, ChatAdmission。
 
 ## R-BOUND-010 — 公共词汇统一
 

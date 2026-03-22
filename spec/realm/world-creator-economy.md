@@ -4,36 +4,21 @@
 
 ## 0. Normative Imports
 
-| Kernel Location | Rule IDs |
-|---|---|
-| `kernel/economy-contract.md` | R-ECON-001, R-ECON-010, R-ECON-011, R-ECON-030 |
-| `kernel/tables/creator-key-tiers.yaml` | 阶梯定价表 |
+- `kernel/economy-contract.md`: `R-ECON-001`, `R-ECON-011`, `R-ECON-030`
+- `kernel/tables/creator-key-tiers.yaml`: creator key pricing
 
-## 1. 核心理念
+## 1. Scope
 
-World 是 Nimi OASIS 的核心资产。设计哲学：平台是基础设施、规则一经设定平台也受约束、价格是筛选机制、Key 收入用于平台建设（R-ECON-001）。
+World creator economy defines creator-key access economics and append-only settlement semantics for world-facing creation rights.
 
-## 2. Creator Key 详述
+Gift settlement remains part of the same audited economy surface: `R-ECON-011` governs Spark payment on send and Gem delivery on accept.
 
-基本规则与激活机制见 R-ECON-001。定价曲线见 `tables/creator-key-tiers.yaml`。
+## 2. Reading Path
 
-Key 购买与激活实现映射：CreatorKey 记录（PURCHASED → ACTIVATED）→ WorldAccessControl（canCreateWorld: true）→ world-studio CREATE 流程。
+1. `kernel/economy-contract.md`
+2. `kernel/tables/creator-key-tiers.yaml`
+3. `creator-revenue-policy.md`
 
-## 3. Key 购买成本 vs World 收入
+## 3. Non-goals
 
-Tier 1 ($20): 种子期极少互动即可覆盖。Tier 4 ($300): 需 Lv.3+ 稳定运营。Tier 7 ($5,000): 需 Lv.5+ 高质量 World。
-
-## 4. Key 收入用途
-
-专项用于：基础设施、开源生态、OASIS 主世界、安全审计。定期公开收入与支出报告。
-
-## 5. 验证路径
-
-- CI 命令 `pnpm check:realm-spec-kernel-consistency` 与 `pnpm check:realm-spec-kernel-docs-drift` 必须通过。
-- Creator Key 定价曲线变更后需验证 `tables/creator-key-tiers.yaml` 一致性。
-
-Gift 相关结算语义见 R-ECON-011：发送方按礼物目录 `sparkCost` 支付 Spark，接收方在 `acceptGift` 后获得 Gem，不走直接 Gem 转账语义。
-
-## 6. 决策收敛
-
-购买不设最低订阅等级。引导阶段免费 Key 上限 20 个。Tier 8 不设总量上限。Key 走法币通道与 Spark 消费体系分离。
+No runtime AI compute billing, hidden narrative mutation pricing, or duplicate settlement logic is defined here.

@@ -216,6 +216,40 @@ SDK 规范采用 kernel + domain 的两层结构：
 1. 先改 `spec/sdk/kernel/*`（必要时含 `tables/*`）
 2. 再改对应 `spec/sdk/*.md` domain 文档
 
+## Realm（当前）
+
+Realm open spec 采用 kernel + domain 的两层结构，承载 public boundary、creator asset、economy 与 interop mapping。
+
+- Kernel（唯一事实源）：`spec/realm/kernel/`
+- Domain：
+  - `spec/realm/truth.md`
+  - `spec/realm/world-state.md`
+  - `spec/realm/world-history.md`
+  - `spec/realm/agent-memory.md`
+  - `spec/realm/world.md`
+  - `spec/realm/agent.md`
+  - `spec/realm/chat.md`
+  - `spec/realm/social.md`
+  - `spec/realm/asset.md`
+  - `spec/realm/world-creator-economy.md`
+  - `spec/realm/creator-revenue-policy.md`
+  - `spec/realm/app-interconnect-model.md`
+  - `spec/realm/realm-interop-mapping.md`
+
+### 修改 Realm public boundary
+
+1. `spec/realm/kernel/boundary-vocabulary-contract.md`
+2. `spec/realm/kernel/tables/public-vocabulary.yaml`
+3. 受影响 domain 文档（`truth.md` / `world-state.md` / `world-history.md` / `agent-memory.md` / `world.md` / `agent.md` / `chat.md` / `social.md` / `asset.md`）
+
+### 修改 Realm interop mapping
+
+1. `spec/realm/kernel/interop-mapping-contract.md`
+2. `spec/realm/kernel/tables/primitive-mapping-status.yaml`
+3. `spec/realm/kernel/tables/primitive-graduation-log.yaml`
+4. `spec/realm/app-interconnect-model.md`
+5. `spec/realm/realm-interop-mapping.md`
+
 ## Platform（当前）
 
 Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协议、AI 最后一公里、开源治理。
@@ -267,14 +301,19 @@ Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协
 
 ## Realm（当前）
 
-Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、creator asset、创作者经济、原语互操作映射。
+Realm 规范采用 kernel + domain 的两层结构，覆盖 Realm Core public boundary、human-only chat、creator asset、创作者经济、原语互操作映射。
 
 - Kernel（唯一事实源）：`spec/realm/kernel/`
 - Tables（事实源）：`spec/realm/kernel/tables/`
 - Generated（自动生成视图）：`spec/realm/kernel/generated/`
 - Domain：
+  - `spec/realm/truth.md`
+  - `spec/realm/world-state.md`
+  - `spec/realm/world-history.md`
+  - `spec/realm/agent-memory.md`
   - `spec/realm/world.md`
   - `spec/realm/agent.md`
+  - `spec/realm/chat.md`
   - `spec/realm/social.md`
   - `spec/realm/asset.md`
   - `spec/realm/world-creator-economy.md`
@@ -286,7 +325,7 @@ Realm 规范采用 kernel + domain 的两层结构，覆盖公共边界词汇、
 
 1. `spec/realm/kernel/boundary-vocabulary-contract.md`
 2. `spec/realm/kernel/tables/public-vocabulary.yaml`
-3. 受影响 domain 文档（`world.md` / `agent.md` / `social.md` / `asset.md`）
+3. 受影响 domain 文档（`truth.md` / `world-state.md` / `world-history.md` / `agent-memory.md` / `world.md` / `agent.md` / `chat.md` / `social.md` / `asset.md`）
 
 ### 修改 realm creator asset / NovelAsset
 

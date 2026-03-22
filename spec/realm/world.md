@@ -4,20 +4,21 @@
 
 ## 0. Normative Imports
 
-| Kernel Location | Rule IDs |
-|---|---|
-| `kernel/boundary-vocabulary-contract.md` | R-BOUND-001, R-BOUND-010 |
+- `kernel/boundary-vocabulary-contract.md`: `R-BOUND-001`, `R-BOUND-010`
+- `kernel/interop-mapping-contract.md`: `R-INTEROP-001`, `R-INTEROP-002`
 
 ## 1. Scope
 
-World 在 public 范围提供跨域可依赖边界语义（R-BOUND-001）。
+World 是 Realm 的组合边界：`Truth / World State / World History` 构成 canonical world core，`Transit` 提供跨世界连续性入口。
 
-## 2. 有意薄桩声明
+## 2. Reading Path
 
-本文件为有意薄桩（intentional thin stub）。World 域的实现规则（level 公式、配额算法、发布审批细则、风控策略）定义在闭源 nimi-realm 仓库。本文件仅承载公共边界词汇引用，不包含域特有增量规则。
+1. `kernel/boundary-vocabulary-contract.md`
+2. `truth.md`
+3. `world-state.md`
+4. `world-history.md`
+5. `app-interconnect-model.md`
 
-公共词汇定义见 `kernel/tables/public-vocabulary.yaml`（world 域）。
+## 3. Non-goals
 
-## 3. 非目标
-
-本文件不定义：world level 公式与配额算法、发布审批细则、内部风控与反作弊策略。
+No story runtime, narrative spine, satellite, turn pacing, or prompt assembly state is kept here.

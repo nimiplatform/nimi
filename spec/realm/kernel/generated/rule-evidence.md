@@ -17,6 +17,7 @@
 | `R-BOUND-002` | `covered` | `realm_kernel_consistency` |
 | `R-BOUND-003` | `covered` | `realm_kernel_consistency` |
 | `R-BOUND-004` | `covered` | `realm_kernel_consistency` |
+| `R-BOUND-005` | `covered` | `realm_kernel_consistency` |
 | `R-BOUND-010` | `covered` | `realm_kernel_consistency` |
 | `R-ASSET-001` | `covered` | `realm_kernel_consistency` |
 | `R-ASSET-010` | `covered` | `realm_kernel_consistency` |
