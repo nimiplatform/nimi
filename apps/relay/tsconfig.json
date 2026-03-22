@@ -12,6 +12,7 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
+      "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"]
     }
   },

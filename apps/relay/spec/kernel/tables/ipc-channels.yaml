@@ -108,12 +108,6 @@ channels:
     description: Fetch one agent profile
     source_rule: RL-IPC-008
 
-  - channel: relay:human-chat:send
-    type: unary
-    module: human-chat
-    description: Send one agent-channel message
-    source_rule: RL-IPC-008
-
   # Realtime event forwarding (socket.io → renderer)
   - channel: relay:realtime:message
     type: event

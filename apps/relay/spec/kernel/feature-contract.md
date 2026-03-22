@@ -20,17 +20,10 @@ Streaming follows K-STREAM-* rules.
 Changing the selected agent cancels any in-flight stream and clears the chat view
 (or switches to per-agent history if history persistence is implemented).
 
-## RL-FEAT-002 — Human Chat
+## RL-FEAT-002 — Realtime Presence
 
-Via typed Relay bridge + socket.io real-time:
-
-- Message send through `relay:human-chat:send` (RL-IPC-008) backed by the SDK gap adapter
-- Real-time push via socket.io (RL-INTOP-003, RL-IPC-009)
-- Channel selection scoped to current agent's world context
-- Validates interop with Desktop app (RL-INTOP-001)
-
-Human chat is independent of runtime availability.
-Real-time reception depends on socket.io connection in main process.
+Relay only keeps realtime presence/message subscription plumbing.
+Human-agent chat send is not exposed through Relay IPC; agent execution stays on the runtime pipeline.
 
 ## RL-FEAT-003 — Voice (TTS)
 

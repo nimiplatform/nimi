@@ -83,9 +83,6 @@ const api: NimiRelayBridge = {
     list: () => invoke('relay:agent:list'),
     get: (agentId) => invoke('relay:agent:get', { agentId }),
   },
-  humanChat: {
-    sendMessage: (input) => invoke('relay:human-chat:send', input),
-  },
   realtime: {
     subscribe: (channel) => invoke('relay:realtime:subscribe', channel),
     unsubscribe: (channel) => invoke('relay:realtime:unsubscribe', channel),

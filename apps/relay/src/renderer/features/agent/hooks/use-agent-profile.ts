@@ -6,14 +6,6 @@ import { useCallback } from 'react';
 import { getBridge } from '../../../bridge/electron-bridge.js';
 import { useAppStore, type Agent } from '../../../app-shell/providers/app-store.js';
 
-function readAgentVoiceId(value: unknown): string | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-  const record = value as { voice?: { voiceId?: string } | null };
-  return record.voice?.voiceId;
-}
-
 export function useAgentProfile() {
   const currentAgent = useAppStore((s) => s.currentAgent);
   const setAgent = useAppStore((s) => s.setAgent);
@@ -46,7 +38,6 @@ export function useAgentProfile() {
           handle: profile.handle ?? agent.handle,
           avatarUrl: profile.avatarUrl ?? agent.avatarUrl,
           description: profile.bio ?? agent.description,
-          voiceId: readAgentVoiceId(profile.agentProfile?.dna),
         };
         useAppStore.getState().setAgent(enriched);
       }).catch(() => {

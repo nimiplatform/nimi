@@ -13,7 +13,7 @@ type GetAgentResult = RealmServiceResult<'AgentsService', 'getAgent'>;
 type ListFriendsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
 type GetWorldResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorld'>;
 type ListCoreMemoriesResult = RealmServiceResult<'AgentsService', 'agentControllerListCoreMemories'>;
-type RecallForEntityResult = RealmServiceResult<'AgentsService', 'agentControllerRecallForEntity'>;
+type ListDyadicMemoriesResult = RealmServiceResult<'AgentsService', 'agentControllerListDyadicMemories'>;
 type FriendProfile = NonNullable<ListFriendsResult['items']>[number];
 type AgentDna = RealmModel<'UserAgentDnaDto'>;
 type AgentProfile = RealmModel<'AgentProfileDto'>;
@@ -25,7 +25,7 @@ type RelayRealmClient = {
     AgentsService: {
       getAgent(targetId: string): Promise<GetAgentResult>;
       agentControllerListCoreMemories(targetId: string): Promise<ListCoreMemoriesResult>;
-      agentControllerRecallForEntity(targetId: string, entityId: string): Promise<RecallForEntityResult>;
+      agentControllerListDyadicMemories(targetId: string, userId: string): Promise<ListDyadicMemoriesResult>;
     };
     MeService: {
       listMyFriendsWithDetails(input?: undefined, limit?: number): Promise<ListFriendsResult>;
@@ -53,6 +53,10 @@ function isAgentHandle(handle: string | null): boolean {
 
 function compactLines(values: Array<string | null | undefined>): string[] {
   return values.map((value) => normalizeText(value)).filter(Boolean);
+}
+
+function asAgentDna(value: unknown): AgentDna | undefined {
+  return value && typeof value === 'object' ? value as AgentDna : undefined;
 }
 
 function buildTargetMetadata(
@@ -124,7 +128,11 @@ function normalizeAgentToTarget(payload: GetAgentResult): LocalChatTarget {
   const handle = normalizeText(payload.handle) || id;
   const agent = payload.agent;
   const agentProfile = payload.agentProfile;
-  const dna = agentProfile?.dna;
+  const dna = asAgentDna((
+    agentProfile
+    && typeof agentProfile === 'object'
+    && 'dna' in agentProfile
+  ) ? (agentProfile as { dna?: unknown }).dna : undefined);
   const worldId = normalizeOptionalText(agent?.worldId || agentProfile?.worldId);
 
   return {
@@ -161,7 +169,11 @@ function normalizeFriendToTarget(friend: FriendProfile): LocalChatTarget | null 
   if (!isAgent) return null;
   const agent = friend.agent;
   const agentProfile = friend.agentProfile;
-  const dna = agentProfile?.dna;
+  const dna = asAgentDna((
+    agentProfile
+    && typeof agentProfile === 'object'
+    && 'dna' in agentProfile
+  ) ? (agentProfile as { dna?: unknown }).dna : undefined);
   const worldId = normalizeOptionalText(agent?.worldId || agentProfile?.worldId);
 
   return {
@@ -193,33 +205,27 @@ export async function fetchTargetList(
 // ── World Context ───────────────────────────────────────────────────
 
 /**
- * Fetches world context via Realm services and returns summarized world lines.
+ * Fetches world truth summary via Realm services and returns summarized world lines.
  */
-export async function fetchWorldContext(
+export async function fetchWorldTruthSummary(
   realm: RelayRealmClient,
   worldId: string,
 ): Promise<{ lines: string[] }> {
   if (!worldId) return { lines: [] };
+  const payload: GetWorldResult = await realm.services.WorldsService.worldControllerGetWorld(worldId);
+  const worldName = normalizeText(payload.name);
+  const worldSummary = normalizeText(payload.overview || payload.description);
+  const rules = (payload.truth?.rules ?? [])
+    .map((rule) => normalizeText(rule.statement || rule.title))
+    .filter(Boolean);
 
-  try {
-    const payload: GetWorldResult = await realm.services.WorldsService.worldControllerGetWorld(worldId);
-    const worldName = normalizeText(payload.name);
-    const worldSummary = normalizeText(payload.overview || payload.description);
-    const rules = (payload.truth?.rules ?? [])
-      .map((rule) => normalizeText(rule.statement || rule.title))
-      .filter(Boolean);
+  const lines = [
+    worldName ? `World: ${worldName}` : '',
+    worldSummary ? `World Summary: ${worldSummary}` : '',
+    ...rules.slice(0, 4).map((rule) => `World Rule: ${rule}`),
+  ].filter(Boolean);
 
-    const lines = [
-      worldName ? `World: ${worldName}` : '',
-      worldSummary ? `World Summary: ${worldSummary}` : '',
-      ...rules.slice(0, 4).map((rule) => `World Rule: ${rule}`),
-    ].filter(Boolean);
-
-    return { lines };
-  } catch (err) {
-    console.warn('[relay:data] fetchWorldContext failed', { worldId }, err);
-    return { lines: [] };
-  }
+  return { lines };
 }
 
 // ── Platform Warm Start Memory ──────────────────────────────────────
@@ -235,15 +241,9 @@ export async function fetchPlatformWarmStartMemory(
   const topK = 6;
 
   const [corePayload, recallPayload] = await Promise.all([
-    realm.services.AgentsService.agentControllerListCoreMemories(targetId).catch((err) => {
-      console.warn('[relay:data] core memory recall failed', { targetId }, err);
-      return null;
-    }),
+    realm.services.AgentsService.agentControllerListCoreMemories(targetId),
     entityId
-      ? realm.services.AgentsService.agentControllerRecallForEntity(targetId, entityId).catch((err: unknown) => {
-          console.warn('[relay:data] entity memory recall failed', { targetId, entityId }, err);
-          return null;
-        })
+      ? realm.services.AgentsService.agentControllerListDyadicMemories(targetId, entityId)
       : Promise.resolve(null),
   ]);
 
@@ -277,19 +277,13 @@ export async function fetchMemoryRecall(
   _query: string,
 ): Promise<InteractionRecallDoc[]> {
   if (!entityId) return [];
-
-  try {
-    const payload = await realm.services.AgentsService.agentControllerRecallForEntity(targetId, entityId);
-    return payload.map((record: AgentMemoryRecord) => ({
-      id: normalizeText(record.id) || crypto.randomUUID(),
-      conversationId: entityId,
-      sourceTurnId: null,
-      text: normalizeText(record.content),
-      createdAt: normalizeText(record.createdAt) || new Date().toISOString(),
-      updatedAt: normalizeText(record.createdAt) || new Date().toISOString(),
-    })).filter((doc: InteractionRecallDoc) => doc.text);
-  } catch (err) {
-    console.warn('[relay:data] fetchMemoryRecall failed', { targetId, entityId }, err);
-    return [];
-  }
+  const payload = await realm.services.AgentsService.agentControllerListDyadicMemories(targetId, entityId);
+  return payload.map((record: AgentMemoryRecord) => ({
+    id: normalizeText(record.id) || crypto.randomUUID(),
+    conversationId: entityId,
+    sourceTurnId: null,
+    text: normalizeText(record.content),
+    createdAt: normalizeText(record.createdAt) || new Date().toISOString(),
+    updatedAt: normalizeText(record.createdAt) || new Date().toISOString(),
+  })).filter((doc: InteractionRecallDoc) => doc.text);
 }

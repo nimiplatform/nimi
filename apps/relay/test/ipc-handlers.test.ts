@@ -327,7 +327,10 @@ describe('RL-IPC-002 — Unary IPC Semantics', () => {
 
   it('all unary handlers use ipcMain.handle (not ipcMain.on)', () => {
     const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
-    assert.ok(source.includes('ipcMain.handle('), 'must use ipcMain.handle for unary');
+    assert.ok(
+      source.includes('ipcMain.handle(') || source.includes('safeHandle('),
+      'must use ipcMain.handle-compatible unary registration',
+    );
     assert.ok(!source.includes('ipcMain.on('), 'should not use ipcMain.on in handler file');
   });
 });
@@ -370,22 +373,34 @@ describe('RL-IPC-001 — Channel Naming Convention', () => {
     assert.ok(specChannels.length > 0, 'should find spec channels');
 
     const implemented = new Set<string>();
-    const ipcSource = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
-    const rtSource = readFileSync(path.join(srcMain, 'realtime-relay.ts'), 'utf-8');
-    const modelSource = readFileSync(path.join(srcMain, 'model-handlers.ts'), 'utf-8');
-    const routeSource = readFileSync(path.join(srcMain, 'route', 'route-handlers.ts'), 'utf-8');
-    const desktopInteropSource = readFileSync(path.join(srcMain, 'desktop-interop.ts'), 'utf-8');
-    const smSource = readFileSync(path.join(srcMain, 'stream-manager.ts'), 'utf-8');
-    const ctxSource = readFileSync(path.join(srcMain, 'chat-pipeline', 'main-process-context.ts'), 'utf-8');
+    const unarySources = [
+      path.join(srcMain, 'ipc-handlers.ts'),
+      path.join(srcMain, 'ipc-auth-handlers.ts'),
+      path.join(srcMain, 'realtime-relay.ts'),
+      path.join(srcMain, 'model-handlers.ts'),
+      path.join(srcMain, 'route', 'route-handlers.ts'),
+      path.join(srcMain, 'desktop-interop.ts'),
+    ];
+    const eventSources = [
+      path.join(srcMain, 'index.ts'),
+      path.join(srcMain, 'stream-manager.ts'),
+      path.join(srcMain, 'realtime-relay.ts'),
+      path.join(srcMain, 'chat-pipeline', 'main-process-context.ts'),
+    ];
 
-    for (const m of ipcSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of rtSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of modelSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of routeSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of desktopInteropSource.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of smSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of rtSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
-    for (const m of ctxSource.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) implemented.add(m[1]);
+    for (const sourcePath of unarySources) {
+      const source = readFileSync(sourcePath, 'utf-8');
+      for (const m of source.matchAll(/(?:ipcMain\.handle|safeHandle)\(\s*['"]([^'"]+)['"]/g)) {
+        implemented.add(m[1]);
+      }
+    }
+
+    for (const sourcePath of eventSources) {
+      const source = readFileSync(sourcePath, 'utf-8');
+      for (const m of source.matchAll(/\.send\(\s*['"]([^'"]+)['"]/g)) {
+        implemented.add(m[1]);
+      }
+    }
 
     for (const ch of specChannels) {
       assert.ok(implemented.has(ch), `spec channel "${ch}" must be implemented in source`);
@@ -433,21 +448,16 @@ describe('RL-IPC-007 — Media IPC channel registration', () => {
 // ─── RL-IPC-008 — Typed Realm Data Bridge ────────────────────────────────
 
 describe('RL-IPC-008 — Typed Realm data IPC', () => {
-  it('registers relay:agent:list, relay:agent:get, relay:human-chat:send', () => {
+  it('registers relay:agent:list and relay:agent:get only', () => {
     const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
     const channels = extractIpcHandleChannels(source);
     assert.ok(channels.includes('relay:agent:list'), 'must register relay:agent:list');
     assert.ok(channels.includes('relay:agent:get'), 'must register relay:agent:get');
-    assert.ok(channels.includes('relay:human-chat:send'), 'must register relay:human-chat:send');
-  });
-
-  it('human chat send input shape is typed and minimal', () => {
-    const input = {
-      agentId: 'a1',
-      text: 'Hello',
-    };
-    assert.equal(input.agentId, 'a1');
-    assert.equal(input.text, 'Hello');
+    assert.equal(
+      channels.includes('relay:human-chat:send'),
+      false,
+      'must not register removed relay:human-chat:send bridge',
+    );
   });
 
   it('agent get input shape is explicit', () => {
@@ -455,10 +465,18 @@ describe('RL-IPC-008 — Typed Realm data IPC', () => {
     assert.equal(input.agentId, 'agent-123');
   });
 
-  it('human chat send uses typed HumanChatService methods instead of facade helper escape hatches', () => {
+  it('relay IPC no longer proxies HumanChatService methods', () => {
     const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
-    assert.ok(source.includes('realm.services.HumanChatService.startChat'), 'must start chat via typed service');
-    assert.ok(source.includes('realm.services.HumanChatService.sendMessage'), 'must send message via typed service');
+    assert.equal(
+      source.includes('realm.services.HumanChatService.startChat'),
+      false,
+      'must not start chats through relay IPC',
+    );
+    assert.equal(
+      source.includes('realm.services.HumanChatService.sendMessage'),
+      false,
+      'must not send human chat through relay IPC',
+    );
     assert.ok(!source.includes('sendAgentChannelMessage('), 'must not call removed facade helper from relay IPC');
     assert.ok(!source.includes('realm as never'), 'must not erase realm types in relay IPC');
   });

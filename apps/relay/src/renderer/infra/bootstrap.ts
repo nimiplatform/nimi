@@ -105,14 +105,6 @@ function delay(ms: number): Promise<void> {
   });
 }
 
-function readAgentVoiceId(value: unknown): string | undefined {
-  if (!value || typeof value !== 'object') {
-    return undefined;
-  }
-  const record = value as { voice?: { voiceId?: string } | null };
-  return record.voice?.voiceId;
-}
-
 /**
  * Fetch current authenticated user profile via bridge.
  * Falls back to null if unavailable (non-blocking).
@@ -152,6 +144,5 @@ async function fetchAgentProfile(
     state: profile.agent?.state,
     avatarUrl: profile.avatarUrl ?? undefined,
     description: profile.bio ?? undefined,
-    voiceId: readAgentVoiceId(profile.agentProfile?.dna),
   };
 }

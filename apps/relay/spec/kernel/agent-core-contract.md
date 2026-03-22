@@ -46,4 +46,3 @@ This is enforced at the IPC layer, not per-feature:
 - `relay:ai:stream:open` → `{ agentId, prompt, ... }`
 - `relay:media:tts:synthesize` → `{ agentId, text, ... }`
 - `relay:media:video:generate` → `{ agentId, prompt, ... }`
-- `relay:human-chat:send` → `{ agentId, text }`

@@ -27,7 +27,7 @@ describe('RL-CORE-001 — Selected Agent Drives All Surfaces', () => {
     assert.equal(!!currentAgent && runtimeAvailable, false, 'canChat (AI)');
     assert.equal(!!currentAgent && runtimeAvailable, false, 'canSpeak');
     assert.equal(!!currentAgent && runtimeAvailable, false, 'canGenerate');
-    assert.equal(!!currentAgent && realtimeConnected, false, 'canChat (Human)');
+    assert.equal(!!currentAgent && realtimeConnected, false, 'realtime agent presence stays gated');
   });
 
   it('agent selected + runtime available → runtime features enabled', () => {
@@ -39,13 +39,13 @@ describe('RL-CORE-001 — Selected Agent Drives All Surfaces', () => {
     assert.equal(!!currentAgent && runtimeAvailable, true, 'features should be enabled');
   });
 
-  it('agent selected + realtime connected → realtime features enabled', () => {
+  it('agent selected + realtime connected → realtime presence can attach', () => {
     useAppStore.setState({
       currentAgent: { id: 'a1', name: 'Agent' },
       realtimeConnected: true,
     });
     const { currentAgent, realtimeConnected } = useAppStore.getState();
-    assert.equal(!!currentAgent && realtimeConnected, true, 'human chat should be enabled');
+    assert.equal(!!currentAgent && realtimeConnected, true, 'realtime state should be enabled');
   });
 
   it('STT is agent-independent (only requires runtime)', () => {
@@ -176,13 +176,13 @@ describe('RL-CORE-004 — Agent context propagation to IPC calls', () => {
     assert.equal(videoInput.agentId, 'agent-ipc');
   });
 
-  it('typed human chat bridge carries agentId', () => {
+  it('realtime agent envelope carries agentId', () => {
     useAppStore.getState().setAgent({ id: 'a1', name: 'Agent' });
     const agent = useAppStore.getState().currentAgent!;
 
     const bridgeInput = {
       agentId: agent.id,
-      text: 'Hello',
+      channel: 'agent:presence',
     };
     assert.equal(bridgeInput.agentId, 'a1');
   });

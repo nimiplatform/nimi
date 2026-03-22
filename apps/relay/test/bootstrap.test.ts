@@ -271,7 +271,7 @@ describe('RL-BOOT-004 — Runtime Unavailable Degradation', () => {
     assert.equal(!!currentAgent && runtimeAvailable, false, 'canGenerate (Video)');
   });
 
-  it('Realm features remain available when runtime is down', () => {
+  it('realtime connection state remains independent when runtime is down', () => {
     useAppStore.setState({
       currentAgent: { id: 'a', name: 'Agent' },
       runtimeAvailable: false,
@@ -279,7 +279,7 @@ describe('RL-BOOT-004 — Runtime Unavailable Degradation', () => {
     });
     const { currentAgent, realtimeConnected } = useAppStore.getState();
 
-    assert.equal(!!currentAgent && realtimeConnected, true, 'canChat (Human) works without runtime');
+    assert.equal(!!currentAgent && realtimeConnected, true, 'realtime state remains available without runtime');
   });
 
   it('runtime becomes available after successful health check', async () => {

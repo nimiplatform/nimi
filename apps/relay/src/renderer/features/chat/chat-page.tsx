@@ -1,11 +1,10 @@
-// Chat page — Beat-first AI chat + Human chat + Video generation
-// RL-PIPE-001 (pipeline) + RL-FEAT-002 (Human) + RL-FEAT-003/004 voice + RL-FEAT-006 (Video)
+// Chat page — Beat-first AI chat + Video generation
+// RL-PIPE-001 + RL-FEAT-003/004 voice + RL-FEAT-006 (Video)
 
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trash2, ChevronDown } from 'lucide-react';
 import { usePipelineChat } from './hooks/use-pipeline-chat.js';
-import { useHumanChat } from './hooks/use-human-chat.js';
 import { useVideoGenerate } from '../video/hooks/use-video-generate.js';
 import { ChatView } from './components/chat-view.js';
 import { MessageInput } from './components/message-input.js';
@@ -15,18 +14,16 @@ import { VideoPlayer } from '../video/components/video-player.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { getBridge } from '../../bridge/electron-bridge.js';
 
-type ChatMode = 'ai' | 'human' | 'video';
+type ChatMode = 'ai' | 'video';
 
 export function ChatPage() {
   const { t } = useTranslation();
   const currentAgent = useAppStore((s) => s.currentAgent);
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
-  const realtimeConnected = useAppStore((s) => s.realtimeConnected);
   const [mode, setMode] = useState<ChatMode>('ai');
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
 
   const ai = usePipelineChat();
-  const human = useHumanChat();
   const video = useVideoGenerate();
 
   const lastAssistantText = ai.messages
@@ -61,7 +58,6 @@ export function ChatPage() {
 
   const modeLabels: Record<ChatMode, string> = {
     ai: t('chat.aiChat'),
-    human: t('chat.humanChat'),
     video: t('video.tab'),
   };
 
@@ -84,10 +80,9 @@ export function ChatPage() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setModeDropdownOpen(false)} />
                 <div className="absolute right-0 top-full mt-1 bg-bg-elevated border border-border-subtle rounded-xl shadow-md overflow-hidden z-50 min-w-[120px]">
-                  {(['ai', 'human', 'video'] as ChatMode[]).map((m) => {
+                  {(['ai', 'video'] as ChatMode[]).map((m) => {
                     const disabled =
                       (m === 'ai' && !runtimeAvailable) ||
-                      (m === 'human' && !realtimeConnected) ||
                       (m === 'video' && !runtimeAvailable);
                     return (
                       <button
@@ -177,45 +172,6 @@ export function ChatPage() {
                     lastAssistantText={lastAssistantText}
                   />
                 }
-              />
-            </>
-          )}
-        </>
-      )}
-
-      {/* Human Chat mode */}
-      {mode === 'human' && (
-        <>
-          {!realtimeConnected ? (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <p className="text-[17px] font-medium mb-2 text-text-primary">{t('degradation.realtimeDisconnected')}</p>
-                <p className="text-[13px] text-text-secondary">{t('degradation.humanChatRequiresSocket')}</p>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 overflow-y-auto">
-                <div className="max-w-[720px] mx-auto px-6 py-6 space-y-3">
-                  {human.messages.length === 0 && (
-                    <div className="text-center text-text-secondary mt-8">
-                      <p className="text-[13px]">{t('chat.noMessages')}</p>
-                    </div>
-                  )}
-                  {human.messages.map((msg) => (
-                    <div key={msg.id} className="flex gap-2">
-                      <span className="text-[12px] text-accent font-medium shrink-0">
-                        {msg.senderName || msg.senderId}
-                      </span>
-                      <span className="text-[14px] text-text-primary">{msg.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <MessageInput
-                onSend={human.sendMessage}
-                disabled={!human.canChat}
-                placeholder={t('chat.sendMessage')}
               />
             </>
           )}

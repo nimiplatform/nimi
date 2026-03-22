@@ -118,13 +118,11 @@ Renderer-only data access must cross IPC through explicit typed methods:
 |---------|------|-------------|
 | `relay:agent:list` | unary | List available agents for selection |
 | `relay:agent:get` | unary | Fetch one agent profile |
-| `relay:human-chat:send` | unary | Send one agent-channel message |
 
 Parameters:
 
 - `relay:agent:list` → no payload
 - `relay:agent:get` → `{ agentId: string }`
-- `relay:human-chat:send` → `{ agentId: string, text: string }`
 
 Main process remains the only place allowed to touch Realm SDK network primitives.
 

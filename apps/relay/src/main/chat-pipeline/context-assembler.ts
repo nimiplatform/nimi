@@ -123,7 +123,7 @@ const PREFERENCE_QUERY_RE =
 
 function summarizeWorldFromTarget(target: LocalChatTarget): string[] {
   // In relay, world data is passed externally; target has minimal world info.
-  // Return empty lines — the caller populates world from fetchWorldContext.
+  // Return empty lines — the caller populates world from fetchWorldTruthSummary.
   return [];
 }
 

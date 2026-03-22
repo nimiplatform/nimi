@@ -301,21 +301,6 @@ export function registerIpcHandlers(
     }
   });
 
-  safeHandle('relay:human-chat:send', async (_event, input: { agentId: string; text: string }) => {
-    try {
-      const started = await realm.services.HumanChatService.startChat({
-        targetAccountId: input.agentId,
-      });
-      return await realm.services.HumanChatService.sendMessage(started.chatId, {
-        clientMessageId: `relay-agent-channel:${input.agentId}:${Date.now()}`,
-        type: 'TEXT',
-        text: input.text,
-      });
-    } catch (error) {
-      throw toIpcError(error);
-    }
-  });
-
   // ── Chat Pipeline (RL-PIPE-*) ──────────────────────────────────────
   // These handlers bridge the renderer to the beat-first turn pipeline
   // running in the main process.

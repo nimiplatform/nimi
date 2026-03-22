@@ -138,7 +138,6 @@ type AuthUpdatePasswordInput = {
 type AuthCurrentUserInput = { accessToken?: string };
 type AuthCurrentUserResponse = RealmServiceResult<'MeService', 'getMe'>;
 type AgentGetResponse = Awaited<ReturnType<Realm['services']['AgentsService']['getAgent']>>;
-type HumanChatSendResponse = RealmServiceResult<'HumanChatService', 'sendMessage'>;
 type RelayAuthOauthLoginInput = {
   provider: string;
   accessToken: string;
@@ -333,10 +332,6 @@ export type RelayInvokeMap = {
   'relay:agent:get': {
     request: { agentId: string };
     response: AgentGetResponse;
-  };
-  'relay:human-chat:send': {
-    request: { agentId: string; text: string };
-    response: HumanChatSendResponse;
   };
   'relay:realtime:subscribe': {
     request: string;
@@ -622,6 +617,8 @@ export type RelayEventMap = {
   'relay:chat:turn:error': { turnId: string; error: RelayStreamError['error'] };
   'relay:chat:messages': RelayChatMessage[];
   'relay:chat:sessions': LocalChatSession[];
+  'relay:chat:input-text': string;
+  'relay:chat:selected-session': string;
   'relay:chat:status-banner': RelayStatusBanner;
   'relay:chat:prompt-trace': LocalChatPromptTrace | null;
   'relay:chat:turn-audit': LocalChatTurnAudit | null;
@@ -672,9 +669,6 @@ export interface NimiRelayBridge {
   agent: {
     list: (...args: RelayInvokeArgs<'relay:agent:list'>) => Promise<RelayInvokeResponse<'relay:agent:list'>>;
     get: (agentId: string) => Promise<RelayInvokeResponse<'relay:agent:get'>>;
-  };
-  humanChat: {
-    sendMessage: (...args: RelayInvokeArgs<'relay:human-chat:send'>) => Promise<RelayInvokeResponse<'relay:human-chat:send'>>;
   };
   realtime: {
     subscribe: (...args: RelayInvokeArgs<'relay:realtime:subscribe'>) => Promise<RelayInvokeResponse<'relay:realtime:subscribe'>>;
