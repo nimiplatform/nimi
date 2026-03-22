@@ -4,7 +4,6 @@ import {
   completeTransitById,
   createTransit,
   fetchActiveTransit,
-  fetchSceneQuota,
   fetchTransitById,
   listTransits,
 } from '../clients/transit-client';
@@ -18,7 +17,6 @@ type DataSyncErrorEmitter = (
 
 export type TransitType = 'INBOUND' | 'OUTBOUND' | 'RETURN';
 export type TransitStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED';
-export type SceneQuotaTier = 'FREE' | 'PRO' | 'MAX';
 
 export type TransitContextDto = {
   reason?: string;
@@ -39,12 +37,6 @@ export type TransitDetailDto = {
   arrivedAt: string | null;
   context: TransitContextDto | null;
   createdAt: string;
-};
-
-export type SceneQuotaDto = {
-  used: number;
-  quota: number;
-  tier: SceneQuotaTier;
 };
 
 type StartWorldTransitInput = {
@@ -123,19 +115,6 @@ export function normalizeTransitDetail(value: unknown): TransitDetailDto | null 
   };
 }
 
-function normalizeSceneQuota(value: unknown): SceneQuotaDto {
-  const record = toRecord(value) || {};
-  const used = Number(record.used);
-  const quota = Number(record.quota);
-  const tierRaw = toText(record.tier).toUpperCase();
-  const tier: SceneQuotaTier = tierRaw === 'PRO' || tierRaw === 'MAX' ? tierRaw : 'FREE';
-  return {
-    used: Number.isFinite(used) && used >= 0 ? Math.floor(used) : 0,
-    quota: Number.isFinite(quota) && quota >= 0 ? Math.floor(quota) : 0,
-    tier,
-  };
-}
-
 function normalizeTransitList(value: unknown): TransitDetailDto[] {
   if (Array.isArray(value)) {
     return value
@@ -191,22 +170,6 @@ function normalizeTransitInput(input: StartWorldTransitInput): StartWorldTransit
   };
 }
 
-export async function loadSceneQuota(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-): Promise<SceneQuotaDto> {
-  try {
-    const payload = await callApi(
-      (realm) => fetchSceneQuota(realm),
-      '加载场景配额失败',
-    );
-    return normalizeSceneQuota(payload);
-  } catch (error) {
-    emitDataSyncError('load-scene-quota', error);
-    throw error;
-  }
-}
-
 async function getTransitById(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
@@ -236,13 +199,6 @@ export async function startWorldTransit(
   input: StartWorldTransitInput,
 ): Promise<TransitDetailDto> {
   const normalized = normalizeTransitInput(input);
-  const sceneQuota = await loadSceneQuota(callApi, emitDataSyncError);
-  if (sceneQuota.used >= sceneQuota.quota) {
-    throw createFlowError(
-      'WORLD_TRANSIT_SCENE_QUOTA_EXCEEDED',
-      `${sceneQuota.used}/${sceneQuota.quota}`,
-    );
-  }
 
   try {
     const payload = await callApi(

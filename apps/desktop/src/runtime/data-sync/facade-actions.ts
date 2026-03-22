@@ -67,7 +67,6 @@ import {
   loadWorldMediaBindings,
   loadWorldSemanticBundle,
   loadWorldAgents,
-  loadWorldScenes,
   loadWorldDetailWithAgents,
 } from './flows/world-flow';
 import {
@@ -75,9 +74,7 @@ import {
   completeWorldTransit,
   getActiveWorldTransit,
   listWorldTransits,
-  loadSceneQuota,
   startWorldTransit,
-  type SceneQuotaDto,
   type TransitDetailDto,
   type TransitStatus,
   type TransitType,
@@ -297,12 +294,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadWorldHistory(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldLorebooks: async (worldId: string) =>
       loadWorldLorebooks(input.callApiTask, input.emitFacadeError, worldId),
-    loadWorldScenes: async (worldId: string) =>
-      loadWorldScenes(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldMediaBindings: async (worldId: string) =>
       loadWorldMediaBindings(input.callApiTask, input.emitFacadeError, worldId),
-    loadSceneQuota: async (): Promise<SceneQuotaDto> =>
-      loadSceneQuota(input.callApiTask, input.emitFacadeError),
     startWorldTransit: async (payload: {
       agentId: string;
       fromWorldId?: string;

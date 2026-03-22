@@ -56,10 +56,6 @@ type ListAgentRulesQuery = {
 };
 type CreateAgentRuleInput = RealmServiceArgs<'AgentRulesService', 'agentRulesControllerCreateRule'>[2];
 type UpdateAgentRuleInput = RealmServiceArgs<'AgentRulesService', 'agentRulesControllerUpdateRule'>[3];
-type ListWorldScenesParams = {
-  take?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldScenes'>[1];
-  sceneIds?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldScenes'>[2];
-};
 export type ForgeWorldStateWriteInput = {
   scope: 'WORLD' | 'ENTITY' | 'RELATION';
   scopeKey: string;
@@ -699,15 +695,5 @@ export async function archiveAgentRule(
     worldId,
     agentId,
     ruleId,
-  );
-}
-
-// ── Additional Queries (Scenes) ────────────────────────────
-
-export async function listWorldScenes(worldId: string, params?: ListWorldScenesParams) {
-  return realm().services.WorldControlService.worldControlControllerListWorldScenes(
-    worldId,
-    params?.take,
-    params?.sceneIds,
   );
 }

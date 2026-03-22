@@ -56,7 +56,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-005 — World 数据流
 
-世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldScenes`、`loadWorldMediaBindings`、`loadMainWorld`、`loadWorldLevelAudits`。
+世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldMediaBindings`、`loadMainWorld`、`loadWorldLevelAudits`。
 
 - 使用基础设施：上下文锁、错误日志。
 - `loadWorldSemanticBundle` 返回的 `worldview.coreSystem.rules` 必须是 ordered rule item array（`key / title / value`），不得回退为 JSON object map。
@@ -122,7 +122,7 @@ Agent 方法：`loadMyAgents`。
 
 ## D-DSYNC-012 — Transit 数据流
 
-世界穿越方法：`loadSceneQuota`、`startWorldTransit`、`listWorldTransits`、`getActiveWorldTransit`、`startTransitSession`、`addTransitCheckpoint`、`completeWorldTransit`、`abandonWorldTransit`。
+世界穿越方法：`startWorldTransit`、`listWorldTransits`、`getActiveWorldTransit`、`startTransitSession`、`addTransitCheckpoint`、`completeWorldTransit`、`abandonWorldTransit`。
 
 - 使用基础设施：上下文锁、错误日志。
 

@@ -177,14 +177,6 @@ worlds:
     controller: world-control.controller.ts
     description: List media bindings
 
-  - method: GET
-    path: /api/worlds/{worldId}/scenes
-    status: existing
-    feature: world-maintain
-    controller: world-control.controller.ts
-    description: List world scenes
-
-
 # ── Creator (existing) ───────────────────────────────────
 creator:
   - method: GET

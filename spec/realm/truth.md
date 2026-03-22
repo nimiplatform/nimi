@@ -8,7 +8,7 @@
 
 ## 1. Scope
 
-Truth 负责定义世界和 Agent 的 canonical rule of truth、发布快照与只读投影。
+Truth 负责定义世界和 Agent 的 canonical rule of truth、发布快照与只读投影。`OASIS` 作为唯一系统主世界属于 canonical world truth，而不是 app 体验层命名约定。
 
 ## 2. Reading Path
 

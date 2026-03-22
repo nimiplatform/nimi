@@ -58,7 +58,6 @@ flows:
 
   - flow: transit
     methods:
-      - loadSceneQuota
       - startWorldTransit
       - listWorldTransits
       - getActiveWorldTransit
@@ -66,7 +65,7 @@ flows:
       - addTransitCheckpoint
       - completeWorldTransit
       - abandonWorldTransit
-    description: World transit and scene management
+    description: World transit management
     source_rule: D-DSYNC-012
 
   - flow: economy

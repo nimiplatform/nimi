@@ -444,21 +444,6 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_MEDIA_BINDING_LIST_CONTRACT_INVALID');
   });
 
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.scenesList, async (query) => {
-    const record = toRecord(query);
-    const worldId = String(record.worldId || '').trim();
-    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
-    const sceneIds = toStringArray(record.sceneIds);
-    const payload = await withRuntimeOpenApiContext((realm) => (
-      realm.services.WorldControlService.worldControlControllerListWorldScenes(
-        worldId,
-        typeof record.take === 'number' ? record.take : undefined,
-        sceneIds.length > 0 ? sceneIds : undefined,
-      )
-    ));
-    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_SCENE_LIST_CONTRACT_INVALID');
-  });
-
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.historyAppend, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();

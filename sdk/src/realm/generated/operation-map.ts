@@ -4279,24 +4279,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "TransitsService.transitControllerGetSceneQuota": {
-    "operationId": "TransitController_getSceneQuota",
-    "method": "GET",
-    "path": "/api/world/transit/scene-quota/me",
-    "service": "TransitsService",
-    "methodName": "transitControllerGetSceneQuota",
-    "tag": "Transits",
-    "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "TransitsService.transitControllerGetTransit": {
     "operationId": "TransitController_getTransit",
     "method": "GET",
@@ -4974,43 +4956,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerListWorldScenes": {
-    "operationId": "WorldControlController_listWorldScenes",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/scenes",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldScenes",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "take",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "sceneIds",
-        "in": "query",
-        "required": false,
-        "valueType": "string[]"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldControlService.worldControlControllerPublishDraft": {
     "operationId": "WorldControlController_publishDraft",
     "method": "POST",
@@ -5645,31 +5590,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldsService.worldControllerGetWorldScenes": {
-    "operationId": "WorldController_getWorldScenes",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/scenes",
-    "service": "WorldsService",
-    "methodName": "worldControllerGetWorldScenes",
-    "tag": "Worlds",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldsService.worldControllerGetWorldview": {
     "operationId": "WorldController_getWorldview",
     "method": "GET",
@@ -6004,7 +5924,6 @@ export const REALM_SERVICE_METHODS = {
     "transitControllerAbandon": "TransitsService.transitControllerAbandon",
     "transitControllerComplete": "TransitsService.transitControllerComplete",
     "transitControllerGetActiveTransit": "TransitsService.transitControllerGetActiveTransit",
-    "transitControllerGetSceneQuota": "TransitsService.transitControllerGetSceneQuota",
     "transitControllerGetTransit": "TransitsService.transitControllerGetTransit",
     "transitControllerListTransits": "TransitsService.transitControllerListTransits"
   },
@@ -6035,7 +5954,6 @@ export const REALM_SERVICE_METHODS = {
     "worldControlControllerListWorldHistory": "WorldControlService.worldControlControllerListWorldHistory",
     "worldControlControllerListWorldLorebooks": "WorldControlService.worldControlControllerListWorldLorebooks",
     "worldControlControllerListWorldMediaBindings": "WorldControlService.worldControlControllerListWorldMediaBindings",
-    "worldControlControllerListWorldScenes": "WorldControlService.worldControlControllerListWorldScenes",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
     "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft"
@@ -6065,7 +5983,6 @@ export const REALM_SERVICE_METHODS = {
     "worldControllerGetWorldLevelAudits": "WorldsService.worldControllerGetWorldLevelAudits",
     "worldControllerGetWorldLorebooks": "WorldsService.worldControllerGetWorldLorebooks",
     "worldControllerGetWorldMediaBindings": "WorldsService.worldControllerGetWorldMediaBindings",
-    "worldControllerGetWorldScenes": "WorldsService.worldControllerGetWorldScenes",
     "worldControllerGetWorldview": "WorldsService.worldControllerGetWorldview",
     "worldControllerListWorlds": "WorldsService.worldControllerListWorlds",
     "worldControllerReturnToMainWorld": "WorldsService.worldControllerReturnToMainWorld",

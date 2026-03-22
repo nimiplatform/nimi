@@ -16,7 +16,6 @@ const mockWorldControlController = {
   worldControlControllerAppendWorldHistory: vi.fn(),
   worldControlControllerListWorldLorebooks: vi.fn(),
   worldControlControllerListWorldMediaBindings: vi.fn(),
-  worldControlControllerListWorldScenes: vi.fn(),
 };
 
 const mockWorldsService = {

@@ -165,7 +165,6 @@ All required backend APIs already exist. No new backend work needed for World ma
 | World Rules | `GET/POST /api/world/by-id/:worldId/rules`, `PATCH /api/world/by-id/:worldId/rules/:ruleId`, `POST /api/world/by-id/:worldId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/rules/:ruleId/archive` | `world-rules.controller.ts` |
 | Agent Rules | `GET/POST /api/world/by-id/:worldId/agents/:agentId/rules`, `PATCH /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/archive` | `agent-rules.controller.ts` |
 | Media Bindings | `GET /api/worlds/:worldId/media-bindings` (read-only projection) | `world-control.controller.ts` |
-| Scenes | `GET /api/worlds/:worldId/scenes` | `world-control.controller.ts` |
 ## FG-WORLD-007: Quality Gate Integration
 
 Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine/engine/quality-gate.ts` and is invoked unchanged. Threshold policies from `world-studio/spec/kernel/tables/quality-gate-policies.yaml` apply.

@@ -3,7 +3,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockListMyWorlds = vi.fn();
 const mockGetWorldDetailWithAgents = vi.fn();
 const mockGetWorldview = vi.fn();
-const mockGetWorldScenes = vi.fn();
 const mockGetWorldLorebooks = vi.fn();
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -16,7 +15,6 @@ vi.mock('@nimiplatform/sdk', () => ({
         WorldsService: {
           worldControllerGetWorldDetailWithAgents: (...args: unknown[]) => mockGetWorldDetailWithAgents(...args),
           worldControllerGetWorldview: (...args: unknown[]) => mockGetWorldview(...args),
-          worldControllerGetWorldScenes: (...args: unknown[]) => mockGetWorldScenes(...args),
           worldControllerGetWorldLorebooks: (...args: unknown[]) => mockGetWorldLorebooks(...args),
         },
       },
@@ -28,7 +26,6 @@ import {
   listMyWorlds,
   getWorldDetailWithAgents,
   getWorldview,
-  listWorldScenes,
   listWorldLorebooks,
 } from './world-browser-data.js';
 
@@ -217,38 +214,6 @@ describe('getWorldview', () => {
     expect(result.resources).toBeUndefined();
     expect(result.locations).toBeUndefined();
     expect(result.visualGuide).toBeUndefined();
-  });
-});
-
-describe('listWorldScenes', () => {
-  beforeEach(() => {
-    mockGetWorldScenes.mockReset();
-  });
-
-  it('returns mapped scenes from canonical items wrapper', async () => {
-    mockGetWorldScenes.mockResolvedValue({
-      items: [
-        { id: 's1', name: 'Castle Hall', description: 'Grand entrance' },
-        { id: 's2', name: 'Dark Forest', description: 'Twisted trees' },
-      ],
-    });
-
-    const result = await listWorldScenes('w1');
-
-    expect(mockGetWorldScenes).toHaveBeenCalledWith('w1');
-    expect(result).toHaveLength(2);
-    expect(result[0]!.id).toBe('s1');
-    expect(result[0]!.name).toBe('Castle Hall');
-    expect(result[0]!.description).toBe('Grand entrance');
-    expect(result[0]!.imageUrl).toBeUndefined();
-    expect(result[1]!.id).toBe('s2');
-    expect(result[1]!.imageUrl).toBeUndefined();
-  });
-
-  it('rejects invalid scene list shape', async () => {
-    mockGetWorldScenes.mockResolvedValue({ scenes: [] });
-
-    await expect(listWorldScenes('w2')).rejects.toThrow('WORLD_BROWSER_SCENE_LIST_CONTRACT_INVALID');
   });
 });
 

@@ -22,7 +22,6 @@ The prompt composer transforms nimi world data into a Marble-compatible text pro
 |--------|---------|-----------|
 | World detail | `realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, recommendedAgentLimit?)` | `name`, `description`, `genre`, `era`, `themes` |
 | Worldview | `realm.services.WorldsService.worldControllerGetWorldview(worldId)` | `spaceTopology`, `coreSystem`, `causality`, `tone` |
-| Scenes | `realm.worlds.worldControlControllerListWorldScenes(worldId)` | `name`, `description`, `setting` (up to 3) |
 | Lorebooks | `realm.worlds.worldControlControllerListWorldLorebooks(worldId)` | `content` (up to 5, filtered for visual relevance) |
 
 ### Phase 1: Structural Assembly
@@ -32,8 +31,7 @@ First, assemble structured world data into a raw context block:
 ```
 1. World identity: name, description, genre, era, themes
 2. Worldview physics: spaceTopology (type, boundary), coreSystem (name, description), causality (type)
-3. Scenes (up to 3): name, description, setting
-4. Lorebooks (up to 5, filtered: enabled=true, constant=true): content text
+3. Lorebooks (up to 5, filtered: enabled=true, constant=true): content text
 ```
 
 ### Phase 2: LLM Visual Translation
@@ -77,8 +75,7 @@ If the LLM translation fails (Runtime unavailable, timeout, error), fall back to
 2. Append: world.description (if present)
 3. Append: "Genre: {genre}, Era: {era}" (if present)
 4. Append: "Themes: {themes.join(', ')}" (if present)
-5. Append scenes (up to 3): 'Location "{scene.name}": {scene.description}'
-6. Join with ". ", truncate to 2000 characters
+5. Join with ". ", truncate to 2000 characters
 ```
 
 The composer MUST handle sparse data gracefully — a world with only `name` and `description` SHALL produce a valid prompt via either path.

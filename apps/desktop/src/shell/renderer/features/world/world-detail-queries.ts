@@ -31,7 +31,6 @@ type PowerSystemTabooDto = RealmModel<'PowerSystemTabooDto'>;
 type SpaceRealmDto = RealmModel<'SpaceRealmDto'>;
 type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
 type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
-type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
 type PublicWorldMediaBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldMediaBindings>>['items'][number];
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
@@ -385,15 +384,6 @@ function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem {
   };
 }
 
-function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
-  return {
-    id: requireString(raw.id, 'scene_id'),
-    name: requireString(raw.name, 'scene_name'),
-    description: requireString(raw.description, 'scene_description'),
-    activeEntities: requireStringArray(raw.activeEntities, 'scene_active_entities'),
-  };
-}
-
 function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBindingItem {
   const id = requireString(raw.id, 'media_binding_id');
   const assetRecord = assertRecord(raw.asset, 'media_binding_asset');
@@ -490,15 +480,14 @@ export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAudit
 
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
-  const [lorebooksPayload, scenesPayload, mediaBindingsPayload] = await Promise.all([
+  const [lorebooksPayload, mediaBindingsPayload] = await Promise.all([
     dataSync.loadWorldLorebooks(normalizedWorldId),
-    dataSync.loadWorldScenes(normalizedWorldId),
     dataSync.loadWorldMediaBindings(normalizedWorldId),
   ]);
 
   return {
     lorebooks: lorebooksPayload.items.map(toWorldLorebookItem),
-    scenes: scenesPayload.items.map(toWorldSceneItem),
+    scenes: [],
     mediaBindings: mediaBindingsPayload.items.map(toWorldMediaBindingItem),
   };
 }

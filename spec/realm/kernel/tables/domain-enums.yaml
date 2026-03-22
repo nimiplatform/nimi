@@ -18,7 +18,11 @@ enums:
     domain: world-history
     values: [REPLAY, PRIVATE_CONTINUITY, CANON_MUTATION]
     source_rules: [R-WHIST-004]
+  - enum_id: WORLD-TYPE
+    domain: truth
+    values: [OASIS, CREATOR]
+    source_rules: [R-TRUTH-007]
   - enum_id: TRANSIT-STATUS
     domain: transit
-    values: [PENDING, ACTIVE, COMPLETED, CANCELLED]
+    values: [PENDING, ACTIVE, COMPLETED, ABANDONED]
     source_rules: [R-TRANSIT-003]

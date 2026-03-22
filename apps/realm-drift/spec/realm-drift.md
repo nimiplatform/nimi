@@ -11,7 +11,7 @@ Realm Drift is a standalone Tauri desktop demo application that brings nimi worl
 - **Immersive Exploration** — Explore generated 3D worlds through an embedded interactive viewer (Gaussian Splat rendering)
 - **In-World Agent Conversation** — Chat with world-resident agents in a side panel while exploring the 3D environment, using the nimi Runtime SDK for streaming AI responses
 - **Cross-App Human Chat** — Chat with friends across nimi apps (Desktop, Relay) in real-time via Socket.IO, demonstrating the platform's multi-app interoperability
-- **World Data Fusion** — Intelligently compose rich 3D generation prompts from nimi's structured world data (worldview physics, scene descriptions, lorebook entries, visual assets)
+- **World Data Fusion** — Intelligently compose rich 3D generation prompts from nimi's structured world data (worldview physics, lorebook entries, media bindings, visual assets)
 - **Demo Showcase** — Lightweight, focused app demonstrating the nimi platform's world data richness and SDK integration capabilities
 
 ## Technical Stack

@@ -59,20 +59,12 @@ describe('D-DSYNC-005: world flow source scanning', () => {
       'loadWorldLorebooks must be exported from world-flow',
     );
     assert.ok(
-      worldFlowSource.includes('export async function loadWorldScenes'),
-      'loadWorldScenes must be exported from world-flow',
-    );
-    assert.ok(
       worldFlowSource.includes('export async function loadWorldMediaBindings'),
       'loadWorldMediaBindings must be exported from world-flow',
     );
     assert.ok(
       worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldLorebooks'),
       'loadWorldLorebooks must use the public WorldsService lorebooks endpoint',
-    );
-    assert.ok(
-      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldScenes'),
-      'loadWorldScenes must use the public WorldsService scenes endpoint',
     );
     assert.ok(
       worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldMediaBindings'),

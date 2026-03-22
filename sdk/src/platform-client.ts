@@ -86,7 +86,6 @@ type PlatformDomains = {
     listWorldHistory: RealmServices['WorldControlService']['worldControlControllerListWorldHistory'];
     appendWorldHistory: RealmServices['WorldControlService']['worldControlControllerAppendWorldHistory'];
     listMyWorlds: RealmServices['WorldControlService']['worldControlControllerListMyWorlds'];
-    listWorldScenes: RealmServices['WorldsService']['worldControllerGetWorldScenes'];
     listWorldLorebooks: RealmServices['WorldsService']['worldControllerGetWorldLorebooks'];
     listWorldMediaBindings: RealmServices['WorldsService']['worldControllerGetWorldMediaBindings'];
     getWorldHistory: RealmServices['WorldsService']['worldControllerGetWorldHistory'];
@@ -316,7 +315,6 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       listWorldHistory: (worldId) => realm.services.WorldControlService.worldControlControllerListWorldHistory(worldId),
       appendWorldHistory: (worldId, input) => realm.services.WorldControlService.worldControlControllerAppendWorldHistory(worldId, input),
       listMyWorlds: () => realm.services.WorldControlService.worldControlControllerListMyWorlds(),
-      listWorldScenes: (worldId) => realm.services.WorldsService.worldControllerGetWorldScenes(worldId),
       listWorldLorebooks: (worldId) => realm.services.WorldsService.worldControllerGetWorldLorebooks(worldId),
       listWorldMediaBindings: (worldId) => realm.services.WorldsService.worldControllerGetWorldMediaBindings(worldId),
       getWorldHistory: (worldId) => realm.services.WorldsService.worldControllerGetWorldHistory(worldId),

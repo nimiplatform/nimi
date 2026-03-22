@@ -607,14 +607,6 @@ export const SceneDefinitionTier = {
 
 export type SceneDefinitionTier = (typeof SceneDefinitionTier)[keyof typeof SceneDefinitionTier];
 
-export const SceneQuotaTier = {
-  FREE: "FREE",
-  PRO: "PRO",
-  MAX: "MAX",
-} as const satisfies Record<string, components['schemas']['SceneQuotaDto']['tier']>;
-
-export type SceneQuotaTier = (typeof SceneQuotaTier)[keyof typeof SceneQuotaTier];
-
 export const SceneTimeSettingsTier = {
   TIER0_SANCTUARY: "TIER0_SANCTUARY",
   TIER1_TRANSIT: "TIER1_TRANSIT",

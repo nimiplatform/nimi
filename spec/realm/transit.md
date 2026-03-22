@@ -8,7 +8,7 @@
 
 ## 1. Scope
 
-Transit 负责跨世界连续性迁移，不负责 narrative 编排或补剧情逻辑。
+Transit 负责跨世界连续性迁移，不负责 narrative 编排或补剧情逻辑。Creator world 之间不得直接跃迁，跨世界连续性必须经由 `OASIS` 这一默认返回点与中转锚点。
 
 ## 2. Reading Path
 

@@ -75,7 +75,7 @@ features:
     backend-dependency: none (existing Realm API)
     external-dependency: none
     migration-source: new
-    description: Parallel fetch of world detail, worldview, scenes, lorebooks
+    description: Parallel fetch of world detail, worldview, lorebooks, and asset-adjacent projections
 
   # ── Phase 3: Marble 3D Integration ──────────────────────
   - feature: marble-api-client

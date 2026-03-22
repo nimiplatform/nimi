@@ -12,7 +12,6 @@ import type {
   WorldHistoryPayload,
   WorldLorebookListPayload,
   WorldMediaBindingListPayload,
-  WorldSceneListPayload,
 } from './flows/world-flow';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
@@ -20,7 +19,6 @@ import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state'
 import { DataSyncPollingManager } from './polling-manager';
 import type { CreatorEligibility } from './flows/settings-flow';
 import type {
-  SceneQuotaDto,
   TransitDetailDto,
   TransitStatus,
   TransitType,
@@ -308,9 +306,7 @@ export class DataSync {
   }
   loadWorldHistory(worldId: string): Promise<WorldHistoryPayload> { return this.actions.loadWorldHistory(worldId); }
   loadWorldLorebooks(worldId: string): Promise<WorldLorebookListPayload> { return this.actions.loadWorldLorebooks(worldId); }
-  loadWorldScenes(worldId: string): Promise<WorldSceneListPayload> { return this.actions.loadWorldScenes(worldId); }
   loadWorldMediaBindings(worldId: string): Promise<WorldMediaBindingListPayload> { return this.actions.loadWorldMediaBindings(worldId); }
-  loadSceneQuota(): Promise<SceneQuotaDto> { return this.actions.loadSceneQuota(); }
   startWorldTransit(input: {
     agentId: string;
     fromWorldId?: string;

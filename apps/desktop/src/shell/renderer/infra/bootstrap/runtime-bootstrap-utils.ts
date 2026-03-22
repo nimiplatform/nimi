@@ -94,7 +94,6 @@ export const WORLD_DATA_API_CAPABILITIES = {
   stateGet: 'data-api.world.state.get',
   stateCommit: 'data-api.world.state.commit',
   historyList: 'data-api.world.history.list',
-  scenesList: 'data-api.world.scenes.list',
   historyAppend: 'data-api.world.history.append',
   lorebooksList: 'data-api.world.lorebooks.list',
   mediaBindingsList: 'data-api.world.media-bindings.list',

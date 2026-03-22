@@ -51,12 +51,11 @@ When the viewer page loads (`/world/:worldId`), fetch world data in parallel via
 Promise.all([
   realm.services.WorldsService.worldControllerGetWorldDetailWithAgents(worldId, 4),
   realm.services.WorldsService.worldControllerGetWorldview(worldId),
-  realm.worlds.worldControlControllerListWorldScenes(worldId),
   realm.worlds.worldControlControllerListWorldLorebooks(worldId),
 ])
 ```
 
-All four queries run concurrently via TanStack Query. The viewer page renders progressively:
+All queries run concurrently via TanStack Query. The viewer page renders progressively:
 
 1. World name and metadata — available from `worldControllerGetWorldDetailWithAgents(worldId, recommendedAgentLimit?)` response (fastest)
 2. Agent list — available from response `.agents`
@@ -67,7 +66,7 @@ All four queries run concurrently via TanStack Query. The viewer page renders pr
 
 - Individual query failures MUST NOT block the entire page
 - If `worldControllerGetWorldDetailWithAgents` fails → show full error (world not accessible)
-- If `worldControllerGetWorldview` / `worldControlControllerListWorldScenes` / `worldControlControllerListWorldLorebooks` fail → proceed with degraded prompt (name + description only)
+- If `worldControllerGetWorldview` / `worldControlControllerListWorldLorebooks` fail → proceed with degraded prompt (name + description only)
 
 ## RD-EXPLORE-003: World Viewer Layout
 

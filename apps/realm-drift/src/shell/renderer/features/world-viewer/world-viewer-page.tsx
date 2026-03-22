@@ -5,7 +5,6 @@ import { useAppStore } from '@renderer/app-shell/app-store.js';
 import {
   useWorldDetailWithAgentsQuery,
   useWorldviewQuery,
-  useWorldScenesQuery,
   useWorldLorebooksQuery,
 } from '../world-browser/world-browser-queries.js';
 import type { WorldReferenceBundle } from './marble-prompt.js';
@@ -40,7 +39,6 @@ export function WorldViewerPage() {
   // Parallel data fetches
   const worldQuery = useWorldDetailWithAgentsQuery(worldId || '');
   const worldviewQuery = useWorldviewQuery(worldId || '');
-  const scenesQuery = useWorldScenesQuery(worldId || '');
   const lorebooksQuery = useWorldLorebooksQuery(worldId || '');
 
   const worldReference: WorldReferenceBundle | null = useMemo(() => {
@@ -48,10 +46,10 @@ export function WorldViewerPage() {
     return {
       world: worldQuery.data,
       worldview: worldviewQuery.data,
-      scenes: scenesQuery.data ?? [],
+      scenes: [],
       lorebooks: lorebooksQuery.data ?? [],
     };
-  }, [worldQuery.data, worldviewQuery.data, scenesQuery.data, lorebooksQuery.data]);
+  }, [worldQuery.data, worldviewQuery.data, lorebooksQuery.data]);
 
   // Socket.IO connection for human chat
   useEffect(() => {

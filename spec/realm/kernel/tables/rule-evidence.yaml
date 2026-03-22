@@ -30,6 +30,12 @@ rules:
   - rule_id: R-TRUTH-006
     status: covered
     evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRUTH-007
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRUTH-008
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
   - rule_id: R-WSTATE-001
     status: covered
     evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
@@ -142,5 +148,11 @@ rules:
     status: covered
     evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
   - rule_id: R-TRANSIT-004
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRANSIT-005
+    status: covered
+    evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]
+  - rule_id: R-TRANSIT-006
     status: covered
     evidence_refs: [realm_kernel_consistency, realm_kernel_docs_drift]

@@ -30,3 +30,11 @@ Truth changes must be explicit, versioned, transactional, and auditable. A proje
 ## R-TRUTH-006
 
 Realm truth must remain app-independent. No single app, renderer, or model route may become the canonical owner of world or agent truth.
+
+## R-TRUTH-007
+
+`OASIS` is the unique system main world in Realm. It belongs to canonical world truth, cannot be creator-owned, and cannot be replaced by any creator world convention.
+
+## R-TRUTH-008
+
+`GET /api/world/oasis` is a formal Realm truth read surface for the system main world. It is not a legacy browse shortcut or app-local alias.

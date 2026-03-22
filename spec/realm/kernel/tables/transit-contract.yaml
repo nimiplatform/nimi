@@ -28,6 +28,14 @@ rules:
     level: must
     title: runtime-checkpoints-stay-outside
     statement: "Transit may hand off durable state and memory references but app-local runtime checkpoints stay outside Realm."
+  - rule_id: R-TRANSIT-005
+    level: must
+    title: oasis-is-return-anchor
+    statement: "OASIS is the default return point and transit hub; creator-world continuity transfer uses OASIS as the system anchor."
+  - rule_id: R-TRANSIT-006
+    level: must
+    title: creator-worlds-no-direct-transit
+    statement: "Creator worlds must not transit directly to other creator worlds; transit stays single-hop via OASIS and cannot introduce scene quota or scene runtime."
 entities:
   - name: TransitSession
     prisma_model: Transit

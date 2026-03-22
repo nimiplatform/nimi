@@ -48,10 +48,6 @@ function assertTransitRequestType(value: TransitType): TransitRequestType {
   return normalized;
 }
 
-export async function fetchSceneQuota(realm: Realm): Promise<unknown> {
-  return realm.services.TransitsService.transitControllerGetSceneQuota();
-}
-
 export async function createTransit(
   realm: Realm,
   input: {

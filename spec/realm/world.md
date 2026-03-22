@@ -11,7 +11,7 @@
 
 ## 1. Scope
 
-World 是 Realm 的组合边界：`Truth / World State / World History` 构成 canonical world core，`Transit` 提供跨世界连续性入口。
+World 是 Realm 的组合边界：`Truth / World State / World History` 构成 canonical world core，`Transit` 提供跨世界连续性入口。`OASIS` 是唯一系统主世界，作为默认入口、默认返回点与跨世界中转锚点存在于该组合边界内。
 
 ## 2. Reading Path
 

@@ -16,9 +16,6 @@ vi.mock('./world-browser-data.js', () => ({
   getWorldview: vi.fn().mockResolvedValue({
     timeModel: 'linear',
   }),
-  listWorldScenes: vi.fn().mockResolvedValue([
-    { id: 's1', name: 'Scene 1' },
-  ]),
   listWorldLorebooks: vi.fn().mockResolvedValue([
     { id: 'l1', title: 'Lorebook 1' },
   ]),
@@ -28,7 +25,6 @@ import {
   useMyWorldsQuery,
   useWorldDetailWithAgentsQuery,
   useWorldviewQuery,
-  useWorldScenesQuery,
   useWorldLorebooksQuery,
 } from './world-browser-queries.js';
 
@@ -72,15 +68,6 @@ describe('world-browser-queries', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.timeModel).toBe('linear');
-  });
-
-  it('useWorldScenesQuery fetches scenes', async () => {
-    const { result } = renderHook(() => useWorldScenesQuery('w1'), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toHaveLength(1);
   });
 
   it('useWorldLorebooksQuery fetches lorebooks', async () => {

@@ -503,7 +503,7 @@ test('Realm services support path-first call pattern for mixed path/query method
     await realm.services.WorldsService.worldControllerGetWorldDetailWithAgents('world-7', 4);
     await realm.services.WorldsService.worldControllerGetWorldview('world-7');
     await realm.services.WorldsService.worldControllerGetWorldLorebooks('world-7');
-    await realm.services.WorldsService.worldControllerGetWorldScenes('world-7');
+    await realm.services.WorldsService.worldControllerGetMainWorld();
     await realm.services.WorldsService.worldControllerGetWorldMediaBindings('world-7');
 
     assert.equal(urls.length, 9);
@@ -534,8 +534,8 @@ test('Realm services support path-first call pattern for mixed path/query method
     const lorebooksUrl = new URL(urls[6] || '');
     assert.equal(lorebooksUrl.pathname, '/api/world/by-id/world-7/lorebooks');
 
-    const scenesUrl = new URL(urls[7] || '');
-    assert.equal(scenesUrl.pathname, '/api/world/by-id/world-7/scenes');
+    const oasisUrl = new URL(urls[7] || '');
+    assert.equal(oasisUrl.pathname, '/api/world/oasis');
 
     const mediaBindingsUrl = new URL(urls[8] || '');
     assert.equal(mediaBindingsUrl.pathname, '/api/world/by-id/world-7/media-bindings');

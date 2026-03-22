@@ -22,3 +22,11 @@ Transit state changes must be explicit, state-machine governed, and auditable.
 ## R-TRANSIT-004
 
 Transit may hand off durable state and memory references, but app-local runtime checkpoints remain outside Realm.
+
+## R-TRANSIT-005
+
+`OASIS` is the default return point and transit hub in Realm. Creator-world continuity transfer must use `OASIS` as the system anchor.
+
+## R-TRANSIT-006
+
+Creator worlds must not transit directly to other creator worlds. Transit remains a single-hop continuity protocol via `OASIS` and must not introduce scene quota, scene runtime, or other experience-layer gating.

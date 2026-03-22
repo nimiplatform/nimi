@@ -2854,23 +2854,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/by-id/{id}/scenes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List public world scenes */
-        get: operations["WorldController_getWorldScenes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/world/by-id/{id}/transit": {
         parameters: {
             query?: never;
@@ -3286,23 +3269,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/transit/scene-quota/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get current scene quota usage */
-        get: operations["TransitController_getSceneQuota"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/world/transit/{id}": {
         parameters: {
             query?: never;
@@ -3431,23 +3397,6 @@ export type paths = {
         };
         /** List world media bindings */
         get: operations["WorldControlController_listWorldMediaBindings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/scenes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List canonical world scenes */
-        get: operations["WorldControlController_listWorldScenes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5053,17 +5002,6 @@ export type components = {
             items: components["schemas"]["PublicWorldMediaBindingDto"][];
             worldId: string;
         };
-        PublicWorldSceneDto: {
-            activeEntities: string[];
-            description: string;
-            id: string;
-            name: string;
-            worldId: string;
-        };
-        PublicWorldSceneListDto: {
-            items: components["schemas"]["PublicWorldSceneDto"][];
-            worldId: string;
-        };
         PublishWorldDraftDto: {
             reason?: string;
         };
@@ -5241,12 +5179,6 @@ export type components = {
             };
             /** @enum {string} */
             tier?: "TIER0_SANCTUARY" | "TIER1_TRANSIT" | "TIER2_ACTIVE";
-        };
-        SceneQuotaDto: {
-            quota: number;
-            /** @enum {string} */
-            tier: "FREE" | "PRO" | "MAX";
-            used: number;
         };
         SceneTimeConfigDto: {
             defaults: components["schemas"]["SceneTimeSettingsDto"];
@@ -6590,21 +6522,6 @@ export type components = {
             title: string;
             /** @example 修仙界弱肉强食，实力为尊。没有绝对的善恶，只有强弱。 */
             value: string;
-        };
-        WorldSceneDetailDto: {
-            activeEntities: string[];
-            description: string;
-            id: string;
-            name: string;
-            setting: {
-                [key: string]: unknown;
-            };
-            updatedAt: string;
-            worldId: string;
-        };
-        WorldSceneListDto: {
-            items: components["schemas"]["WorldSceneDetailDto"][];
-            worldId: string;
         };
         WorldStateDto: {
             items: components["schemas"]["WorldStateRecordDto"][];
@@ -11102,28 +11019,6 @@ export interface operations {
             };
         };
     };
-    WorldController_getWorldScenes: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicWorldSceneListDto"];
-                };
-            };
-        };
-    };
     WorldController_transitToWorld: {
         parameters: {
             query?: never;
@@ -11882,25 +11777,6 @@ export interface operations {
             };
         };
     };
-    TransitController_getSceneQuota: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SceneQuotaDto"];
-                };
-            };
-        };
-    };
     TransitController_getTransit: {
         parameters: {
             query?: never;
@@ -12079,31 +11955,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorldMediaBindingListDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_listWorldScenes: {
-        parameters: {
-            query?: {
-                take?: number;
-                sceneIds?: string[];
-            };
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldSceneListDto"];
                 };
             };
         };

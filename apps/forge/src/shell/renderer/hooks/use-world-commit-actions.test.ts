@@ -31,7 +31,6 @@ const mockWorldDataClient = vi.hoisted(() => ({
   getMyWorldAccess: vi.fn(),
   resolveWorldLanding: vi.fn(),
   getWorldDraft: vi.fn(),
-  listWorldScenes: vi.fn(),
   listCreatorAgents: vi.fn(),
   createCreatorAgent: vi.fn(),
 }));

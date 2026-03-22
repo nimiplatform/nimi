@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/sdk",
-  "version": "0.4.57",
+  "version": "0.4.58",
   "license": "Apache-2.0",
   "private": false,
   "publishConfig": {

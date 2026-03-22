@@ -51,13 +51,11 @@ const mockWorldviewQuery = {
   data: { description: 'A vast continent' },
   isLoading: false,
 };
-const mockScenesQuery = { data: [] };
 const mockLorebooksQuery = { data: [] };
 
 vi.mock('../world-browser/world-browser-queries.js', () => ({
   useWorldDetailWithAgentsQuery: () => mockWorldQuery,
   useWorldviewQuery: () => mockWorldviewQuery,
-  useWorldScenesQuery: () => mockScenesQuery,
   useWorldLorebooksQuery: () => mockLorebooksQuery,
 }));
 

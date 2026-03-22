@@ -178,8 +178,6 @@ export type RealmGeneratedModelMap = {
   PublicWorldMediaAssetDto: components['schemas']['PublicWorldMediaAssetDto'];
   PublicWorldMediaBindingDto: components['schemas']['PublicWorldMediaBindingDto'];
   PublicWorldMediaBindingListDto: components['schemas']['PublicWorldMediaBindingListDto'];
-  PublicWorldSceneDto: components['schemas']['PublicWorldSceneDto'];
-  PublicWorldSceneListDto: components['schemas']['PublicWorldSceneListDto'];
   PublishWorldDraftDto: components['schemas']['PublishWorldDraftDto'];
   PublishWorldDraftResultDto: components['schemas']['PublishWorldDraftResultDto'];
   ReceivedGiftsResponseDto: components['schemas']['ReceivedGiftsResponseDto'];
@@ -206,7 +204,6 @@ export type RealmGeneratedModelMap = {
   RuntimeRealmGrantIssueResponseDto: components['schemas']['RuntimeRealmGrantIssueResponseDto'];
   SceneConnectionDto: components['schemas']['SceneConnectionDto'];
   SceneDefinitionDto: components['schemas']['SceneDefinitionDto'];
-  SceneQuotaDto: components['schemas']['SceneQuotaDto'];
   SceneTimeConfigDto: components['schemas']['SceneTimeConfigDto'];
   SceneTimeCycleDto: components['schemas']['SceneTimeCycleDto'];
   SceneTimePhaseDto: components['schemas']['SceneTimePhaseDto'];
@@ -337,8 +334,6 @@ export type RealmGeneratedModelMap = {
   WorldRecommendedAgentDto: components['schemas']['WorldRecommendedAgentDto'];
   WorldRuleDto: components['schemas']['WorldRuleDto'];
   WorldRuleItemDto: components['schemas']['WorldRuleItemDto'];
-  WorldSceneDetailDto: components['schemas']['WorldSceneDetailDto'];
-  WorldSceneListDto: components['schemas']['WorldSceneListDto'];
   WorldStateDto: components['schemas']['WorldStateDto'];
   WorldStateRecordDto: components['schemas']['WorldStateRecordDto'];
   WorldStateWriteDto: components['schemas']['WorldStateWriteDto'];

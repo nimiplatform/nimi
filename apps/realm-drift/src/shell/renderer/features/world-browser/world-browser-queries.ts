@@ -3,7 +3,6 @@ import {
   listMyWorlds,
   getWorldDetailWithAgents,
   getWorldview,
-  listWorldScenes,
   listWorldLorebooks,
 } from './world-browser-data.js';
 
@@ -26,14 +25,6 @@ export function useWorldviewQuery(worldId: string) {
   return useQuery({
     queryKey: ['world', worldId, 'worldview'],
     queryFn: () => getWorldview(worldId),
-    enabled: Boolean(worldId),
-  });
-}
-
-export function useWorldScenesQuery(worldId: string) {
-  return useQuery({
-    queryKey: ['world', worldId, 'scenes'],
-    queryFn: () => listWorldScenes(worldId),
     enabled: Boolean(worldId),
   });
 }

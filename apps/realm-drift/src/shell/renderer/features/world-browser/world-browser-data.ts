@@ -5,8 +5,6 @@ type ListMyWorldsResult = RealmServiceResult<'WorldControlService', 'worldContro
 type WorldSummaryItem = ListMyWorldsResult extends { items: Array<infer Item> } ? Item : never;
 type WorldDetailWithAgentsResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
 type WorldviewResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldview'>;
-type WorldScenesResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldScenes'>;
-type WorldSceneItem = WorldScenesResult extends { items: Array<infer Item> } ? Item : never;
 type WorldLorebooksResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldLorebooks'>;
 type WorldLorebookItem = WorldLorebooksResult extends { items: Array<infer Item> } ? Item : never;
 
@@ -55,13 +53,6 @@ export type WorldviewData = {
   resources?: string;
   locations?: string;
   visualGuide?: string;
-};
-
-export type WorldScene = {
-  id: string;
-  name: string;
-  description?: string;
-  imageUrl?: string;
 };
 
 export type WorldLorebook = {
@@ -313,18 +304,6 @@ export async function getWorldview(worldId: string): Promise<WorldviewData> {
     locations: summarizeLocations(data.locations),
     visualGuide: summarizeVisualGuide(data.visualGuide),
   };
-}
-
-export async function listWorldScenes(worldId: string): Promise<WorldScene[]> {
-  const { realm } = getPlatformClient();
-  const data: WorldScenesResult = await realm.services.WorldsService.worldControllerGetWorldScenes(worldId);
-  const items = requireItemsArray(data.items, 'WORLD_BROWSER_SCENE_LIST_CONTRACT_INVALID');
-
-  return items.map((scene: WorldSceneItem) => ({
-    id: requireNonEmptyString(scene.id, 'WORLD_BROWSER_SCENE_ID_REQUIRED'),
-    name: requireNonEmptyString(scene.name, 'WORLD_BROWSER_SCENE_NAME_REQUIRED'),
-    description: optionalString(scene.description),
-  }));
 }
 
 export async function listWorldLorebooks(worldId: string): Promise<WorldLorebook[]> {
