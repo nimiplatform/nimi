@@ -22,7 +22,7 @@
 | `sessionTtlMaxSeconds` | `int` | `86400` | `hot` | Session TTL 上限（秒） | `K-AUTHSVC-004` |
 | `auth.jwt.issuer` | `string` | `—` | `restart` | JWT iss 校验目标；空值=不校验 | `K-AUTHN-009` |
 | `auth.jwt.audience` | `string` | `—` | `restart` | JWT aud 校验目标；空值=不校验 | `K-AUTHN-009` |
-| `auth.jwt.jwksUrl` | `string` | `—` | `restart` | JWT 公钥来源 JWKS 地址；空值=拒绝所有 bearer token | `K-AUTHN-004` |
+| `auth.jwt.jwksUrl` | `string` | `—` | `restart` | JWT 公钥来源 JWKS 地址；非 loopback host 必须使用 https，空值=拒绝所有 bearer token | `K-AUTHN-004` |
 | `providers` | `map` | `{}` | `restart` | AI Provider 路由表（key=provider name） | `K-DAEMON-009` |
 | `engines.llama.enabled` | `bool` | `false` | `restart` | 启用 llama 引擎 SUPERVISED 模式 | `K-LENG-004` |
 | `engines.llama.version` | `string` | `3.12.1` | `restart` | llama 受管引擎版本 | `K-LENG-004` |

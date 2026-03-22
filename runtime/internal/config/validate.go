@@ -145,11 +145,27 @@ func validateJWTSettings(issuer string, audience string, jwksURL string) error {
 	if err != nil {
 		return fmt.Errorf("auth jwt jwks url invalid: %w", err)
 	}
-	if parsed.Scheme != "https" {
-		return fmt.Errorf("auth jwt jwks url must use https")
-	}
-	if strings.TrimSpace(parsed.Host) == "" {
+	host := strings.TrimSpace(strings.ToLower(parsed.Hostname()))
+	if host == "" {
 		return fmt.Errorf("auth jwt jwks url must include host")
 	}
-	return nil
+	if parsed.Scheme == "https" {
+		return nil
+	}
+	if parsed.Scheme == "http" && isLoopbackHost(host) {
+		return nil
+	}
+	return fmt.Errorf("auth jwt jwks url must use https unless host is loopback")
+}
+
+func isLoopbackHost(host string) bool {
+	host = strings.TrimSpace(strings.ToLower(host))
+	if host == "" {
+		return false
+	}
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }

@@ -33,6 +33,7 @@ Realm JWT 最小必校验集合：
 - 刷新失败时不得降级为 anonymous，必须返回 `UNAUTHENTICATED`。
 - 必须具备失败回退窗口：可在短 TTL 内继续使用最近一次成功快照（仅用于已命中 `kid`）。
 - `auth.jwt.jwksUrl` 是 Runtime 验签公钥的唯一来源；`publicKeyPath` 不属于有效验签链路。
+- `auth.jwt.jwksUrl` 默认必须使用 `https`；仅当 host 为 loopback（`localhost` / `127.0.0.0/8` / `::1`）时允许 `http`，用于本地开发与桌面集成。
 
 ## K-AUTHN-005 时钟偏差
 

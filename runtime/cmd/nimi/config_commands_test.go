@@ -321,6 +321,39 @@ func TestRunRuntimeConfigSetRejectsInvalidJwksURL(t *testing.T) {
 	}
 }
 
+func TestRunRuntimeConfigSetAcceptsLoopbackHTTPJWKSURL(t *testing.T) {
+	homeDir := t.TempDir()
+	setCmdTestHome(t, homeDir)
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", "")
+	clearRuntimeConfigCommandEnv(t)
+
+	if err := runRuntimeConfig([]string{"init", "--json"}); err != nil {
+		t.Fatalf("init config: %v", err)
+	}
+
+	if err := runRuntimeConfig([]string{
+		"set",
+		"--set", "auth.jwt.jwksUrl=http://localhost:3002/api/auth/jwks",
+		"--set", "auth.jwt.issuer=http://localhost:3002",
+		"--set", "auth.jwt.audience=nimi-runtime",
+		"--json",
+	}); err != nil {
+		t.Fatalf("expected loopback http jwks url to be accepted, got: %v", err)
+	}
+
+	cfgPath := filepath.Join(homeDir, ".nimi/config.json")
+	cfg, loadErr := config.LoadFileConfig(cfgPath)
+	if loadErr != nil {
+		t.Fatalf("LoadFileConfig: %v", loadErr)
+	}
+	if cfg.Auth == nil || cfg.Auth.JWT == nil {
+		t.Fatalf("auth.jwt config should exist after set: %#v", cfg.Auth)
+	}
+	if cfg.Auth.JWT.JWKSURL != "http://localhost:3002/api/auth/jwks" {
+		t.Fatalf("jwksUrl mismatch: %q", cfg.Auth.JWT.JWKSURL)
+	}
+}
+
 func TestRunRuntimeConfigRejectsMigrateSubcommand(t *testing.T) {
 	homeDir := t.TempDir()
 	setCmdTestHome(t, homeDir)

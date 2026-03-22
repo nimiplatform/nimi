@@ -992,7 +992,35 @@ func TestLoadRejectsIncompleteJWTConfig(t *testing.T) {
 	}
 }
 
-func TestLoadRejectsHTTPJWKSURL(t *testing.T) {
+func TestLoadAllowsLoopbackHTTPJWKSURL(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "auth": {
+    "jwt": {
+      "issuer": "http://localhost:3002",
+      "audience": "nimi-runtime",
+      "jwksUrl": "http://127.0.0.1:3002/api/auth/jwks"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("expected loopback http jwks url to load, got: %v", err)
+	}
+	if cfg.AuthJWTJWKSURL != "http://127.0.0.1:3002/api/auth/jwks" {
+		t.Fatalf("jwksUrl mismatch: %q", cfg.AuthJWTJWKSURL)
+	}
+}
+
+func TestLoadRejectsNonLoopbackHTTPJWKSURL(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -1013,9 +1041,9 @@ func TestLoadRejectsHTTPJWKSURL(t *testing.T) {
 
 	_, err := Load()
 	if err == nil {
-		t.Fatal("expected http jwks url to fail")
+		t.Fatal("expected non-loopback http jwks url to fail")
 	}
-	if !strings.Contains(err.Error(), "auth jwt jwks url must use https") {
+	if !strings.Contains(err.Error(), "auth jwt jwks url must use https unless host is loopback") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

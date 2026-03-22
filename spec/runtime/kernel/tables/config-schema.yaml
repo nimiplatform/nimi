@@ -132,7 +132,7 @@ fields:
     type: string
     default: ""
     reload: restart
-    description: JWT 公钥来源 JWKS 地址；空值=拒绝所有 bearer token
+    description: JWT 公钥来源 JWKS 地址；非 loopback host 必须使用 https，空值=拒绝所有 bearer token
     source_rule: K-AUTHN-004
 
   - key: providers

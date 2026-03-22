@@ -85,9 +85,9 @@ type Config struct {
 	AuthJWTAudience string
 
 	// AuthJWTJWKSURL is the JWKS endpoint URL used for JWT signature
-	// verification. It must use HTTPS and be configured together with issuer
-	// and audience. If empty, JWT verification is disabled (all tokens
-	// rejected). (K-AUTHN-004, K-DAEMON-009)
+	// verification. It must use HTTPS unless the host is loopback, and it must
+	// be configured together with issuer and audience. If empty, JWT
+	// verification is disabled (all tokens rejected). (K-AUTHN-004, K-DAEMON-009)
 	AuthJWTJWKSURL string
 
 	// Providers holds the parsed config.json providers section for cloud connector
