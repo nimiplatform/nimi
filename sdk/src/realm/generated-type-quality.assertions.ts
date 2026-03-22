@@ -18,7 +18,6 @@ type _UpdateCreatorAgentResult = Awaited<ReturnType<RealmGeneratedServiceRegistr
 type _ListCoreMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListCoreMemories']>>;
 type _ListDyadicMemoriesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListDyadicMemories']>>;
 type _CommitMemoryResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerCommitMemory']>>;
-type _ListUserProfilesResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['AgentsService']['agentControllerListUserProfiles']>>;
 type _IssueGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['CreatorModsControlPlaneService']['creatorModsControllerIssueGrant']>>;
 type _IssueRuntimeRealmGrantResult = Awaited<ReturnType<RealmGeneratedServiceRegistry['RuntimeRealmGrantsService']['issueRuntimeRealmGrant']>>;
 type _RequestDataExportArgs = Parameters<RealmGeneratedServiceRegistry['MeaccountdataService']['requestDataExport']>;
@@ -140,16 +139,6 @@ type _GuardFriendListResult = Assert<IsEqual<
   components['schemas']['FriendProfileListDto']
 >>;
 
-type _GuardCreateKeyEventDto = Assert<IsEqual<
-  components['schemas']['CreateKeyEventDto'],
-  {
-    content: string;
-    eventType: string;
-    importance?: number;
-    userId?: string;
-  }
->>;
-
 type _GuardUpdateCreatorAgentCapabilities = Assert<IsEqual<
   components['schemas']['UpdateCreatorAgentDto']['capabilities'],
   components['schemas']['UserAgentDnaDto'] | undefined
@@ -163,15 +152,6 @@ type _GuardUpdateCreatorAgentResult = Assert<IsEqual<
   components['schemas']['UserAgentDnaDto'] | undefined
 >>;
 
-type _GuardUpdateUserProfileDto = Assert<IsEqual<
-  components['schemas']['UpdateUserProfileDto'],
-  {
-    preferences?: components['schemas']['UpdateUserProfilePreferencesDto'];
-    profileSummary?: string;
-    traits?: components['schemas']['UpdateUserProfileTraitsDto'];
-  }
->>;
-
 type _GuardSendMessagePayload = Assert<IsEqual<
   components['schemas']['SendMessageInputDto']['payload'],
   {
@@ -182,14 +162,6 @@ type _GuardSendMessagePayload = Assert<IsEqual<
 type _GuardMe2faOperationResultDto = Assert<IsEqual<
   components['schemas']['Me2faOperationResultDto'],
   {
-    success: boolean;
-  }
->>;
-
-type _GuardActivateAgentResultDto = Assert<IsEqual<
-  components['schemas']['ActivateAgentResultDto'],
-  {
-    state: components['schemas']['AgentState'];
     success: boolean;
   }
 >>;
@@ -282,11 +254,6 @@ type _GuardAgentMemoryRecordCreatedBy = Assert<IsEqual<
   components['schemas']['AgentMemoryRecordDto']['createdBy'],
   string
 >>;
-type _GuardListUserProfilesResult = Assert<IsEqual<
-  _ListUserProfilesResult,
-  unknown
->>;
-
 type _GuardIssueGrantBody = Assert<IsEqual<
   _IssueGrantArgs[0],
   components['schemas']['CreatorModControlGrantIssueRequestDto']

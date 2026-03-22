@@ -7,7 +7,6 @@ export type RealmGeneratedModelMap = {
   AbilityDefinitionDto: components['schemas']['AbilityDefinitionDto'];
   AccountRole: components['schemas']['AccountRole'];
   AccountStatus: components['schemas']['AccountStatus'];
-  ActivateAgentResultDto: components['schemas']['ActivateAgentResultDto'];
   AddFriendBodyDto: components['schemas']['AddFriendBodyDto'];
   AgentAppearanceDto: components['schemas']['AgentAppearanceDto'];
   AgentBiologicalDto: components['schemas']['AgentBiologicalDto'];
@@ -67,7 +66,6 @@ export type RealmGeneratedModelMap = {
   CreateApiKeyDto: components['schemas']['CreateApiKeyDto'];
   CreateAudioDirectUploadDto: components['schemas']['CreateAudioDirectUploadDto'];
   CreateConnectOnboardingDto: components['schemas']['CreateConnectOnboardingDto'];
-  CreateKeyEventDto: components['schemas']['CreateKeyEventDto'];
   CreatePortalSessionDto: components['schemas']['CreatePortalSessionDto'];
   CreatePostDto: components['schemas']['CreatePostDto'];
   CreatePostMediaDto: components['schemas']['CreatePostMediaDto'];
@@ -82,7 +80,6 @@ export type RealmGeneratedModelMap = {
   CreateWorldTransitDto: components['schemas']['CreateWorldTransitDto'];
   CreatorAgentResponseDto: components['schemas']['CreatorAgentResponseDto'];
   CreatorCapabilitiesResponseDto: components['schemas']['CreatorCapabilitiesResponseDto'];
-  CreatorEventCategory: components['schemas']['CreatorEventCategory'];
   CreatorModControlAuditIngestRequestDto: components['schemas']['CreatorModControlAuditIngestRequestDto'];
   CreatorModControlAuditRecordDto: components['schemas']['CreatorModControlAuditRecordDto'];
   CreatorModControlGrantIssueRequestDto: components['schemas']['CreatorModControlGrantIssueRequestDto'];
@@ -90,7 +87,6 @@ export type RealmGeneratedModelMap = {
   CreatorModControlGrantValidateRequestDto: components['schemas']['CreatorModControlGrantValidateRequestDto'];
   CreatorModControlManifestVerifyRequestDto: components['schemas']['CreatorModControlManifestVerifyRequestDto'];
   CreatorModControlSignatureVerifyRequestDto: components['schemas']['CreatorModControlSignatureVerifyRequestDto'];
-  CreatorWorldEventDto: components['schemas']['CreatorWorldEventDto'];
   CurrencyBalancesDto: components['schemas']['CurrencyBalancesDto'];
   CurrencyTransactionDto: components['schemas']['CurrencyTransactionDto'];
   CurrencyTransactionHistoryDto: components['schemas']['CurrencyTransactionHistoryDto'];
@@ -120,11 +116,8 @@ export type RealmGeneratedModelMap = {
   GiftTransactionDto: components['schemas']['GiftTransactionDto'];
   GiftTransactionRichDto: components['schemas']['GiftTransactionRichDto'];
   GlossaryTermDto: components['schemas']['GlossaryTermDto'];
-  InjectEventResponseDto: components['schemas']['InjectEventResponseDto'];
-  InjectWorldEventDto: components['schemas']['InjectWorldEventDto'];
   ListChatsResultDto: components['schemas']['ListChatsResultDto'];
   ListMessagesResultDto: components['schemas']['ListMessagesResultDto'];
-  ListWorldEventsResponseDto: components['schemas']['ListWorldEventsResponseDto'];
   LocationLandmarkDto: components['schemas']['LocationLandmarkDto'];
   LocationRegionDto: components['schemas']['LocationRegionDto'];
   MakeAgentPublicResponseDto: components['schemas']['MakeAgentPublicResponseDto'];
@@ -208,7 +201,6 @@ export type RealmGeneratedModelMap = {
   SceneTimeCycleDto: components['schemas']['SceneTimeCycleDto'];
   SceneTimePhaseDto: components['schemas']['SceneTimePhaseDto'];
   SceneTimeSettingsDto: components['schemas']['SceneTimeSettingsDto'];
-  ScopeType: components['schemas']['ScopeType'];
   SearchPostDto: components['schemas']['SearchPostDto'];
   SearchPostMediaDto: components['schemas']['SearchPostMediaDto'];
   SelectAvatarDto: components['schemas']['SelectAvatarDto'];
@@ -216,7 +208,6 @@ export type RealmGeneratedModelMap = {
   SendMessageInputDto: components['schemas']['SendMessageInputDto'];
   SetAgentRelationshipDto: components['schemas']['SetAgentRelationshipDto'];
   SocialProfileDto: components['schemas']['SocialProfileDto'];
-  SoulPrimeDto: components['schemas']['SoulPrimeDto'];
   SpaceRealmDto: components['schemas']['SpaceRealmDto'];
   SpaceTopologyDto: components['schemas']['SpaceTopologyDto'];
   SparkCheckoutSessionDto: components['schemas']['SparkCheckoutSessionDto'];
@@ -249,14 +240,9 @@ export type RealmGeneratedModelMap = {
   UpdatePostDto: components['schemas']['UpdatePostDto'];
   UpdatePPSlotConfigDto: components['schemas']['UpdatePPSlotConfigDto'];
   UpdateRelationshipDto: components['schemas']['UpdateRelationshipDto'];
-  UpdateSoulPrimeDto: components['schemas']['UpdateSoulPrimeDto'];
-  UpdateSoulPrimeResponseDto: components['schemas']['UpdateSoulPrimeResponseDto'];
   UpdateUserDto: components['schemas']['UpdateUserDto'];
   UpdateUserNotificationSettingsDto: components['schemas']['UpdateUserNotificationSettingsDto'];
   UpdateUserNsfwConsentDto: components['schemas']['UpdateUserNsfwConsentDto'];
-  UpdateUserProfileDto: components['schemas']['UpdateUserProfileDto'];
-  UpdateUserProfilePreferencesDto: components['schemas']['UpdateUserProfilePreferencesDto'];
-  UpdateUserProfileTraitsDto: components['schemas']['UpdateUserProfileTraitsDto'];
   UpdateUserSettingsDto: components['schemas']['UpdateUserSettingsDto'];
   UpdateWorldDraftDto: components['schemas']['UpdateWorldDraftDto'];
   UpdateWorldRuleDto: components['schemas']['UpdateWorldRuleDto'];
@@ -278,7 +264,6 @@ export type RealmGeneratedModelMap = {
   UserTierSummaryDto: components['schemas']['UserTierSummaryDto'];
   UserWalletDto: components['schemas']['UserWalletDto'];
   UserWalletListResponseDto: components['schemas']['UserWalletListResponseDto'];
-  ValidateContextDto: components['schemas']['ValidateContextDto'];
   ValidateRulesDto: components['schemas']['ValidateRulesDto'];
   VerificationTier: components['schemas']['VerificationTier'];
   Visibility: components['schemas']['Visibility'];

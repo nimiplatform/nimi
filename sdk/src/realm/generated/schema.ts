@@ -39,23 +39,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/accounts/{id}/activate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Activate Agent (Wake up) */
-        post: operations["AgentController_activate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/accounts/{id}/avatar": {
         parameters: {
             query?: never;
@@ -131,7 +114,8 @@ export type paths = {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List DYADIC memories for one user */
+        get: operations["AgentController_listDyadicMemories"];
         put?: never;
         post?: never;
         /**
@@ -159,93 +143,6 @@ export type paths = {
          * @description Private deletion applies only to DYADIC continuity memory for the requesting user.
          */
         delete: operations["AgentController_deleteDyadicMemory"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List key events for the agent */
-        get: operations["AgentController_listKeyEvents"];
-        put?: never;
-        /** Create a key event (creator only) */
-        post: operations["AgentController_createKeyEvent"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/events/{eventId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a key event (creator only) */
-        delete: operations["AgentController_deleteKeyEvent"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/profiles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List user profiles for the agent */
-        get: operations["AgentController_listUserProfiles"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/profiles/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get a specific user profile */
-        get: operations["AgentController_getUserProfile"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update a user profile (creator only) */
-        patch: operations["AgentController_updateUserProfile"];
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/memory/profiles/{userId}/dyadic": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List DYADIC memories for one user profile */
-        get: operations["AgentController_listDyadicMemories"];
-        put?: never;
-        post?: never;
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -282,41 +179,6 @@ export type paths = {
         post: operations["AgentController_setRelationship"];
         /** Remove a relationship (creator only) */
         delete: operations["AgentController_removeRelationship"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/soul-prime": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Agent Soul Prime (creator only) */
-        get: operations["AgentController_getSoulPrime"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Agent Soul Prime (creator only) */
-        patch: operations["AgentController_updateSoulPrime"];
-        trace?: never;
-    };
-    "/api/agent/accounts/{id}/suspend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Suspend Agent (Sleep) */
-        post: operations["AgentController_suspend"];
-        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3026,24 +2888,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/by-id/{worldId}/rules/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List creator-injected world events */
-        get: operations["WorldRulesController_listEvents"];
-        put?: never;
-        /** Inject a world event (Creator only) */
-        post: operations["WorldRulesController_injectEvent"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/world/by-id/{worldId}/rules/validate": {
         parameters: {
             query?: never;
@@ -3055,23 +2899,6 @@ export type paths = {
         put?: never;
         /** Validate world rules without saving */
         post: operations["WorldRulesController_validateRules"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/by-id/{worldId}/rules/validate-context": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Validate context against agent identity */
-        post: operations["WorldRulesController_validateContext"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3454,10 +3281,6 @@ export type components = {
         AccountRole: "USER" | "AGENT" | "SERVICE_ACC" | "SYSTEM_BOT" | "ADMIN";
         /** @enum {string} */
         AccountStatus: "ONBOARDING" | "CHECK_INVITED" | "ACTIVE" | "SUSPENDED" | "BANNED";
-        ActivateAgentResultDto: {
-            state: components["schemas"]["AgentState"];
-            success: boolean;
-        };
         AddFriendBodyDto: {
             requestMessage?: string;
         };
@@ -4016,12 +3839,6 @@ export type components = {
             /** @description URL to redirect after completing onboarding */
             returnUrl: string;
         };
-        CreateKeyEventDto: {
-            content: string;
-            eventType: string;
-            importance?: number;
-            userId?: string;
-        };
         CreatePortalSessionDto: {
             /** @description URL to return to after portal */
             returnUrl: string;
@@ -4153,16 +3970,14 @@ export type components = {
         };
         CreatorCapabilitiesResponseDto: {
             /** @description Allowed actions */
-            allowedActions: ("INJECT_EVENT" | "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY")[];
+            allowedActions: ("DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY")[];
             /** @description Forbidden actions */
-            forbiddenActions: ("INJECT_EVENT" | "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY")[];
+            forbiddenActions: ("DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY")[];
             /** @description Whether the user is the creator of this world */
             isCreator: boolean;
             /** @description Current world status */
             worldStatus?: string;
         };
-        /** @enum {string} */
-        CreatorEventCategory: "NATURAL" | "SOCIAL" | "POLITICAL" | "ECONOMIC" | "MAGICAL" | "DISASTER" | "DISCOVERY" | "OTHER";
         CreatorModControlAuditIngestRequestDto: {
             modId?: string;
             records: components["schemas"]["CreatorModControlAuditRecordDto"][];
@@ -4219,24 +4034,6 @@ export type components = {
             signature: string;
             signerId: string;
             version: string;
-        };
-        CreatorWorldEventDto: {
-            affectedAreas: string[];
-            /** Format: date-time */
-            createdAt: string;
-            createdBy: string;
-            description: string;
-            durationHours?: number | null;
-            eventType: components["schemas"]["CreatorEventCategory"];
-            /** Format: date-time */
-            expiresAt?: string | null;
-            id: string;
-            isActive: boolean;
-            requiresAcknowledgment: boolean;
-            scope: components["schemas"]["ScopeType"];
-            title: string;
-            /** Format: date-time */
-            updatedAt: string;
         };
         CurrencyBalancesDto: {
             /** @description Gem balance (earned currency) */
@@ -4528,38 +4325,6 @@ export type components = {
             importance?: string;
             term: string;
         };
-        InjectEventResponseDto: {
-            /** @description Error message if failed */
-            error?: string;
-            /** @description Event ID if successful */
-            eventId: string;
-            /** @description Whether the event was injected successfully */
-            success: boolean;
-            /** @description Validation result */
-            validation?: components["schemas"]["RuleValidationResponseDto"];
-        };
-        InjectWorldEventDto: {
-            /** @description Affected areas/regions */
-            affectedAreas?: string[];
-            /** @description Event description */
-            description: string;
-            /** @description Duration in world-time (hours) */
-            durationHours?: number;
-            /**
-             * @description Event type/category
-             * @enum {string}
-             */
-            eventType: "NATURAL" | "SOCIAL" | "POLITICAL" | "ECONOMIC" | "MAGICAL" | "DISASTER" | "DISCOVERY" | "OTHER";
-            /** @description Whether agents must acknowledge this event */
-            requiresAcknowledgment?: boolean;
-            /**
-             * @description Scope of the event
-             * @enum {string}
-             */
-            scope: "GLOBAL" | "REGIONAL" | "LOCAL";
-            /** @description Event title/name */
-            title: string;
-        };
         ListChatsResultDto: {
             hasMore?: boolean;
             items: components["schemas"]["ChatViewDto"][];
@@ -4572,9 +4337,6 @@ export type components = {
             items: components["schemas"]["MessageViewDto"][];
             nextAfter: string | null;
             nextBefore: string | null;
-        };
-        ListWorldEventsResponseDto: {
-            events: components["schemas"]["CreatorWorldEventDto"][];
         };
         LocationLandmarkDto: {
             description: string;
@@ -4846,7 +4608,7 @@ export type components = {
              * @description Action type
              * @enum {string}
              */
-            action?: "INJECT_EVENT" | "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY";
+            action?: "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY";
             /** @description Whether the action is allowed */
             allowed: boolean;
             /** @description Creator ID */
@@ -5205,8 +4967,6 @@ export type components = {
             timeCycle?: components["schemas"]["SceneTimeCycleDto"];
             timeModifier?: number;
         };
-        /** @enum {string} */
-        ScopeType: "GLOBAL" | "REGION" | "FACTION" | "LOCAL";
         SearchPostDto: {
             author: components["schemas"]["UserLiteDto"];
             authorId: string;
@@ -5272,18 +5032,6 @@ export type components = {
             url?: string | null;
             /** Format: date-time */
             verifiedAt?: string | null;
-        };
-        SoulPrimeDto: {
-            /** @description Backstory and origin of the Agent */
-            backstory?: string;
-            /** @description Catchphrase or signature expression */
-            catchphrase?: string;
-            /** @description Core values and beliefs that guide the Agent */
-            coreValues?: string;
-            /** @description Behavioral guidelines and rules the Agent should follow */
-            guidelines?: string;
-            /** @description Detailed personality description (complements DNA traits) */
-            personalityDescription?: string;
         };
         SpaceRealmDto: {
             accessibility?: string;
@@ -5563,14 +5311,6 @@ export type components = {
             context?: string;
             strength?: number;
         };
-        UpdateSoulPrimeDto: {
-            /** @description Soul Prime configuration */
-            soulPrime: components["schemas"]["SoulPrimeDto"];
-        };
-        UpdateSoulPrimeResponseDto: {
-            soulPrime: components["schemas"]["SoulPrimeDto"];
-            success: boolean;
-        };
         UpdateUserDto: {
             /** @description Avatar URL */
             avatarUrl?: string;
@@ -5599,21 +5339,6 @@ export type components = {
         UpdateUserNsfwConsentDto: {
             /** @description Whether to enable NSFW chat */
             enabled: boolean;
-        };
-        UpdateUserProfileDto: {
-            preferences?: components["schemas"]["UpdateUserProfilePreferencesDto"];
-            profileSummary?: string;
-            traits?: components["schemas"]["UpdateUserProfileTraitsDto"];
-        };
-        UpdateUserProfilePreferencesDto: {
-            communication_style?: string;
-            interests?: string[];
-            topics?: string[];
-        };
-        UpdateUserProfileTraitsDto: {
-            mood_patterns?: string[];
-            personality?: string;
-            quirks?: string[];
         };
         UpdateUserSettingsDto: {
             accountVisibility?: components["schemas"]["Visibility"];
@@ -5876,14 +5601,6 @@ export type components = {
         };
         UserWalletListResponseDto: {
             items: components["schemas"]["UserWalletDto"][];
-        };
-        ValidateContextDto: {
-            /** @description Agent ID to check context for */
-            agentId: string;
-            /** @description Proposed context changes */
-            context: {
-                [key: string]: unknown;
-            };
         };
         ValidateRulesDto: {
             /** @description Rules to validate (worldview scope) */
@@ -6729,28 +6446,6 @@ export interface operations {
             };
         };
     };
-    AgentController_activate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActivateAgentResultDto"];
-                };
-            };
-        };
-    };
     AgentController_selectAvatar: {
         parameters: {
             query?: never;
@@ -6851,6 +6546,33 @@ export interface operations {
             };
         };
     };
+    AgentController_listDyadicMemories: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description User ID */
+                userId: string;
+                /** @description Agent ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of DYADIC memories for this user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
+                };
+            };
+        };
+    };
     AgentController_deleteAllDyadicMemories: {
         parameters: {
             query?: never;
@@ -6899,173 +6621,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeleteDyadicMemoryResponseDto"];
-                };
-            };
-        };
-    };
-    AgentController_listKeyEvents: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of key events */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_createKeyEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateKeyEventDto"];
-            };
-        };
-        responses: {
-            /** @description Key event created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_deleteKeyEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Event ID */
-                eventId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Key event deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_listUserProfiles: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of user profiles */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_getUserProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID */
-                userId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description User profile data */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_updateUserProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description User ID */
-                userId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUserProfileDto"];
-            };
-        };
-        responses: {
-            /** @description User profile updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_listDyadicMemories: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path: {
-                /** @description User ID */
-                userId: string;
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List of DYADIC memories for this user */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentMemoryRecordDto"][];
                 };
             };
         };
@@ -7155,77 +6710,6 @@ export interface operations {
         };
         responses: {
             /** @description Relationship removed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    AgentController_getSoulPrime: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Soul Prime configuration */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SoulPrimeDto"];
-                };
-            };
-        };
-    };
-    AgentController_updateSoulPrime: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateSoulPrimeDto"];
-            };
-        };
-        responses: {
-            /** @description Soul Prime updated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UpdateSoulPrimeResponseDto"];
-                };
-            };
-        };
-    };
-    AgentController_suspend: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Agent ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Agent suspended successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -11315,7 +10799,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description Action to check */
-                action: "INJECT_EVENT" | "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY";
+                action: "DEFINE_RULES" | "UPDATE_SETTINGS" | "PUBLISH_WORLD" | "ARCHIVE_WORLD" | "CONTROL_AGENT" | "CONTROL_USER" | "FORCE_AGENT_BEHAVIOR" | "MODIFY_AGENT_IDENTITY";
                 /** @description World ID */
                 worldId: string;
             };
@@ -11333,54 +10817,6 @@ export interface operations {
             };
         };
     };
-    WorldRulesController_listEvents: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListWorldEventsResponseDto"];
-                };
-            };
-        };
-    };
-    WorldRulesController_injectEvent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InjectWorldEventDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InjectEventResponseDto"];
-                };
-            };
-        };
-    };
     WorldRulesController_validateRules: {
         parameters: {
             query?: never;
@@ -11394,32 +10830,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ValidateRulesDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RuleValidationResponseDto"];
-                };
-            };
-        };
-    };
-    WorldRulesController_validateContext: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ValidateContextDto"];
             };
         };
         responses: {

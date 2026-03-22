@@ -287,7 +287,6 @@ export const CreateWorldTransitType = {
 export type CreateWorldTransitType = (typeof CreateWorldTransitType)[keyof typeof CreateWorldTransitType];
 
 export const CreatorCapabilitiesAllowedActionsItem = {
-  INJECT_EVENT: "INJECT_EVENT",
   DEFINE_RULES: "DEFINE_RULES",
   UPDATE_SETTINGS: "UPDATE_SETTINGS",
   PUBLISH_WORLD: "PUBLISH_WORLD",
@@ -301,7 +300,6 @@ export const CreatorCapabilitiesAllowedActionsItem = {
 export type CreatorCapabilitiesAllowedActionsItem = (typeof CreatorCapabilitiesAllowedActionsItem)[keyof typeof CreatorCapabilitiesAllowedActionsItem];
 
 export const CreatorCapabilitiesForbiddenActionsItem = {
-  INJECT_EVENT: "INJECT_EVENT",
   DEFINE_RULES: "DEFINE_RULES",
   UPDATE_SETTINGS: "UPDATE_SETTINGS",
   PUBLISH_WORLD: "PUBLISH_WORLD",
@@ -397,27 +395,6 @@ export const FinalizeMediaAssetOwnerKind = {
 } as const satisfies Record<string, components['schemas']['FinalizeMediaAssetDto']['ownerKind']>;
 
 export type FinalizeMediaAssetOwnerKind = (typeof FinalizeMediaAssetOwnerKind)[keyof typeof FinalizeMediaAssetOwnerKind];
-
-export const InjectWorldEventScope = {
-  GLOBAL: "GLOBAL",
-  REGIONAL: "REGIONAL",
-  LOCAL: "LOCAL",
-} as const satisfies Record<string, components['schemas']['InjectWorldEventDto']['scope']>;
-
-export type InjectWorldEventScope = (typeof InjectWorldEventScope)[keyof typeof InjectWorldEventScope];
-
-export const InjectWorldEventType = {
-  NATURAL: "NATURAL",
-  SOCIAL: "SOCIAL",
-  POLITICAL: "POLITICAL",
-  ECONOMIC: "ECONOMIC",
-  MAGICAL: "MAGICAL",
-  DISASTER: "DISASTER",
-  DISCOVERY: "DISCOVERY",
-  OTHER: "OTHER",
-} as const satisfies Record<string, components['schemas']['InjectWorldEventDto']['eventType']>;
-
-export type InjectWorldEventType = (typeof InjectWorldEventType)[keyof typeof InjectWorldEventType];
 
 export const MediaAssetDetailDeliveryAccess = {
   PUBLIC: "PUBLIC",
@@ -533,7 +510,6 @@ export const OAuthLoginState = {
 export type OAuthLoginState = (typeof OAuthLoginState)[keyof typeof OAuthLoginState];
 
 export const PermissionCheckAction = {
-  INJECT_EVENT: "INJECT_EVENT",
   DEFINE_RULES: "DEFINE_RULES",
   UPDATE_SETTINGS: "UPDATE_SETTINGS",
   PUBLISH_WORLD: "PUBLISH_WORLD",

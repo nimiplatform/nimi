@@ -7,7 +7,6 @@ import {
   commitAgentMemories,
   listAgentCoreMemories,
   listAgentDyadicMemories,
-  listAgentMemoryProfiles,
 } from '../../src/realm/extensions/agent-memory.js';
 import { ReasonCode } from '../../src/types/index.js';
 
@@ -32,7 +31,6 @@ const memoryCommit: AgentMemoryCommitEnvelope = {
 function createRealmMock(overrides?: {
   listCore?: (agentId: string, limit?: number) => Promise<unknown[]>;
   listDyadic?: (agentId: string, userId: string, limit?: number) => Promise<unknown[]>;
-  listProfiles?: (agentId: string) => Promise<unknown>;
   commit?: (agentId: string, body: Record<string, unknown>) => Promise<unknown>;
 }): Realm {
   return {
@@ -40,7 +38,6 @@ function createRealmMock(overrides?: {
       AgentsService: {
         agentControllerListCoreMemories: overrides?.listCore ?? (async () => []),
         agentControllerListDyadicMemories: overrides?.listDyadic ?? (async () => []),
-        agentControllerListUserProfiles: overrides?.listProfiles ?? (async () => ({ items: [] })),
         agentControllerCommitMemory: overrides?.commit ?? (async () => ({ id: 'memory-1' })),
       },
     },
@@ -106,7 +103,6 @@ test('agent memory helpers propagate service failures', async () => {
 test('agent memory helpers forward ids and normalized payloads', async () => {
   let coreArgs: { agentId: string; limit?: number } | null = null;
   let dyadicArgs: { agentId: string; userId: string; limit?: number } | null = null;
-  let profileArgs: { agentId: string } | null = null;
   let commitArgs: { agentId: string; body: Record<string, unknown> } | null = null;
 
   const realm = createRealmMock({
@@ -117,10 +113,6 @@ test('agent memory helpers forward ids and normalized payloads', async () => {
     listDyadic: async (agentId, userId, limit) => {
       dyadicArgs = { agentId, userId, limit };
       return [{ id: 'dyadic-1' }];
-    },
-    listProfiles: async (agentId) => {
-      profileArgs = { agentId };
-      return { items: [{ userId: 'user-1' }] };
     },
     commit: async (agentId, body) => {
       commitArgs = { agentId, body };
@@ -134,7 +126,6 @@ test('agent memory helpers forward ids and normalized payloads', async () => {
     userId: ' user-1 ',
     limit: 7,
   });
-  const profiles = await listAgentMemoryProfiles(realm, { agentId: ' agent-1 ' });
   const commit = await commitAgentMemories(realm, {
     agentId: ' agent-1 ',
     commit: memoryCommit,
@@ -148,11 +139,9 @@ test('agent memory helpers forward ids and normalized payloads', async () => {
 
   assert.deepEqual(core, [{ id: 'core-1' }]);
   assert.deepEqual(dyadic, [{ id: 'dyadic-1' }]);
-  assert.deepEqual(profiles, { items: [{ userId: 'user-1' }] });
   assert.deepEqual(commit, { id: 'memory-1' });
   assert.deepEqual(coreArgs, { agentId: 'agent-1', limit: 5 });
   assert.deepEqual(dyadicArgs, { agentId: 'agent-1', userId: 'user-1', limit: 7 });
-  assert.deepEqual(profileArgs, { agentId: 'agent-1' });
   assert.deepEqual(commitArgs, {
     agentId: 'agent-1',
     body: {

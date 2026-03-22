@@ -52,7 +52,6 @@ export type AgentMemoryCommitInput = {
 
 export type AgentMemoryRecord = RealmModel<'AgentMemoryRecordDto'>;
 export type AgentMemoryCommitOutput = RealmServiceResult<'AgentsService', 'agentControllerCommitMemory'>;
-export type AgentMemoryProfileListOutput = RealmServiceResult<'AgentsService', 'agentControllerListUserProfiles'>;
 
 function requireId(value: unknown, fieldName: 'agentId' | 'userId'): string {
   const normalized = normalizeText(value);
@@ -171,14 +170,6 @@ export async function listAgentDyadicMemories(
   const agentId = requireId(input.agentId, 'agentId');
   const userId = requireId(input.userId, 'userId');
   return realm.services.AgentsService.agentControllerListDyadicMemories(agentId, userId, input.limit);
-}
-
-export async function listAgentMemoryProfiles(
-  realm: Realm,
-  input: AgentMemorySliceInput,
-): Promise<AgentMemoryProfileListOutput> {
-  const agentId = requireId(input.agentId, 'agentId');
-  return realm.services.AgentsService.agentControllerListUserProfiles(agentId);
 }
 
 export async function commitAgentMemories(

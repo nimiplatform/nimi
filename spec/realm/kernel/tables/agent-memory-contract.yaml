@@ -44,8 +44,8 @@ entities:
 api_surface:
   required_operations:
     - GET /api/agent/accounts/{id}/memory/core
-    - GET /api/agent/accounts/{id}/memory/events
-    - POST /api/agent/accounts/{id}/memory/events
-    - GET /api/agent/accounts/{id}/memory/profiles
+    - GET /api/agent/accounts/{id}/memory/dyadic/{userId}
     - POST /api/agent/accounts/{id}/memory/commits
-  secondary_operations: []
+  secondary_operations:
+    - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}
+    - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}

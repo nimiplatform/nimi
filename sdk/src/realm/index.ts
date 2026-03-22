@@ -12,7 +12,6 @@ export { AgentState } from './generated/models/AgentState.js';
 export { AgentWakeStrategy } from './generated/models/AgentWakeStrategy.js';
 export { ApiKeyType } from './generated/models/ApiKeyType.js';
 export { ContentRatingString } from './generated/models/ContentRatingString.js';
-export { CreatorEventCategory } from './generated/models/CreatorEventCategory.js';
 export { DnaPrimaryType } from './generated/models/DnaPrimaryType.js';
 export { DnaSecondaryTrait } from './generated/models/DnaSecondaryTrait.js';
 export { Gender } from './generated/models/Gender.js';
@@ -24,7 +23,6 @@ export { PostMediaType } from './generated/models/PostMediaType.js';
 export { PresenceStatus } from './generated/models/PresenceStatus.js';
 export { ReportReason } from './generated/models/ReportReason.js';
 export { ReviewRating } from './generated/models/ReviewRating.js';
-export { ScopeType } from './generated/models/ScopeType.js';
 export { StripeConnectStatus } from './generated/models/StripeConnectStatus.js';
 export { SubscriptionTier } from './generated/models/SubscriptionTier.js';
 export { VerificationTier } from './generated/models/VerificationTier.js';
@@ -37,8 +35,8 @@ export type { RealmModels, RealmModelName, RealmModel, RealmOperations, RealmOpe
 // Typed adapter exports.
 export type { AccountDataTaskStatus, RequestDataExportInput, RequestDataExportOutput, RequestAccountDeletionInput, RequestAccountDeletionOutput } from './extensions/account-data.js';
 export { requestDataExport, requestAccountDeletion } from './extensions/account-data.js';
-export type { AgentMemoryCommitInput, AgentMemoryCommitOutput, AgentMemoryListInput, AgentMemoryProfileListOutput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';
-export { commitAgentMemories, listAgentCoreMemories, listAgentDyadicMemories, listAgentMemoryProfiles } from './extensions/agent-memory.js';
+export type { AgentMemoryCommitInput, AgentMemoryCommitOutput, AgentMemoryListInput, AgentMemoryRecord, AgentMemorySliceInput } from './extensions/agent-memory.js';
+export { commitAgentMemories, listAgentCoreMemories, listAgentDyadicMemories } from './extensions/agent-memory.js';
 
 // Realm client exports.
 export { Realm } from './client.js';

@@ -244,31 +244,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "AgentsService.agentControllerActivate": {
-    "operationId": "AgentController_activate",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/activate",
-    "service": "AgentsService",
-    "methodName": "agentControllerActivate",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "AgentsService.agentControllerCheckHandle": {
     "operationId": "AgentController_checkHandle",
     "method": "GET",
@@ -329,30 +304,6 @@ export const REALM_OPERATION_MAP = {
       "application/json"
     ],
     "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerCreateKeyEvent": {
-    "operationId": "AgentController_createKeyEvent",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/memory/events",
-    "service": "AgentsService",
-    "methodName": "agentControllerCreateKeyEvent",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
   },
   "AgentsService.agentControllerDelete": {
     "operationId": "AgentController_delete",
@@ -447,35 +398,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "AgentsService.agentControllerDeleteKeyEvent": {
-    "operationId": "AgentController_deleteKeyEvent",
-    "method": "DELETE",
-    "path": "/api/agent/accounts/{id}/memory/events/{eventId}",
-    "service": "AgentsService",
-    "methodName": "agentControllerDeleteKeyEvent",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "eventId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "204"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
   "AgentsService.agentControllerGetRelationships": {
     "operationId": "AgentController_getRelationships",
     "method": "GET",
@@ -486,60 +408,6 @@ export const REALM_OPERATION_MAP = {
     "parameters": [
       {
         "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "AgentsService.agentControllerGetSoulPrime": {
-    "operationId": "AgentController_getSoulPrime",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/soul-prime",
-    "service": "AgentsService",
-    "methodName": "agentControllerGetSoulPrime",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerGetUserProfile": {
-    "operationId": "AgentController_getUserProfile",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/profiles/{userId}",
-    "service": "AgentsService",
-    "methodName": "agentControllerGetUserProfile",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "userId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -612,7 +480,7 @@ export const REALM_OPERATION_MAP = {
   "AgentsService.agentControllerListDyadicMemories": {
     "operationId": "AgentController_listDyadicMemories",
     "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/profiles/{userId}/dyadic",
+    "path": "/api/agent/accounts/{id}/memory/dyadic/{userId}",
     "service": "AgentsService",
     "methodName": "agentControllerListDyadicMemories",
     "tag": "Agents",
@@ -645,52 +513,6 @@ export const REALM_OPERATION_MAP = {
       "application/json"
     ],
     "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerListKeyEvents": {
-    "operationId": "AgentController_listKeyEvents",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/events",
-    "service": "AgentsService",
-    "methodName": "agentControllerListKeyEvents",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "AgentsService.agentControllerListUserProfiles": {
-    "operationId": "AgentController_listUserProfiles",
-    "method": "GET",
-    "path": "/api/agent/accounts/{id}/memory/profiles",
-    "service": "AgentsService",
-    "methodName": "agentControllerListUserProfiles",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
   },
   "AgentsService.agentControllerMakePublic": {
     "operationId": "AgentController_makePublic",
@@ -789,29 +611,6 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "AgentsService.agentControllerSuspend": {
-    "operationId": "AgentController_suspend",
-    "method": "POST",
-    "path": "/api/agent/accounts/{id}/suspend",
-    "service": "AgentsService",
-    "methodName": "agentControllerSuspend",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
   "AgentsService.agentControllerUpdateDna": {
     "operationId": "AgentController_updateDna",
     "method": "PATCH",
@@ -822,62 +621,6 @@ export const REALM_OPERATION_MAP = {
     "parameters": [
       {
         "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "AgentsService.agentControllerUpdateSoulPrime": {
-    "operationId": "AgentController_updateSoulPrime",
-    "method": "PATCH",
-    "path": "/api/agent/accounts/{id}/soul-prime",
-    "service": "AgentsService",
-    "methodName": "agentControllerUpdateSoulPrime",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "AgentsService.agentControllerUpdateUserProfile": {
-    "operationId": "AgentController_updateUserProfile",
-    "method": "PATCH",
-    "path": "/api/agent/accounts/{id}/memory/profiles/{userId}",
-    "service": "AgentsService",
-    "methodName": "agentControllerUpdateUserProfile",
-    "tag": "Agents",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "userId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -5250,57 +4993,6 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldRulesService.worldRulesControllerInjectEvent": {
-    "operationId": "WorldRulesController_injectEvent",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/rules/events",
-    "service": "WorldRulesService",
-    "methodName": "worldRulesControllerInjectEvent",
-    "tag": "World Rules",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "WorldRulesService.worldRulesControllerListEvents": {
-    "operationId": "WorldRulesController_listEvents",
-    "method": "GET",
-    "path": "/api/world/by-id/{worldId}/rules/events",
-    "service": "WorldRulesService",
-    "methodName": "worldRulesControllerListEvents",
-    "tag": "World Rules",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "WorldRulesService.worldRulesControllerUpdateRule": {
     "operationId": "WorldRulesController_updateRule",
     "method": "PATCH",
@@ -5317,32 +5009,6 @@ export const REALM_OPERATION_MAP = {
       },
       {
         "name": "ruleId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "WorldRulesService.worldRulesControllerValidateContext": {
-    "operationId": "WorldRulesController_validateContext",
-    "method": "POST",
-    "path": "/api/world/by-id/{worldId}/rules/validate-context",
-    "service": "WorldRulesService",
-    "methodName": "worldRulesControllerValidateContext",
-    "tag": "World Rules",
-    "parameters": [
-      {
-        "name": "worldId",
         "in": "path",
         "required": true,
         "valueType": "string"
@@ -5703,31 +5369,21 @@ export const REALM_SERVICE_METHODS = {
     "agentRulesControllerUpdateRule": "AgentRulesService.agentRulesControllerUpdateRule"
   },
   "AgentsService": {
-    "agentControllerActivate": "AgentsService.agentControllerActivate",
     "agentControllerCheckHandle": "AgentsService.agentControllerCheckHandle",
     "agentControllerCommitMemory": "AgentsService.agentControllerCommitMemory",
     "agentControllerCreate": "AgentsService.agentControllerCreate",
-    "agentControllerCreateKeyEvent": "AgentsService.agentControllerCreateKeyEvent",
     "agentControllerDelete": "AgentsService.agentControllerDelete",
     "agentControllerDeleteAllDyadicMemories": "AgentsService.agentControllerDeleteAllDyadicMemories",
     "agentControllerDeleteDyadicMemory": "AgentsService.agentControllerDeleteDyadicMemory",
-    "agentControllerDeleteKeyEvent": "AgentsService.agentControllerDeleteKeyEvent",
     "agentControllerGetRelationships": "AgentsService.agentControllerGetRelationships",
-    "agentControllerGetSoulPrime": "AgentsService.agentControllerGetSoulPrime",
-    "agentControllerGetUserProfile": "AgentsService.agentControllerGetUserProfile",
     "agentControllerGetVisibility": "AgentsService.agentControllerGetVisibility",
     "agentControllerListCoreMemories": "AgentsService.agentControllerListCoreMemories",
     "agentControllerListDyadicMemories": "AgentsService.agentControllerListDyadicMemories",
-    "agentControllerListKeyEvents": "AgentsService.agentControllerListKeyEvents",
-    "agentControllerListUserProfiles": "AgentsService.agentControllerListUserProfiles",
     "agentControllerMakePublic": "AgentsService.agentControllerMakePublic",
     "agentControllerRemoveRelationship": "AgentsService.agentControllerRemoveRelationship",
     "agentControllerSelectAvatar": "AgentsService.agentControllerSelectAvatar",
     "agentControllerSetRelationship": "AgentsService.agentControllerSetRelationship",
-    "agentControllerSuspend": "AgentsService.agentControllerSuspend",
     "agentControllerUpdateDna": "AgentsService.agentControllerUpdateDna",
-    "agentControllerUpdateSoulPrime": "AgentsService.agentControllerUpdateSoulPrime",
-    "agentControllerUpdateUserProfile": "AgentsService.agentControllerUpdateUserProfile",
     "agentControllerUpdateVisibility": "AgentsService.agentControllerUpdateVisibility",
     "getAgent": "AgentsService.getAgent",
     "getAgentByHandle": "AgentsService.getAgentByHandle"
@@ -5968,10 +5624,7 @@ export const REALM_SERVICE_METHODS = {
     "worldRulesControllerDeprecateRule": "WorldRulesService.worldRulesControllerDeprecateRule",
     "worldRulesControllerGetCreatorCapabilities": "WorldRulesService.worldRulesControllerGetCreatorCapabilities",
     "worldRulesControllerGetRules": "WorldRulesService.worldRulesControllerGetRules",
-    "worldRulesControllerInjectEvent": "WorldRulesService.worldRulesControllerInjectEvent",
-    "worldRulesControllerListEvents": "WorldRulesService.worldRulesControllerListEvents",
     "worldRulesControllerUpdateRule": "WorldRulesService.worldRulesControllerUpdateRule",
-    "worldRulesControllerValidateContext": "WorldRulesService.worldRulesControllerValidateContext",
     "worldRulesControllerValidateRules": "WorldRulesService.worldRulesControllerValidateRules"
   },
   "WorldsService": {
