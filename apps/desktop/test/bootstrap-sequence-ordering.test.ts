@@ -73,8 +73,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
   });
 
   test('D-BOOT-008: bootstrap failure sets bootstrapError and clears auth', () => {
-    const catchIndex = bootstrapSource.indexOf('.catch((error)');
-    assert.ok(catchIndex !== -1, '.catch((error) block must exist in bootstrap source');
+    const catchIndex = bootstrapSource.indexOf('.catch(async (error)');
+    assert.ok(catchIndex !== -1, '.catch(async (error) block must exist in bootstrap source');
     const catchBlock = bootstrapSource.slice(catchIndex);
     assert.ok(
       catchBlock.includes('setBootstrapError'),
@@ -114,8 +114,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
   });
 
   test('D-OFFLINE-001: bootstrap success sets runtime reachable', () => {
-    const catchIndex = bootstrapSource.indexOf('.catch((error)');
-    assert.ok(catchIndex !== -1, '.catch((error) block must exist');
+    const catchIndex = bootstrapSource.indexOf('.catch(async (error)');
+    assert.ok(catchIndex !== -1, '.catch(async (error) block must exist');
     const successPath = bootstrapSource.slice(0, catchIndex);
     assert.ok(
       successPath.includes('getOfflineCoordinator().markRuntimeReachable(daemonStatus.running)'),
@@ -124,8 +124,8 @@ describe('bootstrap sequence ordering (D-BOOT)', () => {
   });
 
   test('D-OFFLINE-001: bootstrap failure sets runtime unreachable', () => {
-    const catchIndex = bootstrapSource.indexOf('.catch((error)');
-    assert.ok(catchIndex !== -1, '.catch((error) block must exist');
+    const catchIndex = bootstrapSource.indexOf('.catch(async (error)');
+    assert.ok(catchIndex !== -1, '.catch(async (error) block must exist');
     const catchBlock = bootstrapSource.slice(catchIndex);
     assert.ok(
       catchBlock.includes('getOfflineCoordinator().markRuntimeReachable(false)'),
