@@ -6,11 +6,12 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
+import type { JsonObject } from '@renderer/bridge/types.js';
 import {
   createWorldDraft,
   updateWorldDraft,
   publishWorldDraft,
-  updateWorldMaintenance,
+  commitWorldState,
   listWorldRules,
   createWorldRule,
   updateWorldRule,
@@ -21,24 +22,21 @@ import {
   updateAgentRule,
   deprecateAgentRule,
   archiveAgentRule,
-  batchUpsertWorldEvents,
-  batchUpsertWorldMediaBindings,
-  deleteWorldEvent,
+  appendWorldHistory,
   batchCreateCreatorAgents,
+  FORGE_WORLD_WORKSPACE_TARGET_PATH,
   type ForgeBatchCreateCreatorAgentsInput,
-  type ForgeBatchUpsertWorldEventsInput,
-  type ForgeBatchUpsertWorldMediaBindingsInput,
+  type ForgeAppendWorldHistoryInput,
   type ForgeCreateAgentRuleInput,
   type ForgeCreateWorldDraftInput,
   type ForgeCreateWorldRuleInput,
   type ForgePublishWorldDraftInput,
   type ForgeUpdateAgentRuleInput,
   type ForgeUpdateWorldDraftInput,
-  type ForgeUpdateWorldMaintenanceInput,
   type ForgeUpdateWorldRuleInput,
 } from '@renderer/data/world-data-client.js';
 
-const LOREBOOK_PROJECTION_READ_ONLY = 'WORLD_LOREBOOK_PROJECTION_READ_ONLY';
+const MEDIA_BINDING_PROJECTION_READ_ONLY = 'WORLD_MEDIA_BINDING_PROJECTION_READ_ONLY';
 
 type SaveDraftInput = {
   draftId?: string;
@@ -82,16 +80,24 @@ export function useWorldMutations() {
   const saveMaintenanceMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
-      worldPatch: NonNullable<ForgeUpdateWorldMaintenanceInput['worldPatch']>;
+      worldState: JsonObject;
       reason: string;
+      sessionId: string;
       ifSnapshotVersion?: string;
     }) => {
-      const payload: ForgeUpdateWorldMaintenanceInput = {
-        worldPatch: input.worldPatch,
+      const payload = {
+        writes: [{
+          scope: 'WORLD' as const,
+          scopeKey: input.worldId,
+          targetPath: FORGE_WORLD_WORKSPACE_TARGET_PATH,
+          payload: input.worldState,
+          metadata: { owner: 'forge-maintenance' },
+        }],
         reason: input.reason,
+        sessionId: input.sessionId,
         ifSnapshotVersion: input.ifSnapshotVersion,
       };
-      return await updateWorldMaintenance(input.worldId, payload);
+      return await commitWorldState(input.worldId, payload);
     },
   });
 
@@ -171,53 +177,39 @@ export function useWorldMutations() {
     }) => await archiveAgentRule(input.worldId, input.agentId, input.ruleId),
   });
 
-  const syncLorebooksMutation = useMutation({
-    mutationFn: async () => {
-      throw new Error(LOREBOOK_PROJECTION_READ_ONLY);
-    },
-  });
-
   const syncEventsMutation = useMutation({
     mutationFn: async (input: {
       worldId: string;
-      eventUpserts: NonNullable<ForgeBatchUpsertWorldEventsInput['eventUpserts']>;
+      historyAppends: NonNullable<ForgeAppendWorldHistoryInput['historyAppends']>;
       reason: string;
-      mode?: 'merge' | 'replace';
+      sessionId: string;
       ifSnapshotVersion?: string;
     }) => {
-      const payload: ForgeBatchUpsertWorldEventsInput = {
-        eventUpserts: input.eventUpserts,
-        mode: input.mode || 'merge',
+      const payload = {
+        historyAppends: input.historyAppends,
         reason: input.reason,
+        sessionId: input.sessionId,
         ifSnapshotVersion: input.ifSnapshotVersion,
       };
-      return await batchUpsertWorldEvents(input.worldId, payload);
+      return await appendWorldHistory(input.worldId, payload);
     },
   });
 
   const syncMediaBindingsMutation = useMutation({
-    mutationFn: async (input: {
+    mutationFn: async (_input: {
       worldId: string;
-      bindingUpserts: NonNullable<ForgeBatchUpsertWorldMediaBindingsInput['bindingUpserts']>;
+      bindingUpserts: unknown[];
       reason: string;
+      sessionId: string;
     }) => {
-      const payload: ForgeBatchUpsertWorldMediaBindingsInput = {
-        bindingUpserts: input.bindingUpserts,
-        reason: input.reason,
-      };
-      return await batchUpsertWorldMediaBindings(input.worldId, payload);
-    },
-  });
-
-  const deleteLorebookMutation = useMutation({
-    mutationFn: async () => {
-      throw new Error(LOREBOOK_PROJECTION_READ_ONLY);
+      throw new Error(MEDIA_BINDING_PROJECTION_READ_ONLY);
     },
   });
 
   const deleteEventMutation = useMutation({
-    mutationFn: async (input: { worldId: string; eventId: string }) =>
-      await deleteWorldEvent(input.worldId, input.eventId),
+    mutationFn: async () => {
+      throw new Error('WORLD_HISTORY_APPEND_ONLY');
+    },
   });
 
   const batchCreateCreatorAgentsMutation = useMutation({
@@ -245,10 +237,8 @@ export function useWorldMutations() {
     updateAgentRuleMutation,
     deprecateAgentRuleMutation,
     archiveAgentRuleMutation,
-    syncLorebooksMutation,
     syncEventsMutation,
     syncMediaBindingsMutation,
-    deleteLorebookMutation,
     deleteEventMutation,
     batchCreateCreatorAgentsMutation,
   };

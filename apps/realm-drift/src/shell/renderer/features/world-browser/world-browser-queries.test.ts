@@ -14,7 +14,7 @@ vi.mock('./world-browser-data.js', () => ({
     agents: [{ id: 'a1', name: 'Agent 1' }],
   }),
   getWorldview: vi.fn().mockResolvedValue({
-    description: 'A test world',
+    timeModel: 'linear',
   }),
   listWorldScenes: vi.fn().mockResolvedValue([
     { id: 's1', name: 'Scene 1' },
@@ -71,7 +71,7 @@ describe('world-browser-queries', () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.description).toBe('A test world');
+    expect(result.current.data?.timeModel).toBe('linear');
   });
 
   it('useWorldScenesQuery fetches scenes', async () => {

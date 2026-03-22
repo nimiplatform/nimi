@@ -8,6 +8,51 @@ vi.mock('@renderer/data/world-data-client.js', () => ({
   getWorldDraft: (...args: unknown[]) => mockGetWorldDraft(...args),
 }));
 
+function buildDraftPayload(overrides?: Record<string, unknown>) {
+  return {
+    importSource: {
+      sourceType: 'TEXT',
+      sourceRef: 'draft-ref',
+      sourceText: 'hello world',
+    },
+    truthDraft: {
+      worldRules: [
+        {
+          ruleKey: 'axiom:time:module',
+          structured: { timeFlowRatio: 2 },
+        },
+      ],
+      agentRules: [
+        {
+          characterName: 'Alice',
+          payload: {
+            structured: {
+              concept: 'Hero',
+            },
+          },
+        },
+      ],
+    },
+    stateDraft: {
+      worldState: { name: 'Realm' },
+    },
+    historyDraft: {
+      events: {
+        primary: [{ id: 'e1', title: 'P1' }],
+        secondary: [{ id: 'e2', title: 'S1' }],
+      },
+    },
+    workflowState: {
+      workspaceVersion: 'ws-1',
+      createStep: 'DRAFT',
+      futureEventsText: '[{}]',
+      selectedStartTimeId: 't-1',
+      selectedCharacters: ['Alice'],
+    },
+    ...overrides,
+  };
+}
+
 describe('useWorldCreatePageDraftPersistence', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -22,43 +67,26 @@ describe('useWorldCreatePageDraftPersistence', () => {
         parseJob: { phase: 'done', chunkTotal: 4 },
         phase1Artifact: { updatedAt: '2026-03-19T00:00:00.000Z' },
       },
-      draftPayload: {
-        sourceText: 'hello world',
-        sourceRef: 'draft-ref',
-        worldPatch: { name: 'Realm' },
-        worldRules: [
-          {
-            ruleKey: 'axiom:time:module',
-            structured: { timeFlowRatio: 2 },
-          },
-        ],
-        eventsDraft: {
-          primary: [{ id: 'e1', title: 'P1' }],
-          secondary: [{ id: 'e2', title: 'S1' }],
+      draftPayload: buildDraftPayload({
+        workflowState: {
+          workspaceVersion: 'ws-1',
+          createStep: 'DRAFT',
+          futureEventsText: '[{}]',
+          selectedStartTimeId: 't-1',
+          selectedCharacters: ['Alice'],
+          parseJob: { phase: 'done', chunkTotal: 4 },
+          phase1Artifact: { updatedAt: '2026-03-19T00:00:00.000Z' },
         },
-        futureEventsText: '[{}]',
-        selectedStartTimeId: 't-1',
-        selectedCharacters: ['Alice'],
-        agentRules: [
-          {
-            characterName: 'Alice',
-            payload: {
-              structured: {
-                concept: 'Hero',
-              },
-            },
-          },
-        ],
-      },
+      }),
     });
 
-    const patchSnapshot = vi.fn();
+    const patchWorkspaceSnapshot = vi.fn();
     const setCreateStep = vi.fn();
 
     renderHook(() =>
       useWorldCreatePageDraftPersistence({
         hydrateForUser: vi.fn(),
-        patchSnapshot,
+        patchWorkspaceSnapshot,
         persistForUser: vi.fn(),
         resumeDraftId: 'draft-1',
         setCreateStep,
@@ -69,13 +97,14 @@ describe('useWorldCreatePageDraftPersistence', () => {
     );
 
     await waitFor(() => expect(mockGetWorldDraft).toHaveBeenCalledWith('draft-1'));
-    await waitFor(() => expect(patchSnapshot).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(patchWorkspaceSnapshot).toHaveBeenCalledTimes(1));
 
-    expect(patchSnapshot).toHaveBeenCalledWith(
+    expect(patchWorkspaceSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceText: 'hello world',
         sourceRef: 'draft-ref',
-        worldPatch: { name: 'Realm' },
+        worldStateDraft: { name: 'Realm' },
+        workspaceVersion: 'ws-1',
         worldviewPatch: { timeModel: { timeFlowRatio: 2 } },
         ruleTruthDraft: expect.objectContaining({
           worldRules: [
@@ -111,7 +140,7 @@ describe('useWorldCreatePageDraftPersistence', () => {
     expect(setCreateStep).toHaveBeenCalledWith('DRAFT');
   });
 
-  it('ignores legacy projection payload fields when restoring a draft', async () => {
+  it('fails close for legacy draft payloads that do not match typed schema', async () => {
     mockGetWorldDraft.mockResolvedValue({
       status: 'DRAFT',
       draftPayload: {
@@ -146,47 +175,35 @@ describe('useWorldCreatePageDraftPersistence', () => {
       pipelineState: {},
     });
 
-    const patchSnapshot = vi.fn();
+    const patchWorkspaceSnapshot = vi.fn();
+    const setNotice = vi.fn();
 
     renderHook(() =>
       useWorldCreatePageDraftPersistence({
         hydrateForUser: vi.fn(),
-        patchSnapshot,
+        patchWorkspaceSnapshot,
         persistForUser: vi.fn(),
         resumeDraftId: 'draft-legacy',
         setCreateStep: vi.fn(),
-        setNotice: vi.fn(),
+        setNotice,
         snapshot: {},
         userId: 'user-1',
       }),
     );
 
-    await waitFor(() => expect(patchSnapshot).toHaveBeenCalledTimes(1));
-
-    expect(patchSnapshot).toHaveBeenCalledWith(
-      expect.objectContaining({
-        worldviewPatch: {
-          timeModel: { timeFlowRatio: 3 },
-        },
-        lorebooksDraft: [],
-        selectedCharacters: ['Alice'],
-        agentSync: {
-          selectedCharacterIds: ['Alice'],
-          draftsByCharacter: {
-            Alice: expect.objectContaining({
-              characterName: 'Alice',
-              concept: 'Truth Hero',
-            }),
-          },
-        },
-      }),
-    );
+    await waitFor(() => expect(setNotice).toHaveBeenCalledWith('Failed to load draft. Starting fresh.'));
+    expect(patchWorkspaceSnapshot).not.toHaveBeenCalled();
   });
 
   it('falls back from REVIEW status to DRAFT when createStep is missing', async () => {
     mockGetWorldDraft.mockResolvedValue({
       status: 'REVIEW',
-      draftPayload: {},
+      draftPayload: buildDraftPayload({
+        workflowState: {
+          workspaceVersion: 'ws-2',
+          selectedCharacters: [],
+        },
+      }),
       pipelineState: {},
     });
 
@@ -195,7 +212,7 @@ describe('useWorldCreatePageDraftPersistence', () => {
     renderHook(() =>
       useWorldCreatePageDraftPersistence({
         hydrateForUser: vi.fn(),
-        patchSnapshot: vi.fn(),
+        patchWorkspaceSnapshot: vi.fn(),
         persistForUser: vi.fn(),
         resumeDraftId: 'draft-2',
         setCreateStep,
@@ -211,9 +228,13 @@ describe('useWorldCreatePageDraftPersistence', () => {
   it('restores workspace fields from truth-native worldRules and agentRules when patch fields are absent', async () => {
     mockGetWorldDraft.mockResolvedValue({
       status: 'DRAFT',
-      draftPayload: {
-        sourceText: 'truth first',
-        worldRules: [
+      draftPayload: buildDraftPayload({
+        importSource: {
+          sourceType: 'TEXT',
+          sourceText: 'truth first',
+        },
+        truthDraft: {
+          worldRules: [
           {
             ruleKey: 'axiom:time:module',
             structured: { timeFlowRatio: 5 },
@@ -222,8 +243,8 @@ describe('useWorldCreatePageDraftPersistence', () => {
             ruleKey: 'economy:resource:catalog',
             structured: { resources: ['Mana'] },
           },
-        ],
-        agentRules: [
+          ],
+          agentRules: [
           {
             characterName: 'Alice',
             payload: {
@@ -236,17 +257,25 @@ describe('useWorldCreatePageDraftPersistence', () => {
               },
             },
           },
-        ],
-      },
+          ],
+        },
+        historyDraft: {
+          events: { primary: [], secondary: [] },
+        },
+        workflowState: {
+          workspaceVersion: 'ws-3',
+          selectedCharacters: ['Alice'],
+        },
+      }),
       pipelineState: {},
     });
 
-    const patchSnapshot = vi.fn();
+    const patchWorkspaceSnapshot = vi.fn();
 
     renderHook(() =>
       useWorldCreatePageDraftPersistence({
         hydrateForUser: vi.fn(),
-        patchSnapshot,
+        patchWorkspaceSnapshot,
         persistForUser: vi.fn(),
         resumeDraftId: 'draft-3',
         setCreateStep: vi.fn(),
@@ -256,11 +285,12 @@ describe('useWorldCreatePageDraftPersistence', () => {
       }),
     );
 
-    await waitFor(() => expect(patchSnapshot).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(patchWorkspaceSnapshot).toHaveBeenCalledTimes(1));
 
-    expect(patchSnapshot).toHaveBeenCalledWith(
+    expect(patchWorkspaceSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({
         sourceText: 'truth first',
+        workspaceVersion: 'ws-3',
         worldviewPatch: {
           timeModel: { timeFlowRatio: 5 },
           resources: { resources: ['Mana'] },

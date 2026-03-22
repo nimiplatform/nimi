@@ -1,7 +1,7 @@
 import type { WorldDetailWithAgents, WorldviewData, WorldScene, WorldLorebook } from '../world-browser/world-browser-data.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 
-export type RawWorldContext = {
+export type WorldReferenceBundle = {
   world: WorldDetailWithAgents;
   worldview: WorldviewData;
   scenes: WorldScene[];
@@ -22,7 +22,7 @@ function sanitizePromptText(value: unknown): string {
 /**
  * Phase 1: Assemble raw world data into structured context string.
  */
-export function assembleRawContext(ctx: RawWorldContext): string {
+export function assembleRawContext(ctx: WorldReferenceBundle): string {
   const parts: string[] = [];
 
   // World identity
@@ -36,15 +36,14 @@ export function assembleRawContext(ctx: RawWorldContext): string {
 
   // Worldview
   const worldviewParts: string[] = [];
-  if (ctx.worldview.description) worldviewParts.push(sanitizePromptText(ctx.worldview.description));
-  if (ctx.worldview.geography) worldviewParts.push(`Geography: ${sanitizePromptText(ctx.worldview.geography)}`);
-  if (ctx.worldview.culture) worldviewParts.push(`Culture: ${sanitizePromptText(ctx.worldview.culture)}`);
-  if (ctx.worldview.history) worldviewParts.push(`History: ${sanitizePromptText(ctx.worldview.history)}`);
-  if (ctx.worldview.lore) worldviewParts.push(`Lore: ${sanitizePromptText(ctx.worldview.lore)}`);
+  if (ctx.worldview.timeModel) worldviewParts.push(`Time Model: ${sanitizePromptText(ctx.worldview.timeModel)}`);
   if (ctx.worldview.spaceTopology) worldviewParts.push(`Space Topology: ${sanitizePromptText(ctx.worldview.spaceTopology)}`);
   if (ctx.worldview.coreSystem) worldviewParts.push(`Core System: ${sanitizePromptText(ctx.worldview.coreSystem)}`);
   if (ctx.worldview.causality) worldviewParts.push(`Causality: ${sanitizePromptText(ctx.worldview.causality)}`);
-  if (ctx.worldview.tone) worldviewParts.push(`Tone: ${sanitizePromptText(ctx.worldview.tone)}`);
+  if (ctx.worldview.languages) worldviewParts.push(`Languages: ${sanitizePromptText(ctx.worldview.languages)}`);
+  if (ctx.worldview.resources) worldviewParts.push(`Resources: ${sanitizePromptText(ctx.worldview.resources)}`);
+  if (ctx.worldview.locations) worldviewParts.push(`Locations: ${sanitizePromptText(ctx.worldview.locations)}`);
+  if (ctx.worldview.visualGuide) worldviewParts.push(`Visual Guide: ${sanitizePromptText(ctx.worldview.visualGuide)}`);
   if (worldviewParts.length > 0) {
     parts.push('');
     parts.push('Worldview:');
@@ -62,13 +61,10 @@ export function assembleRawContext(ctx: RawWorldContext): string {
   }
 
   // Lorebooks (up to 5, filtered per RD-MARBLE-002)
-  const filteredLorebooks = ctx.lorebooks.filter(
-    (entry) => entry.enabled !== false && entry.constant !== false,
-  );
-  if (filteredLorebooks.length > 0) {
+  if (ctx.lorebooks.length > 0) {
     parts.push('');
     parts.push('Lore Entries:');
-    for (const entry of filteredLorebooks.slice(0, 5)) {
+    for (const entry of ctx.lorebooks.slice(0, 5)) {
       const content = entry.content ? ` - ${sanitizePromptText(entry.content).slice(0, 200)}` : '';
       parts.push(`  • ${sanitizePromptText(entry.title)}${content}`);
     }
@@ -94,7 +90,7 @@ export function assembleRawContext(ctx: RawWorldContext): string {
  * Falls back to direct concatenation if LLM is unavailable.
  */
 export async function composeMarblePrompt(
-  ctx: RawWorldContext,
+  ctx: WorldReferenceBundle,
   signal?: AbortSignal,
 ): Promise<string> {
   const rawContext = assembleRawContext(ctx);
@@ -150,7 +146,7 @@ export async function composeMarblePrompt(
 /**
  * Find the best image URL from world data for image-guided generation.
  */
-export function findWorldImageUrl(ctx: RawWorldContext): string | undefined {
+export function findWorldImageUrl(ctx: WorldReferenceBundle): string | undefined {
   // Prefer world banner
   if (ctx.world.bannerUrl) return ctx.world.bannerUrl;
   // Then world icon

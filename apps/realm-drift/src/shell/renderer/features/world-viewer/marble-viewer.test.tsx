@@ -74,9 +74,9 @@ vi.mock('./marble-api.js', () => ({
 }));
 
 import { MarbleViewer } from './marble-viewer.js';
-import type { RawWorldContext } from './marble-prompt.js';
+import type { WorldReferenceBundle } from './marble-prompt.js';
 
-function makeWorldContext(): RawWorldContext {
+function makeWorldContext(): WorldReferenceBundle {
   return {
     world: {
       id: 'w1',
@@ -103,7 +103,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -118,7 +118,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -132,7 +132,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={null}
+        worldReference={null}
         quality="mini"
       />,
     );
@@ -155,7 +155,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -178,7 +178,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="standard"
       />,
     );
@@ -199,7 +199,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -223,7 +223,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -247,7 +247,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -271,7 +271,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -297,7 +297,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -321,7 +321,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );
@@ -358,7 +358,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={ctx}
+        worldReference={ctx}
         quality="mini"
       />,
     );
@@ -384,7 +384,7 @@ describe('MarbleViewer', () => {
       <MarbleViewer
         worldId="w1"
         worldName="Test World"
-        worldContext={makeWorldContext()}
+        worldReference={makeWorldContext()}
         quality="mini"
       />,
     );

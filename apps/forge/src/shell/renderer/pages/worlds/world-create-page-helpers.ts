@@ -93,15 +93,6 @@ const WORLDVIEW_RULE_MODULES = [
     hardness: 'AESTHETIC',
     scope: 'WORLD',
   },
-  {
-    field: 'narrativeHooks',
-    ruleKey: 'narrative:hook:catalog',
-    title: 'World Narrative Hooks',
-    domain: 'NARRATIVE',
-    category: 'POLICY',
-    hardness: 'SOFT',
-    scope: 'WORLD',
-  },
 ] as const;
 
 export function asRecord(value: unknown): JsonObject {
@@ -185,13 +176,13 @@ export function getSelectedAgentDraftEntriesFromAgentSync(
 }
 
 export function getSelectedAgentDraftEntries(
-  snapshot: WorldStudioWorkspaceSnapshot,
+  snapshot: Pick<WorldStudioWorkspaceSnapshot, 'selectedCharacters' | 'agentSync'>,
 ): Array<{ characterName: string; draft: JsonObject }> {
   return getSelectedAgentDraftEntriesFromAgentSync(snapshot.selectedCharacters, snapshot.agentSync);
 }
 
 export function deriveAgentCoreRuleDrafts(
-  snapshot: WorldStudioWorkspaceSnapshot,
+  snapshot: Pick<WorldStudioWorkspaceSnapshot, 'selectedCharacters' | 'agentSync'>,
 ): Array<{ characterName: string; payload: JsonObject }> {
   return getSelectedAgentDraftEntries(snapshot).map((entry) => {
     const concept = String(entry.draft.concept || '').trim();

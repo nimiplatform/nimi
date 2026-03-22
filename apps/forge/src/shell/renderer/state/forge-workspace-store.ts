@@ -30,6 +30,17 @@ import {
   type WorkbenchStoreState,
 } from './forge-workspace-store-helpers.js';
 
+function getWindowStorage(): Pick<Storage, 'removeItem'> | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const storage = window.localStorage;
+  if (!storage || typeof storage.removeItem !== 'function') {
+    return null;
+  }
+  return storage;
+}
+
 type WorkbenchStoreActions = {
   reset: () => void;
   createWorkspace: (input?: CreateWorkspaceInput) => string;
@@ -133,8 +144,9 @@ export const useForgeWorkspaceStore = create<WorkbenchStoreState & WorkbenchStor
       workspaces: {},
       orderedWorkspaceIds: [],
     };
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem(STORAGE_KEY);
+    const storage = getWindowStorage();
+    if (storage) {
+      storage.removeItem(STORAGE_KEY);
     }
     set(nextState);
   },

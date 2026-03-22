@@ -2,13 +2,12 @@ import { useEffect, useRef } from 'react';
 import type {
   EventNodeDraft,
   WorldStudioCreateStep,
-  WorldStudioSnapshotPatch,
   WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { getWorldDraft } from '@renderer/data/world-data-client.js';
+import type { ForgeWorkspacePatch } from '@renderer/state/creator-world-workspace.js';
 import {
-  deriveRuleTruthDraftFromWorkspace,
   restoreAgentSyncFromAgentRuleDrafts,
   restoreWorldviewPatchFromWorldRules,
 } from './world-create-page-helpers.js';
@@ -19,9 +18,23 @@ function asRecord(value: unknown): JsonObject {
     : {};
 }
 
+function requireRecord(value: unknown, code: string): JsonObject {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(code);
+  }
+  return value as JsonObject;
+}
+
+function toObjectArray(value: unknown, code: string): JsonObject[] {
+  if (!Array.isArray(value)) {
+    throw new Error(code);
+  }
+  return value.filter((item): item is JsonObject => Boolean(item && typeof item === 'object' && !Array.isArray(item)));
+}
+
 type UseWorldCreatePageDraftPersistenceInput = {
   hydrateForUser: (userId: string) => void;
-  patchSnapshot: (patch: WorldStudioSnapshotPatch) => void;
+  patchWorkspaceSnapshot: (patch: ForgeWorkspacePatch) => void;
   persistForUser: (userId: string) => void;
   resumeDraftId: string;
   setCreateStep: (step: WorldStudioCreateStep) => void;
@@ -49,60 +62,68 @@ export function useWorldCreatePageDraftPersistence(input: UseWorldCreatePageDraf
         const data = await getWorldDraft(input.resumeDraftId);
         if (data && typeof data === 'object') {
           const record = asRecord(data);
-          const draftPayload = asRecord(record.draftPayload);
+          const draftPayload = requireRecord(record.draftPayload, 'FORGE_WORLD_DRAFT_PAYLOAD_REQUIRED');
           const pipelineState = asRecord(record.pipelineState);
-          const restoredWorldviewPatch = restoreWorldviewPatchFromWorldRules(draftPayload.worldRules);
-          const restoredAgentSync = restoreAgentSyncFromAgentRuleDrafts(draftPayload.agentRules);
-          const restoredSelectedCharacters = Array.isArray(draftPayload.selectedCharacters)
-            ? draftPayload.selectedCharacters.map((item) => String(item || '')).filter(Boolean)
+          const importSource = requireRecord(draftPayload.importSource, 'FORGE_WORLD_DRAFT_IMPORT_SOURCE_REQUIRED');
+          const truthDraft = requireRecord(draftPayload.truthDraft, 'FORGE_WORLD_DRAFT_TRUTH_REQUIRED');
+          const stateDraft = requireRecord(draftPayload.stateDraft, 'FORGE_WORLD_DRAFT_STATE_REQUIRED');
+          const historyDraft = requireRecord(draftPayload.historyDraft, 'FORGE_WORLD_DRAFT_HISTORY_REQUIRED');
+          const workflowState = requireRecord(draftPayload.workflowState, 'FORGE_WORLD_DRAFT_WORKFLOW_REQUIRED');
+          const worldRules = toObjectArray(truthDraft.worldRules, 'FORGE_WORLD_DRAFT_WORLD_RULES_REQUIRED');
+          const agentRules = toObjectArray(truthDraft.agentRules, 'FORGE_WORLD_DRAFT_AGENT_RULES_REQUIRED') as Array<{
+            characterName: string;
+            payload: JsonObject;
+          }>;
+          const worldStateDraft = requireRecord(stateDraft.worldState, 'FORGE_WORLD_DRAFT_WORLD_STATE_REQUIRED');
+          const historyEvents = requireRecord(historyDraft.events, 'FORGE_WORLD_DRAFT_HISTORY_EVENTS_REQUIRED');
+          const restoredWorldviewPatch = restoreWorldviewPatchFromWorldRules(worldRules);
+          const restoredAgentSync = restoreAgentSyncFromAgentRuleDrafts(agentRules);
+          const restoredSelectedCharacters = Array.isArray(workflowState.selectedCharacters)
+            ? workflowState.selectedCharacters.map((item) => String(item || '')).filter(Boolean)
             : restoredAgentSync.selectedCharacterIds;
-          const restoredRuleTruthDraft = (
-            Array.isArray(draftPayload.worldRules)
-            || Array.isArray(draftPayload.agentRules)
-          )
-            ? {
-              worldRules: Array.isArray(draftPayload.worldRules)
-                ? draftPayload.worldRules.filter((item): item is JsonObject => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
-                : [],
-              agentRules: Array.isArray(draftPayload.agentRules)
-                ? draftPayload.agentRules.filter((item): item is { characterName: string; payload: JsonObject } => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
-                : [],
-            }
-            : deriveRuleTruthDraftFromWorkspace({
-              worldviewPatch: restoredWorldviewPatch,
-              sourceRef: String(draftPayload.sourceRef || record.sourceRef || ''),
-              selectedCharacters: restoredSelectedCharacters,
-              agentSync: restoredAgentSync as WorldStudioWorkspaceSnapshot['agentSync'],
-            });
+          const restoredRuleTruthDraft = {
+            worldRules,
+            agentRules,
+          };
           const restoredStep = String(
-            pipelineState.createStep
+            workflowState.createStep
             || (String(record.status || 'DRAFT') === 'REVIEW' ? 'DRAFT' : record.status || 'SOURCE'),
           ) as WorldStudioCreateStep;
 
-          const patch: WorldStudioSnapshotPatch = {
-            sourceText: String(draftPayload.sourceText || ''),
-            sourceRef: String(draftPayload.sourceRef || record.sourceRef || ''),
-            worldPatch: asRecord(draftPayload.worldPatch),
+          const patch: ForgeWorkspacePatch = {
+            sourceText: String(importSource.sourceText || ''),
+            sourceRef: String(importSource.sourceRef || record.sourceRef || ''),
+            worldStateDraft,
             worldviewPatch: restoredWorldviewPatch,
             ruleTruthDraft: restoredRuleTruthDraft,
-            futureEventsText: String(draftPayload.futureEventsText || ''),
-            selectedStartTimeId: String(draftPayload.selectedStartTimeId || ''),
+            futureEventsText: String(workflowState.futureEventsText || ''),
+            selectedStartTimeId: String(workflowState.selectedStartTimeId || ''),
             selectedCharacters: restoredSelectedCharacters,
             eventsDraft: {
-              primary: Array.isArray(asRecord(draftPayload.eventsDraft).primary)
-                ? (asRecord(draftPayload.eventsDraft).primary as EventNodeDraft[])
+              primary: Array.isArray(historyEvents.primary)
+                ? historyEvents.primary as EventNodeDraft[]
                 : [],
-              secondary: Array.isArray(asRecord(draftPayload.eventsDraft).secondary)
-                ? (asRecord(draftPayload.eventsDraft).secondary as EventNodeDraft[])
+              secondary: Array.isArray(historyEvents.secondary)
+                ? historyEvents.secondary as EventNodeDraft[]
                 : [],
             },
             lorebooksDraft: [],
-            agentSync: restoredAgentSync as WorldStudioSnapshotPatch['agentSync'],
-            parseJob: asRecord(pipelineState.parseJob) as WorldStudioSnapshotPatch['parseJob'],
-            phase1Artifact: asRecord(pipelineState.phase1Artifact) as WorldStudioSnapshotPatch['phase1Artifact'],
+            agentSync: restoredAgentSync as ForgeWorkspacePatch['agentSync'],
+            parseJob: asRecord(workflowState.parseJob || pipelineState.parseJob) as ForgeWorkspacePatch['parseJob'],
+            phase1Artifact: asRecord(workflowState.phase1Artifact || pipelineState.phase1Artifact) as ForgeWorkspacePatch['phase1Artifact'],
+            workspaceVersion: String(workflowState.workspaceVersion || ''),
+            assets: {
+              worldCover: asRecord(asRecord(draftPayload.assetBindingsDraft).worldCover),
+              characterPortraits: asRecord(
+                asRecord(draftPayload.assetBindingsDraft).characterPortraits,
+              ) as NonNullable<ForgeWorkspacePatch['assets']>['characterPortraits'],
+              locationImages: asRecord(
+                asRecord(draftPayload.assetBindingsDraft).locationImages,
+              ) as NonNullable<ForgeWorkspacePatch['assets']>['locationImages'],
+            } as ForgeWorkspacePatch['assets'],
           };
 
-          input.patchSnapshot(patch);
+          input.patchWorkspaceSnapshot(patch);
           input.setCreateStep(restoredStep);
         }
       } catch {
@@ -111,7 +132,7 @@ export function useWorldCreatePageDraftPersistence(input: UseWorldCreatePageDraf
     }
 
     void loadDraft();
-  }, [input.patchSnapshot, input.resumeDraftId, input.setCreateStep, input.setNotice]);
+  }, [input.patchWorkspaceSnapshot, input.resumeDraftId, input.setCreateStep, input.setNotice]);
 
   useEffect(() => {
     if (input.userId) {

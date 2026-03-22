@@ -71,6 +71,11 @@ vi.mock('@nimiplatform/sdk/mod', () => ({
 }));
 
 const { useCreatorWorldStore } = await import('./creator-world-store.js');
+const {
+  toForgeWorkspaceSnapshot,
+  toPersistedForgeWorkspaceSnapshot,
+  toWorldStudioWorkspacePatch,
+} = await import('./creator-world-workspace.js');
 
 describe('creator-world-store', () => {
   beforeEach(() => {
@@ -142,9 +147,13 @@ describe('creator-world-store', () => {
       expect(kg.events.secondary).toEqual([]);
     });
 
-    it('patches worldPatch', () => {
-      useCreatorWorldStore.getState().patchSnapshot({ worldPatch: { name: 'My World' } } as never);
-      expect(useCreatorWorldStore.getState().snapshot.worldPatch).toEqual({ name: 'My World' });
+    it('patches worldStateDraft through the workspace adapter', () => {
+      useCreatorWorldStore.getState().patchSnapshot(
+        toWorldStudioWorkspacePatch({ worldStateDraft: { name: 'My World' } }) as never,
+      );
+      expect(toForgeWorkspaceSnapshot(useCreatorWorldStore.getState().snapshot).worldStateDraft).toEqual({
+        name: 'My World',
+      });
     });
 
     it('patches worldviewPatch', () => {
@@ -306,9 +315,11 @@ describe('creator-world-store', () => {
       expect(useCreatorWorldStore.getState().snapshot.taskState.recentTasks).toEqual(tasks);
     });
 
-    it('patches editorSnapshotVersion', () => {
-      useCreatorWorldStore.getState().patchSnapshot({ editorSnapshotVersion: 'v2' } as never);
-      expect(useCreatorWorldStore.getState().snapshot.editorSnapshotVersion).toBe('v2');
+    it('patches workspaceVersion through the workspace adapter', () => {
+      useCreatorWorldStore.getState().patchSnapshot(
+        toWorldStudioWorkspacePatch({ workspaceVersion: 'v2' }) as never,
+      );
+      expect(toForgeWorkspaceSnapshot(useCreatorWorldStore.getState().snapshot).workspaceVersion).toBe('v2');
     });
 
     it('patches unsavedChangesByPanel', () => {
@@ -341,13 +352,21 @@ describe('creator-world-store', () => {
   // ── hydrateForUser ─────────────────────────────────────────
 
   describe('hydrateForUser', () => {
-    it('loads snapshot from localStorage when stored data exists', () => {
-      const stored = { ...freshSnapshot(), sourceText: 'stored text', createStep: 'EVENTS' };
+    it('loads snapshot from localStorage when stored data exists under Forge workspace keys', () => {
+      const stored = {
+        ...toPersistedForgeWorkspaceSnapshot(freshSnapshot()),
+        sourceText: 'stored text',
+        createStep: 'EVENTS',
+        worldStateDraft: { name: 'Stored Realm' },
+        workspaceVersion: 'workspace-v1',
+      };
       mockLoadLocalStorageJson.mockReturnValue(stored);
       useCreatorWorldStore.getState().hydrateForUser('user-1');
       expect(mockLoadLocalStorageJson).toHaveBeenCalled();
       const snap = useCreatorWorldStore.getState().snapshot;
       expect(snap.sourceText).toBe('stored text');
+      expect(toForgeWorkspaceSnapshot(snap).worldStateDraft).toEqual({ name: 'Stored Realm' });
+      expect(toForgeWorkspaceSnapshot(snap).workspaceVersion).toBe('workspace-v1');
     });
 
     it('resets to default snapshot when no stored data', () => {
@@ -372,15 +391,27 @@ describe('creator-world-store', () => {
   // ── persistForUser ─────────────────────────────────────────
 
   describe('persistForUser', () => {
-    it('saves snapshot to localStorage', () => {
+    it('saves snapshot to localStorage with Forge workspace keys', () => {
       useCreatorWorldStore.setState({
-        snapshot: { ...freshSnapshot(), sourceText: 'save me' },
+        snapshot: {
+          ...freshSnapshot(),
+          sourceText: 'save me',
+          worldPatch: { name: 'Persisted Realm' },
+          editorSnapshotVersion: 'workspace-v2',
+        },
       });
       useCreatorWorldStore.getState().persistForUser('user-1');
       expect(mockSaveLocalStorageJson).toHaveBeenCalled();
       const firstCall = mockSaveLocalStorageJson.mock.calls[0] || [];
-      const [key] = firstCall;
+      const [key, payload] = firstCall;
       expect(key).toContain('user-1');
+      expect(payload).toMatchObject({
+        sourceText: 'save me',
+        worldStateDraft: { name: 'Persisted Realm' },
+        workspaceVersion: 'workspace-v2',
+      });
+      expect(payload).not.toHaveProperty('worldPatch');
+      expect(payload).not.toHaveProperty('editorSnapshotVersion');
     });
 
     it('does not save for empty userId', () => {

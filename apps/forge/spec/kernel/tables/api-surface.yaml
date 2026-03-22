@@ -66,39 +66,32 @@ worlds:
     description: List creator's published worlds
 
   - method: GET
-    path: /api/worlds/{worldId}/maintenance
+    path: /api/worlds/{worldId}/state
     status: existing
     feature: world-maintain
     controller: world-control.controller.ts
-    description: Get world maintenance data
+    description: Get world state projection
 
-  - method: PATCH
-    path: /api/worlds/{worldId}/maintenance
+  - method: POST
+    path: /api/worlds/{worldId}/state/commits
     status: existing
     feature: world-maintain
     controller: world-control.controller.ts
-    description: Update world maintenance data
+    description: Commit world state changes
 
   - method: GET
-    path: /api/worlds/{worldId}/events
+    path: /api/worlds/{worldId}/history
     status: existing
     feature: world-create, world-maintain, advisor-hub
     controller: world-control.controller.ts
-    description: List world events
+    description: List world history
 
   - method: POST
-    path: /api/worlds/{worldId}/events/batch-upsert
+    path: /api/worlds/{worldId}/history/appends
     status: existing
     feature: world-create, world-maintain
     controller: world-control.controller.ts
-    description: Batch upsert events
-
-  - method: DELETE
-    path: /api/worlds/{worldId}/events/{eventId}
-    status: existing
-    feature: world-maintain
-    controller: world-control.controller.ts
-    description: Delete event
+    description: Append world history items
 
   - method: GET
     path: /api/worlds/{worldId}/lorebooks
@@ -184,20 +177,6 @@ worlds:
     controller: world-control.controller.ts
     description: List media bindings
 
-  - method: POST
-    path: /api/worlds/{worldId}/media-bindings/batch-upsert
-    status: existing
-    feature: world-maintain, image-studio
-    controller: world-control.controller.ts
-    description: Batch upsert media bindings
-
-  - method: DELETE
-    path: /api/worlds/{worldId}/media-bindings/{bindingId}
-    status: existing
-    feature: world-maintain
-    controller: world-control.controller.ts
-    description: Delete media binding
-
   - method: GET
     path: /api/worlds/{worldId}/mutations
     status: existing
@@ -212,12 +191,6 @@ worlds:
     controller: world-control.controller.ts
     description: List world scenes
 
-  - method: GET
-    path: /api/worlds/{worldId}/narrative-contexts
-    status: existing
-    feature: world-maintain
-    controller: world-control.controller.ts
-    description: List narrative contexts
 
 # ── Creator (existing) ───────────────────────────────────
 creator:

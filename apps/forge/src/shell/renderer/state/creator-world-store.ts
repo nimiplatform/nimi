@@ -18,6 +18,14 @@ import type { JsonObject } from '@renderer/bridge/types.js';
 import { cloneDefaultSnapshot } from '@world-engine/state/workspace/defaults.js';
 import { syncSnapshot } from '@world-engine/state/workspace/normalize.js';
 import { asRecord, loadLocalStorageJson, saveLocalStorageJson } from '@nimiplatform/sdk/mod';
+import {
+  readStoredWorkspaceVersion,
+  readStoredWorldStateDraft,
+  toForgeWorkspacePatch,
+  toForgeWorkspaceSnapshot,
+  toPersistedForgeWorkspaceSnapshot,
+  toWorldStudioWorkspaceSnapshot,
+} from './creator-world-workspace.js';
 
 // ── Storage ────────────────────────────────────────────────
 
@@ -39,8 +47,8 @@ function readSnapshotFromStorage(userId: string): WorldStudioWorkspaceSnapshot |
     );
     if (!parsed) return null;
 
-    const base = cloneDefaultSnapshot();
-    const snapshot: WorldStudioWorkspaceSnapshot = {
+    const base = toForgeWorkspaceSnapshot(cloneDefaultSnapshot());
+    const forgeSnapshot = {
       ...base,
       ...parsed,
       panel: { ...base.panel, ...(parsed.panel || {}) },
@@ -53,10 +61,10 @@ function readSnapshotFromStorage(userId: string): WorldStudioWorkspaceSnapshot |
         ...(parsed.knowledgeGraph || {}),
         events: normalizeEventsDraft(parsed.eventsDraft || parsed.knowledgeGraph?.events || {}),
       },
-      worldPatch: asRecord(parsed.worldPatch),
-        worldviewPatch: asRecord(parsed.worldviewPatch),
-        ruleTruthDraft: {
-          worldRules: Array.isArray(parsed.ruleTruthDraft?.worldRules)
+      worldStateDraft: readStoredWorldStateDraft(parsed),
+      worldviewPatch: asRecord(parsed.worldviewPatch),
+      ruleTruthDraft: {
+        worldRules: Array.isArray(parsed.ruleTruthDraft?.worldRules)
           ? parsed.ruleTruthDraft.worldRules.filter((item): item is JsonObject => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
           : [],
         agentRules: Array.isArray(parsed.ruleTruthDraft?.agentRules)
@@ -84,7 +92,7 @@ function readSnapshotFromStorage(userId: string): WorldStudioWorkspaceSnapshot |
           ? parsed.eventGraphLayout.expandedPrimaryIds.map((item) => String(item || '')).filter(Boolean)
           : [],
       },
-      editorSnapshotVersion: String(parsed.editorSnapshotVersion || ''),
+      workspaceVersion: readStoredWorkspaceVersion(parsed),
       unsavedChangesByPanel: {
         ...base.unsavedChangesByPanel,
         ...(parsed.unsavedChangesByPanel || {}),
@@ -96,7 +104,7 @@ function readSnapshotFromStorage(userId: string): WorldStudioWorkspaceSnapshot |
       },
     };
 
-    return syncSnapshot(snapshot);
+    return syncSnapshot(toWorldStudioWorkspaceSnapshot(forgeSnapshot));
   } catch {
     return null;
   }
@@ -107,19 +115,17 @@ function persistSnapshotToStorage(userId: string, snapshot: WorldStudioWorkspace
   if (!normalizedUserId || typeof window === 'undefined') return;
 
   const synced = syncSnapshot(snapshot);
-  const {
-    worldPatchText: _a,
-    worldviewPatchText: _b,
-    eventsText: _c,
-    lorebooksText: _d,
-    ...persistable
-  } = synced as WorldStudioWorkspaceSnapshot & {
-    worldPatchText?: string;
-    worldviewPatchText?: string;
-    eventsText?: string;
-    lorebooksText?: string;
-  };
-  saveLocalStorageJson(storageKeyForUser(normalizedUserId), persistable);
+  saveLocalStorageJson(
+    storageKeyForUser(normalizedUserId),
+    toPersistedForgeWorkspaceSnapshot(
+      synced as WorldStudioWorkspaceSnapshot & {
+        worldPatchText?: string;
+        worldviewPatchText?: string;
+        eventsText?: string;
+        lorebooksText?: string;
+      },
+    ),
+  );
 }
 
 // ── Helpers ────────────────────────────────────────────────
@@ -164,63 +170,65 @@ export const useCreatorWorldStore = create<CreatorWorldStore>((set, get) => ({
 
   patchSnapshot: (patch) =>
     set((state) => {
-      const snapshot = syncSnapshot({
-        ...state.snapshot,
-        ...patch,
+      const forgeSnapshot = toForgeWorkspaceSnapshot(state.snapshot);
+      const forgePatch = toForgeWorkspacePatch(patch);
+      const nextForgeSnapshot = {
+        ...forgeSnapshot,
+        ...forgePatch,
         panel: {
-          ...state.snapshot.panel,
+          ...forgeSnapshot.panel,
           ...(patch.panel || {}),
         },
         parseJob: {
-          ...state.snapshot.parseJob,
+          ...forgeSnapshot.parseJob,
           ...(patch.parseJob || {}),
         },
         knowledgeGraph: {
-          ...state.snapshot.knowledgeGraph,
+          ...forgeSnapshot.knowledgeGraph,
           ...(patch.knowledgeGraph || {}),
           events: {
-            ...state.snapshot.knowledgeGraph.events,
+            ...forgeSnapshot.knowledgeGraph.events,
             ...((patch.knowledgeGraph as { events?: { primary?: EventNodeDraft[]; secondary?: EventNodeDraft[] } } | undefined)?.events || {}),
           },
         },
         ruleTruthDraft: {
           worldRules: Array.isArray(patch.ruleTruthDraft?.worldRules)
             ? (patch.ruleTruthDraft.worldRules as WorldStudioWorkspaceSnapshot['ruleTruthDraft']['worldRules'])
-            : state.snapshot.ruleTruthDraft.worldRules,
+            : forgeSnapshot.ruleTruthDraft.worldRules,
           agentRules: Array.isArray(patch.ruleTruthDraft?.agentRules)
             ? (patch.ruleTruthDraft.agentRules as WorldStudioWorkspaceSnapshot['ruleTruthDraft']['agentRules'])
-            : state.snapshot.ruleTruthDraft.agentRules,
+            : forgeSnapshot.ruleTruthDraft.agentRules,
         },
         eventsDraft: {
           primary: Array.isArray(patch.eventsDraft?.primary)
             ? (patch.eventsDraft.primary as EventNodeDraft[])
-            : state.snapshot.eventsDraft.primary,
+            : forgeSnapshot.eventsDraft.primary,
           secondary: Array.isArray(patch.eventsDraft?.secondary)
             ? (patch.eventsDraft.secondary as EventNodeDraft[])
-            : state.snapshot.eventsDraft.secondary,
+            : forgeSnapshot.eventsDraft.secondary,
         },
         lorebooksDraft: Array.isArray(patch.lorebooksDraft)
           ? (patch.lorebooksDraft as WorldStudioWorkspaceSnapshot['lorebooksDraft'])
-          : state.snapshot.lorebooksDraft,
+          : forgeSnapshot.lorebooksDraft,
         assets: {
           worldCover: {
-            ...state.snapshot.assets.worldCover,
+            ...forgeSnapshot.assets.worldCover,
             ...((patch.assets?.worldCover || {}) as Partial<WorldStudioWorkspaceSnapshot['assets']['worldCover']>),
           },
           characterPortraits: {
-            ...state.snapshot.assets.characterPortraits,
+            ...forgeSnapshot.assets.characterPortraits,
             ...((patch.assets?.characterPortraits || {}) as WorldStudioWorkspaceSnapshot['assets']['characterPortraits']),
           },
           locationImages: {
-            ...state.snapshot.assets.locationImages,
+            ...forgeSnapshot.assets.locationImages,
             ...((patch.assets?.locationImages || {}) as WorldStudioWorkspaceSnapshot['assets']['locationImages']),
           },
         },
         agentSync: {
-          ...state.snapshot.agentSync,
+          ...forgeSnapshot.agentSync,
           ...(patch.agentSync || {}),
           draftsByCharacter: (() => {
-            const current = state.snapshot.agentSync.draftsByCharacter;
+            const current = forgeSnapshot.agentSync.draftsByCharacter;
             const incoming =
               patch.agentSync && typeof patch.agentSync === 'object'
                 ? asRecord((patch.agentSync as { draftsByCharacter?: unknown }).draftsByCharacter)
@@ -254,77 +262,77 @@ export const useCreatorWorldStore = create<CreatorWorldStore>((set, get) => ({
           })(),
         },
         eventGraphLayout: {
-          ...state.snapshot.eventGraphLayout,
+          ...forgeSnapshot.eventGraphLayout,
           ...(patch.eventGraphLayout || {}),
         },
         embeddingIndex: {
-          ...state.snapshot.embeddingIndex,
+          ...forgeSnapshot.embeddingIndex,
           ...(patch.embeddingIndex || {}),
           entries: (() => {
             if (!patch.embeddingIndex || typeof patch.embeddingIndex !== 'object') {
-              return state.snapshot.embeddingIndex.entries;
+              return forgeSnapshot.embeddingIndex.entries;
             }
             const record = patch.embeddingIndex as { entries?: unknown };
             if (!Object.prototype.hasOwnProperty.call(record, 'entries')) {
-              return state.snapshot.embeddingIndex.entries;
+              return forgeSnapshot.embeddingIndex.entries;
             }
             return asRecord(record.entries) as WorldStudioWorkspaceSnapshot['embeddingIndex']['entries'];
           })(),
         },
         finalDraftAccumulator: (() => {
           if (!patch.finalDraftAccumulator || typeof patch.finalDraftAccumulator !== 'object') {
-            return state.snapshot.finalDraftAccumulator;
+            return forgeSnapshot.finalDraftAccumulator;
           }
           const incoming = patch.finalDraftAccumulator as Partial<FinalDraftAccumulator>;
           return {
-            ...state.snapshot.finalDraftAccumulator,
+            ...forgeSnapshot.finalDraftAccumulator,
             ...incoming,
             world:
               incoming.world && typeof incoming.world === 'object'
                 ? asRecord(incoming.world)
-                : state.snapshot.finalDraftAccumulator.world,
+                : forgeSnapshot.finalDraftAccumulator.world,
             worldview:
               incoming.worldview && typeof incoming.worldview === 'object'
                 ? asRecord(incoming.worldview)
-                : state.snapshot.finalDraftAccumulator.worldview,
+                : forgeSnapshot.finalDraftAccumulator.worldview,
             worldLorebooks: Array.isArray(incoming.worldLorebooks)
               ? (incoming.worldLorebooks as FinalDraftAccumulator['worldLorebooks'])
-              : state.snapshot.finalDraftAccumulator.worldLorebooks,
+              : forgeSnapshot.finalDraftAccumulator.worldLorebooks,
             futureHistoricalEvents: Array.isArray(incoming.futureHistoricalEvents)
               ? (incoming.futureHistoricalEvents as FinalDraftAccumulator['futureHistoricalEvents'])
-              : state.snapshot.finalDraftAccumulator.futureHistoricalEvents,
+              : forgeSnapshot.finalDraftAccumulator.futureHistoricalEvents,
             agentDraftsByCharacter:
               incoming.agentDraftsByCharacter && typeof incoming.agentDraftsByCharacter === 'object'
                 ? (asRecord(incoming.agentDraftsByCharacter) as FinalDraftAccumulator['agentDraftsByCharacter'])
-                : state.snapshot.finalDraftAccumulator.agentDraftsByCharacter,
+                : forgeSnapshot.finalDraftAccumulator.agentDraftsByCharacter,
             revisions: Array.isArray(incoming.revisions)
               ? (incoming.revisions as FinalDraftAccumulator['revisions'])
-              : state.snapshot.finalDraftAccumulator.revisions,
+              : forgeSnapshot.finalDraftAccumulator.revisions,
             lastUpdatedChunk: Number.isInteger(Number(incoming.lastUpdatedChunk))
               ? Number(incoming.lastUpdatedChunk)
-              : state.snapshot.finalDraftAccumulator.lastUpdatedChunk,
+              : forgeSnapshot.finalDraftAccumulator.lastUpdatedChunk,
           };
         })(),
         taskState: {
-          ...state.snapshot.taskState,
+          ...forgeSnapshot.taskState,
           ...(patch.taskState || {}),
           recentTasks: Array.isArray(patch.taskState?.recentTasks)
             ? (patch.taskState.recentTasks as WorldStudioWorkspaceSnapshot['taskState']['recentTasks'])
-            : state.snapshot.taskState.recentTasks,
+            : forgeSnapshot.taskState.recentTasks,
         },
-        editorSnapshotVersion:
-          typeof patch.editorSnapshotVersion === 'string'
-            ? patch.editorSnapshotVersion
-            : state.snapshot.editorSnapshotVersion,
+        workspaceVersion:
+          typeof forgePatch.workspaceVersion === 'string'
+            ? forgePatch.workspaceVersion
+            : forgeSnapshot.workspaceVersion,
         unsavedChangesByPanel: {
-          ...state.snapshot.unsavedChangesByPanel,
+          ...forgeSnapshot.unsavedChangesByPanel,
           ...(patch.unsavedChangesByPanel || {}),
         },
         selectedCharacters: Array.isArray(patch.selectedCharacters)
           ? patch.selectedCharacters.map((item) => String(item || '')).filter((item) => item.length > 0)
-          : state.snapshot.selectedCharacters,
-      });
-      return { snapshot };
+          : forgeSnapshot.selectedCharacters,
+      };
+      return { snapshot: syncSnapshot(toWorldStudioWorkspaceSnapshot(nextForgeSnapshot)) };
     }),
 
   patchPanel: (patch) =>

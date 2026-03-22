@@ -9,8 +9,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
   listMyWorlds,
   listWorldDrafts,
-  listWorldEvents,
-  getWorldMaintenance,
+  listWorldHistory,
+  getWorldState,
   listWorldLorebooks,
   listWorldMediaBindings,
   listWorldMutations,
@@ -19,14 +19,45 @@ import {
 type WorldDraftListPayload = Awaited<ReturnType<typeof listWorldDrafts>>;
 type WorldListPayload = Awaited<ReturnType<typeof listMyWorlds>>;
 type WorldMutationListPayload = Awaited<ReturnType<typeof listWorldMutations>>;
-type WorldEventListPayload = Awaited<ReturnType<typeof listWorldEvents>>;
-type WorldEventListItem = WorldEventListPayload extends { items?: Array<infer Item> } ? Item : never;
-type WorldEventEvidenceRef = WorldEventListItem extends { evidenceRefs?: Array<infer Ref> } ? Ref : never;
+type WorldHistoryListPayload = Awaited<ReturnType<typeof listWorldHistory>>;
+type WorldHistoryListItem = WorldHistoryListPayload extends { items?: Array<infer Item> } ? Item : never;
+type WorldHistoryEvidenceRef = WorldHistoryListItem extends { evidenceRefs?: Array<infer Ref> } ? Ref : never;
 
 function toStringOrNull(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const normalized = value.trim();
   return normalized ? normalized : null;
+}
+
+function requireNonEmptyString(value: unknown, code: string): string {
+  if (typeof value !== 'string') {
+    throw new Error(code);
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new Error(code);
+  }
+  return normalized;
+}
+
+function requireFiniteNumber(value: unknown, code: string): number {
+  const normalized = Number(value);
+  if (!Number.isFinite(normalized)) {
+    throw new Error(code);
+  }
+  return normalized;
+}
+
+function requireEnumValue<const Values extends readonly string[]>(
+  value: unknown,
+  allowed: Values,
+  code: string,
+): Values[number] {
+  const normalized = requireNonEmptyString(value, code);
+  if (!allowed.includes(normalized)) {
+    throw new Error(code);
+  }
+  return normalized as Values[number];
 }
 
 export type WorldDraftSummary = {
@@ -66,7 +97,7 @@ export type WorldMutationSummary = {
   createdAt: string;
 };
 
-export type WorldEventSummary = {
+export type WorldHistorySummary = {
   id: string;
   worldId: string;
   timelineSeq: number;
@@ -82,7 +113,7 @@ export type WorldEventSummary = {
   locationRefs: string[];
   characterRefs: string[];
   dependsOnEventIds: string[];
-  evidenceRefs: WorldEventEvidenceRef[];
+  evidenceRefs: WorldHistoryEvidenceRef[];
   confidence: number;
   needsEvidence: boolean;
   createdBy: string;
@@ -110,11 +141,15 @@ function toWorldSummaryList(payload: WorldListPayload): WorldSummary[] {
   const items = payload.items ?? [];
   return items
     .map((item) => ({
-      id: String(item.id || ''),
-      name: String(item.name || 'Untitled World'),
-      status: String(item.status || 'DRAFT') as WorldSummary['status'],
+      id: requireNonEmptyString(item.id, 'FORGE_WORLD_ID_INVALID'),
+      name: requireNonEmptyString(item.name, 'FORGE_WORLD_NAME_INVALID'),
+      status: requireEnumValue(
+        item.status,
+        ['DRAFT', 'PENDING_REVIEW', 'ACTIVE', 'SUSPENDED', 'ARCHIVED'] as const,
+        'FORGE_WORLD_STATUS_INVALID',
+      ),
       description: toStringOrNull(item.description),
-      updatedAt: String(item.updatedAt || ''),
+      updatedAt: requireNonEmptyString(item.updatedAt, 'FORGE_WORLD_UPDATED_AT_INVALID'),
     }))
     .filter((item) => Boolean(item.id));
 }
@@ -123,50 +158,99 @@ function toMutationSummaryList(payload: WorldMutationListPayload): WorldMutation
   const items = payload.items ?? [];
   return items
     .map((item) => ({
-      id: String(item.id || ''),
-      worldId: String(item.worldId || ''),
-      mutationType: String(item.mutationType || 'SETTING_CHANGE') as WorldMutationSummary['mutationType'],
-      targetPath: String(item.targetPath || ''),
+      id: requireNonEmptyString(item.id, 'FORGE_WORLD_MUTATION_ID_INVALID'),
+      worldId: requireNonEmptyString(item.worldId, 'FORGE_WORLD_MUTATION_WORLD_ID_INVALID'),
+      mutationType: requireEnumValue(
+        item.mutationType,
+        [
+          'SETTING_CHANGE',
+          'RULE_UPDATE',
+          'LOREBOOK_OVERRIDE',
+          'TABOO_CHANGE',
+          'LOCATION_CHANGE',
+          'EVENT_CREATE',
+          'EVENT_UPDATE',
+          'EVENT_DELETE',
+          'EVENT_BATCH_UPSERT',
+        ] as const,
+        'FORGE_WORLD_MUTATION_TYPE_INVALID',
+      ),
+      targetPath: requireNonEmptyString(item.targetPath, 'FORGE_WORLD_MUTATION_TARGET_PATH_INVALID'),
       reason: toStringOrNull(item.reason),
-      creatorId: String(item.creatorId || ''),
-      createdAt: String(item.createdAt || ''),
+      creatorId: requireNonEmptyString(item.creatorId, 'FORGE_WORLD_MUTATION_CREATOR_ID_INVALID'),
+      createdAt: requireNonEmptyString(item.createdAt, 'FORGE_WORLD_MUTATION_CREATED_AT_INVALID'),
     }))
     .filter((item) => Boolean(item.id));
 }
 
-function toEventSummaryList(payload: WorldEventListPayload): WorldEventSummary[] {
-  const items = payload.items ?? [];
+function toHistorySummaryList(payload: WorldHistoryListPayload): WorldHistorySummary[] {
+  const items = Array.isArray(payload.items)
+    ? payload.items as Array<Record<string, unknown>>
+    : [];
+
   return items
-    .map((item) => ({
-      id: String(item.id || ''),
-      worldId: String(item.worldId || ''),
-      timelineSeq: Number.isFinite(Number(item.timelineSeq)) ? Number(item.timelineSeq) : 0,
-      level: String(item.level || 'PRIMARY') as WorldEventSummary['level'],
-      eventHorizon: String(item.eventHorizon || 'PAST') as WorldEventSummary['eventHorizon'],
-      parentEventId: toStringOrNull(item.parentEventId),
-      title: String(item.title || 'Untitled Event'),
-      summary: toStringOrNull(item.summary),
-      cause: toStringOrNull(item.cause),
-      process: toStringOrNull(item.process),
-      result: toStringOrNull(item.result),
-      timeRef: toStringOrNull(item.timeRef),
-      locationRefs: Array.isArray(item.locationRefs)
-        ? item.locationRefs.map((entry) => String(entry || '')).filter(Boolean)
-        : [],
-      characterRefs: Array.isArray(item.characterRefs)
-        ? item.characterRefs.map((entry) => String(entry || '')).filter(Boolean)
-        : [],
-      dependsOnEventIds: Array.isArray(item.dependsOnEventIds)
-        ? item.dependsOnEventIds.map((entry) => String(entry || '')).filter(Boolean)
-        : [],
-      evidenceRefs: Array.isArray(item.evidenceRefs) ? item.evidenceRefs as WorldEventEvidenceRef[] : [],
-      confidence: Number.isFinite(Number(item.confidence)) ? Number(item.confidence) : 0.5,
-      needsEvidence: Boolean(item.needsEvidence),
-      createdBy: String(item.createdBy || ''),
-      updatedBy: String(item.updatedBy || ''),
-      createdAt: String(item.createdAt || ''),
-      updatedAt: String(item.updatedAt || ''),
-    }))
+    .map((item, index) => {
+      const metadata = item.payload && typeof item.payload === 'object' && !Array.isArray(item.payload)
+        ? item.payload as Record<string, unknown>
+        : {};
+      const title = typeof item.title === 'string' ? item.title.trim() : '';
+      const happenedAt =
+        typeof item.happenedAt === 'string' && item.happenedAt.trim()
+          ? item.happenedAt.trim()
+          : null;
+      const eventType =
+        typeof item.eventType === 'string' && item.eventType.trim()
+          ? item.eventType.trim()
+          : null;
+      if (!title) {
+        throw new Error('FORGE_WORLD_EVENT_TITLE_INVALID');
+      }
+      if (!happenedAt) {
+        throw new Error('FORGE_WORLD_EVENT_HAPPENED_AT_INVALID');
+      }
+      const level: WorldHistorySummary['level'] = eventType?.toLowerCase().includes('secondary')
+        ? 'SECONDARY'
+        : 'PRIMARY';
+      const eventHorizon: WorldHistorySummary['eventHorizon'] = eventType?.toLowerCase().includes('future')
+        ? 'FUTURE'
+        : 'PAST';
+      return {
+        id: requireNonEmptyString(item.eventId, 'FORGE_WORLD_HISTORY_EVENT_ID_INVALID'),
+        worldId: requireNonEmptyString(item.worldId, 'FORGE_WORLD_EVENT_WORLD_ID_INVALID'),
+        timelineSeq: index + 1,
+        level,
+        eventHorizon,
+        parentEventId: null,
+        title,
+        summary: toStringOrNull(typeof item.summary === 'string' ? item.summary : null),
+        cause: toStringOrNull(typeof item.cause === 'string' ? item.cause : null),
+        process: toStringOrNull(typeof item.process === 'string' ? item.process : null),
+        result: toStringOrNull(typeof item.result === 'string' ? item.result : null),
+        timeRef: toStringOrNull(typeof item.timeRef === 'string' ? item.timeRef : happenedAt),
+        locationRefs: Array.isArray(item.locationRefs)
+          ? item.locationRefs.map((entry) => String(entry || '')).filter(Boolean)
+          : [],
+        characterRefs: Array.isArray(item.characterRefs)
+          ? item.characterRefs.map((entry) => String(entry || '')).filter(Boolean)
+          : [],
+        dependsOnEventIds: Array.isArray(item.dependsOnEventIds)
+          ? item.dependsOnEventIds.map((entry) => String(entry || '')).filter(Boolean)
+          : [],
+        evidenceRefs: Array.isArray(item.evidenceRefs) ? item.evidenceRefs as WorldHistoryEvidenceRef[] : [],
+        confidence:
+          Array.isArray(item.evidenceRefs) && item.evidenceRefs.length > 0
+            ? item.evidenceRefs.reduce((sum, entry) => sum + requireFiniteNumber(entry.confidence, 'FORGE_WORLD_EVENT_CONFIDENCE_INVALID'), 0) / item.evidenceRefs.length
+            : 0,
+        needsEvidence: !Array.isArray(item.evidenceRefs) || item.evidenceRefs.length === 0,
+        createdBy: requireNonEmptyString(item.createdBy, 'FORGE_WORLD_EVENT_CREATED_BY_INVALID'),
+        updatedBy: requireNonEmptyString(item.createdBy, 'FORGE_WORLD_EVENT_UPDATED_BY_INVALID'),
+        createdAt: requireNonEmptyString(item.committedAt || item.createdAt, 'FORGE_WORLD_EVENT_CREATED_AT_INVALID'),
+        updatedAt: requireNonEmptyString(
+          item.committedAt || item.updatedAt || item.createdAt,
+          'FORGE_WORLD_EVENT_UPDATED_AT_INVALID',
+        ),
+      };
+    })
     .filter((item) => Boolean(item.id));
 }
 
@@ -191,11 +275,11 @@ export function useWorldResourceQueries(input: {
     queryFn: async () => toWorldSummaryList(await listMyWorlds()),
   });
 
-  const maintenanceQuery = useQuery({
-    queryKey: ['forge', 'world', 'maintenance', input.worldId],
+  const stateQuery = useQuery({
+    queryKey: ['forge', 'world', 'state', input.worldId],
     enabled: input.enabled && Boolean(input.worldId),
     retry: false,
-    queryFn: async () => await getWorldMaintenance(input.worldId),
+    queryFn: async () => await getWorldState(input.worldId),
   });
 
   const lorebooksQuery = useQuery({
@@ -205,11 +289,11 @@ export function useWorldResourceQueries(input: {
     queryFn: async () => await listWorldLorebooks(input.worldId),
   });
 
-  const eventsQuery = useQuery({
-    queryKey: ['forge', 'world', 'events', input.worldId],
+  const historyQuery = useQuery({
+    queryKey: ['forge', 'world', 'history', input.worldId],
     enabled: input.enabled && Boolean(input.worldId),
     retry: false,
-    queryFn: async () => toEventSummaryList(await listWorldEvents(input.worldId)),
+    queryFn: async () => toHistorySummaryList(await listWorldHistory(input.worldId)),
   });
 
   const mutationsQuery = useQuery({
@@ -229,8 +313,8 @@ export function useWorldResourceQueries(input: {
   return {
     draftsQuery,
     worldsQuery,
-    maintenanceQuery,
-    eventsQuery,
+    stateQuery,
+    historyQuery,
     lorebooksQuery,
     mutationsQuery,
     mediaBindingsQuery,

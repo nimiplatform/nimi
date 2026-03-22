@@ -330,9 +330,12 @@ export type LlmCharacterExtraction = {
 };
 
 export type LlmContradictionExtraction = {
+  ruleKind: 'WORLD' | 'AGENT';
   ruleKey: string;
   previousStatement: string;
   newStatement: string;
+  previousHardness: RuleHardness;
+  newHardness: RuleHardness;
   reason: string;
 };
 

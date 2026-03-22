@@ -71,6 +71,45 @@ function readObjectArrayField(value: unknown, key: string): object[] {
   return Array.isArray(field) ? field.filter(isObjectLike) : [];
 }
 
+function buildImportDraftPayload(input: {
+  worldName: string;
+  worldDescription: string;
+  sourceRef: string;
+  worldRules: LocalWorldRuleDraft[];
+}) {
+  const worldName = String(input.worldName || '').trim();
+  if (!worldName) {
+    throw new Error('FORGE_IMPORT_WORLD_NAME_REQUIRED');
+  }
+  return {
+    importSource: {
+      sourceType: 'TEXT' as const,
+      sourceRef: input.sourceRef,
+    },
+    truthDraft: {
+      worldRules: input.worldRules,
+      agentRules: [],
+    },
+    stateDraft: {
+      worldState: {
+        name: worldName,
+        description: String(input.worldDescription || '').trim() || undefined,
+      },
+    },
+    historyDraft: {
+      events: {
+        primary: [],
+        secondary: [],
+      },
+    },
+    workflowState: {
+      workspaceVersion: crypto.randomUUID(),
+      createStep: 'REVIEW',
+      selectedCharacters: [],
+    },
+  };
+}
+
 async function retryOperation<T>(operation: () => Promise<T>): Promise<T> {
   let lastError: unknown = null;
   for (let attempt = 1; attempt <= MAX_PUBLISH_ATTEMPTS; attempt += 1) {
@@ -233,9 +272,14 @@ export async function publishForgeWorkspacePlan(params: {
     onProgress?.({ phase: 'CREATING_WORLD', current: 0, total: 1, errors });
     try {
       const draftResponse = await retryOperation(() => createWorldDraft({
-        name: worldName,
-        description: worldDescription,
-        sourceType: 'forge_workspace',
+        sourceType: 'TEXT',
+        sourceRef: 'forge_workspace',
+        draftPayload: buildImportDraftPayload({
+          worldName,
+          worldDescription,
+          sourceRef: 'forge_workspace',
+          worldRules: plan.worldRules,
+        }),
       }));
       const draftId = readStringField(draftResponse, 'id');
       const publishResponse = await retryOperation(() => publishWorldDraft(draftId));
@@ -341,12 +385,13 @@ export async function publishForgeWorkspacePlan(params: {
       });
       continue;
     }
+    const sourceAgentId = item.sourceAgentId;
     try {
-      await retryOperation(() => updateAgent(item.sourceAgentId, {
+      await retryOperation(() => updateAgent(sourceAgentId, {
         displayName: item.displayName,
       }));
-      result.draftAgentIds![item.draftAgentId] = item.sourceAgentId;
-      result.agentIds[item.displayName] = item.sourceAgentId;
+      result.draftAgentIds![item.draftAgentId] = sourceAgentId;
+      result.agentIds[item.displayName] = sourceAgentId;
     } catch (err) {
       errors.push({
         phase: 'CREATING_AGENTS',
@@ -474,9 +519,14 @@ export async function publishNovelImport(params: {
     onProgress?.({ phase: 'CREATING_WORLD', current: 0, total: 1, errors });
     try {
       const draftResponse = await retryOperation(() => createWorldDraft({
-        name: worldName,
-        description: worldDescription,
-        sourceType: 'novel_import',
+        sourceType: 'TEXT',
+        sourceRef: 'novel_import',
+        draftPayload: buildImportDraftPayload({
+          worldName,
+          worldDescription,
+          sourceRef: 'novel_import',
+          worldRules,
+        }),
       }));
       const draftId = readStringField(draftResponse, 'id');
 

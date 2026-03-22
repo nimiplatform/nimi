@@ -6,8 +6,8 @@ import React, { type ReactNode } from 'react';
 const mockWorldDataClient = vi.hoisted(() => ({
   listMyWorlds: vi.fn(),
   listWorldDrafts: vi.fn(),
-  listWorldEvents: vi.fn(),
-  getWorldMaintenance: vi.fn(),
+  listWorldHistory: vi.fn(),
+  getWorldState: vi.fn(),
   listWorldLorebooks: vi.fn(),
   listWorldMediaBindings: vi.fn(),
   listWorldMutations: vi.fn(),
@@ -29,6 +29,10 @@ function createWrapper() {
 describe('useWorldResourceQueries', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockWorldDataClient.getWorldState.mockResolvedValue({ worldId: 'w1', version: 'state-v1', payload: {} });
+    mockWorldDataClient.listWorldLorebooks.mockResolvedValue({ worldId: 'w1', items: [] });
+    mockWorldDataClient.listWorldMediaBindings.mockResolvedValue({ worldId: 'w1', items: [] });
+    mockWorldDataClient.listWorldMutations.mockResolvedValue({ worldId: 'w1', items: [] });
   });
 
   it('returns all expected query objects', () => {
@@ -40,8 +44,8 @@ describe('useWorldResourceQueries', () => {
 
     expect(result.current).toHaveProperty('draftsQuery');
     expect(result.current).toHaveProperty('worldsQuery');
-    expect(result.current).toHaveProperty('maintenanceQuery');
-    expect(result.current).toHaveProperty('eventsQuery');
+    expect(result.current).toHaveProperty('stateQuery');
+    expect(result.current).toHaveProperty('historyQuery');
     expect(result.current).toHaveProperty('lorebooksQuery');
     expect(result.current).toHaveProperty('mutationsQuery');
     expect(result.current).toHaveProperty('mediaBindingsQuery');
@@ -59,8 +63,8 @@ describe('useWorldResourceQueries', () => {
 
     expect(mockWorldDataClient.listWorldDrafts).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listMyWorlds).not.toHaveBeenCalled();
-    expect(mockWorldDataClient.getWorldMaintenance).not.toHaveBeenCalled();
-    expect(mockWorldDataClient.listWorldEvents).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.getWorldState).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.listWorldHistory).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldLorebooks).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldMutations).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldMediaBindings).not.toHaveBeenCalled();
@@ -122,17 +126,18 @@ describe('useWorldResourceQueries', () => {
     expect(worlds![0]).toMatchObject({ id: 'w1', name: 'My World', status: 'ACTIVE' });
   });
 
-  it('eventsQuery normalizes event summaries with timeline fields', async () => {
-    mockWorldDataClient.listWorldEvents.mockResolvedValue({
+  it('historyQuery normalizes history summaries with timeline fields', async () => {
+    mockWorldDataClient.listWorldHistory.mockResolvedValue({
+      worldId: 'w1',
+      version: 'history-v1',
       items: [
         {
           id: 'e1',
+          eventId: 'evt-1',
           worldId: 'w1',
-          timelineSeq: 1,
-          level: 'PRIMARY',
-          eventHorizon: 'PAST',
-          parentEventId: null,
           title: 'The Great War',
+          happenedAt: '2026-01-01T00:00:00Z',
+          eventType: 'PRIMARY_PAST',
           summary: 'A major conflict',
           cause: null,
           process: null,
@@ -142,12 +147,16 @@ describe('useWorldResourceQueries', () => {
           characterRefs: [],
           dependsOnEventIds: [],
           evidenceRefs: [],
-          confidence: 0.8,
-          needsEvidence: false,
+          payload: {
+            timelineSeq: 1,
+            level: 'PRIMARY',
+            eventHorizon: 'PAST',
+            parentEventId: null,
+            confidence: 0.8,
+            needsEvidence: false,
+          },
           createdBy: 'user1',
-          updatedBy: 'user1',
-          createdAt: '2026-01-01',
-          updatedAt: '2026-01-01',
+          committedAt: '2026-01-01',
         },
       ],
     });
@@ -158,12 +167,12 @@ describe('useWorldResourceQueries', () => {
       { wrapper },
     );
 
-    await waitFor(() => expect(result.current.eventsQuery.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.historyQuery.isSuccess).toBe(true));
 
-    const events = result.current.eventsQuery.data;
-    expect(events).toHaveLength(1);
-    expect(events![0]).toMatchObject({
-      id: 'e1',
+    const history = result.current.historyQuery.data;
+    expect(history).toHaveLength(1);
+    expect(history![0]).toMatchObject({
+      id: 'evt-1',
       title: 'The Great War',
       timelineSeq: 1,
       level: 'PRIMARY',

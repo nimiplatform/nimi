@@ -105,19 +105,41 @@ function cloneState<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+function getWindowStorage(): StorageLike | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const storage = window.localStorage;
+  if (!storage) {
+    return null;
+  }
+  if (
+    typeof storage.getItem !== 'function'
+    || typeof storage.setItem !== 'function'
+    || typeof storage.removeItem !== 'function'
+  ) {
+    return null;
+  }
+  return storage;
+}
+
 export function persistState(state: WorkbenchStoreState) {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  const storage = getWindowStorage();
+  if (!storage) {
     return;
   }
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  storage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 export function restoreState(): WorkbenchStoreState {
-  if (typeof window === 'undefined' || !window.localStorage) {
+  const storage = getWindowStorage();
+  if (!storage) {
     return { activeWorkspaceId: null, workspaces: {}, orderedWorkspaceIds: [] };
   }
 
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const raw = storage.getItem(STORAGE_KEY);
   if (!raw) {
     return { activeWorkspaceId: null, workspaces: {}, orderedWorkspaceIds: [] };
   }

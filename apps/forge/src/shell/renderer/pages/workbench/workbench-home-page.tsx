@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 
+const DEFAULT_NEW_WORLD_WORKSPACE_TITLE = 'New World Workspace';
+
 function formatDate(iso: string): string {
   if (!iso) {
     return '';
@@ -46,7 +48,10 @@ export default function WorkbenchHomePage() {
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <button
               onClick={() => {
-                const workspaceId = createWorkspace({ mode: 'NEW_WORLD', title: 'Untitled World' });
+                const workspaceId = createWorkspace({
+                  mode: 'NEW_WORLD',
+                  title: DEFAULT_NEW_WORLD_WORKSPACE_TITLE,
+                });
                 navigate(`/workbench/${workspaceId}?panel=WORLD_TRUTH`);
               }}
               className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left transition-colors hover:border-white/20 hover:bg-white/10"
@@ -124,7 +129,7 @@ export default function WorkbenchHomePage() {
                           </span>
                         </div>
                         <p className="mt-2 text-sm text-neutral-400">
-                          {snapshot.worldDraft.name || 'Untitled World'}
+                          {snapshot.worldDraft.name || snapshot.workspace.title}
                           {snapshot.worldDraft.worldId ? ` · ${snapshot.worldDraft.worldId.slice(0, 8)}` : ' · draft'}
                           {snapshot.importSessions.length > 0 ? ` · ${snapshot.importSessions.length} import session(s)` : ''}
                         </p>

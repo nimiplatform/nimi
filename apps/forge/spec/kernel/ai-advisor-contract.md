@@ -43,9 +43,9 @@ Provide specific, actionable recommendations with references to event/lorebook I
 ### Input Data
 
 Loaded from current world via SDK:
-- `GET /api/worlds/:worldId/events` → event graph
+- `GET /api/worlds/:worldId/history` → world history graph
 - `GET /api/worlds/:worldId/lorebooks` → lorebook entries
-- `GET /api/worlds/:worldId/maintenance` → worldview
+- `GET /api/worlds/:worldId/state` → worldview/state projection
 
 ### Analysis Modes
 

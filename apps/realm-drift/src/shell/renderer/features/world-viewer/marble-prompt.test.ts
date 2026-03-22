@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { RawWorldContext } from './marble-prompt.js';
+import type { WorldReferenceBundle } from './marble-prompt.js';
 
 const mockStream = vi.fn();
 
@@ -17,7 +17,7 @@ vi.mock('@nimiplatform/sdk', () => ({
 
 import { assembleRawContext, composeMarblePrompt, findWorldImageUrl } from './marble-prompt.js';
 
-function makeFullContext(): RawWorldContext {
+function makeFullContext(): WorldReferenceBundle {
   return {
     world: {
       id: 'w1',
@@ -32,11 +32,12 @@ function makeFullContext(): RawWorldContext {
       ],
     },
     worldview: {
-      description: 'A vast continent divided by the Great Rift',
-      geography: 'Mountains to the north, forests to the south',
-      culture: 'Seven kingdoms united by the Council of Mages',
-      history: 'Founded after the Dragon Wars 1000 years ago',
-      lore: 'The Crystal Heart powers all magic in the realm',
+      timeModel: 'LINEAR; unit day',
+      spaceTopology: 'MULTI_REGION; FINITE; realms Material Plane',
+      coreSystem: 'Arcane Engine; Mana-based power network',
+      causality: 'DETERMINISTIC; karma enabled',
+      locations: 'regions Northreach, Southwild',
+      visualGuide: 'Painterly; Epic',
     },
     scenes: [
       { id: 's1', name: 'Crystal Tower', description: 'A towering spire of pure crystal' },
@@ -49,7 +50,7 @@ function makeFullContext(): RawWorldContext {
   };
 }
 
-function makeSparseContext(): RawWorldContext {
+function makeSparseContext(): WorldReferenceBundle {
   return {
     world: {
       id: 'w2',
@@ -71,8 +72,8 @@ describe('assembleRawContext', () => {
     expect(result).toContain('Era: Medieval');
     expect(result).toContain('Themes: Magic, Adventure, Dragons');
     expect(result).toContain('Worldview:');
-    expect(result).toContain('Geography: Mountains to the north');
-    expect(result).toContain('Culture: Seven kingdoms');
+    expect(result).toContain('Time Model: LINEAR; unit day');
+    expect(result).toContain('Locations: regions Northreach, Southwild');
     expect(result).toContain('Key Locations:');
     expect(result).toContain('Crystal Tower');
     expect(result).toContain('Lore Entries:');
@@ -96,40 +97,41 @@ describe('assembleRawContext', () => {
     const ctx = makeFullContext();
     ctx.world.description = undefined;
     ctx.world.genre = undefined;
-    ctx.worldview.geography = undefined;
+    ctx.worldview.locations = undefined;
 
     const result = assembleRawContext(ctx);
 
     expect(result).toContain('World: Eldoria');
     expect(result).not.toContain('Description:');
     expect(result).not.toContain('Genre:');
-    expect(result).not.toContain('Geography:');
+    expect(result).not.toContain('Locations: regions');
   });
 
-  it('includes worldview physics fields (spaceTopology, coreSystem, causality, tone)', () => {
+  it('includes canonical worldview summary fields', () => {
     const ctx = makeFullContext();
     ctx.worldview.spaceTopology = 'Infinite plane with floating islands';
     ctx.worldview.coreSystem = 'Mana crystallization engine';
     ctx.worldview.causality = 'Deterministic with magical exceptions';
-    ctx.worldview.tone = 'Epic and mysterious';
+    ctx.worldview.visualGuide = 'Epic and mysterious';
 
     const result = assembleRawContext(ctx);
 
     expect(result).toContain('Space Topology: Infinite plane with floating islands');
     expect(result).toContain('Core System: Mana crystallization engine');
     expect(result).toContain('Causality: Deterministic with magical exceptions');
-    expect(result).toContain('Tone: Epic and mysterious');
+    expect(result).toContain('Visual Guide: Epic and mysterious');
   });
 
-  it('omits worldview physics fields when absent', () => {
+  it('omits canonical worldview summary fields when absent', () => {
     const ctx = makeSparseContext();
 
     const result = assembleRawContext(ctx);
 
+    expect(result).not.toContain('Time Model:');
     expect(result).not.toContain('Space Topology:');
     expect(result).not.toContain('Core System:');
     expect(result).not.toContain('Causality:');
-    expect(result).not.toContain('Tone:');
+    expect(result).not.toContain('Visual Guide:');
   });
 });
 
@@ -242,7 +244,7 @@ describe('composeMarblePrompt', () => {
 
 describe('findWorldImageUrl', () => {
   it('returns bannerUrl first', () => {
-    const ctx: RawWorldContext = {
+    const ctx: WorldReferenceBundle = {
       world: {
         id: 'w1',
         name: 'Test',
@@ -259,7 +261,7 @@ describe('findWorldImageUrl', () => {
   });
 
   it('returns iconUrl as fallback when no bannerUrl', () => {
-    const ctx: RawWorldContext = {
+    const ctx: WorldReferenceBundle = {
       world: {
         id: 'w1',
         name: 'Test',
@@ -275,7 +277,7 @@ describe('findWorldImageUrl', () => {
   });
 
   it('returns scene imageUrl as second fallback', () => {
-    const ctx: RawWorldContext = {
+    const ctx: WorldReferenceBundle = {
       world: {
         id: 'w1',
         name: 'Test',
@@ -293,7 +295,7 @@ describe('findWorldImageUrl', () => {
   });
 
   it('returns undefined when no images available', () => {
-    const ctx: RawWorldContext = {
+    const ctx: WorldReferenceBundle = {
       world: {
         id: 'w1',
         name: 'Test',

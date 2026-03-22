@@ -23,6 +23,11 @@ import type {
 } from '@world-engine/controllers/world-studio-screen-model.js';
 import { useCreatorWorldStore } from '@renderer/state/creator-world-store.js';
 import {
+  toForgeWorkspaceSnapshot,
+  toWorldStudioWorkspacePatch,
+  type ForgeWorkspacePatch,
+} from '@renderer/state/creator-world-workspace.js';
+import {
   useWorldResourceQueries,
   type WorldMutationSummary,
 } from '@renderer/hooks/use-world-queries.js';
@@ -30,7 +35,14 @@ import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
-import { listAgentRules, listWorldRules } from '@renderer/data/world-data-client.js';
+import {
+  FORGE_WORLD_HISTORY_EVENT_TYPE,
+  FORGE_WORLD_WORKSPACE_TARGET_PATH,
+  getWorldTruth,
+  getWorldviewTruth,
+  listAgentRules,
+  listWorldRules,
+} from '@renderer/data/world-data-client.js';
 import { WorldRuleTruthPanel } from './world-rule-truth-panel.js';
 
 type MaintainTab = 'WORLD' | 'WORLDVIEW' | 'EVENTS' | 'LOREBOOKS';
@@ -39,6 +51,14 @@ function asRecord(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as JsonObject
     : {};
+}
+
+function requireWorkspaceSessionId(value: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    throw new Error('FORGE_WORKSPACE_SESSION_ID_REQUIRED');
+  }
+  return normalized;
 }
 
 function getTimeFlowRatioFromWorldviewPatch(worldviewPatch: JsonObject): string {
@@ -79,6 +99,110 @@ function toEventNodeDraft(event: {
   } as EventNodeDraft;
 }
 
+function getWorkspaceStateDraft(
+  payload: unknown,
+): { workspaceVersion: string; worldStateDraft: JsonObject } | null {
+  const record = asRecord(payload);
+  const items = Array.isArray(record.items) ? record.items : [];
+  const workspaceItem = items.find((item) => (
+    asRecord(item).targetPath === FORGE_WORLD_WORKSPACE_TARGET_PATH
+  ));
+  if (!workspaceItem) {
+    return null;
+  }
+  const itemRecord = asRecord(workspaceItem);
+  const worldStateDraft = asRecord(itemRecord.payload);
+  if (Object.keys(worldStateDraft).length === 0) {
+    return null;
+  }
+  return {
+    workspaceVersion: String(record.version || ''),
+    worldStateDraft,
+  };
+}
+
+function requireNonEmptyString(value: unknown, code: string): string {
+  if (typeof value !== 'string') {
+    throw new Error(code);
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new Error(code);
+  }
+  return normalized;
+}
+
+function requireWorkspaceStateRef(payload: unknown): {
+  recordId: string;
+  scope: 'WORLD' | 'ENTITY' | 'RELATION';
+  scopeKey: string;
+  version?: string;
+} {
+  const record = asRecord(payload);
+  const items = Array.isArray(record.items) ? record.items : [];
+  const workspaceItem = items.find((item) => (
+    asRecord(item).targetPath === FORGE_WORLD_WORKSPACE_TARGET_PATH
+  ));
+  if (!workspaceItem) {
+    throw new Error('FORGE_WORLD_HISTORY_RELATED_STATE_REF_REQUIRED');
+  }
+  const itemRecord = asRecord(workspaceItem);
+  const version = typeof itemRecord.version === 'string' && itemRecord.version.trim()
+    ? itemRecord.version.trim()
+    : undefined;
+  const scope = requireNonEmptyString(itemRecord.scope, 'FORGE_WORLD_HISTORY_RELATED_STATE_SCOPE_REQUIRED');
+  if (scope !== 'WORLD' && scope !== 'ENTITY' && scope !== 'RELATION') {
+    throw new Error('FORGE_WORLD_HISTORY_RELATED_STATE_SCOPE_REQUIRED');
+  }
+  return {
+    recordId: requireNonEmptyString(itemRecord.id, 'FORGE_WORLD_HISTORY_RELATED_STATE_ID_REQUIRED'),
+    scope,
+    scopeKey: requireNonEmptyString(itemRecord.scopeKey, 'FORGE_WORLD_HISTORY_RELATED_STATE_SCOPE_KEY_REQUIRED'),
+    ...(version ? { version } : {}),
+  };
+}
+
+function toHistoryAppend(
+  event: EventNodeDraft,
+  relatedStateRefs: Array<{
+    recordId: string;
+    scope: 'WORLD' | 'ENTITY' | 'RELATION';
+    scopeKey: string;
+    version?: string;
+  }>,
+) {
+  return {
+    eventId: typeof event.id === 'string' ? event.id : undefined,
+    eventType: FORGE_WORLD_HISTORY_EVENT_TYPE,
+    title: String(event.title || '').trim(),
+    happenedAt: String(event.timeRef || new Date().toISOString()),
+    operation: 'APPEND' as const,
+    visibility: 'WORLD' as const,
+    summary: typeof event.summary === 'string' ? event.summary : undefined,
+    cause: typeof event.cause === 'string' ? event.cause : undefined,
+    process: typeof event.process === 'string' ? event.process : undefined,
+    result: typeof event.result === 'string' ? event.result : undefined,
+    timeRef: typeof event.timeRef === 'string' ? event.timeRef : undefined,
+    locationRefs: Array.isArray(event.locationRefs) ? event.locationRefs : [],
+    characterRefs: Array.isArray(event.characterRefs) ? event.characterRefs : [],
+    dependsOnEventIds: Array.isArray(event.dependsOnEventIds) ? event.dependsOnEventIds : [],
+    evidenceRefs: Array.isArray(event.evidenceRefs) ? event.evidenceRefs : [],
+    relatedStateRefs,
+    payload: {
+      timelineSeq: Number(event.timelineSeq || 0),
+      level: event.level === 'SECONDARY' ? 'SECONDARY' : 'PRIMARY',
+      eventHorizon: event.eventHorizon === 'ONGOING'
+        ? 'ONGOING'
+        : event.eventHorizon === 'FUTURE'
+          ? 'FUTURE'
+          : 'PAST',
+      parentEventId: typeof event.parentEventId === 'string' ? event.parentEventId : null,
+      confidence: Number.isFinite(Number(event.confidence)) ? Number(event.confidence) : 0.5,
+      needsEvidence: Boolean(event.needsEvidence),
+    },
+  };
+}
+
 type WorldMaintainPageViewProps = {
   embedded?: boolean;
   worldIdOverride?: string;
@@ -103,10 +227,14 @@ export function WorldMaintainPageView({
 
   // Store bindings
   const snapshot = useCreatorWorldStore((s) => s.snapshot);
+  const workspaceSnapshot = toForgeWorkspaceSnapshot(snapshot);
   const patchSnapshot = useCreatorWorldStore((s) => s.patchSnapshot);
   const patchPanel = useCreatorWorldStore((s) => s.patchPanel);
   const hydrateForUser = useCreatorWorldStore((s) => s.hydrateForUser);
   const persistForUser = useCreatorWorldStore((s) => s.persistForUser);
+  const patchWorkspaceSnapshot = useCallback((patch: ForgeWorkspacePatch) => {
+    patchSnapshot(toWorldStudioWorkspacePatch(patch));
+  }, [patchSnapshot]);
 
   // Hydrate on mount
   useEffect(() => {
@@ -126,7 +254,7 @@ export function WorldMaintainPageView({
   }, [persistForUser, snapshot, userId]);
 
   // Queries
-  const { maintenanceQuery, eventsQuery, lorebooksQuery, mutationsQuery } = useWorldResourceQueries({
+  const { stateQuery, historyQuery, lorebooksQuery, mutationsQuery } = useWorldResourceQueries({
     enabled: Boolean(effectiveWorldId),
     worldId: effectiveWorldId,
   });
@@ -136,10 +264,24 @@ export function WorldMaintainPageView({
   const agentListQuery = useAgentListQuery(Boolean(effectiveWorldId));
 
   // Local UI state
-  const [eventSyncMode, setEventSyncMode] = useState<'merge' | 'replace'>('merge');
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedTruthAgentId, setSelectedTruthAgentId] = useState('');
+  const eventSyncMode = 'merge' as const;
+
+  const worldTruthQuery = useQuery({
+    queryKey: ['forge', 'world', 'truth', effectiveWorldId],
+    enabled: Boolean(effectiveWorldId),
+    retry: false,
+    queryFn: async () => await getWorldTruth(effectiveWorldId),
+  });
+
+  const worldviewTruthQuery = useQuery({
+    queryKey: ['forge', 'world', 'truth-worldview', effectiveWorldId],
+    enabled: Boolean(effectiveWorldId),
+    retry: false,
+    queryFn: async () => await getWorldviewTruth(effectiveWorldId),
+  });
 
   const worldRulesQuery = useQuery({
     queryKey: ['forge', 'world', 'rules', effectiveWorldId, 'ACTIVE'],
@@ -173,45 +315,44 @@ export function WorldMaintainPageView({
 
   // Hydrate snapshot from server data
   useEffect(() => {
-    const maint = maintenanceQuery.data;
-    if (!maint || typeof maint !== 'object') return;
-    const record = asRecord(maint);
-    const worldProjection = record.world && typeof record.world === 'object'
-      ? record.world
-      : record.worldPatch;
-    if (worldProjection && typeof worldProjection === 'object') {
-      patchSnapshot({
-        worldPatch: asRecord(worldProjection),
-        editorSnapshotVersion: String(record.editorSnapshotVersion || ''),
-      });
-    }
-    const worldviewProjection = record.worldview && typeof record.worldview === 'object'
-      ? record.worldview
-      : record.worldviewPatch;
-    if (worldviewProjection && typeof worldviewProjection === 'object') {
-      patchSnapshot({
-        worldviewPatch: asRecord(worldviewProjection),
-      });
-    }
-  }, [maintenanceQuery.data, patchSnapshot]);
+    const workspaceState = getWorkspaceStateDraft(stateQuery.data);
+    if (!workspaceState) return;
+    patchWorkspaceSnapshot({
+      worldStateDraft: workspaceState.worldStateDraft,
+      workspaceVersion: workspaceState.workspaceVersion,
+    });
+  }, [stateQuery.data, patchWorkspaceSnapshot]);
+
+  useEffect(() => {
+    if (getWorkspaceStateDraft(stateQuery.data)) return;
+    const truth = worldTruthQuery.data;
+    if (!truth || typeof truth !== 'object') return;
+    patchWorkspaceSnapshot({ worldStateDraft: asRecord(truth) });
+  }, [worldTruthQuery.data, stateQuery.data, patchWorkspaceSnapshot]);
+
+  useEffect(() => {
+    const truth = worldviewTruthQuery.data;
+    if (!truth || typeof truth !== 'object') return;
+    patchWorkspaceSnapshot({ worldviewPatch: asRecord(truth) });
+  }, [worldviewTruthQuery.data, patchWorkspaceSnapshot]);
 
   // Hydrate events from server
   useEffect(() => {
-    const events = eventsQuery.data;
-    if (!events) return;
-    const primary = events.filter((e) => e.level === 'PRIMARY').map((event) => toEventNodeDraft(event));
-    const secondary = events.filter((e) => e.level === 'SECONDARY').map((event) => toEventNodeDraft(event));
-    patchSnapshot({ eventsDraft: { primary, secondary } });
-  }, [eventsQuery.data, patchSnapshot]);
+    const history = historyQuery.data;
+    if (!history) return;
+    const primary = history.filter((entry) => entry.level === 'PRIMARY').map((event) => toEventNodeDraft(event));
+    const secondary = history.filter((entry) => entry.level === 'SECONDARY').map((event) => toEventNodeDraft(event));
+    patchWorkspaceSnapshot({ eventsDraft: { primary, secondary } });
+  }, [historyQuery.data, patchWorkspaceSnapshot]);
 
   // Hydrate lorebooks from server
   useEffect(() => {
     const lorebooks = lorebooksQuery.data;
     if (!lorebooks || !Array.isArray(lorebooks)) return;
-    patchSnapshot({
+    patchWorkspaceSnapshot({
       lorebooksDraft: lorebooks.filter((item): item is WorldLorebookDraftRow => Boolean(item && typeof item === 'object')),
     });
-  }, [lorebooksQuery.data, patchSnapshot]);
+  }, [lorebooksQuery.data, patchWorkspaceSnapshot]);
 
   // Tab management
   const activeSection = snapshot.panel.activeSection;
@@ -234,18 +375,18 @@ export function WorldMaintainPageView({
   }, [patchPanel]);
 
   // Data callbacks
-  const onWorldPatchChange = useCallback((value: JsonObject) =>
-    patchSnapshot({ worldPatch: value }), [patchSnapshot]);
+  const onWorldStateDraftChange = useCallback((value: JsonObject) =>
+    patchWorkspaceSnapshot({ worldStateDraft: value }), [patchWorkspaceSnapshot]);
 
   const onWorldviewPatchChange = useCallback((_value: JsonObject) => {
     setNotice('Worldview is now a read-only projection. Edit World Rules in the Rule Truth panel.');
   }, []);
 
   const onEventsChange = useCallback((next: { primary: EventNodeDraft[]; secondary: EventNodeDraft[] }) =>
-    patchSnapshot({ eventsDraft: next }), [patchSnapshot]);
+    patchWorkspaceSnapshot({ eventsDraft: next }), [patchWorkspaceSnapshot]);
 
   const onEventGraphLayoutChange = useCallback((next: { selectedEventId: string; expandedPrimaryIds: string[] }) =>
-    patchSnapshot({ eventGraphLayout: next }), [patchSnapshot]);
+    patchWorkspaceSnapshot({ eventGraphLayout: next }), [patchWorkspaceSnapshot]);
 
   const onLorebooksChange = useCallback((_value: WorldLorebookDraftRow[]) => {
     setNotice('Lorebooks are read-only projections. Edit World Rules or Agent Rules in the Rule Truth panel.');
@@ -255,23 +396,24 @@ export function WorldMaintainPageView({
   const onSyncEvents = useCallback(async () => {
     if (!effectiveWorldId) return;
     try {
+      const relatedStateRef = requireWorkspaceStateRef(stateQuery.data);
       const upserts = [
         ...snapshot.eventsDraft.primary,
         ...snapshot.eventsDraft.secondary,
-      ].map((event) => asRecord(event));
+      ].map((event) => toHistoryAppend(event, [relatedStateRef]));
 
       await mutations.syncEventsMutation.mutateAsync({
         worldId: effectiveWorldId,
-        eventUpserts: upserts,
+        historyAppends: upserts,
         reason: 'Forge manual sync',
-        mode: eventSyncMode,
+        sessionId: requireWorkspaceSessionId(workspaceSnapshot.workspaceVersion),
       });
-      await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', effectiveWorldId] });
+      await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'history', effectiveWorldId] });
       setNotice('Events synced successfully');
     } catch (err) {
       setError(`Failed to sync events: ${err instanceof Error ? err.message : String(err)}`);
     }
-  }, [effectiveWorldId, snapshot.eventsDraft, mutations.syncEventsMutation, queryClient, eventSyncMode]);
+  }, [effectiveWorldId, snapshot.eventsDraft, mutations.syncEventsMutation, queryClient, stateQuery.data]);
 
   const onSyncLorebooks = useCallback(async () => {
     setNotice('Lorebooks are read-only projections. Edit WorldRule or AgentRule instead.');
@@ -279,7 +421,7 @@ export function WorldMaintainPageView({
 
   const invalidateTruthQueries = useCallback(async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] }),
+      queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] }),
       queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', effectiveWorldId] }),
       queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', effectiveWorldId] }),
       queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', effectiveWorldId] }),
@@ -302,7 +444,7 @@ export function WorldMaintainPageView({
     || mutations.archiveAgentRuleMutation.isPending;
 
   const mutationsList: WorldMutationSummary[] = mutationsQuery.data || [];
-  const dirtyLabels = Object.entries(snapshot.unsavedChangesByPanel)
+  const dirtyLabels = Object.entries(workspaceSnapshot.unsavedChangesByPanel)
     .filter(([, dirty]) => dirty)
     .map(([key]) => key);
 
@@ -359,10 +501,10 @@ export function WorldMaintainPageView({
     retryErrorCode: null,
     routeOptions: null,
     eventSyncMode,
-    selectedAgentSyncCharacters: snapshot.agentSync.selectedCharacterIds,
-    truthDerivedAgentDraftsByCharacter: snapshot.agentSync.draftsByCharacter,
-    eventsGraph: snapshot.eventsDraft,
-    timeFlowRatio: getTimeFlowRatioFromWorldviewPatch(snapshot.worldviewPatch),
+    selectedAgentSyncCharacters: workspaceSnapshot.agentSync.selectedCharacterIds,
+    truthDerivedAgentDraftsByCharacter: workspaceSnapshot.agentSync.draftsByCharacter,
+    eventsGraph: workspaceSnapshot.eventsDraft,
+    timeFlowRatio: getTimeFlowRatioFromWorldviewPatch(workspaceSnapshot.worldviewPatch),
     importSubview: 'PREPARE',
     reviewSubview: 'EDIT',
     working,
@@ -373,20 +515,20 @@ export function WorldMaintainPageView({
 
   const status: WorldStudioStatusSlice = {
     landingLoading: false,
-    activeTask: snapshot.taskState.activeTask,
-    recentTasks: snapshot.taskState.recentTasks,
-    expertMode: snapshot.taskState.expertMode,
+    activeTask: workspaceSnapshot.taskState.activeTask,
+    recentTasks: workspaceSnapshot.taskState.recentTasks,
+    expertMode: workspaceSnapshot.taskState.expertMode,
     notice,
     error,
     conflictReloadSummary: null,
     hasMaintenanceConflict: false,
-    maintenanceEditorSnapshotVersion: snapshot.editorSnapshotVersion,
+    maintenanceEditorSnapshotVersion: workspaceSnapshot.workspaceVersion,
     mutations: mutationsList,
     storyProjectionCount: 0,
     storyProjectionMissingContextCount: 0,
     storyProjectionLatestAt: '',
-    primaryEventCount: snapshot.eventsDraft.primary.length,
-    secondaryEventCount: snapshot.eventsDraft.secondary.length,
+    primaryEventCount: workspaceSnapshot.eventsDraft.primary.length,
+    secondaryEventCount: workspaceSnapshot.eventsDraft.secondary.length,
     missingPrimaryEvidenceCount: 0,
     eventCharacterCoverage: 0,
     eventLocationCoverage: 0,
@@ -442,7 +584,7 @@ export function WorldMaintainPageView({
       runPhase2: async () => undefined,
     },
     review: {
-      onWorldPatchChange,
+      onWorldPatchChange: onWorldStateDraftChange,
       onWorldviewPatchChange,
       onRuleTruthDraftChange: () => undefined,
       onEventsChange,
@@ -453,18 +595,19 @@ export function WorldMaintainPageView({
       backToEdit: () => undefined,
     },
     maintain: {
-      onWorldPatchChange,
+      onWorldPatchChange: onWorldStateDraftChange,
       onWorldviewPatchChange,
       onEventsChange,
       onLorebooksChange,
       onEventGraphLayoutChange,
-      onEventSyncModeChange: setEventSyncMode,
+      onEventSyncModeChange: () => undefined,
       saveMaintenance: async () => {
         await mutations.saveMaintenanceMutation.mutateAsync({
           worldId: effectiveWorldId,
-          worldPatch: snapshot.worldPatch,
+          worldState: workspaceSnapshot.worldStateDraft,
           reason: 'Forge manual save',
-          ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
+          sessionId: requireWorkspaceSessionId(workspaceSnapshot.workspaceVersion),
+          ifSnapshotVersion: workspaceSnapshot.workspaceVersion || undefined,
         });
       },
       syncEvents: async () => {
@@ -481,15 +624,21 @@ export function WorldMaintainPageView({
       syncMediaBindings: async () => undefined,
       refreshResources: async () => {
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] }),
-          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'events', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth-worldview', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'history', effectiveWorldId] }),
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', effectiveWorldId] }),
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', effectiveWorldId] }),
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', effectiveWorldId] }),
         ]);
       },
       reloadRemote: async () => {
-        await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth-worldview', effectiveWorldId] }),
+        ]);
       },
       adoptRemoteSnapshot: () => undefined,
     },
@@ -499,7 +648,7 @@ export function WorldMaintainPageView({
       onRouteModelChange: () => undefined,
       onClearRouteBinding: () => undefined,
       onRebuildEmbeddingIndex: async () => undefined,
-      onSetExpertMode: (value) => patchSnapshot({ taskState: { expertMode: value } }),
+      onSetExpertMode: (value) => patchWorkspaceSnapshot({ taskState: { expertMode: value } }),
     },
     task: {
       pauseTask: () => false,
@@ -508,7 +657,11 @@ export function WorldMaintainPageView({
     },
   };
 
-  const loading = maintenanceQuery.isLoading || eventsQuery.isLoading || lorebooksQuery.isLoading;
+  const loading = stateQuery.isLoading
+    || worldTruthQuery.isLoading
+    || worldviewTruthQuery.isLoading
+    || historyQuery.isLoading
+    || lorebooksQuery.isLoading;
 
   if (loading) {
     return (
@@ -541,11 +694,12 @@ export function WorldMaintainPageView({
               try {
                 await mutations.saveMaintenanceMutation.mutateAsync({
                   worldId: effectiveWorldId,
-                  worldPatch: snapshot.worldPatch,
+                  worldState: workspaceSnapshot.worldStateDraft,
                   reason: 'Forge manual save',
-                  ifSnapshotVersion: snapshot.editorSnapshotVersion || undefined,
+                  sessionId: requireWorkspaceSessionId(workspaceSnapshot.workspaceVersion),
+                  ifSnapshotVersion: workspaceSnapshot.workspaceVersion || undefined,
                 });
-                await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'maintenance', effectiveWorldId] });
+                await queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] });
                 setNotice('Saved successfully');
               } catch (err) {
                 setError(`Save failed: ${err instanceof Error ? err.message : String(err)}`);

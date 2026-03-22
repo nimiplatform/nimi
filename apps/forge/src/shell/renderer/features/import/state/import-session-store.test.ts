@@ -1,12 +1,30 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useImportSessionStore } from './import-session-store.js';
 
 const STORAGE_KEY = 'nimi:forge:import:novel:session-1';
+const storage = new Map<string, string>();
+
+vi.stubGlobal('localStorage', {
+  getItem: (key: string) => storage.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    storage.set(key, value);
+  },
+  removeItem: (key: string) => {
+    storage.delete(key);
+  },
+  clear: () => {
+    storage.clear();
+  },
+});
+
+function clearLocalStorage(): void {
+  localStorage.clear();
+}
 
 describe('import-session-store', () => {
   beforeEach(() => {
-    localStorage.clear();
+    clearLocalStorage();
     useImportSessionStore.setState(useImportSessionStore.getInitialState());
   });
 

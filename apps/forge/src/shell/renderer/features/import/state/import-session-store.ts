@@ -64,12 +64,27 @@ const NOVEL_IMPORT_STATES: NovelImportState[] = [
   'CHAPTER_REVIEW',
   'ACCUMULATING',
   'PAUSED',
-  'COMPLETED',
+  'CONFLICT_CHECK',
+  'FINAL_REVIEW',
+  'PUBLISHING',
 ];
-const NOVEL_IMPORT_MODES: NovelImportMode[] = ['auto', 'hybrid', 'manual'];
+const NOVEL_IMPORT_MODES: NovelImportMode[] = ['auto', 'manual'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getLocalStorage(): Pick<Storage, 'getItem' | 'setItem'> | null {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+  if (
+    typeof localStorage.getItem !== 'function'
+    || typeof localStorage.setItem !== 'function'
+  ) {
+    return null;
+  }
+  return localStorage;
 }
 
 function sanitizeNovelImportState(
@@ -319,6 +334,8 @@ export const useImportSessionStore = create<ImportSessionState & ImportSessionAc
     persistNovelSession: () => {
       const { sessionId, novelImport, targetWorldId, targetWorldName } = get();
       if (!sessionId || !novelImport.accumulator) return;
+      const storage = getLocalStorage();
+      if (!storage) return;
       try {
         const payload = JSON.stringify({
           sessionId,
@@ -326,15 +343,17 @@ export const useImportSessionStore = create<ImportSessionState & ImportSessionAc
           targetWorldId,
           targetWorldName,
         });
-        localStorage.setItem(`${NOVEL_STORAGE_PREFIX}${sessionId}`, payload);
+        storage.setItem(`${NOVEL_STORAGE_PREFIX}${sessionId}`, payload);
       } catch {
         // localStorage quota exceeded — silently fail
       }
     },
 
     restoreNovelSession: (sessionId: string) => {
+      const storage = getLocalStorage();
+      if (!storage) return false;
       try {
-        const raw = localStorage.getItem(`${NOVEL_STORAGE_PREFIX}${sessionId}`);
+        const raw = storage.getItem(`${NOVEL_STORAGE_PREFIX}${sessionId}`);
         if (!raw) return false;
         const parsed = JSON.parse(raw);
         if (!isRecord(parsed)) return false;

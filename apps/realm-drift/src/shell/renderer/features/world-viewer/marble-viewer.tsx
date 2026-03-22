@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
-import type { RawWorldContext } from './marble-prompt.js';
+import type { WorldReferenceBundle } from './marble-prompt.js';
 import { composeMarblePrompt, findWorldImageUrl, assembleRawContext } from './marble-prompt.js';
 import { MarbleWorldGenerator } from './marble-world-generator.js';
 import { marbleConfig } from './marble-api.js';
@@ -9,7 +9,7 @@ import { marbleConfig } from './marble-api.js';
 type MarbleViewerProps = {
   worldId: string;
   worldName: string;
-  worldContext: RawWorldContext | null;
+  worldReference: WorldReferenceBundle | null;
   quality: 'mini' | 'standard';
 };
 
@@ -17,7 +17,7 @@ type ViewerState = 'idle' | 'generating' | 'completed' | 'failed';
 
 const generator = new MarbleWorldGenerator();
 
-export function MarbleViewer({ worldId, worldName, worldContext, quality }: MarbleViewerProps) {
+export function MarbleViewer({ worldId, worldName, worldReference, quality }: MarbleViewerProps) {
   const { t } = useTranslation();
   const marbleJob = useAppStore((s) => s.marbleJobs[worldId]);
   const setMarbleJob = useAppStore((s) => s.setMarbleJob);
@@ -89,7 +89,7 @@ export function MarbleViewer({ worldId, worldName, worldContext, quality }: Marb
   }, []); // Only on mount — resume in-flight polling
 
   const handleGenerate = useCallback(async () => {
-    if (!worldContext) return;
+    if (!worldReference) return;
 
     const apiKey = marbleConfig.getApiKey();
     if (!apiKey) {
@@ -120,8 +120,8 @@ export function MarbleViewer({ worldId, worldName, worldContext, quality }: Marb
 
     try {
       // Compose prompt
-      const prompt = await composeMarblePrompt(worldContext, ac.signal);
-      const imageUrl = findWorldImageUrl(worldContext);
+      const prompt = await composeMarblePrompt(worldReference, ac.signal);
+      const imageUrl = findWorldImageUrl(worldReference);
 
       // Generate
       const genResult = await generator.generate(
@@ -170,7 +170,7 @@ export function MarbleViewer({ worldId, worldName, worldContext, quality }: Marb
         startedAt,
       });
     }
-  }, [worldContext, worldId, worldName, quality, t, setMarbleJob, marbleJob?.operationId]);
+  }, [worldReference, worldId, worldName, quality, t, setMarbleJob, marbleJob?.operationId]);
 
   // Cleanup abort on unmount
   useEffect(() => {
@@ -183,19 +183,19 @@ export function MarbleViewer({ worldId, worldName, worldContext, quality }: Marb
   if (state === 'idle') {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-6 p-8 text-center">
-        {worldContext && (
+        {worldReference && (
           <div className="w-full max-w-lg">
             <h3 className="text-sm font-medium text-neutral-400 mb-2">{t('viewer.promptPreview')}</h3>
             <div className="rounded-lg bg-neutral-900 border border-neutral-800 p-4 text-xs text-neutral-400 max-h-48 overflow-auto text-left whitespace-pre-wrap">
-              {assembleRawContext(worldContext).slice(0, 800)}
-              {assembleRawContext(worldContext).length > 800 ? '...' : ''}
+              {assembleRawContext(worldReference).slice(0, 800)}
+              {assembleRawContext(worldReference).length > 800 ? '...' : ''}
             </div>
           </div>
         )}
         <p className="text-sm text-neutral-500">{t('viewer.idle')}</p>
         <button
           onClick={() => void handleGenerate()}
-          disabled={!worldContext}
+          disabled={!worldReference}
           className="rounded-lg bg-white px-6 py-2.5 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
         >
           {t('viewer.generate')}

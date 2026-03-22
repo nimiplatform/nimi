@@ -142,9 +142,7 @@ Ownership and delivery are explicit asset semantics:
 | Media | `/api/media/assets/{assetId}` | PATCH | Update asset metadata |
 | Media | `/api/media/assets/{assetId}/finalize` | POST | Finalize uploaded asset |
 | Media | `/api/media/assets/{assetId}` | DELETE | Soft delete asset |
-| Media Bindings | `/api/worlds/:worldId/media-bindings` | GET | Asset-entity mapping |
-| Media Bindings | `/api/worlds/:worldId/media-bindings/batch-upsert` | POST | Bind assets |
-| Media Bindings | `/api/worlds/:worldId/media-bindings/:bindingId` | DELETE | Unbind assets |
+| Media Bindings | `/api/worlds/:worldId/media-bindings` | GET | Read-only world display asset mapping |
 
 ## FG-CONTENT-005: Acceptance Criteria
 

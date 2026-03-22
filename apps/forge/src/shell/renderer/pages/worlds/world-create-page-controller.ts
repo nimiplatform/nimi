@@ -16,6 +16,11 @@ import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { useCreatorWorldStore } from '@renderer/state/creator-world-store.js';
 import {
+  toForgeWorkspaceSnapshot,
+  toWorldStudioWorkspacePatch,
+  type ForgeWorkspacePatch,
+} from '@renderer/state/creator-world-workspace.js';
+import {
   asRecord,
   deriveRuleTruthDraftFromWorkspace,
   getTimeFlowRatioFromWorldviewPatch,
@@ -52,10 +57,14 @@ export function useWorldCreatePageModel({
   workflow: WorldStudioWorkflowSlice;
 } {
   const snapshot = useCreatorWorldStore((state) => state.snapshot);
+  const workspaceSnapshot = toForgeWorkspaceSnapshot(snapshot);
   const patchSnapshot = useCreatorWorldStore((state) => state.patchSnapshot);
   const setCreateStep = useCreatorWorldStore((state) => state.setCreateStep);
   const hydrateForUser = useCreatorWorldStore((state) => state.hydrateForUser);
   const persistForUser = useCreatorWorldStore((state) => state.persistForUser);
+  const patchWorkspaceSnapshot = useCallback((patch: ForgeWorkspacePatch) => {
+    patchSnapshot(toWorldStudioWorkspacePatch(patch));
+  }, [patchSnapshot]);
 
   const [notice, setNotice] = useState<string | null>(null);
   const [activeDraftId, setActiveDraftId] = useState(resumeDraftId);
@@ -72,11 +81,11 @@ export function useWorldCreatePageModel({
     sourceEncoding,
     sourceMode,
     sourceRawTextRef,
-  } = useWorldCreatePageSource({ patchSnapshot });
+  } = useWorldCreatePageSource({ patchSnapshot: patchWorkspaceSnapshot });
 
   useWorldCreatePageDraftPersistence({
     hydrateForUser,
-    patchSnapshot,
+    patchWorkspaceSnapshot,
     persistForUser,
     resumeDraftId,
     setCreateStep,
@@ -86,45 +95,45 @@ export function useWorldCreatePageModel({
   });
 
   const onStepChange = useCallback((step: WorldStudioCreateStep) => setCreateStep(step), [setCreateStep]);
-  const onSourceTextChange = useCallback((value: string) => patchSnapshot({ sourceText: value }), [patchSnapshot]);
+  const onSourceTextChange = useCallback((value: string) => patchWorkspaceSnapshot({ sourceText: value }), [patchWorkspaceSnapshot]);
   const deriveRuleTruthDraft = useCallback((overrides?: {
     worldviewPatch?: JsonObject;
     sourceRef?: string;
     selectedCharacters?: string[];
     agentSync?: typeof snapshot.agentSync;
   }) => deriveRuleTruthDraftFromWorkspace({
-    worldviewPatch: overrides?.worldviewPatch ?? (snapshot.worldviewPatch as JsonObject),
-    sourceRef: overrides?.sourceRef ?? snapshot.sourceRef,
-    selectedCharacters: overrides?.selectedCharacters ?? snapshot.selectedCharacters,
-    agentSync: overrides?.agentSync ?? snapshot.agentSync,
-  }), [snapshot.agentSync, snapshot.selectedCharacters, snapshot.sourceRef, snapshot.worldviewPatch]);
-  const onSourceRefChange = useCallback((value: string) => patchSnapshot({
+    worldviewPatch: overrides?.worldviewPatch ?? workspaceSnapshot.worldviewPatch,
+    sourceRef: overrides?.sourceRef ?? workspaceSnapshot.sourceRef,
+    selectedCharacters: overrides?.selectedCharacters ?? workspaceSnapshot.selectedCharacters,
+    agentSync: overrides?.agentSync ?? workspaceSnapshot.agentSync,
+  }), [workspaceSnapshot.agentSync, workspaceSnapshot.selectedCharacters, workspaceSnapshot.sourceRef, workspaceSnapshot.worldviewPatch]);
+  const onSourceRefChange = useCallback((value: string) => patchWorkspaceSnapshot({
     sourceRef: value,
     ruleTruthDraft: deriveRuleTruthDraft({ sourceRef: value }),
-  }), [deriveRuleTruthDraft, patchSnapshot]);
-  const onSelectStartTimeId = useCallback((value: string) => patchSnapshot({ selectedStartTimeId: value }), [patchSnapshot]);
+  }), [deriveRuleTruthDraft, patchWorkspaceSnapshot]);
+  const onSelectStartTimeId = useCallback((value: string) => patchWorkspaceSnapshot({ selectedStartTimeId: value }), [patchWorkspaceSnapshot]);
   const applyRuleTruthDraft = useCallback((value: typeof snapshot.ruleTruthDraft) => {
     const restoredWorldviewPatch = restoreWorldviewPatchFromWorldRules(value.worldRules);
     const restoredAgentSync = restoreAgentSyncFromAgentRuleDrafts(value.agentRules);
-    patchSnapshot({
+    patchWorkspaceSnapshot({
       ruleTruthDraft: value,
       worldviewPatch: restoredWorldviewPatch,
       lorebooksDraft: [],
       agentSync: restoredAgentSync,
       selectedCharacters: restoredAgentSync.selectedCharacterIds.length > 0
         ? restoredAgentSync.selectedCharacterIds
-        : snapshot.selectedCharacters,
+        : workspaceSnapshot.selectedCharacters,
     });
-  }, [patchSnapshot, snapshot.selectedCharacters]);
+  }, [patchWorkspaceSnapshot, workspaceSnapshot.selectedCharacters]);
   const onToggleCharacter = useCallback((name: string, checked: boolean) => {
     const next = checked
-      ? [...snapshot.selectedCharacters, name]
-      : snapshot.selectedCharacters.filter((item) => item !== name);
-    patchSnapshot({
+      ? [...workspaceSnapshot.selectedCharacters, name]
+      : workspaceSnapshot.selectedCharacters.filter((item) => item !== name);
+    patchWorkspaceSnapshot({
       selectedCharacters: next,
       ruleTruthDraft: deriveRuleTruthDraft({ selectedCharacters: next }),
     });
-  }, [deriveRuleTruthDraft, patchSnapshot, snapshot.selectedCharacters]);
+  }, [deriveRuleTruthDraft, patchWorkspaceSnapshot, workspaceSnapshot.selectedCharacters]);
   const onToggleAgentSyncCharacter = useCallback((name: string, checked: boolean) => {
     const truthDraft = resolveRuleTruthDraft(snapshot);
     const hasRule = truthDraft.agentRules.some((item) => item.characterName === name);
@@ -156,12 +165,12 @@ export function useWorldCreatePageModel({
       }).worldRules,
     });
   }, [applyRuleTruthDraft, deriveRuleTruthDraft, snapshot]);
-  const onFutureEventsTextChange = useCallback((value: string) => patchSnapshot({ futureEventsText: value }), [patchSnapshot]);
-  const onWorldPatchChange = useCallback((value: JsonObject) => patchSnapshot({ worldPatch: value }), [patchSnapshot]);
-  const onWorldviewPatchChange = useCallback((value: JsonObject) => patchSnapshot({
+  const onFutureEventsTextChange = useCallback((value: string) => patchWorkspaceSnapshot({ futureEventsText: value }), [patchWorkspaceSnapshot]);
+  const onWorldStateDraftChange = useCallback((value: JsonObject) => patchWorkspaceSnapshot({ worldStateDraft: value }), [patchWorkspaceSnapshot]);
+  const onWorldviewPatchChange = useCallback((value: JsonObject) => patchWorkspaceSnapshot({
     worldviewPatch: value,
     ruleTruthDraft: deriveRuleTruthDraft({ worldviewPatch: value }),
-  }), [deriveRuleTruthDraft, patchSnapshot]);
+  }), [deriveRuleTruthDraft, patchWorkspaceSnapshot]);
   const onRuleTruthDraftChange = useCallback((value: typeof snapshot.ruleTruthDraft) => {
     applyRuleTruthDraft(value);
   }, [applyRuleTruthDraft]);
@@ -207,15 +216,12 @@ export function useWorldCreatePageModel({
     });
   }, [applyRuleTruthDraft, snapshot]);
   const onEventsGraphChange = useCallback((next: { primary: EventNodeDraft[]; secondary: EventNodeDraft[] }) => {
-    patchSnapshot({ eventsDraft: next });
-  }, [patchSnapshot]);
+    patchWorkspaceSnapshot({ eventsDraft: next });
+  }, [patchWorkspaceSnapshot]);
   const onEventGraphLayoutChange = useCallback((next: { selectedEventId: string; expandedPrimaryIds: string[] }) => {
-    patchSnapshot({ eventGraphLayout: next });
-  }, [patchSnapshot]);
-  const onLorebooksChange = useCallback((value: WorldLorebookDraftRow[]) => {
-    patchSnapshot({ lorebooksDraft: value });
-  }, [patchSnapshot]);
-  const onReviewLorebooksChange = useCallback((_value: WorldLorebookDraftRow[]) => {
+    patchWorkspaceSnapshot({ eventGraphLayout: next });
+  }, [patchWorkspaceSnapshot]);
+  const onProjectionLorebooksChange = useCallback((_value: WorldLorebookDraftRow[]) => {
     setNotice('Lorebooks are derived projections. Review and publish World Rules or Agent Rules instead of editing lorebooks.');
   }, []);
 
@@ -235,14 +241,14 @@ export function useWorldCreatePageModel({
     activeDraftId,
     mutations,
     navigate,
-    patchSnapshot,
+    patchWorkspaceSnapshot,
     retryConcurrency,
     retryScope,
     setActiveDraftId,
     setCreateStep,
     setNotice,
     setRetryErrorCode,
-    snapshot,
+    snapshot: workspaceSnapshot,
     sourceChunksRef,
     sourceMode,
     sourceRawTextRef,
@@ -255,7 +261,7 @@ export function useWorldCreatePageModel({
   const truthDerivedAgentSync = restoreAgentSyncFromAgentRuleDrafts(resolvedRuleTruthDraft.agentRules);
   const selectedAgentSyncCharacters = truthDerivedAgentSync.selectedCharacterIds.length > 0
     ? truthDerivedAgentSync.selectedCharacterIds
-    : snapshot.selectedCharacters;
+    : workspaceSnapshot.selectedCharacters;
   const timeFlowRatio = getTimeFlowRatioFromWorldviewPatch(truthDerivedWorldviewPatch);
 
   const workflow: WorldStudioWorkflowSlice = {
@@ -337,15 +343,15 @@ export function useWorldCreatePageModel({
     error: null,
     conflictReloadSummary: null,
     hasMaintenanceConflict: false,
-    maintenanceEditorSnapshotVersion: snapshot.editorSnapshotVersion,
+    maintenanceEditorSnapshotVersion: workspaceSnapshot.workspaceVersion,
     mutations: [],
     storyProjectionCount: Array.isArray(phase2?.worldEvents) ? phase2.worldEvents.length : 0,
     storyProjectionMissingContextCount: 0,
     storyProjectionLatestAt: '',
-    primaryEventCount: snapshot.eventsDraft.primary.length,
-    secondaryEventCount: snapshot.eventsDraft.secondary.length,
+    primaryEventCount: workspaceSnapshot.eventsDraft.primary.length,
+    secondaryEventCount: workspaceSnapshot.eventsDraft.secondary.length,
     missingPrimaryEvidenceCount: 0,
-    eventCharacterCoverage: snapshot.selectedCharacters.length,
+    eventCharacterCoverage: workspaceSnapshot.selectedCharacters.length,
     eventLocationCoverage: 0,
     terminalChunkSuccess: snapshot.parseJob.chunkCompleted,
     terminalChunkTotal: snapshot.parseJob.chunkTotal,
@@ -428,11 +434,11 @@ export function useWorldCreatePageModel({
       },
     },
     review: {
-      onWorldPatchChange,
+      onWorldPatchChange: onWorldStateDraftChange,
       onWorldviewPatchChange,
       onRuleTruthDraftChange,
       onEventsChange: onEventsGraphChange,
-      onLorebooksChange: onReviewLorebooksChange,
+      onLorebooksChange: onProjectionLorebooksChange,
       onEventGraphLayoutChange,
       saveDraft: async () => {
         await persistDraft();
@@ -442,10 +448,10 @@ export function useWorldCreatePageModel({
       backToEdit: () => onStepChange('DRAFT'),
     },
     maintain: {
-      onWorldPatchChange,
+      onWorldPatchChange: onWorldStateDraftChange,
       onWorldviewPatchChange,
       onEventsChange: onEventsGraphChange,
-      onLorebooksChange,
+      onLorebooksChange: onProjectionLorebooksChange,
       onEventGraphLayoutChange,
       onEventSyncModeChange: async () => undefined,
       saveMaintenance: async () => undefined,
@@ -467,7 +473,7 @@ export function useWorldCreatePageModel({
       onRouteModelChange: () => undefined,
       onClearRouteBinding: () => undefined,
       onRebuildEmbeddingIndex: async () => undefined,
-      onSetExpertMode: (value) => patchSnapshot({ taskState: { expertMode: value } }),
+      onSetExpertMode: (value) => patchWorkspaceSnapshot({ taskState: { expertMode: value } }),
     },
     task: {
       pauseTask: () => false,

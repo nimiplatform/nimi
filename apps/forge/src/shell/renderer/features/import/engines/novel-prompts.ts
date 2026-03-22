@@ -47,7 +47,7 @@ Output ONLY valid JSON with this exact structure:
   "worldRules": [{ "ruleKey": "", "title": "", "statement": "", "domain": "", "category": "", "hardness": "", "scope": "", "subjectKey": "", "semanticSlot": "" }],
   "agentRules": [{ "characterName": "", "ruleKey": "", "title": "", "statement": "", "layer": "", "category": "", "hardness": "", "scope": "", "importance": 50, "semanticSlot": "" }],
   "newCharacters": [{ "name": "", "aliases": [], "description": "" }],
-  "contradictions": [{ "ruleKey": "", "previousStatement": "", "newStatement": "", "reason": "" }],
+  "contradictions": [{ "ruleKind": "", "ruleKey": "", "previousStatement": "", "newStatement": "", "previousHardness": "", "newHardness": "", "reason": "" }],
   "chapterSummary": ""
 }
 

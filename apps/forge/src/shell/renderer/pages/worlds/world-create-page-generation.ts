@@ -6,12 +6,14 @@ import { toFailedChunkIndices } from '@world-engine/services/event-graph-map.js'
 import type {
   WorldLorebookDraftRow,
   WorldStudioCreateStep,
-  WorldStudioSnapshotPatch,
-  WorldStudioWorkspaceSnapshot,
 } from '@world-engine/contracts.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { useWorldMutations } from '@renderer/hooks/use-world-mutations.js';
 import { listAgentRules, listCreatorAgents } from '@renderer/data/world-data-client.js';
+import type {
+  ForgeWorkspacePatch,
+  ForgeWorkspaceSnapshot,
+} from '@renderer/state/creator-world-workspace.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import {
   asRecord,
@@ -63,18 +65,44 @@ function toCreatorAgentList(payload: unknown): JsonObject[] {
     .filter((item) => item && typeof item === 'object')
     .map((item) => asRecord(item));
 }
+
+function requireWorldName(value: unknown, code: string): string {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    throw new Error(code);
+  }
+  return normalized;
+}
+
+function buildAssetBindingsDraft(snapshot: ForgeWorkspaceSnapshot) {
+  const worldCover = asRecord(snapshot.assets.worldCover);
+  const characterPortraits = asRecord(snapshot.assets.characterPortraits);
+  const locationImages = asRecord(snapshot.assets.locationImages);
+  if (
+    Object.keys(worldCover).length === 0
+    && Object.keys(characterPortraits).length === 0
+    && Object.keys(locationImages).length === 0
+  ) {
+    return undefined;
+  }
+  return {
+    ...(Object.keys(worldCover).length > 0 ? { worldCover } : {}),
+    ...(Object.keys(characterPortraits).length > 0 ? { characterPortraits } : {}),
+    ...(Object.keys(locationImages).length > 0 ? { locationImages } : {}),
+  };
+}
 type UseWorldCreatePageGenerationInput = {
   activeDraftId: string;
   mutations: ReturnType<typeof useWorldMutations>;
   navigate: (to: string) => void;
-  patchSnapshot: (patch: WorldStudioSnapshotPatch) => void;
+  patchWorkspaceSnapshot: (patch: ForgeWorkspacePatch) => void;
   retryConcurrency: number;
   retryScope: 'all' | 'json' | 'coarse' | 'fine';
   setActiveDraftId: (value: string) => void;
   setCreateStep: (step: WorldStudioCreateStep) => void;
   setNotice: (message: string | null) => void;
   setRetryErrorCode: (value: string | null) => void;
-  snapshot: WorldStudioWorkspaceSnapshot;
+  snapshot: ForgeWorkspaceSnapshot;
   sourceChunksRef: MutableRefObject<string[]>;
   sourceMode: 'TEXT' | 'FILE';
   sourceRawTextRef: MutableRefObject<string>;
@@ -111,7 +139,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     }
     input.setNotice(null);
     input.setCreateStep('INGEST');
-    input.patchSnapshot({
+    input.patchWorkspaceSnapshot({
       parseJob: {
         phase: 'ingest',
         chunkTotal: 0,
@@ -130,7 +158,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
       try {
         const result = await runPhase1ExtractionFromChunks(aiClient, chunks, {
           onProgress: (progress) => {
-            input.patchSnapshot({
+            input.patchWorkspaceSnapshot({
               parseJob: {
                 phase: progress.phase,
                 chunkTotal: progress.chunkTotal,
@@ -147,11 +175,11 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
             }
           },
           onFinalDraftAccumulatorUpdate: (accumulator) => {
-            input.patchSnapshot({ finalDraftAccumulator: accumulator });
+            input.patchWorkspaceSnapshot({ finalDraftAccumulator: accumulator });
           },
         });
         setPhase1(result);
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           knowledgeGraph: result.knowledgeGraph,
           finalDraftAccumulator: result.finalDraftAccumulator,
           phase1Artifact: {
@@ -183,7 +211,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
           input.setNotice('Extraction completed, but quality gate blocked. Try rerunning failed chunks.');
         }
       } catch (error) {
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           parseJob: {
             phase: 'failed',
             updatedAt: new Date().toISOString(),
@@ -200,7 +228,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
       : splitSourceText(sourceText);
     const chunksToRetry = failedIndices.map((index) => allChunks[index]!).filter(Boolean);
     const aiClient = createForgeAiClient();
-    input.patchSnapshot({
+    input.patchWorkspaceSnapshot({
       parseJob: {
         phase: 'extract',
         progress: 0.1,
@@ -214,7 +242,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
           chunkIndexMap: failedIndices,
           maxConcurrency: input.retryConcurrency,
           onProgress: (progress) => {
-            input.patchSnapshot({
+            input.patchWorkspaceSnapshot({
               parseJob: {
                 phase: progress.phase,
                 chunkTotal: progress.chunkTotal,
@@ -228,11 +256,11 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
             });
           },
           onFinalDraftAccumulatorUpdate: (finalDraftAccumulator) => {
-            input.patchSnapshot({ finalDraftAccumulator });
+            input.patchWorkspaceSnapshot({ finalDraftAccumulator });
           },
         });
         setPhase1(result);
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           knowledgeGraph: result.knowledgeGraph,
           finalDraftAccumulator: result.finalDraftAccumulator,
           phase1Artifact: {
@@ -254,7 +282,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         input.setCreateStep('CHECKPOINTS');
         input.setNotice(successNotice);
       } catch (error) {
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           parseJob: {
             phase: 'failed',
             updatedAt: new Date().toISOString(),
@@ -339,7 +367,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     }
     input.setNotice(null);
     input.setCreateStep('SYNTHESIZE');
-    input.patchSnapshot({
+    input.patchWorkspaceSnapshot({
       parseJob: {
         phase: 'synthesize',
         progress: 0.9,
@@ -366,8 +394,8 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
           },
           {} as Record<string, (typeof result.agentDrafts)[number]>,
         );
-        input.patchSnapshot({
-          worldPatch: result.world,
+        input.patchWorkspaceSnapshot({
+          worldStateDraft: result.world,
           worldviewPatch: result.worldview,
           ruleTruthDraft: deriveRuleTruthDraftFromWorkspace({
             worldviewPatch: result.worldview as JsonObject,
@@ -404,7 +432,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         input.setCreateStep('DRAFT');
         input.setNotice('Synthesize completed. Draft editor is ready.');
       } catch (error) {
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           parseJob: {
             phase: 'failed',
             updatedAt: new Date().toISOString(),
@@ -417,16 +445,28 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
 
   const onGenerateWorldCover = useCallback(() => {
     input.setNotice(null);
-    input.patchSnapshot({
+    input.patchWorkspaceSnapshot({
       assets: {
         worldCover: { status: 'running', imageUrl: null },
       },
     });
     const { runtime } = getPlatformClient();
-    const world = input.snapshot.worldPatch as JsonObject;
+    const world = input.snapshot.worldStateDraft as JsonObject;
+    let worldName: string;
+    try {
+      worldName = requireWorldName(world.name, 'FORGE_WORLD_NAME_REQUIRED');
+    } catch (error) {
+      input.patchWorkspaceSnapshot({
+        assets: {
+          worldCover: { status: 'failed', imageUrl: null },
+        },
+      });
+      input.setNotice(error instanceof Error ? error.message : 'World name is required before generating a cover.');
+      return;
+    }
     const prompt = [
       'Generate a cinematic world cover image.',
-      `World name: ${String(world.name || 'Untitled World')}`,
+      `World name: ${worldName}`,
       `World description: ${String(world.description || input.snapshot.knowledgeGraph.worldSetting || '')}`,
     ].join('\n');
     void (async () => {
@@ -437,14 +477,14 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
           responseFormat: 'url',
         });
         const imageUrl = resolveGeneratedImageUrl(result.artifacts);
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           assets: {
             worldCover: { status: 'succeeded', imageUrl },
           },
         });
         input.setNotice('World cover generated.');
       } catch (error) {
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           assets: {
             worldCover: { status: 'failed', imageUrl: null },
           },
@@ -458,7 +498,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
     input.setNotice(null);
     const portraits = { ...input.snapshot.assets.characterPortraits };
     portraits[name] = { status: 'running', imageUrl: null };
-    input.patchSnapshot({
+    input.patchWorkspaceSnapshot({
       assets: {
         characterPortraits: portraits,
       },
@@ -477,7 +517,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
           responseFormat: 'url',
         });
         const imageUrl = resolveGeneratedImageUrl(result.artifacts);
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           assets: {
             characterPortraits: {
               ...input.snapshot.assets.characterPortraits,
@@ -487,7 +527,7 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         });
         input.setNotice(`Portrait generated for ${name}.`);
       } catch (error) {
-        input.patchSnapshot({
+        input.patchWorkspaceSnapshot({
           assets: {
             characterPortraits: {
               ...input.snapshot.assets.characterPortraits,
@@ -502,6 +542,11 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
 
   const persistDraft = useCallback(async () => {
     const truthDraft = resolveRuleTruthDraft(input.snapshot);
+    const workspaceVersion = String(input.snapshot.workspaceVersion || '').trim() || crypto.randomUUID();
+    if (workspaceVersion !== input.snapshot.workspaceVersion) {
+      input.patchWorkspaceSnapshot({ workspaceVersion });
+    }
+    requireWorldName(input.snapshot.worldStateDraft.name, 'FORGE_DRAFT_WORLD_NAME_REQUIRED');
     const result = await input.mutations.saveDraftMutation.mutateAsync({
       draftId: input.activeDraftId || undefined,
       sourceType: input.sourceMode,
@@ -513,15 +558,31 @@ export function useWorldCreatePageGeneration(input: UseWorldCreatePageGeneration
         phase1Artifact: input.snapshot.phase1Artifact,
       },
       draftPayload: {
-        sourceText: input.snapshot.sourceText,
-        sourceRef: input.snapshot.sourceRef,
-        worldPatch: input.snapshot.worldPatch,
-        worldRules: truthDraft.worldRules,
-        agentRules: truthDraft.agentRules,
-        eventsDraft: input.snapshot.eventsDraft,
-        futureEventsText: input.snapshot.futureEventsText,
-        selectedStartTimeId: input.snapshot.selectedStartTimeId,
-        selectedCharacters: input.snapshot.selectedCharacters,
+        importSource: {
+          sourceType: input.sourceMode,
+          sourceRef: input.snapshot.sourceRef || undefined,
+          sourceText: input.snapshot.sourceText || undefined,
+        },
+        truthDraft: {
+          worldRules: truthDraft.worldRules,
+          agentRules: truthDraft.agentRules,
+        },
+        stateDraft: {
+          worldState: input.snapshot.worldStateDraft,
+        },
+        historyDraft: {
+          events: input.snapshot.eventsDraft,
+        },
+        workflowState: {
+          workspaceVersion,
+          createStep: input.snapshot.createStep,
+          parseJob: input.snapshot.parseJob,
+          phase1Artifact: input.snapshot.phase1Artifact || undefined,
+          selectedCharacters: input.snapshot.selectedCharacters,
+          selectedStartTimeId: input.snapshot.selectedStartTimeId || undefined,
+          futureEventsText: input.snapshot.futureEventsText || undefined,
+        },
+        assetBindingsDraft: buildAssetBindingsDraft(input.snapshot),
       },
     });
     const record = asRecord(result);

@@ -193,7 +193,7 @@ Agent chat sessions in Realm Drift are **ephemeral**:
 | Property | Value |
 |----------|-------|
 | Persistence | None — messages lost on navigation or app close |
-| NarrativeSpine integration | None — demo does not write to narrative system |
+| Narrative runtime integration | None — demo does not write to narrative system |
 | Memory integration | None — demo does not write to agent memory |
 | Cross-agent context | None — switching agents clears all messages |
 | History limit | None — naturally bounded by session lifetime |

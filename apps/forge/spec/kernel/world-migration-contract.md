@@ -47,7 +47,6 @@ Approximately 25 data query functions require rewriting:
 | `data.query.worlds.media-bindings.batch-upsert` | `realmClient.worlds.batchUpsertMediaBindings(worldId, body)` |
 | `data.query.worlds.media-bindings.delete` | `realmClient.worlds.deleteMediaBinding(worldId, bindingId)` |
 | `data.query.worlds.mutations.list` | `realmClient.worlds.listMutations(worldId)` |
-| `data.query.worlds.narrative-contexts.list` | `realmClient.worlds.listNarrativeContexts(worldId, params)` |
 | `data.query.worlds.scenes.list` | `realmClient.worlds.listScenes(worldId, params)` |
 | `data.query.creator.agents.list` | `realmClient.creator.listAgents()` |
 | `data.query.creator.agents.create` | `realmClient.creator.createAgent(body)` |
@@ -161,16 +160,14 @@ All required backend APIs already exist. No new backend work needed for World ma
 |-----------|-----------|------------|
 | World Control | `GET /api/world-control/access/me`, `GET /api/world-control/landing` | `world-control.controller.ts` |
 | World Drafts | `POST/GET /api/world-drafts`, `GET/PATCH /api/world-drafts/:draftId`, `POST /api/world-drafts/:draftId/publish` | `world-control.controller.ts` |
-| World Maintenance | `GET/PATCH /api/worlds/:worldId/maintenance`, `GET /api/worlds/mine` | `world-control.controller.ts` |
-| World Events | `GET /api/worlds/:worldId/events`, `POST /api/worlds/:worldId/events/batch-upsert`, `DELETE /api/worlds/:worldId/events/:eventId` | `world-control.controller.ts` |
+| World State | `GET /api/worlds/:worldId/state`, `POST /api/worlds/:worldId/state/commits`, `GET /api/worlds/mine` | `world-control.controller.ts` |
+| World History | `GET /api/worlds/:worldId/history`, `POST /api/worlds/:worldId/history/appends` | `world-control.controller.ts` |
 | World Lorebooks | `GET /api/worlds/:worldId/lorebooks` (read-only projection) | `world-control.controller.ts` |
 | World Rules | `GET/POST /api/world/by-id/:worldId/rules`, `PATCH /api/world/by-id/:worldId/rules/:ruleId`, `POST /api/world/by-id/:worldId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/rules/:ruleId/archive` | `world-rules.controller.ts` |
 | Agent Rules | `GET/POST /api/world/by-id/:worldId/agents/:agentId/rules`, `PATCH /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/archive` | `agent-rules.controller.ts` |
-| Media Bindings | `GET /api/worlds/:worldId/media-bindings`, `POST /api/worlds/:worldId/media-bindings/batch-upsert`, `DELETE /api/worlds/:worldId/media-bindings/:bindingId` | `world-control.controller.ts` |
+| Media Bindings | `GET /api/worlds/:worldId/media-bindings` (read-only projection) | `world-control.controller.ts` |
 | Mutations | `GET /api/worlds/:worldId/mutations` | `world-control.controller.ts` |
 | Scenes | `GET /api/worlds/:worldId/scenes` | `world-control.controller.ts` |
-| Narrative Contexts | `GET /api/worlds/:worldId/narrative-contexts` | `world-control.controller.ts` |
-
 ## FG-WORLD-007: Quality Gate Integration
 
 Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine/engine/quality-gate.ts` and is invoked unchanged. Threshold policies from `world-studio/spec/kernel/tables/quality-gate-policies.yaml` apply.

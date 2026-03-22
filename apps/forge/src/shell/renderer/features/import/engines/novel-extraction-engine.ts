@@ -12,6 +12,7 @@ import type {
   LlmChapterExtractionResult,
   LocalWorldRuleDraft,
   LocalAgentRuleDraft,
+  ConflictEntry,
   DiscoveredCharacter,
   NovelAccumulatorState,
 } from '../types.js';
@@ -25,6 +26,55 @@ import {
 } from './rule-key-canonicalizer.js';
 
 const MAX_RETRIES = 1;
+const WORLD_RULE_DOMAIN_VALUES = [
+  'AXIOM',
+  'PHYSICS',
+  'SOCIETY',
+  'ECONOMY',
+  'CHARACTER',
+  'NARRATIVE',
+  'META',
+] as const;
+const RULE_CATEGORY_VALUES = [
+  'CONSTRAINT',
+  'MECHANISM',
+  'DEFINITION',
+  'RELATION',
+  'POLICY',
+] as const;
+const RULE_HARDNESS_VALUES = ['HARD', 'FIRM', 'SOFT', 'AESTHETIC'] as const;
+const WORLD_RULE_SCOPE_VALUES = ['WORLD', 'REGION', 'FACTION', 'INDIVIDUAL', 'SCENE'] as const;
+const AGENT_RULE_LAYER_VALUES = ['DNA', 'BEHAVIORAL', 'RELATIONAL', 'CONTEXTUAL'] as const;
+const AGENT_RULE_SCOPE_VALUES = ['SELF', 'DYAD', 'GROUP', 'WORLD'] as const;
+const CONFLICT_RULE_KIND_VALUES = ['WORLD', 'AGENT'] as const;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function asOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function requireStringField(raw: Record<string, unknown>, key: string): string | null {
+  return asOptionalString(raw[key]) ?? null;
+}
+
+function parseEnum<T extends string>(
+  raw: Record<string, unknown>,
+  key: string,
+  valid: readonly T[],
+): T | null {
+  const value = asOptionalString(raw[key]);
+  if (!value) {
+    return null;
+  }
+  return valid.includes(value as T) ? (value as T) : null;
+}
 
 function parseLlmExtractionResponse(response: string): LlmChapterExtractionResult | null {
   // Strip markdown code fences if present
@@ -56,21 +106,31 @@ function parseLlmExtractionResponse(response: string): LlmChapterExtractionResul
 function toLWorldRuleDraft(
   raw: Record<string, unknown>,
   chapterIndex: number,
-): LocalWorldRuleDraft {
+): LocalWorldRuleDraft | null {
+  const title = requireStringField(raw, 'title');
+  const statement = requireStringField(raw, 'statement');
+  const domain = parseEnum(raw, 'domain', WORLD_RULE_DOMAIN_VALUES);
+  const category = parseEnum(raw, 'category', RULE_CATEGORY_VALUES);
+  const hardness = parseEnum(raw, 'hardness', RULE_HARDNESS_VALUES);
+  const scope = parseEnum(raw, 'scope', WORLD_RULE_SCOPE_VALUES);
+  if (!title || !statement || !domain || !category || !hardness || !scope) {
+    return null;
+  }
+
   return {
     ruleKey: canonicalizeWorldRuleKey({
-      domain: validateEnum(String(raw.domain || ''), ['AXIOM', 'PHYSICS', 'SOCIETY', 'ECONOMY', 'CHARACTER', 'NARRATIVE', 'META'] as const, 'SOCIETY'),
-      suggestedRuleKey: String(raw.ruleKey || ''),
-      subjectKey: String(raw.subjectKey || ''),
-      semanticSlot: String(raw.semanticSlot || ''),
-      title: String(raw.title || ''),
+      domain,
+      suggestedRuleKey: asOptionalString(raw.ruleKey) ?? '',
+      subjectKey: asOptionalString(raw.subjectKey) ?? '',
+      semanticSlot: asOptionalString(raw.semanticSlot) ?? '',
+      title,
     }),
-    title: String(raw.title || 'Untitled World Rule'),
-    statement: String(raw.statement || ''),
-    domain: validateEnum(String(raw.domain || ''), ['AXIOM', 'PHYSICS', 'SOCIETY', 'ECONOMY', 'CHARACTER', 'NARRATIVE', 'META'] as const, 'SOCIETY'),
-    category: validateEnum(String(raw.category || ''), ['CONSTRAINT', 'MECHANISM', 'DEFINITION', 'RELATION', 'POLICY'] as const, 'DEFINITION'),
-    hardness: validateEnum(String(raw.hardness || ''), ['HARD', 'FIRM', 'SOFT', 'AESTHETIC'] as const, 'FIRM'),
-    scope: validateEnum(String(raw.scope || ''), ['WORLD', 'REGION', 'FACTION', 'INDIVIDUAL', 'SCENE'] as const, 'WORLD'),
+    title,
+    statement,
+    domain,
+    category,
+    hardness,
+    scope,
     provenance: 'WORLD_STUDIO',
     priority: 100,
     sourceRef: `novel:chapter_${chapterIndex}`,
@@ -81,22 +141,33 @@ function toLWorldRuleDraft(
 function toLAgentRuleDraft(
   raw: Record<string, unknown>,
   chapterIndex: number,
-): { characterName: string; rule: LocalAgentRuleDraft } {
+): { characterName: string; rule: LocalAgentRuleDraft } | null {
+  const characterName = requireStringField(raw, 'characterName');
+  const title = requireStringField(raw, 'title');
+  const statement = requireStringField(raw, 'statement');
+  const layer = parseEnum(raw, 'layer', AGENT_RULE_LAYER_VALUES);
+  const category = parseEnum(raw, 'category', RULE_CATEGORY_VALUES);
+  const hardness = parseEnum(raw, 'hardness', RULE_HARDNESS_VALUES);
+  const scope = parseEnum(raw, 'scope', AGENT_RULE_SCOPE_VALUES);
+  if (!characterName || !title || !statement || !layer || !category || !hardness || !scope) {
+    return null;
+  }
+
   return {
-    characterName: String(raw.characterName || 'Unknown'),
+    characterName,
     rule: {
       ruleKey: canonicalizeAgentRuleKey({
-        layer: validateEnum(String(raw.layer || ''), ['DNA', 'BEHAVIORAL', 'RELATIONAL', 'CONTEXTUAL'] as const, 'CONTEXTUAL'),
-        suggestedRuleKey: String(raw.ruleKey || ''),
-        semanticSlot: String(raw.semanticSlot || ''),
-        title: String(raw.title || ''),
+        layer,
+        suggestedRuleKey: asOptionalString(raw.ruleKey) ?? '',
+        semanticSlot: asOptionalString(raw.semanticSlot) ?? '',
+        title,
       }),
-      title: String(raw.title || 'Untitled Agent Rule'),
-      statement: String(raw.statement || ''),
-      layer: validateEnum(String(raw.layer || ''), ['DNA', 'BEHAVIORAL', 'RELATIONAL', 'CONTEXTUAL'] as const, 'CONTEXTUAL'),
-      category: validateEnum(String(raw.category || ''), ['CONSTRAINT', 'MECHANISM', 'DEFINITION', 'RELATION', 'POLICY'] as const, 'DEFINITION'),
-      hardness: validateEnum(String(raw.hardness || ''), ['HARD', 'FIRM', 'SOFT', 'AESTHETIC'] as const, 'FIRM'),
-      scope: validateEnum(String(raw.scope || ''), ['SELF', 'DYAD', 'GROUP', 'WORLD'] as const, 'SELF'),
+      title,
+      statement,
+      layer,
+      category,
+      hardness,
+      scope,
       importance: clampImportance(raw.importance),
       provenance: 'CREATOR',
       priority: 100,
@@ -106,14 +177,43 @@ function toLAgentRuleDraft(
   };
 }
 
-function validateEnum<T extends string>(value: string, valid: readonly T[], fallback: T): T {
-  return valid.includes(value as T) ? (value as T) : fallback;
-}
-
 function clampImportance(value: unknown): number {
   const num = Number(value);
   if (!Number.isFinite(num)) return 50;
   return Math.max(0, Math.min(100, Math.round(num)));
+}
+
+function toConflictEntry(
+  raw: Record<string, unknown>,
+  chapterIndex: number,
+): ConflictEntry | null {
+  const ruleKind = parseEnum(raw, 'ruleKind', CONFLICT_RULE_KIND_VALUES);
+  const ruleKey = requireStringField(raw, 'ruleKey');
+  const previousStatement = requireStringField(raw, 'previousStatement');
+  const newStatement = requireStringField(raw, 'newStatement');
+  const previousHardness = parseEnum(raw, 'previousHardness', RULE_HARDNESS_VALUES);
+  const newHardness = parseEnum(raw, 'newHardness', RULE_HARDNESS_VALUES);
+  if (
+    !ruleKind ||
+    !ruleKey ||
+    !previousStatement ||
+    !newStatement ||
+    !previousHardness ||
+    !newHardness
+  ) {
+    return null;
+  }
+
+  return {
+    ruleKind,
+    ruleKey,
+    previousStatement,
+    newStatement,
+    previousHardness,
+    newHardness,
+    chapterIndex,
+    resolution: 'UNRESOLVED',
+  };
 }
 
 /**
@@ -152,16 +252,16 @@ export async function extractChapter(
 
       // Convert raw LLM output to typed drafts
       const worldRules = parsed.worldRules
-        .filter((r) => r != null && typeof r === 'object')
-        .map((r) => toLWorldRuleDraft(r as unknown as Record<string, unknown>, chapterIndex));
+        .filter(isRecord)
+        .map((r) => toLWorldRuleDraft(r, chapterIndex))
+        .filter((rule): rule is LocalWorldRuleDraft => rule !== null);
 
       const agentRuleMap = new Map<string, LocalAgentRuleDraft[]>();
       for (const rawRule of parsed.agentRules) {
-        if (!rawRule || typeof rawRule !== 'object') continue;
-        const { characterName, rule } = toLAgentRuleDraft(
-          rawRule as Record<string, unknown>,
-          chapterIndex,
-        );
+        if (!isRecord(rawRule)) continue;
+        const mappedRule = toLAgentRuleDraft(rawRule, chapterIndex);
+        if (!mappedRule) continue;
+        const { characterName, rule } = mappedRule;
         const existing = agentRuleMap.get(characterName) ?? [];
         existing.push(rule);
         agentRuleMap.set(characterName, existing);
@@ -172,28 +272,30 @@ export async function extractChapter(
       );
 
       const newCharacters: DiscoveredCharacter[] = parsed.newCharacters
-        .filter((c) => c != null && typeof c === 'object')
-        .map((c) => ({
-          name: String((c as Record<string, unknown>).name || 'Unknown'),
-          aliases: Array.isArray((c as Record<string, unknown>).aliases) ? ((c as Record<string, unknown>).aliases as unknown[]).map((a) => String(a || '')) : [],
-          firstAppearance: chapterIndex,
-          description: String((c as Record<string, unknown>).description || ''),
-        }));
+        .filter(isRecord)
+        .map((c) => {
+          const name = requireStringField(c, 'name');
+          if (!name) {
+            return null;
+          }
+          const aliases = Array.isArray(c.aliases)
+            ? c.aliases
+                .map((alias) => asOptionalString(alias))
+                .filter((alias): alias is string => Boolean(alias))
+            : [];
+          return {
+            name,
+            aliases,
+            firstAppearance: chapterIndex,
+            description: typeof c.description === 'string' ? c.description : '',
+          };
+        })
+        .filter((character): character is DiscoveredCharacter => character !== null);
 
       const contradictions = parsed.contradictions
-        .filter((c) => c != null && typeof c === 'object')
-        .map((c) => ({
-          ruleKind: String((c as Record<string, unknown>).ruleKey || '').includes(':')
-            ? 'WORLD' as const
-            : 'WORLD' as const,
-          ruleKey: String((c as Record<string, unknown>).ruleKey || ''),
-          previousStatement: String((c as Record<string, unknown>).previousStatement || ''),
-          newStatement: String((c as Record<string, unknown>).newStatement || ''),
-          previousHardness: 'FIRM' as const,
-          newHardness: 'FIRM' as const,
-          chapterIndex,
-          resolution: 'UNRESOLVED' as const,
-        }));
+        .filter(isRecord)
+        .map((c) => toConflictEntry(c, chapterIndex))
+        .filter((entry): entry is ConflictEntry => entry !== null);
 
       return {
         chapterIndex,

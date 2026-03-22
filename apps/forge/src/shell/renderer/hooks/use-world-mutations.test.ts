@@ -4,10 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { type ReactNode } from 'react';
 
 const mockWorldDataClient = vi.hoisted(() => ({
+  FORGE_WORLD_WORKSPACE_TARGET_PATH: 'forge.workspace.world',
+  FORGE_WORLD_WORKSPACE_SCHEMA_VERSION: '1',
   createWorldDraft: vi.fn(),
   updateWorldDraft: vi.fn(),
   publishWorldDraft: vi.fn(),
-  updateWorldMaintenance: vi.fn(),
+  commitWorldState: vi.fn(),
   listWorldRules: vi.fn(),
   createWorldRule: vi.fn(),
   updateWorldRule: vi.fn(),
@@ -18,22 +20,18 @@ const mockWorldDataClient = vi.hoisted(() => ({
   updateAgentRule: vi.fn(),
   deprecateAgentRule: vi.fn(),
   archiveAgentRule: vi.fn(),
-  batchUpsertWorldEvents: vi.fn(),
-  batchUpsertWorldMediaBindings: vi.fn(),
-  deleteWorldEvent: vi.fn(),
+  appendWorldHistory: vi.fn(),
   batchCreateCreatorAgents: vi.fn(),
   listMyWorlds: vi.fn(),
   listWorldDrafts: vi.fn(),
-  listWorldEvents: vi.fn(),
-  getWorldMaintenance: vi.fn(),
+  listWorldHistory: vi.fn(),
+  getWorldState: vi.fn(),
   listWorldLorebooks: vi.fn(),
   listWorldMediaBindings: vi.fn(),
   listWorldMutations: vi.fn(),
   getMyWorldAccess: vi.fn(),
   resolveWorldLanding: vi.fn(),
   getWorldDraft: vi.fn(),
-  deleteWorldMediaBinding: vi.fn(),
-  listWorldNarrativeContexts: vi.fn(),
   listWorldScenes: vi.fn(),
   listCreatorAgents: vi.fn(),
   createCreatorAgent: vi.fn(),
@@ -42,6 +40,41 @@ const mockWorldDataClient = vi.hoisted(() => ({
 vi.mock('@renderer/data/world-data-client.js', () => mockWorldDataClient);
 
 import { useWorldMutations } from './use-world-mutations.js';
+
+function buildDraftPayload() {
+  return {
+    importSource: {
+      sourceType: 'TEXT' as const,
+      sourceRef: 'ref1',
+      sourceText: 'seed text',
+    },
+    truthDraft: {
+      worldRules: [{
+        ruleKey: 'axiom:time:flow',
+        title: 'Time flows',
+        statement: 'Time moves forward.',
+        category: 'DEFINITION',
+        domain: 'AXIOM',
+        hardness: 'HARD',
+        priority: 100,
+        provenance: 'CREATOR',
+        scope: 'WORLD',
+      }],
+      agentRules: [],
+    },
+    stateDraft: {
+      worldState: { name: 'Realm' },
+    },
+    historyDraft: {
+      events: { primary: [], secondary: [] },
+    },
+    workflowState: {
+      workspaceVersion: 'ws-1',
+      createStep: 'REVIEW',
+      selectedCharacters: [],
+    },
+  };
+}
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -74,10 +107,8 @@ describe('useWorldMutations', () => {
     expect(result.current).toHaveProperty('updateAgentRuleMutation');
     expect(result.current).toHaveProperty('deprecateAgentRuleMutation');
     expect(result.current).toHaveProperty('archiveAgentRuleMutation');
-    expect(result.current).toHaveProperty('syncLorebooksMutation');
     expect(result.current).toHaveProperty('syncEventsMutation');
     expect(result.current).toHaveProperty('syncMediaBindingsMutation');
-    expect(result.current).toHaveProperty('deleteLorebookMutation');
     expect(result.current).toHaveProperty('deleteEventMutation');
     expect(result.current).toHaveProperty('batchCreateCreatorAgentsMutation');
   });
@@ -94,7 +125,7 @@ describe('useWorldMutations', () => {
         sourceRef: 'ref1',
         status: 'DRAFT',
         pipelineState: {},
-        draftPayload: { content: 'hello' },
+        draftPayload: buildDraftPayload(),
       });
     });
 
@@ -116,7 +147,7 @@ describe('useWorldMutations', () => {
         sourceRef: 'ref1',
         status: 'REVIEW',
         pipelineState: {},
-        draftPayload: { content: 'updated' },
+        draftPayload: buildDraftPayload(),
       });
     });
 
@@ -125,22 +156,35 @@ describe('useWorldMutations', () => {
     expect(mockWorldDataClient.createWorldDraft).not.toHaveBeenCalled();
   });
 
-  it('deleteEventMutation calls deleteWorldEvent', async () => {
-    mockWorldDataClient.deleteWorldEvent.mockResolvedValue({});
-
+  it('deleteEventMutation fails close because world history is append-only', async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useWorldMutations(), { wrapper });
 
-    await act(async () => {
-      result.current.deleteEventMutation.mutate({ worldId: 'w1', eventId: 'e1' });
-    });
-
-    await vi.waitFor(() => expect(result.current.deleteEventMutation.isSuccess).toBe(true));
-    expect(mockWorldDataClient.deleteWorldEvent).toHaveBeenCalledWith('w1', 'e1');
+    await expect(result.current.deleteEventMutation.mutateAsync()).rejects.toThrow(
+      /WORLD_HISTORY_APPEND_ONLY/,
+    );
   });
 
-  it('saveMaintenanceMutation only forwards worldPatch metadata writes', async () => {
-    mockWorldDataClient.updateWorldMaintenance.mockResolvedValue({ worldId: 'w1' });
+  it('syncMediaBindingsMutation fails close because media bindings are projection read-only', async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useWorldMutations(), { wrapper });
+
+    await expect(
+      result.current.syncMediaBindingsMutation.mutateAsync({
+        worldId: 'w1',
+        bindingUpserts: [],
+        reason: 'sync',
+        sessionId: 'ws-1',
+      }),
+    ).rejects.toThrow(/WORLD_MEDIA_BINDING_PROJECTION_READ_ONLY/);
+  });
+
+  it('saveMaintenanceMutation only forwards canonical state writes', async () => {
+    mockWorldDataClient.commitWorldState.mockResolvedValue({
+      worldId: 'w1',
+      version: 'state-v2',
+      items: [],
+    });
 
     const wrapper = createWrapper();
     const { result } = renderHook(() => useWorldMutations(), { wrapper });
@@ -148,16 +192,24 @@ describe('useWorldMutations', () => {
     await act(async () => {
       result.current.saveMaintenanceMutation.mutate({
         worldId: 'w1',
-        worldPatch: { name: 'Realm' },
+        worldState: { name: 'Realm' },
         reason: 'save',
+        sessionId: 'ws-1',
         ifSnapshotVersion: 'snap-1',
       });
     });
 
     await vi.waitFor(() => expect(result.current.saveMaintenanceMutation.isSuccess).toBe(true));
-    expect(mockWorldDataClient.updateWorldMaintenance).toHaveBeenCalledWith('w1', {
-      worldPatch: { name: 'Realm' },
+    expect(mockWorldDataClient.commitWorldState).toHaveBeenCalledWith('w1', {
+      writes: [{
+        scope: 'WORLD',
+        scopeKey: 'w1',
+        targetPath: mockWorldDataClient.FORGE_WORLD_WORKSPACE_TARGET_PATH,
+        payload: { name: 'Realm' },
+        metadata: { owner: 'forge-maintenance' },
+      }],
       reason: 'save',
+      sessionId: 'ws-1',
       ifSnapshotVersion: 'snap-1',
     });
   });
@@ -171,7 +223,17 @@ describe('useWorldMutations', () => {
     await act(async () => {
       result.current.createWorldRuleMutation.mutate({
         worldId: 'w1',
-        payload: { ruleKey: 'axiom:time:flow', title: 'Time flows', statement: 'Time flows forward.' },
+        payload: {
+          ruleKey: 'axiom:time:flow',
+          title: 'Time flows',
+          statement: 'Time flows forward.',
+          category: 'DEFINITION',
+          domain: 'AXIOM',
+          hardness: 'HARD',
+          priority: 100,
+          provenance: 'CREATOR',
+          scope: 'WORLD',
+        },
       });
     });
 
@@ -180,6 +242,12 @@ describe('useWorldMutations', () => {
       ruleKey: 'axiom:time:flow',
       title: 'Time flows',
       statement: 'Time flows forward.',
+      category: 'DEFINITION',
+      domain: 'AXIOM',
+      hardness: 'HARD',
+      priority: 100,
+      provenance: 'CREATOR',
+      scope: 'WORLD',
     });
   });
 

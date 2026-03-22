@@ -8,7 +8,7 @@ import {
   useWorldScenesQuery,
   useWorldLorebooksQuery,
 } from '../world-browser/world-browser-queries.js';
-import type { RawWorldContext } from './marble-prompt.js';
+import type { WorldReferenceBundle } from './marble-prompt.js';
 import { MarbleViewer } from './marble-viewer.js';
 import { AgentChatPanel } from '../agent-chat/agent-chat-panel.js';
 import { HumanChatPanel } from '../human-chat/human-chat-panel.js';
@@ -43,7 +43,7 @@ export function WorldViewerPage() {
   const scenesQuery = useWorldScenesQuery(worldId || '');
   const lorebooksQuery = useWorldLorebooksQuery(worldId || '');
 
-  const worldContext: RawWorldContext | null = useMemo(() => {
+  const worldReference: WorldReferenceBundle | null = useMemo(() => {
     if (!worldQuery.data || !worldviewQuery.data) return null;
     return {
       world: worldQuery.data,
@@ -188,7 +188,7 @@ export function WorldViewerPage() {
             <MarbleViewer
               worldId={worldId || ''}
               worldName={worldQuery.data?.name ?? ''}
-              worldContext={worldContext}
+              worldReference={worldReference}
               quality={quality}
             />
           )}
