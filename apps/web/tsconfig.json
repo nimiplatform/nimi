@@ -11,6 +11,7 @@
       "@renderer/bridge": ["src/desktop-adapter/bridge.web.ts"],
       "@runtime/*": ["../desktop/src/runtime/*"],
       "@renderer/*": ["../desktop/src/shell/renderer/*"],
+      "@nimiplatform/sdk/runtime": ["../../sdk/src/runtime/browser.ts"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
       "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"]

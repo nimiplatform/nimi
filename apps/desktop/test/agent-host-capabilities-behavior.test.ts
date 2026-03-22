@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import type { AgentMemoryRecord, RealmModel } from '@nimiplatform/sdk/realm';
+import type { AgentMemoryRecord } from '@nimiplatform/sdk/realm';
 import test from 'node:test';
 import {
   createAgentCoreDataCapabilityHandlers,
@@ -7,17 +7,25 @@ import {
   seedAgentMemoryIndexForTesting,
 } from '../src/shell/renderer/infra/bootstrap/core-capabilities';
 
-type MemoryStatsResponseDto = RealmModel<'MemoryStatsResponseDto'>;
-
 function makeMemoryRecord(id: string, overrides: Partial<AgentMemoryRecord> = {}): AgentMemoryRecord {
   return {
+    actorRefs: [],
+    appId: 'desktop-test',
+    commitId: `${id}-commit`,
     id,
-    category: 'CORE',
     content: `${id} content`,
     createdAt: '2026-03-01T00:00:00Z',
-    entityId: null,
+    createdBy: 'user-1',
+    effectClass: 'MEMORY_ONLY',
     importance: 1,
-    type: 'CORE_FACT',
+    reason: 'desktop test',
+    schemaId: 'agent.memory.commit',
+    schemaVersion: '1',
+    sessionId: 'desktop-test-session',
+    type: 'PUBLIC_SHARED',
+    userId: null,
+    worldId: null,
+    metadata: undefined,
     ...overrides,
   };
 }
@@ -98,39 +106,39 @@ test('agent memory core list uses cache-only semantics and rejects missing agent
   );
 });
 
-test('agent memory e2e list requires entity context and only serves cached slices locally', async () => {
+test('agent memory dyadic list requires user context and only serves cached slices locally', async () => {
   resetAgentCoreDataStateForTesting();
 
-  const missingEntityHandlers = createAgentCoreDataCapabilityHandlers({
+  const missingUserHandlers = createAgentCoreDataCapabilityHandlers({
     resolveCurrentUserId: async () => undefined,
   });
   await assert.rejects(
-    () => missingEntityHandlers.agentMemoryE2EList({ agentId: 'agent-e2e' }),
-    /AGENT_MEMORY_ENTITY_ID_REQUIRED/,
+    () => missingUserHandlers.agentMemoryDyadicList({ agentId: 'agent-dyadic' }),
+    /AGENT_MEMORY_USER_ID_REQUIRED/,
   );
 
   seedAgentMemoryIndexForTesting({
-    agentId: 'agent-e2e',
-    entityId: 'user-1',
-    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
+    agentId: 'agent-dyadic',
+    userId: 'user-1',
+    dyadic: [makeMemoryRecord('dyadic-1', { userId: 'user-1', type: 'DYADIC' })],
   });
   let requestCount = 0;
   const cachedHandlers = createAgentCoreDataCapabilityHandlers({
     client: {
-      listAgentE2EMemories: async () => {
+      listAgentDyadicMemories: async () => {
         requestCount += 1;
         throw new Error('UNEXPECTED_REMOTE_CALL');
       },
     },
   });
-  const cached = await cachedHandlers.agentMemoryE2EList({
-    agentId: 'agent-e2e',
-    entityId: 'user-1',
+  const cached = await cachedHandlers.agentMemoryDyadicList({
+    agentId: 'agent-dyadic',
+    userId: 'user-1',
   });
   assert.deepEqual(cached, {
-    items: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
+    items: [makeMemoryRecord('dyadic-1', { userId: 'user-1', type: 'DYADIC' })],
     source: 'local-index-only',
-    entityId: 'user-1',
+    userId: 'user-1',
   });
   assert.equal(requestCount, 0);
 
@@ -138,120 +146,39 @@ test('agent memory e2e list requires entity context and only serves cached slice
   const failingHandlers = createAgentCoreDataCapabilityHandlers({
     resolveCurrentUserId: async () => 'user-1',
     client: {
-      listAgentE2EMemories: async () => {
+      listAgentDyadicMemories: async () => {
         throw new Error('REMOTE_MEMORY_DOWN');
       },
     },
   });
   await assert.rejects(
-    () => failingHandlers.agentMemoryE2EList({ agentId: 'agent-e2e' }),
+    () => failingHandlers.agentMemoryDyadicList({ agentId: 'agent-dyadic' }),
     /REMOTE_MEMORY_DOWN/,
   );
 });
 
-test('agent memory recall only returns local data when cache already satisfies topK', async () => {
+test('agent memory profiles list validates the remote contract', async () => {
   resetAgentCoreDataStateForTesting();
 
-  seedAgentMemoryIndexForTesting({
-    agentId: 'agent-recall',
-    core: [makeMemoryRecord('core-1')],
-    entityId: 'user-1',
-    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
-  });
-  let requestCount = 0;
-  const localHandlers = createAgentCoreDataCapabilityHandlers({
+  const invalidHandlers = createAgentCoreDataCapabilityHandlers({
     client: {
-      recallAgentMemoriesForEntity: async () => {
-        requestCount += 1;
-        throw new Error('UNEXPECTED_REMOTE_CALL');
-      },
-    },
-  });
-  const localOnly = await localHandlers.agentMemoryRecallForEntity({
-    agentId: 'agent-recall',
-    entityId: 'user-1',
-    topK: 2,
-  });
-  assert.deepEqual(localOnly, {
-    items: [
-      makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' }),
-      makeMemoryRecord('core-1'),
-    ],
-    core: [makeMemoryRecord('core-1')],
-    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
-    entityId: 'user-1',
-    recallSource: 'local-index-only',
-  });
-  assert.equal(requestCount, 0);
-
-  resetAgentCoreDataStateForTesting();
-  seedAgentMemoryIndexForTesting({
-    agentId: 'agent-recall',
-    core: [makeMemoryRecord('core-1')],
-    entityId: 'user-1',
-    e2e: [],
-  });
-  const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      recallAgentMemoriesForEntity: async () => {
-        throw new Error('REMOTE_RECALL_DOWN');
-      },
+      listAgentMemoryProfiles: async () => ({ invalid: true }),
     },
   });
   await assert.rejects(
-    () => failingHandlers.agentMemoryRecallForEntity({
-      agentId: 'agent-recall',
-      entityId: 'user-1',
-      topK: 2,
-    }),
-    /REMOTE_RECALL_DOWN/,
+    () => invalidHandlers.agentMemoryProfilesList({ agentId: 'agent-profiles' }),
+    /AGENT_MEMORY_PROFILES_CONTRACT_INVALID/,
   );
-});
 
-test('agent memory stats require cached stats or remote success and do not synthesize counts from slices', async () => {
-  resetAgentCoreDataStateForTesting();
-
-  const cachedStats: MemoryStatsResponseDto = {
-    coreCount: 1,
-    e2eCount: 2,
-    uniqueEntities: 3,
-  } as MemoryStatsResponseDto;
-  seedAgentMemoryIndexForTesting({
-    agentId: 'agent-stats',
-    stats: cachedStats,
-  });
-  let requestCount = 0;
-  const cachedHandlers = createAgentCoreDataCapabilityHandlers({
+  const handlers = createAgentCoreDataCapabilityHandlers({
     client: {
-      getAgentMemoryStats: async () => {
-        requestCount += 1;
-        throw new Error('UNEXPECTED_REMOTE_CALL');
-      },
+      listAgentMemoryProfiles: async () => ({
+        items: [{ userId: 'user-1' }, { userId: 'user-2' }],
+      }),
     },
   });
-  const localOnly = await cachedHandlers.agentMemoryStatsGet({ agentId: 'agent-stats' });
-  assert.deepEqual(localOnly, {
-    ...cachedStats,
-    source: 'local-index-only',
+  const result = await handlers.agentMemoryProfilesList({ agentId: 'agent-profiles' });
+  assert.deepEqual(result, {
+    items: [{ userId: 'user-1' }, { userId: 'user-2' }],
   });
-  assert.equal(requestCount, 0);
-
-  resetAgentCoreDataStateForTesting();
-  seedAgentMemoryIndexForTesting({
-    agentId: 'agent-stats',
-    core: [makeMemoryRecord('core-1')],
-    entityId: 'user-1',
-    e2e: [makeMemoryRecord('e2e-1', { category: 'E2E', entityId: 'user-1', type: 'EPISODIC' })],
-  });
-  const failingHandlers = createAgentCoreDataCapabilityHandlers({
-    client: {
-      getAgentMemoryStats: async () => {
-        throw new Error('REMOTE_STATS_DOWN');
-      },
-    },
-  });
-  await assert.rejects(
-    () => failingHandlers.agentMemoryStatsGet({ agentId: 'agent-stats' }),
-    /REMOTE_STATS_DOWN/,
-  );
 });

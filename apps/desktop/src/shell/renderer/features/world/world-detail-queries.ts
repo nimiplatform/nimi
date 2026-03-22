@@ -3,9 +3,8 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type {
   WorldAuditItem,
-  WorldEvent,
-  WorldEventsBundle,
-  WorldEventSummary,
+  WorldHistoryBundle,
+  WorldHistoryItem,
   WorldLorebookItem,
   WorldMediaBindingItem,
   WorldMutationItem,
@@ -22,8 +21,8 @@ import type {
 } from './world-detail-types';
 
 type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
-type WorldEventPayload = Awaited<ReturnType<typeof dataSync.loadWorldEvents>>;
-type WorldEventDetailDto = WorldEventPayload['items'][number];
+type WorldHistoryPayload = Awaited<ReturnType<typeof dataSync.loadWorldHistory>>;
+type WorldHistoryDetailDto = WorldHistoryPayload['items'][number];
 type WorldSemanticBundleDto = Awaited<ReturnType<typeof dataSync.loadWorldSemanticBundle>>;
 type WorldviewDetailDto = NonNullable<WorldSemanticBundleDto['worldview']>;
 type PowerSystemDto = RealmModel<'PowerSystemDto'>;
@@ -39,7 +38,7 @@ type PublicWorldMutationDto = Awaited<ReturnType<typeof dataSync.loadWorldMutati
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
 
-const EVENT_HORIZON_TAG: Record<string, string> = {
+const EVENT_HORIZON_TAG: Record<'PAST' | 'ONGOING' | 'FUTURE', string> = {
   PAST: 'Past',
   ONGOING: 'Ongoing',
   FUTURE: 'Future',
@@ -72,6 +71,21 @@ function requireString(value: unknown, fieldName: string): string {
   return normalized;
 }
 
+function requireNumber(value: unknown, fieldName: string): number {
+  const normalized = readNumber(value);
+  if (normalized === null) {
+    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
+  }
+  return normalized;
+}
+
+function requireStringArray(value: unknown, fieldName: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
+  }
+  return value.map((item, index) => requireString(item, `${fieldName}_${index}`));
+}
+
 function requireRecordArray(value: unknown, fieldName: string): Array<Record<string, unknown>> {
   if (!Array.isArray(value)) {
     throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
@@ -86,14 +100,6 @@ function assertArrayIfPresent(value: unknown, fieldName: string): void {
   if (!Array.isArray(value)) {
     throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
   }
-}
-
-function toPositiveInt(value: unknown, fieldName: string): number {
-  const numeric = Number(value);
-  if (!Number.isInteger(numeric) || numeric < 1) {
-    throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
-  }
-  return numeric;
 }
 
 function normalizeWorldId(worldId: string): string {
@@ -115,69 +121,62 @@ function stringifyLoose(value: unknown): string | null {
   return null;
 }
 
-function toWorldEvent(raw: WorldEventDetailDto): WorldEvent {
+function inferEventHorizon(raw: WorldHistoryDetailDto): 'PAST' | 'ONGOING' | 'FUTURE' {
+  const eventType = readString(raw.eventType)?.toLowerCase() ?? '';
+  if (eventType.includes('future')) return 'FUTURE';
+  if (eventType.includes('ongoing')) return 'ONGOING';
+  const happenedAt = readString(raw.happenedAt);
+  if (happenedAt) {
+    const parsed = new Date(happenedAt);
+    if (!Number.isNaN(parsed.getTime()) && parsed.getTime() > Date.now()) {
+      return 'FUTURE';
+    }
+  }
+  return 'PAST';
+}
+
+function inferEventLevel(raw: WorldHistoryDetailDto): 'PRIMARY' | 'SECONDARY' {
+  const eventType = readString(raw.eventType)?.toLowerCase() ?? '';
+  return eventType.includes('secondary') ? 'SECONDARY' : 'PRIMARY';
+}
+
+function toWorldHistoryItem(raw: WorldHistoryDetailDto, index: number): WorldHistoryItem {
   const id = requireString(raw.id, 'event_id');
   const title = requireString(raw.title, 'event_title');
-  const horizon = typeof raw.eventHorizon === 'string' ? raw.eventHorizon : 'PAST';
+  const horizon = inferEventHorizon(raw);
+  const happenedAt = requireString(raw.happenedAt, 'event_happened_at');
+  const eventType = readString(raw.eventType);
+  const evidenceRefs = Array.isArray(raw.evidenceRefs)
+    ? raw.evidenceRefs.map((item) => ({
+      segmentId: requireString(item.segmentId, 'event_evidence_segment_id'),
+      offsetStart: requireNumber(item.offsetStart, 'event_evidence_offset_start'),
+      offsetEnd: requireNumber(item.offsetEnd, 'event_evidence_offset_end'),
+      excerpt: requireString(item.excerpt, 'event_evidence_excerpt'),
+      confidence: requireNumber(item.confidence, 'event_evidence_confidence'),
+      sourceType: requireString(item.sourceType, 'event_evidence_source_type'),
+    }))
+    : [];
   return {
     id,
-    timelineSeq: toPositiveInt(raw.timelineSeq, 'timeline_seq'),
+    timelineSeq: index + 1,
     title,
-    description: String(raw.summary || raw.cause || raw.process || raw.result || ''),
-    time: String(raw.timeRef || raw.createdAt || ''),
-    tag: EVENT_HORIZON_TAG[horizon] || horizon || 'Event',
-    level: raw.level === 'SECONDARY' ? 'SECONDARY' : 'PRIMARY',
-    eventHorizon: horizon === 'ONGOING' ? 'ONGOING' : horizon === 'FUTURE' ? 'FUTURE' : 'PAST',
+    description: readString(raw.summary) ?? readString(raw.cause) ?? readString(raw.process) ?? readString(raw.result) ?? '',
+    time: readString(raw.timeRef) ?? happenedAt,
+    tag: eventType ? formatLabel(eventType) : EVENT_HORIZON_TAG[horizon],
+    level: inferEventLevel(raw),
+    eventHorizon: horizon,
     summary: readString(raw.summary),
     cause: readString(raw.cause),
     process: readString(raw.process),
     result: readString(raw.result),
-    locationRefs: Array.isArray(raw.locationRefs)
-      ? raw.locationRefs.map((value) => String(value)).filter(Boolean)
-      : [],
-    characterRefs: Array.isArray(raw.characterRefs)
-      ? raw.characterRefs.map((value) => String(value)).filter(Boolean)
-      : [],
-    evidenceRefs: Array.isArray(raw.evidenceRefs)
-      ? raw.evidenceRefs
-        .map((item) => ({
-          segmentId: String(item.segmentId || ''),
-          offsetStart: Number(item.offsetStart || 0),
-          offsetEnd: Number(item.offsetEnd || 0),
-          excerpt: String(item.excerpt || ''),
-          confidence: Number.isFinite(Number(item.confidence)) ? Number(item.confidence) : 0,
-          sourceType: String(item.sourceType || ''),
-        }))
-      : [],
-    confidence: Number.isFinite(Number(raw.confidence)) ? Number(raw.confidence) : 0,
-    needsEvidence: Boolean(raw.needsEvidence),
-  };
-}
-
-function toWorldEventSummary(raw: WorldEventPayload['eventGraphSummary']): WorldEventSummary | null {
-  if (!raw) return null;
-  const primaryCount = readNumber(raw.primaryCount);
-  const secondaryCount = readNumber(raw.secondaryCount);
-  const totalCount = readNumber(raw.totalCount);
-  const eventCharacterCoverage = readNumber(raw.eventCharacterCoverage);
-  const eventLocationCoverage = readNumber(raw.eventLocationCoverage);
-
-  if (
-    primaryCount === null &&
-    secondaryCount === null &&
-    totalCount === null &&
-    eventCharacterCoverage === null &&
-    eventLocationCoverage === null
-  ) {
-    return null;
-  }
-
-  return {
-    primaryCount: primaryCount ?? 0,
-    secondaryCount: secondaryCount ?? 0,
-    totalCount: totalCount ?? 0,
-    eventCharacterCoverage: eventCharacterCoverage ?? 0,
-    eventLocationCoverage: eventLocationCoverage ?? 0,
+    locationRefs: requireStringArray(raw.locationRefs, 'event_location_refs'),
+    characterRefs: requireStringArray(raw.characterRefs, 'event_character_refs'),
+    evidenceRefs,
+    confidence:
+      evidenceRefs.length > 0
+        ? evidenceRefs.reduce((sum, item) => sum + item.confidence, 0) / evidenceRefs.length
+        : 0,
+    needsEvidence: evidenceRefs.length === 0,
   };
 }
 
@@ -379,23 +378,20 @@ function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem {
   const id = requireString(raw.id, 'lorebook_id');
   return {
     id,
-    key: readString(raw.key) ?? id,
+    key: requireString(raw.key, 'lorebook_key'),
     name: readString(raw.name),
-    content: readString(raw.content) ?? '',
-    keywords: Array.isArray(raw.keywords) ? raw.keywords.map((value) => String(value)).filter(Boolean) : [],
+    content: requireString(raw.content, 'lorebook_content'),
+    keywords: raw.keywords == null ? [] : requireStringArray(raw.keywords, 'lorebook_keywords'),
     priority: readNumber(raw.priority),
   };
 }
 
 function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
-  const id = requireString(raw.id, 'scene_id');
   return {
-    id,
-    name: readString(raw.name) ?? id,
-    description: readString(raw.description) ?? '',
-    activeEntities: Array.isArray(raw.activeEntities)
-      ? raw.activeEntities.map((value) => String(value)).filter(Boolean)
-      : [],
+    id: requireString(raw.id, 'scene_id'),
+    name: requireString(raw.name, 'scene_name'),
+    description: requireString(raw.description, 'scene_description'),
+    activeEntities: requireStringArray(raw.activeEntities, 'scene_active_entities'),
   };
 }
 
@@ -406,32 +402,29 @@ function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBin
   const assetUrl = requireString(assetRecord.url, 'media_binding_asset_url');
   return {
     id,
-    targetType: readString(raw.targetType) ?? 'WORLD',
-    targetId: readString(raw.targetId) ?? '',
-    slot: readString(raw.slot) ?? '',
-    priority: readNumber(raw.priority) ?? 0,
-    tags: Array.isArray(raw.tags) ? raw.tags.map((value) => String(value)).filter(Boolean) : [],
+    targetType: requireString(raw.targetType, 'media_binding_target_type'),
+    targetId: requireString(raw.targetId, 'media_binding_target_id'),
+    slot: requireString(raw.slot, 'media_binding_slot'),
+    priority: requireNumber(raw.priority, 'media_binding_priority'),
+    tags: requireStringArray(raw.tags, 'media_binding_tags'),
     asset: {
       id: assetId,
       url: assetUrl,
-      mediaType: readString(assetRecord.mediaType) ?? 'IMAGE',
+      mediaType: requireString(assetRecord.mediaType, 'media_binding_asset_media_type'),
       label: readString(assetRecord.label),
     },
   };
 }
 
 function toWorldMutationItem(raw: PublicWorldMutationDto): WorldMutationItem {
-  const id = requireString(raw.id, 'mutation_id');
-  const title = requireString(raw.title, 'mutation_title');
-  const summary = requireString(raw.summary, 'mutation_summary');
   return {
-    id,
-    mutationType: readString(raw.mutationType) ?? 'SETTING_CHANGE',
-    title,
-    summary,
-    targetPath: readString(raw.targetPath) ?? '',
+    id: requireString(raw.id, 'mutation_id'),
+    mutationType: requireString(raw.mutationType, 'mutation_type'),
+    title: requireString(raw.title, 'mutation_title'),
+    summary: requireString(raw.summary, 'mutation_summary'),
+    targetPath: requireString(raw.targetPath, 'mutation_target_path'),
     reason: readString(raw.reason),
-    createdAt: readString(raw.createdAt) ?? '',
+    createdAt: requireString(raw.createdAt, 'mutation_created_at'),
   };
 }
 
@@ -447,8 +440,8 @@ export function worldDetailWithAgentsQueryKey(worldId: string) {
   ] as const;
 }
 
-export function worldEventsQueryKey(worldId: string) {
-  return ['world-events', normalizeWorldId(worldId)] as const;
+export function worldHistoryQueryKey(worldId: string) {
+  return ['world-history', normalizeWorldId(worldId)] as const;
 }
 
 export function worldSemanticBundleQueryKey(worldId: string) {
@@ -470,13 +463,13 @@ export async function fetchWorldDetailWithAgents(worldId: string) {
   );
 }
 
-export async function fetchWorldEvents(worldId: string): Promise<WorldEventsBundle> {
-  const payload = await dataSync.loadWorldEvents(normalizeWorldId(worldId));
+export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBundle> {
+  const payload = await dataSync.loadWorldHistory(normalizeWorldId(worldId));
   return {
     items: payload.items
-      .map(toWorldEvent)
+      .map((item, index) => toWorldHistoryItem(item, index))
       .sort((left, right) => left.timelineSeq - right.timelineSeq || left.id.localeCompare(right.id)),
-    summary: toWorldEventSummary(payload.eventGraphSummary),
+    summary: null,
   };
 }
 
@@ -507,7 +500,7 @@ export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPubl
   };
 }
 
-export function prefetchWorldDetailAndEvents(worldId: string): void {
+export function prefetchWorldDetailAndHistory(worldId: string): void {
   const normalizedWorldId = normalizeWorldId(worldId);
   if (!normalizedWorldId) {
     return;
@@ -526,8 +519,8 @@ export function prefetchWorldDetailAndEvents(worldId: string): void {
   });
 
   void queryClient.prefetchQuery({
-    queryKey: worldEventsQueryKey(normalizedWorldId),
-    queryFn: () => fetchWorldEvents(normalizedWorldId),
+    queryKey: worldHistoryQueryKey(normalizedWorldId),
+    queryFn: () => fetchWorldHistory(normalizedWorldId),
     staleTime: DEFAULT_WORLD_PREFETCH_STALE_TIME_MS,
   });
 

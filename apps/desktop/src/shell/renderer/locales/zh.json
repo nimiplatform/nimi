@@ -963,7 +963,14 @@
     "currentAccount": "当前账户",
     "nimiNetwork": "NIMI PLATFORM",
     "desktopBrowserOpened": "已打开浏览器，请在网页完成授权登录。",
-    "desktopAuthFailed": "授权失败，点击图标重试。"
+    "desktopAuthFailed": "授权失败，点击图标重试。",
+    "passwordLoginFailed": "邮箱登录失败",
+    "requestEmailOtpFailed": "发送验证码失败",
+    "verifyEmailOtpFailed": "邮箱验证码登录失败",
+    "verifyTwoFactorFailed": "双重验证失败",
+    "walletChallengeFailed": "获取钱包挑战失败",
+    "walletLoginFailed": "钱包登录失败",
+    "oauthLoginFailed": "OAuth 登录失败"
   },
   "AuthLogin": {
     "help": "帮助",

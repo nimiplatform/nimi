@@ -11,7 +11,7 @@ type WorldLevelAuditEventDto = RealmModel<'WorldLevelAuditEventDto'>;
 type WorldviewDetailDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldview'>;
 type WorldDetailWithAgentsDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldDetailWithAgents'>;
 type WorldAgentSummaryDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldAgents'>[number];
-type WorldEventListDto = RealmServiceResult<'WorldsService', 'worldControllerGetWorldEvents'>;
+type PublicWorldHistoryPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldHistory'>;
 export type WorldLorebookListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldLorebooks'>;
 export type WorldMediaBindingListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldMediaBindings'>;
 export type WorldMutationListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldMutations'>;
@@ -31,7 +31,7 @@ export type WorldSemanticBundle = {
   worldviewSnapshots: JsonObject[];
 };
 
-export type WorldEventsPayload = WorldEventListDto;
+export type WorldHistoryPayload = PublicWorldHistoryPayload;
 
 function toRecord(value: unknown): JsonObject | null {
   return isJsonObject(value) ? value : null;
@@ -191,22 +191,22 @@ export async function loadWorldDetailById(
   }
 }
 
-export async function loadWorldEvents(
+export async function loadWorldHistory(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
   worldId: string,
-): Promise<WorldEventsPayload> {
+): Promise<WorldHistoryPayload> {
   const normalizedWorldId = String(worldId || '').trim();
   if (!normalizedWorldId) {
     throw new Error('WORLD_ID_REQUIRED');
   }
   try {
     return await callApi(
-      (realm) => realm.services.WorldsService.worldControllerGetWorldEvents(normalizedWorldId),
-      'Failed to load world events',
+      (realm) => realm.services.WorldsService.worldControllerGetWorldHistory(normalizedWorldId),
+      'Failed to load world history',
     );
   } catch (error) {
-    emitDataSyncError('load-world-events', error, { worldId: normalizedWorldId });
+    emitDataSyncError('load-world-history', error, { worldId: normalizedWorldId });
     throw error;
   }
 }

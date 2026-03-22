@@ -24,6 +24,25 @@ function normalizeHeaders(headers: HeadersInit | undefined): Record<string, stri
   );
 }
 
+function splitAuthorizationHeader(headers: Record<string, string>): {
+  headers: Record<string, string>;
+  authorization?: string;
+} {
+  const nextHeaders = { ...headers };
+  let authorization = '';
+  for (const [key, value] of Object.entries(nextHeaders)) {
+    if (key.trim().toLowerCase() !== 'authorization') {
+      continue;
+    }
+    authorization = String(value || '').trim();
+    delete nextHeaders[key];
+  }
+  return {
+    headers: nextHeaders,
+    authorization: authorization || undefined,
+  };
+}
+
 function isRequest(input: RequestInfo | URL): input is Request {
   return typeof Request !== 'undefined' && input instanceof Request;
 }
@@ -96,14 +115,16 @@ export function createProxyFetch(): typeof fetch {
     const baseHeaders = isRequest(input) ? normalizeHeaders(input.headers) : {};
     const overrideHeaders = normalizeHeaders(init.headers);
     const requestBody = await resolveBody(input, init, method);
+    const { headers, authorization } = splitAuthorizationHeader({
+      ...baseHeaders,
+      ...overrideHeaders,
+    });
 
     const response = await desktopBridge.proxyHttp({
       url: resolveUrl(input),
       method,
-      headers: {
-        ...baseHeaders,
-        ...overrideHeaders,
-      },
+      headers,
+      authorization,
       body: requestBody,
     });
 

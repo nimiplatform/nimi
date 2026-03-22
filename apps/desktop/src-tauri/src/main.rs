@@ -76,6 +76,8 @@ struct HttpRequestPayload {
     url: String,
     method: Option<String>,
     headers: Option<HashMap<String, String>>,
+    #[serde(default)]
+    authorization: Option<String>,
     body: Option<String>,
     #[serde(default)]
     diagnostic_session_id: Option<String>,

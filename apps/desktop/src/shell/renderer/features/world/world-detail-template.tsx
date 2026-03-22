@@ -22,7 +22,7 @@ import type {
   WorldAgent,
   WorldAuditItem,
   WorldDetailData,
-  WorldEventsBundle,
+  WorldHistoryBundle,
   WorldPublicAssetsData,
   WorldSemanticData,
 } from './world-detail-types.js';
@@ -30,14 +30,14 @@ import type {
 export type WorldDetailPageProps = {
   world: WorldDetailData;
   agents: WorldAgent[];
-  events: WorldEventsBundle;
+  history: WorldHistoryBundle;
   semantic: WorldSemanticData;
   audits: WorldAuditItem[];
   publicAssets: WorldPublicAssetsData;
   loading?: boolean;
   error?: boolean;
   agentsLoading?: boolean;
-  eventsLoading?: boolean;
+  historyLoading?: boolean;
   semanticLoading?: boolean;
   auditsLoading?: boolean;
   publicAssetsLoading?: boolean;
@@ -149,7 +149,7 @@ function WorldDetailPageBody({
     )).slice(0, 4)
     : [];
   const selectedSceneRelatedEvents = selectedScene
-    ? props.events.items.filter((event) => (
+    ? props.history.items.filter((event) => (
       event.locationRefs.includes(selectedScene.name)
       || event.description.includes(selectedScene.name)
       || (event.summary?.includes(selectedScene.name) ?? false)
@@ -219,8 +219,8 @@ function WorldDetailPageBody({
     ),
     timeline: (
       <WorldTimelineSection
-        events={props.events}
-        loading={props.eventsLoading}
+        history={props.history}
+        loading={props.historyLoading}
         onSelectAgentName={(name) => {
           const agent = props.agents.find((item) => item.name === name);
           if (agent) {

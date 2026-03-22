@@ -1,9 +1,8 @@
 import {
+  listAgentDyadicMemories,
+  listAgentMemoryProfiles,
   listAgentCoreMemories,
-  listAgentE2EMemories,
-  recallAgentMemoriesForEntity,
   type AgentMemoryRecord,
-  type RealmModel,
 } from '@nimiplatform/sdk/realm';
 import {
   CORE_DATA_API_CAPABILITIES,
@@ -13,16 +12,9 @@ import {
 } from './runtime-bootstrap-utils';
 import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared';
 
-type MemoryStatsResponseDto = RealmModel<'MemoryStatsResponseDto'>;
-
 type AgentMemorySliceQuery = {
   limit?: number;
   offset?: number;
-};
-
-type AgentMemoryRecallQuery = {
-  queryText?: string;
-  topK?: number;
 };
 
 type AgentChatRouteResult = {
@@ -36,17 +28,12 @@ type AgentCoreDataClient = {
   getCurrentUser: () => Promise<unknown>;
   resolveAgentChatRoute: (agentId: string) => Promise<unknown>;
   listAgentCoreMemories: (agentId: string, query?: AgentMemorySliceQuery) => Promise<AgentMemoryRecord[]>;
-  listAgentE2EMemories: (
+  listAgentDyadicMemories: (
     agentId: string,
-    entityId: string,
+    userId: string,
     query?: AgentMemorySliceQuery,
   ) => Promise<AgentMemoryRecord[]>;
-  recallAgentMemoriesForEntity: (
-    agentId: string,
-    entityId: string,
-    query?: AgentMemoryRecallQuery,
-  ) => Promise<AgentMemoryRecord[]>;
-  getAgentMemoryStats: (agentId: string) => Promise<MemoryStatsResponseDto>;
+  listAgentMemoryProfiles: (agentId: string) => Promise<unknown>;
   listMyFriendsWithDetails: (limit?: number) => Promise<unknown>;
   getUser: (userId: string) => Promise<unknown>;
   getUserByHandle: (handle: string) => Promise<unknown>;
@@ -69,23 +56,15 @@ function createAgentCoreDataClient(): AgentCoreDataClient {
         limit: query?.limit,
       })
     )),
-    listAgentE2EMemories: (agentId, entityId, query) => withRuntimeOpenApiContext((realm) => (
-      listAgentE2EMemories(realm, {
+    listAgentDyadicMemories: (agentId, userId, query) => withRuntimeOpenApiContext((realm) => (
+      listAgentDyadicMemories(realm, {
         agentId,
-        entityId,
+        userId,
         limit: query?.limit,
       })
     )),
-    recallAgentMemoriesForEntity: (agentId, entityId, query) => withRuntimeOpenApiContext((realm) => (
-      recallAgentMemoriesForEntity(realm, {
-        agentId,
-        entityId,
-        query: query?.queryText,
-        limit: query?.topK,
-      })
-    )),
-    getAgentMemoryStats: (agentId) => withRuntimeOpenApiContext(async (realm) => (
-      realm.services.AgentsService.agentControllerGetMemoryStats(agentId) as Promise<MemoryStatsResponseDto>
+    listAgentMemoryProfiles: (agentId) => withRuntimeOpenApiContext((realm) => (
+      listAgentMemoryProfiles(realm, { agentId })
     )),
     listMyFriendsWithDetails: (limit) => withRuntimeOpenApiContext((realm) => (
       realm.services.MeService.listMyFriendsWithDetails(undefined, limit)
@@ -143,32 +122,6 @@ function dedupeMemory(items: AgentMemoryRecord[]): AgentMemoryRecord[] {
   return deduped;
 }
 
-function toMemoryRecordArray(value: unknown): AgentMemoryRecord[] {
-  if (Array.isArray(value)) {
-    return value
-      .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
-      .map((item) => item as AgentMemoryRecord);
-  }
-  const record = toRecord(value);
-  if (Array.isArray(record.items)) {
-    return toMemoryRecordArray(record.items);
-  }
-  if (Array.isArray(record.data)) {
-    return toMemoryRecordArray(record.data);
-  }
-  return [];
-}
-
-function inferRecallKind(item: AgentMemoryRecord): 'core' | 'e2e' {
-  if (item.category === 'E2E' || item.type === 'EPISODIC') {
-    return 'e2e';
-  }
-  if (String(item.entityId || '').trim()) {
-    return 'e2e';
-  }
-  return 'core';
-}
-
 function isAgentChatRouteResult(value: unknown): value is AgentChatRouteResult {
   if (!value || typeof value !== 'object') {
     return false;
@@ -192,10 +145,8 @@ function isAgentChatRouteResult(value: unknown): value is AgentChatRouteResult {
 type MemoryIndexEntry = {
   core: AgentMemoryRecord[];
   hasCoreSlice: boolean;
-  e2eByEntity: Map<string, AgentMemoryRecord[]>;
-  loadedE2EEntities: Set<string>;
-  stats: MemoryStatsResponseDto | null;
-  hasStats: boolean;
+  dyadicByUser: Map<string, AgentMemoryRecord[]>;
+  loadedDyadicUsers: Set<string>;
   updatedAt: number;
 };
 
@@ -215,18 +166,15 @@ function getMemoryIndex(agentId: string): MemoryIndexEntry | undefined {
 function upsertMemoryIndex(input: {
   agentId: string;
   core?: AgentMemoryRecord[];
-  entityId?: string;
-  e2e?: AgentMemoryRecord[];
-  stats?: MemoryStatsResponseDto | null;
+  userId?: string;
+  dyadic?: AgentMemoryRecord[];
 }): MemoryIndexEntry {
   const previous = memoryLocalIndex.get(input.agentId);
   const next: MemoryIndexEntry = {
     core: previous?.core || [],
     hasCoreSlice: previous?.hasCoreSlice === true,
-    e2eByEntity: previous?.e2eByEntity || new Map<string, AgentMemoryRecord[]>(),
-    loadedE2EEntities: previous?.loadedE2EEntities || new Set<string>(),
-    stats: previous?.stats || null,
-    hasStats: previous?.hasStats === true,
+    dyadicByUser: previous?.dyadicByUser || new Map<string, AgentMemoryRecord[]>(),
+    loadedDyadicUsers: previous?.loadedDyadicUsers || new Set<string>(),
     updatedAt: Date.now(),
   };
 
@@ -235,14 +183,9 @@ function upsertMemoryIndex(input: {
     next.hasCoreSlice = true;
   }
 
-  if (input.entityId && Array.isArray(input.e2e)) {
-    next.e2eByEntity.set(input.entityId, dedupeMemory(input.e2e));
-    next.loadedE2EEntities.add(input.entityId);
-  }
-
-  if (typeof input.stats !== 'undefined') {
-    next.stats = input.stats;
-    next.hasStats = input.stats !== null;
+  if (input.userId && Array.isArray(input.dyadic)) {
+    next.dyadicByUser.set(input.userId, dedupeMemory(input.dyadic));
+    next.loadedDyadicUsers.add(input.userId);
   }
 
   memoryLocalIndex.set(input.agentId, next);
@@ -267,11 +210,11 @@ async function resolveCurrentUserIdWith(client: AgentCoreDataClient): Promise<st
   return userId;
 }
 
-async function resolveEntityId(
+async function resolveUserId(
   query: Record<string, unknown>,
   resolveCurrentUserIdFn: () => Promise<string | undefined>,
 ): Promise<string | undefined> {
-  const explicit = String(query.entityId || query.userId || query.subjectId || '').trim();
+  const explicit = String(query.userId || query.entityId || query.subjectId || '').trim();
   if (explicit) return explicit;
   return resolveCurrentUserIdFn();
 }
@@ -288,18 +231,6 @@ function toMemorySliceQuery(query: Record<string, unknown>): AgentMemorySliceQue
   };
 }
 
-function toMemoryRecallQuery(query: Record<string, unknown>): AgentMemoryRecallQuery | undefined {
-  const topK = toPositiveInt(query.topK ?? query.limit);
-  const queryText = String(query.queryText || query.query || '').trim();
-  if (typeof topK !== 'number' && !queryText) {
-    return undefined;
-  }
-  return {
-    ...(queryText ? { queryText } : {}),
-    ...(typeof topK === 'number' ? { topK } : {}),
-  };
-}
-
 async function loadRemoteCoreMemories(
   client: AgentCoreDataClient,
   agentId: string,
@@ -308,64 +239,13 @@ async function loadRemoteCoreMemories(
   return client.listAgentCoreMemories(agentId, query);
 }
 
-async function loadRemoteE2EMemories(input: {
+async function loadRemoteDyadicMemories(input: {
   client: AgentCoreDataClient;
   agentId: string;
-  entityId: string;
+  userId: string;
   query?: AgentMemorySliceQuery;
 }): Promise<AgentMemoryRecord[]> {
-  return input.client.listAgentE2EMemories(input.agentId, input.entityId, input.query);
-}
-
-async function loadRemoteRecall(input: {
-  client: AgentCoreDataClient;
-  agentId: string;
-  entityId: string;
-  query?: AgentMemoryRecallQuery;
-}): Promise<{
-  items: AgentMemoryRecord[];
-  core: AgentMemoryRecord[];
-  e2e: AgentMemoryRecord[];
-}> {
-  const payload = await input.client.recallAgentMemoriesForEntity(
-    input.agentId,
-    input.entityId,
-    input.query,
-  );
-  const root = toRecord(payload);
-  const explicitCore = toMemoryRecordArray(root.core || root.coreMemory || root.coreMemories);
-  const explicitE2E = toMemoryRecordArray(root.e2e || root.e2eMemory || root.e2eMemories);
-  if (explicitCore.length > 0 || explicitE2E.length > 0) {
-    return {
-      items: [...explicitCore, ...explicitE2E],
-      core: explicitCore,
-      e2e: explicitE2E,
-    };
-  }
-
-  const inferredItems = toMemoryRecordArray(payload);
-  const core: AgentMemoryRecord[] = [];
-  const e2e: AgentMemoryRecord[] = [];
-  inferredItems.forEach((item) => {
-    if (inferRecallKind(item) === 'e2e') {
-      e2e.push(item);
-      return;
-    }
-    core.push(item);
-  });
-
-  return {
-    items: inferredItems,
-    core,
-    e2e,
-  };
-}
-
-async function loadRemoteMemoryStats(
-  client: AgentCoreDataClient,
-  agentId: string,
-): Promise<MemoryStatsResponseDto> {
-  return client.getAgentMemoryStats(agentId);
+  return input.client.listAgentDyadicMemories(input.agentId, input.userId, input.query);
 }
 
 type AgentCoreDataCapabilityDeps = {
@@ -376,15 +256,8 @@ type AgentCoreDataCapabilityDeps = {
 export type AgentCoreDataCapabilityHandlers = {
   agentChatRouteResolve: (query: Record<string, unknown>) => Promise<AgentChatRouteResult>;
   agentMemoryCoreList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only' }>;
-  agentMemoryE2EList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; entityId: string }>;
-  agentMemoryRecallForEntity: (query: Record<string, unknown>) => Promise<{
-    items: AgentMemoryRecord[];
-    core: AgentMemoryRecord[];
-    e2e: AgentMemoryRecord[];
-    entityId: string;
-    recallSource: 'local-index-only' | 'remote-only' | 'local-index+remote-backfill';
-  }>;
-  agentMemoryStatsGet: (query: Record<string, unknown>) => Promise<(Record<string, unknown> & { source: 'local-index-only' | 'remote-only' }) | null>;
+  agentMemoryDyadicList: (query: Record<string, unknown>) => Promise<{ items: AgentMemoryRecord[]; source: 'local-index-only' | 'remote-only'; userId: string }>;
+  agentMemoryProfilesList: (_query: Record<string, unknown>) => Promise<{ items: Record<string, unknown>[] } & Record<string, unknown>>;
 };
 
 function requireAgentId(query: Record<string, unknown>): string {
@@ -395,15 +268,15 @@ function requireAgentId(query: Record<string, unknown>): string {
   return agentId;
 }
 
-async function requireEntityId(
+async function requireUserId(
   query: Record<string, unknown>,
   resolveCurrentUserIdFn: () => Promise<string | undefined>,
 ): Promise<string> {
-  const entityId = await resolveEntityId(query, resolveCurrentUserIdFn);
-  if (!entityId) {
-    throw new Error('AGENT_MEMORY_ENTITY_ID_REQUIRED');
+  const userId = await resolveUserId(query, resolveCurrentUserIdFn);
+  if (!userId) {
+    throw new Error('AGENT_MEMORY_USER_ID_REQUIRED');
   }
-  return entityId;
+  return userId;
 }
 
 export function resetAgentCoreDataStateForTesting(): void {
@@ -414,9 +287,8 @@ export function resetAgentCoreDataStateForTesting(): void {
 export function seedAgentMemoryIndexForTesting(input: {
   agentId: string;
   core?: AgentMemoryRecord[];
-  entityId?: string;
-  e2e?: AgentMemoryRecord[];
-  stats?: MemoryStatsResponseDto | null;
+  userId?: string;
+  dyadic?: AgentMemoryRecord[];
 }): void {
   upsertMemoryIndex(input);
 }
@@ -461,131 +333,52 @@ export function createAgentCoreDataCapabilityHandlers(
       };
     },
 
-    agentMemoryE2EList: async (query) => {
+    agentMemoryDyadicList: async (query) => {
       const queryRecord = toRecord(query);
       const agentId = requireAgentId(queryRecord);
-      const entityId = await requireEntityId(queryRecord, resolveCurrentUserIdFn);
+      const userId = await requireUserId(queryRecord, resolveCurrentUserIdFn);
       const memoryQuery = toMemorySliceQuery(queryRecord);
       const localIndex = getMemoryIndex(agentId);
-      if (localIndex?.loadedE2EEntities.has(entityId)) {
-        const localItems = localIndex.e2eByEntity.get(entityId) || [];
+      if (localIndex?.loadedDyadicUsers.has(userId)) {
+        const localItems = localIndex.dyadicByUser.get(userId) || [];
         const limit = memoryQuery?.limit || localItems.length;
         return {
           items: takeTop(localItems, limit),
           source: 'local-index-only' as const,
-          entityId,
+          userId,
         };
       }
 
-      const remoteItems = await loadRemoteE2EMemories({
+      const remoteItems = await loadRemoteDyadicMemories({
         client,
         agentId,
-        entityId,
+        userId,
         query: memoryQuery,
       });
       upsertMemoryIndex({
         agentId,
-        entityId,
-        e2e: remoteItems,
+        userId,
+        dyadic: remoteItems,
       });
       return {
         items: remoteItems,
         source: 'remote-only' as const,
-        entityId,
+        userId,
       };
     },
 
-    agentMemoryRecallForEntity: async (query) => {
-      const queryRecord = toRecord(query);
-      const agentId = requireAgentId(queryRecord);
-      const entityId = await requireEntityId(queryRecord, resolveCurrentUserIdFn);
-
-      const recallQuery = toMemoryRecallQuery(queryRecord);
-      const sliceQuery = toMemorySliceQuery(queryRecord);
-      const topK = recallQuery?.topK || 10;
-      const localIndex = getMemoryIndex(agentId);
-      const localCore = localIndex?.core || [];
-      const localE2E = localIndex?.e2eByEntity.get(entityId) || [];
-      const localCombined = takeTop(dedupeMemory([...localE2E, ...localCore]), topK);
-      if (localCombined.length >= topK) {
-        return {
-          items: localCombined,
-          core: takeTop(localCore, topK),
-          e2e: takeTop(localE2E, topK),
-          entityId,
-          recallSource: 'local-index-only' as const,
-        };
-      }
-
-      const [remoteRecall, remoteCore, remoteE2E] = await Promise.all([
-        loadRemoteRecall({
-          client,
-          agentId,
-          entityId,
-          query: recallQuery,
-        }),
-        loadRemoteCoreMemories(client, agentId, sliceQuery),
-        loadRemoteE2EMemories({
-          client,
-          agentId,
-          entityId,
-          query: sliceQuery,
-        }),
-      ]);
-
-      const mergedCore = dedupeMemory([
-        ...remoteCore,
-        ...remoteRecall.core,
-        ...localCore,
-      ]);
-      const mergedE2E = dedupeMemory([
-        ...remoteE2E,
-        ...remoteRecall.e2e,
-        ...localE2E,
-      ]);
-      const mergedCombined = dedupeMemory([
-        ...remoteRecall.items,
-        ...mergedE2E,
-        ...mergedCore,
-      ]);
-
-      upsertMemoryIndex({
-        agentId,
-        core: mergedCore,
-        entityId,
-        e2e: mergedE2E,
-      });
-
-      const hasLocal = localCore.length > 0 || localE2E.length > 0;
+    agentMemoryProfilesList: async (query) => {
+      const agentId = requireAgentId(toRecord(query));
+      const payload = await client.listAgentMemoryProfiles(agentId);
+      const result = requireItemsPayload(
+        payload as { items?: unknown[] } & Record<string, unknown>,
+        'AGENT_MEMORY_PROFILES_CONTRACT_INVALID',
+      );
       return {
-        items: takeTop(mergedCombined, topK),
-        core: takeTop(mergedCore, topK),
-        e2e: takeTop(mergedE2E, topK),
-        entityId,
-        recallSource: hasLocal ? 'local-index+remote-backfill' as const : 'remote-only' as const,
-      };
-    },
-
-    agentMemoryStatsGet: async (query) => {
-      const queryRecord = toRecord(query);
-      const agentId = requireAgentId(queryRecord);
-
-      const localIndex = getMemoryIndex(agentId);
-      if (localIndex?.hasStats && localIndex.stats) {
-        return {
-          ...localIndex.stats,
-          source: 'local-index-only' as const,
-        };
-      }
-
-      const stats = await loadRemoteMemoryStats(client, agentId);
-      upsertMemoryIndex({
-        agentId,
-        stats,
-      });
-      return {
-        ...stats,
-        source: 'remote-only' as const,
+        ...result,
+        items: result.items
+          .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+          .map((item) => item),
       };
     },
   };
@@ -636,15 +429,11 @@ export async function registerCoreDataCapabilities(): Promise<void> {
     return agentHandlers.agentMemoryCoreList(toRecord(query));
   });
 
-  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryE2EList, async (query) => {
-    return agentHandlers.agentMemoryE2EList(toRecord(query));
+  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryDyadicList, async (query) => {
+    return agentHandlers.agentMemoryDyadicList(toRecord(query));
   });
 
-  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryRecallForEntity, async (query) => {
-    return agentHandlers.agentMemoryRecallForEntity(toRecord(query));
-  });
-
-  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryStatsGet, async (query) => {
-    return agentHandlers.agentMemoryStatsGet(toRecord(query));
+  await registerCoreDataCapability(CORE_DATA_API_CAPABILITIES.agentMemoryProfilesList, async (query) => {
+    return agentHandlers.agentMemoryProfilesList(toRecord(query));
   });
 }

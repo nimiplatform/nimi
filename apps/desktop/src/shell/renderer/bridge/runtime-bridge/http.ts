@@ -7,6 +7,7 @@ type ProxyHttpPayload = {
   url: string;
   method?: string;
   headers?: HeadersInit;
+  authorization?: string;
   body?: string;
 };
 
@@ -56,6 +57,29 @@ function sanitizeHeaders(headers: HeadersInit | undefined): Record<string, strin
     .map(([key, value]) => [key, String(value)]);
 
   return Object.fromEntries(entries);
+}
+
+function splitAuthorization(headers: HeadersInit | undefined, authorization?: string): {
+  headers: Record<string, string>;
+  authorization?: string;
+} {
+  const normalizedHeaders = sanitizeHeaders(headers);
+  let resolvedAuthorization = typeof authorization === 'string' ? authorization.trim() : '';
+
+  for (const [key, value] of Object.entries(normalizedHeaders)) {
+    if (key.trim().toLowerCase() !== 'authorization') {
+      continue;
+    }
+    if (!resolvedAuthorization) {
+      resolvedAuthorization = String(value || '').trim();
+    }
+    delete normalizedHeaders[key];
+  }
+
+  return {
+    headers: normalizedHeaders,
+    authorization: resolvedAuthorization || undefined,
+  };
 }
 
 function isIpv4Host(hostname: string): boolean {
@@ -111,9 +135,24 @@ function isPrivateIpv6Host(hostname: string): boolean {
   );
 }
 
+function isLoopbackHost(hostname: string): boolean {
+  const normalized = String(hostname || '').trim().toLowerCase();
+  return normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1' || normalized === '[::1]';
+}
+
 function isPrivateNetworkHost(hostname: string): boolean {
   const normalized = String(hostname || '').trim().toLowerCase();
-  return normalized === 'localhost' || isPrivateIpv4Host(normalized) || isPrivateIpv6Host(normalized);
+  return isLoopbackHost(normalized) || isPrivateIpv4Host(normalized) || isPrivateIpv6Host(normalized);
+}
+
+function resolveFallbackFetchUrl(url: URL, runtimeOrigin: string, allowSameMachineLoopbackProxy: boolean): string {
+  if (!allowSameMachineLoopbackProxy) {
+    return url.toString();
+  }
+  if (!url.pathname.startsWith('/api/')) {
+    return url.toString();
+  }
+  return `${runtimeOrigin}${url.pathname}${url.search}${url.hash}`;
 }
 
 async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpResult> {
@@ -134,15 +173,24 @@ async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpRe
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new Error(`不支持的协议：${url.protocol}`);
   }
-  const runtimeOrigin = new URL(runtimeBaseUrl).origin;
-  if (url.origin !== runtimeOrigin && isPrivateNetworkHost(url.hostname)) {
+  const runtimeUrl = new URL(runtimeBaseUrl);
+  const runtimeOrigin = runtimeUrl.origin;
+  const isLoopbackToLoopbackRequest =
+    isLoopbackHost(runtimeUrl.hostname) && isLoopbackHost(url.hostname);
+  if (url.origin !== runtimeOrigin && isPrivateNetworkHost(url.hostname) && !isLoopbackToLoopbackRequest) {
     throw new Error(`禁止访问私有网络地址：${url.hostname}`);
   }
+  const { headers, authorization } = splitAuthorization(payload.headers, payload.authorization);
 
   const init: RequestInit = {
     method,
-    headers: sanitizeHeaders(payload.headers),
+    headers,
   };
+  if (authorization) {
+    const headerBag = new Headers(init.headers);
+    headerBag.set('authorization', authorization);
+    init.headers = headerBag;
+  }
 
   if (typeof payload.body === 'string' && method !== 'GET' && method !== 'HEAD') {
     init.body = payload.body;
@@ -151,7 +199,10 @@ async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpRe
   if (!nativeFetch) {
     throw new Error('当前环境不支持 fetch');
   }
-  const response = await nativeFetch(url.toString(), init);
+  const response = await nativeFetch(
+    resolveFallbackFetchUrl(url, runtimeOrigin, isLoopbackToLoopbackRequest),
+    init,
+  );
   const body = await response.text();
 
   return {
@@ -168,9 +219,12 @@ export async function proxyHttp(payload: ProxyHttpPayload): Promise<ProxyHttpRes
   }
 
   const diagnosticSessionId = resolveRendererSessionTraceId();
+  const { headers, authorization } = splitAuthorization(payload.headers, payload.authorization);
   return invokeChecked('http_request', {
     payload: {
       ...payload,
+      headers,
+      authorization,
       diagnosticSessionId,
     },
   }, parseProxyHttpResult);

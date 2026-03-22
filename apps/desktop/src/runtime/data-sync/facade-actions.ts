@@ -60,30 +60,26 @@ import {
 import {
   loadMainWorld,
   loadWorldDetailById,
+  loadWorldHistory,
   loadWorldLevelAudits,
   loadWorldList,
   loadWorldLorebooks,
   loadWorldMediaBindings,
   loadWorldSemanticBundle,
   loadWorldAgents,
-  loadWorldEvents,
   loadWorldMutations,
   loadWorldScenes,
   loadWorldDetailWithAgents,
 } from './flows/world-flow';
 import {
   abandonWorldTransit,
-  addTransitCheckpoint,
   completeWorldTransit,
   getActiveWorldTransit,
   listWorldTransits,
   loadSceneQuota,
-  startTransitSession,
   startWorldTransit,
   type SceneQuotaDto,
-  type TransitCheckpointStatus,
   type TransitDetailDto,
-  type TransitSessionDataDto,
   type TransitStatus,
   type TransitType,
 } from './flows/transit-flow';
@@ -298,8 +294,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadWorldAgents(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldDetailWithAgents: async (worldId: string, recommendedAgentLimit?: number) =>
       loadWorldDetailWithAgents(input.callApiTask, input.emitFacadeError, worldId, recommendedAgentLimit),
-    loadWorldEvents: async (worldId: string) =>
-      loadWorldEvents(input.callApiTask, input.emitFacadeError, worldId),
+    loadWorldHistory: async (worldId: string) =>
+      loadWorldHistory(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldLorebooks: async (worldId: string) =>
       loadWorldLorebooks(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldScenes: async (worldId: string) =>
@@ -316,7 +312,7 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       toWorldId: string;
       transitType: TransitType;
       reason?: string;
-      carriedState?: Record<string, unknown>;
+      context?: Record<string, unknown>;
     }): Promise<TransitDetailDto> =>
       startWorldTransit(input.callApiTask, input.emitFacadeError, payload),
     listWorldTransits: async (query?: {
@@ -327,17 +323,6 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       listWorldTransits(input.callApiTask, input.emitFacadeError, query),
     getActiveWorldTransit: async (agentId: string): Promise<TransitDetailDto | null> =>
       getActiveWorldTransit(input.callApiTask, input.emitFacadeError, agentId),
-    startTransitSession: async (transitId: string): Promise<TransitSessionDataDto> =>
-      startTransitSession(input.callApiTask, input.emitFacadeError, transitId),
-    addTransitCheckpoint: async (
-      transitId: string,
-      payload: {
-        name: string;
-        status: TransitCheckpointStatus;
-        data?: Record<string, unknown>;
-      },
-    ): Promise<TransitDetailDto> =>
-      addTransitCheckpoint(input.callApiTask, input.emitFacadeError, transitId, payload),
     completeWorldTransit: async (transitId: string): Promise<TransitDetailDto> =>
       completeWorldTransit(input.callApiTask, input.emitFacadeError, transitId),
     abandonWorldTransit: async (transitId: string): Promise<TransitDetailDto> =>

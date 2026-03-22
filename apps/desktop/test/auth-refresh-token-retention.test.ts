@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { pathToFileURL } from 'node:url';
 
 import { createAuthSlice } from '../src/shell/renderer/app-shell/providers/auth-slice';
 
@@ -11,6 +13,10 @@ const authFlowSource = fs.readFileSync(
 );
 const authMenuHandlersExtSource = fs.readFileSync(
   path.join(import.meta.dirname, '../../_libs/shell-auth/src/logic/auth-menu-handlers-ext.ts'),
+  'utf8',
+);
+const authSessionStorageSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../../_libs/shell-auth/src/logic/auth-session-storage.ts'),
   'utf8',
 );
 const authTypesSource = fs.readFileSync(
@@ -67,6 +73,66 @@ test('auth menu storage sync forwards persisted refresh token when available', (
     /setAuthSession: \(user, token, refreshToken\) => authSessionSetterRef\.current\(user, token, refreshToken\)/,
   );
   assert.match(authFlowSource, /void adapter\.applyToken\(''\)/);
+});
+
+test('web auth session storage persists access token for full-page reload bootstrap', () => {
+  assert.match(authSessionStorageSource, /accessToken: z\.string\(\)\.optional\(\)/);
+  assert.match(
+    authSessionStorageSource,
+    /export function loadPersistedAccessToken\(\): string \{\s*const session = loadPersistedAuthSession\(\);\s*return String\(session\?\.accessToken \|\| ''\)\.trim\(\);\s*\}/s,
+  );
+  assert.match(
+    authSessionStorageSource,
+    /const payload: PersistedWebAuthSession = \{\s*\.\.\.\(normalizedToken \? \{ accessToken: normalizedToken \} : \{\}\),/s,
+  );
+
+  const repoRoot = path.join(import.meta.dirname, '../../..');
+  const authSessionStorageModuleUrl = pathToFileURL(
+    path.join(import.meta.dirname, '../../_libs/shell-auth/src/logic/auth-session-storage.ts'),
+  ).href;
+  const script = `
+    const storage = new Map();
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem(key) { return storage.has(key) ? storage.get(key) : null; },
+        setItem(key, value) { storage.set(key, String(value)); },
+        removeItem(key) { storage.delete(key); },
+      },
+    });
+    globalThis.__NIMI_IMPORT_META_ENV__ = { VITE_NIMI_SHELL_MODE: 'web' };
+    const mod = await import(${JSON.stringify(authSessionStorageModuleUrl)});
+    mod.persistAuthSession({ accessToken: 'access-123', user: { id: 'u1' } });
+    const session = mod.loadPersistedAuthSession();
+    const token = mod.loadPersistedAccessToken();
+    process.stdout.write(JSON.stringify({
+      session,
+      token,
+      raw: storage.get(mod.WEB_AUTH_SESSION_KEY),
+    }));
+  `;
+  const output = execFileSync(process.execPath, ['--import', 'tsx/esm', '-e', script], {
+    cwd: path.join(repoRoot, 'apps/desktop'),
+    encoding: 'utf8',
+  });
+  const parsed = JSON.parse(output) as {
+    session?: { accessToken?: string; user?: { id?: string } };
+    token?: string;
+    raw?: string;
+  };
+
+  assert.equal(parsed.token, 'access-123');
+  assert.equal(parsed.session?.accessToken, 'access-123');
+  assert.equal(parsed.session?.user?.id, 'u1');
+  assert.match(String(parsed.raw || ''), /"accessToken":"access-123"/);
+});
+
+test('desktop callback auth flow upgrades main view after async session restore', () => {
+  assert.match(authFlowSource, /const hasDesktopCallbackSession = authStatus === 'authenticated' \|\| Boolean\(desktopCallbackToken\);/);
+  assert.match(
+    authFlowSource,
+    /if \(!desktopCallbackRequest \|\| !hasDesktopCallbackSession\) \{\s*return;\s*\}\s*\n\s*setView\(\(current\) => \(current === 'main' \? 'desktop_authorize' : current\)\);\s*\n\s*\}, \[desktopCallbackRequest, hasDesktopCallbackSession\]\);/s,
+  );
 });
 
 test('desktop authorization preserves refresh token by leaving it undefined in auth store update', () => {

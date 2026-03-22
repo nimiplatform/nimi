@@ -963,7 +963,14 @@
     "currentAccount": "Current account",
     "nimiNetwork": "NIMI PLATFORM",
     "desktopBrowserOpened": "Browser opened. Complete login and authorization there.",
-    "desktopAuthFailed": "Authorization failed. Click logo to retry."
+    "desktopAuthFailed": "Authorization failed. Click logo to retry.",
+    "passwordLoginFailed": "Email sign-in failed",
+    "requestEmailOtpFailed": "Failed to send verification code",
+    "verifyEmailOtpFailed": "Failed to sign in with email code",
+    "verifyTwoFactorFailed": "Two-factor verification failed",
+    "walletChallengeFailed": "Failed to get wallet challenge",
+    "walletLoginFailed": "Wallet sign-in failed",
+    "oauthLoginFailed": "OAuth sign-in failed"
   },
   "AuthLogin": {
     "help": "Help",

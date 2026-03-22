@@ -6,6 +6,7 @@ import {
   createDesktopCallbackRedirectUri,
   createDesktopCallbackState,
   localizeAuthError,
+  toErrorMessage,
   validateDesktopCallbackState,
 } from '@nimiplatform/shell-core/oauth';
 import { REMEMBER_LOGIN_KEY, loadRememberedLogin, saveRememberedLogin } from '../../_libs/shell-auth/src/logic/remember-login.js';
@@ -78,6 +79,23 @@ function installCryptoForTest(cryptoValue: Crypto): () => void {
   return () => {
     Object.defineProperty(globalThis, 'crypto', {
       value: previousCrypto,
+      configurable: true,
+    });
+  };
+}
+
+function installImportMetaEnvForTest(env: Record<string, string | boolean | undefined>): () => void {
+  const globalRecord = globalThis as typeof globalThis & {
+    __NIMI_IMPORT_META_ENV__?: Record<string, string | boolean | undefined>;
+  };
+  const previous = globalRecord.__NIMI_IMPORT_META_ENV__;
+  Object.defineProperty(globalThis, '__NIMI_IMPORT_META_ENV__', {
+    value: env,
+    configurable: true,
+  });
+  return () => {
+    Object.defineProperty(globalThis, '__NIMI_IMPORT_META_ENV__', {
+      value: previous,
       configurable: true,
     });
   };
@@ -180,6 +198,27 @@ test('localizeAuthError hides raw backend details for unknown messages', () => {
     localizeAuthError('SQLSTATE[42P01]: failed to decode auth payload at /internal/auth'),
     'Authentication failed. Please try again.',
   );
+});
+
+test('localizeAuthError surfaces bootstrap race clearly', () => {
+  assert.equal(
+    localizeAuthError('API not initialized'),
+    'App is still starting. Please wait a moment and try again.',
+  );
+});
+
+test('toErrorMessage appends raw auth details in debug boot mode', () => {
+  const restoreEnv = installImportMetaEnvForTest({
+    VITE_NIMI_DEBUG_BOOT: '1',
+  });
+  try {
+    assert.equal(
+      toErrorMessage(new Error('AUTH_FLOW_SUBMIT_HANDLER_MISSING'), 'Email sign-in failed'),
+      'Authentication failed. Please try again. [debug: AUTH_FLOW_SUBMIT_HANDLER_MISSING]',
+    );
+  } finally {
+    restoreEnv();
+  }
 });
 
 test('wallet login keeps cancellations silent but logs non-cancellation failures', async () => {

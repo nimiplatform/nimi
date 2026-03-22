@@ -35,21 +35,21 @@ describe('D-DSYNC-005: world flow source scanning', () => {
     );
   });
 
-  test('D-DSYNC-005: loadWorldEvents exists in source', () => {
+  test('D-DSYNC-005: loadWorldHistory exists in source', () => {
     assert.ok(
-      worldFlowSource.includes('export async function loadWorldEvents'),
-      'loadWorldEvents must be exported from world-flow',
+      worldFlowSource.includes('export async function loadWorldHistory'),
+      'loadWorldHistory must be exported from world-flow',
     );
   });
 
-  test('D-DSYNC-005: loadWorldEvents uses the public WorldsService endpoint', () => {
+  test('D-DSYNC-005: loadWorldHistory uses the public WorldsService endpoint', () => {
     assert.ok(
-      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldEvents'),
-      'loadWorldEvents must use the public WorldsService world events endpoint',
+      worldFlowSource.includes('realm.services.WorldsService.worldControllerGetWorldHistory'),
+      'loadWorldHistory must use the public WorldsService world history endpoint',
     );
     assert.ok(
       !worldFlowSource.includes('realm.services.WorldControlService.worldControlControllerListWorldEvents'),
-      'loadWorldEvents must not depend on the maintainer-only WorldControlService endpoint',
+      'loadWorldHistory must not depend on the maintainer-only WorldControlService endpoint',
     );
   });
 

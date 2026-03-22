@@ -48,19 +48,19 @@ test('world detail uses explicit initial loading state to avoid first-render fli
   assert.match(worldDetailSource, /loading=\{initialLoading\}/);
 });
 
-test('world list click prefetches world detail and events before navigation', () => {
+test('world list click prefetches world detail and history before navigation', () => {
   assert.match(worldListSource, /prefetchWorldDetailPanel\(\)/);
-  assert.match(worldListSource, /prefetchWorldDetailAndEvents\(worldId\)/);
+  assert.match(worldListSource, /prefetchWorldDetailAndHistory\(worldId\)/);
 });
 
-test('explore world banner click prefetches world detail and events before navigation', () => {
+test('explore world banner click prefetches world detail and history before navigation', () => {
   assert.match(explorePanelSource, /prefetchWorldDetailPanel\(\)/);
-  assert.match(explorePanelSource, /prefetchWorldDetailAndEvents\(worldId\)/);
+  assert.match(explorePanelSource, /prefetchWorldDetailAndHistory\(worldId\)/);
 });
 
-test('agent detail open world prefetches world detail and events before navigation', () => {
+test('agent detail open world prefetches world detail and history before navigation', () => {
   assert.match(agentDetailPanelSource, /prefetchWorldDetailPanel\(\)/);
-  assert.match(agentDetailPanelSource, /prefetchWorldDetailAndEvents\(agent\.worldId\)/);
+  assert.match(agentDetailPanelSource, /prefetchWorldDetailAndHistory\(agent\.worldId\)/);
 });
 
 test('world navigation uses a transition to avoid clearing revealed content during detail boot', () => {

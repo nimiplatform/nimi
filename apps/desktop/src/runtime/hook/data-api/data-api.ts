@@ -4,17 +4,6 @@ import { createHookError } from '../contracts/errors.js';
 export class DataApi {
   private readonly handlers = new Map<string, DataQueryHandler>();
 
-  constructor() {
-    // Default domain-scoped data capabilities
-    this.handlers.set('agent.getProfile', (input) => ({ id: (input['agentId'] as string) || null }));
-    this.handlers.set('world.getState', (input) => ({ id: (input['worldId'] as string) || null }));
-    this.handlers.set('chat.getHistory', () => ({ items: [] }));
-    this.handlers.set('memory.getSlice', () => ({ items: [] }));
-    this.handlers.set('relationship.getEdges', () => ({ edges: [] }));
-    this.handlers.set('economy.getBalance', () => ({ balance: 0 }));
-    this.handlers.set('notification.list', () => ({ items: [] }));
-  }
-
   register(capability: string, handler: DataQueryHandler): void {
     this.handlers.set(capability, handler);
   }

@@ -51,6 +51,10 @@ function createClientMessageId(): string {
   return `cm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function createCanonicalTextPayload(content: string): Record<string, unknown> {
+  return { content };
+}
+
 function toPersistentEntry(entry: PendingChatOutboxEntry): PersistentOutboxEntry {
   return {
     clientMessageId: String(entry.body.clientMessageId || '').trim(),
@@ -168,6 +172,7 @@ export async function startChatWithTarget(
     if (normalizedMessage) {
       data.text = normalizedMessage;
       data.type = 'TEXT' as MessageType;
+      data.payload = createCanonicalTextPayload(normalizedMessage) as StartChatInputDto['payload'];
     }
 
     const result = await callApi(
@@ -263,6 +268,7 @@ export async function sendChatMessage(
       clientMessageId,
       type: 'TEXT' as MessageType,
       text: content,
+      payload: createCanonicalTextPayload(content) as SendMessageInputDto['payload'],
       ...options,
     };
     const manager = await getOfflineCacheManager();

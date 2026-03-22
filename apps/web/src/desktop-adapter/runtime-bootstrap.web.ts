@@ -180,13 +180,8 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
-    const persistedSession = deps.loadPersistedAuthSession();
-    const fallbackToken = String(
-      persistedSession?.accessToken
-      || deps.loadPersistedAccessToken()
-      || '',
-    ).trim();
-    const refreshToken = String(persistedSession?.refreshToken || '').trim();
+    const fallbackToken = String(deps.loadPersistedAccessToken() || '').trim();
+    const refreshToken = '';
     const accessToken = fallbackToken || String(defaults.realm.accessToken || '').trim();
     const proxyFetch = deps.createProxyFetch();
     deps.useAppStore.getState().setRuntimeDefaults(defaults);

@@ -153,10 +153,11 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     () => getUserDisplayLabel(desktopCallbackUser, 'Current Account'),
     [desktopCallbackUser],
   );
+  const hasDesktopCallbackSession = authStatus === 'authenticated' || Boolean(desktopCallbackToken);
 
   const initialView: AuthView =
     config.initialView
-    ?? (desktopCallbackRequest && (authStatus === 'authenticated' || Boolean(desktopCallbackToken))
+    ?? (desktopCallbackRequest && hasDesktopCallbackSession
       ? 'desktop_authorize'
       : 'main');
 
@@ -248,6 +249,14 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     window.addEventListener('storage', handleStorage);
     return () => { window.removeEventListener('storage', handleStorage); };
   }, [desktopCallbackRequest]);
+
+  useEffect(() => {
+    if (!desktopCallbackRequest || !hasDesktopCallbackSession) {
+      return;
+    }
+
+    setView((current) => (current === 'main' ? 'desktop_authorize' : current));
+  }, [desktopCallbackRequest, hasDesktopCallbackSession]);
 
   // Cleanup pending tokens on unmount
   useEffect(() => {

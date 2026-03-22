@@ -18,13 +18,13 @@ import type {
   WorldAgent,
   WorldAuditItem,
   WorldDetailData,
-  WorldEventsBundle,
+  WorldHistoryBundle,
   WorldPublicAssetsData,
   WorldSemanticData,
 } from './world-detail-types.js';
 
 export function WorldTimelineSection({
-  events,
+  history,
   loading,
   onSelectAgentName,
   onSelectSceneName,
@@ -32,7 +32,7 @@ export function WorldTimelineSection({
   title,
   subtitle,
 }: {
-  events: WorldEventsBundle;
+  history: WorldHistoryBundle;
   loading?: boolean;
   onSelectAgentName?: (name: string) => void;
   onSelectSceneName?: (name: string) => void;
@@ -46,8 +46,8 @@ export function WorldTimelineSection({
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   const filteredEvents = useMemo(() => (
-    filter === 'ALL' ? events.items : events.items.filter((item) => item.level === filter)
-  ), [events.items, filter]);
+    filter === 'ALL' ? history.items : history.items.filter((item) => item.level === filter)
+  ), [history.items, filter]);
 
   const visibleEvents = filteredEvents.slice(0, visibleCount);
 

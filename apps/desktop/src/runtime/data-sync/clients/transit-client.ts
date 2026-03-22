@@ -1,10 +1,9 @@
 import type { Realm, RealmServiceArgs } from '@nimiplatform/sdk/realm';
 
-type TransitRequestType = RealmServiceArgs<'TransitsService', 'transitControllerCreateTransit'>[0]['transitType'];
+type TransitRequestType = RealmServiceArgs<'WorldsService', 'worldControllerTransitToWorld'>[1]['transitType'];
 type TransitQueryType = RealmServiceArgs<'TransitsService', 'transitControllerListTransits'>[2];
 type TransitType = TransitRequestType | 'RETURN';
 type TransitStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED';
-type TransitCheckpointStatus = 'PASSED' | 'FAILED' | 'SKIPPED';
 
 function assertNonEmpty(value: string, code: string): string {
   const normalized = String(value || '').trim();
@@ -50,7 +49,7 @@ function assertTransitRequestType(value: TransitType): TransitRequestType {
 }
 
 export async function fetchSceneQuota(realm: Realm): Promise<unknown> {
-  return realm.services.WorldsService.worldControllerGetSceneQuota();
+  return realm.services.TransitsService.transitControllerGetSceneQuota();
 }
 
 export async function createTransit(
@@ -61,18 +60,19 @@ export async function createTransit(
     toWorldId: string;
     transitType: TransitType;
     reason?: string;
-    carriedState?: Record<string, unknown>;
+    context?: Record<string, unknown>;
   },
 ): Promise<unknown> {
   const agentId = assertNonEmpty(input.agentId, 'TRANSIT_CLIENT_AGENT_ID_REQUIRED');
   const toWorldId = assertNonEmpty(input.toWorldId, 'TRANSIT_CLIENT_WORLD_ID_REQUIRED');
-  return realm.services.TransitsService.transitControllerCreateTransit({
+  return realm.services.WorldsService.worldControllerTransitToWorld(toWorldId, {
     agentId,
     fromWorldId: String(input.fromWorldId || '').trim() || undefined,
-    toWorldId,
     transitType: assertTransitRequestType(input.transitType),
-    reason: String(input.reason || '').trim() || undefined,
-    carriedState: input.carriedState,
+    context: {
+      ...(String(input.reason || '').trim() ? { reason: String(input.reason || '').trim() } : {}),
+      ...(input.context ? { handoffRefs: input.context } : {}),
+    },
   });
 }
 
@@ -100,29 +100,6 @@ export async function fetchTransitById(realm: Realm, transitId: string): Promise
 export async function fetchActiveTransit(realm: Realm, agentId: string): Promise<unknown> {
   const normalizedAgentId = assertNonEmpty(agentId, 'TRANSIT_CLIENT_AGENT_ID_REQUIRED');
   return realm.services.TransitsService.transitControllerGetActiveTransit(normalizedAgentId);
-}
-
-export async function startTransitSessionById(realm: Realm, transitId: string): Promise<unknown> {
-  const id = assertNonEmpty(transitId, 'TRANSIT_CLIENT_TRANSIT_ID_REQUIRED');
-  return realm.services.TransitsService.transitControllerStartSession(id);
-}
-
-export async function appendTransitCheckpoint(
-  realm: Realm,
-  input: {
-    transitId: string;
-    name: string;
-    status: TransitCheckpointStatus;
-    data?: Record<string, unknown>;
-  },
-): Promise<unknown> {
-  const transitId = assertNonEmpty(input.transitId, 'TRANSIT_CLIENT_TRANSIT_ID_REQUIRED');
-  const name = assertNonEmpty(input.name, 'TRANSIT_CLIENT_CHECKPOINT_NAME_REQUIRED');
-  return realm.services.TransitsService.transitControllerAddCheckpoint(transitId, {
-    name,
-    status: input.status,
-    data: input.data,
-  });
 }
 
 export async function completeTransitById(realm: Realm, transitId: string): Promise<unknown> {

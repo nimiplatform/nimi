@@ -5,7 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { prefetchWorldDetailAndEvents, worldListQueryKey } from './world-detail-queries';
+import { prefetchWorldDetailAndHistory, worldListQueryKey } from './world-detail-queries';
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
 import { isMainWorld, toWorldListItem } from './world-list-model';
 import { WorldChronoPanel } from './world-list-chrono-panel';
@@ -43,7 +43,7 @@ export function WorldList() {
 
   const openWorldDetail = (worldId: string) => {
     prefetchWorldDetailPanel();
-    prefetchWorldDetailAndEvents(worldId);
+    prefetchWorldDetailAndHistory(worldId);
     navigateToWorld(worldId);
   };
 
@@ -176,7 +176,7 @@ export function WorldList() {
                   onClick={() => openWorldDetail(mainWorld.id)}
                   onMouseEnter={() => {
                     prefetchWorldDetailPanel();
-                    prefetchWorldDetailAndEvents(mainWorld.id);
+                    prefetchWorldDetailAndHistory(mainWorld.id);
                   }}
                   className="group relative cursor-pointer transition-all duration-500 hover:-translate-y-1"
                   style={{
@@ -349,7 +349,7 @@ export function WorldList() {
                           ? '0 12px 32px rgba(0, 0, 0, 0.08)'
                           : '0 20px 44px rgba(12,14,26,0.2)';
                         prefetchWorldDetailPanel();
-                        prefetchWorldDetailAndEvents(world.id);
+                        prefetchWorldDetailAndHistory(world.id);
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.boxShadow = searchText

@@ -140,6 +140,10 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../desktop/src/shell/renderer'),
         },
         {
+          find: /^@nimiplatform\/sdk\/runtime$/,
+          replacement: path.resolve(__dirname, '../../sdk/src/runtime/browser.ts'),
+        },
+        {
           find: '@nimiplatform/sdk',
           replacement: path.resolve(__dirname, '../../sdk/src'),
         },
@@ -199,7 +203,34 @@ export default defineConfig(({ mode }) => {
           manualChunks(id) {
             const normalizedId = id.split(path.sep).join('/');
             if (normalizedId.includes('/sdk/src/runtime/generated/')) {
+              if (normalizedId.includes('/sdk/src/runtime/generated/google/')) {
+                return 'vendor-sdk-runtime-google';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/ai')) {
+                return 'vendor-sdk-runtime-ai-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/local_runtime')) {
+                return 'vendor-sdk-runtime-local-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/connector')) {
+                return 'vendor-sdk-runtime-connector-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/workflow')) {
+                return 'vendor-sdk-runtime-workflow-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/v1/model')) {
+                return 'vendor-sdk-runtime-model-generated';
+              }
+              if (normalizedId.includes('/sdk/src/runtime/generated/runtime/')) {
+                return 'vendor-sdk-runtime-generated';
+              }
               return 'vendor-sdk-runtime-generated';
+            }
+            if (normalizedId.includes('/sdk/src/realm/generated/')) {
+              return 'vendor-sdk-realm-generated';
+            }
+            if (normalizedId.includes('/sdk/src/scope/generated/')) {
+              return 'vendor-sdk-scope-generated';
             }
             if (normalizedId.includes('/sdk/src/')) {
               return 'vendor-sdk-client';
@@ -230,19 +261,54 @@ export default defineConfig(({ mode }) => {
             if (id.includes('/i18next/') || id.includes('/react-i18next/')) {
               return 'vendor-i18n';
             }
-            if (id.includes('/@nimiplatform/sdk') || id.includes('/ai/') || id.includes('/@ai-sdk/')) {
+            if (
+              id.includes('/@nimiplatform/sdk')
+              || id.includes('/@nimiplatform/shell-auth/')
+              || id.includes('/openapi-fetch/')
+            ) {
+              return 'vendor-platform';
+            }
+            if (id.includes('/ai/') || id.includes('/@ai-sdk/')) {
               return 'vendor-ai';
             }
-            if (id.includes('/three/') || id.includes('/simplex-noise/')) {
-              return 'vendor-3d';
+            if (
+              id.includes('/three/examples/')
+              || id.includes('/three/addons/')
+            ) {
+              return 'vendor-three-extras';
             }
-            if (id.includes('/zustand/')) {
-              return 'vendor-state';
+            if (id.includes('/three/') || id.includes('/simplex-noise/')) {
+              return 'vendor-three-core';
+            }
+            if (
+              id.includes('/@react-three/')
+              || id.includes('/postprocessing/')
+              || id.includes('/three-stdlib/')
+            ) {
+              return 'vendor-three-react';
+            }
+            if (
+              id.includes('/socket.io-client/')
+              || id.includes('/engine.io-client/')
+              || id.includes('/socket.io-parser/')
+              || id.includes('/engine.io-parser/')
+            ) {
+              return 'vendor-socket';
+            }
+            if (
+              id.includes('/@protobuf-ts/runtime')
+              || id.includes('/@protobuf-ts/runtime-rpc/')
+            ) {
+              return 'vendor-protobuf';
+            }
+            if (id.includes('/ajv/') || id.includes('/zod/') || id.includes('/yaml/')) {
+              return 'vendor-data';
             }
             return 'vendor-misc';
           },
         },
       },
+      chunkSizeWarningLimit: 800,
     },
   };
 });

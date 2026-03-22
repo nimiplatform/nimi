@@ -150,7 +150,7 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     }
 
     // 打印请求日志
-    let redacted_headers = payload
+    let mut redacted_headers = payload
         .headers
         .as_ref()
         .map(|h| {
@@ -165,6 +165,9 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
                 .collect::<HashMap<String, String>>()
         })
         .unwrap_or_default();
+    if payload.authorization.as_deref().is_some() {
+        redacted_headers.insert("authorization".to_string(), "[REDACTED]".to_string());
+    }
     let headers_str = if redacted_headers.is_empty() {
         "  (无)".to_string()
     } else {
@@ -203,6 +206,16 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     let headers = sanitize_headers(payload.headers)?;
     let client = reqwest::Client::new();
     let mut request = client.request(method.clone(), url.clone()).headers(headers);
+    if let Some(authorization) = payload
+        .authorization
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        let authorization_value = reqwest::header::HeaderValue::from_str(authorization)
+            .map_err(|error| error.to_string())?;
+        request = request.header(reqwest::header::AUTHORIZATION, authorization_value);
+    }
 
     if !matches!(method, Method::GET | Method::HEAD) {
         if let Some(body) = payload.body {

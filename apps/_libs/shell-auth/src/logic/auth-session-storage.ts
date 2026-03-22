@@ -4,11 +4,13 @@ import { z } from 'zod';
 export const WEB_AUTH_SESSION_KEY = 'nimi.web.auth.session.v1';
 
 export type PersistedWebAuthSession = {
+  accessToken?: string;
   user?: Record<string, unknown> | null;
   updatedAt: string;
 };
 
 const persistedWebAuthSessionSchema = z.object({
+  accessToken: z.string().optional(),
   user: z.record(z.string(), z.unknown()).nullable().optional(),
   updatedAt: z.string().optional(),
 });
@@ -40,9 +42,11 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
     const parsed = persistedWebAuthSessionSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) return null;
 
+    const accessToken = String(parsed.data.accessToken || '').trim();
     const user = normalizeUser(parsed.data.user);
 
     return {
+      ...(accessToken ? { accessToken } : {}),
       ...(user ? { user } : {}),
       updatedAt: typeof parsed.data.updatedAt === 'string'
         ? parsed.data.updatedAt
@@ -54,8 +58,10 @@ export function loadPersistedAuthSession(): PersistedWebAuthSession | null {
 }
 
 function writeSessionKeys(session: PersistedWebAuthSession): void {
+  const normalizedAccessToken = String(session.accessToken || '').trim();
   const normalizedUserValue = normalizeUser(session.user);
   const payload: PersistedWebAuthSession = {
+    ...(normalizedAccessToken ? { accessToken: normalizedAccessToken } : {}),
     ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: session.updatedAt || new Date().toISOString(),
   };
@@ -64,7 +70,8 @@ function writeSessionKeys(session: PersistedWebAuthSession): void {
 }
 
 export function loadPersistedAccessToken(): string {
-  return '';
+  const session = loadPersistedAuthSession();
+  return String(session?.accessToken || '').trim();
 }
 
 export function persistAuthSession(input: {
@@ -88,6 +95,7 @@ export function persistAuthSession(input: {
     : input.user;
 
   const payload: PersistedWebAuthSession = {
+    ...(normalizedToken ? { accessToken: normalizedToken } : {}),
     ...(normalizedUserValue ? { user: normalizedUserValue } : {}),
     updatedAt: new Date().toISOString(),
   };

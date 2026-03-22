@@ -170,7 +170,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
             <span className="font-bold tracking-widest text-[10px] text-[#0ea5e9] relative z-10 uppercase">REST + WebSocket</span>
           </div>
 
-          {/* Realm Satellites */}
+          {/* Realm Domain Nodes */}
           {[
             { id: 'Worlds', y: 220, icon: '\u{1F310}', color: '#0ea5e9' },
             { id: 'Agents', y: 265, icon: '\u{1F916}', color: '#06b6d4' },
@@ -199,7 +199,7 @@ export function ArchitectureSection({ content }: { content?: LandingContent['arc
             <span className="font-bold tracking-widest text-[10px] text-[#38d6a3] relative z-10 uppercase">gRPC</span>
           </div>
 
-          {/* Runtime Satellites */}
+          {/* Runtime Capability Nodes */}
           {[
             { id: 'AI Models', y: 250, icon: '\u{1F9E0}', color: '#0ea5e9' },
             { id: 'Workflows', y: 320, icon: '\u{26A1}',   color: '#8b5cf6' },

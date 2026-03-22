@@ -1,4 +1,6 @@
-export { readBundledEnv as readEnv } from '../env.js';
+import { readBundledEnv } from '../env.js';
+
+export const readEnv = readBundledEnv;
 
 // ---------------------------------------------------------------------------
 // OAuth helpers — extracted from Desktop auth-helpers.ts (common parts)
@@ -11,6 +13,51 @@ const DESKTOP_CALLBACK_STATE_VERSION = 'v1';
 const DESKTOP_CALLBACK_PORT_MIN = 1024;
 const DESKTOP_CALLBACK_PORT_MAX = 65535;
 const GENERIC_AUTH_ERROR_MESSAGE = 'Authentication failed. Please try again.';
+
+function envFlagEnabled(value: string | undefined): boolean {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+}
+
+function shouldIncludeDebugAuthErrorDetails(): boolean {
+  return envFlagEnabled(readEnv('VITE_NIMI_DEBUG_BOOT'));
+}
+
+function readRawAuthErrorMessage(error: unknown): string {
+  if (typeof error === 'object' && error !== null) {
+    const body = (error as { body?: unknown }).body;
+    if (body && typeof body === 'object') {
+      const bodyMessage = (body as { message?: unknown }).message;
+      if (typeof bodyMessage === 'string' && bodyMessage.trim()) {
+        return bodyMessage.trim();
+      }
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+
+  if (typeof error === 'string' && error.trim()) {
+    return error.trim();
+  }
+
+  return '';
+}
+
+function withDebugAuthErrorDetails(message: string, error: unknown): string {
+  if (!shouldIncludeDebugAuthErrorDetails()) {
+    return message;
+  }
+  const rawMessage = readRawAuthErrorMessage(error);
+  if (!rawMessage) {
+    return message;
+  }
+  if (message.includes(rawMessage)) {
+    return message;
+  }
+  return `${message} [debug: ${rawMessage}]`;
+}
 
 // ---------------------------------------------------------------------------
 // URL / loopback helpers
@@ -187,13 +234,13 @@ export function toErrorMessage(error: unknown, fallback: string): string {
     if (body && typeof body === 'object') {
       const bodyMessage = (body as { message?: unknown }).message;
       if (typeof bodyMessage === 'string' && bodyMessage.trim().length > 0) {
-        return localizeAuthError(bodyMessage);
+        return withDebugAuthErrorDetails(localizeAuthError(bodyMessage), error);
       }
     }
   }
 
   if (error instanceof Error && error.message.trim().length > 0) {
-    return localizeAuthError(error.message);
+    return withDebugAuthErrorDetails(localizeAuthError(error.message), error);
   }
 
   return fallback;
@@ -213,6 +260,9 @@ export function localizeAuthError(message: string): string {
   }
   if (lowered.includes('invalid email') || lowered.includes('email format')) {
     return 'Invalid email format.';
+  }
+  if (lowered.includes('api not initialized')) {
+    return 'App is still starting. Please wait a moment and try again.';
   }
   if (lowered.includes('password too weak') || lowered.includes('password strength')) {
     return 'Password is too weak. Please use a stronger password.';

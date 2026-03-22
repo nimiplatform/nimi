@@ -11,7 +11,7 @@ import {
 } from './world-detail-template';
 import type {
   WorldAgent,
-  WorldEventsBundle,
+  WorldHistoryBundle,
   WorldPublicAssetsData,
   WorldRecommendedAgent,
   WorldSemanticData,
@@ -19,12 +19,12 @@ import type {
 import type { WorldListItem } from './world-list-model';
 import {
   fetchWorldDetailWithAgents,
-  fetchWorldEvents,
+  fetchWorldHistory,
   fetchWorldLevelAudits,
   fetchWorldPublicAssets,
   fetchWorldSemanticBundle,
   worldDetailWithAgentsQueryKey,
-  worldEventsQueryKey,
+  worldHistoryQueryKey,
   worldLevelAuditsQueryKey,
   worldPublicAssetsQueryKey,
   worldSemanticBundleQueryKey,
@@ -51,7 +51,7 @@ type DetailComputed = {
   featuredAgentCount: number;
 };
 
-const EMPTY_WORLD_EVENTS: WorldEventsBundle = {
+const EMPTY_WORLD_HISTORY: WorldHistoryBundle = {
   items: [],
   summary: null,
 };
@@ -250,9 +250,9 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     staleTime: 30_000,
   });
 
-  const worldEventsQuery = useQuery({
-    queryKey: worldEventsQueryKey(world.id),
-    queryFn: () => fetchWorldEvents(world.id),
+  const worldHistoryQuery = useQuery({
+    queryKey: worldHistoryQueryKey(world.id),
+    queryFn: () => fetchWorldHistory(world.id),
     enabled: isReady,
   });
 
@@ -276,7 +276,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
 
   const detail = worldCompositeQuery.data;
   const initialLoading = worldCompositeQuery.isPending && !detail;
-  const supplementalError = worldEventsQuery.isError
+  const supplementalError = worldHistoryQuery.isError
     || worldSemanticQuery.isError
     || worldAuditQuery.isError
     || worldPublicAssetsQuery.isError;
@@ -286,15 +286,15 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const agentRecords = Array.isArray(detail?.agents) ? (detail.agents as Array<Record<string, unknown>>) : [];
   const agents: WorldAgent[] = agentRecords.map((agent) => toWorldAgent(agent, world.createdAt));
 
-  const events = worldEventsQuery.data ?? ((!isReady || worldEventsQuery.isPending) ? EMPTY_WORLD_EVENTS : null);
+  const history = worldHistoryQuery.data ?? ((!isReady || worldHistoryQuery.isPending) ? EMPTY_WORLD_HISTORY : null);
   const semantic = worldSemanticQuery.data ?? ((!isReady || worldSemanticQuery.isPending) ? EMPTY_WORLD_SEMANTIC : null);
   const audits = worldAuditQuery.data ?? ((!isReady || worldAuditQuery.isPending) ? [] : null);
   const publicAssets = worldPublicAssetsQuery.data
     ?? ((!isReady || worldPublicAssetsQuery.isPending) ? EMPTY_WORLD_PUBLIC_ASSETS : null);
-  if (!events || !semantic || !audits || !publicAssets) {
+  if (!history || !semantic || !audits || !publicAssets) {
     initialError = true;
   }
-  const safeEvents = events ?? EMPTY_WORLD_EVENTS;
+  const safeHistory = history ?? EMPTY_WORLD_HISTORY;
   const safeSemantic = semantic ?? EMPTY_WORLD_SEMANTIC;
   const safeAudits = audits ?? [];
   const safePublicAssets = publicAssets ?? EMPTY_WORLD_PUBLIC_ASSETS;
@@ -410,14 +410,14 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         <OasisWorldDetailPage
           world={worldData}
           agents={agents}
-          events={safeEvents}
+          history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
           publicAssets={safePublicAssets}
           loading={initialLoading}
           error={initialError}
           agentsLoading={worldCompositeQuery.isPending}
-          eventsLoading={worldEventsQuery.isPending}
+          historyLoading={worldHistoryQuery.isPending}
           semanticLoading={worldSemanticQuery.isPending}
           auditsLoading={worldAuditQuery.isPending}
           publicAssetsLoading={worldPublicAssetsQuery.isPending}
@@ -434,14 +434,14 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         <NarrativeWorldDetailPage
           world={worldData}
           agents={agents}
-          events={safeEvents}
+          history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
           publicAssets={safePublicAssets}
           loading={initialLoading}
           error={initialError}
           agentsLoading={worldCompositeQuery.isPending}
-          eventsLoading={worldEventsQuery.isPending}
+          historyLoading={worldHistoryQuery.isPending}
           semanticLoading={worldSemanticQuery.isPending}
           auditsLoading={worldAuditQuery.isPending}
           publicAssetsLoading={worldPublicAssetsQuery.isPending}

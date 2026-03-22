@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -54,4 +56,33 @@ test('formatRelativeLocaleTime follows current locale', async () => {
 
   await changeLocale('zh');
   assert.equal(formatRelativeLocaleTime(ts), '5 分钟前');
+});
+
+test('auth runtime locale keys exist in both desktop locales', async () => {
+  const localePaths = [
+    resolve(import.meta.dirname, '../src/shell/renderer/locales/en.json'),
+    resolve(import.meta.dirname, '../src/shell/renderer/locales/zh.json'),
+  ];
+  const requiredKeys = [
+    'passwordLoginFailed',
+    'requestEmailOtpFailed',
+    'verifyEmailOtpFailed',
+    'verifyTwoFactorFailed',
+    'walletChallengeFailed',
+    'walletLoginFailed',
+    'oauthLoginFailed',
+  ];
+
+  for (const localePath of localePaths) {
+    const source = await readFile(localePath, 'utf8');
+    const auth = (JSON.parse(source) as { Auth?: Record<string, unknown> }).Auth || {};
+    for (const key of requiredKeys) {
+      assert.equal(
+        typeof auth[key],
+        'string',
+        `${localePath} is missing Auth.${key}`,
+      );
+      assert.match(String(auth[key] || ''), /\S/, `${localePath} has empty Auth.${key}`);
+    }
+  }
 });

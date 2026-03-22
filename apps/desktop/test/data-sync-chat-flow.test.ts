@@ -8,6 +8,7 @@ import {
   flushPendingChatOutbox,
   sameMessageIdentity,
   sendChatMessage,
+  startChatWithTarget,
 } from '../src/runtime/data-sync/flows/chat-flow.js';
 import { createOfflineError, getOfflineCacheManager } from '../src/runtime/offline/index.js';
 
@@ -53,6 +54,41 @@ describe('D-DSYNC-003: chat-flow source scanning', () => {
     assert.equal(entries[0]?.attempts, 1);
     assert.equal(entries[0]?.status, 'pending');
     assert.equal(String(result.clientMessageId || '').trim(), entries[0]?.clientMessageId);
+    assert.deepEqual(entries[0]?.body.payload, { content: 'hello' });
+  });
+
+  test('D-DSYNC-003: sendChatMessage writes canonical TEXT payload', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    await sendChatMessage(
+      async (task) => task({
+        services: {
+          HumanChatService: {
+            sendMessage: async (_chatId: string, body: Record<string, unknown>) => {
+              capturedBody = body;
+              return {
+                id: 'server:1',
+                chatId: 'chat-1',
+                clientMessageId: String(body.clientMessageId || ''),
+                senderId: 'user-1',
+                createdAt: new Date().toISOString(),
+                isRead: true,
+                text: String(body.text || ''),
+                type: 'TEXT',
+                payload: body.payload as Record<string, unknown>,
+              };
+            },
+          },
+        },
+      } as never),
+      () => undefined,
+      'chat-1',
+      'hello world',
+      {},
+    );
+
+    assert.ok(capturedBody);
+    assert.deepEqual((capturedBody as Record<string, unknown>).payload, { content: 'hello world' });
+    assert.equal((capturedBody as Record<string, unknown>).text, 'hello world');
   });
 
   test('D-DSYNC-003: flushChatOutbox replays FIFO order by enqueuedAt', async () => {
@@ -101,6 +137,31 @@ describe('D-DSYNC-003: chat-flow source scanning', () => {
       'chat-1',
     );
     assert.deepEqual(replayed, ['earlier', 'later']);
+  });
+
+  test('D-DSYNC-003: startChatWithTarget writes canonical TEXT payload for initial message', async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    await startChatWithTarget(
+      async (task) => task({
+        services: {
+          HumanChatService: {
+            startChat: async (body: Record<string, unknown>) => {
+              capturedBody = body;
+              return { chatId: 'chat-1' };
+            },
+            getChatById: async (chatId: string) => ({ id: chatId }),
+          },
+        },
+      } as never),
+      () => undefined,
+      'user-2',
+      'hi there',
+    );
+
+    assert.ok(capturedBody);
+    assert.equal((capturedBody as Record<string, unknown>).type, 'TEXT');
+    assert.equal((capturedBody as Record<string, unknown>).text, 'hi there');
+    assert.deepEqual((capturedBody as Record<string, unknown>).payload, { content: 'hi there' });
   });
 });
 

@@ -451,6 +451,13 @@ mod env_http_tests {
     }
 
     #[test]
+    fn sanitize_headers_rejects_authorization_override() {
+        let mut headers = HashMap::new();
+        headers.insert("Authorization".to_string(), "Bearer secret".to_string());
+        assert!(sanitize_headers(Some(headers)).is_err());
+    }
+
+    #[test]
     fn sanitize_headers_allows_safe_custom_headers() {
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "application/json".to_string());

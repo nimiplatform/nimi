@@ -1,14 +1,12 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import {
   abandonTransitById,
-  appendTransitCheckpoint as appendTransitCheckpointFromClient,
   completeTransitById,
   createTransit,
   fetchActiveTransit,
   fetchSceneQuota,
   fetchTransitById,
   listTransits,
-  startTransitSessionById,
 } from '../clients/transit-client';
 
 type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
@@ -20,22 +18,13 @@ type DataSyncErrorEmitter = (
 
 export type TransitType = 'INBOUND' | 'OUTBOUND' | 'RETURN';
 export type TransitStatus = 'ACTIVE' | 'COMPLETED' | 'ABANDONED';
-export type TransitCheckpointStatus = 'PASSED' | 'FAILED' | 'SKIPPED';
 export type SceneQuotaTier = 'FREE' | 'PRO' | 'MAX';
 
-export type TransitCheckpointDto = {
-  name: string;
-  timestamp: string;
-  status: TransitCheckpointStatus;
-  data?: Record<string, unknown>;
-};
-
-export type TransitSessionDataDto = {
-  startedAt: string;
-  endedAt?: string;
+export type TransitContextDto = {
   reason?: string;
-  carriedState?: Record<string, unknown>;
-  checkpoints?: TransitCheckpointDto[];
+  handoffRefs?: Record<string, unknown>;
+  memoryRefIds?: string[];
+  stateRecordIds?: string[];
 };
 
 export type TransitDetailDto = {
@@ -48,7 +37,7 @@ export type TransitDetailDto = {
   status: TransitStatus;
   departedAt: string;
   arrivedAt: string | null;
-  sessionData: TransitSessionDataDto | null;
+  context: TransitContextDto | null;
   createdAt: string;
 };
 
@@ -64,7 +53,7 @@ type StartWorldTransitInput = {
   toWorldId: string;
   transitType: TransitType;
   reason?: string;
-  carriedState?: Record<string, unknown>;
+  context?: Record<string, unknown>;
 };
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -72,13 +61,6 @@ function toRecord(value: unknown): Record<string, unknown> | null {
     return null;
   }
   return value as Record<string, unknown>;
-}
-
-function toRecordArray(value: unknown): Record<string, unknown>[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item) => item && typeof item === 'object' && !Array.isArray(item))
-    .map((item) => item as Record<string, unknown>);
 }
 
 function toText(value: unknown): string {
@@ -107,39 +89,14 @@ function toTransitStatus(value: unknown): TransitStatus {
   return 'ACTIVE';
 }
 
-function toCheckpointStatus(value: unknown): TransitCheckpointStatus {
-  const normalized = toText(value).toUpperCase();
-  if (normalized === 'FAILED') return 'FAILED';
-  if (normalized === 'SKIPPED') return 'SKIPPED';
-  return 'PASSED';
-}
-
-function normalizeCheckpoint(value: unknown): TransitCheckpointDto | null {
+function normalizeTransitContext(value: unknown): TransitContextDto | null {
   const record = toRecord(value);
   if (!record) return null;
-  const name = toText(record.name);
-  if (!name) return null;
   return {
-    name,
-    timestamp: toIsoText(record.timestamp),
-    status: toCheckpointStatus(record.status),
-    data: toRecord(record.data) || undefined,
-  };
-}
-
-function normalizeTransitSessionData(value: unknown): TransitSessionDataDto | null {
-  const record = toRecord(value);
-  if (!record) return null;
-  const startedAt = toIsoText(record.startedAt);
-  const checkpoints = toRecordArray(record.checkpoints)
-    .map((item) => normalizeCheckpoint(item))
-    .filter((item): item is TransitCheckpointDto => Boolean(item));
-  return {
-    startedAt,
-    endedAt: toText(record.endedAt) || undefined,
     reason: toText(record.reason) || undefined,
-    carriedState: toRecord(record.carriedState) || undefined,
-    checkpoints: checkpoints.length > 0 ? checkpoints : undefined,
+    handoffRefs: toRecord(record.handoffRefs) || undefined,
+    memoryRefIds: Array.isArray(record.memoryRefIds) ? record.memoryRefIds.map((item) => toText(item)).filter(Boolean) : undefined,
+    stateRecordIds: Array.isArray(record.stateRecordIds) ? record.stateRecordIds.map((item) => toText(item)).filter(Boolean) : undefined,
   };
 }
 
@@ -161,7 +118,7 @@ export function normalizeTransitDetail(value: unknown): TransitDetailDto | null 
     status: toTransitStatus(record.status),
     departedAt: toIsoText(record.departedAt),
     arrivedAt: toText(record.arrivedAt) || null,
-    sessionData: normalizeTransitSessionData(record.sessionData),
+    context: normalizeTransitContext(record.context),
     createdAt: toIsoText(record.createdAt),
   };
 }
@@ -191,10 +148,6 @@ function normalizeTransitList(value: unknown): TransitDetailDto[] {
   return items
     .map((item) => normalizeTransitDetail(item))
     .filter((item): item is TransitDetailDto => Boolean(item));
-}
-
-function toErrorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || '');
 }
 
 function createFlowError(code: string, message?: string): Error {
@@ -234,7 +187,7 @@ function normalizeTransitInput(input: StartWorldTransitInput): StartWorldTransit
     fromWorldId: fromWorldId || undefined,
     transitType: input.transitType,
     reason: toText(input.reason) || undefined,
-    carriedState: toRecord(input.carriedState) || undefined,
+    context: toRecord(input.context) || undefined,
   };
 }
 
@@ -292,20 +245,6 @@ export async function startWorldTransit(
   }
 
   try {
-    await callApi(
-      (realm) => realm.services.WorldsService.worldControllerTransitToWorld(normalized.toWorldId),
-      '世界配额闸校验失败',
-    );
-  } catch (error) {
-    const flowError = createFlowError('WORLD_TRANSIT_WORLD_GATE_REJECTED', toErrorText(error));
-    emitDataSyncError('start-world-transit:world-gate', flowError, {
-      worldId: normalized.toWorldId,
-      agentId: normalized.agentId,
-    });
-    throw flowError;
-  }
-
-  try {
     const payload = await callApi(
       (realm) => createTransit(realm, {
         agentId: normalized.agentId,
@@ -313,7 +252,7 @@ export async function startWorldTransit(
         toWorldId: normalized.toWorldId,
         transitType: normalized.transitType,
         reason: normalized.reason,
-        carriedState: normalized.carriedState,
+        context: normalized.context,
       }),
       '创建跃迁会话失败',
     );
@@ -375,66 +314,6 @@ export async function getActiveWorldTransit(
     return normalizeTransitDetail(payload);
   } catch (error) {
     emitDataSyncError('get-active-world-transit', error, { agentId: normalizedAgentId });
-    throw error;
-  }
-}
-
-export async function startTransitSession(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  transitId: string,
-): Promise<TransitSessionDataDto> {
-  const normalizedTransitId = toText(transitId);
-  if (!normalizedTransitId) throw createFlowError('WORLD_TRANSIT_ID_REQUIRED');
-  try {
-    const payload = await callApi(
-      (realm) => startTransitSessionById(realm, normalizedTransitId),
-      '启动跃迁会话失败',
-    );
-    const sessionData = normalizeTransitSessionData(payload);
-    if (!sessionData) {
-      throw createFlowError('WORLD_TRANSIT_SESSION_INVALID');
-    }
-    return sessionData;
-  } catch (error) {
-    emitDataSyncError('start-transit-session', error, { transitId: normalizedTransitId });
-    throw error;
-  }
-}
-
-export async function addTransitCheckpoint(
-  callApi: DataSyncApiCaller,
-  emitDataSyncError: DataSyncErrorEmitter,
-  transitId: string,
-  input: {
-    name: string;
-    status: TransitCheckpointStatus;
-    data?: Record<string, unknown>;
-  },
-): Promise<TransitDetailDto> {
-  const normalizedTransitId = toText(transitId);
-  const checkpointName = toText(input.name);
-  if (!normalizedTransitId) throw createFlowError('WORLD_TRANSIT_ID_REQUIRED');
-  if (!checkpointName) throw createFlowError('WORLD_TRANSIT_CHECKPOINT_NAME_REQUIRED');
-
-  try {
-    const payload = await callApi(
-      (realm) => appendTransitCheckpointFromClient(realm, {
-        transitId: normalizedTransitId,
-        name: checkpointName,
-        status: input.status,
-        data: toRecord(input.data) || undefined,
-      }),
-      '添加跃迁检查点失败',
-    );
-    const detail = normalizeTransitDetail(payload);
-    if (!detail) throw createFlowError('WORLD_TRANSIT_CHECKPOINT_INVALID_PAYLOAD');
-    return detail;
-  } catch (error) {
-    emitDataSyncError('add-transit-checkpoint', error, {
-      transitId: normalizedTransitId,
-      status: input.status,
-    });
     throw error;
   }
 }

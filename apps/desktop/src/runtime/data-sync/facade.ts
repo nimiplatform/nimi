@@ -10,7 +10,7 @@ import {
 } from '@runtime/offline';
 import type { DataSyncApiConfig, FetchImpl } from './api-core';
 import type {
-  WorldEventsPayload,
+  WorldHistoryPayload,
   WorldLorebookListPayload,
   WorldMediaBindingListPayload,
   WorldMutationListPayload,
@@ -23,9 +23,7 @@ import { DataSyncPollingManager } from './polling-manager';
 import type { CreatorEligibility } from './flows/settings-flow';
 import type {
   SceneQuotaDto,
-  TransitCheckpointStatus,
   TransitDetailDto,
-  TransitSessionDataDto,
   TransitStatus,
   TransitType,
 } from './flows/transit-flow';
@@ -138,9 +136,15 @@ export class DataSync {
     this.persistApiToHotState();
   }
 
+  isApiConfigured(): boolean {
+    if (!this.realmBaseUrl) {
+      this.hydrateApiFromHotState();
+    }
+    return Boolean(this.realmBaseUrl);
+  }
+
   assertApiConfigured() {
-    if (!this.realmBaseUrl) this.hydrateApiFromHotState();
-    if (!this.realmBaseUrl) throw new Error('API not initialized');
+    if (!this.isApiConfigured()) throw new Error('API not initialized');
   }
 
   async callApi<T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string): Promise<T> {
@@ -275,7 +279,7 @@ export class DataSync {
   ): Promise<WorldDetailWithAgentsDto | null> {
     return this.actions.loadWorldDetailWithAgents(worldId, recommendedAgentLimit);
   }
-  loadWorldEvents(worldId: string): Promise<WorldEventsPayload> { return this.actions.loadWorldEvents(worldId); }
+  loadWorldHistory(worldId: string): Promise<WorldHistoryPayload> { return this.actions.loadWorldHistory(worldId); }
   loadWorldLorebooks(worldId: string): Promise<WorldLorebookListPayload> { return this.actions.loadWorldLorebooks(worldId); }
   loadWorldScenes(worldId: string): Promise<WorldSceneListPayload> { return this.actions.loadWorldScenes(worldId); }
   loadWorldMediaBindings(worldId: string): Promise<WorldMediaBindingListPayload> { return this.actions.loadWorldMediaBindings(worldId); }
@@ -287,7 +291,7 @@ export class DataSync {
     toWorldId: string;
     transitType: TransitType;
     reason?: string;
-    carriedState?: Record<string, unknown>;
+    context?: Record<string, unknown>;
   }): Promise<TransitDetailDto> {
     return this.actions.startWorldTransit(input);
   }
@@ -300,19 +304,6 @@ export class DataSync {
   }
   getActiveWorldTransit(agentId: string): Promise<TransitDetailDto | null> {
     return this.actions.getActiveWorldTransit(agentId);
-  }
-  startTransitSession(transitId: string): Promise<TransitSessionDataDto> {
-    return this.actions.startTransitSession(transitId);
-  }
-  addTransitCheckpoint(
-    transitId: string,
-    input: {
-      name: string;
-      status: TransitCheckpointStatus;
-      data?: Record<string, unknown>;
-    },
-  ): Promise<TransitDetailDto> {
-    return this.actions.addTransitCheckpoint(transitId, input);
   }
   completeWorldTransit(transitId: string): Promise<TransitDetailDto> {
     return this.actions.completeWorldTransit(transitId);

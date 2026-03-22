@@ -79,7 +79,7 @@ export type WorldAgent = {
   stats?: WorldAgentStats | null;
 };
 
-export type WorldEventEvidenceRef = {
+export type WorldHistoryEvidenceRef = {
   segmentId: string;
   offsetStart: number;
   offsetEnd: number;
@@ -88,7 +88,7 @@ export type WorldEventEvidenceRef = {
   sourceType: string;
 };
 
-export type WorldEvent = {
+export type WorldHistoryItem = {
   id: string;
   timelineSeq: number;
   time: string;
@@ -103,12 +103,12 @@ export type WorldEvent = {
   result?: string | null;
   locationRefs: string[];
   characterRefs: string[];
-  evidenceRefs: WorldEventEvidenceRef[];
+  evidenceRefs: WorldHistoryEvidenceRef[];
   confidence: number;
   needsEvidence: boolean;
 };
 
-export type WorldEventSummary = {
+export type WorldHistorySummary = {
   primaryCount: number;
   secondaryCount: number;
   totalCount: number;
@@ -116,9 +116,9 @@ export type WorldEventSummary = {
   eventLocationCoverage: number;
 };
 
-export type WorldEventsBundle = {
-  items: WorldEvent[];
-  summary: WorldEventSummary | null;
+export type WorldHistoryBundle = {
+  items: WorldHistoryItem[];
+  summary: WorldHistorySummary | null;
 };
 
 export type WorldSemanticRule = {

@@ -6,7 +6,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { QuickAddFriendModal } from '@renderer/features/explore/quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
-import { prefetchWorldDetailAndEvents } from '@renderer/features/world/world-detail-queries.js';
+import { prefetchWorldDetailAndHistory } from '@renderer/features/world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '@renderer/features/world/world-detail-route-state';
 import { parseOptionalJsonObject, type JsonObject } from '@renderer/bridge/runtime-bridge/shared';
 import { toAgentDetailData } from './agent-detail-model.js';
@@ -137,7 +137,7 @@ export function AgentDetailPanel() {
             return;
           }
           prefetchWorldDetailPanel();
-          prefetchWorldDetailAndEvents(agent.worldId);
+          prefetchWorldDetailAndHistory(agent.worldId);
           navigateToWorld(agent.worldId);
         }}
         onAddFriend={handleAddFriendClick}

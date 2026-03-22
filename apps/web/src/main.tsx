@@ -4,8 +4,11 @@ import { initI18n } from '@renderer/i18n';
 import { App as LandingApp } from './landing/App.js';
 import { isWebShellHashRoute } from './site-entry-hash.js';
 import { PostPermalinkPage } from './post-permalink-page.js';
+import { installBundledImportMetaEnv } from './import-meta-env.js';
 import './web-styles.css';
 import './landing/styles.css';
+
+installBundledImportMetaEnv(import.meta.env);
 
 let appI18nInitPromise: Promise<void> | null = null;
 
