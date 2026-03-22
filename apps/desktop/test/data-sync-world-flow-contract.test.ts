@@ -6,6 +6,7 @@ import {
   loadMainWorld,
   loadWorldAgents,
   loadWorldDetailWithAgents,
+  loadWorldSemanticBundle,
 } from '../src/runtime/data-sync/flows/world-flow.js';
 import { createOfflineError, getOfflineCacheManager } from '../src/runtime/offline/index.js';
 
@@ -90,4 +91,41 @@ test('loadWorldDetailWithAgents fails close on invalid object payloads', async (
 
   assert.equal(errors.length, 1);
   assert.equal(errors[0]!.action, 'load-world-detail-with-agents');
+});
+
+test('loadWorldSemanticBundle only requests worldview and skips redundant world detail fetch', async () => {
+  const errors: DataSyncError[] = [];
+  let worldDetailCalls = 0;
+  let worldviewCalls = 0;
+
+  const result = await loadWorldSemanticBundle(
+    async (task) => task({
+      services: {
+        WorldsService: {
+          worldControllerGetWorld: async () => {
+            worldDetailCalls += 1;
+            return { id: 'world-1' };
+          },
+          worldControllerGetWorldview: async () => {
+            worldviewCalls += 1;
+            return {
+              id: 'view-1',
+              coreSystem: null,
+              spaceTopology: null,
+              causality: null,
+              languages: null,
+            };
+          },
+        },
+      },
+    } as never),
+    createEmitter(errors),
+    'world-1',
+  );
+
+  assert.equal(worldDetailCalls, 0);
+  assert.equal(worldviewCalls, 1);
+  assert.equal(result.world, null);
+  assert.equal(result.worldview?.id, 'view-1');
+  assert.equal(errors.length, 0);
 });

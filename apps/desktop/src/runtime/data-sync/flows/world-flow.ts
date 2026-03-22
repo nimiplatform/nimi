@@ -369,7 +369,6 @@ export async function loadWorldSemanticBundle(
   }
 
   try {
-    const world = await loadWorldDetailById(callApi, emitDataSyncError, normalizedWorldId);
     const worldview: WorldviewDetailDto | null = await (async () => {
       try {
         return await callApi(
@@ -382,7 +381,7 @@ export async function loadWorldSemanticBundle(
     })();
 
     return {
-      world,
+      world: null,
       worldview,
       worldviewEvents: [],
       worldviewSnapshots: [],

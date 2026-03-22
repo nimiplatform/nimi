@@ -1,9 +1,10 @@
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { createRendererFlowId, logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
@@ -242,6 +243,11 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const isReady = authStatus === 'authenticated' && !!world.id;
+  const flowIdRef = useRef('');
+  const enteredAtRef = useRef(0);
+  const primaryReadyLoggedRef = useRef(false);
+  const historySemanticReadyLoggedRef = useRef(false);
+  const extendedReadyLoggedRef = useRef(false);
 
   const worldCompositeQuery = useQuery({
     queryKey: worldDetailWithAgentsQueryKey(world.id),
@@ -254,50 +260,138 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
     queryKey: worldHistoryQueryKey(world.id),
     queryFn: () => fetchWorldHistory(world.id),
     enabled: isReady,
+    staleTime: 30_000,
   });
 
   const worldSemanticQuery = useQuery({
     queryKey: worldSemanticBundleQueryKey(world.id),
     queryFn: () => fetchWorldSemanticBundle(world.id),
     enabled: isReady,
+    staleTime: 30_000,
   });
 
   const worldAuditQuery = useQuery({
     queryKey: worldLevelAuditsQueryKey(world.id),
     queryFn: () => fetchWorldLevelAudits(world.id),
-    enabled: isReady,
+    enabled: isReady && worldCompositeQuery.isSuccess,
   });
 
   const worldPublicAssetsQuery = useQuery({
     queryKey: worldPublicAssetsQueryKey(world.id),
     queryFn: () => fetchWorldPublicAssets(world.id),
-    enabled: isReady,
+    enabled: isReady && worldCompositeQuery.isSuccess,
   });
 
   const detail = worldCompositeQuery.data;
   const initialLoading = worldCompositeQuery.isPending && !detail;
-  const supplementalError = worldHistoryQuery.isError
-    || worldSemanticQuery.isError
-    || worldAuditQuery.isError
-    || worldPublicAssetsQuery.isError;
-  let initialError = (worldCompositeQuery.isError && !detail) || supplementalError;
+  const initialError = !initialLoading
+    && (worldCompositeQuery.isError || (worldCompositeQuery.isSuccess && !detail));
   const worldData = toXianxiaWorldData(world, detail);
 
   const agentRecords = Array.isArray(detail?.agents) ? (detail.agents as Array<Record<string, unknown>>) : [];
   const agents: WorldAgent[] = agentRecords.map((agent) => toWorldAgent(agent, world.createdAt));
 
-  const history = worldHistoryQuery.data ?? ((!isReady || worldHistoryQuery.isPending) ? EMPTY_WORLD_HISTORY : null);
-  const semantic = worldSemanticQuery.data ?? ((!isReady || worldSemanticQuery.isPending) ? EMPTY_WORLD_SEMANTIC : null);
-  const audits = worldAuditQuery.data ?? ((!isReady || worldAuditQuery.isPending) ? [] : null);
-  const publicAssets = worldPublicAssetsQuery.data
-    ?? ((!isReady || worldPublicAssetsQuery.isPending) ? EMPTY_WORLD_PUBLIC_ASSETS : null);
-  if (!history || !semantic || !audits || !publicAssets) {
-    initialError = true;
-  }
-  const safeHistory = history ?? EMPTY_WORLD_HISTORY;
-  const safeSemantic = semantic ?? EMPTY_WORLD_SEMANTIC;
-  const safeAudits = audits ?? [];
-  const safePublicAssets = publicAssets ?? EMPTY_WORLD_PUBLIC_ASSETS;
+  const safeHistory = worldHistoryQuery.data ?? EMPTY_WORLD_HISTORY;
+  const safeSemantic = worldSemanticQuery.data ?? EMPTY_WORLD_SEMANTIC;
+  const safeAudits = worldAuditQuery.data ?? [];
+  const safePublicAssets = worldPublicAssetsQuery.data ?? EMPTY_WORLD_PUBLIC_ASSETS;
+
+  useEffect(() => {
+    if (!isReady) {
+      return;
+    }
+    flowIdRef.current = createRendererFlowId('world-detail');
+    enteredAtRef.current = performance.now();
+    primaryReadyLoggedRef.current = false;
+    historySemanticReadyLoggedRef.current = false;
+    extendedReadyLoggedRef.current = false;
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'detail:entered',
+      flowId: flowIdRef.current,
+      details: {
+        worldId: world.id,
+        stage: 'entered',
+      },
+    });
+  }, [isReady, world.id]);
+
+  useEffect(() => {
+    if (!worldCompositeQuery.isSuccess || !detail || primaryReadyLoggedRef.current) {
+      return;
+    }
+    primaryReadyLoggedRef.current = true;
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'detail:primary-ready',
+      flowId: flowIdRef.current,
+      costMs: Number((performance.now() - enteredAtRef.current).toFixed(2)),
+      details: {
+        worldId: world.id,
+        stage: 'primary',
+      },
+    });
+  }, [detail, world.id, worldCompositeQuery.isSuccess]);
+
+  useEffect(() => {
+    const historySettled = worldHistoryQuery.isSuccess || worldHistoryQuery.isError;
+    const semanticSettled = worldSemanticQuery.isSuccess || worldSemanticQuery.isError;
+    if (!detail || !historySettled || !semanticSettled || historySemanticReadyLoggedRef.current) {
+      return;
+    }
+    historySemanticReadyLoggedRef.current = true;
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'detail:history-semantic-settled',
+      flowId: flowIdRef.current,
+      costMs: Number((performance.now() - enteredAtRef.current).toFixed(2)),
+      details: {
+        worldId: world.id,
+        stage: 'secondary',
+        historyStatus: worldHistoryQuery.isSuccess ? 'success' : 'error',
+        semanticStatus: worldSemanticQuery.isSuccess ? 'success' : 'error',
+      },
+    });
+  }, [
+    detail,
+    world.id,
+    worldHistoryQuery.isError,
+    worldHistoryQuery.isSuccess,
+    worldSemanticQuery.isError,
+    worldSemanticQuery.isSuccess,
+  ]);
+
+  useEffect(() => {
+    const auditSettled = worldAuditQuery.isSuccess || worldAuditQuery.isError;
+    const publicAssetsSettled = worldPublicAssetsQuery.isSuccess || worldPublicAssetsQuery.isError;
+    if (!detail || !auditSettled || !publicAssetsSettled || extendedReadyLoggedRef.current) {
+      return;
+    }
+    extendedReadyLoggedRef.current = true;
+    logRendererEvent({
+      level: 'info',
+      area: 'world-detail',
+      message: 'detail:assets-audits-settled',
+      flowId: flowIdRef.current,
+      costMs: Number((performance.now() - enteredAtRef.current).toFixed(2)),
+      details: {
+        worldId: world.id,
+        stage: 'non-critical',
+        auditStatus: worldAuditQuery.isSuccess ? 'success' : 'error',
+        publicAssetsStatus: worldPublicAssetsQuery.isSuccess ? 'success' : 'error',
+      },
+    });
+  }, [
+    detail,
+    world.id,
+    worldAuditQuery.isError,
+    worldAuditQuery.isSuccess,
+    worldPublicAssetsQuery.isError,
+    worldPublicAssetsQuery.isSuccess,
+  ]);
 
   const handleChatAgent = (agent: WorldAgent) => {
     logRendererEvent({

@@ -51,7 +51,9 @@ export async function loadContactList(
   emitDataSyncError: DataSyncErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   try {
-    return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
+    return await loadMergedSocialSnapshot(callApi, emitDataSyncError, {
+      includeCreatorAgents: false,
+    });
   } catch (error) {
     emitDataSyncError('load-contacts', error);
     throw error;
@@ -63,7 +65,9 @@ export async function loadSocialSnapshot(
   emitDataSyncError: DataSyncErrorEmitter,
 ): Promise<SocialContactSnapshot> {
   try {
-    return await loadMergedSocialSnapshot(callApi, emitDataSyncError);
+    return await loadMergedSocialSnapshot(callApi, emitDataSyncError, {
+      includeCreatorAgents: true,
+    });
   } catch (error) {
     emitDataSyncError('load-social-snapshot', error);
     throw error;

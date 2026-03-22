@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { queryClient } from '@renderer/infra/query-client/query-client';
 import { WorldDetail } from './world-detail';
-import { worldListQueryKey } from './world-detail-queries';
+import { worldDetailWithAgentsQueryKey, worldListQueryKey } from './world-detail-queries';
 import { toWorldListItem } from './world-list-model';
 import { WorldDetailSkeletonPage } from './world-detail-route-state';
 
@@ -12,6 +13,16 @@ export function WorldDetailActivePanel() {
   const authStatus = useAppStore((state) => state.auth.status);
   const selectedWorldId = useAppStore((state) => state.selectedWorldId);
   const navigateBack = useAppStore((state) => state.navigateBack);
+  const cachedWorlds = queryClient.getQueryData<ReturnType<typeof toWorldListItem>[]>(worldListQueryKey());
+  const cachedSelectedWorld = selectedWorldId
+    ? cachedWorlds?.find((item) => item.id === selectedWorldId) ?? null
+    : null;
+  const cachedWorldDetail = selectedWorldId
+    ? queryClient.getQueryData<Awaited<ReturnType<typeof dataSync.loadWorldDetailWithAgents>>>(
+      worldDetailWithAgentsQueryKey(selectedWorldId),
+    )
+    : null;
+  const selectedWorldFromDetailCache = cachedWorldDetail ? toWorldListItem(cachedWorldDetail) : null;
 
   const worldsQuery = useQuery({
     queryKey: worldListQueryKey(),
@@ -20,6 +31,7 @@ export function WorldDetailActivePanel() {
       return result.map((item) => toWorldListItem(item));
     },
     enabled: authStatus === 'authenticated' && Boolean(selectedWorldId),
+    initialData: cachedWorlds ?? undefined,
     staleTime: 30_000,
   });
 
@@ -31,11 +43,16 @@ export function WorldDetailActivePanel() {
     );
   }
 
-  if (worldsQuery.isPending) {
+  const selectedWorld = worldsQuery.data?.find((item) => item.id === selectedWorldId)
+    ?? cachedSelectedWorld
+    ?? selectedWorldFromDetailCache
+    ?? null;
+
+  if (!selectedWorld && worldsQuery.isPending) {
     return <WorldDetailSkeletonPage />;
   }
 
-  if (worldsQuery.isError) {
+  if (!selectedWorld && worldsQuery.isError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-gray-50">
         <span className="text-sm text-red-600">
@@ -62,8 +79,6 @@ export function WorldDetailActivePanel() {
       </div>
     );
   }
-
-  const selectedWorld = worldsQuery.data?.find((item) => item.id === selectedWorldId) ?? null;
 
   if (!selectedWorld) {
     return (

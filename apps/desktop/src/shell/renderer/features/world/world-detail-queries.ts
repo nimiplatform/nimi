@@ -1,5 +1,6 @@
 import { dataSync } from '@runtime/data-sync';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import type { JsonObject } from '@runtime/net/json';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type {
   WorldAuditItem,
@@ -56,11 +57,11 @@ function readNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function assertRecord(value: unknown, fieldName: string): Record<string, unknown> {
+function assertRecord(value: unknown, fieldName: string): JsonObject {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
   }
-  return value as Record<string, unknown>;
+  return value as JsonObject;
 }
 
 function requireString(value: unknown, fieldName: string): string {
@@ -86,7 +87,7 @@ function requireStringArray(value: unknown, fieldName: string): string[] {
   return value.map((item, index) => requireString(item, `${fieldName}_${index}`));
 }
 
-function requireRecordArray(value: unknown, fieldName: string): Array<Record<string, unknown>> {
+function requireRecordArray(value: unknown, fieldName: string): JsonObject[] {
   if (!Array.isArray(value)) {
     throw new Error(`WORLD_DETAIL_${fieldName.toUpperCase()}_INVALID`);
   }
@@ -244,7 +245,7 @@ function toLanguages(raw?: WorldLanguageDto[]): WorldSemanticLanguage[] {
   }, []);
 }
 
-function toWorldviewEvents(raw: Array<Record<string, unknown>>): WorldSemanticTimelineItem[] {
+function toWorldviewEvents(raw: JsonObject[]): WorldSemanticTimelineItem[] {
   return raw.reduce<WorldSemanticTimelineItem[]>((acc, item) => {
     const id = requireString(item.id, 'worldview_event_id');
     acc.push({
@@ -258,7 +259,7 @@ function toWorldviewEvents(raw: Array<Record<string, unknown>>): WorldSemanticTi
   }, []);
 }
 
-function toWorldviewSnapshots(raw: Array<Record<string, unknown>>): WorldSemanticSnapshotItem[] {
+function toWorldviewSnapshots(raw: JsonObject[]): WorldSemanticSnapshotItem[] {
   return raw.reduce<WorldSemanticSnapshotItem[]>((acc, item) => {
     const id = requireString(item.id, 'worldview_snapshot_id');
     const version = readString(item.versionLabel) ?? readString(item.version) ?? readString(item.snapshotVersion);
@@ -428,6 +429,23 @@ function toWorldMutationItem(raw: PublicWorldMutationDto): WorldMutationItem {
   };
 }
 
+function buildWorldHistorySummary(items: WorldHistoryItem[]): WorldHistoryBundle['summary'] {
+  if (items.length === 0) {
+    return null;
+  }
+
+  const primaryCount = items.filter((item) => item.level === 'PRIMARY').length;
+  const secondaryCount = items.length - primaryCount;
+
+  return {
+    primaryCount,
+    secondaryCount,
+    totalCount: items.length,
+    eventCharacterCoverage: items.filter((item) => item.characterRefs.length > 0).length / items.length,
+    eventLocationCoverage: items.filter((item) => item.locationRefs.length > 0).length / items.length,
+  };
+}
+
 export function worldListQueryKey() {
   return ['worlds-list'] as const;
 }
@@ -465,11 +483,12 @@ export async function fetchWorldDetailWithAgents(worldId: string) {
 
 export async function fetchWorldHistory(worldId: string): Promise<WorldHistoryBundle> {
   const payload = await dataSync.loadWorldHistory(normalizeWorldId(worldId));
+  const items = payload.items
+    .map((item, index) => toWorldHistoryItem(item, index))
+    .sort((left, right) => left.timelineSeq - right.timelineSeq || left.id.localeCompare(right.id));
   return {
-    items: payload.items
-      .map((item, index) => toWorldHistoryItem(item, index))
-      .sort((left, right) => left.timelineSeq - right.timelineSeq || left.id.localeCompare(right.id)),
-    summary: null,
+    items,
+    summary: buildWorldHistorySummary(items),
   };
 }
 
@@ -507,12 +526,6 @@ export function prefetchWorldDetailAndHistory(worldId: string): void {
   }
 
   void queryClient.prefetchQuery({
-    queryKey: worldListQueryKey(),
-    queryFn: () => dataSync.loadWorlds(),
-    staleTime: DEFAULT_WORLD_PREFETCH_STALE_TIME_MS,
-  });
-
-  void queryClient.prefetchQuery({
     queryKey: worldDetailWithAgentsQueryKey(normalizedWorldId),
     queryFn: () => fetchWorldDetailWithAgents(normalizedWorldId),
     staleTime: DEFAULT_WORLD_PREFETCH_STALE_TIME_MS,
@@ -527,18 +540,6 @@ export function prefetchWorldDetailAndHistory(worldId: string): void {
   void queryClient.prefetchQuery({
     queryKey: worldSemanticBundleQueryKey(normalizedWorldId),
     queryFn: () => fetchWorldSemanticBundle(normalizedWorldId),
-    staleTime: DEFAULT_WORLD_PREFETCH_STALE_TIME_MS,
-  });
-
-  void queryClient.prefetchQuery({
-    queryKey: worldLevelAuditsQueryKey(normalizedWorldId),
-    queryFn: () => fetchWorldLevelAudits(normalizedWorldId),
-    staleTime: DEFAULT_WORLD_PREFETCH_STALE_TIME_MS,
-  });
-
-  void queryClient.prefetchQuery({
-    queryKey: worldPublicAssetsQueryKey(normalizedWorldId),
-    queryFn: () => fetchWorldPublicAssets(normalizedWorldId),
     staleTime: DEFAULT_WORLD_PREFETCH_STALE_TIME_MS,
   });
 }

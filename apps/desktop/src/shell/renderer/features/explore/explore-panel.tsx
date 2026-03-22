@@ -12,7 +12,7 @@ import { ExploreView } from './explore-view';
 import type { ExploreAgentCardData, FeaturedWorldCardData } from './explore-cards';
 import type { PostCardAuthorProfileTarget } from '../home/post-card';
 import { toWorldListItem } from '../world/world-list-model';
-import { prefetchWorldDetailAndHistory } from '../world/world-detail-queries.js';
+import { prefetchWorldDetailAndHistory, worldListQueryKey } from '../world/world-detail-queries.js';
 import { prefetchWorldDetailPanel } from '../world/world-detail-route-state';
 import { QuickAddFriendModal } from './quick-add-friend-modal';
 import { resolveAgentFriendLimit } from '../contacts/agent-friend-limit';
@@ -248,11 +248,12 @@ export function ExplorePanel() {
 
   // Fetch worlds for banner carousel
   const worldsQuery = useQuery({
-    queryKey: ['explore-worlds'],
+    queryKey: worldListQueryKey(),
     queryFn: async () => {
       const result = await dataSync.loadWorlds();
       return result.map((item) => toWorldListItem(item));
     },
+    staleTime: 30_000,
   });
 
   const worldBanners = useMemo(() => {
@@ -276,18 +277,14 @@ export function ExplorePanel() {
     const worlds = worldsQuery.data ?? [];
     return new Map(worlds.map((w) => [w.id, { bannerUrl: w.bannerUrl, scoreEwma: w.scoreEwma, name: w.name }]));
   }, [worldsQuery.data]);
-  const worldsDataVersion = useMemo(
-    () => (worldsQuery.data ?? []).map((world) => `${world.id}:${world.bannerUrl || ''}:${world.scoreEwma ?? ''}`).join('|'),
-    [worldsQuery.data],
-  );
 
   // Fetch agents for sidebar
   const agentsQuery = useQuery({
-    queryKey: ['explore-agents', authStatus, selectedCategory, searchText, worldsDataVersion],
+    queryKey: ['explore-agents', authStatus, selectedCategory, searchText],
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = searchText.trim() || undefined;
-      const result = await dataSync.callApi((realm) => realm.services.SearchService.searchUsers(
+      return dataSync.callApi((realm) => realm.services.SearchService.searchUsers(
         PAGE_SIZE,
         undefined,
         undefined,
@@ -303,12 +300,14 @@ export function ExplorePanel() {
         undefined,
         query,
       ));
-      return parseAgents(result, worldsMap);
     },
     enabled: authStatus === 'authenticated',
   });
 
-  const agents = agentsQuery.data ?? [];
+  const agents = useMemo(
+    () => parseAgents(agentsQuery.data, worldsMap),
+    [agentsQuery.data, worldsMap],
+  );
 
   const categories = useMemo(() => {
     const dynamicTags = new Set<string>();

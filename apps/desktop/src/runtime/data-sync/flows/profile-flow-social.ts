@@ -17,6 +17,10 @@ export type DataSyncErrorEmitter = (
   details?: JsonObject,
 ) => void;
 
+type LoadSocialSnapshotOptions = {
+  includeCreatorAgents?: boolean;
+};
+
 type PendingFriendRequestDto = {
   userId?: string;
   requestedAt?: string;
@@ -291,14 +295,16 @@ async function fetchBlockedUsers(
 async function loadSocialSnapshotInternal(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
+  options: LoadSocialSnapshotOptions = {},
 ): Promise<SocialContactSnapshot> {
+  const includeCreatorAgents = options.includeCreatorAgents !== false;
   const [friendsResult, pendingResult, creatorAgents, blockedUsers] = await Promise.all([
     callApi(
       (realm) => realm.services.MeService.listMyFriendsWithDetails(undefined, 100),
       '加载好友失败',
     ),
     fetchPendingFriendRequests(callApi, emitDataSyncError),
-    loadCreatorAgents(callApi),
+    includeCreatorAgents ? loadCreatorAgents(callApi) : Promise.resolve([]),
     fetchBlockedUsers(callApi, emitDataSyncError),
   ]);
 
@@ -375,8 +381,9 @@ function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactS
 export async function loadMergedSocialSnapshot(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
+  options: LoadSocialSnapshotOptions = {},
 ): Promise<SocialContactSnapshot> {
-  const snapshot = await loadSocialSnapshotInternal(callApi, emitDataSyncError);
+  const snapshot = await loadSocialSnapshotInternal(callApi, emitDataSyncError, options);
   const mergedSnapshot = mergeWithLocalContacts(snapshot);
   cachedContacts = { ...mergedSnapshot };
   return mergedSnapshot;
