@@ -1,11 +1,15 @@
 import type { RuntimeHttpContext, RuntimeHttpContextProvider, RuntimeModSdkContextProvider, } from '../types';
 import { type ModRuntimeContext } from "@nimiplatform/sdk/mod";
-let runtimeHttpContextProvider: RuntimeHttpContextProvider = () => ({
+const DEFAULT_RUNTIME_HTTP_CONTEXT_PROVIDER: RuntimeHttpContextProvider = () => ({
     realmBaseUrl: '',
 });
+let runtimeHttpContextProvider: RuntimeHttpContextProvider = DEFAULT_RUNTIME_HTTP_CONTEXT_PROVIDER;
 let runtimeModSdkContextProvider: RuntimeModSdkContextProvider | null = null;
 export function setRuntimeHttpContextProviderState(provider: RuntimeHttpContextProvider): void {
     runtimeHttpContextProvider = provider;
+}
+export function clearRuntimeHttpContextProviderState(): void {
+    runtimeHttpContextProvider = DEFAULT_RUNTIME_HTTP_CONTEXT_PROVIDER;
 }
 export function getRuntimeHttpContextState(): RuntimeHttpContext {
     return runtimeHttpContextProvider();

@@ -11,6 +11,8 @@ import { createPlatformClient, withRealmContextLock } from '@nimiplatform/sdk';
 import {
   getRuntimeHookRuntime,
   listRegisteredRuntimeModIds,
+  clearInternalModSdkHost,
+  resetRuntimeHostState,
   setRuntimeModSdkContextProvider,
   setRuntimeHttpContextProvider,
   setInternalModSdkHost,
@@ -42,15 +44,18 @@ import { attachOfflineCoordinatorBindings } from './runtime-bootstrap-offline';
 import {
   startExternalAgentActionBridge,
   resyncExternalAgentActionDescriptors,
+  stopExternalAgentActionBridge,
 } from '@runtime/external-agent';
 import { registerExternalAgentTier1Actions } from '@runtime/external-agent/tier1-actions';
-import { startAuthStateWatcher } from './auth-state-watcher';
+import { startAuthStateWatcher, stopAuthStateWatcher } from './auth-state-watcher';
 import { checkDaemonVersion } from './version-check';
 import { registerExitHandler } from './exit-handler';
 import { isRuntimeDaemonReachable } from './runtime-bootstrap-runtime-availability';
 
 let bootstrapPromise: Promise<void> | null = null;
+let rebootstrapPromise: Promise<void> | null = null;
 let offlineCoordinatorBindingsReady = false;
+let pendingRebootstrap = false;
 
 function suspendRuntimeCallbacksForL2(): void {
   const hookRuntime = getRuntimeHookRuntime();
@@ -96,16 +101,47 @@ function bindOfflineCoordinator(): void {
 }
 
 export function rebootstrapRuntime(): Promise<void> {
-  bootstrapPromise = null;
-  return bootstrapRuntime();
+  pendingRebootstrap = true;
+  if (rebootstrapPromise) {
+    return rebootstrapPromise;
+  }
+  rebootstrapPromise = (async () => {
+    while (pendingRebootstrap) {
+      pendingRebootstrap = false;
+      const activeBootstrap = bootstrapPromise;
+      if (activeBootstrap) {
+        try {
+          await activeBootstrap;
+        } catch {
+          // The failed bootstrap already emitted telemetry; restart from a clean slate below.
+        }
+      }
+      await teardownBootstrapState();
+      bootstrapPromise = null;
+      await bootstrapRuntime();
+    }
+  })().finally(() => {
+    rebootstrapPromise = null;
+  });
+  return rebootstrapPromise;
 }
 
 function runtimeDaemonUnavailable(status: { running: boolean; lastError?: string }): boolean {
   return !status.running && Boolean(String(status.lastError || '').trim());
 }
 
+async function teardownBootstrapState(): Promise<void> {
+  stopAuthStateWatcher();
+  stopExternalAgentActionBridge();
+  resetRuntimeHostState();
+  clearInternalModSdkHost();
+}
+
 export function bootstrapRuntime(): Promise<void> {
   bindOfflineCoordinator();
+  if (rebootstrapPromise) {
+    return rebootstrapPromise;
+  }
   if (bootstrapPromise) {
     return bootstrapPromise;
   }
@@ -349,10 +385,19 @@ export function bootstrapRuntime(): Promise<void> {
         runtimeModFailureCount: runtimeModFailures.length,
       },
     });
-  })().catch((error) => {
+  })().catch(async (error) => {
     // D-BOOT-008 + D-OFFLINE-001: Bootstrap failure → L2 degradation
     getOfflineCoordinator().markRuntimeReachable(false);
-    const message = safeErrorMessage(error);
+    bootstrapPromise = null;
+    let failure: unknown = error;
+    try {
+      await teardownBootstrapState();
+    } catch (teardownError) {
+      failure = new Error(
+        `${safeErrorMessage(error)}; bootstrap teardown failed: ${safeErrorMessage(teardownError)}`,
+      );
+    }
+    const message = safeErrorMessage(failure);
     useAppStore.getState().setBootstrapError(message);
     useAppStore.getState().setBootstrapReady(false);
     useAppStore.getState().clearAuthSession();
@@ -364,7 +409,7 @@ export function bootstrapRuntime(): Promise<void> {
         error: message,
       },
     });
-    throw error;
+    throw failure;
   });
 
   return bootstrapPromise;

@@ -5,7 +5,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { RegisterRuntimeModOptions, RuntimeHttpContext, RuntimeHttpContextProvider, RuntimeModSdkContextProvider, RuntimeModRegistration, } from '../types';
 import { emitRuntimeModRuntimeLog } from '../logging';
 import { registerRuntimeModLifecycle, unregisterRuntimeModLifecycle, } from './lifecycle';
-import { clearRuntimeModSdkContextProviderState, getRuntimeModSdkContextState, getRuntimeHttpContextState, setRuntimeModSdkContextProviderState, setRuntimeHttpContextProviderState, } from './runtime-exposure';
+import { clearRuntimeHttpContextProviderState, clearRuntimeModSdkContextProviderState, getRuntimeModSdkContextState, getRuntimeHttpContextState, setRuntimeModSdkContextProviderState, setRuntimeHttpContextProviderState, } from './runtime-exposure';
 import { type ModRuntimeContext } from "@nimiplatform/sdk/mod";
 let kernelInstance: DesktopExecutionKernelService | null = null;
 let hookRuntimeInstance: DesktopHookRuntimeService | null = null;
@@ -179,10 +179,32 @@ export async function registerRuntimeMod(mod: RuntimeModRegistration, options: R
     });
     defaultPrivateExecutionModId = result.defaultPrivateExecutionModId;
 }
-export function resetRuntimeHostForTesting(): void {
+export function resetRuntimeHostState(): void {
+    const registeredModIds = Array.from(registeredMods.keys());
+    if (registeredModIds.length > 0) {
+        const hookRuntime = hookRuntimeInstance ?? getOrCreateHookRuntime();
+        const kernel = kernelInstance ?? getOrCreateKernel();
+        const sdkRuntimeContext = getRuntimeModSdkContext();
+        for (const modId of registeredModIds) {
+            const result = unregisterRuntimeModLifecycle({
+                modId,
+                registeredMods,
+                hookRuntime,
+                kernel,
+                getHttpContext: getRuntimeHttpContext,
+                sdkRuntimeContext,
+                defaultPrivateExecutionModId,
+            });
+            defaultPrivateExecutionModId = result.defaultPrivateExecutionModId;
+        }
+    }
     registeredMods.clear();
     defaultPrivateExecutionModId = '';
     clearRuntimeModSdkContextProviderState();
+    clearRuntimeHttpContextProviderState();
     hookRuntimeInstance = null;
     kernelInstance = null;
+}
+export function resetRuntimeHostForTesting(): void {
+    resetRuntimeHostState();
 }

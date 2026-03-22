@@ -306,6 +306,8 @@ export function stopExternalAgentActionBridge(): void {
     actionRegistrySubscriptionStop();
     actionRegistrySubscriptionStop = null;
   }
+  syncedActionHash = '';
+  actionRegistryResyncQueued = false;
   actionBridgeStarted = false;
 }
 
