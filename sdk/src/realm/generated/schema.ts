@@ -3632,7 +3632,6 @@ export type components = {
             password: string;
         };
         ChatEventEnvelopeDto: {
-            actionHint?: string;
             actorId: string;
             chatId: string;
             eventId: string;
@@ -3641,12 +3640,8 @@ export type components = {
             payload: {
                 [key: string]: unknown;
             };
-            reasonCode?: string;
             seq: number;
             sessionId: string;
-            turnAudit?: {
-                [key: string]: unknown;
-            };
         };
         ChatSyncResultDto: {
             events: components["schemas"]["ChatEventEnvelopeDto"][];
@@ -4102,12 +4097,6 @@ export type components = {
          */
         DnaSecondaryTrait: "HUMOROUS" | "SARCASTIC" | "GENTLE" | "DIRECT" | "OPTIMISTIC" | "REALISTIC" | "DRAMATIC" | "PASSIONATE" | "REBELLIOUS" | "INNOCENT" | "WISE" | "ECCENTRIC";
         EditMessageInputDto: {
-            diagnostics?: {
-                [key: string]: unknown;
-            };
-            interaction?: {
-                [key: string]: unknown;
-            };
             payload?: {
                 [key: string]: unknown;
             };
@@ -5001,12 +4990,6 @@ export type components = {
         };
         SendMessageInputDto: {
             clientMessageId: string;
-            diagnostics?: {
-                [key: string]: unknown;
-            };
-            interaction?: {
-                [key: string]: unknown;
-            };
             /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
             payload?: {
                 [key: string]: unknown;

@@ -140,7 +140,6 @@ function parseSocketChatEvent(payload: unknown): ChatEventEnvelope | null {
   }
   const payloadObject = readObjectField(payload, 'payload');
   return {
-    actionHint: readStringField(payload, 'actionHint') || undefined,
     actorId: readStringField(payload, 'actorId'),
     seq,
     eventId,
@@ -148,9 +147,7 @@ function parseSocketChatEvent(payload: unknown): ChatEventEnvelope | null {
     kind,
     occurredAt: readStringField(payload, 'occurredAt'),
     payload: payloadObject ? (payloadObject as ChatEventEnvelopeDto['payload']) : {},
-    reasonCode: readStringField(payload, 'reasonCode') || undefined,
     sessionId: readStringField(payload, 'sessionId'),
-    turnAudit: readObjectField(payload, 'turnAudit') ? (readObjectField(payload, 'turnAudit') as ChatEventEnvelopeDto['turnAudit']) : undefined,
   };
 }
 
@@ -363,9 +360,6 @@ function applyChatEventToCache(input: ApplyChatEventInput): void {
     && (
       input.event.kind === 'message.edited'
       || input.event.kind === 'message.recalled'
-      || input.event.kind === 'interaction.command'
-      || input.event.kind === 'interaction.component'
-      || input.event.kind === 'interaction.modal'
     )
   ) {
     mergeMessageQueryByUpdate({

@@ -14,7 +14,6 @@ import { ChatProfileCard } from './message-timeline-profile-card.js';
 import { TurnInput } from './turn-input';
 import {
   ChatMessageImage,
-  extractMessageDiagnostics,
   formatDateSeparator,
   resolveImageMessageUrl,
   resolveMessageText,
@@ -79,7 +78,6 @@ export function MessageTimeline() {
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
   const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
-  const [expandedDiagnosticsMessageId, setExpandedDiagnosticsMessageId] = useState<string | null>(null);
   const streamState = useStreamState(selectedChatId);
   const isStreaming = streamState?.phase === 'waiting' || streamState?.phase === 'streaming';
   const uploadPlaceholders = useChatUploadPlaceholders(selectedChatId);
@@ -145,7 +143,6 @@ export function MessageTimeline() {
 
   useEffect(() => {
     setProfilePanelTarget(null);
-    setExpandedDiagnosticsMessageId(null);
     setGiftModalOpen(false);
   }, [selectedChatId]);
 
@@ -306,14 +303,6 @@ export function MessageTimeline() {
               const isUploadingMedia = message.localUploadState === 'uploading';
               const resolvedMessageText = resolveMessageText(message) || t('ChatTimeline.emptyMessage');
               const messageAvatarKind = 'human';
-              const diagnostics = extractMessageDiagnostics(message);
-              const hasDiagnosticData = Boolean(
-                diagnostics.interactionKind
-                || diagnostics.reasonCode
-                || diagnostics.actionHint
-                || diagnostics.turnAudit.length > 0,
-              );
-              const diagnosticsExpanded = expandedDiagnosticsMessageId === message.id;
               return (
                 <div key={message.id || message.clientMessageId}>
                   {showTimestamp && timestampLabel ? (
@@ -349,15 +338,6 @@ export function MessageTimeline() {
                         ? 'bg-[#0066CC] text-white'
                         : 'bg-[#F2F2F7] text-gray-900'
                     } ${isMediaMessage || isGiftMessage ? 'p-0 overflow-hidden' : 'px-4 py-2.5'}`}>
-                      {diagnostics.interactionKind && (
-                        <div className={`mb-1 inline-flex rounded-md border px-2 py-0.5 text-[10px] font-semibold ${
-                          isMe
-                            ? 'border-[#b8b1d6] bg-[#f3f0fc] text-[#69608e]'
-                            : 'border-[#bfd0b8] bg-[#f2f7ef] text-[#5d7757]'
-                        }`}>
-                          interaction: {diagnostics.interactionKind}
-                        </div>
-                      )}
                       {isGiftMessage ? (
                         <GiftMessageBubble
                           payload={message.payload as unknown as GiftMessagePayload}
@@ -404,46 +384,6 @@ export function MessageTimeline() {
                         )
                       ) : (
                         resolvedMessageText
-                      )}
-
-                      {hasDiagnosticData && (
-                        <div className={`mt-2 ${isMe ? 'text-right' : 'text-left'}`}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setExpandedDiagnosticsMessageId((previous) => (
-                                previous === message.id ? null : message.id
-                              ));
-                            }}
-                            className={`rounded-md border px-2 py-0.5 text-[10px] ${
-                              isMe
-                                ? 'border-[#b8b1d6] bg-[#f3f0fc] text-[#69608e]'
-                                : 'border-[#bfd0b8] bg-[#f2f7ef] text-[#5d7757]'
-                            }`}
-                          >
-                            details
-                          </button>
-                          {diagnosticsExpanded && (
-                            <div className={`mt-1 rounded-md border px-2 py-1 text-[10px] ${
-                              isMe
-                                ? 'border-[#b8b1d6] bg-[#f4f1fb] text-[#6d668e]'
-                                : 'border-[#bfd0b8] bg-[#f3f8f1] text-[#5f755a]'
-                            }`}>
-                              {diagnostics.reasonCode && <p>reasonCode: {diagnostics.reasonCode}</p>}
-                              {diagnostics.actionHint && <p>actionHint: {diagnostics.actionHint}</p>}
-                              {diagnostics.turnAudit.length > 0 && (
-                                <div className="mt-1 border-t border-current/20 pt-1">
-                                  <p className="font-semibold">{t('ChatTimeline.turnAuditLabel')}</p>
-                                  {diagnostics.turnAudit.map((entry) => (
-                                    <p key={entry.key}>
-                                      {entry.key}: {entry.value}
-                                    </p>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
                       )}
                     </div>
                     {message.deliveryState !== 'sent' ? (
