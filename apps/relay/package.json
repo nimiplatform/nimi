@@ -23,7 +23,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
     "concurrently": "^9.1.2",
-    "electron": "^36.3.2",
+    "electron": "^41.0.3",
     "electron-builder": "^26.0.12",
     "tailwindcss": "^4.2.1",
     "tsup": "^8.5.0",
