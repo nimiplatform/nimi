@@ -12,15 +12,15 @@
     "test": "tsx --tsconfig tsconfig.json --test test/**/*.test.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "2.0.35",
+    "@ai-sdk/openai-compatible": "2.0.37",
     "@nimiplatform/sdk": "workspace:*",
     "@nimiplatform/shell-core": "workspace:*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
-    "@tanstack/react-query": "^5.90.21",
-    "ai": "6.0.116",
-    "postprocessing": "^6.36.6",
+    "@tanstack/react-query": "^5.95.0",
+    "ai": "6.0.134",
+    "postprocessing": "^6.39.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-router-dom": "^7.13.1",
@@ -32,13 +32,13 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.2.1",
+    "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.183.1",
     "@vitejs/plugin-react": "^5.1.4",
-    "tailwindcss": "^4.2.1",
+    "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
