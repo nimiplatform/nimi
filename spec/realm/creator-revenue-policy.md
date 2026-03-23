@@ -10,7 +10,7 @@ updated: 2026-03-16
 
 ## Normative Imports
 
-- `kernel/economy-contract.md` (`R-ECON-001..011`)
+- `kernel/economy-contract.md` (`R-ECON-001..004`)
 
 ## Scope
 
@@ -18,16 +18,16 @@ Bridge-only policy alignment. This file preserves the legacy open revenue anchor
 
 ## Mapping Declaration
 
-| Legacy Open Anchor | Current Kernel Anchor |
+| External Anchor | Local Kernel Anchor |
 | --- | --- |
-| `R-ECON-010` | `R-ECON-003`, `R-ECON-010` |
+| `R-ECON-010` | `R-ECON-003` |
 | `R-ECON-020` | `R-ECON-003`, `R-ECON-004` |
 | `R-ECON-021` | `R-ECON-004` |
-| `R-ECON-022` | `R-ECON-005`, `R-ECON-009` |
-| `R-ECON-023` | `R-ECON-006`, `R-ECON-008` |
-| `R-ECON-024` | `R-ECON-003`, `R-ECON-010` |
-| `R-ECON-025` | `R-ECON-004`, `R-ECON-010` |
-| `R-ECON-040` | `R-ECON-003`, `R-ECON-004` |
+| `R-ECON-022` | `R-ECON-003`, `R-ECON-004` |
+| `R-ECON-023` | `R-ECON-001`, `R-ECON-003` |
+| `R-ECON-024` | `R-ECON-003` |
+| `R-ECON-025` | `R-ECON-003`, `R-ECON-004` |
+| `R-ECON-040` | `R-ECON-001`, `R-ECON-004` |
 
 ## Reading Path
 

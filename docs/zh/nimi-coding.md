@@ -146,13 +146,14 @@
 
 固定采用：
 
-`AISC-<AREA>-NNN`
+`<PREFIX>-<AREA>-NNN`
 
 说明：
 
-1. `<AREA>`：规则归属区域，`2-12` 位大写字母（例如 `CORE`、`FLOW`、`AUDIT`）。  
-2. `NNN`：三位编号，不复用。  
-3. 校验正则：`^AISC-[A-Z]{2,12}-[0-9]{3}$`。  
+1. `<PREFIX>`：项目声明的规则命名空间，`1-6` 位大写字母。  
+2. `<AREA>`：规则归属区域，`2-12` 位大写字母（例如 `CORE`、`FLOW`、`AUDIT`）。  
+3. `NNN`：三位编号，不复用。  
+4. 校验正则：`^[A-Z]{1,6}-[A-Z]{2,12}-[0-9]{3}$`。  
 
 建议分段：
 
@@ -162,9 +163,9 @@
 
 示例：
 
-1. `AISC-CORE-001`
-2. `AISC-FLOW-023`
-3. `AISC-AUDIT-110`
+1. `R-TRUTH-001`
+2. `R-WSTATE-003`
+3. `FG-KEYS-004`
 
 ### D2. 结构化事实表（Table）设计规范
 
@@ -184,7 +185,7 @@
 硬约束：
 
 1. 每条结构化事实必须包含 `source_rule`。  
-2. `source_rule` 必须可解析到真实 Rule ID，且只允许 `AISC-*`。  
+2. `source_rule` 必须可解析到真实 Rule ID，且必须符合项目声明的 Rule ID 格式。  
 3. 缺失 `source_rule` 或格式不合法，直接判定为 `Hard Gate` 失败。  
 4. 跨表引用必须可验证（ID 存在性、唯一性、类型合法性）。  
 5. 表字段变更必须伴随检查规则升级。  
@@ -411,14 +412,14 @@ Scope: ...
 
 ```md
 ## New Rule
-- Rule ID: `AISC-<AREA>-NNN`
+- Rule ID: `<PREFIX>-<AREA>-NNN`
 - Contract location: `<kernel-file>`
 - Intent: ...
 
 ## Fact Impact
 - Table: `<table-file>`
 - Fields changed: ...
-- source_rule mapping: `AISC-*` (required on every structured fact row)
+- source_rule mapping: must match the project's declared Rule ID format (required on every structured fact row)
 
 ## Projection Impact
 - Generated target: `<generated-file>`
@@ -445,11 +446,11 @@ Phase 1: Inventory
 
 Phase 2: Kernelization
 - Move cross-domain rules into Kernel contracts.
-- Assign stable Rule IDs using `AISC-<AREA>-NNN`.
+- Assign stable Rule IDs using `<PREFIX>-<AREA>-NNN`.
 
 Phase 3: Structuring
 - Convert enumerable facts into Tables.
-- Add `source_rule` for every table row (must reference `AISC-*`).
+- Add `source_rule` for every table row (must match the project's declared Rule ID format).
 
 Phase 4: Automation
 - Introduce Generate pipeline.
@@ -516,7 +517,7 @@ Phase 5: Governance
 #### L1（Day 1-30）：建立骨架
 
 1. 建立 Kernel/Domain/Table/Generated 基础分层。  
-2. 选 1 个核心域试点 `AISC-<AREA>-NNN` + Table-first。  
+2. 选 1 个核心域试点 `<PREFIX>-<AREA>-NNN` + Table-first。  
 3. 建立最小 Generate 与 Drift-check。  
 
 #### L2（Day 31-60）：强化守护

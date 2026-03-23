@@ -150,7 +150,7 @@ Use the fixed format:
 
 Rules:
 
-1. `<PREFIX>`: 1-6 uppercase letters, project-defined namespace (default: `AISC`).
+1. `<PREFIX>`: 1-6 uppercase letters, project-defined namespace.
 2. `<AREA>`: 2-12 uppercase letters (for example `CORE`, `FLOW`, `AUDIT`).
 3. `NNN`: Three-digit sequence, never reused.
 4. Validation regex: `^[A-Z]{1,6}-[A-Z]{2,12}-[0-9]{3}$`.
@@ -162,11 +162,11 @@ Suggested number bands:
 2. `010-099`: Incremental rules.
 3. `100+`: Extension/migration-reserved rules.
 
-Examples (default AISC namespace):
+Examples (project-declared namespaces):
 
-1. `AISC-CORE-001`
-2. `AISC-FLOW-023`
-3. `AISC-AUDIT-110`
+1. `R-TRUTH-001`
+2. `R-WSTATE-003`
+3. `FG-KEYS-004`
 
 Examples (domain-prefix namespace):
 

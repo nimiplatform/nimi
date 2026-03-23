@@ -23,7 +23,7 @@ updated: 2026-03-21
 
 ## Scope
 
-Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local SSOT without introducing a second rule system in open spec.
+Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set without introducing a second rule system in open spec.
 
 ## Mapping Declaration
 

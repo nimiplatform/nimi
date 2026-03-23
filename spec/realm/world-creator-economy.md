@@ -10,7 +10,7 @@ updated: 2026-03-16
 
 ## Normative Imports
 
-- `kernel/economy-contract.md` (`R-ECON-001..011`)
+- `kernel/economy-contract.md` (`R-ECON-001..004`)
 
 ## Scope
 
@@ -18,9 +18,9 @@ Bridge-only document for creator economy semantics. Kernel authority remains in 
 
 ## Mapping Declaration
 
-| Legacy Open Anchor | Current Kernel Anchor |
+| External Anchor | Local Kernel Anchor |
 | --- | --- |
-| `R-ECON-001` | `R-ECON-001`, `R-ECON-008` |
+| `R-ECON-001` | `R-ECON-001` |
 | `R-ECON-030` | `R-ECON-001`, `R-ECON-003` |
 
 ## Reading Path

@@ -1,4 +1,4 @@
-version: 2026-03-22
+version: 2026-03-23
 owner: '@team'
 description: Hard-cut rule-to-evidence map for the refactored realm kernel.
 profiles:
@@ -44,8 +44,7 @@ profiles:
       - nimi-backend/libs/common/src/realm-commit-policy.ts
       - nimi-backend/libs/domains/world/src/world-control.service.ts
     test_files:
-      - nimi-backend/libs/domains/world/src/world-events-summary-contract.spec.ts
-      - nimi-backend/libs/domains/world/src/world-events-facts-list-batch-contract.spec.ts
+      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
       - tests/arch/world.spec.ts
   agent_memory:
     openapi:
@@ -81,7 +80,6 @@ profiles:
     test_files:
       - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
       - nimi-backend/apps/api/src/modules/chat/chat.controller.spec.ts
-      - tests/arch/agent.spec.ts
       - tests/arch/social.spec.ts
   social:
     openapi:
@@ -92,7 +90,7 @@ profiles:
       - nimi-backend/libs/domains/relationship/src/friendship.service.ts
     test_files:
       - nimi-backend/libs/domains/relationship/src/friendship.service.spec.ts
-      - tests/arch/agent.spec.ts
+      - tests/arch/social.spec.ts
   economy:
     openapi:
       - GET /api/economy/subscription
