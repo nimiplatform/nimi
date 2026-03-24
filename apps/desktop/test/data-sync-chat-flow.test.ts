@@ -62,7 +62,7 @@ describe('D-DSYNC-003: chat-flow source scanning', () => {
     await sendChatMessage(
       async (task) => task({
         services: {
-          HumanChatService: {
+          HumanChatsService: {
             sendMessage: async (_chatId: string, body: Record<string, unknown>) => {
               capturedBody = body;
               return {
@@ -115,7 +115,7 @@ describe('D-DSYNC-003: chat-flow source scanning', () => {
     await flushPendingChatOutbox(
       async (task) => task({
         services: {
-          HumanChatService: {
+          HumanChatsService: {
             sendMessage: async (_chatId: string, body: Record<string, unknown>) => {
               replayed.push(String(body.clientMessageId || ''));
               return {
@@ -144,7 +144,7 @@ describe('D-DSYNC-003: chat-flow source scanning', () => {
     await startChatWithTarget(
       async (task) => task({
         services: {
-          HumanChatService: {
+          HumanChatsService: {
             startChat: async (body: Record<string, unknown>) => {
               capturedBody = body;
               return { chatId: 'chat-1' };

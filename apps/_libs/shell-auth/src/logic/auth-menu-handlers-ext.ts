@@ -9,6 +9,9 @@ import { toErrorMessage } from './error-helpers.js';
 import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
 import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
 
+const WALLET_LOGIN_TIMEOUT_MS = 30000;
+const WALLET_LOGIN_TIMEOUT_MESSAGE = '钱包登录超时，请重试。';
+
 function isWalletCancellationError(error: unknown): boolean {
   if (typeof error === 'object' && error !== null && 'code' in error) {
     const code = Number((error as { code?: unknown }).code);
@@ -24,14 +27,9 @@ function isWalletCancellationError(error: unknown): boolean {
     || normalized.includes('closed');
 }
 
-function redactErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message.trim();
-  }
-  if (typeof error === 'string' && error.trim()) {
-    return error.trim();
-  }
-  return 'wallet login failed';
+function isWalletTimeoutError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return message.trim() === WALLET_LOGIN_TIMEOUT_MESSAGE;
 }
 
 function firstStringEntry(value: unknown): string {
@@ -265,9 +263,18 @@ export async function handleWalletLogin(
   setters.setPending(true);
   setters.setLoginError(null);
 
+  let timedOut = false;
   const timeoutId = window.setTimeout(() => {
+    timedOut = true;
     setters.setPending(false);
-  }, 30000);
+    setters.setLoginError(WALLET_LOGIN_TIMEOUT_MESSAGE);
+  }, WALLET_LOGIN_TIMEOUT_MS);
+
+  const throwIfTimedOut = (): void => {
+    if (timedOut) {
+      throw new Error(WALLET_LOGIN_TIMEOUT_MESSAGE);
+    }
+  };
 
   try {
     const provider = resolveWalletProvider(walletType);
@@ -284,6 +291,7 @@ export async function handleWalletLogin(
     const accounts = await provider.request({
       method: 'eth_requestAccounts',
     });
+    throwIfTimedOut();
     const walletAddress = firstStringEntry(accounts);
     if (!walletAddress) {
       throw new Error('钱包未返回地址');
@@ -292,6 +300,7 @@ export async function handleWalletLogin(
     const chainIdRaw = await provider.request({
       method: 'eth_chainId',
     });
+    throwIfTimedOut();
     const chainId = parseChainId(chainIdRaw);
 
     const challenge = await adapter.walletChallenge({
@@ -299,6 +308,7 @@ export async function handleWalletLogin(
       chainId,
       walletType,
     });
+    throwIfTimedOut();
 
     const challengeMessage = String(challenge?.message || '').trim();
     if (!challengeMessage) {
@@ -309,6 +319,7 @@ export async function handleWalletLogin(
       method: 'personal_sign',
       params: [challengeMessage, walletAddress],
     });
+    throwIfTimedOut();
     const signature = typeof signatureResult === 'string' ? signatureResult.trim() : '';
     if (!signature) {
       throw new Error('钱包签名失败');
@@ -322,14 +333,19 @@ export async function handleWalletLogin(
       signature,
       walletType,
     });
+    throwIfTimedOut();
 
     await handleLoginResult(result, '钱包登录成功。', setters, desktopCtx, adapter);
   } catch (error) {
     if (!isWalletCancellationError(error)) {
-      console.warn('[shell-auth] wallet login failed', redactErrorMessage(error));
+      if (!isWalletTimeoutError(error)) {
+        setters.setLoginError(toErrorMessage(error, '钱包登录失败'));
+      }
     }
   } finally {
     window.clearTimeout(timeoutId);
-    setters.setPending(false);
+    if (!timedOut) {
+      setters.setPending(false);
+    }
   }
 }

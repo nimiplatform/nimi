@@ -60,6 +60,7 @@ test('shell telemetry sanitizeLogDetails recursively redacts sensitive keys', ()
   const details = sanitizeLogDetails({
     email: 'user@example.com',
     accessToken: 'secret-token',
+    sessionTraceId: 'trace-123',
     nested: {
       password: 'plaintext',
       items: [
@@ -68,6 +69,7 @@ test('shell telemetry sanitizeLogDetails recursively redacts sensitive keys', ()
     },
   });
   assert.equal(details.accessToken, '[REDACTED]');
+  assert.equal(details.sessionTraceId, 'trace-123');
   assert.equal((details.nested as { password?: string }).password, '[REDACTED]');
   assert.equal(((details.nested as { items?: Array<{ refreshToken?: string }> }).items?.[0])?.refreshToken, '[REDACTED]');
 });

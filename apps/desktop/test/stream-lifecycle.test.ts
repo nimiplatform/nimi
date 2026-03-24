@@ -1,24 +1,41 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-// Stub browser globals for Node.js test environment
-if (typeof globalThis.window === 'undefined') {
-  (globalThis as Record<string, unknown>).window = {};
-}
-if (typeof globalThis.localStorage === 'undefined') {
+function installBrowserGlobals(): () => void {
+  const previousWindow = globalThis.window;
+  const previousLocalStorage = globalThis.localStorage;
+  const previousSessionStorage = globalThis.sessionStorage;
   const store = new Map<string, string>();
-  (globalThis as Record<string, unknown>).localStorage = {
+  const storage = {
     getItem: (k: string) => store.get(k) ?? null,
     setItem: (k: string, v: string) => store.set(k, v),
     removeItem: (k: string) => store.delete(k),
   };
-}
-if (typeof globalThis.sessionStorage === 'undefined') {
-  const store = new Map<string, string>();
-  (globalThis as Record<string, unknown>).sessionStorage = {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => store.set(k, v),
-    removeItem: (k: string) => store.delete(k),
+  Object.defineProperty(globalThis, 'window', {
+    value: {},
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: storage,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    value: storage,
+    configurable: true,
+  });
+  return () => {
+    Object.defineProperty(globalThis, 'window', {
+      value: previousWindow,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: previousLocalStorage,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      value: previousSessionStorage,
+      configurable: true,
+    });
   };
 }
 
@@ -33,10 +50,16 @@ import {
 } from '../src/shell/renderer/features/turns/stream-controller';
 
 const TEST_CHAT = 'test-chat-stream';
+let restoreBrowserGlobals = () => undefined;
+
+test.beforeEach(() => {
+  restoreBrowserGlobals = installBrowserGlobals();
+});
 
 test.afterEach(() => {
   clearStream(TEST_CHAT);
   clearAllStreams();
+  restoreBrowserGlobals();
 });
 
 test('D-STRM-001: startStream sets phase to waiting', () => {

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { toSafeBackgroundImage } from '../src/shell/renderer/features/explore/explore-cards';
 
 function readSource(relativePath: string): string {
   return fs.readFileSync(path.join(import.meta.dirname, relativePath), 'utf8');
@@ -16,10 +17,28 @@ const contactsFriendRequestsSource = readSource('../src/shell/renderer/features/
 const postCardSource = readSource('../src/shell/renderer/features/home/post-card.tsx');
 
 test('top agent cards sanitize banner URLs before interpolating them into background images', () => {
-  assert.match(exploreCardsSource, /function toSafeBackgroundImage/);
-  assert.match(exploreCardsSource, /parsed\.protocol !== 'http:' && parsed\.protocol !== 'https:'/);
-  assert.match(exploreCardsSource, /backgroundImage: safeBackgroundImage/);
-  assert.doesNotMatch(exploreCardsSource, /backgroundImage: `url\(\$\{backgroundUrl\}\)`/);
+  const previousWindow = globalThis.window;
+  Object.defineProperty(globalThis, 'window', {
+    value: {
+      location: {
+        href: 'https://app.nimi.example/explore',
+      },
+    },
+    configurable: true,
+  });
+  try {
+    assert.equal(toSafeBackgroundImage('javascript:alert(1)'), null);
+    assert.equal(toSafeBackgroundImage('data:text/html,boom'), null);
+    assert.equal(
+      toSafeBackgroundImage('https://cdn.nimi.example/banner.png'),
+      'url("https://cdn.nimi.example/banner.png")',
+    );
+  } finally {
+    Object.defineProperty(globalThis, 'window', {
+      value: previousWindow,
+      configurable: true,
+    });
+  }
 });
 
 test('explore panel keeps agent queries declarative without imperative refetch loops', () => {

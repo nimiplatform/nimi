@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import {
+  createSparkCheckout,
+  loadSparkPackages,
+} from '../src/runtime/data-sync/flows/economy-notification-flow';
 
 const economyFlowSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/runtime/data-sync/flows/economy-notification-flow.ts'),
@@ -20,12 +24,34 @@ const walletPageSource = fs.readFileSync(
   'utf8',
 );
 
-test('economy data-sync flow exposes Spark recharge API calls', () => {
-  assert.match(economyFlowSource, /export async function loadSparkPackages\(/);
-  assert.match(economyFlowSource, /economyControllerGetSparkPackages\(\)/);
+test('economy data-sync flow behaviorally calls Spark recharge APIs', async () => {
+  const capturedCalls: string[] = [];
+  const callApi = async <T>(task: (realm: unknown) => Promise<T>): Promise<T> =>
+    task({
+      services: {
+        EconomyCurrencyGiftsService: {
+          economyControllerGetSparkPackages: async () => {
+            capturedCalls.push('list-packages');
+            return [{ id: 'pkg-1', label: 'Starter', sparkAmount: 100, usdPrice: 1.99, popular: true }];
+          },
+          economyControllerCreateSparkCheckout: async (input: Record<string, unknown>) => {
+            capturedCalls.push(`checkout:${String(input.packageId || '')}`);
+            return { checkoutUrl: 'https://checkout.nimi.example/session-1' };
+          },
+        },
+      },
+    });
+  const emitDataSyncError = () => undefined;
 
-  assert.match(economyFlowSource, /export async function createSparkCheckout\(/);
-  assert.match(economyFlowSource, /economyControllerCreateSparkCheckout\(input\)/);
+  const packages = await loadSparkPackages(callApi as never, emitDataSyncError);
+  const session = await createSparkCheckout(callApi as never, emitDataSyncError, {
+    packageId: 'pkg-1',
+  } as never);
+
+  assert.deepEqual(capturedCalls, ['list-packages', 'checkout:pkg-1']);
+  assert.equal(Array.isArray(packages), true);
+  assert.equal(packages[0]?.id, 'pkg-1');
+  assert.equal(String((session as { checkoutUrl?: string }).checkoutUrl || ''), 'https://checkout.nimi.example/session-1');
 });
 
 test('DataSync actions and facade wire Spark recharge methods', () => {

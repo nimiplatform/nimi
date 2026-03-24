@@ -113,7 +113,7 @@ export async function loadChatList(
 ) {
   try {
     const result = await callApi(
-      (realm) => realm.services.HumanChatService.listChats(limit),
+      (realm) => realm.services.HumanChatsService.listChats(limit),
       '加载会话列表失败',
     );
     const manager = await getOfflineCacheManager();
@@ -145,7 +145,7 @@ export async function loadMoreChatList(
 
   try {
     const result = await callApi(
-      (realm) => realm.services.HumanChatService.listChats(20, cursor),
+      (realm) => realm.services.HumanChatsService.listChats(20, cursor),
       '加载更多会话失败',
     );
     return {
@@ -176,11 +176,11 @@ export async function startChatWithTarget(
     }
 
     const result = await callApi(
-      (realm) => realm.services.HumanChatService.startChat(data),
+      (realm) => realm.services.HumanChatsService.startChat(data),
       '创建会话失败',
     );
     const chat = await callApi(
-      (realm) => realm.services.HumanChatService.getChatById(result.chatId),
+      (realm) => realm.services.HumanChatsService.getChatById(result.chatId),
       '加载新会话详情失败',
     );
     return { ...result, chat };
@@ -202,7 +202,7 @@ export async function loadChatMessages(
 ) {
   try {
     const result = await callApi(
-      (realm) => realm.services.HumanChatService.listMessages(chatId, limit),
+      (realm) => realm.services.HumanChatsService.listMessages(chatId, limit),
       '加载消息失败',
     );
     const manager = await getOfflineCacheManager();
@@ -239,7 +239,7 @@ export async function loadMoreChatMessages(
 
   try {
     const result = await callApi(
-      (realm) => realm.services.HumanChatService.listMessages(
+      (realm) => realm.services.HumanChatsService.listMessages(
         chatId,
         50,
         undefined,
@@ -281,7 +281,7 @@ export async function sendChatMessage(
     await manager.upsertChatOutboxEntry(entry);
 
     const message = await callApi(
-      (realm) => realm.services.HumanChatService.sendMessage(chatId, data),
+      (realm) => realm.services.HumanChatsService.sendMessage(chatId, data),
       '发送消息失败',
     );
     await manager.markChatOutboxSent(data.clientMessageId);
@@ -325,7 +325,7 @@ export async function flushPendingChatOutbox(
     }
     try {
       const message = await callApi(
-        (realm) => realm.services.HumanChatService.sendMessage(entry.chatId, entry.body as SendMessageInputDto),
+        (realm) => realm.services.HumanChatsService.sendMessage(entry.chatId, entry.body as SendMessageInputDto),
         '重放聊天消息失败',
       );
       await manager.markChatOutboxSent(entry.clientMessageId);
@@ -358,7 +358,7 @@ export async function markChatAsRead(
   chatId: string,
 ) {
   try {
-    await callApi((realm) => realm.services.HumanChatService.markChatRead(chatId));
+    await callApi((realm) => realm.services.HumanChatsService.markChatRead(chatId));
   } catch (error) {
     emitDataSyncError('mark-chat-read', error, { chatId });
   }
@@ -376,7 +376,7 @@ export async function syncChatEventWindow(
 
   try {
     const result = await callApi(
-      (realm) => realm.services.HumanChatService.syncChatEvents(chatId, normalizedLimit, normalizedAfterSeq),
+      (realm) => realm.services.HumanChatsService.syncChatEvents(chatId, normalizedLimit, normalizedAfterSeq),
       '同步聊天事件失败',
     );
     return result;

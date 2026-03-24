@@ -45,7 +45,7 @@ vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     realm: {
       services: {
-        HumanChatService: {
+        HumanChatsService: {
           startChat: (...args: unknown[]) => mockStartChat(...args),
           listMessages: (...args: unknown[]) => mockListMessages(...args),
           markChatRead: (...args: unknown[]) => mockMarkChatRead(...args),

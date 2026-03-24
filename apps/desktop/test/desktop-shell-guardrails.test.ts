@@ -62,7 +62,7 @@ test('openExternalUrl rejects non-http protocols before invoking browser APIs', 
   try {
     await assert.rejects(
       () => openExternalUrl('javascript:alert(1)'),
-      /仅支持 http\/https 链接/,
+      /Only http\/https URLs are supported/,
     );
     assert.equal(opened, false);
   } finally {

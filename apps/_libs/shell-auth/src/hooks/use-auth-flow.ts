@@ -127,7 +127,10 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     () => resolveDesktopCallbackRequestFromLocation(),
     [locationSignature],
   );
-  const persistedAuthSession = loadPersistedAuthSession();
+  const persistedAuthSession = useMemo(
+    () => loadPersistedAuthSession(),
+    [authStatus, authToken, authUser, locationSignature],
+  );
   const supportsPasswordLogin =
     adapter.supportsPasswordLogin !== false && typeof adapter.passwordLogin === 'function';
 

@@ -52,7 +52,6 @@ function defaultSleepImpl(ms: number): Promise<void> {
 
 function isRetryableNetworkError(error: unknown): error is Error {
   if (!(error instanceof Error)) return false;
-  if (error.name === 'AbortError') return true;
   return error.name === 'TypeError';
 }
 
@@ -68,7 +67,7 @@ function isRetryableApiError(error: unknown): error is ApiErrorLike {
   return isApiErrorLike(error) && RETRYABLE_STATUS_CODES.has(error.status);
 }
 
-function getRetryDelayMs(attempt: number, initialDelayMs: number, maxDelayMs: number) {
+export function getRetryDelayMs(attempt: number, initialDelayMs: number, maxDelayMs: number) {
   const base = initialDelayMs * Math.pow(2, attempt - 1);
   const jitter = Math.random() * (initialDelayMs / 2);
   return Math.min(maxDelayMs, base + jitter);

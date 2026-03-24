@@ -221,15 +221,13 @@ test('toErrorMessage appends raw auth details in debug boot mode', () => {
   }
 });
 
-test('wallet login keeps cancellations silent but logs non-cancellation failures', async () => {
-  const warnings: unknown[] = [];
-  const originalWarn = console.warn;
-  console.warn = (...args: unknown[]) => {
-    warnings.push(args);
-  };
+test('wallet login keeps cancellations silent but surfaces non-cancellation failures to the UI', async () => {
+  const loginErrors: Array<string | null> = [];
   const setters = {
     setPending: () => undefined,
-    setLoginError: () => undefined,
+    setLoginError: (value: string | null) => {
+      loginErrors.push(value);
+    },
   };
   const adapter = {
     walletChallenge: async () => ({ message: 'challenge', nonce: 'nonce' }),
@@ -255,7 +253,7 @@ test('wallet login keeps cancellations silent but logs non-cancellation failures
 
   try {
     await handleWalletLogin('metamask', setters as never, desktopCtx, adapter as never);
-    assert.equal(warnings.length, 0);
+    assert.deepEqual(loginErrors, [null]);
     (globalThis.window as typeof globalThis.window & {
       ethereum: { request: (input: { method: string }) => Promise<unknown> };
     }).ethereum.request = async ({ method }: { method: string }) => {
@@ -264,10 +262,10 @@ test('wallet login keeps cancellations silent but logs non-cancellation failures
       throw new Error('signature verification failed');
     };
     await handleWalletLogin('metamask', setters as never, desktopCtx, adapter as never);
-    assert.equal(warnings.length, 1);
-    assert.match(String(warnings[0]), /wallet login failed/i);
+    assert.deepEqual(loginErrors.slice(0, 2), [null, null]);
+    assert.equal(typeof loginErrors[2], 'string');
+    assert.notEqual(loginErrors[2], '');
   } finally {
-    console.warn = originalWarn;
     restoreWindow();
   }
 });

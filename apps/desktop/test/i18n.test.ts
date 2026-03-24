@@ -9,30 +9,55 @@ import {
   initI18n,
 } from '../src/shell/renderer/i18n';
 
-if (typeof globalThis.localStorage === 'undefined') {
+function installDomGlobals(): () => void {
+  const previousLocalStorage = globalThis.localStorage;
+  const previousDocument = globalThis.document;
   const store = new Map<string, string>();
-  (globalThis as typeof globalThis & { localStorage?: Storage }).localStorage = {
-    length: 0,
-    clear: () => {
-      store.clear();
-    },
-    getItem: (key) => store.get(key) ?? null,
-    key: (index) => Array.from(store.keys())[index] ?? null,
-    setItem: (key, value) => {
-      store.set(key, value);
-    },
-    removeItem: (key) => {
-      store.delete(key);
-    },
-  } as Storage;
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: {
+      length: 0,
+      clear: () => {
+        store.clear();
+      },
+      getItem: (key: string) => store.get(key) ?? null,
+      key: (index: number) => Array.from(store.keys())[index] ?? null,
+      setItem: (key: string, value: string) => {
+        store.set(key, value);
+      },
+      removeItem: (key: string) => {
+        store.delete(key);
+      },
+    } as Storage,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'document', {
+    value: {
+      title: '',
+      documentElement: { lang: 'en' } as HTMLElement,
+    } as Document,
+    configurable: true,
+  });
+  return () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: previousLocalStorage,
+      configurable: true,
+    });
+    Object.defineProperty(globalThis, 'document', {
+      value: previousDocument,
+      configurable: true,
+    });
+  };
 }
 
-if (typeof globalThis.document === 'undefined') {
-  (globalThis as typeof globalThis & { document?: Document }).document = {
-    title: '',
-    documentElement: { lang: 'en' } as HTMLElement,
-  } as Document;
-}
+let restoreDomGlobals = () => undefined;
+
+test.beforeEach(() => {
+  restoreDomGlobals = installDomGlobals();
+});
+
+test.afterEach(() => {
+  restoreDomGlobals();
+});
 
 test('changeLocale synchronizes document title and lang', async () => {
   await initI18n();

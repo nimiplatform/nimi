@@ -76,7 +76,7 @@ export type FeaturedWorldCardData = {
   creatorAvatarUrl: string | null;
 };
 
-function toSafeBackgroundImage(rawUrl: string | null | undefined): string | null {
+export function toSafeBackgroundImage(rawUrl: string | null | undefined): string | null {
   const normalized = String(rawUrl || '').trim();
   if (!normalized) {
     return null;

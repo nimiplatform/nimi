@@ -57,7 +57,7 @@ function hasMessageQuery(chatId: string): boolean {
   return queryClient.getQueryState(['messages', chatId]) !== undefined;
 }
 
-function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
+export function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
   const normalizedKey = String(key || '').trim();
   if (!normalizedKey) {
     return false;

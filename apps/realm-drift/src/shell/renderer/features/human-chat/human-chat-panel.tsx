@@ -7,8 +7,8 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { generateId } from '@renderer/infra/ulid.js';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
 
-type StartChatResult = RealmServiceResult<'HumanChatService', 'startChat'>;
-type ListMessagesResult = RealmServiceResult<'HumanChatService', 'listMessages'>;
+type StartChatResult = RealmServiceResult<'HumanChatsService', 'startChat'>;
+type ListMessagesResult = RealmServiceResult<'HumanChatsService', 'listMessages'>;
 
 type HumanChatPanelProps = Record<string, never>;
 
@@ -47,7 +47,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         });
 
         // Start or get existing chat session
-        const data: StartChatResult = await realm.services.HumanChatService.startChat({
+        const data: StartChatResult = await realm.services.HumanChatsService.startChat({
           targetAccountId: friend.userId,
         });
 
@@ -68,7 +68,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         }
 
         // Load existing messages
-        const messagesData: ListMessagesResult = await realm.services.HumanChatService.listMessages(chatId, 50);
+        const messagesData: ListMessagesResult = await realm.services.HumanChatsService.listMessages(chatId, 50);
 
         const items = (messagesData.items ?? []) as Record<string, unknown>[];
         const messages: ChatMessage[] = items.map((m) => ({
@@ -94,7 +94,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         });
 
         // Mark as read
-        void realm.services.HumanChatService.markChatRead(chatId).catch(() => { /* read receipt is non-critical */ });
+        void realm.services.HumanChatsService.markChatRead(chatId).catch(() => { /* read receipt is non-critical */ });
       } catch (err) {
         const msg = err instanceof Error ? err.message : t('humanChat.openFailed');
         setError(msg);
@@ -124,7 +124,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
 
     try {
       const { realm } = getPlatformClient();
-      await realm.services.HumanChatService.sendMessage(activeHumanChat.chatId, {
+      await realm.services.HumanChatsService.sendMessage(activeHumanChat.chatId, {
         type: 'TEXT',
         text,
         clientMessageId,

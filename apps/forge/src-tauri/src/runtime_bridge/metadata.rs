@@ -173,13 +173,13 @@ pub fn apply_metadata(
     let app_id = normalize(value.app_id.as_deref());
     let participant_id = normalize(value.participant_id.as_deref())
         .or_else(|| app_id.clone())
-        .unwrap_or_else(|| "nimi.overtone".to_string());
+        .unwrap_or_else(|| "nimi.forge".to_string());
     let domain = normalize(value.domain.as_deref()).unwrap_or_else(|| "runtime.rpc".to_string());
     let caller_kind =
         normalize(value.caller_kind.as_deref()).unwrap_or_else(|| "third-party-app".to_string());
     let caller_id = normalize(value.caller_id.as_deref())
         .or_else(|| app_id.clone())
-        .unwrap_or_else(|| "app:nimi.overtone".to_string());
+        .unwrap_or_else(|| "app:nimi.forge".to_string());
     let idempotency_key = normalize(value.idempotency_key.as_deref()).unwrap_or_else(|| {
         let counter = IDEMPOTENCY_COUNTER.fetch_add(1, Ordering::Relaxed);
         let now = SystemTime::now()
@@ -299,6 +299,14 @@ mod tests {
         assert_eq!(
             read_metadata(&request, "x-nimi-caller-kind").as_deref(),
             Some("third-party-app")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-participant-id").as_deref(),
+            Some("nimi.forge")
+        );
+        assert_eq!(
+            read_metadata(&request, "x-nimi-caller-id").as_deref(),
+            Some("app:nimi.forge")
         );
 
         let idempotency_key = read_metadata(&request, "x-nimi-idempotency-key")

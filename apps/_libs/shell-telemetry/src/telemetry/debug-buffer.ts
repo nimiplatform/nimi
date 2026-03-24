@@ -15,6 +15,9 @@ const TRUNCATED_VALUE = '[TRUNCATED]';
 
 function isSensitiveKey(key: string): boolean {
   const normalized = key.trim().toLowerCase();
+  if (normalized === 'sessiontraceid') {
+    return false;
+  }
   return normalized === 'authorization'
     || normalized === 'cookie'
     || normalized.includes('bearer')

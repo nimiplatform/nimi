@@ -11,7 +11,7 @@ import {
 function normalizeExternalUrl(url: string): string {
   const normalized = String(url || '').trim();
   if (!normalized) {
-    throw new Error('URL 不能为空');
+    throw new Error('URL is required');
   }
 
   const baseUrl =
@@ -20,7 +20,7 @@ function normalizeExternalUrl(url: string): string {
       : 'https://nimi.invalid';
   const parsed = new URL(normalized, baseUrl);
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error(`仅支持 http/https 链接：${parsed.protocol}`);
+    throw new Error(`Only http/https URLs are supported: ${parsed.protocol}`);
   }
   return parsed.toString();
 }
@@ -44,7 +44,7 @@ export async function confirmPrivateSync(payload: ConfirmPrivateSyncPayload): Pr
   if (!hasTauriInvoke()) {
     return {
       confirmed: window.confirm(
-        'LOCAL 路由会将本地内容上传到平台治理链。是否确认上传？',
+        'LOCAL route will upload local content to the platform governance chain. Continue?',
       ),
     };
   }
