@@ -40,6 +40,7 @@ const designThemesTable = readYaml('spec/platform/kernel/tables/nimi-ui-themes.y
 const designAdoptionTable = readYaml('spec/platform/kernel/tables/nimi-ui-adoption.yaml');
 const designCompositionsTable = readYaml('spec/platform/kernel/tables/nimi-ui-compositions.yaml');
 const designAllowlistsTable = readYaml('spec/platform/kernel/tables/nimi-ui-allowlists.yaml');
+const nimiKitRegistryTable = readYaml('spec/platform/kernel/tables/nimi-kit-registry.yaml');
 const ruleEvidenceTable = readYaml('spec/platform/kernel/tables/rule-evidence.yaml');
 const structuralOnlyCoverageRuleIds = new Set(
   (Array.isArray(complianceTable?.layers) ? complianceTable.layers : [])
@@ -345,6 +346,7 @@ const yamlTables = [
   { name: 'nimi-ui-adoption.yaml', data: designAdoptionTable },
   { name: 'nimi-ui-compositions.yaml', data: designCompositionsTable },
   { name: 'nimi-ui-allowlists.yaml', data: designAllowlistsTable },
+  { name: 'nimi-kit-registry.yaml', data: nimiKitRegistryTable },
 ];
 
 for (const table of yamlTables) {

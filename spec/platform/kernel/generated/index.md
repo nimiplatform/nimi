@@ -17,4 +17,5 @@
 | `nimi-ui-adoption.md` | `tables/nimi-ui-adoption.yaml` |
 | `nimi-ui-compositions.md` | `tables/nimi-ui-compositions.yaml` |
 | `nimi-ui-allowlists.md` | `tables/nimi-ui-allowlists.yaml` |
+| `nimi-kit-registry.md` | `tables/nimi-kit-registry.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |

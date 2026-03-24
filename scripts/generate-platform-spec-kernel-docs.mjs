@@ -25,6 +25,7 @@ const specs = [
   { input: 'nimi-ui-adoption.yaml', output: 'nimi-ui-adoption.md', render: renderDesignAdoption },
   { input: 'nimi-ui-compositions.yaml', output: 'nimi-ui-compositions.md', render: renderDesignCompositions },
   { input: 'nimi-ui-allowlists.yaml', output: 'nimi-ui-allowlists.md', render: renderDesignAllowlists },
+  { input: 'nimi-kit-registry.yaml', output: 'nimi-kit-registry.md', render: renderNimiKitRegistry },
   { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
@@ -323,6 +324,21 @@ function renderDesignAllowlists(doc, sourceName) {
   out += '|---|---|---|---|---|\n';
   for (const item of items) {
     out += `| \`${String(item?.id || '')}\` | \`${String(item?.pattern_type || '')}\` | \`${String(item?.pattern || '')}\` | \`${String(item?.scope || '')}\` | \`${String(item?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderNimiKitRegistry(doc, sourceName) {
+  const modules = Array.isArray(doc?.modules) ? doc.modules : [];
+  let out = header('Generated Nimi Kit Registry', sourceName);
+  out += '| ID | Subpath | Kind | Dependencies | Peer Dependencies | Exports | Admission | Owner | Source |\n';
+  out += '|---|---|---|---|---|---|---|---|---|\n';
+  for (const module of modules) {
+    const dependencies = Array.isArray(module?.dependencies) ? module.dependencies : [];
+    const peerDependencies = Array.isArray(module?.peer_dependencies) ? module.peer_dependencies : [];
+    const exportsList = Array.isArray(module?.exports) ? module.exports : [];
+    out += `| \`${String(module?.id || '')}\` | \`${String(module?.subpath || '')}\` | \`${String(module?.kind || '')}\` | ${dependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${peerDependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${exportsList.map((item) => `\`${String(item)}\``).join(', ') || '—'} | \`${String(module?.admission_status || '')}\` | \`${String(module?.owner || '')}\` | \`${String(module?.source_rule || '')}\` |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

@@ -17,7 +17,7 @@ Before editing files in a module, Read that module's `AGENTS.md` first. The hook
 | `apps/forge/**` | `apps/forge/AGENTS.md` |
 | `apps/realm-drift/**` | `apps/realm-drift/AGENTS.md` |
 | `apps/install-gateway/**` | `apps/install-gateway/AGENTS.md` |
-| `apps/_libs/**` | `apps/_libs/AGENTS.md` |
+| `kit/**` | `kit/AGENTS.md` |
 | `nimi-mods/**` | `nimi-mods/AGENTS.md` |
 | `proto/**` | `proto/AGENTS.md` |
 | `scripts/**` | `scripts/AGENTS.md` |

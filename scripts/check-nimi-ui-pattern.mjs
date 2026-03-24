@@ -103,7 +103,7 @@ const appEntries = [
     mainRel: 'apps/overtone/src/shell/renderer/main.tsx',
   },
 ];
-const generatedThemesDir = path.join(repoRoot, 'apps', '_libs', 'nimi-ui', 'src', 'generated', 'themes');
+const generatedThemesDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated', 'themes');
 for (const legacyTheme of ['relay-dark.css', 'overtone-studio.css']) {
   if (fs.existsSync(path.join(generatedThemesDir, legacyTheme))) {
     hardFailures.push(`kit/ui/src/generated/themes/${legacyTheme}: legacy generated theme output must not exist`);
