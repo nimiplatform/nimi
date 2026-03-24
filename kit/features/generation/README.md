@@ -21,6 +21,11 @@ Reusable generation workflow shell for submit, status, and result-oriented runti
 - Reuse `RuntimeGenerationPanel` when the app should provide domain-specific controls but not reimplement submit/status chrome.
 - Reuse `GenerationStatusToast` and `GenerationStatusList` for lightweight job-state surfaces outside the main panel.
 
+## Before Building Locally
+- Check `generation/ui` before creating a new generation panel, generation status toast, or shared result-state shell.
+- Check `generation/headless` before writing local submit orchestration, status mapping, or shared run-state handling.
+- Check `generation/runtime` before wrapping runtime workflow and job APIs directly in app code.
+
 ## What Stays Outside
 - App-specific artifact persistence and downstream domain actions.
 - Audio/image/video artifact decoding and app-owned file persistence.

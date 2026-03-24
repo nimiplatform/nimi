@@ -85,6 +85,7 @@ const packageExports = new Set(Object.keys(packageExportsMap));
 const modules = Array.isArray(registry?.modules) ? registry.modules : [];
 const appAliasPattern = /^@(renderer|runtime|app|desktop|forge|relay|web|overtone|realm-drift)(\/|$)/u;
 const registeredExportKeys = new Set();
+const featureReadmePaths = [];
 
 if (modules.length === 0) {
   fail('nimi-kit-registry.yaml: modules must not be empty');
@@ -107,6 +108,7 @@ for (const row of modules) {
   const exportsList = Array.isArray(row?.exports) ? row.exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const headlessExports = Array.isArray(row?.headless_exports) ? row.headless_exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const uiExports = Array.isArray(row?.ui_exports) ? row.ui_exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
+  const reuseEntrypoints = Array.isArray(row?.reuse_entrypoints) ? row.reuse_entrypoints.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const plannedConsumers = Array.isArray(row?.planned_consumers) ? row.planned_consumers.map((item) => String(item || '').trim()).filter(Boolean) : [];
 
   expect(id, 'nimi-kit-registry.yaml: module row missing id');
@@ -123,6 +125,7 @@ for (const row of modules) {
   expect(exportsList.length > 0, `nimi-kit-registry.yaml ${id}: exports must not be empty`);
   expect(Array.isArray(row?.headless_exports), `nimi-kit-registry.yaml ${id}: headless_exports must be an array`);
   expect(Array.isArray(row?.ui_exports), `nimi-kit-registry.yaml ${id}: ui_exports must be an array`);
+  expect(Array.isArray(row?.reuse_entrypoints), `nimi-kit-registry.yaml ${id}: reuse_entrypoints must be an array`);
   expect(Array.isArray(row?.planned_consumers), `nimi-kit-registry.yaml ${id}: planned_consumers must be an array`);
 
   const modulePath = subpath.replace(/^\//, '');
@@ -135,6 +138,9 @@ for (const row of modules) {
   expect(!fs.existsSync(path.join(absModuleDir, 'package.json')), `kit/${modulePath}: nested package.json is forbidden in single-package kit`);
   expect(!fs.existsSync(path.join(absModuleDir, 'tsconfig.json')), `kit/${modulePath}: nested tsconfig.json should be consolidated at kit/tsconfig.json`);
   expect(fs.existsSync(path.join(absModuleDir, 'README.md')), `kit/${modulePath}: module README.md is required`);
+  if (modulePath.startsWith('features/')) {
+    featureReadmePaths.push(path.join(absModuleDir, 'README.md'));
+  }
 
   for (const key of exportsList) {
     expect(packageExports.has(key), `nimi-kit-registry.yaml ${id}: export ${key} missing from kit/package.json`);
@@ -145,6 +151,9 @@ for (const row of modules) {
   }
   for (const key of uiExports) {
     expect(exportsList.includes(key), `nimi-kit-registry.yaml ${id}: ui export ${key} must also exist in exports`);
+  }
+  for (const key of reuseEntrypoints) {
+    expect(exportsList.includes(key), `nimi-kit-registry.yaml ${id}: reuse entrypoint ${key} must also exist in exports`);
   }
 
   if (kind === 'foundation') {
@@ -157,6 +166,7 @@ for (const row of modules) {
     expect(peerDependencies.includes('react'), `${id}: feature module must declare react peer dependency`);
     expect(headlessExports.length > 0, `${id}: feature module must expose headless exports`);
     expect(uiExports.length > 0, `${id}: feature module must expose UI exports`);
+    expect(reuseEntrypoints.length > 0, `${id}: feature module must declare reuse_entrypoints`);
     expect(plannedConsumers.length >= 2, `${id}: feature module must be planned for at least two apps`);
     if (modulePath.startsWith('features/')) {
       expect(exportsList.includes(`./${modulePath}`), `${id}: feature module must publish aggregate export ./${modulePath}`);
@@ -177,6 +187,13 @@ for (const row of modules) {
 }
 
 expect(fs.existsSync(path.join(kitRoot, 'README.md')), 'kit/README.md is required');
+const kitReadme = fs.readFileSync(path.join(kitRoot, 'README.md'), 'utf8');
+expect(kitReadme.includes('## Reuse First'), 'kit/README.md must document the kit-first reuse order');
+
+for (const absPath of featureReadmePaths) {
+  const content = fs.readFileSync(absPath, 'utf8');
+  expect(content.includes('## Before Building Locally'), `${rel(absPath)}: feature README must include "Before Building Locally" guidance`);
+}
 
 for (const [exportKey, target] of Object.entries(packageExportsMap)) {
   const exportPath = String(target || '').trim();

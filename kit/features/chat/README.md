@@ -27,6 +27,12 @@ Reusable chat capability module for input composition, AI session UX, and defaul
 - Reuse `ChatThreadHeader` and `ChatPanelState` for chat header, loading, error, and unselected-thread shells.
 - Reuse `ChatComposerResizeHandle` and `ChatComposerShell` for shared composer layout without moving app-specific input behavior into kit.
 
+## Before Building Locally
+- Check `chat/ui` before creating a new composer shell, runtime chat panel, human chat timeline, or shared stream status block.
+- Check `chat/headless` before writing local input-state orchestration, submit wiring, cancel handling, or shared session state.
+- Check `chat/runtime` for AI generate/stream/session flows before wrapping runtime text APIs directly in app code.
+- Check `chat/realm` for human chat send/list/read/realtime/timeline helpers before rebuilding human chat cache and transport logic.
+
 ## What Stays Outside
 - App-local system prompt policy.
 - Concrete socket client creation and app-owned notification/query side effects.

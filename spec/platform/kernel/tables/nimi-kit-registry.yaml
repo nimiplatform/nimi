@@ -28,6 +28,9 @@ modules:
       - ./ui/themes/relay-accent.css
       - ./ui/themes/overtone-accent.css
     planned_consumers: [desktop, forge, overtone, relay, web]
+    reuse_entrypoints:
+      - ./ui
+      - ./ui/styles.css
     admission_status: active
     owner: platform
     source_rule: P-KIT-010
@@ -50,6 +53,10 @@ modules:
       - ./auth
       - ./auth/styles.css
     planned_consumers: [desktop, forge, overtone, relay, web]
+    reuse_entrypoints:
+      - ./auth
+      - ./auth/styles.css
+      - ./auth/native-oauth-result-page
     admission_status: active
     owner: platform
     source_rule: P-KIT-020
@@ -69,6 +76,9 @@ modules:
       - ./core/oauth
     ui_exports: []
     planned_consumers: [desktop, forge, overtone, relay, web, realm-drift]
+    reuse_entrypoints:
+      - ./core/shell-mode
+      - ./core/oauth
     admission_status: active
     owner: platform
     source_rule: P-KIT-030
@@ -88,6 +98,9 @@ modules:
     ui_exports:
       - ./telemetry/error-boundary
     planned_consumers: [forge, desktop, relay]
+    reuse_entrypoints:
+      - ./telemetry
+      - ./telemetry/error-boundary
     admission_status: active
     owner: platform
     source_rule: P-KIT-040
@@ -112,6 +125,11 @@ modules:
     ui_exports:
       - ./features/chat/ui
     planned_consumers: [desktop, relay, forge, realm-drift]
+    reuse_entrypoints:
+      - ./features/chat/ui
+      - ./features/chat/headless
+      - ./features/chat/runtime
+      - ./features/chat/realm
     admission_status: active
     owner: platform
     source_rule: P-KIT-070
@@ -134,6 +152,10 @@ modules:
     ui_exports:
       - ./features/model-picker/ui
     planned_consumers: [desktop, relay]
+    reuse_entrypoints:
+      - ./features/model-picker/ui
+      - ./features/model-picker/headless
+      - ./features/model-picker/runtime
     admission_status: active
     owner: platform
     source_rule: P-KIT-080
@@ -156,6 +178,10 @@ modules:
     ui_exports:
       - ./features/generation/ui
     planned_consumers: [overtone, desktop]
+    reuse_entrypoints:
+      - ./features/generation/ui
+      - ./features/generation/headless
+      - ./features/generation/runtime
     admission_status: active
     owner: platform
     source_rule: P-KIT-070
@@ -178,6 +204,10 @@ modules:
     ui_exports:
       - ./features/commerce/ui
     planned_consumers: [desktop, web]
+    reuse_entrypoints:
+      - ./features/commerce/ui
+      - ./features/commerce/headless
+      - ./features/commerce/realm
     admission_status: active
     owner: platform
     source_rule: P-KIT-070

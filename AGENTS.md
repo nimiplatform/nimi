@@ -8,6 +8,7 @@
 ## Hard Boundaries
 - Treat `spec/**` as the only normative contract source. Execution evidence belongs in `dev/report/**`; plans belong in `dev/plan/**`.
 - Debug and fix by layer order only: `runtime` first, then `sdk`, then `apps/desktop` / `apps/web`, then `nimi-mods`.
+- When iterating app UI or interaction flows, inspect `kit/README.md`, module READMEs, and `spec/platform/kernel/tables/nimi-kit-registry.yaml` first; reuse existing `nimi-kit` surfaces unless the need is clearly app-specific.
 - Do not add legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds for upstream contract gaps.
 - Do not add fallback logic that hides runtime/sdk/realm contract violations. Missing typed output, MIME type, discriminator, required JSON shape, or schema fields must fail-close.
 - Stable product paths must never return pseudo-success or placeholder values. Do not synthesize empty artifacts, guessed MIME types, fabricated IDs, default result payloads, or "best effort" success objects after a typed path fails.

@@ -5,6 +5,7 @@
 - Modules: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/features/chat`, `kit/features/model-picker`, `kit/features/generation`, `kit/features/commerce`.
 ## Hard Boundaries
 - `ui` is the design authority; `auth` and `kit/features/*` must not bypass it.
+- Before building new app UI or interaction logic, inspect `kit/README.md`, the target module README, and `spec/platform/kernel/tables/nimi-kit-registry.yaml` to confirm whether a reusable kit surface already exists.
 - `kit/core` must not import React, CSS, app code, or presentation modules.
 - `kit/telemetry` must remain renderer-safe and must not import Node.js, Electron, or Tauri bridges.
 - `kit/features/*` must not import `apps/**`, `runtime/internal/**`, app aliases, `dataSync`, app stores, or navigation directly.

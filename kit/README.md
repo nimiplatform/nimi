@@ -51,6 +51,13 @@ import { useRuntimeGenerationPanel } from '@nimiplatform/nimi-kit/features/gener
 import { useRealmSendGiftDialog, useRealmGiftInbox } from '@nimiplatform/nimi-kit/features/commerce/realm';
 ```
 
+## Reuse First
+- Start with `@nimiplatform/nimi-kit/ui` to confirm whether the shared design authority already covers the needed primitive or shell.
+- Check `@nimiplatform/nimi-kit/auth` next for login, session, callback, or auth-window flows.
+- Check the relevant `kit/features/*` README and registry entry before building app-local interaction logic.
+- Only build app-local UI or interaction shells when kit has no matching surface, or when the remaining requirement is clearly app-specific.
+- If a new app-local shell is likely reusable across at least two apps, treat it as a future `nimi-kit` admission candidate instead of a permanent app-local pattern.
+
 ## What Stays Outside
 - App stores, app navigation, and app-owned side effects remain in `apps/**`.
 - Runtime internals remain in `runtime/internal/**`.

@@ -67,6 +67,13 @@
 - Feature modules must not import app-layer code, app state stores, `dataSync`, or platform bridge implementations directly.
 - Feature modules must remain portable across apps by consuming injected adapters only.
 
+## P-KIT-065 — Kit-First Reuse Protocol
+
+- Before adding or refactoring app-local UI or interaction logic, implementers must inspect `kit/ui`, `kit/auth`, relevant `kit/features/*` READMEs, and `tables/nimi-kit-registry.yaml`.
+- If an existing kit surface covers the baseline styling and baseline interaction behavior for most of the need, apps must extend or compose that kit surface instead of recreating a parallel app-local shell.
+- App-local implementation is permitted only when no matching kit surface exists, or when the remaining requirement is clearly app-specific.
+- New app-local shells that are likely reusable across at least two apps must be treated as future kit admission candidates and documented as such before they become entrenched app-local patterns.
+
 ## P-KIT-070 — Headless and Default UI Surfaces
 
 - Every feature module must expose both a headless surface and a default opinionated UI surface.
@@ -96,7 +103,9 @@
   - a registered sub-module is missing from disk or an on-disk sub-module is unregistered
   - a package export is unregistered or a registered export is missing from `kit/package.json`
   - a registry row omits required governance metadata or declares unsupported `kind`
+  - a feature registry row omits `reuse_entrypoints`, or a listed reuse entrypoint does not exist in `kit/package.json`
   - a module-level `README.md` is missing
+  - a feature `README.md` omits the kit-first reuse guidance section for local implementation decisions
   - a kit sub-module imports from `apps/**`
   - the core sub-module contains UI/CSS imports
   - the telemetry sub-module contains Tauri/Node.js imports

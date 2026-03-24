@@ -20,6 +20,11 @@ Reusable commerce capability module for gifting and lightweight transactional di
 - Reuse `useRealmSendGiftDialog(...)` and `useRealmGiftInbox(...)` when the app should keep avatars, navigation, or banners but not dialog/inbox state orchestration.
 - Reuse `GiftInboxList` and `GiftInboxDetail` when the app only needs to inject app-specific avatar or surrounding shell.
 
+## Before Building Locally
+- Check `commerce/ui` before creating a new send-gift dialog, gift inbox list, gift status badge, or gift detail shell.
+- Check `commerce/headless` before writing local gift dialog state, inbox state, accept/reject orchestration, or lightweight transaction flows.
+- Check `commerce/realm` before wrapping realm economy and gifting services directly in app code.
+
 ## What Stays Outside
 - Local AI/runtime engine features.
 - App-specific wallet pages, payout flows, and back-office tools.

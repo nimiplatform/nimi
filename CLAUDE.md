@@ -6,6 +6,8 @@
 
 Before editing files in a module, Read that module's `AGENTS.md` first. The hook covers Edit/Write, but exploration and planning also need module context.
 
+When iterating app UI or interaction flows, inspect `kit/README.md`, the relevant module README under `kit/**`, and `spec/platform/kernel/tables/nimi-kit-registry.yaml` before designing a new app-local shell.
+
 | File path prefix | AGENTS.md to read |
 |---|---|
 | `runtime/**` | `runtime/AGENTS.md` |
@@ -59,6 +61,7 @@ Validation regex: `^[A-Z]-[A-Z]{2,12}-[0-9]{3}$`
 
 - `spec/**` is the only normative contract source. Evidence → `dev/report/**`; plans → `dev/plan/**`.
 - Layer debug order: `runtime` → `sdk` → `apps/desktop` / `apps/web` → `nimi-mods`.
+- Reuse `nimi-kit` first for app UI and interaction work. If a matching kit surface already covers the baseline styling and baseline interaction behavior, extend or compose it instead of recreating a parallel app-local shell.
 - No legacy shims, compatibility shells, hardcoded provider/model lists, or downstream workarounds.
 - No fallback that hides contract violations. Missing typed output, MIME type, discriminator, required JSON shape, or schema fields must fail-close.
 - No pseudo-success on stable product paths. Do not synthesize placeholder artifacts, guessed MIME types, fabricated IDs, default payloads, or "unchanged" success after a typed/cached path fails.

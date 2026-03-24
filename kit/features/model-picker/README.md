@@ -20,6 +20,11 @@ Reusable browse-and-select surface for runtime model catalogs with shared filter
 - Reuse `useModelPicker(...)` when the app owns its own model source but should not reimplement filtering, grouping, and selected-detail state.
 - Reuse `useRuntimeModelPicker(...)` and `RuntimeModelPickerPanel` when the app should consume runtime control-plane catalog data directly.
 
+## Before Building Locally
+- Check `model-picker/ui` before creating a new browse/select panel, grouped model list, or shared model detail shell.
+- Check `model-picker/headless` before writing local filter, grouping, search, or selected-detail state.
+- Check `model-picker/runtime` before wrapping runtime control-plane catalog APIs directly in app code.
+
 ## What Stays Outside
 - App-specific model admin overlays and provider editing flows.
 - YAML editors, provider CRUD, and other admin-only catalog tooling.
