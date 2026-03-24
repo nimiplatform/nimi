@@ -49,6 +49,15 @@
   --nimi-surface-hero: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(236, 247, 242, 0.9));
   --nimi-surface-overlay: rgba(255, 255, 255, 0.98);
   --nimi-surface-active: #eefaf5;
+  --nimi-sidebar-canvas: #f8f9fb;
+  --nimi-sidebar-border: rgba(226, 232, 240, 0.92);
+  --nimi-sidebar-header-height: 56px;
+  --nimi-sidebar-item-default: #4b5563;
+  --nimi-sidebar-item-active: #e8f8f1;
+  --nimi-sidebar-item-hover: rgba(78, 204, 163, 0.08);
+  --nimi-sidebar-section-label: #9ca3af;
+  --nimi-sidebar-search: rgba(255, 255, 255, 0.98);
+  --nimi-sidebar-resize-handle: rgba(148, 163, 184, 0.22);
   --nimi-border-subtle: rgba(226, 232, 240, 0.9);
   --nimi-border-strong: rgba(78, 204, 163, 0.24);
   --nimi-text-primary: #111827;
@@ -386,6 +395,162 @@ textarea {
 .nimi-action--ghost:hover:not(:disabled) {
   background: rgba(148, 163, 184, 0.12);
   color: var(--nimi-text-primary);
+}
+
+.nimi-sidebar-shell {
+  background: var(--nimi-sidebar-canvas);
+  border-color: var(--nimi-sidebar-border);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-sidebar-header {
+  min-height: var(--nimi-sidebar-header-height);
+  padding: 0 16px;
+}
+
+.nimi-sidebar-search-row {
+  padding: 0 12px 12px;
+}
+
+.nimi-sidebar-search {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--nimi-sidebar-search);
+  box-shadow: var(--nimi-elevation-base);
+  color: var(--nimi-text-secondary);
+}
+
+.nimi-sidebar-search__field {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: var(--nimi-text-secondary);
+  outline: none;
+}
+
+.nimi-sidebar-search__field::placeholder {
+  color: #9ca3af;
+}
+
+.nimi-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nimi-sidebar-section-label {
+  padding: 0 12px 8px;
+  color: var(--nimi-sidebar-section-label);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nimi-sidebar-item {
+  display: flex;
+  min-height: 44px;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: var(--nimi-radius-sm);
+  padding: 10px 12px;
+  color: var(--nimi-sidebar-item-default);
+  text-align: left;
+  transition: background-color var(--nimi-motion-fast) ease, border-color var(--nimi-motion-fast) ease, color var(--nimi-motion-fast) ease;
+}
+
+.nimi-sidebar-item:hover {
+  background: var(--nimi-sidebar-item-hover);
+}
+
+.nimi-sidebar-item--active {
+  background: var(--nimi-sidebar-item-active);
+  border-color: rgba(78, 204, 163, 0.24);
+  color: var(--color-mint-700);
+}
+
+.nimi-sidebar-item__title {
+  min-width: 0;
+  color: var(--nimi-text-primary);
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+
+.nimi-sidebar-item--active .nimi-sidebar-item__title {
+  color: var(--color-mint-700);
+  font-weight: 600;
+}
+
+.nimi-sidebar-item__description {
+  min-width: 0;
+  color: var(--nimi-text-muted);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.nimi-sidebar-item--active .nimi-sidebar-item__description {
+  color: color-mix(in srgb, var(--color-mint-700) 76%, white);
+}
+
+.nimi-sidebar-affordance {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nimi-sidebar-affordance--badge,
+.nimi-sidebar-affordance--count {
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--nimi-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.nimi-sidebar-item--active .nimi-sidebar-affordance--badge,
+.nimi-sidebar-item--active .nimi-sidebar-affordance--count {
+  background: rgba(78, 204, 163, 0.12);
+  color: var(--color-mint-700);
+}
+
+.nimi-sidebar-affordance--status-dot > span {
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+  border-radius: 999px;
+}
+
+.nimi-sidebar-affordance--chevron {
+  color: var(--color-mint-600);
+}
+
+.nimi-sidebar-resize-handle {
+  background: transparent;
+}
+
+.nimi-sidebar-resize-handle:hover::before {
+  opacity: 1;
+}
+
+.nimi-sidebar-resize-handle::before {
+  position: absolute;
+  inset: 20px auto 20px 50%;
+  width: 2px;
+  content: "";
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: var(--nimi-sidebar-resize-handle);
+  opacity: 0;
+  transition: opacity var(--nimi-motion-fast) ease;
 }
 
 .nimi-overlay-backdrop {

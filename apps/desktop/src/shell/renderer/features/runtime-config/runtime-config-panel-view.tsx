@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
-import { RuntimeSidebar } from './runtime-config-sidebar';
+import { ICON_CHEVRON_RIGHT, RUNTIME_SIDEBAR_ITEMS, getRuntimeSidebarBadge } from './runtime-config-sidebar';
 import { StatusBadge, DaemonStatusBadge } from './runtime-config-primitives';
 import { OverviewPage } from './runtime-config-page-overview';
 import { RecommendPage } from './runtime-config-page-recommend';
@@ -22,6 +23,13 @@ import { useRuntimeConfigPanelController } from './runtime-config-panel-controll
 function RuntimeSkeletonBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-2xl bg-white ${className}`} />;
 }
+
+const RUNTIME_SECTION_LABEL_KEY: Record<(typeof RUNTIME_SIDEBAR_ITEMS)[number]['section'], string> = {
+  Core: 'runtimeConfig.sidebar.section.core',
+  Connectors: 'runtimeConfig.sidebar.section.connectors',
+  Operations: 'runtimeConfig.sidebar.section.operations',
+  System: 'runtimeConfig.sidebar.section.system',
+};
 
 export function RuntimeConfigPanelBody() {
   const model = useRuntimeConfigPanelController();
@@ -89,8 +97,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 flex-1 bg-[#F8F9FB]">
-        <aside className="flex w-[224px] shrink-0 flex-col bg-[#F8F9FB] px-4 py-4">
+      <div className="nimi-surface--canvas flex min-h-0 flex-1">
+        <aside className="nimi-surface--canvas flex w-[224px] shrink-0 flex-col px-4 py-4">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-5 space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -122,36 +130,73 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   const runtimeStatus = model.runtimeStatus || state.local.status;
   const activePage = model.activePage;
   const pageMeta = RUNTIME_PAGE_META[activePage] || RUNTIME_PAGE_META.overview;
+  const sidebarSections = RUNTIME_SIDEBAR_ITEMS.reduce<Record<string, typeof RUNTIME_SIDEBAR_ITEMS>>((acc, item) => {
+    if (!acc[item.section]) {
+      acc[item.section] = [];
+    }
+    acc[item.section]?.push(item);
+    return acc;
+  }, {});
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 bg-[#F8F9FB]">
-      <ScrollShell
-        as="aside"
-        className="relative flex shrink-0 flex-col bg-[#F8F9FB]"
-        viewportClassName="bg-[#F8F9FB]"
-        style={{ width: `${sidebarWidth}px` }}
+    <div ref={containerRef} className="nimi-surface--canvas flex min-h-0 flex-1">
+      <SidebarShell
+        width={sidebarWidth}
+        data-testid={E2E_IDS.panel('runtime-sidebar')}
       >
-        <div className="flex h-14 shrink-0 items-center px-5">
-          <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>
-        </div>
-        <RuntimeSidebar
-          activePage={activePage}
-          onSelectPage={model.onChangePage}
-          installedModelCount={installedModelCount}
-          activeModelCount={activeModelCount}
-          connectorCount={state.connectors.length}
-          healthyConnectorCount={healthyConnectorCount}
-          modCount={model.runtimeProfileTargets.length}
-          daemonRunning={daemonRunning}
-        />
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={t('runtimeConfig.panel.resizeSidebar', { defaultValue: 'Resize runtime sidebar' })}
+        <SidebarHeader title={<h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>} className="px-5" />
+        <ScrollShell className="flex-1" contentClassName="px-3 pb-3 pt-2">
+          <div className="space-y-5">
+            {Object.entries(sidebarSections).map(([section, items]) => (
+              <SidebarSection
+                key={section}
+                label={t(RUNTIME_SECTION_LABEL_KEY[section as keyof typeof RUNTIME_SECTION_LABEL_KEY], { defaultValue: section })}
+              >
+                {items.map((item) => {
+                  const active = item.id === activePage;
+                  const badge = getRuntimeSidebarBadge(item, {
+                    activePage,
+                    installedModelCount,
+                    activeModelCount,
+                    connectorCount: state.connectors.length,
+                    healthyConnectorCount,
+                    modCount: model.runtimeProfileTargets.length,
+                    daemonRunning,
+                  });
+                  return (
+                    <SidebarItem
+                      key={`sidebar-${item.id}`}
+                      kind="nav-row"
+                      data-testid={E2E_IDS.runtimeSidebarPage(item.id)}
+                      active={active}
+                      onClick={() => model.onChangePage(item.id)}
+                      label={t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label })}
+                      icon={<span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>}
+                      trailing={(
+                        <div className="ml-1 flex items-center gap-2">
+                          {item.id === 'runtime' ? (
+                            <span className="nimi-sidebar-affordance nimi-sidebar-affordance--status-dot">
+                              <span className={daemonRunning ? 'bg-mint-500' : 'bg-red-400'} />
+                            </span>
+                          ) : null}
+                          {badge ? (
+                            <span className="nimi-sidebar-affordance nimi-sidebar-affordance--badge">{badge}</span>
+                          ) : null}
+                          {active ? <span className="nimi-sidebar-affordance nimi-sidebar-affordance--chevron">{ICON_CHEVRON_RIGHT}</span> : null}
+                        </div>
+                      )}
+                    />
+                  );
+                })}
+              </SidebarSection>
+            ))}
+          </div>
+        </ScrollShell>
+        <SidebarResizeHandle
+          ariaLabel={t('runtimeConfig.panel.resizeSidebar', { defaultValue: 'Resize runtime sidebar' })}
           onMouseDown={startResize}
-          className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />
-      </ScrollShell>
+      </SidebarShell>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
         <div className="flex h-14 shrink-0 items-center bg-white px-6">

@@ -3,11 +3,12 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
+import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { SidebarHeader, SidebarItem, SidebarSearch, SidebarShell } from '@renderer/components/sidebar.js';
 import { Surface } from '@renderer/components/surface.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
@@ -19,23 +20,14 @@ function ChatSkeletonBlock(props: { className: string }) {
 
 function ChatListLoadingSkeleton() {
   return (
-    <Surface
-      data-testid={E2E_IDS.chatList}
-      tone="canvas"
-      padding="none"
-      className="flex h-full flex-col rounded-none border-0"
-    >
-      <div className="flex h-14 shrink-0 items-center justify-between px-4">
-        <ChatSkeletonBlock className="h-7 w-20 rounded-lg" />
-      </div>
-
-      <div className="px-3 pb-3">
-        <Surface tone="card" elevation="base" padding="none" className="flex h-10 w-full items-center rounded-full border-transparent px-4">
+    <SidebarShell data-testid={E2E_IDS.chatList} className="h-full">
+      <SidebarHeader title={<ChatSkeletonBlock className="h-7 w-20 rounded-lg" />} />
+      <div className="nimi-sidebar-search-row">
+        <div className="nimi-sidebar-search flex px-4">
           <ChatSkeletonBlock className="h-4 w-4 shrink-0" />
           <ChatSkeletonBlock className="ml-3 h-4 w-40 rounded-md" />
-        </Surface>
+        </div>
       </div>
-
       <ScrollShell
         className="flex-1"
         contentClassName="space-y-2 px-3 py-2 pb-3"
@@ -53,7 +45,7 @@ function ChatListLoadingSkeleton() {
           </Surface>
         ))}
       </ScrollShell>
-    </Surface>
+    </SidebarShell>
   );
 }
 
@@ -127,6 +119,46 @@ function formatChatTime(isoString: string | null | undefined): string {
   return formatLocaleDate(date, { month: 'short', day: 'numeric' });
 }
 
+function ChatRowAffordance(props: { timeLabel: string; unread: number }) {
+  return (
+    <div className="flex min-w-[46px] flex-col items-end gap-2">
+      {props.timeLabel ? <span className="text-xs text-gray-400">{props.timeLabel}</span> : <span className="h-4" />}
+      {props.unread > 0 ? (
+        <span className="nimi-sidebar-affordance nimi-sidebar-affordance--badge">
+          {props.unread > 99 ? '99+' : props.unread}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ChatAvatarButton(props: {
+  imageUrl: string | null;
+  title: string;
+  onOpenProfile: () => void;
+}) {
+  return (
+    <div
+      onClick={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        props.onOpenProfile();
+      }}
+      className="relative z-10 inline-flex shrink-0 cursor-pointer"
+      title={i18n.t('ChatTimeline.viewUserProfile', { defaultValue: 'View user profile' })}
+    >
+      <EntityAvatar
+        imageUrl={props.imageUrl}
+        name={props.title}
+        kind="human"
+        sizeClassName="h-12 w-12"
+        className="transition-all"
+        textClassName="text-sm font-medium"
+      />
+    </div>
+  );
+}
+
 export function ChatList() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -151,10 +183,10 @@ export function ChatList() {
   const chats = useMemo(() => {
     const q = searchText.trim().toLowerCase();
     if (!q) return allChatsSorted;
-    return allChatsSorted.filter((c) => {
-      const title = getChatTitle(c).toLowerCase();
-      const preview = getChatPreview(c).toLowerCase();
-      const handle = String(c.otherUser?.handle || '').toLowerCase();
+    return allChatsSorted.filter((chat) => {
+      const title = getChatTitle(chat).toLowerCase();
+      const preview = getChatPreview(chat).toLowerCase();
+      const handle = String(chat.otherUser?.handle || '').toLowerCase();
       return title.includes(q) || preview.includes(q) || handle.includes(q);
     });
   }, [allChatsSorted, searchText]);
@@ -170,8 +202,6 @@ export function ChatList() {
     }
   }, [chats, selectedChatId, setChatProfilePanelTarget, setSelectedChatId]);
 
-  // 默认不自动选择第一个聊天，保持空状态
-
   if (chatsQuery.isPending) {
     return <ChatListLoadingSkeleton />;
   }
@@ -181,30 +211,15 @@ export function ChatList() {
   }
 
   return (
-    <Surface tone="canvas" padding="none" className="flex h-full flex-col rounded-none border-0">
-      {/* Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between px-4">
-        <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Chat.title')}</h1>
-      </div>
-
-      {/* Top row: search only */}
-      <div className="px-3 pb-3">
-        <Surface tone="card" elevation="base" padding="none" className="flex h-10 w-full items-center rounded-full border-transparent px-4">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
-            placeholder={t('Chat.searchPlaceholder', { defaultValue: 'Search chats...' })}
-            aria-label={t('Chat.searchPlaceholder')}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-        </Surface>
-      </div>
-
-      {/* List */}
+    <SidebarShell data-testid={E2E_IDS.chatList} className="h-full">
+      <SidebarHeader title={<h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Chat.title')}</h1>} />
+      <SidebarSearch
+        value={searchText}
+        onChange={setSearchText}
+        onClear={() => setSearchText('')}
+        clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
+        placeholder={t('Chat.searchPlaceholder', { defaultValue: 'Search chats...' })}
+      />
       <ScrollShell
         className="flex-1"
         contentClassName="px-3 py-2 pb-3"
@@ -218,76 +233,39 @@ export function ChatList() {
             const unread = Number(chat.unreadCount || 0);
             const timeLabel = formatChatTime(chat.lastMessageAt);
             return (
-              <Surface
-                as="button"
+              <SidebarItem
                 key={chat.id}
-                type="button"
+                kind="entity-row"
                 data-testid={E2E_IDS.chatRow(String(chat.id))}
-                tone={active ? 'panel' : 'card'}
-                elevation="base"
-                interactive
                 active={active}
-                className="flex w-full gap-3 border-transparent p-3 text-left"
+                className="mb-2 items-start py-3"
+                label={title}
+                description={getChatPreview(chat, t('Chat.noMessages'))}
+                trailing={<ChatRowAffordance timeLabel={timeLabel} unread={unread} />}
+                icon={(
+                  <ChatAvatarButton
+                    imageUrl={getAvatarUrl(chat)}
+                    title={title}
+                    onOpenProfile={() => {
+                      avatarClickedRef.current = true;
+                      setSelectedChatId(chat.id);
+                      setChatProfilePanelTarget('other');
+                    }}
+                  />
+                )}
                 onClick={() => {
-                  // Check if avatar was clicked, if so, don't process this click
                   if (avatarClickedRef.current) {
                     avatarClickedRef.current = false;
                     return;
                   }
                   setSelectedChatId(chat.id);
-                  // Close profile panel when clicking main chat item
                   setChatProfilePanelTarget(null);
                 }}
-              >
-                {/* Avatar - clickable to open profile panel */}
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    avatarClickedRef.current = true;
-                    setSelectedChatId(chat.id);
-                    setChatProfilePanelTarget('other');
-                  }}
-                  className="relative shrink-0 cursor-pointer z-10"
-                  title={t('ChatTimeline.viewUserProfile', { defaultValue: 'View user profile' })}
-                >
-                  <EntityAvatar
-                    imageUrl={getAvatarUrl(chat)}
-                    name={title}
-                    kind="human"
-                    sizeClassName="h-12 w-12"
-                    className="transition-all"
-                    textClassName="text-sm font-medium"
-                  />
-                  {unread > 0 ? (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#34C759] px-1.5 text-[11px] font-semibold text-white shadow-sm">
-                      {unread > 99 ? '99+' : unread}
-                    </span>
-                  ) : null}
-                </div>
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between">
-                    <p
-                      className={`min-w-0 flex-1 truncate pr-2 text-[15px] ${
-                        active ? 'font-semibold text-gray-900' : 'font-medium text-gray-800'
-                      }`}
-                    >
-                      {title}
-                    </p>
-                    {timeLabel ? (
-                      <span className="w-10 shrink-0 text-right text-[12px] text-gray-400">{timeLabel}</span>
-                    ) : null}
-                  </div>
-                  <p className={`mt-0.5 truncate text-[14px] leading-5 ${unread > 0 ? 'font-medium text-gray-700' : 'text-gray-500'}`}>
-                    {getChatPreview(chat, t('Chat.noMessages'))}
-                  </p>
-                </div>
-              </Surface>
+              />
             );
           })
         )}
       </ScrollShell>
-    </Surface>
+    </SidebarShell>
   );
 }

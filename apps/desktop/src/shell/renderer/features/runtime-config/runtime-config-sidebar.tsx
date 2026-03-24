@@ -1,11 +1,8 @@
 import type { ReactNode } from 'react';
-import { i18n } from '@renderer/i18n';
-import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { RuntimePageIdV11 } from './runtime-config-state-types';
 
-type RuntimeSidebarProps = {
+export type RuntimeSidebarProps = {
   activePage: RuntimePageIdV11;
-  onSelectPage: (pageId: RuntimePageIdV11) => void;
   installedModelCount: number;
   activeModelCount: number;
   connectorCount: number;
@@ -14,7 +11,7 @@ type RuntimeSidebarProps = {
   daemonRunning: boolean;
 };
 
-const ICON_CHEVRON_RIGHT = (
+export const ICON_CHEVRON_RIGHT = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="9 18 15 12 9 6" />
   </svg>
@@ -92,7 +89,7 @@ const ICON_MOD_DEVELOPER = (
   </svg>
 );
 
-const SIDEBAR_ITEMS: Array<{
+export const RUNTIME_SIDEBAR_ITEMS: Array<{
   id: RuntimePageIdV11;
   section: 'Core' | 'Connectors' | 'Operations' | 'System';
   label: string;
@@ -160,8 +157,8 @@ const SIDEBAR_ITEMS: Array<{
   },
 ];
 
-function getBadge(
-  item: (typeof SIDEBAR_ITEMS)[number],
+export function getRuntimeSidebarBadge(
+  item: (typeof RUNTIME_SIDEBAR_ITEMS)[number],
   props: RuntimeSidebarProps,
 ): string | null {
   if (item.id === 'local') {
@@ -174,49 +171,4 @@ function getBadge(
     return String(props.modCount);
   }
   return null;
-}
-
-export function RuntimeSidebar(props: RuntimeSidebarProps) {
-  return (
-    <nav className="flex flex-col gap-0.5 px-3 pt-2">
-      {SIDEBAR_ITEMS.map((item) => {
-        const active = item.id === props.activePage;
-        const badge = getBadge(item, props);
-        const showDaemonDot = item.id === 'runtime';
-        return (
-          <button
-            key={`sidebar-${item.id}`}
-            type="button"
-            data-testid={E2E_IDS.runtimeSidebarPage(item.id)}
-            onClick={() => props.onSelectPage(item.id)}
-            className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-colors ${
-              active ? 'bg-mint-50 font-medium text-mint-700' : 'text-gray-600 hover:bg-mint-50/50'
-            }`}
-          >
-            <span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>
-            <span className="min-w-0 flex-1 truncate">
-              {i18n.t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label })}
-            </span>
-            {showDaemonDot ? (
-              <span
-                className={`inline-block h-2 w-2 shrink-0 rounded-full ${
-                  props.daemonRunning ? 'bg-emerald-500' : 'bg-red-400'
-                }`}
-              />
-            ) : null}
-            {badge ? (
-              <span
-                className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
-                  active ? 'bg-mint-100 text-mint-800' : 'bg-gray-100 text-gray-500'
-                }`}
-              >
-                {badge}
-              </span>
-            ) : null}
-            {active ? <span className="ml-0.5 shrink-0 text-mint-600">{ICON_CHEVRON_RIGHT}</span> : null}
-          </button>
-        );
-      })}
-    </nav>
-  );
 }

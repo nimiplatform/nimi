@@ -5,6 +5,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { Surface } from '@renderer/components/surface.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
@@ -431,54 +432,23 @@ export function ContactsView(props: ContactsViewProps) {
   return (
     <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="nimi-surface nimi-surface--canvas flex h-full rounded-none border-0">
       {/* 左侧联系人列表 */}
-      <Surface
-        as="aside"
-        tone="panel"
-        elevation="base"
-        padding="none"
-        className="relative flex shrink-0 flex-col rounded-none border-y-0 border-l-0 border-r border-slate-200"
-        style={{ width: `${sidebarWidth}px` }}
+      <SidebarShell
+        width={sidebarWidth}
+        data-testid={E2E_IDS.panel('contacts')}
       >
-        {/* 顶部标题 */}
-        <div className="flex h-14 items-center px-4 pb-1 shrink-0">
-          <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Contacts.title')}</h1>
-        </div>
-
-        {/* 搜索框 */}
-        <div className="px-3 pb-3">
-          <div className="flex h-10 items-center gap-2">
-            <Surface tone="card" elevation="base" padding="none" className="flex h-10 min-w-0 max-w-[268px] flex-1 items-center rounded-full border-transparent px-4">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 self-center">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                className="ml-2 min-w-0 flex-1 self-center bg-transparent text-sm leading-none text-gray-700 outline-none placeholder:text-gray-400"
-                placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
-                value={props.searchText}
-                onChange={(e) => props.onSearchTextChange(e.target.value)}
-              />
-              {/* 清除按钮 */}
-              {props.searchText && (
-                <IconButton
-                  icon={(
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  )}
-                  size="sm"
-                  onClick={() => {
-                    props.onSearchTextChange('');
-                    setSelectedContact(null);
-                    setSelectedRequest(null);
-                    setSelectedCategory(null);
-                  }}
-                  className="ml-1 h-6 w-6 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  title={t('Home.clear', { defaultValue: 'Clear' })}
-                />
-              )}
-            </Surface>
+        <SidebarHeader title={<h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Contacts.title')}</h1>} />
+        <SidebarSearch
+          value={props.searchText}
+          onChange={props.onSearchTextChange}
+          onClear={() => {
+            props.onSearchTextChange('');
+            setSelectedContact(null);
+            setSelectedRequest(null);
+            setSelectedCategory(null);
+          }}
+          clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
+          placeholder={t('Contacts.searchPlaceholder', { defaultValue: 'Search friends' })}
+          primaryAction={(
             <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
               <IconButton
                 onClick={props.onOpenAddContact}
@@ -493,58 +463,57 @@ export function ContactsView(props: ContactsViewProps) {
                 aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
               />
             </Tooltip>
-          </div>
-        </div>
+          )}
+        />
 
-        {/* 可展开的分类列表或搜索结果 */}
         <ScrollShell
           className="flex-1"
-          contentClassName="space-y-0.5 py-1.5"
+          contentClassName="space-y-1 py-1.5"
         >
-          {props.searchText.trim() ? (
-            <ContactsSearchResults
-              searchText={props.searchText}
-              allFriends={props.allFriends}
-              isUserBlocked={isUserBlocked}
-              selectedContactId={selectedContact?.id ?? null}
-              onSelectContact={handleSelectContact}
-            />
-          ) : (
-            <ContactsCategoryAccordion
-              counts={counts}
-              expandedCategories={expandedCategories}
-              filteredRequests={props.filteredRequests}
-              acceptedRequests={acceptedRequests}
-              rejectedRequests={rejectedRequests}
-              currentContactId={selectedContact?.id ?? null}
-              getContactsByCategory={getContactsByCategory}
-              onToggleCategory={toggleCategory}
-              onSelectContact={handleSelectContact}
-              onAcceptRequest={(request) => {
-                props.onAcceptRequest(request);
-                setAcceptedRequests(prev => new Set(prev).add(request.userId));
-              }}
-              onRejectRequest={(request) => {
-                props.onRejectRequest(request);
-                setRejectedRequests(prev => new Set(prev).add(request.userId));
-              }}
-              onUnblock={(contact) => setUnblockingContact(contact)}
-              onSelectRequests={() => {
-                setSelectedCategory('requests');
-                setSelectedRequest(null);
-                setSelectedContact(null);
-              }}
-            />
-          )}
+          <SidebarSection>
+            {/* governed sidebar kinds: 'category-row', 'entity-row' */}
+            {props.searchText.trim() ? (
+              <ContactsSearchResults
+                searchText={props.searchText}
+                allFriends={props.allFriends}
+                isUserBlocked={isUserBlocked}
+                selectedContactId={selectedContact?.id ?? null}
+                onSelectContact={handleSelectContact}
+              />
+            ) : (
+              <ContactsCategoryAccordion
+                counts={counts}
+                expandedCategories={expandedCategories}
+                filteredRequests={props.filteredRequests}
+                acceptedRequests={acceptedRequests}
+                rejectedRequests={rejectedRequests}
+                currentContactId={selectedContact?.id ?? null}
+                getContactsByCategory={getContactsByCategory}
+                onToggleCategory={toggleCategory}
+                onSelectContact={handleSelectContact}
+                onAcceptRequest={(request) => {
+                  props.onAcceptRequest(request);
+                  setAcceptedRequests(prev => new Set(prev).add(request.userId));
+                }}
+                onRejectRequest={(request) => {
+                  props.onRejectRequest(request);
+                  setRejectedRequests(prev => new Set(prev).add(request.userId));
+                }}
+                onUnblock={(contact) => setUnblockingContact(contact)}
+                onSelectRequests={() => {
+                  setSelectedCategory('requests');
+                  setSelectedRequest(null);
+                  setSelectedContact(null);
+                }}
+              />
+            )}
+          </SidebarSection>
         </ScrollShell>
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={t('Contacts.resizeSidebar', { defaultValue: 'Resize contacts sidebar' })}
+        <SidebarResizeHandle
+          ariaLabel={t('Contacts.resizeSidebar', { defaultValue: 'Resize contacts sidebar' })}
           onMouseDown={startResize}
-          className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />
-      </Surface>
+      </SidebarShell>
 
       {/* 右侧详情区 - 使用共享 profile 详情页 */}
       <ScrollShell

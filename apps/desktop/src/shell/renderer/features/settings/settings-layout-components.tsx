@@ -2,33 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
-import { C, ICON_CHEVRON_RIGHT, getSettingsMenuSections } from './settings-assets.js';
-
-const SETTINGS_SECTION_KEY_BY_LABEL: Record<string, string> = {
-  Account: 'Settings.sectionAccount',
-  'Privacy & Security': 'Settings.sectionPrivacySecurity',
-  Preferences: 'Settings.sectionPreferences',
-  Extensions: 'Settings.sectionExtensions',
-  Advanced: 'Settings.sectionAdvanced',
-};
-
-const SETTINGS_ITEM_KEY_BY_ID: Record<string, string> = {
-  profile: 'Settings.menuProfile',
-  language: 'Settings.menuLanguage',
-  privacy: 'Settings.menuPrivacy',
-  security: 'Settings.menuSecurity',
-  notifications: 'Settings.menuNotifications',
-  extensions: 'Settings.menuModSettings',
-  wallet: 'Settings.menuWallet',
-};
-
-function resolveSettingsSectionLabelKey(label: string): string | null {
-  return SETTINGS_SECTION_KEY_BY_LABEL[label] || null;
-}
-
-function resolveSettingsItemLabelKey(itemId: string): string | null {
-  return SETTINGS_ITEM_KEY_BY_ID[itemId] || null;
-}
+import { C } from './settings-assets.js';
 
 export function Card({
   children,
@@ -176,55 +150,5 @@ export function StatusBadge({
     >
       {text}
     </span>
-  );
-}
-
-export function SidebarNav({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  const menuSections = getSettingsMenuSections();
-
-  return (
-    <nav className="flex flex-col px-3 pt-2" style={{ gap: '20px' }}>
-      {menuSections.map((section) => {
-        const sectionKey = resolveSettingsSectionLabelKey(section.label);
-        const sectionLabel = sectionKey ? t(sectionKey) : section.label;
-        return (
-          <div key={section.label}>
-            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.6px] text-gray-400">
-              {sectionLabel}
-            </p>
-            <div className="flex flex-col gap-0.5">
-              {section.items.map((item) => {
-                const active = selected === item.id;
-                const itemKey = resolveSettingsItemLabelKey(item.id);
-                const itemTitle = itemKey ? t(itemKey) : item.title;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => onSelect(item.id)}
-                    className={`flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left text-sm transition-all ${
-                      active
-                        ? 'bg-mint-50 font-medium text-mint-700 ring-1 ring-mint-200'
-                        : 'text-gray-600 hover:bg-mint-50/50'
-                    }`}
-                  >
-                    <span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>
-                    <span>{itemTitle}</span>
-                    {active && <span className="ml-auto text-mint-600">{ICON_CHEVRON_RIGHT}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </nav>
   );
 }

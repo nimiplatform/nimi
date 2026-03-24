@@ -2,6 +2,9 @@ export type SurfaceTone = 'canvas' | 'panel' | 'card' | 'hero' | 'overlay';
 export type SurfaceElevation = 'base' | 'raised' | 'floating' | 'modal';
 export type ActionTone = 'primary' | 'secondary' | 'ghost';
 export type OverlayKind = 'dialog' | 'drawer' | 'popover' | 'tooltip';
+export type SidebarFamily = 'desktop-sidebar-v1';
+export type SidebarItemKind = 'entity-row' | 'category-row' | 'nav-row';
+export type SidebarAffordance = 'badge' | 'status-dot' | 'chevron' | 'count';
 export type TypographyToken = 'pageTitle' | 'sectionTitle';
 export type SpacingToken = 'section' | 'stack';
 export type StrokeToken = 'subtle' | 'strong';
@@ -38,6 +41,23 @@ export const OVERLAY_BACKDROP_CLASS: Record<Exclude<OverlayKind, 'tooltip'>, str
   dialog: 'nimi-overlay-backdrop--dialog',
   drawer: 'nimi-overlay-backdrop--drawer',
   popover: 'nimi-overlay-backdrop--popover',
+};
+
+export const SIDEBAR_FAMILY_CLASS: Record<SidebarFamily, string> = {
+  'desktop-sidebar-v1': 'nimi-sidebar-shell',
+};
+
+export const SIDEBAR_ITEM_KIND_CLASS: Record<SidebarItemKind, string> = {
+  'entity-row': 'nimi-sidebar-item--entity-row',
+  'category-row': 'nimi-sidebar-item--category-row',
+  'nav-row': 'nimi-sidebar-item--nav-row',
+};
+
+export const SIDEBAR_AFFORDANCE_CLASS: Record<SidebarAffordance, string> = {
+  badge: 'nimi-sidebar-affordance--badge',
+  'status-dot': 'nimi-sidebar-affordance--status-dot',
+  chevron: 'nimi-sidebar-affordance--chevron',
+  count: 'nimi-sidebar-affordance--count',
 };
 
 export const TYPOGRAPHY_TOKEN_CLASS: Record<TypographyToken, string> = {
