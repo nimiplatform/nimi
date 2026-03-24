@@ -87,7 +87,7 @@ export function createImageModelImpl(
         }, defaults.subjectUserId);
         const media = await executeScenarioJob(runtime, defaults, request, timeoutMs, options.abortSignal);
         const artifacts = media.artifacts;
-        const providerMetadata = {
+        const providerMetadata: ImageModelV3ProviderMetadata = {
           nimi: {
             images: artifacts.map((artifact) => ({
               artifactId: artifact.artifactId,
@@ -95,7 +95,7 @@ export function createImageModelImpl(
               traceId: artifact.traceId,
             })),
           },
-        } as unknown as ImageModelV3ProviderMetadata;
+        };
 
         return {
           images: artifacts.map((artifact) => toBase64(artifact.bytes)),

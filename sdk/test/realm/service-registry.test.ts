@@ -23,7 +23,7 @@ test('service registry replaces and encodes path parameters', async () => {
     return { ok: true };
   });
 
-  await registry.HumanChatService.recallMessage('chat 1', 'msg/9');
+  await registry.HumanChatsService.recallMessage('chat 1', 'msg/9');
 
   assert.equal(seenInputs.length, 1);
   assert.equal(seenInputs[0]?.path, '/api/human/chats/chat%201/messages/msg%2F9/recall');
@@ -36,7 +36,7 @@ test('service registry omits undefined query parameters', async () => {
     return { ok: true };
   });
 
-  await registry.HumanChatService.listMessages('chat-123');
+  await registry.HumanChatsService.listMessages('chat-123');
 
   assert.equal(seenInputs.length, 1);
   assert.equal(seenInputs[0]?.path, '/api/human/chats/chat-123/messages');
@@ -105,7 +105,7 @@ test('service registry throws when required path params are missing', async () =
   const registry = createRealmServiceRegistry(async () => ({ ok: true }));
 
   await assert.rejects(
-    () => registry.HumanChatService.recallMessage(undefined as unknown as string, 'msg-1'),
+    () => registry.HumanChatsService.recallMessage(undefined as unknown as string, 'msg-1'),
     /missing required path param: chatId/,
   );
 });

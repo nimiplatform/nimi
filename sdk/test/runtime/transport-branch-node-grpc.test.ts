@@ -64,10 +64,10 @@ test('node-grpc: throws when endpoint is whitespace only', () => {
 });
 
 test('node-grpc: strips http:// prefix from endpoint', async () => {
-  let capturedEndpoint = '';
+  let unaryCalls = 0;
   installNodeGrpcBridge({
-    invokeUnary: async (config) => {
-      capturedEndpoint = config.endpoint;
+    invokeUnary: async () => {
+      unaryCalls += 1;
       return new Uint8Array(0);
     },
     openStream: async () => { throw new Error('unexpected'); },
@@ -81,10 +81,7 @@ test('node-grpc: strips http:// prefix from endpoint', async () => {
       request: new Uint8Array(0),
       metadata: {} as RuntimeUnaryCall['metadata'],
     });
-    // the bridge receives the original config, but the internal endpoint should be stripped
-    // Since the bridge intercepts, we can't check internal endpoint directly,
-    // but we verified it doesn't throw
-    assert.ok(true);
+    assert.equal(unaryCalls, 1);
   } finally {
     clearNodeGrpcBridge();
   }
@@ -275,4 +272,3 @@ test('node-grpc: closeStream with empty streamId returns silently (no bridge)', 
     clearNodeGrpcBridge();
   }
 });
-

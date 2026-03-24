@@ -1979,8 +1979,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "GovernanceService.reportControllerCreateReport": {
     "operationId": "ReportController_createReport",
@@ -2001,13 +2003,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "HumanChatService.editMessage": {
+  "HumanChatsService.editMessage": {
     "operationId": "editMessage",
     "method": "PATCH",
     "path": "/api/human/chats/{chatId}/messages/{messageId}",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "editMessage",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "chatId",
@@ -2029,13 +2031,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.getChatById": {
+  "HumanChatsService.getChatById": {
     "operationId": "getChatById",
     "method": "GET",
     "path": "/api/human/chats/{chatId}",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "getChatById",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "chatId",
@@ -2050,13 +2052,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.listChats": {
+  "HumanChatsService.listChats": {
     "operationId": "listChats",
     "method": "GET",
     "path": "/api/human/chats",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "listChats",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "limit",
@@ -2077,13 +2079,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.listMessages": {
+  "HumanChatsService.listMessages": {
     "operationId": "listMessages",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/messages",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "listMessages",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "chatId",
@@ -2122,13 +2124,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.markChatRead": {
+  "HumanChatsService.markChatRead": {
     "operationId": "markChatRead",
     "method": "POST",
     "path": "/api/human/chats/{chatId}/read",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "markChatRead",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "chatId",
@@ -2145,13 +2147,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.recallMessage": {
+  "HumanChatsService.recallMessage": {
     "operationId": "recallMessage",
     "method": "POST",
     "path": "/api/human/chats/{chatId}/messages/{messageId}/recall",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "recallMessage",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "chatId",
@@ -2174,13 +2176,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.sendMessage": {
+  "HumanChatsService.sendMessage": {
     "operationId": "sendMessage",
     "method": "POST",
     "path": "/api/human/chats/{chatId}/messages",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "sendMessage",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "chatId",
@@ -2196,13 +2198,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.startChat": {
+  "HumanChatsService.startChat": {
     "operationId": "startChat",
     "method": "POST",
     "path": "/api/human/chats",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "startChat",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [],
     "hasBody": true,
     "bodyRequired": true,
@@ -2211,13 +2213,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "HumanChatService.syncChatEvents": {
+  "HumanChatsService.syncChatEvents": {
     "operationId": "syncChatEvents",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/sync",
-    "service": "HumanChatService",
+    "service": "HumanChatsService",
     "methodName": "syncChatEvents",
-    "tag": "HumanChat",
+    "tag": "Human Chats",
     "parameters": [
       {
         "name": "chatId",
@@ -2330,8 +2332,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "201"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "InvitationsService.invitationControllerListMyCodes": {
     "operationId": "InvitationController_listMyCodes",
@@ -2346,8 +2350,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "InvitationsService.invitationControllerVerifyCode": {
     "operationId": "InvitationController_verifyCode",
@@ -3100,13 +3106,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "NotificationService.getUnreadCount": {
+  "NotificationsService.getUnreadCount": {
     "operationId": "getUnreadCount",
     "method": "GET",
     "path": "/api/human/notifications/unread-count",
-    "service": "NotificationService",
+    "service": "NotificationsService",
     "methodName": "getUnreadCount",
-    "tag": "Notification",
+    "tag": "Notifications",
     "parameters": [],
     "hasBody": false,
     "bodyRequired": false,
@@ -3118,13 +3124,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "NotificationService.listNotifications": {
+  "NotificationsService.listNotifications": {
     "operationId": "listNotifications",
     "method": "GET",
     "path": "/api/human/notifications",
-    "service": "NotificationService",
+    "service": "NotificationsService",
     "methodName": "listNotifications",
-    "tag": "Notification",
+    "tag": "Notifications",
     "parameters": [
       {
         "name": "type",
@@ -3157,13 +3163,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "NotificationService.markNotificationRead": {
+  "NotificationsService.markNotificationRead": {
     "operationId": "markNotificationRead",
     "method": "POST",
     "path": "/api/human/notifications/{notificationId}/read",
-    "service": "NotificationService",
+    "service": "NotificationsService",
     "methodName": "markNotificationRead",
-    "tag": "Notification",
+    "tag": "Notifications",
     "parameters": [
       {
         "name": "notificationId",
@@ -3180,13 +3186,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "NotificationService.markNotificationsRead": {
+  "NotificationsService.markNotificationsRead": {
     "operationId": "markNotificationsRead",
     "method": "POST",
     "path": "/api/human/notifications/read",
-    "service": "NotificationService",
+    "service": "NotificationsService",
     "methodName": "markNotificationsRead",
-    "tag": "Notification",
+    "tag": "Notifications",
     "parameters": [],
     "hasBody": true,
     "bodyRequired": true,
@@ -3615,97 +3621,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "SearchService.searchPosts": {
-    "operationId": "searchPosts",
-    "method": "GET",
-    "path": "/api/search/posts",
-    "service": "SearchService",
-    "methodName": "searchPosts",
-    "tag": "Search",
-    "parameters": [
-      {
-        "name": "limit",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "cursor",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "authorAgeMax",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "authorAgeMin",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "authorIsAi",
-        "in": "query",
-        "required": false,
-        "valueType": "boolean"
-      },
-      {
-        "name": "authorCity",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "authorCountryCode",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "authorGender",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "tag",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "minLikeCount",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "q",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "SearchService.searchUsers": {
-    "operationId": "SearchService_searchUsers_2",
+  "SearchService.searchIndexedUsers": {
+    "operationId": "searchIndexedUsers",
     "method": "GET",
     "path": "/api/search/users",
     "service": "SearchService",
-    "methodName": "searchUsers",
+    "methodName": "searchIndexedUsers",
     "tag": "Search",
     "parameters": [
       {
@@ -3782,6 +3703,91 @@ export const REALM_OPERATION_MAP = {
       },
       {
         "name": "minAssetTier",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "q",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "SearchService.searchPosts": {
+    "operationId": "searchPosts",
+    "method": "GET",
+    "path": "/api/search/posts",
+    "service": "SearchService",
+    "methodName": "searchPosts",
+    "tag": "Search",
+    "parameters": [
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "authorAgeMax",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "authorAgeMin",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "authorIsAi",
+        "in": "query",
+        "required": false,
+        "valueType": "boolean"
+      },
+      {
+        "name": "authorCity",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "authorCountryCode",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "authorGender",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "tag",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "minLikeCount",
         "in": "query",
         "required": false,
         "valueType": "number"
@@ -4322,12 +4328,12 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "UserService.searchUsers": {
-    "operationId": "UserService_searchUsers",
+  "UserService.searchHumanUsers": {
+    "operationId": "searchHumanUsers",
     "method": "GET",
     "path": "/api/human/search",
     "service": "UserService",
-    "methodName": "searchUsers",
+    "methodName": "searchHumanUsers",
     "tag": "User",
     "parameters": [
       {
@@ -5466,16 +5472,16 @@ export const REALM_SERVICE_METHODS = {
   "GovernanceService": {
     "reportControllerCreateReport": "GovernanceService.reportControllerCreateReport"
   },
-  "HumanChatService": {
-    "editMessage": "HumanChatService.editMessage",
-    "getChatById": "HumanChatService.getChatById",
-    "listChats": "HumanChatService.listChats",
-    "listMessages": "HumanChatService.listMessages",
-    "markChatRead": "HumanChatService.markChatRead",
-    "recallMessage": "HumanChatService.recallMessage",
-    "sendMessage": "HumanChatService.sendMessage",
-    "startChat": "HumanChatService.startChat",
-    "syncChatEvents": "HumanChatService.syncChatEvents"
+  "HumanChatsService": {
+    "editMessage": "HumanChatsService.editMessage",
+    "getChatById": "HumanChatsService.getChatById",
+    "listChats": "HumanChatsService.listChats",
+    "listMessages": "HumanChatsService.listMessages",
+    "markChatRead": "HumanChatsService.markChatRead",
+    "recallMessage": "HumanChatsService.recallMessage",
+    "sendMessage": "HumanChatsService.sendMessage",
+    "startChat": "HumanChatsService.startChat",
+    "syncChatEvents": "HumanChatsService.syncChatEvents"
   },
   "HumanNsfwConsentService": {
     "humanNsfwConsentControllerCanManageAgentNsfw": "HumanNsfwConsentService.humanNsfwConsentControllerCanManageAgentNsfw",
@@ -5534,11 +5540,11 @@ export const REALM_SERVICE_METHODS = {
     "enableTwoFactor": "MeTwoFactorService.enableTwoFactor",
     "prepareTwoFactor": "MeTwoFactorService.prepareTwoFactor"
   },
-  "NotificationService": {
-    "getUnreadCount": "NotificationService.getUnreadCount",
-    "listNotifications": "NotificationService.listNotifications",
-    "markNotificationRead": "NotificationService.markNotificationRead",
-    "markNotificationsRead": "NotificationService.markNotificationsRead"
+  "NotificationsService": {
+    "getUnreadCount": "NotificationsService.getUnreadCount",
+    "listNotifications": "NotificationsService.listNotifications",
+    "markNotificationRead": "NotificationsService.markNotificationRead",
+    "markNotificationsRead": "NotificationsService.markNotificationsRead"
   },
   "PostService": {
     "createPost": "PostService.createPost",
@@ -5565,8 +5571,8 @@ export const REALM_SERVICE_METHODS = {
     "issueRuntimeRealmGrant": "RuntimeRealmGrantsService.issueRuntimeRealmGrant"
   },
   "SearchService": {
-    "searchPosts": "SearchService.searchPosts",
-    "searchUsers": "SearchService.searchUsers"
+    "searchIndexedUsers": "SearchService.searchIndexedUsers",
+    "searchPosts": "SearchService.searchPosts"
   },
   "SocialDefaultVisibilityService": {
     "v1DefaultVisibilityControllerApplyAgentDefaults": "SocialDefaultVisibilityService.v1DefaultVisibilityControllerApplyAgentDefaults",
@@ -5596,7 +5602,7 @@ export const REALM_SERVICE_METHODS = {
     "getUserFriends": "UserService.getUserFriends",
     "listOnlineUsers": "UserService.listOnlineUsers",
     "removeFriend": "UserService.removeFriend",
-    "searchUsers": "UserService.searchUsers"
+    "searchHumanUsers": "UserService.searchHumanUsers"
   },
   "WorldControlService": {
     "worldControlControllerAppendWorldHistory": "WorldControlService.worldControlControllerAppendWorldHistory",

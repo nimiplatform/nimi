@@ -74,9 +74,7 @@ export function toProviderMetadata(input: {
 }
 
 export function toUsage(value: unknown): LanguageModelV3Usage {
-  const usage = (value && typeof value === 'object')
-    ? value as { inputTokens?: unknown; outputTokens?: unknown }
-    : {};
+  const usage = asRecord(value);
   const inputTokens = parseCount(usage.inputTokens);
   const outputTokens = parseCount(usage.outputTokens);
   return {
@@ -507,7 +505,7 @@ export function toUtf8(value: Uint8Array): string {
   });
 }
 
-export function toProtoStruct(input: Record<string, unknown> | undefined): any {
+export function toProtoStruct(input: Record<string, unknown> | undefined): Struct | undefined {
   if (!input || Object.keys(input).length === 0) {
     return undefined;
   }

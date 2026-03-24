@@ -10,6 +10,7 @@ export type RealmGeneratedModelMap = {
   AddFriendBodyDto: components['schemas']['AddFriendBodyDto'];
   AgentAppearanceDto: components['schemas']['AgentAppearanceDto'];
   AgentBiologicalDto: components['schemas']['AgentBiologicalDto'];
+  AgentCapabilitiesDto: components['schemas']['AgentCapabilitiesDto'];
   AgentCategory: components['schemas']['AgentCategory'];
   AgentCommunicationDto: components['schemas']['AgentCommunicationDto'];
   AgentDisplayDto: components['schemas']['AgentDisplayDto'];
@@ -116,6 +117,8 @@ export type RealmGeneratedModelMap = {
   GiftTransactionDto: components['schemas']['GiftTransactionDto'];
   GiftTransactionRichDto: components['schemas']['GiftTransactionRichDto'];
   GlossaryTermDto: components['schemas']['GlossaryTermDto'];
+  InvitationCodeResponseDto: components['schemas']['InvitationCodeResponseDto'];
+  InvitationCodeUsedByAccountDto: components['schemas']['InvitationCodeUsedByAccountDto'];
   ListChatsResultDto: components['schemas']['ListChatsResultDto'];
   ListMessagesResultDto: components['schemas']['ListMessagesResultDto'];
   LocationLandmarkDto: components['schemas']['LocationLandmarkDto'];
@@ -254,6 +257,7 @@ export type RealmGeneratedModelMap = {
   UserAgentPersonalityDto: components['schemas']['UserAgentPersonalityDto'];
   UserAgentVoiceConfigDto: components['schemas']['UserAgentVoiceConfigDto'];
   UserCapabilitiesDto: components['schemas']['UserCapabilitiesDto'];
+  UserFeatureCapabilitiesDto: components['schemas']['UserFeatureCapabilitiesDto'];
   UserLiteDto: components['schemas']['UserLiteDto'];
   UserNotificationSettingsDto: components['schemas']['UserNotificationSettingsDto'];
   UserPrivateDto: components['schemas']['UserPrivateDto'];
@@ -266,6 +270,7 @@ export type RealmGeneratedModelMap = {
   UserWalletListResponseDto: components['schemas']['UserWalletListResponseDto'];
   ValidateRulesDto: components['schemas']['ValidateRulesDto'];
   VerificationTier: components['schemas']['VerificationTier'];
+  VerifyInvitationCodeDto: components['schemas']['VerifyInvitationCodeDto'];
   Visibility: components['schemas']['Visibility'];
   VisualGuideDto: components['schemas']['VisualGuideDto'];
   WalletBindDto: components['schemas']['WalletBindDto'];

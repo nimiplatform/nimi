@@ -5,20 +5,9 @@ import * as realm from '../../src/realm/index.js';
 import {
   Realm,
 } from '../../src/realm/index.js';
-import type {
-  RealmModel,
-  RealmServiceResult,
-} from '../../src/realm/index.js';
-
-type _AuthTwoFactorVerifyInput = RealmModel<'AuthTwoFactorVerifyInput'>;
-type _MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
-type _GetMeResult = RealmServiceResult<'MeService', 'getMe'>;
 
 test('realm facade exposes naming-normalized public helpers', () => {
   assert.equal(typeof Realm, 'function');
-  assert.equal(typeof ({} as _AuthTwoFactorVerifyInput), 'object');
-  assert.equal(typeof ({} as _MeTwoFactorPrepareOutput), 'object');
-  assert.equal(typeof ({} as _GetMeResult), 'object');
   assert.equal(typeof realm.OAuthProvider, 'object');
   assert.equal(typeof realm.PostMediaType, 'object');
   assert.equal(typeof realm.requestDataExport, 'function');

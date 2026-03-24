@@ -2240,7 +2240,7 @@ export type paths = {
          * Search users
          * @description Search users by keyword with pagination and filtering options.
          */
-        get: operations["UserService_searchUsers"];
+        get: operations["searchHumanUsers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2450,7 +2450,7 @@ export type paths = {
             cookie?: never;
         };
         /** Search users */
-        get: operations["SearchService_searchUsers_2"];
+        get: operations["searchIndexedUsers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3299,8 +3299,14 @@ export type components = {
             visualAge: string;
             weightKg: number;
         };
+        AgentCapabilitiesDto: {
+            canCreate: boolean;
+            currentCount: number;
+            maxAllowed: number;
+            remaining: number;
+        };
         /**
-         * @description Agent category: GENERAL, COMPANION, ASSISTANT, CREATIVE, GAME, EDUCATION, BUSINESS
+         * @description Agent category: GENERAL, COMPANION, ASSISTANT, GAME, CRYPTO, NSFW_AGENT
          * @enum {string}
          */
         AgentCategory: "GENERAL" | "COMPANION" | "ASSISTANT" | "GAME" | "CRYPTO" | "NSFW_AGENT";
@@ -3387,7 +3393,7 @@ export type components = {
         AgentMetadataDto: {
             /** @description Agent current active worldId */
             activeWorldId?: string;
-            /** @description Agent category: GENERAL, COMPANION, ASSISTANT, CREATIVE, GAME, EDUCATION, BUSINESS */
+            /** @description Agent category: GENERAL, COMPANION, ASSISTANT, GAME, CRYPTO, NSFW_AGENT */
             category?: components["schemas"]["AgentCategory"];
             /** @description Narrative importance tier inside the world */
             importance?: components["schemas"]["AgentImportance"];
@@ -4053,8 +4059,9 @@ export type components = {
             nextCursor: string | null;
         };
         CursorPageMetaDto: {
-            hasNext: boolean;
-            nextCursor: string | null;
+            cursor?: string | null;
+            limit?: number;
+            nextCursor?: string | null;
         };
         DeleteAgentOperationResponseDto: {
             success: boolean;
@@ -4310,6 +4317,22 @@ export type components = {
             id: string;
             importance?: string;
             term: string;
+        };
+        InvitationCodeResponseDto: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            creatorId: string;
+            id: string;
+            usedAt?: string | null;
+            usedByAccount?: components["schemas"]["InvitationCodeUsedByAccountDto"] | null;
+            usedById?: string | null;
+        };
+        InvitationCodeUsedByAccountDto: {
+            avatarUrl?: string | null;
+            displayName?: string | null;
+            handle?: string | null;
+            id: string;
         };
         ListChatsResultDto: {
             hasMore?: boolean;
@@ -4637,7 +4660,7 @@ export type components = {
             width?: number;
         };
         /** @enum {string} */
-        PostMediaType: "IMAGE" | "VIDEO" | "AUDIO";
+        PostMediaType: "IMAGE" | "VIDEO";
         PostSearchResponseDto: {
             items: components["schemas"]["SearchPostDto"][];
             page: components["schemas"]["CursorPageMetaDto"];
@@ -5425,18 +5448,14 @@ export type components = {
             voiceId?: string;
         };
         UserCapabilitiesDto: {
-            agent: {
-                canCreate?: boolean;
-                currentCount?: number;
-                maxAllowed?: number;
-                remaining?: number;
-            };
-            features: {
-                canChat?: boolean;
-                canEnterWorld?: boolean;
-                canInviteToAdventure?: boolean;
-                canPost?: boolean;
-            };
+            agent: components["schemas"]["AgentCapabilitiesDto"];
+            features: components["schemas"]["UserFeatureCapabilitiesDto"];
+        };
+        UserFeatureCapabilitiesDto: {
+            canChat: boolean;
+            canEnterWorld: boolean;
+            canInviteToAdventure: boolean;
+            canPost: boolean;
         };
         UserLiteDto: {
             agent?: components["schemas"]["AgentMetadataDto"];
@@ -5588,6 +5607,9 @@ export type components = {
          * @enum {string}
          */
         VerificationTier: "COMMUNITY" | "VERIFIED" | "OFFICIAL";
+        VerifyInvitationCodeDto: {
+            invitationCode: string;
+        };
         /** @enum {string} */
         Visibility: "PUBLIC" | "FRIENDS" | "PRIVATE";
         VisualGuideDto: {
@@ -8497,7 +8519,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PostSearchResponseDto"];
+                };
             };
         };
     };
@@ -8510,6 +8534,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Explore engine health status */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -9726,7 +9751,7 @@ export interface operations {
             };
         };
     };
-    UserService_searchUsers: {
+    searchHumanUsers: {
         parameters: {
             query?: {
                 limit?: number;
@@ -9775,7 +9800,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InvitationCodeResponseDto"][];
+                };
             };
         };
     };
@@ -9793,7 +9820,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InvitationCodeResponseDto"];
+                };
             };
         };
     };
@@ -9806,9 +9835,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    invitationCode: string;
-                };
+                "application/json": components["schemas"]["VerifyInvitationCodeDto"];
             };
         };
         responses: {
@@ -10078,7 +10105,7 @@ export interface operations {
             };
         };
     };
-    SearchService_searchUsers_2: {
+    searchIndexedUsers: {
         parameters: {
             query?: {
                 limit?: number;

@@ -9,7 +9,7 @@ import {
   FinishReason,
   RoutePolicy,
 } from '../../src/runtime/generated/runtime/v1/ai';
-import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
+import { textGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 
 const APP_ID = 'nimi.runtime.version-compat.test';
 
@@ -24,7 +24,7 @@ function clearNodeGrpcBridge(): void {
 function createExecuteScenarioResponse(text: string): Uint8Array {
   return ExecuteScenarioResponse.toBinary(
     ExecuteScenarioResponse.create({
-      output: Struct.fromJson({ text } as never),
+      output: textGenerateOutput(text),
       finishReason: FinishReason.STOP,
       routeDecision: RoutePolicy.LOCAL,
       modelResolved: 'local/test',

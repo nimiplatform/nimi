@@ -496,9 +496,9 @@ test('Realm services support path-first call pattern for mixed path/query method
       auth: null,
     });
 
-    await realm.services.HumanChatService.listMessages('chat-123', 20);
-    await realm.services.HumanChatService.syncChatEvents('chat-123', 200, 5);
-    await realm.services.HumanChatService.recallMessage('chat-123', 'msg-9');
+    await realm.services.HumanChatsService.listMessages('chat-123', 20);
+    await realm.services.HumanChatsService.syncChatEvents('chat-123', 200, 5);
+    await realm.services.HumanChatsService.recallMessage('chat-123', 'msg-9');
     await realm.services.WorldsService.worldControllerGetWorldLevelAudits('world-7', 30);
     await realm.services.WorldsService.worldControllerGetWorldDetailWithAgents('world-7', 4);
     await realm.services.WorldsService.worldControllerGetWorldview('world-7');

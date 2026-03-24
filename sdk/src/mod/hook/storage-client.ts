@@ -1,14 +1,26 @@
+import { createNimiError } from '../../runtime/errors.js';
+import { ReasonCode } from '../../types/index.js';
 import type { HookStorageClient } from '../types/storage.js';
 import type { RuntimeHookRuntimeFacade } from '../types/runtime-facade.js';
 
 function normalizeStoragePath(path: string): string {
   const normalized = String(path || '').trim().replace(/\\/g, '/');
   if (!normalized || normalized === '.' || normalized.startsWith('/') || /^[A-Za-z]:\//.test(normalized)) {
-    throw new Error('mod storage path must be relative to the current mod');
+    throw createNimiError({
+      message: 'mod storage path must be relative to the current mod',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'use_relative_mod_storage_path',
+      source: 'sdk',
+    });
   }
   const segments = normalized.split('/');
   if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) {
-    throw new Error('mod storage path contains forbidden traversal segments');
+    throw createNimiError({
+      message: 'mod storage path contains forbidden traversal segments',
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: 'remove_traversal_segments',
+      source: 'sdk',
+    });
   }
   return segments.join('/');
 }

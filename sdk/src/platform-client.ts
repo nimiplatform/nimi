@@ -69,10 +69,10 @@ type PlatformDomains = {
     getCurrentUser: RealmServices['MeService']['getMe'];
   };
   social: {
-    startChat: RealmServices['HumanChatService']['startChat'];
-    listMessages: RealmServices['HumanChatService']['listMessages'];
-    markChatRead: RealmServices['HumanChatService']['markChatRead'];
-    sendMessage: RealmServices['HumanChatService']['sendMessage'];
+    startChat: RealmServices['HumanChatsService']['startChat'];
+    listMessages: RealmServices['HumanChatsService']['listMessages'];
+    markChatRead: RealmServices['HumanChatsService']['markChatRead'];
+    sendMessage: RealmServices['HumanChatsService']['sendMessage'];
     listFriends: (limit?: number, cursor?: string) => Promise<ListMyFriendsResult>;
   };
   world: {
@@ -298,10 +298,10 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       getCurrentUser: () => realm.services.MeService.getMe(),
     },
     social: {
-      startChat: (input) => realm.services.HumanChatService.startChat(input),
-      listMessages: (chatId, limit) => realm.services.HumanChatService.listMessages(chatId, limit),
-      markChatRead: (chatId) => realm.services.HumanChatService.markChatRead(chatId),
-      sendMessage: (chatId, input) => realm.services.HumanChatService.sendMessage(chatId, input),
+      startChat: (input) => realm.services.HumanChatsService.startChat(input),
+      listMessages: (chatId, limit) => realm.services.HumanChatsService.listMessages(chatId, limit),
+      markChatRead: (chatId) => realm.services.HumanChatsService.markChatRead(chatId),
+      sendMessage: (chatId, input) => realm.services.HumanChatsService.sendMessage(chatId, input),
       listFriends: (limit, cursor) => realm.services.MeService.listMyFriendsWithDetails(cursor, limit),
     },
     world: {
