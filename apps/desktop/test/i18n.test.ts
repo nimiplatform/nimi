@@ -49,7 +49,7 @@ function installDomGlobals(): () => void {
   };
 }
 
-let restoreDomGlobals = () => undefined;
+let restoreDomGlobals: () => void = () => {};
 
 test.beforeEach(() => {
   restoreDomGlobals = installDomGlobals();

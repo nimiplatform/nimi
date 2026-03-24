@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
+import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { Surface } from '@renderer/components/surface.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -114,9 +116,9 @@ export function HomeView(props: HomeViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Top bar */}
-      <div className="flex h-14 shrink-0 items-center gap-3 bg-gray-50 px-6">
+      <Surface tone="canvas" padding="none" className="flex h-14 shrink-0 items-center gap-3 rounded-none border-0 border-b border-slate-200 px-6">
         <h1 className={APP_PAGE_TITLE_CLASS}>{t('Home.pageTitle')}</h1>
-      </div>
+      </Surface>
 
       <ScrollShell
         className="flex-1 bg-gray-50"
@@ -124,10 +126,15 @@ export function HomeView(props: HomeViewProps) {
         contentClassName="mx-auto max-w-2xl px-6 py-0"
       >
           {/* Create Post Prompt */}
-          <button
+          <Surface
+            as="button"
             type="button"
             onClick={() => setCreatePostOpen(true)}
-            className="flex w-full items-center gap-3 rounded-[10px] border border-gray-200 bg-white px-4 py-3 text-left transition hover:bg-gray-50"
+            tone="card"
+            elevation="base"
+            padding="none"
+            interactive
+            className="mt-4 flex w-full items-center gap-3 rounded-[1.5rem] border border-slate-200 px-4 py-3 text-left"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-50 text-cyan-500">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -138,7 +145,7 @@ export function HomeView(props: HomeViewProps) {
             <span className="text-sm text-gray-400">
               {t('Home.composePrompt', { defaultValue: "What's on your mind?" })}
             </span>
-          </button>
+          </Surface>
 
           {/* Publishing placeholder - shown at top of feed */}
           {isPublishing && (
@@ -208,17 +215,18 @@ export function HomeView(props: HomeViewProps) {
       />
 
       {/* Floating Create Post Button */}
-      <button
-        type="button"
+      <IconButton
+        icon={(
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        )}
+        tone="primary"
         onClick={() => setCreatePostOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-lg shadow-[#4ECCA3]/30 transition-all duration-200 hover:scale-110 hover:shadow-xl hover:shadow-[#4ECCA3]/40 active:scale-95"
+        className="fixed bottom-6 right-6 z-50 h-12 w-12 shadow-lg shadow-[#4ECCA3]/30 hover:shadow-xl hover:shadow-[#4ECCA3]/40"
         aria-label={t('Home.createPost', { defaultValue: 'Create Post' })}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
-      </button>
+      />
     </div>
   );
 }

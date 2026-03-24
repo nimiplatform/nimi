@@ -10,7 +10,8 @@ function createTranslate() {
 
 test('logout flow clears local state and emits success banner after successful logout', async () => {
   const effects: string[] = [];
-  let banner: { kind: string; message: string } | null = null;
+  let bannerKind: string | null = null;
+  let bannerMessage = '';
 
   await logoutAndClearSession(
     {
@@ -18,7 +19,8 @@ test('logout flow clears local state and emits success banner after successful l
         effects.push('clear-auth');
       },
       setStatusBanner: (value) => {
-        banner = value;
+        bannerKind = value?.kind ?? null;
+        bannerMessage = value?.message ?? '';
       },
     },
     {
@@ -45,15 +47,14 @@ test('logout flow clears local state and emits success banner after successful l
     'clear-auth',
     'clear-query',
   ]);
-  assert.deepEqual(banner, {
-    kind: 'info',
-    message: 'Signed out',
-  });
+  assert.equal(bannerKind, 'info');
+  assert.equal(bannerMessage, 'Signed out');
 });
 
 test('logout flow distinguishes transient server logout failures while still clearing local state', async () => {
   const effects: string[] = [];
-  let banner: { kind: string; message: string } | null = null;
+  let bannerKind: string | null = null;
+  let bannerMessage = '';
 
   await logoutAndClearSession(
     {
@@ -61,7 +62,8 @@ test('logout flow distinguishes transient server logout failures while still cle
         effects.push('clear-auth');
       },
       setStatusBanner: (value) => {
-        banner = value;
+        bannerKind = value?.kind ?? null;
+        bannerMessage = value?.message ?? '';
       },
     },
     {
@@ -89,6 +91,6 @@ test('logout flow distinguishes transient server logout failures while still cle
     'clear-auth',
     'clear-query',
   ]);
-  assert.equal(banner?.kind, 'warning');
-  assert.match(String(banner?.message || ''), /network error/i);
+  assert.equal(bannerKind, 'warning');
+  assert.match(bannerMessage, /network error/i);
 });

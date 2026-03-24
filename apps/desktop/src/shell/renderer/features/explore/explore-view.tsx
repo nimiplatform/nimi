@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
+import { IconButton } from '@renderer/components/action.js';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { Surface } from '@renderer/components/surface.js';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';
 import {
@@ -104,14 +106,14 @@ export function ExploreView(props: ExploreViewProps) {
 
   if (props.loading) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col bg-[#F0F4F8]">
-        <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
+      <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+        <div className="shrink-0 px-6 py-4">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
             <ExploreSkeletonBlock className="h-9 w-40 rounded-xl" />
             <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
           </div>
         </div>
-        <ScrollShell className="flex-1 bg-[#F0F4F8]" viewportClassName="bg-[#F0F4F8]" contentClassName="mx-auto max-w-6xl space-y-10 px-6 py-8">
+        <ScrollShell className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto max-w-6xl space-y-10 px-6 py-8">
             <section className="space-y-3">
               <ExploreSkeletonBlock className="h-6 w-24 rounded-lg" />
               <ExploreSkeletonBlock className="h-[280px] w-full rounded-[2rem]" />
@@ -131,7 +133,7 @@ export function ExploreView(props: ExploreViewProps) {
               <ExploreSkeletonBlock className="h-7 w-36 rounded-lg" />
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index} className="rounded-[2rem] border border-white/70 bg-white p-5 shadow-sm">
+                  <Surface key={index} tone="card" elevation="base" className="rounded-[2rem] border-white/70 p-5">
                     <div className="flex items-center gap-3">
                       <ExploreSkeletonBlock className="h-10 w-10 rounded-full" />
                       <div className="space-y-2">
@@ -144,17 +146,17 @@ export function ExploreView(props: ExploreViewProps) {
                       <ExploreSkeletonBlock className="h-4 w-5/6 rounded" />
                     </div>
                     <ExploreSkeletonBlock className="mt-4 h-56 w-full rounded-[1.5rem]" />
-                  </div>
+                  </Surface>
                 ))}
               </div>
             </section>
         </ScrollShell>
-      </div>
+      </Surface>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
       <style>{`
         @keyframes top-agents-slide-forward {
           from { opacity: 0; transform: translateX(18px); }
@@ -166,24 +168,24 @@ export function ExploreView(props: ExploreViewProps) {
         }
       `}</style>
       {/* Header bar */}
-      <div className="shrink-0 bg-[#F0F4F8] px-6 py-4">
+      <div className="shrink-0 px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <h1 className={APP_PAGE_TITLE_CLASS}>
             {t('Explore.pageTitle')}
           </h1>
           <div className="w-[300px] shrink-0">
-            <div className="group relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-emerald-500">
+            <Surface tone="card" elevation="base" padding="none" className="group relative flex h-11 items-center rounded-full border-white/70 px-4">
+              <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-mint-600">
                 {ICON_SEARCH}
               </span>
               <input
                 type="search"
-                className="w-full rounded-full border border-white/70 bg-white/85 py-2.5 pl-11 pr-5 text-sm text-gray-900 placeholder:text-gray-400 shadow-[0_10px_30px_rgba(15,23,42,0.06)] outline-none backdrop-blur-xl transition-all focus:border-emerald-200 focus:bg-white focus:shadow-[0_14px_36px_rgba(16,185,129,0.10)] focus:ring-4 focus:ring-emerald-100/70"
+                className="w-full bg-transparent py-2.5 pl-7 pr-1 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:ring-0"
                 placeholder={t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, agents, posts...' })}
                 value={props.searchText}
                 onChange={(e) => props.onSearchTextChange(e.target.value)}
               />
-            </div>
+            </Surface>
           </div>
         </div>
       </div>
@@ -191,8 +193,8 @@ export function ExploreView(props: ExploreViewProps) {
       {/* Scrollable content */}
       <ScrollShell
         ref={scrollContainerRef}
-        className="min-h-0 flex-1 bg-[#F0F4F8]"
-        viewportClassName="bg-[#F0F4F8]"
+        className="min-h-0 flex-1"
+        viewportClassName="bg-transparent"
         contentClassName="mx-auto max-w-6xl px-6 py-8"
       >
           {/* World Banner Carousel */}
@@ -204,8 +206,11 @@ export function ExploreView(props: ExploreViewProps) {
                   {t('World.title')}
                 </h2>
               </div>
-              <div
-                className="relative h-[280px] rounded-2xl overflow-hidden cursor-pointer"
+              <Surface
+                tone="hero"
+                elevation="floating"
+                padding="none"
+                className="relative h-[280px] cursor-pointer overflow-hidden rounded-2xl border-white/60"
                 onClick={() => currentBanner && props.onWorldOpen?.(currentBanner.id)}
               >
                 {/* Banner Images Container with Animation */}
@@ -232,54 +237,56 @@ export function ExploreView(props: ExploreViewProps) {
                 
                 {/* Prev Button - Left */}
                 {worldsWithBanners.length > 1 && (
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={(e) => {
                       e.stopPropagation();
                       prevBanner();
                     }}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-colors z-10"
+                    tone="ghost"
+                    icon={(
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    )}
+                    className="absolute left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 hover:text-white"
                     aria-label={t('Explore.previousBanner', { defaultValue: 'Previous banner' })}
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </button>
+                  />
                 )}
                 
                 {/* Next Button - Right */}
                 {worldsWithBanners.length > 1 && (
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={(e) => {
                       e.stopPropagation();
                       nextBanner();
                     }}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition-colors z-10"
+                    tone="ghost"
+                    icon={(
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    )}
+                    className="absolute right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full bg-white/20 text-white backdrop-blur-sm hover:bg-white/30 hover:text-white"
                     aria-label={t('Explore.nextBanner', { defaultValue: 'Next banner' })}
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="9 18 15 12 9 6" />
-                    </svg>
-                  </button>
+                  />
                 )}
                 
                 {/* Dots Indicator */}
@@ -301,7 +308,7 @@ export function ExploreView(props: ExploreViewProps) {
                     ))}
                   </div>
                 )}
-              </div>
+              </Surface>
             </section>
           )}
 
@@ -312,18 +319,9 @@ export function ExploreView(props: ExploreViewProps) {
                   {t('Explore.topAgents', { defaultValue: 'Top Agents' })}
                 </h3>
                 {topAgentsPages.length > 1 ? (
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={handleTopAgentsPageChange}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:text-gray-700"
-                    aria-label={hasNextTopAgentsPage
-                      ? t('Explore.nextTopAgentsPage', { defaultValue: 'Next top agents page' })
-                      : t('Explore.previousTopAgentsPage', { defaultValue: 'Previous top agents page' })}
-                    title={hasNextTopAgentsPage
-                      ? t('ChatTimeline.nextPage', { defaultValue: 'Next page' })
-                      : t('ChatTimeline.previousPage', { defaultValue: 'Previous page' })}
-                  >
-                    {hasNextTopAgentsPage ? (
+                    icon={hasNextTopAgentsPage ? (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="9 18 15 12 9 6" />
                       </svg>
@@ -332,7 +330,14 @@ export function ExploreView(props: ExploreViewProps) {
                         <polyline points="15 18 9 12 15 6" />
                       </svg>
                     )}
-                  </button>
+                    className="h-7 w-7 shrink-0 text-gray-400 hover:text-gray-700"
+                    aria-label={hasNextTopAgentsPage
+                      ? t('Explore.nextTopAgentsPage', { defaultValue: 'Next top agents page' })
+                      : t('Explore.previousTopAgentsPage', { defaultValue: 'Previous top agents page' })}
+                    title={hasNextTopAgentsPage
+                      ? t('ChatTimeline.nextPage', { defaultValue: 'Next page' })
+                      : t('ChatTimeline.previousPage', { defaultValue: 'Previous page' })}
+                  />
                 ) : null}
               </div>
               <div
@@ -381,18 +386,19 @@ export function ExploreView(props: ExploreViewProps) {
           </section>
       </ScrollShell>
 
-      <button
-        type="button"
+      <IconButton
         onClick={scrollToTop}
-        className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-700 shadow-lg ring-1 ring-gray-200 transition-all duration-200 hover:-translate-y-0.5 hover:bg-gray-50 hover:text-gray-900"
+        tone="secondary"
+        icon={(
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19V5" />
+            <polyline points="5 12 12 5 19 12" />
+          </svg>
+        )}
+        className="fixed bottom-6 right-6 z-50 h-12 w-12 text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 hover:text-gray-900"
         aria-label={t('Explore.backToTop', { defaultValue: 'Back to top' })}
         title={t('Explore.backToTop', { defaultValue: 'Back to top' })}
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 19V5" />
-          <polyline points="5 12 12 5 19 12" />
-        </svg>
-      </button>
-    </div>
+      />
+    </Surface>
   );
 }

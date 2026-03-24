@@ -5,8 +5,10 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { Button } from '@renderer/components/action.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { Surface } from '@renderer/components/surface.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import {
@@ -31,12 +33,6 @@ import { getActionLabel, getBadgeDefaultLabel } from './notification-panel-label
 
 const PAGE_SIZE = 20;
 const FILTER_TABS: NotificationFilterTab[] = ['all', 'gift', 'request', 'mention', 'like', 'system'];
-const BUTTON_BASE_CLASS =
-  'flex items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60';
-const BUTTON_PRIMARY_CLASS =
-  `${BUTTON_BASE_CLASS} bg-mint-500 text-white shadow-sm hover:bg-mint-600 hover:shadow-md`;
-const BUTTON_SECONDARY_CLASS =
-  `${BUTTON_BASE_CLASS} border border-gray-200 bg-white text-gray-600 hover:bg-gray-50`;
 
 type ItemActionKind =
   | 'friend-accept'
@@ -416,18 +412,20 @@ export function NotificationPanel() {
     if (item.type === 'friend_request_received') {
       return (
         <>
-          <button
-            type="button"
+          <Button
+            tone="primary"
+            size="sm"
             disabled={itemBusy}
             onClick={(event) => {
               event.stopPropagation();
               void acceptFriendRequest(item);
             }}
-            className={BUTTON_PRIMARY_CLASS}
+            leadingIcon={(
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
             {getActionLabel(
               pendingItemAction,
               item.id,
@@ -435,20 +433,22 @@ export function NotificationPanel() {
               t('Contacts.accept', { defaultValue: 'Accept' }),
               t('NotificationPanel.accepting', { defaultValue: 'Accepting...' }),
             )}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            tone="secondary"
+            size="sm"
             disabled={itemBusy}
             onClick={(event) => {
               event.stopPropagation();
               void rejectFriendRequest(item);
             }}
-            className={BUTTON_SECONDARY_CLASS}
+            leadingIcon={(
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            )}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
             {getActionLabel(
               pendingItemAction,
               item.id,
@@ -456,7 +456,7 @@ export function NotificationPanel() {
               t('Contacts.reject', { defaultValue: 'Reject' }),
               t('NotificationPanel.rejecting', { defaultValue: 'Rejecting...' }),
             )}
-          </button>
+          </Button>
         </>
       );
     }
@@ -464,18 +464,20 @@ export function NotificationPanel() {
     if (item.type === 'gift_received' && item.giftTransactionId) {
       return (
         <>
-          <button
-            type="button"
+          <Button
+            tone="primary"
+            size="sm"
             disabled={itemBusy}
             onClick={(event) => {
               event.stopPropagation();
               void acceptGift(item);
             }}
-            className={BUTTON_PRIMARY_CLASS}
+            leadingIcon={(
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
             {getActionLabel(
               pendingItemAction,
               item.id,
@@ -483,23 +485,25 @@ export function NotificationPanel() {
               t('NotificationPanel.accept', { defaultValue: 'Accept' }),
               t('NotificationPanel.accepting', { defaultValue: 'Accepting...' }),
             )}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            tone="secondary"
+            size="sm"
             disabled={itemBusy}
             onClick={(event) => {
               event.stopPropagation();
               setRejectingItem(item);
               setRejectReason('');
             }}
-            className={BUTTON_SECONDARY_CLASS}
+            leadingIcon={(
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            )}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
             {t('NotificationPanel.reject', { defaultValue: 'Reject' })}
-          </button>
+          </Button>
         </>
       );
     }
@@ -507,18 +511,20 @@ export function NotificationPanel() {
     if (isGiftReviewable(item)) {
       return (
         <>
-          <button
-            type="button"
+          <Button
+            tone="primary"
+            size="sm"
             disabled={itemBusy}
             onClick={(event) => {
               event.stopPropagation();
               void createReview(item, ReviewRatingEnum.POSITIVE, 'review-positive');
             }}
-            className={BUTTON_PRIMARY_CLASS}
+            leadingIcon={(
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+            )}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
             {getActionLabel(
               pendingItemAction,
               item.id,
@@ -526,15 +532,15 @@ export function NotificationPanel() {
               t('NotificationPanel.reviewPositive', { defaultValue: 'Review+' }),
               t('NotificationPanel.submitting', { defaultValue: 'Submitting...' }),
             )}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            tone="secondary"
+            size="sm"
             disabled={itemBusy}
             onClick={(event) => {
               event.stopPropagation();
               void createReview(item, ReviewRatingEnum.NEGATIVE, 'review-negative');
             }}
-            className={BUTTON_SECONDARY_CLASS}
           >
             {getActionLabel(
               pendingItemAction,
@@ -543,7 +549,7 @@ export function NotificationPanel() {
               t('NotificationPanel.reviewNegative', { defaultValue: 'Review-' }),
               t('NotificationPanel.submitting', { defaultValue: 'Submitting...' }),
             )}
-          </button>
+          </Button>
         </>
       );
     }
@@ -553,15 +559,15 @@ export function NotificationPanel() {
 
   if (authStatus !== 'authenticated') {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center bg-[#F5F7FA] text-sm text-gray-500">
+      <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 items-center justify-center rounded-none border-0 text-sm text-gray-500">
         {t('NotificationPanel.loginRequired')}
-      </div>
+      </Surface>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">
-      <div className="flex h-16 shrink-0 items-center justify-between bg-white px-6">
+    <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+      <Surface tone="card" padding="none" className="flex h-16 shrink-0 items-center justify-between rounded-none border-x-0 border-t-0 px-6">
         <h1 className={`${APP_PAGE_TITLE_CLASS} flex items-center gap-2`}>
           {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
           {unreadCount > 0 ? (
@@ -570,58 +576,56 @@ export function NotificationPanel() {
             </span>
           ) : null}
         </h1>
-        <button
-          type="button"
+        <Button
+          tone="ghost"
+          size="sm"
           disabled={markingAllRead || unreadCount <= 0}
           onClick={() => {
             void markAllRead();
           }}
-          className="text-sm font-medium text-mint-600 transition-colors hover:text-mint-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="text-mint-700"
         >
           {markingAllRead
             ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
             : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
-        </button>
-      </div>
+        </Button>
+      </Surface>
 
-      <div className="flex items-center gap-2 bg-white px-6 py-3">
+      <Surface tone="card" padding="none" className="flex items-center gap-2 rounded-none border-x-0 border-t-0 px-6 py-3">
         {FILTER_TABS.map((tab) => (
-          <button
+          <Button
             key={tab}
-            type="button"
             onClick={() => setActiveFilter(tab)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
-              activeFilter === tab
-                ? 'bg-mint-500 text-white shadow-sm'
-                : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-            }`}
+            tone={activeFilter === tab ? 'primary' : 'secondary'}
+            size="sm"
+            className={activeFilter === tab ? 'shadow-sm' : ''}
           >
             {t(`NotificationPanel.filters.${tab}`, {
               defaultValue: tab,
             })}
-          </button>
+          </Button>
         ))}
-      </div>
+      </Surface>
 
       <ScrollShell
         className="min-h-0 flex-1"
         contentClassName="mx-auto max-w-2xl space-y-3 px-6 py-4"
       >
         {notificationsQuery.isPending && items.length === 0 ? (
-          <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
+          <Surface tone="card" elevation="base" className="rounded-2xl p-8 text-center text-sm text-gray-400">
             <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
             {t('NotificationPanel.loading', { defaultValue: 'Loading notifications...' })}
-          </div>
+          </Surface>
         ) : null}
 
         {notificationsQuery.isError && items.length === 0 ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">
+          <Surface tone="card" elevation="base" className="rounded-2xl border-red-200 bg-red-50 p-8 text-center text-sm text-red-700">
             {t('NotificationPanel.loadError', { defaultValue: 'Failed to load notifications' })}
-          </div>
+          </Surface>
         ) : null}
 
         {!notificationsQuery.isPending && !notificationsQuery.isError && filteredItems.length === 0 ? (
-          <div className="rounded-2xl bg-white p-8 text-center text-sm text-gray-400">
+          <Surface tone="card" elevation="base" className="rounded-2xl p-8 text-center text-sm text-gray-400">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -629,7 +633,7 @@ export function NotificationPanel() {
               </svg>
             </div>
             {t('NotificationPanel.empty', { defaultValue: 'No notifications' })}
-          </div>
+          </Surface>
         ) : null}
 
         {filteredItems.map((item) => {
@@ -645,7 +649,7 @@ export function NotificationPanel() {
           );
 
           return (
-            <div
+            <Surface
               key={item.id}
               onClick={() => {
                 if (!itemBusy) {
@@ -655,9 +659,12 @@ export function NotificationPanel() {
                   void markOneRead(item.id);
                 }
               }}
-              className={`group relative cursor-pointer rounded-2xl p-4 transition-all duration-200 ${
-                item.isRead ? 'bg-white' : 'bg-mint-50/60'
-              } ${itemBusy ? 'pointer-events-none' : ''}`}
+              tone="card"
+              elevation="base"
+              padding="none"
+              interactive={!itemBusy}
+              active={!item.isRead}
+              className={`group relative cursor-pointer rounded-2xl p-4 ${itemBusy ? 'pointer-events-none' : ''}`}
             >
               {!item.isRead ? (
                 <div className="absolute right-4 top-4 h-2.5 w-2.5 rounded-full bg-mint-500 shadow-sm" />
@@ -734,24 +741,23 @@ export function NotificationPanel() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Surface>
           );
         })}
 
         {notificationsQuery.hasNextPage ? (
           <div className="flex justify-center pt-2">
-            <button
-              type="button"
+            <Button
+              tone="secondary"
               onClick={() => {
                 void loadMore();
               }}
               disabled={notificationsQuery.isFetchingNextPage}
-              className="rounded-xl bg-white px-5 py-2.5 text-sm font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
               {notificationsQuery.isFetchingNextPage
                 ? t('NotificationPanel.loadingMore', { defaultValue: 'Loading...' })
                 : t('NotificationPanel.loadMore', { defaultValue: 'Load More' })}
-            </button>
+            </Button>
           </div>
         ) : null}
       </ScrollShell>
@@ -784,6 +790,6 @@ export function NotificationPanel() {
           }}
         />
       ) : null}
-    </div>
+    </Surface>
   );
 }

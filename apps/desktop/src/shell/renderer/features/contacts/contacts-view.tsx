@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { Surface } from '@renderer/components/surface.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
@@ -23,19 +25,19 @@ function SkeletonBlock(props: { className: string }) {
 
 function ContactsLoadingSkeleton() {
   return (
-    <div className="flex h-full bg-[#F5F7FA]">
-      <aside className="relative flex w-[320px] shrink-0 flex-col bg-[#F8F9FB]">
+    <Surface tone="canvas" padding="none" className="flex h-full rounded-none border-0">
+      <Surface as="aside" tone="panel" padding="none" className="relative flex w-[320px] shrink-0 flex-col rounded-none border-y-0 border-l-0 border-r border-slate-200">
         <div className="flex h-14 shrink-0 items-center px-4">
           <SkeletonBlock className="h-7 w-28 rounded-lg" />
         </div>
 
         <div className="px-3 pb-4">
           <div className="flex h-10 items-center gap-2">
-            <div className="flex h-10 flex-1 items-center rounded-full bg-white px-4 shadow-sm">
+            <Surface tone="card" elevation="base" padding="none" className="flex h-10 flex-1 items-center rounded-full border-transparent px-4">
               <SkeletonBlock className="h-4 w-4 shrink-0" />
               <SkeletonBlock className="ml-3 h-4 w-36 rounded-md" />
-            </div>
-            <SkeletonBlock className="h-10 w-10 rounded-[12px]" />
+            </Surface>
+            <SkeletonBlock className="h-10 w-10 rounded-xl" />
           </div>
         </div>
 
@@ -44,7 +46,7 @@ function ContactsLoadingSkeleton() {
           contentClassName="space-y-3 px-3 py-2"
         >
           {Array.from({ length: 6 }).map((_, index) => (
-            <div key={`contacts-skeleton-row-${index}`} className="rounded-2xl bg-white/80 p-3 shadow-sm">
+            <Surface key={`contacts-skeleton-row-${index}`} tone="card" elevation="base" className="rounded-2xl p-3">
               <div className="flex items-center gap-3">
                 <SkeletonBlock className="h-11 w-11 shrink-0" />
                 <div className="min-w-0 flex-1 space-y-2">
@@ -52,12 +54,12 @@ function ContactsLoadingSkeleton() {
                   <SkeletonBlock className="h-3 w-32 rounded-md" />
                 </div>
               </div>
-            </div>
+            </Surface>
           ))}
         </ScrollShell>
-      </aside>
+      </Surface>
 
-      <main className="flex min-w-0 flex-1 flex-col bg-white p-8">
+      <Surface as="main" tone="card" padding="none" className="flex min-w-0 flex-1 flex-col rounded-none border-0 p-8">
         <div className="mx-auto flex h-full w-full max-w-3xl flex-col">
           <div className="mb-8 flex items-center gap-4">
             <SkeletonBlock className="h-20 w-20 shrink-0" />
@@ -91,8 +93,8 @@ function ContactsLoadingSkeleton() {
             <SkeletonBlock className="h-11 w-28 rounded-xl" />
           </div>
         </div>
-      </main>
-    </div>
+      </Surface>
+    </Surface>
   );
 }
 
@@ -419,17 +421,21 @@ export function ContactsView(props: ContactsViewProps) {
 
   if (props.error) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#F5F7FA]">
+      <Surface tone="canvas" padding="none" className="flex h-full items-center justify-center rounded-none border-0">
         <span className="text-sm text-red-600">{t('Contacts.loadError')}</span>
-      </div>
+      </Surface>
     );
   }
 
   return (
-    <div ref={containerRef} className="flex h-full bg-[#F5F7FA]">
+    <div ref={containerRef} className="nimi-surface nimi-surface--canvas flex h-full rounded-none border-0">
       {/* 左侧联系人列表 */}
-      <aside
-        className="relative flex shrink-0 flex-col bg-[#F8F9FB]"
+      <Surface
+        as="aside"
+        tone="panel"
+        elevation="base"
+        padding="none"
+        className="relative flex shrink-0 flex-col rounded-none border-y-0 border-l-0 border-r border-slate-200"
         style={{ width: `${sidebarWidth}px` }}
       >
         {/* 顶部标题 */}
@@ -440,7 +446,7 @@ export function ContactsView(props: ContactsViewProps) {
         {/* 搜索框 */}
         <div className="px-3 pb-3">
           <div className="flex h-10 items-center gap-2">
-            <div className="flex h-10 min-w-0 max-w-[268px] flex-1 items-center rounded-full bg-white px-4 shadow-sm">
+            <Surface tone="card" elevation="base" padding="none" className="flex h-10 min-w-0 max-w-[268px] flex-1 items-center rounded-full border-transparent px-4">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 self-center">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -453,36 +459,38 @@ export function ContactsView(props: ContactsViewProps) {
               />
               {/* 清除按钮 */}
               {props.searchText && (
-                <button
-                  type="button"
+                <IconButton
+                  icon={(
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  )}
+                  size="sm"
                   onClick={() => {
                     props.onSearchTextChange('');
                     setSelectedContact(null);
                     setSelectedRequest(null);
                     setSelectedCategory(null);
                   }}
-                  className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="ml-1 h-6 w-6 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                   title={t('Home.clear', { defaultValue: 'Clear' })}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
+                />
               )}
-            </div>
+            </Surface>
             <Tooltip content={t('Contacts.addContact', { defaultValue: 'Add Friend' })} placement="bottom">
-              <button
-                type="button"
+              <IconButton
                 onClick={props.onOpenAddContact}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#4ECCA3] text-white shadow-[0_8px_20px_rgba(78,204,163,0.28)] transition-all hover:bg-[#41b992] hover:shadow-[0_10px_24px_rgba(78,204,163,0.34)]"
+                tone="primary"
+                icon={(
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" className="self-center">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                )}
+                className="h-10 w-10 shrink-0"
                 aria-label={t('Contacts.addContact', { defaultValue: 'Add Friend' })}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" className="self-center">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </button>
+              />
             </Tooltip>
           </div>
         </div>
@@ -535,7 +543,7 @@ export function ContactsView(props: ContactsViewProps) {
           onMouseDown={startResize}
           className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />
-      </aside>
+      </Surface>
 
       {/* 右侧详情区 - 使用共享 profile 详情页 */}
       <ScrollShell

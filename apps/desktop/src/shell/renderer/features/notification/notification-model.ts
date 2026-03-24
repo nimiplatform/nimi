@@ -184,9 +184,11 @@ export function toNotificationListView(
     .map((item) => toNotificationItemView(item, fallbackTitle, fallbackActorName))
     .filter((item): item is NotificationItemView => item !== null);
 
+  const nextCursor = toStringValue(raw?.page?.nextCursor).trim() || null;
+
   return {
     items,
-    nextCursor: toStringValue(raw?.page?.nextCursor).trim() || null,
-    hasNext: raw?.page?.hasNext === true,
+    nextCursor,
+    hasNext: nextCursor !== null,
   };
 }

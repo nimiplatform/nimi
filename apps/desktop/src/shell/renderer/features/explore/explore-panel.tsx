@@ -284,7 +284,7 @@ export function ExplorePanel() {
     queryFn: async () => {
       const tag = selectedCategory || undefined;
       const query = searchText.trim() || undefined;
-      return dataSync.callApi((realm) => realm.services.SearchService.searchUsers(
+      return dataSync.callApi((realm) => realm.services.SearchService.searchIndexedUsers(
         PAGE_SIZE,
         undefined,
         undefined,

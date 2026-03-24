@@ -393,7 +393,7 @@ export async function loadNotificationUnreadCount(
 ): Promise<UnreadNotificationCountDto> {
   try {
     return await callApi(
-      (realm) => realm.services.NotificationService.getUnreadCount(),
+      (realm) => realm.services.NotificationsService.getUnreadCount(),
       '加载通知未读数失败',
     );
   } catch (error) {
@@ -414,7 +414,7 @@ export async function loadNotifications(
 ): Promise<NotificationListResultDto> {
   try {
     return await callApi(
-      (realm) => realm.services.NotificationService.listNotifications(
+      (realm) => realm.services.NotificationsService.listNotifications(
         options?.type,
         options?.unreadOnly,
         options?.limit,
@@ -440,7 +440,7 @@ export async function markNotificationsRead(
 ) {
   try {
     await callApi(
-      (realm) => realm.services.NotificationService.markNotificationsRead(input),
+      (realm) => realm.services.NotificationsService.markNotificationsRead(input),
       '标记通知已读失败',
     );
     return { ok: true };
@@ -464,7 +464,7 @@ export async function markNotificationRead(
   }
   try {
     await callApi(
-      (realm) => realm.services.NotificationService.markNotificationRead(normalizedId),
+      (realm) => realm.services.NotificationsService.markNotificationRead(normalizedId),
       '标记通知已读失败',
     );
     return { id: normalizedId };

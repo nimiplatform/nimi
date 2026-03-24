@@ -41,7 +41,7 @@ function installBrowserGlobals(): () => void {
 
 import { checkDaemonVersion } from '../src/shell/renderer/infra/bootstrap/version-check';
 
-let restoreBrowserGlobals = () => undefined;
+let restoreBrowserGlobals: () => void = () => {};
 
 test.beforeEach(() => {
   restoreBrowserGlobals = installBrowserGlobals();

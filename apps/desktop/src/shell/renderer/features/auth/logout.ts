@@ -10,12 +10,20 @@ type LogoutAndClearSessionInput = {
   setStatusBanner: AppStoreState['setStatusBanner'];
 };
 
+type LogoutTranslate = (
+  key: string,
+  options?: {
+    defaultValue?: string;
+    error?: string;
+  },
+) => string;
+
 type LogoutDependencies = {
   logout: () => Promise<void>;
   clearPersistedAccessToken: () => void;
   clearAllStreams: () => void;
   clearQueryClient: () => void;
-  translate: typeof i18n.t;
+  translate: LogoutTranslate;
 };
 
 const defaultLogoutDependencies: LogoutDependencies = {

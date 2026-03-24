@@ -42,8 +42,8 @@ export function PostFeedWithMediaPreview({
   return (
     <div className="space-y-8">
       <section className={isMasonryLayout
-        ? 'columns-1 gap-6 min-[980px]:columns-2'
-        : 'grid grid-cols-1 items-start gap-6 min-[980px]:grid-cols-2'}
+        ? 'columns-1 gap-6 sm:columns-2'
+        : 'grid grid-cols-1 items-start gap-6 sm:grid-cols-2'}
       >
         {posts.map((post) => (
           <div
@@ -62,7 +62,7 @@ export function PostFeedWithMediaPreview({
           </div>
         ))}
         {loadingMore ? (
-          <div className={isMasonryLayout ? 'mb-6 break-inside-avoid' : 'min-[980px]:col-span-2'}>
+          <div className={isMasonryLayout ? 'mb-6 break-inside-avoid' : 'sm:col-span-2'}>
             {skeleton}
           </div>
         ) : null}

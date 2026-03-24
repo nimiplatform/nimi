@@ -1,6 +1,9 @@
+import { Button } from '@renderer/components/action.js';
 import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { OverlayShell } from '@renderer/components/overlay.js';
+import { Surface } from '@renderer/components/surface.js';
 import type { ContactRecord } from './contacts-model.js';
 
 function getBlockedContactPalette(contact: ContactRecord) {
@@ -59,22 +62,29 @@ function BlockedContactRow({
   const palette = getBlockedContactPalette(contact);
 
   return (
-    <button
-      type="button"
+    <Surface
+      role="button"
+      tabIndex={0}
+      tone={isSelected ? 'panel' : 'card'}
+      elevation="base"
+      interactive
+      active={isSelected}
+      className="mx-1 flex w-auto items-center gap-3 rounded-lg px-3 py-2.5 text-left text-gray-700"
       onClick={onSelect}
-      className={`mx-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all duration-150 ${
-        isSelected
-          ? 'bg-mint-50 text-mint-700'
-          : 'text-gray-700 hover:bg-mint-50/50'
-      }`}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <EntityAvatar
         imageUrl={contact.avatarUrl}
         name={contact.displayName}
         kind={contact.isAgent ? 'agent' : 'human'}
         sizeClassName="h-10 w-10"
-        radiusClassName={contact.isAgent ? 'rounded-[10px]' : undefined}
-        innerRadiusClassName={contact.isAgent ? 'rounded-[8px]' : undefined}
+        radiusClassName={contact.isAgent ? 'rounded-lg' : undefined}
+        innerRadiusClassName={contact.isAgent ? 'rounded-md' : undefined}
         textClassName="text-sm font-medium"
       />
       <div className="min-w-0 flex-1 text-left">
@@ -85,17 +95,17 @@ function BlockedContactRow({
           </div>
         ) : null}
       </div>
-      <button
-        type="button"
+      <Button
+        tone="primary"
+        size="sm"
         onClick={(event) => {
           event.stopPropagation();
           onUnblock();
         }}
-        className="rounded-lg bg-[#4ECCA3] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#3DBA92]"
       >
         {i18n.t('Contacts.restore', { defaultValue: 'Restore' })}
-      </button>
-    </button>
+      </Button>
+    </Surface>
   );
 }
 
@@ -109,34 +119,28 @@ export function BlockConfirmDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900">
-          {i18n.t('Contacts.blockContact', { defaultValue: 'Block Contact' })}
-        </h3>
-        <p className="mb-6 text-sm text-gray-500">
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onCancel}
+      title={<h3 className="text-lg font-semibold text-gray-900">{i18n.t('Contacts.blockContact', { defaultValue: 'Block Contact' })}</h3>}
+      footer={(
+        <div className="flex justify-end gap-3">
+          <Button tone="ghost" onClick={onCancel}>
+            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+          </Button>
+          <Button tone="secondary" onClick={onConfirm} className="bg-gray-700 text-white hover:bg-gray-800 hover:text-white">
+            {i18n.t('Contacts.block', { defaultValue: 'Block' })}
+          </Button>
+        </div>
+      )}
+    >
+      <p className="text-sm text-gray-500">
           {i18n.t('Contacts.blockConfirmMessagePrefix', { defaultValue: 'Are you sure you want to block' })}{' '}
           <span className="font-medium text-gray-700">{contact.displayName}</span>
           ? {i18n.t('Contacts.blockConfirmMessageSuffix', { defaultValue: 'They will be moved to Blocks.' })}
-        </p>
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
-          >
-            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-full bg-gray-700 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-          >
-            {i18n.t('Contacts.block', { defaultValue: 'Block' })}
-          </button>
-        </div>
-      </div>
-    </div>
+      </p>
+    </OverlayShell>
   );
 }
 
@@ -150,33 +154,27 @@ export function UnblockConfirmDialog({
   onCancel: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
-        <h3 className="mb-2 text-lg font-semibold text-gray-900">
-          {i18n.t('Contacts.restoreContact', { defaultValue: 'Restore Contact' })}
-        </h3>
-        <p className="mb-6 text-sm text-gray-500">
+    <OverlayShell
+      open
+      kind="dialog"
+      onClose={onCancel}
+      title={<h3 className="text-lg font-semibold text-gray-900">{i18n.t('Contacts.restoreContact', { defaultValue: 'Restore Contact' })}</h3>}
+      footer={(
+        <div className="flex justify-end gap-3">
+          <Button tone="ghost" onClick={onCancel}>
+            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
+          </Button>
+          <Button tone="primary" onClick={onConfirm}>
+            {i18n.t('Contacts.restore', { defaultValue: 'Restore' })}
+          </Button>
+        </div>
+      )}
+    >
+      <p className="text-sm text-gray-500">
           {i18n.t('Contacts.restoreConfirmMessagePrefix', { defaultValue: 'Restore' })}{' '}
           <span className="font-medium text-gray-700">{contact.displayName}</span>{' '}
           {i18n.t('Contacts.restoreConfirmMessageSuffix', { defaultValue: 'to their previous category?' })}
-        </p>
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-full px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100"
-          >
-            {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-lg bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#3DBA92]"
-          >
-            {i18n.t('Contacts.restore', { defaultValue: 'Restore' })}
-          </button>
-        </div>
-      </div>
-    </div>
+      </p>
+    </OverlayShell>
   );
 }

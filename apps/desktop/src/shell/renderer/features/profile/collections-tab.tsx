@@ -204,7 +204,7 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
 
   if (loadingInitial) {
     return (
-      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
         <CollectionSkeleton />
         <CollectionSkeleton />
         <CollectionSkeleton />

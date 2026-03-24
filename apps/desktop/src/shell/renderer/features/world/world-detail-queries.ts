@@ -9,7 +9,6 @@ import type {
   WorldLorebookItem,
   WorldMediaBindingItem,
   WorldPublicAssetsData,
-  WorldSceneItem,
   WorldSemanticData,
   WorldSemanticLanguage,
   WorldSemanticLevel,

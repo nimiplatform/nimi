@@ -94,7 +94,6 @@ describe('notification model mapping', () => {
         },
       ],
       page: {
-        hasNext: true,
         nextCursor: 'cursor-2',
       },
     }, 'Notification', 'Unknown');
@@ -132,7 +131,6 @@ describe('notification model mapping', () => {
         },
       ],
       page: {
-        hasNext: false,
         nextCursor: null,
       },
     }, 'Notification', 'Unknown');

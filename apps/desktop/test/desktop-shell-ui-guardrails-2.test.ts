@@ -10,11 +10,16 @@ function readSource(relativePath: string): string {
 
 const addFriendModalSource = readSource('../src/shell/renderer/features/home/add-friend-modal.tsx');
 const addContactModalSource = readSource('../src/shell/renderer/features/contacts/add-contact-modal.tsx');
-const exploreCardsSource = readSource('../src/shell/renderer/features/explore/explore-cards.tsx');
 const explorePanelSource = readSource('../src/shell/renderer/features/explore/explore-panel.tsx');
 const contactsViewSource = readSource('../src/shell/renderer/features/contacts/contacts-view.tsx');
 const contactsFriendRequestsSource = readSource('../src/shell/renderer/features/contacts/contacts-friend-requests.tsx');
+const homeViewSource = readSource('../src/shell/renderer/features/home/home-view.tsx');
+const notificationPanelSource = readSource('../src/shell/renderer/features/notification/notification-panel.tsx');
+const notificationRejectDialogSource = readSource('../src/shell/renderer/features/notification/notification-reject-gift-dialog.tsx');
 const postCardSource = readSource('../src/shell/renderer/features/home/post-card.tsx');
+const contactDetailTabsSource = readSource('../src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
+const profilePostFeedSource = readSource('../src/shell/renderer/features/profile/post-feed-with-media-preview.tsx');
+const profilePostsTabSource = readSource('../src/shell/renderer/features/profile/posts-tab.tsx');
 
 test('top agent cards sanitize banner URLs before interpolating them into background images', () => {
   const previousWindow = globalThis.window;
@@ -68,4 +73,30 @@ test('contacts view no longer relies on a non-null assertion for selected profil
 
 test('contacts friend requests view does not carry an unused React default import', () => {
   assert.doesNotMatch(contactsFriendRequestsSource, /import React from 'react'/);
+});
+
+test('home and notification surfaces route shared design through renderer primitives', () => {
+  assert.match(homeViewSource, /@renderer\/components\/surface\.js/);
+  assert.match(homeViewSource, /@renderer\/components\/action\.js/);
+  assert.match(notificationPanelSource, /@renderer\/components\/surface\.js/);
+  assert.match(notificationPanelSource, /@renderer\/components\/action\.js/);
+  assert.match(notificationRejectDialogSource, /@renderer\/components\/overlay\.js/);
+  assert.match(notificationRejectDialogSource, /@renderer\/components\/action\.js/);
+});
+
+test('profile post feeds keep a stable two-column breakpoint instead of a late private width threshold', () => {
+  assert.match(profilePostFeedSource, /sm:grid-cols-2/);
+  assert.match(profilePostFeedSource, /sm:columns-2/);
+  assert.doesNotMatch(profilePostFeedSource, /min-\[980px\]:(grid-cols-2|columns-2|col-span-2)/);
+  assert.match(profilePostsTabSource, /sm:grid-cols-2/);
+  assert.doesNotMatch(profilePostsTabSource, /min-\[980px\]:grid-cols-2/);
+});
+
+test('contact detail feed tabs use stable grid layout instead of masonry in profile detail surfaces', () => {
+  assert.match(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="grid" \/>/);
+  assert.doesNotMatch(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="masonry" \/>/);
+  assert.match(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} canManageSavedPosts=\{isOwnProfile\} layout="grid" \/>/);
+  assert.doesNotMatch(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} canManageSavedPosts=\{isOwnProfile\} layout="masonry" \/>/);
+  assert.match(contactDetailTabsSource, /<LikesTab profileId=\{profileId\} layout="grid" \/>/);
+  assert.doesNotMatch(contactDetailTabsSource, /<LikesTab profileId=\{profileId\} layout="masonry" \/>/);
 });

@@ -7,10 +7,6 @@ import {
   loadSparkPackages,
 } from '../src/runtime/data-sync/flows/economy-notification-flow';
 
-const economyFlowSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../src/runtime/data-sync/flows/economy-notification-flow.ts'),
-  'utf8',
-);
 const facadeActionsSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/runtime/data-sync/facade-actions.ts'),
   'utf8',

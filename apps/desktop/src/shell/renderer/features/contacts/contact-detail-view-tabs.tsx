@@ -50,13 +50,13 @@ function renderTabPanel(
   let content: ReactNode;
   switch (tab) {
     case 'Posts':
-      content = <PostsTab profileId={profileId} layout="masonry" />;
+      content = <PostsTab profileId={profileId} layout="grid" />;
       break;
     case 'Collections':
-      content = <CollectionsTab profileId={profileId} canManageSavedPosts={isOwnProfile} layout="masonry" />;
+      content = <CollectionsTab profileId={profileId} canManageSavedPosts={isOwnProfile} layout="grid" />;
       break;
     case 'Likes':
-      content = <LikesTab profileId={profileId} layout="masonry" />;
+      content = <LikesTab profileId={profileId} layout="grid" />;
       break;
     case 'Gifts':
       content = <GiftsTab />;

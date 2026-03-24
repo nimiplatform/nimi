@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { Surface } from '@renderer/components/surface.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
@@ -18,16 +19,21 @@ function ChatSkeletonBlock(props: { className: string }) {
 
 function ChatListLoadingSkeleton() {
   return (
-    <div data-testid={E2E_IDS.chatList} className="flex h-full flex-col bg-[#F8F9FB]">
+    <Surface
+      data-testid={E2E_IDS.chatList}
+      tone="canvas"
+      padding="none"
+      className="flex h-full flex-col rounded-none border-0"
+    >
       <div className="flex h-14 shrink-0 items-center justify-between px-4">
         <ChatSkeletonBlock className="h-7 w-20 rounded-lg" />
       </div>
 
       <div className="px-3 pb-3">
-        <div className="flex h-10 w-full items-center rounded-full bg-white px-4 shadow-sm">
+        <Surface tone="card" elevation="base" padding="none" className="flex h-10 w-full items-center rounded-full border-transparent px-4">
           <ChatSkeletonBlock className="h-4 w-4 shrink-0" />
           <ChatSkeletonBlock className="ml-3 h-4 w-40 rounded-md" />
-        </div>
+        </Surface>
       </div>
 
       <ScrollShell
@@ -35,7 +41,7 @@ function ChatListLoadingSkeleton() {
         contentClassName="space-y-2 px-3 py-2 pb-3"
       >
         {Array.from({ length: 8 }).map((_, index) => (
-          <div key={`chat-skeleton-row-${index}`} className="flex gap-3 rounded-lg bg-white p-3 shadow-sm">
+          <Surface key={`chat-skeleton-row-${index}`} tone="card" elevation="base" className="flex gap-3">
             <ChatSkeletonBlock className="h-12 w-12 shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-3">
@@ -44,10 +50,10 @@ function ChatListLoadingSkeleton() {
               </div>
               <ChatSkeletonBlock className="mt-2 h-3.5 w-5/6 rounded-md" />
             </div>
-          </div>
+          </Surface>
         ))}
       </ScrollShell>
-    </div>
+    </Surface>
   );
 }
 
@@ -175,15 +181,15 @@ export function ChatList() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-[#F8F9FB]">
+    <Surface tone="canvas" padding="none" className="flex h-full flex-col rounded-none border-0">
       {/* Header */}
-      <div className="flex h-14 items-center justify-between px-4 shrink-0">
+      <div className="flex h-14 shrink-0 items-center justify-between px-4">
         <h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Chat.title')}</h1>
       </div>
 
       {/* Top row: search only */}
       <div className="px-3 pb-3">
-        <div className="flex h-10 w-full items-center rounded-full bg-white px-4 shadow-sm">
+        <Surface tone="card" elevation="base" padding="none" className="flex h-10 w-full items-center rounded-full border-transparent px-4">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -195,7 +201,7 @@ export function ChatList() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
           />
-        </div>
+        </Surface>
       </div>
 
       {/* List */}
@@ -212,14 +218,16 @@ export function ChatList() {
             const unread = Number(chat.unreadCount || 0);
             const timeLabel = formatChatTime(chat.lastMessageAt);
             return (
-              <div
+              <Surface
+                as="button"
                 key={chat.id}
+                type="button"
                 data-testid={E2E_IDS.chatRow(String(chat.id))}
-                className={`flex w-full cursor-pointer gap-3 rounded-lg border p-3 text-left transition-all ${
-                  active 
-                    ? 'border-transparent bg-mint-50 shadow-sm' 
-                    : 'border-transparent hover:bg-mint-50/50'
-                }`}
+                tone={active ? 'panel' : 'card'}
+                elevation="base"
+                interactive
+                active={active}
+                className="flex w-full gap-3 border-transparent p-3 text-left"
                 onClick={() => {
                   // Check if avatar was clicked, if so, don't process this click
                   if (avatarClickedRef.current) {
@@ -275,11 +283,11 @@ export function ChatList() {
                     {getChatPreview(chat, t('Chat.noMessages'))}
                   </p>
                 </div>
-              </div>
+              </Surface>
             );
           })
         )}
       </ScrollShell>
-    </div>
+    </Surface>
   );
 }

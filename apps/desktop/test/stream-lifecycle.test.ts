@@ -50,7 +50,7 @@ import {
 } from '../src/shell/renderer/features/turns/stream-controller';
 
 const TEST_CHAT = 'test-chat-stream';
-let restoreBrowserGlobals = () => undefined;
+let restoreBrowserGlobals: () => void = () => {};
 
 test.beforeEach(() => {
   restoreBrowserGlobals = installBrowserGlobals();

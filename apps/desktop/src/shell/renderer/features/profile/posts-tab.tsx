@@ -119,7 +119,7 @@ export function PostsTab({ profileId, layout = 'grid' }: PostsTabProps) {
 
   if (loadingInitial) {
     return (
-      <div className="grid grid-cols-1 items-start gap-6 min-[980px]:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
         <PostSkeleton />
         <PostSkeleton />
         <PostSkeleton />
