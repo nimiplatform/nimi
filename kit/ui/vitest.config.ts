@@ -11,10 +11,14 @@ export default defineConfig({
       { find: 'react-dom/client', replacement: path.resolve(__dirname, '../../apps/desktop/node_modules/react-dom/client.js') },
       { find: 'react-dom', replacement: path.resolve(__dirname, '../../apps/desktop/node_modules/react-dom/index.js') },
       { find: 'react', replacement: path.resolve(__dirname, '../../apps/desktop/node_modules/react/index.js') },
+      { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, './src/index.ts') },
+      { find: '@nimiplatform/nimi-kit/features/chat', replacement: path.resolve(__dirname, '../features/chat/src') },
+      { find: '@nimiplatform/nimi-kit/features/model-picker', replacement: path.resolve(__dirname, '../features/model-picker/src') },
+      { find: '@nimiplatform/nimi-kit/features/generation', replacement: path.resolve(__dirname, '../features/generation/src') },
     ],
   },
   test: {
-    environment: 'node',
-    include: ['ui/test/**/*.test.tsx'],
+    environment: 'jsdom',
+    include: ['**/test/**/*.test.ts', '**/test/**/*.test.tsx'],
   },
 });

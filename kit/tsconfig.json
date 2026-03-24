@@ -1,5 +1,21 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@nimiplatform/nimi-kit/ui": ["./ui/src/index.ts"],
+      "@nimiplatform/nimi-kit/ui/*": ["./ui/src/*"],
+      "@nimiplatform/nimi-kit/auth": ["./auth/src/index.ts"],
+      "@nimiplatform/nimi-kit/auth/*": ["./auth/src/*"],
+      "@nimiplatform/nimi-kit/core/*": ["./core/src/*"],
+      "@nimiplatform/nimi-kit/telemetry": ["./telemetry/src/telemetry/index.ts"],
+      "@nimiplatform/nimi-kit/telemetry/*": ["./telemetry/src/*"],
+      "@nimiplatform/nimi-kit/features/chat": ["./features/chat/src/index.ts"],
+      "@nimiplatform/nimi-kit/features/chat/*": ["./features/chat/src/*"],
+      "@nimiplatform/nimi-kit/features/model-picker": ["./features/model-picker/src/index.ts"],
+      "@nimiplatform/nimi-kit/features/model-picker/*": ["./features/model-picker/src/*"],
+      "@nimiplatform/nimi-kit/features/generation": ["./features/generation/src/index.ts"],
+      "@nimiplatform/nimi-kit/features/generation/*": ["./features/generation/src/*"]
+    },
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -12,7 +28,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "types": ["node"]
+    "types": ["node", "react", "react-dom"]
   },
   "include": [
     "ui/src/**/*.ts",
@@ -23,6 +39,8 @@
     "auth/src/**/*.tsx",
     "auth/src/**/*.d.ts",
     "core/src/**/*.ts",
+    "features/**/*.ts",
+    "features/**/*.tsx",
     "telemetry/src/**/*.ts",
     "telemetry/src/**/*.tsx",
     "telemetry/src/**/*.d.ts"
