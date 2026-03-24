@@ -263,6 +263,4 @@ When entering compare mode, the grid smoothly morphs into a two-panel split:
   border-left: 2px solid var(--ot-violet-400);
 }
 ```
-
 ---
-

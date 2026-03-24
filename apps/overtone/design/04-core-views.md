@@ -362,6 +362,4 @@ Checkbox uses `--ot-violet-400` fill when checked.
 | Creating post | Publish button → spinner + "Creating post..." |
 | Done | Confetti-like sparkle animation, "Published!" with post link |
 | Error | Red border on form, error message below publish button |
-
 ---
-

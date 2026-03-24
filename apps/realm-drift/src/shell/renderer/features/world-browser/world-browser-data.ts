@@ -64,6 +64,13 @@ export type WorldLorebook = {
   constant?: boolean;
 };
 
+export type WorldScene = {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+};
+
 function requireNonEmptyString(value: unknown, code: string): string {
   if (typeof value !== 'string') {
     throw new Error(code);

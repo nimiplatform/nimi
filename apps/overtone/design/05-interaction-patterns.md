@@ -132,6 +132,4 @@ Right-click on a Take card opens a native-style context menu:
 - Separator: 1px `var(--ot-surface-5)`, 4px margin vertical
 - Destructive items ("Discard"): `var(--ot-error)` text
 - Keyboard nav: Arrow keys to move, Enter to select, Esc to close
-
 ---
-

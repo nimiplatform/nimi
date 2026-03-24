@@ -23,6 +23,4 @@ interactive, generative, or "alive" element in the UI.
 | **Quiet until active** | Idle states are subdued. Active/generating states introduce motion, glow, and saturation. The UI "wakes up" when creating. |
 | **Studio, not dashboard** | No cards-on-a-grid admin layout. The spatial arrangement mirrors a mixing console: controls left, output center/right, transport bottom. |
 | **Typography does work** | Large type for titles, monospace for timecodes, tight tracking for labels. Type carries hierarchy, not boxes. |
-
 ---
-

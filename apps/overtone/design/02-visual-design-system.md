@@ -156,6 +156,4 @@ Replace animations with instant transitions; replace continuous glow with static
   }
 }
 ```
-
 ---
-

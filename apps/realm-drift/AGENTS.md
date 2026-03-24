@@ -12,7 +12,7 @@
 - Marble 3D visualization is rendered via external iframe. Do not embed rendering logic.
 
 ## Retrieval Defaults
-- Start in `apps/realm-drift/src/shell/renderer`, `apps/realm-drift/src/runtime`, `apps/realm-drift/src-tauri/src`.
+- Start in `apps/realm-drift/src/shell/renderer` and `apps/realm-drift/src-tauri/src`.
 - Skip `apps/realm-drift/src-tauri/gen/**`, `dist/**`, and large asset bundles.
 
 ## Verification Commands

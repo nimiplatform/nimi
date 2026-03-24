@@ -86,6 +86,4 @@ It houses playback controls and the waveform visualization.
 - **Shadow**: `var(--ot-shadow-transport)` — subtle top-edge light line
 - **Layout**: See [Section 4.4](#44-transport-bar) for full spec
 - **z-index**: 50 (above Stage scroll content)
-
 ---
-
