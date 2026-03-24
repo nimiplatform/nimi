@@ -1,6 +1,8 @@
 ﻿import { useState } from 'react';
-import { formatLocaleDate, formatLocaleNumber, i18n } from '@renderer/i18n';
+import { OverlayShell } from '@renderer/components/overlay.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { formatLocaleDate, formatLocaleNumber, i18n } from '@renderer/i18n';
 
 // Mock data for gift feed
 const MOCK_GIFT_FEED = [
@@ -439,17 +441,15 @@ function TopSupportersModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div className="relative w-full max-w-md bg-white rounded-[28px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-gray-100">
+    <OverlayShell
+      open={isOpen}
+      kind="dialog"
+      onClose={onClose}
+      dataTestId={E2E_IDS.profileTopSupportersDialog}
+      panelClassName="max-w-md overflow-hidden rounded-[28px] animate-in fade-in zoom-in duration-200"
+      contentClassName="p-0"
+      title={(
+        <div className="px-1">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold text-gray-900">
@@ -470,9 +470,10 @@ function TopSupportersModal({
             </button>
           </div>
         </div>
+      )}
+    >
 
-        {/* Supporters List */}
-            <ScrollShell className="max-h-[400px]" viewportClassName="max-h-[400px]">
+      <ScrollShell className="max-h-[400px]" viewportClassName="max-h-[400px]">
           {MOCK_TOP_SUPPORTERS.map((supporter) => (
             <div 
               key={supporter.id}
@@ -508,20 +509,18 @@ function TopSupportersModal({
               </div>
             </div>
           ))}
-        </ScrollShell>
+      </ScrollShell>
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-          <p className="text-xs text-gray-400 text-center">
-            {i18n.t('Profile.Gifts.totalSupportersFooter', {
-              gems: formatLocaleNumber(MOCK_TOP_SUPPORTERS.reduce((sum, s) => sum + s.gems, 0)),
-              count: MOCK_TOP_SUPPORTERS.length,
-              defaultValue: 'Total {{gems}} Gems from {{count}} supporters',
-            })}
-          </p>
-        </div>
+      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+        <p className="text-xs text-gray-400 text-center">
+          {i18n.t('Profile.Gifts.totalSupportersFooter', {
+            gems: formatLocaleNumber(MOCK_TOP_SUPPORTERS.reduce((sum, s) => sum + s.gems, 0)),
+            count: MOCK_TOP_SUPPORTERS.length,
+            defaultValue: 'Total {{gems}} Gems from {{count}} supporters',
+          })}
+        </p>
       </div>
-    </div>
+    </OverlayShell>
   );
 }
 
@@ -609,4 +608,3 @@ export function GiftsTab() {
     </div>
   );
 }
-

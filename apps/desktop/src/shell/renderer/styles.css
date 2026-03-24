@@ -54,10 +54,16 @@
   --nimi-text-primary: #111827;
   --nimi-text-secondary: #4b5563;
   --nimi-text-muted: #6b7280;
+  --nimi-type-page-title: 1.75rem;
+  --nimi-type-section-title: 1.125rem;
+  --nimi-space-section: 1.5rem;
+  --nimi-space-stack: 1rem;
   --nimi-radius-sm: 10px;
   --nimi-radius-md: 16px;
   --nimi-radius-lg: 22px;
   --nimi-radius-xl: 28px;
+  --nimi-state-selected: rgba(78, 204, 163, 0.12);
+  --nimi-state-danger: rgba(239, 68, 68, 0.14);
   --nimi-elevation-base: 0 8px 24px rgba(15, 23, 42, 0.05);
   --nimi-elevation-raised: 0 14px 32px rgba(15, 23, 42, 0.08);
   --nimi-elevation-floating: 0 18px 40px rgba(15, 23, 42, 0.12);
@@ -281,6 +287,26 @@ textarea {
 .nimi-surface--active {
   background: var(--nimi-surface-active);
   border-color: var(--nimi-border-strong);
+}
+
+.nimi-type--page-title {
+  font-size: var(--nimi-type-page-title);
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.nimi-type--section-title {
+  font-size: var(--nimi-type-section-title);
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.nimi-state--selected {
+  background: var(--nimi-state-selected);
+}
+
+.nimi-state--danger {
+  background: var(--nimi-state-danger);
 }
 
 .nimi-action {

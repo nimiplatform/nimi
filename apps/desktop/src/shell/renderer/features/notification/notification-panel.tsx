@@ -9,6 +9,7 @@ import { Button } from '@renderer/components/action.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Surface } from '@renderer/components/surface.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import {
@@ -559,14 +560,14 @@ export function NotificationPanel() {
 
   if (authStatus !== 'authenticated') {
     return (
-      <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 items-center justify-center rounded-none border-0 text-sm text-gray-500">
+      <Surface data-testid={E2E_IDS.panel('notification')} tone="canvas" padding="none" className="flex min-h-0 flex-1 items-center justify-center rounded-none border-0 text-sm text-gray-500">
         {t('NotificationPanel.loginRequired')}
       </Surface>
     );
   }
 
   return (
-    <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+    <Surface data-testid={E2E_IDS.panel('notification')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
       <Surface tone="card" padding="none" className="flex h-16 shrink-0 items-center justify-between rounded-none border-x-0 border-t-0 px-6">
         <h1 className={`${APP_PAGE_TITLE_CLASS} flex items-center gap-2`}>
           {t('NotificationPanel.title', { defaultValue: 'Notifications' })}

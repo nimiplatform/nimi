@@ -5,6 +5,7 @@ import { IconButton } from '@renderer/components/action.js';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Surface } from '@renderer/components/surface.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';
 import {
@@ -106,7 +107,7 @@ export function ExploreView(props: ExploreViewProps) {
 
   if (props.loading) {
     return (
-      <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+      <Surface data-testid={E2E_IDS.panel('explore')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
         <div className="shrink-0 px-6 py-4">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
             <ExploreSkeletonBlock className="h-9 w-40 rounded-xl" />
@@ -156,7 +157,7 @@ export function ExploreView(props: ExploreViewProps) {
   }
 
   return (
-    <Surface tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+    <Surface data-testid={E2E_IDS.panel('explore')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
       <style>{`
         @keyframes top-agents-slide-forward {
           from { opacity: 0; transform: translateX(18px); }

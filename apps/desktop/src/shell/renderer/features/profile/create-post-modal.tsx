@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
+import { OverlayShell } from '@renderer/components/overlay.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   ACCEPTED_IMAGE_TYPES,
   ACCEPTED_VIDEO_TYPES,
@@ -378,11 +380,17 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleClose}>
+    <OverlayShell
+      open={open}
+      kind="dialog"
+      onClose={handleClose}
+      dataTestId={E2E_IDS.createPostDialog}
+      panelClassName="max-w-lg overflow-hidden rounded-2xl"
+      contentClassName="p-0"
+    >
       <div
-        className="relative mx-4 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
-        onClick={(e) => {
-          e.stopPropagation();
+        className="relative flex max-h-[90vh] w-full flex-col overflow-hidden bg-white shadow-xl"
+        onClick={() => {
           closeAllPanels();
         }}
       >
@@ -468,6 +476,6 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
         tags={tags}
         insertTag={insertTag}
       />
-    </div>
+    </OverlayShell>
   );
 }

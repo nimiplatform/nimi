@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
+import { Button, IconButton } from '@renderer/components/action.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { formatLocaleNumber } from '@renderer/i18n';
+import { OverlayShell } from '@renderer/components/overlay.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   normalizeGiftCatalog,
   resolveSelectedGiftId,
@@ -92,26 +95,25 @@ export function SendGiftModal(props: SendGiftModalProps) {
   const sparkCostLabel = selectedGift ? formatSparkCost(selectedGift.sparkCost) : '--';
 
   return (
-    <div
-      className="fixed inset-0 z-[160] flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onClick={props.onClose}
-    >
-      <div
-        className="relative mx-4 w-full max-w-sm rounded-3xl bg-white shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 py-5">
+    <OverlayShell
+      open={props.open}
+      kind="dialog"
+      onClose={props.onClose}
+      dataTestId={E2E_IDS.sendGiftDialog}
+      panelClassName="max-w-sm rounded-3xl"
+      contentClassName="px-6 pb-6 pt-0"
+      title={(
+        <div className="flex items-center justify-between px-1">
           <h2 className="text-lg font-semibold text-gray-900">{t('GiftSend.sendGift') || 'Send Gift'}</h2>
-          <button
-            type="button"
+          <IconButton
+            icon={<CloseIcon className="h-5 w-5" />}
             onClick={props.onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-          >
-            <CloseIcon className="h-5 w-5" />
-          </button>
+            aria-label={t('Common.close', { defaultValue: 'Close' })}
+            className="h-8 w-8 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+          />
         </div>
-
-        <div className="px-6 pb-6">
+      )}
+    >
           <div className="flex flex-col items-center pb-6">
             <div className="relative">
               <EntityAvatar
@@ -232,14 +234,14 @@ export function SendGiftModal(props: SendGiftModalProps) {
             </div>
           ) : null}
 
-          <button
-            type="button"
+          <Button
+            tone="primary"
             onClick={() => { void handleSend(); }}
             disabled={!selectedGift || isCatalogLoading || isCatalogLoadError || isCatalogEmpty || sending}
-            className={`mt-6 flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold transition ${
+            className={`mt-6 flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3.5 text-sm font-semibold ${
               selectedGift && !isCatalogLoading && !isCatalogLoadError && !isCatalogEmpty && !sending
                 ? 'bg-[#4ECCA3] text-white hover:bg-[#3DBA92] hover:shadow-lg hover:shadow-[#4ECCA3]/25'
-                : 'bg-[#E8EAED] text-gray-400 cursor-not-allowed opacity-60'
+                : 'bg-[#E8EAED] text-gray-400'
             }`}
           >
             {sending ? (
@@ -260,10 +262,8 @@ export function SendGiftModal(props: SendGiftModalProps) {
                 <SendIcon className="h-4 w-4" />
               </>
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+    </OverlayShell>
   );
 }
 

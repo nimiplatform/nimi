@@ -6,6 +6,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Surface } from '@renderer/components/surface.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
@@ -25,7 +26,7 @@ function SkeletonBlock(props: { className: string }) {
 
 function ContactsLoadingSkeleton() {
   return (
-    <Surface tone="canvas" padding="none" className="flex h-full rounded-none border-0">
+    <Surface data-testid={E2E_IDS.panel('contacts')} tone="canvas" padding="none" className="flex h-full rounded-none border-0">
       <Surface as="aside" tone="panel" padding="none" className="relative flex w-[320px] shrink-0 flex-col rounded-none border-y-0 border-l-0 border-r border-slate-200">
         <div className="flex h-14 shrink-0 items-center px-4">
           <SkeletonBlock className="h-7 w-28 rounded-lg" />
@@ -421,14 +422,14 @@ export function ContactsView(props: ContactsViewProps) {
 
   if (props.error) {
     return (
-      <Surface tone="canvas" padding="none" className="flex h-full items-center justify-center rounded-none border-0">
+      <Surface data-testid={E2E_IDS.panel('contacts')} tone="canvas" padding="none" className="flex h-full items-center justify-center rounded-none border-0">
         <span className="text-sm text-red-600">{t('Contacts.loadError')}</span>
       </Surface>
     );
   }
 
   return (
-    <div ref={containerRef} className="nimi-surface nimi-surface--canvas flex h-full rounded-none border-0">
+    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="nimi-surface nimi-surface--canvas flex h-full rounded-none border-0">
       {/* 左侧联系人列表 */}
       <Surface
         as="aside"

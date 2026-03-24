@@ -4,6 +4,7 @@ import { dataSync } from '@runtime/data-sync';
 import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Surface } from '@renderer/components/surface.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -114,7 +115,7 @@ export function HomeView(props: HomeViewProps) {
   }, [props.createPostRequestKey]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
       {/* Top bar */}
       <Surface tone="canvas" padding="none" className="flex h-14 shrink-0 items-center gap-3 rounded-none border-0 border-b border-slate-200 px-6">
         <h1 className={APP_PAGE_TITLE_CLASS}>{t('Home.pageTitle')}</h1>

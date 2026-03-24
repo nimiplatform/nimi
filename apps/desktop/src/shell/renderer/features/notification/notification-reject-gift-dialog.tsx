@@ -1,5 +1,6 @@
 import { Button } from '@renderer/components/action.js';
 import { OverlayShell } from '@renderer/components/overlay.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type RejectGiftDialogProps = {
   actorName: string;
@@ -34,7 +35,7 @@ export function RejectGiftDialog(props: RejectGiftDialogProps) {
           </Button>
         </div>
       )}
-      dataTestId="notification-reject-gift-dialog"
+      dataTestId={E2E_IDS.notificationRejectGiftDialog}
       panelClassName="w-full max-w-md"
     >
       <p className="text-sm text-gray-600">{props.description}</p>

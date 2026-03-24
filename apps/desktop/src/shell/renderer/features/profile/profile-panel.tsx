@@ -9,6 +9,7 @@ import {
 } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { Surface } from '@renderer/components/surface.js';
 import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
 import {
   ContactDetailErrorState,
@@ -16,6 +17,7 @@ import {
 } from '@renderer/features/contacts/contact-detail-view-content-shell.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import { resolveAgentFriendLimit } from '@renderer/features/contacts/agent-friend-limit';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { toProfileData, type ProfileSource } from './profile-model.js';
 import { toFriendContact, type ContactRecord } from '@renderer/features/contacts/contacts-model';
 
@@ -301,29 +303,37 @@ export function ProfilePanel() {
   };
 
   if (loading) {
-    return <ContactDetailLoadingState label={i18n.t('ProfileView.loading')} />;
+    return (
+      <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+        <ContactDetailLoadingState label={i18n.t('ProfileView.loading')} />
+      </Surface>
+    );
   }
 
   if (error) {
     return (
-      <ContactDetailErrorState
-        backLabel={i18n.t('Common.back')}
-        label={i18n.t('ProfileView.error')}
-        onClose={navigateBack}
-      />
+      <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+        <ContactDetailErrorState
+          backLabel={i18n.t('Common.back')}
+          label={i18n.t('ProfileView.error')}
+          onClose={navigateBack}
+        />
+      </Surface>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
-        {i18n.t('Profile.noProfileDataAvailable', { defaultValue: 'No profile data available' })}
-      </div>
+      <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+        <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
+          {i18n.t('Profile.noProfileDataAvailable', { defaultValue: 'No profile data available' })}
+        </div>
+      </Surface>
     );
   }
 
   return (
-    <>
+    <Surface data-testid={E2E_IDS.panel('profile')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
       <ContactDetailView
         profile={profile}
         isOwnProfile={isOwnProfile}
@@ -366,6 +376,6 @@ export function ProfilePanel() {
           });
         }}
       />
-    </>
+    </Surface>
   );
 }

@@ -1,5 +1,7 @@
 import type { Location } from './create-post-modal-helpers.js';
+import { OverlayShell } from '@renderer/components/overlay.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { i18n } from '@renderer/i18n';
 
 export function EmojiPickerPanel(input: {
@@ -22,10 +24,15 @@ export function EmojiPickerPanel(input: {
   }
 
   return (
-    <div
-      className="emoji-panel fixed z-[100] w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
-      style={{ left: input.position.left, top: input.position.top }}
-      onClick={(event) => event.stopPropagation()}
+    <OverlayShell
+      open={input.show && Boolean(input.position)}
+      kind="popover"
+      closeOnBackdrop={false}
+      dataTestId={E2E_IDS.createPostEmojiPanel}
+      className="pointer-events-none bg-transparent p-0 backdrop-blur-0"
+      panelClassName="emoji-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
+      panelStyle={{ left: input.position.left, top: input.position.top }}
+      contentClassName="p-0"
     >
       <div className="relative border-b border-gray-100">
         <div className="flex items-center gap-1 px-2 py-2">
@@ -75,7 +82,7 @@ export function EmojiPickerPanel(input: {
           ))}
         </div>
       </ScrollShell>
-    </div>
+    </OverlayShell>
   );
 }
 
@@ -95,10 +102,15 @@ export function LocationPickerPanel(input: {
   }
 
   return (
-    <div
-      className="location-panel fixed z-[100] w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
-      style={{ left: input.position.left, top: input.position.top }}
-      onClick={(event) => event.stopPropagation()}
+    <OverlayShell
+      open={input.show && Boolean(input.position)}
+      kind="popover"
+      closeOnBackdrop={false}
+      dataTestId={E2E_IDS.createPostLocationPanel}
+      className="pointer-events-none bg-transparent p-0 backdrop-blur-0"
+      panelClassName="location-panel pointer-events-auto fixed max-w-none w-[320px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
+      panelStyle={{ left: input.position.left, top: input.position.top }}
+      contentClassName="p-0"
     >
       <div className="border-b border-gray-100 p-3">
         <div className="relative">
@@ -153,7 +165,7 @@ export function LocationPickerPanel(input: {
           </div>
         )}
       </ScrollShell>
-    </div>
+    </OverlayShell>
   );
 }
 
@@ -171,10 +183,15 @@ export function TagPickerPanel(input: {
   }
 
   return (
-    <div
-      className="tag-panel fixed z-[100] w-[280px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
-      style={{ left: input.position.left, top: input.position.top }}
-      onClick={(event) => event.stopPropagation()}
+    <OverlayShell
+      open={input.show && Boolean(input.position)}
+      kind="popover"
+      closeOnBackdrop={false}
+      dataTestId={E2E_IDS.createPostTagPanel}
+      className="pointer-events-none bg-transparent p-0 backdrop-blur-0"
+      panelClassName="tag-panel pointer-events-auto fixed max-w-none w-[280px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.15)]"
+      panelStyle={{ left: input.position.left, top: input.position.top }}
+      contentClassName="p-0"
     >
       <div className="border-b border-gray-100 p-3">
         <div className="relative">
@@ -254,6 +271,6 @@ export function TagPickerPanel(input: {
           </div>
         ) : null}
       </ScrollShell>
-    </div>
+    </OverlayShell>
   );
 }

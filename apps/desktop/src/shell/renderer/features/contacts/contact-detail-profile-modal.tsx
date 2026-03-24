@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { OverlayShell } from '@renderer/components/overlay.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -252,36 +253,35 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
 
   return (
     <>
-      <div
-        className="fixed inset-x-0 bottom-0 top-14 z-[120] bg-black/42 backdrop-blur-sm"
-        onClick={props.onClose}
-      />
-      <div data-testid={E2E_IDS.contactDetailProfileModal} className="fixed inset-x-0 bottom-0 top-14 z-[121]">
-        <div
-          className="relative flex h-full w-full overflow-hidden bg-white"
-          onClick={(event) => event.stopPropagation()}
-        >
-          <div className="h-full min-h-0 flex-1 overflow-hidden">
-            <ContactDetailView
-              profile={profile}
-              loading={profileQuery.isPending && !fallbackProfile}
-              error={Boolean(profileQuery.isError && !fallbackProfile)}
-              onClose={props.onClose}
-              onMessage={() => {
-                void handleMessage();
-              }}
-              onSendGift={() => setGiftModalOpen(true)}
-              onBlock={() => {
-                void handleBlock();
-              }}
-              onRemove={profile.isFriend ? () => {
-                void handleRemove();
-              } : undefined}
-              showMessageButton={!profile.isAgent}
-            />
-          </div>
+      <OverlayShell
+        open={props.open && Boolean(profile)}
+        kind="dialog"
+        onClose={props.onClose}
+        dataTestId={E2E_IDS.contactDetailProfileModal}
+        className="top-14 bottom-0 left-0 right-0 bg-black/42 p-0 items-stretch justify-stretch"
+        panelClassName="h-full max-w-none rounded-none border-0 bg-white shadow-none"
+        contentClassName="h-full p-0"
+      >
+        <div className="h-full min-h-0 flex-1 overflow-hidden">
+          <ContactDetailView
+            profile={profile}
+            loading={profileQuery.isPending && !fallbackProfile}
+            error={Boolean(profileQuery.isError && !fallbackProfile)}
+            onClose={props.onClose}
+            onMessage={() => {
+              void handleMessage();
+            }}
+            onSendGift={() => setGiftModalOpen(true)}
+            onBlock={() => {
+              void handleBlock();
+            }}
+            onRemove={profile.isFriend ? () => {
+              void handleRemove();
+            } : undefined}
+            showMessageButton={!profile.isAgent}
+          />
         </div>
-      </div>
+      </OverlayShell>
 
       <SendGiftModal
         open={giftModalOpen}

@@ -13,6 +13,7 @@ type OverlayShellProps = {
   footer?: ReactNode;
   className?: string;
   panelClassName?: string;
+  panelStyle?: CSSProperties;
   contentClassName?: string;
   children?: ReactNode;
   dataTestId?: string;
@@ -36,6 +37,7 @@ export function OverlayShell({
   footer,
   className,
   panelClassName,
+  panelStyle,
   contentClassName,
   children,
   dataTestId,
@@ -73,6 +75,7 @@ export function OverlayShell({
         role={kind === 'dialog' ? 'dialog' : undefined}
         aria-modal={kind === 'dialog' ? 'true' : undefined}
         className={cx('nimi-overlay-panel', OVERLAY_PANEL_CLASS[kind], panelClassName)}
+        style={panelStyle}
         onClick={(event) => event.stopPropagation()}
       >
         {title ? <div className="border-b border-slate-100 px-5 py-4">{title}</div> : null}

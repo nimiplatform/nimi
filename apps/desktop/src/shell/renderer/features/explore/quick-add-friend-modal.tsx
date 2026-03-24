@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, IconButton } from '@renderer/components/action.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { OverlayShell } from '@renderer/components/overlay.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ExploreAgentCardData } from './explore-cards';
 
 type QuickAddFriendModalProps = {
@@ -71,6 +72,7 @@ export function QuickAddFriendModal(props: QuickAddFriendModalProps) {
       open={props.open && Boolean(props.agent)}
       kind="dialog"
       onClose={adding ? undefined : handleClose}
+      dataTestId={E2E_IDS.exploreQuickAddFriendDialog}
       title={(
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-base font-semibold text-gray-900">{t('Contacts.addContact', { defaultValue: 'Add Friend' })}</h2>

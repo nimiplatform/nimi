@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
@@ -148,16 +149,16 @@ export function ContactDetailViewContent(input: {
               <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white via-white/82 to-transparent" />
 
               <div className="relative z-10 flex items-start justify-between gap-4">
-                <button
-                  type="button"
+                <IconButton
+                  icon={(
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5" /><path d="m12 5-7 7 7 7" />
+                    </svg>
+                  )}
                   onClick={input.onClose}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:bg-black/65 hover:border-[#4ECCA3]/40"
-                  title={t('Common.back', { defaultValue: 'Back' })}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 12H5" /><path d="m12 5-7 7 7 7" />
-                  </svg>
-                </button>
+                  aria-label={t('Common.back', { defaultValue: 'Back' })}
+                  className="h-10 w-10 border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:bg-black/65 hover:border-[#4ECCA3]/40"
+                />
                 {input.isOwnProfile ? (
                   <Tooltip
                     content={isEditing
@@ -169,7 +170,7 @@ export function ContactDetailViewContent(input: {
                     <button
                       type="button"
                       onClick={toggleEditing}
-                      className="inline-flex h-11 items-center gap-2 rounded-full border border-[#9fe3cd] bg-white/92 px-4 text-[#1f8f69] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[#4ECCA3] hover:bg-white"
+                      className="nimi-action nimi-action--ghost nimi-action--size-md inline-flex h-11 w-auto gap-2 rounded-full border border-[#9fe3cd] bg-white/92 px-4 text-[#1f8f69] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[#4ECCA3] hover:bg-white"
                     >
                       {isEditing ? <EyeIcon className="h-4 w-4" /> : <PencilIcon className="h-4 w-4" />}
                       <span className="text-sm font-semibold">

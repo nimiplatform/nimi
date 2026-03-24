@@ -4,6 +4,7 @@ import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { OverlayShell } from '@renderer/components/overlay.js';
 import { Surface } from '@renderer/components/surface.js';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ContactRecord } from './contacts-model.js';
 
 function getBlockedContactPalette(contact: ContactRecord) {
@@ -123,6 +124,7 @@ export function BlockConfirmDialog({
       open
       kind="dialog"
       onClose={onCancel}
+      dataTestId={E2E_IDS.contactsBlockConfirmDialog}
       title={<h3 className="text-lg font-semibold text-gray-900">{i18n.t('Contacts.blockContact', { defaultValue: 'Block Contact' })}</h3>}
       footer={(
         <div className="flex justify-end gap-3">
@@ -158,6 +160,7 @@ export function UnblockConfirmDialog({
       open
       kind="dialog"
       onClose={onCancel}
+      dataTestId={E2E_IDS.contactsUnblockConfirmDialog}
       title={<h3 className="text-lg font-semibold text-gray-900">{i18n.t('Contacts.restoreContact', { defaultValue: 'Restore Contact' })}</h3>}
       footer={(
         <div className="flex justify-end gap-3">
