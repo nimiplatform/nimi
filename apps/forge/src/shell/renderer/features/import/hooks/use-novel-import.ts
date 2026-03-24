@@ -8,7 +8,7 @@
 import { useCallback, useRef } from 'react';
 
 import { createForgeAiClient } from '@renderer/pages/worlds/world-create-page-helpers.js';
-import { logRendererEvent } from '@nimiplatform/shell-telemetry/telemetry';
+import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 
 import { useImportSessionStore } from '../state/import-session-store.js';
 import { splitNovelIntoChapters } from '../engines/novel-chunker.js';

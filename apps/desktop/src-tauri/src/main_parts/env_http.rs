@@ -271,7 +271,7 @@ fn read_request_target(stream: &mut std::net::TcpStream) -> Result<String, Strin
 }
 
 const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str = include_str!(
-    "../../../../_libs/shell-auth/src/logic/native-oauth-result-page.template.html"
+    "../../../../../kit/auth/src/logic/native-oauth-result-page.template.html"
 );
 
 fn render_oauth_callback_page(success: bool) -> String {

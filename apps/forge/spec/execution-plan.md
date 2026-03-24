@@ -40,7 +40,7 @@ Phases 4 through 6 remain secondary or deferred and do not block the hard-cut de
 #### 1.1 Project Scaffold
 - Create `nimi/apps/forge/` with `package.json`, `tsconfig.json`, `vite.config.ts`, `tailwind.config.ts`
 - Add to pnpm workspace (pattern `apps/*` already covers it)
-- Vite config: root `src/shell/renderer`, port 1421, aliases (`@renderer`, `@runtime`, `@nimiplatform/sdk`, `@nimiplatform/shell-core`, `@world-engine`)
+- Vite config: root `src/shell/renderer`, port 1421, aliases (`@renderer`, `@runtime`, `@nimiplatform/sdk`, `@nimiplatform/nimi-kit/core`, `@world-engine`)
 
 #### 1.2 Tauri Shell
 - Create `src-tauri/` with `tauri.conf.json` (identifier `app.nimi.forge`, window 1440x900)

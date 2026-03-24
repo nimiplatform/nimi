@@ -8,7 +8,7 @@ import YAML from 'yaml';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const tablesDir = path.join(repoRoot, 'spec', 'platform', 'kernel', 'tables');
-const outDir = path.join(repoRoot, 'apps', '_libs', 'nimi-ui', 'src', 'generated');
+const outDir = path.join(repoRoot, 'kit', 'ui', 'src', 'generated');
 const themesDir = path.join(outDir, 'themes');
 
 const DESKTOP_ACCENT_PALETTE = {

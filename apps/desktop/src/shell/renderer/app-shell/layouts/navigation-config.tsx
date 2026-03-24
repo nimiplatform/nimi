@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AppTab } from '@renderer/app-shell/providers/app-store';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 export type NavItem = { id: AppTab | string; label: string; icon: ReactNode };

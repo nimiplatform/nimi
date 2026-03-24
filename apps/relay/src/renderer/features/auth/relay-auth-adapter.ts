@@ -1,4 +1,4 @@
-import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
+import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { createElectronOAuthBridge } from './electron-oauth-bridge.js';
 import { getBridge } from '../../bridge/electron-bridge.js';

@@ -26,7 +26,7 @@ const createPostModalSource = readSource('../src/shell/renderer/features/profile
 const createPostModalPanelsSource = readSource('../src/shell/renderer/features/profile/create-post-modal-panels.tsx');
 const giftsTabSource = readSource('../src/shell/renderer/features/profile/gifts-tab.tsx');
 const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/send-gift-modal.tsx');
-const overlayPrimitiveSource = readSource('../../../apps/_libs/nimi-ui/src/components/overlay.tsx');
+const overlayPrimitiveSource = readSource('../../../kit/ui/src/components/overlay.tsx');
 const designSurfacesTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
 const designOverlaysTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 
@@ -85,9 +85,9 @@ test('contacts friend requests view does not carry an unused React default impor
 });
 
 test('home and notification surfaces import shared design primitives from nimi-ui directly', () => {
-  assert.match(homeViewSource, /@nimiplatform\/nimi-ui/);
-  assert.match(notificationPanelSource, /@nimiplatform\/nimi-ui/);
-  assert.match(notificationRejectDialogSource, /@nimiplatform\/nimi-ui/);
+  assert.match(homeViewSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(notificationPanelSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(notificationRejectDialogSource, /@nimiplatform\/nimi-kit\/ui/);
 });
 
 test('design governance tables register secondary profile and overlay consumers explicitly', () => {
@@ -107,11 +107,11 @@ test('design governance tables register secondary profile and overlay consumers 
 });
 
 test('governed secondary overlays import the shared overlay primitive from nimi-ui directly', () => {
-  assert.match(sendGiftModalSource, /@nimiplatform\/nimi-ui/);
-  assert.match(createPostModalSource, /@nimiplatform\/nimi-ui/);
-  assert.match(createPostModalPanelsSource, /@nimiplatform\/nimi-ui/);
-  assert.match(contactDetailProfileModalSource, /@nimiplatform\/nimi-ui/);
-  assert.match(giftsTabSource, /@nimiplatform\/nimi-ui/);
+  assert.match(sendGiftModalSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(createPostModalSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(createPostModalPanelsSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(contactDetailProfileModalSource, /@nimiplatform\/nimi-kit\/ui/);
+  assert.match(giftsTabSource, /@nimiplatform\/nimi-kit\/ui/);
 });
 
 test('governed roots and overlays expose stable testability hooks', () => {

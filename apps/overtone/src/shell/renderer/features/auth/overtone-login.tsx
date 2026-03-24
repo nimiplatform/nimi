@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { DesktopShellAuthPage } from '@nimiplatform/shell-auth';
-import '@nimiplatform/shell-auth/styles.css';
+import { DesktopShellAuthPage } from '@nimiplatform/nimi-kit/auth';
+import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { overtoneTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { createOvertoneDesktopBrowserAuthAdapter } from './overtone-auth-adapter.js';

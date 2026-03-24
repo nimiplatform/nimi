@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
-import { Button, IconButton, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface, TooltipBubble } from '@nimiplatform/nimi-ui';
+import { Button, IconButton, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface, TooltipBubble } from '@nimiplatform/nimi-kit/ui';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
   SIDEBAR_AFFORDANCE_CLASS,

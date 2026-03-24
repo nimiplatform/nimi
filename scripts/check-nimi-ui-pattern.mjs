@@ -106,7 +106,7 @@ const appEntries = [
 const generatedThemesDir = path.join(repoRoot, 'apps', '_libs', 'nimi-ui', 'src', 'generated', 'themes');
 for (const legacyTheme of ['relay-dark.css', 'overtone-studio.css']) {
   if (fs.existsSync(path.join(generatedThemesDir, legacyTheme))) {
-    hardFailures.push(`apps/_libs/nimi-ui/src/generated/themes/${legacyTheme}: legacy generated theme output must not exist`);
+    hardFailures.push(`kit/ui/src/generated/themes/${legacyTheme}: legacy generated theme output must not exist`);
   }
 }
 
@@ -126,19 +126,19 @@ for (const row of adoptionRows) {
 for (const entry of appEntries) {
   const styleContent = read(entry.styleRel);
   const accentPack = accentPackByApp.get(entry.app);
-  if (!styleContent.includes('@nimiplatform/nimi-ui/styles.css')) {
-    hardFailures.push(`${entry.styleRel}: must import @nimiplatform/nimi-ui/styles.css`);
+  if (!styleContent.includes('@nimiplatform/nimi-kit/ui/styles.css')) {
+    hardFailures.push(`${entry.styleRel}: must import @nimiplatform/nimi-kit/ui/styles.css`);
   }
   for (const requiredImport of [
-    '@nimiplatform/nimi-ui/themes/light.css',
-    '@nimiplatform/nimi-ui/themes/dark.css',
-    accentPack ? `@nimiplatform/nimi-ui/themes/${accentPack}.css` : '',
+    '@nimiplatform/nimi-kit/ui/themes/light.css',
+    '@nimiplatform/nimi-kit/ui/themes/dark.css',
+    accentPack ? `@nimiplatform/nimi-kit/ui/themes/${accentPack}.css` : '',
   ].filter(Boolean)) {
     if (!styleContent.includes(requiredImport)) {
       hardFailures.push(`${entry.styleRel}: must import ${requiredImport}`);
     }
   }
-  if (styleContent.includes('@nimiplatform/nimi-ui/themes/relay-dark.css') || styleContent.includes('@nimiplatform/nimi-ui/themes/overtone-studio.css')) {
+  if (styleContent.includes('@nimiplatform/nimi-kit/ui/themes/relay-dark.css') || styleContent.includes('@nimiplatform/nimi-kit/ui/themes/overtone-studio.css')) {
     hardFailures.push(`${entry.styleRel}: must not import legacy app-specific theme packs`);
   }
   if (/@theme\s*\{/u.test(styleContent)) {
@@ -161,12 +161,12 @@ for (const entry of appEntries) {
   }
 
   const mainContent = read(entry.mainRel);
-  if (!mainContent.includes('@nimiplatform/nimi-ui') || !mainContent.includes('NimiThemeProvider')) {
-    hardFailures.push(`${entry.mainRel}: must use NimiThemeProvider from @nimiplatform/nimi-ui`);
+  if (!mainContent.includes('@nimiplatform/nimi-kit/ui') || !mainContent.includes('NimiThemeProvider')) {
+    hardFailures.push(`${entry.mainRel}: must use NimiThemeProvider from @nimiplatform/nimi-kit/ui`);
   }
 }
 
-const handwrittenLibCss = read('apps/_libs/nimi-ui/src/styles.css');
+const handwrittenLibCss = read('kit/ui/src/styles.css');
 const generatedSelectors = new Set();
 for (const primitive of Array.isArray(primitivesTable?.primitives) ? primitivesTable.primitives : []) {
   for (const slot of Array.isArray(primitive?.slots) ? primitive.slots : []) {
@@ -185,7 +185,7 @@ for (const primitive of Array.isArray(primitivesTable?.primitives) ? primitivesT
 for (const selector of generatedSelectors) {
   const pattern = new RegExp(`(^|\\n)\\s*\\.${escapeRegex(selector)}[^\\n]*\\{`, 'u');
   if (pattern.test(handwrittenLibCss)) {
-    hardFailures.push(`apps/_libs/nimi-ui/src/styles.css: generator-owned selector .${selector} must not be hand-authored`);
+    hardFailures.push(`kit/ui/src/styles.css: generator-owned selector .${selector} must not be hand-authored`);
   }
 }
 
@@ -254,8 +254,8 @@ for (const row of adoptionRows) {
     continue;
   }
   const content = read(rel);
-  if (!content.includes('@nimiplatform/nimi-ui')) {
-    hardFailures.push(`${rel}: governed module must import @nimiplatform/nimi-ui`);
+  if (!content.includes('@nimiplatform/nimi-kit/ui')) {
+    hardFailures.push(`${rel}: governed module must import @nimiplatform/nimi-kit/ui`);
   }
   if (Boolean(row?.testid_required) && !content.includes('data-testid') && !content.includes('E2E_IDS.')) {
     hardFailures.push(`${rel}: governed module requires stable testid coverage`);
@@ -294,7 +294,7 @@ for (const row of compositionRows) {
 for (const [relModule, rows] of compositionsByModule) {
   const content = read(relModule);
   const importedSharedTargets = new Set(
-    [...content.matchAll(/import\s*\{([^}]+)\}\s*from\s*'@nimiplatform\/nimi-ui'/gu)]
+    [...content.matchAll(/import\s*\{([^}]+)\}\s*from\s*'@nimiplatform\/nimi-kit\/ui'/gu)]
       .flatMap((match) => String(match[1] || '').split(','))
       .map((part) => part.trim())
       .filter(Boolean),

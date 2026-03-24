@@ -1,4 +1,4 @@
-import { Button, OverlayShell, Surface } from '@nimiplatform/nimi-ui';
+import { Button, OverlayShell, Surface } from '@nimiplatform/nimi-kit/ui';
 import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';

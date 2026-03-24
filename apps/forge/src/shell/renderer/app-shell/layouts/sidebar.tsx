@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, SidebarHeader, SidebarItem, SidebarSection, SidebarShell } from '@nimiplatform/nimi-ui';
+import { Button, SidebarHeader, SidebarItem, SidebarSection, SidebarShell } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 type NavItem = {

@@ -3,8 +3,8 @@ import {
   DesktopShellAuthPage,
   buildDesktopWebAuthLaunchUrl,
   resolveDesktopCallbackRequestFromLocation,
-} from '@nimiplatform/shell-auth';
-import '@nimiplatform/shell-auth/styles.css';
+} from '@nimiplatform/nimi-kit/auth';
+import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { createForgeDesktopBrowserAuthAdapter } from './forge-auth-adapter.js';
 import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';

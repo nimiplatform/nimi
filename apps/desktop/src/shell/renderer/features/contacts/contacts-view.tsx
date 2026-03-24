@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { IconButton, SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface } from '@nimiplatform/nimi-ui';
+import { IconButton, SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';

@@ -3,7 +3,7 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const SHELL_MODE_PATH = resolve(import.meta.dirname, '../../_libs/shell-core/src/shell-mode.ts');
+const SHELL_MODE_PATH = resolve(import.meta.dirname, '../../../kit/core/src/shell-mode.ts');
 const EXIT_HANDLER_PATH = resolve(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/exit-handler.ts');
 const RUNTIME_BRIDGE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/bridge/runtime-bridge.ts');
 const APP_BOOTSTRAP_PATH = resolve(import.meta.dirname, '../src-tauri/src/main_parts/app_bootstrap.rs');

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
-import { Surface } from '@nimiplatform/nimi-ui';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   dataSync,
   getCachedContacts,

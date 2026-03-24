@@ -7,7 +7,7 @@ export default defineConfig({
       '@renderer': path.resolve(__dirname, 'src/shell/renderer'),
       '@runtime': path.resolve(__dirname, 'src/runtime'),
       '@nimiplatform/sdk': path.resolve(__dirname, '../../sdk/src'),
-      '@nimiplatform/shell-core': path.resolve(__dirname, '../_libs/shell-core/src'),
+      '@nimiplatform/nimi-kit/core': path.resolve(__dirname, '../../kit/core/src'),
     },
   },
   test: {

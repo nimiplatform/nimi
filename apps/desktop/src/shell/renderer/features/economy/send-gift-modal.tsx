@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Button, IconButton, OverlayShell } from '@nimiplatform/nimi-ui';
+import { Button, IconButton, OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';

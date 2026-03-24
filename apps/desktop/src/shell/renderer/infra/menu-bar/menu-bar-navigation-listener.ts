@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   loadRuntimeConfigStateV11,

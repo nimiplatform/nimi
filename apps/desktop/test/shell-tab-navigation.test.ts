@@ -8,7 +8,7 @@ const storeTypesSource = fs.readFileSync(
   'utf8',
 );
 const shellModeSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-core/src/shell-mode.ts'),
+  path.join(import.meta.dirname, '../../../kit/core/src/shell-mode.ts'),
   'utf8',
 );
 

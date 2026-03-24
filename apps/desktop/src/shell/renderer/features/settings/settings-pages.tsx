@@ -5,7 +5,7 @@ import { ModSettingsPage } from './settings-mod-panel.js';
 import { NotificationsPage } from './settings-preferences-panel.js';
 import { PrivacyPage } from './settings-privacy-page.js';
 import { SecurityPage } from './settings-security-page.js';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 
 export {
   ProfilePage,

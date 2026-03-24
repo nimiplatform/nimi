@@ -6,7 +6,7 @@
  *
  * Structure:
  *   runtime/, sdk/, proto/        -> Apache-2.0
- *   apps/desktop/, apps/web/, apps/_libs/ -> MIT
+ *   apps/desktop/, apps/web/, kit/ -> MIT
  *   docs/                         -> CC-BY-4.0
  */
 
@@ -19,7 +19,7 @@ const repoRoot = path.resolve(scriptDir, '..');
 
 const LICENSE_MAP = [
   { dirs: ['runtime', 'sdk', 'proto'], license: 'Apache-2.0', markers: ['Apache-2.0', 'Apache License'] },
-  { dirs: ['apps/desktop', 'apps/web', 'apps/_libs'], license: 'MIT', markers: ['MIT', 'MIT License'] },
+  { dirs: ['apps/desktop', 'apps/web', 'kit'], license: 'MIT', markers: ['MIT', 'MIT License'] },
   { dirs: ['docs'], license: 'CC-BY-4.0', markers: ['CC-BY-4.0', 'Creative Commons'] },
 ];
 

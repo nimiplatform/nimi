@@ -19,7 +19,7 @@ It is the only normative source for:
 
 ## 2. Model
 
-- Shared foundation: one cross-app spec and one shared lib, `@nimiplatform/nimi-ui`
+- Shared foundation: one cross-app spec and one shared lib, `@nimiplatform/nimi-kit/ui`
 - Foundation schemes: `nimi-light`, `nimi-dark`
 - Accent packs: `desktop-accent`, `forge-accent`, `relay-accent`, `overtone-accent`
 - Controlled exceptions: `desktop world-detail` and Overtone waveform / transport visualization

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import { StatusBadge } from '@nimiplatform/nimi-ui';
+import { StatusBadge } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 function ReadinessIndicator() {

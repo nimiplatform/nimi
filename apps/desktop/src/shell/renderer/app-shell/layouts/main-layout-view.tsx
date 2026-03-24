@@ -15,7 +15,7 @@ import {
   persistStoredSettingsSelected,
 } from '@renderer/features/settings/settings-storage';
 import { loadWorldDetailPanelModule, WorldDetailRouteLoading } from '@renderer/features/world/world-detail-route-state';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { DesktopReleaseStrip } from './desktop-release-strip';
 import { MainLayoutTopBar } from './main-layout-topbar';
 import { SidebarTooltipButton } from './main-layout-sidebar-tooltip-button';

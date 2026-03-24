@@ -1,7 +1,7 @@
 import { Suspense, lazy, useState, useEffect, type ReactNode, type MouseEvent } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { desktopBridge } from '@renderer/bridge';

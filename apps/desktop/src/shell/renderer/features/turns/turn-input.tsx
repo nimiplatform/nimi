@@ -7,7 +7,7 @@ import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { MessageType } from '@nimiplatform/sdk/realm';
 import {
   addChatUploadPlaceholder,

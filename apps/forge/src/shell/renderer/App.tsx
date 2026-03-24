@@ -1,4 +1,4 @@
-import { ShellErrorBoundary } from '@nimiplatform/shell-telemetry/error-boundary';
+import { ShellErrorBoundary } from '@nimiplatform/nimi-kit/telemetry/error-boundary';
 
 import { AppProviders } from '@renderer/app-shell/providers/app-providers.js';
 import { AuthProvider } from '@renderer/app-shell/providers/auth-provider.js';

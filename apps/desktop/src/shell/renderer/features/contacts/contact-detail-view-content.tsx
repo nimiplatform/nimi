@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IconButton } from '@nimiplatform/nimi-ui';
+import { IconButton } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Tooltip } from '@renderer/components/tooltip.js';

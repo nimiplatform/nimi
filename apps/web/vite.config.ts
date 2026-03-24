@@ -148,8 +148,8 @@ export default defineConfig(({ mode }) => {
           replacement: path.resolve(__dirname, '../../sdk/src'),
         },
         {
-          find: '@nimiplatform/shell-core',
-          replacement: path.resolve(__dirname, '../_libs/shell-core/src'),
+          find: '@nimiplatform/nimi-kit/core',
+          replacement: path.resolve(__dirname, '../../kit/core/src'),
         },
       ],
     },
@@ -263,7 +263,7 @@ export default defineConfig(({ mode }) => {
             }
             if (
               id.includes('/@nimiplatform/sdk')
-              || id.includes('/@nimiplatform/shell-auth/')
+              || id.includes('/@nimiplatform/nimi-kit/auth/')
               || id.includes('/openapi-fetch/')
             ) {
               return 'vendor-platform';

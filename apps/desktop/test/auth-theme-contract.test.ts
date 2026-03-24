@@ -3,12 +3,12 @@ import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
 const shellAuthPageSource = readFileSync(
-  new URL('../../_libs/shell-auth/src/components/shell-auth-page.tsx', import.meta.url),
+  new URL('../../../kit/auth/src/components/shell-auth-page.tsx', import.meta.url),
   'utf8',
 );
 
 const shellAuthThemeSource = readFileSync(
-  new URL('../../_libs/shell-auth/src/theme/auth-theme.css', import.meta.url),
+  new URL('../../../kit/auth/src/theme/auth-theme.css', import.meta.url),
   'utf8',
 );
 

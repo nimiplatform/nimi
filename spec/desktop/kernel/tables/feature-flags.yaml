@@ -1,5 +1,5 @@
 # Desktop Shell Feature Flags
-# Source: apps/_libs/shell-core/src/shell-mode.ts (ShellFeatureFlags)
+# Source: kit/core/src/shell-mode.ts (ShellFeatureFlags)
 # Note: platform-conditional desktop defaults are captured in entry-specific fields when a plain
 # `default_desktop` boolean is not sufficient.
 

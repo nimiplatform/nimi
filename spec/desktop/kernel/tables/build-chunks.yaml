@@ -4,7 +4,7 @@
 chunks:
   - chunk: shell-core
     includes:
-      - "@nimiplatform/shell-core"
+      - "@nimiplatform/nimi-kit/core"
       - app-shell/providers
       - app-shell/layouts
     lazy: false

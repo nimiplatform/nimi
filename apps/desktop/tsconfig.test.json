@@ -12,11 +12,11 @@
       "react-dom/server": ["node_modules/react-dom/server.node.js"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
-      "@nimiplatform/nimi-ui": ["../_libs/nimi-ui/src/index.ts"],
-      "@nimiplatform/nimi-ui/*": ["../_libs/nimi-ui/src/*"],
-      "@nimiplatform/shell-auth": ["../_libs/shell-auth/src/index.ts"],
-      "@nimiplatform/shell-auth/*": ["../_libs/shell-auth/src/*"],
-      "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"]
+      "@nimiplatform/nimi-kit/ui": ["../../kit/ui/src/index.ts"],
+      "@nimiplatform/nimi-kit/ui/*": ["../../kit/ui/src/*"],
+      "@nimiplatform/nimi-kit/auth": ["../../kit/auth/src/index.ts"],
+      "@nimiplatform/nimi-kit/auth/*": ["../../kit/auth/src/*"],
+      "@nimiplatform/nimi-kit/core/*": ["../../kit/core/src/*"]
     }
   }
 }

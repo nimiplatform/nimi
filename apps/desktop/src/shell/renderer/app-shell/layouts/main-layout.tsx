@@ -2,7 +2,7 @@ import { useEffect, type MouseEvent } from 'react';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { logoutAndClearSession } from '@renderer/features/auth/logout';
 import { useChatRealtimeSync } from '@renderer/features/realtime/use-chat-realtime-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';

@@ -1,7 +1,7 @@
 import { ipcMain, shell, type BrowserWindow } from 'electron';
 import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
 import { OAuthProvider } from '@nimiplatform/sdk/realm';
-import { DESKTOP_CALLBACK_TIMEOUT_MS } from '@nimiplatform/shell-core/oauth';
+import { DESKTOP_CALLBACK_TIMEOUT_MS } from '@nimiplatform/nimi-kit/core/oauth';
 import type { RelayInvokeMap } from '../shared/ipc-contract.js';
 import type { RelayEnv } from './env.js';
 import { toIpcError } from './error-utils.js';

@@ -8,27 +8,27 @@ import { pathToFileURL } from 'node:url';
 import { createAuthSlice } from '../src/shell/renderer/app-shell/providers/auth-slice';
 
 const authFlowSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-auth/src/hooks/use-auth-flow.ts'),
+  path.join(import.meta.dirname, '../../../kit/auth/src/hooks/use-auth-flow.ts'),
   'utf8',
 );
 const authMenuHandlersExtSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-auth/src/logic/auth-menu-handlers-ext.ts'),
+  path.join(import.meta.dirname, '../../../kit/auth/src/logic/auth-menu-handlers-ext.ts'),
   'utf8',
 );
 const authSessionStorageSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-auth/src/logic/auth-session-storage.ts'),
+  path.join(import.meta.dirname, '../../../kit/auth/src/logic/auth-session-storage.ts'),
   'utf8',
 );
 const authTypesSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-auth/src/types/auth-types.ts'),
+  path.join(import.meta.dirname, '../../../kit/auth/src/types/auth-types.ts'),
   'utf8',
 );
 const authViewMainSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-auth/src/components/auth-view-main.tsx'),
+  path.join(import.meta.dirname, '../../../kit/auth/src/components/auth-view-main.tsx'),
   'utf8',
 );
 const authViewEmailSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-auth/src/components/auth-view-email.tsx'),
+  path.join(import.meta.dirname, '../../../kit/auth/src/components/auth-view-email.tsx'),
   'utf8',
 );
 const webAuthMenuSource = fs.readFileSync(
@@ -88,7 +88,7 @@ test('web auth session storage persists access token for full-page reload bootst
 
   const repoRoot = path.join(import.meta.dirname, '../../..');
   const authSessionStorageModuleUrl = pathToFileURL(
-    path.join(import.meta.dirname, '../../_libs/shell-auth/src/logic/auth-session-storage.ts'),
+    path.join(import.meta.dirname, '../../../kit/auth/src/logic/auth-session-storage.ts'),
   ).href;
   const script = `
     const storage = new Map();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, IconButton, OverlayShell } from '@nimiplatform/nimi-ui';
+import { Button, IconButton, OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';

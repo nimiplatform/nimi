@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { OverlayShell, StatusBadge, Surface } from '@nimiplatform/nimi-ui';
+import { OverlayShell, StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { OtButton, OtInput, OtTextarea, OtTagInput } from './ui-primitives.js';
 import { Waveform } from './waveform.js';

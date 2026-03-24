@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   resolveEmailEntryRoute,
   shouldPromptPasswordSetupAfterEmailOtp,
-} from '../../_libs/shell-auth/src/logic/auth-email-flow.js';
+} from '../../../kit/auth/src/logic/auth-email-flow.js';
 
 test('email entry uses OTP registration for new email', () => {
   assert.equal(

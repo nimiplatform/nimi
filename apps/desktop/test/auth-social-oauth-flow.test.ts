@@ -7,10 +7,10 @@ import { OAuthProvider } from '@nimiplatform/sdk/realm';
 import {
   resolveSocialOauthConfig,
   toOauthProvider,
-} from '@nimiplatform/shell-core/oauth';
+} from '@nimiplatform/nimi-kit/core/oauth';
 
 const authViewMainSource = fs.readFileSync(
-  path.join(import.meta.dirname, '../../_libs/shell-auth/src/components/auth-view-main.tsx'),
+  path.join(import.meta.dirname, '../../../kit/auth/src/components/auth-view-main.tsx'),
   'utf8',
 );
 

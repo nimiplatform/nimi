@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/nimi-ui';
-import { buildDesktopWebAuthLaunchUrl, resolveDesktopCallbackRequestFromLocation } from '@nimiplatform/shell-auth';
+import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
+import { buildDesktopWebAuthLaunchUrl, resolveDesktopCallbackRequestFromLocation } from '@nimiplatform/nimi-kit/auth';
 import { App } from './App.js';
 import { getBridge } from './bridge/electron-bridge.js';
 import { initI18n } from './i18n/index.js';

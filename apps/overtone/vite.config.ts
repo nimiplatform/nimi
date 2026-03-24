@@ -25,9 +25,9 @@ export default defineConfig(() => {
         { find: 'react', replacement: path.resolve(__dirname, 'node_modules/react/index.js') },
         { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
         { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdk/src') },
-        { find: '@nimiplatform/nimi-ui', replacement: path.resolve(__dirname, '../_libs/nimi-ui/src') },
-        { find: '@nimiplatform/shell-auth', replacement: path.resolve(__dirname, '../_libs/shell-auth/src') },
-        { find: '@nimiplatform/shell-core', replacement: path.resolve(__dirname, '../_libs/shell-core/src') },
+        { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
+        { find: '@nimiplatform/nimi-kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
+        { find: '@nimiplatform/nimi-kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
       ],
     },
     plugins: [
@@ -88,10 +88,10 @@ export default defineConfig(() => {
             if (normalizedId.includes('/sdk/src/')) {
               return 'sdk-client';
             }
-            if (normalizedId.includes('/apps/_libs/shell-auth/src/')) {
+            if (normalizedId.includes('/kit/auth/src/')) {
               return 'shell-auth';
             }
-            if (normalizedId.includes('/apps/_libs/nimi-ui/src/')) {
+            if (normalizedId.includes('/kit/ui/src/')) {
               return 'vendor-platform';
             }
             if (normalizedId.includes('/apps/overtone/src/shell/renderer/bridge/')) {
@@ -129,7 +129,7 @@ export default defineConfig(() => {
               return 'vendor-three';
             }
             if (
-              normalizedId.includes('/@nimiplatform/shell-auth/')
+              normalizedId.includes('/@nimiplatform/nimi-kit/auth/')
               || normalizedId.includes('/@nimiplatform/sdk/')
               || normalizedId.includes('/openapi-fetch/')
             ) {

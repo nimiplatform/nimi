@@ -23,7 +23,7 @@ Realm Drift is a standalone Tauri desktop demo application that brings nimi worl
 | State management | Zustand |
 | Data fetching | TanStack Query |
 | SDK | `@nimiplatform/sdk/runtime` + `@nimiplatform/sdk/realm` |
-| Shell core | `@nimiplatform/shell-core` |
+| Shell core | `@nimiplatform/nimi-kit/core` |
 | Realtime transport | Socket.IO (Realm realtime endpoint) |
 | 3D Generation | World Labs Marble API (external) |
 | 3D Rendering | Marble Web Viewer (iframe embed) |
@@ -105,7 +105,7 @@ Realm Drift copies the forge app shell pattern without the world engine:
 '@renderer': './src/shell/renderer',
 '@runtime': './src/runtime',
 '@nimiplatform/sdk': '../../sdk/src',
-'@nimiplatform/shell-core': '../_libs/shell-core/src',
+'@nimiplatform/nimi-kit/core': '../../kit/core/src',
 // No @world-engine alias — Realm Drift does not use the world creation engine
 ```
 

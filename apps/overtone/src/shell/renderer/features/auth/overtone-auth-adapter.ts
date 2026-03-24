@@ -1,6 +1,6 @@
 import { clearPlatformClient, createPlatformClient } from '@nimiplatform/sdk';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
-import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
+import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
 import { overtoneTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 
 export const C = {
   brand50: '#ecfeff',

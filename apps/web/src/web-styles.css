@@ -1,5 +1,5 @@
 @import "./dapp-globals.css";
 @import "@renderer/styles.css";
-@source "../../_libs/shell-auth/src/**/*.{ts,tsx}";
+@source "../../../kit/auth/src/**/*.{ts,tsx}";
 @source "../../desktop/src/shell/renderer/**/*.{ts,tsx}";
 @source "./**/*.{ts,tsx}";

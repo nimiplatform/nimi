@@ -4,7 +4,7 @@
 import type {
   OauthTokenExchangePayload,
   OauthTokenExchangeResult,
-} from '@nimiplatform/shell-core/oauth';
+} from '@nimiplatform/nimi-kit/core/oauth';
 
 /**
  * Exchange an OAuth authorization code for tokens.

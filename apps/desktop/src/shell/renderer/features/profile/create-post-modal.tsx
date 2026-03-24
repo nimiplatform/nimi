@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
-import { OverlayShell } from '@nimiplatform/nimi-ui';
+import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';

@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 
 const WebAuthMenu = lazy(async () => {
   const mod = await import('./web-auth-menu');

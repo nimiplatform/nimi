@@ -31,7 +31,7 @@ Phase 5 depends on both Phase 3 and Phase 4 being functionally complete.
 - Create `nimi/apps/realm-drift/` with `package.json`, `tsconfig.json`, `vite.config.ts`
 - Add to pnpm workspace (pattern `apps/*` auto-discovers)
 - Vite config per RD-SHELL-007: root `src/shell/renderer`, port 1424, aliases
-- Dependencies: `@nimiplatform/sdk`, `@nimiplatform/shell-core`, React 19, Zustand, TanStack Query, react-router-dom
+- Dependencies: `@nimiplatform/sdk`, `@nimiplatform/nimi-kit/core`, React 19, Zustand, TanStack Query, react-router-dom
 
 #### 1.2 Tauri Shell
 - Copy `src-tauri/` from forge (entire directory including runtime_bridge)

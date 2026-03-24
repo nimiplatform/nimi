@@ -8,9 +8,9 @@ import {
   localizeAuthError,
   toErrorMessage,
   validateDesktopCallbackState,
-} from '@nimiplatform/shell-core/oauth';
-import { REMEMBER_LOGIN_KEY, loadRememberedLogin, saveRememberedLogin } from '../../_libs/shell-auth/src/logic/remember-login.js';
-import { handleWalletLogin } from '../../_libs/shell-auth/src/logic/auth-menu-handlers-ext.js';
+} from '@nimiplatform/nimi-kit/core/oauth';
+import { REMEMBER_LOGIN_KEY, loadRememberedLogin, saveRememberedLogin } from '../../../kit/auth/src/logic/remember-login.js';
+import { handleWalletLogin } from '../../../kit/auth/src/logic/auth-menu-handlers-ext.js';
 
 type StorageLike = {
   getItem: (key: string) => string | null;

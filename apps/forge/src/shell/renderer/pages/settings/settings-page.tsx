@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, StatusBadge, Surface, useNimiTheme } from '@nimiplatform/nimi-ui';
+import { Button, StatusBadge, Surface, useNimiTheme } from '@nimiplatform/nimi-kit/ui';
 import { AiConfigSection } from './ai-config-section.js';
 
 type ThemeOption = 'light' | 'dark';

@@ -10,7 +10,7 @@ import {
   type OauthListenForCodePayload,
   type OauthListenForCodeResult,
   type OpenExternalUrlResult,
-} from '@nimiplatform/shell-core/oauth';
+} from '@nimiplatform/nimi-kit/core/oauth';
 
 export async function oauthTokenExchange(
   payload: OauthTokenExchangePayload,

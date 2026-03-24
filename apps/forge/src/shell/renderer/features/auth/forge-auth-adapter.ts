@@ -1,5 +1,5 @@
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
-import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
+import type { AuthPlatformAdapter } from '@nimiplatform/nimi-kit/auth';
 import { forgeTauriOAuthBridge } from '@renderer/bridge/oauth.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 

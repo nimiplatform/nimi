@@ -1,0 +1,60 @@
+{
+  "name": "@nimiplatform/nimi-kit",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./ui": "./ui/src/index.ts",
+    "./ui/styles.css": "./ui/src/styles.css",
+    "./ui/themes/light.css": "./ui/src/themes/light.css",
+    "./ui/themes/dark.css": "./ui/src/themes/dark.css",
+    "./ui/themes/desktop-accent.css": "./ui/src/themes/desktop-accent.css",
+    "./ui/themes/forge-accent.css": "./ui/src/themes/forge-accent.css",
+    "./ui/themes/relay-accent.css": "./ui/src/themes/relay-accent.css",
+    "./ui/themes/overtone-accent.css": "./ui/src/themes/overtone-accent.css",
+    "./auth": "./auth/src/index.ts",
+    "./auth/styles.css": "./auth/src/styles.css",
+    "./auth/native-oauth-result-page": "./auth/src/logic/native-oauth-result-page.ts",
+    "./core/shell-mode": "./core/src/shell-mode.ts",
+    "./core/oauth": "./core/src/oauth/index.ts",
+    "./telemetry": "./telemetry/src/telemetry/index.ts",
+    "./telemetry/error-boundary": "./telemetry/src/error-boundary/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --config ui/vitest.config.ts"
+  },
+  "dependencies": {
+    "@nimiplatform/sdk": "workspace:*",
+    "simplex-noise": "^4.0.3",
+    "three": "^0.183.2",
+    "zod": "4.3.6"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-i18next": "^16.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    },
+    "react-i18next": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.183.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "jsdom": "^28.1.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.1.0"
+  }
+}

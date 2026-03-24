@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
-import { DesktopShellAuthPage } from '@nimiplatform/shell-auth';
-import '@nimiplatform/shell-auth/styles.css';
+import { DesktopShellAuthPage } from '@nimiplatform/nimi-kit/auth';
+import '@nimiplatform/nimi-kit/auth/styles.css';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { getBridge } from '../../bridge/electron-bridge.js';
 import { createRelayAuthAdapter } from './relay-auth-adapter.js';

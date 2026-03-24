@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { TooltipBubble } from '@nimiplatform/nimi-ui';
+import { TooltipBubble } from '@nimiplatform/nimi-kit/ui';
 import { createPortal } from 'react-dom';
 
 type TooltipProps = {

@@ -15,7 +15,7 @@ const chatListSource = readWorkspace('src/shell/renderer/features/chats/chat-lis
 const contactsViewSource = readWorkspace('src/shell/renderer/features/contacts/contacts-view.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
-const sidebarPrimitiveSource = readRepo('apps/_libs/nimi-ui/src/components/sidebar.tsx');
+const sidebarPrimitiveSource = readRepo('kit/ui/src/components/sidebar.tsx');
 const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
 const adoptionTable = readRepo('spec/platform/kernel/tables/nimi-ui-adoption.yaml');
 const designContractSource = readRepo('spec/platform/kernel/design-pattern-contract.md');
@@ -38,12 +38,12 @@ test('sidebar family contract is anchored in platform design authority', () => {
   assert.match(designContractSource, /P-DESIGN-090/u);
   assert.match(designOverviewSource, /Nimi Design Pattern/u);
   assert.match(designOverviewSource, /shared primitive families/i);
-  assert.match(designOverviewSource, /@nimiplatform\/nimi-ui/u);
+  assert.match(designOverviewSource, /@nimiplatform\/nimi-kit\/ui/u);
 });
 
 test('governed sidebar modules import and use the shared sidebar primitive', () => {
   for (const source of [chatListSource, contactsViewSource, runtimePanelSource, settingsPanelSource]) {
-    assert.match(source, /@nimiplatform\/nimi-ui/);
+    assert.match(source, /@nimiplatform\/nimi-kit\/ui/);
     assert.match(source, /SidebarShell/);
     assert.match(source, /SidebarHeader/);
   }

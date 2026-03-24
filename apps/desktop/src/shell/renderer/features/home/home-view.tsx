@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { IconButton, Surface } from '@nimiplatform/nimi-ui';
+import { IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';

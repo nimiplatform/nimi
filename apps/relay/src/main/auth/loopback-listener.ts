@@ -2,7 +2,7 @@
 // Node.js HTTP server that captures OAuth callback on 127.0.0.1
 
 import http from 'node:http';
-import { renderDesktopOAuthResultPage } from '@nimiplatform/shell-auth/native-oauth-result-page';
+import { renderDesktopOAuthResultPage } from '@nimiplatform/nimi-kit/auth/native-oauth-result-page';
 
 export interface LoopbackListenerResult {
   code: string;

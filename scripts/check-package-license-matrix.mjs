@@ -8,7 +8,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 
 const LICENSE_CHECKS = [
-  { file: 'apps/_libs/shell-core/package.json', expected: 'MIT' },
+  { file: 'kit/package.json', expected: 'MIT' },
   { file: 'sdk/package.json', expected: 'Apache-2.0' },
 ];
 

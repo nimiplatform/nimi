@@ -19,7 +19,7 @@ import {
   type RuntimeModRegisterFailure,
 } from '@runtime/mod';
 import { setRuntimeLogger } from '@runtime/telemetry/logger';
-import { getShellFeatureFlags } from '@nimiplatform/shell-core/shell-mode';
+import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
 import { desktopBridge, toRendererLogMessage } from '@renderer/bridge';
 import { createProxyFetch } from '@renderer/infra/bridge/proxy-fetch';
 import { queryClient } from '@renderer/infra/query-client/query-client';

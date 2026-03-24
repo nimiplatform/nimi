@@ -2,7 +2,7 @@ import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
 import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { createPlatformClient } from '@nimiplatform/sdk';
-import { logRendererEvent } from '@nimiplatform/shell-telemetry/telemetry';
+import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
 import { bootstrapAuthSession } from './forge-bootstrap-auth.js';
 
 function toForgeAuthUser(user: Record<string, unknown> | null) {

@@ -3,7 +3,7 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import { SidebarHeader, SidebarItem, SidebarSearch, SidebarShell, Surface } from '@nimiplatform/nimi-ui';
+import { SidebarHeader, SidebarItem, SidebarSearch, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';

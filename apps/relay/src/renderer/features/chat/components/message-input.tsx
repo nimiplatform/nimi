@@ -4,7 +4,7 @@
 import { useState, useCallback, useRef, type KeyboardEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowUp, Paperclip } from 'lucide-react';
-import { IconButton, Surface, TextareaField } from '@nimiplatform/nimi-ui';
+import { IconButton, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
 
 interface MessageInputProps {
   onSend: (text: string) => void;

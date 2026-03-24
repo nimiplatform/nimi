@@ -5,7 +5,7 @@ import {
   getRendererDebugLogsForTest as getShellTelemetryDebugLogsForTest,
   resetRendererDebugBufferForTest,
   sanitizeLogDetails,
-} from '../../_libs/shell-telemetry/src/telemetry/debug-buffer.js';
+} from '../../../kit/telemetry/src/telemetry/debug-buffer.js';
 import {
   getRendererDebugLogsForTest,
   logRendererEvent,

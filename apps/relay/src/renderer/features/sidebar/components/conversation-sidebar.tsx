@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, Settings, X } from 'lucide-react';
-import { Button, IconButton, SidebarHeader, SidebarItem, SidebarSearch, SidebarSection, SidebarShell, StatusBadge } from '@nimiplatform/nimi-ui';
+import { Button, IconButton, SidebarHeader, SidebarItem, SidebarSearch, SidebarSection, SidebarShell, StatusBadge } from '@nimiplatform/nimi-kit/ui';
 import { useSessionList, type DateGroup } from '../hooks/use-session-list.js';
 import { useAppStore } from '../../../app-shell/providers/app-store.js';
 import { UserMenu } from '../../../app-shell/components/user-menu.js';

@@ -1,7 +1,7 @@
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import type { AppStoreState } from '@renderer/app-shell/providers/store-types';
-import { clearPersistedAccessToken } from '@nimiplatform/shell-auth';
+import { clearPersistedAccessToken } from '@nimiplatform/nimi-kit/auth';
 import { i18n } from '@renderer/i18n';
 import { clearAllStreams } from '@renderer/features/turns/stream-controller';
 

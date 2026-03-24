@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { IconButton, Surface } from '@nimiplatform/nimi-ui';
+import { IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';

@@ -14,7 +14,7 @@
       "@nimiplatform/sdk/runtime": ["../../sdk/src/runtime/browser.ts"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
-      "@nimiplatform/shell-core/*": ["../_libs/shell-core/src/*"]
+      "@nimiplatform/nimi-kit/core/*": ["../../kit/core/src/*"]
     },
     "target": "ES2022",
     "module": "ESNext",
@@ -48,6 +48,6 @@
     "../desktop/src/**/*.tsx",
     "../../sdk/src/**/*.ts",
     "../../sdk/src/**/*.tsx",
-    "../_libs/shell-core/src/**/*.ts"
+    "../../kit/core/src/**/*.ts"
   ]
 }

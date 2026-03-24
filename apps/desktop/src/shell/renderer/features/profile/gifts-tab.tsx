@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { OverlayShell } from '@nimiplatform/nimi-ui';
+import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { formatLocaleDate, formatLocaleNumber, i18n } from '@renderer/i18n';

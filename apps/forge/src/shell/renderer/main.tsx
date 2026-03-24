@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/nimi-ui';
+import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
 import './styles.css';
 import { App } from './App.js';
 

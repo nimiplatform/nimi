@@ -28,7 +28,7 @@ Revenue, advisors, copyright, templates, and analytics are non-core modules and 
 | Data fetching | TanStack Query |
 | SDK | `@nimiplatform/sdk/runtime` + `@nimiplatform/sdk/realm` |
 | World engine | `@world-engine` alias → `nimi-mods/runtime/world-studio/src/` |
-| Shell core | `@nimiplatform/shell-core` |
+| Shell core | `@nimiplatform/nimi-kit/core` |
 
 Forge connects to both platform planes through the SDK root bootstrap:
 - **Platform client** — `createPlatformClient({ appId: 'nimi.forge', runtimeTransport: 'tauri-ipc', sessionStore })`

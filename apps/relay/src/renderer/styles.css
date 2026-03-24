@@ -1,9 +1,9 @@
-@import "@nimiplatform/nimi-ui/styles.css";
-@import "@nimiplatform/nimi-ui/themes/light.css";
-@import "@nimiplatform/nimi-ui/themes/dark.css";
-@import "@nimiplatform/nimi-ui/themes/relay-accent.css";
+@import "@nimiplatform/nimi-kit/ui/styles.css";
+@import "@nimiplatform/nimi-kit/ui/themes/light.css";
+@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
+@import "@nimiplatform/nimi-kit/ui/themes/relay-accent.css";
 @import "tailwindcss";
-@source "../../../_libs/shell-auth/src/**/*.{ts,tsx}";
+@source "../../../../kit/auth/src/**/*.{ts,tsx}";
 
 /* Body defaults */
 body {

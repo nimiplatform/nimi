@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider } from '@nimiplatform/nimi-ui';
+import { NimiThemeProvider } from '@nimiplatform/nimi-kit/ui';
 import { i18n, initI18n } from '@renderer/i18n';
 import '@renderer/styles.css';
 import { bindRuntimeI18n } from "@nimiplatform/sdk/mod";
