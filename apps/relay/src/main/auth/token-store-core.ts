@@ -11,9 +11,15 @@ export type TokenStoreDeps = {
   decryptString: (value: Buffer) => string;
   existsSync: (filePath: string) => boolean;
   readFileSync: (filePath: string) => Buffer;
-  writeFileSync: (filePath: string, data: string | Uint8Array, encoding?: BufferEncoding) => void;
+  writeFileSync: (
+    filePath: string,
+    data: string | Uint8Array,
+    options?: BufferEncoding | { encoding?: BufferEncoding; mode?: number },
+  ) => void;
   unlinkSync: (filePath: string) => void;
 };
+
+const TOKEN_FILE_MODE = 0o600;
 
 function allowPlaintextTokenFallback(isPackagedBuild: boolean): boolean {
   return !isPackagedBuild;
@@ -36,11 +42,11 @@ export function createTokenStore(deps: TokenStoreDeps) {
       if (!allowPlaintextTokenFallback(deps.isPackaged())) {
         throw new Error(TOKEN_STORAGE_UNAVAILABLE_MESSAGE);
       }
-      deps.writeFileSync(deps.getTokenPath(), accessToken, 'utf-8');
+      deps.writeFileSync(deps.getTokenPath(), accessToken, { encoding: 'utf-8', mode: TOKEN_FILE_MODE });
       return;
     }
     const encrypted = deps.encryptString(accessToken);
-    deps.writeFileSync(deps.getTokenPath(), encrypted);
+    deps.writeFileSync(deps.getTokenPath(), encrypted, { mode: TOKEN_FILE_MODE });
   }
 
   function loadToken(): string | null {
