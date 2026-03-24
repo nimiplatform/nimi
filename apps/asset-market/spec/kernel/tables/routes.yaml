@@ -12,7 +12,7 @@ routes:
     feature: package-detail
     component: PackageDetailPage
     lazy: true
-    description: AssetPackage detail surface
+    description: Package detail surface for one bundle-backed market product
 
   - path: /creators/:creatorId
     feature: creator-packages

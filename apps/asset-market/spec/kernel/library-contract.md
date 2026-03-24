@@ -17,6 +17,8 @@ Current Library sections are limited to:
 
 Current spec does not require exposing entitlement internals as a first-class object.
 
+Package availability is currently evidenced through `PackageAcquisition`, not by mutating Bundle truth.
+
 ## AM-LIB-003: Saved Meaning
 
 `Saved` means the creator has bookmarked the package for later consideration, without implying current use.

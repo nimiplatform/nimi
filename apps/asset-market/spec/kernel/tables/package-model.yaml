@@ -1,18 +1,14 @@
 # Asset Market — Package Model
-# Authoritative source for current package fields, enums, readiness, and future reservations.
+# Authoritative source for current bundle/package fields, enums, readiness, and future reservations.
 
 package_model:
   current_active_objects:
     - Asset
-    - AssetPackage
+    - Bundle
+    - Package
 
   reserved_future_objects:
-    - AssetPackageListing
-
-  package_types:
-    - scene
-    - character
-    - style
+    - PackageListing
 
   categories:
     - scenes
@@ -24,17 +20,42 @@ package_model:
     - videos
     - audio
 
-  asset_package:
+  bundle:
     required_fields:
       - id
+      - ownerId
+      - memberAssetIds
+      - title
+      - description
+      - tags
+      - version
+      - status
+      - isReady
+      - readinessIssues
+      - compatibleApps
+      - importTargets
+      - createdAt
+      - updatedAt
+    optional_fields:
+      - coverAssetId
+      - publishedAt
+    ordered_fields:
+      - memberAssetIds
+    invariants:
+      - memberAssetIds count must be >= 1 for ready bundles
+      - coverAssetId must belong to memberAssetIds when present
+      - memberAssetIds must preserve explicit order
+      - publishedAt is required once status becomes published or archived
+
+  package:
+    required_fields:
+      - id
+      - bundleId
       - ownerId
       - title
       - description
       - coverAssetId
-      - packageType
       - category
-      - assetIds
-      - tags
       - price
       - version
       - status
@@ -42,34 +63,65 @@ package_model:
       - readinessIssues
       - createdAt
       - updatedAt
-    ordered_fields:
-      - assetIds
+    optional_fields:
+      - publishedAt
     invariants:
-      - coverAssetId must belong to assetIds
-      - assetIds must preserve explicit order
+      - package must bind to exactly one bundleId
+      - package ownerId must match bundle ownerId
+      - a published package must reference a published bundle
       - price may be 0 for free packages
       - publishedAt is required once status becomes published or archived
 
   lifecycle:
-    statuses:
+    bundle_statuses:
+      - draft
+      - published
+      - archived
+    package_statuses:
       - draft
       - published
       - archived
 
   readiness:
-    required_for_ready:
+    bundle_required_for_ready:
+      - ownerId present
+      - title
+      - version
+      - status
+      - memberAssetIds count >= 1
+      - if coverAssetId exists, coverAssetId belongs to memberAssetIds
+    package_required_for_ready:
+      - bundleId present
       - ownerId present
       - title present
       - description present
       - coverAssetId present
-      - packageType present
       - category present
-      - assetIds count >= 1
-      - tags count >= 1
       - price present
       - version present
+      - status present
+
+  acquisition:
+    object: PackageAcquisition
+    key_fields:
+      - packageId
+      - bundleId
+      - accountId
+      - status
+      - sourceType
+      - acquiredAt
+
+  import:
+    object: BundleImport
+    key_fields:
+      - bundleId
+      - accountId
+      - targetApp
+      - targetContext
+      - status
+      - importedAt
 
   upstream_mappings:
     - SceneCard may be published into a Realm Asset
-    - ScenePack may be published into an AssetPackage
+    - ScenePack may be published into a Realm Bundle
     - Field-level conversion remains intentionally unspecified in the current spec

@@ -9,7 +9,7 @@ Account is present because Asset Market is a market application, but it remains 
 Current minimum scope:
 
 - account identity information
-- acquisition records
+- package acquisition records
 - published package records
 
 ## AM-ACCOUNT-002: No Heavy Merchant Console

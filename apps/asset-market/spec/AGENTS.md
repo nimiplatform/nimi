@@ -10,7 +10,7 @@ spec/
 ├── asset-market.md                        # App-level product overview
 ├── kernel/
 │   ├── app-shell-contract.md              # AM-SHELL-*: shell, bootstrap, navigation
-│   ├── package-contract.md                # AM-PKG-*: AssetPackage model and lifecycle
+│   ├── package-contract.md                # AM-PKG-*: Bundle / Package model and lifecycle split
 │   ├── discovery-contract.md              # AM-DISCOVER-*: discover, search, detail
 │   ├── publish-contract.md                # AM-PUBLISH-*: package composition and publish flow
 │   ├── library-contract.md                # AM-LIB-*: available and saved library views
@@ -18,7 +18,7 @@ spec/
 │   └── tables/
 │       ├── routes.yaml                    # Route table — authoritative
 │       ├── feature-matrix.yaml            # Feature matrix — authoritative
-│       ├── package-model.yaml             # AssetPackage fields, readiness, reserved concepts
+│       ├── package-model.yaml             # Bundle / Package fields, readiness, reserved concepts
 │       └── api-surface.yaml               # New package-market API proposals
 ```
 
@@ -43,7 +43,7 @@ YAML tables in `kernel/tables/` are the authoritative fact sources. Prose in con
 |------|---------|
 | `routes.yaml` | App routes and route-feature bindings |
 | `feature-matrix.yaml` | Feature phasing, priority, dependencies |
-| `package-model.yaml` | AssetPackage field model, readiness, reserved concepts |
+| `package-model.yaml` | Bundle / Package field model, readiness, reserved concepts |
 | `api-surface.yaml` | New package-market backend proposals only |
 
 ## Editing Rules
@@ -52,9 +52,9 @@ YAML tables in `kernel/tables/` are the authoritative fact sources. Prose in con
 2. **Rule IDs are append-only.** Never renumber or reuse a retired rule ID.
 3. **Cross-references use rule IDs**, not section headings.
 4. **Tables are the single source for enumerations.** Do not inline route lists, package field lists, or readiness enumerations in prose.
-5. **Realm asset boundary is inherited, not redefined.** Asset Market consumes existing Realm `Asset` semantics and must not overwrite `spec/realm/**` contracts.
-6. **Scene-Atlas remains upstream only.** `SceneCard` / `ScenePack` are not Asset Market objects; any market flow starts from admitted Realm assets.
-7. **Future reservation stays thin.** `AssetPackageListing` may be mentioned only as a reserved future projection and must not become a current active object in this spec.
+5. **Realm truth boundary is inherited, not redefined.** Asset Market consumes existing Realm `Asset` and `Bundle` semantics and must not overwrite `spec/realm/**` contracts.
+6. **Scene-Atlas remains upstream only.** `SceneCard` / `ScenePack` are not Asset Market objects; any market flow starts from admitted Realm `Asset` and `Bundle` objects.
+7. **Future reservation stays thin.** `PackageListing` may be mentioned only as a reserved future projection and must not become a current active object in this spec.
 
 ## Relation to Existing Specs
 
@@ -64,4 +64,4 @@ Asset Market builds on existing contracts rather than replacing them:
 - Forge shell pattern: `apps/forge/spec/kernel/app-shell-contract.md` (`FG-SHELL-*`)
 - Scene-Atlas upstream working-state vocabulary: `nimi-mods/runtime/scene-atlas/spec/kernel/domain-contract.md`
 
-Asset Market extends the ecosystem above Realm assets with package-market business semantics while keeping asset truth inside Realm.
+Asset Market extends the ecosystem above Realm truth objects with package-market business semantics while keeping `Resource / Asset / Bundle` truth inside Realm.

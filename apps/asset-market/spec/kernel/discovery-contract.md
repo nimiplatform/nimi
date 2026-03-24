@@ -60,7 +60,7 @@ Package detail must expose:
 - description
 - creator
 - version
-- asset count summary
+- bundle member count summary
 - ordered package contents
 - a clear import action for Forge
 

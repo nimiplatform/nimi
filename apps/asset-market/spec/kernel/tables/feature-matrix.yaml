@@ -14,7 +14,7 @@ features:
     phase: 1
     priority: P0
     contract: AM-DISCOVER-001, AM-DISCOVER-004
-    backend-dependency: package market read APIs
+    backend-dependency: package market read APIs + bundle-backed detail reads
     migration-source: new
     description: Discover-first market home
 
@@ -22,7 +22,7 @@ features:
     phase: 1
     priority: P0
     contract: AM-DISCOVER-006
-    backend-dependency: package market read APIs
+    backend-dependency: package market read APIs + bundle truth reads
     migration-source: new
     description: Package detail page with ordered contents and Forge import action
 
@@ -46,7 +46,7 @@ features:
     phase: 1
     priority: P0
     contract: AM-PUBLISH-*
-    backend-dependency: existing realm asset reads + new package APIs
+    backend-dependency: existing realm asset reads + new bundle/package APIs
     migration-source: new
     description: Single-page package composition and publish workbench
 
@@ -54,7 +54,7 @@ features:
     phase: 1
     priority: P0
     contract: AM-PKG-008, AM-PUBLISH-004, AM-PUBLISH-006
-    backend-dependency: new package APIs
+    backend-dependency: new bundle/package APIs
     migration-source: new
     description: Edit existing package and republish
 
@@ -62,6 +62,6 @@ features:
     phase: 1
     priority: P1
     contract: AM-ACCOUNT-*
-    backend-dependency: acquisition and publish record reads
+    backend-dependency: package acquisition and publish record reads
     migration-source: new
     description: Minimal account-facing records

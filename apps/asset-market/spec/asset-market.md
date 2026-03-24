@@ -10,20 +10,21 @@ Its primary product is a reusable package market for creators:
 
 - **Discover** — Find reusable creator packages through search, categories, and lightweight popularity/newness views
 - **Import** — Send selected packages into Forge as upstream creative input
-- **Publish** — Compose and publish market-facing `AssetPackage` objects from existing Realm assets
+- **Publish** — Compose market-facing `Package` objects from existing Realm `Bundle` truth
 - **Library** — Manage the creator's available and saved packages
 
 Asset Market is not a generic consumer storefront and is not a replacement for Forge or Scene-Atlas.
 
 ## Core Boundary
 
-Asset Market does **not** redefine Realm `Asset`.
+Asset Market does **not** redefine Realm `Asset` or `Bundle`.
 
 - Realm `Asset` remains the formal platform asset object
-- Asset Market consumes existing Realm assets
-- Asset Market introduces `AssetPackage` as a market consumption unit built from one or more existing Realm assets
-- Current market display is based directly on published `AssetPackage`
-- `AssetPackageListing` is reserved for future expansion only and is not part of the current active model
+- Realm `Bundle` remains the formal composite truth object
+- Asset Market consumes existing Realm `Asset` and `Bundle` truth
+- Asset Market introduces `Package` as a market product object layered above one Realm `Bundle`
+- Current market display is based directly on published `Package`
+- `PackageListing` is reserved for future expansion only and is not part of the current active model
 
 ## Primary User
 
@@ -31,7 +32,7 @@ The primary user is a **creator / content producer** who wants to:
 
 - discover reusable scene, character, or style packages
 - import those packages into Forge for world and content creation
-- publish their own packages assembled from assets they already own inside Realm
+- publish their own packages from Realm-backed bundle truth
 
 ## Technical Stack
 
@@ -53,7 +54,7 @@ Asset Market follows the same SDK-first shell pattern used by Forge:
 
 | Product | Role relative to Asset Market |
 |---------|-------------------------------|
-| `Scene-Atlas` | Upstream scene working-state tool that may eventually publish assets into Realm |
+| `Scene-Atlas` | Upstream scene working-state tool that may eventually publish assets and bundles into Realm |
 | `Forge` | Primary downstream consumer of packages imported from Asset Market |
 | Realm `Asset` | Existing formal asset object consumed by Asset Market |
 | `Desktop` | Broader host/shell product; not the package market itself |
@@ -85,20 +86,22 @@ Media type stays a secondary filter, not a primary category axis.
 
 - `Asset`
   - Existing Realm formal asset object
-- `AssetPackage`
-  - Market consumption unit composed from one or more Realm assets
+- `Bundle`
+  - Realm composite truth object composed from one or more assets
+- `Package`
+  - Market product object that points to one Bundle and carries aligned product ownership
 
 ### Upstream Mappings
 
 - `SceneCard` is an upstream working-state object and may be published into a Realm `Asset`
-- `ScenePack` is an upstream working-state object and may be published into an `AssetPackage`
+- `ScenePack` is an upstream working-state object and may be published into a Realm `Bundle`
 
 These are conceptual publish mappings only. This spec does not freeze field-level conversion details.
 
 ### Reserved Future Object
 
-- `AssetPackageListing`
-  - Reserved as a future market-facing projection if market display semantics later diverge from `AssetPackage` lifecycle semantics
+- `PackageListing`
+  - Reserved as a future market-facing projection if market display semantics later diverge from `Package` lifecycle semantics
 
 ## Project Location
 
@@ -123,7 +126,7 @@ This spec imports the following kernel contracts:
 
 ## Non-Goals
 
-- Asset Market does not redefine Realm asset truth
-- Asset Market does not consume `ScenePack` directly; it consumes admitted Realm assets
+- Asset Market does not redefine Realm truth
+- Asset Market does not consume `ScenePack` directly; it consumes admitted Realm `Asset` and `Bundle` truth
 - Asset Market is not a Photoshop-like editor, generator, or world authoring surface
-- Asset Market does not currently introduce a separate active `AssetPackageListing` lifecycle
+- Asset Market does not currently introduce a separate active `PackageListing` lifecycle

@@ -1,8 +1,43 @@
 # Asset Market — API Surface
 # Authoritative inventory of new package-market endpoints proposed by this spec.
-# Existing Realm asset reads are intentionally not duplicated here; the app consumes them through typed Realm asset services.
+# Existing Realm asset/bundle truth reads are intentionally not duplicated here; the app consumes them through typed Realm services.
 
 package-market:
+  - method: POST
+    path: /api/asset-market/bundles
+    status: new
+    feature: publish-workbench
+    controller: asset-market.controller.ts
+    description: Create draft Bundle from existing Realm assets
+
+  - method: GET
+    path: /api/asset-market/bundles/{bundleId}
+    status: new
+    feature: package-detail, publish-package-edit
+    controller: asset-market.controller.ts
+    description: Get Bundle truth detail for package composition and import
+
+  - method: PATCH
+    path: /api/asset-market/bundles/{bundleId}
+    status: new
+    feature: publish-workbench, publish-package-edit
+    controller: asset-market.controller.ts
+    description: Update draft or published Bundle working state
+
+  - method: POST
+    path: /api/asset-market/bundles/{bundleId}/publish
+    status: new
+    feature: publish-workbench, publish-package-edit
+    controller: asset-market.controller.ts
+    description: Publish or republish a Bundle into published truth state
+
+  - method: POST
+    path: /api/asset-market/bundles/{bundleId}/archive
+    status: new
+    feature: publish-package-edit
+    controller: asset-market.controller.ts
+    description: Archive a published Bundle truth object
+
   - method: GET
     path: /api/asset-market/packages
     status: new
@@ -15,35 +50,35 @@ package-market:
     status: new
     feature: publish-workbench
     controller: asset-market.controller.ts
-    description: Create draft AssetPackage from existing Realm assets
+    description: Create draft Package bound to an existing Realm Bundle
 
   - method: GET
     path: /api/asset-market/packages/{packageId}
     status: new
     feature: package-detail, publish-package-edit
     controller: asset-market.controller.ts
-    description: Get AssetPackage detail
+    description: Get Package detail together with its referenced Bundle summary
 
   - method: PATCH
     path: /api/asset-market/packages/{packageId}
     status: new
     feature: publish-package-edit
     controller: asset-market.controller.ts
-    description: Update draft or published package working state
+    description: Update draft or published Package working state
 
   - method: POST
     path: /api/asset-market/packages/{packageId}/publish
     status: new
     feature: publish-workbench, publish-package-edit
     controller: asset-market.controller.ts
-    description: Publish or republish a package into market-visible state
+    description: Publish or republish a Package into market-visible state
 
   - method: POST
     path: /api/asset-market/packages/{packageId}/archive
     status: new
     feature: publish-package-edit
     controller: asset-market.controller.ts
-    description: Archive a published package
+    description: Archive a published Package
 
   - method: POST
     path: /api/asset-market/packages/{packageId}/save
@@ -64,7 +99,14 @@ package-market:
     status: new
     feature: library, package-detail
     controller: asset-market.controller.ts
-    description: Acquire a package into the creator's available library
+    description: Create a PackageAcquisition and add the Package to the creator's available library
+
+  - method: POST
+    path: /api/asset-market/bundles/{bundleId}/imports
+    status: new
+    feature: package-detail
+    controller: asset-market.controller.ts
+    description: Create a BundleImport for downstream Forge import
 
   - method: GET
     path: /api/asset-market/creators/{creatorId}/packages
