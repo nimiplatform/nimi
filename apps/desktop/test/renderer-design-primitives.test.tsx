@@ -3,6 +3,7 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Button, IconButton } from '../src/shell/renderer/components/action.js';
+import { SPACING_TOKEN_VALUE, STATE_TONE_CLASS, STROKE_TOKEN_VALUE, TYPOGRAPHY_TOKEN_CLASS } from '../src/shell/renderer/components/design-tokens.js';
 import { TooltipBubble } from '../src/shell/renderer/components/overlay.js';
 import { Surface } from '../src/shell/renderer/components/surface.js';
 
@@ -43,4 +44,11 @@ test('tooltip bubble exposes shared overlay classes and coordinates', () => {
   assert.match(markup, /nimi-tooltip-bubble/u);
   assert.match(markup, /left:12px/u);
   assert.match(markup, /top:20px/u);
+});
+
+test('design tokens export semantic typography, spacing, stroke, and state groups', () => {
+  assert.equal(TYPOGRAPHY_TOKEN_CLASS.pageTitle, 'nimi-type--page-title');
+  assert.equal(SPACING_TOKEN_VALUE.section, 'var(--nimi-space-section)');
+  assert.equal(STROKE_TOKEN_VALUE.strong, 'var(--nimi-border-strong)');
+  assert.equal(STATE_TONE_CLASS.selected, 'nimi-state--selected');
 });

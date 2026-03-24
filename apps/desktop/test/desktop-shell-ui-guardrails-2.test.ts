@@ -18,8 +18,17 @@ const notificationPanelSource = readSource('../src/shell/renderer/features/notif
 const notificationRejectDialogSource = readSource('../src/shell/renderer/features/notification/notification-reject-gift-dialog.tsx');
 const postCardSource = readSource('../src/shell/renderer/features/home/post-card.tsx');
 const contactDetailTabsSource = readSource('../src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
+const contactDetailProfileModalSource = readSource('../src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
 const profilePostFeedSource = readSource('../src/shell/renderer/features/profile/post-feed-with-media-preview.tsx');
 const profilePostsTabSource = readSource('../src/shell/renderer/features/profile/posts-tab.tsx');
+const profilePanelSource = readSource('../src/shell/renderer/features/profile/profile-panel.tsx');
+const createPostModalSource = readSource('../src/shell/renderer/features/profile/create-post-modal.tsx');
+const createPostModalPanelsSource = readSource('../src/shell/renderer/features/profile/create-post-modal-panels.tsx');
+const giftsTabSource = readSource('../src/shell/renderer/features/profile/gifts-tab.tsx');
+const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/send-gift-modal.tsx');
+const overlayPrimitiveSource = readSource('../src/shell/renderer/components/overlay.tsx');
+const designSurfacesTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
+const designOverlaysTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 
 test('top agent cards sanitize banner URLs before interpolating them into background images', () => {
   const previousWindow = globalThis.window;
@@ -82,6 +91,48 @@ test('home and notification surfaces route shared design through renderer primit
   assert.match(notificationPanelSource, /@renderer\/components\/action\.js/);
   assert.match(notificationRejectDialogSource, /@renderer\/components\/overlay\.js/);
   assert.match(notificationRejectDialogSource, /@renderer\/components\/action\.js/);
+});
+
+test('design governance tables register secondary profile and overlay consumers explicitly', () => {
+  assert.match(designSurfacesTable, /id: profile\.panel\.root/);
+  assert.match(designSurfacesTable, /module: features\/profile\/profile-panel\.tsx/);
+  assert.match(designSurfacesTable, /id: contacts\.profile_detail\.surface/);
+  assert.match(designSurfacesTable, /module: features\/contacts\/contact-detail-view-content\.tsx/);
+  assert.match(designSurfacesTable, /id: economy\.send_gift\.dialog_surface/);
+  assert.match(designSurfacesTable, /module: features\/economy\/send-gift-modal\.tsx/);
+  assert.match(designOverlaysTable, /id: notification\.reject_gift/);
+  assert.match(designOverlaysTable, /module: features\/notification\/notification-reject-gift-dialog\.tsx/);
+  assert.match(designOverlaysTable, /id: contacts\.profile_detail_modal/);
+  assert.match(designOverlaysTable, /id: economy\.send_gift/);
+  assert.match(designOverlaysTable, /id: profile\.create_post/);
+  assert.match(designOverlaysTable, /id: profile\.create_post_popovers/);
+  assert.match(designOverlaysTable, /id: profile\.top_supporters/);
+});
+
+test('governed secondary overlays route through the shared overlay primitive', () => {
+  assert.match(sendGiftModalSource, /@renderer\/components\/overlay\.js/);
+  assert.match(createPostModalSource, /@renderer\/components\/overlay\.js/);
+  assert.match(createPostModalPanelsSource, /@renderer\/components\/overlay\.js/);
+  assert.match(contactDetailProfileModalSource, /@renderer\/components\/overlay\.js/);
+  assert.match(giftsTabSource, /@renderer\/components\/overlay\.js/);
+});
+
+test('governed roots and overlays expose stable testability hooks', () => {
+  assert.match(homeViewSource, /data-testid=\{E2E_IDS\.panel\('home'\)\}/);
+  assert.match(notificationPanelSource, /data-testid=\{E2E_IDS\.panel\('notification'\)\}/);
+  assert.match(profilePanelSource, /data-testid=\{E2E_IDS\.panel\('profile'\)\}/);
+  assert.match(sendGiftModalSource, /dataTestId=\{E2E_IDS\.sendGiftDialog\}/);
+  assert.match(createPostModalSource, /dataTestId=\{E2E_IDS\.createPostDialog\}/);
+  assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostEmojiPanel\}/);
+  assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostLocationPanel\}/);
+  assert.match(createPostModalPanelsSource, /dataTestId=\{E2E_IDS\.createPostTagPanel\}/);
+  assert.match(contactDetailProfileModalSource, /dataTestId=\{E2E_IDS\.contactDetailProfileModal\}/);
+  assert.match(giftsTabSource, /dataTestId=\{E2E_IDS\.profileTopSupportersDialog\}/);
+});
+
+test('overlay primitive keeps data-testid passthrough and panel style support for governed popovers/dialogs', () => {
+  assert.match(overlayPrimitiveSource, /data-testid=\{dataTestId\}/);
+  assert.match(overlayPrimitiveSource, /style=\{panelStyle\}/);
 });
 
 test('profile post feeds keep a stable two-column breakpoint instead of a late private width threshold', () => {
