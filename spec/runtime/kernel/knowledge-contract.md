@@ -57,6 +57,7 @@
 
 - `BuildIndex` 为异步操作，返回 `task_id` 用于追踪。
 - 索引构建完成前对该 `index_id` 的搜索返回空结果。
+- 已存在同一 `app_id` + `subject_user_id` + `index_id` 且 `overwrite=false` 时，`BuildIndex` 必须返回 `ALREADY_EXISTS` + `KNOWLEDGE_INDEX_ALREADY_EXISTS`。
 - `overwrite=true` 时先删除旧索引再构建新索引。
 - 索引存储为 in-memory，runtime 重启后丢失。此为 Phase 2 有意的设计约束（见 K-KNOW-006 deferred decisions）。
 

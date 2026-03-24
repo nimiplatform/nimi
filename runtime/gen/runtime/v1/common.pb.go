@@ -150,6 +150,8 @@ const (
 	ReasonCode_GRANT_TOKEN_CHAIN_ROOT_REQUIRED  ReasonCode = 511
 	// PAGE family (520+)
 	ReasonCode_PAGE_TOKEN_INVALID ReasonCode = 520
+	// KNOWLEDGE family (530+)
+	ReasonCode_KNOWLEDGE_INDEX_ALREADY_EXISTS ReasonCode = 530
 )
 
 // Enum value maps for ReasonCode.
@@ -259,6 +261,7 @@ var (
 		510: "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
 		511: "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
 		520: "PAGE_TOKEN_INVALID",
+		530: "KNOWLEDGE_INDEX_ALREADY_EXISTS",
 	}
 	ReasonCode_value = map[string]int32{
 		"REASON_CODE_UNSPECIFIED":               0,
@@ -365,6 +368,7 @@ var (
 		"GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND":      510,
 		"GRANT_TOKEN_CHAIN_ROOT_REQUIRED":       511,
 		"PAGE_TOKEN_INVALID":                    520,
+		"KNOWLEDGE_INDEX_ALREADY_EXISTS":        530,
 	}
 )
 
@@ -848,7 +852,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xd5\x19\n" +
+	"actionHint*\xfa\x19\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -955,7 +959,8 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x19APP_MESSAGE_LOOP_DETECTED\x10\xa8\x04\x12%\n" +
 	" GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND\x10\xfe\x03\x12$\n" +
 	"\x1fGRANT_TOKEN_CHAIN_ROOT_REQUIRED\x10\xff\x03\x12\x17\n" +
-	"\x12PAGE_TOKEN_INVALID\x10\x88\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
+	"\x12PAGE_TOKEN_INVALID\x10\x88\x04\x12#\n" +
+	"\x1eKNOWLEDGE_INDEX_ALREADY_EXISTS\x10\x92\x04\"\x04\bh\x10h\"\x04\bj\x10j\"\x04\bs\x10s\"\x04\bt\x10t\"\x04\bv\x10v\"\x06\b\xcb\x01\x10\xcb\x01\"\x06\b\x90\x03\x10\x90\x03\"\x06\b\x91\x03\x10\x91\x03*\xa9\x01\n" +
 	"\x15ExternalPrincipalType\x12'\n" +
 	"#EXTERNAL_PRINCIPAL_TYPE_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dEXTERNAL_PRINCIPAL_TYPE_AGENT\x10\x01\x12\x1f\n" +

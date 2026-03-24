@@ -565,7 +565,13 @@ export enum ReasonCode {
      *
      * @generated from protobuf enum value: PAGE_TOKEN_INVALID = 520;
      */
-    PAGE_TOKEN_INVALID = 520
+    PAGE_TOKEN_INVALID = 520,
+    /**
+     * KNOWLEDGE family (530+)
+     *
+     * @generated from protobuf enum value: KNOWLEDGE_INDEX_ALREADY_EXISTS = 530;
+     */
+    KNOWLEDGE_INDEX_ALREADY_EXISTS = 530
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

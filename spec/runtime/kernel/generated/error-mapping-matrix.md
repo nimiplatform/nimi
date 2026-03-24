@@ -110,3 +110,4 @@
 | `GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND` | `NOT_FOUND` | `grant_list_token_chain` | `grpc_status` | `K-GRANT-013` |
 | `GRANT_TOKEN_CHAIN_ROOT_REQUIRED` | `INVALID_ARGUMENT` | `grant_list_token_chain` | `grpc_status` | `K-GRANT-013` |
 | `PAGE_TOKEN_INVALID` | `INVALID_ARGUMENT` | `list_rpc_page_token_validation` | `grpc_status` | `K-PAGE-002` |
+| `KNOWLEDGE_INDEX_ALREADY_EXISTS` | `ALREADY_EXISTS` | `build_knowledge_index_without_overwrite` | `grpc_status` | `K-KNOW-005` |

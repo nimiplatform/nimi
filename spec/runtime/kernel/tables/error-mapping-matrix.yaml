@@ -185,11 +185,13 @@ mappings:
     surface: connector_manage_input_validation
     exit_shape: grpc_status
     source_rule: K-ERR-006
+    note: "connector_manage 路径：非法 provider、endpoint、字段组合等输入校验失败统一映射到该 reason_code"
   - reason_code: AI_CONNECTOR_INVALID
     grpc_code: INVALID_ARGUMENT
     surface: consume_local_connector_managed_path
     exit_shape: grpc_status
     source_rule: K-KEYSRC-009
+    note: "同一 reason_code 的另一消费面：consume 入口在 local connector managed path 校验失败时复用 AI_CONNECTOR_INVALID"
   - reason_code: AI_CONNECTOR_IMMUTABLE
     grpc_code: FAILED_PRECONDITION
     surface: connector_manage_immutable_field_update
@@ -536,3 +538,8 @@ mappings:
     surface: list_rpc_page_token_validation
     exit_shape: grpc_status
     source_rule: K-PAGE-002
+  - reason_code: KNOWLEDGE_INDEX_ALREADY_EXISTS
+    grpc_code: ALREADY_EXISTS
+    surface: build_knowledge_index_without_overwrite
+    exit_shape: grpc_status
+    source_rule: K-KNOW-005

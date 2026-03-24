@@ -93,7 +93,7 @@ func TestBuildIndexExistingNoOverwriteReasonCode(t *testing.T) {
 	if status.Code(err) != codes.AlreadyExists {
 		t.Fatalf("expected already exists, got %v", err)
 	}
-	if status.Convert(err).Message() != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED.String() {
+	if status.Convert(err).Message() != runtimev1.ReasonCode_KNOWLEDGE_INDEX_ALREADY_EXISTS.String() {
 		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
 	}
 }

@@ -6,7 +6,8 @@ numbering_note: |
   AI_REQUEST_CREDENTIAL_INVALID=212）。新增码使用族对齐范围：
   300+ AUTH, 310+ CONNECTOR, 330+ REQUEST_CREDENTIAL, 340+ APP,
   350+ MODEL, 370+ FINISH, 380+ MODEL_ROUTE, 390+ PROVIDER,
-  410+ MEDIA, 420+ VOICE, 430+ MODULE, 500+ APP_AUTH, 510+ GRANT, 520+ PAGE。
+  410+ MEDIA, 420+ VOICE, 430+ MODULE, 500+ APP_AUTH, 510+ GRANT,
+  520+ PAGE, 530+ KNOWLEDGE。
   遗留值冻结以保持线格式兼容性，不再分配 200-299 范围的新值。
   消费端指导：客户端应按 reason_code 名称（string）匹配，
   而非按数值比较。遗留编号与新编号语义等价，消费端统一处理即可。
@@ -421,6 +422,10 @@ codes:
     value: 520
     family: PAGE
     source_rule: K-PAGE-002
+  - name: KNOWLEDGE_INDEX_ALREADY_EXISTS
+    value: 530
+    family: KNOWLEDGE
+    source_rule: K-KNOW-005
   - name: APP_MESSAGE_PAYLOAD_TOO_LARGE
     value: 550
     family: APP_AUTH

@@ -82,7 +82,7 @@ func (s *Service) BuildIndex(_ context.Context, req *runtimev1.BuildIndexRequest
 	_, exists := s.indexes[key]
 	if exists && !req.GetOverwrite() {
 		s.mu.Unlock()
-		return nil, status.Error(codes.AlreadyExists, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED.String())
+		return nil, status.Error(codes.AlreadyExists, runtimev1.ReasonCode_KNOWLEDGE_INDEX_ALREADY_EXISTS.String())
 	}
 	s.indexes[key] = record
 	s.mu.Unlock()
