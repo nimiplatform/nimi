@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { TooltipBubble } from './overlay.js';
 
 type TooltipProps = {
   children: ReactNode;
@@ -24,8 +25,6 @@ export function Tooltip({
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
-  const hiddenTransform = placement === 'bottom' ? '-translate-y-1' : 'translate-y-1';
-  const visibleTransform = placement === 'bottom' ? 'translate-y-0' : '-translate-y-0';
   const gap = 8;
 
   useEffect(() => {
@@ -85,25 +84,16 @@ export function Tooltip({
       {children}
       {portalReady
         ? createPortal(
-            <div
-              ref={tooltipRef}
-              className={`fixed z-[9999] -translate-x-1/2 transition-all duration-200 ${
-                isVisible
-                  ? `opacity-100 ${visibleTransform}`
-                  : `pointer-events-none opacity-0 ${hiddenTransform}`
-              }`}
-              style={{
-                left: coords ? `${coords.left}px` : '-9999px',
-                top: coords ? `${coords.top}px` : '-9999px',
-              }}
-            >
-              <div
-                className={`max-w-[min(22rem,calc(100vw-2rem))] rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white shadow-[0_4px_20px_rgba(0,0,0,0.25)] ${
-                  multiline ? 'whitespace-normal break-words' : 'whitespace-nowrap'
-                } ${contentClassName}`.trim()}
+            <div ref={tooltipRef}>
+              <TooltipBubble
+                visible={isVisible}
+                coords={coords}
+                placement={placement}
+                className="duration-200"
+                contentClassName={`${multiline ? 'whitespace-normal break-words' : 'whitespace-nowrap'} ${contentClassName}`.trim()}
               >
                 {content}
-              </div>
+              </TooltipBubble>
             </div>,
             document.body,
           )

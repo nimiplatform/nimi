@@ -43,6 +43,30 @@
   --font-ui: "Inter", "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
   --font-display: "Noto Sans SC", "Source Han Sans SC", "Inter", "PingFang SC", "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif;
   --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", Georgia, serif;
+  --nimi-surface-canvas: #f5f7fa;
+  --nimi-surface-panel: #f8f9fb;
+  --nimi-surface-card: #ffffff;
+  --nimi-surface-hero: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(236, 247, 242, 0.9));
+  --nimi-surface-overlay: rgba(255, 255, 255, 0.98);
+  --nimi-surface-active: #eefaf5;
+  --nimi-border-subtle: rgba(226, 232, 240, 0.9);
+  --nimi-border-strong: rgba(78, 204, 163, 0.24);
+  --nimi-text-primary: #111827;
+  --nimi-text-secondary: #4b5563;
+  --nimi-text-muted: #6b7280;
+  --nimi-radius-sm: 10px;
+  --nimi-radius-md: 16px;
+  --nimi-radius-lg: 22px;
+  --nimi-radius-xl: 28px;
+  --nimi-elevation-base: 0 8px 24px rgba(15, 23, 42, 0.05);
+  --nimi-elevation-raised: 0 14px 32px rgba(15, 23, 42, 0.08);
+  --nimi-elevation-floating: 0 18px 40px rgba(15, 23, 42, 0.12);
+  --nimi-elevation-modal: 0 24px 64px rgba(15, 23, 42, 0.18);
+  --nimi-z-dialog: 120;
+  --nimi-z-popover: 130;
+  --nimi-z-tooltip: 140;
+  --nimi-motion-fast: 180ms;
+  --nimi-motion-base: 220ms;
 }
 
 html,
@@ -193,4 +217,225 @@ textarea {
 
 .chrome-tab:not(.active) .chrome-tab__close:hover {
   background: rgba(15, 23, 42, 0.18);
+}
+
+/* ---- Renderer design primitives ---- */
+
+.nimi-surface {
+  border: 1px solid transparent;
+  border-radius: var(--nimi-radius-lg);
+  transition: background-color var(--nimi-motion-fast) ease, border-color var(--nimi-motion-fast) ease, box-shadow var(--nimi-motion-fast) ease, transform var(--nimi-motion-fast) ease;
+}
+
+.nimi-surface--canvas {
+  background: var(--nimi-surface-canvas);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-surface--panel {
+  background: var(--nimi-surface-panel);
+  border-color: var(--nimi-border-subtle);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-surface--card {
+  background: var(--nimi-surface-card);
+  border-color: var(--nimi-border-subtle);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-surface--hero {
+  background: var(--nimi-surface-hero);
+  border-color: rgba(255, 255, 255, 0.82);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-surface--overlay {
+  background: var(--nimi-surface-overlay);
+  border-color: rgba(226, 232, 240, 0.72);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-surface--elevation-base {
+  box-shadow: var(--nimi-elevation-base);
+}
+
+.nimi-surface--elevation-raised {
+  box-shadow: var(--nimi-elevation-raised);
+}
+
+.nimi-surface--elevation-floating {
+  box-shadow: var(--nimi-elevation-floating);
+}
+
+.nimi-surface--elevation-modal {
+  box-shadow: var(--nimi-elevation-modal);
+}
+
+.nimi-surface--interactive:hover {
+  border-color: rgba(78, 204, 163, 0.16);
+  box-shadow: var(--nimi-elevation-raised);
+  transform: translateY(-1px);
+}
+
+.nimi-surface--active {
+  background: var(--nimi-surface-active);
+  border-color: var(--nimi-border-strong);
+}
+
+.nimi-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 600;
+  transition: background-color var(--nimi-motion-fast) ease, border-color var(--nimi-motion-fast) ease, box-shadow var(--nimi-motion-fast) ease, color var(--nimi-motion-fast) ease, transform var(--nimi-motion-fast) ease;
+}
+
+.nimi-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.nimi-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.nimi-action--size-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
+}
+
+.nimi-action--size-md {
+  min-height: 40px;
+  padding: 0 16px;
+  font-size: 0.875rem;
+}
+
+.nimi-action--icon {
+  aspect-ratio: 1 / 1;
+  padding: 0;
+}
+
+.nimi-action--icon.nimi-action--size-sm {
+  width: 32px;
+}
+
+.nimi-action--icon.nimi-action--size-md {
+  width: 40px;
+}
+
+.nimi-action--primary {
+  background: var(--color-mint-500);
+  color: white;
+  box-shadow: 0 10px 24px rgba(78, 204, 163, 0.24);
+}
+
+.nimi-action--primary:hover:not(:disabled) {
+  background: var(--color-mint-600);
+  box-shadow: 0 14px 30px rgba(78, 204, 163, 0.28);
+}
+
+.nimi-action--secondary {
+  background: white;
+  border-color: var(--nimi-border-subtle);
+  color: var(--nimi-text-secondary);
+  box-shadow: var(--nimi-elevation-base);
+}
+
+.nimi-action--secondary:hover:not(:disabled) {
+  background: #fbfcfd;
+  color: var(--nimi-text-primary);
+}
+
+.nimi-action--ghost {
+  background: transparent;
+  color: var(--nimi-text-muted);
+}
+
+.nimi-action--ghost:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.36);
+  backdrop-filter: blur(12px);
+}
+
+.nimi-overlay-backdrop--dialog {
+  z-index: var(--nimi-z-dialog);
+  align-items: center;
+  justify-content: center;
+}
+
+.nimi-overlay-backdrop--drawer {
+  z-index: var(--nimi-z-dialog);
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.nimi-overlay-backdrop--popover {
+  z-index: var(--nimi-z-popover);
+  align-items: center;
+  justify-content: center;
+}
+
+.nimi-overlay-panel {
+  width: 100%;
+  max-width: min(100%, 28rem);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: var(--nimi-radius-xl);
+  background: var(--nimi-surface-overlay);
+  box-shadow: var(--nimi-elevation-modal);
+}
+
+.nimi-overlay-panel--drawer {
+  max-width: min(100%, 28rem);
+  height: 100%;
+  border-radius: var(--nimi-radius-xl) 0 0 var(--nimi-radius-xl);
+}
+
+.nimi-overlay-panel--popover {
+  max-width: min(100%, 22rem);
+  border-radius: var(--nimi-radius-lg);
+}
+
+.nimi-tooltip-layer {
+  z-index: var(--nimi-z-tooltip);
+  transition-duration: var(--nimi-motion-fast);
+}
+
+.nimi-tooltip-bubble {
+  max-width: min(22rem, calc(100vw - 2rem));
+  border-radius: var(--nimi-radius-sm);
+  background: rgba(17, 24, 39, 0.96);
+  padding: 6px 12px;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nimi-surface,
+  .nimi-action,
+  .nimi-overlay-panel,
+  .nimi-tooltip-layer {
+    transition-duration: 1ms;
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+
+  html:focus-within {
+    scroll-behavior: auto;
+  }
 }
