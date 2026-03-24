@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { useTranslation } from 'react-i18next';
@@ -96,9 +96,37 @@ export function ModHubView(model: ModHubPageModel) {
   const searchBarRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const settingsRef = useRef<HTMLDivElement | null>(null);
+  const dockContentRef = useRef<HTMLDivElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [dockMaxHeight, setDockMaxHeight] = useState(0);
   const hasVisibleResults = model.managementSections.some((section) => section.mods.length > 0);
   const showDock = !model.isSearchFocused && !model.searchQuery.trim();
+
+  useLayoutEffect(() => {
+    if (!showDock) {
+      setDockMaxHeight(0);
+      return undefined;
+    }
+
+    const updateDockHeight = () => {
+      setDockMaxHeight(dockContentRef.current?.scrollHeight ?? 0);
+    };
+
+    updateDockHeight();
+
+    if (typeof ResizeObserver === 'undefined' || !dockContentRef.current) {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateDockHeight();
+    });
+    observer.observe(dockContentRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [showDock, model.dockMods.length]);
 
   useEffect(() => {
     if (!model.isSearchFocused) return undefined;
@@ -254,33 +282,36 @@ export function ModHubView(model: ModHubPageModel) {
       <ScrollShell className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              showDock ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+              showDock ? 'opacity-100' : 'opacity-0'
             }`}
+            style={{ maxHeight: showDock ? `${dockMaxHeight}px` : '0px' }}
           >
-            {model.dockMods.length > 0 ? (
-              <section>
-                <div className="mb-6 px-2 text-sm font-medium uppercase tracking-[0.16em] text-gray-500">
-                  {t('ModHub.installedDockSection')}
+            <div ref={dockContentRef}>
+              {model.dockMods.length > 0 ? (
+                <section>
+                  <div className="mb-6 px-2 text-sm font-medium uppercase tracking-[0.16em] text-gray-500">
+                    {t('ModHub.installedDockSection')}
+                  </div>
+                  <div className="grid grid-cols-4 gap-x-4 gap-y-8 md:grid-cols-6 lg:grid-cols-8">
+                    {model.dockMods.map((mod) => (
+                      <DockTile
+                        key={mod.id}
+                        modName={mod.name}
+                        iconText={mod.iconText}
+                        iconImageSrc={mod.iconImageSrc}
+                        iconBg={mod.iconBg}
+                        accentClassName={dockAccentClass(mod.visualState)}
+                        onClick={() => model.onActivateDockMod(mod.id)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <div className="rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-8 text-center text-sm text-slate-400">
+                  {t('ModHub.emptyDock')}
                 </div>
-                <div className="grid grid-cols-4 gap-x-4 gap-y-8 md:grid-cols-6 lg:grid-cols-8">
-                  {model.dockMods.map((mod) => (
-                    <DockTile
-                      key={mod.id}
-                      modName={mod.name}
-                      iconText={mod.iconText}
-                      iconImageSrc={mod.iconImageSrc}
-                      iconBg={mod.iconBg}
-                      accentClassName={dockAccentClass(mod.visualState)}
-                      onClick={() => model.onActivateDockMod(mod.id)}
-                    />
-                  ))}
-                </div>
-              </section>
-            ) : (
-              <div className="rounded-3xl border border-dashed border-slate-200 bg-white px-6 py-8 text-center text-sm text-slate-400">
-                {t('ModHub.emptyDock')}
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {model.managementSections.map((section) => {
