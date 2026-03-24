@@ -3,8 +3,17 @@ import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Button, IconButton } from '../src/shell/renderer/components/action.js';
-import { SPACING_TOKEN_VALUE, STATE_TONE_CLASS, STROKE_TOKEN_VALUE, TYPOGRAPHY_TOKEN_CLASS } from '../src/shell/renderer/components/design-tokens.js';
+import {
+  SIDEBAR_AFFORDANCE_CLASS,
+  SIDEBAR_FAMILY_CLASS,
+  SIDEBAR_ITEM_KIND_CLASS,
+  SPACING_TOKEN_VALUE,
+  STATE_TONE_CLASS,
+  STROKE_TOKEN_VALUE,
+  TYPOGRAPHY_TOKEN_CLASS,
+} from '../src/shell/renderer/components/design-tokens.js';
 import { TooltipBubble } from '../src/shell/renderer/components/overlay.js';
+import { SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell } from '../src/shell/renderer/components/sidebar.js';
 import { Surface } from '../src/shell/renderer/components/surface.js';
 
 test('surface applies semantic tone and elevation classes', () => {
@@ -51,4 +60,44 @@ test('design tokens export semantic typography, spacing, stroke, and state group
   assert.equal(SPACING_TOKEN_VALUE.section, 'var(--nimi-space-section)');
   assert.equal(STROKE_TOKEN_VALUE.strong, 'var(--nimi-border-strong)');
   assert.equal(STATE_TONE_CLASS.selected, 'nimi-state--selected');
+});
+
+test('sidebar primitives expose the shared desktop sidebar family classes', () => {
+  const markup = renderToStaticMarkup(
+    <SidebarShell data-testid="sidebar-shell">
+      <SidebarHeader title="Title" />
+      <SidebarSearch
+        value="abc"
+        onChange={() => {}}
+        placeholder="Search"
+        primaryAction={<span>+</span>}
+      />
+      <SidebarSection label="Core">
+        <SidebarItem
+          kind="nav-row"
+          active
+          label="Runtime"
+          trailing={<span>3</span>}
+          trailingAffordance="badge"
+        />
+      </SidebarSection>
+      <SidebarResizeHandle ariaLabel="resize" onMouseDown={() => {}} />
+    </SidebarShell>,
+  );
+
+  assert.match(markup, /nimi-sidebar-shell/u);
+  assert.match(markup, /nimi-sidebar-header/u);
+  assert.match(markup, /nimi-sidebar-search/u);
+  assert.match(markup, /nimi-sidebar-section/u);
+  assert.match(markup, /nimi-sidebar-item/u);
+  assert.match(markup, /nimi-sidebar-item--nav-row/u);
+  assert.match(markup, /nimi-sidebar-affordance--badge/u);
+  assert.match(markup, /nimi-sidebar-resize-handle/u);
+  assert.match(markup, /data-testid="sidebar-shell"/u);
+});
+
+test('sidebar design tokens export family, item kind, and affordance groups', () => {
+  assert.equal(SIDEBAR_FAMILY_CLASS['desktop-sidebar-v1'], 'nimi-sidebar-shell');
+  assert.equal(SIDEBAR_ITEM_KIND_CLASS['entity-row'], 'nimi-sidebar-item--entity-row');
+  assert.equal(SIDEBAR_AFFORDANCE_CLASS.chevron, 'nimi-sidebar-affordance--chevron');
 });
