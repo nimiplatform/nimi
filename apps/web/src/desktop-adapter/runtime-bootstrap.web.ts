@@ -123,10 +123,6 @@ async function bootstrapAuthSession(input: {
       refreshToken,
       user: normalizedUser,
     });
-    await Promise.allSettled([
-      deps.dataSync.loadChats(),
-      deps.dataSync.loadContacts(),
-    ]);
     deps.logRendererEvent({
       level: 'info',
       area: 'renderer-bootstrap',
