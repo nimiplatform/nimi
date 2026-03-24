@@ -1,10 +1,10 @@
 import { asNimiError } from '../../runtime/errors.js';
+import { createNimiError } from '../../runtime/errors.js';
 import { asRecord } from '../../internal/utils.js';
 import type { JsonObject } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type { Realm } from '../client.js';
 
-const ACCOUNT_DATA_UNAVAILABLE_REASON = 'REALM_ACCOUNT_DATA_UNAVAILABLE';
 const ACCOUNT_DATA_UNAVAILABLE_HINT = 'upgrade_realm_account_data_api';
 
 export type AccountDataTaskStatus =
@@ -123,30 +123,31 @@ function normalizeAccountDeletionOutput(payload: unknown): RequestAccountDeletio
   };
 }
 
-function mapUnavailableResult(operation: 'export' | 'delete'): {
-  accepted: false;
-  status: 'UNAVAILABLE';
-  reasonCode: string;
-  actionHint: string;
-  message: string;
-} {
-  return {
-    accepted: false,
-    status: 'UNAVAILABLE',
-    reasonCode: ACCOUNT_DATA_UNAVAILABLE_REASON,
-    actionHint: ACCOUNT_DATA_UNAVAILABLE_HINT,
-    message: operation === 'export'
-      ? 'Data export backend is not available yet.'
-      : 'Account deletion backend is not available yet.',
-  };
-}
-
 function isBackendUnavailable(error: ReturnType<typeof asNimiError>): boolean {
   const httpStatus = Number(error.details?.httpStatus || 0);
   return error.reasonCode === ReasonCode.REALM_NOT_FOUND
     || httpStatus === 404
     || httpStatus === 405
     || httpStatus === 501;
+}
+
+function createBackendUnavailableError(
+  operation: 'export' | 'delete',
+  error: ReturnType<typeof asNimiError>,
+) {
+  return createNimiError({
+    message: operation === 'export'
+      ? 'realm account-data export backend is not available'
+      : 'realm account-deletion backend is not available',
+    reasonCode: ReasonCode.REALM_UNAVAILABLE,
+    actionHint: ACCOUNT_DATA_UNAVAILABLE_HINT,
+    source: 'realm',
+    details: {
+      ...asRecord(error.details),
+      operation,
+      originalReasonCode: error.reasonCode,
+    },
+  });
 }
 
 export async function requestDataExport(
@@ -163,7 +164,7 @@ export async function requestDataExport(
       source: 'realm',
     });
     if (isBackendUnavailable(normalized)) {
-      return normalizeDataExportOutput(mapUnavailableResult('export'));
+      throw createBackendUnavailableError('export', normalized);
     }
     throw normalized;
   }
@@ -183,7 +184,7 @@ export async function requestAccountDeletion(
       source: 'realm',
     });
     if (isBackendUnavailable(normalized)) {
-      return normalizeAccountDeletionOutput(mapUnavailableResult('delete'));
+      throw createBackendUnavailableError('delete', normalized);
     }
     throw normalized;
   }

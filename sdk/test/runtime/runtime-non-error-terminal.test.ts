@@ -7,7 +7,7 @@ import {
   FinishReason,
   RoutePolicy,
 } from '../../src/runtime/generated/runtime/v1/ai';
-import { Struct } from '../../src/runtime/generated/google/protobuf/struct.js';
+import { textGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 
 const APP_ID = 'nimi.runtime.non-error-terminal.test';
 
@@ -27,7 +27,7 @@ async function runGenerateWithFinishReason(finishReason: FinishReason): Promise<
       }
       return ExecuteScenarioResponse.toBinary(
         ExecuteScenarioResponse.create({
-          output: Struct.fromJson({ text: 'non-error-terminal' } as never),
+          output: textGenerateOutput('non-error-terminal'),
           finishReason,
           routeDecision: RoutePolicy.LOCAL,
           modelResolved: 'local/test',

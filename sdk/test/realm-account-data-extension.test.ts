@@ -78,7 +78,7 @@ test('requestAccountDeletion normalizes response aliases', async () => {
   assert.equal(result.scheduledDeletionAt, '2026-03-05T00:00:00.000Z');
 });
 
-test('account-data extension maps 404 backend gaps to UNAVAILABLE result', async () => {
+test('account-data extension fails closed when export backend is unavailable', async () => {
   const error = new Error('not found') as Error & {
     reasonCode?: string;
     details?: Record<string, unknown>;
@@ -91,25 +91,56 @@ test('account-data extension maps 404 backend gaps to UNAVAILABLE result', async
     throw error;
   });
 
-  const exportResult = await requestDataExport(
-    realm as unknown as Realm,
-    {},
+  await assert.rejects(
+    () => requestDataExport(realm as unknown as Realm, {}),
+    (thrown: unknown) => {
+      const normalized = thrown as {
+        reasonCode?: string;
+        actionHint?: string;
+        details?: Record<string, unknown>;
+      };
+      assert.equal(normalized.reasonCode, ReasonCode.REALM_UNAVAILABLE);
+      assert.equal(normalized.actionHint, 'upgrade_realm_account_data_api');
+      assert.equal(normalized.details?.httpStatus, 404);
+      assert.equal(normalized.details?.operation, 'export');
+      assert.equal(normalized.details?.originalReasonCode, ReasonCode.REALM_NOT_FOUND);
+      return true;
+    },
   );
-  const deletionResult = await requestAccountDeletion(
-    realm as unknown as Realm,
-    {},
-  );
-
-  assert.equal(exportResult.accepted, false);
-  assert.equal(exportResult.status, 'UNAVAILABLE');
-  assert.equal(exportResult.reasonCode, 'REALM_ACCOUNT_DATA_UNAVAILABLE');
-
-  assert.equal(deletionResult.accepted, false);
-  assert.equal(deletionResult.status, 'UNAVAILABLE');
-  assert.equal(deletionResult.reasonCode, 'REALM_ACCOUNT_DATA_UNAVAILABLE');
 });
 
-test('requestDataExport treats 501 as backend unavailable', async () => {
+test('account-data extension fails closed when deletion backend is unavailable', async () => {
+  const error = new Error('not found') as Error & {
+    reasonCode?: string;
+    details?: Record<string, unknown>;
+  };
+  error.reasonCode = ReasonCode.REALM_NOT_FOUND;
+  error.details = {
+    httpStatus: 404,
+  };
+  const realm = createFakeRealm(async () => {
+    throw error;
+  });
+
+  await assert.rejects(
+    () => requestAccountDeletion(realm as unknown as Realm, {}),
+    (thrown: unknown) => {
+      const normalized = thrown as {
+        reasonCode?: string;
+        actionHint?: string;
+        details?: Record<string, unknown>;
+      };
+      assert.equal(normalized.reasonCode, ReasonCode.REALM_UNAVAILABLE);
+      assert.equal(normalized.actionHint, 'upgrade_realm_account_data_api');
+      assert.equal(normalized.details?.httpStatus, 404);
+      assert.equal(normalized.details?.operation, 'delete');
+      assert.equal(normalized.details?.originalReasonCode, ReasonCode.REALM_NOT_FOUND);
+      return true;
+    },
+  );
+});
+
+test('requestDataExport treats 501 as backend unavailable error', async () => {
   const error = new Error('not implemented') as Error & {
     reasonCode?: string;
     details?: Record<string, unknown>;
@@ -121,10 +152,21 @@ test('requestDataExport treats 501 as backend unavailable', async () => {
     throw error;
   });
 
-  const result = await requestDataExport(realm as unknown as Realm, {});
-  assert.equal(result.accepted, false);
-  assert.equal(result.status, 'UNAVAILABLE');
-  assert.equal(result.reasonCode, 'REALM_ACCOUNT_DATA_UNAVAILABLE');
+  await assert.rejects(
+    () => requestDataExport(realm as unknown as Realm, {}),
+    (thrown: unknown) => {
+      const normalized = thrown as {
+        reasonCode?: string;
+        actionHint?: string;
+        details?: Record<string, unknown>;
+      };
+      assert.equal(normalized.reasonCode, ReasonCode.REALM_UNAVAILABLE);
+      assert.equal(normalized.actionHint, 'upgrade_realm_account_data_api');
+      assert.equal(normalized.details?.httpStatus, 501);
+      assert.equal(normalized.details?.operation, 'export');
+      return true;
+    },
+  );
 });
 
 test('account-data extension rethrows non-availability errors', async () => {

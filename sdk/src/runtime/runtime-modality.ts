@@ -497,9 +497,9 @@ export async function runtimeStreamSpeechSynthesis(
           }
           case 'failed':
             throw createNimiError({
-              message: normalizeText(event.payload.failed.actionHint) || 'runtime stream failed',
+              message: normalizeText(event.payload.failed.reasonCode) || 'runtime stream failed',
               reasonCode: normalizeText(event.payload.failed.reasonCode) || ReasonCode.AI_STREAM_BROKEN,
-              actionHint: 'retry_or_switch_route',
+              actionHint: normalizeText(event.payload.failed.actionHint) || 'retry_or_switch_route',
               source: 'runtime',
             });
           default:
