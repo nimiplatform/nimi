@@ -4,7 +4,7 @@
 // All handlers are SDK passthrough — no agentId required (not agent-scoped)
 
 import type { PlatformClient } from '@nimiplatform/sdk';
-import { normalizeError } from './error-utils.js';
+import { toIpcError } from './error-utils.js';
 import { safeHandle } from './ipc-utils.js';
 
 export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): void {
@@ -14,7 +14,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.model.list(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -22,7 +22,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.model.pull(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -30,7 +30,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.model.remove(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -38,7 +38,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.model.checkHealth(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -48,7 +48,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.listLocalModels(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -56,7 +56,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.listVerifiedModels(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -64,7 +64,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.searchCatalogModels(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -72,7 +72,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.resolveModelInstallPlan(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -80,7 +80,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.installLocalModel(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -88,7 +88,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.installVerifiedModel(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -96,7 +96,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.importLocalModel(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -104,7 +104,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.removeLocalModel(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -112,7 +112,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.startLocalModel(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -120,7 +120,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.stopLocalModel(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -128,7 +128,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.checkLocalModelHealth(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -136,7 +136,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.warmLocalModel(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -144,7 +144,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.collectDeviceProfile(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -152,7 +152,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.resolveProfile(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -160,7 +160,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.local.listNodeCatalog(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -170,7 +170,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.createConnector(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -178,7 +178,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.getConnector(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -186,7 +186,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.listConnectors(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -194,7 +194,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.updateConnector(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -202,7 +202,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.deleteConnector(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -210,7 +210,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.testConnector(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -218,7 +218,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.listConnectorModels(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -226,7 +226,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.listProviderCatalog(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -234,7 +234,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.listModelCatalogProviders(input ?? {});
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -242,7 +242,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.listCatalogProviderModels(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -250,7 +250,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.getCatalogModelDetail(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -258,7 +258,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.upsertModelCatalogProvider(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -266,7 +266,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.deleteModelCatalogProvider(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -274,7 +274,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.upsertCatalogModelOverlay(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 
@@ -282,7 +282,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     try {
       return await runtime.connector.deleteCatalogModelOverlay(input);
     } catch (error) {
-      throw normalizeError(error);
+      throw toIpcError(error);
     }
   });
 }

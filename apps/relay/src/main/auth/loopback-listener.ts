@@ -63,7 +63,7 @@ export function listenForOAuthCallback(options: {
       if (!settled) {
         settled = true;
         cleanup();
-        reject(new Error('等待 OAuth 回调超时'));
+        reject(new Error('Timed out waiting for OAuth callback'));
       }
     }, options.timeoutMs);
 

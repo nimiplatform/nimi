@@ -16,6 +16,7 @@ import type {
   ImageGenerateInput,
 } from '@nimiplatform/sdk/runtime';
 import { openStream, cancelStream } from './stream-manager.js';
+import { requireAgentId } from './ipc-agent-guards.js';
 import { normalizeError, toIpcError } from './error-utils.js';
 import { safeHandle } from './ipc-utils.js';
 import { toTextGenerateInput, toTextStreamInput, type IpcAiGenerateInput, type IpcAiStreamInput } from './input-transform.js';
@@ -44,20 +45,6 @@ function encodeArtifactBytes(bytes: Uint8Array | undefined): string | undefined 
     return undefined;
   }
   return Buffer.from(bytes).toString('base64');
-}
-
-const RELAY_REASON_CODE_MISSING_AGENT_ID = ReasonCode.AI_INPUT_INVALID;
-
-function requireAgentId(input: unknown): void {
-  const agentId = input && typeof input === 'object' && 'agentId' in input
-    ? (input as { agentId?: unknown }).agentId
-    : undefined;
-  if (!agentId || typeof agentId !== 'string') {
-    throw Object.assign(new Error('agentId is required for agent-scoped IPC calls'), {
-      reasonCode: RELAY_REASON_CODE_MISSING_AGENT_ID,
-      actionHint: 'Select an agent before using this feature',
-    });
-  }
 }
 
 export function registerIpcHandlers(

@@ -54,6 +54,13 @@ export function getAuthState(): { state: AuthState; error: string | null } {
   return { state: currentAuthState, error: authError };
 }
 
+async function initializeRouteStateOrThrow(runtimeClient: PlatformClient['runtime']): Promise<RouteState> {
+  const nextRouteState = createRouteState();
+  await nextRouteState.initialize(runtimeClient);
+  registerRouteHandlers(runtimeClient, nextRouteState);
+  return nextRouteState;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -62,7 +69,7 @@ function createWindow() {
       preload: path.join(__dirname, '..', 'preload', 'index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
 
@@ -109,14 +116,13 @@ export async function applyTokenAndInit(accessToken: string): Promise<void> {
       },
     }));
 
-    // Initialize route state
-    routeState = createRouteState();
-    await routeState.initialize(runtime).catch(() => {});
-    registerRouteHandlers(runtime, routeState);
+    routeState = await initializeRouteStateOrThrow(runtime);
 
     registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
     registerModelIpcHandlers(runtime);
-    initRealtimeRelay(env.NIMI_REALM_URL, env.NIMI_ACCESS_TOKEN!, getWebContents);
+    initRealtimeRelay(env.NIMI_REALM_URL, env.NIMI_ACCESS_TOKEN!, getWebContents, {
+      allowInsecureHttp: !app.isPackaged,
+    });
 
     setAuthState('authenticated');
   } catch (error) {
@@ -173,33 +179,27 @@ app.whenReady().then(async () => {
 
     try {
       await runtime.health();
-      // Token accepted by Runtime — proceed with authenticated boot
-      routeState = createRouteState();
-      await routeState.initialize(runtime).catch(() => {});
-      registerRouteHandlers(runtime, routeState);
-
-      initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents);
-      registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
-      registerModelIpcHandlers(runtime);
-      setAuthState('authenticated');
     } catch (healthError) {
       const reason = (healthError as { reasonCode?: string }).reasonCode;
       if (reason === ReasonCode.AUTH_TOKEN_INVALID || reason === ReasonCode.AUTH_DENIED) {
-        // Stale/revoked token — clear and fall through to login
         clearToken();
         env.NIMI_ACCESS_TOKEN = undefined;
         setAuthState('pending');
-      } else {
-        // Runtime unreachable but token may be valid — degrade gracefully (RL-BOOT-004)
-        routeState = createRouteState();
-        await routeState.initialize(runtime).catch(() => {});
-        registerRouteHandlers(runtime, routeState);
-
-        initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents);
-        registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
-        registerModelIpcHandlers(runtime);
-        setAuthState('authenticated');
+        return;
       }
+    }
+
+    try {
+      routeState = await initializeRouteStateOrThrow(runtime);
+      initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents, {
+        allowInsecureHttp: !app.isPackaged,
+      });
+      registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
+      registerModelIpcHandlers(runtime);
+      setAuthState('authenticated');
+    } catch (bootstrapError) {
+      const message = bootstrapError instanceof Error ? bootstrapError.message : String(bootstrapError);
+      setAuthState('failed', message);
     }
   } else {
     // No token — show login page, wait for Social OAuth

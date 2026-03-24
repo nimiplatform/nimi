@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { normalizeError, toIpcError, type NormalizedError } from '../src/main/error-utils.js';
+import { RELAY_AGENT_SCOPED_CHANNELS, requireAgentId } from '../src/main/ipc-agent-guards.js';
 import { resolveRelayTtsConfig } from '../src/main/tts-config.js';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -15,17 +16,6 @@ const srcMain = path.join(testDir, '..', 'src', 'main');
 const specTables = path.join(testDir, '..', 'spec', 'kernel', 'tables');
 const TEST_REASON_CODE = 'TEST';
 const ipcHandlersSource = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf8');
-
-// ── Extracted Logic: requireAgentId (from ipc-handlers.ts:25-32) ─────────
-
-function requireAgentId(input: Record<string, unknown>): void {
-  if (!input.agentId || typeof input.agentId !== 'string') {
-    throw Object.assign(new Error('agentId is required for agent-scoped IPC calls'), {
-      reasonCode: ReasonCode.AI_INPUT_INVALID,
-      actionHint: 'Select an agent before using this feature',
-    });
-  }
-}
 
 // ── Helper: extract channel names from source files ──────────────────────
 
@@ -199,13 +189,6 @@ describe('RL-CORE-004 — requireAgentId guard function', () => {
 // ─── Agent-Scoped vs Agent-Independent Channels ─────────────────────────
 
 describe('RL-CORE-004 — Agent-scoped vs agent-independent channels', () => {
-  const AGENT_SCOPED_CHANNELS = [
-    'relay:ai:generate',
-    'relay:ai:stream:open',
-    'relay:media:tts:synthesize',
-    'relay:media:video:generate',
-  ];
-
   const AGENT_INDEPENDENT_CHANNELS = [
     'relay:media:stt:transcribe',
     'relay:media:tts:voices',
@@ -218,7 +201,7 @@ describe('RL-CORE-004 — Agent-scoped vs agent-independent channels', () => {
   ];
 
   it('agent-scoped channels require agentId', () => {
-    for (const ch of AGENT_SCOPED_CHANNELS) {
+    for (const ch of RELAY_AGENT_SCOPED_CHANNELS) {
       assert.throws(
         () => requireAgentId({}),
         /agentId is required/,
@@ -228,7 +211,7 @@ describe('RL-CORE-004 — Agent-scoped vs agent-independent channels', () => {
   });
 
   it('agent-scoped channels pass with valid agentId', () => {
-    for (const ch of AGENT_SCOPED_CHANNELS) {
+    for (const ch of RELAY_AGENT_SCOPED_CHANNELS) {
       assert.doesNotThrow(
         () => requireAgentId({ agentId: 'test-agent' }),
         `${ch}: should pass with valid agentId`,
@@ -237,11 +220,23 @@ describe('RL-CORE-004 — Agent-scoped vs agent-independent channels', () => {
   });
 
   it('agent-scoped and agent-independent sets are disjoint', () => {
-    for (const ch of AGENT_SCOPED_CHANNELS) {
+    for (const ch of RELAY_AGENT_SCOPED_CHANNELS) {
       assert.equal(
         AGENT_INDEPENDENT_CHANNELS.includes(ch),
         false,
         `${ch} must not be in both sets`,
+      );
+    }
+  });
+
+  it('each agent-scoped handler applies the actual requireAgentId guard in source', () => {
+    for (const channel of RELAY_AGENT_SCOPED_CHANNELS) {
+      const handlerIndex = ipcHandlersSource.indexOf(`safeHandle('${channel}'`);
+      assert.ok(handlerIndex >= 0, `${channel}: handler must be registered`);
+      const handlerSlice = ipcHandlersSource.slice(handlerIndex, handlerIndex + 600);
+      assert.ok(
+        handlerSlice.includes('requireAgentId(input);'),
+        `${channel}: handler must invoke requireAgentId(input) before dispatch`,
       );
     }
   });
@@ -465,15 +460,15 @@ describe('RL-IPC-008 — Typed Realm data IPC', () => {
     assert.equal(input.agentId, 'agent-123');
   });
 
-  it('relay IPC no longer proxies HumanChatService methods', () => {
+  it('relay IPC no longer proxies HumanChatsService methods', () => {
     const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
     assert.equal(
-      source.includes('realm.services.HumanChatService.startChat'),
+      source.includes('realm.services.HumanChatsService.startChat'),
       false,
       'must not start chats through relay IPC',
     );
     assert.equal(
-      source.includes('realm.services.HumanChatService.sendMessage'),
+      source.includes('realm.services.HumanChatsService.sendMessage'),
       false,
       'must not send human chat through relay IPC',
     );

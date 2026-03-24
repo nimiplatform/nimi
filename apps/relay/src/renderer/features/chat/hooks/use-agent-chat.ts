@@ -13,15 +13,80 @@ export interface ChatMessage {
   streaming?: boolean;
 }
 
+export function processStreamChunk(
+  messages: ChatMessage[],
+  assistantMsgId: string,
+  ownStreamId: string,
+  payload: { streamId: string; data: unknown },
+): { messages: ChatMessage[]; changed: boolean } {
+  if (payload.streamId !== ownStreamId) {
+    return { messages, changed: false };
+  }
+  const part = payload.data as { type?: unknown; text?: unknown };
+  if (part.type !== 'text' || typeof part.text !== 'string' || part.text.length === 0) {
+    return { messages, changed: false };
+  }
+  return {
+    messages: messages.map((message) =>
+      message.id === assistantMsgId
+        ? { ...message, text: message.text + part.text }
+        : message,
+    ),
+    changed: true,
+  };
+}
+
+export function processStreamEnd(
+  messages: ChatMessage[],
+  assistantMsgId: string,
+  ownStreamId: string,
+  payload: { streamId: string },
+): { messages: ChatMessage[]; matched: boolean } {
+  if (payload.streamId !== ownStreamId) {
+    return { messages, matched: false };
+  }
+  return {
+    messages: messages.map((message) =>
+      message.id === assistantMsgId ? { ...message, streaming: false } : message,
+    ),
+    matched: true,
+  };
+}
+
+export function processStreamError(
+  messages: ChatMessage[],
+  assistantMsgId: string,
+  ownStreamId: string,
+  payload: { streamId: string },
+): { messages: ChatMessage[]; matched: boolean } {
+  if (payload.streamId !== ownStreamId) {
+    return { messages, matched: false };
+  }
+  return {
+    messages: messages.map((message) =>
+      message.id === assistantMsgId
+        ? { ...message, text: message.text || 'Error occurred', streaming: false }
+        : message,
+    ),
+    matched: true,
+  };
+}
+
 export function useAgentChat() {
   const currentAgent = useAppStore((s) => s.currentAgent);
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const activeStreamRef = useRef<string | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // RL-CORE-002: Reset chat when agent changes
   useEffect(() => {
+    messagesRef.current = [];
     setMessages([]);
     setIsStreaming(false);
     if (activeStreamRef.current) {
@@ -60,15 +125,11 @@ export function useAgentChat() {
 
       // Listen for stream chunks — RuntimeStreamChunk shape: { type: 'text', text } | { type: 'done', ... }
       const chunkId = bridge.stream.onChunk((payload) => {
-        if (payload.streamId !== streamId) return;
-        const part = payload.data as { type: string; text?: string };
-        if (part.type === 'text' && part.text) {
+        const next = processStreamChunk(messagesRef.current, assistantMsg.id, streamId, payload);
+        if (next.changed) {
+          messagesRef.current = next.messages;
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsg.id
-                ? { ...m, text: m.text + part.text }
-                : m,
-            ),
+            processStreamChunk(prev, assistantMsg.id, streamId, payload).messages,
           );
         }
       });
@@ -80,26 +141,20 @@ export function useAgentChat() {
       };
 
       const endId = bridge.stream.onEnd((payload) => {
-        if (payload.streamId !== streamId) return;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsg.id ? { ...m, streaming: false } : m,
-          ),
-        );
+        const next = processStreamEnd(messagesRef.current, assistantMsg.id, streamId, payload);
+        if (!next.matched) return;
+        messagesRef.current = next.messages;
+        setMessages(next.messages);
         setIsStreaming(false);
         activeStreamRef.current = null;
         cleanup();
       });
 
       const errorId = bridge.stream.onError((payload) => {
-        if (payload.streamId !== streamId) return;
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantMsg.id
-              ? { ...m, text: m.text || 'Error occurred', streaming: false }
-              : m,
-          ),
-        );
+        const next = processStreamError(messagesRef.current, assistantMsg.id, streamId, payload);
+        if (!next.matched) return;
+        messagesRef.current = next.messages;
+        setMessages(next.messages);
         setIsStreaming(false);
         activeStreamRef.current = null;
         cleanup();

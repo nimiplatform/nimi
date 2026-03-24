@@ -4,72 +4,12 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { useAppStore, type Agent } from '../../src/renderer/app-shell/providers/app-store.js';
-
-// ── Extracted Logic: ChatMessage Shape ────────────────────────────────────
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-  streaming?: boolean;
-}
-
-// ── Extracted Logic: Stream chunk processing (from use-agent-chat.ts:62-73)
-
-function processStreamChunk(
-  messages: ChatMessage[],
-  assistantMsgId: string,
-  ownStreamId: string,
-  payload: { streamId: string; data: unknown },
-): { messages: ChatMessage[]; changed: boolean } {
-  if (payload.streamId !== ownStreamId) return { messages, changed: false };
-  const part = payload.data as { type: string; text?: string };
-  if (part.type === 'text' && part.text) {
-    return {
-      messages: messages.map((m) =>
-        m.id === assistantMsgId ? { ...m, text: m.text + part.text } : m,
-      ),
-      changed: true,
-    };
-  }
-  return { messages, changed: false };
-}
-
-// ── Extracted Logic: Stream end processing (from use-agent-chat.ts:82-92)
-
-function processStreamEnd(
-  messages: ChatMessage[],
-  assistantMsgId: string,
-  ownStreamId: string,
-  payload: { streamId: string },
-): { messages: ChatMessage[]; matched: boolean } {
-  if (payload.streamId !== ownStreamId) return { messages, matched: false };
-  return {
-    messages: messages.map((m) =>
-      m.id === assistantMsgId ? { ...m, streaming: false } : m,
-    ),
-    matched: true,
-  };
-}
-
-// ── Extracted Logic: Stream error processing (from use-agent-chat.ts:94-106)
-
-function processStreamError(
-  messages: ChatMessage[],
-  assistantMsgId: string,
-  ownStreamId: string,
-  payload: { streamId: string },
-): { messages: ChatMessage[]; matched: boolean } {
-  if (payload.streamId !== ownStreamId) return { messages, matched: false };
-  return {
-    messages: messages.map((m) =>
-      m.id === assistantMsgId
-        ? { ...m, text: m.text || 'Error occurred', streaming: false }
-        : m,
-    ),
-    matched: true,
-  };
-}
+import {
+  processStreamChunk,
+  processStreamEnd,
+  processStreamError,
+  type ChatMessage,
+} from '../../src/renderer/features/chat/hooks/use-agent-chat.js';
 
 beforeEach(() => {
   useAppStore.setState({ currentAgent: null, runtimeAvailable: false, realtimeConnected: false });

@@ -45,7 +45,10 @@ async function flushWrite(): Promise<void> {
   const data = pendingWrite;
   pendingWrite = null;
   await ensureSettingsDir();
-  await fs.writeFile(getSettingsFilePath(), JSON.stringify(data, null, 2), 'utf-8');
+  await fs.writeFile(getSettingsFilePath(), JSON.stringify(data, null, 2), {
+    encoding: 'utf-8',
+    mode: 0o600,
+  });
 }
 
 function scheduleDebouncedWrite(settings: LocalChatSettings): void {

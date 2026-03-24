@@ -28,12 +28,12 @@ const tokenStore = createTokenStore({
   },
   existsSync: (filePath) => fs.existsSync(filePath),
   readFileSync: (filePath) => fs.readFileSync(filePath),
-  writeFileSync: (filePath, data, encoding) => {
+  writeFileSync: (filePath, data, options) => {
     if (typeof data === 'string') {
-      fs.writeFileSync(filePath, data, encoding);
+      fs.writeFileSync(filePath, data, options as BufferEncoding | fs.WriteFileOptions | undefined);
       return;
     }
-    fs.writeFileSync(filePath, data);
+    fs.writeFileSync(filePath, data, options as fs.WriteFileOptions | undefined);
   },
   unlinkSync: (filePath) => fs.unlinkSync(filePath),
 });
@@ -59,7 +59,16 @@ describe('RL-BOOT-005 — token store secure persistence', () => {
     tokenStore.saveToken('dev-token');
 
     assert.equal(fs.readFileSync(tokenPath(), 'utf8'), 'dev-token');
+    assert.equal(fs.statSync(tokenPath()).mode & 0o777, 0o600);
     assert.equal(tokenStore.loadToken(), 'dev-token');
+  });
+
+  it('writes encrypted token files with owner-only permissions', () => {
+    tokenStore.saveToken('prod-token');
+
+    assert.equal(fs.readFileSync(tokenPath(), 'utf8'), 'enc:prod-token');
+    assert.equal(fs.statSync(tokenPath()).mode & 0o777, 0o600);
+    assert.equal(tokenStore.loadToken(), 'prod-token');
   });
 
   it('fails closed on save when packaged build has no secure storage', () => {

@@ -151,6 +151,12 @@ describe('RL-BOOT-003 — Environment Variable Resolution', () => {
 // ─── RL-BOOT-001 — Main Process Initialization Sequence ─────────────────
 
 describe('RL-BOOT-001 — Main Process Initialization Sequence', () => {
+  it('createWindow enables Electron sandboxing', () => {
+    const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
+    assert.ok(source.includes('sandbox: true'), 'BrowserWindow must keep sandbox enabled');
+    assert.ok(!source.includes('sandbox: false'), 'BrowserWindow must not disable sandbox');
+  });
+
   it('index.ts follows login-first sequence: env → auth IPC → window → platform init → authenticated IPC', () => {
     const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
     const body = source.slice(source.indexOf('app.whenReady()'));

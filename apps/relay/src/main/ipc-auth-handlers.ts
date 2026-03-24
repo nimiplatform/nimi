@@ -6,6 +6,7 @@ import type { RelayInvokeMap } from '../shared/ipc-contract.js';
 import type { RelayEnv } from './env.js';
 import { toIpcError } from './error-utils.js';
 import { listenForOAuthCallback, performOauthTokenExchange } from './auth/index.js';
+import { normalizeRelayExternalUrl } from './url-guards.js';
 
 type AuthOauthLoginRequest = RelayInvokeMap['relay:auth:oauth-login']['request'];
 
@@ -203,7 +204,7 @@ export function registerAuthIpcHandlers(
   });
 
   ipcMain.handle('relay:oauth:open-external-url', async (_event, payload: { url: string }) => {
-    await shell.openExternal(payload.url);
+    await shell.openExternal(normalizeRelayExternalUrl(payload.url));
     return { opened: true };
   });
 

@@ -6,6 +6,7 @@ import { io, type Socket } from 'socket.io-client';
 import { type WebContents } from 'electron';
 import { safeHandle } from './ipc-utils.js';
 import type { RelayEventMap, RelayInvokeMap } from '../shared/ipc-contract.js';
+import { normalizeRelayRealtimeUrl } from './url-guards.js';
 
 let socket: Socket | null = null;
 
@@ -24,6 +25,7 @@ export function initRealtimeRelay(
   realmUrl: string,
   accessToken: string,
   getWebContents: () => WebContents | null,
+  options?: { allowInsecureHttp?: boolean },
 ): void {
   // Disconnect previous socket before creating a new one (re-login safety)
   if (socket) {
@@ -31,7 +33,7 @@ export function initRealtimeRelay(
     socket = null;
   }
 
-  socket = io(realmUrl, {
+  socket = io(normalizeRelayRealtimeUrl(realmUrl, options), {
     auth: { token: accessToken },
     transports: ['websocket'],
     autoConnect: true,
