@@ -1,5 +1,6 @@
 import type { AuthPlatformAdapter } from '@nimiplatform/shell-auth';
 import type { TauriOAuthBridge } from '@nimiplatform/shell-core/oauth';
+import { isWebShellMode } from '@nimiplatform/shell-core/shell-mode';
 import { OAuthProvider } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
@@ -155,6 +156,14 @@ export function createDesktopAuthAdapter(): AuthPlatformAdapter {
 
     oauthBridge: desktopOAuthBridge,
     syncAfterLogin: async () => {
+      if (isWebShellMode()) {
+        await Promise.allSettled([
+          queryClient.invalidateQueries({ queryKey: ['chats'] }),
+          queryClient.invalidateQueries({ queryKey: ['contacts'] }),
+        ]);
+        return;
+      }
+
       await Promise.allSettled([
         dataSync.loadChats(),
         dataSync.loadContacts(),

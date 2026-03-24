@@ -43,3 +43,18 @@ test('desktop auth adapter guards auth API calls behind bootstrap readiness', ()
     assertGuardedCall(handlerName);
   }
 });
+
+test('desktop auth adapter skips eager social warmup in web shell mode', () => {
+  const syncAfterLoginStart = authAdapterSource.indexOf('syncAfterLogin: async () => {');
+  assert.notEqual(syncAfterLoginStart, -1, 'syncAfterLogin handler must exist');
+
+  const webShellGuardIndex = authAdapterSource.indexOf('if (isWebShellMode()) {', syncAfterLoginStart);
+  assert.notEqual(webShellGuardIndex, -1, 'syncAfterLogin must guard web shell warmup');
+
+  const loadChatsIndex = authAdapterSource.indexOf('dataSync.loadChats()', syncAfterLoginStart);
+  assert.notEqual(loadChatsIndex, -1, 'syncAfterLogin must still preload chats outside web shell');
+  assert.ok(
+    webShellGuardIndex < loadChatsIndex,
+    'web shell guard must run before eager chat warmup',
+  );
+});
