@@ -1,0 +1,57 @@
+version: 1
+modules:
+  - id: kit.ui
+    subpath: /ui
+    kind: foundation
+    description: Cross-app design system (token, primitive, theme generation)
+    dependencies: []
+    peer_dependencies: [react, react-dom]
+    exports:
+      - ./ui
+      - ./ui/styles.css
+      - ./ui/themes/light.css
+      - ./ui/themes/dark.css
+      - ./ui/themes/desktop-accent.css
+      - ./ui/themes/forge-accent.css
+      - ./ui/themes/relay-accent.css
+      - ./ui/themes/overtone-accent.css
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-010
+  - id: kit.auth
+    subpath: /auth
+    kind: feature
+    description: Cross-app authentication UI (email, OTP, wallet, social OAuth)
+    dependencies: [kit.core, sdk]
+    peer_dependencies: [react, react-i18next]
+    exports:
+      - ./auth
+      - ./auth/styles.css
+      - ./auth/native-oauth-result-page
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-020
+  - id: kit.core
+    subpath: /core
+    kind: logic
+    description: Pure-logic utilities (OAuth, env, shell-mode)
+    dependencies: []
+    peer_dependencies: []
+    exports:
+      - ./core/shell-mode
+      - ./core/oauth
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-030
+  - id: kit.telemetry
+    subpath: /telemetry
+    kind: infra
+    description: Renderer-side telemetry (emit, debug-buffer, error-boundary)
+    dependencies: []
+    peer_dependencies: [react]
+    exports:
+      - ./telemetry
+      - ./telemetry/error-boundary
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-040

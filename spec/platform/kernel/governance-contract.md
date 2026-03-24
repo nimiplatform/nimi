@@ -16,7 +16,7 @@
 | 路径 | License |
 |---|---|
 | `runtime/`, `sdk/`, `proto/` | Apache-2.0 |
-| `apps/desktop/`, `apps/web/`, `apps/_libs/`, `nimi-mods/` | MIT |
+| `apps/desktop/`, `apps/web/`, `kit/`, `nimi-mods/` | MIT |
 | `docs/`, `spec/` | CC-BY-4.0 |
 
 ## P-GOV-003 — 发布门禁规则

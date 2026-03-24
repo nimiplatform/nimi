@@ -148,6 +148,39 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; cross-layer delivery behavior still requires end-to-end execution tests"
+  - rule_id: P-KIT-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-KIT-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+  - rule_id: P-KIT-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; boundary enforcement requires Phase 2 check:nimi-kit gate"
+  - rule_id: P-KIT-010
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-KIT-020
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; auth token compliance requires Phase 3 check:nimi-kit gate"
+  - rule_id: P-KIT-030
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; zero-UI enforcement requires Phase 3 check:nimi-kit gate"
+  - rule_id: P-KIT-040
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; renderer-safe enforcement requires Phase 3 check:nimi-kit gate"
+  - rule_id: P-KIT-050
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; admission enforcement requires check:nimi-kit registry validation"
+  - rule_id: P-KIT-090
+    status: covered
+    evidence_refs: [platform_kernel_consistency]
+    coverage_note: "structural only; full gate implementation is Phase 3"
   - rule_id: P-GOV-001
     status: covered
     evidence_refs: [platform_kernel_consistency]

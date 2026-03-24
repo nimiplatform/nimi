@@ -51,6 +51,15 @@
 | `P-ARCH-020` | `covered` | `platform_kernel_consistency` | structural only; authority handoff behavior still requires runtime and realm integration validation |
 | `P-ARCH-021` | `covered` | `platform_kernel_consistency` | — |
 | `P-ARCH-030` | `covered` | `platform_kernel_consistency` | structural only; cross-layer delivery behavior still requires end-to-end execution tests |
+| `P-KIT-001` | `covered` | `platform_kernel_consistency` | — |
+| `P-KIT-002` | `covered` | `platform_kernel_consistency` | — |
+| `P-KIT-003` | `covered` | `platform_kernel_consistency` | structural only; boundary enforcement requires Phase 2 check:nimi-kit gate |
+| `P-KIT-010` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-KIT-020` | `covered` | `platform_kernel_consistency` | structural only; auth token compliance requires Phase 3 check:nimi-kit gate |
+| `P-KIT-030` | `covered` | `platform_kernel_consistency` | structural only; zero-UI enforcement requires Phase 3 check:nimi-kit gate |
+| `P-KIT-040` | `covered` | `platform_kernel_consistency` | structural only; renderer-safe enforcement requires Phase 3 check:nimi-kit gate |
+| `P-KIT-050` | `covered` | `platform_kernel_consistency` | structural only; admission enforcement requires check:nimi-kit registry validation |
+| `P-KIT-090` | `covered` | `platform_kernel_consistency` | structural only; full gate implementation is Phase 3 |
 | `P-GOV-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-003` | `covered` | `platform_kernel_consistency` | — |

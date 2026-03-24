@@ -19,7 +19,7 @@ const agentsSpecs = [
   { rel: 'apps/forge/AGENTS.md', maxLines: 30 },
   { rel: 'apps/realm-drift/AGENTS.md', maxLines: 30 },
   { rel: 'apps/install-gateway/AGENTS.md', maxLines: 30 },
-  { rel: 'apps/_libs/AGENTS.md', maxLines: 30 },
+  { rel: 'kit/AGENTS.md', maxLines: 30 },
   { rel: 'proto/AGENTS.md', maxLines: 30 },
 ];
 

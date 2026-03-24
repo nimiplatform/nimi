@@ -260,7 +260,9 @@ const requiredKernelFiles = [
   'architecture-contract.md',
   'ai-last-mile-contract.md',
   'design-pattern-contract.md',
+  'kit-contract.md',
   'governance-contract.md',
+  'tables/nimi-kit-registry.yaml',
   'tables/error-code-mapping.yaml',
   'tables/nimi-ui-tokens.yaml',
   'tables/nimi-ui-primitives.yaml',
@@ -287,6 +289,7 @@ const kernelContracts = [
   'architecture-contract.md',
   'ai-last-mile-contract.md',
   'design-pattern-contract.md',
+  'kit-contract.md',
   'governance-contract.md',
 ];
 
