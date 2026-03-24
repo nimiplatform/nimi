@@ -1,3 +1,4 @@
+import { toErrorMessage } from '@nimiplatform/shell-core/oauth';
 import type { DesktopCallbackRequest } from '../types/auth-types.js';
 import {
   normalizeLoopbackCallbackUrl,
@@ -6,7 +7,6 @@ import {
   createDesktopCallbackRedirectUri as createSharedDesktopCallbackRedirectUri,
   readEnv,
 } from '@nimiplatform/shell-core/oauth';
-import { toErrorMessage } from './error-helpers.js';
 
 export function readLocationQueryParams(): URLSearchParams {
   if (typeof window === 'undefined') {

@@ -175,9 +175,9 @@ export type ShellAuthPageProps = {
 // ---------------------------------------------------------------------------
 
 export const buttonBase =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-[var(--auth-primary,#4ECCA3)] focus-visible:ring-[var(--auth-primary,#4ECCA3)]/50 focus-visible:ring-[3px]';
-export const buttonDefault = 'bg-[var(--auth-primary,#4ECCA3)] text-white hover:bg-[var(--auth-primary-hover,#3dbb8f)] shadow-md';
-export const buttonOutline = 'border border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-card-bg,#fffdf9)] text-[var(--auth-text,#3b352c)] shadow-sm hover:bg-[var(--auth-hover-bg,#f0ece6)] hover:text-[var(--auth-hover-text,#4b4338)]';
-export const buttonGhost = 'text-[var(--auth-text,#3b352c)] hover:bg-[var(--auth-hover-bg,#f0ece6)] hover:text-[var(--auth-hover-text,#4b4338)]';
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:border-[var(--nimi-action-primary-bg)] focus-visible:ring-[var(--nimi-action-primary-bg)]/50 focus-visible:ring-[3px]';
+export const buttonDefault = 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] hover:bg-[var(--nimi-action-primary-bg-hover)] shadow-md';
+export const buttonOutline = 'border border-[var(--nimi-field-border)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-primary)] shadow-sm hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]';
+export const buttonGhost = 'text-[var(--nimi-text-primary)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]';
 export const inputBase =
-  'placeholder:text-[var(--auth-muted,#999999)] selection:bg-[var(--auth-primary,#4ECCA3)] selection:text-white w-full min-w-0 rounded-md border border-[var(--auth-input-border,#ddd4c6)] bg-transparent text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-[var(--auth-primary,#4ECCA3)] focus-visible:ring-[var(--auth-primary,#4ECCA3)]/50 focus-visible:ring-[3px]';
+  'placeholder:text-[var(--nimi-text-muted)] selection:bg-[var(--nimi-action-primary-bg)] selection:text-white w-full min-w-0 rounded-md border border-[var(--nimi-field-border)] bg-transparent text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-[var(--nimi-action-primary-bg)] focus-visible:ring-[var(--nimi-action-primary-bg)]/50 focus-visible:ring-[3px]';

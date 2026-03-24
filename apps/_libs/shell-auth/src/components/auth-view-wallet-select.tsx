@@ -13,7 +13,7 @@ export function AuthViewWalletSelect(props: {
   return (
     <div className="flex flex-col items-center">
       <p
-        className="mb-5 text-center text-[13px] text-[var(--auth-muted,#8a8579)]"
+        className="mb-5 text-center text-[13px] text-[var(--nimi-text-muted)]"
         style={{ fontFamily: 'var(--font-ui)' }}
       >
         {t('Auth.selectWalletHint')}
@@ -25,14 +25,14 @@ export function AuthViewWalletSelect(props: {
           onClick={() => {
             void onWalletLogin('metamask');
           }}
-          className={`${buttonBase} ${buttonGhost} h-auto w-full justify-between rounded-xl border border-transparent bg-[var(--auth-card-bg,#fffdf9)] px-4 py-2.5 hover:border-[var(--auth-primary,#4ECCA3)]/20 hover:bg-[var(--auth-primary,#4ECCA3)]/5`}
+          className={`${buttonBase} ${buttonGhost} h-auto w-full justify-between rounded-xl border border-transparent bg-[var(--nimi-surface-card)] px-4 py-2.5 hover:border-[var(--nimi-action-primary-bg)]/20 hover:bg-[var(--nimi-action-primary-bg)]/5`}
           disabled={pending}
         >
           <div className="flex items-center gap-3">
             <MetaMaskIcon className="h-5 w-5" />
             <span
               className="text-[15px] font-medium"
-              style={{ color: 'var(--auth-text-secondary, #1A1A1A)', fontFamily: 'var(--font-ui)' }}
+              style={{ color: 'var(--nimi-text-primary)', fontFamily: 'var(--font-ui)' }}
             >
               MetaMask
             </span>
@@ -40,8 +40,8 @@ export function AuthViewWalletSelect(props: {
           <span
             className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide"
             style={{
-              backgroundColor: 'var(--auth-chip-bg,#F2F2F2)',
-              color: 'var(--auth-chip-text,#666666)',
+              backgroundColor: 'color-mix(in srgb, var(--nimi-text-muted) 12%, transparent)',
+              color: 'var(--nimi-text-secondary)',
               fontFamily: 'var(--font-ui)',
             }}
           >
@@ -54,14 +54,14 @@ export function AuthViewWalletSelect(props: {
           onClick={() => {
             void onWalletLogin('binance');
           }}
-          className={`${buttonBase} ${buttonGhost} h-auto w-full justify-between rounded-xl border border-transparent bg-[var(--auth-card-bg,#fffdf9)] px-4 py-2.5 hover:border-[var(--auth-primary,#4ECCA3)]/20 hover:bg-[var(--auth-primary,#4ECCA3)]/5`}
+          className={`${buttonBase} ${buttonGhost} h-auto w-full justify-between rounded-xl border border-transparent bg-[var(--nimi-surface-card)] px-4 py-2.5 hover:border-[var(--nimi-action-primary-bg)]/20 hover:bg-[var(--nimi-action-primary-bg)]/5`}
           disabled={pending}
         >
           <div className="flex items-center gap-3">
             <BinanceIcon className="h-5 w-5" />
             <span
               className="text-[15px] font-medium"
-              style={{ color: 'var(--auth-text-secondary, #1A1A1A)', fontFamily: 'var(--font-ui)' }}
+              style={{ color: 'var(--nimi-text-primary)', fontFamily: 'var(--font-ui)' }}
             >
               Binance Wallet
             </span>
@@ -69,8 +69,8 @@ export function AuthViewWalletSelect(props: {
           <span
             className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide"
             style={{
-              backgroundColor: 'var(--auth-chip-bg,#F2F2F2)',
-              color: 'var(--auth-chip-text,#666666)',
+              backgroundColor: 'color-mix(in srgb, var(--nimi-text-muted) 12%, transparent)',
+              color: 'var(--nimi-text-secondary)',
               fontFamily: 'var(--font-ui)',
             }}
           >
@@ -83,14 +83,14 @@ export function AuthViewWalletSelect(props: {
           onClick={() => {
             void onWalletLogin('okx');
           }}
-          className={`${buttonBase} ${buttonGhost} h-auto w-full justify-between rounded-xl border border-transparent bg-[var(--auth-card-bg,#fffdf9)] px-4 py-2.5 hover:border-[var(--auth-primary,#4ECCA3)]/20 hover:bg-[var(--auth-primary,#4ECCA3)]/5`}
+          className={`${buttonBase} ${buttonGhost} h-auto w-full justify-between rounded-xl border border-transparent bg-[var(--nimi-surface-card)] px-4 py-2.5 hover:border-[var(--nimi-action-primary-bg)]/20 hover:bg-[var(--nimi-action-primary-bg)]/5`}
           disabled={pending}
         >
           <div className="flex items-center gap-3">
             <OKXIcon className="h-5 w-5" />
             <span
               className="text-[15px] font-medium"
-              style={{ color: 'var(--auth-text-secondary, #1A1A1A)', fontFamily: 'var(--font-ui)' }}
+              style={{ color: 'var(--nimi-text-primary)', fontFamily: 'var(--font-ui)' }}
             >
               OKX Wallet
             </span>
@@ -98,8 +98,8 @@ export function AuthViewWalletSelect(props: {
           <span
             className="rounded-full px-2 py-1 text-[12px] font-normal tracking-wide"
             style={{
-              backgroundColor: 'var(--auth-chip-bg,#F2F2F2)',
-              color: 'var(--auth-chip-text,#666666)',
+              backgroundColor: 'color-mix(in srgb, var(--nimi-text-muted) 12%, transparent)',
+              color: 'var(--nimi-text-secondary)',
               fontFamily: 'var(--font-ui)',
             }}
           >

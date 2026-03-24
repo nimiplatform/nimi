@@ -5,11 +5,11 @@ import {
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from 'react';
+import { toDesktopBrowserAuthErrorMessage } from '@nimiplatform/shell-core/oauth';
 import { useTranslation } from 'react-i18next';
 import type { ShellAuthPageProps } from '../types/auth-types.js';
 import { useAuthFlow } from '../hooks/use-auth-flow.js';
 import { performDesktopWebAuth } from '../logic/desktop-web-auth.js';
-import { toDesktopBrowserAuthErrorMessage } from '../logic/error-helpers.js';
 import { AnimateIn, LoadingSpinner } from './primitives.js';
 import { AuthViewMain } from './auth-view-main.js';
 import {
@@ -205,7 +205,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
               </button>
 
               <div className="text-center">
-                <h1 className="mb-3 text-[13px] font-medium uppercase tracking-[0.38em] text-[var(--auth-label,#7a7366)]">
+                <h1 className="mb-3 text-[13px] font-medium uppercase tracking-[0.38em] text-[var(--nimi-text-secondary)]">
                   {branding.networkLabel}
                 </h1>
                 {desktopAuthPending ? (
@@ -213,7 +213,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
                     <LoadingSpinner />
                   </div>
                 ) : (
-                  <p className={`text-xs text-[var(--auth-muted,#8a8579)] transition-opacity duration-500 ${
+                  <p className={`text-xs text-[var(--nimi-text-muted)] transition-opacity duration-500 ${
                     shouldShowDesktopHint ? 'opacity-100' : 'opacity-0'
                   }`}>
                     {desktopLogoErrorHintText
@@ -222,7 +222,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
                   </p>
                 )}
                 {desktopAuthError ? (
-                  <p className="mt-2 text-xs text-[var(--auth-error,#ef4444)]">{desktopAuthError}</p>
+                  <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{desktopAuthError}</p>
                 ) : null}
               </div>
             </div>
@@ -256,7 +256,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
 
               {isLogoStage ? (
                 <AnimateIn className="text-center" delay={100}>
-                  <h1 className="text-[13px] font-medium uppercase tracking-[0.38em] text-[var(--auth-label,#7a7366)]">
+                  <h1 className="text-[13px] font-medium uppercase tracking-[0.38em] text-[var(--nimi-text-secondary)]">
                     {branding.networkLabel}
                   </h1>
                 </AnimateIn>
@@ -305,7 +305,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
                       <button
                         type="button"
                         onClick={flow.handleCancelRegister}
-                        className="rounded-full border border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.8))] px-5 py-2 text-sm font-medium text-[var(--auth-muted,#6f6758)] transition hover:border-[var(--auth-card-border,#cbbca4)]"
+                        className="rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-5 py-2 text-sm font-medium text-[var(--nimi-text-muted)] transition hover:border-[var(--nimi-border-subtle)]"
                       >
                         {t('Auth.cancel')}
                       </button>
@@ -313,7 +313,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
                         type="button"
                         onClick={flow.handleConfirmRegister}
                         disabled={flow.pending}
-                        className="rounded-full bg-[var(--auth-primary,#4ECCA3)] px-5 py-2 text-sm font-medium text-white transition hover:bg-[var(--auth-primary-hover,#3dbb8f)] disabled:opacity-50"
+                        className="rounded-full bg-[var(--nimi-action-primary-bg)] px-5 py-2 text-sm font-medium text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
                       >
                         {t('Auth.confirmRegister')}
                       </button>
@@ -404,7 +404,7 @@ export function ShellAuthPage(props: ShellAuthPageProps) {
 
               {displayError && !flow.pending ? (
                 <AnimateIn>
-                  <p className="text-center text-xs text-[var(--auth-error,#ef4444)]">{displayError}</p>
+                  <p className="text-center text-xs text-[var(--nimi-status-danger)]">{displayError}</p>
                 </AnimateIn>
               ) : null}
             </div>

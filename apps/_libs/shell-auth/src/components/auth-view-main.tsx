@@ -47,7 +47,7 @@ export function AuthViewMain(props: {
   return (
     <form onSubmit={onContinue} className="relative w-full">
       {/* Capsule input bar */}
-      <div className="flex items-center h-[52px] rounded-full border border-[var(--auth-input-border,#ddd4c6)] bg-[var(--auth-input-bg,rgba(255,255,255,0.9))] shadow-[var(--auth-input-shadow,0_12px_34px_rgba(157,145,123,0.09))]">
+      <div className="flex items-center h-[52px] rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] shadow-[var(--nimi-elevation-base)]">
         {/* Left: alternatives dropdown trigger */}
         <button
           type="button"
@@ -55,7 +55,7 @@ export function AuthViewMain(props: {
           onClick={onAlternativeToggle}
           disabled={pending}
           aria-label={t('Auth.alternative')}
-          className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--auth-muted,#8a8579)] transition hover:bg-[var(--auth-hover-bg,#f0ece6)] hover:text-[var(--auth-hover-text,#4b4338)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--nimi-text-muted)] transition hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
             <circle cx="5" cy="5" r="1.5" />
@@ -71,7 +71,7 @@ export function AuthViewMain(props: {
           value={email}
           data-testid={testIds?.emailInput}
           onChange={(event) => onEmailChange(event.target.value)}
-          className="flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--auth-text-secondary,#1f1b16)] placeholder:text-[var(--auth-muted,#999999)] outline-none"
+          className="flex-1 min-w-0 bg-transparent px-3 text-[15px] text-[var(--nimi-text-primary)] placeholder:text-[var(--nimi-text-muted)] outline-none"
           placeholder={t('Auth.emailPlaceholder')}
           required
           autoFocus
@@ -84,7 +84,7 @@ export function AuthViewMain(props: {
             type="submit"
             data-testid={testIds?.emailSubmitArrow}
             disabled={pending || !email.trim()}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--auth-primary,#4ECCA3)] text-white transition hover:bg-[var(--auth-primary-hover,#3dbb8f)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)] transition hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3.5 8h9M8.5 4l4 4-4 4" />
@@ -96,13 +96,13 @@ export function AuthViewMain(props: {
       {/* Alternatives dropdown */}
       <div
         data-testid={testIds?.alternativePanel}
-        className={`absolute left-0 right-0 z-20 mt-3 origin-top rounded-2xl border border-[var(--auth-dropdown-border,#e7dfd3)] bg-[var(--auth-dropdown-bg,rgba(255,255,255,0.95))] p-4 shadow-[var(--auth-dropdown-shadow,0_18px_40px_rgba(157,145,123,0.12))] backdrop-blur transition-all duration-200 ease-out ${
+        className={`absolute left-0 right-0 z-20 mt-3 origin-top rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-4 shadow-[var(--nimi-elevation-floating)] backdrop-blur transition-all duration-200 ease-out ${
           showAlternatives
             ? 'scale-100 opacity-100'
             : 'scale-95 opacity-0 pointer-events-none'
         }`}
       >
-        <p className="mb-3 text-center text-xs font-medium uppercase tracking-[0.22em] text-[var(--auth-muted,#8e8578)]">
+        <p className="mb-3 text-center text-xs font-medium uppercase tracking-[0.22em] text-[var(--nimi-text-muted)]">
           {t('Auth.chooseAlternative')}
         </p>
         <div className="flex items-center justify-center gap-4">
@@ -111,7 +111,7 @@ export function AuthViewMain(props: {
               label={googleDisabledReason ? `Google unavailable: ${googleDisabledReason}` : 'Google'}
               onClick={onGoogleLogin}
               disabled={pending || Boolean(googleDisabledReason)}
-              className="h-[52px] w-[52px] border-[var(--auth-card-border,#e4dccf)] bg-[var(--auth-card-bg,#fffdf9)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
+              className="h-[52px] w-[52px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
             >
               <svg viewBox="0 0 24 24" className={`mx-auto h-6 w-6 ${googleDisabledReason ? 'opacity-40' : ''}`}>
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -121,7 +121,7 @@ export function AuthViewMain(props: {
               </svg>
             </CircleIconButton>
             {googleDisabledReason ? (
-              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--auth-tooltip-bg,#3d3729)] px-2 py-0.5 text-[10px] text-[var(--auth-tooltip-text,#ffffff)] opacity-0 transition group-hover:opacity-100">{googleDisabledReason}</span>
+              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--nimi-surface-overlay)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-primary)] opacity-0 transition group-hover:opacity-100">{googleDisabledReason}</span>
             ) : null}
           </div>
 
@@ -130,14 +130,14 @@ export function AuthViewMain(props: {
               label={twitterDisabledReason ? `Twitter unavailable: ${twitterDisabledReason}` : 'Twitter'}
               onClick={onTwitterLogin}
               disabled={pending || Boolean(twitterDisabledReason)}
-              className="h-[52px] w-[52px] border-[var(--auth-card-border,#e4dccf)] bg-[var(--auth-card-bg,#fffdf9)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
+              className="h-[52px] w-[52px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
             >
               <svg viewBox="0 0 24 24" className={`mx-auto h-5 w-5 fill-current ${twitterDisabledReason ? 'opacity-40' : ''}`}>
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
             </CircleIconButton>
             {twitterDisabledReason ? (
-              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--auth-tooltip-bg,#3d3729)] px-2 py-0.5 text-[10px] text-[var(--auth-tooltip-text,#ffffff)] opacity-0 transition group-hover:opacity-100">{twitterDisabledReason}</span>
+              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--nimi-surface-overlay)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-primary)] opacity-0 transition group-hover:opacity-100">{twitterDisabledReason}</span>
             ) : null}
           </div>
 
@@ -146,14 +146,14 @@ export function AuthViewMain(props: {
               label={tikTokDisabledReason ? `TikTok unavailable: ${tikTokDisabledReason}` : 'TikTok'}
               onClick={onTikTokLogin}
               disabled={pending || Boolean(tikTokDisabledReason)}
-              className="h-[52px] w-[52px] border-[var(--auth-card-border,#e4dccf)] bg-[var(--auth-card-bg,#fffdf9)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
+              className="h-[52px] w-[52px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
             >
               <svg viewBox="0 0 24 24" className={`mx-auto h-5 w-5 fill-current ${tikTokDisabledReason ? 'opacity-40' : ''}`}>
                 <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
               </svg>
             </CircleIconButton>
             {tikTokDisabledReason ? (
-              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--auth-tooltip-bg,#3d3729)] px-2 py-0.5 text-[10px] text-[var(--auth-tooltip-text,#ffffff)] opacity-0 transition group-hover:opacity-100">{tikTokDisabledReason}</span>
+              <span className="pointer-events-none absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-[var(--nimi-surface-overlay)] px-2 py-0.5 text-[10px] text-[var(--nimi-text-primary)] opacity-0 transition group-hover:opacity-100">{tikTokDisabledReason}</span>
             ) : null}
           </div>
 
@@ -161,7 +161,7 @@ export function AuthViewMain(props: {
             label={t('Auth.web3')}
             onClick={onWeb3Login}
             disabled={pending}
-            className="h-[52px] w-[52px] border-[var(--auth-card-border,#e4dccf)] bg-[var(--auth-card-bg,#fffdf9)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
+            className="h-[52px] w-[52px] border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[0_12px_24px_rgba(157,145,123,0.12)]"
           >
             <svg viewBox="0 0 24 24" className="mx-auto h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2.5" y="6" width="19" height="12" rx="2.5" />

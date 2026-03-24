@@ -98,7 +98,7 @@ export {
   localizeAuthError,
   toDesktopBrowserAuthErrorMessage,
   getUserDisplayLabel,
-} from './logic/error-helpers.js';
+} from '@nimiplatform/shell-core/oauth';
 
 export {
   performDesktopWebAuth,

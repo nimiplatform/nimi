@@ -14,16 +14,16 @@ export function AuthViewDesktopAuthorize(props: {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm text-[var(--auth-muted,#8a8579)]">
+      <p className="text-sm text-[var(--nimi-text-muted)]">
         {authStatus === 'authenticated'
           ? '检测到当前网页已登录。是否授权当前桌面客户端使用此账号登录？'
           : '检测到已有登录会话。是否授权当前桌面客户端使用此账号登录？'}
       </p>
-      <div className="rounded-xl border border-[var(--auth-card-border,#e4dccf)] bg-[var(--auth-card-bg,rgba(255,255,255,0.72))] px-4 py-3">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--auth-muted,#8a8579)]">
+      <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
           {t('Auth.currentAccount')}
         </div>
-        <div className="mt-1 text-sm font-semibold text-[var(--auth-text,#3b352c)]">{desktopCallbackUserLabel}</div>
+        <div className="mt-1 text-sm font-semibold text-[var(--nimi-text-primary)]">{desktopCallbackUserLabel}</div>
       </div>
       <button
         type="submit"
@@ -35,7 +35,7 @@ export function AuthViewDesktopAuthorize(props: {
       <button
         type="button"
         onClick={onUseAnotherAccount}
-        className="w-full text-center text-xs text-[var(--auth-muted,#8a8579)] transition hover:text-[var(--auth-text,#3b352c)]"
+        className="w-full text-center text-xs text-[var(--nimi-text-muted)] transition hover:text-[var(--nimi-text-primary)]"
         disabled={pending}
       >
         {t('Auth.useAnotherAccount')}

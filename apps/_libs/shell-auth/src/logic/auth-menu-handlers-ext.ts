@@ -1,11 +1,11 @@
 import type { FormEvent } from 'react';
+import { toErrorMessage } from '@nimiplatform/shell-core/oauth';
 import type { WalletType } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { shouldPromptPasswordSetupAfterEmailOtp } from './auth-email-flow.js';
 import { persistAuthSession } from './auth-session-storage.js';
 import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
 import { parseChainId, resolveWalletProvider } from './wallet-helpers.js';
-import { toErrorMessage } from './error-helpers.js';
 import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
 import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
 

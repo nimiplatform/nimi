@@ -1,10 +1,85 @@
-/* shell-auth theme — scoped defaults only */
+/*
+ * shell-auth layout — components consume --nimi-* tokens, but auth pages
+ * still support scoped presentation themes via data-shell-auth-theme.
+ * This preserves the established desktop beige and relay dark auth chrome
+ * without creating a parallel global token system.
+ */
 .nimi-shell-auth-root {
+  /* ---- shared fallback values ---- */
+  --nimi-app-background: var(--nimi-app-background, #f5f7fa);
+  --nimi-surface-card: var(--nimi-surface-card, #ffffff);
+  --nimi-surface-overlay: var(--nimi-surface-overlay, rgba(255,255,255,0.98));
+  --nimi-text-primary: var(--nimi-text-primary, #111827);
+  --nimi-text-secondary: var(--nimi-text-secondary, #4b5563);
+  --nimi-text-muted: var(--nimi-text-muted, #6b7280);
+  --nimi-field-bg: var(--nimi-field-bg, #ffffff);
+  --nimi-field-border: var(--nimi-field-border, rgba(226,232,240,0.9));
+  --nimi-border-subtle: var(--nimi-border-subtle, rgba(226,232,240,0.9));
+  --nimi-border-width-default: var(--nimi-border-width-default, 1px);
+  --nimi-elevation-base: var(--nimi-elevation-base, 0 6px 18px rgba(15,23,42,0.08));
+  --nimi-elevation-raised: var(--nimi-elevation-raised, 0 12px 28px rgba(15,23,42,0.12));
+  --nimi-elevation-floating: var(--nimi-elevation-floating, 0 18px 44px rgba(15,23,42,0.16));
+  --nimi-status-danger: var(--nimi-status-danger, #dc2626);
+  --nimi-space-7: var(--nimi-space-7, 24px);
+  --nimi-type-section-title-size: var(--nimi-type-section-title-size, 1.125rem);
+  --nimi-type-section-title-weight: var(--nimi-type-section-title-weight, 600);
+  --nimi-type-section-title-letter-spacing: var(--nimi-type-section-title-letter-spacing, -0.01em);
+  --nimi-type-body-sm-size: var(--nimi-type-body-sm-size, 0.8125rem);
+
+  --nimi-action-primary-bg: var(--nimi-action-primary-bg, #4ECCA3);
+  --nimi-action-primary-bg-hover: var(--nimi-action-primary-bg-hover, #3DBB96);
+  --nimi-action-primary-text: var(--nimi-action-primary-text, #ffffff);
+  --nimi-action-ghost-hover: var(--nimi-action-ghost-hover, rgba(78,204,163,0.10));
+  --nimi-focus-ring-color: var(--nimi-focus-ring-color, rgba(78,204,163,0.28));
+
+  /* ---- layout ---- */
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: var(--auth-bg, #f3f1ee);
-  color: var(--auth-text, #3b352c);
+  background: var(--nimi-app-background);
+  color: var(--nimi-text-primary);
+}
+
+.nimi-shell-auth-root[data-shell-auth-theme='desktop'] {
+  --nimi-app-background: #f3f1ee;
+  --nimi-surface-card: #fffdf9;
+  --nimi-surface-overlay: rgba(255, 255, 255, 0.95);
+  --nimi-text-primary: #3b352c;
+  --nimi-text-secondary: #7a7366;
+  --nimi-text-muted: #8a8579;
+  --nimi-field-bg: rgba(255, 255, 255, 0.9);
+  --nimi-field-border: #ddd4c6;
+  --nimi-border-subtle: #e4dccf;
+  --nimi-elevation-base: 0 12px 34px rgba(157, 145, 123, 0.09);
+  --nimi-elevation-raised: 0 18px 40px rgba(78, 204, 163, 0.28);
+  --nimi-elevation-floating: 0 18px 40px rgba(157, 145, 123, 0.12);
+  --nimi-status-danger: #ef4444;
+  --nimi-action-primary-bg: #4ecca3;
+  --nimi-action-primary-bg-hover: #3dbb8f;
+  --nimi-action-primary-text: #ffffff;
+  --nimi-action-ghost-hover: #f0ece6;
+  --nimi-focus-ring-color: rgba(78, 204, 163, 0.28);
+}
+
+.nimi-shell-auth-root[data-shell-auth-theme='relay-dark'] {
+  --nimi-app-background: #030712;
+  --nimi-surface-card: #1f2937;
+  --nimi-surface-overlay: rgba(31, 41, 55, 0.95);
+  --nimi-text-primary: #f9fafb;
+  --nimi-text-secondary: #9ca3af;
+  --nimi-text-muted: #9ca3af;
+  --nimi-field-bg: rgba(31, 41, 55, 0.9);
+  --nimi-field-border: #374151;
+  --nimi-border-subtle: #374151;
+  --nimi-elevation-base: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --nimi-elevation-raised: 0 18px 40px rgba(16, 185, 129, 0.2);
+  --nimi-elevation-floating: 0 18px 40px rgba(0, 0, 0, 0.4);
+  --nimi-status-danger: #ef4444;
+  --nimi-action-primary-bg: #10b981;
+  --nimi-action-primary-bg-hover: #059669;
+  --nimi-action-primary-text: #ffffff;
+  --nimi-action-ghost-hover: #374151;
+  --nimi-focus-ring-color: rgba(16, 185, 129, 0.3);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-background {
@@ -20,7 +95,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: var(--nimi-space-7);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-content {
@@ -29,7 +104,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: var(--nimi-space-7);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-header {
@@ -39,83 +114,29 @@
 
 .nimi-shell-auth-root .nimi-shell-auth-title {
   margin: 0 0 0.25rem;
-  color: var(--auth-text, #3b352c);
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  color: var(--nimi-text-primary);
+  font-size: var(--nimi-type-section-title-size);
+  font-weight: var(--nimi-type-section-title-weight);
+  letter-spacing: var(--nimi-type-section-title-letter-spacing);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-subtitle {
   margin: 0;
-  color: var(--auth-muted, #8a8579);
-  font-size: 0.875rem;
+  color: var(--nimi-text-muted);
+  font-size: var(--nimi-type-body-sm-size);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-inline-card {
-  border: 1px solid var(--auth-dropdown-border, #e7dfd3);
-  background: var(--auth-dropdown-bg, rgba(255, 255, 255, 0.95));
-  box-shadow: var(--auth-dropdown-shadow, 0 18px 40px rgba(157, 145, 123, 0.12));
+  border: var(--nimi-border-width-default) solid var(--nimi-border-subtle);
+  background: var(--nimi-surface-overlay);
+  box-shadow: var(--nimi-elevation-floating);
   backdrop-filter: blur(12px);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-inline-label {
-  color: var(--auth-text-secondary, #1f1b16);
+  color: var(--nimi-text-primary);
 }
 
 .nimi-shell-auth-root .nimi-shell-auth-inline-help {
-  color: var(--auth-muted, #8a8579);
-}
-
-.nimi-shell-auth-root[data-shell-auth-theme="desktop"] {
-  --auth-bg: #f3f1ee;
-  --auth-primary: #4ECCA3;
-  --auth-primary-hover: #3dbb8f;
-  --auth-input-border: #ddd4c6;
-  --auth-input-bg: rgba(255, 255, 255, 0.9);
-  --auth-text: #3b352c;
-  --auth-text-secondary: #1f1b16;
-  --auth-muted: #8a8579;
-  --auth-muted-light: #9a9488;
-  --auth-label: #7a7366;
-  --auth-card-bg: #fffdf9;
-  --auth-card-border: #e4dccf;
-  --auth-dropdown-border: #e7dfd3;
-  --auth-dropdown-bg: rgba(255, 255, 255, 0.95);
-  --auth-dropdown-shadow: 0 18px 40px rgba(157, 145, 123, 0.12);
-  --auth-input-shadow: 0 12px 34px rgba(157, 145, 123, 0.09);
-  --auth-hover-bg: #f0ece6;
-  --auth-hover-text: #4b4338;
-  --auth-error: #ef4444;
-  --auth-primary-shadow: 0 18px 40px rgba(78, 204, 163, 0.28);
-  --auth-tooltip-bg: #3d3729;
-  --auth-tooltip-text: #ffffff;
-  --auth-chip-bg: #f2f2f2;
-  --auth-chip-text: #666666;
-}
-
-.nimi-shell-auth-root[data-shell-auth-theme="relay-dark"] {
-  --auth-bg: #030712;
-  --auth-primary: #10b981;
-  --auth-primary-hover: #059669;
-  --auth-input-border: #374151;
-  --auth-input-bg: rgba(31, 41, 55, 0.9);
-  --auth-text: #f9fafb;
-  --auth-text-secondary: #e5e7eb;
-  --auth-muted: #9ca3af;
-  --auth-muted-light: #6b7280;
-  --auth-label: #9ca3af;
-  --auth-card-bg: #1f2937;
-  --auth-card-border: #374151;
-  --auth-dropdown-border: #374151;
-  --auth-dropdown-bg: rgba(31, 41, 55, 0.95);
-  --auth-dropdown-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
-  --auth-input-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  --auth-hover-bg: #374151;
-  --auth-hover-text: #e5e7eb;
-  --auth-error: #ef4444;
-  --auth-primary-shadow: 0 18px 40px rgba(16, 185, 129, 0.2);
-  --auth-tooltip-bg: #111827;
-  --auth-tooltip-text: #f9fafb;
-  --auth-chip-bg: rgba(255, 255, 255, 0.08);
-  --auth-chip-text: #d1d5db;
+  color: var(--nimi-text-muted);
 }

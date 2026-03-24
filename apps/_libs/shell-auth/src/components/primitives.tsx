@@ -3,9 +3,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 export function LoadingSpinner({ className = '' }: { className?: string }) {
   return (
     <div className={`flex items-center justify-center gap-1 ${className}`}>
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--auth-primary,#4ECCA3)]" style={{ animationDelay: '0ms' }} />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--auth-primary,#4ECCA3)]" style={{ animationDelay: '150ms' }} />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--auth-primary,#4ECCA3)]" style={{ animationDelay: '300ms' }} />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-action-primary-bg)]" style={{ animationDelay: '0ms' }} />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-action-primary-bg)]" style={{ animationDelay: '150ms' }} />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-action-primary-bg)]" style={{ animationDelay: '300ms' }} />
     </div>
   );
 }
