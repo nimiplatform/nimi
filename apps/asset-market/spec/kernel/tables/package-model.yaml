@@ -1,0 +1,75 @@
+# Asset Market — Package Model
+# Authoritative source for current package fields, enums, readiness, and future reservations.
+
+package_model:
+  current_active_objects:
+    - Asset
+    - AssetPackage
+
+  reserved_future_objects:
+    - AssetPackageListing
+
+  package_types:
+    - scene
+    - character
+    - style
+
+  categories:
+    - scenes
+    - characters
+    - styles
+
+  media_filters:
+    - images
+    - videos
+    - audio
+
+  asset_package:
+    required_fields:
+      - id
+      - ownerId
+      - title
+      - description
+      - coverAssetId
+      - packageType
+      - category
+      - assetIds
+      - tags
+      - price
+      - version
+      - status
+      - isReady
+      - readinessIssues
+      - createdAt
+      - updatedAt
+    ordered_fields:
+      - assetIds
+    invariants:
+      - coverAssetId must belong to assetIds
+      - assetIds must preserve explicit order
+      - price may be 0 for free packages
+      - publishedAt is required once status becomes published or archived
+
+  lifecycle:
+    statuses:
+      - draft
+      - published
+      - archived
+
+  readiness:
+    required_for_ready:
+      - ownerId present
+      - title present
+      - description present
+      - coverAssetId present
+      - packageType present
+      - category present
+      - assetIds count >= 1
+      - tags count >= 1
+      - price present
+      - version present
+
+  upstream_mappings:
+    - SceneCard may be published into a Realm Asset
+    - ScenePack may be published into an AssetPackage
+    - Field-level conversion remains intentionally unspecified in the current spec

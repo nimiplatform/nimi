@@ -1,0 +1,67 @@
+# Asset Market — Feature Matrix
+# Authoritative source for feature phasing, priority, and dependencies.
+
+features:
+  - feature: app-shell
+    phase: 1
+    priority: P0
+    contract: AM-SHELL-*
+    backend-dependency: none
+    migration-source: forge shell pattern
+    description: Desktop shell, bootstrap, navigation
+
+  - feature: discover-home
+    phase: 1
+    priority: P0
+    contract: AM-DISCOVER-001, AM-DISCOVER-004
+    backend-dependency: package market read APIs
+    migration-source: new
+    description: Discover-first market home
+
+  - feature: package-detail
+    phase: 1
+    priority: P0
+    contract: AM-DISCOVER-006
+    backend-dependency: package market read APIs
+    migration-source: new
+    description: Package detail page with ordered contents and Forge import action
+
+  - feature: creator-packages
+    phase: 1
+    priority: P1
+    contract: AM-DISCOVER-007
+    backend-dependency: package market read APIs
+    migration-source: new
+    description: Creator-scoped package list
+
+  - feature: library
+    phase: 1
+    priority: P0
+    contract: AM-LIB-*
+    backend-dependency: package acquisition/saved reads
+    migration-source: new
+    description: Available and Saved package views
+
+  - feature: publish-workbench
+    phase: 1
+    priority: P0
+    contract: AM-PUBLISH-*
+    backend-dependency: existing realm asset reads + new package APIs
+    migration-source: new
+    description: Single-page package composition and publish workbench
+
+  - feature: publish-package-edit
+    phase: 1
+    priority: P0
+    contract: AM-PKG-008, AM-PUBLISH-004, AM-PUBLISH-006
+    backend-dependency: new package APIs
+    migration-source: new
+    description: Edit existing package and republish
+
+  - feature: account
+    phase: 1
+    priority: P1
+    contract: AM-ACCOUNT-*
+    backend-dependency: acquisition and publish record reads
+    migration-source: new
+    description: Minimal account-facing records

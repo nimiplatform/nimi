@@ -1,0 +1,45 @@
+# Asset Market — Route Table
+# Authoritative source for all application routes.
+
+routes:
+  - path: /
+    feature: discover-home
+    component: DiscoverPage
+    lazy: true
+    description: Discover home with search, categories, New, and Popular
+
+  - path: /packages/:packageId
+    feature: package-detail
+    component: PackageDetailPage
+    lazy: true
+    description: AssetPackage detail surface
+
+  - path: /creators/:creatorId
+    feature: creator-packages
+    component: CreatorPackagesPage
+    lazy: true
+    description: Creator-scoped published package list
+
+  - path: /library
+    feature: library
+    component: LibraryPage
+    lazy: true
+    description: Creator package library with Available and Saved views
+
+  - path: /publish
+    feature: publish-workbench
+    component: PublishPage
+    lazy: true
+    description: Single-page package composition and publish workbench
+
+  - path: /publish/:packageId
+    feature: publish-package-edit
+    component: PublishPackageEditPage
+    lazy: true
+    description: Edit an existing draft or published package
+
+  - path: /account
+    feature: account
+    component: AccountPage
+    lazy: true
+    description: Account identity, acquisition records, and published package records

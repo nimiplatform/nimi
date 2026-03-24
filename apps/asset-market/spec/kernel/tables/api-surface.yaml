@@ -1,0 +1,74 @@
+# Asset Market — API Surface
+# Authoritative inventory of new package-market endpoints proposed by this spec.
+# Existing Realm asset reads are intentionally not duplicated here; the app consumes them through typed Realm asset services.
+
+package-market:
+  - method: GET
+    path: /api/asset-market/packages
+    status: new
+    feature: discover-home, library, creator-packages
+    controller: asset-market.controller.ts
+    description: List published packages with search, category, creator, and sort filters
+
+  - method: POST
+    path: /api/asset-market/packages
+    status: new
+    feature: publish-workbench
+    controller: asset-market.controller.ts
+    description: Create draft AssetPackage from existing Realm assets
+
+  - method: GET
+    path: /api/asset-market/packages/{packageId}
+    status: new
+    feature: package-detail, publish-package-edit
+    controller: asset-market.controller.ts
+    description: Get AssetPackage detail
+
+  - method: PATCH
+    path: /api/asset-market/packages/{packageId}
+    status: new
+    feature: publish-package-edit
+    controller: asset-market.controller.ts
+    description: Update draft or published package working state
+
+  - method: POST
+    path: /api/asset-market/packages/{packageId}/publish
+    status: new
+    feature: publish-workbench, publish-package-edit
+    controller: asset-market.controller.ts
+    description: Publish or republish a package into market-visible state
+
+  - method: POST
+    path: /api/asset-market/packages/{packageId}/archive
+    status: new
+    feature: publish-package-edit
+    controller: asset-market.controller.ts
+    description: Archive a published package
+
+  - method: POST
+    path: /api/asset-market/packages/{packageId}/save
+    status: new
+    feature: library, package-detail
+    controller: asset-market.controller.ts
+    description: Save/bookmark a package
+
+  - method: DELETE
+    path: /api/asset-market/packages/{packageId}/save
+    status: new
+    feature: library, package-detail
+    controller: asset-market.controller.ts
+    description: Remove a package from saved state
+
+  - method: POST
+    path: /api/asset-market/packages/{packageId}/acquire
+    status: new
+    feature: library, package-detail
+    controller: asset-market.controller.ts
+    description: Acquire a package into the creator's available library
+
+  - method: GET
+    path: /api/asset-market/creators/{creatorId}/packages
+    status: new
+    feature: creator-packages
+    controller: asset-market.controller.ts
+    description: List published packages by creator
