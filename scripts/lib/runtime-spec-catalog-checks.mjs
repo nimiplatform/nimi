@@ -357,7 +357,7 @@ export function createCatalogChecks(context) {
           fail(`${path.relative(cwd, absPath)} model entry must include voice_discovery_mode when audio.synthesize capability is present`);
         }
         if (voiceDiscoveryMode) {
-          const allowedVoiceDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped']);
+          const allowedVoiceDiscoveryModes = new Set(['static_catalog', 'dynamic_user_scoped', 'mixed']);
           if (!allowedVoiceDiscoveryModes.has(voiceDiscoveryMode)) {
             fail(`${path.relative(cwd, absPath)} model ${modelID} has invalid voice_discovery_mode: ${voiceDiscoveryMode}`);
           }

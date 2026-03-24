@@ -696,9 +696,24 @@ function renderWorkflowStates(doc, sourceName) {
 
     const states = Array.isArray(machine?.states) ? machine.states : [];
     const transitions = Array.isArray(machine?.transitions) ? machine.transitions : [];
+    const renderedStates = states
+      .map((item) => {
+        if (typeof item === 'string') {
+          const state = item.trim();
+          return state ? `\`${state}\`` : '';
+        }
+        const state = String(item?.state || '').trim();
+        if (!state) return '';
+        const enumValue = Number(item?.enum_value);
+        if (Number.isNaN(enumValue)) {
+          return `\`${state}\``;
+        }
+        return `\`${state}\`(${enumValue})`;
+      })
+      .filter(Boolean);
 
     out += `## ${machineName}\n\n`;
-    out += `States: ${states.length > 0 ? states.map((s) => `\`${String(s)}\``).join(', ') : '—'}\n\n`;
+    out += `States: ${renderedStates.length > 0 ? renderedStates.join(', ') : '—'}\n\n`;
     out += '| From | To | Trigger | Source |\n';
     out += '|---|---|---|---|\n';
     for (const edge of transitions) {

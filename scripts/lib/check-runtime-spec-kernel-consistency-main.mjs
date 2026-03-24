@@ -472,6 +472,7 @@ function checkConnectorRpcRulesAgainstRpcSurface() {
 
 function checkReasonCodeReferencesResolvable() {
   const reasonCodes = loadReasonCodeSet();
+  const workflowNodeTypes = loadWorkflowNodeTypeSet();
 
   for (const rel of runtimeMarkdownFiles) {
     const content = read(rel);
@@ -479,6 +480,7 @@ function checkReasonCodeReferencesResolvable() {
     for (const ref of refs) {
       const reasonCode = ref[0];
       if (reasonCode.endsWith('_')) continue;
+      if (workflowNodeTypes.has(reasonCode)) continue;
       if (!reasonCodes.has(reasonCode)) {
         fail(`${rel} references unknown ReasonCode: ${reasonCode}`);
       }
@@ -1280,6 +1282,15 @@ function loadReasonCodeSet() {
   return new Set(
     (Array.isArray(reasonTable?.codes) ? reasonTable.codes : [])
       .map((item) => String(item?.name || '').trim())
+      .filter(Boolean),
+  );
+}
+
+function loadWorkflowNodeTypeSet() {
+  const workflowTable = readYaml('spec/runtime/kernel/tables/workflow-node-types.yaml');
+  return new Set(
+    (Array.isArray(workflowTable?.node_types) ? workflowTable.node_types : [])
+      .map((item) => String(item?.type || '').trim())
       .filter(Boolean),
   );
 }
