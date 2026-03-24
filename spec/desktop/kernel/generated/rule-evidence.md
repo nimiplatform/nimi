@@ -7,6 +7,7 @@
 | Evidence Ref | Type | Command | Path | Description |
 |---|---|---|---|---|
 | `desktop_kernel_consistency` | `static_gate` | `pnpm check:desktop-spec-kernel-consistency` | `scripts/check-desktop-spec-kernel-consistency.mjs` | Kernel rule integrity and source/spec consistency checks for desktop domain. |
+| `desktop_spec_docs_drift_gate` | `static_gate` | `pnpm check:desktop-spec-kernel-docs-drift` | `scripts/generate-desktop-spec-kernel-docs.mjs` | Drift gate for generated desktop kernel docs vs YAML fact sources. |
 | `desktop_lint_gate` | `lint_gate` | `pnpm --filter @nimiplatform/desktop lint` | `apps/desktop/package.json` | TypeScript/ESLint/Rust compile gates for desktop app implementation. |
 | `desktop_test_gate` | `test_gate` | `pnpm --filter @nimiplatform/desktop test` | `apps/desktop/package.json` | Desktop quality + unit tests for behavior regression coverage. |
 | `desktop_e2e_smoke_gate` | `e2e_gate` | `pnpm check:desktop-e2e-smoke` | `apps/desktop/package.json` | Desktop WebDriver smoke scenarios for Linux PR hard gate coverage. |
@@ -221,4 +222,4 @@
 | `D-GATE-050` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_e2e_smoke_gate` |
 | `D-GATE-060` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_journey_gate`, `desktop_macos_manual_smoke_policy` |
 | `D-GATE-070` | `covered` | `desktop_kernel_consistency`, `desktop_e2e_smoke_gate`, `desktop_e2e_journey_gate`, `desktop_e2e_failure_artifacts_gate`, `desktop_e2e_ci_evidence_report`, `desktop_0315_e2e_audit_report` |
-| `D-GATE-080` | `covered` | `desktop_kernel_consistency` |
+| `D-GATE-080` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate` |

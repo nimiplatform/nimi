@@ -14,11 +14,11 @@ updated: 2026-03-16
 
 ## Scope
 
-Bridge-only document for creator economy semantics. Kernel authority remains in `spec/realm/kernel/economy-contract.md`; this file preserves the legacy open bridge anchors while mirroring the local hard-cut semantics.
+Bridge-only document for creator economy semantics. Kernel authority remains in `spec/realm/kernel/economy-contract.md`; this file preserves legacy open-spec bridge anchors while mirroring the local hard-cut semantics.
 
 ## Mapping Declaration
 
-| External Anchor | Local Kernel Anchor |
+| Legacy External Anchor | Local Kernel Anchor |
 | --- | --- |
 | `R-ECON-001` | `R-ECON-001` |
 | `R-ECON-030` | `R-ECON-001`, `R-ECON-003` |

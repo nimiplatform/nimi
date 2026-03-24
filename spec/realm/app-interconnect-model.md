@@ -18,7 +18,7 @@ updated: 2026-03-21
 - `kernel/social-contract.md` (`R-SOC-001..004`)
 - `kernel/economy-contract.md` (`R-ECON-001..004`)
 - `kernel/asset-contract.md` (`R-ASSET-001..004`)
-- `kernel/transit-contract.md` (`R-TRANSIT-001..004`)
+- `kernel/transit-contract.md` (`R-TRANSIT-001..006`)
 - `spec/platform/ai-last-mile.md`
 
 ## Scope
@@ -37,7 +37,7 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 | `R-SOC-001..004` | `R-SOC-001..004` |
 | `R-ECON-001..004` | `R-ECON-001..004` |
 | `R-ASSET-001..004` | `R-ASSET-001..004` |
-| `R-TRANSIT-001..004` | `R-TRANSIT-001..004` |
+| `R-TRANSIT-001..006` | `R-TRANSIT-001..006` |
 
 ## Reading Path
 

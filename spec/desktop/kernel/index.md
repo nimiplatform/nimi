@@ -15,7 +15,7 @@
 ## 3. Rule ID 规范
 
 - 格式：`D-<DOMAIN>-NNN`
-- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
+- `DOMAIN` 固定枚举：`BOOT` `IPC` `STATE` `AUTH` `DSYNC` `HOOK` `MOD` `LLM` `SHELL` `MBAR` `ERR` `TEL` `NET` `SEC` `STRM` `OFFLINE` `CODEGEN` `GATE`
 - `NNN` 三位递增编号，不复用。
 
 ## 4. 文档所有权
@@ -32,6 +32,7 @@
 | `mod-governance-contract.md` | `D-MOD-*` | 8 阶段执行内核与审计 |
 | `llm-adapter-contract.md` | `D-LLM-*` | Provider 适配与路由边界 |
 | `ui-shell-contract.md` | `D-SHELL-*` | 导航、布局、路由、分包 |
+| `menu-bar-shell-contract.md` | `D-MBAR-*` | macOS menu bar shell 入口、导航与 close/hide 语义 |
 | `error-boundary-contract.md` | `D-ERR-*` | 错误边界与归一化映射 |
 | `telemetry-contract.md` | `D-TEL-*` | 结构化日志与消息格式 |
 | `network-contract.md` | `D-NET-*` | 重试、退避、实时传输边界 |
@@ -64,7 +65,7 @@
 - `tables/build-chunks.yaml`
 - `tables/desktop-testing-gates.yaml`
 - `tables/desktop-feature-coverage.yaml`
-- `tables/rule-evidence.yaml`
+- `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules.yaml`）
 - `tables/codegen-import-allowlist.yaml`
 - `tables/codegen-capability-tiers.yaml`
 - `tables/codegen-static-scan-deny-patterns.yaml`

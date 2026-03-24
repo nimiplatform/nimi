@@ -1162,3 +1162,4 @@
   status: covered
   evidence_refs:
     - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate

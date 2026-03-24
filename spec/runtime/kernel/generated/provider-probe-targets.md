@@ -5,7 +5,9 @@
 | Name | Base URL Env | API Key Env | Category | Source |
 |---|---|---|---|---|
 | `local` | `NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL` | `NIMI_RUNTIME_LOCAL_LLAMA_API_KEY` | `local` | `K-PROV-002` |
+| `local-image` | `engine-managed media diffusers backend` | `n/a` | `local` | `K-PROV-002` |
 | `local-media` | `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_MEDIA_API_KEY` | `local` | `K-PROV-002` |
+| `local-speech` | `NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL` | `NIMI_RUNTIME_LOCAL_SPEECH_API_KEY` | `local` | `K-PROV-002` |
 | `local-sidecar` | `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` | `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` | `local` | `K-PROV-002` |
 | `cloud-nimillm` | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` | `cloud` | `K-PROV-002` |
 | `cloud-dashscope` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY` | `cloud` | `K-PROV-002` |

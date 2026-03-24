@@ -139,9 +139,9 @@ DashScope published voices for these models MUST be represented in `runtime/cata
 
 `models` 仅描述“可合成模型”能力。`audio.synthesize` 模型必须显式声明 `voice` 能力块：
 
-- `discovery_mode`（`static_catalog|dynamic_user_scoped`）
+- `discovery_mode`（`static_catalog|dynamic_user_scoped|mixed`）
 - `supports_voice_ref_kinds`
-- `voice_set_ref`（当 discovery 为 static 时）
+- `voice_set_ref`（当 discovery 包含 `static_catalog` 通道时）
 - `langs_ref`
 
 ## K-MCAT-013 Workflow Model Contract

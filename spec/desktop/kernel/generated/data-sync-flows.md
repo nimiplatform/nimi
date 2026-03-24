@@ -72,19 +72,23 @@ Source Rule: `D-DSYNC-005`
 |---|
 | `loadWorlds` |
 | `loadWorldDetailById` |
+| `loadWorldAgents` |
+| `loadWorldDetailWithAgents` |
 | `loadWorldSemanticBundle` |
+| `loadWorldEvents` |
+| `loadWorldLorebooks` |
+| `loadWorldMediaBindings` |
 | `loadMainWorld` |
 | `loadWorldLevelAudits` |
 
 ## transit
 
-World transit and scene management
+World transit management
 
 Source Rule: `D-DSYNC-012`
 
 | Method |
 |---|
-| `loadSceneQuota` |
 | `startWorldTransit` |
 | `listWorldTransits` |
 | `getActiveWorldTransit` |

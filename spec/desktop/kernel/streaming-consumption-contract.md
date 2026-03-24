@@ -139,6 +139,18 @@ Mode D 流（`K-STREAM-010`）没有业务层终止信号，流生命周期与 d
 
 **跨层引用**：Runtime `K-STREAM-008`（模式 D）、`K-STREAM-010`（长生命周期订阅协议）、SDK `S-TRANSPORT-007`（Mode D 投影）、SDK `S-ERROR-012`（CANCELLED 语义）。
 
+## D-STRM-009 — 背压关闭处理（K-STREAM-011~013 投影）
+
+Runtime 在 server-side queue depth 超预算时以 `RESOURCE_EXHAUSTED` 或 `CANCELLED` 终止流（K-STREAM-012）。Desktop 必须:
+
+- **不得误报为完成**: 收到 `RESOURCE_EXHAUSTED` 或非用户取消的 `CANCELLED` 时，消息标记为"已中断"而非"已完成"。
+- **保留已渲染内容**: 同 D-STRM-003 — 已展示文本不清空。
+- **展示重试入口**: 用户可选重新发送（非幂等执行流不自动重放，K-STREAM-013）。
+- **保留 traceId**: 错误对象必须携带 `traceId` 供跨层排障。
+- **订阅型流可重建**: Mode D 长生命周期订阅流因背压关闭后可自动重订阅（K-STREAM-013）。
+
+**跨层引用**: Runtime K-STREAM-011~013、SDK S-ERROR-004。
+
 ## D-STRM-010 — ScenarioJob 查询控制契约
 
 D-STRM-005 覆盖 `SubscribeScenarioJobEvents` 订阅消费。本规则补充 ScenarioJob 的查询与控制操作，确保 AI Agent 实现完整的 job 管理路径。
@@ -176,18 +188,6 @@ connector 在 job 运行中被删除不影响 job 可观测性。`GetScenarioJob
 job 执行中凭据失效时，Runtime 返回 `AI_PROVIDER_AUTH_FAILED` reason code，job 进入 `FAILED` 终态。走 D-ERR-007 映射："AI 服务凭证已失效，请重新配置"。
 
 **跨层引用**：Runtime K-JOB-001~006、SDK S-ERROR-001。
-
-## D-STRM-009 — 背压关闭处理（K-STREAM-011~013 投影）
-
-Runtime 在 server-side queue depth 超预算时以 `RESOURCE_EXHAUSTED` 或 `CANCELLED` 终止流（K-STREAM-012）。Desktop 必须:
-
-- **不得误报为完成**: 收到 `RESOURCE_EXHAUSTED` 或非用户取消的 `CANCELLED` 时，消息标记为"已中断"而非"已完成"。
-- **保留已渲染内容**: 同 D-STRM-003 — 已展示文本不清空。
-- **展示重试入口**: 用户可选重新发送（非幂等执行流不自动重放，K-STREAM-013）。
-- **保留 traceId**: 错误对象必须携带 `traceId` 供跨层排障。
-- **订阅型流可重建**: Mode D 长生命周期订阅流因背压关闭后可自动重订阅（K-STREAM-013）。
-
-**跨层引用**: Runtime K-STREAM-011~013、SDK S-ERROR-004。
 
 ## Fact Sources
 

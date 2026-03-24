@@ -1,5 +1,7 @@
 # Desktop Shell Feature Flags
 # Source: apps/_libs/shell-core/src/shell-mode.ts (ShellFeatureFlags)
+# Note: platform-conditional desktop defaults are captured in entry-specific fields when a plain
+# `default_desktop` boolean is not sufficient.
 
 flags:
   - flag: enableRuntimeTab
@@ -35,7 +37,10 @@ flags:
   - flag: enableMenuBarShell
     default_desktop: true
     default_web: false
-    description: Enable macOS menu bar runtime entry shell
+    desktop_platform_defaults:
+      macos: true
+      other: false
+    description: Enable menu bar runtime entry shell; true on macOS desktop and false on non-macOS desktop or web
     source_rule: D-MBAR-001
 
   - flag: enableRuntimeBootstrap

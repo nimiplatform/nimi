@@ -1,3 +1,4 @@
+version: 1
 gates:
   - gate: unit_module
     command: pnpm --filter @nimiplatform/sdk test

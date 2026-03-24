@@ -3,6 +3,11 @@ desktop_kernel_consistency:
   command: pnpm check:desktop-spec-kernel-consistency
   path: scripts/check-desktop-spec-kernel-consistency.mjs
   description: Kernel rule integrity and source/spec consistency checks for desktop domain.
+desktop_spec_docs_drift_gate:
+  type: static_gate
+  command: pnpm check:desktop-spec-kernel-docs-drift
+  path: scripts/generate-desktop-spec-kernel-docs.mjs
+  description: Drift gate for generated desktop kernel docs vs YAML fact sources.
 desktop_lint_gate:
   type: lint_gate
   command: pnpm --filter @nimiplatform/desktop lint

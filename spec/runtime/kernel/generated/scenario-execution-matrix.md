@@ -12,3 +12,4 @@
 | `SPEECH_TRANSCRIBE` | `stt` | `ASYNC_JOB` | `K-RPC-002` |
 | `VOICE_CLONE` | `voice` | `ASYNC_JOB` | `K-RPC-002` |
 | `VOICE_DESIGN` | `voice` | `ASYNC_JOB` | `K-RPC-002` |
+| `MUSIC_GENERATE` | `music` | `ASYNC_JOB` | `K-RPC-002` |

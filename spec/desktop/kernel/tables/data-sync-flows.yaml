@@ -50,7 +50,12 @@ flows:
     methods:
       - loadWorlds
       - loadWorldDetailById
+      - loadWorldAgents
+      - loadWorldDetailWithAgents
       - loadWorldSemanticBundle
+      - loadWorldEvents
+      - loadWorldLorebooks
+      - loadWorldMediaBindings
       - loadMainWorld
       - loadWorldLevelAudits
     description: World listing, detail, semantic data

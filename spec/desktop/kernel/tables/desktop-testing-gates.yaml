@@ -13,7 +13,7 @@ gates:
     command: pnpm check:desktop-e2e-journeys
     source_rule: D-GATE-040
   - gate: selector_testability
-    command: pnpm --filter @nimiplatform/desktop typecheck
+    command: pnpm --filter @nimiplatform/desktop lint && pnpm check:desktop-e2e-smoke
     source_rule: D-GATE-050
   - gate: os_matrix
     command: linux:PR+release; windows:release; macos:manual-smoke

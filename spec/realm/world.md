@@ -13,7 +13,7 @@ updated: 2026-03-23
 - `kernel/truth-contract.md`: `R-TRUTH-001..006`
 - `kernel/world-state-contract.md`: `R-WSTATE-001..006`
 - `kernel/world-history-contract.md`: `R-WHIST-001..006`
-- `kernel/transit-contract.md`: `R-TRANSIT-001..004`
+- `kernel/transit-contract.md`: `R-TRANSIT-001..006`
 
 ## Scope
 

@@ -8,7 +8,7 @@
 | `rust_tauri_integration` | `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml && cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets` | `D-GATE-020` |
 | `desktop_e2e_smoke` | `pnpm check:desktop-e2e-smoke` | `D-GATE-030` |
 | `desktop_e2e_journeys` | `pnpm check:desktop-e2e-journeys` | `D-GATE-040` |
-| `selector_testability` | `pnpm --filter @nimiplatform/desktop typecheck` | `D-GATE-050` |
+| `selector_testability` | `pnpm --filter @nimiplatform/desktop lint && pnpm check:desktop-e2e-smoke` | `D-GATE-050` |
 | `os_matrix` | `linux:PR+release; windows:release; macos:manual-smoke` | `D-GATE-060` |
 | `release_parity` | `pnpm check:desktop-e2e-smoke && pnpm check:desktop-e2e-journeys` | `D-GATE-070` |
 | `spec_consistency` | `pnpm check:desktop-spec-kernel-consistency` | `D-GATE-080` |

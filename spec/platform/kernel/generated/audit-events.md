@@ -7,7 +7,11 @@
 | Name | Group | Source |
 |---|---|---|
 | `protocol_validation_failed` | `protocol` | `P-PROTO-001` |
+| `action_execution_committed` | `ai_last_mile` | `P-ALMI-011` |
+| `action_execution_failed` | `ai_last_mile` | `P-ALMI-011` |
+| `action_compensation_triggered` | `ai_last_mile` | `P-ALMI-011` |
 | `transit_denied` | `primitive` | `P-PROTO-103` |
+| `social_admission_denied` | `primitive` | `P-PROTO-101` |
 | `economy_settlement_applied` | `primitive` | `P-PROTO-102` |
 | `context_handoff_applied` | `primitive` | `P-PROTO-104` |
 | `presence_state_changed` | `primitive` | `P-PROTO-105` |
@@ -44,6 +48,14 @@
 
 - `capabilityProfileRef`
 - `capabilityMode`
+
+**`ai_last_mile`:**
+
+- `actionId`
+- `executionId`
+- `principalId`
+- `principalType`
+- `idempotencyKey`
 
 **`primitive`:**
 
@@ -84,6 +96,21 @@
 - `bindingStatus`
 
 ### Event-Specific Fields
+
+**`action_execution_committed`:**
+
+- `executionMode`
+- `auditEventMap`
+
+**`action_execution_failed`:**
+
+- `executionMode`
+- `failureStage`
+
+**`action_compensation_triggered`:**
+
+- `compensationActionId`
+- `failedExecutionId`
 
 **`app_token_delegated`:**
 

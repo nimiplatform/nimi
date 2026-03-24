@@ -1,14 +1,14 @@
 version: 2026-03-10
 owner: '@team'
 description: >
-  Registry of backend API modules that are NOT governed by Realm Kernel Spec AISC rules
+  Registry of backend API modules that are NOT governed by Realm kernel contracts
   but are required for product functionality. These modules are infrastructure or
   product features outside the core world/agent/social/economy/chat domains.
 
 modules:
   - module: ExploreModule
     path: nimi-backend/apps/api/src/modules/explore
-    reason: Search/discovery aggregation layer; no domain-specific AISC rules apply
+    reason: Search/discovery aggregation layer; no domain-specific realm kernel rules apply
     product_area: discovery
 
   - module: InvitationModule

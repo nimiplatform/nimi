@@ -581,7 +581,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    capabilities: []
+    capabilities:
+      - audio.synthesize
     sources:
       - K-MCAT-027
       - K-CONN-008

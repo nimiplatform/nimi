@@ -86,15 +86,19 @@ codes:
   # App mode errors
   - name: APP_MODE_DOMAIN_FORBIDDEN
     group: app_mode
+    action_hint: switch_to_supported_domain
     source_rule: P-PROTO-060
   - name: APP_MODE_SCOPE_FORBIDDEN
     group: app_mode
+    action_hint: request_allowed_scope
     source_rule: P-PROTO-060
   - name: APP_MODE_WORLD_RELATION_FORBIDDEN
     group: app_mode
+    action_hint: establish_required_world_relation
     source_rule: P-PROTO-060
   - name: APP_MODE_MANIFEST_INVALID
     group: app_mode
+    action_hint: fix_app_mode_manifest
     source_rule: P-PROTO-060
   # App resource and consent errors
   - name: APP_RESOURCE_SELECTOR_INVALID

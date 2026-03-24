@@ -1,3 +1,4 @@
+version: 1
 gates:
   - gate: realtime_auth
     requirement: reconnect must inject latest token

@@ -6,7 +6,7 @@
 
 | Kernel Location | Rule IDs |
 |---|---|
-| `kernel/ai-last-mile-contract.md` | P-ALMI-001–030 |
+| `kernel/ai-last-mile-contract.md` | P-ALMI-001, P-ALMI-002, P-ALMI-003, P-ALMI-004, P-ALMI-010, P-ALMI-011, P-ALMI-020, P-ALMI-030 |
 | `kernel/architecture-contract.md` | P-ARCH-004, P-ARCH-010 |
 
 ## 1. 文档定位

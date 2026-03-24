@@ -61,11 +61,13 @@ local_to_canonical:
   - local_token: audio_chat
     canonical_token: text.generate.audio
     local_category: VISION
+    note: Phase 1 local categories are fixed; multimodal chat with audio input is currently normalized under VISION rather than introducing a separate AUDIO_CHAT category.
     source_rule: K-LOCAL-002
 
   - local_token: video_chat
     canonical_token: text.generate.video
     local_category: VISION
+    note: Phase 1 local categories are fixed; multimodal chat with video input is currently normalized under VISION rather than introducing a separate VIDEO_CHAT category.
     source_rule: K-LOCAL-002
 
   - local_token: embedding

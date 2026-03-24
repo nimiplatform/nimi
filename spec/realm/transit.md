@@ -10,7 +10,7 @@ updated: 2026-03-21
 
 ## Normative Imports
 
-- `kernel/transit-contract.md`: `R-TRANSIT-001..004`
+- `kernel/transit-contract.md`: `R-TRANSIT-001..006`
 
 ## Scope
 

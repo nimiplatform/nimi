@@ -42,7 +42,7 @@ Turn 生命周期拦截：`pre-policy` → `pre-model` → `post-state` → `pre
 Desktop core chat surface 的 turn 执行只承载 human chat 所需的通用 `ExecuteLocalTurnInput`。
 Agent chat route 不属于 core chat contract；mods 必须通过 host-only capability `data-api.core.agent.chat.route.resolve` 自行解析。
 
-### Streaming (D-STRM-001~004)
+### Streaming (D-STRM-001, D-STRM-002, D-STRM-003, D-STRM-004)
 
 Turn 流式执行通过 `D-STRM-001` 定义的订阅生命周期消费 Runtime 流式输出。消息气泡增量渲染（`D-STRM-002`），流中断保留已渲染内容（`D-STRM-003`），用户可主动停止生成（`D-STRM-004`）。
 

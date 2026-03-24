@@ -4,7 +4,7 @@
 > Source: `spec/runtime/kernel/tables/workflow-states.yaml`
 ## workflow
 
-States: `ACCEPTED`, `QUEUED`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELED`, `SKIPPED`
+States: `ACCEPTED`(1), `QUEUED`(2), `RUNNING`(3), `COMPLETED`(4), `FAILED`(5), `CANCELED`(6), `SKIPPED`(7)
 
 | From | To | Trigger | Source |
 |---|---|---|---|

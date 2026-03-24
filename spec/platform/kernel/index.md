@@ -53,7 +53,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, go
 | `tables/app-authorization-presets.yaml` | `protocol-contract.md` | readOnly/full/delegate preset rules |
 | `tables/participant-profiles.yaml` | `protocol-contract.md` | Realm/Runtime capability profiles |
 | `tables/error-code-mapping.yaml` | `protocol-contract.md` | Platform protocol error → runtime reason code mapping |
-| `tables/rule-evidence.yaml` | `protocol-contract.md` | Platform formal rule → executable evidence mapping |
+| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
 
 ## Version Terminology
 

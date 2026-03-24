@@ -3,9 +3,21 @@ events:
   - name: protocol_validation_failed
     group: protocol
     source_rule: P-PROTO-001
+  - name: action_execution_committed
+    group: ai_last_mile
+    source_rule: P-ALMI-011
+  - name: action_execution_failed
+    group: ai_last_mile
+    source_rule: P-ALMI-011
+  - name: action_compensation_triggered
+    group: ai_last_mile
+    source_rule: P-ALMI-011
   - name: transit_denied
     group: primitive
     source_rule: P-PROTO-103
+  - name: social_admission_denied
+    group: primitive
+    source_rule: P-PROTO-101
   - name: economy_settlement_applied
     group: primitive
     source_rule: P-PROTO-102
@@ -73,6 +85,12 @@ group_context_fields:
   protocol:
     - capabilityProfileRef
     - capabilityMode
+  ai_last_mile:
+    - actionId
+    - executionId
+    - principalId
+    - principalType
+    - idempotencyKey
   primitive:
     - worldId
     - primitive
@@ -101,6 +119,15 @@ group_context_fields:
     - bindingStatus
 
 event_specific_fields:
+  action_execution_committed:
+    - executionMode
+    - auditEventMap
+  action_execution_failed:
+    - executionMode
+    - failureStage
+  action_compensation_triggered:
+    - compensationActionId
+    - failedExecutionId
   app_token_delegated:
     - parentTokenId
   app_token_issued:

@@ -34,9 +34,12 @@ entities:
     required_fields: [id, creatorId, assetType, visibility, status]
     json_fields: [metadata]
   - name: NovelAsset
+    entity_kind: projection
+    projection_of: RealmAsset
     prisma_model: Asset
     required_fields: [id, creatorId, assetType]
     json_fields: [structure, metadata]
+    notes: Thin projection for narrative-facing asset views; lifecycle and visibility remain governed by RealmAsset.
   - name: AssetReleaseEvent
     prisma_model: AssetReleaseEvent
     required_fields: [id, assetId, releaseType, publishedAt]

@@ -85,6 +85,8 @@ profiles:
     openapi:
       - GET /api/human/relationships/me
       - POST /api/human/relationships
+      - PATCH /api/human/relationships/{id}
+      - DELETE /api/human/relationships/{id}
     prisma_models: [Friendship]
     service_files:
       - nimi-backend/libs/domains/relationship/src/friendship.service.ts

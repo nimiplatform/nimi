@@ -34,8 +34,10 @@ entities:
     required_fields: [id, accountIdL, accountIdH, kind, status]
     json_fields: []
   - name: SocialPrecondition
+    entity_kind: projection
+    projection_of: Friendship
     prisma_model: Friendship
-    required_fields: [kind, status]
+    required_fields: [id, kind, status]
     json_fields: []
 api_surface:
   required_operations:

@@ -36,12 +36,8 @@ Settings 的 Application Update 区域必须投影 desktop self-update 状态：
 - 展示当前 desktop 版本、bundled runtime 版本、目标版本、当前 updater 状态。
 - `autoUpdate` 语义固定为“自动检查并下载”；安装完成后仍需显式重启。
 - runtime staging / release metadata 错误必须在设置页中可见，不得靠 fallback 版本信息掩盖。
+- updater availability 与禁用/告警投影遵循 `spec/desktop/kernel/self-update-contract.md` 的 `Updater Availability Projection`，此处不重复定义规则正文。
 
 ## CI 门禁引用
 
 本域涉及的 CI 门禁：`pnpm check:desktop-spec-kernel-consistency`（Check 1, 4, 9, 11, 13~14 相关规则）。
-## Desktop Update Availability
-
-- Settings MUST disable desktop update actions when `desktopReleaseInfo.updaterAvailable` is false.
-- Settings MUST surface `desktopReleaseInfo.updaterUnavailableReason` alongside existing release/runtime/update warnings.
-- `autoUpdate` only schedules automatic checks when updater availability is true; missing local updater config does not count as bootstrap failure by itself.

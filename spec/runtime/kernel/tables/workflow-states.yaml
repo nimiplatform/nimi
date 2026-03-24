@@ -1,7 +1,21 @@
 version: 1
 machines:
   - machine: workflow
-    states: [ACCEPTED, QUEUED, RUNNING, COMPLETED, FAILED, CANCELED, SKIPPED]
+    states:
+      - state: ACCEPTED
+        enum_value: 1
+      - state: QUEUED
+        enum_value: 2
+      - state: RUNNING
+        enum_value: 3
+      - state: COMPLETED
+        enum_value: 4
+      - state: FAILED
+        enum_value: 5
+      - state: CANCELED
+        enum_value: 6
+      - state: SKIPPED
+        enum_value: 7
     transitions:
       - from: ACCEPTED
         to: QUEUED

@@ -1,7 +1,7 @@
 # Spec AGENTS.md
 
 ## Scope
-- Applies to `spec/**`.
+- Applies to the `nimi/spec/**` subtree in this workspace (`runtime`, `sdk`, `desktop`, `platform`, `realm`, `future`).
 - Kernel files are the only normative layer; domain docs are thin guides that point back to kernel rule IDs.
 
 ## Hard Boundaries

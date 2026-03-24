@@ -1,3 +1,4 @@
+version: 1
 projections:
   # --- runtime behavioral checks ---
   - area: construction

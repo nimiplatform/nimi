@@ -24,10 +24,10 @@ state_machines:
   - machine_id: TRANSIT-SESSION
     domain: transit
     initial_state: PENDING
-    states: [PENDING, ACTIVE, COMPLETED, CANCELLED]
+    states: [PENDING, ACTIVE, COMPLETED, ABANDONED]
     transitions:
       - { from: PENDING, to: ACTIVE, event: start }
       - { from: ACTIVE, to: COMPLETED, event: complete }
-      - { from: PENDING, to: CANCELLED, event: cancel }
-      - { from: ACTIVE, to: CANCELLED, event: cancel }
+      - { from: PENDING, to: ABANDONED, event: abandon }
+      - { from: ACTIVE, to: ABANDONED, event: abandon }
     source_rules: [R-TRANSIT-003]

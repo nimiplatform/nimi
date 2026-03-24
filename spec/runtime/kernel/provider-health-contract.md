@@ -30,6 +30,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 | `local` | `NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL` | `NIMI_RUNTIME_LOCAL_LLAMA_API_KEY` |
 | `local-image` | engine-managed media diffusers backend | n/a |
 | `local-media` | `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` | `NIMI_RUNTIME_LOCAL_MEDIA_API_KEY` |
+| `local-speech` | `NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL` | `NIMI_RUNTIME_LOCAL_SPEECH_API_KEY` |
 | `local-sidecar` | `NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL` | `NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY` |
 | `cloud-nimillm` | `NIMI_RUNTIME_CLOUD_NIMILLM_BASE_URL` | `NIMI_RUNTIME_CLOUD_NIMILLM_API_KEY` |
 | `cloud-dashscope` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL` | `NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY` |
@@ -49,6 +50,7 @@ Provider 探测目标从配置（`K-DAEMON-009`）与环境变量解析，固定
 - `local-image` 仅用于 engine-managed `media-diffusers-backend` 健康归因与审计，不从环境变量装配独立 probe target。
 - `local-media` 在 `supported_supervised` host 之外不得由 runtime 自动注入默认 loopback probe target。
 - 当 host 仅支持 `attached_only` 时，只有调用方显式配置的 `NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL` 才参与 provider health 探测。
+- `local-speech` 作为完整 supervised engine，与 `local` / `local-media` 一样按显式 Base URL 配置参与 provider health 探测。
 - `local-media` 的 `/healthz` 必须只在依赖、设备、默认模型与默认管线全部 ready 后返回 `2xx`；不得使用静态 `"ok"` 健康响应伪装就绪。
 
 ## K-PROV-003 探测间隔与策略
@@ -106,6 +108,7 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 | `local` | `local` | llama 引擎 |
 | `local-image` | `local` | engine-managed media diffusers backend |
 | `local-media` | `local` | media 引擎 |
+| `local-speech` | `local` | speech 引擎 |
 | `local-sidecar` | `local` | Attached music sidecar |
 | `cloud-nimillm` | `nimillm` | NimiLLM 代理层 |
 | `cloud-dashscope` | `dashscope` | 阿里云 DashScope |

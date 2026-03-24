@@ -1,7 +1,7 @@
 version: 2
 rule_compliance:
-  total_s_rules: 103
-  audit_date: "2026-03-12"
+  total_s_rules: 106
+  audit_date: "2026-03-23"
   sdk_version: "0.4.0"
 
 evidence_catalog:

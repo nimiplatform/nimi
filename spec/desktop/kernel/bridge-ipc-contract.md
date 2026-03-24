@@ -152,6 +152,7 @@ Desktop 自更新命令集：
 - `desktop_update_download`
 - `desktop_update_install`
 - `desktop_update_restart`
+- `subscribeDesktopUpdateState`（desktop-only Tauri event listener；消费 `desktop-update://state`，不属于 `tables/ipc-commands.yaml` 的 invoke command 清单）
 
 约束：
 

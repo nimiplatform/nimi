@@ -47,5 +47,5 @@
 | `suno` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `music.generate`, `music.generate.iteration` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `together` | `remote` | `nimillm` | `true` | `true` | `explicit_required` | `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `volcengine` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize`, `image.generate`, `text.embed`, `text.generate`, `video.generate` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
-| `volcengine_openspeech` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | — | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
+| `volcengine_openspeech` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `audio.synthesize` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |
 | `xai` | `remote` | `nimillm` | `true` | `true` | `default_or_explicit` | `image.generate`, `text.generate`, `text.generate.vision` | `K-MCAT-027`, `K-CONN-008`, `K-KEYSRC-001` |

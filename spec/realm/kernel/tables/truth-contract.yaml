@@ -51,6 +51,7 @@ entities:
   - name: World
     prisma_model: World
     required_fields: [id, type, status]
+    json_fields: []
   - name: WorldRule
     prisma_model: WorldRule
     required_fields: [id, worldId, ruleKey, title, statement, domain, hardness, scope, status, version]

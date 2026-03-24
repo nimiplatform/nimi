@@ -5,7 +5,7 @@
 
 ## 0. 权威导入
 
-- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-005, S-MOD-006, S-MOD-010, S-MOD-011, S-MOD-012, S-MOD-013）
+- `kernel/mod-contract.md`（S-MOD-001, S-MOD-002, S-MOD-003, S-MOD-004, S-MOD-005, S-MOD-006, S-MOD-010, S-MOD-011, S-MOD-012, S-MOD-013）
 - `kernel/surface-contract.md`（S-SURFACE-004）
 - `kernel/transport-contract.md`（S-TRANSPORT-003）
 - `kernel/error-projection.md`（S-ERROR-003）

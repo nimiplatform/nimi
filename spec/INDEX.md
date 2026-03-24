@@ -216,46 +216,6 @@ SDK 规范采用 kernel + domain 的两层结构：
 1. 先改 `spec/sdk/kernel/*`（必要时含 `tables/*`）
 2. 再改对应 `spec/sdk/*.md` domain 文档
 
-## Realm（当前）
-
-Realm open spec 采用 kernel + domain 的两层结构，承载 Truth、World State、World History、Agent Memory、Chat、Social、Economy、Asset 与 Transit。
-
-- Kernel（唯一事实源）：`spec/realm/kernel/`
-- Domain：
-  - `spec/realm/truth.md`
-  - `spec/realm/world-state.md`
-  - `spec/realm/world-history.md`
-  - `spec/realm/agent-memory.md`
-  - `spec/realm/world.md`
-  - `spec/realm/agent.md`
-  - `spec/realm/chat.md`
-  - `spec/realm/social.md`
-  - `spec/realm/asset.md`
-  - `spec/realm/world-creator-economy.md`
-  - `spec/realm/creator-revenue-policy.md`
-  - `spec/realm/app-interconnect-model.md`
-  - `spec/realm/realm-interop-mapping.md`
-
-### 修改 Realm public boundary
-
-1. `spec/realm/kernel/truth-contract.md`
-2. `spec/realm/kernel/world-state-contract.md`
-3. `spec/realm/kernel/world-history-contract.md`
-4. `spec/realm/kernel/agent-memory-contract.md`
-5. `spec/realm/kernel/chat-contract.md`
-6. `spec/realm/kernel/social-contract.md`
-7. 受影响 domain 文档（`truth.md` / `world-state.md` / `world-history.md` / `agent-memory.md` / `world.md` / `agent.md` / `chat.md` / `social.md`）
-
-### 修改 Realm interop mapping
-
-1. `spec/realm/kernel/world-state-contract.md`
-2. `spec/realm/kernel/world-history-contract.md`
-3. `spec/realm/kernel/agent-memory-contract.md`
-4. `spec/realm/kernel/transit-contract.md`
-5. `spec/realm/kernel/tables/commit-authorization-matrix.yaml`
-6. `spec/realm/app-interconnect-model.md`
-7. `spec/realm/realm-interop-mapping.md`
-
 ## Platform（当前）
 
 Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协议、AI 最后一公里、开源治理。

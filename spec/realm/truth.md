@@ -10,7 +10,7 @@ updated: 2026-03-21
 
 ## Normative Imports
 
-- `kernel/truth-contract.md`: `R-TRUTH-001..006`
+- `kernel/truth-contract.md`: `R-TRUTH-001..008`
 
 ## Scope
 

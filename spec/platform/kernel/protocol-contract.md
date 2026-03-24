@@ -59,7 +59,7 @@ World-App 绑定状态机：
 
 ## P-PROTO-060 — App 模式域边界
 
-`MUST`: App 按声明 mode 执行域访问。mode 与域/scope/worldRelation 不匹配时必须拒绝并返回模式违规 reasonCode。actionHint 默认映射见 `tables/protocol-error-codes.yaml`。
+`MUST`: App 按声明 mode 执行域访问。mode 与域/scope/worldRelation 不匹配时必须拒绝并返回模式违规 reasonCode。actionHint 默认映射见 `tables/protocol-error-codes.yaml` 中各 error code 的 `action_hint` 字段。
 
 App 模式访问矩阵：
 

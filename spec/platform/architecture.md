@@ -15,7 +15,7 @@
 
 ## 2. 核心阅读顺序
 
-1. `kernel/architecture-contract.md`：先确认 P-ARCH-001、P-ARCH-002、P-ARCH-010、P-ARCH-020。
+1. `kernel/architecture-contract.md`：先确认 P-ARCH-001、P-ARCH-002、P-ARCH-010、P-ARCH-011、P-ARCH-020。
 2. `kernel/protocol-contract.md`：再确认 P-PROTO-010、P-PROTO-011、P-PROTO-020 的封装与授权语义。
 3. `spec/runtime/kernel/index.md` 与 `spec/sdk/kernel/index.md`：最后落到实现侧契约层。
 
@@ -29,6 +29,7 @@ nimi-apps -> nimi-realm: REST + WS realm access
 ```
 
 - Runtime 职责边界见 P-ARCH-004。
+- Credential Plane 双平面隔离见 P-ARCH-011。
 - SDK 统一入口约束见 P-ARCH-020。
 - Realm 六原语主权见 P-PROTO-003。
 

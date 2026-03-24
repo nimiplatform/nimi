@@ -110,6 +110,22 @@ items:
     ——30 秒内让新用户产生 Wow 感受。依赖 TTS/STT 管道的低延迟保证。
     Desktop 可利用现有 Three.js 渲染能力；需评估 WebView 内 3D 渲染性能开销。
     是 Nimi Persona（AI 伴侣 demo app）的核心视觉组件。
+- item_id: F-WFTRIGGER-001
+  title: 工作流触发器系统
+  priority: high
+  category: platform
+  target_layers:
+  - runtime
+  - sdk
+  status: proposed
+  source_ids:
+    - RESEARCH-OFANG-001
+  complexity: medium
+  architecture_notes: Runtime 工作流增加显式触发器支持：Webhook（外部事件驱动）、
+    Schedule（定时触发）、Plugin/Mod（扩展触发）。当前 Nimi 仅支持 SDK 显式调用
+    启动工作流，缺少事件驱动的自动执行能力。需与 Mod event-bus 子系统对齐。
+    Schedule 触发器是"主动 Agent"体验的基础能力。触发路由必须是显式、可观测的
+    policy/config 选择，不引入对失败执行的静默 fallback。
 - item_id: F-HEARTBEAT-001
   title: 心跳驱动的主动 Agent
   priority: high
@@ -361,22 +377,6 @@ items:
   architecture_notes: Runtime 工作流引擎增加 Iteration（并行迭代）和 Loop
     （顺序循环）节点类型，支持数组并行处理，是批量任务场景必需能力。
     需扩展 RuntimeWorkflowService DAG 节点类型枚举和执行器。
-- item_id: F-WFTRIGGER-001
-  title: 工作流触发器系统
-  priority: high
-  category: platform
-  target_layers:
-  - runtime
-  - sdk
-  status: proposed
-  source_ids:
-    - RESEARCH-OFANG-001
-  complexity: medium
-  architecture_notes: Runtime 工作流增加触发器支持：Webhook（外部事件驱动）、
-    Schedule（定时触发）、Plugin/Mod（扩展触发）。当前 Nimi 仅支持 SDK 显式调用
-    启动工作流，缺少事件驱动的自动执行能力。需与 Mod event-bus 子系统对齐。
-    Schedule 触发器是"主动 Agent"体验的基础能力——Agent 定期自驱执行任务
-    （检查邮件、总结新闻）。与 F-HEARTBEAT-001 互补。
 - item_id: F-CITATION-001
   title: RAG 引用追踪
   priority: medium
@@ -907,8 +907,9 @@ items:
     context_window_tokens、pricing_per_1k（input/output）、quality_tier
     （premium/standard/economy）等字段；(2) Runtime 内置模型目录数据文件
     （YAML/JSON），定期从远端同步更新；(3) 新增 ModelRouter 逻辑——
-    根据请求的模态、上下文长度、用户偏好自动选择最优 provider+model 组合；
-    (4) 支持 fallback chain：primary model 不可用时自动降级到 fallback model。
+    根据请求的模态、上下文长度、用户偏好与显式 provider-priority policy 选择
+    provider+model 组合；(4) 若首选路由不可用，只允许走可观测的 priority/policy
+    重选，不定义静默 fallback chain。
     与 F-MODELUI-001 互补：F-MODELUI-001 负责前端展示，本条目负责后端
     目录数据结构和路由逻辑。与现有 provider-health 契约对齐——
     健康检查信息作为路由决策的输入之一。

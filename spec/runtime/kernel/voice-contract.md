@@ -123,5 +123,6 @@ Catalog `voice.discovery_mode` 与发现接口职责必须严格对应：
 
 - `static_catalog`：预置音色发现由 `ListPresetVoices` 承担，返回值来自 YAML catalog snapshot 或显式本地 custom YAML。
 - `dynamic_user_scoped`：用户资产发现由 `ListVoiceAssets` 承担。
+- `mixed`：provider 同时暴露预置音色与用户资产，两条发现通道都必须可用，但仍由调用方分别调用 `ListPresetVoices` 与 `ListVoiceAssets`。
 
 provider 同时支持全局预置与用户资产时，允许同时暴露两条通道，但不得混流返回。

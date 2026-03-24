@@ -32,3 +32,7 @@ entries:
     canonical_modality: voice
     supported_execution_modes: [ASYNC_JOB]
     source_rule: K-RPC-002
+  - scenario_type: MUSIC_GENERATE
+    canonical_modality: music
+    supported_execution_modes: [ASYNC_JOB]
+    source_rule: K-RPC-002

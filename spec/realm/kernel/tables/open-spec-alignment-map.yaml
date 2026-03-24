@@ -10,7 +10,7 @@ mappings:
   - external_id: R-TRUTH-002
     external_type: kernel_rule
     external_path: nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-002
-    local_anchor: spec/realm/agent.md#Scope
+    local_anchor: spec/realm/world.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-003
     external_type: kernel_rule
