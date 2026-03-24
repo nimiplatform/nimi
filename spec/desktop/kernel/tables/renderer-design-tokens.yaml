@@ -42,6 +42,13 @@ tokens:
     tailwind_alias: nimi-surface--overlay
     scope: baseline
     source_rule: D-SHELL-016
+  - id: surface.sidebar_canvas
+    category: surface
+    name: sidebar_canvas
+    css_var: --nimi-sidebar-canvas
+    tailwind_alias: nimi-sidebar-shell
+    scope: baseline
+    source_rule: D-SHELL-025
   - id: text.primary
     category: text
     name: text_primary
@@ -70,6 +77,13 @@ tokens:
     tailwind_alias: nimi-type--section-title
     scope: baseline
     source_rule: D-SHELL-016
+  - id: typography.sidebar_section_label
+    category: typography
+    name: sidebar_section_label
+    css_var: --nimi-sidebar-section-label
+    tailwind_alias: nimi-sidebar-section-label
+    scope: baseline
+    source_rule: D-SHELL-025
   - id: spacing.section
     category: spacing
     name: section_gap
@@ -84,6 +98,13 @@ tokens:
     tailwind_alias: space-y-4
     scope: baseline
     source_rule: D-SHELL-016
+  - id: spacing.sidebar_header_height
+    category: spacing
+    name: sidebar_header_height
+    css_var: --nimi-sidebar-header-height
+    tailwind_alias: h-(--nimi-sidebar-header-height)
+    scope: baseline
+    source_rule: D-SHELL-025
   - id: stroke.subtle
     category: stroke
     name: stroke_subtle
@@ -98,6 +119,13 @@ tokens:
     tailwind_alias: border-mint-200
     scope: baseline
     source_rule: D-SHELL-016
+  - id: stroke.sidebar_border
+    category: stroke
+    name: sidebar_border
+    css_var: --nimi-sidebar-border
+    tailwind_alias: border-(--nimi-sidebar-border)
+    scope: baseline
+    source_rule: D-SHELL-025
   - id: state.selected
     category: state
     name: state_selected
@@ -112,6 +140,41 @@ tokens:
     tailwind_alias: nimi-state--danger
     scope: baseline
     source_rule: D-SHELL-016
+  - id: state.sidebar_item_default
+    category: state
+    name: sidebar_item_default
+    css_var: --nimi-sidebar-item-default
+    tailwind_alias: nimi-sidebar-item
+    scope: baseline
+    source_rule: D-SHELL-025
+  - id: state.sidebar_item_active
+    category: state
+    name: sidebar_item_active
+    css_var: --nimi-sidebar-item-active
+    tailwind_alias: nimi-sidebar-item--active
+    scope: baseline
+    source_rule: D-SHELL-025
+  - id: state.sidebar_item_hover
+    category: state
+    name: sidebar_item_hover
+    css_var: --nimi-sidebar-item-hover
+    tailwind_alias: nimi-sidebar-item:hover
+    scope: baseline
+    source_rule: D-SHELL-025
+  - id: state.sidebar_search
+    category: state
+    name: sidebar_search
+    css_var: --nimi-sidebar-search
+    tailwind_alias: nimi-sidebar-search
+    scope: baseline
+    source_rule: D-SHELL-025
+  - id: state.sidebar_resize_handle
+    category: state
+    name: sidebar_resize_handle
+    css_var: --nimi-sidebar-resize-handle
+    tailwind_alias: nimi-sidebar-resize-handle
+    scope: baseline
+    source_rule: D-SHELL-025
   - id: radius.sm
     category: radius
     name: radius_sm

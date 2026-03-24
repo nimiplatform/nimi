@@ -121,6 +121,14 @@ Daemon 管理命令（命令清单见 `D-IPC-002`）。
 
 Runtime Tab 受 `enableRuntimeTab` feature flag 门控。
 
+### Sidebar Family (D-SHELL-023, D-SHELL-024, D-SHELL-025)
+
+Runtime Config 内部左侧栏属于 desktop governed sidebar family：
+
+- `runtime-config-panel-view` 必须登记到 `renderer-design-sidebars.yaml`。
+- page navigation 只能使用 `nav-row` item kind；badge、status-dot 与 chevron 必须走受控 trailing affordance。
+- runtime sidebar 不得继续维持独立背景色、独立 active row 或独立 resize handle contract。
+
 ### LLM (D-LLM-001)
 
 Provider 适配层：`provider` 字段确定执行路径（remote token API / local runtime）。

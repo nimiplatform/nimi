@@ -23,6 +23,7 @@
 | `build-chunks.md` | `tables/build-chunks.yaml` |
 | `renderer-design-tokens.md` | `tables/renderer-design-tokens.yaml` |
 | `renderer-design-surfaces.md` | `tables/renderer-design-surfaces.yaml` |
+| `renderer-design-sidebars.md` | `tables/renderer-design-sidebars.yaml` |
 | `renderer-design-overlays.md` | `tables/renderer-design-overlays.yaml` |
 | `renderer-design-allowlists.md` | `tables/renderer-design-allowlists.yaml` |
 | `desktop-testing-gates.md` | `tables/desktop-testing-gates.yaml` |

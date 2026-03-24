@@ -108,6 +108,11 @@ const specs = [
     render: renderRendererDesignSurfaces,
   },
   {
+    input: 'renderer-design-sidebars.yaml',
+    output: 'renderer-design-sidebars.md',
+    render: renderRendererDesignSidebars,
+  },
+  {
     input: 'renderer-design-overlays.yaml',
     output: 'renderer-design-overlays.md',
     render: renderRendererDesignOverlays,
@@ -555,6 +560,33 @@ function renderRendererDesignSurfaces(doc, sourceName) {
     const exceptionPolicy = String(item?.exception_policy || '').trim() || '—';
     const sourceRule = String(item?.source_rule || '').trim() || '—';
     out += `| \`${id}\` | \`${module}\` | \`${role}\` | \`${profile}\` | \`${exceptionPolicy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRendererDesignSidebars(doc, sourceName) {
+  const sidebars = Array.isArray(doc?.sidebars) ? doc.sidebars : [];
+  let out = header('Generated Renderer Design Sidebars', sourceName);
+
+  out += '| Sidebar ID | Module | Profile | Family | Item Kinds | Search | Primary Action | Sections | Resize Handle | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|---|---|---|\n';
+  for (const item of sidebars) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const module = String(item?.module || '').trim() || '—';
+    const profile = String(item?.surface_profile || '').trim() || '—';
+    const family = String(item?.family || '').trim() || '—';
+    const itemKinds = Array.isArray(item?.item_kinds)
+      ? item.item_kinds.map((value) => `\`${String(value).trim()}\``).join(', ')
+      : '—';
+    const hasSearch = mdBool(Boolean(item?.has_search));
+    const hasPrimaryAction = mdBool(Boolean(item?.has_primary_action));
+    const hasSections = mdBool(Boolean(item?.has_sections));
+    const hasResizeHandle = mdBool(Boolean(item?.has_resize_handle));
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${module}\` | \`${profile}\` | \`${family}\` | ${itemKinds} | \`${hasSearch}\` | \`${hasPrimaryAction}\` | \`${hasSections}\` | \`${hasResizeHandle}\` | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 

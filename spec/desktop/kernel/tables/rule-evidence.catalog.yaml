@@ -77,7 +77,7 @@ desktop_design_contract_gate:
   type: static_gate
   command: pnpm check:desktop-design-contract
   path: scripts/check-desktop-design-contract.mjs
-  description: Enforces desktop baseline design token usage, arbitrary value allowlists, and shared overlay adoption on pilot surfaces.
+  description: Enforces desktop baseline design token usage, governed sidebar family compliance, arbitrary value allowlists, and shared overlay adoption on pilot surfaces.
 desktop_runtime_config_path_gate:
   type: static_gate
   command: pnpm check:desktop-no-legacy-runtime-config-path

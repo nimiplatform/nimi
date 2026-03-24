@@ -13,9 +13,14 @@
 
 ## Kernel References
 
-### UI Shell (D-SHELL-019, D-SHELL-022)
+### UI Shell (D-SHELL-019, D-SHELL-022, D-SHELL-023, D-SHELL-024, D-SHELL-025)
 
 `contacts` 是 desktop baseline anchor 之一。root shell、sidebar/list surface、shared action 与确认 dialog family 的 baseline design 收敛由 `D-SHELL-019` 与 `D-SHELL-022` 定义。
+
+Contacts 内部左侧栏属于 governed sidebar family：
+
+- `contacts-view` 必须登记到 `renderer-design-sidebars.yaml`。
+- category-row、entity-row、search、primary action 与 resize handle 必须通过 shared sidebar primitive 表达。
 
 ### DataSync (D-DSYNC-004)
 

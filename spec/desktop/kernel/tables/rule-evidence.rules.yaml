@@ -949,6 +949,27 @@
     - desktop_kernel_consistency
     - desktop_design_contract_gate
     - desktop_test_gate
+- rule_id: D-SHELL-023
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-024
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+    - desktop_test_gate
+- rule_id: D-SHELL-025
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_spec_docs_drift_gate
+    - desktop_design_contract_gate
+    - desktop_test_gate
 - rule_id: D-STATE-001
   status: covered
   evidence_refs:

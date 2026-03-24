@@ -1,0 +1,51 @@
+version: 1
+sidebars:
+  - id: chat.sidebar
+    module: features/chats/chat-list.tsx
+    surface_profile: baseline
+    family: desktop-sidebar-v1
+    item_kinds:
+      - entity-row
+    has_search: true
+    has_primary_action: false
+    has_sections: false
+    has_resize_handle: false
+    testid_required: true
+    source_rule: D-SHELL-023
+  - id: contacts.sidebar
+    module: features/contacts/contacts-view.tsx
+    surface_profile: baseline
+    family: desktop-sidebar-v1
+    item_kinds:
+      - category-row
+      - entity-row
+    has_search: true
+    has_primary_action: true
+    has_sections: true
+    has_resize_handle: true
+    testid_required: true
+    source_rule: D-SHELL-023
+  - id: runtime.sidebar
+    module: features/runtime-config/runtime-config-panel-view.tsx
+    surface_profile: secondary
+    family: desktop-sidebar-v1
+    item_kinds:
+      - nav-row
+    has_search: false
+    has_primary_action: false
+    has_sections: true
+    has_resize_handle: true
+    testid_required: true
+    source_rule: D-SHELL-023
+  - id: settings.sidebar
+    module: features/settings/settings-panel-body.tsx
+    surface_profile: secondary
+    family: desktop-sidebar-v1
+    item_kinds:
+      - nav-row
+    has_search: false
+    has_primary_action: false
+    has_sections: true
+    has_resize_handle: true
+    testid_required: true
+    source_rule: D-SHELL-023

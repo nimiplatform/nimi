@@ -65,6 +65,7 @@
 - `tables/build-chunks.yaml`
 - `tables/renderer-design-tokens.yaml`
 - `tables/renderer-design-surfaces.yaml`
+- `tables/renderer-design-sidebars.yaml`
 - `tables/renderer-design-overlays.yaml`
 - `tables/renderer-design-allowlists.yaml`
 - `tables/desktop-testing-gates.yaml`

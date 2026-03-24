@@ -47,6 +47,7 @@ const kernelFiles = [
   'spec/desktop/kernel/tables/build-chunks.yaml',
   'spec/desktop/kernel/tables/renderer-design-tokens.yaml',
   'spec/desktop/kernel/tables/renderer-design-surfaces.yaml',
+  'spec/desktop/kernel/tables/renderer-design-sidebars.yaml',
   'spec/desktop/kernel/tables/renderer-design-overlays.yaml',
   'spec/desktop/kernel/tables/renderer-design-allowlists.yaml',
   'spec/desktop/kernel/tables/desktop-testing-gates.yaml',
@@ -616,11 +617,14 @@ function checkRendererDesignTables() {
   const rendererRoot = path.join(sourceRoot, 'shell/renderer');
   const tokensPath = 'spec/desktop/kernel/tables/renderer-design-tokens.yaml';
   const surfacesPath = 'spec/desktop/kernel/tables/renderer-design-surfaces.yaml';
+  const sidebarsPath = 'spec/desktop/kernel/tables/renderer-design-sidebars.yaml';
   const overlaysPath = 'spec/desktop/kernel/tables/renderer-design-overlays.yaml';
   const allowlistsPath = 'spec/desktop/kernel/tables/renderer-design-allowlists.yaml';
 
   const allowedTokenCategories = new Set(['brand', 'surface', 'text', 'radius', 'elevation', 'z', 'motion', 'typography', 'spacing', 'stroke', 'state']);
   const allowedSurfaceProfiles = new Set(['baseline', 'secondary', 'exception']);
+  const allowedSidebarFamily = new Set(['desktop-sidebar-v1']);
+  const allowedSidebarItemKinds = new Set(['entity-row', 'category-row', 'nav-row']);
   const allowedExceptionPolicies = new Set(['none', 'allowlisted_arbitrary', 'controlled']);
   const allowedOverlayKinds = new Set(['dialog', 'drawer', 'popover', 'tooltip']);
   const allowedSurfaceTones = new Set(['canvas', 'panel', 'card', 'hero', 'overlay']);
@@ -713,6 +717,64 @@ function checkRendererDesignTables() {
     }
   }
 
+  const sidebarsDoc = readYaml(sidebarsPath) || {};
+  const sidebars = Array.isArray(sidebarsDoc?.sidebars) ? sidebarsDoc.sidebars : [];
+  if (sidebars.length === 0) {
+    fail(`${sidebarsPath} must define at least one sidebar row`);
+  }
+  const requiredSidebarModules = new Set([
+    'features/chats/chat-list.tsx',
+    'features/contacts/contacts-view.tsx',
+    'features/runtime-config/runtime-config-panel-view.tsx',
+    'features/settings/settings-panel-body.tsx',
+  ]);
+  const registeredSidebarModules = new Set();
+  for (const item of sidebars) {
+    const id = String(item?.id || '').trim();
+    const module = String(item?.module || '').trim();
+    const surfaceProfile = String(item?.surface_profile || '').trim();
+    const family = String(item?.family || '').trim();
+    const itemKinds = Array.isArray(item?.item_kinds) ? item.item_kinds : [];
+    if (!id || !module || !surfaceProfile || !family) {
+      fail(`${sidebarsPath} sidebar rows require id/module/surface_profile/family`);
+      continue;
+    }
+    if (!allowedSurfaceProfiles.has(surfaceProfile) || surfaceProfile === 'exception') {
+      fail(`${sidebarsPath} sidebar ${id} has invalid surface_profile: ${surfaceProfile}`);
+    }
+    if (!allowedSidebarFamily.has(family)) {
+      fail(`${sidebarsPath} sidebar ${id} has invalid family: ${family}`);
+    }
+    if (itemKinds.length === 0) {
+      fail(`${sidebarsPath} sidebar ${id} must declare non-empty item_kinds`);
+    }
+    for (const itemKind of itemKinds) {
+      if (!allowedSidebarItemKinds.has(String(itemKind).trim())) {
+        fail(`${sidebarsPath} sidebar ${id} has invalid item_kinds entry: ${String(itemKind).trim()}`);
+      }
+    }
+    for (const boolField of ['has_search', 'has_primary_action', 'has_sections', 'has_resize_handle', 'testid_required']) {
+      if (typeof item?.[boolField] !== 'boolean') {
+        fail(`${sidebarsPath} sidebar ${id} must declare boolean ${boolField}`);
+      }
+    }
+    const modulePath = path.join(rendererRoot, module);
+    if (!fs.existsSync(modulePath)) {
+      fail(`${sidebarsPath} sidebar ${id} module does not exist under renderer root: ${module}`);
+      continue;
+    }
+    registeredSidebarModules.add(module);
+    const sidebarSource = fs.readFileSync(modulePath, 'utf8');
+    if (item?.testid_required === true && !(/data-testid=/u.test(sidebarSource) || /E2E_IDS\./u.test(sidebarSource))) {
+      fail(`${sidebarsPath} sidebar ${id} testid_required=true but module lacks stable testability markup: ${module}`);
+    }
+  }
+  for (const module of requiredSidebarModules) {
+    if (!registeredSidebarModules.has(module)) {
+      fail(`${sidebarsPath} missing governed sidebar module: ${module}`);
+    }
+  }
+
   const overlaysDoc = readYaml(overlaysPath) || {};
   const overlays = Array.isArray(overlaysDoc?.overlays) ? overlaysDoc.overlays : [];
   if (overlays.length === 0) {
@@ -798,9 +860,13 @@ function checkDesignDomainAnchors() {
     ['spec/desktop/chat.md', 'D-SHELL-019'],
     ['spec/desktop/explore.md', 'D-SHELL-019'],
     ['spec/desktop/contacts.md', 'D-SHELL-019'],
+    ['spec/desktop/chat.md', 'D-SHELL-023'],
+    ['spec/desktop/contacts.md', 'D-SHELL-023'],
     ['spec/desktop/home.md', 'D-SHELL-015'],
     ['spec/desktop/notification.md', 'D-SHELL-015'],
     ['spec/desktop/profile.md', 'D-SHELL-015'],
+    ['spec/desktop/settings.md', 'D-SHELL-023'],
+    ['spec/desktop/runtime-config.md', 'D-SHELL-023'],
     ['spec/desktop/world-detail.md', 'D-SHELL-020'],
   ];
   for (const [rel, ruleId] of requiredAnchors) {

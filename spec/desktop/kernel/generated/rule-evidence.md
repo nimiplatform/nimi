@@ -21,7 +21,7 @@
 | `desktop_mods_smoke_gate` | `smoke_gate` | `pnpm check:desktop-mods-smoke --all` | `scripts/check-desktop-mods-smoke.mjs` | Desktop runtime mod host can discover and validate installed prebuilt mod packages from the runtime mods directory. |
 | `runtime_mod_hook_hardcut_gate` | `static_gate` | `pnpm check:runtime-mod-hook-hardcut` | `scripts/check-runtime-mod-hook-hardcut.mjs` | Cross-layer runtime-aligned mod and hook surface hard-cut guard. |
 | `desktop_cloud_runtime_only_gate` | `static_gate` | `pnpm check:desktop-cloud-runtime-only` | `scripts/check-desktop-cloud-runtime-only.mjs` | Enforces cloud connector routing through runtime-owned APIs only. |
-| `desktop_design_contract_gate` | `static_gate` | `pnpm check:desktop-design-contract` | `scripts/check-desktop-design-contract.mjs` | Enforces desktop baseline design token usage, arbitrary value allowlists, and shared overlay adoption on pilot surfaces. |
+| `desktop_design_contract_gate` | `static_gate` | `pnpm check:desktop-design-contract` | `scripts/check-desktop-design-contract.mjs` | Enforces desktop baseline design token usage, governed sidebar family compliance, arbitrary value allowlists, and shared overlay adoption on pilot surfaces. |
 | `desktop_runtime_config_path_gate` | `static_gate` | `pnpm check:desktop-no-legacy-runtime-config-path` | `package.json` | Forbids desktop fallback to the retired .nimi/runtime/config.json path. |
 | `desktop_local_ai_bridge_gate` | `static_gate` | `pnpm check:no-local-ai-private-calls && pnpm check:no-local-ai-tauri-commands` | `package.json` | Forbids direct legacy local_ai command literals outside the managed bridge surface. |
 | `desktop_mod_capabilities_gate` | `static_gate` | `pnpm check:no-legacy-mod-permissions-field` | `package.json` | Enforces capabilities-only mod manifests and runtime registration surfaces. |
@@ -186,6 +186,9 @@
 | `D-SHELL-020` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate`, `desktop_test_gate` |
 | `D-SHELL-021` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate` |
 | `D-SHELL-022` | `covered` | `desktop_kernel_consistency`, `desktop_design_contract_gate`, `desktop_test_gate` |
+| `D-SHELL-023` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate`, `desktop_test_gate` |
+| `D-SHELL-024` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate`, `desktop_test_gate` |
+| `D-SHELL-025` | `covered` | `desktop_kernel_consistency`, `desktop_spec_docs_drift_gate`, `desktop_design_contract_gate`, `desktop_test_gate` |
 | `D-STATE-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-STATE-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

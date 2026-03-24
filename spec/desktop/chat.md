@@ -15,9 +15,14 @@
 
 ## Kernel References
 
-### UI Shell (D-SHELL-019, D-SHELL-022)
+### UI Shell (D-SHELL-019, D-SHELL-022, D-SHELL-023, D-SHELL-024, D-SHELL-025)
 
 `chat` 是 desktop baseline anchor 之一。root shell、list row、shared action 与 overlay family 的 baseline design 收敛由 `D-SHELL-019` 与 `D-SHELL-022` 定义。
+
+Chat 内部左侧栏属于 governed sidebar family：
+
+- `chat-list` 必须登记到 `renderer-design-sidebars.yaml`。
+- search + entity-row list 必须通过 shared sidebar primitive 表达。
 
 ### DataSync (D-DSYNC-003)
 

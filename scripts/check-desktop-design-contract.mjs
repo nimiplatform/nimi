@@ -6,13 +6,16 @@ import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 const repoRoot = process.cwd();
 const rendererRoot = path.join(repoRoot, 'apps/desktop/src/shell/renderer');
 const surfacesPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
+const sidebarsPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-sidebars.yaml');
 const overlaysPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 const allowlistsPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-allowlists.yaml');
 
 const surfacesDoc = readYamlWithFragments(surfacesPath) || {};
+const sidebarsDoc = readYamlWithFragments(sidebarsPath) || {};
 const overlaysDoc = readYamlWithFragments(overlaysPath) || {};
 const allowlistsDoc = readYamlWithFragments(allowlistsPath) || {};
 const surfaces = Array.isArray(surfacesDoc?.surfaces) ? surfacesDoc.surfaces : [];
+const sidebars = Array.isArray(sidebarsDoc?.sidebars) ? sidebarsDoc.sidebars : [];
 const overlays = Array.isArray(overlaysDoc?.overlays) ? overlaysDoc.overlays : [];
 const allowlists = Array.isArray(allowlistsDoc?.patterns) ? allowlistsDoc.patterns : [];
 
@@ -59,10 +62,31 @@ for (const item of overlays) {
   governedOverlayRules.set(filePath, current);
 }
 
+const governedSidebarRules = new Map();
+for (const item of sidebars) {
+  const moduleRel = String(item?.module || '').trim();
+  if (!moduleRel) {
+    continue;
+  }
+  const filePath = path.join(rendererRoot, moduleRel);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    continue;
+  }
+  governedSidebarRules.set(filePath, {
+    hasSearch: item?.has_search === true,
+    hasPrimaryAction: item?.has_primary_action === true,
+    hasSections: item?.has_sections === true,
+    hasResizeHandle: item?.has_resize_handle === true,
+    itemKinds: Array.isArray(item?.item_kinds) ? item.item_kinds.map((value) => String(value).trim()) : [],
+    testidRequired: item?.testid_required === true,
+  });
+}
+
 const sharedFiles = [
   'apps/desktop/src/shell/renderer/components/design-tokens.ts',
   'apps/desktop/src/shell/renderer/components/surface.tsx',
   'apps/desktop/src/shell/renderer/components/action.tsx',
+  'apps/desktop/src/shell/renderer/components/sidebar.tsx',
   'apps/desktop/src/shell/renderer/components/overlay.tsx',
   'apps/desktop/src/shell/renderer/components/tooltip.tsx',
 ].map((rel) => path.join(repoRoot, rel)).filter((filePath) => fs.existsSync(filePath));
@@ -124,6 +148,10 @@ function usesSharedOverlayPrimitive(content) {
   return /(?:components\/overlay\.js|\.\/overlay\.js)/u.test(content);
 }
 
+function usesSharedSidebarPrimitive(content) {
+  return /(?:components\/sidebar\.js|\.\/sidebar\.js)/u.test(content);
+}
+
 function hasStableTestabilityMarkup(content) {
   return /data-testid=/u.test(content) || /E2E_IDS\./u.test(content);
 }
@@ -174,6 +202,47 @@ for (const [filePath, rule] of governedOverlayRules.entries()) {
   }
   if (rule.testidRequired && !hasStableTestabilityMarkup(content)) {
     hardFailures.push(`${fileRel}: governed overlay is missing stable testability markup`);
+  }
+}
+
+for (const [filePath, rule] of governedSidebarRules.entries()) {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const fileRel = rel(filePath);
+  if (!usesSharedSidebarPrimitive(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar module must import components/sidebar.js`);
+  }
+  if (rule.testidRequired && !hasStableTestabilityMarkup(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar is missing stable testability markup`);
+  }
+  if (/#F8F9FB|bg-\[#F8F9FB\]/u.test(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar must not define a local raw sidebar background`);
+  }
+  if (/rounded-\[10px\]/u.test(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar must not define local rounded-[10px] sidebar rows`);
+  }
+  if (content.includes('style={{')) {
+    hardFailures.push(`${fileRel}: governed sidebar must not define inline style visual contract`);
+  }
+  if (rule.hasSearch !== /SidebarSearch/u.test(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar search slot must match renderer-design-sidebars.yaml`);
+  }
+  if (rule.hasPrimaryAction !== /primaryAction=/u.test(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar primaryAction slot must match renderer-design-sidebars.yaml`);
+  }
+  if (rule.hasSections !== /SidebarSection/u.test(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar sections usage must match renderer-design-sidebars.yaml`);
+  }
+  if (rule.hasResizeHandle !== /SidebarResizeHandle/u.test(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar resize handle usage must match renderer-design-sidebars.yaml`);
+  }
+  for (const itemKind of rule.itemKinds) {
+    const itemKindPattern = new RegExp(`["']${itemKind}["']`, 'u');
+    if (!itemKindPattern.test(content)) {
+      hardFailures.push(`${fileRel}: governed sidebar must declare SidebarItem kind "${itemKind}"`);
+    }
+  }
+  if (/\b(?:SidebarNav|RuntimeSidebar)\b/u.test(content)) {
+    hardFailures.push(`${fileRel}: governed sidebar must not depend on legacy local sidebar family helpers`);
   }
 }
 
