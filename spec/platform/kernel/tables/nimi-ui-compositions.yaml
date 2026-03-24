@@ -1,0 +1,73 @@
+version: 1
+components:
+  - id: overtone.ui.ot_button
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtButton
+    classification: thin_wrapper
+    shared_families:
+      - action
+    shared_targets:
+      - Button
+      - IconButton
+    source_rule: P-DESIGN-019
+  - id: overtone.ui.ot_input
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtInput
+    classification: thin_wrapper
+    shared_families:
+      - field
+    shared_targets:
+      - TextField
+    source_rule: P-DESIGN-019
+  - id: overtone.ui.ot_textarea
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtTextarea
+    classification: thin_wrapper
+    shared_families:
+      - field
+    shared_targets:
+      - TextareaField
+    source_rule: P-DESIGN-019
+  - id: overtone.ui.ot_accordion_section
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtAccordionSection
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: overtone.ui.ot_toggle
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtToggle
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: overtone.ui.ot_segmented_control
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtSegmentedControl
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: overtone.ui.ot_tag_input
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtTagInput
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019
+  - id: overtone.ui.ot_progress_bar
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    component: OtProgressBar
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019

@@ -19,6 +19,12 @@ const specs = [
   { input: 'app-authorization-presets.yaml', output: 'app-authorization-presets.md', render: renderAuthPresets },
   { input: 'participant-profiles.yaml', output: 'participant-profiles.md', render: renderProfiles },
   { input: 'error-code-mapping.yaml', output: 'error-code-mapping.md', render: renderErrorCodeMapping },
+  { input: 'nimi-ui-tokens.yaml', output: 'nimi-ui-tokens.md', render: renderDesignTokens },
+  { input: 'nimi-ui-primitives.yaml', output: 'nimi-ui-primitives.md', render: renderDesignPrimitives },
+  { input: 'nimi-ui-themes.yaml', output: 'nimi-ui-themes.md', render: renderDesignThemes },
+  { input: 'nimi-ui-adoption.yaml', output: 'nimi-ui-adoption.md', render: renderDesignAdoption },
+  { input: 'nimi-ui-compositions.yaml', output: 'nimi-ui-compositions.md', render: renderDesignCompositions },
+  { input: 'nimi-ui-allowlists.yaml', output: 'nimi-ui-allowlists.md', render: renderDesignAllowlists },
   { input: 'rule-evidence.yaml', output: 'rule-evidence.md', render: renderRuleEvidence },
 ];
 
@@ -242,6 +248,81 @@ function renderErrorCodeMapping(doc, sourceName) {
   out += '|---|---|---|---|---|---|\n';
   for (const item of mappings) {
     out += `| \`${String(item?.platform_error || '')}\` | \`${String(item?.platform_source || '') || '—'}\` | \`${String(item?.category || '') || '—'}\` | \`${String(item?.runtime_reason_code || '') || '—'}\` | \`${String(item?.runtime_source || '') || '—'}\` | ${String(item?.note || '') || '—'} |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDesignTokens(doc, sourceName) {
+  const tokens = Array.isArray(doc?.tokens) ? doc.tokens : [];
+  let out = header('Generated Nimi Design Tokens', sourceName);
+  out += '| Token ID | Category | Theme Layer | CSS Var | Primitive Family | Source |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const token of tokens) {
+    out += `| \`${String(token?.id || '')}\` | \`${String(token?.category || '')}\` | \`${String(token?.theme_layer || 'foundation')}\` | \`${String(token?.css_var || '')}\` | \`${String(token?.primitive_family || '')}\` | \`${String(token?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDesignPrimitives(doc, sourceName) {
+  const primitives = Array.isArray(doc?.primitives) ? doc.primitives : [];
+  let out = header('Generated Nimi Design Primitives', sourceName);
+  out += '| Primitive ID | Family | Component | Slots | Class Groups | Source |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const primitive of primitives) {
+    const slots = (Array.isArray(primitive?.slots) ? primitive.slots : []).map((slot) => `\`${String(slot?.id || '')}\``).join(', ');
+    const classGroups = Object.keys(primitive?.class_groups && typeof primitive.class_groups === 'object' ? primitive.class_groups : {}).map((group) => `\`${group}\``).join(', ');
+    out += `| \`${String(primitive?.id || '')}\` | \`${String(primitive?.family || '')}\` | \`${String(primitive?.component || '')}\` | ${slots} | ${classGroups} | \`${String(primitive?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDesignThemes(doc, sourceName) {
+  const themes = Array.isArray(doc?.packs) ? doc.packs : [];
+  let out = header('Generated Nimi Design Themes', sourceName);
+  out += '| Pack ID | Pack Kind | Token Count | Applies To | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of themes) {
+    const values = item?.values && typeof item.values === 'object' ? item.values : {};
+    out += `| \`${String(item?.theme_id || '')}\` | \`${String(item?.pack_kind || '')}\` | ${Object.keys(values).length} | ${(Array.isArray(item?.applies_to_apps) ? item.applies_to_apps : []).map((app) => `\`${String(app)}\``).join(', ')} | \`${String(item?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDesignAdoption(doc, sourceName) {
+  const modules = Array.isArray(doc?.modules) ? doc.modules : [];
+  let out = header('Generated Nimi Design Adoption Registry', sourceName);
+  out += '| Module ID | App | Default Scheme | Accent Pack | Supported Schemes | Families | Test ID Required | Exception Policy | Source |\n';
+  out += '|---|---|---|---|---|---|---|---|---|\n';
+  for (const item of modules) {
+    out += `| \`${String(item?.id || '')}\` | \`${String(item?.app || '')}\` | \`${String(item?.default_scheme || '')}\` | \`${String(item?.accent_pack || '')}\` | ${(Array.isArray(item?.scheme_support) ? item.scheme_support : []).map((scheme) => `\`${String(scheme)}\``).join(', ')} | ${(Array.isArray(item?.families) ? item.families : []).map((family) => `\`${String(family)}\``).join(', ')} | \`${String(Boolean(item?.testid_required))}\` | \`${String(item?.exception_policy || '')}\` | \`${String(item?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDesignCompositions(doc, sourceName) {
+  const components = Array.isArray(doc?.components) ? doc.components : [];
+  let out = header('Generated Nimi Design Composition Registry', sourceName);
+  out += '| Component ID | App | Module | Component | Classification | Shared Families | Shared Targets | Source |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
+  for (const item of components) {
+    out += `| \`${String(item?.id || '')}\` | \`${String(item?.app || '')}\` | \`${String(item?.module || '')}\` | \`${String(item?.component || '')}\` | \`${String(item?.classification || '')}\` | ${(Array.isArray(item?.shared_families) ? item.shared_families : []).map((family) => `\`${String(family)}\``).join(', ') || '—'} | ${(Array.isArray(item?.shared_targets) ? item.shared_targets : []).map((target) => `\`${String(target)}\``).join(', ') || '—'} | \`${String(item?.source_rule || '')}\` |\n`;
+  }
+  out += '\n';
+  return normalizeMarkdown(out);
+}
+
+function renderDesignAllowlists(doc, sourceName) {
+  const items = Array.isArray(doc?.items) ? doc.items : [];
+  let out = header('Generated Nimi Design Allowlists', sourceName);
+  out += '| ID | Pattern Type | Pattern | Scope | Source |\n';
+  out += '|---|---|---|---|---|\n';
+  for (const item of items) {
+    out += `| \`${String(item?.id || '')}\` | \`${String(item?.pattern_type || '')}\` | \`${String(item?.pattern || '')}\` | \`${String(item?.scope || '')}\` | \`${String(item?.source_rule || '')}\` |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

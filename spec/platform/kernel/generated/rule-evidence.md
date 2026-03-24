@@ -5,6 +5,8 @@
 | Evidence Ref | Type | Evidence Type | Command | Path | Description |
 |---|---|---|---|---|---|
 | `platform_kernel_consistency` | `static_gate` | `structural` | `pnpm check:platform-spec-kernel-consistency` | `scripts/check-platform-spec-kernel-consistency.mjs` | Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain. |
+| `nimi_ui_pattern` | `static_gate` | `structural` | `pnpm check:nimi-ui-pattern` | `scripts/check-nimi-ui-pattern.mjs` | Cross-app Nimi design pattern gate for shared lib imports, theme pack entrypoints, governed module adoption, and raw style hardcuts. |
+| `nimi_ui_lib_drift` | `generated_projection` | `structural` | `pnpm check:nimi-ui-lib-drift` | `scripts/generate-nimi-ui-lib.mjs` | Generated Nimi design shared-lib projection drift check for tokens and theme packs. |
 
 ## Rule Coverage Matrix
 
@@ -18,6 +20,27 @@
 | `P-ALMI-011` | `covered` | `platform_kernel_consistency` | structural only; behavioral state-machine validation requires runtime integration test |
 | `P-ALMI-020` | `covered` | `platform_kernel_consistency` | structural only; end-to-end replay and auditability still require behavioral integration tests |
 | `P-ALMI-030` | `covered` | `platform_kernel_consistency` | structural only; latency/throughput red-line validation requires load test |
+| `P-DESIGN-001` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
+| `P-DESIGN-002` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-003` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-004` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-005` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-006` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
+| `P-DESIGN-007` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
+| `P-DESIGN-008` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-010` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-011` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-012` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-013` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-014` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-015` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-016` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-017` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-018` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
+| `P-DESIGN-019` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
+| `P-DESIGN-020` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
+| `P-DESIGN-021` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
+| `P-DESIGN-090` | `covered` | `platform_kernel_consistency`, `nimi_ui_pattern` | — |
 | `P-ARCH-001` | `covered` | `platform_kernel_consistency` | structural only; multi-participant orchestration behavior still requires integration coverage |
 | `P-ARCH-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-ARCH-003` | `covered` | `platform_kernel_consistency` | — |

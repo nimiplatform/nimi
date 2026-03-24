@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "2.0.35",
+    "@nimiplatform/nimi-ui": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@nimiplatform/shell-auth": "workspace:*",
     "@nimiplatform/shell-core": "workspace:*",

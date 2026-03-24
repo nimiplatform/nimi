@@ -1,5 +1,11 @@
 # Overtone — Design System & UI Specification
 
+> Non-normative art direction only. Shared design authority lives in
+> `spec/platform/kernel/design-pattern-contract.md` under `P-DESIGN-*`,
+> especially `P-DESIGN-001`, `P-DESIGN-002`, `P-DESIGN-003`,
+> `P-DESIGN-010` to `P-DESIGN-015`, `P-DESIGN-019`, `P-DESIGN-020`, `P-DESIGN-021`,
+> and `P-DESIGN-090`.
+
 > Index for the Overtone visual identity, component specs, layout architecture,
 > and interaction patterns.
 

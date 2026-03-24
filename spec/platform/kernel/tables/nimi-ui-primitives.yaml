@@ -1,0 +1,617 @@
+version: 2
+primitives:
+  - id: primitive.surface
+    family: surface
+    component: Surface
+    slots:
+      - id: root
+        class_name: nimi-surface
+        styles:
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: transparent
+          border-radius: var(--nimi-radius-lg)
+          transition: background-color var(--nimi-motion-fast) ease, border-color var(--nimi-motion-fast) ease, box-shadow var(--nimi-motion-fast) ease, transform var(--nimi-motion-fast) ease
+    class_groups:
+      tone:
+        - id: canvas
+          class_name: nimi-surface--canvas
+          styles:
+            background: var(--nimi-surface-canvas)
+            color: var(--nimi-text-primary)
+        - id: panel
+          class_name: nimi-surface--panel
+          styles:
+            background: var(--nimi-surface-panel)
+            border-color: var(--nimi-border-subtle)
+            color: var(--nimi-text-primary)
+        - id: card
+          class_name: nimi-surface--card
+          styles:
+            background: var(--nimi-surface-card)
+            border-color: var(--nimi-border-subtle)
+            color: var(--nimi-text-primary)
+        - id: hero
+          class_name: nimi-surface--hero
+          styles:
+            background: var(--nimi-surface-hero)
+            border-color: var(--nimi-border-strong)
+            color: var(--nimi-text-primary)
+        - id: overlay
+          class_name: nimi-surface--overlay
+          styles:
+            background: var(--nimi-surface-overlay)
+            border-color: var(--nimi-border-subtle)
+            color: var(--nimi-text-primary)
+      elevation:
+        - id: base
+          class_name: nimi-surface--elevation-base
+          styles:
+            box-shadow: var(--nimi-elevation-base)
+        - id: raised
+          class_name: nimi-surface--elevation-raised
+          styles:
+            box-shadow: var(--nimi-elevation-raised)
+        - id: floating
+          class_name: nimi-surface--elevation-floating
+          styles:
+            box-shadow: var(--nimi-elevation-floating)
+        - id: modal
+          class_name: nimi-surface--elevation-modal
+          styles:
+            box-shadow: var(--nimi-elevation-modal)
+      state:
+        - id: interactive
+          class_name: nimi-surface--interactive
+          selector: .nimi-surface--interactive:hover
+          styles:
+            border-color: var(--nimi-border-strong)
+            box-shadow: var(--nimi-elevation-raised)
+            transform: translateY(-1px)
+        - id: active
+          class_name: nimi-surface--active
+          styles:
+            background: var(--nimi-surface-active)
+            border-color: var(--nimi-border-strong)
+    source_rule: P-DESIGN-011
+  - id: primitive.action
+    family: action
+    component: Button
+    slots:
+      - id: root
+        class_name: nimi-action
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+          gap: var(--nimi-space-4)
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: transparent
+          border-radius: var(--nimi-radius-action)
+          font-size: var(--nimi-type-body-size)
+          line-height: var(--nimi-type-body-line-height)
+          font-weight: var(--nimi-type-label-weight)
+          letter-spacing: var(--nimi-type-label-letter-spacing)
+          transition: background-color var(--nimi-motion-fast) ease, border-color var(--nimi-motion-fast) ease, color var(--nimi-motion-fast) ease, box-shadow var(--nimi-motion-fast) ease, transform var(--nimi-motion-fast) ease
+        allow_extra_classes: true
+      - id: leadingIcon
+        class_name: nimi-action__leading
+        styles:
+          display: inline-flex
+          flex-shrink: "0"
+          align-items: center
+          justify-content: center
+      - id: trailingIcon
+        class_name: nimi-action__trailing
+        styles:
+          display: inline-flex
+          flex-shrink: "0"
+          align-items: center
+          justify-content: center
+      - id: icon
+        class_name: nimi-action__icon
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+    class_groups:
+      tone:
+        - id: primary
+          class_name: nimi-action--primary
+          styles:
+            background: var(--nimi-action-primary-bg)
+            border-color: var(--nimi-action-primary-bg)
+            color: var(--nimi-action-primary-text)
+        - id: secondary
+          class_name: nimi-action--secondary
+          styles:
+            background: var(--nimi-action-secondary-bg)
+            border-color: var(--nimi-action-secondary-border)
+            color: var(--nimi-action-secondary-text)
+        - id: ghost
+          class_name: nimi-action--ghost
+          styles:
+            background: transparent
+            border-color: transparent
+            color: var(--nimi-text-secondary)
+      size:
+        - id: sm
+          class_name: nimi-action--size-sm
+          styles:
+            min-height: var(--nimi-sizing-action-sm-height)
+            padding-inline: var(--nimi-space-4)
+            font-size: var(--nimi-type-body-sm-size)
+            line-height: var(--nimi-type-body-sm-line-height)
+        - id: md
+          class_name: nimi-action--size-md
+          styles:
+            min-height: var(--nimi-sizing-action-md-height)
+            padding-inline: var(--nimi-space-5)
+        - id: lg
+          class_name: nimi-action--size-lg
+          styles:
+            min-height: var(--nimi-sizing-action-lg-height)
+            padding-inline: var(--nimi-space-6)
+      modifier:
+        - id: icon
+          class_name: nimi-action--icon
+          styles:
+            aspect-ratio: 1 / 1
+            padding-inline: "0"
+      state:
+        - id: hover_primary
+          selector: .nimi-action--primary:hover:not(:disabled)
+          styles:
+            background: var(--nimi-action-primary-bg-hover)
+            border-color: var(--nimi-action-primary-bg-hover)
+            transform: translateY(-1px)
+        - id: hover_secondary
+          selector: .nimi-action--secondary:hover:not(:disabled)
+          styles:
+            border-color: var(--nimi-border-strong)
+            box-shadow: var(--nimi-elevation-base)
+            transform: translateY(-1px)
+        - id: hover_ghost
+          selector: .nimi-action--ghost:hover:not(:disabled)
+          styles:
+            background: var(--nimi-action-ghost-hover)
+            color: var(--nimi-text-primary)
+            transform: translateY(-1px)
+        - id: disabled
+          selector: .nimi-action:disabled
+          styles:
+            cursor: not-allowed
+            opacity: var(--nimi-opacity-disabled)
+            box-shadow: none
+            transform: none
+      compound:
+        - id: icon_sm
+          selector: .nimi-action--icon.nimi-action--size-sm
+          styles:
+            width: var(--nimi-sizing-action-sm-height)
+        - id: icon_md
+          selector: .nimi-action--icon.nimi-action--size-md
+          styles:
+            width: var(--nimi-sizing-action-md-height)
+        - id: icon_lg
+          selector: .nimi-action--icon.nimi-action--size-lg
+          styles:
+            width: var(--nimi-sizing-action-lg-height)
+    source_rule: P-DESIGN-012
+  - id: primitive.icon_action
+    family: action
+    component: IconButton
+    slots: []
+    class_groups: {}
+    source_rule: P-DESIGN-012
+  - id: primitive.overlay
+    family: overlay
+    component: OverlayShell
+    slots:
+      - id: backdrop
+        class_name: nimi-overlay-backdrop
+        styles:
+          position: fixed
+          inset: "0"
+          display: flex
+          padding: var(--nimi-space-5)
+      - id: panel
+        class_name: nimi-overlay-panel
+        styles:
+          width: "100%"
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: var(--nimi-border-subtle)
+          border-radius: var(--nimi-radius-xl)
+          background: var(--nimi-surface-overlay)
+          box-shadow: var(--nimi-elevation-modal)
+      - id: title
+        class_name: nimi-overlay-title
+        styles:
+          padding: var(--nimi-space-5)
+          border-bottom: var(--nimi-border-width-default) solid var(--nimi-border-subtle)
+      - id: content
+        class_name: nimi-overlay-content
+        styles:
+          padding: var(--nimi-space-5)
+      - id: footer
+        class_name: nimi-overlay-footer
+        styles:
+          padding: var(--nimi-space-5)
+          border-top: var(--nimi-border-width-default) solid var(--nimi-border-subtle)
+      - id: tooltipLayer
+        class_name: nimi-tooltip-layer
+        styles:
+          position: fixed
+          transform: translateX(-50%)
+          transition: opacity var(--nimi-motion-fast) ease, transform var(--nimi-motion-fast) ease
+          z-index: var(--nimi-z-tooltip)
+      - id: tooltipBubble
+        class_name: nimi-tooltip-bubble
+        styles:
+          max-width: min(22rem, calc(100vw - 2rem))
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: var(--nimi-border-subtle)
+          border-radius: var(--nimi-radius-sm)
+          background: var(--nimi-surface-overlay)
+          box-shadow: var(--nimi-elevation-floating)
+          color: var(--nimi-text-primary)
+          padding: var(--nimi-space-3) var(--nimi-space-4)
+          font-size: var(--nimi-type-caption-size)
+          line-height: var(--nimi-type-caption-line-height)
+    class_groups:
+      kind_backdrop:
+        - id: dialog
+          class_name: nimi-overlay-backdrop--dialog
+          styles:
+            z-index: var(--nimi-z-dialog)
+            align-items: center
+            justify-content: center
+            background: color-mix(in srgb, var(--nimi-text-primary) var(--nimi-opacity-backdrop), transparent)
+            backdrop-filter: blur(12px)
+        - id: drawer
+          class_name: nimi-overlay-backdrop--drawer
+          styles:
+            z-index: var(--nimi-z-dialog)
+            align-items: stretch
+            justify-content: flex-end
+            background: color-mix(in srgb, var(--nimi-text-primary) var(--nimi-opacity-backdrop), transparent)
+            backdrop-filter: blur(12px)
+        - id: popover
+          class_name: nimi-overlay-backdrop--popover
+          styles:
+            z-index: var(--nimi-z-popover)
+            align-items: center
+            justify-content: center
+            background: transparent
+      kind_panel:
+        - id: dialog
+          class_name: nimi-overlay-panel--dialog
+          styles:
+            max-width: 32rem
+        - id: drawer
+          class_name: nimi-overlay-panel--drawer
+          styles:
+            max-width: 28rem
+            height: "100%"
+            border-radius: var(--nimi-radius-xl) 0 0 var(--nimi-radius-xl)
+        - id: popover
+          class_name: nimi-overlay-panel--popover
+          styles:
+            max-width: 22rem
+            box-shadow: var(--nimi-elevation-floating)
+    source_rule: P-DESIGN-013
+  - id: primitive.sidebar
+    family: sidebar
+    component: SidebarShell
+    slots:
+      - id: container
+        class_name: nimi-sidebar-shell
+        styles:
+          background: var(--nimi-sidebar-canvas)
+          border-color: var(--nimi-sidebar-border)
+          color: var(--nimi-text-primary)
+      - id: header
+        class_name: nimi-sidebar-header
+        styles:
+          min-height: var(--nimi-sidebar-header-height)
+          padding-inline: var(--nimi-space-5)
+      - id: searchRow
+        class_name: nimi-sidebar-search-row
+        styles:
+          padding: 0 var(--nimi-space-4) var(--nimi-space-4)
+      - id: search
+        class_name: nimi-sidebar-search
+        styles:
+          display: flex
+          min-height: var(--nimi-sizing-field-md-height)
+          align-items: center
+          gap: var(--nimi-space-3)
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: var(--nimi-border-subtle)
+          border-radius: var(--nimi-radius-full)
+          background: var(--nimi-sidebar-search)
+          color: var(--nimi-text-secondary)
+        allow_extra_classes: true
+      - id: searchField
+        class_name: nimi-sidebar-search__field
+        styles:
+          min-width: "0"
+          flex: 1 1 auto
+          border: "0"
+          background: transparent
+          color: inherit
+          outline: none
+      - id: section
+        class_name: nimi-sidebar-section
+        styles:
+          display: flex
+          flex-direction: column
+          gap: var(--nimi-space-1)
+          padding: 0 var(--nimi-space-4) var(--nimi-space-4)
+      - id: sectionLabel
+        class_name: nimi-sidebar-section-label
+        styles:
+          padding: 0 var(--nimi-space-4) var(--nimi-space-3)
+          color: var(--nimi-sidebar-section-label)
+          font-size: var(--nimi-type-sidebar-label-size)
+          line-height: var(--nimi-type-sidebar-label-line-height)
+          font-weight: var(--nimi-type-sidebar-label-weight)
+          letter-spacing: var(--nimi-type-sidebar-label-letter-spacing)
+          text-transform: uppercase
+      - id: item
+        class_name: nimi-sidebar-item
+        styles:
+          display: flex
+          width: "100%"
+          min-height: var(--nimi-sizing-sidebar-item-height)
+          align-items: center
+          gap: var(--nimi-space-4)
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: transparent
+          border-radius: var(--nimi-radius-sidebar-item)
+          background: transparent
+          padding: var(--nimi-space-3) var(--nimi-space-4)
+          color: var(--nimi-sidebar-item-default)
+          text-align: left
+          transition: background-color var(--nimi-motion-fast) ease, border-color var(--nimi-motion-fast) ease, color var(--nimi-motion-fast) ease
+      - id: itemTitle
+        class_name: nimi-sidebar-item__title
+        styles:
+          display: block
+          font-size: var(--nimi-type-label-size)
+          line-height: var(--nimi-type-label-line-height)
+          font-weight: var(--nimi-type-label-weight)
+      - id: itemDescription
+        class_name: nimi-sidebar-item__description
+        styles:
+          display: block
+          margin-top: var(--nimi-space-1)
+          color: var(--nimi-text-muted)
+          font-size: var(--nimi-type-caption-size)
+          line-height: var(--nimi-type-caption-line-height)
+      - id: affordance
+        class_name: nimi-sidebar-affordance
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+          gap: var(--nimi-space-1)
+      - id: resizeHandle
+        class_name: nimi-sidebar-resize-handle
+        styles:
+          background: transparent
+      - id: resizeHandleBefore
+        selector: .nimi-sidebar-resize-handle::before
+        styles:
+          content: '""'
+          position: absolute
+          top: 50%
+          right: 50%
+          width: 2px
+          height: 48px
+          transform: translate(50%, -50%)
+          border-radius: var(--nimi-scrollbar-radius)
+          background: var(--nimi-sidebar-resize-handle)
+          transition: background-color var(--nimi-motion-fast) ease
+    class_groups:
+      family:
+        - id: nimi-sidebar-v1
+          class_name: nimi-sidebar-shell
+          styles: {}
+      item_kind:
+        - id: entity-row
+          class_name: nimi-sidebar-item--entity-row
+          styles: {}
+        - id: category-row
+          class_name: nimi-sidebar-item--category-row
+          styles: {}
+        - id: nav-row
+          class_name: nimi-sidebar-item--nav-row
+          styles: {}
+      item_state:
+        - id: hover
+          selector: .nimi-sidebar-item:hover
+          styles:
+            background: var(--nimi-sidebar-item-hover)
+        - id: active
+          class_name: nimi-sidebar-item--active
+          styles:
+            background: var(--nimi-sidebar-item-active)
+            border-color: var(--nimi-border-strong)
+            color: var(--nimi-text-primary)
+      affordance:
+        - id: badge
+          class_name: nimi-sidebar-affordance--badge
+          styles:
+            border-radius: var(--nimi-radius-full)
+            padding: var(--nimi-space-1) var(--nimi-space-3)
+            background: color-mix(in srgb, var(--nimi-text-muted) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-text-secondary)
+            font-size: var(--nimi-type-caption-size)
+            line-height: 1
+            font-weight: var(--nimi-type-label-weight)
+        - id: count
+          class_name: nimi-sidebar-affordance--count
+          styles:
+            border-radius: var(--nimi-radius-full)
+            padding: var(--nimi-space-1) var(--nimi-space-3)
+            background: color-mix(in srgb, var(--nimi-text-muted) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-text-secondary)
+            font-size: var(--nimi-type-caption-size)
+            line-height: 1
+            font-weight: var(--nimi-type-label-weight)
+        - id: status-dot
+          class_name: nimi-sidebar-affordance--status-dot
+          styles: {}
+        - id: chevron
+          class_name: nimi-sidebar-affordance--chevron
+          styles:
+            color: var(--nimi-text-muted)
+      compound:
+        - id: active_description
+          selector: .nimi-sidebar-item--active .nimi-sidebar-item__description
+          styles:
+            color: var(--nimi-text-secondary)
+        - id: status_dot_inner
+          selector: .nimi-sidebar-affordance--status-dot > span
+          styles:
+            display: inline-flex
+            width: var(--nimi-sizing-icon-sm)
+            height: var(--nimi-sizing-icon-sm)
+            border-radius: var(--nimi-radius-full)
+            background: currentColor
+        - id: resize_handle_hover
+          selector: .nimi-sidebar-resize-handle:hover::before
+          styles:
+            background: var(--nimi-border-strong)
+        - id: search_placeholder
+          selector: .nimi-sidebar-search__field::placeholder
+          styles:
+            color: var(--nimi-field-placeholder)
+    source_rule: P-DESIGN-014
+  - id: primitive.field
+    family: field
+    component: TextField
+    slots:
+      - id: root
+        class_name: nimi-field
+        styles:
+          display: flex
+          min-height: var(--nimi-sizing-field-md-height)
+          align-items: center
+          gap: var(--nimi-space-4)
+          border-style: solid
+          border-width: var(--nimi-border-width-default)
+          border-color: var(--nimi-field-border)
+          border-radius: var(--nimi-radius-field)
+          background: var(--nimi-field-bg)
+          color: var(--nimi-field-text)
+          padding-inline: var(--nimi-space-4)
+          transition: border-color var(--nimi-motion-fast) ease, box-shadow var(--nimi-motion-fast) ease, background-color var(--nimi-motion-fast) ease
+      - id: input
+        class_name: nimi-field__input
+        styles:
+          width: "100%"
+          border: "0"
+          outline: none
+          background: transparent
+          color: inherit
+      - id: textarea
+        class_name: nimi-field__textarea
+        styles:
+          width: "100%"
+          min-height: var(--nimi-sizing-textarea-min-height)
+          border: "0"
+          outline: none
+          background: transparent
+          color: inherit
+          resize: vertical
+    class_groups:
+      tone:
+        - id: default
+          class_name: nimi-field--default
+          styles: {}
+        - id: search
+          class_name: nimi-field--search
+          styles:
+            border-radius: var(--nimi-radius-full)
+        - id: quiet
+          class_name: nimi-field--quiet
+          styles:
+            background: transparent
+            border-color: transparent
+      modifier:
+        - id: textarea
+          class_name: nimi-field--textarea
+          styles:
+            padding-top: var(--nimi-space-4)
+            padding-bottom: var(--nimi-space-4)
+      state:
+        - id: focus
+          selector: .nimi-field:focus-within
+          styles:
+            border-color: var(--nimi-field-focus)
+            box-shadow: 0 0 0 var(--nimi-focus-ring-width) var(--nimi-focus-ring-color)
+        - id: placeholder_input
+          selector: .nimi-field__input::placeholder
+          styles:
+            color: var(--nimi-field-placeholder)
+        - id: placeholder_textarea
+          selector: .nimi-field__textarea::placeholder
+          styles:
+            color: var(--nimi-field-placeholder)
+    source_rule: P-DESIGN-015
+  - id: primitive.textarea
+    family: field
+    component: TextareaField
+    slots: []
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.status
+    family: status
+    component: StatusBadge
+    slots:
+      - id: root
+        class_name: nimi-status-badge
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+          border-radius: var(--nimi-radius-full)
+          padding: var(--nimi-space-1) var(--nimi-space-3)
+          font-size: var(--nimi-type-caption-size)
+          line-height: 1
+          font-weight: var(--nimi-type-label-weight)
+    class_groups:
+      tone:
+        - id: neutral
+          class_name: nimi-status--neutral
+          styles:
+            background: color-mix(in srgb, var(--nimi-status-neutral) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-status-neutral)
+        - id: success
+          class_name: nimi-status--success
+          styles:
+            background: color-mix(in srgb, var(--nimi-status-success) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-status-success)
+        - id: warning
+          class_name: nimi-status--warning
+          styles:
+            background: color-mix(in srgb, var(--nimi-status-warning) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-status-warning)
+        - id: danger
+          class_name: nimi-status--danger
+          styles:
+            background: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-status-danger)
+        - id: info
+          class_name: nimi-status--info
+          styles:
+            background: color-mix(in srgb, var(--nimi-status-info) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-status-info)
+    source_rule: P-DESIGN-010

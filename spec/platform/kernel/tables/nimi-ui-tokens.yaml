@@ -1,0 +1,1090 @@
+version: 2
+tokens:
+  - id: surface.app_background
+    category: surface
+    semantic_name: App background
+    css_var: --nimi-app-background
+    ts_token: appBackground
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: surface.canvas
+    category: surface
+    semantic_name: Surface canvas
+    css_var: --nimi-surface-canvas
+    ts_token: canvas
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: surface.panel
+    category: surface
+    semantic_name: Surface panel
+    css_var: --nimi-surface-panel
+    ts_token: panel
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: surface.card
+    category: surface
+    semantic_name: Surface card
+    css_var: --nimi-surface-card
+    ts_token: card
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: surface.hero
+    category: surface
+    semantic_name: Surface hero
+    css_var: --nimi-surface-hero
+    ts_token: hero
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: surface.overlay
+    category: surface
+    semantic_name: Surface overlay
+    css_var: --nimi-surface-overlay
+    ts_token: overlay
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: surface.active
+    category: surface
+    semantic_name: Surface active
+    css_var: --nimi-surface-active
+    ts_token: active
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: text.primary
+    category: text
+    semantic_name: Text primary
+    css_var: --nimi-text-primary
+    ts_token: primary
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: text.secondary
+    category: text
+    semantic_name: Text secondary
+    css_var: --nimi-text-secondary
+    ts_token: secondary
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: text.muted
+    category: text
+    semantic_name: Text muted
+    css_var: --nimi-text-muted
+    ts_token: muted
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: text.inverse
+    category: text
+    semantic_name: Text inverse
+    css_var: --nimi-text-inverse
+    ts_token: inverse
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: action.primary_bg
+    category: action
+    semantic_name: Action primary background
+    css_var: --nimi-action-primary-bg
+    ts_token: primaryBg
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: action.primary_bg_hover
+    category: action
+    semantic_name: Action primary background hover
+    css_var: --nimi-action-primary-bg-hover
+    ts_token: primaryBgHover
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: action.primary_text
+    category: action
+    semantic_name: Action primary text
+    css_var: --nimi-action-primary-text
+    ts_token: primaryText
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: action.secondary_bg
+    category: action
+    semantic_name: Action secondary background
+    css_var: --nimi-action-secondary-bg
+    ts_token: secondaryBg
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: action.secondary_border
+    category: action
+    semantic_name: Action secondary border
+    css_var: --nimi-action-secondary-border
+    ts_token: secondaryBorder
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: action.secondary_text
+    category: action
+    semantic_name: Action secondary text
+    css_var: --nimi-action-secondary-text
+    ts_token: secondaryText
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: action.ghost_hover
+    category: action
+    semantic_name: Action ghost hover
+    css_var: --nimi-action-ghost-hover
+    ts_token: ghostHover
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: overlay.backdrop
+    category: overlay
+    semantic_name: Overlay backdrop
+    css_var: --nimi-overlay-backdrop
+    ts_token: backdrop
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sidebar.canvas
+    category: sidebar
+    semantic_name: Sidebar canvas
+    css_var: --nimi-sidebar-canvas
+    ts_token: canvas
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sidebar.border
+    category: sidebar
+    semantic_name: Sidebar border
+    css_var: --nimi-sidebar-border
+    ts_token: border
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sidebar.header_height
+    category: sidebar
+    semantic_name: Sidebar header height
+    css_var: --nimi-sidebar-header-height
+    ts_token: headerHeight
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sidebar.item_default
+    category: sidebar
+    semantic_name: Sidebar item default
+    css_var: --nimi-sidebar-item-default
+    ts_token: itemDefault
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sidebar.item_active
+    category: sidebar
+    semantic_name: Sidebar item active
+    css_var: --nimi-sidebar-item-active
+    ts_token: itemActive
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: sidebar.item_hover
+    category: sidebar
+    semantic_name: Sidebar item hover
+    css_var: --nimi-sidebar-item-hover
+    ts_token: itemHover
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: sidebar.section_label
+    category: sidebar
+    semantic_name: Sidebar section label color
+    css_var: --nimi-sidebar-section-label
+    ts_token: sectionLabel
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sidebar.search
+    category: sidebar
+    semantic_name: Sidebar search background
+    css_var: --nimi-sidebar-search
+    ts_token: search
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sidebar.resize_handle
+    category: sidebar
+    semantic_name: Sidebar resize handle
+    css_var: --nimi-sidebar-resize-handle
+    ts_token: resizeHandle
+    primitive_family: sidebar
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: field.bg
+    category: field
+    semantic_name: Field background
+    css_var: --nimi-field-bg
+    ts_token: bg
+    primitive_family: field
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: field.border
+    category: field
+    semantic_name: Field border
+    css_var: --nimi-field-border
+    ts_token: border
+    primitive_family: field
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: field.text
+    category: field
+    semantic_name: Field text
+    css_var: --nimi-field-text
+    ts_token: text
+    primitive_family: field
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: field.placeholder
+    category: field
+    semantic_name: Field placeholder
+    css_var: --nimi-field-placeholder
+    ts_token: placeholder
+    primitive_family: field
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: field.focus
+    category: field
+    semantic_name: Field focus border
+    css_var: --nimi-field-focus
+    ts_token: focus
+    primitive_family: field
+    source_rule: P-DESIGN-003
+    theme_layer: accent
+  - id: status.neutral
+    category: status
+    semantic_name: Status neutral
+    css_var: --nimi-status-neutral
+    ts_token: neutral
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.success
+    category: status
+    semantic_name: Status success
+    css_var: --nimi-status-success
+    ts_token: success
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.warning
+    category: status
+    semantic_name: Status warning
+    css_var: --nimi-status-warning
+    ts_token: warning
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.danger
+    category: status
+    semantic_name: Status danger
+    css_var: --nimi-status-danger
+    ts_token: danger
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: status.info
+    category: status
+    semantic_name: Status info
+    css_var: --nimi-status-info
+    ts_token: info
+    primitive_family: status
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: radius.sm
+    category: radius
+    semantic_name: Radius small
+    css_var: --nimi-radius-sm
+    ts_token: sm
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: radius.md
+    category: radius
+    semantic_name: Radius medium
+    css_var: --nimi-radius-md
+    ts_token: md
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: radius.lg
+    category: radius
+    semantic_name: Radius large
+    css_var: --nimi-radius-lg
+    ts_token: lg
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: radius.xl
+    category: radius
+    semantic_name: Radius extra large
+    css_var: --nimi-radius-xl
+    ts_token: xl
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: radius.full
+    category: radius
+    semantic_name: Radius full
+    css_var: --nimi-radius-full
+    ts_token: full
+    primitive_family: action
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: radius.action
+    category: radius
+    semantic_name: Radius action
+    css_var: --nimi-radius-action
+    ts_token: action
+    primitive_family: action
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: radius.field
+    category: radius
+    semantic_name: Radius field
+    css_var: --nimi-radius-field
+    ts_token: field
+    primitive_family: field
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: radius.sidebar_item
+    category: radius
+    semantic_name: Radius sidebar item
+    css_var: --nimi-radius-sidebar-item
+    ts_token: sidebarItem
+    primitive_family: sidebar
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.0
+    category: spacing
+    semantic_name: Spacing 0
+    css_var: --nimi-space-0
+    ts_token: "0"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.1
+    category: spacing
+    semantic_name: Spacing 1
+    css_var: --nimi-space-1
+    ts_token: "1"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.2
+    category: spacing
+    semantic_name: Spacing 2
+    css_var: --nimi-space-2
+    ts_token: "2"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.3
+    category: spacing
+    semantic_name: Spacing 3
+    css_var: --nimi-space-3
+    ts_token: "3"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.4
+    category: spacing
+    semantic_name: Spacing 4
+    css_var: --nimi-space-4
+    ts_token: "4"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.5
+    category: spacing
+    semantic_name: Spacing 5
+    css_var: --nimi-space-5
+    ts_token: "5"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.6
+    category: spacing
+    semantic_name: Spacing 6
+    css_var: --nimi-space-6
+    ts_token: "6"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.7
+    category: spacing
+    semantic_name: Spacing 7
+    css_var: --nimi-space-7
+    ts_token: "7"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.8
+    category: spacing
+    semantic_name: Spacing 8
+    css_var: --nimi-space-8
+    ts_token: "8"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.9
+    category: spacing
+    semantic_name: Spacing 9
+    css_var: --nimi-space-9
+    ts_token: "9"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.10
+    category: spacing
+    semantic_name: Spacing 10
+    css_var: --nimi-space-10
+    ts_token: "10"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.12
+    category: spacing
+    semantic_name: Spacing 12
+    css_var: --nimi-space-12
+    ts_token: "12"
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.section
+    category: spacing
+    semantic_name: Section spacing
+    css_var: --nimi-space-section
+    ts_token: section
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: spacing.stack
+    category: spacing
+    semantic_name: Stack spacing
+    css_var: --nimi-space-stack
+    ts_token: stack
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: typography.font_sans
+    category: typography
+    semantic_name: Font sans family
+    css_var: --nimi-font-sans
+    ts_token: fontSans
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.font_mono
+    category: typography
+    semantic_name: Font mono family
+    css_var: --nimi-font-mono
+    ts_token: fontMono
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.page_title.size
+    category: typography
+    semantic_name: Page title size
+    css_var: --nimi-type-page-title-size
+    ts_token: pageTitleSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.page_title.line_height
+    category: typography
+    semantic_name: Page title line height
+    css_var: --nimi-type-page-title-line-height
+    ts_token: pageTitleLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.page_title.weight
+    category: typography
+    semantic_name: Page title weight
+    css_var: --nimi-type-page-title-weight
+    ts_token: pageTitleWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.page_title.letter_spacing
+    category: typography
+    semantic_name: Page title letter spacing
+    css_var: --nimi-type-page-title-letter-spacing
+    ts_token: pageTitleLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.section_title.size
+    category: typography
+    semantic_name: Section title size
+    css_var: --nimi-type-section-title-size
+    ts_token: sectionTitleSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.section_title.line_height
+    category: typography
+    semantic_name: Section title line height
+    css_var: --nimi-type-section-title-line-height
+    ts_token: sectionTitleLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.section_title.weight
+    category: typography
+    semantic_name: Section title weight
+    css_var: --nimi-type-section-title-weight
+    ts_token: sectionTitleWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.section_title.letter_spacing
+    category: typography
+    semantic_name: Section title letter spacing
+    css_var: --nimi-type-section-title-letter-spacing
+    ts_token: sectionTitleLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body.size
+    category: typography
+    semantic_name: Body size
+    css_var: --nimi-type-body-size
+    ts_token: bodySize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body.line_height
+    category: typography
+    semantic_name: Body line height
+    css_var: --nimi-type-body-line-height
+    ts_token: bodyLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body.weight
+    category: typography
+    semantic_name: Body weight
+    css_var: --nimi-type-body-weight
+    ts_token: bodyWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body.letter_spacing
+    category: typography
+    semantic_name: Body letter spacing
+    css_var: --nimi-type-body-letter-spacing
+    ts_token: bodyLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body_sm.size
+    category: typography
+    semantic_name: Body small size
+    css_var: --nimi-type-body-sm-size
+    ts_token: bodySmSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body_sm.line_height
+    category: typography
+    semantic_name: Body small line height
+    css_var: --nimi-type-body-sm-line-height
+    ts_token: bodySmLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body_sm.weight
+    category: typography
+    semantic_name: Body small weight
+    css_var: --nimi-type-body-sm-weight
+    ts_token: bodySmWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.body_sm.letter_spacing
+    category: typography
+    semantic_name: Body small letter spacing
+    css_var: --nimi-type-body-sm-letter-spacing
+    ts_token: bodySmLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.caption.size
+    category: typography
+    semantic_name: Caption size
+    css_var: --nimi-type-caption-size
+    ts_token: captionSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.caption.line_height
+    category: typography
+    semantic_name: Caption line height
+    css_var: --nimi-type-caption-line-height
+    ts_token: captionLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.caption.weight
+    category: typography
+    semantic_name: Caption weight
+    css_var: --nimi-type-caption-weight
+    ts_token: captionWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.caption.letter_spacing
+    category: typography
+    semantic_name: Caption letter spacing
+    css_var: --nimi-type-caption-letter-spacing
+    ts_token: captionLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.label.size
+    category: typography
+    semantic_name: Label size
+    css_var: --nimi-type-label-size
+    ts_token: labelSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.label.line_height
+    category: typography
+    semantic_name: Label line height
+    css_var: --nimi-type-label-line-height
+    ts_token: labelLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.label.weight
+    category: typography
+    semantic_name: Label weight
+    css_var: --nimi-type-label-weight
+    ts_token: labelWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.label.letter_spacing
+    category: typography
+    semantic_name: Label letter spacing
+    css_var: --nimi-type-label-letter-spacing
+    ts_token: labelLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.overline.size
+    category: typography
+    semantic_name: Overline size
+    css_var: --nimi-type-overline-size
+    ts_token: overlineSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.overline.line_height
+    category: typography
+    semantic_name: Overline line height
+    css_var: --nimi-type-overline-line-height
+    ts_token: overlineLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.overline.weight
+    category: typography
+    semantic_name: Overline weight
+    css_var: --nimi-type-overline-weight
+    ts_token: overlineWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.overline.letter_spacing
+    category: typography
+    semantic_name: Overline letter spacing
+    css_var: --nimi-type-overline-letter-spacing
+    ts_token: overlineLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.mono.size
+    category: typography
+    semantic_name: Mono size
+    css_var: --nimi-type-mono-size
+    ts_token: monoSize
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.mono.line_height
+    category: typography
+    semantic_name: Mono line height
+    css_var: --nimi-type-mono-line-height
+    ts_token: monoLineHeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.mono.weight
+    category: typography
+    semantic_name: Mono weight
+    css_var: --nimi-type-mono-weight
+    ts_token: monoWeight
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.mono.letter_spacing
+    category: typography
+    semantic_name: Mono letter spacing
+    css_var: --nimi-type-mono-letter-spacing
+    ts_token: monoLetterSpacing
+    primitive_family: surface
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.sidebar_label.size
+    category: typography
+    semantic_name: Sidebar label size
+    css_var: --nimi-type-sidebar-label-size
+    ts_token: sidebarLabelSize
+    primitive_family: sidebar
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.sidebar_label.line_height
+    category: typography
+    semantic_name: Sidebar label line height
+    css_var: --nimi-type-sidebar-label-line-height
+    ts_token: sidebarLabelLineHeight
+    primitive_family: sidebar
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.sidebar_label.weight
+    category: typography
+    semantic_name: Sidebar label weight
+    css_var: --nimi-type-sidebar-label-weight
+    ts_token: sidebarLabelWeight
+    primitive_family: sidebar
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: typography.sidebar_label.letter_spacing
+    category: typography
+    semantic_name: Sidebar label letter spacing
+    css_var: --nimi-type-sidebar-label-letter-spacing
+    ts_token: sidebarLabelLetterSpacing
+    primitive_family: sidebar
+    source_rule: P-DESIGN-016
+    theme_layer: foundation
+  - id: stroke.subtle
+    category: stroke
+    semantic_name: Stroke subtle
+    css_var: --nimi-border-subtle
+    ts_token: subtle
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: stroke.strong
+    category: stroke
+    semantic_name: Stroke strong
+    css_var: --nimi-border-strong
+    ts_token: strong
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: elevation.base
+    category: elevation
+    semantic_name: Elevation base
+    css_var: --nimi-elevation-base
+    ts_token: base
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: elevation.raised
+    category: elevation
+    semantic_name: Elevation raised
+    css_var: --nimi-elevation-raised
+    ts_token: raised
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: elevation.floating
+    category: elevation
+    semantic_name: Elevation floating
+    css_var: --nimi-elevation-floating
+    ts_token: floating
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: elevation.modal
+    category: elevation
+    semantic_name: Elevation modal
+    css_var: --nimi-elevation-modal
+    ts_token: modal
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: motion.fast
+    category: motion
+    semantic_name: Motion fast
+    css_var: --nimi-motion-fast
+    ts_token: fast
+    primitive_family: surface
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: motion.slow
+    category: motion
+    semantic_name: Motion slow
+    css_var: --nimi-motion-slow
+    ts_token: slow
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: z.tooltip
+    category: z
+    semantic_name: Z tooltip
+    css_var: --nimi-z-tooltip
+    ts_token: tooltip
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: z.popover
+    category: z
+    semantic_name: Z popover
+    css_var: --nimi-z-popover
+    ts_token: popover
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: z.dialog
+    category: z
+    semantic_name: Z dialog
+    css_var: --nimi-z-dialog
+    ts_token: dialog
+    primitive_family: overlay
+    source_rule: P-DESIGN-003
+    theme_layer: foundation
+  - id: sizing.action_sm_height
+    category: sizing
+    semantic_name: Action small height
+    css_var: --nimi-sizing-action-sm-height
+    ts_token: actionSmHeight
+    primitive_family: action
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.action_md_height
+    category: sizing
+    semantic_name: Action medium height
+    css_var: --nimi-sizing-action-md-height
+    ts_token: actionMdHeight
+    primitive_family: action
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.action_lg_height
+    category: sizing
+    semantic_name: Action large height
+    css_var: --nimi-sizing-action-lg-height
+    ts_token: actionLgHeight
+    primitive_family: action
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.field_md_height
+    category: sizing
+    semantic_name: Field medium height
+    css_var: --nimi-sizing-field-md-height
+    ts_token: fieldMdHeight
+    primitive_family: field
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.field_lg_height
+    category: sizing
+    semantic_name: Field large height
+    css_var: --nimi-sizing-field-lg-height
+    ts_token: fieldLgHeight
+    primitive_family: field
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.textarea_min_height
+    category: sizing
+    semantic_name: Textarea minimum height
+    css_var: --nimi-sizing-textarea-min-height
+    ts_token: textareaMinHeight
+    primitive_family: field
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.sidebar_item_height
+    category: sizing
+    semantic_name: Sidebar item height
+    css_var: --nimi-sizing-sidebar-item-height
+    ts_token: sidebarItemHeight
+    primitive_family: sidebar
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.icon_sm
+    category: sizing
+    semantic_name: Icon small size
+    css_var: --nimi-sizing-icon-sm
+    ts_token: iconSm
+    primitive_family: action
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: sizing.icon_md
+    category: sizing
+    semantic_name: Icon medium size
+    css_var: --nimi-sizing-icon-md
+    ts_token: iconMd
+    primitive_family: action
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: sizing.icon_lg
+    category: sizing
+    semantic_name: Icon large size
+    css_var: --nimi-sizing-icon-lg
+    ts_token: iconLg
+    primitive_family: action
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: sizing.avatar_sm
+    category: sizing
+    semantic_name: Avatar small size
+    css_var: --nimi-sizing-avatar-sm
+    ts_token: avatarSm
+    primitive_family: sidebar
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.avatar_md
+    category: sizing
+    semantic_name: Avatar medium size
+    css_var: --nimi-sizing-avatar-md
+    ts_token: avatarMd
+    primitive_family: sidebar
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: sizing.avatar_lg
+    category: sizing
+    semantic_name: Avatar large size
+    css_var: --nimi-sizing-avatar-lg
+    ts_token: avatarLg
+    primitive_family: sidebar
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: border.width_default
+    category: border
+    semantic_name: Border default width
+    css_var: --nimi-border-width-default
+    ts_token: widthDefault
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: border.width_strong
+    category: border
+    semantic_name: Border strong width
+    css_var: --nimi-border-width-strong
+    ts_token: widthStrong
+    primitive_family: surface
+    source_rule: P-DESIGN-017
+    theme_layer: foundation
+  - id: opacity.disabled
+    category: opacity
+    semantic_name: Disabled opacity
+    css_var: --nimi-opacity-disabled
+    ts_token: disabled
+    primitive_family: action
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: opacity.hover_overlay
+    category: opacity
+    semantic_name: Hover overlay opacity
+    css_var: --nimi-opacity-hover-overlay
+    ts_token: hoverOverlay
+    primitive_family: surface
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: opacity.backdrop
+    category: opacity
+    semantic_name: Backdrop opacity
+    css_var: --nimi-opacity-backdrop
+    ts_token: backdrop
+    primitive_family: overlay
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: opacity.subtle_fill
+    category: opacity
+    semantic_name: Subtle fill opacity
+    css_var: --nimi-opacity-subtle-fill
+    ts_token: subtleFill
+    primitive_family: status
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: focus.ring_width
+    category: focus
+    semantic_name: Focus ring width
+    css_var: --nimi-focus-ring-width
+    ts_token: ringWidth
+    primitive_family: field
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: focus.ring_color
+    category: focus
+    semantic_name: Focus ring color
+    css_var: --nimi-focus-ring-color
+    ts_token: ringColor
+    primitive_family: field
+    source_rule: P-DESIGN-018
+    theme_layer: accent
+  - id: focus.ring_offset
+    category: focus
+    semantic_name: Focus ring offset
+    css_var: --nimi-focus-ring-offset
+    ts_token: ringOffset
+    primitive_family: field
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: scrollbar.thumb
+    category: scrollbar
+    semantic_name: Scrollbar thumb
+    css_var: --nimi-scrollbar-thumb
+    ts_token: thumb
+    primitive_family: surface
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: scrollbar.thumb_hover
+    category: scrollbar
+    semantic_name: Scrollbar thumb hover
+    css_var: --nimi-scrollbar-thumb-hover
+    ts_token: thumbHover
+    primitive_family: surface
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: scrollbar.track
+    category: scrollbar
+    semantic_name: Scrollbar track
+    css_var: --nimi-scrollbar-track
+    ts_token: track
+    primitive_family: surface
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: scrollbar.radius
+    category: scrollbar
+    semantic_name: Scrollbar radius
+    css_var: --nimi-scrollbar-radius
+    ts_token: radius
+    primitive_family: surface
+    source_rule: P-DESIGN-018
+    theme_layer: foundation
+  - id: scrollbar.size
+    category: scrollbar
+    semantic_name: Scrollbar size
+    css_var: --nimi-scrollbar-size
+    ts_token: size
+    primitive_family: surface
+    source_rule: P-DESIGN-018
+    theme_layer: foundation

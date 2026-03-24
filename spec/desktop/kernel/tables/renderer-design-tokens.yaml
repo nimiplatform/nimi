@@ -238,10 +238,10 @@ tokens:
     tailwind_alias: duration-200
     scope: baseline
     source_rule: D-SHELL-016
-  - id: motion.base
+  - id: motion.slow
     category: motion
-    name: motion_base
-    css_var: --nimi-motion-base
+    name: motion_slow
+    css_var: --nimi-motion-slow
     tailwind_alias: duration-300
     scope: baseline
     source_rule: D-SHELL-016

@@ -1,0 +1,191 @@
+version: 1
+modules:
+  - id: desktop.chat.sidebar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/chats/chat-list.tsx
+    families:
+      - surface
+      - sidebar
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.contacts.sidebar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx
+    families:
+      - surface
+      - action
+      - sidebar
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.sidebar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx
+    families:
+      - surface
+      - sidebar
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.settings.sidebar
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/settings/settings-panel-body.tsx
+    families:
+      - surface
+      - sidebar
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: forge.app.sidebar
+    app: forge
+    module: apps/forge/src/shell/renderer/app-shell/layouts/sidebar.tsx
+    families:
+      - surface
+      - sidebar
+      - action
+    testid_required: true
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: forge-accent
+  - id: forge.settings.page
+    app: forge
+    module: apps/forge/src/shell/renderer/pages/settings/settings-page.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: forge-accent
+  - id: relay.conversation.sidebar
+    app: relay
+    module: apps/relay/src/renderer/features/sidebar/components/conversation-sidebar.tsx
+    families:
+      - sidebar
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: relay-accent
+  - id: relay.message.input
+    app: relay
+    module: apps/relay/src/renderer/features/chat/components/message-input.tsx
+    families:
+      - field
+      - action
+      - surface
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: relay-accent
+  - id: overtone.studio.layout
+    app: overtone
+    module: apps/overtone/src/shell/renderer/app-shell/layouts/studio-layout.tsx
+    families:
+      - surface
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent
+  - id: overtone.publish.modal
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/publish-panel.tsx
+    families:
+      - overlay
+      - action
+      - field
+      - status
+      - surface
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent
+  - id: overtone.ui.primitives
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
+    families:
+      - action
+      - field
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent
+  - id: desktop.world.detail.exception
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/world/world-detail.tsx
+    families:
+      - surface
+    testid_required: true
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: overtone.waveform.exception
+    app: overtone
+    module: apps/overtone/src/shell/renderer/features/workspace/waveform.tsx
+    families:
+      - surface
+    testid_required: false
+    exception_policy: controlled_exception
+    source_rule: P-DESIGN-021
+    scheme_support:
+      - dark
+      - light
+    default_scheme: dark
+    accent_pack: overtone-accent

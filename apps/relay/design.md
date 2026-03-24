@@ -1,5 +1,11 @@
 # 现代 AI 聊天桌面应用 — 样式风格总结
 
+> Non-normative art direction only. Shared design authority lives in
+> `spec/platform/kernel/design-pattern-contract.md` under `P-DESIGN-*`,
+> especially `P-DESIGN-001`, `P-DESIGN-002`, `P-DESIGN-003`,
+> `P-DESIGN-010` to `P-DESIGN-015`, `P-DESIGN-020`, `P-DESIGN-021`,
+> and `P-DESIGN-090`.
+
 ---
 
 ## 1. 设计哲学

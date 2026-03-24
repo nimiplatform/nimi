@@ -806,8 +806,8 @@ function checkRendererDesignTables() {
       continue;
     }
     const overlaySource = fs.readFileSync(overlayModulePath, 'utf8');
-    if (!/(?:components\/overlay\.js|\.\/overlay\.js)/.test(overlaySource)) {
-      fail(`${overlaysPath} overlay ${id} module must import components/overlay.js: ${module}`);
+    if (!/(?:components\/overlay\.js|\.\/overlay\.js|@nimiplatform\/nimi-ui)/.test(overlaySource)) {
+      fail(`${overlaysPath} overlay ${id} module must import shared overlay authority: ${module}`);
     }
     if (typeof item?.testid_required !== 'boolean') {
       fail(`${overlaysPath} overlay ${id} must declare boolean testid_required`);

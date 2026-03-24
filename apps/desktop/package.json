@@ -64,6 +64,7 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "2.0.35",
     "@nimiplatform/sdk": "workspace:*",
+    "@nimiplatform/nimi-ui": "workspace:*",
     "@nimiplatform/shell-auth": "workspace:*",
     "@nimiplatform/shell-core": "workspace:*",
     "@react-three/drei": "^10.7.7",

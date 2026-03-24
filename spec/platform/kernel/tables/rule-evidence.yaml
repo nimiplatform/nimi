@@ -6,6 +6,18 @@ evidence_catalog:
     command: pnpm check:platform-spec-kernel-consistency
     path: scripts/check-platform-spec-kernel-consistency.mjs
     description: Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain.
+  nimi_ui_pattern:
+    type: static_gate
+    evidence_type: structural
+    command: pnpm check:nimi-ui-pattern
+    path: scripts/check-nimi-ui-pattern.mjs
+    description: Cross-app Nimi design pattern gate for shared lib imports, theme pack entrypoints, governed module adoption, and raw style hardcuts.
+  nimi_ui_lib_drift:
+    type: generated_projection
+    evidence_type: structural
+    command: pnpm check:nimi-ui-lib-drift
+    path: scripts/generate-nimi-ui-lib.mjs
+    description: Generated Nimi design shared-lib projection drift check for tokens and theme packs.
 
 rules:
   - rule_id: P-ALMI-001
@@ -39,6 +51,69 @@ rules:
     status: covered
     evidence_refs: [platform_kernel_consistency]
     coverage_note: "structural only; latency/throughput red-line validation requires load test"
+  - rule_id: P-DESIGN-001
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+  - rule_id: P-DESIGN-002
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-003
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-004
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-005
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-006
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+  - rule_id: P-DESIGN-007
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+  - rule_id: P-DESIGN-008
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-010
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-011
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-012
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-013
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-014
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-015
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-016
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-017
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-018
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
+  - rule_id: P-DESIGN-019
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+  - rule_id: P-DESIGN-020
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+  - rule_id: P-DESIGN-021
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
+  - rule_id: P-DESIGN-090
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_ui_pattern]
   - rule_id: P-ARCH-001
     status: covered
     evidence_refs: [platform_kernel_consistency]

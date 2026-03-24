@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "@nimiplatform/sdk": "workspace:*",
+    "@nimiplatform/nimi-ui": "workspace:*",
     "@nimiplatform/shell-auth": "workspace:*",
     "@nimiplatform/shell-core": "workspace:*",
     "@tanstack/react-query": "^5.90.21",

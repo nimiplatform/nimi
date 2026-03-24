@@ -38,4 +38,4 @@
 | `z.dialog` | `z` | `--nimi-z-dialog` | `nimi-overlay-backdrop--dialog` | `baseline` | `D-SHELL-016` |
 | `z.tooltip` | `z` | `--nimi-z-tooltip` | `nimi-tooltip-layer` | `baseline` | `D-SHELL-016` |
 | `motion.fast` | `motion` | `--nimi-motion-fast` | `duration-200` | `baseline` | `D-SHELL-016` |
-| `motion.base` | `motion` | `--nimi-motion-base` | `duration-300` | `baseline` | `D-SHELL-016` |
+| `motion.slow` | `motion` | `--nimi-motion-slow` | `duration-300` | `baseline` | `D-SHELL-016` |

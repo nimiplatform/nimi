@@ -11,4 +11,10 @@
 | `app-authorization-presets.md` | `tables/app-authorization-presets.yaml` |
 | `participant-profiles.md` | `tables/participant-profiles.yaml` |
 | `error-code-mapping.md` | `tables/error-code-mapping.yaml` |
+| `nimi-ui-tokens.md` | `tables/nimi-ui-tokens.yaml` |
+| `nimi-ui-primitives.md` | `tables/nimi-ui-primitives.yaml` |
+| `nimi-ui-themes.md` | `tables/nimi-ui-themes.yaml` |
+| `nimi-ui-adoption.md` | `tables/nimi-ui-adoption.yaml` |
+| `nimi-ui-compositions.md` | `tables/nimi-ui-compositions.yaml` |
+| `nimi-ui-allowlists.md` | `tables/nimi-ui-allowlists.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |

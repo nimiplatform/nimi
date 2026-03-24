@@ -3,7 +3,7 @@
 ## Scope
 
 Platform kernel is the single authoritative source for cross-domain platform protocol rules.
-Every platform domain document (vision, architecture, protocol, ai-last-mile, governance) must explicitly reference kernel Rule IDs; it must not duplicate kernel prose.
+Every platform domain document (vision, architecture, protocol, ai-last-mile, design-pattern, governance) must explicitly reference kernel Rule IDs; it must not duplicate kernel prose.
 
 ## Rule ID Format
 
@@ -15,6 +15,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, go
 | `ARCH` | Architecture contract | `architecture-contract.md` |
 | `PROTO` | Protocol contract | `protocol-contract.md` |
 | `ALMI` | AI Last Mile contract | `ai-last-mile-contract.md` |
+| `DESIGN` | Nimi design pattern contract | `design-pattern-contract.md` |
 | `GOV` | Governance contract | `governance-contract.md` |
 
 ## Numbering Convention
@@ -29,8 +30,8 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, go
 | 050–059 | World-App product relationship |
 | 060–069 | App mode domain boundary |
 | 070–079 | Cross-primitive consistency / admission |
-| 080–089 | _(reserved)_ |
-| 090–099 | _(reserved)_ |
+| 080–089 | Design pattern foundation / primitive contracts |
+| 090–099 | Design gates / governance hardcuts |
 | 100–105 | Primitive-specific rules (protocol only) |
 
 ## Document Ownership Matrix
@@ -40,6 +41,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, go
 | `protocol-contract.md` | `P-PROTO-*` | Version negotiation, envelope, app auth, primitives, error codes, compliance |
 | `architecture-contract.md` | `P-ARCH-*` | Six-layer architecture, communication rules, credential planes |
 | `ai-last-mile-contract.md` | `P-ALMI-*` | Hook Action Fabric, Principal model, execution protocol |
+| `design-pattern-contract.md` | `P-DESIGN-*` | Cross-app Nimi UI Toolkit authority, generated primitive contract, scheme plus accent theme model, adoption registry, and hard gate |
 | `governance-contract.md` | `P-GOV-*` | License matrix, release gates, governance tasks |
 
 ## Structured Fact Sources
@@ -53,7 +55,13 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, go
 | `tables/app-authorization-presets.yaml` | `protocol-contract.md` | readOnly/full/delegate preset rules |
 | `tables/participant-profiles.yaml` | `protocol-contract.md` | Realm/Runtime capability profiles |
 | `tables/error-code-mapping.yaml` | `protocol-contract.md` | Platform protocol error → runtime reason code mapping |
-| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
+| `tables/nimi-ui-tokens.yaml` | `design-pattern-contract.md` | Cross-app semantic design token registry, including typography, sizing, focus, opacity, and scrollbar tokens |
+| `tables/nimi-ui-primitives.yaml` | `design-pattern-contract.md` | Executable shared primitive contract used for generated CSS and prop unions |
+| `tables/nimi-ui-themes.yaml` | `design-pattern-contract.md` | Foundation scheme values plus app accent pack values for the toolkit token taxonomy |
+| `tables/nimi-ui-adoption.yaml` | `design-pattern-contract.md` | Governed module registry, supported schemes, and accent pack selection |
+| `tables/nimi-ui-compositions.yaml` | `design-pattern-contract.md` | Explicit registry for app-owned composition components and thin wrappers that must not become parallel primitive authority |
+| `tables/nimi-ui-allowlists.yaml` | `design-pattern-contract.md` | Approved design escape hatches |
+| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `design-pattern-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
 
 ## Version Terminology
 
