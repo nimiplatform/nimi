@@ -18,6 +18,12 @@ evidence_catalog:
     command: pnpm check:nimi-ui-lib-drift
     path: scripts/generate-nimi-ui-lib.mjs
     description: Generated Nimi design shared-lib projection drift check for tokens and theme packs.
+  nimi_kit_gate:
+    type: static_gate
+    evidence_type: structural
+    command: pnpm check:nimi-kit
+    path: scripts/check-nimi-kit.mjs
+    description: Nimi kit hard gate for registry parity, surface topology, integration taxonomy, and cross-layer boundary enforcement.
 
 rules:
   - rule_id: P-ALMI-001
@@ -156,31 +162,34 @@ rules:
     evidence_refs: [platform_kernel_consistency]
   - rule_id: P-KIT-003
     status: covered
-    evidence_refs: [platform_kernel_consistency]
-    coverage_note: "structural only; boundary enforcement requires Phase 2 check:nimi-kit gate"
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
   - rule_id: P-KIT-010
     status: covered
     evidence_refs: [platform_kernel_consistency, nimi_ui_lib_drift, nimi_ui_pattern]
   - rule_id: P-KIT-020
     status: covered
-    evidence_refs: [platform_kernel_consistency]
-    coverage_note: "structural only; auth token compliance requires Phase 3 check:nimi-kit gate"
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
   - rule_id: P-KIT-030
     status: covered
-    evidence_refs: [platform_kernel_consistency]
-    coverage_note: "structural only; zero-UI enforcement requires Phase 3 check:nimi-kit gate"
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
   - rule_id: P-KIT-040
     status: covered
-    evidence_refs: [platform_kernel_consistency]
-    coverage_note: "structural only; renderer-safe enforcement requires Phase 3 check:nimi-kit gate"
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
   - rule_id: P-KIT-050
     status: covered
-    evidence_refs: [platform_kernel_consistency]
-    coverage_note: "structural only; admission enforcement requires check:nimi-kit registry validation"
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
+  - rule_id: P-KIT-060
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
+  - rule_id: P-KIT-070
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
+  - rule_id: P-KIT-080
+    status: covered
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
   - rule_id: P-KIT-090
     status: covered
-    evidence_refs: [platform_kernel_consistency]
-    coverage_note: "structural only; full gate implementation is Phase 3"
+    evidence_refs: [platform_kernel_consistency, nimi_kit_gate]
   - rule_id: P-GOV-001
     status: covered
     evidence_refs: [platform_kernel_consistency]

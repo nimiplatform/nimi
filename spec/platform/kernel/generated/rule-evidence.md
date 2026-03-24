@@ -7,6 +7,7 @@
 | `platform_kernel_consistency` | `static_gate` | `structural` | `pnpm check:platform-spec-kernel-consistency` | `scripts/check-platform-spec-kernel-consistency.mjs` | Kernel rule integrity, error code uniqueness, primitive completeness, compliance matrix, and authorization preset checks for Platform domain. |
 | `nimi_ui_pattern` | `static_gate` | `structural` | `pnpm check:nimi-ui-pattern` | `scripts/check-nimi-ui-pattern.mjs` | Cross-app Nimi design pattern gate for shared lib imports, theme pack entrypoints, governed module adoption, and raw style hardcuts. |
 | `nimi_ui_lib_drift` | `generated_projection` | `structural` | `pnpm check:nimi-ui-lib-drift` | `scripts/generate-nimi-ui-lib.mjs` | Generated Nimi design shared-lib projection drift check for tokens and theme packs. |
+| `nimi_kit_gate` | `static_gate` | `structural` | `pnpm check:nimi-kit` | `scripts/check-nimi-kit.mjs` | Nimi kit hard gate for registry parity, surface topology, integration taxonomy, and cross-layer boundary enforcement. |
 
 ## Rule Coverage Matrix
 
@@ -53,13 +54,16 @@
 | `P-ARCH-030` | `covered` | `platform_kernel_consistency` | structural only; cross-layer delivery behavior still requires end-to-end execution tests |
 | `P-KIT-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-KIT-002` | `covered` | `platform_kernel_consistency` | — |
-| `P-KIT-003` | `covered` | `platform_kernel_consistency` | structural only; boundary enforcement requires Phase 2 check:nimi-kit gate |
+| `P-KIT-003` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-KIT-010` | `covered` | `platform_kernel_consistency`, `nimi_ui_lib_drift`, `nimi_ui_pattern` | — |
-| `P-KIT-020` | `covered` | `platform_kernel_consistency` | structural only; auth token compliance requires Phase 3 check:nimi-kit gate |
-| `P-KIT-030` | `covered` | `platform_kernel_consistency` | structural only; zero-UI enforcement requires Phase 3 check:nimi-kit gate |
-| `P-KIT-040` | `covered` | `platform_kernel_consistency` | structural only; renderer-safe enforcement requires Phase 3 check:nimi-kit gate |
-| `P-KIT-050` | `covered` | `platform_kernel_consistency` | structural only; admission enforcement requires check:nimi-kit registry validation |
-| `P-KIT-090` | `covered` | `platform_kernel_consistency` | structural only; full gate implementation is Phase 3 |
+| `P-KIT-020` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-030` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-040` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-050` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-060` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-070` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-080` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
+| `P-KIT-090` | `covered` | `platform_kernel_consistency`, `nimi_kit_gate` | — |
 | `P-GOV-001` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-002` | `covered` | `platform_kernel_consistency` | — |
 | `P-GOV-003` | `covered` | `platform_kernel_consistency` | — |

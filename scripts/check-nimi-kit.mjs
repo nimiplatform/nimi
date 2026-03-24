@@ -10,7 +10,7 @@ const registryPath = path.join(repoRoot, 'spec', 'platform', 'kernel', 'tables',
 const packageJsonPath = path.join(kitRoot, 'package.json');
 
 const allowedKinds = new Set(['foundation', 'feature', 'logic', 'infra']);
-const allowedModuleDirs = new Set(['ui', 'auth', 'core', 'telemetry']);
+const allowedModuleDirs = new Set(['ui', 'auth', 'core', 'telemetry', 'features']);
 const violations = [];
 
 function fail(message) {
@@ -44,6 +44,22 @@ function rel(absPath) {
   return path.relative(repoRoot, absPath).split(path.sep).join('/');
 }
 
+function isFeatureRuntimeIntegrationFile(fileRel) {
+  return /^kit\/features\/[^/]+\/src\/runtime(?:\/|\.ts$)/u.test(fileRel);
+}
+
+function isFeatureRealmIntegrationFile(fileRel) {
+  return /^kit\/features\/[^/]+\/src\/realm(?:\/|\.ts$)/u.test(fileRel);
+}
+
+function isFeatureSdkIntegrationFile(fileRel) {
+  return isFeatureRuntimeIntegrationFile(fileRel) || isFeatureRealmIntegrationFile(fileRel);
+}
+
+function isKitFeatureTestFile(fileRel) {
+  return /^kit\/features\/[^/]+\/test\//u.test(fileRel);
+}
+
 function expect(condition, message) {
   if (!condition) {
     fail(message);
@@ -64,14 +80,17 @@ function declaredCssVariables(content) {
 
 const registry = readYaml(registryPath);
 const kitPackage = readJson(packageJsonPath);
-const packageExports = new Set(Object.keys(kitPackage.exports || {}));
+const packageExportsMap = kitPackage.exports || {};
+const packageExports = new Set(Object.keys(packageExportsMap));
 const modules = Array.isArray(registry?.modules) ? registry.modules : [];
+const appAliasPattern = /^@(renderer|runtime|app|desktop|forge|relay|web|overtone|realm-drift)(\/|$)/u;
+const registeredExportKeys = new Set();
 
 if (modules.length === 0) {
   fail('nimi-kit-registry.yaml: modules must not be empty');
 }
 
-const registeredModuleDirs = new Set();
+const registeredModuleSubpaths = new Set();
 
 for (const row of modules) {
   const id = String(row?.id || '').trim();
@@ -81,9 +100,14 @@ for (const row of modules) {
   const sourceRule = String(row?.source_rule || '').trim();
   const admissionStatus = String(row?.admission_status || '').trim();
   const owner = String(row?.owner || '').trim();
+  const surfaceLevel = String(row?.surface_level || '').trim();
+  const adapterContract = String(row?.adapter_contract || '').trim();
   const dependencies = Array.isArray(row?.dependencies) ? row.dependencies.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const peerDependencies = Array.isArray(row?.peer_dependencies) ? row.peer_dependencies.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const exportsList = Array.isArray(row?.exports) ? row.exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
+  const headlessExports = Array.isArray(row?.headless_exports) ? row.headless_exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
+  const uiExports = Array.isArray(row?.ui_exports) ? row.ui_exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
+  const plannedConsumers = Array.isArray(row?.planned_consumers) ? row.planned_consumers.map((item) => String(item || '').trim()).filter(Boolean) : [];
 
   expect(id, 'nimi-kit-registry.yaml: module row missing id');
   expect(subpath.startsWith('/'), `nimi-kit-registry.yaml ${id}: subpath must start with /`);
@@ -92,21 +116,35 @@ for (const row of modules) {
   expect(sourceRule, `nimi-kit-registry.yaml ${id}: source_rule is required`);
   expect(admissionStatus, `nimi-kit-registry.yaml ${id}: admission_status is required`);
   expect(owner, `nimi-kit-registry.yaml ${id}: owner is required`);
+  expect(surfaceLevel, `nimi-kit-registry.yaml ${id}: surface_level is required`);
+  expect(adapterContract, `nimi-kit-registry.yaml ${id}: adapter_contract is required`);
   expect(Array.isArray(row?.dependencies), `nimi-kit-registry.yaml ${id}: dependencies must be an array`);
   expect(Array.isArray(row?.peer_dependencies), `nimi-kit-registry.yaml ${id}: peer_dependencies must be an array`);
   expect(exportsList.length > 0, `nimi-kit-registry.yaml ${id}: exports must not be empty`);
+  expect(Array.isArray(row?.headless_exports), `nimi-kit-registry.yaml ${id}: headless_exports must be an array`);
+  expect(Array.isArray(row?.ui_exports), `nimi-kit-registry.yaml ${id}: ui_exports must be an array`);
+  expect(Array.isArray(row?.planned_consumers), `nimi-kit-registry.yaml ${id}: planned_consumers must be an array`);
 
-  const moduleDir = subpath.replace(/^\//, '').split('/')[0] || '';
+  const modulePath = subpath.replace(/^\//, '');
+  const moduleDir = modulePath.split('/')[0] || '';
   expect(allowedModuleDirs.has(moduleDir), `nimi-kit-registry.yaml ${id}: unsupported module dir ${moduleDir}`);
-  registeredModuleDirs.add(moduleDir);
+  registeredModuleSubpaths.add(modulePath);
 
-  const absModuleDir = path.join(kitRoot, moduleDir);
-  expect(fs.existsSync(absModuleDir), `registered module missing from disk: kit/${moduleDir}`);
-  expect(!fs.existsSync(path.join(absModuleDir, 'package.json')), `kit/${moduleDir}: nested package.json is forbidden in single-package kit`);
-  expect(!fs.existsSync(path.join(absModuleDir, 'tsconfig.json')), `kit/${moduleDir}: nested tsconfig.json should be consolidated at kit/tsconfig.json`);
+  const absModuleDir = path.join(kitRoot, modulePath);
+  expect(fs.existsSync(absModuleDir), `registered module missing from disk: kit/${modulePath}`);
+  expect(!fs.existsSync(path.join(absModuleDir, 'package.json')), `kit/${modulePath}: nested package.json is forbidden in single-package kit`);
+  expect(!fs.existsSync(path.join(absModuleDir, 'tsconfig.json')), `kit/${modulePath}: nested tsconfig.json should be consolidated at kit/tsconfig.json`);
+  expect(fs.existsSync(path.join(absModuleDir, 'README.md')), `kit/${modulePath}: module README.md is required`);
 
   for (const key of exportsList) {
     expect(packageExports.has(key), `nimi-kit-registry.yaml ${id}: export ${key} missing from kit/package.json`);
+    registeredExportKeys.add(key);
+  }
+  for (const key of headlessExports) {
+    expect(exportsList.includes(key), `nimi-kit-registry.yaml ${id}: headless export ${key} must also exist in exports`);
+  }
+  for (const key of uiExports) {
+    expect(exportsList.includes(key), `nimi-kit-registry.yaml ${id}: ui export ${key} must also exist in exports`);
   }
 
   if (kind === 'foundation') {
@@ -117,23 +155,69 @@ for (const row of modules) {
   }
   if (kind === 'feature') {
     expect(peerDependencies.includes('react'), `${id}: feature module must declare react peer dependency`);
+    expect(headlessExports.length > 0, `${id}: feature module must expose headless exports`);
+    expect(uiExports.length > 0, `${id}: feature module must expose UI exports`);
+    expect(plannedConsumers.length >= 2, `${id}: feature module must be planned for at least two apps`);
+    if (modulePath.startsWith('features/')) {
+      expect(exportsList.includes(`./${modulePath}`), `${id}: feature module must publish aggregate export ./${modulePath}`);
+      expect(headlessExports.includes(`./${modulePath}/headless`), `${id}: feature module must publish /headless export`);
+      expect(uiExports.includes(`./${modulePath}/ui`), `${id}: feature module must publish /ui export`);
+      if (surfaceLevel.includes('runtime')) {
+        expect(exportsList.includes(`./${modulePath}/runtime`), `${id}: runtime-capable feature must publish /runtime export`);
+      } else {
+        expect(!exportsList.includes(`./${modulePath}/runtime`), `${id}: non-runtime feature must not publish /runtime export`);
+      }
+      if (surfaceLevel.includes('realm')) {
+        expect(exportsList.includes(`./${modulePath}/realm`), `${id}: realm-capable feature must publish /realm export`);
+      } else {
+        expect(!exportsList.includes(`./${modulePath}/realm`), `${id}: non-realm feature must not publish /realm export`);
+      }
+    }
   }
 }
 
-for (const entry of fs.readdirSync(kitRoot, { withFileTypes: true })) {
-  if (!entry.isDirectory()) {
+expect(fs.existsSync(path.join(kitRoot, 'README.md')), 'kit/README.md is required');
+
+for (const [exportKey, target] of Object.entries(packageExportsMap)) {
+  const exportPath = String(target || '').trim();
+  if (!exportPath) {
+    fail(`kit/package.json: export ${exportKey} must have a non-empty target`);
     continue;
   }
-  if (!allowedModuleDirs.has(entry.name)) {
-    continue;
-  }
-  if (!registeredModuleDirs.has(entry.name)) {
-    fail(`on-disk kit module is unregistered: kit/${entry.name}`);
+  const absTarget = path.join(kitRoot, exportPath.replace(/^\.\//, ''));
+  expect(fs.existsSync(absTarget), `kit/package.json: export ${exportKey} points to missing target ${exportPath}`);
+
+  const isKitSurfaceExport =
+    exportKey.startsWith('./ui')
+    || exportKey.startsWith('./auth')
+    || exportKey.startsWith('./core/')
+    || exportKey.startsWith('./telemetry')
+    || exportKey.startsWith('./features/');
+
+  if (isKitSurfaceExport && !registeredExportKeys.has(exportKey)) {
+    fail(`kit/package.json: export ${exportKey} is not registered in nimi-kit-registry.yaml`);
   }
 }
 
-for (const moduleDir of registeredModuleDirs) {
-  const absDir = path.join(kitRoot, moduleDir);
+const onDiskModules = [
+  'ui',
+  'auth',
+  'core',
+  'telemetry',
+  ...fs.readdirSync(path.join(kitRoot, 'features'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `features/${entry.name}`),
+];
+
+for (const modulePath of onDiskModules) {
+  if (!registeredModuleSubpaths.has(modulePath)) {
+    fail(`on-disk kit module is unregistered: kit/${modulePath}`);
+  }
+}
+
+for (const modulePath of registeredModuleSubpaths) {
+  const absDir = path.join(kitRoot, modulePath);
+  const moduleDir = modulePath.split('/')[0] || '';
   const files = listFilesRecursively(absDir, (absPath) => /\.(?:ts|tsx|css)$/u.test(absPath));
   for (const absPath of files) {
     const content = fs.readFileSync(absPath, 'utf8');
@@ -147,6 +231,9 @@ for (const moduleDir of registeredModuleDirs) {
     for (const target of importTargets) {
       if (target.includes('apps/')) {
         fail(`${fileRel}: kit modules must not import app-layer code (${target})`);
+      }
+      if (appAliasPattern.test(target)) {
+        fail(`${fileRel}: kit modules must not import app aliases (${target})`);
       }
       if (target.includes('runtime/internal/')) {
         fail(`${fileRel}: kit modules must not import runtime internal code (${target})`);
@@ -177,6 +264,27 @@ for (const moduleDir of registeredModuleDirs) {
           || ['fs', 'path', 'child_process', 'os'].includes(target);
         if (forbidden) {
           fail(`${fileRel}: telemetry must remain renderer-safe (${target})`);
+        }
+      }
+    }
+
+    if (modulePath.startsWith('features/')) {
+      if (isFeatureRuntimeIntegrationFile(fileRel) && content.includes('getPlatformClient().realm')) {
+        fail(`${fileRel}: runtime integration files must not bind getPlatformClient().realm`);
+      }
+      if (isFeatureRealmIntegrationFile(fileRel) && content.includes('getPlatformClient().runtime')) {
+        fail(`${fileRel}: realm integration files must not bind getPlatformClient().runtime`);
+      }
+      for (const target of importTargets) {
+        if (
+          (target === '@nimiplatform/sdk' || target.startsWith('@nimiplatform/sdk/'))
+          && !isFeatureSdkIntegrationFile(fileRel)
+          && !isKitFeatureTestFile(fileRel)
+        ) {
+          fail(`${fileRel}: feature modules must stay adapter-driven and must not import sdk directly (${target})`);
+        }
+        if (target.startsWith('@tauri-apps/') || target === 'electron' || target.startsWith('electron/')) {
+          fail(`${fileRel}: feature modules must not import platform bridges directly (${target})`);
         }
       }
     }

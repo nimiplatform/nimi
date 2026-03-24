@@ -3,6 +3,8 @@ modules:
   - id: kit.ui
     subpath: /ui
     kind: foundation
+    surface_level: foundation
+    adapter_contract: none
     description: Cross-app design system (token, primitive, theme generation)
     dependencies: []
     peer_dependencies: [react, react-dom]
@@ -15,12 +17,25 @@ modules:
       - ./ui/themes/forge-accent.css
       - ./ui/themes/relay-accent.css
       - ./ui/themes/overtone-accent.css
+    headless_exports: []
+    ui_exports:
+      - ./ui
+      - ./ui/styles.css
+      - ./ui/themes/light.css
+      - ./ui/themes/dark.css
+      - ./ui/themes/desktop-accent.css
+      - ./ui/themes/forge-accent.css
+      - ./ui/themes/relay-accent.css
+      - ./ui/themes/overtone-accent.css
+    planned_consumers: [desktop, forge, overtone, relay, web]
     admission_status: active
     owner: platform
     source_rule: P-KIT-010
   - id: kit.auth
     subpath: /auth
     kind: feature
+    surface_level: headless+ui
+    adapter_contract: AuthPlatformAdapter
     description: Cross-app authentication UI (email, OTP, wallet, social OAuth)
     dependencies: [kit.core, sdk]
     peer_dependencies: [react, react-i18next]
@@ -28,30 +43,141 @@ modules:
       - ./auth
       - ./auth/styles.css
       - ./auth/native-oauth-result-page
+    headless_exports:
+      - ./auth
+      - ./auth/native-oauth-result-page
+    ui_exports:
+      - ./auth
+      - ./auth/styles.css
+    planned_consumers: [desktop, forge, overtone, relay, web]
     admission_status: active
     owner: platform
     source_rule: P-KIT-020
   - id: kit.core
     subpath: /core
     kind: logic
+    surface_level: logic
+    adapter_contract: none
     description: Pure-logic utilities (OAuth, env, shell-mode)
     dependencies: []
     peer_dependencies: []
     exports:
       - ./core/shell-mode
       - ./core/oauth
+    headless_exports:
+      - ./core/shell-mode
+      - ./core/oauth
+    ui_exports: []
+    planned_consumers: [desktop, forge, overtone, relay, web, realm-drift]
     admission_status: active
     owner: platform
     source_rule: P-KIT-030
   - id: kit.telemetry
     subpath: /telemetry
     kind: infra
+    surface_level: infra
+    adapter_contract: none
     description: Renderer-side telemetry (emit, debug-buffer, error-boundary)
     dependencies: []
     peer_dependencies: [react]
     exports:
       - ./telemetry
       - ./telemetry/error-boundary
+    headless_exports:
+      - ./telemetry
+    ui_exports:
+      - ./telemetry/error-boundary
+    planned_consumers: [forge, desktop, relay]
     admission_status: active
     owner: platform
     source_rule: P-KIT-040
+  - id: kit.features.chat
+    subpath: /features/chat
+    kind: feature
+    surface_level: headless+ui+runtime+realm
+    adapter_contract: ChatComposerAdapter + RuntimeChatComposerAdapterOptions + RealmChatComposerAdapterOptions
+    description: Reusable chat composer surface with active AI runtime integration and active realm typed human chat integration, including realtime normalization, timeline composition/display helpers, and a socket-agnostic transport controller
+    dependencies: [kit.ui]
+    peer_dependencies: [react]
+    exports:
+      - ./features/chat
+      - ./features/chat/headless
+      - ./features/chat/realm
+      - ./features/chat/runtime
+      - ./features/chat/ui
+    headless_exports:
+      - ./features/chat/headless
+      - ./features/chat/realm
+      - ./features/chat/runtime
+    ui_exports:
+      - ./features/chat/ui
+    planned_consumers: [desktop, relay, forge, realm-drift]
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-070
+  - id: kit.features.model-picker
+    subpath: /features/model-picker
+    kind: feature
+    surface_level: headless+ui+runtime
+    adapter_contract: ModelCatalogAdapter
+    description: Reusable model browse-and-select surface with headless filtering, default UI shell, and runtime-backed catalog panels
+    dependencies: [kit.ui]
+    peer_dependencies: [react]
+    exports:
+      - ./features/model-picker
+      - ./features/model-picker/headless
+      - ./features/model-picker/runtime
+      - ./features/model-picker/ui
+    headless_exports:
+      - ./features/model-picker/headless
+      - ./features/model-picker/runtime
+    ui_exports:
+      - ./features/model-picker/ui
+    planned_consumers: [desktop, relay]
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-080
+  - id: kit.features.generation
+    subpath: /features/generation
+    kind: feature
+    surface_level: headless+ui+runtime
+    adapter_contract: GenerationPanelAdapter
+    description: Reusable generation workflow shell with headless submit orchestration, default status panel UI, active overtone runtime panels, and active desktop runtime-status consumers
+    dependencies: [kit.ui]
+    peer_dependencies: [react]
+    exports:
+      - ./features/generation
+      - ./features/generation/headless
+      - ./features/generation/runtime
+      - ./features/generation/ui
+    headless_exports:
+      - ./features/generation/headless
+      - ./features/generation/runtime
+    ui_exports:
+      - ./features/generation/ui
+    planned_consumers: [overtone, desktop]
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-070
+  - id: kit.features.commerce
+    subpath: /features/commerce
+    kind: feature
+    surface_level: headless+ui+realm
+    adapter_contract: CommerceGiftAdapter
+    description: Reusable commerce surface for cross-app gifting and lightweight transactional dialogs backed by realm business services, with desktop as the active consumer and web remaining planned
+    dependencies: [kit.ui]
+    peer_dependencies: [react]
+    exports:
+      - ./features/commerce
+      - ./features/commerce/headless
+      - ./features/commerce/realm
+      - ./features/commerce/ui
+    headless_exports:
+      - ./features/commerce/headless
+      - ./features/commerce/realm
+    ui_exports:
+      - ./features/commerce/ui
+    planned_consumers: [desktop, web]
+    admission_status: active
+    owner: platform
+    source_rule: P-KIT-070

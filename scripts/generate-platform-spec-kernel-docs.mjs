@@ -332,13 +332,15 @@ function renderDesignAllowlists(doc, sourceName) {
 function renderNimiKitRegistry(doc, sourceName) {
   const modules = Array.isArray(doc?.modules) ? doc.modules : [];
   let out = header('Generated Nimi Kit Registry', sourceName);
-  out += '| ID | Subpath | Kind | Dependencies | Peer Dependencies | Exports | Admission | Owner | Source |\n';
-  out += '|---|---|---|---|---|---|---|---|---|\n';
+  out += '| ID | Subpath | Kind | Surface | Adapter | Dependencies | Peer Dependencies | Headless Exports | UI Exports | Planned Consumers | Admission | Owner | Source |\n';
+  out += '|---|---|---|---|---|---|---|---|---|---|---|---|---|\n';
   for (const module of modules) {
     const dependencies = Array.isArray(module?.dependencies) ? module.dependencies : [];
     const peerDependencies = Array.isArray(module?.peer_dependencies) ? module.peer_dependencies : [];
-    const exportsList = Array.isArray(module?.exports) ? module.exports : [];
-    out += `| \`${String(module?.id || '')}\` | \`${String(module?.subpath || '')}\` | \`${String(module?.kind || '')}\` | ${dependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${peerDependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${exportsList.map((item) => `\`${String(item)}\``).join(', ') || '—'} | \`${String(module?.admission_status || '')}\` | \`${String(module?.owner || '')}\` | \`${String(module?.source_rule || '')}\` |\n`;
+    const headlessExports = Array.isArray(module?.headless_exports) ? module.headless_exports : [];
+    const uiExports = Array.isArray(module?.ui_exports) ? module.ui_exports : [];
+    const plannedConsumers = Array.isArray(module?.planned_consumers) ? module.planned_consumers : [];
+    out += `| \`${String(module?.id || '')}\` | \`${String(module?.subpath || '')}\` | \`${String(module?.kind || '')}\` | \`${String(module?.surface_level || '')}\` | \`${String(module?.adapter_contract || '')}\` | ${dependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${peerDependencies.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${headlessExports.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${uiExports.map((item) => `\`${String(item)}\``).join(', ') || '—'} | ${plannedConsumers.map((item) => `\`${String(item)}\``).join(', ') || '—'} | \`${String(module?.admission_status || '')}\` | \`${String(module?.owner || '')}\` | \`${String(module?.source_rule || '')}\` |\n`;
   }
   out += '\n';
   return normalizeMarkdown(out);

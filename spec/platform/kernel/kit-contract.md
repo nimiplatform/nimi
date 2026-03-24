@@ -5,7 +5,7 @@
 ## P-KIT-001 — Kit Package Authority
 
 - `@nimiplatform/nimi-kit` is the single authoritative package for cross-app shared platform infrastructure.
-- Sub-modules are published through subpath exports on the single package: `/ui`, `/auth`, `/core/*`, `/telemetry/*`, and future additions.
+- Sub-modules are published through subpath exports on the single package: `/ui`, `/auth`, `/core/*`, `/telemetry/*`, and `/features/*`.
 - Apps must not duplicate capabilities already covered by a kit sub-module in app-local code.
 
 ## P-KIT-002 — Kit Sub-Module Registry
@@ -60,16 +60,51 @@
 - Registry entries must declare dependency direction against existing kit modules and external packages.
 - New modules must add a dedicated hard gate or extend an existing gate before broad adoption.
 
+## P-KIT-060 — Feature Module Topology
+
+- `kit/features/*` is the product-capability layer for reusable Nimi AI surfaces.
+- Feature modules are not restricted to pure UI components; they may contain `components`, `hooks`, headless logic, adapters, and styles inside one bounded module.
+- Feature modules must not import app-layer code, app state stores, `dataSync`, or platform bridge implementations directly.
+- Feature modules must remain portable across apps by consuming injected adapters only.
+
+## P-KIT-070 — Headless and Default UI Surfaces
+
+- Every feature module must expose both a headless surface and a default opinionated UI surface.
+- Stable feature modules should publish explicit `/headless` and `/ui` subpath exports in addition to any aggregate module entry.
+- Runtime-aware feature modules may additionally publish `/runtime` subpaths only when the integration binds `getPlatformClient().runtime` or runtime control-plane domains without app-layer stores or platform bridges.
+- Realm-aware feature modules may publish `/realm` subpaths only when the integration binds `getPlatformClient().realm` without app-layer stores or platform bridges.
+- Headless exports own state, filtering, submit protocols, and interaction contracts.
+- UI exports may compose `ui` primitives and themes, but must not bypass headless contracts with app-local assumptions.
+- Default UI surfaces should cover baseline styling and baseline interaction behavior so consuming apps do not need to rebuild the same shell.
+- Runtime and realm are distinct first-party seams and must not be treated as interchangeable labels.
+
+## P-KIT-080 — Adapter Injection Contract
+
+- Every feature module must publish its adapter contract in the registry before adoption.
+- Adapter contracts are the only allowed seam for app-specific data sources, mutations, and platform capabilities.
+- First-party runtime-aware integrations may bind SDK typed services only from explicit `kit/features/*/runtime` subpaths.
+- First-party realm-aware integrations may bind SDK typed services only from explicit `kit/features/*/realm` subpaths.
+- `runtime` must not be used as a generic label for all first-party integrations. Local AI/runtime engine and realm business services are distinct seams.
+- Feature modules must not import Tauri/Electron bridges, runtime internals, or SDK typed services directly when the same behavior can be injected through adapters.
+- Feature module exports must make the adapter seam obvious through typed public interfaces.
+- Registry metadata, package exports, and on-disk surface files must agree on whether a feature publishes `headless`, `ui`, `runtime`, and `realm`.
+
 ## P-KIT-090 — Kit Hard Gate
 
 - `pnpm check:nimi-kit` is the hard gate for kit sub-module compliance.
 - The gate must fail when:
   - a registered sub-module is missing from disk or an on-disk sub-module is unregistered
+  - a package export is unregistered or a registered export is missing from `kit/package.json`
   - a registry row omits required governance metadata or declares unsupported `kind`
+  - a module-level `README.md` is missing
   - a kit sub-module imports from `apps/**`
   - the core sub-module contains UI/CSS imports
   - the telemetry sub-module contains Tauri/Node.js imports
   - the auth sub-module defines CSS custom properties outside the `--nimi-*` namespace (except scoped overrides within `data-shell-auth-theme`)
+  - a feature module omits required registry metadata for `surface_level`, `adapter_contract`, `headless_exports`, `ui_exports`, or `planned_consumers`
+  - a feature module claims `runtime` or `realm` capability but does not publish the matching surface
+  - a feature module publishes `runtime` while binding `getPlatformClient().realm`, or publishes `realm` while binding `getPlatformClient().runtime`
+  - a feature module imports app aliases, SDK client packages, or platform bridge implementations directly
 
 ## Fact Sources
 
