@@ -6,15 +6,19 @@ import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 const repoRoot = process.cwd();
 const rendererRoot = path.join(repoRoot, 'apps/desktop/src/shell/renderer');
 const surfacesPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
+const overlaysPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 const allowlistsPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-allowlists.yaml');
 
 const surfacesDoc = readYamlWithFragments(surfacesPath) || {};
+const overlaysDoc = readYamlWithFragments(overlaysPath) || {};
 const allowlistsDoc = readYamlWithFragments(allowlistsPath) || {};
 const surfaces = Array.isArray(surfacesDoc?.surfaces) ? surfacesDoc.surfaces : [];
+const overlays = Array.isArray(overlaysDoc?.overlays) ? overlaysDoc.overlays : [];
 const allowlists = Array.isArray(allowlistsDoc?.patterns) ? allowlistsDoc.patterns : [];
 
 const baselineFiles = new Set();
 const secondaryFiles = new Set();
+const governedSurfaceRules = new Map();
 for (const item of surfaces) {
   const surfaceProfile = String(item?.surface_profile || '').trim();
   if (surfaceProfile !== 'baseline' && surfaceProfile !== 'secondary') {
@@ -26,12 +30,33 @@ for (const item of surfaces) {
   }
   const filePath = path.join(rendererRoot, moduleRel);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    governedSurfaceRules.set(filePath, {
+      profile: surfaceProfile,
+      testidRequired: item?.testid_required === true,
+    });
     if (surfaceProfile === 'baseline') {
       baselineFiles.add(filePath);
     } else {
       secondaryFiles.add(filePath);
     }
   }
+}
+
+const governedOverlayRules = new Map();
+for (const item of overlays) {
+  const moduleRel = String(item?.module || '').trim();
+  if (!moduleRel) {
+    continue;
+  }
+  const filePath = path.join(rendererRoot, moduleRel);
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    continue;
+  }
+  const current = governedOverlayRules.get(filePath) || { testidRequired: false };
+  if (item?.testid_required === true) {
+    current.testidRequired = true;
+  }
+  governedOverlayRules.set(filePath, current);
 }
 
 const sharedFiles = [
@@ -85,6 +110,24 @@ function collectMatches(content, regex) {
   return [...content.matchAll(regex)].map((match) => match[0]);
 }
 
+function countLocalButtonFamilies(content) {
+  const patterns = [
+    /\bexport\s+function\s+\w*(?:IconButton|Button)\s*\(/gu,
+    /\bfunction\s+\w*(?:IconButton|Button)\s*\(/gu,
+    /\bconst\s+\w*(?:IconButton|Button)\s*=\s*(?:async\s*)?\(/gu,
+    /\bconst\s+\w*(?:IconButton|Button)\s*=\s*(?:async\s*)?function\b/gu,
+  ];
+  return patterns.reduce((total, pattern) => total + collectMatches(content, pattern).length, 0);
+}
+
+function usesSharedOverlayPrimitive(content) {
+  return /(?:components\/overlay\.js|\.\/overlay\.js)/u.test(content);
+}
+
+function hasStableTestabilityMarkup(content) {
+  return /data-testid=/u.test(content) || /E2E_IDS\./u.test(content);
+}
+
 for (const filePath of filesToCheck) {
   const content = fs.readFileSync(filePath, 'utf8');
   const fileRel = rel(filePath);
@@ -113,11 +156,25 @@ for (const filePath of filesToCheck) {
     hardFailures.push(`${fileRel}: inline style requires renderer-design allowlist coverage`);
   }
 
-  const definesLocalOverlay = /(Modal|Dialog|Popover|Tooltip)\s*\(/u.test(content) || /export function .*?(Modal|Dialog|Popover|Tooltip)\b/u.test(content);
-  if (definesLocalOverlay && /features\/(explore|contacts)\//u.test(fileRel) && !content.includes("@renderer/components/overlay.js")) {
-    hardFailures.push(`${fileRel}: local overlay shell must import @renderer/components/overlay.js`);
-  }
+}
 
+for (const [filePath, rule] of governedSurfaceRules.entries()) {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const fileRel = rel(filePath);
+  if (rule.testidRequired && !hasStableTestabilityMarkup(content)) {
+    hardFailures.push(`${fileRel}: governed surface is missing stable testability markup`);
+  }
+}
+
+for (const [filePath, rule] of governedOverlayRules.entries()) {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const fileRel = rel(filePath);
+  if (!usesSharedOverlayPrimitive(content)) {
+    hardFailures.push(`${fileRel}: governed overlay module must import components/overlay.js`);
+  }
+  if (rule.testidRequired && !hasStableTestabilityMarkup(content)) {
+    hardFailures.push(`${fileRel}: governed overlay is missing stable testability markup`);
+  }
 }
 
 for (const filePath of advisoryFiles) {
@@ -128,7 +185,7 @@ for (const filePath of advisoryFiles) {
   const containsRawButton = /<button\b/iu.test(content);
   const isOverlayFile = /(modal|dialog|tooltip|popover)/iu.test(path.basename(fileRel));
 
-  advisory.localButtonDefinitions += collectMatches(content, /(?:function|const)\s+\w*(?:IconButton|Button)\b/gu).length;
+  advisory.localButtonDefinitions += countLocalButtonFamilies(content);
 
   if (isBaseline) {
     if (isRootLikeSurface && !content.includes("@renderer/components/surface.js")) {
@@ -137,7 +194,7 @@ for (const filePath of advisoryFiles) {
     if (containsRawButton && !content.includes("@renderer/components/action.js")) {
       advisory.filesWithRawButtonsAndNoSharedAction += 1;
     }
-    if (isOverlayFile && !content.includes("@renderer/components/overlay.js")) {
+    if (isOverlayFile && !usesSharedOverlayPrimitive(content)) {
       advisory.overlayFilesWithoutSharedOverlay += 1;
     }
     continue;
@@ -149,7 +206,7 @@ for (const filePath of advisoryFiles) {
   if (containsRawButton && !content.includes("@renderer/components/action.js")) {
     advisory.secondaryFilesWithRawButtonsAndNoSharedAction += 1;
   }
-  if (isOverlayFile && !content.includes("@renderer/components/overlay.js")) {
+  if (isOverlayFile && !usesSharedOverlayPrimitive(content)) {
     advisory.secondaryOverlayFilesWithoutSharedOverlay += 1;
   }
 }

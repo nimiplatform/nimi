@@ -619,7 +619,7 @@ function checkRendererDesignTables() {
   const overlaysPath = 'spec/desktop/kernel/tables/renderer-design-overlays.yaml';
   const allowlistsPath = 'spec/desktop/kernel/tables/renderer-design-allowlists.yaml';
 
-  const allowedTokenCategories = new Set(['brand', 'surface', 'text', 'radius', 'elevation', 'z', 'motion']);
+  const allowedTokenCategories = new Set(['brand', 'surface', 'text', 'radius', 'elevation', 'z', 'motion', 'typography', 'spacing', 'stroke', 'state']);
   const allowedSurfaceProfiles = new Set(['baseline', 'secondary', 'exception']);
   const allowedExceptionPolicies = new Set(['none', 'allowlisted_arbitrary', 'controlled']);
   const allowedOverlayKinds = new Set(['dialog', 'drawer', 'popover', 'tooltip']);
@@ -671,6 +671,9 @@ function checkRendererDesignTables() {
     if (!allowedExceptionPolicies.has(exceptionPolicy)) {
       fail(`${surfacesPath} surface ${id} has invalid exception_policy: ${exceptionPolicy}`);
     }
+    if (typeof item?.testid_required !== 'boolean') {
+      fail(`${surfacesPath} surface ${id} must declare boolean testid_required`);
+    }
     if (!fs.existsSync(path.join(rendererRoot, module))) {
       fail(`${surfacesPath} surface ${id} module does not exist under renderer root: ${module}`);
     }
@@ -690,6 +693,26 @@ function checkRendererDesignTables() {
     fail(`${surfacesPath} must declare a controlled world-detail exception row`);
   }
 
+  const requiredSecondaryDomains = new Map([
+    ['spec/desktop/home.md', 'features/home/'],
+    ['spec/desktop/notification.md', 'features/notification/'],
+    ['spec/desktop/profile.md', 'features/profile/'],
+  ]);
+  for (const [docRel, modulePrefix] of requiredSecondaryDomains) {
+    if (!fileExists(docRel)) {
+      continue;
+    }
+    const docContent = read(docRel);
+    if (!docContent.includes('secondary consumer')) {
+      continue;
+    }
+    const hasRegisteredSurface = surfaces.some((item) => String(item?.surface_profile || '').trim() === 'secondary'
+      && String(item?.module || '').trim().startsWith(modulePrefix));
+    if (!hasRegisteredSurface) {
+      fail(`${surfacesPath} must register at least one secondary surface for ${docRel}`);
+    }
+  }
+
   const overlaysDoc = readYaml(overlaysPath) || {};
   const overlays = Array.isArray(overlaysDoc?.overlays) ? overlaysDoc.overlays : [];
   if (overlays.length === 0) {
@@ -697,12 +720,13 @@ function checkRendererDesignTables() {
   }
   for (const item of overlays) {
     const id = String(item?.id || '').trim();
+    const module = String(item?.module || '').trim();
     const kind = String(item?.kind || '').trim();
     const tone = String(item?.surface_tone || '').trim();
     const elevation = String(item?.elevation || '').trim();
     const zToken = String(item?.z_token || '').trim();
-    if (!id || !kind || !tone || !elevation || !zToken) {
-      fail(`${overlaysPath} overlay rows require id/kind/surface_tone/elevation/z_token`);
+    if (!id || !module || !kind || !tone || !elevation || !zToken) {
+      fail(`${overlaysPath} overlay rows require id/module/kind/surface_tone/elevation/z_token`);
       continue;
     }
     if (!allowedOverlayKinds.has(kind)) {
@@ -714,11 +738,34 @@ function checkRendererDesignTables() {
     if (!allowedElevations.has(elevation)) {
       fail(`${overlaysPath} overlay ${id} has invalid elevation: ${elevation}`);
     }
+    const overlayModulePath = path.join(rendererRoot, module);
+    if (!fs.existsSync(overlayModulePath)) {
+      fail(`${overlaysPath} overlay ${id} module does not exist under renderer root: ${module}`);
+      continue;
+    }
+    const overlaySource = fs.readFileSync(overlayModulePath, 'utf8');
+    if (!/(?:components\/overlay\.js|\.\/overlay\.js)/.test(overlaySource)) {
+      fail(`${overlaysPath} overlay ${id} module must import components/overlay.js: ${module}`);
+    }
     if (typeof item?.testid_required !== 'boolean') {
       fail(`${overlaysPath} overlay ${id} must declare boolean testid_required`);
     }
     if (typeof item?.reduced_motion !== 'boolean') {
       fail(`${overlaysPath} overlay ${id} must declare boolean reduced_motion`);
+    }
+    if (item?.testid_required === true && !(/data-testid=/u.test(overlaySource) || /E2E_IDS\./u.test(overlaySource))) {
+      fail(`${overlaysPath} overlay ${id} testid_required=true but module lacks stable testability markup: ${module}`);
+    }
+  }
+
+  for (const item of surfaces) {
+    const module = String(item?.module || '').trim();
+    if (!module || item?.testid_required !== true) {
+      continue;
+    }
+    const surfaceSource = fs.readFileSync(path.join(rendererRoot, module), 'utf8');
+    if (!(/data-testid=/u.test(surfaceSource) || /E2E_IDS\./u.test(surfaceSource))) {
+      fail(`${surfacesPath} surface ${String(item?.id || '').trim()} testid_required=true but module lacks stable testability markup: ${module}`);
     }
   }
 

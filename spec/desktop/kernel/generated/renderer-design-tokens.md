@@ -12,6 +12,14 @@
 | `surface.overlay` | `surface` | `--nimi-surface-overlay` | `nimi-surface--overlay` | `baseline` | `D-SHELL-016` |
 | `text.primary` | `text` | `--nimi-text-primary` | `text-gray-900` | `baseline` | `D-SHELL-016` |
 | `text.secondary` | `text` | `--nimi-text-secondary` | `text-gray-600` | `baseline` | `D-SHELL-016` |
+| `typography.page_title` | `typography` | `--nimi-type-page-title` | `nimi-type--page-title` | `baseline` | `D-SHELL-016` |
+| `typography.section_title` | `typography` | `--nimi-type-section-title` | `nimi-type--section-title` | `baseline` | `D-SHELL-016` |
+| `spacing.section` | `spacing` | `--nimi-space-section` | `gap-6` | `baseline` | `D-SHELL-016` |
+| `spacing.stack` | `spacing` | `--nimi-space-stack` | `space-y-4` | `baseline` | `D-SHELL-016` |
+| `stroke.subtle` | `stroke` | `--nimi-border-subtle` | `border-slate-200` | `baseline` | `D-SHELL-016` |
+| `stroke.strong` | `stroke` | `--nimi-border-strong` | `border-mint-200` | `baseline` | `D-SHELL-016` |
+| `state.selected` | `state` | `--nimi-state-selected` | `nimi-state--selected` | `baseline` | `D-SHELL-016` |
+| `state.danger` | `state` | `--nimi-state-danger` | `nimi-state--danger` | `baseline` | `D-SHELL-016` |
 | `radius.sm` | `radius` | `--nimi-radius-sm` | `rounded-md` | `baseline` | `D-SHELL-016` |
 | `radius.lg` | `radius` | `--nimi-radius-lg` | `rounded-2xl` | `baseline` | `D-SHELL-016` |
 | `radius.xl` | `radius` | `--nimi-radius-xl` | `rounded-[28px]` | `baseline` | `D-SHELL-016` |

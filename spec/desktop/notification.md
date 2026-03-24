@@ -15,7 +15,7 @@
 
 ### UI Shell (D-SHELL-015, D-SHELL-018, D-SHELL-022)
 
-`notification` 目前属于 desktop design secondary consumer。root shell、filter/action controls 与 reject-gift dialog 应通过 shared surface/action/overlay primitives 收敛；在升级为 baseline anchor 之前，仍受 secondary adoption 跟踪。
+`notification` 目前属于 desktop design secondary consumer。root shell、filter/action controls 与 reject-gift dialog 应通过 shared surface/action/overlay primitives 收敛；在升级为 baseline anchor 之前，仍受 secondary adoption 跟踪。已纳入治理的 overlay consumer 必须显式登记在 `tables/renderer-design-overlays.yaml`。
 
 ### DataSync (D-DSYNC-009)
 

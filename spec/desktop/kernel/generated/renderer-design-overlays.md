@@ -5,6 +5,12 @@
 | Overlay ID | Kind | Surface Tone | Elevation | Z Token | Test ID Required | Reduced Motion | Source Rule |
 |---|---|---|---|---|---|---|---|
 | `shared.tooltip` | `tooltip` | `overlay` | `floating` | `--nimi-z-tooltip` | `false` | `true` | `D-SHELL-018` |
-| `explore.quick_add_friend` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `false` | `true` | `D-SHELL-018` |
-| `contacts.block_confirm` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `false` | `true` | `D-SHELL-018` |
-| `contacts.restore_confirm` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `false` | `true` | `D-SHELL-018` |
+| `explore.quick_add_friend` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |
+| `contacts.block_confirm` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |
+| `contacts.restore_confirm` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |
+| `notification.reject_gift` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |
+| `contacts.profile_detail_modal` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |
+| `economy.send_gift` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |
+| `profile.create_post` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |
+| `profile.create_post_popovers` | `popover` | `overlay` | `floating` | `--nimi-z-popover` | `true` | `true` | `D-SHELL-018` |
+| `profile.top_supporters` | `dialog` | `overlay` | `modal` | `--nimi-z-dialog` | `true` | `true` | `D-SHELL-018` |

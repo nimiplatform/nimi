@@ -15,7 +15,7 @@
 
 ### UI Shell (D-SHELL-015, D-SHELL-022)
 
-`profile` 复用 shared contact detail surface 与 economy/modal family，属于 secondary consumer。后续 design adoption 应继续沿 shared primitives 推进，而不是在 profile 层重新定义本地 shell/action 常量。
+`profile` 复用 shared contact detail surface 与 economy/modal family，属于 secondary consumer。后续 design adoption 应继续沿 shared primitives 推进，而不是在 profile 层重新定义本地 shell/action 常量；凡是受治理的 `profile` root/modal/popover consumer，必须显式登记在 `tables/renderer-design-surfaces.yaml` 与 `tables/renderer-design-overlays.yaml`。
 
 ### DataSync (D-DSYNC-002)
 

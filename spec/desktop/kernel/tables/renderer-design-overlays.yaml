@@ -1,6 +1,7 @@
 version: 1
 overlays:
   - id: shared.tooltip
+    module: components/tooltip.tsx
     kind: tooltip
     surface_tone: overlay
     elevation: floating
@@ -9,26 +10,83 @@ overlays:
     reduced_motion: true
     source_rule: D-SHELL-018
   - id: explore.quick_add_friend
+    module: features/explore/quick-add-friend-modal.tsx
     kind: dialog
     surface_tone: overlay
     elevation: modal
     z_token: --nimi-z-dialog
-    testid_required: false
+    testid_required: true
     reduced_motion: true
     source_rule: D-SHELL-018
   - id: contacts.block_confirm
+    module: features/contacts/contacts-blocked-users.tsx
     kind: dialog
     surface_tone: overlay
     elevation: modal
     z_token: --nimi-z-dialog
-    testid_required: false
+    testid_required: true
     reduced_motion: true
     source_rule: D-SHELL-018
   - id: contacts.restore_confirm
+    module: features/contacts/contacts-blocked-users.tsx
     kind: dialog
     surface_tone: overlay
     elevation: modal
     z_token: --nimi-z-dialog
-    testid_required: false
+    testid_required: true
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: notification.reject_gift
+    module: features/notification/notification-reject-gift-dialog.tsx
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: true
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: contacts.profile_detail_modal
+    module: features/contacts/contact-detail-profile-modal.tsx
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: true
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: economy.send_gift
+    module: features/economy/send-gift-modal.tsx
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: true
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: profile.create_post
+    module: features/profile/create-post-modal.tsx
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: true
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: profile.create_post_popovers
+    module: features/profile/create-post-modal-panels.tsx
+    kind: popover
+    surface_tone: overlay
+    elevation: floating
+    z_token: --nimi-z-popover
+    testid_required: true
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: profile.top_supporters
+    module: features/profile/gifts-tab.tsx
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: true
     reduced_motion: true
     source_rule: D-SHELL-018

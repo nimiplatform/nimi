@@ -56,6 +56,62 @@ tokens:
     tailwind_alias: text-gray-600
     scope: baseline
     source_rule: D-SHELL-016
+  - id: typography.page_title
+    category: typography
+    name: page_title
+    css_var: --nimi-type-page-title
+    tailwind_alias: nimi-type--page-title
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: typography.section_title
+    category: typography
+    name: section_title
+    css_var: --nimi-type-section-title
+    tailwind_alias: nimi-type--section-title
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: spacing.section
+    category: spacing
+    name: section_gap
+    css_var: --nimi-space-section
+    tailwind_alias: gap-6
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: spacing.stack
+    category: spacing
+    name: stack_gap
+    css_var: --nimi-space-stack
+    tailwind_alias: space-y-4
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: stroke.subtle
+    category: stroke
+    name: stroke_subtle
+    css_var: --nimi-border-subtle
+    tailwind_alias: border-slate-200
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: stroke.strong
+    category: stroke
+    name: stroke_strong
+    css_var: --nimi-border-strong
+    tailwind_alias: border-mint-200
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: state.selected
+    category: state
+    name: state_selected
+    css_var: --nimi-state-selected
+    tailwind_alias: nimi-state--selected
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: state.danger
+    category: state
+    name: state_danger
+    css_var: --nimi-state-danger
+    tailwind_alias: nimi-state--danger
+    scope: baseline
+    source_rule: D-SHELL-016
   - id: radius.sm
     category: radius
     name: radius_sm

@@ -5,52 +5,82 @@ surfaces:
     role: chat_root
     surface_profile: baseline
     exception_policy: none
+    testid_required: true
     source_rule: D-SHELL-019
   - id: explore.view.root
     module: features/explore/explore-view.tsx
     role: explore_root
     surface_profile: baseline
     exception_policy: allowlisted_arbitrary
+    testid_required: true
     source_rule: D-SHELL-019
   - id: explore.quick_add_friend.dialog
     module: features/explore/quick-add-friend-modal.tsx
     role: quick_add_friend_dialog
     surface_profile: baseline
     exception_policy: none
+    testid_required: true
     source_rule: D-SHELL-022
   - id: contacts.view.root
     module: features/contacts/contacts-view.tsx
     role: contacts_root
     surface_profile: baseline
     exception_policy: allowlisted_arbitrary
+    testid_required: true
     source_rule: D-SHELL-019
   - id: contacts.blocked_users.dialogs
     module: features/contacts/contacts-blocked-users.tsx
     role: block_restore_dialogs
     surface_profile: baseline
     exception_policy: allowlisted_arbitrary
+    testid_required: true
     source_rule: D-SHELL-022
   - id: home.view.root
     module: features/home/home-view.tsx
     role: home_root
     surface_profile: secondary
     exception_policy: allowlisted_arbitrary
+    testid_required: true
     source_rule: D-SHELL-015
   - id: notification.panel.root
     module: features/notification/notification-panel.tsx
     role: notification_root
     surface_profile: secondary
     exception_policy: none
+    testid_required: true
     source_rule: D-SHELL-015
   - id: notification.reject_gift.dialog
     module: features/notification/notification-reject-gift-dialog.tsx
     role: notification_reject_dialog
     surface_profile: secondary
     exception_policy: none
+    testid_required: true
     source_rule: D-SHELL-018
+  - id: profile.panel.root
+    module: features/profile/profile-panel.tsx
+    role: profile_root
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: true
+    source_rule: D-SHELL-015
+  - id: contacts.profile_detail.surface
+    module: features/contacts/contact-detail-view-content.tsx
+    role: profile_detail_surface
+    surface_profile: secondary
+    exception_policy: allowlisted_arbitrary
+    testid_required: true
+    source_rule: D-SHELL-015
+  - id: economy.send_gift.dialog_surface
+    module: features/economy/send-gift-modal.tsx
+    role: send_gift_dialog_surface
+    surface_profile: secondary
+    exception_policy: none
+    testid_required: true
+    source_rule: D-SHELL-015
   - id: world.detail.exception
     module: features/world/world-detail-template.tsx
     role: world_detail_art_direction
     surface_profile: exception
     exception_policy: controlled
+    testid_required: false
     source_rule: D-SHELL-020

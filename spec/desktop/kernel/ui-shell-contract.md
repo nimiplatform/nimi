@@ -188,14 +188,15 @@ World Detail 的视觉卡与 section surface 必须满足：
 Desktop renderer 的共享 UI 设计必须通过 renderer-level semantic token 与 primitive facade 收敛，而不是继续把重复 UI 常量分散在 feature-local 组件内。
 
 - baseline surface 的默认落点是 `components/design-tokens.ts`、`components/surface.tsx`、`components/action.tsx`、`components/overlay.tsx` 与 `styles.css` 中的语义 token。
-- feature-local primitive 可以保留在 `settings`、`runtime-config` 等 secondary/admin surface，但不得反向成为 desktop baseline 的唯一事实源。
+- 受治理的 secondary consumer 必须在 `tables/renderer-design-surfaces.yaml` 中显式登记；`secondary consumer` 不能只存在于 domain prose 或 code review 记忆里。
+- feature-local primitive 可以保留在 `settings`、`runtime-config` 等未纳入治理的 secondary/admin surface，但不得反向成为 desktop baseline 的唯一事实源。
 - design audit、spec、check 与 renderer implementation 必须围绕同一组 baseline primitive 演进。
 
 ## D-SHELL-016 — Token Resolution
 
 Desktop baseline surface 的共享设计值必须通过命名 token 解析：
 
-- brand、surface、text、radius、elevation、z-index、motion 的 baseline 值必须登记在 `tables/renderer-design-tokens.yaml`。
+- brand、surface、text、radius、elevation、z-index、motion、typography、spacing、stroke 与 state 的 baseline 值必须登记在 `tables/renderer-design-tokens.yaml`。
 - baseline surface 不得直接硬编码 raw brand hex、隐式 shared surface 色值或重复 elevation 常量，除非被 `renderer-design-allowlists.yaml` 明确豁免。
 - shared primitive 负责把 token 投影为 CSS variable / utility / facade API；feature 代码不得绕过该映射层直接复制 token 值。
 
@@ -220,7 +221,7 @@ Desktop baseline overlay 只能使用以下共享 kind：
 - `popover`
 - `tooltip`
 
-overlay 的 surface tone、elevation、z token、testability 与 reduced-motion 策略必须登记在 `tables/renderer-design-overlays.yaml`。baseline surface 不得继续定义未经登记的本地 overlay shell。
+overlay 的 module、surface tone、elevation、z token、testability 与 reduced-motion 策略必须登记在 `tables/renderer-design-overlays.yaml`。凡是被 design governance 覆盖的 overlay consumer，不得继续停留在“实现存在但表未登记”的状态；baseline surface 不得继续定义未经登记的本地 overlay shell。
 
 ## D-SHELL-019 — Main Surface Baseline
 
@@ -251,6 +252,7 @@ baseline surface 的 arbitrary Tailwind value 与 inline style 默认禁止：
 baseline surface 的共享 action、surface、dialog、popover 与 tooltip 必须经过 renderer-level primitive facade：
 
 - `chat`、`explore`、`contacts` 中新增或重写的 baseline button / card / dialog / tooltip 不得再定义本地 shell。
+- 受治理的 overlay adoption 以 table registration 为准；凡是在 `renderer-design-overlays.yaml` 中登记的 module，必须通过 shared overlay primitive 暴露 dialog / drawer / popover / tooltip shell。
 - 允许 feature 组合 shared primitive，但不允许重新发明另一套 baseline shell class contract。
 - adoption 进度由 `D-GATE-091` 追踪；完成前允许局部 legacy 实现存在，但不得继续扩散。
 

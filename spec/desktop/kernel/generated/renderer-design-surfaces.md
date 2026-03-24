@@ -12,4 +12,7 @@
 | `home.view.root` | `features/home/home-view.tsx` | `home_root` | `secondary` | `allowlisted_arbitrary` | `D-SHELL-015` |
 | `notification.panel.root` | `features/notification/notification-panel.tsx` | `notification_root` | `secondary` | `none` | `D-SHELL-015` |
 | `notification.reject_gift.dialog` | `features/notification/notification-reject-gift-dialog.tsx` | `notification_reject_dialog` | `secondary` | `none` | `D-SHELL-018` |
+| `profile.panel.root` | `features/profile/profile-panel.tsx` | `profile_root` | `secondary` | `none` | `D-SHELL-015` |
+| `contacts.profile_detail.surface` | `features/contacts/contact-detail-view-content.tsx` | `profile_detail_surface` | `secondary` | `allowlisted_arbitrary` | `D-SHELL-015` |
+| `economy.send_gift.dialog_surface` | `features/economy/send-gift-modal.tsx` | `send_gift_dialog_surface` | `secondary` | `none` | `D-SHELL-015` |
 | `world.detail.exception` | `features/world/world-detail-template.tsx` | `world_detail_art_direction` | `exception` | `controlled` | `D-SHELL-020` |

@@ -15,7 +15,7 @@
 
 ### UI Shell (D-SHELL-015, D-SHELL-022)
 
-`home` 目前属于 desktop design secondary consumer。root shell、compose entry 与浮动 primary action 应优先复用 renderer-level surface/action primitives，不得继续在 feature 内复制 shared button/shell 常量。
+`home` 目前属于 desktop design secondary consumer。root shell、compose entry 与浮动 primary action 应优先复用 renderer-level surface/action primitives，不得继续在 feature 内复制 shared button/shell 常量；任何纳入治理的 `home` surface 必须显式登记在 `tables/renderer-design-surfaces.yaml`。
 
 ### DataSync (D-DSYNC-007)
 
