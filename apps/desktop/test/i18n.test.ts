@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { readdir, readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
 
 import {
@@ -8,6 +8,53 @@ import {
   formatRelativeLocaleTime,
   initI18n,
 } from '../src/shell/renderer/i18n';
+
+const RENDERER_ROOT = resolve(import.meta.dirname, '../src/shell/renderer');
+const EN_LOCALE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/locales/en.json');
+const ZH_LOCALE_PATH = resolve(import.meta.dirname, '../src/shell/renderer/locales/zh.json');
+const RUNTIME_CONFIG_PANEL_VIEW_PATH = resolve(
+  import.meta.dirname,
+  '../src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx',
+);
+
+function flattenLocaleKeys(input: unknown, prefix = ''): string[] {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return prefix ? [prefix] : [];
+  }
+
+  return Object.entries(input).flatMap(([key, value]) => {
+    const next = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return flattenLocaleKeys(value, next);
+    }
+    return [next];
+  });
+}
+
+function getValueAtKey(input: unknown, key: string): unknown {
+  return key.split('.').reduce<unknown>((current, segment) => {
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      return undefined;
+    }
+    return (current as Record<string, unknown>)[segment];
+  }, input);
+}
+
+async function collectRendererSourceFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const nested = await Promise.all(entries.map(async (entry) => {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return collectRendererSourceFiles(fullPath);
+    }
+    return /\.(ts|tsx|html)$/.test(entry.name) ? [fullPath] : [];
+  }));
+  return nested.flat();
+}
+
+async function readJson(filePath: string): Promise<Record<string, unknown>> {
+  return JSON.parse(await readFile(filePath, 'utf8')) as Record<string, unknown>;
+}
 
 function installDomGlobals(): () => void {
   const previousLocalStorage = globalThis.localStorage;
@@ -84,10 +131,7 @@ test('formatRelativeLocaleTime follows current locale', async () => {
 });
 
 test('auth runtime locale keys exist in both desktop locales', async () => {
-  const localePaths = [
-    resolve(import.meta.dirname, '../src/shell/renderer/locales/en.json'),
-    resolve(import.meta.dirname, '../src/shell/renderer/locales/zh.json'),
-  ];
+  const localePaths = [EN_LOCALE_PATH, ZH_LOCALE_PATH];
   const requiredKeys = [
     'passwordLoginFailed',
     'requestEmailOtpFailed',
@@ -109,5 +153,74 @@ test('auth runtime locale keys exist in both desktop locales', async () => {
       );
       assert.match(String(auth[key] || ''), /\S/, `${localePath} has empty Auth.${key}`);
     }
+  }
+});
+
+test('renderer translation key usages resolve in en locale', async () => {
+  const en = await readJson(EN_LOCALE_PATH);
+  const enKeys = new Set(flattenLocaleKeys(en));
+  const sourceFiles = await collectRendererSourceFiles(RENDERER_ROOT);
+  const directKeyPattern = /\b(?:i18n\.t|t|tModHub|deps\.translate)\(\s*['"]([^'"]+)['"]/g;
+  const seenKeys = new Set<string>();
+
+  for (const filePath of sourceFiles) {
+    const source = await readFile(filePath, 'utf8');
+    let match: RegExpExecArray | null;
+    while ((match = directKeyPattern.exec(source)) !== null) {
+      const key = match[1];
+      if (key) {
+        seenKeys.add(key);
+      }
+    }
+  }
+
+  const missingKeys = [...seenKeys]
+    .filter((key) => !enKeys.has(key))
+    .sort((left, right) => left.localeCompare(right));
+
+  assert.deepEqual(
+    missingKeys,
+    [],
+    `en.json is missing renderer translation keys: ${missingKeys.join(', ')}`,
+  );
+});
+
+test('known dynamic desktop locale keys exist in both locales', async () => {
+  const localeEntries = [
+    ['en', await readJson(EN_LOCALE_PATH)],
+    ['zh', await readJson(ZH_LOCALE_PATH)],
+  ] as const;
+  const requiredKeys = [
+    'SecuritySettings.copySecretSuccess',
+  ];
+
+  for (const [locale, localeData] of localeEntries) {
+    for (const key of requiredKeys) {
+      const value = getValueAtKey(localeData, key);
+      assert.equal(typeof value, 'string', `${locale} locale is missing ${key}`);
+      assert.match(String(value || ''), /\S/, `${locale} locale has empty ${key}`);
+    }
+  }
+});
+
+test('runtime config sidebar section keys are defined in en locale', async () => {
+  const panelViewSource = await readFile(RUNTIME_CONFIG_PANEL_VIEW_PATH, 'utf8');
+  const en = await readJson(EN_LOCALE_PATH);
+  const requiredKeys = [
+    'runtimeConfig.sidebar.section.core',
+    'runtimeConfig.sidebar.section.connectors',
+    'runtimeConfig.sidebar.section.operations',
+    'runtimeConfig.sidebar.section.system',
+  ];
+
+  for (const key of requiredKeys) {
+    assert.match(
+      panelViewSource,
+      new RegExp(key.replaceAll('.', '\\.')),
+      `runtime config panel must reference ${key}`,
+    );
+    const value = getValueAtKey(en, key);
+    assert.equal(typeof value, 'string', `en locale is missing ${key}`);
+    assert.match(String(value || ''), /\S/, `en locale has empty ${key}`);
   }
 });

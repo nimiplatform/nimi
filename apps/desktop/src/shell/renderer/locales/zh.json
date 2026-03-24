@@ -970,7 +970,10 @@
     "verifyTwoFactorFailed": "双重验证失败",
     "walletChallengeFailed": "获取钱包挑战失败",
     "walletLoginFailed": "钱包登录失败",
-    "oauthLoginFailed": "OAuth 登录失败"
+    "oauthLoginFailed": "OAuth 登录失败",
+    "logoutServerTransientFailure": "已在本地退出登录，但由于网络错误无法确认服务端退出请求。服务端会话可能仍然处于活跃状态：{{error}}",
+    "logoutServerFailure": "已在本地退出登录，但服务端退出失败。服务端会话可能仍会保持活跃，直到你在其它地方将其撤销：{{error}}",
+    "logoutSuccess": "已退出登录"
   },
   "AuthLogin": {
     "help": "帮助",
@@ -1101,6 +1104,7 @@
     "closeAddContactModal": "关闭添加联系人弹窗",
     "addContactSearchPlaceholder": "通过 handle 搜索",
     "searching": "搜索中",
+    "sending": "发送中...",
     "search": "搜索",
     "alreadyInContacts": "已经在你的联系人中。",
     "cannotAddSelf": "不能添加自己。",
@@ -1168,10 +1172,12 @@
   },
   "GiftBubble": {
     "accept": "接受",
+    "acceptFailed": "接受礼物失败",
     "accepted": "已接受",
     "expired": "已过期",
     "openWallet": "前往钱包",
     "reject": "拒绝",
+    "rejectFailed": "拒绝礼物失败",
     "rejected": "已拒绝"
   },
   "Bootstrap": {
@@ -1190,6 +1196,7 @@
   "ModUI": {
     "openModFailedWithChain": "Mod {{modId}} 打开失败。错误链：{{chain}}",
     "renderFailedWithChain": "Mod {{modId}} 渲染异常。错误链：{{chain}}",
+    "developerHostSubscriptionError": "Runtime Mod 开发宿主在 {{stage}} 阶段失败：{{error}}",
     "tabPageMissingComponent": "tab-page 缺少可渲染 component",
     "unknownUiExtensionType": "未识别的 UI 扩展类型：{{extensionType}}",
     "modFusedTitle": "Mod 已熔断",
@@ -1202,7 +1209,9 @@
     "retryFailed": "Mod {{modId}} 重试失败：{{error}}",
     "retryRecovered": "Mod {{modId}} 已恢复",
     "retryException": "Mod {{modId}} 重试异常：{{error}}",
-    "bootstrapPartialFailure": "部分 Mod 加载失败（{{count}}）。错误链：{{chain}}"
+    "bootstrapPartialFailure": "部分 Mod 加载失败（{{count}}）。错误链：{{chain}}",
+    "queryLoading": "加载中...",
+    "queryRun": "运行"
   },
   "ModSettings": {
     "pageTitle": "扩展",
@@ -1295,6 +1304,13 @@
     "updateSuccess": "安全设置已更新。",
     "updateError": "更新安全设置失败",
     "newTwoFactorSetup": "新 2FA 设置",
+    "secretLabel": "密钥",
+    "uriLabel": "URI",
+    "hideSecret": "隐藏密钥",
+    "revealSecret": "显示密钥",
+    "copySecret": "复制密钥",
+    "copySecretSuccess": "密钥已复制",
+    "copySecretFailed": "复制密钥失败",
     "authenticatorCodeLabel": "请输入当前身份验证器验证码",
     "disableTwoFactorCodeLabel": "请输入当前身份验证器验证码以关闭 2FA",
     "loginAlertsTitle": "登录提醒",
@@ -1927,13 +1943,23 @@
     "failedWarningTitle": "Mod 启动失败",
     "failedWarningBody": "最近一次加载失败：{{error}}",
     "failedWarningFallback": "未提供更多错误信息。",
-    "noSearchResults": "没有匹配的 Mod"
+    "noSearchResults": "没有匹配的 Mod",
+    "runtimeActionFailed": "Mod {{modId}} 操作失败：{{message}}",
+    "installRequiresConsent": "Mod {{modId}} 已安装，但启用前必须重新确认授权：{{consentSummary}}",
+    "installFromCatalogSuccess": "已从 catalog 安装 Mod {{modId}}",
+    "updateSuccess": "Mod {{modId}} 已更新到 {{version}}",
+    "enableSuccess": "Mod {{modId}} 已启用",
+    "disableSuccess": "Mod {{modId}} 已停用",
+    "uninstallSuccess": "Mod {{modId}} 已卸载"
   },
   "AddContact": {
     "inputRequired": "请输入用户账号",
     "legacyPrefixUnsupported": "请直接输入 handle 或 ID，不要带 @ 或 ~。",
     "searchFailed": "未找到该用户。",
     "addFailed": "添加该联系人失败。"
+  },
+  "RuntimeConfig": {
+    "structureUpgraded": "配置结构已升级，请重新确认模型绑定。"
   },
   "runtimeConfig": {
     "sidebar": {
@@ -1956,7 +1982,13 @@
       "performance": "性能",
       "performanceDesc": "渲染偏好、更新与运行时信息",
       "mod-developer": "Mod 开发者",
-      "mod-developerDesc": "开发者模式与诊断工具"
+      "mod-developerDesc": "开发者模式与诊断工具",
+      "section": {
+        "core": "核心",
+        "connectors": "连接器",
+        "operations": "操作",
+        "system": "系统"
+      }
     },
     "overview": {
       "installedModels": "已安装模型",
@@ -2405,6 +2437,7 @@
       "subjectAccountId": "主体账户 ID",
       "subjectAccountPlaceholder": "user_123 / external_456",
       "ttlSeconds": "TTL 秒数",
+      "ttlPositiveInteger": "TTL 必须是正整数。",
       "actionScopes": "操作范围（逗号分隔）",
       "issuing": "签发中...",
       "issueToken": "签发 Token",

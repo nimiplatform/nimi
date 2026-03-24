@@ -970,7 +970,10 @@
     "verifyTwoFactorFailed": "Two-factor verification failed",
     "walletChallengeFailed": "Failed to get wallet challenge",
     "walletLoginFailed": "Wallet sign-in failed",
-    "oauthLoginFailed": "OAuth sign-in failed"
+    "oauthLoginFailed": "OAuth sign-in failed",
+    "logoutServerTransientFailure": "Signed out locally, but the server logout request could not be confirmed because of a network error. The server session may still be active: {{error}}",
+    "logoutServerFailure": "Signed out locally, but server logout failed. The server session may still be active until it is revoked elsewhere: {{error}}",
+    "logoutSuccess": "Signed out"
   },
   "AuthLogin": {
     "help": "Help",
@@ -1101,6 +1104,7 @@
     "closeAddContactModal": "Close add contact modal",
     "addContactSearchPlaceholder": "Search by handle",
     "searching": "Searching",
+    "sending": "Sending...",
     "search": "Search",
     "alreadyInContacts": "Already in your contacts.",
     "cannotAddSelf": "You cannot add yourself.",
@@ -1168,10 +1172,12 @@
   },
   "GiftBubble": {
     "accept": "Accept",
+    "acceptFailed": "Failed to accept gift",
     "accepted": "Accepted",
     "expired": "Expired",
     "openWallet": "Open Wallet",
     "reject": "Reject",
+    "rejectFailed": "Failed to reject gift",
     "rejected": "Rejected"
   },
   "Bootstrap": {
@@ -1190,6 +1196,7 @@
   "ModUI": {
     "openModFailedWithChain": "Mod {{modId}} failed to open. Error chain: {{chain}}",
     "renderFailedWithChain": "Mod {{modId}} render failed. Error chain: {{chain}}",
+    "developerHostSubscriptionError": "Runtime mod developer host failed during {{stage}}: {{error}}",
     "tabPageMissingComponent": "tab-page is missing a renderable component",
     "unknownUiExtensionType": "Unknown UI extension type: {{extensionType}}",
     "modFusedTitle": "Mod fused",
@@ -1202,7 +1209,9 @@
     "retryFailed": "Mod {{modId}} retry failed: {{error}}",
     "retryRecovered": "Mod {{modId}} recovered",
     "retryException": "Mod {{modId}} retry exception: {{error}}",
-    "bootstrapPartialFailure": "{{count}} mods failed to load. Error chain: {{chain}}"
+    "bootstrapPartialFailure": "{{count}} mods failed to load. Error chain: {{chain}}",
+    "queryLoading": "Loading...",
+    "queryRun": "Run"
   },
   "ModSettings": {
     "pageTitle": "Extensions",
@@ -1295,6 +1304,13 @@
     "updateSuccess": "Security settings updated.",
     "updateError": "Failed to update security settings",
     "newTwoFactorSetup": "New 2FA setup",
+    "secretLabel": "Secret",
+    "uriLabel": "URI",
+    "hideSecret": "Hide secret",
+    "revealSecret": "Reveal secret",
+    "copySecret": "Copy secret",
+    "copySecretSuccess": "Secret copied",
+    "copySecretFailed": "Failed to copy secret",
     "authenticatorCodeLabel": "Enter current authenticator code",
     "disableTwoFactorCodeLabel": "Enter current authenticator code to disable 2FA",
     "loginAlertsTitle": "Login Alerts",
@@ -1927,13 +1943,23 @@
     "failedWarningTitle": "Mod startup failed",
     "failedWarningBody": "Latest load failure: {{error}}",
     "failedWarningFallback": "No additional error details were provided.",
-    "noSearchResults": "No mods match your search"
+    "noSearchResults": "No mods match your search",
+    "runtimeActionFailed": "Mod {{modId}} action failed: {{message}}",
+    "installRequiresConsent": "Mod {{modId}} installed, but it must be re-confirmed before enabling: {{consentSummary}}",
+    "installFromCatalogSuccess": "Mod {{modId}} installed from catalog",
+    "updateSuccess": "Mod {{modId}} updated to {{version}}",
+    "enableSuccess": "Mod {{modId}} enabled",
+    "disableSuccess": "Mod {{modId}} disabled",
+    "uninstallSuccess": "Mod {{modId}} uninstalled"
   },
   "AddContact": {
     "inputRequired": "Please input a user handle.",
     "legacyPrefixUnsupported": "Use a handle or ID without @ or ~.",
     "searchFailed": "Failed to find this user.",
     "addFailed": "Failed to add this contact."
+  },
+  "RuntimeConfig": {
+    "structureUpgraded": "Configuration structure upgraded. Please re-confirm model bindings."
   },
   "runtimeConfig": {
     "sidebar": {
@@ -1956,7 +1982,13 @@
       "performance": "Performance",
       "performanceDesc": "Rendering, updates, and runtime info",
       "mod-developer": "Mod Developer",
-      "mod-developerDesc": "Developer mode and diagnostics"
+      "mod-developerDesc": "Developer mode and diagnostics",
+      "section": {
+        "core": "Core",
+        "connectors": "Connectors",
+        "operations": "Operations",
+        "system": "System"
+      }
     },
     "overview": {
       "installedModels": "Installed Models",
@@ -2405,6 +2437,7 @@
       "subjectAccountId": "Subject Account ID",
       "subjectAccountPlaceholder": "user_123 / external_456",
       "ttlSeconds": "TTL Seconds",
+      "ttlPositiveInteger": "TTL must be a positive integer.",
       "actionScopes": "Action Scopes (comma separated)",
       "issuing": "Issuing...",
       "issueToken": "Issue Token",
