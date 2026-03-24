@@ -89,12 +89,13 @@ func validateJWTProof(token string, principal externalPrincipal) error {
 		return fmt.Errorf("%w: parse JWT claims: %v", ErrTokenInvalid, err)
 	}
 
-	// Check expiration with clock skew.
-	if claims.Exp > 0 {
-		expiresAt := time.Unix(claims.Exp, 0)
-		if time.Now().After(expiresAt.Add(allowedClockSkew)) {
-			return ErrTokenExpired
-		}
+	// K-AUTHSVC-013 requires JWT proofs to carry an exp claim.
+	if claims.Exp <= 0 {
+		return fmt.Errorf("%w: JWT exp claim is required", ErrTokenInvalid)
+	}
+	expiresAt := time.Unix(claims.Exp, 0)
+	if time.Now().After(expiresAt.Add(allowedClockSkew)) {
+		return ErrTokenExpired
 	}
 
 	// Check issuer matches registered principal.

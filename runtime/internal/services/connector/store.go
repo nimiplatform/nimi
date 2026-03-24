@@ -111,6 +111,8 @@ func (s *ConnectorStore) Create(record ConnectorRecord, apiKey string) error {
 
 	if record.ConnectorID == "" {
 		record.ConnectorID = ulid.Make().String()
+	} else if _, err := sanitizeConnectorID(record.ConnectorID); err != nil {
+		return fmt.Errorf("invalid connector id: %w", err)
 	}
 	now := time.Now().UnixMilli()
 	if record.CreatedAt == 0 {
@@ -275,7 +277,10 @@ func (s *ConnectorStore) ReconcileStartup() error {
 	for i := range records {
 		r := &records[i]
 		knownIDs[r.ConnectorID] = true
-		credPath := s.credentialPath(r.ConnectorID)
+		credPath, err := s.credentialPath(r.ConnectorID)
+		if err != nil {
+			return fmt.Errorf("invalid connector id %q: %w", r.ConnectorID, err)
+		}
 		_, statErr := os.Stat(credPath)
 		hasCred := statErr == nil
 		if r.HasCredential != hasCred {
@@ -327,16 +332,28 @@ func (s *ConnectorStore) persistRegistryLocked(records []ConnectorRecord) error 
 	return atomicWriteFile(s.registryPath, data, 0o600)
 }
 
-func (s *ConnectorStore) credentialPath(connectorID string) string {
-	return filepath.Join(s.credDir, connectorID+".key")
+func (s *ConnectorStore) credentialPath(connectorID string) (string, error) {
+	sanitized, err := sanitizeConnectorID(connectorID)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(s.credDir, sanitized+".key"), nil
 }
 
 func (s *ConnectorStore) writeCredentialLocked(connectorID string, apiKey string) error {
-	return atomicWriteFile(s.credentialPath(connectorID), []byte(apiKey), 0o600)
+	path, err := s.credentialPath(connectorID)
+	if err != nil {
+		return fmt.Errorf("resolve credential path: %w", err)
+	}
+	return atomicWriteFile(path, []byte(apiKey), 0o600)
 }
 
 func (s *ConnectorStore) readCredentialLocked(connectorID string) (string, error) {
-	data, err := os.ReadFile(s.credentialPath(connectorID))
+	path, err := s.credentialPath(connectorID)
+	if err != nil {
+		return "", fmt.Errorf("resolve credential path: %w", err)
+	}
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", nil
@@ -347,11 +364,29 @@ func (s *ConnectorStore) readCredentialLocked(connectorID string) (string, error
 }
 
 func (s *ConnectorStore) deleteCredentialLocked(connectorID string) error {
-	err := os.Remove(s.credentialPath(connectorID))
+	path, err := s.credentialPath(connectorID)
+	if err != nil {
+		return fmt.Errorf("resolve credential path: %w", err)
+	}
+	err = os.Remove(path)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("delete credential: %w", err)
 	}
 	return nil
+}
+
+func sanitizeConnectorID(connectorID string) (string, error) {
+	trimmed := strings.TrimSpace(connectorID)
+	if trimmed == "" {
+		return "", fmt.Errorf("connector id is required")
+	}
+	if trimmed == "." || trimmed == ".." {
+		return "", fmt.Errorf("connector id %q is not allowed", trimmed)
+	}
+	if trimmed != filepath.Base(trimmed) || strings.Contains(trimmed, "/") || strings.Contains(trimmed, "\\") {
+		return "", fmt.Errorf("connector id %q must not contain path separators", trimmed)
+	}
+	return trimmed, nil
 }
 
 func (s *ConnectorStore) cleanOrphanCredentialsLocked(knownIDs map[string]bool) error {

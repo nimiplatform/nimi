@@ -157,11 +157,11 @@ func TestConnectorStoreUpdateClearCredential(t *testing.T) {
 	store := newTestStore(t)
 
 	rec := ConnectorRecord{
-		Kind:     runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		Kind:      runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
-		OwnerID:  "user-1",
-		Provider: "openai",
-		Status:   runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		OwnerID:   "user-1",
+		Provider:  "openai",
+		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
 	if err := store.Create(rec, "key1"); err != nil {
 		t.Fatalf("Create: %v", err)
@@ -286,7 +286,10 @@ func TestConnectorStoreDeleteCompensation(t *testing.T) {
 	connID := records[0].ConnectorID
 
 	// Verify credential exists
-	credPath := store.credentialPath(connID)
+	credPath, err := store.credentialPath(connID)
+	if err != nil {
+		t.Fatalf("credentialPath: %v", err)
+	}
 	if _, err := os.Stat(credPath); err != nil {
 		t.Fatalf("credential should exist: %v", err)
 	}
@@ -305,5 +308,24 @@ func TestConnectorStoreDeleteCompensation(t *testing.T) {
 	loaded, _ := store.Load()
 	if len(loaded) != 0 {
 		t.Error("expected empty registry")
+	}
+}
+
+func TestConnectorStoreRejectsTraversalConnectorID(t *testing.T) {
+	store := newTestStore(t)
+
+	err := store.Create(ConnectorRecord{
+		ConnectorID: "../escape",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "secret")
+	if err == nil {
+		t.Fatalf("expected invalid connector id error")
+	}
+	if _, loadErr := store.LoadCredential("../escape"); loadErr == nil {
+		t.Fatalf("expected credential path validation error")
 	}
 }

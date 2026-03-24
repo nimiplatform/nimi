@@ -206,12 +206,16 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 		job, _ := s.scenarioJobs.get(jobID)
 		return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
 	}
-	job, ok := s.voiceAssets.cancelJob(jobID, req.GetReason())
+	existingJob, ok := s.voiceAssets.getJob(jobID)
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 	}
-	if err := authorizeScenarioJob(ctx, job); err != nil {
+	if err := authorizeScenarioJob(ctx, existingJob); err != nil {
 		return nil, err
+	}
+	job, ok := s.voiceAssets.cancelJob(jobID, req.GetReason())
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 	}
 	return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
 }
@@ -221,6 +225,15 @@ func (s *Service) SubscribeScenarioJobEvents(req *runtimev1.SubscribeScenarioJob
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	jobID := strings.TrimSpace(req.GetJobId())
+	if job, ok := s.scenarioJobs.get(jobID); ok {
+		if err := authorizeScenarioJob(stream.Context(), job); err != nil {
+			return err
+		}
+	} else if job, ok := s.voiceAssets.getJob(jobID); ok {
+		if err := authorizeScenarioJob(stream.Context(), job); err != nil {
+			return err
+		}
+	}
 	subID, ch, backlog, terminal, ok := s.scenarioJobs.subscribe(jobID, 32)
 	if ok {
 		defer s.scenarioJobs.unsubscribe(jobID, subID)

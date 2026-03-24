@@ -9,9 +9,12 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -277,6 +280,59 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 		&scenarioJobFailingCollector{ctx: ctx},
 	); err != nil {
 		t.Fatalf("context-done branch should return nil, got %v", err)
+	}
+}
+
+func TestScenarioJobStoreRejectsUnauthorizedSubscriptionAndVoiceCancel(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	jobID := "scenario-auth-job"
+	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId:        jobID,
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a", ModelId: "local/qwen", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		TraceId:      "trace-auth-job",
+	}, func() {})
+
+	unauthorizedStream := &scenarioJobEventCollector{
+		ctx: authn.WithIdentity(metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app-b")), &authn.Identity{SubjectUserID: "user-b"}),
+	}
+	err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, unauthorizedStream)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied for scenario subscribe, got %v", err)
+	}
+
+	now := time.Now().UTC()
+	voiceJobID := "voice-auth-job"
+	svc.voiceAssets.mu.Lock()
+	svc.voiceAssets.jobs[voiceJobID] = &voiceScenarioJobRecord{
+		job: &runtimev1.ScenarioJob{
+			JobId:      voiceJobID,
+			Head:       &runtimev1.ScenarioRequestHead{AppId: "app-a", SubjectUserId: "user-a", ModelId: "local/qwen3-tts", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL},
+			Status:     runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			TraceId:    "trace-voice-auth",
+			CreatedAt:  timestamppb.New(now),
+			UpdatedAt:  timestamppb.New(now),
+			ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		},
+		subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+	}
+	svc.voiceAssets.mu.Unlock()
+
+	_, err = svc.CancelScenarioJob(
+		authn.WithIdentity(metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", "app-b")), &authn.Identity{SubjectUserID: "user-b"}),
+		&runtimev1.CancelScenarioJobRequest{JobId: voiceJobID, Reason: "nope"},
+	)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied for voice cancel, got %v", err)
+	}
+	job, ok := svc.voiceAssets.getJob(voiceJobID)
+	if !ok {
+		t.Fatalf("voice job should still exist")
+	}
+	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED {
+		t.Fatalf("unauthorized cancel must not mutate job, got %v", job.GetStatus())
 	}
 }
 

@@ -83,14 +83,18 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	if totalTimeout > 0 && totalTimeout < firstTimeout {
 		firstTimeout = totalTimeout
 	}
+	var firstPacketTimer *time.Timer
 	if firstTimeout > 0 {
-		time.AfterFunc(firstTimeout, func() {
+		firstPacketTimer = time.AfterFunc(firstTimeout, func() {
 			if firstPacketSeen.Load() {
 				return
 			}
 			firstPacketTimedOut.Store(true)
 			requestCancel()
 		})
+	}
+	if firstPacketTimer != nil {
+		defer firstPacketTimer.Stop()
 	}
 
 	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(
@@ -311,14 +315,18 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	if totalTimeout > 0 && totalTimeout < firstTimeout {
 		firstTimeout = totalTimeout
 	}
+	var firstPacketTimer *time.Timer
 	if firstTimeout > 0 {
-		time.AfterFunc(firstTimeout, func() {
+		firstPacketTimer = time.AfterFunc(firstTimeout, func() {
 			if firstPacketSeen.Load() {
 				return
 			}
 			firstPacketTimedOut.Store(true)
 			requestCancel()
 		})
+	}
+	if firstPacketTimer != nil {
+		defer firstPacketTimer.Stop()
 	}
 
 	selectedProvider, routeDecision, modelResolved, routeInfo, err := s.selector.resolveProviderWithTarget(

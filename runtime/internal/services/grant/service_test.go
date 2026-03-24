@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
@@ -286,6 +287,60 @@ func TestListTokenChainPageSizeClampTo200(t *testing.T) {
 	}
 	if chainResp.GetNextPageToken() != "" {
 		t.Fatalf("expected no next_page_token when all entries fit in clamped page")
+	}
+}
+
+func TestValidateProtectedCapabilityRequiresMatchingSecret(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	authorizeResp, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE,
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+
+	if reason, _, ok := svc.ValidateProtectedCapability("nimi.desktop", authorizeResp.GetTokenId(), "wrong-secret", "read:chat"); ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
+		t.Fatalf("expected wrong secret rejected, got reason=%v ok=%v", reason, ok)
+	}
+	if reason, _, ok := svc.ValidateProtectedCapability("nimi.desktop", authorizeResp.GetTokenId(), authorizeResp.GetSecret(), "read:chat"); !ok || reason != runtimev1.ReasonCode_ACTION_EXECUTED {
+		t.Fatalf("expected valid secret accepted, got reason=%v ok=%v", reason, ok)
+	}
+}
+
+func TestValidateAppAccessTokenMissingTokenReturnsGrantInvalid(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	start := time.Now()
+	resp, err := svc.ValidateAppAccessToken(ctx, &runtimev1.ValidateAppAccessTokenRequest{
+		AppId:   "nimi.desktop",
+		TokenId: "missing-token",
+	})
+	if err != nil {
+		t.Fatalf("ValidateAppAccessToken: %v", err)
+	}
+	if resp.GetValid() {
+		t.Fatalf("missing token must be invalid")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_APP_GRANT_INVALID {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if time.Since(start) < 0 {
+		t.Fatalf("impossible timing guard")
 	}
 }
 

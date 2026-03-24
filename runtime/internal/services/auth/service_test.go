@@ -41,6 +41,25 @@ func buildTestJWT(t *testing.T, issuer string, expiresAt time.Time, privateKey *
 	return signingInput + "." + base64.RawURLEncoding.EncodeToString(signature)
 }
 
+func buildUnsignedExpOmittedJWT(t *testing.T, issuer string, privateKey *rsa.PrivateKey) string {
+	t.Helper()
+	header, err := json.Marshal(map[string]any{"alg": "RS256", "typ": "JWT"})
+	if err != nil {
+		t.Fatalf("marshal header: %v", err)
+	}
+	claims, err := json.Marshal(map[string]any{"iss": issuer})
+	if err != nil {
+		t.Fatalf("marshal claims: %v", err)
+	}
+	signingInput := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(claims)
+	digest := sha256.Sum256([]byte(signingInput))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, digest[:])
+	if err != nil {
+		t.Fatalf("sign token: %v", err)
+	}
+	return signingInput + "." + base64.RawURLEncoding.EncodeToString(signature)
+}
+
 func encodePublicKeyDERBase64(t *testing.T, pub *rsa.PublicKey) string {
 	t.Helper()
 	der, err := x509.MarshalPKIXPublicKey(pub)

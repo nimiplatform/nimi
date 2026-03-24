@@ -150,6 +150,15 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 }
 
 func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesRequest, stream runtimev1.RuntimeAppService_SubscribeAppMessagesServer) error {
+	if req == nil || strings.TrimSpace(req.GetAppId()) == "" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if s.sessionValidator != nil {
+		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(stream.Context())
+		if reasonCode, ok := s.sessionValidator.ValidateAppSession(strings.TrimSpace(req.GetAppId()), sessionID, sessionToken); !ok {
+			return grpcerr.WithReasonCode(codes.Unauthenticated, reasonCode)
+		}
+	}
 	sub := s.addSubscriber(req)
 	defer s.removeSubscriber(sub.id)
 

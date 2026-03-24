@@ -61,3 +61,21 @@ func TestValidateExternalProofAcceptsValidSignature(t *testing.T) {
 		t.Fatalf("validateExternalProof: %v", err)
 	}
 }
+
+func TestValidateExternalProofRejectsMissingExpClaim(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate rsa key: %v", err)
+	}
+	token := buildUnsignedExpOmittedJWT(t, "https://issuer.nimi.xyz", privateKey)
+	principal := externalPrincipal{
+		ProofType:      runtimev1.ExternalProofType_EXTERNAL_PROOF_TYPE_JWT,
+		Issuer:         "https://issuer.nimi.xyz",
+		SignatureKeyID: encodePublicKeyDERBase64(t, &privateKey.PublicKey),
+	}
+	if err := validateExternalProof(token, principal); err == nil {
+		t.Fatalf("expected missing exp claim rejected")
+	} else if !errors.Is(err, ErrTokenInvalid) {
+		t.Fatalf("expected ErrTokenInvalid, got %v", err)
+	}
+}

@@ -187,7 +187,11 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	}
 	expiresAt := now.Add(ttl)
 	sessionID := ulid.Make().String()
-	sessionToken := ulid.Make().String()
+	sessionToken, err := newSessionToken()
+	if err != nil {
+		s.emitAudit(ctx, "OpenSession", appID, subjectUserID, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+	}
 
 	s.mu.Lock()
 	s.appSessions[sessionID] = appSession{
@@ -230,7 +234,12 @@ func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSess
 
 	s.mu.Lock()
 	session, exists := s.appSessions[sessionID]
-	if !exists || session.Revoked {
+	if !exists {
+		s.mu.Unlock()
+		s.emitAudit(ctx, "RefreshSession", "", "", runtimev1.ReasonCode_APP_TOKEN_REVOKED)
+		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED}, nil
+	}
+	if session.Revoked {
 		s.mu.Unlock()
 		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED}, nil
@@ -247,7 +256,13 @@ func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSess
 
 	expiresAt := now.Add(ttl)
 	session.ExpiresAt = expiresAt
-	session.SessionToken = ulid.Make().String()
+	sessionToken, err := newSessionToken()
+	if err != nil {
+		s.mu.Unlock()
+		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+	}
+	session.SessionToken = sessionToken
 	s.appSessions[sessionID] = session
 	s.mu.Unlock()
 
@@ -277,7 +292,13 @@ func (s *Service) RevokeSession(ctx context.Context, req *runtimev1.RevokeSessio
 	}
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload(ctx, "RevokeSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+	auditAppID := ""
+	auditSubjectUserID := ""
+	if exists {
+		auditAppID = session.AppID
+		auditSubjectUserID = session.SubjectUserID
+	}
+	s.emitAuditWithPayload(ctx, "RevokeSession", auditAppID, auditSubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
 		"session_id": sessionID,
 	})
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
@@ -370,7 +391,11 @@ func (s *Service) OpenExternalPrincipalSession(ctx context.Context, req *runtime
 	}
 	expiresAt := now.Add(ttl)
 	externalSessionID := ulid.Make().String()
-	sessionToken := ulid.Make().String()
+	sessionToken, err := newSessionToken()
+	if err != nil {
+		s.emitAudit(ctx, "OpenExternalPrincipalSession", appID, "", runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+	}
 
 	s.mu.Lock()
 	s.externalSessions[externalSessionID] = externalSession{

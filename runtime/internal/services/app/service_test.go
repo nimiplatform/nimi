@@ -398,7 +398,7 @@ func TestSequenceMonotonicallyIncreases(t *testing.T) {
 	stream := &appMessageStreamCollector{ctx: ctx}
 	done := make(chan error, 1)
 	go func() {
-		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{}, stream)
+		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-b"}, stream)
 	}()
 
 	time.Sleep(20 * time.Millisecond)
@@ -428,6 +428,80 @@ func TestSequenceMonotonicallyIncreases(t *testing.T) {
 
 	cancel()
 	<-done
+}
+
+func TestSubscribeAppMessagesRequiresRegisteredAppSession(t *testing.T) {
+	authSvc := authservice.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc := newTestService(WithSessionValidator(authSvc))
+
+	stream := &appMessageStreamCollector{ctx: context.Background()}
+	err := svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, stream)
+	if status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expected unauthenticated for unregistered app, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_NOT_REGISTERED.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+
+	registerResp, err := authSvc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:    "app-a",
+		DeviceId: "device-1",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("RegisterApp: %v", err)
+	}
+	openResp, err := authSvc.OpenSession(context.Background(), &runtimev1.OpenSessionRequest{
+		AppId:         "app-a",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "device-1",
+		SubjectUserId: "user-1",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+
+	missingSessionStream := &appMessageStreamCollector{ctx: metadata.NewIncomingContext(context.Background(), metadata.Pairs())}
+	err = svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, missingSessionStream)
+	if status.Code(err) != codes.Unauthenticated || status.Convert(err).Message() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String() {
+		t.Fatalf("expected principal unauthorized, got %v", err)
+	}
+
+	validCtx, cancel := context.WithCancel(metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-session-id", openResp.GetSessionId(),
+		"x-nimi-session-token", openResp.GetSessionToken(),
+	)))
+	validStream := &appMessageStreamCollector{ctx: validCtx}
+	done := make(chan error, 1)
+	go func() {
+		done <- svc.SubscribeAppMessages(&runtimev1.SubscribeAppMessagesRequest{AppId: "app-a"}, validStream)
+	}()
+
+	time.Sleep(20 * time.Millisecond)
+	if _, err := svc.SendAppMessage(validCtx, &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-a",
+	}); err != nil {
+		t.Fatalf("SendAppMessage: %v", err)
+	}
+	if !waitForAppEvents(validStream, 1, 300*time.Millisecond) {
+		t.Fatalf("expected subscribed app to receive event")
+	}
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("subscribe returned error: %v", err)
+		}
+	case <-time.After(500 * time.Millisecond):
+		t.Fatalf("subscribe did not exit after cancel")
+	}
 }
 
 type appMessageStreamCollector struct {

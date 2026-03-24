@@ -1,6 +1,7 @@
 package grant
 
 import (
+	"crypto/subtle"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"strings"
 	"time"
@@ -15,22 +16,24 @@ func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secr
 		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "provide_access_token_credentials", false
 	}
 
+	now := time.Now().UTC()
 	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	token, exists := s.tokens[tokenID]
-	currentPolicyVersion := s.policyIndex[policyKey(token.AppID, token.SubjectUserID, token.ExternalPrincipalID)]
-	s.mu.RUnlock()
 	if !exists || token.AppID != appID {
 		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "issue_protected_token_for_target_app", false
 	}
-	if token.Secret != secret {
+	if subtle.ConstantTimeCompare([]byte(token.Secret), []byte(secret)) != 1 {
 		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "use_valid_token_secret", false
 	}
 	if token.Revoked {
 		return runtimev1.ReasonCode_APP_TOKEN_REVOKED, "reauthorize_external_principal", false
 	}
-	if time.Now().UTC().After(token.ExpiresAt) {
+	if now.After(token.ExpiresAt) {
 		return runtimev1.ReasonCode_APP_TOKEN_EXPIRED, "refresh_authorization", false
 	}
+	currentPolicyVersion := s.policyIndex[policyKey(token.AppID, token.SubjectUserID, token.ExternalPrincipalID)]
 	if currentPolicyVersion != "" && token.PolicyVersion != currentPolicyVersion {
 		return runtimev1.ReasonCode_APP_GRANT_INVALID, "refresh_authorization_policy", false
 	}

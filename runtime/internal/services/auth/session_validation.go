@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/subtle"
 	"strings"
 	"time"
 
@@ -34,7 +35,7 @@ func (s *Service) ValidateAppSession(appID string, sessionID string, sessionToke
 	if session.Revoked || time.Now().UTC().After(session.ExpiresAt) {
 		return runtimev1.ReasonCode_SESSION_EXPIRED, false
 	}
-	if session.SessionToken != sessionToken {
+	if subtle.ConstantTimeCompare([]byte(session.SessionToken), []byte(sessionToken)) != 1 {
 		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, false
 	}
 
