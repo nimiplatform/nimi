@@ -1,15 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { useState } from 'react';
 import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime';
-import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
 import {
   copyArtifactBytesToArrayBuffer,
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
-  submitMusicJobAndWait,
-} from './runtime-workflow.js';
-import { ErrorDisplay } from './error-display.js';
-import { OtButton, OtInput, OtToggle, OtTagInput, OtAccordionSection, OtProgressBar } from './ui-primitives.js';
+  useRuntimeGenerationPanel,
+} from '@nimiplatform/nimi-kit/features/generation/runtime';
+import {
+  RuntimeGenerationPanel,
+} from '@nimiplatform/nimi-kit/features/generation/ui';
+import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
+import { OtInput, OtToggle, OtTagInput, OtAccordionSection } from './ui-primitives.js';
 
 export function GeneratePanel() {
   const brief = useAppStore((state) => state.brief);
@@ -26,42 +27,52 @@ export function GeneratePanel() {
   const [durationSeconds, setDurationSeconds] = useState(120);
   const [instrumental, setInstrumental] = useState(false);
   const [styleTags, setStyleTags] = useState<string[]>([]);
-  const [lastError, setLastError] = useState<unknown>(null);
 
   const hasActiveJob = activeJobs.size > 0;
 
-  const handleGenerate = useCallback(async () => {
-    if (!brief || !selectedMusicModelId || !selectedMusicConnectorId) {
-      return;
-    }
-
-    setLastError(null);
-    const runtime = getPlatformClient().runtime;
-    const resolvedStyle = styleTags.length > 0
-      ? styleTags.join(', ')
-      : [brief.genre, brief.mood].filter(Boolean).join(', ');
-    let result:
-      | Awaited<ReturnType<typeof submitMusicJobAndWait>>
-      | undefined;
-    try {
-      result = await submitMusicJobAndWait(runtime, {
-        model: selectedMusicModelId,
-        connectorId: selectedMusicConnectorId,
-        prompt: brief.description,
-        lyrics: lyrics || undefined,
-        style: resolvedStyle || undefined,
-        title: brief.title,
-        durationSeconds,
-        instrumental,
-      }, (nextJob) => {
-        setJobStatus(nextJob.jobId, {
-          jobId: nextJob.jobId,
-          status: scenarioJobStatusToGenerationStatus(nextJob.status),
-          progress: scenarioJobStatusLabel(nextJob.status),
-          error: nextJob.reasonDetail || undefined,
-        });
+  const generationState = useRuntimeGenerationPanel({
+    input: {
+      durationSeconds,
+      instrumental,
+      styleTags,
+    },
+    resolveRequest: ({
+      input: {
+        durationSeconds: nextDurationSeconds,
+        instrumental: nextInstrumental,
+        styleTags: nextStyleTags,
+      },
+    }) => {
+      const resolvedStyle = nextStyleTags.length > 0
+        ? nextStyleTags.join(', ')
+        : [brief?.genre, brief?.mood].filter(Boolean).join(', ');
+      return {
+        modal: 'music',
+        input: {
+          model: selectedMusicModelId || '',
+          connectorId: selectedMusicConnectorId || '',
+          prompt: brief?.description || '',
+          lyrics: lyrics || undefined,
+          style: resolvedStyle || undefined,
+          title: brief?.title || '',
+          durationSeconds: nextDurationSeconds,
+          instrumental: nextInstrumental,
+        },
+      };
+    },
+    disabled: !brief || hasActiveJob || !musicConnectorAvailable,
+    submitting: hasActiveJob,
+    triggerEventName: 'ot-trigger-generate',
+    canTriggerShortcut: Boolean(brief && !hasActiveJob && musicConnectorAvailable),
+    onJobUpdate: ({ job }) => {
+      setJobStatus(job.jobId, {
+        jobId: job.jobId,
+        status: scenarioJobStatusToGenerationStatus(job.status),
+        progress: scenarioJobStatusLabel(job.status),
+        error: job.reasonDetail || undefined,
       });
-
+    },
+    onCompleted: async (result) => {
       if (result.job.status !== ScenarioJobStatus.COMPLETED) {
         throw new Error(result.job.reasonDetail || scenarioJobStatusLabel(result.job.status));
       }
@@ -70,10 +81,10 @@ export function GeneratePanel() {
       const take: SongTake = {
         takeId,
         origin: 'prompt',
-        title: `${brief.title || 'Untitled'} - Take ${Date.now() % 1000}`,
+        title: `${brief?.title || 'Untitled'} - Take ${Date.now() % 1000}`,
         jobId: result.job.jobId,
         artifactId: result.artifacts[0]?.artifactId,
-        promptSnapshot: brief.description,
+        promptSnapshot: brief?.description || '',
         lyricsSnapshot: lyrics || undefined,
         createdAt: Date.now(),
       };
@@ -90,19 +101,20 @@ export function GeneratePanel() {
         progress: 'Completed',
       });
       window.setTimeout(() => removeJob(completedJobId), 1500);
-    } catch (error: unknown) {
-      setLastError(error);
-      if (result) {
-        const failedJobId = result.job.jobId;
+    },
+    onError: (error, context) => {
+      if (context.result) {
+        const failedJobId = context.result.job.jobId;
         setJobStatus(failedJobId, {
           jobId: failedJobId,
-          status: scenarioJobStatusToGenerationStatus(result.job.status),
-          progress: scenarioJobStatusLabel(result.job.status),
+          status: scenarioJobStatusToGenerationStatus(context.result.job.status),
+          progress: scenarioJobStatusLabel(context.result.job.status),
           error: error instanceof Error ? error.message : String(error),
         });
         window.setTimeout(() => removeJob(failedJobId), 2500);
         return;
       }
+
       const jobId = `generate-${Date.now()}`;
       setJobStatus(jobId, {
         jobId,
@@ -110,123 +122,56 @@ export function GeneratePanel() {
         error: error instanceof Error ? error.message : String(error),
       });
       window.setTimeout(() => removeJob(jobId), 2500);
-    }
-  }, [
-    addTake,
-    brief,
-    durationSeconds,
-    instrumental,
-    lyrics,
-    removeJob,
-    selectedMusicConnectorId,
-    selectedMusicModelId,
-    setAudioBuffer,
-    setJobStatus,
-    styleTags,
-  ]);
-
-  // Listen for ⌘G shortcut from workspace-page
-  useEffect(() => {
-    const onTrigger = () => {
-      if (brief && !hasActiveJob && musicConnectorAvailable) {
-        void handleGenerate();
-      }
-    };
-    window.addEventListener('ot-trigger-generate', onTrigger);
-    return () => window.removeEventListener('ot-trigger-generate', onTrigger);
-  }, [brief, hasActiveJob, musicConnectorAvailable, handleGenerate]);
+    },
+  });
 
   return (
     <OtAccordionSection title="Generation Controls" defaultOpen>
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Runtime Path</label>
-          <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-action-primary-bg)_14%)] border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]">
-            {selectedMusicConnectorId && selectedMusicModelId
-              ? `${selectedMusicConnectorId} → ${selectedMusicModelId}`
-              : 'No ready music connector/model pair'}
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Style Tags</label>
-          <OtTagInput
-            tags={styleTags}
-            onChange={setStyleTags}
-            placeholder={brief ? [brief.genre, brief.mood].filter(Boolean).join(', ') : 'e.g. indie, dreamy, acoustic'}
-          />
-        </div>
-
-        <div className="flex gap-3">
-          <div className="flex-1 space-y-1">
-            <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Duration (sec)</label>
-            <OtInput
-              type="number"
-              min={10}
-              max={600}
-              value={durationSeconds}
-              onChange={(event) => setDurationSeconds(Number(event.target.value))}
-            />
-          </div>
-          <div className="flex items-end pb-1">
-            <OtToggle
-              checked={instrumental}
-              onChange={setInstrumental}
-              label="Instrumental"
-            />
-          </div>
-        </div>
-      </div>
-
-      {!musicConnectorAvailable && (
-        <p className="text-xs text-[var(--nimi-status-warning)] mt-3">
-          No music connector/model pair is ready. Configure runtime music access before generating.
-        </p>
-      )}
-
-      {lastError ? (
-        <div className="mt-3">
-          <ErrorDisplay error={lastError} onDismiss={() => setLastError(null)} onRetry={handleGenerate} />
-        </div>
-      ) : null}
-
-      <OtButton
-        variant="primary"
-        className={`w-full mt-4${hasActiveJob ? ' ot-generating-pulse' : ''}`}
-        onClick={handleGenerate}
-        disabled={!brief || hasActiveJob || !musicConnectorAvailable}
-        loading={hasActiveJob}
-        type="button"
-      >
-        {hasActiveJob ? 'Generating...' : 'Generate Song'}
-      </OtButton>
-
-      {activeJobs.size > 0 && (
-        <div className="space-y-2 mt-3">
-          {Array.from(activeJobs.values()).map((job) => (
-            <div key={job.jobId} className="p-2 rounded-lg bg-[var(--nimi-surface-card)] border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] text-xs space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--nimi-text-secondary)]">{job.progress || job.status}</span>
-                <StatusBadge status={job.status} />
-              </div>
-              {job.status === 'running' && <OtProgressBar generating value={50} />}
-              {job.error && <p className="text-[var(--nimi-status-danger)]">{job.error}</p>}
+      <RuntimeGenerationPanel
+        runtimeState={generationState}
+        title="Generation Controls"
+        runtimeLabel="Runtime Path"
+        runtimeValue={selectedMusicConnectorId && selectedMusicModelId
+          ? `${selectedMusicConnectorId} → ${selectedMusicModelId}`
+          : 'No ready music connector/model pair'}
+        warning={!musicConnectorAvailable
+          ? 'No music connector/model pair is ready. Configure runtime music access before generating.'
+          : null}
+        controls={(
+          <>
+            <div className="space-y-1">
+              <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Style Tags</label>
+              <OtTagInput
+                tags={styleTags}
+                onChange={setStyleTags}
+                placeholder={brief ? [brief.genre, brief.mood].filter(Boolean).join(', ') : 'e.g. indie, dreamy, acoustic'}
+              />
             </div>
-          ))}
-        </div>
-      )}
+
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-1">
+                <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Duration (sec)</label>
+                <OtInput
+                  type="number"
+                  min={10}
+                  max={600}
+                  value={durationSeconds}
+                  onChange={(event) => setDurationSeconds(Number(event.target.value))}
+                />
+              </div>
+              <div className="flex items-end pb-1">
+                <OtToggle
+                  checked={instrumental}
+                  onChange={setInstrumental}
+                  label="Instrumental"
+                />
+              </div>
+            </div>
+          </>
+        )}
+        submitLabel="Generate Song"
+        submittingLabel="Generating..."
+      />
     </OtAccordionSection>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    pending: 'text-[var(--nimi-status-warning)]',
-    running: 'text-[var(--nimi-status-info)]',
-    completed: 'text-[var(--nimi-status-success)]',
-    failed: 'text-[var(--nimi-status-danger)]',
-    timeout: 'text-[var(--nimi-status-warning)]',
-    canceled: 'text-[var(--nimi-text-muted)]',
-  };
-  return <span className={`text-xs font-medium ${colors[status] ?? 'text-[var(--nimi-text-muted)]'}`}>{status}</span>;
 }

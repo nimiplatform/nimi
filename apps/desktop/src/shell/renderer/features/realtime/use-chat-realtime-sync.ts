@@ -1,54 +1,35 @@
-import { useEffect, useMemo, useRef } from 'react';
-import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { useMemo } from 'react';
 import type { QueryKey } from '@tanstack/react-query';
 import { io, type Socket } from 'socket.io-client';
+import type {
+  RealmChatEventEnvelope,
+  RealmChatSyncResultDto,
+  RealmChatViewDto,
+  RealmListChatsResultDto,
+  RealmListMessagesResultDto,
+  RealmMessageViewDto,
+  RealmChatRealtimeSocket,
+} from '@nimiplatform/nimi-kit/features/chat/realm';
+import {
+  applyRealmRealtimeMessageToChatsResult,
+  applyRealmRealtimeMessageUpdateToChatsResult,
+  applyRealmRealtimeMessageUpdateToMessagesResult,
+  extractRealmMessageFromEvent,
+  mergeRealmRealtimeMessageIntoMessagesResult,
+  rememberRealmChatSeenEvent,
+  useRealmChatRealtimeController,
+} from '@nimiplatform/nimi-kit/features/chat/realm';
 import { dataSync } from '@runtime/data-sync';
 import { getOfflineCoordinator } from '@runtime/offline';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
-import {
-  applyRealtimeMessageToChatsResult,
-  applyRealtimeMessageUpdateToChatsResult,
-  applyRealtimeMessageUpdateToMessagesResult,
-  mergeRealtimeMessageIntoMessagesResult,
-  normalizeRealtimeMessagePayload,
-} from './chat-realtime-cache';
 import { resolveRealtimeUrl } from './resolve-realtime-url';
 
-type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
-type ChatEventEnvelopeDto = RealmModel<'ChatEventEnvelopeDto'>;
-type ChatViewDto = RealmModel<'ChatViewDto'>;
-type ListChatsResultDto = RealmModel<'ListChatsResultDto'>;
-type ListMessagesResultDto = RealmModel<'ListMessagesResultDto'>;
-type MessageViewDto = RealmModel<'MessageViewDto'>;
-
 const CHAT_SOCKET_PATH = '/socket.io/';
-const SEEN_EVENT_LIMIT = 3000;
-
-type ChatEventEnvelope = ChatEventEnvelopeDto;
-
-type ChatSessionState = {
-  chatId: string;
-  sessionId: string;
-  resumeToken: string;
-  lastAckSeq: number;
-};
-
-type ChatSessionReadyPayload = {
-  chatId: string;
-  sessionId: string;
-  resumeToken: string;
-  lastAckSeq: number;
-};
-
-type ChatSessionSyncRequiredPayload = {
-  chatId: string;
-  requestedAfterSeq: number;
-};
 
 type ApplyChatEventInput = {
-  event: ChatEventEnvelope;
+  event: RealmChatEventEnvelope;
   selectedChatId: string | null;
   currentUserId: string;
 };
@@ -57,158 +38,12 @@ function hasMessageQuery(chatId: string): boolean {
   return queryClient.getQueryState(['messages', chatId]) !== undefined;
 }
 
-export function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
-  const normalizedKey = String(key || '').trim();
-  if (!normalizedKey) {
-    return false;
-  }
-  if (seen.has(normalizedKey)) {
-    // LRU promotion: delete and re-insert to move entry to newest position
-    seen.delete(normalizedKey);
-    seen.set(normalizedKey, Date.now());
-    return true;
-  }
-  seen.set(normalizedKey, Date.now());
-  if (seen.size > SEEN_EVENT_LIMIT) {
-    // Evict the least recently used entry (first in Map iteration order)
-    const { done, value: oldest } = seen.keys().next();
-    if (!done && oldest !== undefined) {
-      seen.delete(oldest);
-    }
-  }
-  return false;
-}
-
-function isObjectLike(value: unknown): value is object {
-  return Boolean(value) && typeof value === 'object';
-}
-
-function readStringField(value: unknown, key: string): string {
-  if (!isObjectLike(value)) {
-    return '';
-  }
-  const field = Reflect.get(value, key);
-  return typeof field === 'string' ? field.trim() : '';
-}
-
-function readNumberField(value: unknown, key: string): number | null {
-  if (!isObjectLike(value)) {
-    return null;
-  }
-  const numeric = Number(Reflect.get(value, key));
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function readObjectField(value: unknown, key: string): object | null {
-  if (!isObjectLike(value)) {
-    return null;
-  }
-  const field = Reflect.get(value, key);
-  return isObjectLike(field) ? field : null;
-}
-
-function normalizeChatEventEnvelope(payload: ChatEventEnvelopeDto): ChatEventEnvelope | null {
-  const eventId = String(payload.eventId || '').trim();
-  const chatId = String(payload.chatId || '').trim();
-  const kind = String(payload.kind || '').trim();
-  const seqRaw = Number(payload.seq);
-  const seq = Number.isFinite(seqRaw) ? Math.max(0, Math.floor(seqRaw)) : 0;
-  if (!eventId || !chatId || !kind || seq <= 0) {
-    return null;
-  }
-  return {
-    ...payload,
-    sessionId: String(payload.sessionId || '').trim(),
-    eventId,
-    chatId,
-    kind,
-    seq,
-  };
-}
-
-function parseSocketChatEvent(payload: unknown): ChatEventEnvelope | null {
-  if (!isObjectLike(payload)) {
-    return null;
-  }
-  const eventId = readStringField(payload, 'eventId');
-  const chatId = readStringField(payload, 'chatId');
-  const kind = readStringField(payload, 'kind');
-  const seqRaw = readNumberField(payload, 'seq');
-  const seq = seqRaw !== null ? Math.max(0, Math.floor(seqRaw)) : 0;
-  if (!eventId || !chatId || !kind || seq <= 0) {
-    return null;
-  }
-  const payloadObject = readObjectField(payload, 'payload');
-  return {
-    actorId: readStringField(payload, 'actorId'),
-    seq,
-    eventId,
-    chatId,
-    kind,
-    occurredAt: readStringField(payload, 'occurredAt'),
-    payload: payloadObject ? (payloadObject as ChatEventEnvelopeDto['payload']) : {},
-    sessionId: readStringField(payload, 'sessionId'),
-  };
-}
-
-function extractMessageFromEvent(event: ChatEventEnvelope): MessageViewDto | null {
-  const candidate = readObjectField(event.payload, 'message');
-  return candidate ? normalizeRealtimeMessagePayload(candidate) : null;
-}
-
-function parseSessionReadyPayload(payload: unknown): ChatSessionReadyPayload | null {
-  if (!isObjectLike(payload)) {
-    return null;
-  }
-  const chatId = readStringField(payload, 'chatId');
-  const sessionId = readStringField(payload, 'sessionId');
-  const resumeToken = readStringField(payload, 'resumeToken');
-  const lastAckSeqRaw = readNumberField(payload, 'lastAckSeq');
-  const lastAckSeq = lastAckSeqRaw !== null ? Math.max(0, Math.floor(lastAckSeqRaw)) : 0;
-  if (!chatId || !sessionId || !resumeToken) {
-    return null;
-  }
-  return {
-    chatId,
-    sessionId,
-    resumeToken,
-    lastAckSeq,
-  };
-}
-
-function parseSyncRequiredPayload(payload: unknown): ChatSessionSyncRequiredPayload | null {
-  if (!isObjectLike(payload)) {
-    return null;
-  }
-  const chatId = readStringField(payload, 'chatId');
-  if (!chatId) {
-    return null;
-  }
-  const requestedAfterSeqRaw = readNumberField(payload, 'requestedAfterSeq');
-  return {
-    chatId,
-    requestedAfterSeq: requestedAfterSeqRaw !== null
-      ? Math.max(0, Math.floor(requestedAfterSeqRaw))
-      : 0,
-  };
-}
-
-function getReplayMaxSeq(events: ChatEventEnvelopeDto[], fallbackSeq: number): number {
-  return events.reduce((maxSeq, candidate) => {
-    const normalized = normalizeChatEventEnvelope(candidate);
-    if (!normalized) {
-      return maxSeq;
-    }
-    return Math.max(maxSeq, normalized.seq);
-  }, fallbackSeq);
-}
-
 function mergeChatQueriesByMessage(input: {
-  message: MessageViewDto;
+  message: RealmMessageViewDto;
   selectedChatId: string | null;
   currentUserId: string;
 }): { found: boolean; shouldMarkRead: boolean } {
-  const queries = queryClient.getQueriesData<ListChatsResultDto>({
+  const queries = queryClient.getQueriesData<RealmListChatsResultDto>({
     queryKey: ['chats'],
   });
   if (queries.length === 0) {
@@ -219,7 +54,7 @@ function mergeChatQueriesByMessage(input: {
   let shouldMarkRead = false;
 
   for (const [queryKey, current] of queries) {
-    const result = applyRealtimeMessageToChatsResult({
+    const result = applyRealmRealtimeMessageToChatsResult({
       current,
       message: input.message,
       currentUserId: input.currentUserId,
@@ -235,9 +70,9 @@ function mergeChatQueriesByMessage(input: {
 
 function mergeChatQueriesByUpdate(input: {
   chatId: string;
-  message: MessageViewDto;
+  message: RealmMessageViewDto;
 }): boolean {
-  const queries = queryClient.getQueriesData<ListChatsResultDto>({
+  const queries = queryClient.getQueriesData<RealmListChatsResultDto>({
     queryKey: ['chats'],
   });
   if (queries.length === 0) {
@@ -246,7 +81,7 @@ function mergeChatQueriesByUpdate(input: {
 
   let found = false;
   for (const [queryKey, current] of queries) {
-    const result = applyRealtimeMessageUpdateToChatsResult({
+    const result = applyRealmRealtimeMessageUpdateToChatsResult({
       current,
       chatId: input.chatId,
       message: input.message,
@@ -258,7 +93,7 @@ function mergeChatQueriesByUpdate(input: {
 }
 
 function mergeMessageQueryByIncomingMessage(input: {
-  message: MessageViewDto;
+  message: RealmMessageViewDto;
   selectedChatId: string | null;
 }): void {
   const shouldWriteMessageCache =
@@ -268,15 +103,15 @@ function mergeMessageQueryByIncomingMessage(input: {
     return;
   }
 
-  queryClient.setQueryData<ListMessagesResultDto>(
+  queryClient.setQueryData<RealmListMessagesResultDto>(
     ['messages', input.message.chatId],
-    (current) => mergeRealtimeMessageIntoMessagesResult(current, input.message),
+    (current) => mergeRealmRealtimeMessageIntoMessagesResult(current, input.message),
   );
 }
 
 function mergeMessageQueryByUpdate(input: {
   chatId: string;
-  message: MessageViewDto;
+  message: RealmMessageViewDto;
   selectedChatId: string | null;
 }): void {
   const shouldPatchMessageCache =
@@ -286,16 +121,16 @@ function mergeMessageQueryByUpdate(input: {
     return;
   }
 
-  queryClient.setQueryData<ListMessagesResultDto | undefined>(
+  queryClient.setQueryData<RealmListMessagesResultDto | undefined>(
     ['messages', input.chatId],
-    (current) => applyRealtimeMessageUpdateToMessagesResult(current, input.message),
+    (current) => applyRealmRealtimeMessageUpdateToMessagesResult(current, input.message),
   );
 }
 
 function upsertChatInChatsResult(
-  current: ListChatsResultDto | undefined,
-  chat: ChatViewDto,
-): ListChatsResultDto | undefined {
+  current: RealmListChatsResultDto | undefined,
+  chat: RealmChatViewDto,
+): RealmListChatsResultDto | undefined {
   if (!current || !Array.isArray(current.items)) {
     return current;
   }
@@ -314,18 +149,18 @@ function upsertChatInChatsResult(
   };
 }
 
-function applySyncSnapshotToCache(chatId: string, snapshot: ChatSyncResultDto['snapshot']): void {
+function applySyncSnapshotToCache(chatId: string, snapshot: RealmChatSyncResultDto['snapshot']): void {
   if (!snapshot) {
     return;
   }
   if (snapshot.chat) {
-    const chatQueries = queryClient.getQueriesData<ListChatsResultDto>({ queryKey: ['chats'] });
+    const chatQueries = queryClient.getQueriesData<RealmListChatsResultDto>({ queryKey: ['chats'] });
     for (const [queryKey, current] of chatQueries) {
       queryClient.setQueryData(queryKey as QueryKey, upsertChatInChatsResult(current, snapshot.chat));
     }
   }
   if (Array.isArray(snapshot.messages)) {
-    queryClient.setQueryData<ListMessagesResultDto>(['messages', chatId], {
+    queryClient.setQueryData<RealmListMessagesResultDto>(['messages', chatId], {
       items: snapshot.messages,
       nextBefore: null,
       nextAfter: null,
@@ -334,7 +169,7 @@ function applySyncSnapshotToCache(chatId: string, snapshot: ChatSyncResultDto['s
 }
 
 function applyChatEventToCache(input: ApplyChatEventInput): void {
-  const message = extractMessageFromEvent(input.event);
+  const message = extractRealmMessageFromEvent(input.event);
   if (message && input.event.kind === 'message.created') {
     mergeMessageQueryByIncomingMessage({
       message,
@@ -382,34 +217,8 @@ function applyChatEventToCache(input: ApplyChatEventInput): void {
   }
 }
 
-function openChatSession(socket: Socket | null, session: ChatSessionState | null, chatId: string | null): void {
-  if (!socket || !socket.connected) {
-    return;
-  }
-  const normalizedChatId = String(chatId || '').trim();
-  if (!normalizedChatId) {
-    return;
-  }
-  socket.emit('chat:session.open', {
-    chatId: normalizedChatId,
-    resumeToken: session?.chatId === normalizedChatId ? session.resumeToken : undefined,
-    lastAckSeq: session?.chatId === normalizedChatId ? session.lastAckSeq : 0,
-  });
-}
-
-function ackChatEvent(socket: Socket | null, session: ChatSessionState | null, event: ChatEventEnvelope): void {
-  if (!socket || !session || session.chatId !== event.chatId) {
-    return;
-  }
-  if (event.seq <= session.lastAckSeq) {
-    return;
-  }
-  session.lastAckSeq = event.seq;
-  socket.emit('chat:event.ack', {
-    chatId: session.chatId,
-    sessionId: session.sessionId,
-    ackSeq: event.seq,
-  });
+export function rememberSeenEvent(seen: Map<string, number>, key: string): boolean {
+  return rememberRealmChatSeenEvent(seen, key);
 }
 
 export function useChatRealtimeSync(): void {
@@ -418,11 +227,7 @@ export function useChatRealtimeSync(): void {
   const currentUserId = String(useAppStore((state) => state.auth.user?.id || '')).trim();
   const runtimeDefaults = useAppStore((state) => state.runtimeDefaults);
   const selectedChatId = useAppStore((state) => state.selectedChatId);
-  const socketRef = useRef<Socket | null>(null);
-  const selectedChatIdRef = useRef<string | null>(selectedChatId);
-  const currentUserIdRef = useRef(currentUserId);
-  const seenEventsRef = useRef<Map<string, number>>(new Map());
-  const sessionRef = useRef<ChatSessionState | null>(null);
+  const offlineCoordinator = getOfflineCoordinator();
 
   const realtimeBaseUrl = useMemo(
     () => resolveRealtimeUrl({
@@ -432,202 +237,42 @@ export function useChatRealtimeSync(): void {
     [runtimeDefaults?.realm.realmBaseUrl, runtimeDefaults?.realm.realtimeUrl],
   );
 
-  useEffect(() => {
-    selectedChatIdRef.current = selectedChatId;
-  }, [selectedChatId]);
-
-  useEffect(() => {
-    currentUserIdRef.current = currentUserId;
-  }, [currentUserId]);
-
-  useEffect(() => {
-    const normalizedToken = String(authToken || runtimeDefaults?.realm.accessToken || '').trim();
-    if (authStatus !== 'authenticated' || !normalizedToken || !realtimeBaseUrl) {
-      return undefined;
-    }
-
-    const offlineCoordinator = getOfflineCoordinator();
-    const socket = io(realtimeBaseUrl, {
-      path: CHAT_SOCKET_PATH,
+  useRealmChatRealtimeController({
+    authStatus,
+    authToken,
+    fallbackToken: runtimeDefaults?.realm.accessToken,
+    realtimeBaseUrl,
+    selectedChatId,
+    currentUserId,
+    socketPath: CHAT_SOCKET_PATH,
+    createSocket: ({ baseUrl, token, socketPath }) => io(baseUrl, {
+      path: socketPath,
       transports: ['websocket'],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 30_000,
       reconnectionAttempts: Infinity,
-      auth: {
-        token: normalizedToken,
-      },
-    });
-    socketRef.current = socket;
-    let disposed = false;
-    const isSocketActive = () => !disposed && socketRef.current === socket;
-
-    const onConnect = () => {
-      offlineCoordinator.markRealmSocketReachable(true);
-      openChatSession(socket, sessionRef.current, selectedChatIdRef.current);
-      void dataSync.flushChatOutbox();
-      void dataSync.flushSocialOutbox();
-      void queryClient.invalidateQueries({ queryKey: ['chats'] });
-      void invalidateNotificationQueries();
-      if (selectedChatIdRef.current) {
-        void queryClient.invalidateQueries({ queryKey: ['messages', selectedChatIdRef.current] });
-      }
-    };
-
-    const onSessionReady = (payload: unknown) => {
-      const session = parseSessionReadyPayload(payload);
-      if (!session) {
-        return;
-      }
-      sessionRef.current = {
-        chatId: session.chatId,
-        sessionId: session.sessionId,
-        resumeToken: session.resumeToken,
-        lastAckSeq: session.lastAckSeq,
-      };
-      void dataSync.flushChatOutbox();
-    };
-
-    const onChatEvent = (payload: unknown) => {
-      const event = parseSocketChatEvent(payload);
-      if (!event) {
-        return;
-      }
-      if (rememberSeenEvent(seenEventsRef.current, `chat:event:${event.eventId}`)) {
-        ackChatEvent(socket, sessionRef.current, event);
-        return;
-      }
+      auth: { token },
+    }) as unknown as RealmChatRealtimeSocket,
+    onSocketReachableChange: (reachable) => {
+      offlineCoordinator.markRealmSocketReachable(reachable);
+    },
+    flushChatOutbox: () => dataSync.flushChatOutbox(),
+    flushSocialOutbox: () => dataSync.flushSocialOutbox(),
+    invalidateChats: () => queryClient.invalidateQueries({ queryKey: ['chats'] }),
+    invalidateMessages: (chatId) => queryClient.invalidateQueries({ queryKey: ['messages', chatId] }),
+    invalidateNotifications: () => invalidateNotificationQueries(),
+    syncChatEvents: (chatId, afterSeq, limit) => dataSync.syncChatEvents(chatId, afterSeq, limit),
+    loadMessages: (chatId) => dataSync.loadMessages(chatId),
+    applyChatEvent: ({ event, selectedChatId: activeChatId, currentUserId: activeUserId }) => {
       applyChatEventToCache({
         event,
-        selectedChatId: selectedChatIdRef.current,
-        currentUserId: currentUserIdRef.current,
+        selectedChatId: activeChatId,
+        currentUserId: activeUserId,
       });
-
-      ackChatEvent(socket, sessionRef.current, event);
-    };
-
-    const onSyncRequired = (payload: unknown) => {
-      const syncRequired = parseSyncRequiredPayload(payload);
-      const chatId = syncRequired?.chatId || '';
-      if (!chatId || chatId !== selectedChatIdRef.current) {
-        return;
-      }
-      const requestedAfterSeq = syncRequired && syncRequired.requestedAfterSeq > 0
-        ? syncRequired.requestedAfterSeq
-        : Math.max(0, Math.floor(sessionRef.current?.lastAckSeq || 0));
-      void dataSync
-        .syncChatEvents(chatId, requestedAfterSeq, 200)
-        .then((result) => {
-          if (!isSocketActive() || selectedChatIdRef.current !== chatId) {
-            return;
-          }
-          applySyncSnapshotToCache(chatId, result.snapshot);
-          if (Array.isArray(result.events)) {
-            for (const candidate of result.events) {
-              const event = normalizeChatEventEnvelope(candidate);
-              if (!event) {
-                continue;
-              }
-              if (rememberSeenEvent(seenEventsRef.current, `chat:event:${event.eventId}`)) {
-                continue;
-              }
-              applyChatEventToCache({
-                event,
-                selectedChatId: selectedChatIdRef.current,
-                currentUserId: currentUserIdRef.current,
-              });
-            }
-          }
-
-          if (sessionRef.current && sessionRef.current.chatId === chatId) {
-            const replayMaxSeq = Array.isArray(result.events)
-              ? getReplayMaxSeq(result.events, sessionRef.current?.lastAckSeq ?? 0)
-              : sessionRef.current.lastAckSeq;
-            if (replayMaxSeq > sessionRef.current.lastAckSeq) {
-              sessionRef.current.lastAckSeq = replayMaxSeq;
-              socket.emit('chat:event.ack', {
-                chatId,
-                sessionId: sessionRef.current.sessionId,
-                ackSeq: replayMaxSeq,
-              });
-            }
-          }
-
-          void queryClient.invalidateQueries({ queryKey: ['chats'] });
-        })
-        .catch(() => {
-          if (!isSocketActive() || selectedChatIdRef.current !== chatId) {
-            return;
-          }
-          void dataSync.loadMessages(chatId);
-          void queryClient.invalidateQueries({ queryKey: ['chats'] });
-        });
-    };
-
-    const onNotification = () => {
-      void invalidateNotificationQueries();
-    };
-
-    const onDisconnect = () => {
-      offlineCoordinator.markRealmSocketReachable(false);
-      // D-NET-007: Socket disconnected → refresh chat data from REST
-      void queryClient.invalidateQueries({ queryKey: ['chats'] });
-      const activeChatId = selectedChatIdRef.current;
-      if (activeChatId && sessionRef.current?.chatId === activeChatId) {
-        void dataSync
-          .syncChatEvents(activeChatId, sessionRef.current.lastAckSeq, 200)
-          .then((result) => {
-            if (!isSocketActive() || selectedChatIdRef.current !== activeChatId) {
-              return;
-            }
-            applySyncSnapshotToCache(activeChatId, result.snapshot);
-            if (Array.isArray(result.events)) {
-              for (const candidate of result.events) {
-                const event = normalizeChatEventEnvelope(candidate);
-                if (!event) continue;
-                if (rememberSeenEvent(seenEventsRef.current, `chat:event:${event.eventId}`)) continue;
-                applyChatEventToCache({
-                  event,
-                  selectedChatId: selectedChatIdRef.current,
-                  currentUserId: currentUserIdRef.current,
-                });
-              }
-            }
-          })
-          .catch(() => {
-            if (!isSocketActive() || selectedChatIdRef.current !== activeChatId) {
-              return;
-            }
-            void queryClient.invalidateQueries({ queryKey: ['messages', activeChatId] });
-          });
-      }
-    };
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('chat:session.ready', onSessionReady);
-    socket.on('chat:event', onChatEvent);
-    socket.on('chat:session.sync_required', onSyncRequired);
-    socket.on('notif:new', onNotification);
-
-    return () => {
-      disposed = true;
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('chat:session.ready', onSessionReady);
-      socket.off('chat:event', onChatEvent);
-      socket.off('chat:session.sync_required', onSyncRequired);
-      socket.off('notif:new', onNotification);
-      socket.disconnect();
-      if (socketRef.current === socket) {
-        socketRef.current = null;
-      }
-      seenEventsRef.current.clear();
-      sessionRef.current = null;
-    };
-  }, [authStatus, authToken, realtimeBaseUrl, runtimeDefaults?.realm.accessToken]);
-
-  useEffect(() => {
-    openChatSession(socketRef.current, sessionRef.current, selectedChatId);
-  }, [selectedChatId]);
+    },
+    applySyncSnapshot: (chatId, snapshot) => {
+      applySyncSnapshotToCache(chatId, snapshot);
+    },
+  });
 }

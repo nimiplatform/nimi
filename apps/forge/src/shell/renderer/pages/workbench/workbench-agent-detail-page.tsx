@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { RuntimeChatPanel } from '@nimiplatform/nimi-kit/features/chat/ui';
+import { useRuntimeChatSession } from '@nimiplatform/nimi-kit/features/chat/runtime';
 import { useForgeWorkspaceStore } from '@renderer/state/forge-workspace-store.js';
 
 function buildDraftSystemPrompt(input: {
@@ -30,10 +31,6 @@ export default function WorkbenchAgentDetailPage() {
     [agentId, snapshot?.reviewState.agentBundles],
   );
 
-  const [messages, setMessages] = useState<Array<{ role: 'agent' | 'user'; text: string }>>([]);
-  const [input, setInput] = useState('');
-  const [streaming, setStreaming] = useState(false);
-
   if (!snapshot || !agentDraft) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -59,52 +56,19 @@ export default function WorkbenchAgentDetailPage() {
       layer: rule.layer,
     })),
   });
-
-  async function sendPreview() {
-    if (!input.trim() || streaming) {
-      return;
-    }
-    const nextUserMessage = { role: 'user' as const, text: input };
-    const conversation = [...messages, nextUserMessage];
-    setMessages(conversation);
-    setInput('');
-    setStreaming(true);
-
-    try {
-      const { runtime } = getPlatformClient();
-      const result = await runtime.ai.text.stream({
-        model: 'auto',
-        input: conversation.map((message) => ({
-          role: message.role === 'agent' ? 'assistant' as const : 'user' as const,
-          content: message.text,
-        })),
-        system: systemPrompt,
-        temperature: 0.8,
-        maxTokens: 1024,
-      });
-
-      let accumulated = '';
-      setMessages((prev) => [...prev, { role: 'agent', text: '' }]);
-      for await (const part of result.stream) {
-        if (part.type !== 'delta') {
-          continue;
-        }
-        accumulated += part.text;
-        setMessages((prev) => {
-          const next = [...prev];
-          next[next.length - 1] = { role: 'agent', text: accumulated };
-          return next;
-        });
-      }
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'agent', text: `Error: ${error instanceof Error ? error.message : 'Failed to preview agent.'}` },
-      ]);
-    } finally {
-      setStreaming(false);
-    }
-  }
+  const session = useRuntimeChatSession({
+    resolveRequest: ({ messages }) => ({
+      model: 'auto',
+      input: messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+      system: systemPrompt,
+      temperature: 0.8,
+      maxTokens: 1024,
+    }),
+  });
+  const resetMessages = session.resetMessages;
 
   return (
     <div className="h-full overflow-auto p-8">
@@ -191,7 +155,7 @@ export default function WorkbenchAgentDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => setMessages([])}
+                onClick={() => resetMessages([])}
                 className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-300"
               >
                 {t('agentDetail.resetChat', 'Reset')}
@@ -203,45 +167,25 @@ export default function WorkbenchAgentDetailPage() {
               <pre className="mt-3 whitespace-pre-wrap text-xs leading-6 text-neutral-400">{systemPrompt}</pre>
             </div>
 
-            <div className="mt-5 h-80 space-y-3 overflow-auto rounded-2xl border border-neutral-800 bg-neutral-950/80 p-4">
-              {messages.length === 0 ? (
-                <p className="py-8 text-center text-sm text-neutral-500">No preview messages yet.</p>
-              ) : messages.map((message, index) => (
-                <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                      message.role === 'user'
-                        ? 'bg-white text-black'
-                        : 'bg-neutral-800 text-white'
-                    }`}
-                  >
-                    {message.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex gap-2">
-              <input
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    void sendPreview();
-                  }
-                }}
-                placeholder={t('agentDetail.chatPlaceholder', 'Type a message...')}
-                className="flex-1 rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white"
-              />
-              <button
-                onClick={() => void sendPreview()}
-                disabled={streaming || !input.trim()}
-                className="rounded-xl bg-white px-4 py-2 text-sm font-medium text-black disabled:opacity-50"
-              >
-                {streaming ? t('agentDetail.streaming', 'Streaming...') : t('agentDetail.send', 'Send')}
-              </button>
-            </div>
+            <RuntimeChatPanel
+              session={session}
+              className="mt-5 rounded-2xl border border-neutral-800 bg-neutral-950/80 shadow-none"
+              messagesClassName="h-80"
+              userMessageBubbleClassName="max-w-[85%] rounded-2xl bg-white text-black"
+              assistantMessageBubbleClassName="max-w-[85%] rounded-2xl bg-neutral-800 text-white"
+              composerClassName="border-neutral-800"
+              placeholder={t('agentDetail.chatPlaceholder', 'Type a message...')}
+              sendLabel={t('agentDetail.send', 'Send')}
+              streamingLabel={t('agentDetail.streaming', 'Streaming...')}
+              cancelLabel={t('agentDetail.cancel', 'Cancel')}
+              resetLabel={t('agentDetail.resetChat', 'Reset')}
+              onReset={() => resetMessages([])}
+              emptyState={(
+                <p className="py-8 text-center text-sm text-neutral-500">
+                  No preview messages yet.
+                </p>
+              )}
+            />
           </section>
         </div>
       </div>

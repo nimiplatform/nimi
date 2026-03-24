@@ -2,6 +2,19 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import {
+  useRealmMessageTimeline,
+  type RealmChatOutboxEntryLike,
+  type RealmChatTimelineMessage,
+} from '@nimiplatform/nimi-kit/features/chat/realm';
+import {
+  ChatComposerResizeHandle,
+  ChatComposerShell,
+  ChatPanelState,
+  ChatStreamStatus,
+  ChatThreadHeader,
+  RealmChatTimeline,
+} from '@nimiplatform/nimi-kit/features/chat/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import nimiLogo from '@renderer/assets/logo-gray.png';
@@ -13,25 +26,11 @@ import { toProfileData } from '@renderer/features/profile/profile-model';
 import { ChatProfileCard } from './message-timeline-profile-card.js';
 import { TurnInput } from './turn-input';
 import {
-  ChatMessageImage,
-  formatDateSeparator,
-  resolveImageMessageUrl,
-  resolveMessageText,
-  resolveVideoMessageUrl,
-  shouldShowTimestamp,
   toChatProfileSummary,
-  toMessageTimestamp,
 } from './message-timeline-utils.js';
 
 type MessageViewDto = RealmModel<'MessageViewDto'>;
 type ChatViewDto = RealmModel<'ChatViewDto'>;
-import {
-  sameChatTimelineIdentity,
-  toChatTimelineOutboxMessage,
-  toChatTimelineRemoteMessage,
-  toChatTimelineUploadPlaceholder,
-  type ChatTimelineMessage,
-} from './chat-timeline-message';
 import { useChatUploadPlaceholders } from './chat-upload-placeholder-store';
 import { type StreamState, getStreamState, subscribeStream, cancelStream } from './stream-controller';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -109,32 +108,11 @@ export function MessageTimeline() {
   const contactName = String(otherUser?.displayName || otherUser?.handle || 'Chat').trim();
   const contactAvatarUrl = otherUser?.avatarUrl || null;
 
-  const messages = useMemo(() => {
-    const remoteItems = ((messagesQuery.data?.items || []) as MessageViewDto[])
-      .map((message) => toChatTimelineRemoteMessage(message));
-    const offlineOutbox = Array.isArray((messagesQuery.data as { offlineOutbox?: unknown } | undefined)?.offlineOutbox)
-      ? ((messagesQuery.data as { offlineOutbox?: unknown }).offlineOutbox as import('@runtime/offline').PersistentOutboxEntry[])
-      : [];
-    const merged: ChatTimelineMessage[] = remoteItems.slice();
-    for (const entry of offlineOutbox) {
-      const placeholder = toChatTimelineOutboxMessage(entry, currentUserId);
-      if (merged.some((message) => sameChatTimelineIdentity(message, placeholder))) {
-        continue;
-      }
-      merged.push(placeholder);
-    }
-    for (const placeholder of uploadPlaceholders) {
-      merged.push(toChatTimelineUploadPlaceholder(placeholder));
-    }
-    merged.sort((left, right) => {
-      const timeDiff = toMessageTimestamp(left) - toMessageTimestamp(right);
-      if (timeDiff !== 0) {
-        return timeDiff;
-      }
-      return String(left.clientMessageId || left.id || '').localeCompare(String(right.clientMessageId || right.id || ''));
-    });
-    return merged;
-  }, [currentUserId, messagesQuery.data, uploadPlaceholders]);
+  const messages = useRealmMessageTimeline({
+    messagesData: messagesQuery.data as { items?: readonly MessageViewDto[]; offlineOutbox?: readonly RealmChatOutboxEntryLike[] } | undefined,
+    currentUserId,
+    uploadPlaceholders,
+  }) as readonly RealmChatTimelineMessage[];
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -219,10 +197,10 @@ export function MessageTimeline() {
 
   if (!selectedChatId) {
     return (
-      <section
+      <ChatPanelState
         data-testid={E2E_IDS.messageTimeline}
-        data-active-chat-id=""
-        className="flex h-full items-center justify-center bg-white"
+        activeChatId=""
+        className="bg-white text-inherit"
       >
         <img
           src={nimiLogo}
@@ -230,52 +208,37 @@ export function MessageTimeline() {
           className="w-64 h-64 object-contain select-none pointer-events-none"
           draggable={false}
         />
-      </section>
+      </ChatPanelState>
     );
   }
 
   if (messagesQuery.isPending) {
     return (
-      <section
-        data-testid={E2E_IDS.messageTimeline}
-        data-active-chat-id={selectedChatId}
-        className="flex h-full items-center justify-center text-sm text-gray-500"
-      >
+      <ChatPanelState dataTestId={E2E_IDS.messageTimeline} activeChatId={selectedChatId}>
         {t('ChatTimeline.loadingMessages')}
-      </section>
+      </ChatPanelState>
     );
   }
 
   if (messagesQuery.isError) {
     return (
-      <section
-        data-testid={E2E_IDS.messageTimeline}
-        data-active-chat-id={selectedChatId}
-        className="flex h-full items-center justify-center text-sm text-red-600"
-      >
+      <ChatPanelState dataTestId={E2E_IDS.messageTimeline} activeChatId={selectedChatId} tone="error">
         {t('ChatTimeline.messageLoadError')}
-      </section>
+      </ChatPanelState>
     );
   }
 
   return (
     <section data-testid={E2E_IDS.messageTimeline} data-active-chat-id={selectedChatId} className="flex h-full min-w-0">
       <div ref={timelineLayoutRef} className="flex min-w-0 flex-1 flex-col">
-        {/* Chat header */}
-        <header className="flex h-14 shrink-0 items-center bg-white px-4">
-          {/* Name - clickable to open profile panel */}
-          <button
-            type="button"
-            onClick={() => toggleProfilePanel('other')}
-            data-testid={E2E_IDS.chatHeaderProfileToggle}
-            className="text-[15px] font-semibold text-gray-900 hover:text-gray-700 transition-colors"
-            aria-label={profilePanelTarget === 'other'
-              ? t('ChatTimeline.collapseUserProfile')
-              : t('ChatTimeline.viewUserProfile')}
-          >
-            {contactName}
-          </button>
-        </header>
+        <ChatThreadHeader
+          title={contactName}
+          onTitleClick={() => toggleProfilePanel('other')}
+          titleAriaLabel={profilePanelTarget === 'other'
+            ? t('ChatTimeline.collapseUserProfile')
+            : t('ChatTimeline.viewUserProfile')}
+          titleClassName=""
+        />
 
         {/* Messages */}
         <ScrollShell
@@ -283,207 +246,110 @@ export function MessageTimeline() {
           viewportClassName="bg-white"
           contentClassName="space-y-4 px-4 py-4"
         >
-          {messages.length === 0 ? (
-            <p className="text-center text-sm text-gray-500">{t('Chat.noMessages')}</p>
-          ) : (
-            messages.map((message, index) => {
-              const isMe = message.deliveryState !== 'sent' || message.senderId === currentUserId;
+          <RealmChatTimeline
+            messages={messages}
+            currentUserId={currentUserId}
+            realmBaseUrl={realmBaseUrl}
+            authToken={authToken}
+            emptyState={<p className="text-center text-sm text-gray-500">{t('Chat.noMessages')}</p>}
+            emptyMessageLabel={t('ChatTimeline.emptyMessage')}
+            imageMessageLabel={t('ChatTimeline.imageMessage', 'Image')}
+            videoMessageLabel={t('ChatTimeline.videoMessage', 'Video')}
+            queuedLocallyLabel={t('ChatTimeline.queuedLocally')}
+            sendFailedLabel={t('ChatTimeline.sendFailed')}
+            uploadingMediaLabel={t('ChatTimeline.uploadingMedia', 'Uploading...')}
+            yesterdayLabel={t('Chat.yesterday', { defaultValue: 'Yesterday' })}
+            renderAvatar={({ message, display, isMe }) => {
               const senderName = isMe ? t('ChatTimeline.you') : contactName;
               const messageProfileTarget: Exclude<ProfilePanelTarget, null> = isMe ? 'self' : 'other';
-              const showTimestamp = shouldShowTimestamp(message, index > 0 ? (messages[index - 1] ?? null) : null);
-              const timestampLabel = showTimestamp ? formatDateSeparator(message.createdAt) : '';
-              const isGiftMessage = String(message.type || '').toUpperCase() === 'GIFT';
-              const isImageMessage = String(message.type || '').toUpperCase() === 'IMAGE';
-              const isVideoMessage = String(message.type || '').toUpperCase() === 'VIDEO';
-              const isMediaMessage = isImageMessage || isVideoMessage;
-              const avatarMarginTopClass = isMediaMessage || isGiftMessage ? 'mt-0' : 'mt-1';
-              const imageUrl = isImageMessage ? resolveImageMessageUrl(message, realmBaseUrl) : '';
-              const videoUrl = isVideoMessage ? resolveVideoMessageUrl(message, realmBaseUrl) : '';
-              const mediaPreviewUrl = message.localPreviewUrl || imageUrl || videoUrl;
-              const isUploadingMedia = message.localUploadState === 'uploading';
-              const resolvedMessageText = resolveMessageText(message) || t('ChatTimeline.emptyMessage');
-              const messageAvatarKind = 'human';
               return (
-                <div key={message.id || message.clientMessageId}>
-                  {showTimestamp && timestampLabel ? (
-                    <div className="my-6 flex items-center justify-center">
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-500">{timestampLabel}</span>
-                    </div>
-                  ) : null}
-                <div className={`flex items-start gap-2 ${isMe ? 'flex-row-reverse' : ''}`}>
-                  {/* Avatar */}
-                  <button
-                    type="button"
-                    onClick={() => toggleProfilePanel(messageProfileTarget)}
-                    className={`${avatarMarginTopClass} shrink-0`}
-                    aria-label={profilePanelTarget === messageProfileTarget
-                      ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
-                      : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
-                  >
-                    <EntityAvatar
-                      imageUrl={isMe ? currentUserAvatarUrl : contactAvatarUrl}
-                      name={senderName}
-                      kind={isMe ? 'human' : messageAvatarKind}
-                      sizeClassName="h-8 w-8"
-                      textClassName="text-xs font-medium"
-                      fallbackClassName={isMe ? 'bg-[#0066CC] text-white' : undefined}
-                    />
-                  </button>
-                  {/* Bubble */}
-                  <div className={`max-w-[75%] ${isMe ? 'text-right' : ''}`}>
-                    <div className={`inline-block rounded-[18px] text-[15px] leading-snug ${
-                      isMediaMessage || isGiftMessage
-                        ? 'bg-transparent text-gray-900'
-                        : isMe
-                        ? 'bg-[#0066CC] text-white'
-                        : 'bg-[#F2F2F7] text-gray-900'
-                    } ${isMediaMessage || isGiftMessage ? 'p-0 overflow-hidden' : 'px-4 py-2.5'}`}>
-                      {isGiftMessage ? (
-                        <GiftMessageBubble
-                          payload={message.payload as unknown as GiftMessagePayload}
-                          isMe={isMe}
-                          currentUserId={currentUserId}
-                        />
-                      ) : isImageMessage ? (
-                        mediaPreviewUrl ? (
-                          <div className="relative">
-                            <ChatMessageImage
-                              src={mediaPreviewUrl}
-                              alt={t('ChatTimeline.imageMessage', 'Image')}
-                              realmBaseUrl={realmBaseUrl}
-                              authToken={authToken}
-                            />
-                            {isUploadingMedia ? (
-                              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/55 backdrop-blur-[1px]">
-                                <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/70 border-t-[#0066CC] shadow-sm" />
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span>{t('ChatTimeline.imageMessage', 'Image')}</span>
-                        )
-                      ) : isVideoMessage ? (
-                        mediaPreviewUrl ? (
-                          <div className="relative">
-                            <video
-                              src={mediaPreviewUrl}
-                              controls={!isUploadingMedia}
-                              muted={isUploadingMedia}
-                              playsInline
-                              preload="metadata"
-                              className="max-h-[320px] max-w-[260px] rounded-xl"
-                            />
-                            {isUploadingMedia ? (
-                              <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/35">
-                                <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/60 border-t-white shadow-sm" />
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span>{t('ChatTimeline.videoMessage', 'Video')}</span>
-                        )
-                      ) : (
-                        resolvedMessageText
-                      )}
-                    </div>
-                    {message.deliveryState !== 'sent' ? (
-                      <div
-                        className={`mt-1 px-1 text-[11px] ${
-                          isMe ? 'text-right' : 'text-left'
-                        } ${
-                          message.deliveryState === 'failed'
-                            ? 'text-red-500'
-                            : 'text-amber-600'
-                        }`}
-                      >
-                        {message.localUploadState === 'uploading'
-                          ? t('ChatTimeline.uploadingMedia', 'Uploading...')
-                          : message.deliveryState === 'failed'
-                          ? (message.deliveryError || t('ChatTimeline.sendFailed'))
-                          : t('ChatTimeline.queuedLocally')}
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleProfilePanel(messageProfileTarget)}
+                  className={`${display.isMediaMessage || display.isGiftMessage ? 'mt-0' : 'mt-1'} shrink-0`}
+                  aria-label={profilePanelTarget === messageProfileTarget
+                    ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
+                    : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
+                >
+                  <EntityAvatar
+                    imageUrl={isMe ? currentUserAvatarUrl : contactAvatarUrl}
+                    name={senderName}
+                    kind="human"
+                    sizeClassName="h-8 w-8"
+                    textClassName="text-xs font-medium"
+                    fallbackClassName={isMe ? 'bg-[#0066CC] text-white' : undefined}
+                  />
+                </button>
               );
-            })
-          )}
+            }}
+            renderGiftMessage={({ message, isMe }) => (
+              <GiftMessageBubble
+                payload={message.payload as unknown as GiftMessagePayload}
+                isMe={isMe}
+                currentUserId={currentUserId}
+              />
+            )}
+          />
 
           {/* Streaming indicator */}
           {streamState && isStreaming && (
-            <div className="flex gap-2">
-              <EntityAvatar
-                imageUrl={contactAvatarUrl}
-                name={contactName}
-                kind="human"
-                sizeClassName="mt-1 h-8 w-8 shrink-0"
-                textClassName="text-xs font-medium"
-              />
-              <div className="max-w-[75%]">
-                <div className="inline-block rounded-[18px] bg-[#F2F2F7] px-4 py-2.5 text-[15px] leading-snug text-gray-900">
-                  {streamState.partialText || (
-                    <span className="inline-flex items-center gap-1 text-gray-400">
-                      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
-                      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
-                      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
-                    </span>
-                  )}
-                </div>
-                <div className="mt-1">
-                  <button
-                    type="button"
-                    onClick={() => selectedChatId && cancelStream(selectedChatId)}
-                    className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
-                  >
-                    {t('ChatTimeline.stopGenerating', 'Stop generating')}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ChatStreamStatus
+              mode="streaming"
+              partialText={streamState.partialText}
+              avatar={(
+                <EntityAvatar
+                  imageUrl={contactAvatarUrl}
+                  name={contactName}
+                  kind="human"
+                  sizeClassName="mt-1 h-8 w-8 shrink-0"
+                  textClassName="text-xs font-medium"
+                />
+              )}
+              actions={(
+                <button
+                  type="button"
+                  onClick={() => selectedChatId && cancelStream(selectedChatId)}
+                  className="rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500 transition hover:bg-gray-50 hover:text-gray-700"
+                >
+                  {t('ChatTimeline.stopGenerating', 'Stop generating')}
+                </button>
+              )}
+            />
           )}
 
           {/* Stream interrupted / error indicator */}
           {streamState && (streamState.phase === 'error' || streamState.phase === 'cancelled') && streamState.interrupted && (
-            <div className="flex gap-2">
-              <EntityAvatar
-                imageUrl={contactAvatarUrl}
-                name={contactName}
-                kind="human"
-                sizeClassName="mt-1 h-8 w-8 shrink-0"
-                textClassName="text-xs font-medium"
-              />
-              <div className="max-w-[75%]">
-                <div className="inline-block rounded-[18px] bg-[#F2F2F7] px-4 py-2.5 text-[15px] leading-snug text-gray-900">
-                  {streamState.partialText}
-                  <span className="ml-1 text-xs text-red-400">[{t('ChatTimeline.streamInterrupted', 'Response interrupted')}]</span>
-                </div>
-                {streamState.errorMessage && (
-                  <p className="mt-1 text-xs text-red-400">{streamState.errorMessage}</p>
-                )}
-              </div>
-            </div>
+            <ChatStreamStatus
+              mode="interrupted"
+              partialText={streamState.partialText}
+              errorMessage={streamState.errorMessage}
+              avatar={(
+                <EntityAvatar
+                  imageUrl={contactAvatarUrl}
+                  name={contactName}
+                  kind="human"
+                  sizeClassName="mt-1 h-8 w-8 shrink-0"
+                  textClassName="text-xs font-medium"
+                />
+              )}
+              interruptedSuffix={<span className="ml-1 text-xs text-red-400">[{t('ChatTimeline.streamInterrupted', 'Response interrupted')}]</span>}
+            />
           )}
 
           <div ref={bottomRef} />
         </ScrollShell>
-        <div
-          role="separator"
-          aria-orientation="horizontal"
-          aria-label={t('ChatTimeline.resizeInputArea')}
+        <ChatComposerResizeHandle
+          ariaLabel={t('ChatTimeline.resizeInputArea')}
           onMouseDown={startComposerResize}
-          className="relative h-2 shrink-0 cursor-row-resize bg-transparent"
-        >
-          <div className="absolute left-0 right-0 top-1/2 h-[0.5px] -translate-y-1/2 bg-gray-100/80" />
-        </div>
+        />
 
-        <div className="shrink-0" style={{ height: `${composerHeight}px` }}>
+        <ChatComposerShell height={composerHeight}>
           <TurnInput
             className="h-full"
             showTopBorder={false}
             onOpenGift={otherUserId ? () => setGiftModalOpen(true) : undefined}
           />
-        </div>
+        </ChatComposerShell>
       </div>
 
       {profilePanelTarget ? (

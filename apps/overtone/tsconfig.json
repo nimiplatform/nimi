@@ -15,7 +15,9 @@
       "@nimiplatform/nimi-kit/auth": ["../../kit/auth/src/index.ts"],
       "@nimiplatform/nimi-kit/auth/*": ["../../kit/auth/src/*"],
       "@nimiplatform/nimi-kit/core": ["../../kit/core/src/index.ts"],
-      "@nimiplatform/nimi-kit/core/*": ["../../kit/core/src/*"]
+      "@nimiplatform/nimi-kit/core/*": ["../../kit/core/src/*"],
+      "@nimiplatform/nimi-kit/features/generation": ["../../kit/features/generation/src/index.ts"],
+      "@nimiplatform/nimi-kit/features/generation/*": ["../../kit/features/generation/src/*"]
     },
     "target": "ES2022",
     "module": "ESNext",

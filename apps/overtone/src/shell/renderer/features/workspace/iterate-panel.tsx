@@ -1,15 +1,14 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { ScenarioJobStatus, buildMusicIterationExtensions, type MusicIterationMode } from '@nimiplatform/sdk/runtime';
-import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
 import {
   copyArtifactBytesToArrayBuffer,
   scenarioJobStatusLabel,
   scenarioJobStatusToGenerationStatus,
-  submitMusicJobAndWait,
-} from './runtime-workflow.js';
-import { ErrorDisplay } from './error-display.js';
-import { OtButton, OtSegmentedControl, OtAccordionSection } from './ui-primitives.js';
+  useRuntimeGenerationPanel,
+} from '@nimiplatform/nimi-kit/features/generation/runtime';
+import { RuntimeGenerationPanel } from '@nimiplatform/nimi-kit/features/generation/ui';
+import { useAppStore, type SongTake } from '@renderer/app-shell/providers/app-store.js';
+import { OtSegmentedControl, OtAccordionSection } from './ui-primitives.js';
 
 type SourceKind = 'take' | 'upload';
 
@@ -33,7 +32,6 @@ export function IteratePanel() {
   const [mode, setMode] = useState<MusicIterationMode>('extend');
   const [sourceKind, setSourceKind] = useState<SourceKind>('take');
   const [uploadedAudio, setUploadedAudio] = useState<{ base64: string; mime: string; name: string } | null>(null);
-  const [lastError, setLastError] = useState<unknown>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasActiveJob = activeJobs.size > 0;
@@ -65,62 +63,74 @@ export function IteratePanel() {
     reader.readAsArrayBuffer(file);
   }, []);
 
-  const handleIterate = useCallback(async () => {
-    if (!selectedMusicModelId || !selectedMusicConnectorId) {
-      return;
-    }
-
-    setLastError(null);
-    let sourceAudioBase64 = '';
-    let sourceMimeType = 'audio/mpeg';
-    if (sourceKind === 'take') {
-      if (!selectedTakeAudio) {
-        return;
+  const iterationState = useRuntimeGenerationPanel({
+    input: {
+      mode,
+      sourceKind,
+      selectedTakeId,
+      selectedTakeAudio,
+      uploadedAudio,
+    },
+    resolveRequest: ({
+      input: {
+        mode: nextMode,
+        sourceKind: nextSourceKind,
+        selectedTakeAudio: nextSelectedTakeAudio,
+        uploadedAudio: nextUploadedAudio,
+      },
+    }) => {
+      let sourceAudioBase64 = '';
+      let sourceMimeType = 'audio/mpeg';
+      if (nextSourceKind === 'take') {
+        if (!nextSelectedTakeAudio) {
+          throw new Error('Select a take with audio before iterating.');
+        }
+        sourceAudioBase64 = arrayBufferToBase64(nextSelectedTakeAudio);
+      } else {
+        if (!nextUploadedAudio) {
+          throw new Error('Upload source audio before iterating.');
+        }
+        sourceAudioBase64 = nextUploadedAudio.base64;
+        sourceMimeType = nextUploadedAudio.mime;
       }
-      sourceAudioBase64 = arrayBufferToBase64(selectedTakeAudio);
-    } else {
-      if (!uploadedAudio) {
-        return;
-      }
-      sourceAudioBase64 = uploadedAudio.base64;
-      sourceMimeType = uploadedAudio.mime;
-    }
 
-    const runtime = getPlatformClient().runtime;
-    const prompt = brief?.description || '';
-    const style = brief ? [brief.genre, brief.mood].filter(Boolean).join(', ') : '';
-    let result:
-      | Awaited<ReturnType<typeof submitMusicJobAndWait>>
-      | undefined;
-
-    try {
-      result = await submitMusicJobAndWait(runtime, {
-        model: selectedMusicModelId,
-        connectorId: selectedMusicConnectorId,
-        prompt,
-        lyrics: lyrics || undefined,
-        style: style || undefined,
-        title: brief?.title || 'Untitled',
-        extensions: buildMusicIterationExtensions({
-          mode,
-          sourceAudioBase64,
-          sourceMimeType,
-          trimStartSec: trimStart ?? undefined,
-          trimEndSec: trimEnd ?? undefined,
-        }),
-      }, (job) => {
-        setJobStatus(job.jobId, {
-          jobId: job.jobId,
-          status: scenarioJobStatusToGenerationStatus(job.status),
-          progress: scenarioJobStatusLabel(job.status),
-          error: job.reasonDetail || undefined,
-        });
+      const prompt = brief?.description || '';
+      const style = brief ? [brief.genre, brief.mood].filter(Boolean).join(', ') : '';
+      return {
+        modal: 'music',
+        input: {
+          model: selectedMusicModelId || '',
+          connectorId: selectedMusicConnectorId || '',
+          prompt,
+          lyrics: lyrics || undefined,
+          style: style || undefined,
+          title: brief?.title || 'Untitled',
+          extensions: buildMusicIterationExtensions({
+            mode: nextMode,
+            sourceAudioBase64,
+            sourceMimeType,
+            trimStartSec: trimStart ?? undefined,
+            trimEndSec: trimEnd ?? undefined,
+          }),
+        },
+      };
+    },
+    disabled: !musicIterationSupported || !hasSource || hasActiveJob,
+    submitting: hasActiveJob,
+    onJobUpdate: ({ job }) => {
+      setJobStatus(job.jobId, {
+        jobId: job.jobId,
+        status: scenarioJobStatusToGenerationStatus(job.status),
+        progress: scenarioJobStatusLabel(job.status),
+        error: job.reasonDetail || undefined,
       });
-
+    },
+    onCompleted: async (result) => {
       if (result.job.status !== ScenarioJobStatus.COMPLETED) {
         throw new Error(result.job.reasonDetail || scenarioJobStatusLabel(result.job.status));
       }
 
+      const prompt = brief?.description || '';
       const takeId = `take-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const origin: SongTake['origin'] = mode;
       const take: SongTake = {
@@ -147,45 +157,28 @@ export function IteratePanel() {
         progress: 'Completed',
       });
       window.setTimeout(() => removeJob(completedJobId), 1500);
-    } catch (error: unknown) {
-      setLastError(error);
-      if (result) {
-        const failedJobId = result.job.jobId;
+    },
+    onError: (error, context) => {
+      if (context.result) {
+        const failedJobId = context.result.job.jobId;
         setJobStatus(failedJobId, {
           jobId: failedJobId,
-          status: scenarioJobStatusToGenerationStatus(result.job.status),
-          progress: scenarioJobStatusLabel(result.job.status),
+          status: scenarioJobStatusToGenerationStatus(context.result.job.status),
+          progress: scenarioJobStatusLabel(context.result.job.status),
           error: error instanceof Error ? error.message : String(error),
         });
         window.setTimeout(() => removeJob(failedJobId), 2500);
         return;
       }
-      const message = error instanceof Error ? error.message : String(error);
       const jobId = `iterate-${Date.now()}`;
       setJobStatus(jobId, {
         jobId,
         status: 'failed',
-        error: message,
+        error: error instanceof Error ? error.message : String(error),
       });
       window.setTimeout(() => removeJob(jobId), 2500);
-    }
-  }, [
-    addTake,
-    brief,
-    lyrics,
-    mode,
-    removeJob,
-    selectedMusicConnectorId,
-    selectedMusicModelId,
-    selectedTakeAudio,
-    selectedTakeId,
-    setAudioBuffer,
-    setJobStatus,
-    sourceKind,
-    trimEnd,
-    trimStart,
-    uploadedAudio,
-  ]);
+    },
+  });
 
   if (takes.length === 0) {
     return null;
@@ -193,94 +186,88 @@ export function IteratePanel() {
 
   return (
     <OtAccordionSection title="Iteration" defaultOpen={false}>
-      {!musicIterationSupported && (
-        <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]">
-          Iteration requires a connector/model pair that supports music.generate.iteration (e.g. Suno, Stability).
-        </div>
-      )}
+      <RuntimeGenerationPanel
+        runtimeState={iterationState}
+        title="Iteration"
+        runtimeLabel="Runtime Path"
+        runtimeValue={selectedMusicConnectorId && selectedMusicModelId
+          ? `${selectedMusicConnectorId} → ${selectedMusicModelId}`
+          : 'No ready music connector/model pair'}
+        warning={!musicIterationSupported
+          ? 'Iteration requires a connector/model pair that supports music.generate.iteration (e.g. Suno, Stability).'
+          : null}
+        controls={(
+          <>
+            <div className="space-y-1">
+              <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Mode</label>
+              <OtSegmentedControl
+                options={['extend', 'remix', 'reference'] as const}
+                value={mode}
+                onChange={setMode}
+                labels={{ extend: 'Extend', remix: 'Remix', reference: 'Reference' }}
+              />
+            </div>
 
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Mode</label>
-          <OtSegmentedControl
-            options={['extend', 'remix', 'reference'] as const}
-            value={mode}
-            onChange={setMode}
-            labels={{ extend: 'Extend', remix: 'Remix', reference: 'Reference' }}
-          />
-        </div>
+            <p className="text-[10px] text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">
+              {mode === 'extend' && 'Continue the selected source take.'}
+              {mode === 'remix' && 'Keep the source material but reinterpret arrangement and style.'}
+              {mode === 'reference' && 'Use the source as a guide for a fresh generation.'}
+            </p>
 
-        <p className="text-[10px] text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">
-          {mode === 'extend' && 'Continue the selected source take.'}
-          {mode === 'remix' && 'Keep the source material but reinterpret arrangement and style.'}
-          {mode === 'reference' && 'Use the source as a guide for a fresh generation.'}
-        </p>
+            <div className="space-y-2">
+              <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Source</label>
+              <OtSegmentedControl
+                options={['take', 'upload'] as const}
+                value={sourceKind}
+                onChange={setSourceKind}
+                labels={{ take: 'From Take', upload: 'Upload Audio' }}
+              />
 
-        <div className="space-y-2">
-          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Source</label>
-          <OtSegmentedControl
-            options={['take', 'upload'] as const}
-            value={sourceKind}
-            onChange={setSourceKind}
-            labels={{ take: 'From Take', upload: 'Upload Audio' }}
-          />
-
-          {sourceKind === 'take' && (
-            <div className="p-2.5 rounded-lg bg-[var(--nimi-surface-card)] border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] text-xs">
-              {selectedTake ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-[var(--nimi-text-secondary)] truncate">{selectedTake.title}</span>
-                  <span className={selectedTakeAudio ? 'text-[var(--nimi-status-success)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]'}>
-                    {selectedTakeAudio ? 'ready' : 'no audio'}
-                  </span>
+              {sourceKind === 'take' && (
+                <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] bg-[var(--nimi-surface-card)] p-2.5 text-xs">
+                  {selectedTake ? (
+                    <div className="flex items-center justify-between">
+                      <span className="truncate text-[var(--nimi-text-secondary)]">{selectedTake.title}</span>
+                      <span className={selectedTakeAudio ? 'text-[var(--nimi-status-success)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]'}>
+                        {selectedTakeAudio ? 'ready' : 'no audio'}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">Select a take from the list.</span>
+                  )}
                 </div>
-              ) : (
-                <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">Select a take from the list.</span>
+              )}
+
+              {sourceKind === 'upload' && (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <button
+                    className="w-full rounded-lg border border-dashed border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] bg-[var(--nimi-surface-card)] p-3 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)] transition-colors hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)]"
+                    onClick={() => fileInputRef.current?.click()}
+                    type="button"
+                  >
+                    {uploadedAudio ? uploadedAudio.name : 'Drop audio or click to browse'}
+                  </button>
+                </div>
               )}
             </div>
-          )}
 
-          {sourceKind === 'upload' && (
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="audio/*"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <button
-                className="w-full p-3 rounded-lg bg-[var(--nimi-surface-card)] border border-dashed border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)] hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)] transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-                type="button"
-              >
-                {uploadedAudio ? uploadedAudio.name : 'Drop audio or click to browse'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {(trimStart !== null || trimEnd !== null) && (
-          <p className="text-[10px] font-mono text-[color-mix(in_srgb,var(--nimi-action-primary-bg-hover)_78%,white)] tabular-nums">
-            Trim: {trimStart !== null ? `${trimStart.toFixed(1)}s` : 'start'} – {trimEnd !== null ? `${trimEnd.toFixed(1)}s` : 'end'}
-          </p>
+            {(trimStart !== null || trimEnd !== null) && (
+              <p className="text-[10px] font-mono tabular-nums text-[color-mix(in_srgb,var(--nimi-action-primary-bg-hover)_78%,white)]">
+                Trim: {trimStart !== null ? `${trimStart.toFixed(1)}s` : 'start'} – {trimEnd !== null ? `${trimEnd.toFixed(1)}s` : 'end'}
+              </p>
+            )}
+          </>
         )}
-
-        {lastError ? (
-          <ErrorDisplay error={lastError} onDismiss={() => setLastError(null)} onRetry={handleIterate} />
-        ) : null}
-
-        <OtButton
-          variant="secondary"
-          className="w-full"
-          onClick={handleIterate}
-          disabled={!musicIterationSupported || !hasSource || hasActiveJob}
-          loading={hasActiveJob}
-          type="button"
-        >
-          {hasActiveJob ? 'Processing...' : `${mode.charAt(0).toUpperCase() + mode.slice(1)} Song`}
-        </OtButton>
-      </div>
+        submitLabel={`${mode.charAt(0).toUpperCase() + mode.slice(1)} Song`}
+        submittingLabel="Processing..."
+      />
     </OtAccordionSection>
   );
 }

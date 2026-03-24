@@ -1,6 +1,6 @@
 import type { WorldAgent, WorldDetailWithAgents } from '../world-browser/world-browser-data.js';
 import type { ChatMessage } from '@renderer/app-shell/app-store.js';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { streamPlatformChatResponse } from '@nimiplatform/nimi-kit/features/chat/runtime';
 
 export function buildSystemPrompt(agent: WorldAgent, world: WorldDetailWithAgents): string {
   const parts: string[] = [];
@@ -44,7 +44,6 @@ export async function streamAgentChat(input: StreamChatInput): Promise<void> {
   const { agent, world, messages, userMessage, signal, onDelta, onFinish, onError } = input;
 
   try {
-    const { runtime } = getPlatformClient();
     const systemPrompt = buildSystemPrompt(agent, world);
 
     // Build conversation history per RD-CHAT-004
@@ -54,34 +53,23 @@ export async function streamAgentChat(input: StreamChatInput): Promise<void> {
     }));
     conversationInput.push({ role: 'user', content: userMessage });
 
-    const output = await runtime.ai.text.stream({
+    const result = await streamPlatformChatResponse({
       model: 'auto',
-      input: conversationInput as unknown as string,
+      input: conversationInput,
       system: systemPrompt,
       route: 'cloud',
       metadata: { surfaceId: 'realm-drift', extra: JSON.stringify({ worldId: world.id, agentId: agent.id }) },
       signal,
+    }, {
+      onDelta: (text) => {
+        if (!signal.aborted) {
+          onDelta(text);
+        }
+      },
     });
 
-    let fullText = '';
-    for await (const part of output.stream) {
-      if (signal.aborted) return;
-
-      if (part.type === 'delta') {
-        fullText += part.text;
-        onDelta(part.text);
-      } else if (part.type === 'error') {
-        onError(new Error(String(part.error)));
-        return;
-      } else if (part.type === 'finish') {
-        onFinish(fullText);
-        return;
-      }
-    }
-
-    // Stream ended without finish event
-    if (fullText) {
-      onFinish(fullText);
+    if (!signal.aborted && result.text) {
+      onFinish(result.text);
     }
   } catch (err) {
     if (signal.aborted) return;

@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  RuntimeModelPickerPanel,
+} from '@nimiplatform/nimi-kit/features/model-picker/ui';
+import {
+  useRuntimeModelPickerPanel,
+} from '@nimiplatform/nimi-kit/features/model-picker/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import {
   sdkDeleteCatalogModelOverlay,
   sdkDeleteModelCatalogProvider,
-  sdkGetCatalogModelDetail,
   sdkListCatalogProviderModels,
   sdkListModelCatalogProviders,
   sdkUpsertCatalogModelOverlay,
@@ -168,17 +173,12 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
   const [providers, setProviders] = useState<RuntimeModelCatalogProvider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState('');
   const [providerModels, setProviderModels] = useState<RuntimeCatalogProviderModelsResponse | null>(null);
-  const [selectedModelId, setSelectedModelId] = useState('');
-  const [modelDetail, setModelDetail] = useState<RuntimeCatalogModelDetail | null>(null);
   const [providerSearch, setProviderSearch] = useState('');
   const [providerCapabilityFilter, setProviderCapabilityFilter] = useState<CatalogCapabilityFilter>('all');
   const [providerSourceFilter, setProviderSourceFilter] = useState<'all' | 'builtin' | 'custom' | 'overridden'>('all');
-  const [modelSearch, setModelSearch] = useState('');
-  const [modelCapabilityFilter, setModelCapabilityFilter] = useState<CatalogCapabilityFilter>('all');
   const [overlayYamlDraft, setOverlayYamlDraft] = useState('');
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
-  const [loadingDetail, setLoadingDetail] = useState(false);
   const [savingOverlayYaml, setSavingOverlayYaml] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
   const [deletingModelId, setDeletingModelId] = useState('');
@@ -208,7 +208,6 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       const response = await sdkListCatalogProviderModels(provider);
       setProviderModels(response);
       setOverlayYamlDraft(response.provider.yaml || '');
-      setSelectedModelId((current) => (current && response.models.some((model) => model.modelId === current) ? current : response.models[0]?.modelId || ''));
     } catch (error) {
       setStatusBanner({ kind: 'error', message: `Model list load failed: ${error instanceof Error ? error.message : String(error || '')}` });
     } finally {
@@ -216,25 +215,8 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
     }
   }, [setStatusBanner]);
 
-  const loadModelDetail = useCallback(async (provider: string, modelId: string) => {
-    if (!provider || !modelId) {
-      setModelDetail(null);
-      return;
-    }
-    setLoadingDetail(true);
-    try {
-      const response = await sdkGetCatalogModelDetail(provider, modelId);
-      setModelDetail(response.model);
-    } catch (error) {
-      setStatusBanner({ kind: 'error', message: `Model detail load failed: ${error instanceof Error ? error.message : String(error || '')}` });
-    } finally {
-      setLoadingDetail(false);
-    }
-  }, [setStatusBanner]);
-
   useEffect(() => { void loadProviders(); }, [loadProviders]);
   useEffect(() => { if (selectedProviderId) void loadProviderModels(selectedProviderId); }, [loadProviderModels, selectedProviderId]);
-  useEffect(() => { if (selectedProviderId && selectedModelId) void loadModelDetail(selectedProviderId, selectedModelId); }, [loadModelDetail, selectedModelId, selectedProviderId]);
   useEffect(() => { if (showAddModel) setFormState(createEmptyFormState(selectedProvider)); }, [showAddModel, selectedProvider]);
 
   const filteredProviders = useMemo(() => providers.filter((provider) => {
@@ -243,12 +225,6 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
     const haystack = `${provider.provider} ${provider.defaultTextModel} ${provider.capabilities.join(' ')}`.toLowerCase();
     return haystack.includes(providerSearch.trim().toLowerCase());
   }), [providerCapabilityFilter, providerSearch, providerSourceFilter, providers]);
-
-  const filteredModels = useMemo(() => (providerModels?.models || []).filter((model) => {
-    if (!capabilityMatchesFilter(model.capabilities, modelCapabilityFilter)) return false;
-    const haystack = `${model.modelId} ${model.modelType} ${model.sourceNote} ${model.capabilities.join(' ')}`.toLowerCase();
-    return haystack.includes(modelSearch.trim().toLowerCase());
-  }), [modelCapabilityFilter, modelSearch, providerModels]);
 
   const overview = useMemo(() => {
     let totalModels = 0;
@@ -381,8 +357,7 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
         <ProviderRail providers={filteredProviders} selectedProviderId={selectedProviderId} providerSearch={providerSearch} providerCapabilityFilter={providerCapabilityFilter} providerSourceFilter={providerSourceFilter} onSelectProvider={setSelectedProviderId} onProviderSearch={setProviderSearch} onCapabilityFilter={setProviderCapabilityFilter} onSourceFilter={setProviderSourceFilter} loading={loadingProviders} />
         <div className="space-y-4">
           <ProviderHeader provider={selectedProvider} loadingModels={loadingModels} onRefresh={() => selectedProviderId && void loadProviderModels(selectedProviderId)} onAddModel={() => setShowAddModel(true)} onToggleYaml={() => setShowYamlPanel((value) => !value)} />
-          <ModelSection models={filteredModels} modelSearch={modelSearch} modelCapabilityFilter={modelCapabilityFilter} selectedModelId={selectedModelId} onSearch={setModelSearch} onCapabilityFilter={setModelCapabilityFilter} onSelectModel={setSelectedModelId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
-          <ModelDetailCard detail={modelDetail} loading={loadingDetail} />
+          <ModelSection providerId={selectedProviderId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
           {showYamlPanel && selectedProvider && providerModels ? (
             <YamlPanel provider={providerModels.provider} overlayYamlDraft={overlayYamlDraft} onChangeOverlayYaml={setOverlayYamlDraft} onSave={onSaveOverlayYaml} onDelete={onDeleteOverlayYaml} saving={savingOverlayYaml} />
           ) : null}
@@ -479,76 +454,43 @@ function ProviderHeader(props: { provider: RuntimeModelCatalogProvider | null; l
   );
 }
 
-function ModelSection(props: { models: RuntimeCatalogModelSummary[]; modelSearch: string; modelCapabilityFilter: CatalogCapabilityFilter; selectedModelId: string; onSearch: (value: string) => void; onCapabilityFilter: (value: CatalogCapabilityFilter) => void; onSelectModel: (modelId: string) => void; onDeleteModel: (modelId: string) => void; deletingModelId: string }) {
-  return (
-    <Card className="space-y-3 p-4">
-      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px]">
-        <Input label="Search Models" value={props.modelSearch} onChange={props.onSearch} placeholder="model_id, note, capability" />
-        <div>
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Filter</p>
-          <RuntimeSelect value={props.modelCapabilityFilter} onChange={(value) => props.onCapabilityFilter(value as CatalogCapabilityFilter)} options={MODEL_CAPABILITY_OPTIONS} />
-        </div>
-      </div>
-      <div className="grid gap-3 lg:grid-cols-2">
-        {props.models.map((model) => (
-          <div key={model.modelId} className={`rounded-2xl border p-4 text-left transition-colors ${props.selectedModelId === model.modelId ? 'border-mint-400 bg-mint-50/70' : 'border-slate-200 bg-white hover:border-mint-200 hover:bg-mint-50/30'}`}>
-            <button type="button" onClick={() => props.onSelectModel(model.modelId)} className="w-full text-left">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{model.modelId}</p>
-                <p className="mt-1 text-xs text-slate-500">{model.modelType || 'unknown'} · {model.updatedAt || 'n/a'}</p>
-              </div>
-              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${sourceTone(model.source)}`}>{model.source}</span>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-1">
-              {model.capabilities.map((capability) => <span key={`${model.modelId}-${capability}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">{capability}</span>)}
-            </div>
-            <p className="mt-3 text-xs text-slate-500">{model.sourceNote || 'No source note'}</p>
-            </button>
-            {(model.source === 'custom' || model.source === 'overridden') ? (
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">{model.userScoped ? 'Only visible to current user' : 'Overlay active'}</span>
-                <Button variant="ghost" size="sm" onClick={() => props.onDeleteModel(model.modelId)} disabled={props.deletingModelId === model.modelId}>{props.deletingModelId === model.modelId ? 'Deleting...' : 'Delete'}</Button>
-              </div>
-            ) : null}
-          </div>
-        ))}
-        {props.models.length === 0 ? <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-500">No models match the current filter.</div> : null}
-      </div>
-    </Card>
-  );
-}
+function ModelSection(props: { providerId: string; onDeleteModel: (modelId: string) => void; deletingModelId: string }) {
+  const state = useRuntimeModelPickerPanel({
+    provider: props.providerId,
+  });
 
-function ModelDetailCard(props: { detail: RuntimeCatalogModelDetail | null; loading: boolean }) {
-  if (props.loading) return <Card className="p-6 text-sm text-slate-500">Loading model detail...</Card>;
-  if (!props.detail) return <Card className="p-6 text-sm text-slate-500">Select a model to inspect pricing, source, voices, and workflow bindings.</Card>;
   return (
-    <Card className="space-y-4 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{props.detail.provider}</p>
-          <h3 className="mt-1 text-lg font-semibold text-slate-900">{props.detail.modelId}</h3>
-          <p className="mt-1 text-sm text-slate-500">{props.detail.modelType} · updated {props.detail.updatedAt || 'n/a'}</p>
-        </div>
-        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${sourceTone(props.detail.source)}`}>{props.detail.source}</span>
-      </div>
-      {props.detail.warnings.length > 0 ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{props.detail.warnings.map((warning) => warning.message).join(' ')}</div> : null}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <DetailBlock title="Capabilities" value={props.detail.capabilities.join(', ') || '-'} />
-        <DetailBlock title="Source" value={props.detail.sourceRef.url || '-'} />
-        <DetailBlock title="Pricing" value={`${props.detail.pricing.unit || '-'} · in ${props.detail.pricing.input || '-'} · out ${props.detail.pricing.output || '-'}`} />
-        <DetailBlock title="Source Retrieved" value={props.detail.sourceRef.retrievedAt || '-'} />
-        <DetailBlock title="Voice Set" value={props.detail.voiceSetId || '-'} />
-        <DetailBlock title="Voice Discovery" value={props.detail.voiceDiscoveryMode || '-'} />
-      </div>
-      {props.detail.voices.length > 0 ? <div className="space-y-2"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Voices</p><div className="grid gap-2 md:grid-cols-2">{props.detail.voices.map((voice) => <div key={`${voice.voiceSetId}-${voice.voiceId}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><p className="text-sm font-medium text-slate-900">{voice.name || voice.voiceId}</p><p className="mt-1 text-xs text-slate-500">{voice.voiceId} · {voice.langs.join(', ') || '-'}</p></div>)}</div></div> : null}
-      {props.detail.videoGeneration ? <pre className="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-950 p-3 text-xs text-slate-100">{JSON.stringify(props.detail.videoGeneration, null, 2)}</pre> : null}
-    </Card>
+    <RuntimeModelPickerPanel
+      state={state}
+      className="rounded-3xl"
+      pickerClassName="space-y-3 p-4"
+      detailClassName="space-y-4 p-4"
+      renderItemActions={(model) => (
+        model.source === 'custom' || model.source === 'overridden' ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => props.onDeleteModel(model.modelId)}
+            disabled={props.deletingModelId === model.modelId}
+          >
+            {props.deletingModelId === model.modelId ? 'Deleting...' : 'Delete'}
+          </Button>
+        ) : null
+      )}
+      renderDetailActions={(model) => (
+        model.source === 'custom' || model.source === 'overridden' ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => props.onDeleteModel(model.modelId)}
+            disabled={props.deletingModelId === model.modelId}
+          >
+            {props.deletingModelId === model.modelId ? 'Deleting...' : 'Delete Selected'}
+          </Button>
+        ) : null
+      )}
+    />
   );
-}
-
-function DetailBlock({ title, value }: { title: string; value: string }) {
-  return <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{title}</p><p className="mt-2 text-sm text-slate-900 break-all">{value}</p></div>;
 }
 
 function YamlPanel(props: { provider: RuntimeModelCatalogProvider; overlayYamlDraft: string; onChangeOverlayYaml: (value: string) => void; onSave: () => void; onDelete: () => void; saving: boolean }) {

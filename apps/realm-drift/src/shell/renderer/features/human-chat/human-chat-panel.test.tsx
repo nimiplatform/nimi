@@ -232,16 +232,16 @@ describe('HumanChatPanel', () => {
     const userMsg = screen.getByText('My message');
     const assistantMsg = screen.getByText('Their message');
 
-    // User message wrapper has justify-end (right-aligned)
+    // User message wrapper is rendered in reverse row order for right alignment
     const userWrapper = userMsg.closest('.flex');
-    expect(userWrapper?.className).toContain('justify-end');
+    expect(userWrapper?.className).toContain('flex-row-reverse');
 
     // User message bubble has bg-blue-600
     expect(userMsg.className).toContain('bg-blue-600');
 
-    // Assistant message wrapper has justify-start (left-aligned)
+    // Assistant message wrapper stays in normal row order
     const assistantWrapper = assistantMsg.closest('.flex');
-    expect(assistantWrapper?.className).toContain('justify-start');
+    expect(assistantWrapper?.className).not.toContain('flex-row-reverse');
 
     // Assistant message bubble has bg-neutral-800
     expect(assistantMsg.className).toContain('bg-neutral-800');

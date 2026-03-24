@@ -2,16 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  normalizeGiftCatalog,
+  normalizeCommerceGiftCatalog,
   resolveSelectedGiftId,
-} from '../src/shell/renderer/features/economy/send-gift-modal-model';
+} from '@nimiplatform/nimi-kit/features/commerce/headless';
 
-test('normalizeGiftCatalog accepts array and item-wrapper payloads', () => {
-  const fromArray = normalizeGiftCatalog([
+test('normalizeCommerceGiftCatalog accepts array and item-wrapper payloads', () => {
+  const fromArray = normalizeCommerceGiftCatalog([
     { id: 'rose', name: 'Rose', sparkCost: '25', emoji: '🌹' },
     { id: 'coffee', sparkCost: 10 },
   ]);
-  const fromItemsWrapper = normalizeGiftCatalog({
+  const fromItemsWrapper = normalizeCommerceGiftCatalog({
     items: [{ id: 'rocket', name: 'Rocket', sparkCost: '100', iconUrl: 'https://nimi.test/rocket.png' }],
   });
 
@@ -30,8 +30,8 @@ test('normalizeGiftCatalog accepts array and item-wrapper payloads', () => {
   ]);
 });
 
-test('normalizeGiftCatalog drops entries without id or spark cost', () => {
-  const result = normalizeGiftCatalog([
+test('normalizeCommerceGiftCatalog drops entries without id or spark cost', () => {
+  const result = normalizeCommerceGiftCatalog([
     { id: '', name: 'Invalid', sparkCost: '25' },
     { id: 'missing-cost', name: 'Invalid' },
     { id: 'good', name: 'Valid', sparkCost: '12.5', emoji: '🎁' },
@@ -43,7 +43,7 @@ test('normalizeGiftCatalog drops entries without id or spark cost', () => {
 });
 
 test('resolveSelectedGiftId keeps valid selection and falls back to the first gift', () => {
-  const items = normalizeGiftCatalog([
+  const items = normalizeCommerceGiftCatalog([
     { id: 'rose', name: 'Rose', sparkCost: '25' },
     { id: 'rocket', name: 'Rocket', sparkCost: '100' },
   ]);

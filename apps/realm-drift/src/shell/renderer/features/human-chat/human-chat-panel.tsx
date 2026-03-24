@@ -1,11 +1,23 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/app-store.js';
 import type { FriendInfo, ChatMessage } from '@renderer/app-shell/app-store.js';
 import { FriendList } from './friend-list.js';
-import { getPlatformClient } from '@nimiplatform/sdk';
 import { generateId } from '@renderer/infra/ulid.js';
 import type { RealmServiceResult } from '@nimiplatform/sdk/realm';
+import {
+  listRealmChatMessages,
+  markRealmChatRead,
+  sendRealmChatMessage,
+  startRealmChat,
+  type RealmChatTimelineMessage,
+} from '@nimiplatform/nimi-kit/features/chat/realm';
+import { useChatComposer } from '@nimiplatform/nimi-kit/features/chat/headless';
+import {
+  ChatPanelState,
+  ChatThreadHeader,
+  RealmChatTimeline,
+} from '@nimiplatform/nimi-kit/features/chat';
 
 type StartChatResult = RealmServiceResult<'HumanChatsService', 'startChat'>;
 type ListMessagesResult = RealmServiceResult<'HumanChatsService', 'listMessages'>;
@@ -19,25 +31,75 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
   const setHumanChat = useAppStore((s) => s.setHumanChat);
   const setActiveHumanChat = useAppStore((s) => s.setActiveHumanChat);
   const appendHumanChatMessage = useAppStore((s) => s.appendHumanChatMessage);
-  const [inputText, setInputText] = useState('');
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const currentUserId = String(useAppStore((s) => s.auth.user?.id || '')).trim();
+  const [panelError, setPanelError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const activeMessages = activeHumanChat?.messages ?? [];
+  const activeHumanChatState = activeHumanChat
+    ? humanChats[activeHumanChat.chatId]
+    : undefined;
+  const timelineMessages: readonly RealmChatTimelineMessage[] = activeHumanChat
+    ? activeMessages.map((message) => ({
+      id: message.id,
+      chatId: activeHumanChat.chatId,
+      senderId: message.role === 'user'
+        ? currentUserId || 'user'
+        : activeHumanChatState?.friendUserId || 'friend',
+      type: 'TEXT',
+      text: message.content,
+      payload: { content: message.content } as unknown as Record<string, never>,
+      createdAt: new Date(message.timestamp).toISOString(),
+      isRead: true,
+      deliveryState: 'sent',
+      deliveryError: null,
+      localPreviewUrl: null,
+      localUploadState: null,
+    }))
+    : [];
 
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeMessages.length]);
 
+  const composer = useChatComposer({
+    disabled: !activeHumanChat?.chatId,
+    adapter: {
+      submit: async ({ text }) => {
+        const chatId = String(activeHumanChat?.chatId || '').trim();
+        const trimmedText = String(text || '').trim();
+        if (!chatId) {
+          throw new Error(t('humanChat.openFailed'));
+        }
+        if (!trimmedText) {
+          return;
+        }
+
+        const clientMessageId = generateId();
+        const tempMsg: ChatMessage = {
+          id: clientMessageId,
+          role: 'user',
+          content: trimmedText,
+          timestamp: Date.now(),
+        };
+        appendHumanChatMessage(chatId, tempMsg);
+
+        await sendRealmChatMessage(chatId, {
+          type: 'TEXT',
+          text: trimmedText,
+          clientMessageId,
+          payload: { content: trimmedText } as unknown as Record<string, never>,
+        });
+      },
+    },
+  });
+
   const handleSelectFriend = useCallback(
     async (friend: FriendInfo) => {
-      setError(null);
+      setPanelError(null);
 
       try {
-        const { realm } = getPlatformClient();
-
         // Set loading state
         setActiveHumanChat({
           chatId: '',
@@ -47,13 +109,13 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         });
 
         // Start or get existing chat session
-        const data: StartChatResult = await realm.services.HumanChatsService.startChat({
+        const data: StartChatResult = await startRealmChat({
           targetAccountId: friend.userId,
         });
 
         const chatId = String(data.chatId || '');
         if (!chatId) {
-          setError(t('humanChat.openFailed'));
+          setPanelError(t('humanChat.openFailed'));
           setActiveHumanChat(null);
           return;
         }
@@ -68,7 +130,7 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         }
 
         // Load existing messages
-        const messagesData: ListMessagesResult = await realm.services.HumanChatsService.listMessages(chatId, 50);
+        const messagesData: ListMessagesResult = await listRealmChatMessages(chatId, 50);
 
         const items = (messagesData.items ?? []) as Record<string, unknown>[];
         const messages: ChatMessage[] = items.map((m) => ({
@@ -94,66 +156,27 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
         });
 
         // Mark as read
-        void realm.services.HumanChatsService.markChatRead(chatId).catch(() => { /* read receipt is non-critical */ });
+        void markRealmChatRead(chatId).catch(() => { /* read receipt is non-critical */ });
       } catch (err) {
         const msg = err instanceof Error ? err.message : t('humanChat.openFailed');
-        setError(msg);
+        setPanelError(msg);
         setActiveHumanChat(null);
       }
     },
     [humanChats, setHumanChat, setActiveHumanChat, t],
   );
 
-  const handleSend = useCallback(async () => {
-    const text = inputText.trim();
-    if (!text || !activeHumanChat?.chatId || sending) return;
-
-    setInputText('');
-    setSending(true);
-    setError(null);
-
-    // Optimistic add
-    const clientMessageId = generateId();
-    const tempMsg: ChatMessage = {
-      id: clientMessageId,
-      role: 'user',
-      content: text,
-      timestamp: Date.now(),
-    };
-    appendHumanChatMessage(activeHumanChat.chatId, tempMsg);
-
-    try {
-      const { realm } = getPlatformClient();
-      await realm.services.HumanChatsService.sendMessage(activeHumanChat.chatId, {
-        type: 'TEXT',
-        text,
-        clientMessageId,
-        payload: { content: text } as unknown as Record<string, never>,
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : t('humanChat.sendFailed');
-      setError(msg);
-    } finally {
-      setSending(false);
-    }
-  }, [inputText, activeHumanChat?.chatId, sending, appendHumanChatMessage, t]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      void handleSend();
-    }
-  };
-
   // No active chat — show friend list
   if (!activeHumanChat) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-3 py-2 border-b border-neutral-800">
-          <h3 className="text-sm font-medium text-neutral-300">{t('viewer.tabPeople')}</h3>
-        </div>
-        {error && (
-          <div className="px-3 py-2 text-xs text-red-400">{error}</div>
+        <ChatThreadHeader
+          title={t('viewer.tabPeople')}
+          className="border-b border-neutral-800 bg-transparent px-3 py-2"
+          titleClassName="text-sm font-medium text-neutral-300"
+        />
+        {panelError && (
+          <div className="px-3 py-2 text-xs text-red-400">{panelError}</div>
         )}
         <div className="flex-1 overflow-auto p-2">
           <FriendList
@@ -167,50 +190,47 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-neutral-800">
-        <button
-          onClick={() => setActiveHumanChat(null)}
-          className="text-neutral-400 hover:text-white text-sm"
-        >
-          &larr;
-        </button>
-        <span className="text-sm font-medium truncate">
-          {activeHumanChat.friendName}
-        </span>
-      </div>
+      <ChatThreadHeader
+        title={activeHumanChat.friendName}
+        className="border-b border-neutral-800 bg-transparent px-3 py-2"
+        titleClassName="truncate text-sm font-medium text-neutral-200"
+        actions={(
+          <button
+            type="button"
+            onClick={() => setActiveHumanChat(null)}
+            className="text-sm text-neutral-400 transition hover:text-white"
+          >
+            &larr;
+          </button>
+        )}
+      />
 
-      {/* Loading state */}
       {activeHumanChat.loading && (
-        <div className="flex items-center justify-center py-8">
+        <ChatPanelState
+          activeChatId={activeHumanChat.chatId}
+          className="py-8 text-inherit"
+        >
           <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-        </div>
+        </ChatPanelState>
       )}
 
-      {/* Error message */}
-      {error && (
-        <div className="px-3 py-2 text-xs text-red-400">{error}</div>
+      {panelError && (
+        <div className="px-3 py-2 text-xs text-red-400">{panelError}</div>
       )}
 
-      {/* Messages */}
       {!activeHumanChat.loading && (
         <div className="flex-1 overflow-auto p-3 space-y-3">
-          {activeMessages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
-                  msg.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-neutral-800 text-neutral-200'
-                }`}
-              >
-                {msg.content}
-              </div>
-            </div>
-          ))}
+          <RealmChatTimeline
+            messages={timelineMessages}
+            currentUserId={currentUserId}
+            emptyState={<p className="py-8 text-center text-sm text-neutral-500">{t('humanChat.emptyState')}</p>}
+            emptyMessageLabel={t('humanChat.emptyState')}
+            queuedLocallyLabel={t('humanChat.send')}
+            sendFailedLabel={t('humanChat.sendFailed')}
+            bubbleClassName="whitespace-pre-wrap text-sm"
+            userBubbleClassName="rounded-lg bg-blue-600 text-white"
+            otherBubbleClassName="rounded-lg bg-neutral-800 text-neutral-200"
+          />
           <div ref={messagesEndRef} />
         </div>
       )}
@@ -219,21 +239,25 @@ export function HumanChatPanel(_props: HumanChatPanelProps) {
       <div className="border-t border-neutral-800 p-3">
         <div className="flex gap-2">
           <textarea
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
+            ref={composer.textareaRef}
+            value={composer.text}
+            onChange={composer.handleTextChange}
+            onKeyDown={composer.handleKeyDown}
             placeholder={t('humanChat.placeholder')}
             rows={1}
             className="flex-1 resize-none rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-white placeholder:text-neutral-500 focus:border-white focus:outline-none"
           />
           <button
-            onClick={() => void handleSend()}
-            disabled={!inputText.trim() || sending}
+            onClick={() => void composer.handleSubmit()}
+            disabled={!composer.canSubmit}
             className="rounded-lg bg-white px-3 py-2 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
           >
             {t('humanChat.send')}
           </button>
         </div>
+        {composer.error ? (
+          <div className="px-1 pt-2 text-xs text-red-400">{composer.error}</div>
+        ) : null}
       </div>
     </div>
   );

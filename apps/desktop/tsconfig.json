@@ -15,7 +15,13 @@
       "@nimiplatform/nimi-kit/ui/*": ["../../kit/ui/src/*"],
       "@nimiplatform/nimi-kit/auth": ["../../kit/auth/src/index.ts"],
       "@nimiplatform/nimi-kit/auth/*": ["../../kit/auth/src/*"],
-      "@nimiplatform/nimi-kit/core/*": ["../../kit/core/src/*"]
+      "@nimiplatform/nimi-kit/core/*": ["../../kit/core/src/*"],
+      "@nimiplatform/nimi-kit/features/chat": ["../../kit/features/chat/src/index.ts"],
+      "@nimiplatform/nimi-kit/features/chat/*": ["../../kit/features/chat/src/*"],
+      "@nimiplatform/nimi-kit/features/model-picker": ["../../kit/features/model-picker/src/index.ts"],
+      "@nimiplatform/nimi-kit/features/model-picker/*": ["../../kit/features/model-picker/src/*"],
+      "@nimiplatform/nimi-kit/features/generation": ["../../kit/features/generation/src/index.ts"],
+      "@nimiplatform/nimi-kit/features/generation/*": ["../../kit/features/generation/src/*"]
     },
     "target": "ES2022",
     "module": "ESNext",

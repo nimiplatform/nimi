@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ChangeEvent, type ClipboardEvent, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useMemo, type ChangeEvent, type ClipboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
@@ -8,6 +8,8 @@ import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { useChatComposer } from '@nimiplatform/nimi-kit/features/chat/headless';
+import { createRealmChatComposerAdapter } from '@nimiplatform/nimi-kit/features/chat/realm';
 import { MessageType } from '@nimiplatform/sdk/realm';
 import {
   addChatUploadPlaceholder,
@@ -78,7 +80,6 @@ export function TurnInput(props: TurnInputProps = {}) {
   const offlineTier = useAppStore((state) => state.offlineTier);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const currentUserId = String(useAppStore((state) => state.auth.user?.id) || '');
-  const [text, setText] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState(0);
@@ -86,7 +87,6 @@ export function TurnInput(props: TurnInputProps = {}) {
   const [showUploadPickerActive, setShowUploadPickerActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -191,16 +191,16 @@ export function TurnInput(props: TurnInputProps = {}) {
   };
 
   const insertEmoji = (emoji: string) => {
-    const textarea = textareaRef.current;
+    const textarea = composer.textareaRef.current;
     if (!textarea) {
-      setText((prev) => prev + emoji);
+      composer.setText(composer.text + emoji);
       return;
     }
 
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const newText = text.slice(0, start) + emoji + text.slice(end);
-    setText(newText);
+    const newText = composer.text.slice(0, start) + emoji + composer.text.slice(end);
+    composer.setText(newText);
 
     // Restore focus and set cursor position after emoji
     setTimeout(() => {
@@ -214,22 +214,21 @@ export function TurnInput(props: TurnInputProps = {}) {
   const uploadBlockedMessage = t('TurnInput.runtimeUnavailableUpload');
 
   const sendMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (content: string) => {
       if (offlineTier === 'L2') {
         throw new Error(readOnlyMessage);
       }
       if (!selectedChatId) {
         throw new Error(t('TurnInput.selectChatFirst'));
       }
-      const content = text.trim();
-      if (!content) {
+      const trimmedContent = content.trim();
+      if (!trimmedContent) {
         throw new Error(t('TurnInput.inputMessageRequired'));
       }
-      await dataSync.sendMessage(selectedChatId, content);
-      return content;
+      await dataSync.sendMessage(selectedChatId, trimmedContent);
+      return trimmedContent;
     },
     onSuccess: async () => {
-      setText('');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] }),
         queryClient.invalidateQueries({ queryKey: ['chats'] }),
@@ -334,17 +333,7 @@ export function TurnInput(props: TurnInputProps = {}) {
     setPendingAttachmentFromFile(file);
   };
 
-  const sendPlan = getTurnInputSendPlan({
-    text,
-    pendingAttachments,
-    hasSelectedChat: Boolean(selectedChatId),
-    isReadOnly: offlineTier === 'L2',
-    isSending: sendMutation.isPending,
-    isUploading,
-  });
-  const canSend = sendPlan.canSend;
-
-  const handleSend = async () => {
+  const handleSend = async (payload: { text: string; attachments: readonly PendingAttachment[] }) => {
     if (offlineTier === 'L2') {
       setStatusBanner({
         kind: 'warning',
@@ -355,10 +344,10 @@ export function TurnInput(props: TurnInputProps = {}) {
     if (!selectedChatId) {
       return;
     }
-    if (sendPlan.sendAttachment && pendingAttachments.length > 0) {
+    if (payload.attachments.length > 0) {
       try {
         setIsUploading(true);
-        for (const attachment of pendingAttachments) {
+        for (const attachment of payload.attachments) {
           const placeholder = createChatUploadPlaceholder({
             chatId: selectedChatId,
             previewUrl: attachment.previewUrl,
@@ -389,14 +378,59 @@ export function TurnInput(props: TurnInputProps = {}) {
         setIsUploading(false);
       }
     }
-    if (sendPlan.sendText) {
+    if (payload.text.trim()) {
       try {
-        await sendMutation.mutateAsync();
+        await sendMutation.mutateAsync(payload.text);
       } catch {
         // useMutation already surfaces the error state/banner
       }
     }
   };
+
+  const textSendAdapter = useMemo(() => createRealmChatComposerAdapter<PendingAttachment>({
+    chatId: selectedChatId || '',
+    service: {
+      sendMessage: async (chatId, input) => dataSync.sendMessage(
+        chatId,
+        String(input.text || ''),
+        input,
+      ),
+    },
+  }), [selectedChatId]);
+
+  const composer = useChatComposer<PendingAttachment>({
+    adapter: {
+      submit: async ({ text, attachments }) => {
+        if (attachments.length > 0) {
+          await handleSend({ text: '', attachments });
+        }
+        if (text.trim()) {
+          await textSendAdapter.submit({ text, attachments: [] });
+        }
+      },
+    },
+    attachments: pendingAttachments,
+    onAttachmentsChange: (nextAttachments) => {
+      setPendingAttachments([...nextAttachments]);
+    },
+    disabled: !selectedChatId || sendMutation.isPending || isUploading || offlineTier === 'L2',
+    onError: (error) => {
+      setStatusBanner({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('TurnInput.sendFailed'),
+      });
+    },
+  });
+
+  const sendPlan = getTurnInputSendPlan({
+    text: composer.text,
+    pendingAttachments,
+    hasSelectedChat: Boolean(selectedChatId),
+    isReadOnly: offlineTier === 'L2',
+    isSending: sendMutation.isPending,
+    isUploading,
+  });
+  const canSend = sendPlan.canSend;
 
   return (
     <section
@@ -522,28 +556,19 @@ export function TurnInput(props: TurnInputProps = {}) {
 
           {/* Input area */}
           <textarea
-            ref={textareaRef}
+            ref={composer.textareaRef}
             className="min-h-[44px] w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-5 text-gray-900 outline-none placeholder:text-gray-400"
             rows={2}
             placeholder={offlineTier === 'L2'
               ? t('TurnInput.runtimeUnavailablePlaceholder')
               : t('TurnInput.typeMessage')}
-            value={text}
+            value={composer.text}
             disabled={!selectedChatId || sendMutation.isPending || offlineTier === 'L2'}
-            onChange={(event) => setText(event.target.value)}
+            onChange={composer.handleTextChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             onPaste={handlePaste}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' || event.shiftKey) {
-                return;
-              }
-              if (event.nativeEvent.isComposing || event.keyCode === 229) {
-                return;
-              }
-              event.preventDefault();
-              handleSend();
-            }}
+            onKeyDown={composer.handleKeyDown}
           />
         </ScrollShell>
 
@@ -633,10 +658,12 @@ export function TurnInput(props: TurnInputProps = {}) {
           {/* Send button */}
           <button
             type="button"
-            onClick={handleSend}
+            onClick={() => {
+              void composer.handleSubmit();
+            }}
             disabled={!canSend}
             className={`ml-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all hover:bg-[#0052A3] disabled:opacity-40 disabled:cursor-not-allowed ${
-              isFocused && (text.trim() || pendingAttachments.length > 0)
+              isFocused && (composer.text.trim() || pendingAttachments.length > 0)
                 ? 'bg-[#0066CC] shadow-[0_0_12px_rgba(0,102,204,0.5)] scale-105' 
                 : 'bg-[#0066CC]/70'
             }`}

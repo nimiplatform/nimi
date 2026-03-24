@@ -25,6 +25,8 @@ export default defineConfig(() => {
         { find: '@renderer', replacement: path.resolve(__dirname, 'src/renderer') },
         { find: '@nimiplatform/sdk', replacement: path.resolve(__dirname, '../../sdk/src') },
         { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
+        { find: '@nimiplatform/nimi-kit/features/chat', replacement: path.resolve(__dirname, '../../kit/features/chat/src') },
+        { find: '@nimiplatform/nimi-kit/features/model-picker', replacement: path.resolve(__dirname, '../../kit/features/model-picker/src') },
       ],
     },
     plugins: [
@@ -71,6 +73,7 @@ export default defineConfig(() => {
               normalizedId.includes('/kit/auth/src/')
               || normalizedId.includes('/kit/ui/src/')
               || normalizedId.includes('/kit/core/src/oauth/')
+              || normalizedId.includes('/kit/features/chat/src/')
             ) {
               return 'shell-auth';
             }

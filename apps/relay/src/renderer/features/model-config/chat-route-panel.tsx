@@ -1,9 +1,11 @@
 // ChatRoutePanel — model selection UI for relay
 // Source selector (local/cloud) + connector selector + model input
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRelayRoute } from './use-relay-route.js';
+import { useModelPicker } from '@nimiplatform/nimi-kit/features/model-picker/headless';
+import { ModelPicker } from '@nimiplatform/nimi-kit/features/model-picker/ui';
 
 export function ChatRoutePanel() {
   const { t } = useTranslation();
@@ -16,9 +18,6 @@ export function ChatRoutePanel() {
     onModelChange,
     onReset,
   } = useRelayRoute();
-
-  const [modelQuery, setModelQuery] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
 
   if (loading) {
     return (
@@ -42,9 +41,25 @@ export function ChatRoutePanel() {
   const selectedConnector = connectors.find((connector) => connector.connectorId === display?.connectorId) || null;
   const availableModels = display?.availableModels ?? [];
   const activeModel = display?.model ?? '';
-  const displayValue = isEditing ? modelQuery : activeModel;
-  const isPending = isEditing && modelQuery !== activeModel;
-  const datalistId = 'relay-route-models';
+  const modelPickerState = useModelPicker({
+    adapter: useMemo(() => ({
+      listModels: () => availableModels,
+      getId: (model: (typeof availableModels)[number]) => model.id,
+      getTitle: (model: (typeof availableModels)[number]) => model.label,
+      getDescription: (model: (typeof availableModels)[number]) => model.id === model.label ? undefined : model.id,
+      getSource: () => source,
+      getBadges: () => source === 'cloud'
+        ? [{ label: t('route.cloud', 'Cloud'), tone: 'accent' as const }]
+        : [{ label: t('route.local', 'Local'), tone: 'success' as const }],
+      getSearchText: (model: (typeof availableModels)[number]) => `${model.id} ${model.label}`,
+    }), [availableModels, source, t]),
+    selectedId: activeModel || availableModels[0]?.id || '',
+    onSelectModel: (id) => {
+      if (id && id !== activeModel) {
+        void onModelChange(id);
+      }
+    },
+  });
 
   return (
     <div className="space-y-3">
@@ -124,47 +139,16 @@ export function ChatRoutePanel() {
           {t('route.model', 'Model')}
         </label>
         {availableModels.length > 0 ? (
-          <div className={`rounded-lg ${isPending ? 'ring-1 ring-amber-500' : ''}`}>
-            <input
-              list={datalistId}
-              value={displayValue}
-              onFocus={() => {
-                setIsEditing(true);
-                setModelQuery(activeModel);
-              }}
-              onChange={(e) => setModelQuery(e.target.value)}
-              onBlur={() => {
-                if (isEditing && modelQuery !== activeModel) {
-                  if (modelQuery) {
-                    void onModelChange(modelQuery);
-                  }
-                }
-                setIsEditing(false);
-                setModelQuery('');
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && modelQuery !== activeModel) {
-                  if (modelQuery) {
-                    void onModelChange(modelQuery);
-                  }
-                  setIsEditing(false);
-                  setModelQuery('');
-                }
-                if (e.key === 'Escape') {
-                  setIsEditing(false);
-                  setModelQuery('');
-                }
-              }}
-              placeholder={activeModel || t('route.selectModel', 'Select a model...')}
-              className="w-full bg-bg-elevated border border-border-subtle rounded-xl px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-accent"
+          <div className="space-y-2">
+            <div className="rounded-xl border border-border-subtle bg-bg-elevated px-3 py-2 text-[12px] text-text-secondary">
+              {t('route.active', 'Active')}: <span className="text-text-primary">{activeModel || t('route.selectModel', 'Select a model...')}</span>
+            </div>
+            <ModelPicker
+              state={modelPickerState}
+              className="relay-model-picker"
+              loadingMessage={t('route.loading', 'Loading models...')}
+              emptyMessage={t('route.noLocalModels', 'No local models available. Install a model via Desktop.')}
             />
-            <datalist id={datalistId}>
-              {availableModels.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
-            </datalist>
           </div>
         ) : source === 'local' ? (
           <div className="text-[12px] text-text-secondary bg-bg-surface border border-border-subtle rounded-xl px-3 py-2">

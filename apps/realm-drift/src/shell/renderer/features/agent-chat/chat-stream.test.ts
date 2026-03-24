@@ -2,18 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { WorldAgent, WorldDetailWithAgents } from '../world-browser/world-browser-data.js';
 import type { ChatMessage } from '@renderer/app-shell/app-store.js';
 
-const mockStream = vi.fn();
+const mockStreamPlatformChatResponse = vi.fn();
 
-vi.mock('@nimiplatform/sdk', () => ({
-  getPlatformClient: () => ({
-    runtime: {
-      ai: {
-        text: {
-          stream: (...args: unknown[]) => mockStream(...args),
-        },
-      },
-    },
-  }),
+vi.mock('@nimiplatform/nimi-kit/features/chat/runtime', () => ({
+  streamPlatformChatResponse: (...args: unknown[]) => mockStreamPlatformChatResponse(...args),
 }));
 
 import { buildSystemPrompt, streamAgentChat } from './chat-stream.js';
@@ -98,24 +90,14 @@ describe('streamAgentChat', () => {
   ];
 
   beforeEach(() => {
-    mockStream.mockReset();
+    mockStreamPlatformChatResponse.mockReset();
   });
 
-  function makeAsyncIterable(parts: Array<{ type: string; text?: string; error?: string }>) {
-    return {
-      stream: (async function* () {
-        for (const part of parts) {
-          yield part;
-        }
-      })(),
-    };
-  }
-
   it('builds conversation input from messages history and current userMessage', async () => {
-    mockStream.mockResolvedValue(makeAsyncIterable([
-      { type: 'delta', text: 'Hello' },
-      { type: 'finish' },
-    ]));
+    mockStreamPlatformChatResponse.mockImplementation(async (_request, handlers) => {
+      handlers?.onDelta?.('Hello', { type: 'delta', text: 'Hello' });
+      return { text: 'Hello', finish: { type: 'finish', finishReason: 'stop', usage: {}, trace: {} } };
+    });
 
     const ac = new AbortController();
     await streamAgentChat({
@@ -129,8 +111,8 @@ describe('streamAgentChat', () => {
       onError: vi.fn(),
     });
 
-    expect(mockStream).toHaveBeenCalledTimes(1);
-    const callArgs = mockStream.mock.calls[0]![0];
+    expect(mockStreamPlatformChatResponse).toHaveBeenCalledTimes(1);
+    const callArgs = mockStreamPlatformChatResponse.mock.calls[0]![0];
     expect(callArgs.input).toEqual([
       { role: 'user', content: 'Hello' },
       { role: 'assistant', content: 'Greetings traveler' },
@@ -139,9 +121,10 @@ describe('streamAgentChat', () => {
   });
 
   it('calls runtime.ai.text.stream with correct params', async () => {
-    mockStream.mockResolvedValue(makeAsyncIterable([
-      { type: 'finish' },
-    ]));
+    mockStreamPlatformChatResponse.mockResolvedValue({
+      text: '',
+      finish: { type: 'finish', finishReason: 'stop', usage: {}, trace: {} },
+    });
 
     const ac = new AbortController();
     await streamAgentChat({
@@ -155,7 +138,7 @@ describe('streamAgentChat', () => {
       onError: vi.fn(),
     });
 
-    const callArgs = mockStream.mock.calls[0]![0];
+    const callArgs = mockStreamPlatformChatResponse.mock.calls[0]![0];
     expect(callArgs.model).toBe('auto');
     expect(callArgs.route).toBe('cloud');
     expect(callArgs.metadata).toEqual({
@@ -167,11 +150,11 @@ describe('streamAgentChat', () => {
   });
 
   it('calls onDelta with incremental delta text on delta parts', async () => {
-    mockStream.mockResolvedValue(makeAsyncIterable([
-      { type: 'delta', text: 'Hello ' },
-      { type: 'delta', text: 'traveler' },
-      { type: 'finish' },
-    ]));
+    mockStreamPlatformChatResponse.mockImplementation(async (_request, handlers) => {
+      handlers?.onDelta?.('Hello ', { type: 'delta', text: 'Hello ' });
+      handlers?.onDelta?.('traveler', { type: 'delta', text: 'traveler' });
+      return { text: 'Hello traveler', finish: { type: 'finish', finishReason: 'stop', usage: {}, trace: {} } };
+    });
 
     const onDelta = vi.fn();
     const ac = new AbortController();
@@ -193,11 +176,11 @@ describe('streamAgentChat', () => {
   });
 
   it('calls onFinish with full text on stream end', async () => {
-    mockStream.mockResolvedValue(makeAsyncIterable([
-      { type: 'delta', text: 'The tower ' },
-      { type: 'delta', text: 'stands tall' },
-      { type: 'finish' },
-    ]));
+    mockStreamPlatformChatResponse.mockImplementation(async (_request, handlers) => {
+      handlers?.onDelta?.('The tower ', { type: 'delta', text: 'The tower ' });
+      handlers?.onDelta?.('stands tall', { type: 'delta', text: 'stands tall' });
+      return { text: 'The tower stands tall', finish: { type: 'finish', finishReason: 'stop', usage: {}, trace: {} } };
+    });
 
     const onFinish = vi.fn();
     const ac = new AbortController();
@@ -218,10 +201,11 @@ describe('streamAgentChat', () => {
   });
 
   it('calls onError on stream error part', async () => {
-    mockStream.mockResolvedValue(makeAsyncIterable([
-      { type: 'delta', text: 'partial' },
-      { type: 'error', error: 'model overloaded' },
-    ]));
+    mockStreamPlatformChatResponse.mockImplementation(async (_request, handlers) => {
+      handlers?.onDelta?.('partial', { type: 'delta', text: 'partial' });
+      handlers?.onError?.(new Error('model overloaded'), { type: 'error', error: new Error('model overloaded') });
+      throw new Error('model overloaded');
+    });
 
     const onError = vi.fn();
     const ac = new AbortController();
@@ -243,7 +227,7 @@ describe('streamAgentChat', () => {
   });
 
   it('calls onError when stream call throws', async () => {
-    mockStream.mockRejectedValue(new Error('network failure'));
+    mockStreamPlatformChatResponse.mockRejectedValue(new Error('network failure'));
 
     const onError = vi.fn();
     const ac = new AbortController();
@@ -267,7 +251,7 @@ describe('streamAgentChat', () => {
     const ac = new AbortController();
     ac.abort();
 
-    mockStream.mockRejectedValue(new DOMException('Aborted', 'AbortError'));
+    mockStreamPlatformChatResponse.mockRejectedValue(new DOMException('Aborted', 'AbortError'));
 
     const onDelta = vi.fn();
     const onFinish = vi.fn();
@@ -294,13 +278,11 @@ describe('streamAgentChat', () => {
     const onDelta = vi.fn();
     const onFinish = vi.fn();
 
-    mockStream.mockResolvedValue({
-      stream: (async function* () {
-        yield { type: 'delta', text: 'First ' };
-        ac.abort();
-        yield { type: 'delta', text: 'Second' };
-        yield { type: 'finish' };
-      })(),
+    mockStreamPlatformChatResponse.mockImplementation(async (_request, handlers) => {
+      handlers?.onDelta?.('First ', { type: 'delta', text: 'First ' });
+      ac.abort();
+      handlers?.onDelta?.('Second', { type: 'delta', text: 'Second' });
+      return { text: 'First Second', finish: { type: 'finish', finishReason: 'stop', usage: {}, trace: {} } };
     });
 
     await streamAgentChat({

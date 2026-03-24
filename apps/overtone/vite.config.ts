@@ -28,6 +28,7 @@ export default defineConfig(() => {
         { find: '@nimiplatform/nimi-kit/ui', replacement: path.resolve(__dirname, '../../kit/ui/src') },
         { find: '@nimiplatform/nimi-kit/auth', replacement: path.resolve(__dirname, '../../kit/auth/src') },
         { find: '@nimiplatform/nimi-kit/core', replacement: path.resolve(__dirname, '../../kit/core/src') },
+        { find: '@nimiplatform/nimi-kit/features/generation', replacement: path.resolve(__dirname, '../../kit/features/generation/src') },
       ],
     },
     plugins: [
@@ -91,7 +92,7 @@ export default defineConfig(() => {
             if (normalizedId.includes('/kit/auth/src/')) {
               return 'shell-auth';
             }
-            if (normalizedId.includes('/kit/ui/src/')) {
+            if (normalizedId.includes('/kit/ui/src/') || normalizedId.includes('/kit/features/generation/src/')) {
               return 'vendor-platform';
             }
             if (normalizedId.includes('/apps/overtone/src/shell/renderer/bridge/')) {

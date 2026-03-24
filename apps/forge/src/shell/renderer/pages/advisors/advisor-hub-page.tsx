@@ -8,7 +8,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getPlatformClient } from '@nimiplatform/sdk';
+import { RuntimeChatPanel } from '@nimiplatform/nimi-kit/features/chat/ui';
+import {
+  useRuntimeChatSession,
+  type RuntimeChatSessionMessage,
+} from '@nimiplatform/nimi-kit/features/chat/runtime';
 
 type AdvisorType = 'world' | 'agent' | 'revenue';
 
@@ -76,29 +80,64 @@ function hasPersistedSession(advisorType: AdvisorType): boolean {
   }
 }
 
+function toSessionMessages(messages: Message[]): RuntimeChatSessionMessage[] {
+  return messages.map((message, index) => ({
+    id: `${message.timestamp}-${index}`,
+    role: message.role,
+    content: message.content,
+    timestamp: message.timestamp,
+    status: 'complete',
+  }));
+}
+
+function toStoredMessages(messages: readonly RuntimeChatSessionMessage[]): Message[] {
+  return messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+    timestamp: message.timestamp,
+  }));
+}
+
 export default function AdvisorHubPage() {
   const { t } = useTranslation();
   const [selectedAdvisor, setSelectedAdvisor] = useState<AdvisorType | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [streaming, setStreaming] = useState(false);
+  const session = useRuntimeChatSession({
+    resolveRequest: ({ prompt, messages }) => {
+      const systemPrompts: Record<AdvisorType, string> = {
+        world: 'You are a World Advisor for nimi creators. Analyze world events, lorebooks, worldview for timeline consistency, plot holes, and character contradictions. Be specific and actionable.',
+        agent: 'You are an Agent Coach for nimi creators. Analyze agent DNA traits, conversation samples for trait balance, personality coherence, and engagement optimization. Be specific and actionable.',
+        revenue: 'You are a Revenue Optimizer for nimi creators. Analyze earnings, content performance, and agent monetization for pricing strategy, timing, and undermonetized assets. Be specific and actionable.',
+      };
+
+      return {
+        model: 'auto',
+        input: messages.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+        system: selectedAdvisor ? systemPrompts[selectedAdvisor] : undefined,
+        temperature: 0.7,
+        maxTokens: 2048,
+      };
+    },
+    onMessagesChange: (messages) => {
+      if (selectedAdvisor) {
+        saveSession(selectedAdvisor, toStoredMessages(messages));
+      }
+    },
+  });
+  const streaming = session.isStreaming;
+  const sendPrompt = session.sendPrompt;
+  const resetMessages = session.resetMessages;
 
   // Load persisted session when advisor is selected
   useEffect(() => {
     if (selectedAdvisor) {
-      setMessages(loadSession(selectedAdvisor));
+      resetMessages(toSessionMessages(loadSession(selectedAdvisor)));
     }
-  }, [selectedAdvisor]);
-
-  // Persist messages whenever they change
-  useEffect(() => {
-    if (selectedAdvisor) {
-      saveSession(selectedAdvisor, messages);
-    }
-  }, [selectedAdvisor, messages]);
+  }, [resetMessages, selectedAdvisor]);
 
   const handleNewSession = useCallback(() => {
-    setMessages([]);
     if (selectedAdvisor) {
       saveSession(selectedAdvisor, []);
     }
@@ -106,103 +145,27 @@ export default function AdvisorHubPage() {
 
   const handleBack = useCallback(() => {
     setSelectedAdvisor(null);
-    setMessages([]);
-    setInput('');
   }, []);
-
-  const handleSend = useCallback(async () => {
-    if (!input.trim() || streaming || !selectedAdvisor) return;
-    const userMsg: Message = { role: 'user', content: input, timestamp: new Date().toISOString() };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput('');
-    setStreaming(true);
-    try {
-      const { runtime } = getPlatformClient();
-      const chatMessages = messages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }));
-      chatMessages.push({ role: 'user', content: userMsg.content });
-
-      const systemPrompts: Record<AdvisorType, string> = {
-        world: 'You are a World Advisor for nimi creators. Analyze world events, lorebooks, worldview for timeline consistency, plot holes, and character contradictions. Be specific and actionable.',
-        agent: 'You are an Agent Coach for nimi creators. Analyze agent DNA traits, conversation samples for trait balance, personality coherence, and engagement optimization. Be specific and actionable.',
-        revenue: 'You are a Revenue Optimizer for nimi creators. Analyze earnings, content performance, and agent monetization for pricing strategy, timing, and undermonetized assets. Be specific and actionable.',
-      };
-
-      const result = await runtime.ai.text.stream({
-        model: 'auto',
-        input: chatMessages,
-        system: systemPrompts[selectedAdvisor],
-        temperature: 0.7,
-        maxTokens: 2048,
-      });
-
-      let assistantText = '';
-      setMessages((prev) => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }]);
-
-      for await (const part of result.stream) {
-        if (part.type === 'delta') {
-          assistantText += part.text;
-          setMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { role: 'assistant', content: assistantText, timestamp: new Date().toISOString() };
-            return updated;
-          });
-        }
-      }
-    } catch (err) {
-      setMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: `Error: ${err instanceof Error ? err.message : 'Failed to generate response'}`,
-        timestamp: new Date().toISOString(),
-      }]);
-    } finally {
-      setStreaming(false);
-    }
-  }, [input, streaming, selectedAdvisor, messages]);
 
   const handleGenerateReport = useCallback(async () => {
     if (streaming || !selectedAdvisor) return;
-    setStreaming(true);
     const reportPrompts: Record<AdvisorType, string> = {
       world: 'Generate a comprehensive world analysis report covering timeline consistency, plot holes, character contradictions, and improvement recommendations.',
       agent: 'Generate a comprehensive agent coaching report covering trait balance, personality coherence, engagement patterns, and optimization recommendations.',
       revenue: 'Generate a comprehensive revenue optimization report covering pricing strategy, content monetization, timing recommendations, and growth opportunities.',
     };
-    const reportMsg: Message = { role: 'user', content: `[Report Request] ${reportPrompts[selectedAdvisor]}`, timestamp: new Date().toISOString() };
-    setMessages((prev) => [...prev, reportMsg]);
-    try {
-      const { runtime } = getPlatformClient();
-      const result = await runtime.ai.text.stream({
+    await sendPrompt({
+      prompt: reportPrompts[selectedAdvisor],
+      displayPrompt: `[Report Request] ${reportPrompts[selectedAdvisor]}`,
+      resolveRequest: ({ prompt }) => ({
         model: 'auto',
-        input: reportPrompts[selectedAdvisor],
+        input: prompt,
         system: `You are a ${selectedAdvisor} advisor. Generate a detailed analysis report in markdown format.`,
         temperature: 0.5,
         maxTokens: 4096,
-      });
-      let text = '';
-      setMessages((prev) => [...prev, { role: 'assistant', content: '', timestamp: new Date().toISOString() }]);
-      for await (const part of result.stream) {
-        if (part.type === 'delta') {
-          text += part.text;
-          setMessages((prev) => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { role: 'assistant', content: text, timestamp: new Date().toISOString() };
-            return updated;
-          });
-        }
-      }
-    } catch (err) {
-      setMessages((prev) => [...prev, {
-        role: 'assistant',
-        content: `Error: ${err instanceof Error ? err.message : 'Failed to generate report'}`,
-        timestamp: new Date().toISOString(),
-      }]);
-    } finally {
-      setStreaming(false);
-    }
-  }, [streaming, selectedAdvisor]);
+      }),
+    });
+  }, [selectedAdvisor, sendPrompt, streaming]);
 
   if (!selectedAdvisor) {
     return (
@@ -272,71 +235,33 @@ export default function AdvisorHubPage() {
             >
               {streaming ? t('advisors.generating', 'Generating...') : t('advisors.generateReport', 'Generate Report')}
             </button>
-            <button
-              onClick={handleNewSession}
-              className="rounded px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-white transition-colors"
-            >
-              {t('advisors.newSession', 'New Session')}
-            </button>
           </div>
         </div>
 
-        {/* Chat area */}
-        <div className="flex-1 min-h-0 rounded-lg border border-neutral-800 bg-neutral-900/50 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto p-4 space-y-3">
-            {messages.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="text-4xl text-neutral-700 mb-2">{currentAdvisor.icon}</div>
-                  <p className="text-sm text-neutral-500">
-                    {t('advisors.emptyChat', 'Start by asking a question or generating a report.')}
-                  </p>
-                </div>
+        <RuntimeChatPanel
+          session={session}
+          className="flex-1 min-h-0 rounded-lg border border-neutral-800 bg-neutral-900/50 shadow-none"
+          messagesClassName="h-full min-h-0"
+          userMessageBubbleClassName="rounded-lg bg-white text-black"
+          assistantMessageBubbleClassName="rounded-lg bg-neutral-800 text-white"
+          composerClassName="border-neutral-800"
+          placeholder={t('advisors.inputPlaceholder', 'Ask the advisor...')}
+          sendLabel={t('advisors.send', 'Send')}
+          streamingLabel={t('advisors.streaming', 'Streaming...')}
+          cancelLabel={t('agentDetail.cancel', 'Cancel')}
+          resetLabel={t('advisors.newSession', 'New Session')}
+          onReset={handleNewSession}
+          emptyState={(
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center">
+                <div className="mb-2 text-4xl text-neutral-700">{currentAdvisor.icon}</div>
+                <p className="text-sm text-neutral-500">
+                  {t('advisors.emptyChat', 'Start by asking a question or generating a report.')}
+                </p>
               </div>
-            ) : (
-              messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`rounded-lg px-3 py-2 text-sm max-w-[80%] ${
-                      msg.role === 'user'
-                        ? 'bg-white text-black'
-                        : 'bg-neutral-800 text-white'
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {/* Input */}
-          <div className="border-t border-neutral-800 p-3 flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  void handleSend();
-                }
-              }}
-              placeholder={t('advisors.inputPlaceholder', 'Ask the advisor...')}
-              className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none"
-            />
-            <button
-              onClick={() => void handleSend()}
-              disabled={streaming || !input.trim()}
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 disabled:opacity-50 transition-colors"
-            >
-              {streaming ? t('advisors.streaming', 'Streaming...') : t('advisors.send', 'Send')}
-            </button>
-          </div>
-        </div>
+            </div>
+          )}
+        />
       </div>
     </div>
   );
