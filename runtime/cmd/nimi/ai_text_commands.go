@@ -46,6 +46,10 @@ func runRuntimeAITextGenerate(args []string) error {
 	if *timeoutMS <= 0 {
 		return fmt.Errorf("timeout-ms must be > 0")
 	}
+	timeoutMsValue, err := millisecondsInt32(*timeoutMS)
+	if err != nil {
+		return err
+	}
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
@@ -67,7 +71,7 @@ func runRuntimeAITextGenerate(args []string) error {
 			ModelId:       strings.TrimSpace(*modelID),
 			RoutePolicy:   routePolicy,
 			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
+			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
@@ -158,6 +162,10 @@ func runRuntimeAIStream(args []string) error {
 	if *timeoutMS <= 0 {
 		return fmt.Errorf("timeout-ms must be > 0")
 	}
+	timeoutMsValue, err := millisecondsInt32(*timeoutMS)
+	if err != nil {
+		return err
+	}
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
@@ -182,7 +190,7 @@ func runRuntimeAIStream(args []string) error {
 			ModelId:       strings.TrimSpace(*modelID),
 			RoutePolicy:   routePolicy,
 			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
+			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
@@ -313,6 +321,10 @@ func runRuntimeAITextEmbed(args []string) error {
 	if *timeoutMS <= 0 {
 		return fmt.Errorf("timeout-ms must be > 0")
 	}
+	timeoutMsValue, err := millisecondsInt32(*timeoutMS)
+	if err != nil {
+		return err
+	}
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
@@ -334,7 +346,7 @@ func runRuntimeAITextEmbed(args []string) error {
 			ModelId:       strings.TrimSpace(*modelID),
 			RoutePolicy:   routePolicy,
 			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
+			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,

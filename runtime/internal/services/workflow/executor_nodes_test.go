@@ -93,25 +93,18 @@ func TestExecuteScriptNodeReturnsStructuredFallback(t *testing.T) {
 	}
 
 	outputs, err := svc.executeScriptNode(context.Background(), record, node, inputs)
-	if err != nil {
-		t.Fatalf("execute script node: %v", err)
+	if err == nil {
+		t.Fatal("execute script node should fail closed until implemented")
 	}
-	output := outputs["output"]
-	if output == nil {
-		t.Fatalf("script output missing")
+	if outputs != nil {
+		t.Fatalf("script node must not synthesize output: %#v", outputs)
 	}
-	mapped := output.AsMap()
-	if got := mapped["task_id"]; got != record.TaskID {
-		t.Fatalf("script fallback task_id mismatch: %v", got)
+	st, ok := status.FromError(err)
+	if !ok {
+		t.Fatalf("expected grpc status error, got %T", err)
 	}
-	if got := mapped["node_id"]; got != node.GetNodeId() {
-		t.Fatalf("script fallback node_id mismatch: %v", got)
-	}
-	if got := mapped["runtime"]; got != "expr" {
-		t.Fatalf("script fallback runtime mismatch: %v", got)
-	}
-	if got := mapped["code"]; got != "1 + 1" {
-		t.Fatalf("script fallback code mismatch: %v", got)
+	if st.Code() != codes.Unimplemented {
+		t.Fatalf("expected Unimplemented, got %v", st.Code())
 	}
 }
 

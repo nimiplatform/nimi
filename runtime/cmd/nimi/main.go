@@ -113,6 +113,13 @@ func durationMillisecondsInt32(value time.Duration) (int32, error) {
 	return int32(millis), nil
 }
 
+func millisecondsInt32(value int) (int32, error) {
+	if value < 0 || value > math.MaxInt32 {
+		return 0, fmt.Errorf("timeout-ms exceeds maximum supported value of %d", math.MaxInt32)
+	}
+	return int32(value), nil
+}
+
 func runTopLevelRun(args []string) error {
 	cfg, err := config.Load()
 	if err != nil {

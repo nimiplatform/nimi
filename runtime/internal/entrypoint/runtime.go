@@ -171,6 +171,17 @@ func FetchHealth(httpAddr string, timeout time.Duration) (map[string]any, error)
 		return nil, fmt.Errorf("request %s: %w", url, err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		if readErr != nil {
+			return nil, fmt.Errorf("health endpoint returned HTTP %d and error body could not be read: %w", resp.StatusCode, readErr)
+		}
+		detail := strings.TrimSpace(string(body))
+		if detail == "" {
+			detail = http.StatusText(resp.StatusCode)
+		}
+		return nil, fmt.Errorf("health endpoint returned HTTP %d: %s", resp.StatusCode, detail)
+	}
 
 	var payload map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {

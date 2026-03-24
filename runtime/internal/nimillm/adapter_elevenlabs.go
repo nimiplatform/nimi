@@ -3,7 +3,6 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -124,7 +123,7 @@ func doElevenLabsBinaryRequest(ctx context.Context, targetURL, apiKey string, bo
 		_ = json.NewDecoder(response.Body).Decode(&payload)
 		return nil, "", MapProviderHTTPError(response.StatusCode, payload)
 	}
-	raw, err := io.ReadAll(response.Body)
+	raw, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
 	if err != nil {
 		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

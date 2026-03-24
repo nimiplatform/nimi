@@ -19,6 +19,19 @@ func TestMethodDescriptorMapsConnectorService(t *testing.T) {
 	}
 }
 
+func TestMethodDescriptorMapsRealtimeServiceToRuntimeAI(t *testing.T) {
+	domain, operation, capability := methodDescriptor("/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents")
+	if domain != "runtime.ai" {
+		t.Fatalf("domain mismatch: %q", domain)
+	}
+	if operation != "read_realtime_events" {
+		t.Fatalf("operation mismatch: %q", operation)
+	}
+	if capability != "runtime.ai.read_realtime_events" {
+		t.Fatalf("capability mismatch: %q", capability)
+	}
+}
+
 func TestCloneUsageReturnsTypedClone(t *testing.T) {
 	input := &runtimev1.UsageStats{InputTokens: 12}
 	cloned := cloneUsage(input)

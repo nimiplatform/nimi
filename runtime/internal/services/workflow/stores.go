@@ -189,7 +189,7 @@ func (s *artifactStore) Write(taskID string, nodeID string, slot string, mimeTyp
 		return nil, fmt.Errorf("task_id, node_id and slot are required")
 	}
 	if strings.TrimSpace(mimeType) == "" {
-		mimeType = "application/octet-stream"
+		return nil, fmt.Errorf("mime_type is required")
 	}
 
 	artifactID := ulid.Make().String()

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"google.golang.org/grpc/codes"
@@ -85,7 +84,7 @@ func (b *Backend) postRaw(ctx context.Context, path string, requestBody any) ([]
 		return nil, MapProviderHTTPError(response.StatusCode, payload)
 	}
 
-	body, err := io.ReadAll(response.Body)
+	body, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

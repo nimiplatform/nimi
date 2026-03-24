@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -503,7 +502,7 @@ func doMultipartMusicRequest(
 		_ = json.NewDecoder(response.Body).Decode(&payload)
 		return nil, MapProviderHTTPError(response.StatusCode, payload)
 	}
-	raw, err := io.ReadAll(response.Body)
+	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

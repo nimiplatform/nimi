@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
-	"io"
 	"net/http"
 	"strings"
 
@@ -129,7 +128,7 @@ func doAzureSpeechRequest(ctx context.Context, targetURL, apiKey, ssmlBody, outp
 		_ = json.NewDecoder(response.Body).Decode(&payload)
 		return nil, "", MapProviderHTTPError(response.StatusCode, payload)
 	}
-	raw, err := io.ReadAll(response.Body)
+	raw, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
 	if err != nil {
 		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

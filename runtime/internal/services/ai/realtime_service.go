@@ -394,7 +394,11 @@ func dialLlamaRealtime(ctx context.Context, backend *nimillm.Backend, modelID st
 	if backend == nil || strings.TrimSpace(backend.Endpoint()) == "" || strings.TrimSpace(modelID) == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	targetURL, err := url.Parse(strings.TrimSpace(backend.Endpoint()))
+	endpoint := strings.TrimSpace(backend.Endpoint())
+	if err := endpointsec.ValidateEndpoint(endpoint, false); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+	}
+	targetURL, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
@@ -528,11 +532,15 @@ func readRealtimeLocationBytes(ctx context.Context, location string) ([]byte, er
 		if err := endpointsec.ValidateEndpoint(value, false); err != nil {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 		}
+		transport, err := endpointsec.NewPinnedTransport(value, false)
+		if err != nil {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, value, nil)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
-		resp, err := (&http.Client{}).Do(req)
+		resp, err := (&http.Client{Timeout: 30 * time.Second, Transport: transport}).Do(req)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}

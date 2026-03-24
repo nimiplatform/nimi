@@ -2,7 +2,6 @@ package nimillm
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -229,7 +228,7 @@ func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, er
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	payload, err := io.ReadAll(response.Body)
+	payload, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
 	if err != nil || len(payload) == 0 {
 		return nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

@@ -1,6 +1,7 @@
 package nimillm
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -218,21 +219,38 @@ func ExtractBinaryArtifactBytesAndMIME(payload map[string]any) ([]byte, string, 
 		ValueAsString(MapField(MapField(payload["output"], "audio"), "url")),
 	))
 	if artifactURI != "" {
-		response, err := http.Get(artifactURI) //nolint:gosec
-		if err == nil {
-			defer response.Body.Close()
-			if response.StatusCode >= 200 && response.StatusCode < 300 {
-				raw, readErr := io.ReadAll(response.Body)
-				if readErr == nil && len(raw) > 0 {
-					return raw, FirstNonEmpty(
-						ValueAsString(payload["mime_type"]),
-						response.Header.Get("Content-Type"),
-					), artifactURI
-				}
-			}
+		raw, resolvedMIME, err := fetchBinaryArtifact(context.Background(), artifactURI)
+		if err == nil && len(raw) > 0 {
+			return raw, FirstNonEmpty(
+				ValueAsString(payload["mime_type"]),
+				resolvedMIME,
+			), artifactURI
 		}
 	}
 	return nil, "", ""
+}
+
+func fetchBinaryArtifact(ctx context.Context, artifactURI string) ([]byte, string, error) {
+	client, request, err := newSecuredHTTPRequest(ctx, http.MethodGet, artifactURI, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, "", err
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return nil, "", MapProviderHTTPError(response.StatusCode, nil)
+	}
+	raw, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
+	if err != nil {
+		return nil, "", err
+	}
+	if len(raw) == 0 {
+		return nil, "", io.ErrUnexpectedEOF
+	}
+	return raw, strings.TrimSpace(response.Header.Get("Content-Type")), nil
 }
 
 // ExtractImageArtifactFromAny recursively extracts image artifact bytes from

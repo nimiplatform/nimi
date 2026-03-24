@@ -51,10 +51,24 @@ func TestValidateEndpoint_InvalidScheme(t *testing.T) {
 	}
 }
 
+func TestValidateEndpoint_RejectsUserinfo(t *testing.T) {
+	err := ValidateEndpoint("https://user:pass@example.com/v1", false)
+	if err == nil || !strings.Contains(err.Error(), "userinfo") {
+		t.Fatalf("expected userinfo rejection, got: %v", err)
+	}
+}
+
 func TestCheckIP_LinkLocal_IPv4(t *testing.T) {
 	ip := net.ParseIP("169.254.1.1")
 	if err := checkIP(ip); err == nil {
 		t.Fatal("expected link-local IPv4 to be blocked")
+	}
+}
+
+func TestCheckIP_LinkLocal_IPv4MappedIPv6(t *testing.T) {
+	ip := net.ParseIP("::ffff:169.254.1.1")
+	if err := checkIP(ip); err == nil {
+		t.Fatal("expected IPv4-mapped link-local address to be blocked")
 	}
 }
 

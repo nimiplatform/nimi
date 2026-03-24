@@ -19,7 +19,18 @@ import (
 )
 
 func TestWorkflowSubmitGetSubscribe(t *testing.T) {
-	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	aiClient := &fakeRuntimeAIClient{
+		executeScenarioFn: func(context.Context, *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
+			return &runtimev1.ExecuteScenarioResponse{
+				Output: &runtimev1.ScenarioOutput{
+					Output: &runtimev1.ScenarioOutput_TextGenerate{
+						TextGenerate: &runtimev1.TextGenerateOutput{Text: "generated"},
+					},
+				},
+			}, nil
+		},
+	}
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), WithAIClient(aiClient))
 	ctx := context.Background()
 
 	submitResp, err := svc.SubmitWorkflow(ctx, &runtimev1.SubmitWorkflowRequest{

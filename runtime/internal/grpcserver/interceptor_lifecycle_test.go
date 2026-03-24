@@ -111,6 +111,29 @@ func TestUnaryLifecycleInterceptorAllowsScenarioReadWhenStopping(t *testing.T) {
 	}
 }
 
+func TestStreamLifecycleInterceptorAllowsRealtimeEventReadsWhenStopping(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusStopping, "draining")
+	interceptor := newStreamLifecycleInterceptor(state)
+
+	handlerCalled := false
+	err := interceptor(
+		struct{}{},
+		&recordingServerStream{ctx: context.Background()},
+		&grpc.StreamServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents"},
+		func(_ any, _ grpc.ServerStream) error {
+			handlerCalled = true
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatalf("realtime read method should be allowed while stopping: %v", err)
+	}
+	if !handlerCalled {
+		t.Fatalf("handler must be called for realtime read method")
+	}
+}
+
 func TestUnaryLifecycleInterceptorRejectsScenarioWriteWhenStopping(t *testing.T) {
 	state := health.NewState()
 	state.SetStatus(health.StatusStopping, "draining")

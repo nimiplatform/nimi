@@ -22,6 +22,9 @@ func ExecuteScenarioGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.
 	if req.GetHead() == nil {
 		return nil, errors.New("scenario request head is required")
 	}
+	if strings.TrimSpace(req.GetHead().GetAppId()) == "" {
+		return nil, errors.New("app_id is required")
+	}
 	if timeout <= 0 {
 		timeout = 10 * time.Second
 	}

@@ -77,9 +77,8 @@ func resolveValidatedEndpoint(rawURL string, allowLoopback bool) (*url.URL, []st
 	}
 
 	host := parsed.Hostname()
-	isLoopback := isLoopbackHost(host)
 	if parsed.Scheme != "https" {
-		if parsed.Scheme != "http" || !allowLoopback || !isLoopback {
+		if parsed.Scheme != "http" || !allowLoopback {
 			return nil, nil, fmt.Errorf("endpointsec: HTTPS required for endpoint %q", rawURL)
 		}
 	}
@@ -94,6 +93,9 @@ func resolveValidatedEndpoint(rawURL string, allowLoopback bool) (*url.URL, []st
 		ip := net.ParseIP(ipStr)
 		if ip == nil {
 			continue
+		}
+		if parsed.Scheme == "http" && !ip.IsLoopback() {
+			return nil, nil, fmt.Errorf("endpointsec: resolved IP %s for %q is not loopback", ipStr, host)
 		}
 		if !allowLoopback && ip.IsLoopback() {
 			if parsed.Scheme == "http" {
@@ -126,6 +128,9 @@ func parseAndNormalize(rawURL string) (*url.URL, error) {
 	}
 	if parsed.Host == "" {
 		return nil, fmt.Errorf("endpointsec: URL %q has no host", trimmed)
+	}
+	if parsed.User != nil {
+		return nil, fmt.Errorf("endpointsec: URL %q must not contain userinfo", trimmed)
 	}
 	scheme := strings.ToLower(parsed.Scheme)
 	if scheme != "http" && scheme != "https" {

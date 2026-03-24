@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 	"time"
@@ -88,6 +89,23 @@ func TestDurationMillisecondsInt32RejectsOverflow(t *testing.T) {
 	_, err := durationMillisecondsInt32((time.Duration(int64(^uint32(0)>>1)) + 1) * time.Millisecond)
 	if err == nil {
 		t.Fatal("expected overflow error")
+	}
+}
+
+func TestMillisecondsInt32RejectsOverflow(t *testing.T) {
+	_, err := millisecondsInt32(int(^uint32(0)>>1) + 1)
+	if err == nil {
+		t.Fatal("expected overflow error")
+	}
+}
+
+func TestReadAllBoundedRejectsOversizePayload(t *testing.T) {
+	_, err := readAllBounded(bytes.NewBufferString("abcdef"), 4, "payload")
+	if err == nil {
+		t.Fatal("expected size limit error")
+	}
+	if !strings.Contains(err.Error(), "payload exceeds 4 bytes") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

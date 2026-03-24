@@ -159,7 +159,7 @@ func validateMergedRuntimeFields(fileCfg config.FileConfig) error {
 
 func readConfigInput(fromStdin bool, filePath string) ([]byte, error) {
 	if fromStdin {
-		return io.ReadAll(os.Stdin)
+		return readAllBounded(os.Stdin, maxConfigInputBytes, "config stdin payload")
 	}
 	if strings.TrimSpace(filePath) == "" {
 		return nil, nil

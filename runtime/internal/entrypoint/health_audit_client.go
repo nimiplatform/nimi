@@ -70,6 +70,9 @@ func SubscribeAIProviderHealthGRPC(ctx context.Context, grpcAddr string) (<-chan
 	if addr == "" {
 		return nil, nil, errors.New("grpc address is required")
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	ctx = withAuditReadMetadata(ctx)
 
@@ -132,6 +135,9 @@ func SubscribeRuntimeHealthGRPC(ctx context.Context, grpcAddr string) (<-chan Ru
 	addr := strings.TrimSpace(grpcAddr)
 	if addr == "" {
 		return nil, nil, errors.New("grpc address is required")
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 
 	ctx = withAuditReadMetadata(ctx)

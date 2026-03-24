@@ -239,7 +239,7 @@ func (c *githubRESTClient) do(ctx context.Context, method string, path string, r
 	}
 	defer response.Body.Close()
 
-	raw, err := io.ReadAll(response.Body)
+	raw, err := readAllBounded(response.Body, maxGitHubResponseBodyBytes, "github api response body")
 	if err != nil {
 		return err
 	}

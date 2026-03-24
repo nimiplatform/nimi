@@ -27,6 +27,9 @@ func StreamScenarioGRPC(ctx context.Context, grpcAddr string, req *runtimev1.Str
 	if req.GetHead() == nil {
 		return nil, nil, errors.New("stream scenario request head is required")
 	}
+	if strings.TrimSpace(req.GetHead().GetAppId()) == "" {
+		return nil, nil, errors.New("app_id is required")
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}

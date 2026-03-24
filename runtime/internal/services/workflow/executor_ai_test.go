@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -271,6 +272,31 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 	}
 	if !foundCompleted {
 		t.Fatalf("expected NODE_EXTERNAL_COMPLETED event")
+	}
+}
+
+func TestExecuteAINodesFailClosedWithoutRuntimeAIClient(t *testing.T) {
+	svc := New(
+		slog.New(slog.NewTextHandler(io.Discard, nil)),
+		WithArtifactRoot(t.TempDir()),
+	)
+	record := &taskRecord{
+		TaskID:        "task-ai-missing-client",
+		AppID:         "nimi.desktop",
+		SubjectUserID: "user-001",
+	}
+
+	_, err := svc.executeNode(context.Background(), record, &runtimev1.WorkflowNode{
+		NodeId:   "generate",
+		NodeType: runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_GENERATE,
+		TypeConfig: &runtimev1.WorkflowNode_AiGenerateConfig{
+			AiGenerateConfig: &runtimev1.AiGenerateNodeConfig{ModelId: "m-generate"},
+		},
+	}, map[string]*structpb.Struct{
+		"text": structFromMap(map[string]any{"value": "prompt"}),
+	})
+	if err == nil || !strings.Contains(err.Error(), "runtime ai client is unavailable") {
+		t.Fatalf("expected fail-closed error, got %v", err)
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -86,7 +87,10 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 	}
 	expiresAt := issuedAt.Add(ttl)
 	tokenID := ulid.Make().String()
-	secret := ulid.Make().String()
+	secret, err := newTokenSecret()
+	if err != nil {
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+	}
 
 	policyVersion := strings.TrimSpace(req.GetPolicyVersion())
 	if policyVersion == "" {

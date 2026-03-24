@@ -41,6 +41,10 @@ func runRuntimeWorkflowSubmit(args []string) error {
 	if *timeoutMS <= 0 {
 		return fmt.Errorf("timeout-ms must be > 0")
 	}
+	timeoutMsValue, err := millisecondsInt32(*timeoutMS)
+	if err != nil {
+		return err
+	}
 
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
@@ -56,7 +60,7 @@ func runRuntimeWorkflowSubmit(args []string) error {
 		AppId:         strings.TrimSpace(*appID),
 		SubjectUserId: strings.TrimSpace(*subjectUserID),
 		Definition:    definition,
-		TimeoutMs:     int32(*timeoutMS),
+		TimeoutMs:     timeoutMsValue,
 	}, callerMeta)
 	if err != nil {
 		return err

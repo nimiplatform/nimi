@@ -39,6 +39,7 @@ func New(addr string, state *health.State, logger *slog.Logger, aiHealth *provid
 	s.http = &http.Server{
 		Addr:              addr,
 		Handler:           mux,
+		MaxHeaderBytes:    1 << 16,
 		ReadHeaderTimeout: 3 * time.Second,
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      10 * time.Second,
@@ -190,6 +191,8 @@ func formatTimestamp(value time.Time) string {
 
 func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, body map[string]any) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(body); err != nil {
 		s.logger.Error("encode http response", "status", statusCode, "error", err)

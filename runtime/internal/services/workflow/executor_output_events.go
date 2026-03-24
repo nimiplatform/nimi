@@ -12,14 +12,7 @@ import (
 
 func (s *Service) writeArtifact(record *taskRecord, node *runtimev1.WorkflowNode, slot string, mimeType string, content []byte) (map[string]*structpb.Struct, error) {
 	if s.artifactStore == nil {
-		return map[string]*structpb.Struct{
-			"artifact": structFromMap(map[string]any{
-				"artifact_id": "",
-				"mime_type":   mimeType,
-				"size":        len(content),
-			}),
-			"output": structFromMap(map[string]any{"mime_type": mimeType, "size": len(content)}),
-		}, nil
+		return nil, fmt.Errorf("workflow artifact store is unavailable")
 	}
 	meta, err := s.artifactStore.Write(record.TaskID, node.GetNodeId(), slot, mimeType, content)
 	if err != nil {

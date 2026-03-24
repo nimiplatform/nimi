@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -17,7 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -411,14 +409,11 @@ func resolveGeminiReferenceImageBytes(ctx context.Context, location string) ([]b
 		return decodeGeminiDataURL(value)
 	}
 	if isRemoteHTTPURL(value) {
-		if err := endpointsec.ValidateEndpoint(value, false); err != nil {
-			return nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
-		}
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, value, nil)
+		client, request, err := newSecuredHTTPRequest(ctx, http.MethodGet, value, nil)
 		if err != nil {
-			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+			return nil, "", err
 		}
-		response, err := http.DefaultClient.Do(request)
+		response, err := client.Do(request)
 		if err != nil {
 			return nil, "", MapProviderRequestError(err)
 		}
@@ -426,11 +421,11 @@ func resolveGeminiReferenceImageBytes(ctx context.Context, location string) ([]b
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
 			return nil, "", MapProviderHTTPError(response.StatusCode, nil)
 		}
-		payload, err := io.ReadAll(io.LimitReader(response.Body, maxDecodedMediaURLBytes+1))
+		payload, err := readLimitedResponseBody(response.Body, maxDecodedMediaURLBytes)
 		if err != nil {
 			return nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
-		if len(payload) == 0 || len(payload) > maxDecodedMediaURLBytes {
+		if len(payload) == 0 {
 			return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 		return payload, strings.TrimSpace(response.Header.Get("Content-Type")), nil

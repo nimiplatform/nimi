@@ -44,16 +44,7 @@ func (s *Service) executeTemplateNode(node *runtimev1.WorkflowNode, inputs map[s
 }
 
 func (s *Service) executeScriptNode(ctx context.Context, record *taskRecord, node *runtimev1.WorkflowNode, inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {
-	cfg := node.GetScriptConfig()
-
-	output := structFromMap(map[string]any{
-		"task_id": record.TaskID,
-		"node_id": node.GetNodeId(),
-		"runtime": cfg.GetRuntime(),
-		"code":    cfg.GetCode(),
-		"inputs":  inputsAsMap(inputs),
-	})
-	return map[string]*structpb.Struct{"output": output}, nil
+	return nil, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 }
 
 func (s *Service) executeBranchNode(record *taskRecord, node *runtimev1.WorkflowNode, inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {

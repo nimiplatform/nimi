@@ -138,6 +138,35 @@ func TestExtractBinaryArtifactBytesAndMIMEDecodesURLSafeBase64(t *testing.T) {
 	}
 }
 
+func TestFetchBinaryArtifactRejectsOversizedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		_, _ = w.Write(make([]byte, maxDecodedMediaURLBytes+1))
+	}))
+	defer server.Close()
+
+	_, _, err := fetchBinaryArtifact(context.Background(), server.URL)
+	if err == nil {
+		t.Fatal("expected oversized artifact fetch to fail")
+	}
+}
+
+func TestFetchAudioFromURIRejectsOversizedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "audio/wav")
+		_, _ = w.Write(make([]byte, maxDecodedMediaURLBytes+1))
+	}))
+	defer server.Close()
+
+	_, _, err := FetchAudioFromURI(context.Background(), server.URL)
+	if err == nil {
+		t.Fatal("expected oversized audio fetch to fail")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
+	}
+}
+
 func TestIsAsyncTaskPendingStatusUsesNormalizedStatus(t *testing.T) {
 	if !IsAsyncTaskPendingStatus(ResolveAsyncTaskStatus(map[string]any{"status": " Pending "})) {
 		t.Fatal("normalized pending status should match")

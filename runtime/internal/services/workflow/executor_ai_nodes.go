@@ -19,53 +19,47 @@ func (s *Service) executeAIGenerateNode(ctx context.Context, record *taskRecord,
 	if prompt == "" {
 		prompt = firstInputString(inputs, "prompt", "text", "input")
 	}
-	if client := s.runtimeAIClient(); client != nil {
-		resp, err := client.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
-			Head: &runtimev1.ScenarioRequestHead{
-				AppId:         record.AppID,
-				SubjectUserId: record.SubjectUserID,
-				ModelId:       cfg.GetModelId(),
-				RoutePolicy:   cfg.GetRoutePolicy(),
-				Fallback:      cfg.GetFallback(),
-				TimeoutMs:     cfg.GetTimeoutMs(),
-			},
-			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
-			Spec: &runtimev1.ScenarioSpec{
-				Spec: &runtimev1.ScenarioSpec_TextGenerate{
-					TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-						Input:        promptAsMessages(prompt),
-						SystemPrompt: cfg.GetSystemPrompt(),
-						Tools:        cfg.GetTools(),
-						Temperature:  cfg.GetTemperature(),
-						TopP:         cfg.GetTopP(),
-						MaxTokens:    cfg.GetMaxTokens(),
-					},
+	client, err := s.requireRuntimeAIClient()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         record.AppID,
+			SubjectUserId: record.SubjectUserID,
+			ModelId:       cfg.GetModelId(),
+			RoutePolicy:   cfg.GetRoutePolicy(),
+			Fallback:      cfg.GetFallback(),
+			TimeoutMs:     cfg.GetTimeoutMs(),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input:        promptAsMessages(prompt),
+					SystemPrompt: cfg.GetSystemPrompt(),
+					Tools:        cfg.GetTools(),
+					Temperature:  cfg.GetTemperature(),
+					TopP:         cfg.GetTopP(),
+					MaxTokens:    cfg.GetMaxTokens(),
 				},
 			},
-		})
-		if err != nil {
-			return nil, err
-		}
-		output := scenarioOutputToStruct(resp.GetOutput())
-		if output == nil {
-			return nil, fmt.Errorf("ai generate output missing typed payload")
-		}
-		text := scenarioOutputText(resp.GetOutput())
-		if text == "" {
-			text = coerceString(output)
-		}
-		return map[string]*structpb.Struct{
-			"output": output,
-			"text":   structFromMap(map[string]any{"value": text}),
-		}, nil
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
-	text := prompt
+	output := scenarioOutputToStruct(resp.GetOutput())
+	if output == nil {
+		return nil, fmt.Errorf("ai generate output missing typed payload")
+	}
+	text := scenarioOutputText(resp.GetOutput())
 	if text == "" {
-		text = "generated"
+		text = coerceString(output)
 	}
 	return map[string]*structpb.Struct{
-		"output": structFromMap(map[string]any{"text": text, "node_type": node.GetNodeType().String()}),
+		"output": output,
 		"text":   structFromMap(map[string]any{"value": text}),
 	}, nil
 }
@@ -76,58 +70,51 @@ func (s *Service) executeAIStreamNode(ctx context.Context, record *taskRecord, n
 	if prompt == "" {
 		prompt = firstInputString(inputs, "prompt", "text", "input")
 	}
-	if client := s.runtimeAIClient(); client != nil {
-		stream, err := client.StreamScenario(ctx, &runtimev1.StreamScenarioRequest{
-			Head: &runtimev1.ScenarioRequestHead{
-				AppId:         record.AppID,
-				SubjectUserId: record.SubjectUserID,
-				ModelId:       cfg.GetModelId(),
-				RoutePolicy:   cfg.GetRoutePolicy(),
-				Fallback:      cfg.GetFallback(),
-				TimeoutMs:     cfg.GetTimeoutMs(),
-			},
-			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
-			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
-			Spec: &runtimev1.ScenarioSpec{
-				Spec: &runtimev1.ScenarioSpec_TextGenerate{
-					TextGenerate: &runtimev1.TextGenerateScenarioSpec{
-						Input:        promptAsMessages(prompt),
-						SystemPrompt: cfg.GetSystemPrompt(),
-						Tools:        cfg.GetTools(),
-						Temperature:  cfg.GetTemperature(),
-						TopP:         cfg.GetTopP(),
-						MaxTokens:    cfg.GetMaxTokens(),
-					},
+	client, err := s.requireRuntimeAIClient()
+	if err != nil {
+		return nil, err
+	}
+	stream, err := client.StreamScenario(ctx, &runtimev1.StreamScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         record.AppID,
+			SubjectUserId: record.SubjectUserID,
+			ModelId:       cfg.GetModelId(),
+			RoutePolicy:   cfg.GetRoutePolicy(),
+			Fallback:      cfg.GetFallback(),
+			TimeoutMs:     cfg.GetTimeoutMs(),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input:        promptAsMessages(prompt),
+					SystemPrompt: cfg.GetSystemPrompt(),
+					Tools:        cfg.GetTools(),
+					Temperature:  cfg.GetTemperature(),
+					TopP:         cfg.GetTopP(),
+					MaxTokens:    cfg.GetMaxTokens(),
 				},
 			},
-		})
-		if err != nil {
-			return nil, err
-		}
-		var output strings.Builder
-		for {
-			event, recvErr := stream.Recv()
-			if recvErr == io.EOF {
-				break
-			}
-			if recvErr != nil {
-				return nil, recvErr
-			}
-			if delta := event.GetDelta(); delta != nil {
-				output.WriteString(streamDeltaText(delta))
-			}
-		}
-		text := output.String()
-		return map[string]*structpb.Struct{
-			"output": structFromMap(map[string]any{"text": text}),
-			"text":   structFromMap(map[string]any{"value": text}),
-		}, nil
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
-
-	text := prompt
-	if text == "" {
-		text = "streamed"
+	var output strings.Builder
+	for {
+		event, recvErr := stream.Recv()
+		if recvErr == io.EOF {
+			break
+		}
+		if recvErr != nil {
+			return nil, recvErr
+		}
+		if delta := event.GetDelta(); delta != nil {
+			output.WriteString(streamDeltaText(delta))
+		}
 	}
+	text := output.String()
 	return map[string]*structpb.Struct{
 		"output": structFromMap(map[string]any{"text": text}),
 		"text":   structFromMap(map[string]any{"value": text}),
@@ -143,45 +130,39 @@ func (s *Service) executeAIEmbedNode(ctx context.Context, record *taskRecord, no
 	if len(embedInputs) == 0 {
 		return nil, fmt.Errorf("embed inputs are empty")
 	}
-	if client := s.runtimeAIClient(); client != nil {
-		resp, err := client.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
-			Head: &runtimev1.ScenarioRequestHead{
-				AppId:         record.AppID,
-				SubjectUserId: record.SubjectUserID,
-				ModelId:       cfg.GetModelId(),
-				RoutePolicy:   cfg.GetRoutePolicy(),
-				Fallback:      cfg.GetFallback(),
-				TimeoutMs:     cfg.GetTimeoutMs(),
-			},
-			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
-			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
-			Spec: &runtimev1.ScenarioSpec{
-				Spec: &runtimev1.ScenarioSpec_TextEmbed{
-					TextEmbed: &runtimev1.TextEmbedScenarioSpec{
-						Inputs: embedInputs,
-					},
+	client, err := s.requireRuntimeAIClient()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.ExecuteScenario(ctx, &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         record.AppID,
+			SubjectUserId: record.SubjectUserID,
+			ModelId:       cfg.GetModelId(),
+			RoutePolicy:   cfg.GetRoutePolicy(),
+			Fallback:      cfg.GetFallback(),
+			TimeoutMs:     cfg.GetTimeoutMs(),
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextEmbed{
+				TextEmbed: &runtimev1.TextEmbedScenarioSpec{
+					Inputs: embedInputs,
 				},
 			},
-		})
-		if err != nil {
-			return nil, err
-		}
-		vectors := make([]any, 0)
-		for _, vector := range scenarioOutputVectors(resp.GetOutput()) {
-			row := make([]any, 0, len(vector))
-			for _, value := range vector {
-				row = append(row, value)
-			}
-			vectors = append(vectors, row)
-		}
-		return map[string]*structpb.Struct{
-			"output": structFromMap(map[string]any{"vectors": vectors}),
-		}, nil
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
-
-	vectors := make([]any, 0, len(embedInputs))
-	for _, value := range embedInputs {
-		vectors = append(vectors, []any{float64(len(value))})
+	vectors := make([]any, 0)
+	for _, vector := range scenarioOutputVectors(resp.GetOutput()) {
+		row := make([]any, 0, len(vector))
+		for _, value := range vector {
+			row = append(row, value)
+		}
+		vectors = append(vectors, row)
 	}
 	return map[string]*structpb.Struct{
 		"output": structFromMap(map[string]any{"vectors": vectors}),
@@ -244,25 +225,23 @@ func (s *Service) executeAIImageNode(ctx context.Context, record *taskRecord, no
 		return nil, fmt.Errorf("image prompt is empty")
 	}
 
-	content := []byte(prompt)
-	mimeType := "image/png"
-	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
-		if runErr != nil {
-			return nil, runErr
-		}
-		first := firstScenarioArtifact(artifacts)
-		if first == nil {
-			return nil, fmt.Errorf("image artifacts are empty")
-		}
-		if len(first.GetBytes()) > 0 {
-			content = first.GetBytes()
-		}
-		if strings.TrimSpace(first.GetMimeType()) != "" {
-			mimeType = first.GetMimeType()
-		}
+	client, err := s.requireRuntimeAIClient()
+	if err != nil {
+		return nil, err
 	}
-	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, content)
+	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
+	if runErr != nil {
+		return nil, runErr
+	}
+	first := firstScenarioArtifact(artifacts)
+	if first == nil || len(first.GetBytes()) == 0 {
+		return nil, fmt.Errorf("image artifacts are empty")
+	}
+	mimeType := strings.TrimSpace(first.GetMimeType())
+	if mimeType == "" {
+		return nil, fmt.Errorf("image artifact mime_type is empty")
+	}
+	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, first.GetBytes())
 	if err != nil {
 		return nil, err
 	}
@@ -279,25 +258,23 @@ func (s *Service) executeAIVideoNode(ctx context.Context, record *taskRecord, no
 		return nil, fmt.Errorf("video prompt is empty")
 	}
 
-	content := []byte(prompt)
-	mimeType := "video/mp4"
-	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
-		if runErr != nil {
-			return nil, runErr
-		}
-		first := firstScenarioArtifact(artifacts)
-		if first == nil {
-			return nil, fmt.Errorf("video artifacts are empty")
-		}
-		if len(first.GetBytes()) > 0 {
-			content = first.GetBytes()
-		}
-		if strings.TrimSpace(first.GetMimeType()) != "" {
-			mimeType = first.GetMimeType()
-		}
+	client, err := s.requireRuntimeAIClient()
+	if err != nil {
+		return nil, err
 	}
-	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, content)
+	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
+	if runErr != nil {
+		return nil, runErr
+	}
+	first := firstScenarioArtifact(artifacts)
+	if first == nil || len(first.GetBytes()) == 0 {
+		return nil, fmt.Errorf("video artifacts are empty")
+	}
+	mimeType := strings.TrimSpace(first.GetMimeType())
+	if mimeType == "" {
+		return nil, fmt.Errorf("video artifact mime_type is empty")
+	}
+	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, first.GetBytes())
 	if err != nil {
 		return nil, err
 	}
@@ -314,25 +291,23 @@ func (s *Service) executeAITTSNode(ctx context.Context, record *taskRecord, node
 		return nil, fmt.Errorf("tts text is empty")
 	}
 
-	content := []byte(text)
-	mimeType := "audio/wav"
-	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
-		if runErr != nil {
-			return nil, runErr
-		}
-		first := firstScenarioArtifact(artifacts)
-		if first == nil {
-			return nil, fmt.Errorf("tts artifacts are empty")
-		}
-		if len(first.GetBytes()) > 0 {
-			content = first.GetBytes()
-		}
-		if strings.TrimSpace(first.GetMimeType()) != "" {
-			mimeType = first.GetMimeType()
-		}
+	client, err := s.requireRuntimeAIClient()
+	if err != nil {
+		return nil, err
 	}
-	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, content)
+	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
+	if runErr != nil {
+		return nil, runErr
+	}
+	first := firstScenarioArtifact(artifacts)
+	if first == nil || len(first.GetBytes()) == 0 {
+		return nil, fmt.Errorf("tts artifacts are empty")
+	}
+	mimeType := strings.TrimSpace(first.GetMimeType())
+	if mimeType == "" {
+		return nil, fmt.Errorf("tts artifact mime_type is empty")
+	}
+	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, first.GetBytes())
 	if err != nil {
 		return nil, err
 	}
@@ -349,24 +324,34 @@ func (s *Service) executeAISTTNode(ctx context.Context, record *taskRecord, node
 	if len(audio) == 0 {
 		return nil, fmt.Errorf("stt audio is empty")
 	}
-	text := "transcribed"
-	if client := s.runtimeAIClient(); client != nil {
-		_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
-		if runErr != nil {
-			return nil, runErr
-		}
-		first := firstScenarioArtifact(artifacts)
-		if first != nil {
-			value := strings.TrimSpace(string(first.GetBytes()))
-			if value != "" {
-				text = value
-			}
-		}
+	client, err := s.requireRuntimeAIClient()
+	if err != nil {
+		return nil, err
+	}
+	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
+	if runErr != nil {
+		return nil, runErr
+	}
+	first := firstScenarioArtifact(artifacts)
+	if first == nil {
+		return nil, fmt.Errorf("stt artifacts are empty")
+	}
+	text := strings.TrimSpace(string(first.GetBytes()))
+	if text == "" {
+		return nil, fmt.Errorf("stt output text is empty")
 	}
 	return map[string]*structpb.Struct{
 		"output": structFromMap(map[string]any{"text": text}),
 		"text":   structFromMap(map[string]any{"value": text}),
 	}, nil
+}
+
+func (s *Service) requireRuntimeAIClient() (runtimev1.RuntimeAiServiceClient, error) {
+	client := s.runtimeAIClient()
+	if client == nil {
+		return nil, fmt.Errorf("runtime ai client is unavailable")
+	}
+	return client, nil
 }
 
 func (s *Service) runScenarioJobSync(
@@ -422,9 +407,9 @@ func (s *Service) runScenarioJobSync(
 			if pollErr != nil {
 				return nil, nil, pollErr
 			}
-				if pollResp.GetJob() == nil {
-					return nil, nil, fmt.Errorf("scenario poll returned empty job")
-				}
+			if pollResp.GetJob() == nil {
+				return nil, nil, fmt.Errorf("scenario poll returned empty job")
+			}
 			job = pollResp.GetJob()
 			continue
 		case runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED:
@@ -444,9 +429,9 @@ func (s *Service) runScenarioJobSync(
 			if reason == "" {
 				reason = strings.TrimSpace(job.GetReasonCode().String())
 			}
-				if reason == "" {
-					reason = "unknown scenario job failure"
-				}
+			if reason == "" {
+				reason = "unknown scenario job failure"
+			}
 			return nil, nil, fmt.Errorf("scenario job failed: %s", reason)
 		}
 	}

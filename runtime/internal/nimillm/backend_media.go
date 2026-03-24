@@ -406,6 +406,9 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 	if b.isMediaBackend() {
 		return b.generateImageMedia(ctx, modelID, spec, scenarioExtensions)
 	}
+	if spec == nil {
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 
 	type imageRequest struct {
 		Model           string         `json:"model"`
@@ -429,21 +432,16 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 		} `json:"data"`
 	}
 
-	prompt := ""
-	if spec != nil {
-		prompt = strings.TrimSpace(spec.GetPrompt())
-	}
+	prompt := strings.TrimSpace(spec.GetPrompt())
 	responseFormat := "b64_json"
-	if spec != nil {
-		normalizedFormat, err := normalizeImageResponseFormat(spec.GetResponseFormat())
-		if err != nil {
-			return nil, nil, err
-		}
-		responseFormat = normalizedFormat
+	normalizedFormat, err := normalizeImageResponseFormat(spec.GetResponseFormat())
+	if err != nil {
+		return nil, nil, err
 	}
+	responseFormat = normalizedFormat
 
 	var respBody imageResponse
-	err := b.postJSON(ctx, "/v1/images/generations", imageRequest{
+	err = b.postJSON(ctx, "/v1/images/generations", imageRequest{
 		Model:           modelID,
 		Prompt:          prompt,
 		NegativePrompt:  strings.TrimSpace(spec.GetNegativePrompt()),
@@ -629,6 +627,10 @@ func (b *Backend) GenerateMusic(ctx context.Context, modelID string, spec *runti
 
 // SynthesizeSpeech sends a text-to-speech request.
 func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) ([]byte, *runtimev1.UsageStats, error) {
+	if spec == nil {
+		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+
 	type speechRequest struct {
 		Model        string         `json:"model"`
 		Input        string         `json:"input"`
@@ -642,12 +644,8 @@ func (b *Backend) SynthesizeSpeech(ctx context.Context, modelID string, spec *ru
 		Emotion      string         `json:"emotion,omitempty"`
 		Extensions   map[string]any `json:"extensions,omitempty"`
 	}
-	text := ""
-	requestedVoice := ""
-	if spec != nil {
-		text = strings.TrimSpace(spec.GetText())
-		requestedVoice = strings.TrimSpace(scenarioVoiceRef(spec))
-	}
+	text := strings.TrimSpace(spec.GetText())
+	requestedVoice := strings.TrimSpace(scenarioVoiceRef(spec))
 	payload, err := b.postRaw(ctx, "/v1/audio/speech", speechRequest{
 		Model:        modelID,
 		Input:        text,

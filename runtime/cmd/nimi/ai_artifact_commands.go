@@ -61,6 +61,10 @@ func runRuntimeAISTT(args []string) error {
 	if *timeoutMS <= 0 {
 		return fmt.Errorf("timeout-ms must be > 0")
 	}
+	timeoutMsValue, err := millisecondsInt32(*timeoutMS)
+	if err != nil {
+		return err
+	}
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
@@ -86,7 +90,7 @@ func runRuntimeAISTT(args []string) error {
 			ModelId:       strings.TrimSpace(*modelID),
 			RoutePolicy:   routePolicy,
 			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
+			TimeoutMs:     timeoutMsValue,
 		},
 		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
@@ -192,6 +196,10 @@ func runRuntimeAIArtifact(args []string, mode runtimeAIArtifactMode) error {
 	if *timeoutMS <= 0 {
 		return fmt.Errorf("timeout-ms must be > 0")
 	}
+	timeoutMsValue, err := millisecondsInt32(*timeoutMS)
+	if err != nil {
+		return err
+	}
 	timeout, err := time.ParseDuration(*timeoutRaw)
 	if err != nil {
 		return fmt.Errorf("parse timeout: %w", err)
@@ -213,7 +221,7 @@ func runRuntimeAIArtifact(args []string, mode runtimeAIArtifactMode) error {
 			ModelId:       strings.TrimSpace(*modelID),
 			RoutePolicy:   routePolicy,
 			Fallback:      fallbackPolicy,
-			TimeoutMs:     int32(*timeoutMS),
+			TimeoutMs:     timeoutMsValue,
 		},
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 	}

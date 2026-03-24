@@ -202,6 +202,10 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+		"/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
+		"/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
+		"/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
+		"/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
 	}
 	for _, method := range writeMethods {
 		if !isWriteMethod(method) {

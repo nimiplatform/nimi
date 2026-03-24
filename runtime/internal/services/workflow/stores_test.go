@@ -75,6 +75,18 @@ func TestArtifactStoreLifecycle(t *testing.T) {
 	}
 }
 
+func TestArtifactStoreWriteRejectsEmptyMIME(t *testing.T) {
+	root := t.TempDir()
+	store, err := newArtifactStore(root, 10*time.Millisecond, nil)
+	if err != nil {
+		t.Fatalf("new artifact store: %v", err)
+	}
+
+	if _, err := store.Write("task-1", "node-1", "artifact", "", []byte("hello")); err == nil {
+		t.Fatal("expected empty mime_type to fail")
+	}
+}
+
 func TestSanitizeSegmentRemovesDotDotSequences(t *testing.T) {
 	if got := sanitizeSegment("../task/..\\node"); strings.Contains(got, "..") {
 		t.Fatalf("sanitizeSegment should remove dotdot traversal, got %q", got)

@@ -197,6 +197,8 @@ func methodDescriptor(fullMethod string) (string, string, string) {
 
 	domain := "runtime.rpc"
 	switch {
+	case strings.Contains(service, "RuntimeAiRealtimeService"):
+		domain = "runtime.ai"
 	case strings.Contains(service, "RuntimeAiService"):
 		domain = "runtime.ai"
 	case strings.Contains(service, "RuntimeWorkflowService"):
