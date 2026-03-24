@@ -64,7 +64,7 @@ export function WorldDetailActivePanel() {
             onClick={() => {
               void worldsQuery.refetch();
             }}
-            className="rounded-[10px] bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+            className="rounded-[10px] bg-mint-500 px-4 py-2 text-sm font-medium text-white hover:bg-mint-600"
           >
             {t('NotificationPanel.refresh', { defaultValue: 'Refresh' })}
           </button>

@@ -194,14 +194,14 @@ export function IteratePanel() {
   return (
     <OtAccordionSection title="Iteration" defaultOpen={false}>
       {!musicIterationSupported && (
-        <div className="rounded-lg border border-ot-warning/20 bg-ot-warning/10 px-3 py-2 text-xs text-ot-warning">
+        <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-warning)]">
           Iteration requires a connector/model pair that supports music.generate.iteration (e.g. Suno, Stability).
         </div>
       )}
 
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Mode</label>
+          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Mode</label>
           <OtSegmentedControl
             options={['extend', 'remix', 'reference'] as const}
             value={mode}
@@ -210,14 +210,14 @@ export function IteratePanel() {
           />
         </div>
 
-        <p className="text-[10px] text-ot-text-ghost">
+        <p className="text-[10px] text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">
           {mode === 'extend' && 'Continue the selected source take.'}
           {mode === 'remix' && 'Keep the source material but reinterpret arrangement and style.'}
           {mode === 'reference' && 'Use the source as a guide for a fresh generation.'}
         </p>
 
         <div className="space-y-2">
-          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Source</label>
+          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Source</label>
           <OtSegmentedControl
             options={['take', 'upload'] as const}
             value={sourceKind}
@@ -226,16 +226,16 @@ export function IteratePanel() {
           />
 
           {sourceKind === 'take' && (
-            <div className="p-2.5 rounded-lg bg-ot-surface-3 border border-ot-surface-5 text-xs">
+            <div className="p-2.5 rounded-lg bg-[var(--nimi-surface-card)] border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] text-xs">
               {selectedTake ? (
                 <div className="flex items-center justify-between">
-                  <span className="text-ot-text-secondary truncate">{selectedTake.title}</span>
-                  <span className={selectedTakeAudio ? 'text-ot-success' : 'text-ot-text-ghost'}>
+                  <span className="text-[var(--nimi-text-secondary)] truncate">{selectedTake.title}</span>
+                  <span className={selectedTakeAudio ? 'text-[var(--nimi-status-success)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]'}>
                     {selectedTakeAudio ? 'ready' : 'no audio'}
                   </span>
                 </div>
               ) : (
-                <span className="text-ot-text-ghost">Select a take from the list.</span>
+                <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">Select a take from the list.</span>
               )}
             </div>
           )}
@@ -250,7 +250,7 @@ export function IteratePanel() {
                 onChange={handleFileUpload}
               />
               <button
-                className="w-full p-3 rounded-lg bg-ot-surface-3 border border-dashed border-ot-surface-5 text-xs text-ot-text-ghost hover:border-ot-violet-400 hover:bg-ot-violet-400/5 transition-colors"
+                className="w-full p-3 rounded-lg bg-[var(--nimi-surface-card)] border border-dashed border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)] hover:border-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_5%,transparent)] transition-colors"
                 onClick={() => fileInputRef.current?.click()}
                 type="button"
               >
@@ -261,7 +261,7 @@ export function IteratePanel() {
         </div>
 
         {(trimStart !== null || trimEnd !== null) && (
-          <p className="text-[10px] font-mono text-ot-violet-300 tabular-nums">
+          <p className="text-[10px] font-mono text-[color-mix(in_srgb,var(--nimi-action-primary-bg-hover)_78%,white)] tabular-nums">
             Trim: {trimStart !== null ? `${trimStart.toFixed(1)}s` : 'start'} – {trimEnd !== null ? `${trimEnd.toFixed(1)}s` : 'end'}
           </p>
         )}

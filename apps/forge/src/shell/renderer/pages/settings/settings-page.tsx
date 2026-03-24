@@ -6,9 +6,10 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button, StatusBadge, Surface, useNimiTheme } from '@nimiplatform/nimi-ui';
 import { AiConfigSection } from './ai-config-section.js';
 
-type ThemeOption = 'dark' | 'system';
+type ThemeOption = 'light' | 'dark';
 type LanguageOption = 'en' | 'zh';
 
 const SETTINGS_KEY = 'nimi:forge:settings';
@@ -21,7 +22,7 @@ interface ForgeSettings {
 }
 
 const DEFAULT_SETTINGS: ForgeSettings = {
-  theme: 'dark',
+  theme: 'light',
   language: 'en',
   sidebarCollapsed: false,
   notificationsEnabled: true,
@@ -50,11 +51,16 @@ function saveSettings(settings: ForgeSettings) {
 
 export default function SettingsPage() {
   const { t, i18n } = useTranslation();
+  const { scheme, setScheme } = useNimiTheme();
   const [settings, setSettings] = useState(loadSettings);
 
   useEffect(() => {
     saveSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    setScheme(settings.theme);
+  }, [setScheme, settings.theme]);
 
   function update<K extends keyof ForgeSettings>(key: K, value: ForgeSettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -64,18 +70,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="h-full overflow-auto p-6">
+    <Surface tone="canvas" padding="none" className="h-full overflow-auto rounded-none border-0 p-6">
       <div className="mx-auto max-w-2xl space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-white">{t('pages.settingsPage')}</h1>
-          <p className="mt-1 text-sm text-neutral-400">
+          <h1 className="text-2xl font-bold text-[color:var(--nimi-text-primary)]">{t('pages.settingsPage')}</h1>
+          <p className="mt-1 text-sm text-[color:var(--nimi-text-muted)]">
             {t('settings.subtitle', 'Configure your Forge experience')}
           </p>
         </div>
 
         {/* Appearance */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[color:var(--nimi-text-secondary)]">
             {t('settings.appearance', 'Appearance')}
           </h2>
 
@@ -84,18 +90,15 @@ export default function SettingsPage() {
             description={t('settings.themeDesc', 'Choose color scheme')}
           >
             <div className="flex gap-2">
-              {(['dark', 'system'] as const).map((option) => (
-                <button
+              {(['light', 'dark'] as const).map((option) => (
+                <Button
                   key={option}
                   onClick={() => update('theme', option)}
-                  className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                    settings.theme === option
-                      ? 'bg-white text-black'
-                      : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                  }`}
+                  tone={settings.theme === option ? 'primary' : 'secondary'}
+                  size="sm"
                 >
-                  {option === 'dark' ? t('settings.themeDark', 'Dark') : t('settings.themeSystem', 'System')}
-                </button>
+                  {option === 'dark' ? t('settings.themeDark', 'Dark') : t('settings.themeLight', 'Light')}
+                </Button>
               ))}
             </div>
           </SettingRow>
@@ -106,17 +109,14 @@ export default function SettingsPage() {
           >
             <div className="flex gap-2">
               {(['en', 'zh'] as const).map((lang) => (
-                <button
+                <Button
                   key={lang}
                   onClick={() => update('language', lang)}
-                  className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                    settings.language === lang
-                      ? 'bg-white text-black'
-                      : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                  }`}
+                  tone={settings.language === lang ? 'primary' : 'secondary'}
+                  size="sm"
                 >
                   {lang === 'en' ? 'English' : '中文'}
-                </button>
+                </Button>
               ))}
             </div>
           </SettingRow>
@@ -126,33 +126,27 @@ export default function SettingsPage() {
             description={t('settings.sidebarDefaultDesc', 'Sidebar state on app launch')}
           >
             <div className="flex gap-2">
-              <button
+              <Button
                 onClick={() => update('sidebarCollapsed', false)}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                  !settings.sidebarCollapsed
-                    ? 'bg-white text-black'
-                    : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                }`}
+                tone={!settings.sidebarCollapsed ? 'primary' : 'secondary'}
+                size="sm"
               >
                 {t('settings.expanded', 'Expanded')}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => update('sidebarCollapsed', true)}
-                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                  settings.sidebarCollapsed
-                    ? 'bg-white text-black'
-                    : 'bg-neutral-800 text-neutral-400 hover:text-white'
-                }`}
+                tone={settings.sidebarCollapsed ? 'primary' : 'secondary'}
+                size="sm"
               >
                 {t('settings.collapsed', 'Collapsed')}
-              </button>
+              </Button>
             </div>
           </SettingRow>
         </section>
 
         {/* Notifications */}
         <section className="space-y-4">
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[color:var(--nimi-text-secondary)]">
             {t('settings.notifications', 'Notifications')}
           </h2>
 
@@ -160,20 +154,16 @@ export default function SettingsPage() {
             label={t('settings.enableNotifications', 'Enable Notifications')}
             description={t('settings.enableNotificationsDesc', 'Show desktop notifications for important events')}
           >
-            <button
+            <Button
               onClick={() => update('notificationsEnabled', !settings.notificationsEnabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                settings.notificationsEnabled ? 'bg-white' : 'bg-neutral-700'
-              }`}
+              tone={settings.notificationsEnabled ? 'primary' : 'secondary'}
+              size="sm"
+              className="min-w-24 justify-center"
             >
-              <span
-                className={`inline-block h-4 w-4 rounded-full transition-transform ${
-                  settings.notificationsEnabled
-                    ? 'translate-x-6 bg-black'
-                    : 'translate-x-1 bg-neutral-400'
-                }`}
-              />
-            </button>
+              {settings.notificationsEnabled
+                ? t('Common.enabled', 'Enabled')
+                : t('Common.disabled', 'Disabled')}
+            </Button>
           </SettingRow>
         </section>
 
@@ -182,17 +172,20 @@ export default function SettingsPage() {
 
         {/* About */}
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[color:var(--nimi-text-secondary)]">
             {t('settings.about', 'About')}
           </h2>
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3">
-            <p className="text-sm text-neutral-400">
-              {t('app.name')} — {t('settings.version', 'Version')} 0.1.0
-            </p>
-          </div>
+          <Surface tone="card" elevation="base" className="px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-[color:var(--nimi-text-secondary)]">
+                {t('app.name')} — {t('settings.version', 'Version')} 0.1.0
+              </p>
+              <StatusBadge tone="info">{`nimi-${scheme}`}</StatusBadge>
+            </div>
+          </Surface>
         </section>
       </div>
-    </div>
+    </Surface>
   );
 }
 
@@ -206,12 +199,12 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3">
+    <Surface tone="card" elevation="base" className="flex items-center justify-between px-4 py-3">
       <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
+        <p className="text-sm font-medium text-[color:var(--nimi-text-primary)]">{label}</p>
+        <p className="mt-0.5 text-xs text-[color:var(--nimi-text-muted)]">{description}</p>
       </div>
       {children}
-    </div>
+    </Surface>
   );
 }

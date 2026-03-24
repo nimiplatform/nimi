@@ -13,7 +13,7 @@ describe('OvertoneLogin', () => {
     );
 
     expect(html).toContain('data-auth-mode="desktop-browser"');
-    expect(html).toContain('Sign in to Overtone');
-    expect(html).toContain('Click the mark to authorize in your browser.');
+    expect(html).toContain('NIMI PLATFORM');
+    expect(html).toContain('Click to authorize in browser');
   });
 });

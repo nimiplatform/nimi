@@ -15,35 +15,35 @@ const chatListSource = readWorkspace('src/shell/renderer/features/chats/chat-lis
 const contactsViewSource = readWorkspace('src/shell/renderer/features/contacts/contacts-view.tsx');
 const runtimePanelSource = readWorkspace('src/shell/renderer/features/runtime-config/runtime-config-panel-view.tsx');
 const settingsPanelSource = readWorkspace('src/shell/renderer/features/settings/settings-panel-body.tsx');
-const sidebarPrimitiveSource = readWorkspace('src/shell/renderer/components/sidebar.tsx');
-const sidebarsTable = readRepo('spec/desktop/kernel/tables/renderer-design-sidebars.yaml');
-const shellContractSource = readRepo('spec/desktop/kernel/ui-shell-contract.md');
-const settingsSpecSource = readRepo('spec/desktop/settings.md');
-const runtimeSpecSource = readRepo('spec/desktop/runtime-config.md');
+const sidebarPrimitiveSource = readRepo('apps/_libs/nimi-ui/src/components/sidebar.tsx');
+const desktopStylesSource = readWorkspace('src/shell/renderer/styles.css');
+const adoptionTable = readRepo('spec/platform/kernel/tables/nimi-ui-adoption.yaml');
+const designContractSource = readRepo('spec/platform/kernel/design-pattern-contract.md');
+const designOverviewSource = readRepo('spec/platform/design-pattern.md');
 
-test('sidebar governance table registers the four governed desktop sidebars', () => {
-  assert.match(sidebarsTable, /id: chat\.sidebar/);
-  assert.match(sidebarsTable, /module: features\/chats\/chat-list\.tsx/);
-  assert.match(sidebarsTable, /id: contacts\.sidebar/);
-  assert.match(sidebarsTable, /module: features\/contacts\/contacts-view\.tsx/);
-  assert.match(sidebarsTable, /id: runtime\.sidebar/);
-  assert.match(sidebarsTable, /module: features\/runtime-config\/runtime-config-panel-view\.tsx/);
-  assert.match(sidebarsTable, /id: settings\.sidebar/);
-  assert.match(sidebarsTable, /module: features\/settings\/settings-panel-body\.tsx/);
-  assert.equal((sidebarsTable.match(/family: desktop-sidebar-v1/g) || []).length, 4);
+test('platform design adoption table registers the four governed desktop sidebar modules', () => {
+  assert.match(adoptionTable, /id: desktop\.chat\.sidebar/);
+  assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/chats\/chat-list\.tsx/);
+  assert.match(adoptionTable, /id: desktop\.contacts\.sidebar/);
+  assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/contacts\/contacts-view\.tsx/);
+  assert.match(adoptionTable, /id: desktop\.runtime\.sidebar/);
+  assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/runtime-config\/runtime-config-panel-view\.tsx/);
+  assert.match(adoptionTable, /id: desktop\.settings\.sidebar/);
+  assert.match(adoptionTable, /module: apps\/desktop\/src\/shell\/renderer\/features\/settings\/settings-panel-body\.tsx/);
 });
 
-test('sidebar family contract is anchored in shell and domain specs', () => {
-  assert.match(shellContractSource, /D-SHELL-023/u);
-  assert.match(shellContractSource, /D-SHELL-024/u);
-  assert.match(shellContractSource, /D-SHELL-025/u);
-  assert.match(settingsSpecSource, /D-SHELL-023/u);
-  assert.match(runtimeSpecSource, /D-SHELL-023/u);
+test('sidebar family contract is anchored in platform design authority', () => {
+  assert.match(designContractSource, /P-DESIGN-014/u);
+  assert.match(designContractSource, /P-DESIGN-020/u);
+  assert.match(designContractSource, /P-DESIGN-090/u);
+  assert.match(designOverviewSource, /Nimi Design Pattern/u);
+  assert.match(designOverviewSource, /shared primitive families/i);
+  assert.match(designOverviewSource, /@nimiplatform\/nimi-ui/u);
 });
 
 test('governed sidebar modules import and use the shared sidebar primitive', () => {
   for (const source of [chatListSource, contactsViewSource, runtimePanelSource, settingsPanelSource]) {
-    assert.match(source, /@renderer\/components\/sidebar\.js/);
+    assert.match(source, /@nimiplatform\/nimi-ui/);
     assert.match(source, /SidebarShell/);
     assert.match(source, /SidebarHeader/);
   }
@@ -63,10 +63,15 @@ test('governed sidebar modules import and use the shared sidebar primitive', () 
 });
 
 test('shared sidebar primitive exports the required public surface', () => {
-  assert.match(sidebarPrimitiveSource, /export function SidebarShell/);
-  assert.match(sidebarPrimitiveSource, /export function SidebarHeader/);
-  assert.match(sidebarPrimitiveSource, /export function SidebarSearch/);
-  assert.match(sidebarPrimitiveSource, /export function SidebarSection/);
-  assert.match(sidebarPrimitiveSource, /export function SidebarItem/);
-  assert.match(sidebarPrimitiveSource, /export function SidebarResizeHandle/);
+  assert.match(sidebarPrimitiveSource, /export function SidebarShell/u);
+  assert.match(sidebarPrimitiveSource, /export function SidebarHeader/u);
+  assert.match(sidebarPrimitiveSource, /export function SidebarSearch/u);
+  assert.match(sidebarPrimitiveSource, /export function SidebarSection/u);
+  assert.match(sidebarPrimitiveSource, /export function SidebarItem/u);
+  assert.match(sidebarPrimitiveSource, /export function SidebarResizeHandle/u);
+});
+
+test('desktop renderer stylesheet does not redefine shared .nimi authorities', () => {
+  assert.doesNotMatch(desktopStylesSource, /(^|\n)\s*\.nimi-[^\n]*\{/u);
+  assert.doesNotMatch(desktopStylesSource, /--nimi-[a-z0-9-]+\s*:/u);
 });

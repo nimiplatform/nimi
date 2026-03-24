@@ -72,7 +72,7 @@ export function RuntimeQueryPanelView(props: RuntimeQueryPanelViewProps) {
               key={action.id}
               type="button"
               onClick={() => props.onRunAction(action)}
-              className="rounded-md border border-brand-200 bg-brand-50 px-2 py-1 text-left text-xs text-brand-800 hover:bg-brand-100"
+              className="rounded-md border border-mint-200 bg-mint-50 px-2 py-1 text-left text-xs text-mint-800 hover:bg-mint-100"
             >
               {action.label}
             </button>

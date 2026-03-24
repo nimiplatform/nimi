@@ -1,12 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { IconButton, SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface } from '@nimiplatform/nimi-ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
-import { Surface } from '@renderer/components/surface.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { Tooltip } from '@renderer/components/tooltip.js';

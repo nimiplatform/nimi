@@ -140,8 +140,8 @@ export function GeneratePanel() {
     <OtAccordionSection title="Generation Controls" defaultOpen>
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Runtime Path</label>
-          <div className="rounded-lg bg-ot-surface-4 border border-ot-surface-5 px-3 py-2 text-sm text-ot-text-secondary">
+          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Runtime Path</label>
+          <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-action-primary-bg)_14%)] border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]">
             {selectedMusicConnectorId && selectedMusicModelId
               ? `${selectedMusicConnectorId} → ${selectedMusicModelId}`
               : 'No ready music connector/model pair'}
@@ -149,7 +149,7 @@ export function GeneratePanel() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Style Tags</label>
+          <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Style Tags</label>
           <OtTagInput
             tags={styleTags}
             onChange={setStyleTags}
@@ -159,7 +159,7 @@ export function GeneratePanel() {
 
         <div className="flex gap-3">
           <div className="flex-1 space-y-1">
-            <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Duration (sec)</label>
+            <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Duration (sec)</label>
             <OtInput
               type="number"
               min={10}
@@ -179,7 +179,7 @@ export function GeneratePanel() {
       </div>
 
       {!musicConnectorAvailable && (
-        <p className="text-xs text-ot-warning mt-3">
+        <p className="text-xs text-[var(--nimi-status-warning)] mt-3">
           No music connector/model pair is ready. Configure runtime music access before generating.
         </p>
       )}
@@ -192,7 +192,7 @@ export function GeneratePanel() {
 
       <OtButton
         variant="primary"
-        className={`w-full mt-4${hasActiveJob ? ' ot-btn-primary--generating' : ''}`}
+        className={`w-full mt-4${hasActiveJob ? ' ot-generating-pulse' : ''}`}
         onClick={handleGenerate}
         disabled={!brief || hasActiveJob || !musicConnectorAvailable}
         loading={hasActiveJob}
@@ -204,13 +204,13 @@ export function GeneratePanel() {
       {activeJobs.size > 0 && (
         <div className="space-y-2 mt-3">
           {Array.from(activeJobs.values()).map((job) => (
-            <div key={job.jobId} className="p-2 rounded-lg bg-ot-surface-3 border border-ot-surface-5 text-xs space-y-1.5">
+            <div key={job.jobId} className="p-2 rounded-lg bg-[var(--nimi-surface-card)] border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] text-xs space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-ot-text-secondary">{job.progress || job.status}</span>
+                <span className="text-[var(--nimi-text-secondary)]">{job.progress || job.status}</span>
                 <StatusBadge status={job.status} />
               </div>
               {job.status === 'running' && <OtProgressBar generating value={50} />}
-              {job.error && <p className="text-ot-error">{job.error}</p>}
+              {job.error && <p className="text-[var(--nimi-status-danger)]">{job.error}</p>}
             </div>
           ))}
         </div>
@@ -221,12 +221,12 @@ export function GeneratePanel() {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    pending: 'text-ot-warning',
-    running: 'text-ot-info',
-    completed: 'text-ot-success',
-    failed: 'text-ot-error',
-    timeout: 'text-ot-warning',
-    canceled: 'text-ot-text-tertiary',
+    pending: 'text-[var(--nimi-status-warning)]',
+    running: 'text-[var(--nimi-status-info)]',
+    completed: 'text-[var(--nimi-status-success)]',
+    failed: 'text-[var(--nimi-status-danger)]',
+    timeout: 'text-[var(--nimi-status-warning)]',
+    canceled: 'text-[var(--nimi-text-muted)]',
   };
-  return <span className={`text-xs font-medium ${colors[status] ?? 'text-ot-text-tertiary'}`}>{status}</span>;
+  return <span className={`text-xs font-medium ${colors[status] ?? 'text-[var(--nimi-text-muted)]'}`}>{status}</span>;
 }

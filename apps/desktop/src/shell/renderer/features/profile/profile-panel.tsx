@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
+import { Surface } from '@nimiplatform/nimi-ui';
 import {
   dataSync,
   getCachedContacts,
@@ -9,7 +10,6 @@ import {
 } from '@runtime/data-sync';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { Surface } from '@renderer/components/surface.js';
 import { ContactDetailView, type EditableProfileDraft } from '@renderer/features/contacts/contact-detail-view.js';
 import {
   ContactDetailErrorState,

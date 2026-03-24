@@ -1,5 +1,5 @@
-export { hasTauriInvoke } from './runtime-bridge/env.js';
-export { invoke, BridgeError } from './runtime-bridge/invoke.js';
+export { hasTauriInvoke } from './env.js';
+export { invoke, BridgeError } from './invoke.js';
 export {
   getDaemonStatus,
   startDaemon,
@@ -9,7 +9,7 @@ export {
   openStream,
   closeStream,
   listenStreamEvents,
-} from './runtime-bridge/runtime-daemon.js';
+} from './runtime-daemon.js';
 export type {
   RuntimeBridgeMetadata,
   RuntimeBridgeUnaryPayload,
@@ -19,4 +19,4 @@ export type {
   RuntimeBridgeDaemonStatus,
   RuntimeBridgeStreamEvent,
   RuntimeBridgeErrorPayload,
-} from './runtime-bridge/types.js';
+} from './types.js';

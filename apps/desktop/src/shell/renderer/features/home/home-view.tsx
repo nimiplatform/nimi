@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { IconButton, Surface } from '@nimiplatform/nimi-ui';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { Surface } from '@renderer/components/surface.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';

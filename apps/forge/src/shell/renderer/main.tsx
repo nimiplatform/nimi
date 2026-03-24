@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { NimiThemeProvider } from '@nimiplatform/nimi-ui';
 import './styles.css';
 import { App } from './App.js';
 
@@ -10,6 +11,8 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <NimiThemeProvider accentPack="forge-accent" defaultScheme="light">
+      <App />
+    </NimiThemeProvider>
   </StrictMode>,
 );

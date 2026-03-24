@@ -59,7 +59,7 @@ export function SelectField({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-[46px] w-full rounded-[10px] border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+        className="h-[46px] w-full rounded-[10px] border border-gray-200 bg-gray-50 px-4 text-sm text-gray-900 outline-none transition-colors focus:border-mint-500 focus:ring-1 focus:ring-mint-500"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -107,7 +107,7 @@ export function TextField({
           className={`h-[46px] w-full rounded-[10px] border text-sm outline-none transition-colors ${
             readOnly
               ? 'border-gray-200 bg-gray-100 text-gray-500'
-              : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-brand-500 focus:ring-1 focus:ring-brand-500'
+              : 'border-gray-200 bg-gray-50 text-gray-900 focus:border-mint-500 focus:ring-1 focus:ring-mint-500'
           } ${icon ? 'pl-10' : 'px-4'} pr-4`}
         />
       </div>
@@ -139,7 +139,7 @@ export function TextAreaField({
         onChange={(e) => maxLength ? onChange(e.target.value.slice(0, maxLength)) : onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full resize-none rounded-[10px] border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+        className="w-full resize-none rounded-[10px] border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-mint-500 focus:ring-1 focus:ring-mint-500"
       />
       {maxLength && (
         <p className="mt-1 text-right text-xs text-gray-400">

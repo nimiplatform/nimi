@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Button, IconButton, OverlayShell } from '@nimiplatform/nimi-ui';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
-import { Button, IconButton } from '@renderer/components/action.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { formatLocaleNumber } from '@renderer/i18n';
-import { OverlayShell } from '@renderer/components/overlay.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   normalizeGiftCatalog,

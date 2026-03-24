@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
+import { OverlayShell } from '@nimiplatform/nimi-ui';
 import { useTranslation } from 'react-i18next';
 import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import { OverlayShell } from '@renderer/components/overlay.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   ACCEPTED_IMAGE_TYPES,

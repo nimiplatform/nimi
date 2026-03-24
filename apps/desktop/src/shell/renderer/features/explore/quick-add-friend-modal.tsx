@@ -1,8 +1,7 @@
 import { useState } from 'react';
+import { Button, IconButton, OverlayShell } from '@nimiplatform/nimi-ui';
 import { useTranslation } from 'react-i18next';
-import { Button, IconButton } from '@renderer/components/action.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { OverlayShell } from '@renderer/components/overlay.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ExploreAgentCardData } from './explore-cards';
 

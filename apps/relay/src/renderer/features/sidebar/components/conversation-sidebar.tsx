@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, Settings, X } from 'lucide-react';
+import { Button, IconButton, SidebarHeader, SidebarItem, SidebarSearch, SidebarSection, SidebarShell, StatusBadge } from '@nimiplatform/nimi-ui';
 import { useSessionList, type DateGroup } from '../hooks/use-session-list.js';
 import { useAppStore } from '../../../app-shell/providers/app-store.js';
 import { UserMenu } from '../../../app-shell/components/user-menu.js';
@@ -41,127 +42,112 @@ export function ConversationSidebar({
   const [agentPickerOpen, setAgentPickerOpen] = useState(false);
 
   return (
-    <aside
-      className="flex flex-col bg-bg-surface border-r border-border-subtle transition-all duration-250 overflow-hidden flex-shrink-0"
-      style={{ width: collapsed ? 0 : 260 }}
+    <SidebarShell
+      width={collapsed ? 0 : 260}
+      className="overflow-hidden rounded-none border-y-0 border-l-0 border-r"
     >
-      {/* New Chat button */}
-      <div className="p-3">
-        <button
+      <SidebarHeader
+        title={<span className="text-sm font-semibold text-[color:var(--nimi-text-primary)]">{t('sidebar.sessions', { defaultValue: 'Conversations' })}</span>}
+      />
+      <div className="px-4 pb-3">
+        <Button
+          tone="primary"
+          fullWidth
           onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-[13px] font-medium transition-colors duration-150"
+          leadingIcon={<Plus size={16} />}
         >
-          <Plus size={16} />
           {t('sidebar.newChat')}
-        </button>
+        </Button>
       </div>
-
-      {/* Search */}
-      <div className="px-3 pb-2">
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-placeholder" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('sidebar.search')}
-            className="w-full bg-bg-elevated border border-border-subtle rounded-lg pl-8 pr-8 py-2 text-[13px] text-text-primary placeholder:text-text-placeholder outline-none focus:border-accent transition-colors duration-150"
+      <SidebarSearch
+        value={searchQuery}
+        onChange={setSearchQuery}
+        onClear={() => setSearchQuery('')}
+        clearLabel={t('Common.clear', { defaultValue: 'Clear' })}
+        placeholder={t('sidebar.search')}
+        primaryAction={(
+          <IconButton
+            tone="ghost"
+            icon={collapsed ? <Plus size={16} /> : <Search size={16} />}
+            onClick={collapsed ? onNewChat : undefined}
+            aria-label={collapsed ? t('sidebar.newChat') : t('sidebar.search')}
           />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Session list */}
+        )}
+      />
       <div className="flex-1 overflow-y-auto px-2">
         {grouped.length === 0 && (
-          <div className="text-center text-text-secondary text-[12px] mt-6 px-2">
+          <div className="mt-6 px-2 text-center text-[12px] text-[color:var(--nimi-text-muted)]">
             {searchQuery ? t('sidebar.noResults') : t('sidebar.noSessions')}
           </div>
         )}
         {grouped.map(({ group, sessions }) => (
-          <div key={group} className="mb-3">
-            <div className="px-2 py-1.5 text-[11px] font-medium text-text-secondary uppercase tracking-wider">
-              {t(groupLabels[group])}
-            </div>
+          <SidebarSection key={group} label={t(groupLabels[group])} className="pb-2">
             {sessions.map((session) => {
               const isActive = session.id === activeSessionId;
               return (
-                <button
+                <SidebarItem
                   key={session.id}
+                  kind="entity-row"
+                  active={isActive}
                   onClick={() => onSelectSession?.(session.id)}
-                  className={`group w-full text-left px-2 py-2 rounded-lg text-[13px] leading-[1.4] truncate transition-colors duration-150 relative ${
-                    isActive
-                      ? 'bg-bg-elevated text-text-primary'
-                      : 'text-text-secondary hover:bg-bg-elevated hover:text-text-primary'
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-accent rounded-r" />
-                  )}
-                  <span className="block truncate pl-1">{session.title || t('sidebar.untitled')}</span>
-                </button>
+                  label={session.title || t('sidebar.untitled')}
+                />
               );
             })}
-          </div>
+          </SidebarSection>
         ))}
       </div>
 
-      {/* Bottom fixed area */}
-      <div className="border-t border-border-subtle p-3 space-y-2">
-        {/* Agent selector */}
+      <div className="space-y-2 border-t border-[color:var(--nimi-border-subtle)] p-3">
         <div className="relative">
-          <button
+          <Button
             onClick={() => setAgentPickerOpen(!agentPickerOpen)}
-            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-bg-elevated transition-colors duration-150"
+            tone="secondary"
+            fullWidth
+            className="justify-start"
+            leadingIcon={
+              currentAgent?.avatarUrl ? (
+                <img src={currentAgent.avatarUrl} alt="" className="h-7 w-7 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-elevated text-[11px] font-medium text-text-secondary">
+                  {currentAgent?.name?.charAt(0).toUpperCase() || '?'}
+                </span>
+              )
+            }
           >
-            {currentAgent?.avatarUrl ? (
-              <img src={currentAgent.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-bg-elevated flex items-center justify-center text-[11px] font-medium text-text-secondary">
-                {currentAgent?.name?.charAt(0).toUpperCase() || '?'}
-              </div>
-            )}
-            <span className="flex-1 text-[13px] text-text-primary truncate text-left">
+            <span className="flex-1 truncate text-left text-[13px] text-[color:var(--nimi-text-primary)]">
               {currentAgent?.name || t('agent.selectAnAgent')}
             </span>
-          </button>
+          </Button>
           {agentPickerOpen && (
             <AgentPickerPopover onClose={() => setAgentPickerOpen(false)} />
           )}
         </div>
 
-        {/* Status + settings + user */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <StatusDot active={runtimeAvailable} />
-            <StatusDot active={realtimeConnected} />
+            <StatusBadge tone={runtimeAvailable ? 'success' : 'danger'}>
+              {t('runtime.runtime', { defaultValue: 'Runtime' })}
+            </StatusBadge>
+            <StatusBadge tone={realtimeConnected ? 'success' : 'danger'}>
+              {t('sidebar.realtime', { defaultValue: 'Realtime' })}
+            </StatusBadge>
           </div>
           <div className="flex items-center gap-1">
-            <button
+            <IconButton
               onClick={onOpenSettings}
-              className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-150"
-            >
-              <Settings size={16} />
-            </button>
+              icon={<Settings size={16} />}
+              aria-label={t('sidebar.settings', { defaultValue: 'Settings' })}
+            />
+            <IconButton
+              onClick={onToggleCollapse}
+              icon={<X size={16} />}
+              aria-label={t('sidebar.collapse', { defaultValue: 'Collapse sidebar' })}
+            />
             <UserMenu />
           </div>
         </div>
       </div>
-    </aside>
-  );
-}
-
-function StatusDot({ active }: { active: boolean }) {
-  return (
-    <div
-      className={`w-2 h-2 rounded-full ${active ? 'bg-success' : 'bg-error'}`}
-    />
+    </SidebarShell>
   );
 }

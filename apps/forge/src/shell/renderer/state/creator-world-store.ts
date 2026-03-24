@@ -172,6 +172,13 @@ export const useCreatorWorldStore = create<CreatorWorldStore>((set, get) => ({
     set((state) => {
       const forgeSnapshot = toForgeWorkspaceSnapshot(state.snapshot);
       const forgePatch = toForgeWorkspacePatch(patch);
+      const draftQualityBase = forgeSnapshot.draftQuality ?? {
+        worldCutStatus: 'idle',
+        enrichStatus: 'idle',
+        enrichFailureReason: null,
+        weakFieldIssues: [],
+        updatedAt: null,
+      };
       const nextForgeSnapshot = {
         ...forgeSnapshot,
         ...forgePatch,
@@ -223,6 +230,38 @@ export const useCreatorWorldStore = create<CreatorWorldStore>((set, get) => ({
             ...forgeSnapshot.assets.locationImages,
             ...((patch.assets?.locationImages || {}) as WorldStudioWorkspaceSnapshot['assets']['locationImages']),
           },
+        },
+        draftQuality: {
+          ...draftQualityBase,
+          ...(patch.draftQuality || {}),
+          worldCutStatus:
+            patch.draftQuality?.worldCutStatus === 'ready'
+              ? 'ready'
+              : draftQualityBase.worldCutStatus,
+          enrichStatus:
+            patch.draftQuality?.enrichStatus === 'complete'
+              ? 'complete'
+              : patch.draftQuality?.enrichStatus === 'incomplete'
+                ? 'incomplete'
+                : draftQualityBase.enrichStatus,
+          weakFieldIssues: Array.isArray(patch.draftQuality?.weakFieldIssues)
+            ? patch.draftQuality.weakFieldIssues
+              .filter((item): item is WorldStudioWorkspaceSnapshot['draftQuality']['weakFieldIssues'][number] => {
+                if (!item || typeof item !== 'object') return false;
+                const record = asRecord(item);
+                return typeof record.path === 'string'
+                  && typeof record.reason === 'string'
+                  && typeof record.detail === 'string';
+              })
+            : draftQualityBase.weakFieldIssues,
+          enrichFailureReason:
+            typeof patch.draftQuality?.enrichFailureReason === 'string' || patch.draftQuality?.enrichFailureReason === null
+              ? patch.draftQuality.enrichFailureReason
+              : draftQualityBase.enrichFailureReason,
+          updatedAt:
+            typeof patch.draftQuality?.updatedAt === 'string' || patch.draftQuality?.updatedAt === null
+              ? patch.draftQuality.updatedAt
+              : draftQualityBase.updatedAt,
         },
         agentSync: {
           ...forgeSnapshot.agentSync,

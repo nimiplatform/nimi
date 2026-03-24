@@ -178,6 +178,8 @@ pub enum ReasonCode {
     GrantTokenChainRootRequired = 511,
     /// PAGE family (520+)
     PageTokenInvalid = 520,
+    /// KNOWLEDGE family (530+)
+    KnowledgeIndexAlreadyExists = 530,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -292,6 +294,7 @@ impl ReasonCode {
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
+            Self::KnowledgeIndexAlreadyExists => "KNOWLEDGE_INDEX_ALREADY_EXISTS",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -417,6 +420,7 @@ impl ReasonCode {
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
+            "KNOWLEDGE_INDEX_ALREADY_EXISTS" => Some(Self::KnowledgeIndexAlreadyExists),
             _ => None,
         }
     }

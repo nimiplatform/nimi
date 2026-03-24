@@ -1,5 +1,5 @@
+import { OverlayShell } from '@nimiplatform/nimi-ui';
 import type { Location } from './create-post-modal-helpers.js';
-import { OverlayShell } from '@renderer/components/overlay.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { i18n } from '@renderer/i18n';

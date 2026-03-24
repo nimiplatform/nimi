@@ -1,2 +1,6 @@
+@import "@nimiplatform/nimi-ui/styles.css";
+@import "@nimiplatform/nimi-ui/themes/light.css";
+@import "@nimiplatform/nimi-ui/themes/dark.css";
+@import "@nimiplatform/nimi-ui/themes/forge-accent.css";
 @import "tailwindcss";
 @source "../../../../_libs/shell-auth/src/**/*.{ts,tsx}";

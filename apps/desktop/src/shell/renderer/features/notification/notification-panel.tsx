@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Button, Surface } from '@nimiplatform/nimi-ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { Button } from '@renderer/components/action.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { Surface } from '@renderer/components/surface.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';

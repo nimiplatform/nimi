@@ -7,7 +7,7 @@ const mockInitRealmInstance = vi.fn();
 const mockClearRealmInstance = vi.fn();
 const mockGetRuntimeInstance = vi.fn();
 
-vi.mock('@renderer/bridge/runtime-bridge.js', () => ({
+vi.mock('@renderer/bridge/runtime-bridge', () => ({
   getDaemonStatus: (...args: unknown[]) => mockGetDaemonStatus(...args),
   startDaemon: (...args: unknown[]) => mockStartDaemon(...args),
 }));

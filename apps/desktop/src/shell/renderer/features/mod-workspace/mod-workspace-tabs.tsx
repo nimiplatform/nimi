@@ -122,7 +122,7 @@ export function ModWorkspaceTabs(props: ModWorkspaceTabsProps) {
                   onClick={() => setActiveTab(tab.tabId)}
                   className={`group flex h-8 items-center gap-2 rounded-md border pl-3 pr-2 text-xs transition-[padding,color,background-color,border-color] duration-180 hover:pr-3 ${
                     active
-                      ? 'border-brand-200 bg-brand-50 text-brand-700'
+                      ? 'border-mint-200 bg-mint-50 text-mint-700'
                       : 'border-transparent text-gray-600 hover:border-gray-200 hover:bg-gray-50'
                   }`}
                 >

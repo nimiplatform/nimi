@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
+import { Button, IconButton, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface, TooltipBubble } from '@nimiplatform/nimi-ui';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Button, IconButton } from '../src/shell/renderer/components/action.js';
 import {
   SIDEBAR_AFFORDANCE_CLASS,
   SIDEBAR_FAMILY_CLASS,
@@ -12,9 +12,6 @@ import {
   STROKE_TOKEN_VALUE,
   TYPOGRAPHY_TOKEN_CLASS,
 } from '../src/shell/renderer/components/design-tokens.js';
-import { TooltipBubble } from '../src/shell/renderer/components/overlay.js';
-import { SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell } from '../src/shell/renderer/components/sidebar.js';
-import { Surface } from '../src/shell/renderer/components/surface.js';
 
 test('surface applies semantic tone and elevation classes', () => {
   const markup = renderToStaticMarkup(
@@ -97,7 +94,7 @@ test('sidebar primitives expose the shared desktop sidebar family classes', () =
 });
 
 test('sidebar design tokens export family, item kind, and affordance groups', () => {
-  assert.equal(SIDEBAR_FAMILY_CLASS['desktop-sidebar-v1'], 'nimi-sidebar-shell');
+  assert.equal(SIDEBAR_FAMILY_CLASS['nimi-sidebar-v1'], 'nimi-sidebar-shell');
   assert.equal(SIDEBAR_ITEM_KIND_CLASS['entity-row'], 'nimi-sidebar-item--entity-row');
   assert.equal(SIDEBAR_AFFORDANCE_CLASS.chevron, 'nimi-sidebar-affordance--chevron');
 });

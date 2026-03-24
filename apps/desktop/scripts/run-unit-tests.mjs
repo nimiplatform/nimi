@@ -50,7 +50,7 @@ if (selectedTestFiles.length === 0) {
   process.exit(1);
 }
 
-const args = ['exec', 'tsx', '--test'];
+const args = ['exec', 'tsx', '--tsconfig', 'tsconfig.test.json', '--test'];
 if (mode === '--i18n') {
   args.push('--test-concurrency=1');
 }

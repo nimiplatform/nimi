@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
+import { NimiThemeProvider } from '@nimiplatform/nimi-ui';
 import { i18n, initI18n } from '@renderer/i18n';
 import '@renderer/styles.css';
 import { bindRuntimeI18n } from "@nimiplatform/sdk/mod";
@@ -17,6 +18,8 @@ if (!rootElement) {
 bindRuntimeI18n(i18n);
 initI18n().finally(() => {
     createRoot(rootElement).render(<Suspense fallback={null}>
-      <App />
+      <NimiThemeProvider accentPack="desktop-accent" defaultScheme="light">
+        <App />
+      </NimiThemeProvider>
     </Suspense>);
 });

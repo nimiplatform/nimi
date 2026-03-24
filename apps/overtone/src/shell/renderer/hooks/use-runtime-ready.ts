@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { ExecutionMode, ScenarioType } from '@nimiplatform/sdk/runtime';
-import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-bridge.js';
+import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-bridge';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import {
   clearOvertonePlatformClient,

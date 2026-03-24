@@ -136,7 +136,7 @@ export function BriefPanel() {
             </OtButton>
           </div>
           {!textConnectorAvailable && (
-            <p className="text-xs text-ot-warning">
+            <p className="text-xs text-[var(--nimi-status-warning)]">
               No text connector/model pair is ready. Use Manual Brief or configure runtime text access.
             </p>
           )}
@@ -152,7 +152,7 @@ export function BriefPanel() {
             <BriefField label="Mood" value={brief.mood} onChange={(value) => setBrief({ ...brief, mood: value })} />
             <BriefField label="Tempo" value={brief.tempo} onChange={(value) => setBrief({ ...brief, tempo: value })} />
             <div className="space-y-1">
-              <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Description</label>
+              <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Description</label>
               <OtTextarea
                 value={brief.description}
                 onChange={(event) => setBrief({ ...brief, description: event.target.value })}
@@ -167,7 +167,7 @@ export function BriefPanel() {
       <OtAccordionSection title="Lyrics" defaultOpen={false}>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Lyrics</label>
+            <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Lyrics</label>
             <OtButton
               variant="tertiary"
               className="text-[11px] py-0.5 px-2"
@@ -233,7 +233,7 @@ function BriefField({
 }) {
   return (
     <div className="space-y-1">
-      <label className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">{label}</label>
+      <label className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">{label}</label>
       <OtInput
         value={value}
         onChange={(event) => onChange(event.target.value)}

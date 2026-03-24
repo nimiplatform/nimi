@@ -4,6 +4,7 @@
 import { useState, useCallback, useRef, type KeyboardEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowUp, Paperclip } from 'lucide-react';
+import { IconButton, Surface, TextareaField } from '@nimiplatform/nimi-ui';
 
 interface MessageInputProps {
   onSend: (text: string) => void;
@@ -52,22 +53,23 @@ export function MessageInput({ onSend, disabled, placeholder, modelName, toolbar
 
   return (
     <div className="px-6 pb-4 pt-2">
-      <form
+      <Surface
+        as="form"
+        tone="panel"
+        padding="none"
         onSubmit={handleSubmit}
-        className="rounded-2xl border border-border-subtle bg-bg-surface transition-all duration-150 focus-within:border-accent focus-within:shadow-glow"
+        className="rounded-2xl border-[color:var(--nimi-border-subtle)] focus-within:border-[color:var(--nimi-field-focus)]"
       >
-        {/* Input row */}
         <div className="flex items-end gap-2 px-4 py-3">
-          {/* Attach button */}
-          <button
+          <IconButton
             type="button"
-            className="p-1 rounded-lg text-text-secondary hover:text-text-primary transition-colors duration-150 mb-0.5"
-          >
-            <Paperclip size={18} />
-          </button>
+            tone="ghost"
+            icon={<Paperclip size={18} />}
+            className="mb-0.5 h-8 w-8 text-text-secondary hover:text-text-primary"
+            aria-label={t('chat.attach', { defaultValue: 'Attach' })}
+          />
 
-          {/* Textarea */}
-          <textarea
+          <TextareaField
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -76,25 +78,21 @@ export function MessageInput({ onSend, disabled, placeholder, modelName, toolbar
             disabled={disabled}
             placeholder={placeholder || t('chat.typeMessage')}
             rows={1}
-            className="flex-1 bg-transparent text-text-primary placeholder:text-text-placeholder outline-none resize-none"
-            style={{ fontSize: '15px', lineHeight: '1.5', minHeight: '24px', maxHeight: '200px' }}
+            tone="quiet"
+            className="flex-1 min-h-0 border-0 bg-transparent px-0 py-0"
+            textareaClassName="min-h-6 max-h-[200px] resize-none text-[15px] leading-6 text-text-primary placeholder:text-text-placeholder"
           />
 
-          {/* Send button — circular */}
-          <button
+          <IconButton
             type="submit"
             disabled={!canSend}
-            className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all duration-150 mb-0.5 ${
-              canSend
-                ? 'bg-accent hover:bg-accent-hover text-white'
-                : 'bg-bg-elevated text-text-placeholder'
-            }`}
-          >
-            <ArrowUp size={18} />
-          </button>
+            tone={canSend ? 'primary' : 'secondary'}
+            icon={<ArrowUp size={18} />}
+            className="mb-0.5 h-9 w-9 rounded-full"
+            aria-label={t('chat.send', { defaultValue: 'Send' })}
+          />
         </div>
 
-        {/* Toolbar row */}
         <div className="flex items-center gap-3 px-4 pb-2.5 pt-0">
           {toolbar}
           {modelName && (
@@ -104,7 +102,7 @@ export function MessageInput({ onSend, disabled, placeholder, modelName, toolbar
             {t('chat.enterToSend')}
           </span>
         </div>
-      </form>
+      </Surface>
     </div>
   );
 }

@@ -130,7 +130,7 @@ export default function MusicStudioPage() {
         instrumental,
       });
 
-      await createPostMutation.mutateAsync({
+      const audioPostInput = {
         caption: track.title || track.prompt,
         media: [
           {
@@ -140,7 +140,9 @@ export default function MusicStudioPage() {
           },
         ],
         tags: [track.style],
-      });
+      } as unknown as Parameters<typeof createPostMutation.mutateAsync>[0];
+
+      await createPostMutation.mutateAsync(audioPostInput);
 
       removeTrack(trackId);
     } catch (err) {

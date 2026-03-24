@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { TooltipBubble } from '@nimiplatform/nimi-ui';
 import { createPortal } from 'react-dom';
-import { TooltipBubble } from './overlay.js';
 
 type TooltipProps = {
   children: ReactNode;

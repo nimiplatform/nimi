@@ -54,7 +54,7 @@ export function InfoRow({ label, value, highlight }: { label: string; value: str
   return (
     <div className="flex items-center justify-between py-2">
       <span className="text-sm text-gray-600">{label}</span>
-      <span className={`text-sm font-medium ${highlight ? 'text-brand-600' : 'text-gray-900'}`}>{value}</span>
+      <span className={`text-sm font-medium ${highlight ? 'text-mint-600' : 'text-gray-900'}`}>{value}</span>
     </div>
   );
 }
@@ -83,7 +83,7 @@ export function Button({
   };
 
   const variantClasses = {
-    primary: 'bg-brand-600 text-white hover:bg-brand-700 disabled:bg-gray-300',
+    primary: 'bg-mint-600 text-white hover:bg-mint-700 disabled:bg-gray-300',
     secondary: 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100',
     ghost: 'text-gray-600 hover:bg-gray-50 disabled:text-gray-300',
     danger: 'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50',

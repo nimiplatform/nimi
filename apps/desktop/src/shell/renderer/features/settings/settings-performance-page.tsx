@@ -211,7 +211,7 @@ export function PerformancePage() {
                 <button
                   type="button"
                   disabled={!canCheckUpdates || isUpdateBusy || canRestartForUpdate}
-                  className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-lg bg-mint-600 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
                   onClick={() => {
                     void runDesktopUpdateInstall({ silent: false });
                   }}
@@ -239,7 +239,7 @@ export function PerformancePage() {
             </div>
 
             {desktopUpdateState?.status === 'downloading' ? (
-              <div className="rounded-xl border border-brand-100 bg-brand-50 px-4 py-3 text-xs text-brand-700">
+              <div className="rounded-xl border border-mint-100 bg-mint-50 px-4 py-3 text-xs text-mint-700">
                 {formatUpdateProgress(
                   desktopUpdateState.downloadedBytes,
                   desktopUpdateState.totalBytes,

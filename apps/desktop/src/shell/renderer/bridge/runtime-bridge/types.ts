@@ -122,7 +122,7 @@ export type {
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeImportPayload,
   LocalRuntimeImportArtifactPayload,
-} from './local-ai-contract.js';
+} from './local-ai-types.js';
 
 export {
   parseLocalRuntimeModelRecord,
@@ -134,7 +134,7 @@ export {
   parseLocalRuntimeAuditEventList,
   parseLocalRuntimePickManifestResult,
   parseLocalRuntimeDownloadProgressEvent,
-} from './local-ai-contract.js';
+} from './local-ai-parsers.js';
 
 export type {
   ExternalAgentActionExecutionMode,

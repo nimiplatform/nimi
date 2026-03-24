@@ -26,7 +26,7 @@ const createPostModalSource = readSource('../src/shell/renderer/features/profile
 const createPostModalPanelsSource = readSource('../src/shell/renderer/features/profile/create-post-modal-panels.tsx');
 const giftsTabSource = readSource('../src/shell/renderer/features/profile/gifts-tab.tsx');
 const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/send-gift-modal.tsx');
-const overlayPrimitiveSource = readSource('../src/shell/renderer/components/overlay.tsx');
+const overlayPrimitiveSource = readSource('../../../apps/_libs/nimi-ui/src/components/overlay.tsx');
 const designSurfacesTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
 const designOverlaysTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 
@@ -84,13 +84,10 @@ test('contacts friend requests view does not carry an unused React default impor
   assert.doesNotMatch(contactsFriendRequestsSource, /import React from 'react'/);
 });
 
-test('home and notification surfaces route shared design through renderer primitives', () => {
-  assert.match(homeViewSource, /@renderer\/components\/surface\.js/);
-  assert.match(homeViewSource, /@renderer\/components\/action\.js/);
-  assert.match(notificationPanelSource, /@renderer\/components\/surface\.js/);
-  assert.match(notificationPanelSource, /@renderer\/components\/action\.js/);
-  assert.match(notificationRejectDialogSource, /@renderer\/components\/overlay\.js/);
-  assert.match(notificationRejectDialogSource, /@renderer\/components\/action\.js/);
+test('home and notification surfaces import shared design primitives from nimi-ui directly', () => {
+  assert.match(homeViewSource, /@nimiplatform\/nimi-ui/);
+  assert.match(notificationPanelSource, /@nimiplatform\/nimi-ui/);
+  assert.match(notificationRejectDialogSource, /@nimiplatform\/nimi-ui/);
 });
 
 test('design governance tables register secondary profile and overlay consumers explicitly', () => {
@@ -109,12 +106,12 @@ test('design governance tables register secondary profile and overlay consumers 
   assert.match(designOverlaysTable, /id: profile\.top_supporters/);
 });
 
-test('governed secondary overlays route through the shared overlay primitive', () => {
-  assert.match(sendGiftModalSource, /@renderer\/components\/overlay\.js/);
-  assert.match(createPostModalSource, /@renderer\/components\/overlay\.js/);
-  assert.match(createPostModalPanelsSource, /@renderer\/components\/overlay\.js/);
-  assert.match(contactDetailProfileModalSource, /@renderer\/components\/overlay\.js/);
-  assert.match(giftsTabSource, /@renderer\/components\/overlay\.js/);
+test('governed secondary overlays import the shared overlay primitive from nimi-ui directly', () => {
+  assert.match(sendGiftModalSource, /@nimiplatform\/nimi-ui/);
+  assert.match(createPostModalSource, /@nimiplatform\/nimi-ui/);
+  assert.match(createPostModalPanelsSource, /@nimiplatform\/nimi-ui/);
+  assert.match(contactDetailProfileModalSource, /@nimiplatform\/nimi-ui/);
+  assert.match(giftsTabSource, /@nimiplatform\/nimi-ui/);
 });
 
 test('governed roots and overlays expose stable testability hooks', () => {

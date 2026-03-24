@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { OtButton } from './ui-primitives.js';
 import { Waveform } from './waveform.js';
 
 export function PlayerPanel() {
@@ -194,8 +195,8 @@ export function PlayerPanel() {
           <span className="text-sm">&#x25B6;</span>
         </button>
         <div className="flex-1 flex items-center justify-center mx-5">
-          <div className="w-full h-[1px] bg-ot-surface-5 relative">
-            <span className="absolute left-1/2 -translate-x-1/2 -top-3 text-[11px] text-ot-text-ghost whitespace-nowrap">
+          <div className="w-full h-[1px] bg-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] relative">
+            <span className="absolute left-1/2 -translate-x-1/2 -top-3 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)] whitespace-nowrap">
               Select a take to preview
             </span>
           </div>
@@ -218,8 +219,8 @@ export function PlayerPanel() {
 
       {/* Track info */}
       <div className="shrink-0 min-w-0 max-w-[200px]">
-        <p className="text-xs font-medium text-ot-text-primary truncate">{selectedTake.title}</p>
-        <p className="text-[11px] font-mono text-ot-text-secondary tabular-nums">
+        <p className="text-xs font-medium text-[var(--nimi-text-primary)] truncate">{selectedTake.title}</p>
+        <p className="text-[11px] font-mono text-[var(--nimi-text-secondary)] tabular-nums">
           {formatTime(currentTime)} / {formatTime(duration)}
         </p>
       </div>
@@ -236,8 +237,8 @@ export function PlayerPanel() {
             onSeek={handleSeek}
           />
         ) : (
-          <div className="h-10 bg-ot-surface-3 rounded-lg flex items-center justify-center">
-            <p className="text-[10px] text-ot-text-ghost">No audio data available</p>
+          <div className="h-10 bg-[var(--nimi-surface-card)] rounded-lg flex items-center justify-center">
+            <p className="text-[10px] text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">No audio data available</p>
           </div>
         )}
       </div>
@@ -245,18 +246,18 @@ export function PlayerPanel() {
       {/* Trim controls */}
       {hasAudio && (
         <div className="flex items-center gap-2 shrink-0">
-          <button className="ot-btn-tertiary text-[11px] py-1 px-2" onClick={handleSetTrimStart} type="button">
+          <OtButton variant="tertiary" size="sm" onClick={handleSetTrimStart} type="button">
             Set ▸
-          </button>
-          <button className="ot-btn-tertiary text-[11px] py-1 px-2" onClick={handleSetTrimEnd} type="button">
+          </OtButton>
+          <OtButton variant="tertiary" size="sm" onClick={handleSetTrimEnd} type="button">
             ▸ Set
-          </button>
+          </OtButton>
           {(trimStart !== null || trimEnd !== null) && (
             <>
-              <button className="ot-btn-tertiary text-[11px] py-1 px-2" onClick={clearTrim} type="button">
+              <OtButton variant="tertiary" size="sm" onClick={clearTrim} type="button">
                 Clear
-              </button>
-              <span className="text-[11px] font-mono text-ot-violet-300 tabular-nums">
+              </OtButton>
+              <span className="text-[11px] font-mono text-[color-mix(in_srgb,var(--nimi-action-primary-bg-hover)_78%,white)] tabular-nums">
                 {trimStart !== null ? formatTime(trimStart) : '0:00'}
                 {' – '}
                 {trimEnd !== null ? formatTime(trimEnd) : formatTime(duration)}

@@ -1,5 +1,4 @@
-import { Button } from '@renderer/components/action.js';
-import { OverlayShell } from '@renderer/components/overlay.js';
+import { Button, OverlayShell } from '@nimiplatform/nimi-ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 type RejectGiftDialogProps = {

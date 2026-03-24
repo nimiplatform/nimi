@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { NimiThemeProvider } from '@nimiplatform/nimi-ui';
 import App from './App';
 import './styles.css';
 
@@ -8,4 +9,8 @@ if (!rootElement) {
   throw new Error('ROOT_MOUNT_NODE_MISSING');
 }
 
-createRoot(rootElement).render(<App />);
+createRoot(rootElement).render(
+  <NimiThemeProvider accentPack="overtone-accent" defaultScheme="dark">
+    <App />
+  </NimiThemeProvider>,
+);

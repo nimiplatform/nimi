@@ -1,10 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
+import { IconButton, Surface } from '@nimiplatform/nimi-ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { IconButton } from '@renderer/components/action.js';
 import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { Surface } from '@renderer/components/surface.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';

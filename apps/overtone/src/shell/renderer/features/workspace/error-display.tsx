@@ -144,9 +144,9 @@ export function ErrorDisplay({
   }, [classified.retryable, onRetry, onDismiss]);
 
   const isWarning = classified.actionType === 'content_warning' || classified.actionType === 'cooldown';
-  const borderColor = isWarning ? 'border-ot-warning/20' : 'border-ot-error/20';
-  const bgColor = isWarning ? 'bg-ot-warning/10' : 'bg-ot-error/10';
-  const textColor = isWarning ? 'text-ot-warning' : 'text-ot-error';
+  const borderColor = isWarning ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_20%,transparent)]' : 'border-[color-mix(in_srgb,var(--nimi-status-danger)_20%,transparent)]';
+  const bgColor = isWarning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)]';
+  const textColor = isWarning ? 'text-[var(--nimi-status-warning)]' : 'text-[var(--nimi-status-danger)]';
 
   return (
     <div className={`p-3 rounded-lg border ${borderColor} ${bgColor} space-y-2 ${shaking ? 'ot-input--shake' : ''}`}>
@@ -159,7 +159,7 @@ export function ErrorDisplay({
 
       <div className="flex items-center gap-2">
         {classified.actionType === 'cooldown' && cooldownLeft > 0 ? (
-          <span className="text-[10px] text-ot-warning tabular-nums font-mono">
+          <span className="text-[10px] text-[var(--nimi-status-warning)] tabular-nums font-mono">
             Retry in {Math.ceil(cooldownLeft / 1000)}s
           </span>
         ) : (

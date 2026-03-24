@@ -3,8 +3,15 @@
     "baseUrl": ".",
     "paths": {
       "@renderer/*": ["src/shell/renderer/*"],
+      "react": ["node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom": ["node_modules/@types/react-dom/index.d.ts"],
+      "react-dom/client": ["node_modules/@types/react-dom/client.d.ts"],
+      "react-dom/server": ["node_modules/@types/react-dom/server.d.ts"],
       "@nimiplatform/sdk": ["../../sdk/src/index.ts"],
       "@nimiplatform/sdk/*": ["../../sdk/src/*"],
+      "@nimiplatform/nimi-ui": ["../_libs/nimi-ui/src/index.ts"],
+      "@nimiplatform/nimi-ui/*": ["../_libs/nimi-ui/src/*"],
       "@nimiplatform/shell-auth": ["../_libs/shell-auth/src/index.ts"],
       "@nimiplatform/shell-auth/*": ["../_libs/shell-auth/src/*"],
       "@nimiplatform/shell-core": ["../_libs/shell-core/src/index.ts"],
@@ -32,7 +39,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client", "react", "react-dom"]
   },
   "include": [
     "src/**/*.ts",

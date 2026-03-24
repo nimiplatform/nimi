@@ -1,9 +1,9 @@
 import React from 'react';
+import { SidebarItem, SidebarSection } from '@nimiplatform/nimi-ui';
 import { useTranslation } from 'react-i18next';
 import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { SidebarItem, SidebarSection } from '@renderer/components/sidebar.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model.js';
 import { CATEGORIES } from './contacts-view-types.js';
 import { BlockedUsersList } from './contacts-blocked-users.js';

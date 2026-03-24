@@ -21,8 +21,8 @@ function ReadinessGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-ot-violet-400/20 border-t-ot-violet-400 rounded-full animate-spin mx-auto" />
-          <p className="text-ot-text-secondary text-sm">Connecting to runtime...</p>
+          <div className="w-8 h-8 border-2 border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)] border-t-[var(--nimi-action-primary-bg)] rounded-full animate-spin mx-auto" />
+          <p className="text-[var(--nimi-text-secondary)] text-sm">Connecting to runtime...</p>
         </div>
       </div>
     );
@@ -32,14 +32,14 @@ function ReadinessGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
-          <div className="w-12 h-12 rounded-full bg-ot-error/10 flex items-center justify-center mx-auto">
-            <span className="text-ot-error text-xl">!</span>
+          <div className="w-12 h-12 rounded-full bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] flex items-center justify-center mx-auto">
+            <span className="text-[var(--nimi-status-danger)] text-xl">!</span>
           </div>
-          <h2 className="text-lg font-semibold text-ot-text-primary">Runtime Unavailable</h2>
-          <p className="text-ot-text-secondary text-sm">
+          <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">Runtime Unavailable</h2>
+          <p className="text-[var(--nimi-text-secondary)] text-sm">
             {runtimeError || 'Could not connect to the nimi runtime daemon.'}
           </p>
-          <p className="text-ot-text-tertiary text-xs">
+          <p className="text-[var(--nimi-text-muted)] text-xs">
             Make sure the nimi runtime is installed and accessible. Check your NIMI_RUNTIME_BRIDGE_MODE
             and NIMI_RUNTIME_BINARY environment variables.
           </p>
@@ -72,9 +72,9 @@ function ReadinessIssuesBanner() {
   }
 
   return (
-    <div className="mx-4 mt-2 rounded-lg border border-ot-warning/20 bg-ot-warning/10 px-3 py-2">
-      <p className="text-xs font-medium text-ot-warning mb-1">Readiness issues</p>
-      <ul className="text-[10px] text-ot-warning/80 space-y-0.5">
+    <div className="mx-4 mt-2 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_20%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] px-3 py-2">
+      <p className="text-xs font-medium text-[var(--nimi-status-warning)] mb-1">Readiness issues</p>
+      <ul className="text-[10px] text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,transparent)] space-y-0.5">
         {issues.map((issue) => (
           <li key={issue}>{issue}</li>
         ))}
@@ -158,10 +158,10 @@ function ProjectStarter() {
       <AmbientWaveform />
       <div className="text-center space-y-8 relative z-10">
         <div className="space-y-3">
-          <h2 className="text-[28px] font-bold tracking-[0.3em] uppercase text-ot-text-primary">
+          <h2 className="text-[28px] font-bold tracking-[0.3em] uppercase text-[var(--nimi-text-primary)]">
             OVERTONE
           </h2>
-          <p className="text-sm text-ot-text-tertiary">
+          <p className="text-sm text-[var(--nimi-text-muted)]">
             AI Music Creation Studio
           </p>
         </div>
@@ -175,7 +175,7 @@ function ProjectStarter() {
           Start New Session
         </OtButton>
 
-        <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono text-ot-text-ghost">
+        <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]">
           <span>⌘N New Session</span>
         </div>
 
@@ -191,7 +191,7 @@ function ProjectStarter() {
                       : 'ot-readiness__dot--error'
                 }`}
               />
-              <span className="text-[11px] text-ot-text-tertiary">{d.label}</span>
+              <span className="text-[11px] text-[var(--nimi-text-muted)]">{d.label}</span>
             </div>
           ))}
         </div>
@@ -316,15 +316,16 @@ function StudioWorkspace() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Project toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-ot-surface-5">
-        <span className="text-[11px] text-ot-text-tertiary uppercase tracking-[0.06em]">Song Project</span>
-        <button
-          className="ot-btn-tertiary text-xs py-1 px-2"
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)]">
+        <span className="text-[11px] text-[var(--nimi-text-muted)] uppercase tracking-[0.06em]">Song Project</span>
+        <OtButton
+          variant="tertiary"
+          size="sm"
           onClick={resetProject}
           type="button"
         >
           Close Project
-        </button>
+        </OtButton>
       </div>
 
       <ReadinessIssuesBanner />
@@ -333,7 +334,7 @@ function StudioWorkspace() {
       <div className="flex-1 flex min-h-0">
         {/* Compose Panel */}
         <div
-          className="flex flex-col min-h-0 border-r border-ot-surface-5"
+          className="flex flex-col min-h-0 border-r border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)]"
           style={{ width: composeWidth, minWidth: 280, maxWidth: 480 }}
         >
           <div className="flex-1 overflow-y-auto ot-scroll p-4 space-y-0">
@@ -345,7 +346,7 @@ function StudioWorkspace() {
 
         {/* Resize handle */}
         <div
-          className="w-[1px] bg-ot-surface-5 cursor-col-resize hover:bg-ot-violet-400/30 transition-colors relative"
+          className="w-[1px] bg-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] cursor-col-resize hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-colors relative"
           style={{ padding: '0 3px', margin: '0 -3px' }}
           onMouseDown={handleResizeStart}
         />

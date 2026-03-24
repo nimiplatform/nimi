@@ -1,22 +1,51 @@
 import React, { forwardRef, useState, useCallback, useRef, useEffect } from 'react';
+import { Button, IconButton, TextField, TextareaField } from '@nimiplatform/nimi-ui';
+
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(' ');
+}
 
 /* ─── OtButton ─── */
 
 interface OtButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant: 'primary' | 'secondary' | 'tertiary' | 'icon';
+  size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
 }
 
 export const OtButton = forwardRef<HTMLButtonElement, OtButtonProps>(
-  ({ variant, loading, disabled, className, children, ...rest }, ref) => {
-    const cls = `ot-btn-${variant}${className ? ` ${className}` : ''}`;
+  ({ variant, size = 'md', loading, disabled, className, children, ...rest }, ref) => {
+    const spinner = loading ? (
+      <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-r-transparent opacity-80" />
+    ) : undefined;
+    if (variant === 'icon') {
+      return (
+        <IconButton
+          ref={ref}
+          icon={children}
+          tone="ghost"
+          size={size}
+          className={className}
+          disabled={disabled || loading}
+          {...rest}
+        />
+      );
+    }
+
+    const tone = variant === 'primary' ? 'primary' : variant === 'secondary' ? 'secondary' : 'ghost';
+
     return (
-      <button ref={ref} className={cls} disabled={disabled || loading} {...rest}>
-        {loading && (
-          <span className="inline-block w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-        )}
+      <Button
+        ref={ref}
+        tone={tone}
+        size={size}
+        className={className}
+        leadingIcon={spinner}
+        disabled={disabled || loading}
+        {...rest}
+      >
         {children}
-      </button>
+      </Button>
     );
   },
 );
@@ -30,8 +59,15 @@ interface OtInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const OtInput = forwardRef<HTMLInputElement, OtInputProps>(
   ({ error, className, ...rest }, ref) => {
-    const cls = `ot-input${error ? ' ot-input--error' : ''}${className ? ` ${className}` : ''}`;
-    return <input ref={ref} className={cls} {...rest} />;
+    return (
+      <TextField
+        ref={ref}
+        tone="quiet"
+        aria-invalid={error || undefined}
+        inputClassName={className}
+        {...rest}
+      />
+    );
   },
 );
 OtInput.displayName = 'OtInput';
@@ -44,12 +80,13 @@ interface OtTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaEleme
 
 export const OtTextarea = forwardRef<HTMLTextAreaElement, OtTextareaProps>(
   ({ error, className, style, ...rest }, ref) => {
-    const cls = `ot-input${error ? ' ot-input--error' : ''}${className ? ` ${className}` : ''}`;
     return (
-      <textarea
+      <TextareaField
         ref={ref}
-        className={cls}
-        style={{ resize: 'vertical', minHeight: 80, ...style }}
+        tone="quiet"
+        aria-invalid={error || undefined}
+        textareaClassName={className}
+        style={style}
         {...rest}
       />
     );
@@ -78,25 +115,25 @@ export function OtAccordionSection({
   const contentRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="border-b border-ot-surface-5">
+    <div className="border-b border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)]">
       <button
         className="w-full flex items-center gap-2 py-3 group"
         onClick={() => setOpen((v) => !v)}
         type="button"
       >
         <span
-          className="text-ot-text-tertiary text-xs transition-transform duration-200"
+          className="text-[var(--nimi-text-muted)] text-xs transition-transform duration-200"
           style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
         >
           ▶
         </span>
-        <span className="text-[11px] font-medium text-ot-text-secondary uppercase tracking-[0.06em] flex-1 text-left">
+        <span className="text-[11px] font-medium text-[var(--nimi-text-secondary)] uppercase tracking-[0.06em] flex-1 text-left">
           {title}
         </span>
         {onTogglePin && (
           <span
             className={`text-xs opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${
-              pinned ? 'text-ot-violet-400' : 'text-ot-text-ghost'
+              pinned ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]'
             }`}
             onClick={(e) => {
               e.stopPropagation();
@@ -109,10 +146,12 @@ export function OtAccordionSection({
       </button>
       <div
         ref={contentRef}
-        className="overflow-hidden transition-all duration-300"
+        className={cx(
+          'overflow-hidden transition-all duration-300',
+          open ? 'opacity-100' : 'opacity-0',
+        )}
         style={{
           maxHeight: open ? contentRef.current?.scrollHeight ?? 2000 : 0,
-          opacity: open ? 1 : 0,
         }}
       >
         <div className="pb-4 space-y-3">{children}</div>
@@ -143,7 +182,7 @@ export function OtToggle({ checked, onChange, label, disabled }: OtToggleProps) 
       >
         <span className="ot-toggle__thumb" />
       </button>
-      {label && <span className="text-xs text-ot-text-secondary">{label}</span>}
+      {label && <span className="text-xs text-[var(--nimi-text-secondary)]">{label}</span>}
     </label>
   );
 }
@@ -228,7 +267,7 @@ export function OtTagInput({ tags, onChange, placeholder }: OtTagInputProps) {
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5 p-2 bg-ot-surface-4 border border-ot-surface-5 rounded-lg cursor-text min-h-[36px]"
+      className="flex flex-wrap items-center gap-1.5 p-2 bg-[color-mix(in_srgb,var(--nimi-surface-card)_86%,var(--nimi-action-primary-bg)_14%)] border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] rounded-lg cursor-text min-h-[36px]"
       onClick={() => inputRef.current?.focus()}
     >
       {tags.map((tag, i) => (
@@ -248,7 +287,7 @@ export function OtTagInput({ tags, onChange, placeholder }: OtTagInputProps) {
       ))}
       <input
         ref={inputRef}
-        className="flex-1 min-w-[60px] bg-transparent border-none outline-none text-sm text-ot-text-primary placeholder:text-ot-text-ghost"
+        className="flex-1 min-w-[60px] bg-transparent border-none outline-none text-sm text-[var(--nimi-text-primary)] placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}

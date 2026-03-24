@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { Waveform } from './waveform.js';
-import { OtButton, OtProgressBar } from './ui-primitives.js';
+import { OtButton, OtInput, OtProgressBar } from './ui-primitives.js';
 
 interface TakesPanelProps {
   onPublish?: () => void;
@@ -83,9 +83,9 @@ export function TakesPanel({ onPublish }: TakesPanelProps) {
   if (takes.length === 0 && activeJobs.size === 0) {
     return (
       <div className="space-y-4">
-        <h2 className="text-base font-semibold text-ot-text-primary">Takes</h2>
+        <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">Takes</h2>
         <div className="text-center py-12">
-          <p className="text-ot-text-tertiary text-sm">No takes yet. Generate your first song.</p>
+          <p className="text-[var(--nimi-text-muted)] text-sm">No takes yet. Generate your first song.</p>
         </div>
       </div>
     );
@@ -99,7 +99,7 @@ export function TakesPanel({ onPublish }: TakesPanelProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-ot-text-primary">
+        <h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">
           Takes ({takes.length})
         </h2>
         {(compareTakeIds[0] || compareTakeIds[1]) && (
@@ -111,7 +111,7 @@ export function TakesPanel({ onPublish }: TakesPanelProps) {
 
       {/* A/B Compare View */}
       {inCompareMode && compareLeft && compareRight && (
-        <div className="ot-compare-view rounded-lg overflow-hidden border border-ot-surface-5">
+        <div className="ot-compare-view rounded-lg overflow-hidden border border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)]">
           <CompareSide
             take={compareLeft}
             label="A"
@@ -157,12 +157,12 @@ export function TakesPanel({ onPublish }: TakesPanelProps) {
               }}
             >
               {/* Mini Waveform */}
-              <div className="h-12 px-3 py-1 bg-ot-surface-1">
+              <div className="h-12 px-3 py-1 bg-[var(--nimi-surface-canvas)]">
                 {buffer ? (
                   <MiniWaveformWrapper buffer={buffer} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-full h-[1px] bg-ot-surface-5" />
+                    <div className="w-full h-[1px] bg-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)]" />
                   </div>
                 )}
               </div>
@@ -176,52 +176,55 @@ export function TakesPanel({ onPublish }: TakesPanelProps) {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-semibold text-ot-text-primary truncate">{take.title}</span>
+                      <span className="text-base font-semibold text-[var(--nimi-text-primary)] truncate">{take.title}</span>
                       <OriginBadge origin={take.origin} />
                     </div>
-                    <p className="text-[11px] text-ot-text-tertiary line-clamp-2 mt-0.5">{take.promptSnapshot}</p>
+                    <p className="text-[11px] text-[var(--nimi-text-muted)] line-clamp-2 mt-0.5">{take.promptSnapshot}</p>
                     {take.parentTakeId && (
-                      <p className="text-[10px] text-ot-text-ghost mt-0.5">
+                      <p className="text-[10px] text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)] mt-0.5">
                         ↳ from: {takes.find((item) => item.takeId === take.parentTakeId)?.title ?? take.parentTakeId}
                       </p>
                     )}
-                    <p className="text-[11px] font-mono text-ot-text-ghost mt-1 tabular-nums">
+                    <p className="text-[11px] font-mono text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)] mt-1 tabular-nums">
                       {new Date(take.createdAt).toLocaleTimeString()}
                     </p>
                   </div>
-                  <button
-                    className={`ot-btn-icon shrink-0 ${justFavoritedId === take.takeId ? 'ot-star--just-favorited' : ''}`}
+                  <OtButton
+                    variant="icon"
+                    size="sm"
+                    className={`shrink-0 ${justFavoritedId === take.takeId ? 'ot-star--just-favorited' : ''}`}
                     onClick={(event) => {
                       event.stopPropagation();
                       handleFavorite(take.takeId);
                     }}
                     type="button"
                   >
-                    <span className={take.favorite ? 'text-ot-warning' : 'text-ot-text-ghost'}>
+                    <span className={take.favorite ? 'text-[var(--nimi-status-warning)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)]'}>
                       {take.favorite ? '\u2605' : '\u2606'}
                     </span>
-                  </button>
+                  </OtButton>
                 </div>
               </button>
 
               {/* Action Bar */}
-              <div className="border-t border-ot-surface-5 px-4 py-2 flex flex-wrap gap-3">
-                <button className="ot-btn-tertiary text-[11px] py-0.5 px-1" onClick={() => selectTake(take.takeId)} type="button">
+              <div className="border-t border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] px-4 py-2 flex flex-wrap gap-3">
+                <OtButton variant="tertiary" size="sm" onClick={() => selectTake(take.takeId)} type="button">
                   ▶ Play
-                </button>
-                <button className="ot-btn-tertiary text-[11px] py-0.5 px-1" onClick={() => setCompareTakeSlot(0, take.takeId)} type="button">
+                </OtButton>
+                <OtButton variant="tertiary" size="sm" onClick={() => setCompareTakeSlot(0, take.takeId)} type="button">
                   Compare A
-                </button>
-                <button className="ot-btn-tertiary text-[11px] py-0.5 px-1" onClick={() => setCompareTakeSlot(1, take.takeId)} type="button">
+                </OtButton>
+                <OtButton variant="tertiary" size="sm" onClick={() => setCompareTakeSlot(1, take.takeId)} type="button">
                   Compare B
-                </button>
+                </OtButton>
                 {onPublish && isSelected && (
-                  <button className="ot-btn-tertiary text-[11px] py-0.5 px-1 text-ot-violet-300" onClick={onPublish} type="button">
+                  <OtButton variant="tertiary" size="sm" className="text-[color-mix(in_srgb,var(--nimi-action-primary-bg-hover)_78%,white)]" onClick={onPublish} type="button">
                     Publish...
-                  </button>
+                  </OtButton>
                 )}
-                <button
-                  className="ot-btn-tertiary text-[11px] py-0.5 px-1"
+                <OtButton
+                  variant="tertiary"
+                  size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     const rect = e.currentTarget.getBoundingClientRect();
@@ -230,14 +233,14 @@ export function TakesPanel({ onPublish }: TakesPanelProps) {
                   type="button"
                 >
                   ···
-                </button>
+                </OtButton>
               </div>
 
               {/* Inline Rename */}
               {isEditing && (
-                <div className="border-t border-ot-surface-5 px-4 py-3 flex gap-2">
-                  <input
-                    className="ot-input flex-1 text-sm"
+                <div className="border-t border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] px-4 py-3 flex gap-2">
+                  <OtInput
+                    className="flex-1"
                     value={draftTitle}
                     onChange={(event) => setDraftTitle(event.target.value)}
                     onKeyDown={(e) => {
@@ -252,7 +255,7 @@ export function TakesPanel({ onPublish }: TakesPanelProps) {
                   />
                   <OtButton
                     variant="primary"
-                    className="text-xs py-1.5 px-3"
+                    size="sm"
                     onClick={() => {
                       renameTake(take.takeId, draftTitle.trim() || take.title);
                       setEditingTakeId(null);
@@ -327,11 +330,11 @@ function GhostCard({ job }: { job: { jobId: string; status: string; progress?: s
   return (
     <div className="ot-take-card border-dashed" style={{ animation: 'ot-pulse 2s ease-in-out infinite' }}>
       {/* Animated ghost bars */}
-      <div className="h-12 px-3 py-1 bg-ot-surface-1 flex items-end gap-[2px]">
+      <div className="h-12 px-3 py-1 bg-[var(--nimi-surface-canvas)] flex items-end gap-[2px]">
         {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
-            className="flex-1 bg-ot-violet-400/40 rounded-t-sm"
+            className="flex-1 bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)] rounded-t-sm"
             style={{
               ['--bar-target-h' as string]: `${8 + Math.random() * 24}px`,
               ['--bar-index' as string]: i,
@@ -343,9 +346,9 @@ function GhostCard({ job }: { job: { jobId: string; status: string; progress?: s
         ))}
       </div>
       <div className="p-4 space-y-2">
-        <p className="text-sm text-ot-text-secondary">{job.progress || 'Generating...'}</p>
+        <p className="text-sm text-[var(--nimi-text-secondary)]">{job.progress || 'Generating...'}</p>
         <OtProgressBar generating value={50} />
-        {job.error && <p className="text-xs text-ot-error">{job.error}</p>}
+        {job.error && <p className="text-xs text-[var(--nimi-status-danger)]">{job.error}</p>}
       </div>
     </div>
   );
@@ -368,13 +371,13 @@ function CompareSide({
 }) {
   return (
     <button
-      className={`p-4 text-left bg-ot-surface-2 ${active ? 'ot-compare-side--active' : ''}`}
+      className={`p-4 text-left bg-[var(--nimi-surface-panel)] ${active ? 'ot-compare-side--active' : ''}`}
       onClick={onSelect}
       type="button"
     >
-      <p className="text-[10px] text-ot-text-ghost mb-1">{label}</p>
+      <p className="text-[10px] text-[color-mix(in_srgb,var(--nimi-text-muted)_74%,transparent)] mb-1">{label}</p>
       {buffer && <MiniWaveformWrapper buffer={buffer} />}
-      <p className="text-sm font-semibold text-ot-text-primary truncate mt-2">{take.title}</p>
+      <p className="text-sm font-semibold text-[var(--nimi-text-primary)] truncate mt-2">{take.title}</p>
       <OriginBadge origin={take.origin} />
     </button>
   );

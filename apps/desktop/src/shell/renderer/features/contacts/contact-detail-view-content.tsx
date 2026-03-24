@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
+import { IconButton } from '@nimiplatform/nimi-ui';
 import { useTranslation } from 'react-i18next';
-import { IconButton } from '@renderer/components/action.js';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { Tooltip } from '@renderer/components/tooltip.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';

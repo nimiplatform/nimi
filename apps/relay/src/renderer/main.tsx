@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { NimiThemeProvider } from '@nimiplatform/nimi-ui';
 import { buildDesktopWebAuthLaunchUrl, resolveDesktopCallbackRequestFromLocation } from '@nimiplatform/shell-auth';
 import { App } from './App.js';
 import { getBridge } from './bridge/electron-bridge.js';
@@ -45,7 +46,9 @@ void prepareRelayRenderer().then((shouldRender) => {
 
   createRoot(root).render(
     <StrictMode>
-      <App />
+      <NimiThemeProvider accentPack="relay-accent" defaultScheme="dark">
+        <App />
+      </NimiThemeProvider>
     </StrictMode>,
   );
 });

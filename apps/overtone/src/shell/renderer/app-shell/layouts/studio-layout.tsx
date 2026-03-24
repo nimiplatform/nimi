@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { StatusBadge } from '@nimiplatform/nimi-ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
 function ReadinessIndicator() {
@@ -9,41 +10,32 @@ function ReadinessIndicator() {
   const textOk = useAppStore((s) => s.textConnectorAvailable);
 
   const isConnected = runtimeStatus === 'ready' || runtimeStatus === 'degraded';
-  const dotClass = isConnected
+  const runtimeTone = isConnected
     ? runtimeStatus === 'ready'
-      ? 'ot-readiness__dot--ready'
-      : 'ot-readiness__dot--degraded'
+      ? 'success'
+      : 'warning'
     : runtimeStatus === 'checking'
-      ? 'ot-readiness__dot--checking'
-      : 'ot-readiness__dot--error';
+      ? 'info'
+      : 'danger';
 
   return (
-    <div className="flex items-center gap-3 text-[11px] text-ot-text-tertiary" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-      <div className="flex items-center gap-1.5">
-        <div className={`ot-readiness__dot ${dotClass}`} />
-        <span>
-          Runtime{' '}
-          {isConnected
-            ? 'connected'
-            : runtimeStatus === 'checking'
-              ? 'connecting...'
-              : 'unavailable'}
-        </span>
-      </div>
+    <div className="ot-app-region-no-drag flex items-center gap-2 text-[11px] text-[var(--nimi-text-muted)]">
+      <StatusBadge tone={runtimeTone}>
+        Runtime{' '}
+        {isConnected
+          ? 'connected'
+          : runtimeStatus === 'checking'
+            ? 'connecting...'
+            : 'unavailable'}
+      </StatusBadge>
       {isConnected && (
         <>
-          <div className="flex items-center gap-1.5">
-            <div className={`ot-readiness__dot ${textOk ? 'ot-readiness__dot--ready' : 'ot-readiness__dot--error'}`} />
-            <span>Text</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className={`ot-readiness__dot ${musicOk ? 'ot-readiness__dot--ready' : 'ot-readiness__dot--error'}`} />
-            <span>Music</span>
-          </div>
+          <StatusBadge tone={textOk ? 'success' : 'danger'}>Text</StatusBadge>
+          <StatusBadge tone={musicOk ? 'success' : 'danger'}>Music</StatusBadge>
         </>
       )}
       {runtimeError && runtimeStatus === 'unavailable' && (
-        <span className="text-ot-error truncate max-w-64" title={runtimeError}>
+        <span className="text-[var(--nimi-status-danger)] truncate max-w-64" title={runtimeError}>
           {runtimeError}
         </span>
       )}
@@ -57,27 +49,20 @@ function ActivityLine() {
 
   return (
     <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden">
-      <div
-        className="h-full w-full"
-        style={{
-          background: 'linear-gradient(90deg, transparent 0%, var(--ot-violet-400) 50%, transparent 100%)',
-          animation: 'ot-activity-slide 2s linear infinite',
-        }}
-      />
+      <div className="ot-activity-line__bar h-full w-full" />
     </div>
   );
 }
 
 export function StudioLayout() {
   return (
-    <div className="h-screen flex flex-col bg-ot-surface-0 text-ot-text-primary">
+    <div className="h-screen flex flex-col bg-[var(--nimi-app-background)] text-[var(--nimi-text-primary)]">
       <header
-        className="relative flex items-center justify-between px-4 border-b border-ot-surface-5 shrink-0 select-none"
-        style={{ height: 52, paddingTop: 28, paddingLeft: 84, WebkitAppRegion: 'drag' } as React.CSSProperties}
+        className="ot-studio-header relative flex items-center justify-between border-b border-[color-mix(in_srgb,var(--nimi-surface-card)_74%,var(--nimi-action-primary-bg)_26%)] px-4 shrink-0 select-none"
         data-tauri-drag-region
       >
         <div className="flex items-center gap-3">
-          <h1 className="text-base font-semibold tracking-tight text-ot-text-primary">Overtone</h1>
+          <h1 className="text-base font-semibold tracking-tight text-[var(--nimi-text-primary)]">Overtone</h1>
         </div>
         <ReadinessIndicator />
         <ActivityLine />
