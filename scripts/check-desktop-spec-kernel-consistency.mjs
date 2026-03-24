@@ -45,6 +45,10 @@ const kernelFiles = [
   'spec/desktop/kernel/tables/error-codes.yaml',
   'spec/desktop/kernel/tables/log-areas.yaml',
   'spec/desktop/kernel/tables/build-chunks.yaml',
+  'spec/desktop/kernel/tables/renderer-design-tokens.yaml',
+  'spec/desktop/kernel/tables/renderer-design-surfaces.yaml',
+  'spec/desktop/kernel/tables/renderer-design-overlays.yaml',
+  'spec/desktop/kernel/tables/renderer-design-allowlists.yaml',
   'spec/desktop/kernel/tables/desktop-testing-gates.yaml',
   'spec/desktop/kernel/tables/desktop-feature-coverage.yaml',
   'spec/desktop/kernel/tables/rule-evidence.yaml',
@@ -163,6 +167,11 @@ checkNoKernelRuleDefinitionsInDomainDocs();
 // ── Check 14: Rule ID references resolvable ──
 
 checkRuleIdReferencesResolvable();
+
+// ── Check 14b: Renderer design tables + domain anchors ──
+
+checkRendererDesignTables();
+checkDesignDomainAnchors();
 
 // ── Check 15: Cross-domain upstream rule references exist in Runtime/SDK spec ──
 
@@ -603,6 +612,159 @@ function checkNoKernelRuleDefinitionsInDomainDocs() {
   }
 }
 
+function checkRendererDesignTables() {
+  const rendererRoot = path.join(sourceRoot, 'shell/renderer');
+  const tokensPath = 'spec/desktop/kernel/tables/renderer-design-tokens.yaml';
+  const surfacesPath = 'spec/desktop/kernel/tables/renderer-design-surfaces.yaml';
+  const overlaysPath = 'spec/desktop/kernel/tables/renderer-design-overlays.yaml';
+  const allowlistsPath = 'spec/desktop/kernel/tables/renderer-design-allowlists.yaml';
+
+  const allowedTokenCategories = new Set(['brand', 'surface', 'text', 'radius', 'elevation', 'z', 'motion']);
+  const allowedSurfaceProfiles = new Set(['baseline', 'secondary', 'exception']);
+  const allowedExceptionPolicies = new Set(['none', 'allowlisted_arbitrary', 'controlled']);
+  const allowedOverlayKinds = new Set(['dialog', 'drawer', 'popover', 'tooltip']);
+  const allowedSurfaceTones = new Set(['canvas', 'panel', 'card', 'hero', 'overlay']);
+  const allowedElevations = new Set(['base', 'raised', 'floating', 'modal']);
+  const allowedPatternTypes = new Set(['raw_color', 'token_bypass', 'class_pattern', 'inline_style', 'overlay_local_shell']);
+
+  const tokensDoc = readYaml(tokensPath) || {};
+  const tokens = Array.isArray(tokensDoc?.tokens) ? tokensDoc.tokens : [];
+  if (tokens.length === 0) {
+    fail(`${tokensPath} must define at least one token row`);
+  }
+  for (const item of tokens) {
+    const id = String(item?.id || '').trim();
+    const category = String(item?.category || '').trim();
+    const name = String(item?.name || '').trim();
+    const cssVar = String(item?.css_var || '').trim();
+    const alias = String(item?.tailwind_alias || '').trim();
+    const scope = String(item?.scope || '').trim();
+    if (!id || !category || !name || !cssVar || !alias || !scope) {
+      fail(`${tokensPath} token rows require id/category/name/css_var/tailwind_alias/scope`);
+      continue;
+    }
+    if (!allowedTokenCategories.has(category)) {
+      fail(`${tokensPath} token ${id} has invalid category: ${category}`);
+    }
+  }
+
+  const surfacesDoc = readYaml(surfacesPath) || {};
+  const surfaces = Array.isArray(surfacesDoc?.surfaces) ? surfacesDoc.surfaces : [];
+  if (surfaces.length === 0) {
+    fail(`${surfacesPath} must define at least one surface row`);
+  }
+  const baselineModules = new Set();
+  let hasWorldException = false;
+  for (const item of surfaces) {
+    const id = String(item?.id || '').trim();
+    const module = String(item?.module || '').trim();
+    const role = String(item?.role || '').trim();
+    const profile = String(item?.surface_profile || '').trim();
+    const exceptionPolicy = String(item?.exception_policy || '').trim();
+    if (!id || !module || !role || !profile || !exceptionPolicy) {
+      fail(`${surfacesPath} surface rows require id/module/role/surface_profile/exception_policy`);
+      continue;
+    }
+    if (!allowedSurfaceProfiles.has(profile)) {
+      fail(`${surfacesPath} surface ${id} has invalid surface_profile: ${profile}`);
+    }
+    if (!allowedExceptionPolicies.has(exceptionPolicy)) {
+      fail(`${surfacesPath} surface ${id} has invalid exception_policy: ${exceptionPolicy}`);
+    }
+    if (!fs.existsSync(path.join(rendererRoot, module))) {
+      fail(`${surfacesPath} surface ${id} module does not exist under renderer root: ${module}`);
+    }
+    if (profile === 'baseline') {
+      baselineModules.add(module);
+    }
+    if (profile === 'exception' && module.includes('world-detail')) {
+      hasWorldException = true;
+    }
+  }
+  for (const requiredModule of ['features/chats/chat-list.tsx', 'features/explore/explore-view.tsx', 'features/contacts/contacts-view.tsx']) {
+    if (!baselineModules.has(requiredModule)) {
+      fail(`${surfacesPath} missing baseline module: ${requiredModule}`);
+    }
+  }
+  if (!hasWorldException) {
+    fail(`${surfacesPath} must declare a controlled world-detail exception row`);
+  }
+
+  const overlaysDoc = readYaml(overlaysPath) || {};
+  const overlays = Array.isArray(overlaysDoc?.overlays) ? overlaysDoc.overlays : [];
+  if (overlays.length === 0) {
+    fail(`${overlaysPath} must define at least one overlay row`);
+  }
+  for (const item of overlays) {
+    const id = String(item?.id || '').trim();
+    const kind = String(item?.kind || '').trim();
+    const tone = String(item?.surface_tone || '').trim();
+    const elevation = String(item?.elevation || '').trim();
+    const zToken = String(item?.z_token || '').trim();
+    if (!id || !kind || !tone || !elevation || !zToken) {
+      fail(`${overlaysPath} overlay rows require id/kind/surface_tone/elevation/z_token`);
+      continue;
+    }
+    if (!allowedOverlayKinds.has(kind)) {
+      fail(`${overlaysPath} overlay ${id} has invalid kind: ${kind}`);
+    }
+    if (!allowedSurfaceTones.has(tone)) {
+      fail(`${overlaysPath} overlay ${id} has invalid surface_tone: ${tone}`);
+    }
+    if (!allowedElevations.has(elevation)) {
+      fail(`${overlaysPath} overlay ${id} has invalid elevation: ${elevation}`);
+    }
+    if (typeof item?.testid_required !== 'boolean') {
+      fail(`${overlaysPath} overlay ${id} must declare boolean testid_required`);
+    }
+    if (typeof item?.reduced_motion !== 'boolean') {
+      fail(`${overlaysPath} overlay ${id} must declare boolean reduced_motion`);
+    }
+  }
+
+  const allowlistsDoc = readYaml(allowlistsPath) || {};
+  const patterns = Array.isArray(allowlistsDoc?.patterns) ? allowlistsDoc.patterns : [];
+  if (patterns.length === 0) {
+    fail(`${allowlistsPath} must define at least one allowlist row`);
+  }
+  for (const item of patterns) {
+    const id = String(item?.id || '').trim();
+    const patternType = String(item?.pattern_type || '').trim();
+    const pattern = String(item?.pattern || '').trim();
+    const scope = String(item?.scope || '').trim();
+    const reason = String(item?.reason || '').trim();
+    if (!id || !patternType || !pattern || !scope || !reason) {
+      fail(`${allowlistsPath} allowlist rows require id/pattern_type/pattern/scope/reason`);
+      continue;
+    }
+    if (!allowedPatternTypes.has(patternType)) {
+      fail(`${allowlistsPath} allowlist ${id} has invalid pattern_type: ${patternType}`);
+    }
+    if (!fileExists(scope)) {
+      fail(`${allowlistsPath} allowlist ${id} scope path does not exist: ${scope}`);
+    }
+  }
+}
+
+function checkDesignDomainAnchors() {
+  const requiredAnchors = [
+    ['spec/desktop/chat.md', 'D-SHELL-019'],
+    ['spec/desktop/explore.md', 'D-SHELL-019'],
+    ['spec/desktop/contacts.md', 'D-SHELL-019'],
+    ['spec/desktop/home.md', 'D-SHELL-015'],
+    ['spec/desktop/notification.md', 'D-SHELL-015'],
+    ['spec/desktop/profile.md', 'D-SHELL-015'],
+    ['spec/desktop/world-detail.md', 'D-SHELL-020'],
+  ];
+  for (const [rel, ruleId] of requiredAnchors) {
+    if (!fileExists(rel)) continue;
+    const content = read(rel);
+    if (!content.includes(ruleId)) {
+      fail(`${rel} must reference ${ruleId} for desktop design pilot anchoring`);
+    }
+  }
+}
+
 function checkRuleIdReferencesResolvable() {
   const ruleRefPattern = /\bD-[A-Z]+-\d{3}\b/g;
   for (const rel of domainFiles) {
@@ -1013,6 +1175,8 @@ function checkDesktopTestingGateCoverage() {
     ['release_parity', 'D-GATE-070', ['pnpm check:desktop-e2e-smoke', 'pnpm check:desktop-e2e-journeys']],
     ['spec_consistency', 'D-GATE-080', ['pnpm check:desktop-spec-kernel-consistency']],
     ['docs_drift', 'D-GATE-080', ['pnpm check:desktop-spec-kernel-docs-drift']],
+    ['design_contract', 'D-GATE-090', ['pnpm check:desktop-design-contract']],
+    ['design_adoption', 'D-GATE-091', ['pnpm check:desktop-design-contract']],
   ];
 
   for (const [gate, expectedRule, expectedTokens] of requiredGates) {

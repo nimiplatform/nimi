@@ -1,0 +1,128 @@
+version: 1
+tokens:
+  - id: brand.primary
+    category: brand
+    name: mint_primary
+    css_var: --color-mint-500
+    tailwind_alias: bg-mint-500
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: brand.primary_hover
+    category: brand
+    name: mint_primary_hover
+    css_var: --color-mint-600
+    tailwind_alias: hover:bg-mint-600
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: surface.canvas
+    category: surface
+    name: canvas
+    css_var: --nimi-surface-canvas
+    tailwind_alias: nimi-surface--canvas
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: surface.panel
+    category: surface
+    name: panel
+    css_var: --nimi-surface-panel
+    tailwind_alias: nimi-surface--panel
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: surface.card
+    category: surface
+    name: card
+    css_var: --nimi-surface-card
+    tailwind_alias: nimi-surface--card
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: surface.overlay
+    category: surface
+    name: overlay
+    css_var: --nimi-surface-overlay
+    tailwind_alias: nimi-surface--overlay
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: text.primary
+    category: text
+    name: text_primary
+    css_var: --nimi-text-primary
+    tailwind_alias: text-gray-900
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: text.secondary
+    category: text
+    name: text_secondary
+    css_var: --nimi-text-secondary
+    tailwind_alias: text-gray-600
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: radius.sm
+    category: radius
+    name: radius_sm
+    css_var: --nimi-radius-sm
+    tailwind_alias: rounded-md
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: radius.lg
+    category: radius
+    name: radius_lg
+    css_var: --nimi-radius-lg
+    tailwind_alias: rounded-2xl
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: radius.xl
+    category: radius
+    name: radius_xl
+    css_var: --nimi-radius-xl
+    tailwind_alias: rounded-[28px]
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: elevation.base
+    category: elevation
+    name: elevation_base
+    css_var: --nimi-elevation-base
+    tailwind_alias: nimi-surface--elevation-base
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: elevation.floating
+    category: elevation
+    name: elevation_floating
+    css_var: --nimi-elevation-floating
+    tailwind_alias: nimi-surface--elevation-floating
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: elevation.modal
+    category: elevation
+    name: elevation_modal
+    css_var: --nimi-elevation-modal
+    tailwind_alias: nimi-surface--elevation-modal
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: z.dialog
+    category: z
+    name: z_dialog
+    css_var: --nimi-z-dialog
+    tailwind_alias: nimi-overlay-backdrop--dialog
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: z.tooltip
+    category: z
+    name: z_tooltip
+    css_var: --nimi-z-tooltip
+    tailwind_alias: nimi-tooltip-layer
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: motion.fast
+    category: motion
+    name: motion_fast
+    css_var: --nimi-motion-fast
+    tailwind_alias: duration-200
+    scope: baseline
+    source_rule: D-SHELL-016
+  - id: motion.base
+    category: motion
+    name: motion_base
+    css_var: --nimi-motion-base
+    tailwind_alias: duration-300
+    scope: baseline
+    source_rule: D-SHELL-016

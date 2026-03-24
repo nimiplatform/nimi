@@ -13,6 +13,10 @@
 
 ## Kernel References
 
+### UI Shell (D-SHELL-015, D-SHELL-018, D-SHELL-022)
+
+`notification` 目前属于 desktop design secondary consumer。root shell、filter/action controls 与 reject-gift dialog 应通过 shared surface/action/overlay primitives 收敛；在升级为 baseline anchor 之前，仍受 secondary adoption 跟踪。
+
 ### DataSync (D-DSYNC-009)
 
 通知数据流（方法清单见 `D-DSYNC-009`）。未读计数通过 PollingManager 定期轮询。

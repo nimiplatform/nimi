@@ -1,0 +1,34 @@
+version: 1
+overlays:
+  - id: shared.tooltip
+    kind: tooltip
+    surface_tone: overlay
+    elevation: floating
+    z_token: --nimi-z-tooltip
+    testid_required: false
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: explore.quick_add_friend
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: false
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: contacts.block_confirm
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: false
+    reduced_motion: true
+    source_rule: D-SHELL-018
+  - id: contacts.restore_confirm
+    kind: dialog
+    surface_tone: overlay
+    elevation: modal
+    z_token: --nimi-z-dialog
+    testid_required: false
+    reduced_motion: true
+    source_rule: D-SHELL-018

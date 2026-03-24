@@ -73,6 +73,11 @@ desktop_cloud_runtime_only_gate:
   command: pnpm check:desktop-cloud-runtime-only
   path: scripts/check-desktop-cloud-runtime-only.mjs
   description: Enforces cloud connector routing through runtime-owned APIs only.
+desktop_design_contract_gate:
+  type: static_gate
+  command: pnpm check:desktop-design-contract
+  path: scripts/check-desktop-design-contract.mjs
+  description: Enforces desktop baseline design token usage, arbitrary value allowlists, and shared overlay adoption on pilot surfaces.
 desktop_runtime_config_path_gate:
   type: static_gate
   command: pnpm check:desktop-no-legacy-runtime-config-path

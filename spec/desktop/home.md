@@ -13,6 +13,10 @@
 
 ## Kernel References
 
+### UI Shell (D-SHELL-015, D-SHELL-022)
+
+`home` 目前属于 desktop design secondary consumer。root shell、compose entry 与浮动 primary action 应优先复用 renderer-level surface/action primitives，不得继续在 feature 内复制 shared button/shell 常量。
+
 ### DataSync (D-DSYNC-007)
 
 Feed 数据流（方法清单见 `D-DSYNC-007`）。

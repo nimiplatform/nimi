@@ -98,6 +98,26 @@ const specs = [
     render: renderBuildChunks,
   },
   {
+    input: 'renderer-design-tokens.yaml',
+    output: 'renderer-design-tokens.md',
+    render: renderRendererDesignTokens,
+  },
+  {
+    input: 'renderer-design-surfaces.yaml',
+    output: 'renderer-design-surfaces.md',
+    render: renderRendererDesignSurfaces,
+  },
+  {
+    input: 'renderer-design-overlays.yaml',
+    output: 'renderer-design-overlays.md',
+    render: renderRendererDesignOverlays,
+  },
+  {
+    input: 'renderer-design-allowlists.yaml',
+    output: 'renderer-design-allowlists.md',
+    render: renderRendererDesignAllowlists,
+  },
+  {
     input: 'desktop-testing-gates.yaml',
     output: 'desktop-testing-gates.md',
     render: renderDesktopTestingGates,
@@ -493,6 +513,92 @@ function renderBuildChunks(doc, sourceName) {
     const lazy = mdBool(Boolean(item?.lazy));
     const sourceRule = String(item?.source_rule || '').trim() || '—';
     out += `| \`${chunk}\` | \`${lazy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRendererDesignTokens(doc, sourceName) {
+  const tokens = Array.isArray(doc?.tokens) ? doc.tokens : [];
+  let out = header('Generated Renderer Design Tokens', sourceName);
+
+  out += '| Token ID | Category | CSS Var | Alias | Scope | Source Rule |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const item of tokens) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const category = String(item?.category || '').trim() || '—';
+    const cssVar = String(item?.css_var || '').trim() || '—';
+    const alias = String(item?.tailwind_alias || '').trim() || '—';
+    const scope = String(item?.scope || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${category}\` | \`${cssVar}\` | \`${alias}\` | \`${scope}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRendererDesignSurfaces(doc, sourceName) {
+  const surfaces = Array.isArray(doc?.surfaces) ? doc.surfaces : [];
+  let out = header('Generated Renderer Design Surfaces', sourceName);
+
+  out += '| Surface ID | Module | Role | Profile | Exception Policy | Source Rule |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const item of surfaces) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const module = String(item?.module || '').trim() || '—';
+    const role = String(item?.role || '').trim() || '—';
+    const profile = String(item?.surface_profile || '').trim() || '—';
+    const exceptionPolicy = String(item?.exception_policy || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${module}\` | \`${role}\` | \`${profile}\` | \`${exceptionPolicy}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRendererDesignOverlays(doc, sourceName) {
+  const overlays = Array.isArray(doc?.overlays) ? doc.overlays : [];
+  let out = header('Generated Renderer Design Overlays', sourceName);
+
+  out += '| Overlay ID | Kind | Surface Tone | Elevation | Z Token | Test ID Required | Reduced Motion | Source Rule |\n';
+  out += '|---|---|---|---|---|---|---|---|\n';
+  for (const item of overlays) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const kind = String(item?.kind || '').trim() || '—';
+    const surfaceTone = String(item?.surface_tone || '').trim() || '—';
+    const elevation = String(item?.elevation || '').trim() || '—';
+    const zToken = String(item?.z_token || '').trim() || '—';
+    const testIdRequired = mdBool(Boolean(item?.testid_required));
+    const reducedMotion = mdBool(Boolean(item?.reduced_motion));
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${kind}\` | \`${surfaceTone}\` | \`${elevation}\` | \`${zToken}\` | \`${testIdRequired}\` | \`${reducedMotion}\` | \`${sourceRule}\` |\n`;
+  }
+  out += '\n';
+
+  return normalizeMarkdown(out);
+}
+
+function renderRendererDesignAllowlists(doc, sourceName) {
+  const patterns = Array.isArray(doc?.patterns) ? doc.patterns : [];
+  let out = header('Generated Renderer Design Allowlists', sourceName);
+
+  out += '| Allowlist ID | Pattern Type | Pattern | Scope | Reason | Source Rule |\n';
+  out += '|---|---|---|---|---|---|\n';
+  for (const item of patterns) {
+    const id = String(item?.id || '').trim();
+    if (!id) continue;
+    const patternType = String(item?.pattern_type || '').trim() || '—';
+    const pattern = String(item?.pattern || '').trim() || '—';
+    const scope = String(item?.scope || '').trim() || '—';
+    const reason = String(item?.reason || '').trim() || '—';
+    const sourceRule = String(item?.source_rule || '').trim() || '—';
+    out += `| \`${id}\` | \`${patternType}\` | \`${pattern}\` | \`${scope}\` | ${reason} | \`${sourceRule}\` |\n`;
   }
   out += '\n';
 

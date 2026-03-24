@@ -13,6 +13,10 @@
 
 ## Kernel References
 
+### UI Shell (D-SHELL-019, D-SHELL-022)
+
+`contacts` 是 desktop baseline anchor 之一。root shell、sidebar/list surface、shared action 与确认 dialog family 的 baseline design 收敛由 `D-SHELL-019` 与 `D-SHELL-022` 定义。
+
 ### DataSync (D-DSYNC-004)
 
 社交数据流（方法清单见 `D-DSYNC-004`）。辅助方法 `isFriend(userId)` 在 contacts 状态中检查好友关系。

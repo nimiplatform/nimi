@@ -27,3 +27,9 @@ gates:
   - gate: docs_drift
     command: pnpm check:desktop-spec-kernel-docs-drift
     source_rule: D-GATE-080
+  - gate: design_contract
+    command: pnpm check:desktop-design-contract
+    source_rule: D-GATE-090
+  - gate: design_adoption
+    command: pnpm check:desktop-design-contract
+    source_rule: D-GATE-091

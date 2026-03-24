@@ -13,6 +13,10 @@
 
 ## Kernel References
 
+### UI Shell (D-SHELL-015, D-SHELL-022)
+
+`profile` 复用 shared contact detail surface 与 economy/modal family，属于 secondary consumer。后续 design adoption 应继续沿 shared primitives 推进，而不是在 profile 层重新定义本地 shell/action 常量。
+
 ### DataSync (D-DSYNC-002)
 
 用户数据流（方法清单见 `D-DSYNC-002`）。

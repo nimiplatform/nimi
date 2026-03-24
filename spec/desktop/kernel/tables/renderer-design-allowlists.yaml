@@ -1,0 +1,44 @@
+version: 1
+patterns:
+  - id: contacts.sidebar_width
+    pattern_type: inline_style
+    pattern: sidebarWidth
+    scope: apps/desktop/src/shell/renderer/features/contacts/contacts-view.tsx
+    reason: resizable contacts sidebar width depends on pointer drag state.
+    source_rule: D-SHELL-021
+  - id: contacts.blocked_world_accent
+    pattern_type: inline_style
+    pattern: palette.accent
+    scope: apps/desktop/src/shell/renderer/features/contacts/contacts-blocked-users.tsx
+    reason: agent semantic palette accent is content-derived and not a baseline shell token.
+    source_rule: D-SHELL-021
+  - id: explore.rounded_2rem
+    pattern_type: class_pattern
+    pattern: rounded-\\[2rem\\]
+    scope: apps/desktop/src/shell/renderer/features/explore/explore-view.tsx
+    reason: pilot keeps large banner/card rounding while surface tokens are introduced.
+    source_rule: D-SHELL-021
+  - id: explore.rounded_1_5rem
+    pattern_type: class_pattern
+    pattern: rounded-\\[1\\.5rem\\]
+    scope: apps/desktop/src/shell/renderer/features/explore/explore-view.tsx
+    reason: pilot keeps media skeleton rounding while surface tokens are introduced.
+    source_rule: D-SHELL-021
+  - id: explore.display_font
+    pattern_type: inline_style
+    pattern: var\\(--font-display\\)
+    scope: apps/desktop/src/shell/renderer/features/explore/explore-view.tsx
+    reason: display font still relies on explicit typography handoff during pilot.
+    source_rule: D-SHELL-021
+  - id: explore.banner_transform
+    pattern_type: inline_style
+    pattern: currentBannerIndex
+    scope: apps/desktop/src/shell/renderer/features/explore/explore-view.tsx
+    reason: banner carousel transform is dynamic runtime geometry.
+    source_rule: D-SHELL-021
+  - id: explore.top_agents_animation
+    pattern_type: inline_style
+    pattern: top-agents-slide-
+    scope: apps/desktop/src/shell/renderer/features/explore/explore-view.tsx
+    reason: top agents page transition still uses keyed animation during pilot.
+    source_rule: D-SHELL-021

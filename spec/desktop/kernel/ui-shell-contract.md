@@ -183,9 +183,84 @@ World Detail 的视觉卡与 section surface 必须满足：
 - section root、关键视觉卡和可见的 layout surface 必须暴露稳定 `data-testid`。
 - World Detail 的实现、spec 和测试必须共同验证 live surface 仍然通过 `world-detail.tsx -> world-detail-template.tsx` 渲染。
 
+## D-SHELL-015 — Renderer Design Baseline
+
+Desktop renderer 的共享 UI 设计必须通过 renderer-level semantic token 与 primitive facade 收敛，而不是继续把重复 UI 常量分散在 feature-local 组件内。
+
+- baseline surface 的默认落点是 `components/design-tokens.ts`、`components/surface.tsx`、`components/action.tsx`、`components/overlay.tsx` 与 `styles.css` 中的语义 token。
+- feature-local primitive 可以保留在 `settings`、`runtime-config` 等 secondary/admin surface，但不得反向成为 desktop baseline 的唯一事实源。
+- design audit、spec、check 与 renderer implementation 必须围绕同一组 baseline primitive 演进。
+
+## D-SHELL-016 — Token Resolution
+
+Desktop baseline surface 的共享设计值必须通过命名 token 解析：
+
+- brand、surface、text、radius、elevation、z-index、motion 的 baseline 值必须登记在 `tables/renderer-design-tokens.yaml`。
+- baseline surface 不得直接硬编码 raw brand hex、隐式 shared surface 色值或重复 elevation 常量，除非被 `renderer-design-allowlists.yaml` 明确豁免。
+- shared primitive 负责把 token 投影为 CSS variable / utility / facade API；feature 代码不得绕过该映射层直接复制 token 值。
+
+## D-SHELL-017 — Surface Taxonomy
+
+Desktop baseline surface 的共享角色固定为：
+
+- `canvas`：页面底布、scroll root、空态背景。
+- `panel`：sidebar、section shell、active list bucket。
+- `card`：list row、content card、inline data container。
+- `hero`：顶部重点视觉容器，但仍属于 baseline taxonomy。
+- `overlay`：dialog / drawer / popover / tooltip 的 panel tone。
+
+这些角色与具体模块的映射必须登记在 `tables/renderer-design-surfaces.yaml`；baseline、secondary、exception 不得混写在实现习惯里。
+
+## D-SHELL-018 — Overlay Taxonomy
+
+Desktop baseline overlay 只能使用以下共享 kind：
+
+- `dialog`
+- `drawer`
+- `popover`
+- `tooltip`
+
+overlay 的 surface tone、elevation、z token、testability 与 reduced-motion 策略必须登记在 `tables/renderer-design-overlays.yaml`。baseline surface 不得继续定义未经登记的本地 overlay shell。
+
+## D-SHELL-019 — Main Surface Baseline
+
+`chat`、`explore`、`contacts` 是 desktop 主设计语言的 baseline anchors：
+
+- 这三个 surface 必须优先消费共享 `surface / action / overlay` primitive。
+- baseline 迁移优先级以 root shell、list/card、primary/secondary/icon actions、tooltip 与一个标准 dialog family 为先。
+- 新增 baseline 视觉决策必须先在这三个 surface 验证，再扩散到 secondary/admin surface。
+
+## D-SHELL-020 — Controlled Exceptions
+
+`world-detail` 是 desktop renderer 的受控 art-directed exception：
+
+- exception surface 必须在 `tables/renderer-design-surfaces.yaml` 中显式登记，不能只靠实现约定。
+- exception 可以使用独立 palette、radius、motion 与视觉编排，但不得把 exception token 或 overlay shell 泄漏到 baseline surface。
+- `world-detail` 的例外治理继续受 `D-SHELL-011` ~ `D-SHELL-014` 约束，不得借 design pilot 稀释原有 contract。
+
+## D-SHELL-021 — Arbitrary Value Policy
+
+baseline surface 的 arbitrary Tailwind value 与 inline style 默认禁止：
+
+- `rounded-[...]`、`z-[...]` 与 `style={{...}}` 只有在 `tables/renderer-design-allowlists.yaml` 中登记后才允许保留。
+- allowlist 必须带 `scope`、`reason` 与 `source_rule`，用于描述动态几何、受控动画或 renderer bridge 需要的例外。
+- allowlist 是过渡治理工具，不等于永久自由区；新增例外必须说明为什么不能落入共享 token / primitive。
+
+## D-SHELL-022 — Primitive Adoption Boundary
+
+baseline surface 的共享 action、surface、dialog、popover 与 tooltip 必须经过 renderer-level primitive facade：
+
+- `chat`、`explore`、`contacts` 中新增或重写的 baseline button / card / dialog / tooltip 不得再定义本地 shell。
+- 允许 feature 组合 shared primitive，但不允许重新发明另一套 baseline shell class contract。
+- adoption 进度由 `D-GATE-091` 追踪；完成前允许局部 legacy 实现存在，但不得继续扩散。
+
 ## Fact Sources
 
 - `tables/app-tabs.yaml` — 导航 Tab 枚举
 - `tables/feature-flags.yaml` — Feature flag 定义
 - `tables/build-chunks.yaml` — Vite 分包枚举
+- `tables/renderer-design-tokens.yaml` — baseline semantic design token
+- `tables/renderer-design-surfaces.yaml` — baseline / secondary / exception surface mapping
+- `tables/renderer-design-overlays.yaml` — shared overlay taxonomy
+- `tables/renderer-design-allowlists.yaml` — arbitrary value / inline style allowlists
 - `menu-bar-shell-contract.md` — macOS menu bar shell 入口

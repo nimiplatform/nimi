@@ -63,6 +63,10 @@
 - `tables/error-codes.yaml`
 - `tables/log-areas.yaml`
 - `tables/build-chunks.yaml`
+- `tables/renderer-design-tokens.yaml`
+- `tables/renderer-design-surfaces.yaml`
+- `tables/renderer-design-overlays.yaml`
+- `tables/renderer-design-allowlists.yaml`
 - `tables/desktop-testing-gates.yaml`
 - `tables/desktop-feature-coverage.yaml`
 - `tables/rule-evidence.yaml`（fragment directive；实际内容委托给 `tables/rule-evidence.catalog.yaml` 与 `tables/rule-evidence.rules.yaml`）

@@ -13,3 +13,5 @@
 | `release_parity` | `pnpm check:desktop-e2e-smoke && pnpm check:desktop-e2e-journeys` | `D-GATE-070` |
 | `spec_consistency` | `pnpm check:desktop-spec-kernel-consistency` | `D-GATE-080` |
 | `docs_drift` | `pnpm check:desktop-spec-kernel-docs-drift` | `D-GATE-080` |
+| `design_contract` | `pnpm check:desktop-design-contract` | `D-GATE-090` |
+| `design_adoption` | `pnpm check:desktop-design-contract` | `D-GATE-091` |

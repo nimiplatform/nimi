@@ -21,6 +21,10 @@
 | `error-codes.md` | `tables/error-codes.yaml` |
 | `log-areas.md` | `tables/log-areas.yaml` |
 | `build-chunks.md` | `tables/build-chunks.yaml` |
+| `renderer-design-tokens.md` | `tables/renderer-design-tokens.yaml` |
+| `renderer-design-surfaces.md` | `tables/renderer-design-surfaces.yaml` |
+| `renderer-design-overlays.md` | `tables/renderer-design-overlays.yaml` |
+| `renderer-design-allowlists.md` | `tables/renderer-design-allowlists.yaml` |
 | `desktop-testing-gates.md` | `tables/desktop-testing-gates.yaml` |
 | `desktop-feature-coverage.md` | `tables/desktop-feature-coverage.yaml` |
 | `rule-evidence.md` | `tables/rule-evidence.yaml` |

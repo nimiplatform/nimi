@@ -14,9 +14,10 @@ World 详情功能域 — World 详情页、语义数据、穿越管理、关卡
 
 ## Kernel References
 
-### UI Shell (`D-SHELL-011` ~ `D-SHELL-014`)
+### UI Shell (`D-SHELL-011` ~ `D-SHELL-014`, `D-SHELL-020`)
 
 - World Detail surface 顺序、分区式确定性布局、视觉卡映射与 motion/testability 规则由 `D-SHELL-011` ~ `D-SHELL-014` 定义。
+- `D-SHELL-020` 将 `world-detail` 声明为受控 art-directed exception，要求例外路径显式登记，且不得把 exception 视觉泄漏到 baseline surface。
 
 ### DataSync (D-DSYNC-005)
 
