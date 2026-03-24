@@ -35,6 +35,9 @@ importers:
       three:
         specifier: ^0.183.2
         version: 0.183.2
+      zod:
+        specifier: 4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/node':
         specifier: ^25.5.0
@@ -124,9 +127,6 @@ importers:
       simplex-noise:
         specifier: ^4.0.3
         version: 4.0.3
-      socket.io:
-        specifier: ^4.8.3
-        version: 4.8.3
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
@@ -185,6 +185,9 @@ importers:
       globals:
         specifier: ^17.4.0
         version: 17.4.0
+      socket.io:
+        specifier: ^4.8.3
+        version: 4.8.3
       tailwindcss:
         specifier: ^4.2.1
         version: 4.2.1
