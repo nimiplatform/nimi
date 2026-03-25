@@ -3768,6 +3768,10 @@ export type components = {
             url?: string;
             width?: number;
         };
+        AttachmentReferenceDto: {
+            targetId: string;
+            targetType: components["schemas"]["AttachmentTargetType"];
+        };
         /** @enum {string} */
         AttachmentTargetType: "RESOURCE" | "ASSET" | "BUNDLE";
         Auth2faVerifyDto: {
@@ -3901,6 +3905,24 @@ export type components = {
             seq: number;
             sessionId: string;
         };
+        ChatFriendRequestPayloadDto: {
+            requestId: string;
+            requestMessage?: string;
+            status: string;
+        };
+        ChatGiftPayloadDto: {
+            amount?: number;
+            interactionId: string;
+            status?: string;
+            tokenSymbol?: string;
+        };
+        ChatLinkRefPayloadDto: {
+            title?: string;
+            url: string;
+        };
+        ChatPostRefPayloadDto: {
+            postId: string;
+        };
         ChatSyncResultDto: {
             events: components["schemas"]["ChatEventEnvelopeDto"][];
             highWatermarkSeq: number;
@@ -3911,6 +3933,15 @@ export type components = {
         ChatSyncSnapshotDto: {
             chat: components["schemas"]["ChatViewDto"];
             messages: components["schemas"]["MessageViewDto"][];
+        };
+        ChatTextPayloadDto: {
+            content: string;
+        };
+        ChatUserRefPayloadDto: {
+            snapshot?: {
+                [key: string]: unknown;
+            };
+            userId: string;
         };
         ChatViewDto: {
             /** Format: date-time */
@@ -4433,9 +4464,9 @@ export type components = {
              *       }
              *     }
              */
-            payload?: {
-                [key: string]: unknown;
-            };
+            payload?: components["schemas"]["ChatTextPayloadDto"] | {
+                attachment: components["schemas"]["AttachmentReferenceDto"];
+            } | components["schemas"]["ChatPostRefPayloadDto"] | components["schemas"]["ChatUserRefPayloadDto"] | components["schemas"]["ChatLinkRefPayloadDto"] | components["schemas"]["ChatGiftPayloadDto"] | components["schemas"]["ChatFriendRequestPayloadDto"];
             text?: string;
         };
         EmailOtpRequestDto: {
@@ -4707,6 +4738,15 @@ export type components = {
         Me2faVerifyDto: {
             code: string;
         };
+        MessageReplyViewDto: {
+            id: string;
+            payload: (components["schemas"]["ChatTextPayloadDto"] | {
+                attachment: components["schemas"]["AttachmentEnvelopeDto"];
+            } | components["schemas"]["ChatPostRefPayloadDto"] | components["schemas"]["ChatUserRefPayloadDto"] | components["schemas"]["ChatLinkRefPayloadDto"] | components["schemas"]["ChatGiftPayloadDto"] | components["schemas"]["ChatFriendRequestPayloadDto"]) | null;
+            senderId: string;
+            text: string;
+            type: string;
+        };
         /** @enum {string} */
         MessageType: "TEXT" | "ATTACHMENT" | "POST_REF" | "USER_REF" | "LINK_REF" | "GIFT" | "FRIEND_REQUEST" | "SYSTEM" | "RECALL";
         MessageViewDto: {
@@ -4735,12 +4775,10 @@ export type components = {
              *       }
              *     }
              */
-            payload: {
-                [key: string]: unknown;
-            } | null;
-            replyTo?: {
-                [key: string]: unknown;
-            };
+            payload: (components["schemas"]["ChatTextPayloadDto"] | {
+                attachment: components["schemas"]["AttachmentEnvelopeDto"];
+            } | components["schemas"]["ChatPostRefPayloadDto"] | components["schemas"]["ChatUserRefPayloadDto"] | components["schemas"]["ChatLinkRefPayloadDto"] | components["schemas"]["ChatGiftPayloadDto"] | components["schemas"]["ChatFriendRequestPayloadDto"]) | null;
+            replyTo?: components["schemas"]["MessageReplyViewDto"];
             senderId: string;
             text?: string | null;
             type: components["schemas"]["MessageType"];
@@ -5354,9 +5392,9 @@ export type components = {
              *       }
              *     }
              */
-            payload?: {
-                [key: string]: unknown;
-            };
+            payload?: components["schemas"]["ChatTextPayloadDto"] | {
+                attachment: components["schemas"]["AttachmentReferenceDto"];
+            } | components["schemas"]["ChatPostRefPayloadDto"] | components["schemas"]["ChatUserRefPayloadDto"] | components["schemas"]["ChatLinkRefPayloadDto"] | components["schemas"]["ChatGiftPayloadDto"] | components["schemas"]["ChatFriendRequestPayloadDto"];
             replyToMessageId?: string;
             text?: string;
             type: components["schemas"]["MessageType"];
@@ -5428,9 +5466,9 @@ export type components = {
              *       }
              *     }
              */
-            payload?: {
-                [key: string]: unknown;
-            };
+            payload?: components["schemas"]["ChatTextPayloadDto"] | {
+                attachment: components["schemas"]["AttachmentReferenceDto"];
+            } | components["schemas"]["ChatPostRefPayloadDto"] | components["schemas"]["ChatUserRefPayloadDto"] | components["schemas"]["ChatLinkRefPayloadDto"] | components["schemas"]["ChatGiftPayloadDto"] | components["schemas"]["ChatFriendRequestPayloadDto"];
             targetAccountId: string;
             text?: string;
             type?: components["schemas"]["MessageType"];

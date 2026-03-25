@@ -152,11 +152,43 @@ type _GuardUpdateCreatorAgentResult = Assert<IsEqual<
   components['schemas']['UserAgentDnaDto'] | undefined
 >>;
 
+type _ChatMessagePayloadInput =
+  | components['schemas']['ChatTextPayloadDto']
+  | { attachment: components['schemas']['AttachmentReferenceDto'] }
+  | components['schemas']['ChatPostRefPayloadDto']
+  | components['schemas']['ChatUserRefPayloadDto']
+  | components['schemas']['ChatLinkRefPayloadDto']
+  | components['schemas']['ChatGiftPayloadDto']
+  | components['schemas']['ChatFriendRequestPayloadDto'];
+
+type _ChatMessagePayload =
+  | components['schemas']['ChatTextPayloadDto']
+  | { attachment: components['schemas']['AttachmentEnvelopeDto'] }
+  | components['schemas']['ChatPostRefPayloadDto']
+  | components['schemas']['ChatUserRefPayloadDto']
+  | components['schemas']['ChatLinkRefPayloadDto']
+  | components['schemas']['ChatGiftPayloadDto']
+  | components['schemas']['ChatFriendRequestPayloadDto'];
+
 type _GuardSendMessagePayload = Assert<IsEqual<
   components['schemas']['SendMessageInputDto']['payload'],
-  {
-    [key: string]: unknown;
-  } | undefined
+  _ChatMessagePayloadInput | undefined
+>>;
+type _GuardStartChatPayload = Assert<IsEqual<
+  components['schemas']['StartChatInputDto']['payload'],
+  _ChatMessagePayloadInput | undefined
+>>;
+type _GuardEditMessagePayload = Assert<IsEqual<
+  components['schemas']['EditMessageInputDto']['payload'],
+  _ChatMessagePayloadInput | undefined
+>>;
+type _GuardMessageViewPayload = Assert<IsEqual<
+  components['schemas']['MessageViewDto']['payload'],
+  _ChatMessagePayload | null
+>>;
+type _GuardMessageReplyPayload = Assert<IsEqual<
+  components['schemas']['MessageReplyViewDto']['payload'],
+  _ChatMessagePayload | null
 >>;
 
 type _GuardMe2faOperationResultDto = Assert<IsEqual<

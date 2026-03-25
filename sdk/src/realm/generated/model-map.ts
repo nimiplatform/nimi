@@ -38,6 +38,7 @@ export type RealmGeneratedModelMap = {
   AssetListDto: components['schemas']['AssetListDto'];
   AttachmentDisplayKind: components['schemas']['AttachmentDisplayKind'];
   AttachmentEnvelopeDto: components['schemas']['AttachmentEnvelopeDto'];
+  AttachmentReferenceDto: components['schemas']['AttachmentReferenceDto'];
   AttachmentTargetType: components['schemas']['AttachmentTargetType'];
   AuthTwoFactorVerifyInput: components['schemas']['Auth2faVerifyDto'];
   AuthTokensDto: components['schemas']['AuthTokensDto'];
@@ -59,8 +60,14 @@ export type RealmGeneratedModelMap = {
   CausalityRuleDto: components['schemas']['CausalityRuleDto'];
   ChangeEmailDto: components['schemas']['ChangeEmailDto'];
   ChatEventEnvelopeDto: components['schemas']['ChatEventEnvelopeDto'];
+  ChatFriendRequestPayloadDto: components['schemas']['ChatFriendRequestPayloadDto'];
+  ChatGiftPayloadDto: components['schemas']['ChatGiftPayloadDto'];
+  ChatLinkRefPayloadDto: components['schemas']['ChatLinkRefPayloadDto'];
+  ChatPostRefPayloadDto: components['schemas']['ChatPostRefPayloadDto'];
   ChatSyncResultDto: components['schemas']['ChatSyncResultDto'];
   ChatSyncSnapshotDto: components['schemas']['ChatSyncSnapshotDto'];
+  ChatTextPayloadDto: components['schemas']['ChatTextPayloadDto'];
+  ChatUserRefPayloadDto: components['schemas']['ChatUserRefPayloadDto'];
   ChatViewDto: components['schemas']['ChatViewDto'];
   CheckEmailDto: components['schemas']['CheckEmailDto'];
   CheckEmailResponseDto: components['schemas']['CheckEmailResponseDto'];
@@ -142,6 +149,7 @@ export type RealmGeneratedModelMap = {
   Me2faOperationResultDto: components['schemas']['Me2faOperationResultDto'];
   MeTwoFactorPrepareOutput: components['schemas']['Me2faPrepareResponseDto'];
   MeTwoFactorVerifyInput: components['schemas']['Me2faVerifyDto'];
+  MessageReplyViewDto: components['schemas']['MessageReplyViewDto'];
   MessageType: components['schemas']['MessageType'];
   MessageViewDto: components['schemas']['MessageViewDto'];
   ModerationStatusString: components['schemas']['ModerationStatusString'];

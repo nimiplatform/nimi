@@ -279,7 +279,7 @@ export function TurnInput(props: TurnInputProps = {}) {
 
     return await dataSync.sendMessage(selectedChatId, '', {
       type: MessageType.ATTACHMENT,
-      payload: createCanonicalChatAttachmentPayload(finalizedAttachmentTargetId) as unknown as Record<string, never>,
+      payload: createCanonicalChatAttachmentPayload(finalizedAttachmentTargetId),
     });
   };
 

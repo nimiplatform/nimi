@@ -1,5 +1,6 @@
 import type { Realm } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { normalizeRealmMessagePayload } from '@nimiplatform/nimi-kit/features/chat/realm';
 import { isJsonObject, type JsonObject } from '@runtime/net/json';
 import {
   getErrorMessage,
@@ -51,7 +52,9 @@ function createClientMessageId(): string {
   return `cm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function createCanonicalTextPayload(content: string): Record<string, unknown> {
+function createCanonicalTextPayload(
+  content: string,
+): Extract<NonNullable<SendMessageInputDto['payload']>, { content: string }> {
   return { content };
 }
 
@@ -76,7 +79,7 @@ function toQueuedMessagePlaceholder(entry: PersistentOutboxEntry): MessageViewDt
     clientMessageId: entry.clientMessageId,
     createdAt: new Date(entry.enqueuedAt).toISOString(),
     isRead: true,
-    payload,
+    payload: normalizeRealmMessagePayload(payload),
     senderId: String(entry.body.senderId || 'local-user'),
     text: typeof entry.body.text === 'string' ? entry.body.text : null,
     type: (entry.body.type || 'TEXT') as MessageType,
@@ -268,7 +271,7 @@ export async function sendChatMessage(
       clientMessageId,
       type: 'TEXT' as MessageType,
       text: content,
-      payload: createCanonicalTextPayload(content) as SendMessageInputDto['payload'],
+      payload: createCanonicalTextPayload(content),
       ...options,
     };
     const manager = await getOfflineCacheManager();

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
+import { resolveRealmMessageText } from '@nimiplatform/nimi-kit/features/chat/realm';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
@@ -61,14 +62,9 @@ function getChatPreview(
 ): string {
   const lastMsg = chat.lastMessage;
   if (lastMsg) {
-    const text = String(lastMsg.text || '').trim();
-    if (text) return text;
-    const payload = lastMsg.payload;
-    const payloadText = payload && typeof payload === 'object'
-      ? String(payload.content || payload.text || '').trim()
-      : '';
-    if (payloadText) return payloadText;
-    const attachmentText = resolveCanonicalChatAttachmentPreviewText(payload);
+    const resolvedText = resolveRealmMessageText(lastMsg).trim();
+    if (resolvedText) return resolvedText;
+    const attachmentText = resolveCanonicalChatAttachmentPreviewText(lastMsg.payload);
     if (attachmentText) return attachmentText;
   }
   return noMessagesFallback;

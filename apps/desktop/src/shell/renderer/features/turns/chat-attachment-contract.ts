@@ -1,4 +1,11 @@
+import type { RealmSendMessageInputDto } from '@nimiplatform/nimi-kit/features/chat/realm';
+
 type UnknownRecord = Record<string, unknown>;
+
+type CanonicalChatAttachmentPayload = Extract<
+  NonNullable<RealmSendMessageInputDto['payload']>,
+  { attachment: unknown }
+>;
 
 function toRecord(value: unknown): UnknownRecord | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -15,12 +22,7 @@ export function extractChatAttachmentTargetId(session: { resourceId?: unknown } 
   return targetId;
 }
 
-export function createCanonicalChatAttachmentPayload(targetId: string): {
-  attachment: {
-    targetType: 'RESOURCE';
-    targetId: string;
-  };
-} {
+export function createCanonicalChatAttachmentPayload(targetId: string): CanonicalChatAttachmentPayload {
   const normalizedTargetId = String(targetId || '').trim();
   if (!normalizedTargetId) {
     throw new Error('chat-attachment-target-id-required');
