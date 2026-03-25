@@ -9,17 +9,17 @@ const stylesSource = fs.readFileSync(path.join(testDir, 'styles.css'), 'utf8');
 
 describe('forge design theme entry contract', () => {
   it('uses the shared Nimi theme provider with the forge accent pack', () => {
-    expect(mainSource).toMatch(/@nimiplatform\/nimi-ui/);
+    expect(mainSource).toMatch(/@nimiplatform\/nimi-kit\/ui/);
     expect(mainSource).toMatch(/NimiThemeProvider/);
     expect(mainSource).toMatch(/accentPack="forge-accent"/);
     expect(mainSource).toMatch(/defaultScheme="light"/);
   });
 
   it('imports the shared foundation and forge accent styles', () => {
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/styles\.css/);
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/themes\/light\.css/);
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/themes\/dark\.css/);
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/themes\/forge-accent\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/styles\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/themes\/light\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/themes\/dark\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/themes\/forge-accent\.css/);
     expect(stylesSource).not.toMatch(/relay-dark\.css|overtone-studio\.css/);
   });
 

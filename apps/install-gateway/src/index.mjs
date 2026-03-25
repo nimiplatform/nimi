@@ -34,8 +34,8 @@ function errorResponse(message, status = 500) {
 }
 
 async function fetchInstallScriptAsset(request, env, maxAgeSeconds) {
-  const assetRequest = new Request(new URL('/install.sh', request.url));
-  const assetResponse = await env.ASSETS.fetch(assetRequest);
+  const installScriptRequest = new Request(new URL('/install.sh', request.url));
+  const assetResponse = await env.ASSETS.fetch(installScriptRequest);
   if (!assetResponse.ok) {
     return errorResponse('INSTALL_SCRIPT_NOT_FOUND', 404);
   }

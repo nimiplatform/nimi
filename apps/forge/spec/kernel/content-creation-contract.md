@@ -45,11 +45,11 @@ const result = await runtime.media.image.generate({
 - Zoom/lightbox preview
 - Image metadata display (prompt, model, dimensions, timestamp)
 
-### Publishing to Assets
+### Publishing to Resources
 
-- Save generates a `POST /api/media/images/direct-upload` session
-- Forge uploads the artifact, then finalizes the returned `assetId` through `POST /api/media/assets/{assetId}/finalize`
-- Optional: attach to world/agent via media bindings API
+- Save generates a `POST /api/resources/images/direct-upload` session
+- Forge uploads the artifact, then finalizes the returned `resourceId` through `POST /api/resources/{resourceId}/finalize`
+- Optional: attach to world/agent via resource bindings API
 
 ## FG-CONTENT-002: Video Studio
 
@@ -65,15 +65,15 @@ File Select → Upload (direct-upload API) → Process → Preview
 
 | Step | API |
 |------|-----|
-| Upload | `POST /api/media/videos/direct-upload` |
-| Finalize asset | `POST /api/media/assets/{assetId}/finalize` |
-| Resolve preview/detail | `GET /api/media/assets/{assetId}` |
+| Upload | `POST /api/resources/videos/direct-upload` |
+| Finalize resource | `POST /api/resources/{resourceId}/finalize` |
+| Resolve preview/detail | `GET /api/resources/{resourceId}` |
 
 ### UI
 
 - Drag-and-drop upload zone
 - Upload progress bar with cancel
-- Video preview player (resolved from media asset detail)
+- Video preview player (resolved from resource detail)
 - Video metadata: title, description, tags, duration, resolution
 - Upload history list
 
@@ -85,7 +85,7 @@ File Select → Upload (direct-upload API) → Process → Preview
 
 ## FG-CONTENT-003: Content Library
 
-Unified asset browser for all creator-owned media content.
+Unified browser for all creator-owned image, video, audio, and text resources.
 
 ### Asset Types
 
@@ -110,24 +110,24 @@ Unified asset browser for all creator-owned media content.
 
 ### Data Model
 
-Content library reads from `MediaAsset` records and asset detail/list endpoints. Assets are correlated with worlds/agents via:
-- `GET /api/media/assets`
-- `GET /api/media/assets/{assetId}`
-- `PATCH /api/media/assets/{assetId}`
-- `POST /api/media/assets/{assetId}/finalize`
-- `DELETE /api/media/assets/{assetId}`
-- `GET /api/worlds/:worldId/media-bindings` — which assets are bound to which world entities
+Content library reads from `Resource` records and resource detail/list endpoints. Resources are correlated with worlds/agents via:
+- `GET /api/resources`
+- `GET /api/resources/{resourceId}`
+- `PATCH /api/resources/{resourceId}`
+- `POST /api/resources/{resourceId}/finalize`
+- `DELETE /api/resources/{resourceId}`
+- `GET /api/worlds/:worldId/resource-bindings` — which resources are bound to which world entities
 - Local metadata store for tags and custom labels (localStorage, keyed by userId)
 
-`MediaAsset` is the single source of truth for image/video/audio state:
-- upload/generation/import creates or reuses a `MediaAsset`
-- post publishing references `assetId`
-- world display uses `media-bindings`
-- `media-bindings` are not a prerequisite for post publishing
+`Resource` is the single source of truth for image/video/audio/text state:
+- upload/generation/import creates or reuses a `Resource`
+- resource upload is one source of a post attachment target, but post publishing persists canonical `Attachment.targetType + targetId` references
+- world display uses `resource-bindings`
+- `resource-bindings` are not a prerequisite for post publishing
 
-Ownership and delivery are explicit asset semantics:
-- `creatorAccountId` records who executed the upload/generation action
-- `ownerKind + ownerId` records who owns the asset (`ACCOUNT` or `WORLD`)
+Control and delivery are explicit resource semantics:
+- `uploaderAccountId` records who executed the upload/generation action
+- `controllerKind + controllerId` records which controller governs the resource (`ACCOUNT` or `WORLD`)
 - `deliveryAccess` records how the underlying file is served (`PUBLIC` vs `SIGNED`)
 - post/feed visibility remains independent from `deliveryAccess`
 
@@ -135,14 +135,15 @@ Ownership and delivery are explicit asset semantics:
 
 | API | Endpoint | Method | Purpose |
 |-----|----------|--------|---------|
-| Media | `/api/media/images/direct-upload` | POST | Image upload |
-| Media | `/api/media/videos/direct-upload` | POST | Video upload |
-| Media | `/api/media/assets` | GET | List creator-owned assets |
-| Media | `/api/media/assets/{assetId}` | GET | Asset detail and preview access |
-| Media | `/api/media/assets/{assetId}` | PATCH | Update asset metadata |
-| Media | `/api/media/assets/{assetId}/finalize` | POST | Finalize uploaded asset |
-| Media | `/api/media/assets/{assetId}` | DELETE | Soft delete asset |
-| Media Bindings | `/api/worlds/:worldId/media-bindings` | GET | Read-only world display asset mapping |
+| Resources | `/api/resources/images/direct-upload` | POST | Image upload |
+| Resources | `/api/resources/videos/direct-upload` | POST | Video upload |
+| Resources | `/api/resources` | GET | List creator-owned resources |
+| Resources | `/api/resources/{resourceId}` | GET | Resource detail and preview access |
+| Resources | `/api/resources/{resourceId}` | PATCH | Update resource metadata |
+| Resources | `/api/resources/{resourceId}/finalize` | POST | Finalize uploaded resource |
+| Resources | `/api/resources/{resourceId}` | DELETE | Soft delete resource |
+| Resource Bindings | `/api/worlds/:worldId/resource-bindings` | GET, POST | World display resource mapping and write sync |
+| Resource Bindings | `/api/worlds/:worldId/resource-bindings/{bindingId}` | DELETE | Delete world display resource binding |
 
 ## FG-CONTENT-005: Acceptance Criteria
 
@@ -150,7 +151,7 @@ Ownership and delivery are explicit asset semantics:
 2. Generated images can be saved to library via direct-upload API
 3. Generated images can be set as world cover or agent portrait
 4. Video upload works with progress indication and cancel support
-5. Video preview resolves through `MediaAsset` detail instead of a raw playback-token API
+5. Video preview resolves through `Resource` detail instead of a raw playback-token API
 6. Content library displays all assets with search, filter, sort
 7. Bulk tag management works across multiple selected assets
 8. Asset association view correctly shows world/agent linkage
@@ -196,8 +197,8 @@ const result = await runtime.media.music.generate({
 
 ### Persistence
 
-- Save generated audio via `POST /api/media/audio/direct-upload`
-- Finalize audio metadata on `/api/media/assets/{assetId}/finalize`
+- Save generated audio via `POST /api/resources/audio/direct-upload`
+- Finalize audio metadata on `/api/resources/{resourceId}/finalize`
 - Persist metadata: title, lyrics source, style, duration, associated world/agent
 
 ## FG-CONTENT-007: Publishing Workflow
@@ -208,7 +209,8 @@ Forge publishing is an app-level workflow layered on top of existing post primit
 
 - `user` publish: standard creator-authored post using the existing post API
 - `agent` publish: publish under a selected agent identity through the platform's existing agent-post capability when that identity is exposed in the app flow
-- Images, videos, and audio tracks are media assets attached to a post; Forge does not model them as release bundles
+- Forge draft and publish payloads use the generic attachment envelope (`targetType + targetId`) and must preserve `RESOURCE`, `ASSET`, or `BUNDLE` targets without coercing everything to `RESOURCE`
+- Images, videos, and audio tracks commonly enter the flow as `RESOURCE` attachments; Forge does not model post publishing as a separate release-bundle contract
 
 ### App-Level Workflow
 
@@ -224,11 +226,11 @@ Forge publishing is an app-level workflow layered on top of existing post primit
 - History is derived from existing post/feed queries
 - Scheduled publishing is out of scope for the current backend contract
 
-Publishing flow is always asset-first:
-- upload or select an existing `MediaAsset`
-- optionally finalize/update asset metadata
-- optionally bind the asset to world display slots
-- create the post by referencing `Post.media[].assetId`
+Publishing flow preserves the canonical attachment envelope:
+- upload or select an existing `Resource`, or choose an existing `Asset` / `Bundle`
+- when the target is `RESOURCE`, optionally finalize/update resource metadata
+- resource upload and world binding remain optional producer-side workflows and do not redefine the post attachment contract
+- create the post by referencing `Post.attachments[]` with canonical `targetType + targetId`
 
 ### Routes
 
@@ -247,7 +249,7 @@ No new backend API is required for these channel semantics. They are UI vocabula
 
 | API | Endpoint | Status | Purpose |
 |-----|----------|--------|---------|
-| Media | `/api/media/audio/direct-upload` | NEW | Upload generated song/audio assets |
+| Resources | `/api/resources/audio/direct-upload` | EXISTING | Upload generated song/audio resources |
 | Posts | `/api/world/posts` | EXISTING | Create creator-authored posts |
 | Posts | `/api/world/posts/by-id/{id}` | EXISTING | Read/update/delete creator-authored posts |
 | World Posts | `/api/world/by-id/{worldId}/posts` | EXISTING | Read published posts in world context |
@@ -257,8 +259,8 @@ Forge may add a thin adapter for agent-post publishing when that capability is s
 ## FG-CONTENT-009: Extended Acceptance Criteria
 
 1. Music Studio generates tracks via `runtime.media.music.generate`
-2. Generated tracks can be auditioned, titled, and saved through `/api/media/audio/direct-upload`
+2. Generated tracks can be auditioned, titled, and saved through `/api/resources/audio/direct-upload`
 3. Content library indexes audio assets alongside image/video assets
-4. Publish workspace can compose app-level drafts around existing media assets
+4. Publish workspace can compose app-level drafts around existing resources
 5. Publishing as a creator uses existing post primitives rather than a dedicated release backend
 6. Publish history is derived from existing post/feed reads instead of a release ledger

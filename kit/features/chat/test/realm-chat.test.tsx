@@ -18,6 +18,7 @@ import {
   createRealmChatComposerAdapter,
   getRealmChatTimelineDisplayModel,
   normalizeRealmRealtimeMessagePayload,
+  resolveRealmChatMediaUrl,
   resolveRealmChatSyncRequest,
   rememberRealmChatSeenEvent,
   sendRealmChatMessage,
@@ -614,6 +615,52 @@ describe('chat realm helpers', () => {
       showDeliveryState: true,
       deliveryState: 'pending',
     });
+
+    expect(getRealmChatTimelineDisplayModel({
+      id: 'attachment-1',
+      chatId: 'chat-1',
+      senderId: 'user-2',
+      type: 'ATTACHMENT',
+      text: null,
+      payload: {
+        attachment: {
+          targetType: 'ASSET',
+          targetId: 'asset-1',
+          displayKind: 'CARD',
+          title: 'Original Song',
+          preview: {
+            targetType: 'RESOURCE',
+            targetId: 'resource-preview-1',
+            displayKind: 'IMAGE',
+            url: '/resources/resource-preview-1',
+          },
+        },
+      },
+      createdAt: '2026-03-24T09:02:00.000Z',
+      isRead: true,
+      deliveryState: 'sent',
+      deliveryError: null,
+      localPreviewUrl: null,
+      localUploadState: null,
+    }, 'user-1')).toMatchObject({
+      isMe: false,
+      kind: 'image',
+      isImageMessage: true,
+      isMediaMessage: true,
+      resolvedText: 'Original Song',
+    });
+
+    expect(
+      resolveRealmChatMediaUrl({
+        attachment: {
+          displayKind: 'CARD',
+          preview: {
+            displayKind: 'IMAGE',
+            url: '/resources/resource-preview-1',
+          },
+        },
+      }, 'https://realm.example'),
+    ).toBe('https://realm.example/resources/resource-preview-1');
   });
 
   it('renders the default realm chat timeline UI with avatar and gift slots', async () => {

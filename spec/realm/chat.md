@@ -3,14 +3,15 @@ id: SPEC-REALM-CHAT-001
 title: Realm Chat Domain
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-25
 ---
 
 # Realm Chat Domain
 
 ## Normative Imports
 
-- `kernel/chat-contract.md`: `R-CHAT-001..004`
+- `kernel/chat-contract.md`: `R-CHAT-001..005`
+- `kernel/attachment-contract.md`: `R-ATTACH-001..004`
 - `kernel/social-contract.md`: `R-SOC-003..004`
 
 ## Scope
@@ -22,8 +23,9 @@ Chat 是 `nimi-realm` 的正式通域，负责 canonical chat surface。
 ## Reading Path
 
 1. `kernel/chat-contract.md`
-2. `kernel/social-contract.md`
-3. `app-interconnect-model.md`
+2. `kernel/attachment-contract.md`
+3. `kernel/social-contract.md`
+4. `app-interconnect-model.md`
 
 ## Non-goals
 

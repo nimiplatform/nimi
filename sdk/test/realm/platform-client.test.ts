@@ -34,7 +34,7 @@ test('createPlatformClient returns client with realm and domains', async () => {
     assert.equal(typeof client.domains.social.startChat, 'function');
     assert.equal(typeof client.domains.world.getWorld, 'function');
     assert.equal(typeof client.domains.creator.listAgents, 'function');
-    assert.equal(typeof client.domains.media.createImageDirectUpload, 'function');
+    assert.equal(typeof client.domains.resources.createImageDirectUpload, 'function');
 
     const same = getPlatformClient();
     assert.equal(same, client);

@@ -112,11 +112,11 @@ export type LocalChatMediaArtifactShadow = {
   mood: string;
   routeSource: LocalChatMediaRouteSource;
   routeModel: string | null;
-  assetOrigin: 'generated' | 'cache-hit';
+  artifactOrigin: 'generated' | 'cache-hit';
   shadowText: string;
 };
 
-export type LocalChatCachedMediaAsset = {
+export type LocalChatCachedMediaArtifact = {
   executionCacheKey: string;
   specHash: string;
   kind: LocalChatMediaKind;
@@ -178,7 +178,7 @@ export type ChatMessageMeta = {
   streamChunkCount?: number;
   nsfwPolicy?: 'disabled' | 'local-only' | 'allowed';
   segmentParseMode?: 'explicit-delimiter' | 'double-newline' | 'single-message';
-  mediaType?: 'image' | 'video';
+  mediaKind?: 'image' | 'video';
   mediaStatus?: 'pending' | 'ready' | 'failed' | 'blocked';
   mediaPrompt?: string;
   mediaIntentSource?: 'tag' | 'explicit' | 'planner';
@@ -288,7 +288,7 @@ export type LocalChatReplyPacingPlan = {
 
 // ── Beat / turn planning types ──────────────────────────────────────
 
-export type InteractionBeatAssetRequest = {
+export type InteractionBeatMediaRequest = {
   kind: 'image' | 'video';
   prompt: string;
   confidence: number;
@@ -306,7 +306,7 @@ export type InteractionBeat = {
   modality: LocalChatBeatModality;
   text: string;
   pauseMs: number;
-  assetRequest?: InteractionBeatAssetRequest;
+  mediaRequest?: InteractionBeatMediaRequest;
   cancellationScope: 'turn' | 'tail';
   autoPlayVoice?: boolean;
 };
@@ -510,7 +510,7 @@ export type LocalChatConversationRecord = {
   lastTurnSeq: number;
 };
 
-export type LocalChatMediaAssetRecord = LocalChatCachedMediaAsset & {
+export type LocalChatMediaArtifactRecord = LocalChatCachedMediaArtifact & {
   id: string;
   conversationId: string | null;
   turnId: string | null;

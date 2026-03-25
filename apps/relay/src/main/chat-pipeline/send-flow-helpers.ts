@@ -74,28 +74,28 @@ export function toMarkerOverrideIntent(input: {
 }) {
   if (
     (input.beat.modality !== 'image' && input.beat.modality !== 'video')
-    || !input.beat.assetRequest
+    || !input.beat.mediaRequest
   ) {
     return null;
   }
   return {
-    type: input.beat.assetRequest.kind,
-    prompt: input.beat.assetRequest.prompt,
+    type: input.beat.mediaRequest.kind,
+    prompt: input.beat.mediaRequest.prompt,
     source: 'tag' as const,
     plannerTrigger: 'marker-override' as const,
     pendingMessageId: input.beat.beatId,
-    plannerConfidence: input.beat.assetRequest.confidence,
-    plannerSuggestsNsfw: input.beat.assetRequest.nsfwIntent === 'suggested',
+    plannerConfidence: input.beat.mediaRequest.confidence,
+    plannerSuggestsNsfw: input.beat.mediaRequest.nsfwIntent === 'suggested',
   };
 }
 
-export function assertExplicitMediaAssetRequest(input: {
+export function assertExplicitMediaRequest(input: {
   turnMode: LocalChatTurnMode;
   markerOverrideIntent: ReturnType<typeof toMarkerOverrideIntent>;
 }): void {
   if (input.turnMode !== 'explicit-media') return;
   if (input.markerOverrideIntent) return;
-  throw new Error('Explicit media request failed because the composer did not produce an asset request.');
+  throw new Error('Explicit media request failed because the composer did not produce a media request.');
 }
 
 export function bindMediaDecisionToDelivery(
@@ -136,7 +136,7 @@ export function createStandaloneMediaDelivery(input: {
     text: '',
     pauseMs: 420,
     cancellationScope: 'tail',
-    assetRequest: {
+    mediaRequest: {
       kind: input.decision.intent.type,
       prompt: input.decision.intent.prompt,
       confidence: input.decision.intent.plannerConfidence ?? 0.65,
@@ -166,7 +166,7 @@ export function createStandaloneMediaDelivery(input: {
       segmentIndex: beat.beatIndex + 1,
       segmentCount: beat.beatCount,
       intent: beat.intent,
-      mediaType: input.decision.intent.type,
+      mediaKind: input.decision.intent.type,
       mediaPrompt: input.decision.intent.prompt,
       mediaPlannerTrigger: input.decision.intent.plannerTrigger,
       mediaPlannerConfidence: input.decision.intent.plannerConfidence,
@@ -209,12 +209,12 @@ export function buildAssistantDeliveries(input: {
           ? { channelDecision: beat.modality }
           : {}),
         intent: beat.intent,
-        ...(beat.assetRequest
+        ...(beat.mediaRequest
           ? {
-              mediaType: beat.assetRequest.kind,
-              mediaPrompt: beat.assetRequest.prompt,
+              mediaKind: beat.mediaRequest.kind,
+              mediaPrompt: beat.mediaRequest.prompt,
               mediaPlannerTrigger: 'marker-override' as const,
-              mediaPlannerConfidence: beat.assetRequest.confidence,
+              mediaPlannerConfidence: beat.mediaRequest.confidence,
             }
           : {}),
       },

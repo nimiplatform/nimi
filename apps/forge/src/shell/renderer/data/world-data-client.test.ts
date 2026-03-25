@@ -15,7 +15,9 @@ const mockWorldControlController = {
   worldControlControllerListWorldHistory: vi.fn(),
   worldControlControllerAppendWorldHistory: vi.fn(),
   worldControlControllerListWorldLorebooks: vi.fn(),
-  worldControlControllerListWorldMediaBindings: vi.fn(),
+  worldControlControllerListWorldResourceBindings: vi.fn(),
+  worldControlControllerBatchUpsertWorldResourceBindings: vi.fn(),
+  worldControlControllerDeleteWorldResourceBinding: vi.fn(),
 };
 
 const mockWorldsService = {
@@ -336,9 +338,53 @@ describe('world-data-client', () => {
     expect(mockWorldControlController.worldControlControllerListWorldLorebooks).toHaveBeenCalledWith('w1');
   });
 
-  it('listWorldMediaBindings passes worldId', async () => {
-    await wdc.listWorldMediaBindings('w1');
-    expect(mockWorldControlController.worldControlControllerListWorldMediaBindings).toHaveBeenCalledWith('w1', undefined, undefined);
+  it('listWorldResourceBindings passes worldId', async () => {
+    await wdc.listWorldResourceBindings('w1');
+    expect(mockWorldControlController.worldControlControllerListWorldResourceBindings).toHaveBeenCalledWith(
+      'w1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('batchUpsertWorldResourceBindings forwards canonical payload', async () => {
+    await wdc.batchUpsertWorldResourceBindings('w1', {
+      bindingUpserts: [{
+        targetType: 'WORLD',
+        targetId: 'w1',
+        slot: 'WORLD_ICON',
+        resource: {
+          resourceType: 'IMAGE',
+          storageRef: 'https://cdn.example/icon.png',
+        },
+      }],
+    });
+
+    expect(mockWorldControlController.worldControlControllerBatchUpsertWorldResourceBindings).toHaveBeenCalledWith(
+      'w1',
+      {
+        bindingUpserts: [{
+          targetType: 'WORLD',
+          targetId: 'w1',
+          slot: 'WORLD_ICON',
+          resource: {
+            resourceType: 'IMAGE',
+            storageRef: 'https://cdn.example/icon.png',
+          },
+        }],
+      },
+    );
+  });
+
+  it('deleteWorldResourceBinding forwards world and binding ids', async () => {
+    await wdc.deleteWorldResourceBinding('w1', 'binding-1');
+
+    expect(mockWorldControlController.worldControlControllerDeleteWorldResourceBinding).toHaveBeenCalledWith(
+      'w1',
+      'binding-1',
+    );
   });
 
   it('listWorldRules passes worldId and status', async () => {

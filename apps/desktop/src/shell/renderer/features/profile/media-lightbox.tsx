@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { PostMediaType } from '@nimiplatform/sdk/realm';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -12,7 +11,7 @@ type MediaLightboxProps = {
 
 export function MediaLightbox({ post, initialMediaIndex, onClose }: MediaLightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialMediaIndex);
-  const media = post.media || [];
+  const media = post.attachments || [];
   const current = media[currentIndex];
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex < media.length - 1;
@@ -79,7 +78,7 @@ export function MediaLightbox({ post, initialMediaIndex, onClose }: MediaLightbo
 
       {/* Content */}
       <div className="max-h-[90vh] max-w-[90vw]">
-        {current.type === PostMediaType.VIDEO && current.url ? (
+        {current.displayKind === 'VIDEO' && current.url ? (
           <video
             src={current.url}
             controls

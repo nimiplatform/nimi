@@ -12,24 +12,21 @@ import {
   listReleases,
   publishRelease,
   updateRelease,
+  type PublishDraftAttachment,
   type PublishReleaseDraft,
 } from '@renderer/data/content-data-client.js';
 import { useCreatorPostsQuery } from '@renderer/hooks/use-content-queries.js';
 import { useAgentListQuery } from '@renderer/hooks/use-agent-queries.js';
 
 type ReleaseStatus = 'ALL' | 'DRAFT' | 'PUBLISHED';
-type DraftMediaType = 'IMAGE' | 'VIDEO';
 type DraftIdentity = 'USER' | 'AGENT';
 
-type DraftMediaItem = {
-  assetId: string;
-  type: DraftMediaType;
-};
+type DraftAttachmentItem = PublishDraftAttachment;
 
 type PublishDraft = PublishReleaseDraft;
 
-function emptyMedia(): DraftMediaItem {
-  return { assetId: '', type: 'IMAGE' };
+function emptyAttachment(): DraftAttachmentItem {
+  return { targetType: 'RESOURCE', targetId: '', displayKind: 'IMAGE' };
 }
 
 export default function ReleasesPage() {
@@ -42,7 +39,7 @@ export default function ReleasesPage() {
   const [tagsInput, setTagsInput] = useState('');
   const [identity, setIdentity] = useState<DraftIdentity>('USER');
   const [agentId, setAgentId] = useState('');
-  const [media, setMedia] = useState<DraftMediaItem[]>([emptyMedia()]);
+  const [attachments, setAttachments] = useState<DraftAttachmentItem[]>([emptyAttachment()]);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,7 +71,7 @@ export default function ReleasesPage() {
       setTagsInput('');
       setIdentity('USER');
       setAgentId('');
-      setMedia([emptyMedia()]);
+      setAttachments([emptyAttachment()]);
       return;
     }
     setTitle(selectedDraft.title || '');
@@ -82,7 +79,7 @@ export default function ReleasesPage() {
     setTagsInput(selectedDraft.tags.join(', '));
     setIdentity(selectedDraft.identity || 'USER');
     setAgentId(selectedDraft.agentId || '');
-    setMedia(selectedDraft.media.length > 0 ? selectedDraft.media : [emptyMedia()]);
+    setAttachments(selectedDraft.attachments.length > 0 ? selectedDraft.attachments : [emptyAttachment()]);
   }, [selectedDraft]);
 
   const createDraftMutation = useMutation({
@@ -107,9 +104,13 @@ export default function ReleasesPage() {
       tags: parseTags(tagsInput),
       identity,
       agentId: identity === 'AGENT' ? agentId || null : null,
-      media: media
-        .filter((item) => item.assetId.trim())
-        .map((item) => ({ assetId: item.assetId.trim(), type: item.type })),
+      attachments: attachments
+        .filter((item) => item.targetId.trim())
+        .map((item) => ({
+          targetType: item.targetType,
+          targetId: item.targetId.trim(),
+          displayKind: item.displayKind,
+        })),
     }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['forge', 'publish', 'drafts'] });
@@ -244,7 +245,7 @@ export default function ReleasesPage() {
                     {draft.caption || t('releases.emptyDraftCaption', 'No caption yet.')}
                   </p>
                   <p className="mt-2 text-[11px] text-neutral-500">
-                    {draft.media.length} {t('releases.assets', 'assets')} · {draft.identity}
+                    {draft.attachments.length} {t('releases.attachments', 'attachments')} · {draft.identity}
                   </p>
                 </button>
               ))}
@@ -259,7 +260,7 @@ export default function ReleasesPage() {
                     {t('releases.editorTitle', 'Draft Editor')}
                   </h2>
                   <p className="mt-1 text-xs text-neutral-500">
-                    {t('releases.editorHint', 'Current publish path supports creator-authored posts with image/video assets.')}
+                    {t('releases.editorHint', 'Current publish path supports creator-authored posts with canonical attachment targets and preserves RESOURCE, ASSET, and BUNDLE references in local drafts.')}
                   </p>
                 </div>
                 {selectedDraft && (
@@ -367,47 +368,57 @@ export default function ReleasesPage() {
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-neutral-400">{t('releases.media', 'Media Assets')}</span>
+                      <span className="text-xs text-neutral-400">{t('releases.attachments', 'Attachments')}</span>
                       <button
-                        onClick={() => setMedia((current) => [...current, emptyMedia()])}
+                        onClick={() => setAttachments((current) => [...current, emptyAttachment()])}
                         className="rounded-lg border border-neutral-700 px-2.5 py-1.5 text-xs font-medium text-neutral-200"
                       >
-                        {t('releases.addAsset', 'Add Asset')}
+                        {t('releases.addAttachment', 'Add Attachment')}
                       </button>
                     </div>
 
-                    {media.map((item, index) => (
-                      <div key={`${index}-${item.assetId}`} className="grid gap-2 lg:grid-cols-[140px_minmax(0,1fr)_80px]">
+                    {attachments.map((item, index) => (
+                      <div key={`${index}-${item.targetId}`} className="grid gap-2 lg:grid-cols-[140px_minmax(0,1fr)_80px]">
                         <select
-                          value={item.type}
-                          onChange={(event) => setMedia((current) => current.map((entry, entryIndex) => (
+                          value={item.displayKind}
+                          onChange={(event) => setAttachments((current) => current.map((entry, entryIndex) => (
                             entryIndex === index
-                              ? { ...entry, type: event.target.value === 'VIDEO' ? 'VIDEO' : 'IMAGE' }
+                              ? {
+                                  ...entry,
+                                  displayKind: (
+                                    ['VIDEO', 'AUDIO', 'TEXT', 'CARD'].includes(event.target.value)
+                                      ? event.target.value
+                                      : 'IMAGE'
+                                  ) as DraftAttachmentItem['displayKind'],
+                                }
                               : entry
                           )))}
                           className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
                         >
-                          <option value="IMAGE">{t('releases.mediaImage', 'Image')}</option>
-                          <option value="VIDEO">{t('releases.mediaVideo', 'Video')}</option>
+                          <option value="IMAGE">{t('releases.attachmentImage', 'Image')}</option>
+                          <option value="VIDEO">{t('releases.attachmentVideo', 'Video')}</option>
+                          <option value="AUDIO">{t('releases.attachmentAudio', 'Audio')}</option>
+                          <option value="TEXT">{t('releases.attachmentText', 'Text')}</option>
+                          <option value="CARD">{t('releases.attachmentCard', 'Card')}</option>
                         </select>
                         <input
-                          value={item.assetId}
-                          onChange={(event) => setMedia((current) => current.map((entry, entryIndex) => (
+                          value={item.targetId}
+                          onChange={(event) => setAttachments((current) => current.map((entry, entryIndex) => (
                             entryIndex === index
-                              ? { ...entry, assetId: event.target.value }
+                              ? { ...entry, targetId: event.target.value }
                               : entry
                           )))}
                           className="rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-neutral-500"
-                          placeholder={t('releases.assetIdPlaceholder', 'Selected media asset id')}
+                          placeholder={t('releases.attachmentTargetIdPlaceholder', 'Selected attachment target id')}
                         />
                         <button
-                          onClick={() => setMedia((current) => {
+                          onClick={() => setAttachments((current) => {
                             const next = current.filter((_, entryIndex) => entryIndex !== index);
-                            return next.length > 0 ? next : [emptyMedia()];
+                            return next.length > 0 ? next : [emptyAttachment()];
                           })}
                           className="rounded-lg border border-neutral-700 px-3 py-2 text-xs font-medium text-neutral-300"
                         >
-                          {t('releases.removeAsset', 'Remove')}
+                          {t('releases.removeAttachment', 'Remove')}
                         </button>
                       </div>
                     ))}
@@ -425,7 +436,7 @@ export default function ReleasesPage() {
                   <div key={post.id} className="rounded-lg border border-neutral-800 bg-black/20 px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm text-white">{post.caption || t('releases.untitledPost', 'Untitled post')}</p>
-                      <span className="text-[11px] text-neutral-500">{post.media.length} {t('releases.assets', 'assets')}</span>
+                      <span className="text-[11px] text-neutral-500">{post.attachments.length} {t('releases.attachments', 'attachments')}</span>
                     </div>
                     <p className="mt-1 text-xs text-neutral-500">
                       {post.tags.join(', ') || t('releases.noTags', 'No tags')}

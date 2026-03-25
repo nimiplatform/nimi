@@ -1,0 +1,51 @@
+contract_id: ATTACHMENT-CONTRACT-001
+domain: attachment
+status: ACTIVE
+version: 2026-03-25
+owner: '@team'
+sources:
+  human_spec: ../attachment-contract.md
+  openapi:
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
+  services:
+    - ../../nimi-backend/libs/domains/content/src/domains/post.service.ts
+    - ../../nimi-backend/libs/domains/chat/src/domains/chat.service.ts
+    - ../../nimi-backend/libs/domains/discovery-engine/src/discovery/discovery-engine.service.ts
+rule_id_prefix: R-ATTACH-
+rules:
+  - rule_id: R-ATTACH-001
+    level: must
+    title: generic-target-envelope
+    statement: "Realm Attachment is a first-class cross-surface envelope with stable targetType plus targetId identity and is not equivalent to Resource, OwnableAsset, or Bundle."
+  - rule_id: R-ATTACH-002
+    level: must
+    title: fixed-active-target-set
+    statement: "Active attachment targets are fixed to RESOURCE, ASSET, and BUNDLE; write surfaces persist target references only and read surfaces may resolve display metadata without introducing attachment-level owner or viewer policy."
+  - rule_id: R-ATTACH-003
+    level: must
+    title: post-and-chat-canonical-persistence
+    statement: "Post attachments persist as ordered PostAttachment relations and chat non-text attachment messages persist as MessageType ATTACHMENT with payload.attachment envelope."
+  - rule_id: R-ATTACH-004
+    level: must
+    title: resolved-read-model-does-not-change-target-identity
+    statement: "Resolved attachment read models may expose displayKind, URLs, thumbnails, duration, title, subtitle, and nested preview attachments for card targets; surface readability authorizes preview resolution, and stable APIs must not collapse back to resourceId-only or assetId-only attachment contracts."
+entities:
+  - name: PostAttachment
+    prisma_model: PostAttachment
+    required_fields: [id, postId, targetType, targetId, sortOrder, createdAt]
+    json_fields: []
+  - name: ChatAttachmentEnvelope
+    required_fields: [targetType, targetId]
+    json_fields: []
+api_surface:
+  required_operations:
+    - POST /api/world/posts
+    - GET /api/world/posts
+    - GET /api/world/posts/by-id/{id}
+    - POST /api/human/chats
+    - POST /api/human/chats/{chatId}/messages
+    - PATCH /api/human/chats/{chatId}/messages/{messageId}
+  secondary_operations:
+    - GET /api/search
+    - GET /api/explore

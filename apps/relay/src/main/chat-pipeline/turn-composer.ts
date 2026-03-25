@@ -4,7 +4,7 @@
 
 import type {
   InteractionBeat,
-  InteractionBeatAssetRequest,
+  InteractionBeatMediaRequest,
   InteractionTurnPlan,
   LocalChatContextPacket,
   LocalChatTurnAiClient,
@@ -16,7 +16,7 @@ import { stripTrailingEndMarkerFragment } from './stream-end-marker.js';
 import { pt, type PromptLocale } from '../prompt/prompt-locale.js';
 
 type ComposerBeatObject = {
-  assetRequest?: Pick<InteractionBeatAssetRequest, 'kind' | 'prompt'>;
+  mediaRequest?: Pick<InteractionBeatMediaRequest, 'kind' | 'prompt'>;
   content?: string;
   intent?: InteractionBeat['intent'] | string;
   pauseMs?: number | string;
@@ -158,12 +158,12 @@ function parsePlanObject(input: {
     const text = asBeatText(item.text || item.content);
     if (!text) return;
     if (isSemanticallyDuplicate(text, input.sealedFirstBeatText)) return;
-    const kind = asString(item.assetRequest?.kind);
-    const prompt = asBeatText(item.assetRequest?.prompt);
+    const kind = asString(item.mediaRequest?.kind);
+    const prompt = asBeatText(item.mediaRequest?.prompt);
     const rawRelationMove = asString(
       item.relationMove || item.relation_move || input.turnMode,
     );
-    const allowAssetRequest = input.turnMode === 'explicit-media';
+    const allowMediaRequest = input.turnMode === 'explicit-media';
     beats.push({
       beatId: `beat_${createUlid()}`,
       turnId: input.turnId,
@@ -175,8 +175,8 @@ function parsePlanObject(input: {
       modality: 'text',
       text,
       pauseMs: normalizePauseMs(item.pauseMs || item.pause_ms, index),
-      assetRequest:
-        allowAssetRequest && (kind === 'image' || kind === 'video')
+      mediaRequest:
+        allowMediaRequest && (kind === 'image' || kind === 'video')
           ? {
               kind,
               prompt: prompt || text,
@@ -281,7 +281,7 @@ export async function composeInteractionTurnPlan(input: {
     pt(locale, 'composer.fieldRelation'),
     pt(locale, 'composer.fieldScene'),
     pt(locale, 'composer.fieldPause'),
-    pt(locale, 'composer.fieldAsset'),
+    pt(locale, 'composer.fieldMediaRequest'),
     '',
     pt(locale, 'composer.rulesHeader'),
     pt(locale, 'composer.ruleCount'),

@@ -1,7 +1,7 @@
 /**
  * Content Data Client — Forge adapter (FG-CONTENT-001..007)
  *
- * Direct SDK realm client calls for media upload, posts, and content operations.
+ * Direct SDK realm client calls for resource upload, posts, and content operations.
  * Publish workspace helpers below are app-level placeholders, not missing backend APIs.
  */
 
@@ -18,17 +18,19 @@ import {
   deletePublishDraft,
   markPublishDraftPublished,
   listPublishDeliveries,
-  type PublishDraftMedia,
+  type PublishDraftAttachment,
   type PublishWorkspaceState,
 } from './publish-workspace-data.js';
+
+export type { PublishDraftAttachment };
 
 function realm() {
   return getPlatformClient().realm;
 }
 
-type CreateAudioDirectUploadInput = RealmServiceArgs<'MediaService', 'createAudioDirectUpload'>[0];
-type UpdateMediaAssetInput = RealmServiceArgs<'MediaService', 'updateMediaAsset'>[1];
-type FinalizeMediaAssetInput = RealmServiceArgs<'MediaService', 'finalizeMediaAsset'>[1];
+type CreateAudioDirectUploadInput = RealmServiceArgs<'ResourcesService', 'createAudioDirectUpload'>[0];
+type UpdateResourceInput = RealmServiceArgs<'ResourcesService', 'updateResource'>[1];
+type FinalizeResourceInput = RealmServiceArgs<'ResourcesService', 'finalizeResource'>[1];
 type CreatePostInput = RealmServiceArgs<'PostService', 'createPost'>[0];
 type UpdatePostInput = RealmServiceArgs<'PostService', 'updatePost'>[1];
 type PostDto = RealmModel<'PostDto'>;
@@ -45,16 +47,16 @@ export type PublishChannelUpdateInput = {
 export type ForgeCreateAudioDirectUploadInput = CreateAudioDirectUploadInput & {
   [key: string]: unknown;
 };
-export type ForgeUpdateMediaAssetInput = UpdateMediaAssetInput & {
+export type ForgeUpdateResourceInput = UpdateResourceInput & {
   [key: string]: unknown;
 };
-export type ForgeFinalizeMediaAssetInput = FinalizeMediaAssetInput & {
+export type ForgeFinalizeResourceInput = FinalizeResourceInput & {
   [key: string]: unknown;
 };
 export type ForgeCreatePostInput = CreatePostInput | {
   content?: string;
   caption?: string;
-  media?: CreatePostInput['media'];
+  attachments?: CreatePostInput['attachments'];
   tags?: string[];
   [key: string]: unknown;
 };
@@ -67,26 +69,51 @@ export type ReleaseMutationInput = {
   title?: string;
   caption?: string;
   tags?: string[];
-  media?: Array<PublishDraftMedia | { id?: string; assetId?: string; type?: PublishDraftMedia['type'] }>;
+  attachments?: Array<PublishDraftAttachment>;
   identity?: PublishWorkspaceState['settings']['defaultIdentity'];
   agentId?: string | null;
   delete?: boolean;
 };
 type PublishDelivery = ReturnType<typeof listPublishDeliveries>[number];
 
-function toDraftMediaList(input: unknown): PublishDraftMedia[] | undefined {
+function parseDraftAttachmentTargetType(value: unknown): PublishDraftAttachment['targetType'] | null {
+  const normalized = String(value || '').trim();
+  if (normalized === 'RESOURCE' || normalized === 'ASSET' || normalized === 'BUNDLE') {
+    return normalized;
+  }
+  return null;
+}
+
+function parseDraftAttachmentDisplayKind(value: unknown): PublishDraftAttachment['displayKind'] | null {
+  const normalized = String(value || '').trim();
+  if (
+    normalized === 'IMAGE'
+    || normalized === 'VIDEO'
+    || normalized === 'AUDIO'
+    || normalized === 'TEXT'
+    || normalized === 'CARD'
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function toDraftAttachmentList(input: unknown): PublishDraftAttachment[] | undefined {
   if (!Array.isArray(input)) return undefined;
   return input
     .map((item) => {
-      const media = item && typeof item === 'object'
-        ? (item as { assetId?: unknown; id?: unknown; type?: unknown })
+      const attachment = item && typeof item === 'object'
+        ? (item as { targetType?: unknown; targetId?: unknown; displayKind?: unknown })
         : {};
-      return {
-        assetId: String(media.assetId || media.id || '').trim(),
-        type: (String(media.type || 'IMAGE') === 'VIDEO' ? 'VIDEO' : 'IMAGE') as PublishDraftMedia['type'],
-      };
+      const targetType = parseDraftAttachmentTargetType(attachment.targetType);
+      const displayKind = parseDraftAttachmentDisplayKind(attachment.displayKind);
+      const targetId = String(attachment.targetId || '').trim();
+      if (!targetType || !displayKind || !targetId) {
+        return null;
+      }
+      return { targetType, targetId, displayKind };
     })
-    .filter((item) => Boolean(item.assetId));
+    .filter((item): item is PublishDraftAttachment => item !== null);
 }
 
 function toChannelPatch(
@@ -101,42 +128,42 @@ function toChannelPatch(
 // ── Media Upload ─────────────────────────────────────────────
 
 export async function createImageDirectUpload(requireSignedUrls?: string) {
-  return realm().services.MediaService.createImageDirectUpload(requireSignedUrls);
+  return realm().services.ResourcesService.createImageDirectUpload(requireSignedUrls);
 }
 
 export async function createVideoDirectUpload(requireSignedUrls?: string) {
-  return realm().services.MediaService.createVideoDirectUpload(requireSignedUrls);
+  return realm().services.ResourcesService.createVideoDirectUpload(requireSignedUrls);
 }
 
 export async function createAudioDirectUpload(payload: ForgeCreateAudioDirectUploadInput = {}) {
-  return realm().services.MediaService.createAudioDirectUpload(payload);
+  return realm().services.ResourcesService.createAudioDirectUpload(payload);
 }
 
-export async function listMediaAssets() {
-  return realm().services.MediaService.listMediaAssets();
+export async function listResources() {
+  return realm().services.ResourcesService.listResources();
 }
 
-export async function getMediaAsset(assetId: string) {
-  return realm().services.MediaService.getMediaAsset(assetId);
+export async function getResource(resourceId: string) {
+  return realm().services.ResourcesService.getResource(resourceId);
 }
 
-export async function updateMediaAsset(assetId: string, payload: ForgeUpdateMediaAssetInput) {
-  return realm().services.MediaService.updateMediaAsset(assetId, payload);
+export async function updateResource(resourceId: string, payload: ForgeUpdateResourceInput) {
+  return realm().services.ResourcesService.updateResource(resourceId, payload);
 }
 
-export async function finalizeMediaAsset(assetId: string, payload: ForgeFinalizeMediaAssetInput = {}) {
-  return realm().services.MediaService.finalizeMediaAsset(assetId, payload);
+export async function finalizeResource(resourceId: string, payload: ForgeFinalizeResourceInput = {}) {
+  return realm().services.ResourcesService.finalizeResource(resourceId, payload);
 }
 
-export async function deleteMediaAsset(assetId: string) {
-  return realm().services.MediaService.deleteMediaAsset(assetId);
+export async function deleteResource(resourceId: string) {
+  return realm().services.ResourcesService.deleteResource(resourceId);
 }
 
 // ── Posts ─────────────────────────────────────────────────────
 
 export async function createPost(payload: ForgeCreatePostInput) {
   return realm().services.PostService.createPost({
-    media: Array.isArray(payload.media) ? payload.media : [],
+    attachments: Array.isArray(payload.attachments) ? payload.attachments : [],
     caption: payload.caption || ('content' in payload ? payload.content : undefined),
     tags: payload.tags,
   });
@@ -209,7 +236,7 @@ export async function createRelease(payload: ReleaseMutationInput): Promise<Retu
     title: payload.title ? String(payload.title) : '',
     caption: payload.caption ? String(payload.caption) : '',
     tags: Array.isArray(payload.tags) ? payload.tags.map((tag) => String(tag || '')).filter(Boolean) : [],
-    media: toDraftMediaList(payload.media) || [],
+    attachments: toDraftAttachmentList(payload.attachments) || [],
     identity: String(payload.identity || 'USER') === 'AGENT' ? 'AGENT' : 'USER',
     agentId: payload.agentId ? String(payload.agentId) : null,
   });
@@ -232,7 +259,7 @@ export async function updateRelease(releaseId: string, payload: ReleaseMutationI
     title: payload.title !== undefined ? String(payload.title || '') : undefined,
     caption: payload.caption !== undefined ? String(payload.caption || '') : undefined,
     tags: Array.isArray(payload.tags) ? payload.tags.map((tag) => String(tag || '')).filter(Boolean) : undefined,
-    media: toDraftMediaList(payload.media),
+    attachments: toDraftAttachmentList(payload.attachments),
     identity: payload.identity !== undefined ? (String(payload.identity) === 'AGENT' ? 'AGENT' : 'USER') : undefined,
     agentId: payload.agentId !== undefined ? (payload.agentId ? String(payload.agentId) : null) : undefined,
   });
@@ -246,11 +273,14 @@ export async function publishRelease(releaseId: string): Promise<ReturnType<type
   if (draft.identity === 'AGENT') {
     throw new Error('Agent-identity publishing requires platform agent-post capability, which is not yet exposed through the Forge realm client.');
   }
-  if (draft.media.length === 0) {
-    throw new Error('At least one image or video asset is required to publish');
+  if (draft.attachments.length === 0) {
+    throw new Error('At least one attachment is required to publish');
   }
   const created = await createPost({
-    media: draft.media.map((item) => ({ assetId: item.assetId, type: item.type })),
+    attachments: draft.attachments.map((item) => ({
+      targetType: item.targetType,
+      targetId: item.targetId,
+    })),
     caption: draft.caption || undefined,
     tags: draft.tags.length > 0 ? draft.tags : undefined,
   });

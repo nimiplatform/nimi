@@ -1,5 +1,5 @@
 version: 1
-updated_at: 2026-03-21
+updated_at: 2026-03-25
 owner: '@team'
 enums:
   - enum_id: STATE-SCOPE
@@ -15,9 +15,9 @@ enums:
     values: [PUBLIC_SHARED, WORLD_SHARED, DYADIC]
     source_rules: [R-MEM-002]
   - enum_id: APP-RUN-MODE
-    domain: world-history
+    domain: realm-shared
     values: [REPLAY, PRIVATE_CONTINUITY, CANON_MUTATION]
-    source_rules: [R-WHIST-004]
+    source_rules: [R-WHIST-004, R-WSTATE-005, R-MEM-006]
   - enum_id: WORLD-TYPE
     domain: truth
     values: [OASIS, CREATOR]
@@ -26,3 +26,72 @@ enums:
     domain: transit
     values: [PENDING, ACTIVE, COMPLETED, ABANDONED]
     source_rules: [R-TRANSIT-003]
+  - enum_id: RESOURCE-TYPE
+    domain: resource
+    values: [IMAGE, VIDEO, AUDIO, TEXT]
+    source_rules: [R-RSRC-002]
+  - enum_id: RESOURCE-STATUS
+    domain: resource
+    values: [PENDING, READY, FAILED, DELETED]
+    source_rules: [R-RSRC-003]
+  - enum_id: RESOURCE-DELIVERY-ACCESS
+    domain: resource
+    values: [PUBLIC, SIGNED]
+    source_rules: [R-RSRC-001, R-RSRC-003]
+  - enum_id: RESOURCE-BINDING-TARGET
+    domain: resource
+    values: [WORLD, AGENT, SCENE, WORLD_EVENT, WORLDVIEW]
+    source_rules: [R-RSRC-004]
+  - enum_id: RESOURCE-BINDING-SLOT
+    domain: resource
+    values:
+      [
+        WORLD_ICON,
+        WORLD_BANNER,
+        WORLD_GALLERY,
+        WORLD_THEME_AUDIO,
+        WORLD_TRAILER_VIDEO,
+        SCENE_BACKGROUND,
+        SCENE_AMBIENT_AUDIO,
+        EVENT_CG,
+        WORLDVIEW_REFERENCE,
+        AGENT_AVATAR,
+        AGENT_PORTRAIT,
+        AGENT_EXPRESSION,
+        AGENT_OUTFIT,
+        AGENT_CANDIDATE,
+        AGENT_VOICE_SAMPLE,
+      ]
+    source_rules: [R-RSRC-004]
+  - enum_id: ATTACHMENT-TARGET-TYPE
+    domain: attachment
+    values: [RESOURCE, ASSET, BUNDLE]
+    source_rules: [R-ATTACH-002]
+  - enum_id: ATTACHMENT-DISPLAY-KIND
+    domain: attachment
+    values: [IMAGE, VIDEO, AUDIO, TEXT, CARD]
+    source_rules: [R-ATTACH-004]
+  - enum_id: OWNABLE-ASSET-KIND
+    domain: asset
+    values: [WORK, ITEM]
+    source_rules: [R-ASSET-101]
+  - enum_id: OWNABLE-ASSET-STATUS
+    domain: asset
+    values: [DRAFT, READY, ARCHIVED, DELETED]
+    source_rules: [R-ASSET-103]
+  - enum_id: OWNABLE-ASSET-ORIGIN
+    domain: asset
+    values: [ORIGINAL, CLONE, DERIVED]
+    source_rules: [R-ASSET-101, R-ASSET-103]
+  - enum_id: OWNABLE-ASSET-POLICY
+    domain: asset
+    values: [ALLOW, DENY, INHERIT]
+    source_rules: [R-ASSET-101, R-ASSET-103]
+  - enum_id: ASSET-BINDING-TARGET
+    domain: asset
+    values: [WORLD, AGENT, SCENE, WORKSPACE]
+    source_rules: [R-ASSET-104]
+  - enum_id: BUNDLE-STATUS
+    domain: bundle
+    values: [DRAFT, PUBLISHED, ARCHIVED]
+    source_rules: [R-BNDL-001, R-BNDL-003]

@@ -1,7 +1,7 @@
 contract_id: TRUTH-CONTRACT-001
 domain: truth
 status: ACTIVE
-version: 2026-03-21
+version: 2026-03-23
 owner: '@team'
 sources:
   human_spec: ../truth-contract.md
@@ -18,7 +18,7 @@ rules:
   - rule_id: R-TRUTH-001
     level: must
     title: realm-truth-scope
-    statement: "Realm canonical truth is limited to world truth and agent truth; runtime story output is not truth by default."
+    statement: "Realm canonical truth is limited to creator-governed world truth and agent truth; runtime story output is not truth by default."
   - rule_id: R-TRUTH-002
     level: must
     title: world-rule-canonical
@@ -51,7 +51,6 @@ entities:
   - name: World
     prisma_model: World
     required_fields: [id, type, status]
-    json_fields: []
   - name: WorldRule
     prisma_model: WorldRule
     required_fields: [id, worldId, ruleKey, title, statement, domain, hardness, scope, status, version]
@@ -82,4 +81,4 @@ api_surface:
     - GET /api/world/by-id/{id}/lorebooks
   secondary_operations:
     - GET /api/world
-    - GET /api/world/by-id/{id}/media-bindings
+    - GET /api/world/by-id/{id}/resource-bindings

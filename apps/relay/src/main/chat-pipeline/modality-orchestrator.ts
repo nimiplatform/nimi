@@ -34,8 +34,8 @@ function resolveExplicitVisualModality(input: {
   turnMode: LocalChatTurnMode;
 }): 'image' | 'video' | null {
   if (input.turnMode !== 'explicit-media') return null;
-  if (!input.beat.assetRequest) return null;
-  return input.beat.assetRequest.kind;
+  if (!input.beat.mediaRequest) return null;
+  return input.beat.mediaRequest.kind;
 }
 
 export function orchestrateBeatModalities(input: {
@@ -53,7 +53,7 @@ export function orchestrateBeatModalities(input: {
       interactionProfile: input.interactionProfile,
       policy: input.policy,
     });
-    const forceVoiceBeforeAutoVisual = !beat.assetRequest && voicePreferred && (
+    const forceVoiceBeforeAutoVisual = !beat.mediaRequest && voicePreferred && (
       input.turnMode === 'explicit-voice'
       || (input.policy.voicePolicy.conversationMode === 'on' && input.turnMode !== 'explicit-media')
     );

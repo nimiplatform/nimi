@@ -7,7 +7,7 @@ import type {
   WorldHistoryBundle,
   WorldHistoryItem,
   WorldLorebookItem,
-  WorldMediaBindingItem,
+  WorldResourceBindingItem,
   WorldPublicAssetsData,
   WorldSemanticData,
   WorldSemanticLanguage,
@@ -30,7 +30,7 @@ type PowerSystemTabooDto = RealmModel<'PowerSystemTabooDto'>;
 type SpaceRealmDto = RealmModel<'SpaceRealmDto'>;
 type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
 type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
-type PublicWorldMediaBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldMediaBindings>>['items'][number];
+type PublicWorldResourceBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldResourceBindings>>['items'][number];
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
@@ -383,23 +383,23 @@ function toWorldLorebookItem(raw: PublicWorldLorebookDto): WorldLorebookItem {
   };
 }
 
-function toWorldMediaBindingItem(raw: PublicWorldMediaBindingDto): WorldMediaBindingItem {
-  const id = requireString(raw.id, 'media_binding_id');
-  const assetRecord = assertRecord(raw.asset, 'media_binding_asset');
-  const assetId = requireString(assetRecord.id, 'media_binding_asset_id');
-  const assetUrl = requireString(assetRecord.url, 'media_binding_asset_url');
+function toWorldResourceBindingItem(raw: PublicWorldResourceBindingDto): WorldResourceBindingItem {
+  const id = requireString(raw.id, 'resource_binding_id');
+  const resourceRecord = assertRecord(raw.resource, 'resource_binding_resource');
+  const resourceId = requireString(resourceRecord.id, 'resource_binding_resource_id');
+  const resourceUrl = requireString(resourceRecord.url, 'resource_binding_resource_url');
   return {
     id,
-    targetType: requireString(raw.targetType, 'media_binding_target_type'),
-    targetId: requireString(raw.targetId, 'media_binding_target_id'),
-    slot: requireString(raw.slot, 'media_binding_slot'),
-    priority: requireNumber(raw.priority, 'media_binding_priority'),
-    tags: requireStringArray(raw.tags, 'media_binding_tags'),
-    asset: {
-      id: assetId,
-      url: assetUrl,
-      mediaType: requireString(assetRecord.mediaType, 'media_binding_asset_media_type'),
-      label: readString(assetRecord.label),
+    targetType: requireString(raw.targetType, 'resource_binding_target_type'),
+    targetId: requireString(raw.targetId, 'resource_binding_target_id'),
+    slot: requireString(raw.slot, 'resource_binding_slot'),
+    priority: requireNumber(raw.priority, 'resource_binding_priority'),
+    tags: requireStringArray(raw.tags, 'resource_binding_tags'),
+    resource: {
+      id: resourceId,
+      url: resourceUrl,
+      resourceType: requireString(resourceRecord.resourceType, 'resource_binding_resource_type'),
+      label: readString(resourceRecord.label),
     },
   };
 }
@@ -479,15 +479,15 @@ export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAudit
 
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
-  const [lorebooksPayload, mediaBindingsPayload] = await Promise.all([
+  const [lorebooksPayload, resourceBindingsPayload] = await Promise.all([
     dataSync.loadWorldLorebooks(normalizedWorldId),
-    dataSync.loadWorldMediaBindings(normalizedWorldId),
+    dataSync.loadWorldResourceBindings(normalizedWorldId),
   ]);
 
   return {
     lorebooks: lorebooksPayload.items.map(toWorldLorebookItem),
     scenes: [],
-    mediaBindings: mediaBindingsPayload.items.map(toWorldMediaBindingItem),
+    resourceBindings: resourceBindingsPayload.items.map(toWorldResourceBindingItem),
   };
 }
 

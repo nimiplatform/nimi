@@ -5,6 +5,14 @@
   ],
   "allowed_unresolved_rule_refs": [
     {
+      "file": "spec/realm/creator-revenue-policy.md",
+      "rule_prefix": "R-ECON-0"
+    },
+    {
+      "file": "spec/realm/world-creator-economy.md",
+      "rule_prefix": "R-ECON-0"
+    },
+    {
       "file": "spec/future/kernel/tables/backlog-items.yaml",
       "rule_prefix": "F-"
     },

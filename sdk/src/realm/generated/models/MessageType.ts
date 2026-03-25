@@ -3,8 +3,7 @@
 
 export const MessageType = {
   TEXT: "TEXT",
-  IMAGE: "IMAGE",
-  VIDEO: "VIDEO",
+  ATTACHMENT: "ATTACHMENT",
   POST_REF: "POST_REF",
   USER_REF: "USER_REF",
   LINK_REF: "LINK_REF",

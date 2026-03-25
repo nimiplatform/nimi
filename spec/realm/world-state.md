@@ -3,7 +3,7 @@ id: SPEC-REALM-WORLD-STATE-001
 title: Realm World State Domain
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-23
 ---
 
 # Realm World State Domain

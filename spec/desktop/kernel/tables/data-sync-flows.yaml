@@ -55,7 +55,7 @@ flows:
       - loadWorldSemanticBundle
       - loadWorldEvents
       - loadWorldLorebooks
-      - loadWorldMediaBindings
+      - loadWorldResourceBindings
       - loadMainWorld
       - loadWorldLevelAudits
     description: World listing, detail, semantic data
@@ -99,9 +99,9 @@ flows:
       - createPost
       - createImageDirectUpload
       - createVideoDirectUpload
-      - finalizeMediaAsset
-    description: Social feed posts and media uploads; direct-upload sessions require
-      finalizeMediaAsset after S3 upload before createPost; createPost references assetId only
+      - finalizeResource
+    description: Social feed posts and resource uploads; direct-upload sessions require
+      finalizeResource after S3 upload before createPost; createPost references resourceId only
     source_rule: D-DSYNC-007
 
   - flow: explore

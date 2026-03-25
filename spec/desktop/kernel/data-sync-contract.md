@@ -56,7 +56,7 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-005 — World 数据流
 
-世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldMediaBindings`、`loadMainWorld`、`loadWorldLevelAudits`。
+世界数据流方法：`loadWorlds`、`loadWorldDetailById`、`loadWorldAgents`、`loadWorldDetailWithAgents`、`loadWorldSemanticBundle`、`loadWorldEvents`、`loadWorldLorebooks`、`loadWorldResourceBindings`、`loadMainWorld`、`loadWorldLevelAudits`。
 
 - 使用基础设施：上下文锁、错误日志。
 - `loadWorldSemanticBundle` 返回的 `worldview.coreSystem.rules` 必须是 ordered rule item array（`key / title / value`），不得回退为 JSON object map。
@@ -77,18 +77,19 @@ DataSync facade 提供以下基础设施能力，业务流规则按需使用：
 
 ## D-DSYNC-007 — Feed 数据流
 
-社交 feed 方法：`loadPostFeed`、`createPost`、`createImageDirectUpload`、`createVideoDirectUpload`、`finalizeMediaAsset`。
+社交 feed 方法：`loadPostFeed`、`createPost`、`createImageDirectUpload`、`createVideoDirectUpload`、`finalizeResource`。
 
 - 使用基础设施：上下文锁、错误日志。
-- `createImageDirectUpload` / `createVideoDirectUpload` 返回 `MediaDirectUploadSessionDto` 语义：
-  - `assetId` 是后续 `createPost` 唯一允许写入的媒体引用
-  - `storageRef` 是 provider 传输层引用，仅供旧附件/上传 transport 路径使用，不得作为新 post 的媒体主键
-- `finalizeMediaAsset` 在 S3 直传完成后调用，将资产状态从 PENDING 转为 READY；
-  调用前后均不需要写入资产 URL，仅通过 `assetId` 引用媒体资产
-- `createPost` 的 post media 写入规则：
-  - `media[].assetId` 为唯一正式字段
-  - 不通过 `media-bindings` 反查资产
-  - 不再写入 `imageId` / `videoId` / `uid` / `key`
+- `createImageDirectUpload` / `createVideoDirectUpload` 返回 `ResourceDirectUploadSessionDto` 语义：
+  - `resourceId` 可用于后续 `createPost` 写入 `attachments[].targetId`
+  - `storageRef` 是 provider 传输层引用，仅供上传 transport 路径使用，不得作为新 post 的附件主键
+- `finalizeResource` 在 S3 直传完成后调用，将资源状态从 PENDING 转为 READY；
+  调用前后均不需要写入资源 URL，仅通过 `resourceId` 引用资源
+- `createPost` 的 post attachment 写入规则：
+  - `attachments[]` 采用 canonical attachment envelope，正式字段为 `targetType + targetId`
+  - 资源上传快捷路径写入 `targetType='RESOURCE'` 且 `targetId=resourceId`
+  - 不通过 `resource-bindings` 反查资源
+  - 不再写入 `resourceId` / `assetId` / `imageId` / `videoId` / `uid` / `key`
 
 ## D-DSYNC-008 — Explore 数据流
 

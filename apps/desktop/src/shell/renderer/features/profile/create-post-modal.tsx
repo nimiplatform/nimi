@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
@@ -11,14 +10,14 @@ import {
   CATEGORIES_PER_PAGE,
   type EditablePostSeed,
   EMOJI_CATEGORIES,
-  extractExistingMediaId,
+  extractExistingAttachmentTargetId,
   extractHashtags,
   type Location,
   mapWorldToLocation,
   MAX_CAPTION_LENGTH,
   MAX_FILE_SIZE,
   type SelectedFile,
-  type SelectedMediaRef,
+  type SelectedAttachmentRef,
   stripHashtags,
 } from './create-post-modal-helpers.js';
 import {
@@ -56,7 +55,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   const [selectedFile, setSelectedFile] = useState<SelectedFile | null>(null);
   const selectedFileRef = useRef(selectedFile);
   selectedFileRef.current = selectedFile;
-  const [selectedMediaRef, setSelectedMediaRef] = useState<SelectedMediaRef | null>(null);
+  const [selectedAttachmentRef, setSelectedAttachmentRef] = useState<SelectedAttachmentRef | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +126,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   const reset = useCallback(() => {
     if (selectedFileRef.current) URL.revokeObjectURL(selectedFileRef.current.previewUrl);
     setSelectedFile(null);
-    setSelectedMediaRef(null);
+    setSelectedAttachmentRef(null);
     setCaption('');
     setUploading(false);
     setError(null);
@@ -159,12 +158,12 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     if (initialPost) {
       setCaption(String(initialPost.caption || ''));
       setSelectedTags(Array.isArray(initialPost.tags) ? initialPost.tags.map(String) : []);
-      const mediaId = extractExistingMediaId(initialPost.media);
-      const mediaType = initialPost.media?.type === 'video' ? 'video' : 'image';
-      const previewUrl = String(initialPost.media?.previewUrl || '').trim();
-      setSelectedMediaRef(mediaId || previewUrl ? {
-        id: mediaId,
-        type: mediaType,
+      const attachmentTargetId = extractExistingAttachmentTargetId(initialPost.attachment);
+      const attachmentType = initialPost.attachment?.type === 'video' ? 'video' : 'image';
+      const previewUrl = String(initialPost.attachment?.previewUrl || '').trim();
+      setSelectedAttachmentRef(attachmentTargetId || previewUrl ? {
+        id: attachmentTargetId,
+        type: attachmentType,
         previewUrl,
       } : null);
       return;
@@ -172,7 +171,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
 
     setCaption('');
     setSelectedTags([]);
-    setSelectedMediaRef(null);
+    setSelectedAttachmentRef(null);
   }, [closeAllPanels, initialPost, open]);
 
   useEffect(() => {
@@ -238,7 +237,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     }
 
     if (selectedFile) URL.revokeObjectURL(selectedFile.previewUrl);
-    setSelectedMediaRef(null);
+    setSelectedAttachmentRef(null);
 
     setSelectedFile({
       file,
@@ -296,8 +295,8 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
   };
 
   const handleSubmit = useCallback(async () => {
-    const activeMedia = selectedFile || selectedMediaRef;
-    if (!activeMedia || (!('file' in activeMedia) && !activeMedia.id)) return;
+    const activeAttachment = selectedFile || selectedAttachmentRef;
+    if (!activeAttachment || (!('file' in activeAttachment) && !activeAttachment.id)) return;
     
     // Optimistic UI: notify parent that upload has started
     onUploadStart?.();
@@ -307,14 +306,13 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
     
     // Continue upload in background
     try {
-      let mediaId: string;
-      let mediaType: PostMediaType;
+      let resourceId: string;
       
-      if ('file' in activeMedia) {
-        if (activeMedia.type === 'image') {
+      if ('file' in activeAttachment) {
+        if (activeAttachment.type === 'image') {
           const upload = await dataSync.createImageDirectUpload();
           const formData = new FormData();
-          formData.append('file', activeMedia.file);
+          formData.append('file', activeAttachment.file);
           const uploadResponse = await fetch(upload.uploadUrl, {
             method: 'POST',
             body: formData,
@@ -322,13 +320,12 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
           if (!uploadResponse.ok) {
             throw new Error('Image upload failed');
           }
-          await dataSync.finalizeMediaAsset(upload.assetId, {});
-          mediaId = upload.assetId;
-          mediaType = PostMediaType.IMAGE;
+          await dataSync.finalizeResource(upload.resourceId, {});
+          resourceId = upload.resourceId;
         } else {
           const uploadData = await dataSync.createVideoDirectUpload();
           const formData = new FormData();
-          formData.append('file', activeMedia.file);
+          formData.append('file', activeAttachment.file);
           const uploadResponse = await fetch(uploadData.uploadUrl, {
             method: 'POST',
             body: formData,
@@ -336,19 +333,17 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
           if (!uploadResponse.ok) {
             throw new Error('Video upload failed');
           }
-          await dataSync.finalizeMediaAsset(uploadData.assetId, {});
-          mediaId = uploadData.assetId;
-          mediaType = PostMediaType.VIDEO;
+          await dataSync.finalizeResource(uploadData.resourceId, {});
+          resourceId = uploadData.resourceId;
         }
       } else {
-        mediaId = activeMedia.id;
-        mediaType = activeMedia.type === 'video' ? PostMediaType.VIDEO : PostMediaType.IMAGE;
+        resourceId = activeAttachment.id;
       }
 
       const createdPost = await dataSync.createPost({
-        media: [{
-          type: mediaType,
-          assetId: mediaId,
+        attachments: [{
+          targetType: 'RESOURCE',
+          targetId: resourceId,
         }],
         caption: stripHashtags(caption) || undefined,
         tags: tags.length > 0 ? tags : undefined,
@@ -375,7 +370,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
       });
       onComplete({ success: false, mode: isEditMode ? 'edit' : 'create' });
     }
-  }, [selectedFile, selectedMediaRef, onUploadStart, handleClose, caption, tags, initialPost, onComplete, isEditMode]);
+  }, [selectedFile, selectedAttachmentRef, onUploadStart, handleClose, caption, tags, initialPost, onComplete, isEditMode]);
 
   if (!open) return null;
 
@@ -404,7 +399,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
           fileInputRef={fileInputRef}
           textareaRef={textareaRef}
           selectedFile={selectedFile}
-          selectedMediaRef={selectedMediaRef}
+          selectedAttachmentRef={selectedAttachmentRef}
           dragOver={dragOver}
           uploading={uploading}
           caption={caption}
@@ -435,7 +430,7 @@ export function CreatePostModal({ open, onClose, onComplete, onUploadStart, init
 
         <CreatePostModalFooter
           selectedFile={selectedFile}
-          selectedMediaRef={selectedMediaRef}
+          selectedAttachmentRef={selectedAttachmentRef}
           uploading={uploading}
           isEditMode={isEditMode}
           onClose={handleClose}

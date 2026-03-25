@@ -1,7 +1,7 @@
 contract_id: CHAT-CONTRACT-001
 domain: chat
 status: ACTIVE
-version: 2026-03-22
+version: 2026-03-25
 owner: '@team'
 sources:
   human_spec: ../chat-contract.md
@@ -28,6 +28,10 @@ rules:
     level: must
     title: agent-chat-runtime-stays-outside
     statement: "Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1."
+  - rule_id: R-CHAT-005
+    level: must
+    title: canonical-chat-attachment-envelope
+    statement: "Realm Chat canonicalizes non-text attachments as MessageType ATTACHMENT with payload.attachment generic envelope and does not expose assetId-only or resourceId-only attachment payload contracts."
 entities:
   - name: ChatThread
     prisma_model: Chat

@@ -42,7 +42,7 @@ rules:
     status: verified
     evidence_path: apps/relay/src/main/ipc-handlers.ts
     test: apps/relay/test/ipc-handlers.test.ts
-    note: Dynamic source extraction verifies all channels use relay: prefix and match ipc-channels.yaml
+    note: "Dynamic source extraction verifies all channels use relay: prefix and match ipc-channels.yaml"
 
   - id: RL-IPC-002
     contract: kernel/ipc-bridge-contract.md
@@ -91,7 +91,7 @@ rules:
     status: verified
     evidence_path: apps/relay/src/main/ipc-handlers.ts
     test: apps/relay/test/ipc-handlers.test.ts
-    note: explicit typed Realm bridge only: relay:agent:list, relay:agent:get
+    note: "explicit typed Realm bridge only: relay:agent:list, relay:agent:get"
 
   - id: RL-IPC-009
     contract: kernel/ipc-bridge-contract.md
@@ -140,7 +140,7 @@ rules:
   - id: RL-INTOP-001
     contract: kernel/interop-contract.md
     status: partial
-    evidence_path: apps/relay/src/renderer/features/chat/hooks/use-human-chat.ts
+    evidence_path: apps/relay/src/main/realtime-relay.ts
     test: apps/relay/test/interop-smoke.test.ts
     note: Interop smoke test created — requires Realm instance + 2 socket connections to verify
 
@@ -197,9 +197,9 @@ rules:
   - id: RL-FEAT-002
     contract: kernel/feature-contract.md
     status: verified
-    evidence_path: apps/relay/src/renderer/features/chat/hooks/use-human-chat.ts
-    test: apps/relay/test/features/human-chat.test.ts
-    note: Human chat tab with Realm REST + socket.io realtime, channel per agent
+    evidence_path: apps/relay/src/main/realtime-relay.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: Realtime presence/message subscription plumbing stays in the main-process socket relay
 
   - id: RL-FEAT-003
     contract: kernel/feature-contract.md

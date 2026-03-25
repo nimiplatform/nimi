@@ -2,7 +2,7 @@ import type {
   InteractionRecallDoc,
   InteractionSnapshot,
   LocalChatConversationRecord,
-  LocalChatMediaAssetRecord,
+  LocalChatMediaArtifactRecord,
   LocalChatStoredBeat,
   LocalChatTurnRecord,
   RelationMemorySlot,
@@ -12,7 +12,7 @@ import {
   normalizeConversationRecord,
   normalizeInteractionRecallDoc,
   normalizeInteractionSnapshot,
-  normalizeMediaAssetRecord,
+  normalizeMediaArtifactRecord,
   normalizeRelationMemorySlot,
   normalizeTurnRecord,
 } from './normalizers.js';
@@ -27,7 +27,7 @@ export const LEGACY_LOCAL_CHAT_SESSION_STORE_KEY = 'nimi.local-chat.sessions.v2'
 export const STORE_CONVERSATIONS = 'conversations';
 export const STORE_TURNS = 'turns';
 export const STORE_BEATS = 'beats';
-export const STORE_MEDIA_ASSETS = 'mediaAssets';
+export const STORE_MEDIA_ARTIFACTS = 'mediaArtifacts';
 export const STORE_INTERACTION_SNAPSHOTS = 'interactionSnapshots';
 export const STORE_RELATION_MEMORY_SLOTS = 'relationMemorySlots';
 export const STORE_RECALL_INDEX = 'recallIndex';
@@ -38,7 +38,7 @@ export type StoreName =
   | typeof STORE_CONVERSATIONS
   | typeof STORE_TURNS
   | typeof STORE_BEATS
-  | typeof STORE_MEDIA_ASSETS
+  | typeof STORE_MEDIA_ARTIFACTS
   | typeof STORE_INTERACTION_SNAPSHOTS
   | typeof STORE_RELATION_MEMORY_SLOTS
   | typeof STORE_RECALL_INDEX;
@@ -48,7 +48,7 @@ export type LedgerCache = {
   conversationsById: Map<string, LocalChatConversationRecord>;
   turnsById: Map<string, LocalChatTurnRecord>;
   beatsById: Map<string, LocalChatStoredBeat>;
-  mediaAssetsById: Map<string, LocalChatMediaAssetRecord>;
+  mediaArtifactsById: Map<string, LocalChatMediaArtifactRecord>;
   interactionSnapshotsByConversationId: Map<string, InteractionSnapshot>;
   relationMemorySlotsById: Map<string, RelationMemorySlot>;
   recallIndexById: Map<string, InteractionRecallDoc>;
@@ -63,7 +63,7 @@ type PersistedLedgerSnapshot = {
   conversations: unknown[];
   turns: unknown[];
   beats: unknown[];
-  mediaAssets: unknown[];
+  mediaArtifacts: unknown[];
   interactionSnapshots: unknown[];
   relationMemorySlots: unknown[];
   recallIndex: unknown[];
@@ -84,7 +84,7 @@ function emptyLedgerCache(): LedgerCache {
     conversationsById: new Map(),
     turnsById: new Map(),
     beatsById: new Map(),
-    mediaAssetsById: new Map(),
+    mediaArtifactsById: new Map(),
     interactionSnapshotsByConversationId: new Map(),
     relationMemorySlotsById: new Map(),
     recallIndexById: new Map(),
@@ -107,7 +107,7 @@ function serializeLedgerSnapshot(): PersistedLedgerSnapshot {
     conversations: Array.from(ledgerCache.conversationsById.values()),
     turns: Array.from(ledgerCache.turnsById.values()),
     beats: Array.from(ledgerCache.beatsById.values()),
-    mediaAssets: Array.from(ledgerCache.mediaAssetsById.values()),
+    mediaArtifacts: Array.from(ledgerCache.mediaArtifactsById.values()),
     interactionSnapshots: Array.from(ledgerCache.interactionSnapshotsByConversationId.values()),
     relationMemorySlots: Array.from(ledgerCache.relationMemorySlotsById.values()),
     recallIndex: Array.from(ledgerCache.recallIndexById.values()),
@@ -138,11 +138,11 @@ function applyPersistedSnapshot(snapshot: PersistedLedgerSnapshot | null | undef
     .forEach((item) => {
       ledgerCache.beatsById.set(item.id, item);
     });
-  (snapshot?.mediaAssets || [])
-    .map((item) => normalizeMediaAssetRecord(item))
-    .filter((item): item is LocalChatMediaAssetRecord => Boolean(item))
+  (snapshot?.mediaArtifacts || [])
+    .map((item) => normalizeMediaArtifactRecord(item))
+    .filter((item): item is LocalChatMediaArtifactRecord => Boolean(item))
     .forEach((item) => {
-      ledgerCache.mediaAssetsById.set(item.id, item);
+      ledgerCache.mediaArtifactsById.set(item.id, item);
     });
   (snapshot?.interactionSnapshots || [])
     .map((item) => normalizeInteractionSnapshot(item))
@@ -231,9 +231,9 @@ export async function persistMutation(mutation: LedgerMutation): Promise<void> {
     (value) => value.id,
   );
   applyMutationRows(
-    ledgerCache.mediaAssetsById,
-    mutation.puts?.[STORE_MEDIA_ASSETS],
-    normalizeMediaAssetRecord,
+    ledgerCache.mediaArtifactsById,
+    mutation.puts?.[STORE_MEDIA_ARTIFACTS],
+    normalizeMediaArtifactRecord,
     (value) => value.id,
   );
   applyMutationRows(
@@ -258,7 +258,7 @@ export async function persistMutation(mutation: LedgerMutation): Promise<void> {
   deleteMutationRows(ledgerCache.conversationsById, mutation.deletes?.[STORE_CONVERSATIONS]);
   deleteMutationRows(ledgerCache.turnsById, mutation.deletes?.[STORE_TURNS]);
   deleteMutationRows(ledgerCache.beatsById, mutation.deletes?.[STORE_BEATS]);
-  deleteMutationRows(ledgerCache.mediaAssetsById, mutation.deletes?.[STORE_MEDIA_ASSETS]);
+  deleteMutationRows(ledgerCache.mediaArtifactsById, mutation.deletes?.[STORE_MEDIA_ARTIFACTS]);
   deleteMutationRows(ledgerCache.interactionSnapshotsByConversationId, mutation.deletes?.[STORE_INTERACTION_SNAPSHOTS]);
   deleteMutationRows(ledgerCache.relationMemorySlotsById, mutation.deletes?.[STORE_RELATION_MEMORY_SLOTS]);
   deleteMutationRows(ledgerCache.recallIndexById, mutation.deletes?.[STORE_RECALL_INDEX]);

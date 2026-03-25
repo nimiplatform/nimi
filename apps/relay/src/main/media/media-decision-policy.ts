@@ -317,7 +317,7 @@ export async function decideMediaExecution(input: DecideMediaExecutionInput): Pr
   const imageRouteReady = isMediaRouteReady({ kind: 'image', settings: input.defaultSettings });
   const videoRouteReady = isMediaRouteReady({ kind: 'video', settings: input.defaultSettings });
 
-  // Marker override (from turn plan asset request)
+  // Marker override (from turn plan media request)
   if (input.markerOverrideIntent) {
     const gate = evaluateIntentGate({
       intent: input.markerOverrideIntent,

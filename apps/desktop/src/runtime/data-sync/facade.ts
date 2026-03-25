@@ -11,7 +11,7 @@ import type { DataSyncApiConfig, FetchImpl } from './api-core';
 import type {
   WorldHistoryPayload,
   WorldLorebookListPayload,
-  WorldMediaBindingListPayload,
+  WorldResourceBindingListPayload,
 } from './flows/world-flow';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
@@ -29,8 +29,8 @@ import type { CreateMasterAgentInput } from './flows/social-flow';
 type ChatSyncResultDto = RealmModel<'ChatSyncResultDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
-type FinalizeMediaAssetDto = RealmModel<'FinalizeMediaAssetDto'>;
-type MediaAssetDetailDto = RealmModel<'MediaAssetDetailDto'>;
+type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
+type ResourceDetailDto = RealmModel<'ResourceDetailDto'>;
 type CreateReviewDto = RealmModel<'CreateReviewDto'>;
 type CreateSparkCheckoutDto = RealmModel<'CreateSparkCheckoutDto'>;
 type CreateWithdrawalDto = RealmModel<'CreateWithdrawalDto'>;
@@ -306,7 +306,7 @@ export class DataSync {
   }
   loadWorldHistory(worldId: string): Promise<WorldHistoryPayload> { return this.actions.loadWorldHistory(worldId); }
   loadWorldLorebooks(worldId: string): Promise<WorldLorebookListPayload> { return this.actions.loadWorldLorebooks(worldId); }
-  loadWorldMediaBindings(worldId: string): Promise<WorldMediaBindingListPayload> { return this.actions.loadWorldMediaBindings(worldId); }
+  loadWorldResourceBindings(worldId: string): Promise<WorldResourceBindingListPayload> { return this.actions.loadWorldResourceBindings(worldId); }
   startWorldTransit(input: {
     agentId: string;
     fromWorldId?: string;
@@ -343,8 +343,8 @@ export class DataSync {
   createPost(payload: CreatePostDto) { return this.actions.createPost(payload); }
   createImageDirectUpload() { return this.actions.createImageDirectUpload(); }
   createVideoDirectUpload() { return this.actions.createVideoDirectUpload(); }
-  finalizeMediaAsset(assetId: string, payload: FinalizeMediaAssetDto): Promise<MediaAssetDetailDto> {
-    return this.actions.finalizeMediaAsset(assetId, payload);
+  finalizeResource(resourceId: string, payload: FinalizeResourceDto): Promise<ResourceDetailDto> {
+    return this.actions.finalizeResource(resourceId, payload);
   }
   deletePost(postId: string) { return this.actions.deletePost(postId); }
   updatePostVisibility(postId: string, visibility: 'PUBLIC' | 'FRIENDS' | 'PRIVATE') {

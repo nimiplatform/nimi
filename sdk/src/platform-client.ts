@@ -21,8 +21,8 @@ type AuthPasswordLoginInput = {
 };
 type AuthPasswordLoginResult = RealmServiceResult<'AuthService', 'passwordLogin'>;
 type ListMyFriendsResult = RealmServiceResult<'MeService', 'listMyFriendsWithDetails'>;
-type CreateImageDirectUploadResult = RealmServiceResult<'MediaService', 'createImageDirectUpload'>;
-type CreateVideoDirectUploadResult = RealmServiceResult<'MediaService', 'createVideoDirectUpload'>;
+type CreateImageDirectUploadResult = RealmServiceResult<'ResourcesService', 'createImageDirectUpload'>;
+type CreateVideoDirectUploadResult = RealmServiceResult<'ResourcesService', 'createVideoDirectUpload'>;
 type RequireSignedUrlsInput = {
   requireSignedUrls?: string | boolean;
 };
@@ -87,7 +87,7 @@ type PlatformDomains = {
     appendWorldHistory: RealmServices['WorldControlService']['worldControlControllerAppendWorldHistory'];
     listMyWorlds: RealmServices['WorldControlService']['worldControlControllerListMyWorlds'];
     listWorldLorebooks: RealmServices['WorldsService']['worldControllerGetWorldLorebooks'];
-    listWorldMediaBindings: RealmServices['WorldsService']['worldControllerGetWorldMediaBindings'];
+    listWorldResourceBindings: RealmServices['WorldsService']['worldControllerGetWorldResourceBindings'];
     getWorldHistory: RealmServices['WorldsService']['worldControllerGetWorldHistory'];
     listWorldLevelAudits: RealmServices['WorldsService']['worldControllerGetWorldLevelAudits'];
   };
@@ -98,12 +98,12 @@ type PlatformDomains = {
     updateAgent: RealmServices['CreatorService']['creatorControllerUpdateAgent'];
     batchCreateAgents: RealmServices['CreatorService']['creatorControllerBatchCreateAgents'];
   };
-  media: {
+  resources: {
     createImageDirectUpload: (input?: RequireSignedUrlsInput) => Promise<CreateImageDirectUploadResult>;
     createVideoDirectUpload: (input?: RequireSignedUrlsInput) => Promise<CreateVideoDirectUploadResult>;
-    createAudioDirectUpload: RealmServices['MediaService']['createAudioDirectUpload'];
-    finalizeAsset: RealmServices['MediaService']['finalizeMediaAsset'];
-    getAsset: RealmServices['MediaService']['getMediaAsset'];
+    createAudioDirectUpload: RealmServices['ResourcesService']['createAudioDirectUpload'];
+    finalizeResource: RealmServices['ResourcesService']['finalizeResource'];
+    getResource: RealmServices['ResourcesService']['getResource'];
     createPost: RealmServices['PostService']['createPost'];
   };
   runtimeAdmin: {
@@ -316,7 +316,7 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       appendWorldHistory: (worldId, input) => realm.services.WorldControlService.worldControlControllerAppendWorldHistory(worldId, input),
       listMyWorlds: () => realm.services.WorldControlService.worldControlControllerListMyWorlds(),
       listWorldLorebooks: (worldId) => realm.services.WorldsService.worldControllerGetWorldLorebooks(worldId),
-      listWorldMediaBindings: (worldId) => realm.services.WorldsService.worldControllerGetWorldMediaBindings(worldId),
+      listWorldResourceBindings: (worldId) => realm.services.WorldsService.worldControllerGetWorldResourceBindings(worldId),
       getWorldHistory: (worldId) => realm.services.WorldsService.worldControllerGetWorldHistory(worldId),
       listWorldLevelAudits: (worldId, take) => realm.services.WorldsService.worldControllerGetWorldLevelAudits(worldId, take),
     },
@@ -327,16 +327,18 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       updateAgent: (agentId, input) => realm.services.CreatorService.creatorControllerUpdateAgent(agentId, input),
       batchCreateAgents: (input) => realm.services.CreatorService.creatorControllerBatchCreateAgents(input),
     },
-    media: {
-      createImageDirectUpload: (input) => realm.services.MediaService.createImageDirectUpload(
+    resources: {
+      createImageDirectUpload: (input) => realm.services.ResourcesService.createImageDirectUpload(
         String(input?.requireSignedUrls ?? ''),
       ),
-      createVideoDirectUpload: (input) => realm.services.MediaService.createVideoDirectUpload(
+      createVideoDirectUpload: (input) => realm.services.ResourcesService.createVideoDirectUpload(
         String(input?.requireSignedUrls ?? ''),
       ),
-      createAudioDirectUpload: (input = {}) => realm.services.MediaService.createAudioDirectUpload(input),
-      finalizeAsset: (assetId, input = {}) => realm.services.MediaService.finalizeMediaAsset(assetId, input),
-      getAsset: (assetId) => realm.services.MediaService.getMediaAsset(assetId),
+      createAudioDirectUpload: (input = {}) =>
+        realm.services.ResourcesService.createAudioDirectUpload(input),
+      finalizeResource: (resourceId, input = {}) =>
+        realm.services.ResourcesService.finalizeResource(resourceId, input),
+      getResource: (resourceId) => realm.services.ResourcesService.getResource(resourceId),
       createPost: (input) => realm.services.PostService.createPost(input),
     },
     runtimeAdmin: {

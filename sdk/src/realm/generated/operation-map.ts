@@ -711,6 +711,120 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "AssetsService.cloneAsset": {
+    "operationId": "cloneAsset",
+    "method": "POST",
+    "path": "/api/assets/{assetId}/clone",
+    "service": "AssetsService",
+    "methodName": "cloneAsset",
+    "tag": "Assets",
+    "parameters": [
+      {
+        "name": "assetId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "AssetsService.createAsset": {
+    "operationId": "createAsset",
+    "method": "POST",
+    "path": "/api/assets",
+    "service": "AssetsService",
+    "methodName": "createAsset",
+    "tag": "Assets",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "AssetsService.getAsset": {
+    "operationId": "getAsset",
+    "method": "GET",
+    "path": "/api/assets/{assetId}",
+    "service": "AssetsService",
+    "methodName": "getAsset",
+    "tag": "Assets",
+    "parameters": [
+      {
+        "name": "assetId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "AssetsService.listAssets": {
+    "operationId": "listAssets",
+    "method": "GET",
+    "path": "/api/assets",
+    "service": "AssetsService",
+    "methodName": "listAssets",
+    "tag": "Assets",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "AssetsService.updateAsset": {
+    "operationId": "updateAsset",
+    "method": "PATCH",
+    "path": "/api/assets/{assetId}",
+    "service": "AssetsService",
+    "methodName": "updateAsset",
+    "tag": "Assets",
+    "parameters": [
+      {
+        "name": "assetId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "AuthService.bindEmail": {
     "operationId": "bindEmail",
     "method": "POST",
@@ -972,6 +1086,169 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [],
     "successContentTypes": [],
     "hasSuccessBody": false
+  },
+  "BundlesService.acquireBundle": {
+    "operationId": "acquireBundle",
+    "method": "POST",
+    "path": "/api/bundles/{bundleId}/acquire",
+    "service": "BundlesService",
+    "methodName": "acquireBundle",
+    "tag": "Bundles",
+    "parameters": [
+      {
+        "name": "bundleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "BundlesService.archiveBundle": {
+    "operationId": "archiveBundle",
+    "method": "POST",
+    "path": "/api/bundles/{bundleId}/archive",
+    "service": "BundlesService",
+    "methodName": "archiveBundle",
+    "tag": "Bundles",
+    "parameters": [
+      {
+        "name": "bundleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "BundlesService.createBundle": {
+    "operationId": "createBundle",
+    "method": "POST",
+    "path": "/api/bundles",
+    "service": "BundlesService",
+    "methodName": "createBundle",
+    "tag": "Bundles",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "BundlesService.getBundle": {
+    "operationId": "getBundle",
+    "method": "GET",
+    "path": "/api/bundles/{bundleId}",
+    "service": "BundlesService",
+    "methodName": "getBundle",
+    "tag": "Bundles",
+    "parameters": [
+      {
+        "name": "bundleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "BundlesService.listBundles": {
+    "operationId": "listBundles",
+    "method": "GET",
+    "path": "/api/bundles",
+    "service": "BundlesService",
+    "methodName": "listBundles",
+    "tag": "Bundles",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "BundlesService.publishBundle": {
+    "operationId": "publishBundle",
+    "method": "POST",
+    "path": "/api/bundles/{bundleId}/publish",
+    "service": "BundlesService",
+    "methodName": "publishBundle",
+    "tag": "Bundles",
+    "parameters": [
+      {
+        "name": "bundleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "BundlesService.updateBundle": {
+    "operationId": "updateBundle",
+    "method": "PATCH",
+    "path": "/api/bundles/{bundleId}",
+    "service": "BundlesService",
+    "methodName": "updateBundle",
+    "tag": "Bundles",
+    "parameters": [
+      {
+        "name": "bundleId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "CreatorModsControlPlaneService.creatorModsControllerIngestAudit": {
     "operationId": "CreatorModsController_ingestAudit",
@@ -2422,193 +2699,6 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "MediaService.createAudioDirectUpload": {
-    "operationId": "createAudioDirectUpload",
-    "method": "POST",
-    "path": "/api/media/audio/direct-upload",
-    "service": "MediaService",
-    "methodName": "createAudioDirectUpload",
-    "tag": "Media",
-    "parameters": [],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "MediaService.createImageDirectUpload": {
-    "operationId": "createImageDirectUpload",
-    "method": "POST",
-    "path": "/api/media/images/direct-upload",
-    "service": "MediaService",
-    "methodName": "createImageDirectUpload",
-    "tag": "Media",
-    "parameters": [
-      {
-        "name": "requireSignedUrls",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "MediaService.createVideoDirectUpload": {
-    "operationId": "createVideoDirectUpload",
-    "method": "POST",
-    "path": "/api/media/videos/direct-upload",
-    "service": "MediaService",
-    "methodName": "createVideoDirectUpload",
-    "tag": "Media",
-    "parameters": [
-      {
-        "name": "requireSignedUrls",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "201"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "MediaService.deleteMediaAsset": {
-    "operationId": "deleteMediaAsset",
-    "method": "DELETE",
-    "path": "/api/media/assets/{assetId}",
-    "service": "MediaService",
-    "methodName": "deleteMediaAsset",
-    "tag": "Media",
-    "parameters": [
-      {
-        "name": "assetId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "204"
-    ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
-  },
-  "MediaService.finalizeMediaAsset": {
-    "operationId": "finalizeMediaAsset",
-    "method": "POST",
-    "path": "/api/media/assets/{assetId}/finalize",
-    "service": "MediaService",
-    "methodName": "finalizeMediaAsset",
-    "tag": "Media",
-    "parameters": [
-      {
-        "name": "assetId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "MediaService.getMediaAsset": {
-    "operationId": "getMediaAsset",
-    "method": "GET",
-    "path": "/api/media/assets/{assetId}",
-    "service": "MediaService",
-    "methodName": "getMediaAsset",
-    "tag": "Media",
-    "parameters": [
-      {
-        "name": "assetId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "MediaService.listMediaAssets": {
-    "operationId": "listMediaAssets",
-    "method": "GET",
-    "path": "/api/media/assets",
-    "service": "MediaService",
-    "methodName": "listMediaAssets",
-    "tag": "Media",
-    "parameters": [],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "MediaService.updateMediaAsset": {
-    "operationId": "updateMediaAsset",
-    "method": "PATCH",
-    "path": "/api/media/assets/{assetId}",
-    "service": "MediaService",
-    "methodName": "updateMediaAsset",
-    "tag": "Media",
-    "parameters": [
-      {
-        "name": "assetId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": true,
-    "bodyRequired": true,
-    "requestBodyContentType": "application/json",
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "MeService.bindWallet": {
     "operationId": "bindWallet",
     "method": "POST",
@@ -3558,6 +3648,212 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "ResourcesService.createAudioDirectUpload": {
+    "operationId": "createAudioDirectUpload",
+    "method": "POST",
+    "path": "/api/resources/audio/direct-upload",
+    "service": "ResourcesService",
+    "methodName": "createAudioDirectUpload",
+    "tag": "Resources",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "ResourcesService.createImageDirectUpload": {
+    "operationId": "createImageDirectUpload",
+    "method": "POST",
+    "path": "/api/resources/images/direct-upload",
+    "service": "ResourcesService",
+    "methodName": "createImageDirectUpload",
+    "tag": "Resources",
+    "parameters": [
+      {
+        "name": "requireSignedUrls",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "ResourcesService.createTextResource": {
+    "operationId": "createTextResource",
+    "method": "POST",
+    "path": "/api/resources/texts",
+    "service": "ResourcesService",
+    "methodName": "createTextResource",
+    "tag": "Resources",
+    "parameters": [],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "ResourcesService.createVideoDirectUpload": {
+    "operationId": "createVideoDirectUpload",
+    "method": "POST",
+    "path": "/api/resources/videos/direct-upload",
+    "service": "ResourcesService",
+    "methodName": "createVideoDirectUpload",
+    "tag": "Resources",
+    "parameters": [
+      {
+        "name": "requireSignedUrls",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "ResourcesService.deleteResource": {
+    "operationId": "deleteResource",
+    "method": "DELETE",
+    "path": "/api/resources/{resourceId}",
+    "service": "ResourcesService",
+    "methodName": "deleteResource",
+    "tag": "Resources",
+    "parameters": [
+      {
+        "name": "resourceId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "204"
+    ],
+    "successContentTypes": [],
+    "hasSuccessBody": false
+  },
+  "ResourcesService.finalizeResource": {
+    "operationId": "finalizeResource",
+    "method": "POST",
+    "path": "/api/resources/{resourceId}/finalize",
+    "service": "ResourcesService",
+    "methodName": "finalizeResource",
+    "tag": "Resources",
+    "parameters": [
+      {
+        "name": "resourceId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "ResourcesService.getResource": {
+    "operationId": "getResource",
+    "method": "GET",
+    "path": "/api/resources/{resourceId}",
+    "service": "ResourcesService",
+    "methodName": "getResource",
+    "tag": "Resources",
+    "parameters": [
+      {
+        "name": "resourceId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "ResourcesService.listResources": {
+    "operationId": "listResources",
+    "method": "GET",
+    "path": "/api/resources",
+    "service": "ResourcesService",
+    "methodName": "listResources",
+    "tag": "Resources",
+    "parameters": [],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
+  "ResourcesService.updateResource": {
+    "operationId": "updateResource",
+    "method": "PATCH",
+    "path": "/api/resources/{resourceId}",
+    "service": "ResourcesService",
+    "methodName": "updateResource",
+    "tag": "Resources",
+    "parameters": [
+      {
+        "name": "resourceId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "ReviewsEconomyTrustService.reviewControllerCreateReview": {
     "operationId": "ReviewController_createReview",
     "method": "POST",
@@ -4457,6 +4753,32 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings": {
+    "operationId": "WorldControlController_batchUpsertWorldResourceBindings",
+    "method": "POST",
+    "path": "/api/worlds/{worldId}/resource-bindings",
+    "service": "WorldControlService",
+    "methodName": "worldControlControllerBatchUpsertWorldResourceBindings",
+    "tag": "World Control",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": true,
+    "bodyRequired": true,
+    "requestBodyContentType": "application/json",
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "WorldControlService.worldControlControllerCommitState": {
     "operationId": "WorldControlController_commitState",
     "method": "POST",
@@ -4501,6 +4823,35 @@ export const REALM_OPERATION_MAP = {
       "application/json"
     ],
     "hasSuccessBody": true
+  },
+  "WorldControlService.worldControlControllerDeleteWorldResourceBinding": {
+    "operationId": "WorldControlController_deleteWorldResourceBinding",
+    "method": "DELETE",
+    "path": "/api/worlds/{worldId}/resource-bindings/{bindingId}",
+    "service": "WorldControlService",
+    "methodName": "worldControlControllerDeleteWorldResourceBinding",
+    "tag": "World Control",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "bindingId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "204"
+    ],
+    "successContentTypes": [],
+    "hasSuccessBody": false
   },
   "WorldControlService.worldControlControllerGetDraft": {
     "operationId": "WorldControlController_getDraft",
@@ -4656,12 +5007,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerListWorldMediaBindings": {
-    "operationId": "WorldControlController_listWorldMediaBindings",
+  "WorldControlService.worldControlControllerListWorldResourceBindings": {
+    "operationId": "WorldControlController_listWorldResourceBindings",
     "method": "GET",
-    "path": "/api/worlds/{worldId}/media-bindings",
+    "path": "/api/worlds/{worldId}/resource-bindings",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldMediaBindings",
+    "methodName": "worldControlControllerListWorldResourceBindings",
     "tag": "World Control",
     "parameters": [
       {
@@ -5237,12 +5588,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldsService.worldControllerGetWorldMediaBindings": {
-    "operationId": "WorldController_getWorldMediaBindings",
+  "WorldsService.worldControllerGetWorldResourceBindings": {
+    "operationId": "WorldController_getWorldResourceBindings",
     "method": "GET",
-    "path": "/api/world/by-id/{id}/media-bindings",
+    "path": "/api/world/by-id/{id}/resource-bindings",
     "service": "WorldsService",
-    "methodName": "worldControllerGetWorldMediaBindings",
+    "methodName": "worldControllerGetWorldResourceBindings",
     "tag": "Worlds",
     "parameters": [
       {
@@ -5394,6 +5745,13 @@ export const REALM_SERVICE_METHODS = {
     "getAgent": "AgentsService.getAgent",
     "getAgentByHandle": "AgentsService.getAgentByHandle"
   },
+  "AssetsService": {
+    "cloneAsset": "AssetsService.cloneAsset",
+    "createAsset": "AssetsService.createAsset",
+    "getAsset": "AssetsService.getAsset",
+    "listAssets": "AssetsService.listAssets",
+    "updateAsset": "AssetsService.updateAsset"
+  },
   "AuthService": {
     "bindEmail": "AuthService.bindEmail",
     "changeEmail": "AuthService.changeEmail",
@@ -5411,6 +5769,15 @@ export const REALM_SERVICE_METHODS = {
     "verifyTwoFactor": "AuthService.verifyTwoFactor",
     "walletChallenge": "AuthService.walletChallenge",
     "walletLogin": "AuthService.walletLogin"
+  },
+  "BundlesService": {
+    "acquireBundle": "BundlesService.acquireBundle",
+    "archiveBundle": "BundlesService.archiveBundle",
+    "createBundle": "BundlesService.createBundle",
+    "getBundle": "BundlesService.getBundle",
+    "listBundles": "BundlesService.listBundles",
+    "publishBundle": "BundlesService.publishBundle",
+    "updateBundle": "BundlesService.updateBundle"
   },
   "CreatorModsControlPlaneService": {
     "creatorModsControllerIngestAudit": "CreatorModsControlPlaneService.creatorModsControllerIngestAudit",
@@ -5501,16 +5868,6 @@ export const REALM_SERVICE_METHODS = {
     "requestAccountDeletion": "MeaccountdataService.requestAccountDeletion",
     "requestDataExport": "MeaccountdataService.requestDataExport"
   },
-  "MediaService": {
-    "createAudioDirectUpload": "MediaService.createAudioDirectUpload",
-    "createImageDirectUpload": "MediaService.createImageDirectUpload",
-    "createVideoDirectUpload": "MediaService.createVideoDirectUpload",
-    "deleteMediaAsset": "MediaService.deleteMediaAsset",
-    "finalizeMediaAsset": "MediaService.finalizeMediaAsset",
-    "getMediaAsset": "MediaService.getMediaAsset",
-    "listMediaAssets": "MediaService.listMediaAssets",
-    "updateMediaAsset": "MediaService.updateMediaAsset"
-  },
   "MeService": {
     "bindWallet": "MeService.bindWallet",
     "blockUser": "MeService.blockUser",
@@ -5563,6 +5920,17 @@ export const REALM_SERVICE_METHODS = {
     "relationshipControllerGetMyRelationships": "RelationshipsMetaGraphService.relationshipControllerGetMyRelationships",
     "relationshipControllerUpdateRelationship": "RelationshipsMetaGraphService.relationshipControllerUpdateRelationship"
   },
+  "ResourcesService": {
+    "createAudioDirectUpload": "ResourcesService.createAudioDirectUpload",
+    "createImageDirectUpload": "ResourcesService.createImageDirectUpload",
+    "createTextResource": "ResourcesService.createTextResource",
+    "createVideoDirectUpload": "ResourcesService.createVideoDirectUpload",
+    "deleteResource": "ResourcesService.deleteResource",
+    "finalizeResource": "ResourcesService.finalizeResource",
+    "getResource": "ResourcesService.getResource",
+    "listResources": "ResourcesService.listResources",
+    "updateResource": "ResourcesService.updateResource"
+  },
   "ReviewsEconomyTrustService": {
     "reviewControllerCreateReview": "ReviewsEconomyTrustService.reviewControllerCreateReview",
     "reviewControllerGetReviews": "ReviewsEconomyTrustService.reviewControllerGetReviews"
@@ -5606,8 +5974,10 @@ export const REALM_SERVICE_METHODS = {
   },
   "WorldControlService": {
     "worldControlControllerAppendWorldHistory": "WorldControlService.worldControlControllerAppendWorldHistory",
+    "worldControlControllerBatchUpsertWorldResourceBindings": "WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings",
     "worldControlControllerCommitState": "WorldControlService.worldControlControllerCommitState",
     "worldControlControllerCreateDraft": "WorldControlService.worldControlControllerCreateDraft",
+    "worldControlControllerDeleteWorldResourceBinding": "WorldControlService.worldControlControllerDeleteWorldResourceBinding",
     "worldControlControllerGetDraft": "WorldControlService.worldControlControllerGetDraft",
     "worldControlControllerGetMyAccess": "WorldControlService.worldControlControllerGetMyAccess",
     "worldControlControllerGetState": "WorldControlService.worldControlControllerGetState",
@@ -5615,7 +5985,7 @@ export const REALM_SERVICE_METHODS = {
     "worldControlControllerListMyWorlds": "WorldControlService.worldControlControllerListMyWorlds",
     "worldControlControllerListWorldHistory": "WorldControlService.worldControlControllerListWorldHistory",
     "worldControlControllerListWorldLorebooks": "WorldControlService.worldControlControllerListWorldLorebooks",
-    "worldControlControllerListWorldMediaBindings": "WorldControlService.worldControlControllerListWorldMediaBindings",
+    "worldControlControllerListWorldResourceBindings": "WorldControlService.worldControlControllerListWorldResourceBindings",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
     "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft"
@@ -5641,7 +6011,7 @@ export const REALM_SERVICE_METHODS = {
     "worldControllerGetWorldHistory": "WorldsService.worldControllerGetWorldHistory",
     "worldControllerGetWorldLevelAudits": "WorldsService.worldControllerGetWorldLevelAudits",
     "worldControllerGetWorldLorebooks": "WorldsService.worldControllerGetWorldLorebooks",
-    "worldControllerGetWorldMediaBindings": "WorldsService.worldControllerGetWorldMediaBindings",
+    "worldControllerGetWorldResourceBindings": "WorldsService.worldControllerGetWorldResourceBindings",
     "worldControllerGetWorldview": "WorldsService.worldControllerGetWorldview",
     "worldControllerListWorlds": "WorldsService.worldControllerListWorlds",
     "worldControllerReturnToMainWorld": "WorldsService.worldControllerReturnToMainWorld",

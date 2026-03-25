@@ -17,7 +17,7 @@ import {
 
 type CreatePostDto = RealmModel<'CreatePostDto'>;
 type CreateReportDto = RealmModel<'CreateReportDto'>;
-type FinalizeMediaAssetDto = RealmModel<'FinalizeMediaAssetDto'>;
+type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
 type MeTwoFactorPrepareOutput = RealmModel<'MeTwoFactorPrepareOutput'>;
 type MeTwoFactorVerifyInput = RealmModel<'MeTwoFactorVerifyInput'>;
 type OAuthProvider = RealmModel<'OAuthProvider'>;
@@ -64,7 +64,7 @@ import {
   loadWorldLevelAudits,
   loadWorldList,
   loadWorldLorebooks,
-  loadWorldMediaBindings,
+  loadWorldResourceBindings,
   loadWorldSemanticBundle,
   loadWorldAgents,
   loadWorldDetailWithAgents,
@@ -107,12 +107,12 @@ import {
   createPost,
   createVideoDirectUpload,
   deletePost,
-  finalizeMediaAsset,
+  finalizeResource,
   likePost,
   loadPostFeed,
   unlikePost,
   updatePostVisibility,
-} from './flows/post-media-flow';
+} from './flows/post-attachment-flow';
 import {
   disableTwoFactor,
   enableTwoFactor,
@@ -294,8 +294,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadWorldHistory(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldLorebooks: async (worldId: string) =>
       loadWorldLorebooks(input.callApiTask, input.emitFacadeError, worldId),
-    loadWorldMediaBindings: async (worldId: string) =>
-      loadWorldMediaBindings(input.callApiTask, input.emitFacadeError, worldId),
+    loadWorldResourceBindings: async (worldId: string) =>
+      loadWorldResourceBindings(input.callApiTask, input.emitFacadeError, worldId),
     startWorldTransit: async (payload: {
       agentId: string;
       fromWorldId?: string;
@@ -331,8 +331,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       createImageDirectUpload(input.callApiTask, input.emitFacadeError),
     createVideoDirectUpload: async () =>
       createVideoDirectUpload(input.callApiTask, input.emitFacadeError),
-    finalizeMediaAsset: async (assetId: string, payload: FinalizeMediaAssetDto) =>
-      finalizeMediaAsset(input.callApiTask, input.emitFacadeError, assetId, payload),
+    finalizeResource: async (resourceId: string, payload: FinalizeResourceDto) =>
+      finalizeResource(input.callApiTask, input.emitFacadeError, resourceId, payload),
     deletePost: async (postId: string) =>
       deletePost(input.callApiTask, input.emitFacadeError, postId),
     updatePostVisibility: async (

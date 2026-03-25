@@ -71,6 +71,7 @@ Image/video/voice generation must follow one beat-level orchestration policy:
 4. `voiceConversationMode=on` forces non-explicit-media assistant beats to voice, but must not override explicit image/video beats
 5. automatic media still passes explicit gate, cooldown, route readiness, dependency readiness, derived relationship boundary, and NSFW policy
 6. text beat success must not be blocked by media failure
+7. explicit visual beats carry `mediaRequest` planner input; Relay must keep that planner envelope separate from persisted artifact records
 
 ## RL-PIPE-007 — Proactive Heartbeat Pipeline
 
@@ -112,6 +113,7 @@ Session truth source must persist logical conversation bundles:
 4. assistant `text / voice / image / video` all attach to the same bundle when they belong to the same turn
 5. `pending` media must not enter continuity; `ready / blocked / failed` media must attach back to the assistant bundle
 6. persisted `ready / blocked / failed` image/video beats must write concise continuity summary into `contextText / semanticSummary`
+7. Relay local persistence stores generated/cached visuals as session-scoped `artifact` records, not realm assets
 
 ## RL-PIPE-011 — NSFW Media Guardrail Pipeline
 

@@ -1,5 +1,5 @@
 version: 1
-updated_at: 2026-03-22
+updated_at: 2026-03-25
 owner: '@team'
 description: Registry of acknowledged under-specified items after the hard-cut realm refactor.
 under_spec:
@@ -21,3 +21,12 @@ under_spec:
     impact: high
     resolution: define shared history event catalog after first world-connected app integrations land
     deferred_to: world-history-event-catalog
+  - id: U3
+    rule_id: R-RSRC-002
+    category: hard-cut-deferral
+    status: acknowledged
+    summary: VOICE resource type remains intentionally deferred after the Resource cutover
+    detail: Voice content continues to ride AUDIO plus metadata during this hard cut. A dedicated VOICE resource type and any entitlement or instance semantics are explicitly outside the active contract.
+    impact: medium
+    resolution: introduce VOICE only with a dedicated typed storage, delivery, and binding contract instead of overloading the current AUDIO model
+    deferred_to: resource-voice-contract

@@ -1,7 +1,7 @@
-import { PostMediaType } from '@nimiplatform/sdk/realm';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 
 type PostDto = RealmModel<'PostDto'>;
+export type MediaDisplayKind = 'IMAGE' | 'VIDEO';
 
 export type VideoPlaybackSource = { mode: 'iframe' | 'native'; src: string };
 
@@ -13,12 +13,27 @@ export function prepareHomeFeedItems(items: PostDto[]): PostDto[] {
   });
 }
 
-export function normalizeMediaType(type: unknown): PostMediaType | null {
+export function normalizeMediaType(type: unknown): MediaDisplayKind | null {
   const normalized = String(type || '').toUpperCase();
-  if (normalized === PostMediaType.IMAGE || normalized === PostMediaType.VIDEO) {
-    return normalized as PostMediaType;
+  if (normalized === 'IMAGE' || normalized === 'VIDEO') {
+    return normalized as MediaDisplayKind;
   }
   return null;
+}
+
+export function resolveRenderableMediaAttachment(
+  media: PostDto['attachments'][number] | null | undefined,
+): PostDto['attachments'][number] | null {
+  if (!media) {
+    return null;
+  }
+  if (normalizeMediaType(media.displayKind)) {
+    return media;
+  }
+  const preview = media.preview;
+  return normalizeMediaType(preview?.displayKind)
+    ? (preview as PostDto['attachments'][number])
+    : null;
 }
 
 function resolveRealmMediaPath(realmBaseUrl: string, path: string): string | undefined {
@@ -37,13 +52,14 @@ function resolveRealmMediaPath(realmBaseUrl: string, path: string): string | und
 }
 
 export function resolveMediaUrl(
-  media: PostDto['media'][number] | null | undefined,
+  media: PostDto['attachments'][number] | null | undefined,
   realmBaseUrl: string,
 ): string | undefined {
-  if (!media) {
+  const renderable = resolveRenderableMediaAttachment(media);
+  if (!renderable) {
     return undefined;
   }
-  const directUrl = resolveRealmMediaPath(realmBaseUrl, media.url || '');
+  const directUrl = resolveRealmMediaPath(realmBaseUrl, renderable.url || '');
   if (directUrl) {
     return directUrl;
   }
@@ -51,13 +67,14 @@ export function resolveMediaUrl(
 }
 
 export function resolveMediaThumbnailUrl(
-  media: PostDto['media'][number] | null | undefined,
+  media: PostDto['attachments'][number] | null | undefined,
   realmBaseUrl: string,
 ): string | undefined {
-  if (!media) {
+  const renderable = resolveRenderableMediaAttachment(media);
+  if (!renderable) {
     return undefined;
   }
-  return resolveRealmMediaPath(realmBaseUrl, media.thumbnail || '');
+  return resolveRealmMediaPath(realmBaseUrl, renderable.thumbnail || '');
 }
 
 export function resolveVideoPlaybackSource(rawUrl?: string): VideoPlaybackSource | null {

@@ -5,30 +5,30 @@ import { dataSync } from '../src/runtime/data-sync';
 import { fetchWorldPublicAssets } from '../src/shell/renderer/features/world/world-detail-queries';
 
 const originalLoadWorldLorebooks = dataSync.loadWorldLorebooks.bind(dataSync);
-const originalLoadWorldMediaBindings = dataSync.loadWorldMediaBindings.bind(dataSync);
+const originalLoadWorldResourceBindings = dataSync.loadWorldResourceBindings.bind(dataSync);
 
 type WorldLorebookListPayload = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>;
-type WorldMediaBindingListPayload = Awaited<ReturnType<typeof dataSync.loadWorldMediaBindings>>;
+type WorldResourceBindingListPayload = Awaited<ReturnType<typeof dataSync.loadWorldResourceBindings>>;
 
 function stubPublicAssetLoads(input?: {
   lorebooks?: { worldId?: string; items: unknown[] };
-  mediaBindings?: { worldId?: string; items: unknown[] };
+  resourceBindings?: { worldId?: string; items: unknown[] };
 }) {
   dataSync.loadWorldLorebooks = (async () => ({
     worldId: 'world-1',
     items: [],
     ...input?.lorebooks,
   } as unknown as WorldLorebookListPayload)) as typeof dataSync.loadWorldLorebooks;
-  dataSync.loadWorldMediaBindings = (async () => ({
+  dataSync.loadWorldResourceBindings = (async () => ({
     worldId: 'world-1',
     items: [],
-    ...input?.mediaBindings,
-  } as unknown as WorldMediaBindingListPayload)) as typeof dataSync.loadWorldMediaBindings;
+    ...input?.resourceBindings,
+  } as unknown as WorldResourceBindingListPayload)) as typeof dataSync.loadWorldResourceBindings;
 }
 
 test.after(() => {
   dataSync.loadWorldLorebooks = originalLoadWorldLorebooks;
-  dataSync.loadWorldMediaBindings = originalLoadWorldMediaBindings;
+  dataSync.loadWorldResourceBindings = originalLoadWorldResourceBindings;
 });
 
 test('fetchWorldPublicAssets decodes projection payloads without fallback synthesis', async () => {
@@ -44,7 +44,7 @@ test('fetchWorldPublicAssets decodes projection payloads without fallback synthe
         priority: 8,
       }],
     },
-    mediaBindings: {
+    resourceBindings: {
       items: [{
         id: 'binding-1',
         targetType: 'WORLD',
@@ -52,10 +52,10 @@ test('fetchWorldPublicAssets decodes projection payloads without fallback synthe
         slot: 'WORLD_BANNER',
         priority: 1,
         tags: ['cover'],
-        asset: {
-          id: 'asset-1',
+        resource: {
+          id: 'resource-1',
           url: 'https://example.com/cover.png',
-          mediaType: 'IMAGE',
+          resourceType: 'IMAGE',
           label: 'Cover',
         },
       }],
@@ -65,12 +65,12 @@ test('fetchWorldPublicAssets decodes projection payloads without fallback synthe
   const payload = await fetchWorldPublicAssets('world-1');
   assert.equal(payload.lorebooks[0]?.key, 'chronicle');
   assert.deepEqual(payload.scenes, []);
-  assert.equal(payload.mediaBindings[0]?.asset.mediaType, 'IMAGE');
+  assert.equal(payload.resourceBindings[0]?.resource.resourceType, 'IMAGE');
 });
 
 test('fetchWorldPublicAssets fails close when projection contract fields are missing', async () => {
   stubPublicAssetLoads({
-    mediaBindings: {
+    resourceBindings: {
       items: [{
         id: 'binding-1',
         targetType: 'WORLD',
@@ -78,9 +78,9 @@ test('fetchWorldPublicAssets fails close when projection contract fields are mis
         slot: 'WORLD_BANNER',
         priority: 1,
         tags: ['cover'],
-        asset: {
-          id: 'asset-1',
-          mediaType: 'IMAGE',
+        resource: {
+          id: 'resource-1',
+          resourceType: 'IMAGE',
           label: 'Cover',
         },
       }],
@@ -89,6 +89,6 @@ test('fetchWorldPublicAssets fails close when projection contract fields are mis
 
   await assert.rejects(
     () => fetchWorldPublicAssets('world-1'),
-    /WORLD_DETAIL_MEDIA_BINDING_ASSET_URL_INVALID/,
+    /WORLD_DETAIL_RESOURCE_BINDING_RESOURCE_URL_INVALID/,
   );
 });

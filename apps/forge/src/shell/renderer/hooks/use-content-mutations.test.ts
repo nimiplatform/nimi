@@ -7,8 +7,8 @@ const mockContentDataClient = vi.hoisted(() => ({
   createImageDirectUpload: vi.fn(),
   createVideoDirectUpload: vi.fn(),
   createAudioDirectUpload: vi.fn(),
-  updateMediaAsset: vi.fn(),
-  deleteMediaAsset: vi.fn(),
+  updateResource: vi.fn(),
+  deleteResource: vi.fn(),
   createPost: vi.fn(),
   updatePost: vi.fn(),
   deletePost: vi.fn(),
@@ -45,15 +45,15 @@ describe('useContentMutations', () => {
     vi.clearAllMocks();
   });
 
-  it('returns all expected content and media mutation objects', () => {
+  it('returns all expected content and resource mutation objects', () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useContentMutations(), { wrapper });
 
     expect(result.current).toHaveProperty('imageUploadMutation');
     expect(result.current).toHaveProperty('videoUploadMutation');
     expect(result.current).toHaveProperty('audioUploadMutation');
-    expect(result.current).toHaveProperty('updateMediaAssetMutation');
-    expect(result.current).toHaveProperty('deleteMediaAssetMutation');
+    expect(result.current).toHaveProperty('updateResourceMutation');
+    expect(result.current).toHaveProperty('deleteResourceMutation');
     expect(result.current).toHaveProperty('createPostMutation');
     expect(result.current).toHaveProperty('updatePostMutation');
     expect(result.current).toHaveProperty('deletePostMutation');
@@ -80,39 +80,39 @@ describe('useContentMutations', () => {
     const { result } = renderHook(() => useContentMutations(), { wrapper });
 
     await act(async () => {
-      result.current.createPostMutation.mutate({ caption: 'My post', media: [] });
+      result.current.createPostMutation.mutate({ caption: 'My post', attachments: [] });
     });
 
     await vi.waitFor(() => expect(result.current.createPostMutation.isSuccess).toBe(true));
-    expect(mockContentDataClient.createPost).toHaveBeenCalledWith({ caption: 'My post', media: [] });
+    expect(mockContentDataClient.createPost).toHaveBeenCalledWith({ caption: 'My post', attachments: [] });
   });
 
-  it('updateMediaAssetMutation calls updateMediaAsset with asset id and payload', async () => {
-    mockContentDataClient.updateMediaAsset.mockResolvedValue({ id: 'asset-1' });
+  it('updateResourceMutation calls updateResource with resource id and payload', async () => {
+    mockContentDataClient.updateResource.mockResolvedValue({ id: 'resource-1' });
 
     const wrapper = createWrapper();
     const { result } = renderHook(() => useContentMutations(), { wrapper });
 
     await act(async () => {
-      result.current.updateMediaAssetMutation.mutate({ assetId: 'asset-1', payload: { title: 'Updated' } });
+      result.current.updateResourceMutation.mutate({ resourceId: 'resource-1', payload: { title: 'Updated' } });
     });
 
-    await vi.waitFor(() => expect(result.current.updateMediaAssetMutation.isSuccess).toBe(true));
-    expect(mockContentDataClient.updateMediaAsset).toHaveBeenCalledWith('asset-1', { title: 'Updated' });
+    await vi.waitFor(() => expect(result.current.updateResourceMutation.isSuccess).toBe(true));
+    expect(mockContentDataClient.updateResource).toHaveBeenCalledWith('resource-1', { title: 'Updated' });
   });
 
-  it('deleteMediaAssetMutation calls deleteMediaAsset with asset id', async () => {
-    mockContentDataClient.deleteMediaAsset.mockResolvedValue(undefined);
+  it('deleteResourceMutation calls deleteResource with resource id', async () => {
+    mockContentDataClient.deleteResource.mockResolvedValue(undefined);
 
     const wrapper = createWrapper();
     const { result } = renderHook(() => useContentMutations(), { wrapper });
 
     await act(async () => {
-      result.current.deleteMediaAssetMutation.mutate('asset-1');
+      result.current.deleteResourceMutation.mutate('resource-1');
     });
 
-    await vi.waitFor(() => expect(result.current.deleteMediaAssetMutation.isSuccess).toBe(true));
-    expect(mockContentDataClient.deleteMediaAsset).toHaveBeenCalledWith('asset-1');
+    await vi.waitFor(() => expect(result.current.deleteResourceMutation.isSuccess).toBe(true));
+    expect(mockContentDataClient.deleteResource).toHaveBeenCalledWith('resource-1');
   });
 
   it('updatePostMutation calls updatePost with postId and payload', async () => {

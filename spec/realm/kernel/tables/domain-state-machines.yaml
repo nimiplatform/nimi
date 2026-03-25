@@ -1,5 +1,5 @@
 version: 1
-updated_at: 2026-03-21
+updated_at: 2026-03-25
 owner: '@team'
 state_machines:
   - machine_id: WORLD-STATE-COMMIT
@@ -28,6 +28,35 @@ state_machines:
     transitions:
       - { from: PENDING, to: ACTIVE, event: start }
       - { from: ACTIVE, to: COMPLETED, event: complete }
-      - { from: PENDING, to: ABANDONED, event: abandon }
-      - { from: ACTIVE, to: ABANDONED, event: abandon }
+      - { from: PENDING, to: ABANDONED, event: cancel }
+      - { from: ACTIVE, to: ABANDONED, event: cancel }
     source_rules: [R-TRANSIT-003]
+  - machine_id: RESOURCE-LIFECYCLE
+    domain: resource
+    initial_state: PENDING
+    states: [PENDING, READY, FAILED, DELETED]
+    transitions:
+      - { from: PENDING, to: READY, event: finalize }
+      - { from: PENDING, to: FAILED, event: fail }
+      - { from: READY, to: DELETED, event: delete }
+      - { from: FAILED, to: DELETED, event: delete }
+    source_rules: [R-RSRC-003]
+  - machine_id: OWNABLE-ASSET-LIFECYCLE
+    domain: asset
+    initial_state: DRAFT
+    states: [DRAFT, READY, ARCHIVED, DELETED]
+    transitions:
+      - { from: DRAFT, to: READY, event: publish-ready }
+      - { from: READY, to: ARCHIVED, event: archive }
+      - { from: DRAFT, to: DELETED, event: delete }
+      - { from: READY, to: DELETED, event: delete }
+      - { from: ARCHIVED, to: DELETED, event: delete }
+    source_rules: [R-ASSET-103]
+  - machine_id: BUNDLE-LIFECYCLE
+    domain: bundle
+    initial_state: DRAFT
+    states: [DRAFT, PUBLISHED, ARCHIVED]
+    transitions:
+      - { from: DRAFT, to: PUBLISHED, event: publish }
+      - { from: PUBLISHED, to: ARCHIVED, event: archive }
+    source_rules: [R-BNDL-003]

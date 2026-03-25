@@ -183,7 +183,7 @@ export function useContactDetailViewController(props: ContactDetailViewProps, re
       if (!response.ok) {
         throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
       }
-      const finalized = await dataSync.finalizeMediaAsset(upload.assetId, {});
+      const finalized = await dataSync.finalizeResource(upload.resourceId, {});
       const avatarUrl = finalized.url;
       if (!avatarUrl) {
         throw new Error(i18n.t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));

@@ -77,7 +77,7 @@ Source Rule: `D-DSYNC-005`
 | `loadWorldSemanticBundle` |
 | `loadWorldEvents` |
 | `loadWorldLorebooks` |
-| `loadWorldMediaBindings` |
+| `loadWorldResourceBindings` |
 | `loadMainWorld` |
 | `loadWorldLevelAudits` |
 

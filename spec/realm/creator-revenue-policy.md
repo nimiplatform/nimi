@@ -3,7 +3,7 @@ id: SPEC-REALM-CREATOR-REVENUE-POLICY-001
 title: Realm Creator Revenue Policy Bridge
 status: active
 owner: "@team"
-updated: 2026-03-16
+updated: 2026-03-23
 ---
 
 # Creator Revenue Policy
@@ -33,7 +33,7 @@ Bridge-only policy alignment. This file preserves the legacy open revenue anchor
 
 1. `kernel/economy-contract.md`
 2. `kernel/tables/rule-catalog.yaml`
-3. `agent.md`
+3. `economy.md`
 
 ## Non-goals
 

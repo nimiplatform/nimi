@@ -373,6 +373,59 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my ownable assets */
+        get: operations["listAssets"];
+        put?: never;
+        /** Create ownable asset */
+        post: operations["createAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assets/{assetId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get ownable asset detail */
+        get: operations["getAsset"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update ownable asset */
+        patch: operations["updateAsset"];
+        trace?: never;
+    };
+    "/api/assets/{assetId}/clone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clone ownable asset */
+        post: operations["cloneAsset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/2fa/verify": {
         parameters: {
             query?: never;
@@ -725,6 +778,93 @@ export type paths = {
         put?: never;
         /** Wallet login */
         post: operations["walletLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bundles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List bundles */
+        get: operations["listBundles"];
+        put?: never;
+        /** Create bundle */
+        post: operations["createBundle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bundles/{bundleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get bundle detail */
+        get: operations["getBundle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update bundle */
+        patch: operations["updateBundle"];
+        trace?: never;
+    };
+    "/api/bundles/{bundleId}/acquire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acquire bundle */
+        post: operations["acquireBundle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bundles/{bundleId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive bundle */
+        post: operations["archiveBundle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bundles/{bundleId}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish bundle */
+        post: operations["publishBundle"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2284,110 +2424,6 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/media/assets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List my media assets */
-        get: operations["listMediaAssets"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/media/assets/{assetId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get media asset by id */
-        get: operations["getMediaAsset"];
-        put?: never;
-        post?: never;
-        /** Delete media asset */
-        delete: operations["deleteMediaAsset"];
-        options?: never;
-        head?: never;
-        /** Update media asset metadata */
-        patch: operations["updateMediaAsset"];
-        trace?: never;
-    };
-    "/api/media/assets/{assetId}/finalize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finalize uploaded media asset */
-        post: operations["finalizeMediaAsset"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/media/audio/direct-upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create audio upload session */
-        post: operations["createAudioDirectUpload"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/media/images/direct-upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create image upload session */
-        post: operations["createImageDirectUpload"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/media/videos/direct-upload": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create video upload session */
-        post: operations["createVideoDirectUpload"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/reports": {
         parameters: {
             query?: never;
@@ -2402,6 +2438,127 @@ export type paths = {
          * @description Report a user, post, agent, or comment for moderation.
          */
         post: operations["ReportController_createReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List my resources */
+        get: operations["listResources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resources/audio/direct-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create audio resource upload session */
+        post: operations["createAudioDirectUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resources/images/direct-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create image resource upload session */
+        post: operations["createImageDirectUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resources/texts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create text resource */
+        post: operations["createTextResource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resources/videos/direct-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create video resource upload session */
+        post: operations["createVideoDirectUpload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resources/{resourceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get resource by id */
+        get: operations["getResource"];
+        put?: never;
+        post?: never;
+        /** Delete resource */
+        delete: operations["deleteResource"];
+        options?: never;
+        head?: never;
+        /** Update resource metadata */
+        patch: operations["updateResource"];
+        trace?: never;
+    };
+    "/api/resources/{resourceId}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finalize uploaded resource */
+        post: operations["finalizeResource"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2682,15 +2839,15 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/world/by-id/{id}/media-bindings": {
+    "/api/world/by-id/{id}/resource-bindings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List public world media bindings */
-        get: operations["WorldController_getWorldMediaBindings"];
+        /** List public world resource bindings */
+        get: operations["WorldController_getWorldResourceBindings"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3215,18 +3372,36 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/worlds/{worldId}/media-bindings": {
+    "/api/worlds/{worldId}/resource-bindings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List world media bindings */
-        get: operations["WorldControlController_listWorldMediaBindings"];
+        /** List world resource bindings */
+        get: operations["WorldControlController_listWorldResourceBindings"];
+        put?: never;
+        /** Batch upsert world resource bindings */
+        post: operations["WorldControlController_batchUpsertWorldResourceBindings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/{worldId}/resource-bindings/{bindingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete world resource binding */
+        delete: operations["WorldControlController_deleteWorldResourceBinding"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3550,6 +3725,51 @@ export type components = {
             ifSnapshotVersion?: string;
             reason?: string;
         };
+        AssetDetailDto: {
+            allowedBindingTargets: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
+            authorId: string;
+            /** @enum {string} */
+            clonePolicy: "ALLOW" | "DENY" | "INHERIT";
+            createdAt: string;
+            id: string;
+            /** @enum {string} */
+            kind: "WORK" | "ITEM";
+            /** @enum {string} */
+            originKind: "ORIGINAL" | "CLONE" | "DERIVED";
+            ownerId: string;
+            previewResourceId?: string | null;
+            resourceRefs: string[];
+            rootAssetId?: string | null;
+            sourceAssetId?: string | null;
+            /** @enum {string} */
+            status: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
+            structuredPayload?: {
+                [key: string]: unknown;
+            } | null;
+            /** @enum {string} */
+            transferPolicy: "ALLOW" | "DENY" | "INHERIT";
+            updatedAt: string;
+        };
+        AssetListDto: {
+            items: components["schemas"]["AssetDetailDto"][];
+        };
+        /** @enum {string} */
+        AttachmentDisplayKind: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT" | "CARD";
+        AttachmentEnvelopeDto: {
+            displayKind?: components["schemas"]["AttachmentDisplayKind"];
+            duration?: number;
+            height?: number;
+            preview?: components["schemas"]["AttachmentEnvelopeDto"];
+            subtitle?: string;
+            targetId: string;
+            targetType: components["schemas"]["AttachmentTargetType"];
+            thumbnail?: string;
+            title?: string;
+            url?: string;
+            width?: number;
+        };
+        /** @enum {string} */
+        AttachmentTargetType: "RESOURCE" | "ASSET" | "BUNDLE";
         Auth2faVerifyDto: {
             code: string;
             tempToken: string;
@@ -3586,6 +3806,9 @@ export type components = {
             created: components["schemas"]["BatchCreateAgentCreatedDto"][];
             failed: components["schemas"]["BatchCreateAgentFailedDto"][];
         };
+        BatchUpsertWorldResourceBindingsDto: {
+            bindingUpserts: components["schemas"]["WorldResourceBindingUpsertDto"][];
+        };
         BindEmailDto: {
             email: string;
             /** @description 6-digit OTP sent to the target email address */
@@ -3594,6 +3817,35 @@ export type components = {
         };
         BlockUserBodyDto: {
             reason?: string;
+        };
+        BundleAcquisitionDto: {
+            accountId: string;
+            createdAt: string;
+        };
+        BundleDetailDto: {
+            acquisitions: components["schemas"]["BundleAcquisitionDto"][];
+            compatibleApps: string[];
+            coverAssetId: string;
+            createdAt: string;
+            description: string;
+            id: string;
+            importTargets: string[];
+            members: components["schemas"]["BundleMemberDto"][];
+            ownerId: string;
+            price: string;
+            /** @enum {string} */
+            status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            tags: string[];
+            title: string;
+            updatedAt: string;
+            version: string;
+        };
+        BundleListDto: {
+            items: components["schemas"]["BundleDetailDto"][];
+        };
+        BundleMemberDto: {
+            assetId: string;
+            sortOrder: number;
         };
         CalendarSystemDto: {
             daysPerMonth?: number;
@@ -3687,6 +3939,16 @@ export type components = {
             description?: string;
             id: string;
             name: string;
+        };
+        CloneAssetDto: {
+            allowedBindingTargets?: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
+            /** @enum {string} */
+            clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
+            ownerId?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
+            /** @enum {string} */
+            transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
         };
         CommitAgentMemoryDto: {
             commit: components["schemas"]["AgentMemoryCommitEnvelopeDto"];
@@ -3804,8 +4066,33 @@ export type components = {
             /** @default PERSONAL */
             type: components["schemas"]["ApiKeyType"];
         };
+        CreateAssetDto: {
+            allowedBindingTargets?: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
+            authorId?: string;
+            /** @enum {string} */
+            clonePolicy: "ALLOW" | "DENY" | "INHERIT";
+            /** @enum {string} */
+            kind: "WORK" | "ITEM";
+            /** @enum {string} */
+            originKind: "ORIGINAL" | "CLONE" | "DERIVED";
+            ownerId?: string;
+            previewResourceId?: string | null;
+            resourceRefs?: string[];
+            rootAssetId?: string;
+            sourceAssetId?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
+            structuredPayload?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            transferPolicy: "ALLOW" | "DENY" | "INHERIT";
+        };
         CreateAudioDirectUploadDto: {
             agentId?: string;
+            controllerId?: string;
+            /** @enum {string} */
+            controllerKind?: "ACCOUNT" | "WORLD";
             /** @enum {string} */
             deliveryAccess?: "PUBLIC" | "SIGNED";
             durationSec?: number;
@@ -3820,9 +4107,6 @@ export type components = {
                 [key: string]: unknown;
             };
             mimeType?: string;
-            ownerId?: string;
-            /** @enum {string} */
-            ownerKind?: "ACCOUNT" | "WORLD";
             sizeBytes?: number;
             sourceArtifactId?: string;
             sourceJobId?: string;
@@ -3834,6 +4118,19 @@ export type components = {
             width?: number;
             worldId?: string;
         };
+        CreateBundleDto: {
+            compatibleApps?: string[];
+            coverAssetId: string;
+            description: string;
+            importTargets?: string[];
+            memberAssetIds: string[];
+            price?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            tags?: string[];
+            title: string;
+            version: string;
+        };
         CreateConnectOnboardingDto: {
             /** @description URL to redirect if user needs to refresh onboarding */
             refreshUrl: string;
@@ -3844,18 +4141,14 @@ export type components = {
             /** @description URL to return to after portal */
             returnUrl: string;
         };
-        CreatePostDto: {
-            caption?: string;
-            media: components["schemas"]["CreatePostMediaDto"][];
-            tags?: string[];
+        CreatePostAttachmentDto: {
+            targetId: string;
+            targetType: components["schemas"]["AttachmentTargetType"];
         };
-        CreatePostMediaDto: {
-            assetId: string;
-            captionFragment?: string;
-            duration?: number;
-            thumbnailOverride?: string;
-            trim?: components["schemas"]["PostTrimDto"];
-            type: components["schemas"]["PostMediaType"];
+        CreatePostDto: {
+            attachments: components["schemas"]["CreatePostAttachmentDto"][];
+            caption?: string;
+            tags?: string[];
         };
         CreateRelationshipDto: {
             /** @description Context note */
@@ -3912,6 +4205,35 @@ export type components = {
             successUrl: string;
             /** @description Target tier */
             tier: components["schemas"]["SubscriptionTier"];
+        };
+        CreateTextResourceDto: {
+            agentId?: string;
+            content: string;
+            controllerId?: string;
+            /** @enum {string} */
+            controllerKind?: "ACCOUNT" | "WORLD";
+            /** @enum {string} */
+            deliveryAccess?: "PUBLIC" | "SIGNED";
+            durationSec?: number;
+            hashSha256?: string;
+            height?: number;
+            instrumental?: boolean;
+            label?: string;
+            lyricsSource?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            mimeType?: string;
+            sizeBytes?: number;
+            sourceArtifactId?: string;
+            sourceJobId?: string;
+            sourceRef?: string;
+            style?: string;
+            tags?: string[];
+            title?: string;
+            traceId?: string;
+            width?: number;
+            worldId?: string;
         };
         CreateWithdrawalDto: {
             /** @description Amount of Gems to withdraw */
@@ -4059,9 +4381,8 @@ export type components = {
             nextCursor: string | null;
         };
         CursorPageMetaDto: {
-            cursor?: string | null;
-            limit?: number;
-            nextCursor?: string | null;
+            hasNext: boolean;
+            nextCursor: string | null;
         };
         DeleteAgentOperationResponseDto: {
             success: boolean;
@@ -4104,6 +4425,14 @@ export type components = {
          */
         DnaSecondaryTrait: "HUMOROUS" | "SARCASTIC" | "GENTLE" | "DIRECT" | "OPTIMISTIC" | "REALISTIC" | "DRAMATIC" | "PASSIONATE" | "REBELLIOUS" | "INNOCENT" | "WISE" | "ECCENTRIC";
         EditMessageInputDto: {
+            /**
+             * @example {
+             *       "attachment": {
+             *         "targetId": "asset_01hxyz",
+             *         "targetType": "ASSET"
+             *       }
+             *     }
+             */
             payload?: {
                 [key: string]: unknown;
             };
@@ -4151,8 +4480,11 @@ export type components = {
             items: components["schemas"]["PostDto"][];
             page: components["schemas"]["FeedPageMetaDto"];
         };
-        FinalizeMediaAssetDto: {
+        FinalizeResourceDto: {
             agentId?: string;
+            controllerId?: string;
+            /** @enum {string} */
+            controllerKind?: "ACCOUNT" | "WORLD";
             /** @enum {string} */
             deliveryAccess?: "PUBLIC" | "SIGNED";
             durationSec?: number;
@@ -4165,9 +4497,6 @@ export type components = {
                 [key: string]: unknown;
             };
             mimeType?: string;
-            ownerId?: string;
-            /** @enum {string} */
-            ownerKind?: "ACCOUNT" | "WORLD";
             sizeBytes?: number;
             sourceArtifactId?: string;
             sourceJobId?: string;
@@ -4378,67 +4707,8 @@ export type components = {
         Me2faVerifyDto: {
             code: string;
         };
-        MediaAssetDetailDto: {
-            agentId?: string | null;
-            createdAt: string;
-            creatorAccountId: string;
-            /** @enum {string} */
-            deliveryAccess: "PUBLIC" | "SIGNED";
-            durationSec?: number | null;
-            hashSha256?: string | null;
-            height?: number | null;
-            id: string;
-            instrumental?: boolean | null;
-            label?: string | null;
-            lyricsSource?: string | null;
-            /** @enum {string} */
-            mediaType: "IMAGE" | "VIDEO" | "AUDIO";
-            metadata?: {
-                [key: string]: unknown;
-            } | null;
-            mimeType?: string | null;
-            ownerId: string;
-            /** @enum {string} */
-            ownerKind: "ACCOUNT" | "WORLD";
-            /** @enum {string} */
-            provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
-            /** @enum {string} */
-            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
-            sizeBytes?: number | null;
-            sourceArtifactId?: string | null;
-            sourceJobId?: string | null;
-            sourceRef?: string | null;
-            /** @enum {string} */
-            status: "PENDING" | "READY" | "FAILED" | "DELETED";
-            storageRef: string;
-            style?: string | null;
-            tags: string[];
-            title?: string | null;
-            traceId?: string | null;
-            updatedAt: string;
-            url?: string | null;
-            width?: number | null;
-            worldId?: string | null;
-        };
-        MediaAssetListDto: {
-            items: components["schemas"]["MediaAssetDetailDto"][];
-        };
-        MediaDirectUploadSessionDto: {
-            assetId: string;
-            /** @enum {string} */
-            deliveryAccess: "PUBLIC" | "SIGNED";
-            expiresIn?: number | null;
-            /** @enum {string} */
-            mediaType: "IMAGE" | "VIDEO" | "AUDIO";
-            /** @enum {string} */
-            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
-            /** @enum {string} */
-            status: "PENDING" | "READY" | "FAILED" | "DELETED";
-            storageRef: string;
-            uploadUrl: string;
-        };
         /** @enum {string} */
-        MessageType: "TEXT" | "IMAGE" | "VIDEO" | "POST_REF" | "USER_REF" | "LINK_REF" | "GIFT" | "FRIEND_REQUEST" | "SYSTEM" | "RECALL";
+        MessageType: "TEXT" | "ATTACHMENT" | "POST_REF" | "USER_REF" | "LINK_REF" | "GIFT" | "FRIEND_REQUEST" | "SYSTEM" | "RECALL";
         MessageViewDto: {
             chatId: string;
             clientMessageId?: string;
@@ -4448,7 +4718,23 @@ export type components = {
             editedAt?: string;
             id: string;
             isRead: boolean;
-            /** @description Canonical media payloads are asset-backed: IMAGE/VIDEO payloads return assetId and resolved url, with width/height/duration when available. */
+            /**
+             * @description Canonical attachment messages return payload.attachment with targetType, targetId, and resolved display fields when available. targetType remains RESOURCE, ASSET, or BUNDLE according to the attachment truth.
+             * @example {
+             *       "attachment": {
+             *         "displayKind": "CARD",
+             *         "preview": {
+             *           "displayKind": "IMAGE",
+             *           "targetId": "resource_preview_01hxyz",
+             *           "targetType": "RESOURCE",
+             *           "url": "https://cdn.example/preview.jpg"
+             *         },
+             *         "targetId": "bundle_01hxyz",
+             *         "targetType": "BUNDLE",
+             *         "title": "Creator Starter Pack"
+             *       }
+             *     }
+             */
             payload: {
                 [key: string]: unknown;
             } | null;
@@ -4631,7 +4917,21 @@ export type components = {
             /** @description Portal URL */
             url: string;
         };
+        PostAttachmentDto: {
+            displayKind?: components["schemas"]["AttachmentDisplayKind"];
+            duration?: number;
+            height?: number;
+            preview?: components["schemas"]["AttachmentEnvelopeDto"];
+            subtitle?: string;
+            targetId: string;
+            targetType: components["schemas"]["AttachmentTargetType"];
+            thumbnail?: string;
+            title?: string;
+            url?: string;
+            width?: number;
+        };
         PostDto: {
+            attachments: components["schemas"]["PostAttachmentDto"][];
             author: components["schemas"]["UserLiteDto"];
             authorId: string;
             caption?: string | null;
@@ -4640,34 +4940,12 @@ export type components = {
             createdAt: string;
             id: string;
             likedByCurrentUser?: boolean;
-            media: components["schemas"]["PostMediaDto"][];
             moderationStatus?: components["schemas"]["ModerationStatusString"];
             tags?: string[];
             /** Format: date-time */
             updatedAt?: string | null;
             visibility: components["schemas"]["Visibility"];
             worldId?: string;
-        };
-        PostMediaDto: {
-            assetId?: string;
-            captionFragment?: string;
-            duration?: number;
-            height?: number;
-            thumbnail?: string;
-            trim?: components["schemas"]["PostTrimDto"];
-            type: components["schemas"]["PostMediaType"];
-            url?: string;
-            width?: number;
-        };
-        /** @enum {string} */
-        PostMediaType: "IMAGE" | "VIDEO";
-        PostSearchResponseDto: {
-            items: components["schemas"]["SearchPostDto"][];
-            page: components["schemas"]["CursorPageMetaDto"];
-        };
-        PostTrimDto: {
-            end: number;
-            start: number;
         };
         PowerSystemDto: {
             abilities?: components["schemas"]["AbilityDefinitionDto"][];
@@ -4751,17 +5029,10 @@ export type components = {
             items: components["schemas"]["PublicWorldLorebookDto"][];
             worldId: string;
         };
-        PublicWorldMediaAssetDto: {
-            id: string;
-            label?: string;
-            /** @enum {string} */
-            mediaType: "IMAGE" | "VIDEO";
-            url: string;
-        };
-        PublicWorldMediaBindingDto: {
-            asset: components["schemas"]["PublicWorldMediaAssetDto"];
+        PublicWorldResourceBindingDto: {
             id: string;
             priority: number;
+            resource: components["schemas"]["PublicWorldResourceDto"];
             /** @enum {string} */
             slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
             tags: string[];
@@ -4769,9 +5040,16 @@ export type components = {
             /** @enum {string} */
             targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
         };
-        PublicWorldMediaBindingListDto: {
-            items: components["schemas"]["PublicWorldMediaBindingDto"][];
+        PublicWorldResourceBindingListDto: {
+            items: components["schemas"]["PublicWorldResourceBindingDto"][];
             worldId: string;
+        };
+        PublicWorldResourceDto: {
+            id: string;
+            label?: string;
+            /** @enum {string} */
+            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
+            url: string;
         };
         PublishWorldDraftDto: {
             reason?: string;
@@ -4870,10 +5148,87 @@ export type components = {
             amount: number;
             type: string;
         };
+        ResourceCreateDto: {
+            durationSec?: number;
+            hashSha256?: string;
+            height?: number;
+            label?: string;
+            mimeType?: string;
+            /** @enum {string} */
+            provenance?: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
+            /** @enum {string} */
+            provider?: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
+            /** @enum {string} */
+            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
+            sizeBytes?: number;
+            sourceRef?: string;
+            storageRef: string;
+            tags?: string[];
+            width?: number;
+        };
         ResourceDefinitionDto: {
             acquisitionRules?: components["schemas"]["ResourceAcquisitionRuleDto"][];
             consumptionRules?: components["schemas"]["ResourceConsumptionRuleDto"][];
             types: components["schemas"]["ResourceTypeDto"][];
+        };
+        ResourceDetailDto: {
+            agentId?: string | null;
+            controllerId: string;
+            /** @enum {string} */
+            controllerKind: "ACCOUNT" | "WORLD";
+            createdAt: string;
+            /** @enum {string} */
+            deliveryAccess: "PUBLIC" | "SIGNED";
+            durationSec?: number | null;
+            hashSha256?: string | null;
+            height?: number | null;
+            id: string;
+            instrumental?: boolean | null;
+            label?: string | null;
+            lyricsSource?: string | null;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            mimeType?: string | null;
+            /** @enum {string} */
+            provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
+            /** @enum {string} */
+            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
+            /** @enum {string} */
+            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
+            sizeBytes?: number | null;
+            sourceArtifactId?: string | null;
+            sourceJobId?: string | null;
+            sourceRef?: string | null;
+            /** @enum {string} */
+            status: "PENDING" | "READY" | "FAILED" | "DELETED";
+            storageRef: string;
+            style?: string | null;
+            tags: string[];
+            title?: string | null;
+            traceId?: string | null;
+            updatedAt: string;
+            uploaderAccountId: string;
+            url?: string | null;
+            width?: number | null;
+            worldId?: string | null;
+        };
+        ResourceDirectUploadSessionDto: {
+            /** @enum {string} */
+            deliveryAccess: "PUBLIC" | "SIGNED";
+            expiresIn?: number | null;
+            /** @enum {string} */
+            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
+            resourceId: string;
+            /** @enum {string} */
+            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
+            /** @enum {string} */
+            status: "PENDING" | "READY" | "FAILED" | "DELETED";
+            storageRef: string;
+            uploadUrl: string;
+        };
+        ResourceListDto: {
+            items: components["schemas"]["ResourceDetailDto"][];
         };
         ResourceTypeDto: {
             consumable?: boolean;
@@ -4976,29 +5331,6 @@ export type components = {
             timeCycle?: components["schemas"]["SceneTimeCycleDto"];
             timeModifier?: number;
         };
-        SearchPostDto: {
-            author: components["schemas"]["UserLiteDto"];
-            authorId: string;
-            caption?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            id: string;
-            likedByCurrentUser?: boolean;
-            media: components["schemas"]["SearchPostMediaDto"][];
-            tags?: string[];
-            /** Format: date-time */
-            updatedAt?: string | null;
-            visibility: components["schemas"]["Visibility"];
-        };
-        SearchPostMediaDto: {
-            duration?: number;
-            height?: number;
-            thumbnail?: string;
-            type: components["schemas"]["PostMediaType"];
-            uid?: string;
-            url?: string;
-            width?: number;
-        };
         SelectAvatarDto: {
             avatarUrl: string;
         };
@@ -5013,7 +5345,15 @@ export type components = {
         };
         SendMessageInputDto: {
             clientMessageId: string;
-            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
+            /**
+             * @description Canonical attachment writes use payload.attachment with targetType and targetId. Provider-specific media keys are not allowed, and targetType may be RESOURCE, ASSET, or BUNDLE.
+             * @example {
+             *       "attachment": {
+             *         "targetId": "bundle_01hxyz",
+             *         "targetType": "BUNDLE"
+             *       }
+             *     }
+             */
             payload?: {
                 [key: string]: unknown;
             };
@@ -5079,7 +5419,15 @@ export type components = {
         };
         StartChatInputDto: {
             asFriendRequest?: boolean;
-            /** @description Canonical chat media writes use payload.assetId for IMAGE/VIDEO messages. Provider-specific keys such as imageId/videoId are not allowed. */
+            /**
+             * @description Canonical attachment writes use payload.attachment with targetType and targetId. Provider-specific media keys are not allowed, and targetType may be RESOURCE, ASSET, or BUNDLE.
+             * @example {
+             *       "attachment": {
+             *         "targetId": "asset_01hxyz",
+             *         "targetType": "ASSET"
+             *       }
+             *     }
+             */
             payload?: {
                 [key: string]: unknown;
             };
@@ -5251,6 +5599,33 @@ export type components = {
             /** @description Profile information visibility */
             profileVisibility?: components["schemas"]["Visibility"];
         };
+        UpdateAssetDto: {
+            allowedBindingTargets?: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
+            /** @enum {string} */
+            clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
+            previewResourceId?: string | null;
+            resourceRefs?: string[];
+            /** @enum {string} */
+            status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
+            structuredPayload?: {
+                [key: string]: unknown;
+            };
+            /** @enum {string} */
+            transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
+        };
+        UpdateBundleDto: {
+            compatibleApps?: string[];
+            coverAssetId: string;
+            description: string;
+            importTargets?: string[];
+            memberAssetIds: string[];
+            price?: string;
+            /** @enum {string} */
+            status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            tags?: string[];
+            title: string;
+            version: string;
+        };
         UpdateCreatorAgentDto: {
             avatarUrl?: string;
             bio?: string;
@@ -5260,34 +5635,6 @@ export type components = {
             displayName?: string;
             tags?: string[];
             webhookUrl?: string;
-        };
-        UpdateMediaAssetDto: {
-            agentId?: string;
-            /** @enum {string} */
-            deliveryAccess?: "PUBLIC" | "SIGNED";
-            durationSec?: number;
-            hashSha256?: string;
-            height?: number;
-            instrumental?: boolean;
-            label?: string;
-            lyricsSource?: string;
-            metadata?: {
-                [key: string]: unknown;
-            };
-            mimeType?: string;
-            ownerId?: string;
-            /** @enum {string} */
-            ownerKind?: "ACCOUNT" | "WORLD";
-            sizeBytes?: number;
-            sourceArtifactId?: string;
-            sourceJobId?: string;
-            sourceRef?: string;
-            style?: string;
-            tags?: string[];
-            title?: string;
-            traceId?: string;
-            width?: number;
-            worldId?: string;
         };
         UpdateNsfwConsentResponseDto: {
             /** @description The new NSFW setting */
@@ -5313,6 +5660,34 @@ export type components = {
         UpdateRelationshipDto: {
             context?: string;
             strength?: number;
+        };
+        UpdateResourceDto: {
+            agentId?: string;
+            controllerId?: string;
+            /** @enum {string} */
+            controllerKind?: "ACCOUNT" | "WORLD";
+            /** @enum {string} */
+            deliveryAccess?: "PUBLIC" | "SIGNED";
+            durationSec?: number;
+            hashSha256?: string;
+            height?: number;
+            instrumental?: boolean;
+            label?: string;
+            lyricsSource?: string;
+            metadata?: {
+                [key: string]: unknown;
+            };
+            mimeType?: string;
+            sizeBytes?: number;
+            sourceArtifactId?: string;
+            sourceJobId?: string;
+            sourceRef?: string;
+            style?: string;
+            tags?: string[];
+            title?: string;
+            traceId?: string;
+            width?: number;
+            worldId?: string;
         };
         UpdateUserDto: {
             /** @description Avatar URL */
@@ -6147,29 +6522,16 @@ export type components = {
             items: components["schemas"]["WorldLorebookDetailDto"][];
             worldId: string;
         };
-        WorldMediaAssetDetailDto: {
-            durationSec?: number;
-            hashSha256?: string;
-            height?: number;
+        WorldRecommendedAgentDto: {
+            avatarUrl?: string;
+            display?: components["schemas"]["AgentDisplayDto"];
+            handle?: string;
             id: string;
-            label?: string;
             /** @enum {string} */
-            mediaType: "IMAGE" | "VIDEO";
-            mimeType?: string;
-            /** @enum {string} */
-            provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
-            /** @enum {string} */
-            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
-            sizeBytes?: number;
-            sourceRef?: string;
-            storageRef: string;
-            tags: string[];
-            url: string;
-            width?: number;
+            importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
+            name: string;
         };
-        WorldMediaBindingDetailDto: {
-            asset: components["schemas"]["WorldMediaAssetDetailDto"];
-            assetId: string;
+        WorldResourceBindingDetailDto: {
             conditionHash: string;
             conditions?: {
                 [key: string]: string;
@@ -6179,6 +6541,8 @@ export type components = {
             id: string;
             intentPrompt?: string;
             priority: number;
+            resource: components["schemas"]["WorldResourceDetailDto"];
+            resourceId: string;
             scopeWorldId: string;
             /** @enum {string} */
             slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
@@ -6188,18 +6552,44 @@ export type components = {
             targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
             updatedAt: string;
         };
-        WorldMediaBindingListDto: {
-            items: components["schemas"]["WorldMediaBindingDetailDto"][];
+        WorldResourceBindingListDto: {
+            items: components["schemas"]["WorldResourceBindingDetailDto"][];
             worldId: string;
         };
-        WorldRecommendedAgentDto: {
-            avatarUrl?: string;
-            display?: components["schemas"]["AgentDisplayDto"];
-            handle?: string;
-            id: string;
+        WorldResourceBindingUpsertDto: {
+            conditions?: {
+                [key: string]: string;
+            };
+            intentPrompt?: string;
+            priority?: number;
+            resource?: components["schemas"]["ResourceCreateDto"];
+            resourceId?: string;
             /** @enum {string} */
-            importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
-            name: string;
+            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
+            tags?: string[];
+            targetId: string;
+            /** @enum {string} */
+            targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
+        };
+        WorldResourceDetailDto: {
+            durationSec?: number;
+            hashSha256?: string;
+            height?: number;
+            id: string;
+            label?: string;
+            mimeType?: string;
+            /** @enum {string} */
+            provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
+            /** @enum {string} */
+            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
+            /** @enum {string} */
+            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
+            sizeBytes?: number;
+            sourceRef?: string;
+            storageRef: string;
+            tags: string[];
+            url: string;
+            width?: number;
         };
         WorldRuleDto: {
             /** @enum {string} */
@@ -6982,6 +7372,119 @@ export interface operations {
             };
         };
     };
+    listAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetListDto"];
+                };
+            };
+        };
+    };
+    createAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAssetDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetailDto"];
+                };
+            };
+        };
+    };
+    getAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetailDto"];
+                };
+            };
+        };
+    };
+    updateAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAssetDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetailDto"];
+                };
+            };
+        };
+    };
+    cloneAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloneAssetDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetDetailDto"];
+                };
+            };
+        };
+    };
     verify2Fa: {
         parameters: {
             query?: never;
@@ -7474,6 +7977,157 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OAuthLoginResultDto"];
+                };
+            };
+        };
+    };
+    listBundles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundleListDto"];
+                };
+            };
+        };
+    };
+    createBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateBundleDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundleDetailDto"];
+                };
+            };
+        };
+    };
+    getBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bundleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundleDetailDto"];
+                };
+            };
+        };
+    };
+    updateBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bundleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateBundleDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundleDetailDto"];
+                };
+            };
+        };
+    };
+    acquireBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bundleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundleDetailDto"];
+                };
+            };
+        };
+    };
+    archiveBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bundleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundleDetailDto"];
+                };
+            };
+        };
+    };
+    publishBundle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bundleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BundleDetailDto"];
                 };
             };
         };
@@ -8520,7 +9174,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostSearchResponseDto"];
+                    "application/json": components["schemas"]["FeedResponseDto"];
                 };
             };
         };
@@ -9850,7 +10504,31 @@ export interface operations {
             };
         };
     };
-    listMediaAssets: {
+    ReportController_createReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReportDto"];
+            };
+        };
+        responses: {
+            /** @description Report submitted successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponseDto"];
+                };
+            };
+        };
+    };
+    listResources: {
         parameters: {
             query?: never;
             header?: never;
@@ -9864,97 +10542,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaAssetListDto"];
-                };
-            };
-        };
-    };
-    getMediaAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                assetId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MediaAssetDetailDto"];
-                };
-            };
-        };
-    };
-    deleteMediaAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                assetId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    updateMediaAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                assetId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateMediaAssetDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MediaAssetDetailDto"];
-                };
-            };
-        };
-    };
-    finalizeMediaAsset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                assetId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FinalizeMediaAssetDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MediaAssetDetailDto"];
+                    "application/json": components["schemas"]["ResourceListDto"];
                 };
             };
         };
@@ -9977,7 +10565,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaDirectUploadSessionDto"];
+                    "application/json": components["schemas"]["ResourceDirectUploadSessionDto"];
                 };
             };
         };
@@ -9985,7 +10573,7 @@ export interface operations {
     createImageDirectUpload: {
         parameters: {
             query?: {
-                /** @description Whether to require signed image delivery URLs */
+                /** @description Whether to require signed image delivery URLs. Defaults to true. */
                 requireSignedUrls?: string;
             };
             header?: never;
@@ -9999,34 +10587,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MediaDirectUploadSessionDto"];
+                    "application/json": components["schemas"]["ResourceDirectUploadSessionDto"];
                 };
             };
         };
     };
-    createVideoDirectUpload: {
-        parameters: {
-            query?: {
-                /** @description Whether to require signed playback URLs */
-                requireSignedUrls?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MediaDirectUploadSessionDto"];
-                };
-            };
-        };
-    };
-    ReportController_createReport: {
+    createTextResource: {
         parameters: {
             query?: never;
             header?: never;
@@ -10035,17 +10601,128 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateReportDto"];
+                "application/json": components["schemas"]["CreateTextResourceDto"];
             };
         };
         responses: {
-            /** @description Report submitted successfully */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReportResponseDto"];
+                    "application/json": components["schemas"]["ResourceDetailDto"];
+                };
+            };
+        };
+    };
+    createVideoDirectUpload: {
+        parameters: {
+            query?: {
+                /** @description Whether to require signed playback URLs. Defaults to true. */
+                requireSignedUrls?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceDirectUploadSessionDto"];
+                };
+            };
+        };
+    };
+    getResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceDetailDto"];
+                };
+            };
+        };
+    };
+    deleteResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateResourceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceDetailDto"];
+                };
+            };
+        };
+    };
+    finalizeResource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                resourceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeResourceDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResourceDetailDto"];
                 };
             };
         };
@@ -10100,7 +10777,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostSearchResponseDto"];
+                    "application/json": components["schemas"]["FeedResponseDto"];
                 };
             };
         };
@@ -10473,7 +11150,7 @@ export interface operations {
             };
         };
     };
-    WorldController_getWorldMediaBindings: {
+    WorldController_getWorldResourceBindings: {
         parameters: {
             query?: never;
             header?: never;
@@ -10490,7 +11167,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PublicWorldMediaBindingListDto"];
+                    "application/json": components["schemas"]["PublicWorldResourceBindingListDto"];
                 };
             };
         };
@@ -11354,11 +12031,11 @@ export interface operations {
             };
         };
     };
-    WorldControlController_listWorldMediaBindings: {
+    WorldControlController_listWorldResourceBindings: {
         parameters: {
             query?: {
                 take?: number;
-                slot?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "SCENE_BACKGROUND" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE";
+                slot?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
                 targetId?: string;
                 targetType?: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
             };
@@ -11376,8 +12053,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["WorldMediaBindingListDto"];
+                    "application/json": components["schemas"]["WorldResourceBindingListDto"];
                 };
+            };
+        };
+    };
+    WorldControlController_batchUpsertWorldResourceBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchUpsertWorldResourceBindingsDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorldResourceBindingListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_deleteWorldResourceBinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Resource binding ID */
+                bindingId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

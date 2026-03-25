@@ -37,7 +37,7 @@ export const TAG_TO_SERVICE = Object.freeze({
   Invitations: 'InvitationsService',
   Me: 'MeService',
   Me2fa: 'MeTwoFactorService',
-  Media: 'MediaService',
+  Resources: 'ResourcesService',
   Notification: 'NotificationService',
   Post: 'PostService',
   'Relationships (Meta-Graph)': 'RelationshipsMetaGraphService',

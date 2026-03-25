@@ -101,10 +101,10 @@ describe('orchestrateBeatModalities — voice conversation on', () => {
 // ─── explicit-media sets image/video modality ─────────────────────────────
 
 describe('orchestrateBeatModalities — explicit media', () => {
-  it('sets image modality for explicit-media with image assetRequest', () => {
+  it('sets image modality for explicit-media with image mediaRequest', () => {
     const beats = orchestrateBeatModalities({
       beats: [createBeat({
-        assetRequest: { kind: 'image', prompt: 'a selfie', confidence: 0.9, nsfwIntent: 'none' },
+        mediaRequest: { kind: 'image', prompt: 'a selfie', confidence: 0.9, nsfwIntent: 'none' },
       })],
       turnMode: 'explicit-media',
       interactionProfile: createProfile(),
@@ -115,10 +115,10 @@ describe('orchestrateBeatModalities — explicit media', () => {
     assert.equal(beats[0].intent, 'media');
   });
 
-  it('sets video modality for explicit-media with video assetRequest', () => {
+  it('sets video modality for explicit-media with video mediaRequest', () => {
     const beats = orchestrateBeatModalities({
       beats: [createBeat({
-        assetRequest: { kind: 'video', prompt: 'a short clip', confidence: 0.8, nsfwIntent: 'none' },
+        mediaRequest: { kind: 'video', prompt: 'a short clip', confidence: 0.8, nsfwIntent: 'none' },
       })],
       turnMode: 'explicit-media',
       interactionProfile: createProfile(),
@@ -179,11 +179,11 @@ describe('orchestrateBeatModalities — visual slot', () => {
       beats: [
         createBeat({
           beatId: 'b1', beatIndex: 0,
-          assetRequest: { kind: 'image', prompt: 'photo 1', confidence: 0.9, nsfwIntent: 'none' },
+          mediaRequest: { kind: 'image', prompt: 'photo 1', confidence: 0.9, nsfwIntent: 'none' },
         }),
         createBeat({
           beatId: 'b2', beatIndex: 1,
-          assetRequest: { kind: 'image', prompt: 'photo 2', confidence: 0.9, nsfwIntent: 'none' },
+          mediaRequest: { kind: 'image', prompt: 'photo 2', confidence: 0.9, nsfwIntent: 'none' },
         }),
       ],
       turnMode: 'explicit-media',

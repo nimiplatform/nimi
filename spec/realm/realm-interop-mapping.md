@@ -3,7 +3,7 @@ id: SPEC-REALM-INTEROP-MAPPING-001
 title: Realm Interop Mapping Bridge
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-23
 ---
 
 # Realm Interop Mapping
@@ -21,7 +21,7 @@ Bridge-only document for interop semantics. It binds explicit commit and append 
 
 ## Mapping Declaration
 
-| Mirror Anchor | Open Anchor |
+| External Anchor | Local Kernel Anchor |
 | --- | --- |
 | `R-WSTATE-002` | `R-WSTATE-002` |
 | `R-WSTATE-005` | `R-WSTATE-005` |

@@ -284,11 +284,7 @@ describe('TurnInput attachment staging helpers', () => {
     );
     assert.match(
       messageTimelineSource,
-      /const isUploadingMedia = message\.localUploadState === 'uploading';/,
-    );
-    assert.match(
-      messageTimelineSource,
-      /className="absolute inset-0 flex items-center justify-center rounded-xl bg-white\/55 backdrop-blur-\[1px\]"/,
+      /<RealmChatTimeline/,
     );
     assert.match(
       messageTimelineSource,

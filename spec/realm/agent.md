@@ -3,14 +3,14 @@ id: SPEC-REALM-AGENT-001
 title: Realm Agent Domain
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-23
 ---
 
 # Realm Agent Boundary
 
 ## Normative Imports
 
-- `kernel/truth-contract.md`: `R-TRUTH-002..006`
+- `kernel/truth-contract.md`: `R-TRUTH-001..008`
 - `kernel/agent-memory-contract.md`: `R-MEM-001..006`
 - `kernel/world-state-contract.md`: `R-WSTATE-002..004`
 

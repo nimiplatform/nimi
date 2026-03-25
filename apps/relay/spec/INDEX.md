@@ -13,7 +13,7 @@
 
 | Contract | Rule IDs | Scope |
 |----------|----------|-------|
-| [bootstrap-contract.md](kernel/bootstrap-contract.md) | RL-BOOT-001 ~ 004 | Electron startup sequence |
+| [bootstrap-contract.md](kernel/bootstrap-contract.md) | RL-BOOT-001 ~ 005 | Electron startup sequence |
 | [ipc-bridge-contract.md](kernel/ipc-bridge-contract.md) | RL-IPC-001 ~ 009 | Electron IPC bridge protocol |
 | [transport-validation.md](kernel/transport-validation.md) | RL-TRANS-001 ~ 005 | node-grpc validation targets |
 | [interop-contract.md](kernel/interop-contract.md) | RL-INTOP-001 ~ 003 | Multi-app chat interop |

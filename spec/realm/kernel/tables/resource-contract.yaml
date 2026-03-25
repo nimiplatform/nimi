@@ -1,0 +1,63 @@
+contract_id: RESOURCE-CONTRACT-001
+domain: resource
+status: ACTIVE
+version: 2026-03-25
+owner: '@team'
+sources:
+  human_spec: ../resource-contract.md
+  openapi:
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
+  services:
+    - ../../nimi-backend/libs/domains/resource/src/resource.service.ts
+    - ../../nimi-backend/libs/domains/world/src/world-control.service.ts
+rule_id_prefix: R-RSRC-
+rules:
+  - rule_id: R-RSRC-001
+    level: must
+    title: typed-content-carrier-model
+    statement: "Realm Resource objects are typed content carriers with stable identity, storage, delivery, status, and controller semantics, not independent ownership semantics."
+  - rule_id: R-RSRC-002
+    level: must
+    title: fixed-active-resource-type-set
+    statement: "Active Resource types are fixed to IMAGE, VIDEO, AUDIO, and TEXT; VOICE remains outside the active hard-cut model."
+  - rule_id: R-RSRC-003
+    level: must
+    title: explicit-idempotent-resource-lifecycle
+    statement: "Resource lifecycle mutation is explicit, idempotent, and auditable; prepare upload, finalize, update, and delete are lifecycle transitions."
+  - rule_id: R-RSRC-004
+    level: must
+    title: resource-attachment-and-binding-boundary
+    statement: "Posts, chat attachment envelopes, and presentation surfaces may consume Resource objects through attachment or binding relations without promoting them into OwnableAsset by default."
+  - rule_id: R-RSRC-005
+    level: must
+    title: delivery-access-does-not-grant-viewer-auth
+    statement: "Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone."
+  - rule_id: R-RSRC-006
+    level: must
+    title: upload-preparation-defaults-to-signed
+    statement: "Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources."
+entities:
+  - name: Resource
+    prisma_model: Resource
+    required_fields:
+      [id, uploaderAccountId, resourceType, provider, storageRef, status, deliveryAccess]
+    json_fields: [metadata]
+  - name: ResourceBinding
+    prisma_model: ResourceBinding
+    required_fields: [id, resourceId, targetType, targetId, slot, scopeWorldId, createdBy]
+    json_fields: [conditions]
+api_surface:
+  required_operations:
+    - POST /api/resources/images/direct-upload
+    - POST /api/resources/videos/direct-upload
+    - POST /api/resources/audio/direct-upload
+    - POST /api/resources/texts
+    - GET /api/resources
+    - GET /api/resources/{resourceId}
+    - PATCH /api/resources/{resourceId}
+    - POST /api/resources/{resourceId}/finalize
+    - DELETE /api/resources/{resourceId}
+  secondary_operations:
+    - GET /api/world/by-id/{id}/resource-bindings
+    - GET /api/worlds/{worldId}/resource-bindings

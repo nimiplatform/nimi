@@ -431,7 +431,7 @@ export function WorldMaintainPageView({
   // Derived
   const working = commitActions.saveMaintenanceMutation.isPending
     || commitActions.syncEventsMutation.isPending
-    || commitActions.syncMediaBindingsMutation.isPending;
+    || commitActions.syncResourceBindingsMutation.isPending;
   const truthWorking = worldRulesQuery.isFetching
     || agentRulesQuery.isFetching
     || commitActions.createWorldRuleMutation.isPending
@@ -510,7 +510,7 @@ export function WorldMaintainPageView({
     working,
     creatorAgents: [],
     selectedCreatorAgent: null,
-    mediaBindings: [],
+    resourceBindings: [],
   };
 
   const status: WorldStudioStatusSlice = {
@@ -621,7 +621,7 @@ export function WorldMaintainPageView({
       createAgentsFromDrafts: async () => undefined,
       updateCreatorAgentMetadata: async () => undefined,
       setSectionDirty: () => undefined,
-      syncMediaBindings: async () => undefined,
+      syncResourceBindings: async () => undefined,
       refreshResources: async () => {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] }),

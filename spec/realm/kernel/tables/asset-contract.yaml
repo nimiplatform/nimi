@@ -1,7 +1,7 @@
 contract_id: ASSET-CONTRACT-001
 domain: asset
 status: ACTIVE
-version: 2026-03-21
+version: 2026-03-25
 owner: '@team'
 sources:
   human_spec: ../asset-contract.md
@@ -9,47 +9,45 @@ sources:
     - ../../nimi-backend/api-nimi.yaml
   prisma: ../../nimi-backend/prisma/schema.prisma
   services:
-    - ../../nimi-backend/libs/domains/asset/src/asset/asset.service.ts
+    - ../../nimi-backend/libs/domains/asset/src/ownable-asset.service.ts
 rule_id_prefix: R-ASSET-
 rules:
-  - rule_id: R-ASSET-001
+  - rule_id: R-ASSET-101
     level: must
-    title: creator-owned-asset-model
-    statement: "Realm assets are creator-owned publishable works with stable identity, visibility, lifecycle, and release semantics."
-  - rule_id: R-ASSET-002
+    title: independently-ownable-formal-object-model
+    statement: 'Realm OwnableAsset objects are independently ownable formal objects with stable identity, owner, authorship, lineage, lifecycle, and binding policy semantics.'
+  - rule_id: R-ASSET-102
     level: must
-    title: asset-not-core-archive
-    statement: "Asset storage is distinct from world truth, world history, and agent memory; app-private archives must not masquerade as realm assets."
-  - rule_id: R-ASSET-003
+    title: ownable-asset-not-resource-or-core-archive
+    statement: 'OwnableAsset is distinct from Resource, truth, history, and memory; raw content carriers and app-private archives must not masquerade as ownable realm assets.'
+  - rule_id: R-ASSET-103
     level: must
-    title: explicit-idempotent-asset-mutation
-    statement: "Asset mutations are explicit, idempotent, and auditable."
-  - rule_id: R-ASSET-004
+    title: explicit-idempotent-ownable-asset-mutation
+    statement: 'OwnableAsset mutations are explicit, idempotent, and auditable; create, update, clone, and lifecycle transitions are first-class state changes.'
+  - rule_id: R-ASSET-104
     level: must
-    title: app-consume-boundary-safe
-    statement: "Apps may reference assets but cannot usurp asset ownership or release truth."
+    title: ownable-asset-consumption-boundary-safe
+    statement: 'Apps may bind or bundle OwnableAsset objects but cannot usurp asset ownership, lifecycle, policy, or lineage truth.'
+  - rule_id: R-ASSET-105
+    level: must
+    title: explicit-preview-truth-does-not-change-ownership-truth
+    statement: 'OwnableAsset.resourceRefs defines composition only; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth.'
 entities:
-  - name: RealmAsset
-    prisma_model: Asset
-    required_fields: [id, creatorId, assetType, visibility, status]
-    json_fields: [metadata]
-  - name: NovelAsset
-    entity_kind: projection
-    projection_of: RealmAsset
-    prisma_model: Asset
-    required_fields: [id, creatorId, assetType]
-    json_fields: [structure, metadata]
-    notes: Thin projection for narrative-facing asset views; lifecycle and visibility remain governed by RealmAsset.
-  - name: AssetReleaseEvent
-    prisma_model: AssetReleaseEvent
-    required_fields: [id, assetId, releaseType, publishedAt]
-    json_fields: [payload]
+  - name: OwnableAsset
+    prisma_model: OwnableAsset
+    required_fields: [id, kind, ownerId, authorId, status, originKind, transferPolicy, clonePolicy]
+    json_fields: [resourceRefs]
+  - name: AssetBinding
+    prisma_model: AssetBinding
+    required_fields: [id, assetId, targetType, targetId, createdBy]
+    json_fields: []
 api_surface:
   required_operations:
     - GET /api/assets
     - POST /api/assets
     - GET /api/assets/{assetId}
     - PATCH /api/assets/{assetId}
+    - POST /api/assets/{assetId}/clone
   secondary_operations:
-    - POST /api/assets/{assetId}/publish
-    - POST /api/assets/{assetId}/archive
+    - POST /api/bundles
+    - POST /api/bundles/{bundleId}/publish

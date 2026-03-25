@@ -39,10 +39,16 @@ type AppendWorldHistoryInput = RealmServiceArgs<'WorldControlService', 'worldCon
 type GetWorldTruthResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorld'>;
 type GetWorldviewTruthResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldview'>;
 type MutationCommitEnvelope = NonNullable<CommitWorldStateInput['commit']>;
-type ListWorldMediaBindingsQuery = {
-  take?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldMediaBindings'>[1];
-  slot?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldMediaBindings'>[2];
+type ListWorldResourceBindingsQuery = {
+  take?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[1];
+  slot?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[2];
+  targetId?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[3];
+  targetType?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[4];
 };
+type BatchUpsertWorldResourceBindingsInput = RealmServiceArgs<
+  'WorldControlService',
+  'worldControlControllerBatchUpsertWorldResourceBindings'
+>[1];
 type CreateCreatorAgentInput = RealmServiceArgs<'CreatorService', 'creatorControllerCreateAgent'>[0];
 type BatchCreateCreatorAgentsInput = RealmServiceArgs<'CreatorService', 'creatorControllerBatchCreateAgents'>[0];
 type CreateWorldRuleInput = RealmServiceArgs<'WorldRulesService', 'worldRulesControllerCreateRule'>[1];
@@ -146,6 +152,7 @@ export type ForgeCreateWorldRuleInput = Partial<CreateWorldRuleInput>;
 export type ForgeUpdateWorldRuleInput = UpdateWorldRuleInput;
 export type ForgeCreateAgentRuleInput = Partial<CreateAgentRuleInput>;
 export type ForgeUpdateAgentRuleInput = UpdateAgentRuleInput;
+export type ForgeBatchUpsertWorldResourceBindingsInput = BatchUpsertWorldResourceBindingsInput;
 export type ForgeBatchCreateCreatorAgentsInput = {
   items: ForgeCreateWorldCreatorAgentInput[];
   continueOnError?: boolean;
@@ -577,8 +584,31 @@ export async function listWorldLorebooks(worldId: string) {
 
 // ── Visual Bindings ────────────────────────────────────────
 
-export async function listWorldMediaBindings(worldId: string, query?: ListWorldMediaBindingsQuery) {
-  return realm().services.WorldControlService.worldControlControllerListWorldMediaBindings(worldId, query?.take, query?.slot);
+export async function listWorldResourceBindings(worldId: string, query?: ListWorldResourceBindingsQuery) {
+  return realm().services.WorldControlService.worldControlControllerListWorldResourceBindings(
+    worldId,
+    query?.take,
+    query?.slot,
+    query?.targetId,
+    query?.targetType,
+  );
+}
+
+export async function batchUpsertWorldResourceBindings(
+  worldId: string,
+  payload: BatchUpsertWorldResourceBindingsInput,
+) {
+  return realm().services.WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings(
+    worldId,
+    payload,
+  );
+}
+
+export async function deleteWorldResourceBinding(worldId: string, bindingId: string) {
+  return realm().services.WorldControlService.worldControlControllerDeleteWorldResourceBinding(
+    worldId,
+    bindingId,
+  );
 }
 
 // ── Creator Agents ─────────────────────────────────────────

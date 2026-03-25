@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useMemo, type ChangeEvent, type ClipboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation } from '@tanstack/react-query';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -25,9 +24,10 @@ import {
   type PendingAttachment,
 } from './turn-input-attachments';
 import {
-  createCanonicalChatMediaPayload,
-  extractChatMediaAssetId,
-} from './chat-media-contract.js';
+  createCanonicalChatAttachmentPayload,
+  extractChatAttachmentTargetId,
+} from './chat-attachment-contract.js';
+import { mergeSentRealmChatMessageIntoCache } from './chat-send-cache.js';
 import { EMOJI_CATEGORIES } from './emoji-data';
 
 type TurnInputProps = {
@@ -213,34 +213,14 @@ export function TurnInput(props: TurnInputProps = {}) {
   const readOnlyMessage = t('TurnInput.runtimeUnavailableReadOnly');
   const uploadBlockedMessage = t('TurnInput.runtimeUnavailableUpload');
 
-  const sendMutation = useMutation({
-    mutationFn: async (content: string) => {
-      if (offlineTier === 'L2') {
-        throw new Error(readOnlyMessage);
-      }
-      if (!selectedChatId) {
-        throw new Error(t('TurnInput.selectChatFirst'));
-      }
-      const trimmedContent = content.trim();
-      if (!trimmedContent) {
-        throw new Error(t('TurnInput.inputMessageRequired'));
-      }
-      await dataSync.sendMessage(selectedChatId, trimmedContent);
-      return trimmedContent;
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] }),
-        queryClient.invalidateQueries({ queryKey: ['chats'] }),
-      ]);
-    },
-    onError: (error) => {
-      setStatusBanner({
-        kind: 'error',
-        message: error instanceof Error ? error.message : t('TurnInput.sendFailed'),
-      });
-    },
-  });
+  const mergeSentMessageIntoCache = (message: Awaited<ReturnType<typeof dataSync.sendMessage>>) => {
+    mergeSentRealmChatMessageIntoCache({
+      queryClient,
+      message,
+      currentUserId,
+      selectedChatId,
+    });
+  };
 
   const uploadPendingAttachment = async (attachment: PendingAttachment) => {
     if (offlineTier === 'L2') {
@@ -254,16 +234,16 @@ export function TurnInput(props: TurnInputProps = {}) {
     const isImage = kind === 'image';
 
     let uploadUrl: string;
-    let mediaAssetId: string;
+    let attachmentTargetId: string;
 
     if (isImage) {
       const uploadInfo = await dataSync.createImageDirectUpload();
       uploadUrl = uploadInfo.uploadUrl;
-      mediaAssetId = extractChatMediaAssetId(uploadInfo);
+      attachmentTargetId = extractChatAttachmentTargetId(uploadInfo);
     } else {
       const uploadInfo = await dataSync.createVideoDirectUpload();
       uploadUrl = uploadInfo.uploadUrl;
-      mediaAssetId = extractChatMediaAssetId(uploadInfo);
+      attachmentTargetId = extractChatAttachmentTargetId(uploadInfo);
     }
 
     if (!uploadUrl) {
@@ -291,9 +271,15 @@ export function TurnInput(props: TurnInputProps = {}) {
       throw new Error(t('TurnInput.uploadFailed'));
     }
 
-    await dataSync.sendMessage(selectedChatId, '', {
-      type: (isImage ? 'IMAGE' : 'VIDEO') as MessageType,
-      payload: createCanonicalChatMediaPayload(mediaAssetId) as unknown as Record<string, never>,
+    const finalized = await dataSync.finalizeResource(attachmentTargetId, {});
+    const finalizedAttachmentTargetId = String(finalized.id || '').trim();
+    if (!finalizedAttachmentTargetId) {
+      throw new Error(t('TurnInput.uploadFailed'));
+    }
+
+    return await dataSync.sendMessage(selectedChatId, '', {
+      type: MessageType.ATTACHMENT,
+      payload: createCanonicalChatAttachmentPayload(finalizedAttachmentTargetId) as unknown as Record<string, never>,
     });
   };
 
@@ -356,10 +342,11 @@ export function TurnInput(props: TurnInputProps = {}) {
           });
           addChatUploadPlaceholder(placeholder);
           try {
-            await uploadPendingAttachment(attachment);
+            const message = await uploadPendingAttachment(attachment);
+            mergeSentMessageIntoCache(message);
             setPendingAttachments((current) => removePendingAttachmentAt(current, 0, (url) => URL.revokeObjectURL(url)));
             await Promise.all([
-              queryClient.invalidateQueries({ queryKey: ['messages', selectedChatId] }),
+              queryClient.invalidateQueries({ queryKey: ['messages', message.chatId] }),
               queryClient.invalidateQueries({ queryKey: ['chats'] }),
             ]);
             removeChatUploadPlaceholder(placeholder.id);
@@ -378,16 +365,9 @@ export function TurnInput(props: TurnInputProps = {}) {
         setIsUploading(false);
       }
     }
-    if (payload.text.trim()) {
-      try {
-        await sendMutation.mutateAsync(payload.text);
-      } catch {
-        // useMutation already surfaces the error state/banner
-      }
-    }
   };
 
-  const textSendAdapter = useMemo(() => createRealmChatComposerAdapter<PendingAttachment>({
+  const textSendAdapter = useMemo(() => createRealmChatComposerAdapter({
     chatId: selectedChatId || '',
     service: {
       sendMessage: async (chatId, input) => dataSync.sendMessage(
@@ -396,7 +376,14 @@ export function TurnInput(props: TurnInputProps = {}) {
         input,
       ),
     },
-  }), [selectedChatId]);
+    onResponse: async (message) => {
+      mergeSentMessageIntoCache(message);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['messages', message.chatId] }),
+        queryClient.invalidateQueries({ queryKey: ['chats'] }),
+      ]);
+    },
+  }), [currentUserId, selectedChatId]);
 
   const composer = useChatComposer<PendingAttachment>({
     adapter: {
@@ -413,7 +400,7 @@ export function TurnInput(props: TurnInputProps = {}) {
     onAttachmentsChange: (nextAttachments) => {
       setPendingAttachments([...nextAttachments]);
     },
-    disabled: !selectedChatId || sendMutation.isPending || isUploading || offlineTier === 'L2',
+    disabled: !selectedChatId || isUploading || offlineTier === 'L2',
     onError: (error) => {
       setStatusBanner({
         kind: 'error',
@@ -427,7 +414,7 @@ export function TurnInput(props: TurnInputProps = {}) {
     pendingAttachments,
     hasSelectedChat: Boolean(selectedChatId),
     isReadOnly: offlineTier === 'L2',
-    isSending: sendMutation.isPending,
+    isSending: composer.isSubmitting || isUploading,
     isUploading,
   });
   const canSend = sendPlan.canSend;
@@ -563,7 +550,7 @@ export function TurnInput(props: TurnInputProps = {}) {
               ? t('TurnInput.runtimeUnavailablePlaceholder')
               : t('TurnInput.typeMessage')}
             value={composer.text}
-            disabled={!selectedChatId || sendMutation.isPending || offlineTier === 'L2'}
+            disabled={!selectedChatId || composer.isSubmitting || isUploading || offlineTier === 'L2'}
             onChange={composer.handleTextChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
@@ -601,9 +588,9 @@ export function TurnInput(props: TurnInputProps = {}) {
               <button
                 type="button"
                 onClick={handleUploadClick}
-                disabled={!selectedChatId || isUploading || offlineTier === 'L2'}
+                disabled={!selectedChatId || composer.isSubmitting || isUploading || offlineTier === 'L2'}
                 className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
-                  showUploadPickerActive || isUploading || pendingAttachments.length > 0
+                  showUploadPickerActive || composer.isSubmitting || isUploading || pendingAttachments.length > 0
                     ? 'bg-[#0066CC] text-white'
                     : 'text-gray-500 hover:bg-gray-200/50 hover:text-gray-700'
                 }`}

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { QueryKey } from '@tanstack/react-query';
-import { io, type Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import type {
   RealmChatEventEnvelope,
   RealmChatSyncResultDto,

@@ -197,17 +197,32 @@ describe('publish-workspace-data', () => {
       expect(draft.lastPublishedPostId).toBeNull();
     });
 
-    it('stores title, caption, tags, and media', () => {
+    it('stores title, caption, tags, and attachments', () => {
       const draft = mod.createPublishDraft({
         title: '  Trimmed Title  ',
         caption: 'Some caption',
         tags: ['alpha', 'beta'],
-        media: [{ assetId: 'img-1', type: 'IMAGE' }],
+        attachments: [{ targetType: 'RESOURCE', targetId: 'img-1', displayKind: 'IMAGE' }],
       });
       expect(draft.title).toBe('Trimmed Title');
       expect(draft.caption).toBe('Some caption');
       expect(draft.tags).toEqual(['alpha', 'beta']);
-      expect(draft.media).toEqual([{ assetId: 'img-1', type: 'IMAGE' }]);
+      expect(draft.attachments).toEqual([{ targetType: 'RESOURCE', targetId: 'img-1', displayKind: 'IMAGE' }]);
+    });
+
+    it('preserves non-resource attachment target types in local drafts', () => {
+      const draft = mod.createPublishDraft({
+        title: 'Card Draft',
+        attachments: [
+          { targetType: 'ASSET', targetId: 'asset-1', displayKind: 'CARD' },
+          { targetType: 'BUNDLE', targetId: 'bundle-1', displayKind: 'CARD' },
+        ],
+      });
+
+      expect(draft.attachments).toEqual([
+        { targetType: 'ASSET', targetId: 'asset-1', displayKind: 'CARD' },
+        { targetType: 'BUNDLE', targetId: 'bundle-1', displayKind: 'CARD' },
+      ]);
     });
 
     it('uses default identity from settings when not specified', () => {
@@ -237,15 +252,27 @@ describe('publish-workspace-data', () => {
       expect(draft.tags).toEqual(['good', 'also-good']);
     });
 
-    it('filters media without id', () => {
+    it('filters attachments without target id', () => {
       const draft = mod.createPublishDraft({
         title: 'Media filter',
-        media: [
-          { assetId: 'valid', type: 'IMAGE' },
-          { assetId: '', type: 'VIDEO' },
+        attachments: [
+          { targetType: 'RESOURCE', targetId: 'valid', displayKind: 'IMAGE' },
+          { targetType: 'RESOURCE', targetId: '', displayKind: 'VIDEO' },
         ],
       });
-      expect(draft.media).toEqual([{ assetId: 'valid', type: 'IMAGE' }]);
+      expect(draft.attachments).toEqual([{ targetType: 'RESOURCE', targetId: 'valid', displayKind: 'IMAGE' }]);
+    });
+
+    it('drops attachments with invalid targetType instead of coercing them to RESOURCE', () => {
+      const draft = mod.createPublishDraft({
+        title: 'Invalid target type',
+        attachments: [
+          { targetType: 'LEGACY_RESOURCE', targetId: 'legacy-1', displayKind: 'IMAGE' } as never,
+          { targetType: 'ASSET', targetId: 'asset-1', displayKind: 'CARD' },
+        ],
+      });
+
+      expect(draft.attachments).toEqual([{ targetType: 'ASSET', targetId: 'asset-1', displayKind: 'CARD' }]);
     });
 
     it('persists the draft to localStorage', () => {
@@ -323,6 +350,40 @@ describe('publish-workspace-data', () => {
       expect(found!.id).toBe(created.id);
     });
 
+    it('drops persisted attachments with invalid targetType instead of coercing them to RESOURCE', () => {
+      storage.set('nimi:forge:publish-workspace', JSON.stringify({
+        settings: {
+          defaultIdentity: 'USER',
+          defaultAgentId: null,
+          channels: {
+            INTERNAL_FEED: { enabled: true },
+            INTERNAL_AGENT_PROFILE: { enabled: false },
+          },
+        },
+        drafts: [{
+          id: 'draft-1',
+          title: 'Persisted',
+          caption: '',
+          tags: [],
+          attachments: [
+            { targetType: 'LEGACY_RESOURCE', targetId: 'legacy-1', displayKind: 'IMAGE' },
+            { targetType: 'BUNDLE', targetId: 'bundle-1', displayKind: 'CARD' },
+          ],
+          identity: 'USER',
+          agentId: null,
+          status: 'DRAFT',
+          createdAt: '2026-03-25T00:00:00.000Z',
+          updatedAt: '2026-03-25T00:00:00.000Z',
+          lastPublishedAt: null,
+          lastPublishedPostId: null,
+        }],
+      }));
+
+      expect(mod.getPublishDraft('draft-1')?.attachments).toEqual([
+        { targetType: 'BUNDLE', targetId: 'bundle-1', displayKind: 'CARD' },
+      ]);
+    });
+
     it('returns null for a non-existent id', () => {
       const result = mod.getPublishDraft('does-not-exist');
       expect(result).toBeNull();
@@ -354,12 +415,12 @@ describe('publish-workspace-data', () => {
       expect(updated.tags).toEqual(['b', 'c']);
     });
 
-    it('updates media', () => {
+    it('updates attachments', () => {
       const draft = mod.createPublishDraft({ title: 'Media' });
       const updated = mod.updatePublishDraft(draft.id, {
-        media: [{ assetId: 'vid-1', type: 'VIDEO' }],
+        attachments: [{ targetType: 'BUNDLE', targetId: 'bundle-1', displayKind: 'CARD' }],
       });
-      expect(updated.media).toEqual([{ assetId: 'vid-1', type: 'VIDEO' }]);
+      expect(updated.attachments).toEqual([{ targetType: 'BUNDLE', targetId: 'bundle-1', displayKind: 'CARD' }]);
     });
 
     it('updates identity', () => {

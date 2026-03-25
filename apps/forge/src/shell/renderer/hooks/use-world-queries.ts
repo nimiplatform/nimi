@@ -12,7 +12,7 @@ import {
   listWorldHistory,
   getWorldState,
   listWorldLorebooks,
-  listWorldMediaBindings,
+  listWorldResourceBindings,
 } from '@renderer/data/world-data-client.js';
 
 type WorldDraftListPayload = Awaited<ReturnType<typeof listWorldDrafts>>;
@@ -310,11 +310,11 @@ export function useWorldResourceQueries(input: {
     queryFn: async () => toHistorySummaryList(await listWorldHistory(input.worldId)),
   });
 
-  const mediaBindingsQuery = useQuery({
-    queryKey: ['forge', 'world', 'media-bindings', input.worldId],
+  const resourceBindingsQuery = useQuery({
+    queryKey: ['forge', 'world', 'resource-bindings', input.worldId],
     enabled: input.enabled && Boolean(input.worldId),
     retry: false,
-    queryFn: async () => await listWorldMediaBindings(input.worldId),
+    queryFn: async () => await listWorldResourceBindings(input.worldId),
   });
 
   return {
@@ -324,6 +324,6 @@ export function useWorldResourceQueries(input: {
     historyQuery,
     maintenanceTimeline: toMaintenanceTimeline(stateQuery.data, historyQuery.data),
     lorebooksQuery,
-    mediaBindingsQuery,
+    resourceBindingsQuery,
   };
 }

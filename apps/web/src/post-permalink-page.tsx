@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPlatformClient, type PlatformClient } from '@nimiplatform/sdk';
 
 type PostDto = NonNullable<Awaited<ReturnType<PlatformClient['domains']['publicContent']['getPublicPost']>>>;
-type PostMediaDto = PostDto['media'][number];
+type PostAttachmentDto = PostDto['attachments'][number];
 
 type LoadState =
   | { status: 'loading' }
@@ -82,11 +82,11 @@ export function PostPermalinkPage({ postId }: { postId: string }) {
 }
 
 function PostCard({ post }: { post: PostDto }) {
-  const firstMedia = post.media[0];
+  const firstAttachment = post.attachments[0];
 
   return (
     <article className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-      {firstMedia && <PostMedia media={firstMedia} />}
+      {firstAttachment && <PostAttachment attachment={firstAttachment} />}
 
       <div className="p-5">
         {post.author && (
@@ -130,21 +130,33 @@ function PostCard({ post }: { post: PostDto }) {
   );
 }
 
-function PostMedia({ media }: { media: PostMediaDto }) {
-  if (media.type === 'VIDEO') {
+function resolveRenderableAttachment(attachment: PostAttachmentDto): PostAttachmentDto | null {
+  if (attachment.displayKind === 'CARD') {
+    return attachment.preview ?? null;
+  }
+  return attachment;
+}
+
+function PostAttachment({ attachment }: { attachment: PostAttachmentDto }) {
+  const renderable = resolveRenderableAttachment(attachment);
+  if (!renderable) {
+    return null;
+  }
+
+  if (renderable.displayKind === 'VIDEO' && renderable.url) {
     return (
       <div className="relative bg-black w-full aspect-square">
-        {media.thumbnail && (
+        {renderable.thumbnail && (
           <video
-            src={media.url}
-            poster={media.thumbnail}
+            src={renderable.url}
+            poster={renderable.thumbnail}
             controls
             className="w-full h-full object-contain"
           />
         )}
-        {!media.thumbnail && media.url && (
+        {!renderable.thumbnail && (
           <video
-            src={media.url}
+            src={renderable.url}
             controls
             className="w-full h-full object-contain"
           />
@@ -153,14 +165,18 @@ function PostMedia({ media }: { media: PostMediaDto }) {
     );
   }
 
-  if (media.type === 'IMAGE' && media.url) {
+  if (renderable.displayKind === 'IMAGE' && renderable.url) {
     return (
       <div className="w-full bg-slate-100">
         <img
-          src={media.url}
+          src={renderable.url}
           alt="Post image"
           className="w-full object-cover"
-          style={media.width && media.height ? { aspectRatio: `${media.width}/${media.height}` } : { aspectRatio: '1/1' }}
+          style={
+            renderable.width && renderable.height
+              ? { aspectRatio: `${renderable.width}/${renderable.height}` }
+              : { aspectRatio: '1/1' }
+          }
         />
       </div>
     );

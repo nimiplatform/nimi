@@ -3,7 +3,7 @@ id: SPEC-REALM-WORLD-HISTORY-001
 title: Realm World History Domain
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-23
 ---
 
 # Realm World History Domain

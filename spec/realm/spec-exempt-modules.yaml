@@ -1,14 +1,14 @@
-version: 2026-03-10
+version: 2026-03-25
 owner: '@team'
 description: >
-  Registry of backend API modules that are NOT governed by Realm kernel contracts
+  Registry of backend API modules that are NOT governed by active Realm Kernel Spec rules
   but are required for product functionality. These modules are infrastructure or
   product features outside the core world/agent/social/economy/chat domains.
 
 modules:
   - module: ExploreModule
     path: nimi-backend/apps/api/src/modules/explore
-    reason: Search/discovery aggregation layer; no domain-specific realm kernel rules apply
+    reason: Search/discovery aggregation layer; no domain-specific active realm kernel rules apply
     product_area: discovery
 
   - module: InvitationModule
@@ -35,11 +35,6 @@ modules:
     path: nimi-backend/apps/api/src/modules/translation
     reason: Content translation infrastructure; not in kernel scope
     product_area: i18n
-
-  - module: MediaModule
-    path: nimi-backend/apps/api/src/modules/media
-    reason: Media upload/processing infrastructure; not in kernel scope
-    product_area: infrastructure
 
   - module: NotificationModule
     path: nimi-backend/apps/api/src/modules/notification
@@ -69,14 +64,4 @@ modules:
   - module: IndexerApp
     path: nimi-backend/apps/indexer
     reason: Blockchain event indexer application; not in kernel scope
-    product_area: blockchain
-
-  - module: AssetDomainModule
-    path: nimi-backend/libs/domains/asset
-    reason: On-chain asset management domain; not in kernel scope
-    product_area: blockchain
-
-  - module: AssetSyncSchedulerModule
-    path: nimi-backend/apps/scheduler/src/modules/asset-sync
-    reason: Blockchain asset synchronization scheduler; not in kernel scope
     product_area: blockchain

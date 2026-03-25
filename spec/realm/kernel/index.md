@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-INDEX-001
 title: Realm Kernel Index
 status: active
 owner: "@team"
-updated: 2026-03-22
+updated: 2026-03-25
 ---
 
 # Realm Kernel Index
@@ -15,6 +15,7 @@ updated: 2026-03-22
 - `world-history-contract.md` (`R-WHIST-*`)
 - `agent-memory-contract.md` (`R-MEM-*`)
 - `chat-contract.md` (`R-CHAT-*`)
+- `attachment-contract.md` (`R-ATTACH-*`)
 - `social-contract.md` (`R-SOC-*`)
 - `economy-contract.md` (`R-ECON-*`)
 - `asset-contract.md` (`R-ASSET-*`)
@@ -30,6 +31,7 @@ updated: 2026-03-22
 - `tables/world-history-contract.yaml`
 - `tables/agent-memory-contract.yaml`
 - `tables/chat-contract.yaml`
+- `tables/attachment-contract.yaml`
 - `tables/social-contract.yaml`
 - `tables/economy-contract.yaml`
 - `tables/asset-contract.yaml`
@@ -50,6 +52,7 @@ updated: 2026-03-22
 - `generated/world-history-contract.md`
 - `generated/agent-memory-contract.md`
 - `generated/chat-contract.md`
+- `generated/attachment-contract.md`
 - `generated/social-contract.md`
 - `generated/economy-contract.md`
 - `generated/asset-contract.md`

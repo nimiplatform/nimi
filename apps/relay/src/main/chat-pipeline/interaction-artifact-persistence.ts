@@ -12,7 +12,7 @@ import type {
 import {
   getInteractionSnapshot,
   getSessionById,
-  listLocalChatMediaAssets,
+  listLocalChatMediaArtifacts,
   getRelationMemorySlots,
   updateInteractionSnapshot,
   updateRelationMemorySlots,
@@ -69,9 +69,9 @@ export async function persistLocalChatInteractionArtifacts(input: {
   conversationDirective?: string | null;
   userText?: string | null;
 }): Promise<void> {
-  const [session, mediaAssets, previousSnapshot, existingSlots] = await Promise.all([
+  const [session, mediaArtifacts, previousSnapshot, existingSlots] = await Promise.all([
     getSessionById(input.sessionId, input.viewerId),
-    listLocalChatMediaAssets({
+    listLocalChatMediaArtifacts({
       conversationId: input.sessionId,
       turnId: input.assistantTurnId,
     }),
@@ -88,7 +88,7 @@ export async function persistLocalChatInteractionArtifacts(input: {
     viewerId: input.viewerId,
     session,
     deliveredBeats: input.deliveredBeats,
-    mediaAssets,
+    mediaArtifacts,
     conversationDirective: input.conversationDirective,
     previousSnapshot,
   });

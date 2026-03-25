@@ -84,7 +84,7 @@ test('contacts friend requests view does not carry an unused React default impor
   assert.doesNotMatch(contactsFriendRequestsSource, /import React from 'react'/);
 });
 
-test('home and notification surfaces import shared design primitives from nimi-ui directly', () => {
+test('home and notification surfaces import shared design primitives from nimi-kit directly', () => {
   assert.match(homeViewSource, /@nimiplatform\/nimi-kit\/ui/);
   assert.match(notificationPanelSource, /@nimiplatform\/nimi-kit\/ui/);
   assert.match(notificationRejectDialogSource, /@nimiplatform\/nimi-kit\/ui/);
@@ -106,8 +106,8 @@ test('design governance tables register secondary profile and overlay consumers 
   assert.match(designOverlaysTable, /id: profile\.top_supporters/);
 });
 
-test('governed secondary overlays import the shared overlay primitive from nimi-ui directly', () => {
-  assert.match(sendGiftModalSource, /@nimiplatform\/nimi-kit\/ui/);
+test('governed secondary overlays import shared nimi-kit overlay surfaces directly', () => {
+  assert.match(sendGiftModalSource, /@nimiplatform\/nimi-kit\/features\/commerce\/ui/);
   assert.match(createPostModalSource, /@nimiplatform\/nimi-kit\/ui/);
   assert.match(createPostModalPanelsSource, /@nimiplatform\/nimi-kit\/ui/);
   assert.match(contactDetailProfileModalSource, /@nimiplatform\/nimi-kit\/ui/);

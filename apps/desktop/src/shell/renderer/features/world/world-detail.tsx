@@ -75,7 +75,7 @@ const EMPTY_WORLD_SEMANTIC: WorldSemanticData = {
 const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
   lorebooks: [],
   scenes: [],
-  mediaBindings: [],
+  resourceBindings: [],
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -465,7 +465,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
         if (!response.ok) {
           throw new Error('头像上传失败，请重试');
         }
-        const finalized = await dataSync.finalizeMediaAsset(upload.assetId, {});
+        const finalized = await dataSync.finalizeResource(upload.resourceId, {});
         resolvedImageUrl = finalized.url ?? undefined;
       }
       return dataSync.createAgent({

@@ -1,5 +1,5 @@
 version: 1
-updated_at: '2026-03-22'
+updated_at: '2026-03-25'
 owner: '@team'
 mappings:
   - external_id: R-TRUTH-001
@@ -15,7 +15,7 @@ mappings:
   - external_id: R-TRUTH-003
     external_type: kernel_rule
     external_path: nimi/spec/realm/kernel/truth-contract.md#R-TRUTH-003
-    local_anchor: spec/realm/truth.md#Scope
+    local_anchor: spec/realm/agent.md#Scope
     coverage_status: mapped
   - external_id: R-TRUTH-004
     external_type: kernel_rule
@@ -152,6 +152,11 @@ mappings:
     external_path: nimi/spec/realm/kernel/chat-contract.md#R-CHAT-004
     local_anchor: spec/realm/chat.md#Scope
     coverage_status: mapped
+  - external_id: R-CHAT-005
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/chat-contract.md#R-CHAT-005
+    local_anchor: spec/realm/chat.md#Scope
+    coverage_status: mapped
   - external_id: R-SOC-001
     external_type: kernel_rule
     external_path: nimi/spec/realm/kernel/social-contract.md#R-SOC-001
@@ -180,7 +185,7 @@ mappings:
   - external_id: R-ECON-002
     external_type: kernel_rule
     external_path: nimi/spec/realm/kernel/economy-contract.md#R-ECON-002
-    local_anchor: spec/realm/creator-revenue-policy.md#Normative Imports
+    local_anchor: spec/realm/economy.md#Normative Imports
     coverage_status: mapped
   - external_id: R-ECON-003
     external_type: kernel_rule
@@ -192,24 +197,99 @@ mappings:
     external_path: nimi/spec/realm/kernel/economy-contract.md#R-ECON-004
     local_anchor: spec/realm/creator-revenue-policy.md#Normative Imports
     coverage_status: mapped
-  - external_id: R-ASSET-001
+  - external_id: R-RSRC-001
     external_type: kernel_rule
-    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-001
+    external_path: nimi/spec/realm/kernel/resource-contract.md#R-RSRC-001
     local_anchor: spec/realm/asset.md#Scope
     coverage_status: mapped
-  - external_id: R-ASSET-002
+  - external_id: R-RSRC-002
     external_type: kernel_rule
-    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-002
+    external_path: nimi/spec/realm/kernel/resource-contract.md#R-RSRC-002
     local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
-  - external_id: R-ASSET-003
+  - external_id: R-RSRC-003
     external_type: kernel_rule
-    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-003
+    external_path: nimi/spec/realm/kernel/resource-contract.md#R-RSRC-003
     local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
-  - external_id: R-ASSET-004
+  - external_id: R-RSRC-004
     external_type: kernel_rule
-    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-004
+    external_path: nimi/spec/realm/kernel/resource-contract.md#R-RSRC-004
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-RSRC-005
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/resource-contract.md#R-RSRC-005
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-RSRC-006
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/resource-contract.md#R-RSRC-006
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-ATTACH-001
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-001
+    local_anchor: spec/realm/asset.md#Scope
+    coverage_status: mapped
+  - external_id: R-ATTACH-002
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-002
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-ATTACH-003
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-003
+    local_anchor: spec/realm/chat.md#Scope
+    coverage_status: mapped
+  - external_id: R-ATTACH-004
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/attachment-contract.md#R-ATTACH-004
+    local_anchor: spec/realm/chat.md#Scope
+    coverage_status: mapped
+  - external_id: R-ASSET-101
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-101
+    local_anchor: spec/realm/asset.md#Scope
+    coverage_status: mapped
+  - external_id: R-ASSET-102
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-102
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-ASSET-103
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-103
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-ASSET-104
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-104
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-ASSET-105
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-105
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-BNDL-001
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-001
+    local_anchor: spec/realm/asset.md#Scope
+    coverage_status: mapped
+  - external_id: R-BNDL-002
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-002
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-BNDL-003
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-003
+    local_anchor: spec/realm/asset.md#Reading Path
+    coverage_status: mapped
+  - external_id: R-BNDL-004
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-004
     local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
   - external_id: R-TRANSIT-001

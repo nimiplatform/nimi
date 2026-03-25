@@ -2,7 +2,7 @@ import type {
   InteractionBeat,
   InteractionRecallDoc,
   InteractionSnapshot,
-  LocalChatMediaAssetRecord,
+  LocalChatMediaArtifactRecord,
   LocalChatSession,
   RelationMemorySlot,
 } from './types.js';
@@ -223,7 +223,7 @@ export function compileInteractionState(input: {
   viewerId: string;
   session: LocalChatSession | null;
   deliveredBeats: InteractionBeat[];
-  mediaAssets?: LocalChatMediaAssetRecord[];
+  mediaArtifacts?: LocalChatMediaArtifactRecord[];
   conversationDirective?: string | null;
   previousSnapshot?: InteractionSnapshot | null;
 }): {
@@ -232,11 +232,11 @@ export function compileInteractionState(input: {
   recallDocs: InteractionRecallDoc[];
 } {
   const deliveredBeats = input.deliveredBeats || [];
-  const mediaAssets = input.mediaAssets || [];
+  const mediaArtifacts = input.mediaArtifacts || [];
   const previousSnapshot = input.previousSnapshot || null;
   const texts = deliveredBeats.map((beat) => normalizeText(beat.text)).filter(Boolean);
-  const mediaTexts = mediaAssets
-    .map((asset) => normalizeText(`${asset.kind} ${asset.model || ''} ${asset.renderUri}`))
+  const mediaTexts = mediaArtifacts
+    .map((artifact) => normalizeText(`${artifact.kind} ${artifact.model || ''} ${artifact.renderUri}`))
     .filter(Boolean);
   const sceneMoves = dedupe(deliveredBeats.map((beat) => beat.sceneMove));
   const relationMoves = dedupe(deliveredBeats.map((beat) => beat.relationMove));
@@ -300,7 +300,7 @@ export function compileInteractionState(input: {
     ),
     activeScene: dedupeLatest([
       ...sceneMoves,
-      ...mediaAssets.map((asset) => asset.kind),
+      ...mediaArtifacts.map((artifact) => artifact.kind),
       ...(previousSnapshot?.activeScene || []),
     ], 8),
     emotionalTemperature,

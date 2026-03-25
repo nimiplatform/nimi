@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-WHIST-001
 title: Realm World History Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-23
 ---
 
 # World History Contract

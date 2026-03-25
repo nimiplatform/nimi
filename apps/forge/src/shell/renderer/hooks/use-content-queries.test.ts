@@ -5,8 +5,8 @@ import React, { type ReactNode } from 'react';
 
 const mockContentDataClient = vi.hoisted(() => ({
   getHomeFeed: vi.fn(),
-  listMediaAssets: vi.fn(),
-  getMediaAsset: vi.fn(),
+  listResources: vi.fn(),
+  getResource: vi.fn(),
   createImageDirectUpload: vi.fn(),
   createVideoDirectUpload: vi.fn(),
   createAudioDirectUpload: vi.fn(),
@@ -28,7 +28,7 @@ const mockContentDataClient = vi.hoisted(() => ({
 
 vi.mock('@renderer/data/content-data-client.js', () => mockContentDataClient);
 
-import { useCreatorPostsQuery, useMediaAssetQuery, useMediaAssetsQuery } from './use-content-queries.js';
+import { useCreatorPostsQuery, useResourceQuery, useResourcesQuery } from './use-content-queries.js';
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -50,7 +50,7 @@ describe('useCreatorPostsQuery', () => {
         {
           id: 'p1',
           caption: 'Hello world',
-          media: [{ assetId: 'asset-img1', type: 'IMAGE' }],
+          attachments: [{ targetType: 'RESOURCE', targetId: 'resource-img1', displayKind: 'IMAGE' }],
           tags: ['fantasy'],
           authorId: 'user1',
           worldId: null,
@@ -73,7 +73,11 @@ describe('useCreatorPostsQuery', () => {
       caption: 'Hello world',
       tags: ['fantasy'],
     });
-    expect(firstPost?.media[0]).toMatchObject({ assetId: 'asset-img1', type: 'IMAGE' });
+    expect(firstPost?.attachments[0]).toMatchObject({
+      targetType: 'RESOURCE',
+      targetId: 'resource-img1',
+      displayKind: 'IMAGE',
+    });
   });
 
   it('preserves AUDIO media items from the feed payload', async () => {
@@ -82,7 +86,7 @@ describe('useCreatorPostsQuery', () => {
         {
           id: 'p-audio',
           caption: 'Theme song',
-          media: [{ assetId: 'asset-audio1', type: 'AUDIO', duration: 60 }],
+          attachments: [{ targetType: 'RESOURCE', targetId: 'resource-audio1', displayKind: 'AUDIO', duration: 60 }],
           tags: ['cinematic'],
           authorId: 'user-audio',
           worldId: null,
@@ -97,11 +101,84 @@ describe('useCreatorPostsQuery', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(result.current.data?.[0]?.media[0]).toMatchObject({
-      assetId: 'asset-audio1',
-      type: 'AUDIO',
+    expect(result.current.data?.[0]?.attachments[0]).toMatchObject({
+      targetType: 'RESOURCE',
+      targetId: 'resource-audio1',
+      displayKind: 'AUDIO',
       duration: 60,
     });
+  });
+
+  it('preserves nested preview attachments for card-backed feed items', async () => {
+    mockContentDataClient.getHomeFeed.mockResolvedValue({
+      items: [
+        {
+          id: 'p-card',
+          caption: 'Original release',
+          attachments: [{
+            targetType: 'ASSET',
+            targetId: 'asset-1',
+            displayKind: 'CARD',
+            title: 'Original Song',
+            subtitle: 'TRACK',
+            preview: {
+              targetType: 'RESOURCE',
+              targetId: 'resource-preview-1',
+              displayKind: 'IMAGE',
+              url: 'https://cdn.example.com/preview.jpg',
+            },
+          }],
+          tags: ['music'],
+          authorId: 'user-card',
+          worldId: null,
+          createdAt: '2026-03-01',
+          updatedAt: '2026-03-01',
+        },
+      ],
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useCreatorPostsQuery(undefined, true), { wrapper });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.[0]?.attachments[0]).toMatchObject({
+      targetType: 'ASSET',
+      targetId: 'asset-1',
+      displayKind: 'CARD',
+      title: 'Original Song',
+      subtitle: 'TRACK',
+      preview: {
+        targetType: 'RESOURCE',
+        targetId: 'resource-preview-1',
+        displayKind: 'IMAGE',
+        url: 'https://cdn.example.com/preview.jpg',
+      },
+    });
+  });
+
+  it('fails closed when feed attachments contain an invalid targetType', async () => {
+    mockContentDataClient.getHomeFeed.mockResolvedValue({
+      items: [
+        {
+          id: 'p-invalid',
+          caption: 'Broken payload',
+          attachments: [{ targetType: 'LEGACY_RESOURCE', targetId: 'legacy-1', displayKind: 'IMAGE' }],
+          tags: [],
+          authorId: 'user-invalid',
+          worldId: null,
+          createdAt: '2026-03-01',
+          updatedAt: '2026-03-01',
+        },
+      ],
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(() => useCreatorPostsQuery(undefined, true), { wrapper });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.error).toBeInstanceOf(Error);
+    expect((result.current.error as Error).message).toBe('forge-content-invalid-attachment-target-type');
   });
 
   it('toPostList normalizer handles array payload (not wrapped in { items })', async () => {
@@ -109,7 +186,7 @@ describe('useCreatorPostsQuery', () => {
       {
         id: 'p2',
         caption: 'Direct array',
-        media: [],
+        attachments: [],
         tags: [],
         userId: 'user2',
         worldId: 'w1',
@@ -134,7 +211,7 @@ describe('useCreatorPostsQuery', () => {
   it('toPostList normalizer handles { items: [...] } payload', async () => {
     mockContentDataClient.getHomeFeed.mockResolvedValue({
       items: [
-        { id: 'p3', caption: 'Wrapped', media: [], tags: [], authorId: 'u3', createdAt: '', updatedAt: '' },
+        { id: 'p3', caption: 'Wrapped', attachments: [], tags: [], authorId: 'u3', createdAt: '', updatedAt: '' },
       ],
     });
 
@@ -148,49 +225,49 @@ describe('useCreatorPostsQuery', () => {
   });
 });
 
-describe('useMediaAssetQuery', () => {
+describe('useResourceQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('uses assetId in key and is enabled when assetId is truthy', async () => {
-    mockContentDataClient.getMediaAsset.mockResolvedValue({ id: 'asset-v1', url: 'https://stream.example.com/v1' });
+  it('uses resourceId in key and is enabled when resourceId is truthy', async () => {
+    mockContentDataClient.getResource.mockResolvedValue({ id: 'resource-v1', url: 'https://stream.example.com/v1' });
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useMediaAssetQuery('asset-v1'), { wrapper });
+    const { result } = renderHook(() => useResourceQuery('resource-v1'), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockContentDataClient.getMediaAsset).toHaveBeenCalledWith('asset-v1');
-    expect(result.current.data).toMatchObject({ id: 'asset-v1', url: 'https://stream.example.com/v1' });
+    expect(mockContentDataClient.getResource).toHaveBeenCalledWith('resource-v1');
+    expect(result.current.data).toMatchObject({ id: 'resource-v1', url: 'https://stream.example.com/v1' });
   });
 
-  it('is disabled when assetId is empty', async () => {
+  it('is disabled when resourceId is empty', async () => {
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useMediaAssetQuery(''), { wrapper });
+    const { result } = renderHook(() => useResourceQuery(''), { wrapper });
 
     await new Promise((r) => setTimeout(r, 50));
-    expect(mockContentDataClient.getMediaAsset).not.toHaveBeenCalled();
+    expect(mockContentDataClient.getResource).not.toHaveBeenCalled();
     expect(result.current.fetchStatus).toBe('idle');
   });
 });
 
-describe('useMediaAssetsQuery', () => {
+describe('useResourcesQuery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('normalizes media asset list payload from the asset endpoint', async () => {
-    mockContentDataClient.listMediaAssets.mockResolvedValue([
+  it('normalizes resource list payload from the resource endpoint', async () => {
+    mockContentDataClient.listResources.mockResolvedValue([
       {
-        id: 'asset-1',
-        mediaType: 'VIDEO',
+        id: 'resource-1',
+        resourceType: 'VIDEO',
         provider: 'CF_STREAM',
         status: 'READY',
         storageRef: 'video-cf-1',
         url: 'https://stream.example.com/v1',
-        ownerKind: 'WORLD',
-        ownerId: 'world-1',
+        controllerKind: 'WORLD',
+        controllerId: 'world-1',
         deliveryAccess: 'SIGNED',
         title: 'Launch Trailer',
         label: 'Trailer',
@@ -203,17 +280,17 @@ describe('useMediaAssetsQuery', () => {
     ]);
 
     const wrapper = createWrapper();
-    const { result } = renderHook(() => useMediaAssetsQuery(true), { wrapper });
+    const { result } = renderHook(() => useResourcesQuery(true), { wrapper });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockContentDataClient.listMediaAssets).toHaveBeenCalledWith();
+    expect(mockContentDataClient.listResources).toHaveBeenCalledWith();
     expect(result.current.data).toEqual([
       expect.objectContaining({
-        id: 'asset-1',
-        mediaType: 'VIDEO',
-        ownerKind: 'WORLD',
-        ownerId: 'world-1',
+        id: 'resource-1',
+        resourceType: 'VIDEO',
+        controllerKind: 'WORLD',
+        controllerId: 'world-1',
         deliveryAccess: 'SIGNED',
         title: 'Launch Trailer',
       }),

@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-ECONOMY-001
 title: Realm Economy Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-23
 ---
 
 # Economy Contract

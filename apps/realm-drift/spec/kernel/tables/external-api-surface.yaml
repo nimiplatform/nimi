@@ -75,7 +75,7 @@ endpoints:
   - method: GET
     path: /media-assets/{media_asset_id}
     input: media_asset_id (path param)
-    output: "MediaAsset { media_asset_id, status, url }"
+    output: "Resource { resource_id, status, url }"
     cost-standard: 0
     cost-mini: 0
     latency-standard: <1 second

@@ -1,32 +1,36 @@
 ---
 id: SPEC-REALM-KERNEL-ASSET-001
-title: Realm Asset Kernel Contract
+title: Realm Ownable Asset Kernel Contract
 status: active
-owner: "@team"
-updated: 2026-03-21
+owner: '@team'
+updated: 2026-03-25
 ---
 
-# Asset Contract
+# Ownable Asset Contract
 
 > Domain: asset
 > Rule family: R
 
 ## Scope
 
-This contract defines creator-owned publishable assets in `nimi-realm`.
+This contract defines `OwnableAsset` as the Realm-level formal object family for independently ownable digital assets in `nimi-realm`.
 
-## R-ASSET-001
+## R-ASSET-101
 
-Realm assets are creator-owned publishable works with stable identity, visibility, lifecycle, and release history semantics.
+Realm `OwnableAsset` objects are independently ownable formal objects with stable identity, owner, authorship, lineage, lifecycle, and binding policy semantics.
 
-## R-ASSET-002
+## R-ASSET-102
 
-Asset storage is distinct from world truth, world history, and agent memory. App-private archives and renderer artifacts must not masquerade as core realm assets.
+`OwnableAsset` is distinct from `Resource`, world truth, world history, and agent memory. Raw content carriers and app-private archives must not masquerade as ownable realm assets.
 
-## R-ASSET-003
+## R-ASSET-103
 
-Asset mutations must be explicit, idempotent, and auditable. Publish and archive are lifecycle transitions, not silent side effects.
+`OwnableAsset` mutations must be explicit, idempotent, and auditable. Create, update, clone, and lifecycle transitions are first-class state changes, not silent side effects of resource upload.
 
-## R-ASSET-004
+## R-ASSET-104
 
-Asset consumption by apps must remain boundary-safe. An app may reference an asset, but asset ownership and release truth remain inside Realm.
+Asset use by apps must remain boundary-safe. Apps may bind or bundle `OwnableAsset` objects, but ownership, lifecycle, policy, and lineage truth remain inside Realm.
+
+## R-ASSET-105
+
+Asset preview truth is explicit and separate from asset composition. `OwnableAsset.resourceRefs` defines the asset member resource set only; `OwnableAsset.previewResourceId`, when present, must reference one member of `resourceRefs`, and read surfaces must not infer preview truth from `resourceRefs` ordering. Asset and bundle preview exposure through attachment read models still does not change ownership, authorship, acquisition, lifecycle, or policy truth.

@@ -1,6 +1,5 @@
 import {
   type CommerceGiftStatus,
-  type CommerceGiftParty,
 } from '@nimiplatform/nimi-kit/features/commerce/headless';
 import {
   GiftInboxDetail,
@@ -194,9 +193,6 @@ export function GiftInboxPanel() {
         </div>
       );
     }
-
-    const senderName = getUserDisplayName(selectedGift.sender);
-    const receiverName = getUserDisplayName(selectedGift.receiver);
 
     return (
       <div className="flex min-h-0 flex-1 flex-col bg-[#F5F7FA]">

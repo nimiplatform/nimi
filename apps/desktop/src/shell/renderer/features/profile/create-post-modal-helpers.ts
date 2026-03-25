@@ -11,14 +11,14 @@ export type EditablePostSeed = {
   caption?: string | null;
   tags?: string[] | null;
   visibility?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-  media?: {
+  attachment?: {
     id: string;
     type: 'image' | 'video';
     previewUrl?: string | null;
   } | null;
 };
 
-export type SelectedMediaRef = {
+export type SelectedAttachmentRef = {
   id: string;
   type: 'image' | 'video';
   previewUrl: string;
@@ -30,7 +30,7 @@ export type Location = {
   address: string;
 };
 
-export function extractExistingMediaId(input: EditablePostSeed['media']): string {
+export function extractExistingAttachmentTargetId(input: EditablePostSeed['attachment']): string {
   if (!input || typeof input !== 'object') {
     return '';
   }

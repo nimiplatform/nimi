@@ -7,14 +7,14 @@ import {
   createImageDirectUpload,
   createVideoDirectUpload,
   createAudioDirectUpload,
-  updateMediaAsset,
-  deleteMediaAsset,
+  updateResource,
+  deleteResource,
   createPost,
   updatePost,
   deletePost,
   type ForgeCreateAudioDirectUploadInput,
   type ForgeCreatePostInput,
-  type ForgeUpdateMediaAssetInput,
+  type ForgeUpdateResourceInput,
   type ForgeUpdatePostInput,
 } from '@renderer/data/content-data-client.js';
 
@@ -31,14 +31,14 @@ export function useContentMutations() {
     mutationFn: async (payload?: ForgeCreateAudioDirectUploadInput) => await createAudioDirectUpload(payload),
   });
 
-  const updateMediaAssetMutation = useMutation({
-    mutationFn: async (input: { assetId: string; payload: ForgeUpdateMediaAssetInput }) =>
-      await updateMediaAsset(input.assetId, input.payload),
+  const updateResourceMutation = useMutation({
+    mutationFn: async (input: { resourceId: string; payload: ForgeUpdateResourceInput }) =>
+      await updateResource(input.resourceId, input.payload),
   });
 
-  const deleteMediaAssetMutation = useMutation({
-    mutationFn: async (assetId: string) =>
-      await deleteMediaAsset(assetId),
+  const deleteResourceMutation = useMutation({
+    mutationFn: async (resourceId: string) =>
+      await deleteResource(resourceId),
   });
 
   const createPostMutation = useMutation({
@@ -60,8 +60,8 @@ export function useContentMutations() {
     imageUploadMutation,
     videoUploadMutation,
     audioUploadMutation,
-    updateMediaAssetMutation,
-    deleteMediaAssetMutation,
+    updateResourceMutation,
+    deleteResourceMutation,
     createPostMutation,
     updatePostMutation,
     deletePostMutation,

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
+import {
+  normalizeMediaType,
+  resolveRenderableMediaAttachment,
+} from '@renderer/features/home/utils.js';
 
 type PostDto = RealmModel<'PostDto'>;
+type MediaGridItem = { post: PostDto; mediaIndex: number; url: string; type: 'IMAGE' | 'VIDEO'; thumbnail?: string };
 
 const MEDIA_PAGE_SIZE = 30;
 const MIN_INITIAL_ITEMS = 9;
@@ -63,7 +67,7 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
         });
         const allItems = Array.isArray(data?.items) ? (data.items as PostDto[]) : [];
         const nextCursor = data?.page?.nextCursor ?? null;
-        const mediaItems = allItems.filter((p) => p.media && p.media.length > 0);
+        const mediaItems = allItems.filter((p) => Array.isArray(p.attachments) && p.attachments.length > 0);
 
         setMediaPosts((prev) => {
           if (!cursorArg) return mediaItems;
@@ -122,17 +126,20 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
   }, [cursor, hasMore, loadingMore, fetchMedia]);
 
   // Flatten all media items for grid display
-  const mediaItems: { post: PostDto; mediaIndex: number; url: string; type: PostMediaType; thumbnail?: string }[] = [];
+  const mediaItems: MediaGridItem[] = [];
   for (const post of mediaPosts) {
-    for (let i = 0; i < post.media.length; i++) {
-      const m = post.media[i];
-      if (m && m.url) {
+    for (let i = 0; i < post.attachments.length; i++) {
+      const m = post.attachments[i];
+      const renderable = resolveRenderableMediaAttachment(m);
+      const attachmentKind = normalizeMediaType(renderable?.displayKind);
+      const url = String(renderable?.url || '').trim();
+      if (renderable && url && (attachmentKind === 'IMAGE' || attachmentKind === 'VIDEO')) {
         mediaItems.push({
           post,
           mediaIndex: i,
-          url: m.url,
-          type: m.type,
-          thumbnail: m.thumbnail,
+          url,
+          type: attachmentKind,
+          thumbnail: String(renderable.thumbnail || '').trim() || undefined,
         });
       }
     }
@@ -193,7 +200,7 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
                 className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                 loading={idx < 9 ? 'eager' : 'lazy'}
               />
-              {item.type === PostMediaType.VIDEO ? (
+              {item.type === 'VIDEO' ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="white" className="drop-shadow">
                     <polygon points="5 3 19 12 5 21 5 3" />

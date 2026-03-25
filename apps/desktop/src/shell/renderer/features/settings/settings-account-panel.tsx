@@ -312,7 +312,7 @@ export function ProfilePage() {
       if (!response.ok) {
         throw new Error(t('Profile.avatarUploadFailed'));
       }
-      const finalized = await dataSync.finalizeMediaAsset(upload.assetId, {});
+      const finalized = await dataSync.finalizeResource(upload.resourceId, {});
       const nextAvatarUrl = finalized.url;
       if (!nextAvatarUrl) {
         throw new Error(t('Profile.avatarUploadFailed'));

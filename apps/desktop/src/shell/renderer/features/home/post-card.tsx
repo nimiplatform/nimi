@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useQueryClient } from '@tanstack/react-query';
-import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { ReportReason } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
@@ -17,18 +16,24 @@ import { BlockUserConfirmModal, DeletePostConfirmModal } from './confirm-modals'
 import { EditVisibilityModal } from './edit-visibility-modal';
 import { ReportModal } from './report-modal';
 import { usePostCardUi } from './use-post-card-ui';
-import { normalizeMediaType, resolveMediaUrl, resolveMediaThumbnailUrl, resolveVideoPlaybackSource } from './utils';
+import {
+  normalizeMediaType,
+  resolveMediaUrl,
+  resolveMediaThumbnailUrl,
+  resolveRenderableMediaAttachment,
+  resolveVideoPlaybackSource,
+} from './utils';
 
 type PostDto = RealmModel<'PostDto'>;
 
 const INTERNAL_OPEN_CHAT_ERROR_CODE = 'HOME_OPEN_CHAT_FAILED';
 
-function extractPostMediaId(media: unknown): string {
-  if (!media || typeof media !== 'object') {
+function extractPostAttachmentId(attachment: unknown): string {
+  if (!attachment || typeof attachment !== 'object') {
     return '';
   }
-  const payload = media as Record<string, unknown>;
-  return String(payload.assetId || '').trim();
+  const payload = attachment as Record<string, unknown>;
+  return String(payload.targetType === 'RESOURCE' ? payload.targetId || '' : '').trim();
 }
 
 function toBannerErrorMessage(error: unknown, fallback: string): string {
@@ -77,7 +82,8 @@ export function PostCard(input: PostCardProps) {
     || (post.author as unknown as { _id?: string })?._id
     || '',
   ).trim();
-  const hasMedia = post.media && post.media.length > 0;
+  const attachments = Array.isArray(post.attachments) ? post.attachments : [];
+  const hasMedia = attachments.length > 0;
   const isOwnPost = Boolean(currentUserId && post.author?.id && post.author.id === currentUserId);
   const [isLikePending, setIsLikePending] = useState(false);
   const [isVisibilityPending, setIsVisibilityPending] = useState(false);
@@ -93,33 +99,38 @@ export function PostCard(input: PostCardProps) {
     setStatusBanner,
   });
 
-  const firstMedia = hasMedia
-    ? post.media.find((item) => {
-      const mediaType = normalizeMediaType(item.type);
-      return mediaType === PostMediaType.IMAGE || mediaType === PostMediaType.VIDEO;
+  const firstDisplayAttachment = hasMedia
+    ? attachments.find((item) => {
+      const attachmentKind = normalizeMediaType(resolveRenderableMediaAttachment(item)?.displayKind);
+      return attachmentKind === 'IMAGE' || attachmentKind === 'VIDEO';
     })
     : null;
-  const firstMediaType = normalizeMediaType(firstMedia?.type);
+  const firstMedia = resolveRenderableMediaAttachment(firstDisplayAttachment);
+  const firstMediaType = normalizeMediaType(firstMedia?.displayKind);
   const firstMediaUrl = resolveMediaUrl(firstMedia, realmBaseUrl);
   const firstMediaThumbnail = resolveMediaThumbnailUrl(firstMedia, realmBaseUrl);
   const editPostSeed = useMemo<EditablePostSeed | null>(() => {
     if (!post.id) {
       return null;
     }
-    const media: EditablePostSeed['media'] = firstMedia && firstMediaUrl ? {
-      id: extractPostMediaId(firstMedia),
-      type: firstMediaType === PostMediaType.VIDEO ? 'video' : 'image',
+    const attachment: EditablePostSeed['attachment'] =
+      firstDisplayAttachment?.targetType === 'RESOURCE' && firstMedia && firstMediaUrl
+        ? {
+      id: extractPostAttachmentId(firstDisplayAttachment),
+      type: firstMediaType === 'VIDEO' ? 'video' : 'image',
       previewUrl: firstMediaUrl,
-    } : null;
+    }
+        : null;
     return {
       postId: post.id,
       caption: post.caption,
       tags: Array.isArray(post.tags) ? post.tags.map(String) : [],
       visibility: postVisibility,
-      media,
+      attachment,
     };
-  }, [firstMedia, firstMediaType, firstMediaUrl, post.caption, post.id, post.tags, postVisibility]);
-  const videoSource = firstMediaType === PostMediaType.VIDEO ? resolveVideoPlaybackSource(firstMediaUrl) : null;
+  }, [firstDisplayAttachment, firstMedia, firstMediaType, firstMediaUrl, post.caption, post.id, post.tags, postVisibility]);
+  const canEditPostAttachment = Boolean(editPostSeed?.attachment);
+  const videoSource = firstMediaType === 'VIDEO' ? resolveVideoPlaybackSource(firstMediaUrl) : null;
 
   const authorRecord = (
     post.author && typeof post.author === 'object'
@@ -320,8 +331,17 @@ export function PostCard(input: PostCardProps) {
 
   const handleEditPost = useCallback(() => {
     ui.togglePostMenu();
+    if (!canEditPostAttachment) {
+      setStatusBanner({
+        kind: 'error',
+        message: i18n.t('Home.editUnsupportedAttachment', {
+          defaultValue: 'Editing is only available for resource-backed image and video posts right now.',
+        }),
+      });
+      return;
+    }
     setEditModalOpen(true);
-  }, [ui]);
+  }, [canEditPostAttachment, setStatusBanner, ui]);
 
   const handleCopyLink = useCallback(async () => {
     ui.togglePostMenu();
@@ -504,6 +524,7 @@ export function PostCard(input: PostCardProps) {
         authorId={authorId}
         isFriend={ui.isFriend}
         isOwnPost={isOwnPost}
+        canEditPost={canEditPostAttachment}
         showAddFriendBadge={showAddFriendBadge}
         isLiked={ui.isLiked}
         isLikePending={isLikePending}

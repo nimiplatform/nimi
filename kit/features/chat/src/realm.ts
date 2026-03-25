@@ -226,8 +226,7 @@ function normalizeMessageType(value: unknown): RealmMessageViewDto['type'] | nul
   const normalized = normalizeString(value);
   const allowed = new Set<RealmMessageViewDto['type']>([
     'TEXT',
-    'IMAGE',
-    'VIDEO',
+    'ATTACHMENT',
     'POST_REF',
     'USER_REF',
     'LINK_REF',
@@ -686,10 +685,17 @@ export function toRealmChatTimelineUploadPlaceholder(
     clientMessageId: `upload:${placeholder.id}`,
     createdAt: placeholder.createdAt,
     isRead: true,
-    payload: null,
+    payload: {
+      attachment: {
+        targetType: 'RESOURCE',
+        targetId: '',
+        displayKind: placeholder.kind === 'image' ? 'IMAGE' : 'VIDEO',
+        url: placeholder.previewUrl,
+      },
+    },
     senderId: placeholder.senderId,
     text: null,
-    type: (placeholder.kind === 'image' ? 'IMAGE' : 'VIDEO') as RealmMessageViewDto['type'],
+    type: 'ATTACHMENT' as RealmMessageViewDto['type'],
     deliveryState: 'pending',
     deliveryError: null,
     localPreviewUrl: placeholder.previewUrl,
@@ -711,12 +717,58 @@ export function resolveRealmMessageText(message: Pick<RealmMessageViewDto, 'text
   }
   const payload = asRecord(message.payload);
   const payloadText = normalizeString(payload?.content || payload?.text || '');
-  return payloadText;
+  if (payloadText) {
+    return payloadText;
+  }
+  const attachment = asRecord(payload?.attachment);
+  const preview = asRecord(attachment?.preview);
+  const attachmentTitle = normalizeString(attachment?.title || attachment?.subtitle);
+  if (attachmentTitle) {
+    return attachmentTitle;
+  }
+  const previewTitle = normalizeString(preview?.title || preview?.subtitle);
+  if (previewTitle) {
+    return previewTitle;
+  }
+  const displayKind = normalizeString(preview?.displayKind || attachment?.displayKind).toUpperCase();
+  switch (displayKind) {
+    case 'IMAGE':
+      return 'Image';
+    case 'VIDEO':
+      return 'Video';
+    case 'AUDIO':
+      return 'Audio';
+    case 'TEXT':
+      return 'Text';
+    case 'CARD':
+      return 'Attachment';
+    default:
+      return '';
+  }
+}
+
+function resolveTimelineAttachmentRecord(payload: unknown): Record<string, unknown> | null {
+  const record = asRecord(payload);
+  const attachment = asRecord(record?.attachment);
+  if (!attachment) {
+    return null;
+  }
+  const attachmentDisplayKind = normalizeString(attachment.displayKind).toUpperCase();
+  if (attachmentDisplayKind === 'IMAGE' || attachmentDisplayKind === 'VIDEO') {
+    return attachment;
+  }
+  const preview = asRecord(attachment.preview);
+  const previewDisplayKind = normalizeString(preview?.displayKind).toUpperCase();
+  if (preview && (previewDisplayKind === 'IMAGE' || previewDisplayKind === 'VIDEO')) {
+    return preview;
+  }
+  return attachment;
 }
 
 export function resolveRealmChatMediaUrl(payload: unknown, realmBaseUrl: string): string {
   const record = asRecord(payload);
-  const url = normalizeString(record?.url);
+  const attachment = resolveTimelineAttachmentRecord(payload);
+  const url = normalizeString(attachment?.url || record?.url);
   if (!url) {
     return '';
   }
@@ -732,9 +784,12 @@ export function getRealmChatTimelineDisplayModel(
   currentUserId: string,
 ): RealmChatTimelineDisplayModel {
   const type = normalizeString(message.type).toUpperCase();
+  const attachment = resolveTimelineAttachmentRecord(message.payload);
+  const displayKind = normalizeString(attachment?.displayKind).toUpperCase();
   const isGiftMessage = type === 'GIFT';
-  const isImageMessage = type === 'IMAGE';
-  const isVideoMessage = type === 'VIDEO';
+  const isAttachmentMessage = type === 'ATTACHMENT';
+  const isImageMessage = type === 'IMAGE' || (isAttachmentMessage && displayKind === 'IMAGE');
+  const isVideoMessage = type === 'VIDEO' || (isAttachmentMessage && displayKind === 'VIDEO');
   const isMediaMessage = isImageMessage || isVideoMessage;
   return {
     isMe: message.deliveryState !== 'sent' || message.senderId === currentUserId,

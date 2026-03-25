@@ -8,14 +8,14 @@ import { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
-import { finalizeMediaAsset } from '@renderer/data/content-data-client.js';
+import { finalizeResource } from '@renderer/data/content-data-client.js';
 
 type UploadedVideo = {
   id: string;
   name: string;
   size: number;
   uploadedAt: string;
-  assetId?: string;
+  resourceId?: string;
   storageRef?: string;
   previewUrl?: string;
 };
@@ -61,7 +61,7 @@ export default function VideoStudioPage() {
         ? result as JsonObject
         : {};
       const uploadUrl = String(record.uploadUrl || '');
-      const assetId = String(record.assetId || '');
+      const resourceId = String(record.resourceId || '');
       const storageRef = String(record.storageRef || '');
 
       if (!uploadUrl) {
@@ -114,9 +114,9 @@ export default function VideoStudioPage() {
       });
 
       let previewUrl: string | undefined;
-      if (assetId) {
+      if (resourceId) {
         try {
-          const finalized = await finalizeMediaAsset(assetId, {
+          const finalized = await finalizeResource(resourceId, {
             mimeType: file.type,
           });
           const finalizedRecord: JsonObject =
@@ -131,11 +131,11 @@ export default function VideoStudioPage() {
 
       setVideos((prev) => [
         {
-          id: assetId || String(Date.now()),
+          id: resourceId || String(Date.now()),
           name: file.name,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          assetId: assetId || undefined,
+          resourceId: resourceId || undefined,
           storageRef: storageRef || undefined,
           previewUrl,
         },

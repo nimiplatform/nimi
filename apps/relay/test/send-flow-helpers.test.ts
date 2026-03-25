@@ -8,7 +8,7 @@ import {
   normalizeBeatText,
   resolveFirstBeatIntent,
   ensureNotAborted,
-  assertExplicitMediaAssetRequest,
+  assertExplicitMediaRequest,
   buildAssistantDeliveries,
   type OrchestratedBeat,
 } from '../src/main/chat-pipeline/send-flow-helpers.js';
@@ -125,12 +125,12 @@ describe('ensureNotAborted', () => {
   });
 });
 
-// ─── assertExplicitMediaAssetRequest ────────────────────────────────────
+// ─── assertExplicitMediaRequest ────────────────────────────────────────
 
-describe('assertExplicitMediaAssetRequest', () => {
+describe('assertExplicitMediaRequest', () => {
   it('does not throw for non explicit-media turns', () => {
     assert.doesNotThrow(() =>
-      assertExplicitMediaAssetRequest({
+      assertExplicitMediaRequest({
         turnMode: 'information',
         markerOverrideIntent: null,
       }));
@@ -138,7 +138,7 @@ describe('assertExplicitMediaAssetRequest', () => {
 
   it('does not throw when explicit-media has a marker override intent', () => {
     assert.doesNotThrow(() =>
-      assertExplicitMediaAssetRequest({
+      assertExplicitMediaRequest({
         turnMode: 'explicit-media',
         markerOverrideIntent: {
           type: 'image',
@@ -152,14 +152,14 @@ describe('assertExplicitMediaAssetRequest', () => {
       }));
   });
 
-  it('throws when explicit-media composer output lacks an asset request', () => {
+  it('throws when explicit-media composer output lacks a media request', () => {
     assert.throws(
       () =>
-        assertExplicitMediaAssetRequest({
+        assertExplicitMediaRequest({
           turnMode: 'explicit-media',
           markerOverrideIntent: null,
         }),
-      /did not produce an asset request/,
+      /did not produce a media request/,
     );
   });
 });
@@ -204,7 +204,7 @@ describe('buildAssistantDeliveries', () => {
         makeBeat({
           text: '',
           modality: 'image',
-          assetRequest: { kind: 'image', prompt: 'selfie', confidence: 0.9, nsfwIntent: 'none' },
+          mediaRequest: { kind: 'image', prompt: 'selfie', confidence: 0.9, nsfwIntent: 'none' },
         }),
       ],
       planId: 'plan-1',

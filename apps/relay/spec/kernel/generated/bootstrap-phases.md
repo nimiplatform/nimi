@@ -1,7 +1,6 @@
 # Relay Bootstrap Phases
 
 > Auto-generated from `tables/bootstrap-phases.yaml` — do not edit manually
-
 | Order | Phase | Process | Description | Blocking | Timeout | Rule |
 |-------|-------|---------|-------------|----------|---------|------|
 | 1 | MAIN_INIT | main | Electron app ready, parse env vars, init Runtime (node-grpc) + Realm | yes | — | RL-BOOT-001 |

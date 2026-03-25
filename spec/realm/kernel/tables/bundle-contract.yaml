@@ -1,0 +1,50 @@
+contract_id: BUNDLE-CONTRACT-001
+domain: bundle
+status: ACTIVE
+version: 2026-03-25
+owner: '@team'
+sources:
+  human_spec: ../bundle-contract.md
+  openapi:
+    - ../../nimi-backend/api-nimi.yaml
+  prisma: ../../nimi-backend/prisma/schema.prisma
+  services:
+    - ../../nimi-backend/libs/domains/bundle/src/bundle.service.ts
+rule_id_prefix: R-BNDL-
+rules:
+  - rule_id: R-BNDL-001
+    level: must
+    title: bundle-composition-and-market-unit
+    statement: 'Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and market/import semantics.'
+  - rule_id: R-BNDL-002
+    level: must
+    title: bundle-members-ownable-asset-only
+    statement: 'Bundle members must be OwnableAsset references only and raw Resource objects must not appear as direct bundle members.'
+  - rule_id: R-BNDL-003
+    level: must
+    title: explicit-idempotent-bundle-lifecycle
+    statement: 'Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, acquire, and import are first-class lifecycle or event transitions.'
+  - rule_id: R-BNDL-004
+    level: must
+    title: bundle-preview-chain-and-runtime-binding-boundary
+    statement: 'Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and bundle acquisition or import still does not imply runtime binding.'
+entities:
+  - name: Bundle
+    prisma_model: Bundle
+    required_fields: [id, ownerId, coverAssetId, title, description, price, version, status]
+    json_fields: [tags, compatibleApps, importTargets]
+  - name: BundleMember
+    prisma_model: BundleMember
+    required_fields: [id, bundleId, assetId, sortOrder]
+    json_fields: []
+api_surface:
+  required_operations:
+    - GET /api/bundles
+    - POST /api/bundles
+    - GET /api/bundles/{bundleId}
+    - PATCH /api/bundles/{bundleId}
+    - POST /api/bundles/{bundleId}/publish
+    - POST /api/bundles/{bundleId}/archive
+    - POST /api/bundles/{bundleId}/acquire
+  secondary_operations:
+    - GET /api/assets

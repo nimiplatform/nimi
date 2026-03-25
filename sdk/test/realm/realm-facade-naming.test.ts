@@ -9,7 +9,8 @@ import {
 test('realm facade exposes naming-normalized public helpers', () => {
   assert.equal(typeof Realm, 'function');
   assert.equal(typeof realm.OAuthProvider, 'object');
-  assert.equal(typeof realm.PostMediaType, 'object');
+  assert.equal(typeof realm.AttachmentTargetType, 'object');
+  assert.equal(typeof realm.AttachmentDisplayKind, 'object');
   assert.equal(typeof realm.requestDataExport, 'function');
   assert.equal(typeof realm.listAgentCoreMemories, 'function');
 });

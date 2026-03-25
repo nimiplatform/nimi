@@ -9,7 +9,7 @@ const mockWorldDataClient = vi.hoisted(() => ({
   listWorldHistory: vi.fn(),
   getWorldState: vi.fn(),
   listWorldLorebooks: vi.fn(),
-  listWorldMediaBindings: vi.fn(),
+  listWorldResourceBindings: vi.fn(),
 }));
 
 vi.mock('@renderer/data/world-data-client.js', () => mockWorldDataClient);
@@ -30,7 +30,7 @@ describe('useWorldResourceQueries', () => {
     vi.clearAllMocks();
     mockWorldDataClient.getWorldState.mockResolvedValue({ worldId: 'w1', version: 'state-v1', items: [] });
     mockWorldDataClient.listWorldLorebooks.mockResolvedValue({ worldId: 'w1', items: [] });
-    mockWorldDataClient.listWorldMediaBindings.mockResolvedValue({ worldId: 'w1', items: [] });
+    mockWorldDataClient.listWorldResourceBindings.mockResolvedValue({ worldId: 'w1', items: [] });
     mockWorldDataClient.listWorldHistory.mockResolvedValue({ worldId: 'w1', version: 'history-v1', items: [] });
   });
 
@@ -47,7 +47,7 @@ describe('useWorldResourceQueries', () => {
     expect(result.current).toHaveProperty('historyQuery');
     expect(result.current).toHaveProperty('maintenanceTimeline');
     expect(result.current).toHaveProperty('lorebooksQuery');
-    expect(result.current).toHaveProperty('mediaBindingsQuery');
+    expect(result.current).toHaveProperty('resourceBindingsQuery');
   });
 
   it('when enabled=false, queries do not fetch', async () => {
@@ -65,7 +65,7 @@ describe('useWorldResourceQueries', () => {
     expect(mockWorldDataClient.getWorldState).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldHistory).not.toHaveBeenCalled();
     expect(mockWorldDataClient.listWorldLorebooks).not.toHaveBeenCalled();
-    expect(mockWorldDataClient.listWorldMediaBindings).not.toHaveBeenCalled();
+    expect(mockWorldDataClient.listWorldResourceBindings).not.toHaveBeenCalled();
   });
 
   it('draftsQuery normalizes { items: [...] } payload via toDraftSummaryList', async () => {

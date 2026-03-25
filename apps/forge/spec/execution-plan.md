@@ -172,21 +172,21 @@ Phases 4 through 6 remain secondary or deferred and do not block the hard-cut de
 - Prompt builder with templates and style presets
 - Generation via `runtime.media.image.generate`
 - Staging gallery for generated images
-- Save to library via `POST /api/media/images/direct-upload`
+- Save to library via `POST /api/resources/images/direct-upload`
 - Per FG-CONTENT-001
 
 #### 4.2 Video Studio
 - Upload zone with drag-and-drop
-- Upload via `POST /api/media/videos/direct-upload`
-- Finalize asset via `POST /api/media/assets/{assetId}/finalize`
-- Preview player resolves via `GET /api/media/assets/{assetId}`
+- Upload via `POST /api/resources/videos/direct-upload`
+- Finalize resource via `POST /api/resources/{resourceId}/finalize`
+- Preview player resolves via `GET /api/resources/{resourceId}`
 - Per FG-CONTENT-002
 
 #### 4.3 Music Studio
 - Prompt + lyrics builder
 - Generation via `runtime.media.music.generate`
 - Audition queue with waveform preview
-- Save via `POST /api/media/audio/direct-upload`
+- Save via `POST /api/resources/audio/direct-upload`
 - Per FG-CONTENT-006
 
 #### 4.4 Content Library
@@ -197,9 +197,9 @@ Phases 4 through 6 remain secondary or deferred and do not block the hard-cut de
 - Per FG-CONTENT-003
 
 #### 4.5 Audio Upload Backend (NEW)
-- Extend `media.controller.ts` with `POST /api/media/audio/direct-upload`
-- Expose `MediaAsset` list/detail/finalize/update/delete endpoints
-- Keep upload semantics aligned with the unified media asset session contract
+- Extend `resources.controller.ts` with `POST /api/resources/audio/direct-upload`
+- Expose `Resource` list/detail/finalize/update/delete endpoints
+- Keep upload semantics aligned with the unified resource session contract
 - Run `pnpm --dir nimi-backend openapi:dump` after controller creation
 
 #### 4.6 Publishing Frontend

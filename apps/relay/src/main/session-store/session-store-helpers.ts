@@ -3,7 +3,7 @@ import type {
   ChatMessageMeta,
   LocalChatConversationRecord,
   LocalChatMediaArtifactShadow,
-  LocalChatMediaAssetRecord,
+  LocalChatMediaArtifactRecord,
   LocalChatMediaGenerationSpec,
   LocalChatPromptTrace,
   LocalChatSession,
@@ -131,9 +131,9 @@ export function beatsForTurn(turnId: string): LocalChatStoredBeat[] {
   );
 }
 
-export function mediaAssetsForConversation(conversationId: string): LocalChatMediaAssetRecord[] {
-  return [...getLedgerCache().mediaAssetsById.values()]
-    .filter((asset) => asset.conversationId === conversationId)
+export function mediaArtifactsForConversation(conversationId: string): LocalChatMediaArtifactRecord[] {
+  return [...getLedgerCache().mediaArtifactsById.values()]
+    .filter((artifact) => artifact.conversationId === conversationId)
     .sort((left, right) => (
       compareIsoTimestamp(right.lastHitAt, left.lastHitAt)
       || compareIsoTimestamp(right.createdAt, left.createdAt)

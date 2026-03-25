@@ -82,7 +82,7 @@ The composer MUST handle sparse data gracefully — a world with only `name` and
 
 ## RD-MARBLE-003: Image-Guided Generation
 
-When the world has visual assets bound to it (via `MediaBinding` with `targetType: WORLD` and `slot: WORLD_BANNER` or `WORLD_ICON`), the prompt composition MAY use the image URL as a Marble `image_url` input instead of or in addition to the text prompt.
+When the world has visual resources bound to it (via `ResourceBinding` with `targetType: WORLD` and `slot: WORLD_BANNER` or `WORLD_ICON`), the prompt composition MAY use the image URL as a Marble `image_url` input instead of or in addition to the text prompt.
 
 Priority order:
 1. `WORLD_BANNER` — preferred (larger, more scene-like)

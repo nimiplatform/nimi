@@ -3,21 +3,21 @@ id: SPEC-REALM-APP-INTERCONNECT-001
 title: Realm App Interconnect Model Bridge
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-25
 ---
 
 # Realm App Interconnect Model
 
 ## Normative Imports
 
-- `kernel/truth-contract.md` (`R-TRUTH-001..006`)
+- `kernel/truth-contract.md` (`R-TRUTH-001..008`)
 - `kernel/world-state-contract.md` (`R-WSTATE-001..006`)
 - `kernel/world-history-contract.md` (`R-WHIST-001..006`)
 - `kernel/agent-memory-contract.md` (`R-MEM-001..006`)
-- `kernel/chat-contract.md` (`R-CHAT-001..004`)
+- `kernel/chat-contract.md` (`R-CHAT-001..005`)
 - `kernel/social-contract.md` (`R-SOC-001..004`)
 - `kernel/economy-contract.md` (`R-ECON-001..004`)
-- `kernel/asset-contract.md` (`R-ASSET-001..004`)
+- `kernel/asset-contract.md` (`R-ASSET-101..105`)
 - `kernel/transit-contract.md` (`R-TRANSIT-001..006`)
 - `spec/platform/ai-last-mile.md`
 
@@ -27,16 +27,16 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 
 ## Mapping Declaration
 
-| Mirror Anchor | Open Anchor |
+| External Anchor | Local Kernel Anchor |
 | --- | --- |
-| `R-TRUTH-001..006` | `R-TRUTH-001..006` |
+| `R-TRUTH-001..008` | `R-TRUTH-001..008` |
 | `R-WSTATE-001..006` | `R-WSTATE-001..006` |
 | `R-WHIST-001..006` | `R-WHIST-001..006` |
 | `R-MEM-001..006` | `R-MEM-001..006` |
-| `R-CHAT-001..004` | `R-CHAT-001..004` |
+| `R-CHAT-001..005` | `R-CHAT-001..005` |
 | `R-SOC-001..004` | `R-SOC-001..004` |
 | `R-ECON-001..004` | `R-ECON-001..004` |
-| `R-ASSET-001..004` | `R-ASSET-001..004` |
+| `R-ASSET-101..105` | `R-ASSET-101..105` |
 | `R-TRANSIT-001..006` | `R-TRANSIT-001..006` |
 
 ## Reading Path

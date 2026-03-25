@@ -21,13 +21,14 @@ const mockWorldDataClient = vi.hoisted(() => ({
   deprecateAgentRule: vi.fn(),
   archiveAgentRule: vi.fn(),
   appendWorldHistory: vi.fn(),
+  batchUpsertWorldResourceBindings: vi.fn(),
   batchCreateCreatorAgents: vi.fn(),
   listMyWorlds: vi.fn(),
   listWorldDrafts: vi.fn(),
   listWorldHistory: vi.fn(),
   getWorldState: vi.fn(),
   listWorldLorebooks: vi.fn(),
-  listWorldMediaBindings: vi.fn(),
+  listWorldResourceBindings: vi.fn(),
   getMyWorldAccess: vi.fn(),
   resolveWorldLanding: vi.fn(),
   getWorldDraft: vi.fn(),
@@ -101,7 +102,7 @@ describe('useWorldCommitActions', () => {
     expect(result.current).toHaveProperty('deprecateAgentRuleMutation');
     expect(result.current).toHaveProperty('archiveAgentRuleMutation');
     expect(result.current).toHaveProperty('syncEventsMutation');
-    expect(result.current).toHaveProperty('syncMediaBindingsMutation');
+    expect(result.current).toHaveProperty('syncResourceBindingsMutation');
     expect(result.current).toHaveProperty('deleteEventMutation');
     expect(result.current).toHaveProperty('batchCreateCreatorAgentsMutation');
   });
@@ -156,18 +157,46 @@ describe('useWorldCommitActions', () => {
     );
   });
 
-  it('syncMediaBindingsMutation fails close because media bindings are projection read-only', async () => {
+  it('syncResourceBindingsMutation calls batchUpsertWorldResourceBindings', async () => {
+    mockWorldDataClient.batchUpsertWorldResourceBindings.mockResolvedValue({
+      worldId: 'w1',
+      items: [],
+    });
+
     const wrapper = createWrapper();
     const { result } = renderHook(() => useWorldCommitActions(), { wrapper });
 
     await expect(
-      result.current.syncMediaBindingsMutation.mutateAsync({
+      result.current.syncResourceBindingsMutation.mutateAsync({
         worldId: 'w1',
-        bindingUpserts: [],
+        bindingUpserts: [{
+          targetType: 'WORLD',
+          targetId: 'w1',
+          slot: 'WORLD_ICON',
+          resource: {
+            resourceType: 'IMAGE',
+            storageRef: 'https://cdn.example/icon.png',
+          },
+        }],
         reason: 'sync',
         sessionId: 'ws-1',
       }),
-    ).rejects.toThrow(/WORLD_MEDIA_BINDING_PROJECTION_READ_ONLY/);
+    ).resolves.toEqual({
+      worldId: 'w1',
+      items: [],
+    });
+
+    expect(mockWorldDataClient.batchUpsertWorldResourceBindings).toHaveBeenCalledWith('w1', {
+      bindingUpserts: [{
+        targetType: 'WORLD',
+        targetId: 'w1',
+        slot: 'WORLD_ICON',
+        resource: {
+          resourceType: 'IMAGE',
+          storageRef: 'https://cdn.example/icon.png',
+        },
+      }],
+    });
   });
 
   it('saveMaintenanceMutation only forwards canonical state writes', async () => {

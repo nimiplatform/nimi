@@ -1,6 +1,6 @@
 import type {
   ChatMessageMeta,
-  LocalChatCachedMediaAsset,
+  LocalChatCachedMediaArtifact,
   LocalChatMediaArtifactShadow,
   LocalChatMediaGenerationSpec,
 } from '../chat-pipeline/types.js';
@@ -9,7 +9,7 @@ import type {
   InteractionSnapshot,
   LocalChatConversationRecord,
   LocalChatContextTrace,
-  LocalChatMediaAssetRecord,
+  LocalChatMediaArtifactRecord,
   LocalChatPromptTrace,
   LocalChatStoredBeat,
   LocalChatTurnAudit,
@@ -78,7 +78,7 @@ export function normalizeMediaShadow(value: unknown): LocalChatMediaArtifactShad
   return value as LocalChatMediaArtifactShadow;
 }
 
-export function normalizeCachedMediaAsset(value: unknown): LocalChatCachedMediaAsset | null {
+export function normalizeCachedMediaArtifact(value: unknown): LocalChatCachedMediaArtifact | null {
   if (!value || typeof value !== 'object') return null;
   const record = asRecord(value);
   const executionCacheKey = trimString(record.executionCacheKey);
@@ -103,14 +103,14 @@ export function normalizeCachedMediaAsset(value: unknown): LocalChatCachedMediaA
   };
 }
 
-export function normalizeMediaAssetRecord(value: unknown): LocalChatMediaAssetRecord | null {
+export function normalizeMediaArtifactRecord(value: unknown): LocalChatMediaArtifactRecord | null {
   if (!value || typeof value !== 'object') return null;
   const record = asRecord(value);
-  const cached = normalizeCachedMediaAsset(record);
+  const cached = normalizeCachedMediaArtifact(record);
   if (!cached) return null;
   return {
     ...cached,
-    id: trimString(record.id) || `media_${createUlid()}`,
+    id: trimString(record.id) || `artifact_${createUlid()}`,
     conversationId: trimString(record.conversationId) || null,
     turnId: trimString(record.turnId) || null,
     beatId: trimString(record.beatId) || null,
@@ -332,7 +332,7 @@ export function cloneInteractionRecallDoc(record: InteractionRecallDoc): Interac
   };
 }
 
-export function cloneMediaAssetRecord(record: LocalChatMediaAssetRecord): LocalChatMediaAssetRecord {
+export function cloneMediaArtifactRecord(record: LocalChatMediaArtifactRecord): LocalChatMediaArtifactRecord {
   return {
     ...record,
   };

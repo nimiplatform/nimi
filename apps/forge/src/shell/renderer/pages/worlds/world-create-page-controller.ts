@@ -307,7 +307,7 @@ export function useWorldCreatePageModel({
     working,
     creatorAgents: [],
     selectedCreatorAgent: null,
-    mediaBindings: [],
+    resourceBindings: [],
   };
 
   const routing: WorldStudioRoutingSlice = {
@@ -462,7 +462,7 @@ export function useWorldCreatePageModel({
       createAgentsFromDrafts: async () => undefined,
       updateCreatorAgentMetadata: async () => undefined,
       setSectionDirty: () => undefined,
-      syncMediaBindings: async () => undefined,
+      syncResourceBindings: async () => undefined,
       refreshResources: async () => undefined,
       reloadRemote: async () => undefined,
       adoptRemoteSnapshot: () => undefined,

@@ -1,4 +1,4 @@
-version: 2026-03-23
+version: 2026-03-25
 owner: '@team'
 description: Hard-cut rule-to-evidence map for the refactored realm kernel.
 profiles:
@@ -78,43 +78,98 @@ profiles:
       - nimi-backend/libs/domains/chat/src/domains/chat.service.ts
       - nimi-backend/apps/api/src/modules/chat/chat.controller.ts
     test_files:
-      - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
       - nimi-backend/apps/api/src/modules/chat/chat.controller.spec.ts
+      - nimi-backend/libs/domains/chat/src/domains/chat.service.spec.ts
       - tests/arch/social.spec.ts
   social:
     openapi:
-      - GET /api/human/relationships/me
-      - POST /api/human/relationships
-      - PATCH /api/human/relationships/{id}
-      - DELETE /api/human/relationships/{id}
+      - GET /api/human/accounts/{id}/friends
+      - POST /api/human/accounts/{id}/friends
+      - DELETE /api/human/accounts/{id}/friends
+      - GET /api/human/me/friends
+      - GET /api/human/me/friends/list
+      - GET /api/human/me/friends/pending
     prisma_models: [Friendship]
     service_files:
       - nimi-backend/libs/domains/relationship/src/friendship.service.ts
+      - nimi-backend/libs/domains/user/src/domains/user.service.ts
     test_files:
+      - nimi-backend/apps/api/src/modules/user/user.controller.spec.ts
+      - nimi-backend/libs/domains/user/src/domains/user.service.spec.ts
       - nimi-backend/libs/domains/relationship/src/friendship.service.spec.ts
       - tests/arch/social.spec.ts
   economy:
     openapi:
       - GET /api/economy/subscription
+      - GET /api/economy/gifts/received
+      - GET /api/economy/gifts/sent
       - POST /api/economy/reviews
-    prisma_models: [Subscription, RevenueEvent, SharePlan]
+      - GET /api/economy/revenue-share/config
+      - GET /api/economy/revenue-share/agent-origin/{agentId}
+      - POST /api/economy/revenue-share/preview
+    prisma_models: [Subscription, GiftTransaction, Review, CurrencyTransaction]
     service_files:
+      - nimi-backend/libs/domains/economy/src/gift/gift.service.ts
+      - nimi-backend/libs/domains/economy/src/review/review.service.ts
       - nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.ts
       - nimi-backend/libs/domains/economy/src/subscription/subscription.service.ts
     test_files:
+      - nimi-backend/apps/api/src/modules/economy/economy.controller.spec.ts
+      - nimi-backend/apps/api/src/modules/economy/review.controller.spec.ts
+      - nimi-backend/libs/domains/economy/src/gift/gift.service.spec.ts
+      - nimi-backend/libs/domains/economy/src/review/review.service.spec.ts
       - nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.spec.ts
       - nimi-backend/libs/domains/economy/src/subscription/subscription.service.spec.ts
       - tests/arch/economy.spec.ts
+  resource:
+    openapi:
+      - POST /api/resources/images/direct-upload
+      - POST /api/resources/videos/direct-upload
+      - POST /api/resources/audio/direct-upload
+      - POST /api/resources/texts
+      - GET /api/resources
+      - GET /api/resources/{resourceId}
+      - PATCH /api/resources/{resourceId}
+      - POST /api/resources/{resourceId}/finalize
+      - DELETE /api/resources/{resourceId}
+      - GET /api/world/by-id/{id}/resource-bindings
+      - GET /api/worlds/{worldId}/resource-bindings
+    prisma_models: [Resource, ResourceBinding, PostAttachment]
+    service_files:
+      - nimi-backend/libs/domains/resource/src/resource.service.ts
+      - nimi-backend/libs/domains/world/src/world-control.service.ts
+    test_files:
+      - nimi-backend/apps/api/src/modules/resources/resources.controller.spec.ts
+      - nimi-backend/libs/domains/resource/src/resource.service.spec.ts
+      - nimi-backend/libs/domains/world/src/world-control.service.unit.spec.ts
   asset:
     openapi:
       - GET /api/assets
       - POST /api/assets
-    prisma_models: [Asset, AssetReleaseEvent]
+      - GET /api/assets/{assetId}
+      - PATCH /api/assets/{assetId}
+      - POST /api/assets/{assetId}/clone
+    prisma_models: [OwnableAsset, AssetBinding]
     service_files:
-      - nimi-backend/libs/domains/asset/src/asset/asset.service.ts
+      - nimi-backend/libs/domains/asset/src/ownable-asset.service.ts
     test_files:
-      - nimi-backend/apps/scheduler/src/modules/asset-sync/asset-sync.scheduler.spec.ts
-      - nimi-backend/libs/domains/media-asset/src/media-asset.service.spec.ts
+      - nimi-backend/apps/api/src/modules/assets/assets.controller.spec.ts
+      - nimi-backend/libs/domains/asset/src/ownable-asset.service.spec.ts
+  bundle:
+    openapi:
+      - GET /api/bundles
+      - POST /api/bundles
+      - GET /api/bundles/{bundleId}
+      - PATCH /api/bundles/{bundleId}
+      - POST /api/bundles/{bundleId}/publish
+      - POST /api/bundles/{bundleId}/archive
+      - POST /api/bundles/{bundleId}/acquire
+    prisma_models: [Bundle, BundleMember]
+    service_files:
+      - nimi-backend/libs/domains/bundle/src/bundle.service.ts
+    test_files:
+      - nimi-backend/apps/api/src/modules/bundles/bundles.controller.spec.ts
+      - nimi-backend/libs/domains/bundle/src/bundle.service.spec.ts
   transit:
     openapi:
       - POST /api/world/by-id/{id}/transit
@@ -158,6 +213,7 @@ rules:
   R-CHAT-002: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-002, profile_refs: [chat] }
   R-CHAT-003: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-003, profile_refs: [chat] }
   R-CHAT-004: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-004, profile_refs: [chat] }
+  R-CHAT-005: { domain: chat, spec_anchor: spec/realm/kernel/chat-contract.md#R-CHAT-005, profile_refs: [chat] }
   R-SOC-001: { domain: social, spec_anchor: spec/realm/kernel/social-contract.md#R-SOC-001, profile_refs: [social] }
   R-SOC-002: { domain: social, spec_anchor: spec/realm/kernel/social-contract.md#R-SOC-002, profile_refs: [social] }
   R-SOC-003: { domain: social, spec_anchor: spec/realm/kernel/social-contract.md#R-SOC-003, profile_refs: [social] }
@@ -166,10 +222,25 @@ rules:
   R-ECON-002: { domain: economy, spec_anchor: spec/realm/kernel/economy-contract.md#R-ECON-002, profile_refs: [economy] }
   R-ECON-003: { domain: economy, spec_anchor: spec/realm/kernel/economy-contract.md#R-ECON-003, profile_refs: [economy] }
   R-ECON-004: { domain: economy, spec_anchor: spec/realm/kernel/economy-contract.md#R-ECON-004, profile_refs: [economy] }
-  R-ASSET-001: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-001, profile_refs: [asset] }
-  R-ASSET-002: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-002, profile_refs: [asset] }
-  R-ASSET-003: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-003, profile_refs: [asset] }
-  R-ASSET-004: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-004, profile_refs: [asset] }
+  R-RSRC-001: { domain: resource, spec_anchor: spec/realm/kernel/resource-contract.md#R-RSRC-001, profile_refs: [resource] }
+  R-RSRC-002: { domain: resource, spec_anchor: spec/realm/kernel/resource-contract.md#R-RSRC-002, profile_refs: [resource] }
+  R-RSRC-003: { domain: resource, spec_anchor: spec/realm/kernel/resource-contract.md#R-RSRC-003, profile_refs: [resource] }
+  R-RSRC-004: { domain: resource, spec_anchor: spec/realm/kernel/resource-contract.md#R-RSRC-004, profile_refs: [resource] }
+  R-RSRC-005: { domain: resource, spec_anchor: spec/realm/kernel/resource-contract.md#R-RSRC-005, profile_refs: [resource] }
+  R-RSRC-006: { domain: resource, spec_anchor: spec/realm/kernel/resource-contract.md#R-RSRC-006, profile_refs: [resource] }
+  R-ATTACH-001: { domain: attachment, spec_anchor: spec/realm/kernel/attachment-contract.md#R-ATTACH-001, profile_refs: [resource] }
+  R-ATTACH-002: { domain: attachment, spec_anchor: spec/realm/kernel/attachment-contract.md#R-ATTACH-002, profile_refs: [resource] }
+  R-ATTACH-003: { domain: attachment, spec_anchor: spec/realm/kernel/attachment-contract.md#R-ATTACH-003, profile_refs: [chat, resource] }
+  R-ATTACH-004: { domain: attachment, spec_anchor: spec/realm/kernel/attachment-contract.md#R-ATTACH-004, profile_refs: [chat, resource] }
+  R-ASSET-101: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-101, profile_refs: [asset] }
+  R-ASSET-102: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-102, profile_refs: [asset] }
+  R-ASSET-103: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-103, profile_refs: [asset] }
+  R-ASSET-104: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-104, profile_refs: [asset] }
+  R-ASSET-105: { domain: asset, spec_anchor: spec/realm/kernel/asset-contract.md#R-ASSET-105, profile_refs: [asset, resource] }
+  R-BNDL-001: { domain: bundle, spec_anchor: spec/realm/kernel/bundle-contract.md#R-BNDL-001, profile_refs: [bundle] }
+  R-BNDL-002: { domain: bundle, spec_anchor: spec/realm/kernel/bundle-contract.md#R-BNDL-002, profile_refs: [bundle] }
+  R-BNDL-003: { domain: bundle, spec_anchor: spec/realm/kernel/bundle-contract.md#R-BNDL-003, profile_refs: [bundle] }
+  R-BNDL-004: { domain: bundle, spec_anchor: spec/realm/kernel/bundle-contract.md#R-BNDL-004, profile_refs: [bundle] }
   R-TRANSIT-001: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-001, profile_refs: [transit] }
   R-TRANSIT-002: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-002, profile_refs: [transit] }
   R-TRANSIT-003: { domain: transit, spec_anchor: spec/realm/kernel/transit-contract.md#R-TRANSIT-003, profile_refs: [transit] }

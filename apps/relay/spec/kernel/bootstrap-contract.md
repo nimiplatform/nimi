@@ -56,3 +56,11 @@ When the runtime daemon is not running:
 - Live2D operates independently (renderer-only, no runtime dependency)
 
 Reference: D-BOOT-012 (realm fail-open, runtime fail-close pattern)
+
+## RL-BOOT-005 — Auth Status Bootstrap Surface
+
+Relay may expose typed auth-status bootstrap channels for the Electron shell:
+
+1. auth bootstrap state must remain a typed bridge concern, not an ad hoc renderer fetch
+2. unary status read and renderer push events must use the `relay:auth:*` namespace only
+3. auth status transport is bootstrap/session state, not a realm media or chat capability

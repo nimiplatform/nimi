@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import type { TFunction } from 'i18next';
 import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { MAX_CAPTION_LENGTH, type Location, type SelectedFile, type SelectedMediaRef } from './create-post-modal-helpers.js';
+import { MAX_CAPTION_LENGTH, type Location, type SelectedAttachmentRef, type SelectedFile } from './create-post-modal-helpers.js';
 
 type CreatePostModalHeaderProps = {
   isEditMode: boolean;
@@ -33,10 +33,10 @@ export function CreatePostModalHeader({ isEditMode, uploading, onClose, t }: Cre
   );
 }
 
-type CreatePostMediaSectionProps = {
+type CreatePostAttachmentSectionProps = {
   fileInputRef: RefObject<HTMLInputElement | null>;
   selectedFile: SelectedFile | null;
-  selectedMediaRef: SelectedMediaRef | null;
+  selectedAttachmentRef: SelectedAttachmentRef | null;
   dragOver: boolean;
   uploading: boolean;
   setDragOver: (value: boolean) => void;
@@ -45,17 +45,17 @@ type CreatePostMediaSectionProps = {
   t: TFunction;
 };
 
-export function CreatePostMediaSection({
+export function CreatePostAttachmentSection({
   fileInputRef,
   selectedFile,
-  selectedMediaRef,
+  selectedAttachmentRef,
   dragOver,
   uploading,
   setDragOver,
   handleDrop,
   handleFileSelect,
   t,
-}: CreatePostMediaSectionProps) {
+}: CreatePostAttachmentSectionProps) {
   return (
     <>
       <input
@@ -72,7 +72,7 @@ export function CreatePostMediaSection({
         }}
       />
 
-      {!selectedFile && !selectedMediaRef ? (
+      {!selectedFile && !selectedAttachmentRef ? (
         <div
           className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-12 transition ${
             dragOver ? 'border-[#4ECCA3] bg-[#4ECCA3]/10' : 'border-gray-300 bg-gray-50 hover:border-[#4ECCA3]'
@@ -104,15 +104,15 @@ export function CreatePostMediaSection({
       ) : (
         <div className="relative">
           <div className="overflow-hidden rounded-xl bg-gray-100">
-            {(selectedFile?.type ?? selectedMediaRef?.type) === 'image' ? (
+            {(selectedFile?.type ?? selectedAttachmentRef?.type) === 'image' ? (
               <img
-                src={selectedFile?.previewUrl || selectedMediaRef?.previewUrl || ''}
+                src={selectedFile?.previewUrl || selectedAttachmentRef?.previewUrl || ''}
                 alt="Preview"
                 className="mx-auto max-h-64 object-contain"
               />
             ) : (
               <video
-                src={selectedFile?.previewUrl || selectedMediaRef?.previewUrl || ''}
+                src={selectedFile?.previewUrl || selectedAttachmentRef?.previewUrl || ''}
                 controls
                 className="mx-auto max-h-64"
               />
@@ -140,7 +140,7 @@ export function CreatePostMediaSection({
               <circle cx="12" cy="13" r="4" />
             </svg>
             <span className="hidden sm:inline">
-              {selectedMediaRef && !selectedFile ? 'Replace' : 'Change'}
+              {selectedAttachmentRef && !selectedFile ? 'Replace' : 'Change'}
             </span>
           </button>
         </div>
@@ -309,7 +309,7 @@ export function CreatePostCaptionSection({
 
 type CreatePostModalFooterProps = {
   selectedFile: SelectedFile | null;
-  selectedMediaRef: SelectedMediaRef | null;
+  selectedAttachmentRef: SelectedAttachmentRef | null;
   uploading: boolean;
   isEditMode: boolean;
   onClose: () => void;
@@ -318,7 +318,7 @@ type CreatePostModalFooterProps = {
 
 export function CreatePostModalFooter({
   selectedFile,
-  selectedMediaRef,
+  selectedAttachmentRef,
   uploading,
   isEditMode,
   onClose,
@@ -337,7 +337,7 @@ export function CreatePostModalFooter({
       <button
         type="button"
         onClick={onSubmit}
-        disabled={(!selectedFile && !selectedMediaRef) || uploading}
+        disabled={(!selectedFile && !selectedAttachmentRef) || uploading}
         className="flex items-center gap-2 rounded-[10px] bg-[#4ECCA3] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#3dbb92] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {uploading ? (
@@ -360,7 +360,7 @@ export function CreatePostModalBody(props: {
   fileInputRef: RefObject<HTMLInputElement | null>;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   selectedFile: SelectedFile | null;
-  selectedMediaRef: SelectedMediaRef | null;
+  selectedAttachmentRef: SelectedAttachmentRef | null;
   dragOver: boolean;
   uploading: boolean;
   caption: string;
@@ -386,10 +386,10 @@ export function CreatePostModalBody(props: {
 }) {
   return (
     <ScrollShell className="flex-1" contentClassName="px-5 py-4">
-      <CreatePostMediaSection
+      <CreatePostAttachmentSection
         fileInputRef={props.fileInputRef}
         selectedFile={props.selectedFile}
-        selectedMediaRef={props.selectedMediaRef}
+        selectedAttachmentRef={props.selectedAttachmentRef}
         dragOver={props.dragOver}
         uploading={props.uploading}
         setDragOver={props.setDragOver}

@@ -11,7 +11,7 @@ import { getPlatformClient } from '@nimiplatform/sdk';
 import { getResolvedAiParams } from '@renderer/hooks/use-ai-config.js';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import { useContentMutations } from '@renderer/hooks/use-content-mutations.js';
-import { finalizeMediaAsset } from '@renderer/data/content-data-client.js';
+import { finalizeResource } from '@renderer/data/content-data-client.js';
 
 const MUSIC_TEMPLATES = [
   { id: 'opening', label: 'Opening Theme' },
@@ -101,9 +101,9 @@ export default function MusicStudioPage() {
         ? upload as JsonObject
         : {};
       const uploadUrl = String(record.uploadUrl || '');
-      const assetId = String(record.assetId || '');
+      const resourceId = String(record.resourceId || '');
 
-      if (!uploadUrl || !assetId) {
+      if (!uploadUrl || !resourceId) {
         throw new Error('Audio upload credentials are incomplete');
       }
 
@@ -121,7 +121,7 @@ export default function MusicStudioPage() {
         throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
       }
 
-      await finalizeMediaAsset(assetId, {
+      await finalizeResource(resourceId, {
         mimeType: track.mimeType || audioBlob.type || 'audio/mpeg',
         durationSec: track.duration,
         title: track.title,
@@ -132,15 +132,14 @@ export default function MusicStudioPage() {
 
       const audioPostInput = {
         caption: track.title || track.prompt,
-        media: [
+        attachments: [
           {
-            type: 'AUDIO',
-            assetId,
-            duration: track.duration,
+            targetType: 'RESOURCE',
+            targetId: resourceId,
           },
         ],
         tags: [track.style],
-      } as unknown as Parameters<typeof createPostMutation.mutateAsync>[0];
+      } as Parameters<typeof createPostMutation.mutateAsync>[0];
 
       await createPostMutation.mutateAsync(audioPostInput);
 

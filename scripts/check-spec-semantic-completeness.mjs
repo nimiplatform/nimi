@@ -45,6 +45,24 @@ function readFile(relPath) {
   return fs.readFileSync(path.join(cwd, relPath), 'utf8');
 }
 
+function stripMarkdownFrontmatter(content) {
+  return content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+}
+
+function stripIgnoredMetadataLines(content) {
+  return content
+    .replace(/^\s*(?:id|contract_id):\s*.*$/gmu, '')
+    .replace(/^Contract:\s+`[^`]+`\s*$/gmu, '');
+}
+
+function readRuleScanContent(relPath) {
+  let content = readFile(relPath);
+  if (relPath.endsWith('.md')) {
+    content = stripMarkdownFrontmatter(content);
+  }
+  return stripIgnoredMetadataLines(content);
+}
+
 function loadAllowlist() {
   if (!fs.existsSync(allowlistPath)) {
     fail(`missing allowlist file: ${path.relative(cwd, allowlistPath)}`);
@@ -142,7 +160,7 @@ function isAllowedUnresolvedRuleRef(rel, ruleId) {
 function collectKernelRuleDefinitions(kernelFiles) {
   const definitionMap = new Map();
   for (const rel of kernelFiles) {
-    const content = readFile(rel);
+    const content = readRuleScanContent(rel);
     for (const match of content.matchAll(RULE_HEADING_RE)) {
       const ruleId = match[1];
       if (definitionMap.has(ruleId)) {
@@ -157,7 +175,7 @@ function collectKernelRuleDefinitions(kernelFiles) {
 
 function checkRuleReferencesResolvable(specFiles, definitionMap) {
   for (const rel of specFiles) {
-    const content = readFile(rel);
+    const content = readRuleScanContent(rel);
 
     for (const match of content.matchAll(RULE_REF_RE)) {
       const ruleId = match[0];
@@ -176,7 +194,7 @@ function checkRuleReferencesResolvable(specFiles, definitionMap) {
 
 function checkLegacyLocalIdsRetired(specFiles) {
   for (const rel of specFiles) {
-    const content = readFile(rel);
+    const content = readRuleScanContent(rel);
     const tokens = new Set((content.match(LEGACY_INLINE_RE) || []));
     for (const token of tokens) {
       fail(`${rel} contains retired legacy ID token: ${token}`);

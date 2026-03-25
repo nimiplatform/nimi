@@ -1,5 +1,5 @@
-id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-[0-9]{3}$'
-generated_at: '2026-03-21T00:00:00Z'
+id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BNDL|TRANSIT)-[0-9]{3}$'
+generated_at: '2026-03-25T00:00:00Z'
 rules:
   - rule_id: R-TRUTH-001
     domain: truth
@@ -151,6 +151,11 @@ rules:
     level: must
     statement: Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1.
     source: spec/realm/kernel/chat-contract.md
+  - rule_id: R-CHAT-005
+    domain: chat
+    level: must
+    statement: Realm Chat canonicalizes non-text attachments as MessageType ATTACHMENT with payload.attachment generic envelope and does not expose assetId-only or resourceId-only attachment payload contracts.
+    source: spec/realm/kernel/chat-contract.md
   - rule_id: R-SOC-001
     domain: social
     level: must
@@ -184,33 +189,108 @@ rules:
   - rule_id: R-ECON-003
     domain: economy
     level: must
-    statement: Revenue and settlement logic use explicit event types and append-only accounting.
+    statement: Revenue and settlement logic use explicit event types and append-only accounting with observable distribution rules.
     source: spec/realm/kernel/economy-contract.md
   - rule_id: R-ECON-004
     domain: economy
     level: must
     statement: Apps cannot hide economic state changes inside narrative history or memory commits.
     source: spec/realm/kernel/economy-contract.md
-  - rule_id: R-ASSET-001
+  - rule_id: R-RSRC-001
+    domain: resource
+    level: must
+    statement: Realm Resource objects are typed content carriers with stable identity, storage, delivery, status, and controller semantics, not independent ownership semantics.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-002
+    domain: resource
+    level: must
+    statement: Active Resource types are fixed to IMAGE, VIDEO, AUDIO, and TEXT; VOICE remains outside the active hard-cut model.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-003
+    domain: resource
+    level: must
+    statement: Resource lifecycle mutation is explicit, idempotent, and auditable; prepare upload, finalize, update, and delete are lifecycle transitions.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-004
+    domain: resource
+    level: must
+    statement: Posts, chat attachment envelopes, and presentation surfaces may consume Resource objects through attachment or binding relations without promoting them into OwnableAsset by default.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-ATTACH-001
+    domain: attachment
+    level: must
+    statement: Realm Attachment is a first-class cross-surface envelope with stable targetType plus targetId identity and is not equivalent to Resource, OwnableAsset, or Bundle.
+    source: spec/realm/kernel/attachment-contract.md
+  - rule_id: R-ATTACH-002
+    domain: attachment
+    level: must
+    statement: Active attachment targets are fixed to RESOURCE, ASSET, and BUNDLE; write surfaces persist target references only and read surfaces may resolve display metadata.
+    source: spec/realm/kernel/attachment-contract.md
+  - rule_id: R-ATTACH-003
+    domain: attachment
+    level: must
+    statement: Post attachments persist as ordered PostAttachment relations and chat non-text attachment messages persist as MessageType ATTACHMENT with payload.attachment envelope.
+    source: spec/realm/kernel/attachment-contract.md
+  - rule_id: R-ATTACH-004
+    domain: attachment
+    level: must
+    statement: Resolved attachment read models may expose displayKind, URLs, thumbnails, duration, title, subtitle, and nested preview attachments for card targets; surface readability authorizes preview resolution, and stable APIs must not collapse back to resourceId-only or assetId-only attachment contracts.
+    source: spec/realm/kernel/attachment-contract.md
+  - rule_id: R-RSRC-005
+    domain: resource
+    level: must
+    statement: Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-006
+    domain: resource
+    level: must
+    statement: Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-ASSET-101
     domain: asset
     level: must
-    statement: Realm assets are creator-owned publishable works with stable identity and lifecycle.
+    statement: Realm OwnableAsset objects are independently ownable formal objects with stable identity, owner, authorship, lineage, lifecycle, and binding policy semantics.
     source: spec/realm/kernel/asset-contract.md
-  - rule_id: R-ASSET-002
+  - rule_id: R-ASSET-102
     domain: asset
     level: must
-    statement: Asset storage is distinct from truth, history, and memory.
+    statement: OwnableAsset is distinct from Resource, truth, history, and memory; raw content carriers and app-private archives must not masquerade as ownable realm assets.
     source: spec/realm/kernel/asset-contract.md
-  - rule_id: R-ASSET-003
+  - rule_id: R-ASSET-103
     domain: asset
     level: must
-    statement: Asset mutations are explicit, idempotent, and auditable.
+    statement: OwnableAsset mutations are explicit, idempotent, and auditable; create, update, clone, and lifecycle transitions are first-class state changes.
     source: spec/realm/kernel/asset-contract.md
-  - rule_id: R-ASSET-004
+  - rule_id: R-ASSET-104
     domain: asset
     level: must
-    statement: Apps may reference assets but cannot usurp asset ownership or release truth.
+    statement: Apps may bind or bundle OwnableAsset objects but cannot usurp asset ownership, lifecycle, policy, or lineage truth.
     source: spec/realm/kernel/asset-contract.md
+  - rule_id: R-ASSET-105
+    domain: asset
+    level: must
+    statement: OwnableAsset.resourceRefs defines composition only; OwnableAsset.previewResourceId, when present, must reference one member of resourceRefs, surfaces must not infer preview from resourceRefs ordering, and preview exposure through attachment read models does not change ownership, authorship, acquisition, lifecycle, or policy truth.
+    source: spec/realm/kernel/asset-contract.md
+  - rule_id: R-BNDL-001
+    domain: bundle
+    level: must
+    statement: Realm Bundle objects are formal composition units with stable identity, owner, member ordering, cover asset, metadata, lifecycle, and market/import semantics.
+    source: spec/realm/kernel/bundle-contract.md
+  - rule_id: R-BNDL-002
+    domain: bundle
+    level: must
+    statement: Bundle members must be OwnableAsset references only and raw Resource objects must not appear as direct bundle members.
+    source: spec/realm/kernel/bundle-contract.md
+  - rule_id: R-BNDL-003
+    domain: bundle
+    level: must
+    statement: Bundle mutation is explicit, idempotent, and auditable; draft editing, publish, archive, acquire, and import are first-class lifecycle or event transitions.
+    source: spec/realm/kernel/bundle-contract.md
+  - rule_id: R-BNDL-004
+    domain: bundle
+    level: must
+    statement: Bundle attachment preview resolves through Bundle.coverAssetId to OwnableAsset.previewResourceId to nested Attachment.preview; if the cover asset has no explicit preview resource then bundle read models remain CARD without inferred preview, and bundle acquisition or import still does not imply runtime binding.
+    source: spec/realm/kernel/bundle-contract.md
   - rule_id: R-TRANSIT-001
     domain: transit
     level: must

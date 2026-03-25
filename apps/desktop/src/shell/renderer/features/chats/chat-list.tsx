@@ -10,6 +10,7 @@ import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
+import { resolveCanonicalChatAttachmentPreviewText } from '@renderer/features/turns/chat-attachment-contract.js';
 
 type ChatViewDto = RealmModel<'ChatViewDto'>;
 
@@ -67,6 +68,8 @@ function getChatPreview(
       ? String(payload.content || payload.text || '').trim()
       : '';
     if (payloadText) return payloadText;
+    const attachmentText = resolveCanonicalChatAttachmentPreviewText(payload);
+    if (attachmentText) return attachmentText;
   }
   return noMessagesFallback;
 }

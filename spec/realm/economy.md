@@ -3,7 +3,7 @@ id: SPEC-REALM-ECONOMY-001
 title: Realm Economy Domain
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-23
 ---
 
 # Realm Economy Domain

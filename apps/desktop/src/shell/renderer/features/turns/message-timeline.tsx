@@ -259,7 +259,7 @@ export function MessageTimeline() {
             sendFailedLabel={t('ChatTimeline.sendFailed')}
             uploadingMediaLabel={t('ChatTimeline.uploadingMedia', 'Uploading...')}
             yesterdayLabel={t('Chat.yesterday', { defaultValue: 'Yesterday' })}
-            renderAvatar={({ message, display, isMe }) => {
+            renderAvatar={({ display, isMe }) => {
               const senderName = isMe ? t('ChatTimeline.you') : contactName;
               const messageProfileTarget: Exclude<ProfilePanelTarget, null> = isMe ? 'self' : 'other';
               return (

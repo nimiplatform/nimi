@@ -9,7 +9,7 @@ const REALM_ROOT = path.join(PROJECT_ROOT, 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
 
-const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'MEM', 'CHAT', 'SOC', 'ECON', 'ASSET', 'TRANSIT'];
+const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'MEM', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BNDL', 'TRANSIT'];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
 const RULE_ID_PATTERN = new RegExp(`^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`);
 
@@ -49,6 +49,19 @@ function rel(absPath) {
   return toPosix(path.relative(PROJECT_ROOT, absPath));
 }
 
+function resolveWorkspacePath(filePath) {
+  const candidates = [
+    path.join(PROJECT_ROOT, filePath),
+    path.join(PROJECT_ROOT, '..', filePath),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return candidates[0];
+}
+
 function readYaml(absPath) {
   const raw = fs.readFileSync(absPath, 'utf8');
   return YAML.parse(raw) ?? {};
@@ -61,6 +74,19 @@ function asStringArray(value) {
 
 function pushIssue(issues, scope, message) {
   issues.push({ scope, message });
+}
+
+function checkEvidenceFilesExist(issues, ruleId, kind, filePaths) {
+  for (const filePath of filePaths) {
+    const absPath = resolveWorkspacePath(filePath);
+    if (!fs.existsSync(absPath)) {
+      pushIssue(issues, 'rule-evidence', `${ruleId}: ${kind} file not found ${filePath}`);
+      continue;
+    }
+    if (!fs.statSync(absPath).isFile()) {
+      pushIssue(issues, 'rule-evidence', `${ruleId}: ${kind} path is not a file ${filePath}`);
+    }
+  }
 }
 
 function splitAnchor(value) {
@@ -76,7 +102,7 @@ function hasAnchor(content, anchor) {
 function collectMarkdownRuleIds(absPath) {
   const lines = fs.readFileSync(absPath, 'utf8').split(/\r?\n/);
   return lines
-    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ASSET|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
+    .map((line) => line.match(/^##\s+(R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BNDL|TRANSIT)-[0-9]{3})\s*$/)?.[1] ?? '')
     .filter(Boolean);
 }
 
@@ -197,6 +223,8 @@ function main() {
     if (resolved.prisma_models.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: prisma evidence is empty`);
     if (resolved.service_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: service evidence is empty`);
     if (resolved.test_files.length === 0) pushIssue(issues, 'rule-evidence', `${ruleId}: test evidence is empty`);
+    checkEvidenceFilesExist(issues, ruleId, 'service_files', resolved.service_files ?? []);
+    checkEvidenceFilesExist(issues, ruleId, 'test_files', resolved.test_files ?? []);
   }
   for (const extraRuleId of Object.keys(evidenceRules)) {
     if (!contractRuleIds.has(extraRuleId)) pushIssue(issues, 'rule-evidence', `unexpected evidence entry ${extraRuleId}`);

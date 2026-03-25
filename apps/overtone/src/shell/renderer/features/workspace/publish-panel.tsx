@@ -25,7 +25,7 @@ async function publishTake(input: {
   try {
     input.onStatus('uploading');
 
-    const upload = await client.domains.media.createAudioDirectUpload({ mimeType: 'audio/mpeg' });
+    const upload = await client.domains.resources.createAudioDirectUpload({ mimeType: 'audio/mpeg' });
 
     const audioBlob = new Blob([input.audioBuffer], { type: 'audio/mpeg' });
     const uploadResponse = await fetch(upload.uploadUrl, {
@@ -41,19 +41,25 @@ async function publishTake(input: {
 
     input.onStatus('creating');
 
+    await client.domains.resources.finalizeResource(upload.resourceId, {
+      mimeType: 'audio/mpeg',
+      durationSec: input.duration,
+      title: input.title || undefined,
+      tags: input.tags.length > 0 ? input.tags : undefined,
+    });
+
     const postInput = {
       caption: input.description || input.title,
-      media: [
+      attachments: [
         {
           type: 'AUDIO' as const,
-          assetId: upload.assetId,
-          duration: input.duration,
+          resourceId: upload.resourceId,
         },
       ],
       tags: input.tags.length > 0 ? input.tags : undefined,
-    } as unknown as Parameters<typeof client.domains.media.createPost>[0];
+    } as Parameters<typeof client.domains.resources.createPost>[0];
 
-    const post = (await client.domains.media.createPost(postInput)) as { id: string };
+    const post = (await client.domains.resources.createPost(postInput)) as { id: string };
 
     input.onPostId(post.id);
     input.onStatus('done');

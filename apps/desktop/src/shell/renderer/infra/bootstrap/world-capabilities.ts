@@ -12,6 +12,10 @@ import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared'
 type CreateWorldDraftInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerCreateDraft'>[0];
 type CommitWorldStateInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerCommitState'>[1];
 type AppendWorldHistoryInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerAppendWorldHistory'>[1];
+type BatchUpsertWorldResourceBindingsInput = RealmServiceArgs<
+  'WorldControlService',
+  'worldControlControllerBatchUpsertWorldResourceBindings'
+>[1];
 type MutationCommitEnvelope = NonNullable<CommitWorldStateInput['commit']>;
 type MutationActorRef = MutationCommitEnvelope['actorRefs'][number];
 type MutationEvidenceRef = NonNullable<MutationCommitEnvelope['evidenceRefs']>[number];
@@ -150,6 +154,16 @@ function requireMutationCommitEnvelope(input: unknown, code: string): MutationCo
     actorRefs,
     reason,
     ...(evidenceRefs ? { evidenceRefs } : {}),
+  };
+}
+
+function parseBatchUpsertWorldResourceBindingsInput(
+  input: unknown,
+  code: string,
+): BatchUpsertWorldResourceBindingsInput {
+  const record = requireRecord(input, code);
+  return {
+    bindingUpserts: requireObjectArray<Record<string, unknown>>(record.bindingUpserts, code) as BatchUpsertWorldResourceBindingsInput['bindingUpserts'],
   };
 }
 
@@ -418,12 +432,12 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_HISTORY_LIST_CONTRACT_INVALID');
   });
 
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.mediaBindingsList, async (query) => {
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.resourceBindingsList, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const payload = await withRuntimeOpenApiContext((realm) => (
-      realm.services.WorldControlService.worldControlControllerListWorldMediaBindings(
+      realm.services.WorldControlService.worldControlControllerListWorldResourceBindings(
         worldId,
         typeof record.take === 'number' ? record.take : undefined,
         typeof record.slot === 'string' ? record.slot : undefined,
@@ -431,7 +445,36 @@ export async function registerWorldDataCapabilities(): Promise<void> {
         typeof record.targetType === 'string' ? record.targetType : undefined,
       )
     ));
-    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_MEDIA_BINDING_LIST_CONTRACT_INVALID');
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_RESOURCE_BINDING_LIST_CONTRACT_INVALID');
+  });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.resourceBindingsBatchUpsert, async (query) => {
+    const record = toRecord(query);
+    const worldId = String(record.worldId || '').trim();
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
+    return withRuntimeOpenApiContext((realm) => (
+      realm.services.WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings(
+        worldId,
+        parseBatchUpsertWorldResourceBindingsInput(
+          record.payload,
+          'WORLD_RESOURCE_BINDING_BATCH_UPSERT_INPUT_REQUIRED',
+        ),
+      )
+    ));
+  });
+
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.resourceBindingsDelete, async (query) => {
+    const record = toRecord(query);
+    const worldId = String(record.worldId || '').trim();
+    const bindingId = String(record.bindingId || '').trim();
+    if (!worldId) throw new Error('WORLD_ID_REQUIRED');
+    if (!bindingId) throw new Error('WORLD_RESOURCE_BINDING_ID_REQUIRED');
+    return withRuntimeOpenApiContext((realm) => (
+      realm.services.WorldControlService.worldControlControllerDeleteWorldResourceBinding(
+        worldId,
+        bindingId,
+      )
+    ));
   });
 
   await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.historyAppend, async (query) => {

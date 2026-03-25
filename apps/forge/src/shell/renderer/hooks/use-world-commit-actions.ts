@@ -8,6 +8,7 @@
 import { useMutation } from '@tanstack/react-query';
 import type { JsonObject } from '@renderer/bridge/types.js';
 import {
+  batchUpsertWorldResourceBindings,
   createWorldDraft,
   updateWorldDraft,
   publishWorldDraft,
@@ -25,6 +26,7 @@ import {
   appendWorldHistory,
   batchCreateCreatorAgents,
   FORGE_WORLD_WORKSPACE_TARGET_PATH,
+  type ForgeBatchUpsertWorldResourceBindingsInput,
   type ForgeBatchCreateCreatorAgentsInput,
   type ForgeAppendWorldHistoryInput,
   type ForgeCreateAgentRuleInput,
@@ -35,8 +37,6 @@ import {
   type ForgeUpdateWorldDraftInput,
   type ForgeUpdateWorldRuleInput,
 } from '@renderer/data/world-data-client.js';
-
-const MEDIA_BINDING_PROJECTION_READ_ONLY = 'WORLD_MEDIA_BINDING_PROJECTION_READ_ONLY';
 
 type SaveDraftInput = {
   draftId?: string;
@@ -192,15 +192,15 @@ export function useWorldCommitActions() {
     },
   });
 
-  const syncMediaBindingsMutation = useMutation({
-    mutationFn: async (_input: {
+  const syncResourceBindingsMutation = useMutation({
+    mutationFn: async (input: {
       worldId: string;
-      bindingUpserts: unknown[];
+      bindingUpserts: NonNullable<ForgeBatchUpsertWorldResourceBindingsInput['bindingUpserts']>;
       reason: string;
       sessionId: string;
-    }) => {
-      throw new Error(MEDIA_BINDING_PROJECTION_READ_ONLY);
-    },
+    }) => await batchUpsertWorldResourceBindings(input.worldId, {
+      bindingUpserts: input.bindingUpserts,
+    }),
   });
 
   const deleteEventMutation = useMutation({
@@ -235,7 +235,7 @@ export function useWorldCommitActions() {
     deprecateAgentRuleMutation,
     archiveAgentRuleMutation,
     syncEventsMutation,
-    syncMediaBindingsMutation,
+    syncResourceBindingsMutation,
     deleteEventMutation,
     batchCreateCreatorAgentsMutation,
   };

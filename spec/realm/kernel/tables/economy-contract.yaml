@@ -1,7 +1,7 @@
 contract_id: ECONOMY-CONTRACT-001
 domain: economy
 status: ACTIVE
-version: 2026-03-21
+version: 2026-03-23
 owner: '@team'
 sources:
   human_spec: ../economy-contract.md
@@ -9,6 +9,8 @@ sources:
     - ../../nimi-backend/api-nimi.yaml
   prisma: ../../nimi-backend/prisma/schema.prisma
   services:
+    - ../../nimi-backend/libs/domains/economy/src/gift/gift.service.ts
+    - ../../nimi-backend/libs/domains/economy/src/review/review.service.ts
     - ../../nimi-backend/libs/domains/economy/src/revenue-share/revenue-share.service.ts
     - ../../nimi-backend/libs/domains/economy/src/subscription/subscription.service.ts
 rule_id_prefix: R-ECON-
@@ -24,29 +26,37 @@ rules:
   - rule_id: R-ECON-003
     level: must
     title: revenue-share-is-explicit
-    statement: "Revenue and settlement logic use explicit event types and share plans with append-only accounting."
+    statement: "Revenue and settlement logic use explicit event types, explicit distribution rules, and append-only accounting."
   - rule_id: R-ECON-004
     level: must
     title: no-hidden-cross-domain-economics
     statement: "Apps cannot hide economic state changes inside narrative history or memory commits."
 entities:
-  - name: CreatorKey
-    prisma_model: CreatorKey
-    required_fields: [id, creatorId, tier, status]
+  - name: Subscription
+    prisma_model: Subscription
+    required_fields: [id, humanProfileId, tier, status]
     json_fields: []
-  - name: SharePlan
-    prisma_model: SharePlan
-    required_fields: [id, eventType, status]
-    json_fields: [participants, metadata]
-  - name: RevenueEvent
-    prisma_model: RevenueEvent
-    required_fields: [id, eventType, traceId]
-    json_fields: [payload]
+  - name: GiftTransaction
+    prisma_model: GiftTransaction
+    required_fields: [id, senderId, receiverId, giftId, status, sparkCost]
+    json_fields: []
+  - name: Review
+    prisma_model: Review
+    required_fields: [id, giftTransactionId, reviewerId, revieweeId, rating]
+    json_fields: []
+  - name: CurrencyTransaction
+    prisma_model: CurrencyTransaction
+    required_fields: [id, humanProfileId, currencyType, amount, balanceAfter, type]
+    json_fields: []
 api_surface:
   required_operations:
     - GET /api/economy/subscription
-    - POST /api/economy/reviews
     - GET /api/economy/gifts/received
     - GET /api/economy/gifts/sent
+    - POST /api/economy/reviews
   secondary_operations:
     - GET /api/economy/balances
+    - GET /api/economy/reviews
+    - GET /api/economy/revenue-share/config
+    - GET /api/economy/revenue-share/agent-origin/{agentId}
+    - POST /api/economy/revenue-share/preview

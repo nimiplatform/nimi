@@ -6,6 +6,7 @@ type PostDto = RealmModel<'PostDto'>;
 
 import {
   prepareHomeFeedItems,
+  resolveRenderableMediaAttachment,
   resolveMediaThumbnailUrl,
   resolveMediaUrl,
 } from '../src/shell/renderer/features/home/utils.js';
@@ -26,7 +27,7 @@ function makePost(input: {
       isAgent: input.isAgent === true,
       createdAt: '2026-03-10T00:00:00.000Z',
     },
-    media: [],
+    attachments: [],
     visibility: 'PUBLIC',
     createdAt: input.createdAt,
     worldId: 'world-1',
@@ -63,35 +64,62 @@ describe('prepareHomeFeedItems', () => {
 describe('media url resolution', () => {
   test('expands relative media urls against the configured realm base url', () => {
     const media = {
-      type: 'IMAGE',
-      url: '/api/media/images/example',
-    } as PostDto['media'][number];
+      targetType: 'RESOURCE',
+      targetId: 'resource-image-1',
+      displayKind: 'IMAGE',
+      url: '/api/resources/images/example',
+    } as PostDto['attachments'][number];
 
     assert.equal(
       resolveMediaUrl(media, 'https://realm.example'),
-      'https://realm.example/api/media/images/example',
+      'https://realm.example/api/resources/images/example',
     );
   });
 
   test('expands relative media thumbnails against the configured realm base url', () => {
     const media = {
-      type: 'VIDEO',
+      targetType: 'RESOURCE',
+      targetId: 'resource-video-1',
+      displayKind: 'VIDEO',
       url: 'https://cdn.example/video.m3u8',
-      thumbnail: '/api/media/video-thumbs/example',
-    } as PostDto['media'][number];
+      thumbnail: '/api/resources/video-thumbs/example',
+    } as PostDto['attachments'][number];
 
     assert.equal(
       resolveMediaThumbnailUrl(media, 'https://realm.example/'),
-      'https://realm.example/api/media/video-thumbs/example',
+      'https://realm.example/api/resources/video-thumbs/example',
     );
   });
 
   test('does not fall back to legacy uid-only media references', () => {
     const media = {
-      type: 'VIDEO',
+      targetType: 'RESOURCE',
+      targetId: 'resource-video-legacy',
+      displayKind: 'VIDEO',
       uid: 'legacy-video-uid',
-    } as PostDto['media'][number];
+    } as PostDto['attachments'][number];
 
     assert.equal(resolveMediaUrl(media, 'https://realm.example'), undefined);
+  });
+
+  test('resolves nested attachment previews for card-backed attachments', () => {
+    const media = {
+      targetType: 'ASSET',
+      targetId: 'asset-1',
+      displayKind: 'CARD',
+      title: 'Original Song',
+      preview: {
+        targetType: 'RESOURCE',
+        targetId: 'resource-preview-1',
+        displayKind: 'IMAGE',
+        url: '/api/resources/images/preview',
+      },
+    } as PostDto['attachments'][number];
+
+    assert.deepEqual(resolveRenderableMediaAttachment(media), media.preview);
+    assert.equal(
+      resolveMediaUrl(media, 'https://realm.example'),
+      'https://realm.example/api/resources/images/preview',
+    );
   });
 });

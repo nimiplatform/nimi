@@ -173,8 +173,7 @@ export function ChatRoutePanel() {
           </span>
           <button
             onClick={() => {
-              setModelQuery('');
-              setIsEditing(false);
+              modelPickerState.setSearchQuery('');
               void onReset();
             }}
             className="text-text-secondary hover:text-text-primary ml-2 shrink-0"

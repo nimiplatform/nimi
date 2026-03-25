@@ -52,7 +52,7 @@ import {
   createCancelledAudit,
   normalizeBeatText,
   toMarkerOverrideIntent,
-  assertExplicitMediaAssetRequest,
+  assertExplicitMediaRequest,
   bindMediaDecisionToDelivery,
   createStandaloneMediaDelivery,
   buildAssistantDeliveries,
@@ -431,7 +431,7 @@ export async function runLocalChatTurnSend(input: {
     const plannedBeatCount = 1 + deliveries.length;
     const firstMediaBeat = deliveries.find((d) => d.kind === 'image' || d.kind === 'video')?.beat || null;
     const firstMediaIntent = firstMediaBeat ? toMarkerOverrideIntent({ beat: firstMediaBeat, turnTxnId }) : null;
-    assertExplicitMediaAssetRequest({
+    assertExplicitMediaRequest({
       turnMode,
       markerOverrideIntent: firstMediaIntent,
     });
@@ -528,7 +528,7 @@ export async function runLocalChatTurnSend(input: {
         mediaDelivery.kind = boundMediaDecision.intent.type;
         mediaDelivery.meta = {
           ...(mediaDelivery.meta || {}),
-          mediaType: boundMediaDecision.intent.type,
+          mediaKind: boundMediaDecision.intent.type,
           mediaPrompt: boundMediaDecision.intent.prompt,
           mediaPlannerTrigger: boundMediaDecision.intent.plannerTrigger,
           mediaIntentSource: boundMediaDecision.intent.source,
@@ -537,7 +537,7 @@ export async function runLocalChatTurnSend(input: {
           ...mediaDelivery.beat,
           modality: boundMediaDecision.intent.type,
           intent: 'media',
-          assetRequest: {
+          mediaRequest: {
             kind: boundMediaDecision.intent.type,
             prompt: boundMediaDecision.intent.prompt,
             confidence: boundMediaDecision.intent.plannerConfidence ?? 0.65,

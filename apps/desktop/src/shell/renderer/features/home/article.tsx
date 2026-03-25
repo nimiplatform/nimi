@@ -1,12 +1,11 @@
 import type { ReactNode, RefObject } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { PostMediaType } from '@nimiplatform/sdk/realm';
 import { formatLocaleDate, i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ChatIcon, GiftIcon, HeartIcon } from './icons';
 import { CloudflareVideoPlayer, NativeVideoPlayer } from './video-players';
-import type { VideoPlaybackSource } from './utils';
+import type { MediaDisplayKind, VideoPlaybackSource } from './utils';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -15,12 +14,13 @@ export type PostCardArticleProps = {
   authorId: string;
   isFriend: boolean;
   isOwnPost: boolean;
+  canEditPost?: boolean;
   showAddFriendBadge?: boolean;
   isLiked: boolean;
   isLikePending?: boolean;
   showPostMenu: boolean;
   menuButtonRef: RefObject<HTMLButtonElement | null>;
-  firstMediaType: PostMediaType | null;
+  firstMediaType: MediaDisplayKind | null;
   firstMediaUrl?: string;
   firstMediaThumbnail?: string;
   videoSource: VideoPlaybackSource | null;
@@ -140,7 +140,9 @@ export function PostCardArticle(props: PostCardArticleProps) {
               <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-gray-100 bg-white/95 py-1.5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                 {props.isOwnPost ? (
                   <>
-                    <MenuAction label={i18n.t('Home.edit', { defaultValue: 'Edit' })} icon={<EditIcon className="h-4 w-4" />} onClick={props.onOpenEditPost} />
+                    {props.canEditPost !== false ? (
+                      <MenuAction label={i18n.t('Home.edit', { defaultValue: 'Edit' })} icon={<EditIcon className="h-4 w-4" />} onClick={props.onOpenEditPost} />
+                    ) : null}
                     <MenuAction label={i18n.t('Home.modifyVisibility', { defaultValue: 'Modify visibility' })} icon={<EyeIcon className="h-4 w-4" />} onClick={props.onOpenEditVisibility} />
                     <MenuAction label={i18n.t('Home.delete', { defaultValue: 'Delete' })} icon={<TrashIcon className="h-4 w-4" />} onClick={props.onOpenDeleteConfirm} tone="danger" />
                   </>
@@ -184,11 +186,11 @@ export function PostCardArticle(props: PostCardArticleProps) {
         </div>
       </div>
 
-      {props.firstMediaType === PostMediaType.VIDEO && props.videoSource?.mode === 'iframe' ? (
+      {props.firstMediaType === 'VIDEO' && props.videoSource?.mode === 'iframe' ? (
         <div className="px-4 pb-2"><CloudflareVideoPlayer src={props.videoSource.src} /></div>
-      ) : props.firstMediaType === PostMediaType.VIDEO && props.videoSource?.mode === 'native' ? (
+      ) : props.firstMediaType === 'VIDEO' && props.videoSource?.mode === 'native' ? (
         <div className="px-4 pb-2"><NativeVideoPlayer src={props.videoSource.src} poster={props.firstMediaThumbnail} /></div>
-      ) : props.firstMediaType === PostMediaType.IMAGE && props.firstMediaUrl ? (
+      ) : props.firstMediaType === 'IMAGE' && props.firstMediaUrl ? (
         <div className="relative mx-4 overflow-hidden rounded-2xl bg-slate-50 shadow-inner aspect-[4/5]">
           <img
             src={props.firstMediaUrl}

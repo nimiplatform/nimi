@@ -229,17 +229,17 @@ export type WorldSceneItem = {
   activeEntities: string[];
 };
 
-export type WorldMediaBindingItem = {
+export type WorldResourceBindingItem = {
   id: string;
   targetType: string;
   targetId: string;
   slot: string;
   priority: number;
   tags: string[];
-  asset: {
+  resource: {
     id: string;
     url: string;
-    mediaType: string;
+    resourceType: string;
     label?: string | null;
   };
 };
@@ -247,7 +247,7 @@ export type WorldMediaBindingItem = {
 export type WorldPublicAssetsData = {
   lorebooks: WorldLorebookItem[];
   scenes: WorldSceneItem[];
-  mediaBindings: WorldMediaBindingItem[];
+  resourceBindings: WorldResourceBindingItem[];
 };
 
 export type WorldDetailLayoutCard<Key extends string = string> = {

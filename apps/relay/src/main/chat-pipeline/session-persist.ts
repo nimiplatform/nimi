@@ -96,7 +96,7 @@ function buildSegmentContextText(message: ChatMessage): string {
   if (message.kind === 'image' || message.kind === 'video') {
     // Simplified media continuity summary for relay
     const parts = [
-      message.meta?.mediaType || message.kind,
+      message.meta?.mediaKind || message.kind,
       message.meta?.mediaPrompt || '',
       message.content || '',
     ].filter(Boolean);

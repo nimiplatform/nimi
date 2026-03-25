@@ -44,9 +44,9 @@ Approximately 25 data query functions require rewriting:
 | `data.query.worlds.lorebooks.list` | `realmClient.worlds.listLorebooks(worldId)` |
 | `data.query.worlds.lorebooks.batch-upsert` | `realmClient.worlds.batchUpsertLorebooks(worldId, body)` |
 | `data.query.worlds.lorebooks.delete` | `realmClient.worlds.deleteLorebook(worldId, lorebookId)` |
-| `data.query.worlds.media-bindings.list` | `realmClient.worlds.listMediaBindings(worldId, params)` |
-| `data.query.worlds.media-bindings.batch-upsert` | `realmClient.worlds.batchUpsertMediaBindings(worldId, body)` |
-| `data.query.worlds.media-bindings.delete` | `realmClient.worlds.deleteMediaBinding(worldId, bindingId)` |
+| `data.query.worlds.resource-bindings.list` | `realmClient.worlds.listResourceBindings(worldId, params)` |
+| `data.query.worlds.resource-bindings.batch-upsert` | `realmClient.worlds.batchUpsertResourceBindings(worldId, body)` |
+| `data.query.worlds.resource-bindings.delete` | `realmClient.worlds.deleteResourceBinding(worldId, bindingId)` |
 | `data.query.worlds.scenes.list` | `realmClient.worlds.listScenes(worldId, params)` |
 | `data.query.creator.agents.list` | `realmClient.creator.listAgents()` |
 | `data.query.creator.agents.create` | `realmClient.creator.createAgent(body)` |
@@ -171,7 +171,7 @@ All required backend APIs already exist. No new backend work needed for World ma
 | World Lorebooks | `GET /api/worlds/:worldId/lorebooks` (read-only projection) | `world-control.controller.ts` |
 | World Rules | `GET/POST /api/world/by-id/:worldId/rules`, `PATCH /api/world/by-id/:worldId/rules/:ruleId`, `POST /api/world/by-id/:worldId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/rules/:ruleId/archive` | `world-rules.controller.ts` |
 | Agent Rules | `GET/POST /api/world/by-id/:worldId/agents/:agentId/rules`, `PATCH /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/deprecate`, `POST /api/world/by-id/:worldId/agents/:agentId/rules/:ruleId/archive` | `agent-rules.controller.ts` |
-| Media Bindings | `GET /api/worlds/:worldId/media-bindings` (read-only projection) | `world-control.controller.ts` |
+| Resource Bindings | `GET/POST /api/worlds/:worldId/resource-bindings`, `DELETE /api/worlds/:worldId/resource-bindings/:bindingId` | `world-control.controller.ts` |
 ## FG-WORLD-007: Quality Gate Integration
 
 Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine/engine/quality-gate.ts` and is invoked unchanged. Threshold policies from `world-studio/spec/kernel/tables/quality-gate-policies.yaml` apply.
@@ -186,8 +186,9 @@ Inherits WS-QG-001 through WS-QG-005. Quality gate logic lives in `@world-engine
 6. All data operations use SDK realm client (no hookClient.data.query calls)
 7. World-Studio engine/services/generation code runs unchanged via `@world-engine` alias
 
-`media-bindings` remain world-display APIs only:
-- they bind existing assets, or create assets inline for world display during world workflows
+`resource-bindings` remain explicit world-display APIs:
+- they bind existing resources, or create resources inline for world display during world workflows
+- they are typed write surfaces for world-maintain flows, not read-only projections
 - they are not part of Realm `world-draft` payloads
 - they do not provide the canonical asset reference for social post publishing
-- post publishing references `Post.media[].assetId` directly
+- post publishing persists canonical attachment references as `Post.attachments[].targetType + targetId`

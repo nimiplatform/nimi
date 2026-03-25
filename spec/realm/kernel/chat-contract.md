@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-CHAT-001
 title: Realm Chat Kernel Contract
 status: active
 owner: "@team"
-updated: 2026-03-21
+updated: 2026-03-25
 ---
 
 # Chat Contract
@@ -30,3 +30,7 @@ Social governs admission and preconditions for human chat, but canonical chat th
 ## R-CHAT-004
 
 Human-agent chat, agent-agent chat, model routing, prompt assembly, session orchestration, and turn execution runtime stay outside Realm Chat v1.
+
+## R-CHAT-005
+
+Realm Chat canonicalizes non-text attachments as `MessageType.ATTACHMENT` with `payload.attachment` generic envelope. Stable chat APIs must not hard-cut attachment messages to `assetId`-only or `resourceId`-only message payloads.

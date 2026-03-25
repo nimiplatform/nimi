@@ -21,6 +21,9 @@ Every surface — chat, voice, video, Live2D — is scoped to the currently boun
 
 Relay implements the full beat-first turn pipeline (RL-PIPE-*) adapted from the local-chat mod,
 with business logic in the Electron main process and structured beat delivery to the renderer via IPC.
+Within that pipeline, planner-side visual requests are `mediaRequest`, while locally persisted generated outputs are `artifact`
+records; Relay does not model those local records as realm assets.
+Key entry rules for this domain are `RL-CORE-001`, `RL-IPC-001`, `RL-PIPE-001`, and `RL-PIPE-010`.
 
 ## 2. Reading Path
 

@@ -1,7 +1,8 @@
 type PublishIdentity = 'USER' | 'AGENT';
 type PublishChannelId = 'INTERNAL_FEED' | 'INTERNAL_AGENT_PROFILE';
 type PublishDraftStatus = 'DRAFT' | 'PUBLISHED';
-type PublishMediaType = 'IMAGE' | 'VIDEO';
+type PublishAttachmentTargetType = 'RESOURCE' | 'ASSET' | 'BUNDLE';
+type PublishAttachmentDisplayKind = 'IMAGE' | 'VIDEO' | 'AUDIO' | 'TEXT' | 'CARD';
 
 export type PublishChannel = {
   id: PublishChannelId;
@@ -11,9 +12,10 @@ export type PublishChannel = {
   enabled: boolean;
 };
 
-export type PublishDraftMedia = {
-  assetId: string;
-  type: PublishMediaType;
+export type PublishDraftAttachment = {
+  targetType: PublishAttachmentTargetType;
+  targetId: string;
+  displayKind: PublishAttachmentDisplayKind;
 };
 
 export type PublishDraft = {
@@ -21,7 +23,7 @@ export type PublishDraft = {
   title: string;
   caption: string;
   tags: string[];
-  media: PublishDraftMedia[];
+  attachments: PublishDraftAttachment[];
   identity: PublishIdentity;
   agentId: string | null;
   status: PublishDraftStatus;
@@ -67,23 +69,54 @@ function parseChannelState(value: unknown, fallbackEnabled: boolean): { enabled:
   return { enabled: typeof record.enabled === 'boolean' ? record.enabled : fallbackEnabled };
 }
 
-function parseMediaType(value: unknown): PublishMediaType {
-  return String(value || 'IMAGE') === 'VIDEO' ? 'VIDEO' : 'IMAGE';
+function parseAttachmentTargetType(value: unknown): PublishAttachmentTargetType | null {
+  const normalized = String(value || '').trim();
+  if (normalized === 'RESOURCE' || normalized === 'ASSET' || normalized === 'BUNDLE') {
+    return normalized;
+  }
+  return null;
+}
+
+function parseAttachmentDisplayKind(value: unknown): PublishAttachmentDisplayKind | null {
+  const normalized = String(value || '').trim();
+  if (normalized === 'IMAGE') {
+    return normalized;
+  }
+  if (
+    normalized === 'VIDEO'
+    || normalized === 'AUDIO'
+    || normalized === 'TEXT'
+    || normalized === 'CARD'
+  ) {
+    return normalized;
+  }
+  return null;
 }
 
 function parseDraftStatus(value: unknown): PublishDraftStatus {
   return String(value || 'DRAFT') === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT';
 }
 
-function parseMedia(value: unknown): PublishDraftMedia[] {
+function normalizeAttachment(value: unknown): PublishDraftAttachment | null {
+  const item = asRecord(value);
+  const targetType = parseAttachmentTargetType(item.targetType);
+  const displayKind = parseAttachmentDisplayKind(item.displayKind);
+  const targetId = String(item.targetId || '').trim();
+  if (!targetType || !displayKind || !targetId) {
+    return null;
+  }
+  return {
+    targetType,
+    targetId,
+    displayKind,
+  };
+}
+
+function parseAttachments(value: unknown): PublishDraftAttachment[] {
   if (!Array.isArray(value)) return [];
   return value
-    .map((item) => asRecord(item))
-    .map((item) => ({
-      assetId: String(item.assetId || item.id || '').trim(),
-      type: parseMediaType(item.type),
-    }))
-    .filter((item) => Boolean(item.assetId));
+    .map((item) => normalizeAttachment(item))
+    .filter((item): item is PublishDraftAttachment => item !== null);
 }
 
 function parseTags(value: unknown): string[] {
@@ -115,7 +148,7 @@ function loadState(): PublishWorkspaceState {
           title: String(draft.title || '').trim(),
           caption: String(draft.caption || ''),
           tags: parseTags(draft.tags),
-          media: parseMedia(draft.media),
+          attachments: parseAttachments(draft.attachments),
           identity: parseIdentity(draft.identity),
           agentId: draft.agentId ? String(draft.agentId) : null,
           status: parseDraftStatus(draft.status),
@@ -210,7 +243,7 @@ export function getPublishDraft(draftId: string): PublishDraft | null {
 export function createPublishDraft(
   payload: Partial<PublishDraft> & {
     tags?: string[];
-    media?: PublishDraftMedia[];
+    attachments?: PublishDraftAttachment[];
   },
 ): PublishDraft {
   const state = loadState();
@@ -220,13 +253,10 @@ export function createPublishDraft(
     title: String(payload.title || '').trim(),
     caption: String(payload.caption || ''),
     tags: Array.isArray(payload.tags) ? payload.tags.filter(Boolean) : [],
-    media: Array.isArray(payload.media)
-      ? payload.media
-          .map((item) => ({
-            assetId: String(item.assetId || '').trim(),
-            type: parseMediaType(item.type),
-          }))
-          .filter((item) => Boolean(item.assetId))
+    attachments: Array.isArray(payload.attachments)
+      ? payload.attachments
+          .map((item) => normalizeAttachment(item))
+          .filter((item): item is PublishDraftAttachment => item !== null)
       : [],
     identity: payload.identity === 'AGENT' ? 'AGENT' : state.settings.defaultIdentity,
     agentId: payload.agentId ? String(payload.agentId) : state.settings.defaultAgentId,
@@ -245,7 +275,7 @@ export function updatePublishDraft(
   draftId: string,
   payload: Partial<PublishDraft> & {
     tags?: string[];
-    media?: PublishDraftMedia[];
+    attachments?: PublishDraftAttachment[];
   },
 ): PublishDraft {
   const state = loadState();
@@ -259,7 +289,11 @@ export function updatePublishDraft(
     title: payload.title !== undefined ? String(payload.title || '').trim() : current.title,
     caption: payload.caption !== undefined ? String(payload.caption || '') : current.caption,
     tags: payload.tags ? payload.tags.filter(Boolean) : current.tags,
-    media: payload.media ? payload.media.filter((item) => Boolean(item.assetId)) : current.media,
+    attachments: payload.attachments
+      ? payload.attachments
+          .map((item) => normalizeAttachment(item))
+          .filter((item): item is PublishDraftAttachment => item !== null)
+      : current.attachments,
     identity: payload.identity ? (payload.identity === 'AGENT' ? 'AGENT' : 'USER') : current.identity,
     agentId: payload.agentId !== undefined ? (payload.agentId ? String(payload.agentId) : null) : current.agentId,
     updatedAt: nowIso(),

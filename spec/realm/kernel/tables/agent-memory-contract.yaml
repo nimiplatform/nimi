@@ -46,6 +46,6 @@ api_surface:
     - GET /api/agent/accounts/{id}/memory/core
     - GET /api/agent/accounts/{id}/memory/dyadic/{userId}
     - POST /api/agent/accounts/{id}/memory/commits
-  secondary_operations:
     - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}
     - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}
+  secondary_operations: []
