@@ -1,14 +1,40 @@
 import { createElement, type ComponentPropsWithoutRef, type ElementType, type ReactNode } from 'react';
-import { SURFACE_ELEVATION_CLASS, SURFACE_TONE_CLASS, cx, type SurfaceElevation, type SurfaceTone } from '../design-tokens.js';
+import { cva } from 'class-variance-authority';
+import { cn, type SurfaceElevation, type SurfaceTone } from '../design-tokens.js';
 
 type SurfacePadding = 'none' | 'sm' | 'md' | 'lg';
 
-const SURFACE_PADDING_CLASS: Record<SurfacePadding, string> = {
-  none: '',
-  sm: 'p-3',
-  md: 'p-4',
-  lg: 'p-6',
-};
+export const surfaceVariants = cva(
+  'rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] transition-colors duration-[var(--nimi-motion-fast)]',
+  {
+    variants: {
+      tone: {
+        canvas: 'bg-[var(--nimi-surface-canvas)]',
+        panel: 'bg-[var(--nimi-surface-panel)]',
+        card: 'bg-[var(--nimi-surface-card)]',
+        hero: 'bg-[image:var(--nimi-surface-hero)]',
+        overlay: 'bg-[var(--nimi-surface-overlay)]',
+      },
+      elevation: {
+        base: 'shadow-[var(--nimi-elevation-base)]',
+        raised: 'shadow-[var(--nimi-elevation-raised)]',
+        floating: 'shadow-[var(--nimi-elevation-floating)]',
+        modal: 'shadow-[var(--nimi-elevation-modal)]',
+      },
+      padding: {
+        none: '',
+        sm: 'p-3',
+        md: 'p-4',
+        lg: 'p-6',
+      },
+    },
+    defaultVariants: {
+      tone: 'panel',
+      elevation: 'base',
+      padding: 'md',
+    },
+  },
+);
 
 type SurfaceProps<T extends ElementType = 'div'> = {
   as?: T;
@@ -38,13 +64,10 @@ export function Surface<T extends ElementType = 'div'>(props: SurfaceProps<T>) {
   return createElement(
     Component,
     {
-      className: cx(
-        'nimi-surface',
-        SURFACE_TONE_CLASS[tone],
-        SURFACE_ELEVATION_CLASS[elevation],
-        SURFACE_PADDING_CLASS[padding],
-        interactive && 'nimi-surface--interactive',
-        active && 'nimi-surface--active',
+      className: cn(
+        surfaceVariants({ tone, elevation, padding }),
+        interactive && 'cursor-pointer hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]',
+        active && 'bg-[var(--nimi-surface-active)]',
         className,
       ),
       ...rest,

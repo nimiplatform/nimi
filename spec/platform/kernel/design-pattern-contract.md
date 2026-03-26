@@ -18,7 +18,7 @@
 ## P-DESIGN-003 — Semantic Token Taxonomy
 
 - Shared semantic tokens must be declared in `tables/nimi-ui-tokens.yaml`.
-- Required token categories are `surface`, `text`, `action`, `overlay`, `sidebar`, `field`, `status`, `radius`, `spacing`, `typography`, `stroke`, `elevation`, `motion`, `z`, `sizing`, `border`, `opacity`, `focus`, and `scrollbar`.
+- Required token categories are `surface`, `text`, `action`, `overlay`, `sidebar`, `field`, `status`, `radius`, `spacing`, `typography`, `stroke`, `elevation`, `motion`, `z`, `sizing`, `border`, `opacity`, `focus`, `scrollbar`, and `toggle`.
 - Semantic tokens must declare whether they are `foundation` or `accent` layer tokens.
 - Theme pack values must be declared in `tables/nimi-ui-themes.yaml`; app code must not invent parallel token registries for governed surfaces.
 
@@ -28,17 +28,18 @@
 - Shared scheme state is `light` or `dark`; governed apps must not define a parallel app-local theme entrypoint or root token system.
 - Accent packs may express product identity, but they must layer on top of the shared foundation schemes and must not redefine primitive family structure.
 
-## P-DESIGN-005 — Generated Primitive Authority
+## P-DESIGN-005 — Primitive Visual Authority
 
-- Shared primitive visual contracts must be generated from `tables/nimi-ui-primitives.yaml`; hand-authored shared CSS may not redefine generator-owned `.nimi-*` primitive selectors.
-- Shared primitive prop unions, variant registries, and slot class maps must be generated from platform fact tables and consumed by `@nimiplatform/nimi-kit/ui`.
-- App code and shared-lib handwritten code may compose generated primitives, but may not become an alternative authority for primitive visuals.
+- Shared primitive variant taxonomy (which tones, sizes, states are valid) must be declared in `tables/nimi-ui-primitives.yaml`.
+- Shared primitive visual implementations use CVA (class-variance-authority) + Tailwind utility classes in `@nimiplatform/nimi-kit/ui` component source, backed by Radix UI headless primitives for accessible behavior.
+- Semantic theme tokens are registered as Tailwind theme values via `@theme` in generated CSS; primitive CSS class selectors are no longer generated.
+- App code and shared-lib handwritten code may compose shared primitives, but may not define CVA variants for shared primitive families outside `kit/ui`.
 
-## P-DESIGN-006 — No App-Local Shared CSS Redefinition
+## P-DESIGN-006 — No App-Local Shared Primitive Redefinition
 
-- Governed app stylesheets must not define `.nimi-*` selectors that belong to shared primitive families or toolkit-owned utilities.
-- App-local wrappers may add composition class names, but they must not redefine the visual contract of generated primitive selectors.
-- Controlled exceptions may style app-owned selectors only; they must not override shared primitive selectors.
+- Governed app stylesheets must not define CVA variants or Tailwind utility overrides that target shared primitive families delivered by `@nimiplatform/nimi-kit/ui`.
+- App-local wrappers may add composition class names, but they must not redefine the visual contract of shared primitive components.
+- Controlled exceptions may style app-owned selectors only; they must not override shared primitive styling.
 
 ## P-DESIGN-007 — No App-Local Shared Token Overrides
 
@@ -54,8 +55,8 @@
 
 ## P-DESIGN-010 — Shared Primitive Contract
 
-- Shared design primitives must be delivered by `@nimiplatform/nimi-kit/ui`.
-- Governed app modules must use shared primitives for shell-level `surface`, `action`, `overlay`, `sidebar`, `field`, and `status` families.
+- Shared design primitives must be delivered by `@nimiplatform/nimi-kit/ui`, built on Radix UI headless primitives (Dialog, Tooltip, ScrollArea, Select, Switch, Avatar, Popover) and styled with CVA + Tailwind referencing `--nimi-*` semantic tokens.
+- Governed app modules must use shared primitives for shell-level `surface`, `action`, `overlay`, `sidebar`, `field`, `status`, `scroll_area`, `toggle`, and `avatar` families.
 - Thin compatibility wrappers are permitted only if they delegate directly to `@nimiplatform/nimi-kit/ui` and do not redefine the visual contract.
 
 ## P-DESIGN-011 — Surface Contract
@@ -66,11 +67,12 @@
 ## P-DESIGN-012 — Action Contract
 
 - `Button` and `IconButton` are the shared action primitives for shell-level and form-level interactions.
-- Shared actions must resolve `primary`, `secondary`, and `ghost` tone behavior through semantic tokens.
+- Shared actions must resolve `primary`, `secondary`, `ghost`, and `danger` tone behavior through semantic tokens.
 
 ## P-DESIGN-013 — Overlay Contract
 
-- `OverlayShell` is the shared overlay primitive for `dialog`, `drawer`, and `popover`; tooltips use the shared tooltip bubble.
+- `Dialog` (backed by `@radix-ui/react-dialog`) is the shared overlay primitive for `dialog` and `drawer` kinds. `Popover` (backed by `@radix-ui/react-popover`) handles popover overlays. `Tooltip` (backed by `@radix-ui/react-tooltip`) handles tooltips.
+- `OverlayShell` is retained as a backward-compatible adapter mapping to `Dialog`.
 - Governed overlays must keep reduced-motion behavior and stable testability surfaces.
 
 ## P-DESIGN-014 — Sidebar / Nav Contract
@@ -81,7 +83,7 @@
 
 ## P-DESIGN-015 — Field / Input Contract
 
-- `TextField`, `SearchField`, and `TextareaField` are the shared field primitives for shell-level and publish/settings surfaces.
+- `TextField`, `SearchField`, `TextareaField`, and `SelectField` are the shared field primitives for shell-level and publish/settings surfaces.
 - Governed field surfaces must resolve background, stroke, placeholder, and focus states through semantic tokens.
 
 ## P-DESIGN-016 — Typography Contract
@@ -106,7 +108,7 @@
 
 - App-owned composition components are permitted only when they are explicitly registered in `tables/nimi-ui-compositions.yaml`.
 - Thin wrappers over shared primitive families must delegate directly to `@nimiplatform/nimi-kit/ui` and must not add an app-owned visual contract for those shared families.
-- App-owned compositions may define local interaction or layout selectors only for component families that are not yet part of the shared toolkit contract; they must not become a parallel authority for `action`, `field`, `surface`, `sidebar`, `overlay`, or `status`.
+- App-owned compositions may define local interaction or layout selectors only for component families that are not yet part of the shared toolkit contract; they must not become a parallel authority for `action`, `field`, `surface`, `sidebar`, `overlay`, `status`, `scroll_area`, `toggle`, or `avatar`.
 
 ## P-DESIGN-020 — Adoption Registry
 
@@ -129,12 +131,11 @@
   - a governed module does not import `@nimiplatform/nimi-kit/ui`
   - an app renderer entry does not import the shared foundation CSS, both scheme packs, and exactly one accent pack
   - an app renderer entry does not apply theme state through the shared scheme runtime
-  - a governed module defines local shell/sidebar/surface/action/overlay helper families
-  - an app-local stylesheet defines a parallel root token registry or `@theme` block for governed semantic tokens
-  - an app-local stylesheet defines generator-owned `.nimi-*` selectors or assigns values to `--nimi-*` variables
-  - shared-lib handwritten CSS defines generator-owned primitive selectors instead of importing generated CSS
+  - a governed module defines local shell/sidebar/surface/action/overlay/toggle/scroll_area/avatar helper families
+  - an app-local stylesheet defines a parallel root token registry or `@theme` block for governed semantic `--nimi-*` tokens
+  - an app-local stylesheet assigns values to `--nimi-*` variables
+  - a governed module defines CVA variants for shared primitive families outside `kit/ui`
   - a governed module introduces raw visual contract values outside `tables/nimi-ui-allowlists.yaml`
-  - a governed module uses primitive variant, size, state, or slot names not declared in `tables/nimi-ui-primitives.yaml`
   - a foundation scheme or accent pack omits a required token value for its layer
 
 ## Fact Sources

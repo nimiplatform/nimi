@@ -135,6 +135,12 @@ primitives:
             background: transparent
             border-color: transparent
             color: var(--nimi-text-secondary)
+        - id: danger
+          class_name: nimi-action--danger
+          styles:
+            background: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent)
+            border-color: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent)
+            color: var(--nimi-status-danger)
       size:
         - id: sm
           class_name: nimi-action--size-sm
@@ -177,6 +183,12 @@ primitives:
           styles:
             background: var(--nimi-action-ghost-hover)
             color: var(--nimi-text-primary)
+            transform: translateY(-1px)
+        - id: hover_danger
+          selector: .nimi-action--danger:hover:not(:disabled)
+          styles:
+            background: color-mix(in srgb, var(--nimi-status-danger) calc(var(--nimi-opacity-subtle-fill) + 0.06), transparent)
+            border-color: color-mix(in srgb, var(--nimi-status-danger) calc(var(--nimi-opacity-subtle-fill) + 0.06), transparent)
             transform: translateY(-1px)
         - id: disabled
           selector: .nimi-action:disabled
@@ -614,4 +626,186 @@ primitives:
           styles:
             background: color-mix(in srgb, var(--nimi-status-info) var(--nimi-opacity-subtle-fill), transparent)
             color: var(--nimi-status-info)
+    source_rule: P-DESIGN-010
+  - id: primitive.scroll_area
+    family: scroll_area
+    component: ScrollArea
+    slots:
+      - id: root
+        class_name: nimi-scroll-area
+        styles:
+          position: relative
+          min-height: "0"
+      - id: viewport
+        class_name: nimi-scroll-area__viewport
+        styles:
+          height: "100%"
+          overflow-y: auto
+          scrollbar-width: none
+      - id: rail
+        class_name: nimi-scroll-area__rail
+        styles:
+          position: absolute
+          right: var(--nimi-space-1)
+          width: var(--nimi-scrollbar-size)
+          pointer-events: none
+          z-index: "10"
+      - id: thumb
+        class_name: nimi-scroll-area__thumb
+        styles:
+          position: absolute
+          width: 6px
+          border-radius: var(--nimi-scrollbar-radius)
+          background: var(--nimi-scrollbar-thumb)
+          transition: background-color var(--nimi-motion-fast) ease
+    class_groups:
+      state:
+        - id: thumb_hover
+          selector: .nimi-scroll-area:hover .nimi-scroll-area__thumb
+          styles:
+            background: var(--nimi-scrollbar-thumb-hover)
+    source_rule: P-DESIGN-010
+  - id: primitive.toggle
+    family: toggle
+    component: Toggle
+    slots:
+      - id: root
+        class_name: nimi-toggle
+        styles:
+          position: relative
+          display: inline-flex
+          align-items: center
+          width: 44px
+          height: 24px
+          border-radius: var(--nimi-radius-full)
+          border: 2px solid transparent
+          cursor: pointer
+          transition: background-color var(--nimi-motion-fast) ease
+      - id: thumb
+        class_name: nimi-toggle__thumb
+        styles:
+          display: inline-block
+          width: 20px
+          height: 20px
+          border-radius: var(--nimi-radius-full)
+          background: white
+          box-shadow: var(--nimi-elevation-base)
+          pointer-events: none
+          transition: transform var(--nimi-motion-fast) ease
+    class_groups:
+      state:
+        - id: "off"
+          class_name: nimi-toggle--off
+          styles:
+            background: var(--nimi-toggle-off-bg)
+        - id: "on"
+          class_name: nimi-toggle--on
+          styles:
+            background: var(--nimi-action-primary-bg)
+        - id: disabled
+          selector: .nimi-toggle[aria-disabled="true"]
+          styles:
+            cursor: not-allowed
+            opacity: var(--nimi-opacity-disabled)
+      compound:
+        - id: on_thumb
+          selector: .nimi-toggle--on .nimi-toggle__thumb
+          styles:
+            transform: translateX(20px)
+    source_rule: P-DESIGN-010
+  - id: primitive.select_field
+    family: field
+    component: SelectField
+    slots:
+      - id: root
+        class_name: nimi-field nimi-field--select
+        styles:
+          cursor: pointer
+      - id: select
+        class_name: nimi-field__select
+        styles:
+          width: "100%"
+          border: "0"
+          outline: none
+          background: transparent
+          color: inherit
+          cursor: pointer
+          appearance: none
+      - id: chevron
+        class_name: nimi-field__chevron
+        styles:
+          display: inline-flex
+          flex-shrink: "0"
+          align-items: center
+          justify-content: center
+          color: var(--nimi-text-muted)
+          pointer-events: none
+    class_groups: {}
+    source_rule: P-DESIGN-015
+  - id: primitive.avatar
+    family: avatar
+    component: Avatar
+    slots:
+      - id: root
+        class_name: nimi-avatar
+        styles:
+          display: inline-flex
+          align-items: center
+          justify-content: center
+          overflow: hidden
+          flex-shrink: "0"
+      - id: image
+        class_name: nimi-avatar__image
+        styles:
+          width: "100%"
+          height: "100%"
+          object-fit: cover
+      - id: fallback
+        class_name: nimi-avatar__fallback
+        styles:
+          display: flex
+          width: "100%"
+          height: "100%"
+          align-items: center
+          justify-content: center
+          font-weight: var(--nimi-type-label-weight)
+          color: var(--nimi-text-secondary)
+    class_groups:
+      size:
+        - id: sm
+          class_name: nimi-avatar--size-sm
+          styles:
+            width: var(--nimi-sizing-avatar-sm)
+            height: var(--nimi-sizing-avatar-sm)
+            font-size: var(--nimi-type-caption-size)
+        - id: md
+          class_name: nimi-avatar--size-md
+          styles:
+            width: var(--nimi-sizing-avatar-md)
+            height: var(--nimi-sizing-avatar-md)
+            font-size: var(--nimi-type-body-sm-size)
+        - id: lg
+          class_name: nimi-avatar--size-lg
+          styles:
+            width: var(--nimi-sizing-avatar-lg)
+            height: var(--nimi-sizing-avatar-lg)
+            font-size: var(--nimi-type-body-size)
+      shape:
+        - id: circle
+          class_name: nimi-avatar--circle
+          styles:
+            border-radius: var(--nimi-radius-full)
+        - id: rounded
+          class_name: nimi-avatar--rounded
+          styles:
+            border-radius: var(--nimi-radius-lg)
+      tone:
+        - id: neutral
+          class_name: nimi-avatar--neutral
+          styles:
+            background: color-mix(in srgb, var(--nimi-text-muted) var(--nimi-opacity-subtle-fill), transparent)
+        - id: accent
+          class_name: nimi-avatar--accent
+          styles:
+            background: color-mix(in srgb, var(--nimi-action-primary-bg) var(--nimi-opacity-subtle-fill), transparent)
     source_rule: P-DESIGN-010

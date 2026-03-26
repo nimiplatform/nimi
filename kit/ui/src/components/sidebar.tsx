@@ -1,16 +1,6 @@
-import React, { type CSSProperties, type ComponentPropsWithoutRef, type MouseEvent, type ReactNode } from 'react';
-import { IconButton } from './action.js';
-import {
-  SIDEBAR_AFFORDANCE_CLASS,
-  SIDEBAR_FAMILY_CLASS,
-  SIDEBAR_ITEM_KIND_CLASS,
-  SIDEBAR_SLOT_CLASS,
-  cx,
-  type SidebarAffordance,
-  type SidebarFamily,
-  type SidebarItemKind,
-} from '../design-tokens.js';
-import { Surface } from './surface.js';
+import React, { createElement, type CSSProperties, type ComponentPropsWithoutRef, type ElementType, type MouseEvent, type ReactNode } from 'react';
+import { IconButton } from './button.js';
+import { cn, type SidebarItemKind } from '../design-tokens.js';
 
 const SEARCH_ICON = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -28,7 +18,6 @@ const CLEAR_ICON = (
 
 type SidebarShellProps = {
   as?: 'aside' | 'div';
-  family?: SidebarFamily;
   width?: number | string;
   children?: ReactNode;
   className?: string;
@@ -37,39 +26,34 @@ type SidebarShellProps = {
 
 export function SidebarShell({
   as,
-  family = 'nimi-sidebar-v1',
   width,
   children,
   className,
   style,
   ...rest
 }: SidebarShellProps) {
+  const Tag = (as || 'aside') as ElementType;
   const mergedStyle = width === undefined
     ? style
     : { ...style, width: typeof width === 'number' ? `${width}px` : width };
 
-  return (
-    <Surface
-      as={as || 'aside'}
-      tone="panel"
-      elevation="base"
-      padding="none"
-      className={cx(
-        'relative flex shrink-0 flex-col rounded-none border-y-0 border-l-0 border-r',
-        SIDEBAR_FAMILY_CLASS[family],
+  return createElement(
+    Tag,
+    {
+      className: cn(
+        'relative flex shrink-0 flex-col rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-sidebar-canvas)] border border-[var(--nimi-border-subtle)] border-l-0 border-r-[var(--nimi-sidebar-border)]',
         className,
-      )}
-      style={mergedStyle}
-      {...rest}
-    >
-      {children}
-    </Surface>
+      ),
+      style: mergedStyle,
+      ...rest,
+    },
+    children,
   );
 }
 
 export function SidebarHeader(props: { title: ReactNode; className?: string }) {
   return (
-    <div className={cx(SIDEBAR_SLOT_CLASS.header, 'flex shrink-0 items-center', props.className)}>
+    <div className={cn('flex shrink-0 items-center min-h-[var(--nimi-sidebar-header-height)] px-4', props.className)}>
       {props.title}
     </div>
   );
@@ -97,12 +81,12 @@ export function SidebarSearch({
   className,
 }: SidebarSearchProps) {
   return (
-    <div className={cx(SIDEBAR_SLOT_CLASS.searchRow, className)}>
+    <div className={cn('px-2 pb-1', className)}>
       <div className="flex min-h-10 items-center gap-2">
-        <div className={cx(SIDEBAR_SLOT_CLASS.search, 'flex min-w-0 flex-1 px-4')}>
-          <span className="shrink-0 text-[color:var(--nimi-text-muted)]">{SEARCH_ICON}</span>
+        <div className="flex min-w-0 flex-1 items-center px-2">
+          <span className="shrink-0 text-[var(--nimi-text-muted)]">{SEARCH_ICON}</span>
           <input
-            className={cx(SIDEBAR_SLOT_CLASS.searchField, 'ml-1 text-sm')}
+            className="ml-1 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
             value={value}
             onChange={(event) => onChange(event.target.value)}
             placeholder={placeholder}
@@ -114,7 +98,7 @@ export function SidebarSearch({
               size="sm"
               tone="ghost"
               onClick={onClear}
-              className="ml-1 h-6 w-6 text-[color:var(--nimi-text-muted)] hover:text-[color:var(--nimi-text-secondary)]"
+              className="ml-1 h-6 w-6 text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
               aria-label={clearLabel}
               title={clearLabel}
             />
@@ -128,8 +112,12 @@ export function SidebarSearch({
 
 export function SidebarSection(props: { label?: ReactNode; className?: string; children?: ReactNode }) {
   return (
-    <section className={cx(SIDEBAR_SLOT_CLASS.section, props.className)}>
-      {props.label ? <div className={SIDEBAR_SLOT_CLASS.sectionLabel}>{props.label}</div> : null}
+    <section className={cn('px-2 py-1', props.className)}>
+      {props.label ? (
+        <div className="nimi-type-sidebar-label px-2 py-1 text-[var(--nimi-sidebar-section-label)] uppercase">
+          {props.label}
+        </div>
+      ) : null}
       {props.children}
     </section>
   );
@@ -142,7 +130,7 @@ type SidebarItemProps = {
   label: ReactNode;
   description?: ReactNode;
   trailing?: ReactNode;
-  trailingAffordance?: SidebarAffordance | SidebarAffordance[];
+  trailingAffordance?: string | string[];
   className?: string;
 } & Omit<ComponentPropsWithoutRef<'button'>, 'children'>;
 
@@ -153,32 +141,36 @@ export function SidebarItem({
   label,
   description,
   trailing,
-  trailingAffordance,
+  trailingAffordance: _trailingAffordance,
   className,
   type = 'button',
   ...rest
 }: SidebarItemProps) {
-  const affordanceClasses = Array.isArray(trailingAffordance)
-    ? trailingAffordance.map((item) => SIDEBAR_AFFORDANCE_CLASS[item]).join(' ')
-    : (trailingAffordance ? SIDEBAR_AFFORDANCE_CLASS[trailingAffordance] : '');
+  if (kind === 'divider') {
+    return <div className="my-1 h-px bg-[var(--nimi-sidebar-border)]" />;
+  }
+  if (kind === 'spacer') {
+    return <div className="flex-1" />;
+  }
 
   return (
     <button
       type={type}
-      className={cx(
-        'nimi-sidebar-item',
-        SIDEBAR_ITEM_KIND_CLASS[kind],
-        active && 'nimi-sidebar-item--active',
+      className={cn(
+        'flex w-full items-center gap-2 rounded-[var(--nimi-radius-sidebar-item)] px-2 min-h-[var(--nimi-sizing-sidebar-item-height)] text-left text-sm transition-colors duration-[var(--nimi-motion-fast)] cursor-pointer',
+        active
+          ? 'bg-[var(--nimi-sidebar-item-active)] text-[var(--nimi-text-primary)] font-medium'
+          : 'text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-sidebar-item-hover)] hover:text-[var(--nimi-text-primary)]',
         className,
       )}
       {...rest}
     >
       {icon ? <span className="inline-flex shrink-0 items-center justify-center">{icon}</span> : null}
       <span className="min-w-0 flex-1">
-        <span className={cx(SIDEBAR_SLOT_CLASS.itemTitle, 'block truncate')}>{label}</span>
-        {description ? <span className={cx(SIDEBAR_SLOT_CLASS.itemDescription, 'block truncate')}>{description}</span> : null}
+        <span className="block truncate">{label}</span>
+        {description ? <span className="block truncate text-xs text-[var(--nimi-text-muted)]">{description}</span> : null}
       </span>
-      {trailing ? <span className={cx(SIDEBAR_SLOT_CLASS.affordance, 'shrink-0', affordanceClasses)}>{trailing}</span> : null}
+      {trailing ? <span className="shrink-0">{trailing}</span> : null}
     </button>
   );
 }
@@ -200,11 +192,44 @@ export function SidebarResizeHandle({
       aria-orientation="vertical"
       aria-label={ariaLabel}
       onMouseDown={onMouseDown}
-      className={cx(
-        'absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize',
-        SIDEBAR_SLOT_CLASS.resizeHandle,
+      className={cn(
+        'absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize hover:bg-[var(--nimi-sidebar-resize-handle)]',
         className,
       )}
     />
+  );
+}
+
+export function SidebarAffordanceBadge(props: { children: ReactNode; className?: string }) {
+  return (
+    <span className={cn(
+      'inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs leading-none font-medium',
+      'bg-[color-mix(in_srgb,var(--nimi-text-muted)_14%,transparent)] text-[var(--nimi-text-secondary)]',
+      props.className,
+    )}>
+      {props.children}
+    </span>
+  );
+}
+
+const CHEVRON_RIGHT_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m9 18 6-6-6-6" />
+  </svg>
+);
+
+export function SidebarAffordanceChevron(props: { className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center text-[var(--nimi-text-muted)]', props.className)}>
+      {CHEVRON_RIGHT_ICON}
+    </span>
+  );
+}
+
+export function SidebarAffordanceStatusDot(props: { color?: string; className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center', props.className)}>
+      <span className="inline-flex h-2 w-2 rounded-full bg-current" style={props.color ? { color: props.color } : undefined} />
+    </span>
   );
 }

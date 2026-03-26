@@ -5,8 +5,8 @@ modules:
     kind: foundation
     surface_level: foundation
     adapter_contract: none
-    description: Cross-app design system (token, primitive, theme generation)
-    dependencies: []
+    description: Cross-app design system built on Radix UI + CVA + Tailwind, with nimi semantic tokens
+    dependencies: ["@radix-ui/react-dialog", "@radix-ui/react-tooltip", "@radix-ui/react-scroll-area", "@radix-ui/react-select", "@radix-ui/react-switch", "@radix-ui/react-avatar", "@radix-ui/react-popover", "@radix-ui/react-slot", "class-variance-authority", "clsx", "tailwind-merge"]
     peer_dependencies: [react, react-dom]
     exports:
       - ./ui

@@ -140,3 +140,4 @@
 | `scrollbar.track` | `scrollbar` | `foundation` | `--nimi-scrollbar-track` | `surface` | `P-DESIGN-018` |
 | `scrollbar.radius` | `scrollbar` | `foundation` | `--nimi-scrollbar-radius` | `surface` | `P-DESIGN-018` |
 | `scrollbar.size` | `scrollbar` | `foundation` | `--nimi-scrollbar-size` | `surface` | `P-DESIGN-018` |
+| `toggle.off_bg` | `toggle` | `foundation` | `--nimi-toggle-off-bg` | `toggle` | `P-DESIGN-010` |

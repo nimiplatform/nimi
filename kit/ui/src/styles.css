@@ -1,5 +1,13 @@
-@import "./generated/primitives.css";
-@import "./generated/typography.css";
+@import "./generated/theme-base.css";
+
+/* Tailwind source scanning: ensures all kit component classes are detected */
+@source "./components/**/*.{ts,tsx}";
+@source "./lib/**/*.{ts,tsx}";
+@source "../../auth/src/**/*.{ts,tsx}";
+@source "../../features/chat/src/**/*.{ts,tsx}";
+@source "../../features/commerce/src/**/*.{ts,tsx}";
+@source "../../features/generation/src/**/*.{ts,tsx}";
+@source "../../features/model-picker/src/**/*.{ts,tsx}";
 
 html,
 body,
@@ -9,7 +17,8 @@ body,
   color: var(--nimi-text-primary);
 }
 
-:root[data-nimi-scheme="dark"] {
+.dark,
+[data-nimi-scheme="dark"] {
   color-scheme: dark;
 }
 
@@ -18,40 +27,4 @@ input,
 select,
 textarea {
   font: inherit;
-}
-
-.nimi-theme-root {
-  background: var(--nimi-app-background);
-  color: var(--nimi-text-primary);
-}
-
-.nimi-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--nimi-scrollbar-thumb) var(--nimi-scrollbar-track);
-}
-
-.nimi-scrollbar::-webkit-scrollbar {
-  width: var(--nimi-scrollbar-size);
-  height: var(--nimi-scrollbar-size);
-}
-
-.nimi-scrollbar::-webkit-scrollbar-track {
-  background: var(--nimi-scrollbar-track);
-}
-
-.nimi-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--nimi-scrollbar-thumb);
-  border-radius: var(--nimi-scrollbar-radius);
-}
-
-.nimi-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--nimi-scrollbar-thumb-hover);
-}
-
-.nimi-state--selected {
-  background: var(--nimi-surface-active);
-}
-
-.nimi-state--danger {
-  background: color-mix(in srgb, var(--nimi-status-danger) var(--nimi-opacity-subtle-fill), transparent);
 }

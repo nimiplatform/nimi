@@ -134,6 +134,7 @@ packs:
       scrollbar.track: "transparent"
       scrollbar.radius: "999px"
       scrollbar.size: "8px"
+      toggle.off_bg: "#d1d5db"
   - theme_id: nimi-dark
     pack_kind: foundation
     applies_to_apps:
@@ -270,6 +271,7 @@ packs:
       scrollbar.track: "transparent"
       scrollbar.radius: "999px"
       scrollbar.size: "8px"
+      toggle.off_bg: "#4b5563"
   - theme_id: desktop-accent
     pack_kind: accent
     applies_to_apps:

@@ -1088,3 +1088,11 @@ tokens:
     primitive_family: surface
     source_rule: P-DESIGN-018
     theme_layer: foundation
+  - id: toggle.off_bg
+    category: toggle
+    semantic_name: Toggle off background
+    css_var: --nimi-toggle-off-bg
+    ts_token: offBg
+    primitive_family: toggle
+    source_rule: P-DESIGN-010
+    theme_layer: foundation

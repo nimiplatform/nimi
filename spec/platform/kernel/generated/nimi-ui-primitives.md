@@ -12,3 +12,7 @@
 | `primitive.field` | `field` | `TextField` | `root`, `input`, `textarea` | `tone`, `modifier`, `state` | `P-DESIGN-015` |
 | `primitive.textarea` | `field` | `TextareaField` |  |  | `P-DESIGN-015` |
 | `primitive.status` | `status` | `StatusBadge` | `root` | `tone` | `P-DESIGN-010` |
+| `primitive.scroll_area` | `scroll_area` | `ScrollArea` | `root`, `viewport`, `rail`, `thumb` | `state` | `P-DESIGN-010` |
+| `primitive.toggle` | `toggle` | `Toggle` | `root`, `thumb` | `state`, `compound` | `P-DESIGN-010` |
+| `primitive.select_field` | `field` | `SelectField` | `root`, `select`, `chevron` |  | `P-DESIGN-015` |
+| `primitive.avatar` | `avatar` | `Avatar` | `root`, `image`, `fallback` | `size`, `shape`, `tone` | `P-DESIGN-010` |

@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
-import { type NimiAccentPack, type NimiThemeScheme, resolveNimiThemeClassName } from './design-tokens.js';
+import { type NimiAccentPack, type NimiThemeScheme } from './design-tokens.js';
 
 type NimiThemeContextValue = {
   scheme: NimiThemeScheme;
   accentPack: NimiAccentPack;
   setScheme: (scheme: NimiThemeScheme) => void;
-  rootClassName: string;
 };
 
 const NimiThemeContext = createContext<NimiThemeContextValue | null>(null);
@@ -17,6 +16,13 @@ type NimiThemeProviderProps = {
   children: ReactNode;
 };
 
+const ALL_ACCENT_CLASSES = [
+  'nimi-theme-accent--desktop-accent',
+  'nimi-theme-accent--forge-accent',
+  'nimi-theme-accent--relay-accent',
+  'nimi-theme-accent--overtone-accent',
+] as const;
+
 export function NimiThemeProvider({
   scheme,
   defaultScheme = 'light',
@@ -25,35 +31,28 @@ export function NimiThemeProvider({
 }: NimiThemeProviderProps) {
   const [internalScheme, setInternalScheme] = useState<NimiThemeScheme>(defaultScheme);
   const activeScheme = scheme ?? internalScheme;
-  const rootClassName = resolveNimiThemeClassName(activeScheme, accentPack);
 
   useLayoutEffect(() => {
     if (typeof document === 'undefined') {
       return;
     }
-    document.documentElement.dataset.nimiScheme = activeScheme;
-    document.documentElement.dataset.nimiAccent = accentPack;
-    document.documentElement.classList.add('nimi-theme-root');
-    document.documentElement.classList.remove('nimi-theme--light', 'nimi-theme--dark');
-    document.documentElement.classList.add(`nimi-theme--${activeScheme}`);
-    for (const accentClass of [
-      'nimi-theme-accent--desktop-accent',
-      'nimi-theme-accent--forge-accent',
-      'nimi-theme-accent--relay-accent',
-      'nimi-theme-accent--overtone-accent',
-    ]) {
-      document.documentElement.classList.remove(accentClass);
+    const html = document.documentElement;
+    html.dataset.nimiScheme = activeScheme;
+    html.dataset.nimiAccent = accentPack;
+    html.classList.toggle('dark', activeScheme === 'dark');
+    for (const cls of ALL_ACCENT_CLASSES) {
+      html.classList.remove(cls);
     }
-    document.documentElement.classList.add(`nimi-theme-accent--${accentPack}`);
+    html.classList.add(`nimi-theme-accent--${accentPack}`);
 
     return () => {
-      document.documentElement.classList.remove(`nimi-theme--${activeScheme}`);
-      document.documentElement.classList.remove(`nimi-theme-accent--${accentPack}`);
-      if (document.documentElement.dataset.nimiAccent === accentPack) {
-        delete document.documentElement.dataset.nimiAccent;
+      html.classList.remove('dark');
+      html.classList.remove(`nimi-theme-accent--${accentPack}`);
+      if (html.dataset.nimiAccent === accentPack) {
+        delete html.dataset.nimiAccent;
       }
-      if (document.documentElement.dataset.nimiScheme === activeScheme) {
-        delete document.documentElement.dataset.nimiScheme;
+      if (html.dataset.nimiScheme === activeScheme) {
+        delete html.dataset.nimiScheme;
       }
     };
   }, [accentPack, activeScheme]);
@@ -62,8 +61,7 @@ export function NimiThemeProvider({
     scheme: activeScheme,
     accentPack,
     setScheme: setInternalScheme,
-    rootClassName,
-  }), [accentPack, activeScheme, rootClassName]);
+  }), [accentPack, activeScheme]);
 
   return <NimiThemeContext.Provider value={value}>{children}</NimiThemeContext.Provider>;
 }

@@ -2,29 +2,28 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
 import {
   Button,
-  NIMI_PRIMITIVE_CONTRACT,
   NimiThemeProvider,
   SearchField,
   SidebarItem,
   SidebarShell,
   StatusBadge,
   Surface,
-  TYPOGRAPHY_TOKEN_CLASS,
+  cn,
 } from '../src/index.js';
 
-test('shared primitives render stable family classes', () => {
+test('shared primitives render sidebar structure', () => {
   const html = renderToStaticMarkup(
     <SidebarShell data-testid="sidebar">
       <SidebarItem kind="nav-row" label="Settings" />
     </SidebarShell>,
   );
 
-  expect(html).toMatch(/nimi-sidebar-shell/);
-  expect(html).toMatch(/nimi-sidebar-item/);
-  expect(html).toMatch(/nav-row/);
+  expect(html).toMatch(/aside/);
+  expect(html).toMatch(/Settings/);
+  expect(html).toMatch(/button/);
 });
 
-test('surface, button, field, and status primitives render semantic classes', () => {
+test('surface, button, field, and status primitives render', () => {
   const html = renderToStaticMarkup(
     <div>
       <Surface tone="card">card</Surface>
@@ -34,24 +33,24 @@ test('surface, button, field, and status primitives render semantic classes', ()
     </div>,
   );
 
-  expect(html).toMatch(/nimi-surface--card/);
-  expect(html).toMatch(/nimi-action--primary/);
-  expect(html).toMatch(/nimi-field--search/);
-  expect(html).toMatch(/nimi-status--success/);
+  expect(html).toMatch(/card/);
+  expect(html).toMatch(/save/);
+  expect(html).toMatch(/Search/);
+  expect(html).toMatch(/ready/);
 });
 
-test('theme provider renders children under shared runtime API', () => {
+test('theme provider renders children', () => {
   const html = renderToStaticMarkup(
     <NimiThemeProvider accentPack="relay-accent" defaultScheme="dark">
       <Surface tone="panel">theme</Surface>
     </NimiThemeProvider>,
   );
 
-  expect(html).toMatch(/nimi-surface--panel/);
+  expect(html).toMatch(/theme/);
 });
 
-test('generated primitive contract and typography classes are exported', () => {
-  expect(NIMI_PRIMITIVE_CONTRACT['primitive.action']).toBeTruthy();
-  expect(TYPOGRAPHY_TOKEN_CLASS.pageTitle).toBe('nimi-type--page-title');
-  expect(TYPOGRAPHY_TOKEN_CLASS.bodySm).toBe('nimi-type--body-sm');
+test('cn utility merges classes correctly', () => {
+  expect(cn('foo', 'bar')).toBe('foo bar');
+  expect(cn('p-4', false, null, 'text-sm')).toBe('p-4 text-sm');
+  expect(cn('p-4', 'p-6')).toBe('p-6');
 });

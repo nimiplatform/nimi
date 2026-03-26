@@ -104,6 +104,7 @@ for (const row of modules) {
   const surfaceLevel = String(row?.surface_level || '').trim();
   const adapterContract = String(row?.adapter_contract || '').trim();
   const dependencies = Array.isArray(row?.dependencies) ? row.dependencies.map((item) => String(item || '').trim()).filter(Boolean) : [];
+  const internalKitDependencies = dependencies.filter((item) => item.startsWith('kit.'));
   const peerDependencies = Array.isArray(row?.peer_dependencies) ? row.peer_dependencies.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const exportsList = Array.isArray(row?.exports) ? row.exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
   const headlessExports = Array.isArray(row?.headless_exports) ? row.headless_exports.map((item) => String(item || '').trim()).filter(Boolean) : [];
@@ -157,10 +158,10 @@ for (const row of modules) {
   }
 
   if (kind === 'foundation') {
-    expect(dependencies.length === 0, `${id}: foundation module must not depend on other kit modules`);
+    expect(internalKitDependencies.length === 0, `${id}: foundation module must not depend on other kit modules`);
   }
   if (kind === 'logic' || kind === 'infra') {
-    expect(dependencies.length === 0, `${id}: ${kind} module must not declare runtime kit dependencies`);
+    expect(internalKitDependencies.length === 0, `${id}: ${kind} module must not declare runtime kit dependencies`);
   }
   if (kind === 'feature') {
     expect(peerDependencies.includes('react'), `${id}: feature module must declare react peer dependency`);
