@@ -51,7 +51,7 @@ type RealmLike = {
         scopes: string[];
       }) => Promise<RealmGrantResponse>;
     };
-    PostService: {
+    PostsService: {
       createPost: (input: {
         content: string;
         attachments?: Array<{ uri?: string; mimeType?: string }>;
@@ -115,7 +115,7 @@ async function orchestratePatternB(input: {
 }): Promise<void> {
   const media = await input.runtime.media.video.generate({ prompt: input.prompt });
 
-  await input.realm.services.PostService.createPost({
+  await input.realm.services.PostsService.createPost({
     content: input.content,
     attachments: media.artifacts.map((artifact) => ({
       uri: artifact.uri,
@@ -186,7 +186,7 @@ async function orchestratePatternD(input: {
       },
     });
 
-    await input.realm.services.PostService.createPost({
+    await input.realm.services.PostsService.createPost({
       content: output.text,
       traceId: output.trace.traceId,
     });
@@ -289,7 +289,7 @@ test('Pattern B: Runtime -> Realm writes back artifacts with trace id', async ()
           version: 'unused',
         }),
       },
-      PostService: {
+      PostsService: {
         createPost: async (request: {
           content: string;
           attachments?: Array<{ uri?: string; mimeType?: string }>;
@@ -395,13 +395,13 @@ test('Pattern D: lifecycle stays independent while bridging data explicitly', as
           };
         },
       },
-      PostService: {
+      PostsService: {
         createPost: async (request: {
           content: string;
           attachments?: Array<{ uri?: string; mimeType?: string }>;
           traceId?: string;
         }): Promise<void> => {
-          sequence.push('realm.services.PostService.createPost');
+          sequence.push('realm.services.PostsService.createPost');
           capturedCreateInput = request;
         },
       },
@@ -463,7 +463,7 @@ test('Pattern D: lifecycle stays independent while bridging data explicitly', as
     'realm.ready',
     'realm.services.RuntimeRealmGrantsService.issueRuntimeRealmGrant',
     'runtime.ai.text.generate',
-    'realm.services.PostService.createPost',
+    'realm.services.PostsService.createPost',
     'runtime.close',
     'realm.close',
   ]);

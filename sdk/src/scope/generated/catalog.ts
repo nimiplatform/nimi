@@ -24,7 +24,7 @@ export const GENERATED_REALM_SCOPES: readonly ScopeName[] = Object.freeze([
   'realm.me_two_factor.read' as ScopeName,
   'realm.meaccountdata.read' as ScopeName,
   'realm.notifications.read' as ScopeName,
-  'realm.post.read' as ScopeName,
+  'realm.posts.read' as ScopeName,
   'realm.relationships_meta_graph.read' as ScopeName,
   'realm.resources.read' as ScopeName,
   'realm.reviews_economy_trust.read' as ScopeName,

@@ -3497,6 +3497,11 @@ export type components = {
             personality: components["schemas"]["AgentPersonalityDto"];
             voice?: components["schemas"]["AgentVoiceConfigDto"];
         };
+        AgentHandleAvailabilityResponseDto: {
+            available: boolean;
+            message?: string;
+            normalized: string;
+        };
         AgentIdentityDto: {
             name: string;
             role: string;
@@ -3504,10 +3509,7 @@ export type components = {
             summary?: string;
             worldview: string;
         };
-        /**
-         * @description Narrative importance tier inside the world
-         * @enum {string}
-         */
+        /** @enum {string} */
         AgentImportance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
         AgentMemoryCommitEnvelopeDto: {
             actorRefs: components["schemas"]["MutationActorRefDto"][];
@@ -3570,10 +3572,7 @@ export type components = {
             /** @description Agent current residence worldId */
             worldId?: string;
         };
-        /**
-         * @description Agent origin: OFFICIAL, PARTNER, COMMUNITY
-         * @enum {string}
-         */
+        /** @enum {string} */
         AgentOrigin: "COMMUNITY" | "NAF" | "PARTNER" | "SYSTEM";
         AgentOriginDto: {
             agentId: string;
@@ -3586,10 +3585,7 @@ export type components = {
             /** @description World ID the Agent belongs to */
             worldId: string;
         };
-        /**
-         * @description Ownership semantics: MASTER_OWNED or WORLD_OWNED
-         * @enum {string}
-         */
+        /** @enum {string} */
         AgentOwnershipType: "MASTER_OWNED" | "WORLD_OWNED";
         AgentPersonalityDto: {
             emotionBaseline?: string;
@@ -3614,6 +3610,76 @@ export type components = {
         };
         /** @enum {string} */
         AgentRelationType: "ALLY" | "RIVAL" | "ENEMY";
+        AgentRelationshipOtherAccountDto: {
+            avatarUrl: string | null;
+            displayName: string | null;
+            handle: string;
+            id: string;
+            isAgent: boolean;
+        };
+        AgentRelationshipRecordDto: {
+            context: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            direction: string;
+            id: string;
+            otherAccount: components["schemas"]["AgentRelationshipOtherAccountDto"];
+            strength: number;
+            type: components["schemas"]["AgentRelationType"];
+        };
+        AgentResponseMetadataDto: {
+            activeWorldId?: string | null;
+            category?: string | null;
+            importance?: components["schemas"]["AgentImportance"] | null;
+            origin?: components["schemas"]["AgentOrigin"];
+            ownerWorldId?: string | null;
+            ownershipType?: components["schemas"]["AgentOwnershipType"];
+            state?: components["schemas"]["AgentState"];
+            tier?: components["schemas"]["VerificationTier"];
+            wakeStrategy?: string | null;
+            worldId?: string;
+        };
+        AgentResponseProfileDto: {
+            activeWorldId?: string | null;
+            importance?: components["schemas"]["AgentImportance"] | null;
+            ownerWorldId?: string | null;
+            ownershipType?: components["schemas"]["AgentOwnershipType"];
+            state?: components["schemas"]["AgentState"];
+            stats?: components["schemas"]["AgentResponseProfileStatsDto"];
+            worldId?: string;
+        };
+        AgentResponseProfileStatsDto: {
+            engagementCount?: number;
+            influenceTier?: number;
+            interactionTier?: number;
+            /** Format: date-time */
+            lastActiveAt?: string | null;
+            vitalityScore?: number;
+        };
+        AgentResponseTierSummaryDto: {
+            assetTier?: number;
+            influenceTier?: number;
+            interactionTier?: number;
+            vitalityScore?: number;
+        };
+        AgentResponseUserDto: {
+            agent?: components["schemas"]["AgentResponseMetadataDto"];
+            agentProfile?: components["schemas"]["AgentResponseProfileDto"];
+            avatarUrl?: string | null;
+            bio?: string | null;
+            createdAt: string;
+            displayName: string;
+            handle: string;
+            id: string;
+            isAgent?: boolean;
+            isOnline?: boolean;
+            presenceEmoji?: string | null;
+            presenceStatus?: string | null;
+            presenceText?: string | null;
+            stats?: components["schemas"]["AgentStatsDto"];
+            status?: components["schemas"]["AccountStatus"];
+            tiers?: components["schemas"]["AgentResponseTierSummaryDto"];
+        };
         AgentRuleDto: {
             agentId: string;
             /** @enum {string} */
@@ -3653,10 +3719,7 @@ export type components = {
             version: number;
             worldRuleRef?: string;
         };
-        /**
-         * @description Lifecycle state: INCUBATING, READY, ACTIVE, SUSPENDED, FAILED
-         * @enum {string}
-         */
+        /** @enum {string} */
         AgentState: "INCUBATING" | "READY" | "ACTIVE" | "SUSPENDED" | "FAILED";
         AgentStatsDto: {
             engagementCount?: number;
@@ -3767,7 +3830,95 @@ export type components = {
             refreshToken?: string | null;
             /** @example Bearer */
             tokenType: string;
-            user?: components["schemas"]["UserPrivateDto"];
+            user?: components["schemas"]["AuthUserDto"];
+        };
+        AuthUserAgentMetadataDto: {
+            activeWorldId?: string;
+            category?: string;
+            importance?: components["schemas"]["AgentImportance"];
+            origin?: components["schemas"]["AgentOrigin"];
+            ownerWorldId?: string;
+            ownershipType?: components["schemas"]["AgentOwnershipType"];
+            state?: components["schemas"]["AgentState"];
+            tier?: components["schemas"]["VerificationTier"];
+            wakeStrategy?: string;
+            worldId?: string;
+        };
+        AuthUserAgentProfileDto: {
+            activeWorldId?: string;
+            importance?: components["schemas"]["AgentImportance"];
+            ownerWorldId?: string;
+            ownershipType?: components["schemas"]["AgentOwnershipType"];
+            state?: components["schemas"]["AgentState"];
+            stats?: components["schemas"]["AuthUserAgentStatsDto"];
+            worldId?: string;
+        };
+        AuthUserAgentStatsDto: {
+            engagementCount: number;
+            influenceTier: number;
+            interactionTier: number;
+            /** Format: date-time */
+            lastActiveAt?: string;
+            vitalityScore: number;
+        };
+        AuthUserDto: {
+            agent?: components["schemas"]["AuthUserAgentMetadataDto"];
+            agentProfile?: components["schemas"]["AuthUserAgentProfileDto"];
+            avatarUrl?: string | null;
+            bio?: string | null;
+            birthYear?: number | null;
+            city?: string | null;
+            countryCode?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            displayName: string;
+            email?: string;
+            gender?: components["schemas"]["Gender"] | null;
+            handle: string;
+            hasPassword: boolean;
+            id: string;
+            isAgent: boolean;
+            isTwoFactorEnabled: boolean;
+            languages: string[];
+            /** Format: date-time */
+            lastHandleChangeAt?: string;
+            oauthProviders: string[];
+            presenceEmoji?: string | null;
+            presenceStatus?: string | null;
+            presenceText?: string | null;
+            role: components["schemas"]["AccountRole"];
+            socialProfiles: components["schemas"]["AuthUserSocialProfileDto"][];
+            status: components["schemas"]["AccountStatus"];
+            tags: string[];
+            tiers: components["schemas"]["AuthUserTierSummaryDto"];
+            /** Format: date-time */
+            updatedAt: string;
+            wallets: components["schemas"]["AuthUserWalletDto"][];
+        };
+        AuthUserSocialProfileDto: {
+            followers?: number;
+            handle: string;
+            isVerified?: boolean;
+            platform: string;
+            url?: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+        };
+        AuthUserTierSummaryDto: {
+            assetTier: number;
+            influenceTier: number;
+            interactionTier: number;
+            vitalityScore: number;
+        };
+        AuthUserWalletDto: {
+            address: string;
+            boundOnChains: string[];
+            chainNamespace?: string;
+            /** Format: date-time */
+            createdAt: string;
+            id: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         BatchCreateAgentCreatedDto: {
             displayName?: string | null;
@@ -4008,8 +4159,6 @@ export type components = {
         CheckEmailResponseDto: {
             /** @description Whether the email is available (not registered) */
             available: boolean;
-            /** @description Whether the registered email already has a password configured */
-            hasPassword?: boolean;
         };
         ClassDefinitionDto: {
             abilities?: string[];
@@ -4080,7 +4229,7 @@ export type components = {
             };
             id: string;
             state: components["schemas"]["AgentState"];
-            user: components["schemas"]["UserLiteDto"];
+            user: components["schemas"]["AgentResponseUserDto"];
         };
         CreateAgentRuleDto: {
             /** @enum {string} */
@@ -4256,7 +4405,7 @@ export type components = {
              * @example POST
              * @enum {string}
              */
-            targetType: "USER" | "POST" | "AGENT" | "COMMENT";
+            targetType: "USER" | "POST" | "AGENT";
         };
         CreateReviewDto: {
             comment?: string;
@@ -4374,6 +4523,16 @@ export type components = {
             /** @description Current world status */
             worldStatus?: string;
         };
+        CreatorEligibilityResponseDto: {
+            canCreateAgent: boolean;
+            canCreateWorld: boolean;
+            isEligible: boolean;
+            message: string;
+            /** @enum {string} */
+            status: "ACTIVE" | "CANCELED" | "PAST_DUE" | "PAUSED";
+            /** @enum {string} */
+            tier: "FREE" | "PRO" | "MAX";
+        };
         CreatorModControlAuditIngestRequestDto: {
             modId?: string;
             records: components["schemas"]["CreatorModControlAuditRecordDto"][];
@@ -4473,6 +4632,9 @@ export type components = {
             deletedAt: string;
             memoryId: string;
             userId: string;
+        };
+        DeleteRelationshipResponseDto: {
+            deleted: boolean;
         };
         DesktopChatRouteRequestDto: {
             /** @description Required for AGENT */
@@ -4723,6 +4885,12 @@ export type components = {
             importance?: string;
             term: string;
         };
+        HandleAvailabilityDto: {
+            /** @description Whether the handle is available */
+            available: boolean;
+            /** @description Message if not available */
+            message?: string;
+        };
         ImportPolicyDto: {
             allowedHostTypes: "WORLD"[];
         };
@@ -4866,22 +5034,57 @@ export type components = {
             /** @default true */
             mentions: boolean;
         };
+        NotificationActorAgentMetadataDto: {
+            activeWorldId?: string | null;
+            category?: string | null;
+            importance?: components["schemas"]["AgentImportance"] | null;
+            origin?: components["schemas"]["AgentOrigin"];
+            ownerWorldId?: string | null;
+            ownershipType?: components["schemas"]["AgentOwnershipType"];
+            state?: components["schemas"]["AgentState"];
+            tier?: components["schemas"]["VerificationTier"] | null;
+            wakeStrategy?: string | null;
+            worldId?: string | null;
+        };
+        NotificationActorAgentProfileDto: {
+            activeWorldId?: string | null;
+            importance?: components["schemas"]["AgentImportance"] | null;
+            ownerWorldId?: string | null;
+            ownershipType?: components["schemas"]["AgentOwnershipType"];
+            state?: components["schemas"]["AgentState"];
+            stats?: components["schemas"]["NotificationActorAgentStatsDto"];
+            worldId?: string | null;
+        };
+        NotificationActorAgentStatsDto: {
+            engagementCount: number;
+            influenceTier: number;
+            interactionTier: number;
+            /** Format: date-time */
+            lastActiveAt?: string | null;
+            vitalityScore: number;
+        };
         NotificationActorDto: {
-            agent?: components["schemas"]["AgentMetadataDto"];
-            agentProfile?: components["schemas"]["AgentProfileDto"];
+            agent?: components["schemas"]["NotificationActorAgentMetadataDto"];
+            agentProfile?: components["schemas"]["NotificationActorAgentProfileDto"];
             avatarUrl?: string | null;
             bio?: string | null;
+            /** Format: date-time */
             createdAt: string;
             displayName: string;
             handle: string;
             id: string;
             isAgent?: boolean;
-            isOnline?: boolean;
             presenceEmoji?: string | null;
             presenceStatus?: string | null;
             presenceText?: string | null;
             status?: components["schemas"]["AccountStatus"];
-            tiers?: components["schemas"]["UserTierSummaryDto"];
+            tiers?: components["schemas"]["NotificationActorTierSummaryDto"];
+        };
+        NotificationActorTierSummaryDto: {
+            assetTier: number;
+            influenceTier: number;
+            interactionTier: number;
+            vitalityScore: number;
         };
         NotificationChannelsDto: {
             /** @default true */
@@ -5157,7 +5360,7 @@ export type components = {
             nextCursor: string | null;
         };
         RefreshTokenDto: {
-            refreshToken?: string;
+            refreshToken?: string | null;
         };
         RejectGiftDto: {
             reason?: string;
@@ -5689,15 +5892,13 @@ export type components = {
         };
         UpdateBundleDto: {
             compatibleApps?: string[];
-            coverAssetId: string;
-            description: string;
+            coverAssetId?: string;
+            description?: string;
             importPolicy?: components["schemas"]["ImportPolicyDto"] | null;
-            memberAssetIds: string[];
-            /** @enum {string} */
-            status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            memberAssetIds?: string[];
             tags?: string[];
-            title: string;
-            version: string;
+            title?: string;
+            version?: string;
         };
         UpdateCreatorAgentDto: {
             avatarUrl?: string;
@@ -6054,10 +6255,7 @@ export type components = {
             /** @description Rules to validate (worldview scope) */
             rules: components["schemas"]["WorldRuleItemDto"][];
         };
-        /**
-         * @description Verification tier: OFFICIAL, PARTNER, COMMUNITY
-         * @enum {string}
-         */
+        /** @enum {string} */
         VerificationTier: "COMMUNITY" | "VERIFIED" | "OFFICIAL";
         VerifyInvitationCodeDto: {
             invitationCode: string;
@@ -6876,11 +7074,13 @@ export interface operations {
             };
         };
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeleteAgentOperationResponseDto"];
+                };
             };
         };
     };
@@ -6904,7 +7104,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeleteAgentOperationResponseDto"];
+                };
             };
         };
     };
@@ -7078,7 +7280,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AgentRelationshipRecordDto"][];
+                };
             };
         };
     };
@@ -7103,7 +7307,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RelationshipResponseDto"];
+                };
             };
         };
     };
@@ -7128,7 +7334,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeleteRelationshipResponseDto"];
+                };
             };
         };
     };
@@ -7232,7 +7440,9 @@ export interface operations {
     };
     AgentController_checkHandle: {
         parameters: {
-            query?: never;
+            query: {
+                handle: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7243,7 +7453,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AgentHandleAvailabilityResponseDto"];
+                };
             };
         };
     };
@@ -7538,7 +7750,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7561,7 +7773,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7584,7 +7796,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7632,7 +7844,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshTokenDto"];
             };
@@ -7769,6 +7981,7 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Email bound successfully */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -7790,6 +8003,7 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Email changed successfully */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -7811,6 +8025,7 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Password updated successfully */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -7854,7 +8069,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7875,6 +8090,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description OAuth unlinked */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -7896,7 +8112,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7919,7 +8135,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7936,13 +8152,13 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
                 "application/json": components["schemas"]["RefreshTokenDto"];
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7965,7 +8181,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7988,7 +8204,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9252,6 +9468,7 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Friend request processed */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -9271,6 +9488,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Friend removed or request resolved */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -9362,7 +9580,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9385,7 +9603,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9406,7 +9624,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9432,7 +9650,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9457,7 +9675,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9483,7 +9701,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9505,6 +9723,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Message recalled */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -9524,6 +9743,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Chat marked read */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -9546,7 +9766,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9571,7 +9791,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["HandleAvailabilityDto"];
+                };
             };
         };
     };
@@ -9704,6 +9926,7 @@ export interface operations {
             };
         };
         responses: {
+            /** @description User blocked */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -9724,6 +9947,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description User unblocked */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -9767,26 +9991,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @description Can create agents as creator */
-                        canCreateAgent?: boolean;
-                        /** @description Can create worlds */
-                        canCreateWorld?: boolean;
-                        /** @description Whether user can access creator features */
-                        isEligible?: boolean;
-                        /** @description Human-readable eligibility message */
-                        message?: string;
-                        /**
-                         * @description Subscription status
-                         * @enum {string}
-                         */
-                        status?: "ACTIVE" | "CANCELED" | "PAST_DUE" | "PAUSED";
-                        /**
-                         * @description Current subscription tier
-                         * @enum {string}
-                         */
-                        tier?: "FREE" | "PRO" | "MAX";
-                    };
+                    "application/json": components["schemas"]["CreatorEligibilityResponseDto"];
                 };
             };
         };
@@ -9887,11 +10092,14 @@ export interface operations {
             };
         };
         responses: {
+            /** @description The updated user profile with the new handle */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserPrivateDto"];
+                };
             };
         };
     };
@@ -10143,6 +10351,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Wallet unbound */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -10165,7 +10374,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10307,7 +10516,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": string[];
+                };
             };
         };
     };
@@ -10371,7 +10582,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DeleteRelationshipResponseDto"];
+                };
             };
         };
     };
@@ -10825,7 +11038,7 @@ export interface operations {
             };
         };
         responses: {
-            default: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11180,11 +11393,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TransitDetailDto"];
+                };
             };
         };
     };
@@ -11705,6 +11920,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Post deleted */
             204: {
                 headers: {
                     [name: string]: unknown;

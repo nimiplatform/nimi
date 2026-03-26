@@ -15,6 +15,7 @@ export type RealmGeneratedModelMap = {
   AgentCommunicationDto: components['schemas']['AgentCommunicationDto'];
   AgentDisplayDto: components['schemas']['AgentDisplayDto'];
   AgentDnaDto: components['schemas']['AgentDnaDto'];
+  AgentHandleAvailabilityResponseDto: components['schemas']['AgentHandleAvailabilityResponseDto'];
   AgentIdentityDto: components['schemas']['AgentIdentityDto'];
   AgentImportance: components['schemas']['AgentImportance'];
   AgentMemoryCommitEnvelopeDto: components['schemas']['AgentMemoryCommitEnvelopeDto'];
@@ -25,7 +26,14 @@ export type RealmGeneratedModelMap = {
   AgentOwnershipType: components['schemas']['AgentOwnershipType'];
   AgentPersonalityDto: components['schemas']['AgentPersonalityDto'];
   AgentProfileDto: components['schemas']['AgentProfileDto'];
+  AgentRelationshipOtherAccountDto: components['schemas']['AgentRelationshipOtherAccountDto'];
+  AgentRelationshipRecordDto: components['schemas']['AgentRelationshipRecordDto'];
   AgentRelationType: components['schemas']['AgentRelationType'];
+  AgentResponseMetadataDto: components['schemas']['AgentResponseMetadataDto'];
+  AgentResponseProfileDto: components['schemas']['AgentResponseProfileDto'];
+  AgentResponseProfileStatsDto: components['schemas']['AgentResponseProfileStatsDto'];
+  AgentResponseTierSummaryDto: components['schemas']['AgentResponseTierSummaryDto'];
+  AgentResponseUserDto: components['schemas']['AgentResponseUserDto'];
   AgentRuleDto: components['schemas']['AgentRuleDto'];
   AgentState: components['schemas']['AgentState'];
   AgentStatsDto: components['schemas']['AgentStatsDto'];
@@ -42,6 +50,13 @@ export type RealmGeneratedModelMap = {
   AttachmentTargetType: components['schemas']['AttachmentTargetType'];
   AuthTwoFactorVerifyInput: components['schemas']['Auth2faVerifyDto'];
   AuthTokensDto: components['schemas']['AuthTokensDto'];
+  AuthUserAgentMetadataDto: components['schemas']['AuthUserAgentMetadataDto'];
+  AuthUserAgentProfileDto: components['schemas']['AuthUserAgentProfileDto'];
+  AuthUserAgentStatsDto: components['schemas']['AuthUserAgentStatsDto'];
+  AuthUserDto: components['schemas']['AuthUserDto'];
+  AuthUserSocialProfileDto: components['schemas']['AuthUserSocialProfileDto'];
+  AuthUserTierSummaryDto: components['schemas']['AuthUserTierSummaryDto'];
+  AuthUserWalletDto: components['schemas']['AuthUserWalletDto'];
   BatchCreateAgentCreatedDto: components['schemas']['BatchCreateAgentCreatedDto'];
   BatchCreateAgentFailedDto: components['schemas']['BatchCreateAgentFailedDto'];
   BatchCreateAgentsRequestDto: components['schemas']['BatchCreateAgentsRequestDto'];
@@ -105,6 +120,7 @@ export type RealmGeneratedModelMap = {
   CreateWorldTransitDto: components['schemas']['CreateWorldTransitDto'];
   CreatorAgentResponseDto: components['schemas']['CreatorAgentResponseDto'];
   CreatorCapabilitiesResponseDto: components['schemas']['CreatorCapabilitiesResponseDto'];
+  CreatorEligibilityResponseDto: components['schemas']['CreatorEligibilityResponseDto'];
   CreatorModControlAuditIngestRequestDto: components['schemas']['CreatorModControlAuditIngestRequestDto'];
   CreatorModControlAuditRecordDto: components['schemas']['CreatorModControlAuditRecordDto'];
   CreatorModControlGrantIssueRequestDto: components['schemas']['CreatorModControlGrantIssueRequestDto'];
@@ -119,6 +135,7 @@ export type RealmGeneratedModelMap = {
   DeleteAgentOperationResponseDto: components['schemas']['DeleteAgentOperationResponseDto'];
   DeleteAllDyadicMemoriesResponseDto: components['schemas']['DeleteAllDyadicMemoriesResponseDto'];
   DeleteDyadicMemoryResponseDto: components['schemas']['DeleteDyadicMemoryResponseDto'];
+  DeleteRelationshipResponseDto: components['schemas']['DeleteRelationshipResponseDto'];
   DesktopChatRouteRequestDto: components['schemas']['DesktopChatRouteRequestDto'];
   DesktopChatRouteResultDto: components['schemas']['DesktopChatRouteResultDto'];
   DnaPrimaryType: components['schemas']['DnaPrimaryType'];
@@ -141,6 +158,7 @@ export type RealmGeneratedModelMap = {
   GiftTransactionDto: components['schemas']['GiftTransactionDto'];
   GiftTransactionRichDto: components['schemas']['GiftTransactionRichDto'];
   GlossaryTermDto: components['schemas']['GlossaryTermDto'];
+  HandleAvailabilityDto: components['schemas']['HandleAvailabilityDto'];
   ImportPolicyDto: components['schemas']['ImportPolicyDto'];
   InvitationCodeResponseDto: components['schemas']['InvitationCodeResponseDto'];
   InvitationCodeUsedByAccountDto: components['schemas']['InvitationCodeUsedByAccountDto'];
@@ -161,7 +179,11 @@ export type RealmGeneratedModelMap = {
   MutationCommitEnvelopeDto: components['schemas']['MutationCommitEnvelopeDto'];
   MutationEvidenceRefDto: components['schemas']['MutationEvidenceRefDto'];
   NotificationActivityDto: components['schemas']['NotificationActivityDto'];
+  NotificationActorAgentMetadataDto: components['schemas']['NotificationActorAgentMetadataDto'];
+  NotificationActorAgentProfileDto: components['schemas']['NotificationActorAgentProfileDto'];
+  NotificationActorAgentStatsDto: components['schemas']['NotificationActorAgentStatsDto'];
   NotificationActorDto: components['schemas']['NotificationActorDto'];
+  NotificationActorTierSummaryDto: components['schemas']['NotificationActorTierSummaryDto'];
   NotificationChannelsDto: components['schemas']['NotificationChannelsDto'];
   NotificationDto: components['schemas']['NotificationDto'];
   NotificationGiftsDto: components['schemas']['NotificationGiftsDto'];

@@ -455,7 +455,6 @@ export const CreateReportTargetType = {
   USER: "USER",
   POST: "POST",
   AGENT: "AGENT",
-  COMMENT: "COMMENT",
 } as const satisfies Record<string, components['schemas']['CreateReportDto']['targetType']>;
 
 export type CreateReportTargetType = (typeof CreateReportTargetType)[keyof typeof CreateReportTargetType];
@@ -565,6 +564,23 @@ export const CreatorCapabilitiesForbiddenActionsItem = {
 } as const satisfies Record<string, (NonNullable<components['schemas']['CreatorCapabilitiesResponseDto']['forbiddenActions']> extends ReadonlyArray<infer Item> ? Item : never)>;
 
 export type CreatorCapabilitiesForbiddenActionsItem = (typeof CreatorCapabilitiesForbiddenActionsItem)[keyof typeof CreatorCapabilitiesForbiddenActionsItem];
+
+export const CreatorEligibilityStatus = {
+  ACTIVE: "ACTIVE",
+  CANCELED: "CANCELED",
+  PAST_DUE: "PAST_DUE",
+  PAUSED: "PAUSED",
+} as const satisfies Record<string, components['schemas']['CreatorEligibilityResponseDto']['status']>;
+
+export type CreatorEligibilityStatus = (typeof CreatorEligibilityStatus)[keyof typeof CreatorEligibilityStatus];
+
+export const CreatorEligibilityTier = {
+  FREE: "FREE",
+  PRO: "PRO",
+  MAX: "MAX",
+} as const satisfies Record<string, components['schemas']['CreatorEligibilityResponseDto']['tier']>;
+
+export type CreatorEligibilityTier = (typeof CreatorEligibilityTier)[keyof typeof CreatorEligibilityTier];
 
 export const CreatorModControlAuditRecordDecision = {
   ALLOW: "ALLOW",
@@ -978,14 +994,6 @@ export const UpdateAssetTransferPolicy = {
 } as const satisfies Record<string, components['schemas']['UpdateAssetDto']['transferPolicy']>;
 
 export type UpdateAssetTransferPolicy = (typeof UpdateAssetTransferPolicy)[keyof typeof UpdateAssetTransferPolicy];
-
-export const UpdateBundleStatus = {
-  DRAFT: "DRAFT",
-  PUBLISHED: "PUBLISHED",
-  ARCHIVED: "ARCHIVED",
-} as const satisfies Record<string, components['schemas']['UpdateBundleDto']['status']>;
-
-export type UpdateBundleStatus = (typeof UpdateBundleStatus)[keyof typeof UpdateBundleStatus];
 
 export const UpdateResourceControllerKind = {
   ACCOUNT: "ACCOUNT",

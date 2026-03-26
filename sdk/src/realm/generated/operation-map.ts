@@ -251,14 +251,23 @@ export const REALM_OPERATION_MAP = {
     "service": "AgentsService",
     "methodName": "agentControllerCheckHandle",
     "tag": "Agents",
-    "parameters": [],
+    "parameters": [
+      {
+        "name": "handle",
+        "in": "query",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerCommitMemory": {
     "operationId": "AgentController_commitMemory",
@@ -418,8 +427,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerGetVisibility": {
     "operationId": "AgentController_getVisibility",
@@ -560,8 +571,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerSelectAvatar": {
     "operationId": "AgentController_selectAvatar",
@@ -582,10 +595,12 @@ export const REALM_OPERATION_MAP = {
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
     "successStatusCodes": [
-      "201"
+      "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerSetRelationship": {
     "operationId": "AgentController_setRelationship",
@@ -608,8 +623,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "201"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerUpdateDna": {
     "operationId": "AgentController_updateDna",
@@ -632,8 +649,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AgentsService.agentControllerUpdateVisibility": {
     "operationId": "AgentController_updateVisibility",
@@ -870,9 +889,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.linkOauth": {
     "operationId": "linkOauth",
@@ -900,7 +923,7 @@ export const REALM_OPERATION_MAP = {
     "tag": "Auth",
     "parameters": [],
     "hasBody": true,
-    "bodyRequired": true,
+    "bodyRequired": false,
     "requestBodyContentType": "application/json",
     "successStatusCodes": [
       "200"
@@ -919,9 +942,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.passwordLogin": {
     "operationId": "passwordLogin",
@@ -934,9 +961,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.passwordRegister": {
     "operationId": "passwordRegister",
@@ -949,9 +980,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.refreshToken": {
     "operationId": "refreshToken",
@@ -962,11 +997,15 @@ export const REALM_OPERATION_MAP = {
     "tag": "Auth",
     "parameters": [],
     "hasBody": true,
-    "bodyRequired": true,
+    "bodyRequired": false,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.requestEmailOtp": {
     "operationId": "requestEmailOtp",
@@ -979,9 +1018,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.unlinkOauth": {
     "operationId": "unlinkOauth",
@@ -1034,9 +1077,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.verifyTwoFactor": {
     "operationId": "verifyTwoFactor",
@@ -1068,9 +1115,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "AuthService.walletLogin": {
     "operationId": "walletLogin",
@@ -1083,9 +1134,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "BundlesService.archiveBundle": {
     "operationId": "archiveBundle",
@@ -2279,9 +2334,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanChatsService.getChatById": {
     "operationId": "getChatById",
@@ -2300,9 +2359,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanChatsService.listChats": {
     "operationId": "listChats",
@@ -2327,9 +2390,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanChatsService.listMessages": {
     "operationId": "listMessages",
@@ -2372,9 +2439,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanChatsService.markChatRead": {
     "operationId": "markChatRead",
@@ -2446,9 +2517,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanChatsService.startChat": {
     "operationId": "startChat",
@@ -2461,9 +2536,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "201"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanChatsService.syncChatEvents": {
     "operationId": "syncChatEvents",
@@ -2494,9 +2573,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "HumanNsfwConsentService.humanNsfwConsentControllerCanManageAgentNsfw": {
     "operationId": "HumanNsfwConsentController_canManageAgentNsfw",
@@ -3055,8 +3138,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "MeService.updateMyNotificationSettings": {
     "operationId": "updateMyNotificationSettings",
@@ -3224,9 +3309,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasBody": false,
     "bodyRequired": false,
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "NotificationsService.markNotificationRead": {
     "operationId": "markNotificationRead",
@@ -3268,13 +3357,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "PostService.createPost": {
+  "PostsService.createPost": {
     "operationId": "createPost",
     "method": "POST",
     "path": "/api/world/posts",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "createPost",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [],
     "hasBody": true,
     "bodyRequired": true,
@@ -3287,13 +3376,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "PostService.deletePost": {
+  "PostsService.deletePost": {
     "operationId": "deletePost",
     "method": "DELETE",
     "path": "/api/world/posts/by-id/{id}",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "deletePost",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "id",
@@ -3310,13 +3399,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "PostService.getHomeFeed": {
+  "PostsService.getHomeFeed": {
     "operationId": "getHomeFeed",
     "method": "GET",
     "path": "/api/world/posts",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "getHomeFeed",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "visibility",
@@ -3359,13 +3448,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "PostService.getPost": {
+  "PostsService.getPost": {
     "operationId": "getPost",
     "method": "GET",
     "path": "/api/world/posts/by-id/{id}",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "getPost",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "id",
@@ -3390,13 +3479,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "PostService.getPublicPost": {
+  "PostsService.getPublicPost": {
     "operationId": "getPublicPost",
     "method": "GET",
     "path": "/api/world/posts/public/{id}",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "getPublicPost",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "id",
@@ -3415,13 +3504,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "PostService.likePost": {
+  "PostsService.likePost": {
     "operationId": "likePost",
     "method": "POST",
     "path": "/api/world/posts/by-id/{postId}/like",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "likePost",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "postId",
@@ -3438,13 +3527,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "PostService.listLikedPosts": {
+  "PostsService.listLikedPosts": {
     "operationId": "listLikedPosts",
     "method": "GET",
     "path": "/api/world/posts/liked",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "listLikedPosts",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "worldId",
@@ -3481,13 +3570,13 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "PostService.unlikePost": {
+  "PostsService.unlikePost": {
     "operationId": "unlikePost",
     "method": "DELETE",
     "path": "/api/world/posts/by-id/{postId}/like",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "unlikePost",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "postId",
@@ -3504,13 +3593,13 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "PostService.updatePost": {
+  "PostsService.updatePost": {
     "operationId": "updatePost",
     "method": "PATCH",
     "path": "/api/world/posts/by-id/{id}",
-    "service": "PostService",
+    "service": "PostsService",
     "methodName": "updatePost",
-    "tag": "Post",
+    "tag": "Posts",
     "parameters": [
       {
         "name": "id",
@@ -3569,8 +3658,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "RelationshipsMetaGraphService.relationshipControllerGetMyRelationships": {
     "operationId": "RelationshipController_getMyRelationships",
@@ -4372,9 +4463,13 @@ export const REALM_OPERATION_MAP = {
     "hasBody": true,
     "bodyRequired": true,
     "requestBodyContentType": "application/json",
-    "successStatusCodes": [],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "UserService.addFriend": {
     "operationId": "addFriend",
@@ -4420,8 +4515,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "UserService.getMutualFriends": {
     "operationId": "getMutualFriends",
@@ -4573,8 +4670,10 @@ export const REALM_OPERATION_MAP = {
     "successStatusCodes": [
       "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "UserService.removeFriend": {
     "operationId": "removeFriend",
@@ -5674,10 +5773,12 @@ export const REALM_OPERATION_MAP = {
     "hasBody": false,
     "bodyRequired": false,
     "successStatusCodes": [
-      "201"
+      "200"
     ],
-    "successContentTypes": [],
-    "hasSuccessBody": false
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
   },
   "WorldsService.worldControllerTransitToWorld": {
     "operationId": "WorldController_transitToWorld",
@@ -5895,16 +5996,16 @@ export const REALM_SERVICE_METHODS = {
     "markNotificationRead": "NotificationsService.markNotificationRead",
     "markNotificationsRead": "NotificationsService.markNotificationsRead"
   },
-  "PostService": {
-    "createPost": "PostService.createPost",
-    "deletePost": "PostService.deletePost",
-    "getHomeFeed": "PostService.getHomeFeed",
-    "getPost": "PostService.getPost",
-    "getPublicPost": "PostService.getPublicPost",
-    "likePost": "PostService.likePost",
-    "listLikedPosts": "PostService.listLikedPosts",
-    "unlikePost": "PostService.unlikePost",
-    "updatePost": "PostService.updatePost"
+  "PostsService": {
+    "createPost": "PostsService.createPost",
+    "deletePost": "PostsService.deletePost",
+    "getHomeFeed": "PostsService.getHomeFeed",
+    "getPost": "PostsService.getPost",
+    "getPublicPost": "PostsService.getPublicPost",
+    "likePost": "PostsService.likePost",
+    "listLikedPosts": "PostsService.listLikedPosts",
+    "unlikePost": "PostsService.unlikePost",
+    "updatePost": "PostsService.updatePost"
   },
   "RelationshipsMetaGraphService": {
     "relationshipControllerCreateRelationship": "RelationshipsMetaGraphService.relationshipControllerCreateRelationship",

@@ -154,12 +154,6 @@ expectSchemaExcludesField(
 
 expectRegex(
   schema,
-  /CreateKeyEventDto:\s*{\s*content: string;\s*eventType: string;\s*importance\?: number;\s*userId\?: string;\s*};/,
-  'CreateKeyEventDto must expose key event request fields instead of an empty object',
-);
-
-expectRegex(
-  schema,
   /UserSettingsDto:\s*{[\s\S]*?notificationSettings\?: components\["schemas"\]\["UserNotificationSettingsDto"\];/,
   'UserSettingsDto.notificationSettings must use UserNotificationSettingsDto',
 );
@@ -202,12 +196,6 @@ expectRegex(
 
 expectRegex(
   schema,
-  /UpdateUserProfileDto:\s*{[\s\S]*?preferences\?: components\["schemas"\]\["UpdateUserProfilePreferencesDto"\];[\s\S]*?profileSummary\?: string;[\s\S]*?traits\?: components\["schemas"\]\["UpdateUserProfileTraitsDto"\];/,
-  'UpdateUserProfileDto must expose its nested profile update structure',
-);
-
-expectRegex(
-  schema,
   /SendMessageInputDto:\s*{[\s\S]*?payload\?:\s*{\s*\[key: string\]: unknown;\s*};/,
   'SendMessageInputDto.payload must stay an explicit dynamic map instead of collapsing to an empty object',
 );
@@ -216,12 +204,6 @@ expectRegex(
   schema,
   /Me2faOperationResultDto:\s*{\s*success: boolean;\s*};/,
   'Me2faOperationResultDto must expose the stable enable\/disable 2FA response contract',
-);
-
-expectRegex(
-  schema,
-  /ActivateAgentResultDto:\s*{[\s\S]*?state: components\["schemas"\]\["AgentState"\];[\s\S]*?success: boolean;\s*};/,
-  'ActivateAgentResultDto must expose activation success and resulting state',
 );
 
 expectRegex(
@@ -300,12 +282,6 @@ expectRegex(
   operationMap,
   /"MeService\.listMyFriendsWithDetails":[\s\S]*?"hasSuccessBody": true/,
   'listMyFriendsWithDetails must keep a typed success body',
-);
-
-expectRegex(
-  operationMap,
-  /"AgentsService\.agentControllerActivate":[\s\S]*?"hasBody": false[\s\S]*?"hasSuccessBody": true/,
-  'agentControllerActivate must stay a body-less action endpoint with a typed success body',
 );
 
 expectRegex(

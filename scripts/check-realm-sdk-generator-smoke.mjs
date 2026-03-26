@@ -59,8 +59,8 @@ function assertGeneratedArtifacts() {
 
   const operationMapSource = readFileSync(path.join(generatedDir, 'operation-map.ts'), 'utf8');
   assert(
-    operationMapSource.includes('"HumanChatService.listMessages"'),
-    'operation-map missing HumanChatService.listMessages key',
+    operationMapSource.includes('"HumanChatsService.listMessages"'),
+    'operation-map missing HumanChatsService.listMessages key',
   );
   assert(
     operationMapSource.includes('"successStatusCodes"'),

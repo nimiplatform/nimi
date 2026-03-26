@@ -104,7 +104,7 @@ type PlatformDomains = {
     createAudioDirectUpload: RealmServices['ResourcesService']['createAudioDirectUpload'];
     finalizeResource: RealmServices['ResourcesService']['finalizeResource'];
     getResource: RealmServices['ResourcesService']['getResource'];
-    createPost: RealmServices['PostService']['createPost'];
+    createPost: RealmServices['PostsService']['createPost'];
   };
   runtimeAdmin: {
     listProviderCatalog: RuntimeConnectorModule['listProviderCatalog'];
@@ -133,7 +133,7 @@ type PlatformDomains = {
     providerHealthEvents: Runtime['providerHealthEvents'];
   };
   publicContent: {
-    getPublicPost: RealmServices['PostService']['getPublicPost'];
+    getPublicPost: RealmServices['PostsService']['getPublicPost'];
   };
 };
 
@@ -339,7 +339,7 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       finalizeResource: (resourceId, input = {}) =>
         realm.services.ResourcesService.finalizeResource(resourceId, input),
       getResource: (resourceId) => realm.services.ResourcesService.getResource(resourceId),
-      createPost: (input) => realm.services.PostService.createPost(input),
+      createPost: (input) => realm.services.PostsService.createPost(input),
     },
     runtimeAdmin: {
       listProviderCatalog: (input = {}, options) => runtime.connector.listProviderCatalog(input, options),
@@ -365,7 +365,7 @@ function createDomains(runtime: Runtime, realm: Realm): PlatformDomains {
       providerHealthEvents: (input = {}, options) => runtime.providerHealthEvents(input, options),
     },
     publicContent: {
-      getPublicPost: (postId) => realm.services.PostService.getPublicPost(postId),
+      getPublicPost: (postId) => realm.services.PostsService.getPublicPost(postId),
     },
   };
 }
