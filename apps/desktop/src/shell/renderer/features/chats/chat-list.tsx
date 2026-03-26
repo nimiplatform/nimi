@@ -4,9 +4,10 @@ import { resolveRealmMessageText } from '@nimiplatform/nimi-kit/features/chat/re
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import { ScrollArea, SidebarAffordanceBadge, SidebarHeader, SidebarItem, SidebarSearch, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
+import { SidebarAffordanceBadge, SidebarHeader, SidebarItem, SidebarSearch, SidebarShell } from '@renderer/components/sidebar.js';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { resolveCanonicalChatAttachmentPreviewText } from '@renderer/features/turns/chat-attachment-contract.js';

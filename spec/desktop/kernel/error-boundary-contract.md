@@ -36,19 +36,6 @@ Speech 引擎依赖检查错误：
 - `LOCAL_LIFECYCLE_WRITE_DENIED`：source type 无权执行生命周期写操作。
 - `RUNTIME_ROUTE_CAPABILITY_MISMATCH`：路由绑定的模型能力不匹配。
 
-## D-ERR-012 — HuggingFace 下载错误动作提示
-
-下载会话控制与容错错误必须映射为明确动作提示：
-
-| ReasonCode | 用户提示 | 后续动作 |
-|---|---|---|
-| `LOCAL_AI_HF_DOWNLOAD_DISK_FULL` | "磁盘空间不足，请释放空间后继续下载" | 保留 partial，用户清理空间后 `resume` |
-| `LOCAL_AI_HF_DOWNLOAD_INTERRUPTED` | "下载已中断，重启后请手动恢复任务" | 会话保留 `paused`，用户手动 `resume` |
-| `LOCAL_AI_HF_DOWNLOAD_PAUSED` | "下载已暂停，可稍后继续" | 保留 partial，用户手动 `resume` |
-| `LOCAL_AI_HF_DOWNLOAD_CANCELLED` | "下载已取消" | 清理 staging，需重新安装 |
-| `LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH` | "模型文件校验失败，请重新下载" | 清理 staging，禁止 `resume`，需重新安装 |
-| `LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE` | "当前下载会话不可恢复，请重新安装模型" | 明确阻断 `resume`，引导重新安装 |
-
 ## D-ERR-005 — Bridge 错误归一化
 
 `toBridgeUserError(error)` 作为 `toBridgeNimiError(error)` 的别名，必须抛出结构化 `NimiError`，并遵循固定优先级：
@@ -202,6 +189,19 @@ Bridge invoke 失败日志必须输出结构化诊断字段：
 - `traceId`
 - `retryable`
 - `rawMessage`
+
+## D-ERR-012 — HuggingFace 下载错误动作提示
+
+下载会话控制与容错错误必须映射为明确动作提示：
+
+| ReasonCode | 用户提示 | 后续动作 |
+|---|---|---|
+| `LOCAL_AI_HF_DOWNLOAD_DISK_FULL` | "磁盘空间不足，请释放空间后继续下载" | 保留 partial，用户清理空间后 `resume` |
+| `LOCAL_AI_HF_DOWNLOAD_INTERRUPTED` | "下载已中断，重启后请手动恢复任务" | 会话保留 `paused`，用户手动 `resume` |
+| `LOCAL_AI_HF_DOWNLOAD_PAUSED` | "下载已暂停，可稍后继续" | 保留 partial，用户手动 `resume` |
+| `LOCAL_AI_HF_DOWNLOAD_CANCELLED` | "下载已取消" | 清理 staging，需重新安装 |
+| `LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH` | "模型文件校验失败，请重新下载" | 清理 staging，禁止 `resume`，需重新安装 |
+| `LOCAL_AI_HF_DOWNLOAD_NOT_RESUMABLE` | "当前下载会话不可恢复，请重新安装模型" | 明确阻断 `resume`，引导重新安装 |
 
 ## Fact Sources
 

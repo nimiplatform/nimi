@@ -48,36 +48,17 @@ Web 模式 token 存储使用 localStorage 而非 Tauri backend。
 
 ### IPC (D-IPC-009)
 
-Web 模式下 `hasTauriInvoke()` 返回 `false`，所有 IPC 命令不可用。
-
-desktop-only self-update invoke + event surface 的额外约束：
-
-- application self-update / release metadata API 在 Web 必须 fail-close。
-- `getDesktopReleaseInfo`、`getDesktopUpdateState`、`desktopUpdateCheck`、`desktopUpdateInstall`、`desktopUpdateRestart`、`subscribeDesktopUpdateState` 不得返回 `null`、`idle`、或 no-op unsubscribe 等伪状态。
-- 调用这些 surface 时唯一允许的结果是明确的 unsupported error。
-- `subscribeDesktopUpdateState` 是 desktop-only Tauri event listener surface，不属于 `ipc-commands.yaml` 的 invoke command 清单。
+Web 模式下 `hasTauriInvoke()` 返回 `false`，所有 IPC 命令不可用。desktop-only self-update / release metadata surface 必须 fail-close 到明确 unsupported error，约束以 `D-IPC-009` 与 `self-update-contract.md` 为准。
 
 **Fetch 替代策略**：Web 模式仍复用 `createProxyFetch()` 作为统一 HTTP 适配器（`D-NET-004`），但 `desktopBridge.proxyHttp()` 在 `hasTauriInvoke() = false` 时会直接 fallback 到浏览器原生 `fetch()`。因此 Web 不经过 Tauri IPC，也不具备 Desktop 的 CORS 绕过能力；Realm 部署必须提供同源路由或正确的 CORS 头。
 
-### Web Bootstrap 序列 (D-BOOT-001~011 投影)
+### Web Bootstrap 序列 (D-BOOT-001~012 投影)
 
-Web 模式的 bootstrap 序列是 Desktop bootstrap 的子集，跳过所有 Runtime/IPC 依赖的步骤：
+Web bootstrap 是 Desktop bootstrap 的受限投影：
 
-| Desktop 阶段 | Web 行为 | 说明 |
-|---|---|---|
-| D-BOOT-001 Runtime Defaults | **替换** — `realmBaseUrl` 固定取浏览器 `origin`（same-origin API routing），`realtimeUrl`/JWT 字段/access token 走环境变量与默认值回退 | 无 daemon，不调用 `runtime_defaults` IPC |
-| D-BOOT-002 Platform Client 初始化 | **保留** — 使用构建时配置初始化 | 与 Desktop 等价 |
-| D-BOOT-003 DataSync 初始化 | **保留** — `fetchImpl` 仍由 `createProxyFetch()` 提供，但在 Web 路径退化为浏览器原生 `fetch()` | 不走 IPC；同源路由或 CORS 由 Realm 部署负责 |
-| D-BOOT-004 Runtime Host | **跳过** — `enableRuntimeBootstrap=false` | 无 Runtime |
-| D-BOOT-005 Mods 注册 | **跳过** | 无 mod 支持 |
-| D-BOOT-006 External Agent | **跳过** | 无 agent 桥 |
-| D-BOOT-007 Auth Session | **保留** — token 存储使用 localStorage（D-AUTH-003），持久化 token 优先于 fallback token | 自动登录失败/超时回落匿名态 |
-| D-BOOT-008 完成/错误 | **保留** | 与 Desktop 等价 |
-| D-BOOT-009 幂等性守卫 | **保留** | 与 Desktop 等价 |
-| D-BOOT-010 初始数据加载 | **保留** | 与 Desktop 等价 |
-| D-BOOT-012 Realm 可达性 | **保留** — 同 Desktop 隐式验证策略 | 与 Desktop 等价 |
-
-**Web 有效 bootstrap 路径**：`D-BOOT-001(替换)` → `D-BOOT-002` → `D-BOOT-003` → `D-BOOT-007` → `D-BOOT-008` → `D-BOOT-010`。
+- 保留：`D-BOOT-002`、`D-BOOT-003`、`D-BOOT-007`、`D-BOOT-008`、`D-BOOT-009`、`D-BOOT-010`、`D-BOOT-012`
+- 替换：`D-BOOT-001` 在 Web 以浏览器 origin 和构建时配置取代 `runtime_defaults`
+- 跳过：`D-BOOT-004`、`D-BOOT-005`、`D-BOOT-006`
 
 **Web 特有约束**：
 - 无 SSR 支持——bootstrap 仅在客户端执行。

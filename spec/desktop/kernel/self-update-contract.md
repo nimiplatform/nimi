@@ -32,8 +32,9 @@ Desktop 自更新与 bundled runtime 发布契约。该契约是 `D-BOOT-001`、
 - `desktop_release_info_get` 只有在 release metadata 初始化成功时才允许返回 `DesktopReleaseInfo`。
 - 初始化失败时，command 必须返回错误；renderer 单独持有 `desktopReleaseError`，不得由 bridge 合成默认版本信息。
 - web adapter 对 desktop self-update / release metadata surface 必须 fail-close。`unsupported` 是唯一允许的结果，不得返回 `null`、`idle`、no-op unsubscribe 等伪状态。
+
 ## Updater Availability Projection
 
-- `DesktopReleaseInfo` MUST expose `updaterAvailable` and MAY expose `updaterUnavailableReason`.
-- Bootstrap and Settings UI MUST use that projection to decide whether desktop self-update actions are available.
-- Silent bootstrap checks MUST no-op when `updaterAvailable` is false; manual update actions MUST surface `updaterUnavailableReason` instead of invoking updater commands that are known to fail.
+- `DesktopReleaseInfo` 必须暴露 `updaterAvailable`，并可选暴露 `updaterUnavailableReason`。
+- Bootstrap 与 Settings UI 必须使用该投影判定 desktop self-update actions 是否可用。
+- 当 `updaterAvailable=false` 时，静默检查必须 no-op；手动 update 操作必须直接展示 `updaterUnavailableReason`，而不是调用已知会失败的 updater command。

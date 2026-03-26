@@ -37,10 +37,7 @@ Desktop core chat surface 仅展示 human chat；Agent chat 不得出现在 Chat
 
 ### Hook (D-HOOK-004)
 
-UI 扩展槽位：
-- `chat.sidebar.header` — sidebar 顶部自定义区域。
-- `chat.chat.list.item.trailing` — 列表项尾部扩展。
-- `chat.turn.input.toolbar` — 输入框工具栏扩展。
+Chat 可用 UI 扩展槽位以 `spec/desktop/kernel/tables/ui-slots.yaml` 为准；本域只引用 `D-HOOK-004`，不再内联枚举 slot 名。
 
 ### Turn Hook (D-HOOK-003)
 

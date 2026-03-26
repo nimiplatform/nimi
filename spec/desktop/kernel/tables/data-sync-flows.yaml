@@ -2,6 +2,19 @@
 # Source: apps/desktop/src/runtime/data-sync/facade.ts (DataSync class methods)
 
 flows:
+  - flow: infrastructure
+    methods:
+      - initApi
+      - readDataSyncHotState
+      - writeDataSyncHotState
+      - callApi
+      - startPolling
+      - stopPolling
+      - stopAllPolling
+      - emitDataSyncError
+      - loadInitialData
+    description: DataSync API initialization, hot state, polling, error emission, and initial-load infrastructure
+    source_rule: D-DSYNC-000
   - flow: auth
     methods:
       - login

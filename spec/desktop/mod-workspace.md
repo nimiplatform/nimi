@@ -38,10 +38,7 @@ Mod 运行时状态：
 
 ### Hook (D-HOOK-004)
 
-Mod UI 通过以下槽位注入：
-- `ui-extension.app.sidebar.mods` — sidebar mod 导航项。
-- `ui-extension.app.content.routes` — 内容区 mod 路由。
-- `ui-extension.runtime.devtools.panel` — 调试面板。
+Mod UI 可注册的槽位集合以 `spec/desktop/kernel/tables/ui-slots.yaml` 为准；本域只引用 `D-HOOK-004` 的扩展契约，不再复制 slot 名清单。
 
 ### Mod Governance (D-MOD-007)
 

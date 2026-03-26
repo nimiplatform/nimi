@@ -195,6 +195,7 @@ tokens:
     css_var: --nimi-radius-xl
     tailwind_alias: rounded-[28px]
     scope: baseline
+    note: Baseline token definitions are first-class governed values and do not require arbitrary-value allowlist registration by consumers
     source_rule: D-SHELL-016
   - id: elevation.base
     category: elevation

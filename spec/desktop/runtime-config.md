@@ -13,89 +13,15 @@
 - `features/runtime-config/panels/sidebar.tsx` — 左侧边栏导航
 - `features/runtime-config/domain/` — 系统资源、费用预估 mock hooks
 
-## Navigation Model
+## Navigation And State
 
-Runtime 配置面板采用 **左侧边栏 + 内容区** 两栏布局，不再使用 scope/tab 双层路由。
+Runtime Config 面板的页面枚举、元数据、持久化 state 与 controller surface 由 kernel facts 和实现真相源统一治理，domain 层仅保留阅读锚点：
 
-### Page 枚举
+- 页面/左栏治理：`D-SHELL-023`、`D-SHELL-024`、`D-SHELL-025`
+- Runtime 字段映射：`D-STATE-002`
+- Runtime 配置页与 daemon/config/connector 投影：`D-IPC-002`、`D-IPC-003`、`D-ERR-009`
 
-```typescript
-type RuntimePageIdV11 =
-  | 'overview'
-  | 'recommend'
-  | 'local'
-  | 'cloud'
-  | 'catalog'
-  | 'runtime'
-  | 'mods'
-  | 'data-management'
-  | 'performance'
-  | 'mod-developer';
-```
-
-| Page | 组件 | 职责 |
-|------|------|------|
-| `overview` | `OverviewPage` | Dashboard：统计卡片、系统资源监控、费用预估、Capability 覆盖矩阵、Daemon 状态、快捷导航 |
-| `recommend` | `RecommendPage` | 推荐页：model-index 候选池、设备画像、按 capability 的适配榜单、install plan / variants review |
-| `local` | `LocalPage` | 本地模型管理：搜索/安装/导入/启停/删除、下载进度、catalog、HuggingFace 搜索 |
-| `cloud` | `CloudPage` | Cloud Connector CRUD：添加/删除/编辑/测试 connector、vendor/endpoint/token 配置 |
-| `catalog` | `CatalogPage` | 提供商与模型目录管理 |
-| `runtime` | `RuntimePage` | Runtime 管理：Endpoint 配置、Daemon 生命周期、健康探测、审计日志、EAA、Provider 诊断、Node Matrix |
-| `mods` | `ModsPage` | Mod AI 依赖：列出 AI 依赖 mods、capability 状态检查、依赖解析与 apply |
-| `data-management` | `DataManagementPage` | 本地数据、缓存、账户数据管理 |
-| `performance` | `PerformancePage` | 渲染偏好、更新与运行时性能信息 |
-| `mod-developer` | `DeveloperPage` | Mod 开发者模式、sources 与诊断 |
-
-### Page 元数据
-
-`RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; description: string }>` 定义每个页面的名称和描述，供 sidebar 和 header 使用。
-
-## Panel State
-
-`RuntimeConfigStateV11` 为面板 UI 状态，通过 localStorage 持久化（key: `nimi:runtime-config:v11`）。
-
-```typescript
-type RuntimeConfigStateV11 = {
-  version: 11;
-  initializedByV11: boolean;
-  activePage: RuntimePageIdV11;       // 当前选中页面
-  diagnosticsCollapsed: boolean;
-  selectedSource: SourceIdV11;        // 'local' | 'cloud'
-  activeCapability: CapabilityV11;    // 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding'
-  uiMode: UiModeV11;                 // 'simple' | 'advanced'
-  local: LocalStateV11; // 端点、模型列表、node matrix、状态
-  connectors: ApiConnector[];         // NOT persisted — bridge config 是 single source of truth
-  selectedConnectorId: string;        // NOT persisted — bridge config 是 single source of truth
-};
-```
-
-### 持久化策略
-
-- `activePage`、`diagnosticsCollapsed`、`uiMode`、`selectedSource`、`activeCapability`、`local` 持久化到 localStorage。
-- `connectors` 和 `selectedConnectorId` **不持久化**到 localStorage，通过 Tauri bridge config（`config.json`）作为 single source of truth，bridge merge 后填充。
-- `StoredStateV11` 是 localStorage 子集，不含 `connectors` / `selectedConnectorId`。
-
-### State 归一化
-
-`normalizeStoredStateV11(seed, parsed)` 从 localStorage 读取后归一化：
-- 支持 legacy 字段名 `activeSetupPage` → `activePage`
-- 每个字段通过对应 normalizer 校验（`normalizePageIdV11`、`normalizeSourceV11`、`normalizeCapabilityV11` 等）
-- connectors 始终初始化为 `[]`（不从 localStorage 加载）
-
-## Controller Model
-
-`RuntimeConfigPanelControllerModel` 是 view 层的唯一数据+操作接口：
-
-- `activePage: RuntimePageIdV11` — 当前页面
-- `onChangePage(page: RuntimePageIdV11)` — 切换页面
-- `activeCapability: CapabilityV11` 通过 panel state 持久化；`recommend` page 只消费 `chat / image / video`
-- daemon lifecycle（start/stop/restart/refresh）
-- model management（install/remove/start/stop, catalog, HF search, file import, companion asset import/retry）
-- recommendation feed（model-index 候选、device snapshot、local filter、install plan/variant review）
-- connector CRUD（通过 connector-sdk-service + connector-actions）
-- EAA token management
-- audit data streaming
-- dependency resolution（mod AI 依赖）
+如需核对具体 page ID、localStorage 版本或 controller 字段，以实现真相源和对应 kernel rule 为准，不在此处重复定义本地 TypeScript 类型。
 
 ## Kernel References
 
@@ -111,11 +37,11 @@ Runtime 字段映射（`RuntimeFieldMap`）：
 
 ### IPC (D-IPC-002)
 
-Daemon 管理命令（命令清单见 `D-IPC-002`）。
+Daemon 管理命令与状态投影见 `D-IPC-002`。
 
 ### IPC (D-IPC-003)
 
-配置读写命令（命令清单见 `D-IPC-003`）。
+配置读写命令与 restart-required 语义见 `D-IPC-003`。
 
 ### Shell (D-SHELL-001)
 
@@ -147,9 +73,11 @@ Connector 凭据路由：AI 请求凭据通过 `connector_id` 路由（K-KEYSRC-
 
 ### Runtime Config Coupling
 
-- 当 `NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL` 指向回环地址（`localhost`/`127.0.0.1`/`::1`）且未显式关闭 `engines.llama.enabled` 时，runtime 可进入 llama SUPERVISED 托管启动。
-- `engines.llama.*`、`engines.media.*` 与本地 loopback env 变更属于 runtime 启动期固化配置，Desktop 应在收到 `CONFIG_RESTART_REQUIRED` 时提示并引导重启 daemon。
-- `providers.local.*`、`engines.localai.*`、`engines.nexa.*`、`engines.nimi_media.*` 均为 removed legacy surface；Desktop 不得继续写入或展示。
+本域只消费 runtime config hard-cut 投影：
+
+- loopback / supervised 托管边界：`D-SEC-001`、`D-IPC-003`
+- restart-required 行为：`D-IPC-003`
+- removed legacy runtime config surface：`D-ERR-009` 与上游 runtime config contract
 
 ### Security (D-SEC-001)
 

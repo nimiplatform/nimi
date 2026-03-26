@@ -82,5 +82,5 @@ surfaces:
     role: world_detail_art_direction
     surface_profile: exception
     exception_policy: controlled
-    testid_required: false
+    testid_required: true
     source_rule: D-SHELL-020

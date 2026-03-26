@@ -46,18 +46,7 @@ Token 安全管理：签发、吊销、审计列表。
 
 ## Phase 1 排除范围
 
-### ExternalPrincipal 错误处理
-
-Desktop Phase 1 **不支持 ExternalPrincipal 会话**。Runtime `K-AUTHSVC-013` 定义的 `AUTH_TOKEN_EXPIRED` 与 `AUTH_UNSUPPORTED_PROOF_TYPE` 两个 ExternalPrincipal 错误码在 Desktop Phase 1 不会触达（Desktop 仅使用 Realm 用户会话 JWT sub，不生成 ExternalPrincipal proof）。
-
-SDK `S-ERROR-011` 将这两个错误码投影为不可重试。若 Desktop 未来支持 ExternalPrincipal，需在 `D-ERR-007` 补充以下映射：
-
-| Runtime ReasonCode | 推荐 UI 消息 |
-|---|---|
-| `AUTH_TOKEN_EXPIRED` | "外部代理会话已过期，请重新认证" |
-| `AUTH_UNSUPPORTED_PROOF_TYPE` | "不支持的认证类型" |
-
-**跨层引用**：Runtime `K-AUTHSVC-013`、Platform `P-ALMI-003`/`P-ALMI-004`、SDK `S-ERROR-011`。
+Desktop Phase 1 不支持 ExternalPrincipal 会话；相关错误投影、授权语义与未来 UI 映射以 Runtime `K-AUTHSVC-013`、Platform `P-ALMI-003`/`P-ALMI-004` 与 SDK `S-ERROR-011` 为准。本域不再重复列出跨层错误表。
 
 ## CI 门禁引用
 

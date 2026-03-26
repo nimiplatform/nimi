@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { IconButton, ScrollArea, SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface, Tooltip } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
+import { Tooltip } from '@renderer/components/tooltip.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';

@@ -3,6 +3,7 @@ import {
   useRealmSendGiftDialog,
 } from '@nimiplatform/nimi-kit/features/commerce/realm';
 import { useTranslation } from 'react-i18next';
+import '@renderer/components/overlay.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 

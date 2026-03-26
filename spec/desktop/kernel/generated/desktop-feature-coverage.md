@@ -11,7 +11,7 @@
 | `chat-core` | `P1` | `unit_contract`, `desktop_e2e_journey` | `chat.open-thread` (D-GATE-040) |
 | `contacts-core` | `P1` | `unit_contract`, `desktop_e2e_journey` | `contacts.panel-load` (D-GATE-040) |
 | `explore-entry` | `P1` | `unit_contract`, `desktop_e2e_journey` | `explore.panel-load` (D-GATE-040) |
-| `world-detail-surface` | `P2` | `unit_contract` | `world.surface-layout` (D-GATE-040) |
+| `world-detail-surface` | `P1` | `unit_contract`, `desktop_e2e_journey` | `world.surface-layout` (D-GATE-040) |
 | `runtime-config` | `P1` | `unit_contract`, `desktop_e2e_smoke` | `runtime.config-panel-load` (D-GATE-030) |
 | `local-ai-entry` | `P1` | `unit_contract`, `desktop_e2e_journey` | `runtime.local-ai.panel-load` (D-GATE-040) |
 | `external-agent-entry` | `P1` | `unit_contract`, `desktop_e2e_journey` | `runtime.external-agent.panel-load` (D-GATE-040) |

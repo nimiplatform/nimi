@@ -12,7 +12,7 @@ Full unrestricted access for core platform code
 
 ## builtin
 
-Default desktop mods loaded via manifest+sideload pipeline
+Platform-bundled desktop mods shipped with the product and granted the builtin capability envelope
 
 | Capability Pattern |
 |---|
@@ -123,7 +123,7 @@ Third-party injected mods with restricted turn hook access
 
 ## sideload
 
-Locally sideloaded mods with no subscribe/register/provide access
+Locally installed mods and catalog-installed mods share the sideload capability envelope; catalog provenance does not elevate permissions
 
 | Capability Pattern |
 |---|

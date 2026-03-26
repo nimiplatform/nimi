@@ -93,6 +93,8 @@ Capability key 采用点分层级格式：`<subsystem>.<action>.<target>`。
 4. `sideload`：event.publish + data.query + storage + ui.register + inter-mod.request + 完整 runtime facade + action + audit/meta（无 event.subscribe、无 data.register、无 turn hook、无 `inter-mod.provide`）。
 5. `codegen`：最小权限（runtime text facade + `ui-extension.app.*` 槽位 + `data-api.user-*` 数据 API + audit/meta.read.self）。
 
+`catalog` access mode 不形成额外 source type。catalog-installed mod 在 capability allowlist 语义上继续归入 `source_type=sideload`，catalog 校验只影响安装许可、审计与风险提示，不提升 hook/runtime facade 权限。
+
 Capability 检查流程：
 1. 解析请求的 capability key。
 2. 查找 mod 的 source type。

@@ -125,9 +125,10 @@ features:
         source_rule: D-GATE-040
         spec_path: apps/desktop/e2e/specs/explore.panel-load.e2e.mjs
   - feature: world-detail-surface
-    risk_tier: P2
+    risk_tier: P1
     required_layers:
       - unit_contract
+      - desktop_e2e_journey
     covers_tabs:
       - world-detail
     covers_bootstrap_phases: []

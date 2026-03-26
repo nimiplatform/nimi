@@ -21,38 +21,19 @@ Guard clause：`enableModUi = false` 时访问 `'mods'` tab 自动回退到 `'ch
 
 ### State (D-STATE-003, D-STATE-004)
 
-Mod Hub 从 AppStore 读取：
-- `localManifestSummaries`
-- `registeredRuntimeModIds`
-- `runtimeModDisabledIds`
-- `runtimeModUninstalledIds`
-- `runtimeModFailures`
-- `fusedRuntimeMods`
-- `runtimeModDiagnostics`
-- catalog list / update check 结果
-
-计算派生状态：
-- `installed`：本地已安装 mod
-- `available`：catalog 中可发现但当前未安装的 mod
-- `update-available`：已安装且存在 catalog 更新目标的 mod
-- `failed/conflict`：本地注册失败、fuse 失败或 source conflict 的 mod
+Mods shell 读取 mod registry、diagnostics、catalog 投影与激活 tab 状态；具体字段与派生状态以实现和 kernel state rule 为准。
 
 ### Mod Governance (D-MOD-007)
 
-Mod Hub 统一负责：
-- **Open** → `openModWorkspaceTab` + `setActiveTab('mod:${id}')`
-- **Install / Update / Enable / Disable / Uninstall / Retry** → 统一在 Hub 行项目中处理
-
-Disable / Uninstall 当前激活的 mod 时，fallback 导航到 `'mods'`。
+`Mods` 入口只负责把用户导向统一的 Mod Hub / Mod Workspace 流，不重复定义安装或生命周期动作语义。
 
 ## UI Contract
 
-Mod Hub 采用单页双态布局：
-- 默认态：中心搜索 + `Open Mods Folder` + 已安装 Dock/Grid
-- 聚焦态：展开 unified management list
-- unified list 保留 `Installed` / `Available` 分组，并统一承载行内管理动作
-- 本地 path / URL 安装入口不再出现在页面内；本地安装由用户通过 `Open Mods Folder` 手动复制完成
-- 行内展示版本、trust tier、update、re-consent、warning、failed/conflict 信息
+本域只承载 shell entry、source observability 与 conflict/developer-facing boundary：
+
+- `Mods` tab 必须直接进入统一 Mod Hub（`D-SHELL-002`）
+- source type、来源目录、冲突状态与调试入口的可见性受 `D-SHELL-010` 治理
+- catalog/install/update/manage UX 细节统一留在 `mod-hub.md`
 
 ## CI 门禁引用
 

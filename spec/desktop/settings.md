@@ -23,7 +23,7 @@
 
 ### Hook (D-HOOK-004)
 
-UI 扩展槽位：`settings.panel.section` — 设置面板扩展区域，mod 可注册自定义设置项。
+Settings 可用扩展槽位以 `spec/desktop/kernel/tables/ui-slots.yaml` 为准；本域只引用 `D-HOOK-004`。
 
 ### Shell (D-SHELL-002)
 

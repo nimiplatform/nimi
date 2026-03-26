@@ -9,7 +9,7 @@
 | `desktop_update_state_get` | `desktop-update` | Read current desktop updater state machine snapshot | `D-IPC-009` |
 | `desktop_update_check` | `desktop-update` | Check GitHub release metadata for a newer packaged desktop update | `D-IPC-009` |
 | `desktop_update_download` | `desktop-update` | Download the currently available packaged desktop update | `D-IPC-009` |
-| `desktop_update_install` | `desktop-update` | Download and prepare installation for the available packaged desktop update | `D-IPC-009` |
+| `desktop_update_install` | `desktop-update` | Consume already-downloaded update bytes and enter installer stage for the packaged desktop update | `D-IPC-009` |
 | `desktop_update_restart` | `desktop-update` | Restart the packaged desktop after updater install is ready | `D-IPC-009` |
 | `get_system_resource_snapshot` | `system` | Collect system resource snapshot (CPU, memory, GPU) for device profiling | `D-IPC-009` |
 | `http_request` | `http` | Proxy HTTP request through Tauri backend (bypasses browser CORS) | `D-IPC-004` |
