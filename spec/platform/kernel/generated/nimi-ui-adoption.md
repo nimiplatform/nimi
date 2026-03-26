@@ -7,7 +7,17 @@
 | `desktop.chat.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
 | `desktop.contacts.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
 | `desktop.runtime.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
-| `desktop.settings.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.shared` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.overview.page` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `status` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.runtime.page` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.audit.section` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status`, `scroll_area` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.debug.section` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status`, `scroll_area` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.health.section` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `status` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.usage.section` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.local.catalog.page` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status`, `scroll_area` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.local.catalog.card` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status`, `scroll_area` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.runtime.local.page` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status`, `scroll_area` | `false` | `none` | `P-DESIGN-020` |
+| `desktop.settings.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `sidebar`, `action`, `field`, `toggle`, `status`, `scroll_area` | `true` | `none` | `P-DESIGN-020` |
 | `forge.app.sidebar` | `forge` | `light` | `forge-accent` | `light`, `dark` | `surface`, `sidebar`, `action` | `true` | `none` | `P-DESIGN-020` |
 | `forge.settings.page` | `forge` | `light` | `forge-accent` | `light`, `dark` | `surface`, `action`, `field`, `status` | `false` | `none` | `P-DESIGN-020` |
 | `relay.conversation.sidebar` | `relay` | `dark` | `relay-accent` | `dark`, `light` | `sidebar`, `action`, `status` | `false` | `none` | `P-DESIGN-020` |

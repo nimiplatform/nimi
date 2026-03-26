@@ -43,12 +43,180 @@ modules:
       - dark
     default_scheme: light
     accent_pack: desktop-accent
+  - id: desktop.runtime.shared
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-primitives.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.overview.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-overview.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.runtime.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-page-runtime.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.audit.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-global-audit-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.debug.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-debug-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.health.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-runtime-health-section.tsx
+    families:
+      - surface
+      - action
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.usage.section
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-usage-stats-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.local.catalog.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-model-center-catalog-section.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.local.catalog.card
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-catalog-card.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
+  - id: desktop.runtime.local.page
+    app: desktop
+    module: apps/desktop/src/shell/renderer/features/runtime-config/runtime-config-local-model-center-sections.tsx
+    families:
+      - surface
+      - action
+      - field
+      - status
+      - scroll_area
+    testid_required: false
+    exception_policy: none
+    source_rule: P-DESIGN-020
+    scheme_support:
+      - light
+      - dark
+    default_scheme: light
+    accent_pack: desktop-accent
   - id: desktop.settings.sidebar
     app: desktop
     module: apps/desktop/src/shell/renderer/features/settings/settings-panel-body.tsx
     families:
       - surface
       - sidebar
+      - action
+      - field
+      - toggle
+      - status
+      - scroll_area
     testid_required: true
     exception_policy: none
     source_rule: P-DESIGN-020
