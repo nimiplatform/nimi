@@ -498,7 +498,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   });
 
   return (
-    <ScrollShell className="h-full bg-[#f8fafb]" viewportClassName="bg-[#f8fafb]">
+    <ScrollArea className="h-full bg-[#f8fafb]" viewportClassName="bg-[#f8fafb]">
       {worldData.type === 'OASIS' ? (
         <OasisWorldDetailPage
           world={worldData}
