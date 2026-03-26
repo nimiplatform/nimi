@@ -31,8 +31,8 @@ function realm() {
 type CreateAudioDirectUploadInput = RealmServiceArgs<'ResourcesService', 'createAudioDirectUpload'>[0];
 type UpdateResourceInput = RealmServiceArgs<'ResourcesService', 'updateResource'>[1];
 type FinalizeResourceInput = RealmServiceArgs<'ResourcesService', 'finalizeResource'>[1];
-type CreatePostInput = RealmServiceArgs<'PostService', 'createPost'>[0];
-type UpdatePostInput = RealmServiceArgs<'PostService', 'updatePost'>[1];
+type CreatePostInput = RealmServiceArgs<'PostsService', 'createPost'>[0];
+type UpdatePostInput = RealmServiceArgs<'PostsService', 'updatePost'>[1];
 type PostDto = RealmModel<'PostDto'>;
 export type PublishChannelListItem = ReturnType<typeof listPublishChannels>[number] & {
   defaultIdentity: PublishWorkspaceState['settings']['defaultIdentity'];
@@ -162,7 +162,7 @@ export async function deleteResource(resourceId: string) {
 // ── Posts ─────────────────────────────────────────────────────
 
 export async function createPost(payload: ForgeCreatePostInput) {
-  return realm().services.PostService.createPost({
+  return realm().services.PostsService.createPost({
     attachments: Array.isArray(payload.attachments) ? payload.attachments : [],
     caption: payload.caption || ('content' in payload ? payload.content : undefined),
     tags: payload.tags,
@@ -176,7 +176,7 @@ export async function getHomeFeed(params?: {
   limit?: number;
   cursor?: string;
 }) {
-  return realm().services.PostService.getHomeFeed(
+  return realm().services.PostsService.getHomeFeed(
     params?.visibility,
     params?.worldId,
     params?.authorId,
@@ -186,17 +186,17 @@ export async function getHomeFeed(params?: {
 }
 
 export async function getPost(postId: string, worldId?: string) {
-  return realm().services.PostService.getPost(postId, worldId);
+  return realm().services.PostsService.getPost(postId, worldId);
 }
 
 export async function updatePost(postId: string, payload: ForgeUpdatePostInput) {
-  return realm().services.PostService.updatePost(postId, {
+  return realm().services.PostsService.updatePost(postId, {
     visibility: payload.visibility,
   });
 }
 
 export async function deletePost(postId: string) {
-  return realm().services.PostService.deletePost(postId);
+  return realm().services.PostsService.deletePost(postId);
 }
 
 // ── World Posts ──────────────────────────────────────────────

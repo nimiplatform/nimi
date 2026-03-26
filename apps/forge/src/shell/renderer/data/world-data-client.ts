@@ -40,14 +40,17 @@ type GetWorldTruthResult = RealmServiceResult<'WorldsService', 'worldControllerG
 type GetWorldviewTruthResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldview'>;
 type MutationCommitEnvelope = NonNullable<CommitWorldStateInput['commit']>;
 type ListWorldResourceBindingsQuery = {
-  take?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[1];
-  slot?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[2];
-  targetId?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[3];
-  targetType?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldResourceBindings'>[4];
+  take?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldBindings'>[1];
+  bindingPoint?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldBindings'>[2];
+  bindingKind?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldBindings'>[3];
+  hostId?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldBindings'>[4];
+  hostType?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldBindings'>[5];
+  objectId?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldBindings'>[6];
+  objectType?: RealmServiceArgs<'WorldControlService', 'worldControlControllerListWorldBindings'>[7];
 };
 type BatchUpsertWorldResourceBindingsInput = RealmServiceArgs<
   'WorldControlService',
-  'worldControlControllerBatchUpsertWorldResourceBindings'
+  'worldControlControllerBatchUpsertWorldBindings'
 >[1];
 type CreateCreatorAgentInput = RealmServiceArgs<'CreatorService', 'creatorControllerCreateAgent'>[0];
 type BatchCreateCreatorAgentsInput = RealmServiceArgs<'CreatorService', 'creatorControllerBatchCreateAgents'>[0];
@@ -585,12 +588,15 @@ export async function listWorldLorebooks(worldId: string) {
 // ── Visual Bindings ────────────────────────────────────────
 
 export async function listWorldResourceBindings(worldId: string, query?: ListWorldResourceBindingsQuery) {
-  return realm().services.WorldControlService.worldControlControllerListWorldResourceBindings(
+  return realm().services.WorldControlService.worldControlControllerListWorldBindings(
     worldId,
     query?.take,
-    query?.slot,
-    query?.targetId,
-    query?.targetType,
+    query?.bindingPoint,
+    query?.bindingKind,
+    query?.hostId,
+    query?.hostType,
+    query?.objectId,
+    query?.objectType,
   );
 }
 
@@ -598,14 +604,14 @@ export async function batchUpsertWorldResourceBindings(
   worldId: string,
   payload: BatchUpsertWorldResourceBindingsInput,
 ) {
-  return realm().services.WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings(
+  return realm().services.WorldControlService.worldControlControllerBatchUpsertWorldBindings(
     worldId,
     payload,
   );
 }
 
 export async function deleteWorldResourceBinding(worldId: string, bindingId: string) {
-  return realm().services.WorldControlService.worldControlControllerDeleteWorldResourceBinding(
+  return realm().services.WorldControlService.worldControlControllerDeleteWorldBinding(
     worldId,
     bindingId,
   );

@@ -26,7 +26,7 @@ const mockResourcesService = {
   deleteResource: vi.fn(),
 };
 
-const mockPostService = {
+const mockPostsService = {
   createPost: vi.fn(),
   getHomeFeed: vi.fn(),
   getPost: vi.fn(),
@@ -43,7 +43,7 @@ vi.mock('@nimiplatform/sdk', () => ({
     realm: {
       services: {
         ResourcesService: mockResourcesService,
-        PostService: mockPostService,
+        PostsService: mockPostsService,
         WorldpostService: mockWorldpostService,
       },
     },
@@ -114,7 +114,7 @@ describe('content-data-client', () => {
     it('createPost passes payload', async () => {
       const payload = { content: 'Hello' };
       await cdc.createPost(payload);
-      expect(mockPostService.createPost).toHaveBeenCalledWith({
+      expect(mockPostsService.createPost).toHaveBeenCalledWith({
         attachments: [],
         caption: 'Hello',
         tags: undefined,
@@ -123,22 +123,22 @@ describe('content-data-client', () => {
 
     it('getHomeFeed passes params', async () => {
       await cdc.getHomeFeed({ worldId: 'w1', limit: 10 });
-      expect(mockPostService.getHomeFeed).toHaveBeenCalledWith(undefined, 'w1', undefined, 10, undefined);
+      expect(mockPostsService.getHomeFeed).toHaveBeenCalledWith(undefined, 'w1', undefined, 10, undefined);
     });
 
     it('getPost passes postId', async () => {
       await cdc.getPost('p1');
-      expect(mockPostService.getPost).toHaveBeenCalledWith('p1', undefined);
+      expect(mockPostsService.getPost).toHaveBeenCalledWith('p1', undefined);
     });
 
     it('updatePost passes postId and payload', async () => {
       await cdc.updatePost('p1', { content: 'Updated' });
-      expect(mockPostService.updatePost).toHaveBeenCalledWith('p1', { visibility: undefined });
+      expect(mockPostsService.updatePost).toHaveBeenCalledWith('p1', { visibility: undefined });
     });
 
     it('deletePost passes postId', async () => {
       await cdc.deletePost('p1');
-      expect(mockPostService.deletePost).toHaveBeenCalledWith('p1');
+      expect(mockPostsService.deletePost).toHaveBeenCalledWith('p1');
     });
 
     it('getWorldPosts passes worldId and params', async () => {
@@ -223,7 +223,7 @@ describe('content-data-client', () => {
     });
 
     it('publishRelease creates a post and marks draft published', async () => {
-      mockPostService.createPost.mockResolvedValue({ id: 'post-1' });
+      mockPostsService.createPost.mockResolvedValue({ id: 'post-1' });
       const draft = await cdc.createRelease({
         title: 'Draft 4',
         caption: 'ready',
@@ -233,7 +233,7 @@ describe('content-data-client', () => {
 
       const published = await cdc.publishRelease(String(draft.id)) as Record<string, unknown>;
 
-      expect(mockPostService.createPost).toHaveBeenCalledWith({
+      expect(mockPostsService.createPost).toHaveBeenCalledWith({
         attachments: [{ targetType: 'BUNDLE', targetId: 'bundle-2' }],
         caption: 'ready',
         tags: ['alpha'],
@@ -253,7 +253,7 @@ describe('content-data-client', () => {
     });
 
     it('listDeliveries derives local delivery rows', async () => {
-      mockPostService.createPost.mockResolvedValue({ id: 'post-2' });
+      mockPostsService.createPost.mockResolvedValue({ id: 'post-2' });
       await cdc.updateChannel('INTERNAL_AGENT_PROFILE', { enabled: true });
       const draft = await cdc.createRelease({
         attachments: [{ targetType: 'RESOURCE', targetId: 'img-4', displayKind: 'IMAGE' }],

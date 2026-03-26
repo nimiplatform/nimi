@@ -170,13 +170,12 @@ describe('useWorldCommitActions', () => {
       result.current.syncResourceBindingsMutation.mutateAsync({
         worldId: 'w1',
         bindingUpserts: [{
-          targetType: 'WORLD',
-          targetId: 'w1',
-          slot: 'WORLD_ICON',
-          resource: {
-            resourceType: 'IMAGE',
-            storageRef: 'https://cdn.example/icon.png',
-          },
+          bindingKind: 'PRESENTATION',
+          bindingPoint: 'WORLD_ICON',
+          hostId: 'w1',
+          hostType: 'WORLD',
+          objectId: 'resource-icon-1',
+          objectType: 'RESOURCE',
         }],
         reason: 'sync',
         sessionId: 'ws-1',
@@ -188,13 +187,12 @@ describe('useWorldCommitActions', () => {
 
     expect(mockWorldDataClient.batchUpsertWorldResourceBindings).toHaveBeenCalledWith('w1', {
       bindingUpserts: [{
-        targetType: 'WORLD',
-        targetId: 'w1',
-        slot: 'WORLD_ICON',
-        resource: {
-          resourceType: 'IMAGE',
-          storageRef: 'https://cdn.example/icon.png',
-        },
+        bindingKind: 'PRESENTATION',
+        bindingPoint: 'WORLD_ICON',
+        hostId: 'w1',
+        hostType: 'WORLD',
+        objectId: 'resource-icon-1',
+        objectType: 'RESOURCE',
       }],
     });
   });

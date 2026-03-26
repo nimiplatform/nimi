@@ -518,6 +518,7 @@ export function WorldMaintainPageView({
     activeTask: workspaceSnapshot.taskState.activeTask,
     recentTasks: workspaceSnapshot.taskState.recentTasks,
     expertMode: workspaceSnapshot.taskState.expertMode,
+    localWorkspaceSavedAt: null,
     notice,
     error,
     conflictReloadSummary: null,
@@ -601,6 +602,9 @@ export function WorldMaintainPageView({
       onLorebooksChange,
       onEventGraphLayoutChange,
       onEventSyncModeChange: () => undefined,
+      saveLocalWorkspace: async () => undefined,
+      syncToRemote: async () => undefined,
+      syncWorkspaceToRemote: async () => undefined,
       saveMaintenance: async () => {
         await commitActions.saveMaintenanceMutation.mutateAsync({
           worldId: effectiveWorldId,
@@ -638,6 +642,17 @@ export function WorldMaintainPageView({
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] }),
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth', effectiveWorldId] }),
           queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth-worldview', effectiveWorldId] }),
+        ]);
+      },
+      reloadFromRemote: async () => {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'state', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'truth-worldview', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'history', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'lorebooks', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'rules', effectiveWorldId] }),
+          queryClient.invalidateQueries({ queryKey: ['forge', 'world', 'agent-rules', effectiveWorldId] }),
         ]);
       },
       adoptRemoteSnapshot: () => undefined,
