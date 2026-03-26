@@ -8,7 +8,7 @@
 | `overtone.ui.ot_input` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtInput` | `thin_wrapper` | `field` | `TextField` | `P-DESIGN-019` |
 | `overtone.ui.ot_textarea` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtTextarea` | `thin_wrapper` | `field` | `TextareaField` | `P-DESIGN-019` |
 | `overtone.ui.ot_accordion_section` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtAccordionSection` | `app_owned_composition` | — | — | `P-DESIGN-019` |
-| `overtone.ui.ot_toggle` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtToggle` | `app_owned_composition` | — | — | `P-DESIGN-019` |
+| `overtone.ui.ot_toggle` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtToggle` | `thin_wrapper` | `toggle` | `Toggle` | `P-DESIGN-019` |
 | `overtone.ui.ot_segmented_control` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtSegmentedControl` | `app_owned_composition` | — | — | `P-DESIGN-019` |
 | `overtone.ui.ot_tag_input` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtTagInput` | `app_owned_composition` | — | — | `P-DESIGN-019` |
 | `overtone.ui.ot_progress_bar` | `overtone` | `apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx` | `OtProgressBar` | `app_owned_composition` | — | — | `P-DESIGN-019` |

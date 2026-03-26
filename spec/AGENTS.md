@@ -2,6 +2,7 @@
 
 ## Scope
 - Applies to the `nimi/spec/**` subtree in this workspace (`runtime`, `sdk`, `desktop`, `platform`, `realm`, `future`).
+- Relay spec generation/check scripts may exist in the repo root toolchain, but there is no active `spec/relay/**` subtree in this workspace yet.
 - Kernel files are the only normative layer; domain docs are thin guides that point back to kernel rule IDs.
 
 ## Hard Boundaries

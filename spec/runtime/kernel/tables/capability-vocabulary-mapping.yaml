@@ -20,6 +20,8 @@ canonical_tokens:
   - video.generate
   - audio.synthesize
   - audio.transcribe
+  - music.generate
+  - music.generate.iteration
   - voice_workflow.tts_v2v
   - voice_workflow.tts_t2v
 
@@ -98,6 +100,10 @@ local_to_canonical:
 
 # Canonical tokens with no Phase 1 local equivalent
 canonical_only:
+  - canonical_token: music.generate
+    note: Music generation remains provider-routed; no Phase 1 local manifest token exists
+  - canonical_token: music.generate.iteration
+    note: Iterative music generation remains provider-routed; no Phase 1 local manifest token exists
   - canonical_token: voice_workflow.tts_v2v
     note: Voice-to-voice workflow; requires orchestrated pipeline, not single-model local execution
   - canonical_token: voice_workflow.tts_t2v

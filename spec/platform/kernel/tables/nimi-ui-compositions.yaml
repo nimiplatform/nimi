@@ -43,9 +43,11 @@ components:
     app: overtone
     module: apps/overtone/src/shell/renderer/features/workspace/ui-primitives.tsx
     component: OtToggle
-    classification: app_owned_composition
-    shared_families: []
-    shared_targets: []
+    classification: thin_wrapper
+    shared_families:
+      - toggle
+    shared_targets:
+      - Toggle
     source_rule: P-DESIGN-019
   - id: overtone.ui.ot_segmented_control
     app: overtone

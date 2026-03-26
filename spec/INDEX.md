@@ -227,6 +227,7 @@ Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协
   - `spec/platform/vision.md`
   - `spec/platform/architecture.md`
   - `spec/platform/protocol.md`
+  - `spec/platform/design-pattern.md`
   - `spec/platform/ai-last-mile.md`
   - `spec/platform/ai-agent-security-interface.md`
   - `spec/platform/open-source-governance.md`
@@ -242,6 +243,16 @@ Platform 规范采用 kernel + domain 的两层结构，覆盖平台架构、协
 
 1. `spec/platform/kernel/architecture-contract.md`
 2. `spec/platform/architecture.md`
+
+### 修改设计模式 / 共享 UI 语义
+
+1. `spec/platform/kernel/design-pattern-contract.md`
+2. `spec/platform/kernel/tables/nimi-ui-tokens.yaml`
+3. `spec/platform/kernel/tables/nimi-ui-primitives.yaml`
+4. `spec/platform/kernel/tables/nimi-ui-themes.yaml`
+5. `spec/platform/kernel/tables/nimi-ui-adoption.yaml`
+6. `spec/platform/kernel/tables/nimi-ui-compositions.yaml`
+7. `spec/platform/design-pattern.md`
 
 ### 修改 AI 最后一公里 / Hook Action Fabric
 

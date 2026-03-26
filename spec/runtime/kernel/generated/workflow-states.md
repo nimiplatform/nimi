@@ -8,6 +8,7 @@ States: `ACCEPTED`(1), `QUEUED`(2), `RUNNING`(3), `COMPLETED`(4), `FAILED`(5), `
 
 | From | To | Trigger | Source |
 |---|---|---|---|
+| `ACCEPTED` | `CANCELED` | `user_cancel` | `K-WF-007` |
 | `ACCEPTED` | `QUEUED` | `enqueue` | `K-WF-003` |
 | `ACCEPTED` | `FAILED` | `resource_exhausted_before_enqueue` | `K-WF-003` |
 | `QUEUED` | `RUNNING` | `executor_picks_up` | `K-WF-003` |

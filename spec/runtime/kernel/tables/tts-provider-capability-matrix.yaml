@@ -1,4 +1,5 @@
 version: 1
+# Voice capability columns map to K-VOICE-* workflow and discovery semantics; provider rows remain catalog facts, not a second voice contract.
 entries:
   - provider_id: aws_polly
     runtime_plane: remote

@@ -23,4 +23,5 @@ surfaces:
   - path: spec/sdk/types.md
     package_subpath: "@nimiplatform/sdk/types"
     role: types_projection
+    governed_by: [S-SURFACE-001, S-SURFACE-004]
     note: Shared type definitions (NimiError, ScopeName, ExternalPrincipalId etc) re-exported for external consumers

@@ -6,7 +6,7 @@
 ## 0. 权威导入
 
 - `kernel/delivery-gates-contract.md`（K-GATE-001, K-GATE-010, K-GATE-020, K-GATE-030, K-GATE-040, K-GATE-050, K-GATE-060, K-GATE-070, K-GATE-080, K-GATE-090）
-- `kernel/multimodal-provider-contract.md`（K-MMPROV-011, K-MMPROV-012）
+- `kernel/multimodal-provider-contract.md`（K-MMPROV-011, K-MMPROV-012, K-MMPROV-030~037）
 - `kernel/model-catalog-contract.md`（K-MCAT-005, K-MCAT-018, K-MCAT-022, K-MCAT-024, K-MCAT-027）
 - `kernel/provider-health-contract.md`（K-PROV-005）
 - `kernel/proto-governance-contract.md`（K-PROTO-007, K-PROTO-010）

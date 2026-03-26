@@ -8,6 +8,7 @@
 |---|---|---|---|---|
 | 版本协商 | required | required | required | `P-PROTO-001` |
 | 请求/响应封装 | required | required | required | `P-PROTO-010` |
+| L0 gRPC metadata 映射 | required | required | required | `P-PROTO-011` |
 | participantId 必填校验 | required | required | required | `P-PROTO-010` |
 | domain 字段组合校验 | required | required | required | `P-PROTO-010` |
 | 错误码可解释性 | required | required | required | `P-PROTO-001` |
@@ -22,6 +23,7 @@
 | mode 合法性校验 | required | required | required | `P-PROTO-002` |
 | 非 Realm PROVIDER 拒绝校验 | required | required | required | `P-PROTO-003` |
 | scopeCatalogVersion 一致性 | required | required | required | `P-PROTO-040` |
+| ExternalPrincipal 与 App token 分离 | required | required | required | `P-PROTO-020` |
 
 ## L1_app_auth: App 授权层 (ExternalPrincipal -> App)
 
@@ -48,6 +50,7 @@
 | extension-app 无绑定拒绝 | required | required | required | `P-PROTO-050` |
 | bindingStatus 状态机 | required | required | required | `P-PROTO-050` |
 | Creator 变更绑定后即时生效 | required | required | required | `P-PROTO-050` |
+| App mode 域访问矩阵 | required | required | required | `P-PROTO-060` |
 
 ## L2: Realm 六原语层 (Realm 强制)
 
@@ -57,6 +60,7 @@
 | Social | required | required | required | required | `P-PROTO-101` |
 | Economy | required | required | required | required | `P-PROTO-102` |
 | Transit | required | required | required | required | `P-PROTO-103` |
+| 跨原语一致性拒绝 | required | required | required | required | `P-PROTO-070` |
 | Context | required | required | required | required | `P-PROTO-104` |
 | Presence | required | required | required | required | `P-PROTO-105` |
 

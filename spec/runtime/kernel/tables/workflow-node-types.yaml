@@ -1,5 +1,10 @@
 version: 1
 node_types:
+  - type: UNSPECIFIED
+    enum_value: 0
+    category: control
+    config: null
+    source_rule: K-WF-002
   - type: AI_GENERATE
     enum_value: 1
     category: ai

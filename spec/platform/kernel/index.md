@@ -64,7 +64,7 @@ Every platform domain document (vision, architecture, protocol, ai-last-mile, de
 | `tables/nimi-ui-compositions.yaml` | `design-pattern-contract.md` | Explicit registry for app-owned composition components and thin wrappers that must not become parallel primitive authority |
 | `tables/nimi-ui-allowlists.yaml` | `design-pattern-contract.md` | Approved design escape hatches |
 | `tables/nimi-kit-registry.yaml` | `kit-contract.md` | Kit sub-module registry with kind, exports, dependency direction, and admission metadata |
-| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `design-pattern-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
+| `tables/rule-evidence.yaml` | `protocol-contract.md`, `architecture-contract.md`, `ai-last-mile-contract.md`, `design-pattern-contract.md`, `kit-contract.md`, `governance-contract.md` | Platform formal rule → executable evidence mapping |
 
 ## Version Terminology
 

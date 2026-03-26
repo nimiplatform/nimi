@@ -124,6 +124,8 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 26. `ResolveProfile`
 27. `ApplyProfile`
 28. `ListLocalAudits`
+29. _(reserved for stable RPC numbering)_
+30. _(reserved for stable RPC numbering)_
 31. `AppendInferenceAudit`
 32. `AppendRuntimeAudit`
 

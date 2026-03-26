@@ -13,6 +13,11 @@ layers:
         rejection: required
         regression: required
         source_rule: P-PROTO-010
+      - item: "L0 gRPC metadata 映射"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-PROTO-011
       - item: "participantId 必填校验"
         positive: required
         rejection: required
@@ -62,6 +67,11 @@ layers:
         rejection: required
         regression: required
         source_rule: P-PROTO-040
+      - item: "ExternalPrincipal 与 App token 分离"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-PROTO-020
 
   - layer: L1_app_auth
     label: "App 授权层 (ExternalPrincipal -> App)"
@@ -150,6 +160,11 @@ layers:
         rejection: required
         regression: required
         source_rule: P-PROTO-050
+      - item: "App mode 域访问矩阵"
+        positive: required
+        rejection: required
+        regression: required
+        source_rule: P-PROTO-060
 
   - layer: L2
     label: "Realm 六原语层 (Realm 强制)"
@@ -178,6 +193,12 @@ layers:
         replay_consistency: required
         regression: required
         source_rule: P-PROTO-103
+      - item: "跨原语一致性拒绝"
+        positive: required
+        rejection: required
+        replay_consistency: required
+        regression: required
+        source_rule: P-PROTO-070
       - item: Context
         positive: required
         rejection: required

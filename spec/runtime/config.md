@@ -40,9 +40,8 @@
 
 ## 5. Hard-Cut Baseline
 
-本地 runtime public config 已硬切到 engine-first 语义：
+本地 runtime public config 的 engine-first hard-cut 以 kernel 为准，不在本文件重复规则正文。阅读锚点：
 
-- file config 只允许 `engines.llama.*` 与 `engines.media.*`
-- 本地 loopback / provider health env 只允许 `NIMI_RUNTIME_LOCAL_LLAMA_*`、`NIMI_RUNTIME_LOCAL_MEDIA_*`、`NIMI_RUNTIME_LOCAL_SIDECAR_*`
-- `media.diffusers` 仅允许作为 runtime 内部 fallback driver 出现在 metadata / health / routing 中，不是 public config 块
-- `engines.localai.*`、`engines.nexa.*`、`engines.nimi_media.*`、`providers.local.*` 与对应旧 env 一律视为 removed/rejected legacy input
+- public config 允许面与 legacy hard-cut：`kernel/config-contract.md`（K-CFG-003~004, K-CFG-014~017）
+- 本地引擎 public config 组织与优先级：`kernel/local-engine-contract.md`（K-LENG-008）
+- local provider health / loopback env 与 fallback 驱动边界：`kernel/provider-health-contract.md`（K-PROV-002~003）

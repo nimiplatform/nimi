@@ -17,8 +17,8 @@ Nimi 是一个 AI 驱动的开放世界平台。任何人可以创建 World，AI
 
 1. 架构执行采用 `single-state-contract`，不引入长期双轨并存（P-ARCH-005）。
 2. 协议与 SDK 版本策略采用 `strict-only`，不做跨 minor 过渡协商（P-PROTO-001）。
-3. 数据策略采用 `reset-first`。
-4. 执行模式采用 `AI-first`。
+3. 数据策略采用 `reset-first`（P-ARCH-005）。
+4. 执行模式采用 `AI-first`（P-ARCH-005）。
 
 ## 3. 与 OASIS 的关系
 

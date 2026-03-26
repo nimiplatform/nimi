@@ -7,7 +7,7 @@ gates:
     command: pnpm check:sdk-consumer-smoke
     source_rule: S-GATE-010
   - gate: boundary_checks
-    command: pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config && pnpm check:sdk-realm-legacy-clean && pnpm check:reason-code-constants && pnpm check:sdk-single-package-layout
+    command: pnpm check:sdk-import-boundary && pnpm check:sdk-public-naming && pnpm check:no-create-nimi-client && pnpm check:no-global-openapi-config && pnpm check:sdk-realm-legacy-clean && pnpm check:no-app-realm-rest-bypass && pnpm check:reason-code-constants && pnpm check:sdk-single-package-layout
     source_rule: S-GATE-020
   - gate: vnext_matrix
     command: pnpm check:sdk-vnext-matrix
@@ -33,6 +33,18 @@ gates:
   - gate: release_parity
     command: pnpm check:live-smoke-gate --require-release
     source_rule: S-GATE-090
+  - gate: generated_type_quality
+    command: pnpm check:sdk-generated-type-quality
+    source_rule: S-GATE-091
+  - gate: realm_generator_smoke
+    command: pnpm check:realm-sdk-generator-smoke
+    source_rule: S-GATE-091
+  - gate: fallback_hardcut
+    command: pnpm check:sdk-fallback-hardcut
+    source_rule: S-GATE-091
+  - gate: unsafe_raw_usage
+    command: pnpm check:sdk-unsafe-raw-usage
+    source_rule: S-GATE-091
   - gate: spec_consistency
     command: pnpm check:sdk-spec-kernel-consistency
     source_rule: S-GATE-091

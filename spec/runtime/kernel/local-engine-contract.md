@@ -139,7 +139,6 @@ Phase 1 本地执行引擎固定为：
 3. 配置文件
 4. 引擎默认值
 
-配置结构必须围绕 `llama` / `media` / `sidecar` 组织，不得继续保留 `localai` / `nexa` 为 public 配置入口。
 配置结构必须围绕 `llama` / `media` / `speech` / `sidecar` 组织，不得继续保留 `localai` / `nexa` / `nimi_media` 为 public 配置入口。
 
 ## K-LENG-009 凭据安全策略

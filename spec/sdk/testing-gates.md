@@ -8,7 +8,7 @@
 - `kernel/testing-gates-contract.md`（S-GATE-001, S-GATE-010, S-GATE-020, S-GATE-030, S-GATE-040, S-GATE-050, S-GATE-060, S-GATE-070, S-GATE-080, S-GATE-090, S-GATE-091）
 - `kernel/surface-contract.md`（S-SURFACE-001, S-SURFACE-005, S-SURFACE-006）
 - `kernel/transport-contract.md`（S-TRANSPORT-003, S-TRANSPORT-006）
-- `kernel/error-projection.md`（S-ERROR-001, S-ERROR-005）
+- `kernel/error-projection.md`（S-ERROR-001, S-ERROR-002, S-ERROR-005）
 - `kernel/boundary-contract.md`（S-BOUNDARY-001, S-BOUNDARY-004）
 - `kernel/mod-contract.md`（S-MOD-004）
 - `kernel/tables/sdk-testing-gates.yaml`

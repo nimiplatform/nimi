@@ -158,7 +158,7 @@ modules:
       - ./features/model-picker/runtime
     admission_status: active
     owner: platform
-    source_rule: P-KIT-080
+    source_rule: P-KIT-070
   - id: kit.features.generation
     subpath: /features/generation
     kind: feature

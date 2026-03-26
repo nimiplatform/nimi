@@ -129,16 +129,20 @@ codes:
   # Admission errors
   - name: SOCIAL_PRECONDITION_FAILED
     group: admission
+    action_hint: satisfy_social_preconditions
     source_rule: P-PROTO-070
   - name: TRANSIT_USER_QUOTA_EXCEEDED
     group: admission
+    action_hint: reduce_transit_quota_usage
     source_rule: P-PROTO-070
   - name: TRANSIT_WORLD_QUOTA_EXCEEDED
     group: admission
+    action_hint: free_world_transit_capacity
     source_rule: P-PROTO-070
   # State machine errors
   - name: TRANSIT_STATE_INVALID
     group: state_machine
+    action_hint: retry_from_valid_transit_state
     source_rule: P-PROTO-103
   - name: PRESENCE_STATE_INVALID
     group: state_machine

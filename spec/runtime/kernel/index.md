@@ -128,7 +128,9 @@ Runtime provider model/voice default data is maintained outside `spec/` at:
 
 ## 9. Scope 与 Deferred
 
-本目录覆盖 Runtime proto 全量服务。Phase 1 规则构成当前规范基线；Phase 2 kernel contracts 可先以 draft 形态并存，待语义收敛后再提升为规范基线。新增语义必须先入 kernel，再改 domain 与实现。
+本目录覆盖 Runtime proto 全量服务，包含 `workflow-contract.md` 与 `voice-contract.md` 在内的全部 kernel 合同。审计或实施可以按主题分批进行，但 chunk 边界不是规范边界，不得被写回 spec 作为排除项。
+
+Phase 1 规则构成当前规范基线；Phase 2 kernel contracts 可先以 draft 形态并存，待语义收敛后再提升为规范基线。新增语义必须先入 kernel，再改 domain 与实现。
 
 ## 10. 跨层信息引用约定
 

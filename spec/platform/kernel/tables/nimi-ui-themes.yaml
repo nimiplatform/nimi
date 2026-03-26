@@ -5,6 +5,8 @@ packs:
     applies_to_apps:
       - desktop
       - forge
+      - relay
+      - overtone
     source_rule: P-DESIGN-002
     values:
       surface.app_background: "#f5f7fa"

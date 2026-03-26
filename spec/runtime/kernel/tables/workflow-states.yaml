@@ -18,6 +18,10 @@ machines:
         enum_value: 7
     transitions:
       - from: ACCEPTED
+        to: CANCELED
+        trigger: user_cancel
+        source_rule: K-WF-007
+      - from: ACCEPTED
         to: QUEUED
         trigger: enqueue
         source_rule: K-WF-003

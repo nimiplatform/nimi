@@ -50,7 +50,7 @@ Daemon 启动固定为以下阶段：
 | 活跃 StreamScenario | GracefulStop 等待活跃流完成或超时后 ForceStop 中断。客户端收到 gRPC status 中断 | K-DAEMON-003 step 4 |
 | 长生命周期订阅流（K-STREAM-010） | server 以 `CANCELLED` 关闭所有活跃订阅流 | K-STREAM-010 |
 | Supervised 引擎（K-LENG-004） | 向所有引擎进程发送 SIGTERM，超时后 SIGKILL。引擎停止在 gRPC/HTTP 关闭前执行 | K-DAEMON-003 step 2 |
-| Provider 探测（K-PROV-003） | 停止探测 | K-DAEMON-003 step 3 |
+| Provider 探测（K-PROV-003） | 停止探测；`StreamScenario` 旁路的 authz 范围豁免不适用于健康探测循环 | K-DAEMON-003 step 3, K-KEYSRC-004 |
 | Session 内存 map（K-AUTHSVC-012） | 进程退出后丢失，所有 session 失效 | K-AUTHSVC-012 |
 
 **设计决策**：Phase 1 不实现 in-flight 任务的优雅排空（drain）——GracefulStop 超时到期后直接 ForceStop。此决策基于：桌面端 daemon 重启预期为低频事件，AI 推理任务可由客户端重试恢复。若未来引入服务端持久化队列，可在此基础上添加排空协议。

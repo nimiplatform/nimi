@@ -16,6 +16,7 @@
 | [scope.md](scope.md) | `@nimiplatform/sdk/scope` | Scope SDK 投影（catalog 生命周期与授权前置联动） |
 | [mod.md](mod.md) | `@nimiplatform/sdk/mod` | Mod SDK 投影（host 注入、hook 聚合、UI/i18n/settings facade） |
 | [types.md](types.md) | `@nimiplatform/sdk/types` | 共享类型导出（错误、scope、external principal 等） |
+| [testing-gates.md](testing-gates.md) | `spec-only` | SDK 测试门、证据路由与执行材料定位导引 |
 
 ## 3. Kernel 治理层
 

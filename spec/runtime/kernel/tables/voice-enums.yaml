@@ -1,5 +1,10 @@
 version: 1
 workflow_types:
+  - workflow_type: unspecified
+    enum_name: VOICE_WORKFLOW_TYPE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset workflow type
+    source_rule: K-VOICE-002
   - workflow_type: tts_v2v
     enum_name: VOICE_WORKFLOW_TYPE_TTS_V2V
     enum_value: 1
@@ -12,6 +17,11 @@ workflow_types:
     source_rule: K-VOICE-002
 
 reference_kinds:
+  - kind: unspecified
+    enum_name: VOICE_REFERENCE_KIND_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset voice reference kind
+    source_rule: K-VOICE-003
   - kind: preset_voice_id
     enum_name: VOICE_REFERENCE_KIND_PRESET
     enum_value: 1
@@ -29,6 +39,11 @@ reference_kinds:
     source_rule: K-VOICE-003
 
 persistence_types:
+  - persistence: unspecified
+    enum_name: VOICE_ASSET_PERSISTENCE_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset persistence policy
+    source_rule: K-VOICE-004
   - persistence: provider_persistent
     enum_name: VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT
     enum_value: 1
@@ -41,6 +56,11 @@ persistence_types:
     source_rule: K-VOICE-004
 
 asset_statuses:
+  - status: UNSPECIFIED
+    enum_name: VOICE_ASSET_STATUS_UNSPECIFIED
+    enum_value: 0
+    description: proto zero sentinel for unset voice asset status
+    source_rule: K-VOICE-004
   - status: ACTIVE
     enum_name: VOICE_ASSET_STATUS_ACTIVE
     enum_value: 1

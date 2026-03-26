@@ -13,6 +13,8 @@
 - `video.generate`
 - `audio.synthesize`
 - `audio.transcribe`
+- `music.generate`
+- `music.generate.iteration`
 - `voice_workflow.tts_v2v`
 - `voice_workflow.tts_t2v`
 
@@ -55,6 +57,8 @@
 
 | Canonical Token | Note |
 |---|---|
+| `music.generate` | Music generation remains provider-routed; no Phase 1 local manifest token exists |
+| `music.generate.iteration` | Iterative music generation remains provider-routed; no Phase 1 local manifest token exists |
 | `voice_workflow.tts_v2v` | Voice-to-voice workflow; requires orchestrated pipeline, not single-model local execution |
 | `voice_workflow.tts_t2v` | Text-to-voice workflow; requires orchestrated pipeline, not single-model local execution |
 

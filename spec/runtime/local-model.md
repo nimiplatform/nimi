@@ -6,7 +6,7 @@
 ## 0. 权威导入
 
 - `kernel/rpc-surface.md`（K-RPC-002）
-- `kernel/local-category-capability.md`（category/capability：K-LOCAL-001~004；install/lifecycle：K-LOCAL-005~006, K-LOCAL-009~016；三层抽象与绑定：K-LOCAL-007~008；adapter/routing：K-LOCAL-017~020；catalog/search：K-LOCAL-011, K-LOCAL-021~028；health recovery：K-LOCAL-022；audit/pagination：K-LOCAL-029~030）
+- `kernel/local-category-capability.md`（category/capability：K-LOCAL-001~004；install/lifecycle：K-LOCAL-005~006, K-LOCAL-009~016；三层抽象与绑定：K-LOCAL-007~008；adapter/routing：K-LOCAL-017~020；catalog/search：K-LOCAL-011, K-LOCAL-014a, K-LOCAL-021a~021e, K-LOCAL-021~028；health recovery：K-LOCAL-022；audit/pagination：K-LOCAL-029~030）
 - `kernel/local-engine-contract.md`（K-LENG-001, K-LENG-011）
 - `kernel/device-profile-contract.md`（K-DEV-001）
 - `kernel/streaming-contract.md`（K-STREAM-002, K-STREAM-003）

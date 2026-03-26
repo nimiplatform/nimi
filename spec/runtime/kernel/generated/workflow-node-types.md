@@ -4,6 +4,7 @@
 > Source: `spec/runtime/kernel/tables/workflow-node-types.yaml`
 | Type | Enum Value | Category | Config | Source |
 |---|---:|---|---|---|
+| `UNSPECIFIED` | 0 | `control` | `—` | `K-WF-002` |
 | `AI_GENERATE` | 1 | `ai` | `AiGenerateNodeConfig` | `K-WF-002` |
 | `AI_STREAM` | 2 | `ai` | `AiStreamNodeConfig` | `K-WF-002` |
 | `AI_EMBED` | 3 | `ai` | `AiEmbedNodeConfig` | `K-WF-002` |

@@ -25,7 +25,7 @@
 
 本文件是“AI Agent 安全调用接口”主题的薄域导引。  
 安全主张、授权语义、执行约束、审计字段的规范定义以 kernel Rule 为权威，本文件仅提供映射与阅读顺序。
-对外说明主文档见：`docs/architecture/ai-agent-security-interface.md`。
+对外说明主文档见：`nimi/docs/architecture/ai-agent-security-interface.md`。
 
 ## 2. 安全主张到 Rule ID 映射
 

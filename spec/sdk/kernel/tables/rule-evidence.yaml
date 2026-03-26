@@ -111,6 +111,7 @@ rules:
   - rule_id: S-BOUNDARY-006
     status: covered
     evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    note: "Behavioral coverage is inherited through runtime projection tests; this rule has no dedicated standalone test file"
 
   # --- Error Projection (S-ERROR) ---
   - rule_id: S-ERROR-001

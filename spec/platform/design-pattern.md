@@ -1,5 +1,7 @@
 # Design Pattern
 
+> Domain: Platform / Design Pattern
+
 ## 0. Normative Imports
 
 - `P-DESIGN-001`, `P-DESIGN-002`, `P-DESIGN-003`, `P-DESIGN-004`, `P-DESIGN-005`, `P-DESIGN-006`, `P-DESIGN-007`, `P-DESIGN-008` from `kernel/design-pattern-contract.md`

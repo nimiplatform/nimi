@@ -50,17 +50,7 @@ Voice 工作流类型以 `tables/voice-enums.yaml` `workflow_types` 为唯一事
 
 ## K-VOICE-005 Voice ScenarioJob Lifecycle
 
-Voice 创建必须使用异步 `ScenarioJob` 语义。状态机固定为：
-
-- `SUBMITTED`
-- `QUEUED`
-- `RUNNING`
-- `COMPLETED`
-- `FAILED`
-- `CANCELED`
-- `TIMEOUT`
-
-事件流 `SubscribeScenarioJobEvents` 的事件状态必须与 Job 状态对齐。
+Voice 创建必须使用异步 `ScenarioJob` 语义。状态机与事件流对齐规则以 `K-JOB-002` 为唯一事实源；Voice 不在本合同重复定义一份并行 job 状态表。
 
 ## K-VOICE-006 Tenant Isolation
 

@@ -113,7 +113,7 @@ Gemini 默认：当配置了 `NIMI_RUNTIME_CLOUD_GEMINI_API_KEY` 且未配置 Ba
 | `cloud-nimillm` | `nimillm` | NimiLLM 代理层 |
 | `cloud-dashscope` | `dashscope` | 阿里云 DashScope |
 | `cloud-volcengine` | `volcengine` | 字节跳动火山引擎 |
-| `cloud-volcengine-openspeech` | `volcengine` | 字节跳动开放语音 |
+| `cloud-volcengine-openspeech` | `volcengine_openspeech` | 字节跳动开放语音 |
 | `cloud-gemini` | `gemini` | Google Gemini |
 | `cloud-minimax` | `minimax` | MiniMax |
 | `cloud-kimi` | `kimi` | Moonshot Kimi |
