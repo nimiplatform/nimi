@@ -75,7 +75,7 @@ const EMPTY_WORLD_SEMANTIC: WorldSemanticData = {
 const EMPTY_WORLD_PUBLIC_ASSETS: WorldPublicAssetsData = {
   lorebooks: [],
   scenes: [],
-  resourceBindings: [],
+  bindings: [],
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {

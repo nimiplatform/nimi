@@ -11,7 +11,7 @@ import type { DataSyncApiConfig, FetchImpl } from './api-core';
 import type {
   WorldHistoryPayload,
   WorldLorebookListPayload,
-  WorldResourceBindingListPayload,
+  WorldBindingListPayload,
 } from './flows/world-flow';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
@@ -306,7 +306,7 @@ export class DataSync {
   }
   loadWorldHistory(worldId: string): Promise<WorldHistoryPayload> { return this.actions.loadWorldHistory(worldId); }
   loadWorldLorebooks(worldId: string): Promise<WorldLorebookListPayload> { return this.actions.loadWorldLorebooks(worldId); }
-  loadWorldResourceBindings(worldId: string): Promise<WorldResourceBindingListPayload> { return this.actions.loadWorldResourceBindings(worldId); }
+  loadWorldBindings(worldId: string): Promise<WorldBindingListPayload> { return this.actions.loadWorldBindings(worldId); }
   startWorldTransit(input: {
     agentId: string;
     fromWorldId?: string;

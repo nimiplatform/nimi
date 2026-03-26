@@ -820,23 +820,6 @@ export type paths = {
         patch: operations["updateBundle"];
         trace?: never;
     };
-    "/api/bundles/{bundleId}/acquire": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Acquire bundle */
-        post: operations["acquireBundle"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/bundles/{bundleId}/archive": {
         parameters: {
             query?: never;
@@ -2771,6 +2754,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/world/by-id/{id}/bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List public world bindings */
+        get: operations["WorldController_getWorldBindings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/world/by-id/{id}/detail-with-agents": {
         parameters: {
             query?: never;
@@ -2831,23 +2831,6 @@ export type paths = {
         };
         /** List public world lorebooks */
         get: operations["WorldController_getWorldLorebooks"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/world/by-id/{id}/resource-bindings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List public world resource bindings */
-        get: operations["WorldController_getWorldResourceBindings"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3321,6 +3304,41 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/worlds/{worldId}/bindings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List world bindings */
+        get: operations["WorldControlController_listWorldBindings"];
+        put?: never;
+        /** Batch upsert world bindings */
+        post: operations["WorldControlController_batchUpsertWorldBindings"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/worlds/{worldId}/bindings/{bindingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete world binding */
+        delete: operations["WorldControlController_deleteWorldBinding"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/worlds/{worldId}/history": {
         parameters: {
             query?: never;
@@ -3367,41 +3385,6 @@ export type paths = {
         put?: never;
         post?: never;
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/resource-bindings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List world resource bindings */
-        get: operations["WorldControlController_listWorldResourceBindings"];
-        put?: never;
-        /** Batch upsert world resource bindings */
-        post: operations["WorldControlController_batchUpsertWorldResourceBindings"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/worlds/{worldId}/resource-bindings/{bindingId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete world resource binding */
-        delete: operations["WorldControlController_deleteWorldResourceBinding"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3726,7 +3709,6 @@ export type components = {
             reason?: string;
         };
         AssetDetailDto: {
-            allowedBindingTargets: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
             authorId: string;
             /** @enum {string} */
             clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -3749,6 +3731,7 @@ export type components = {
             /** @enum {string} */
             transferPolicy: "ALLOW" | "DENY" | "INHERIT";
             updatedAt: string;
+            usePolicy?: components["schemas"]["UsePolicyDto"] | null;
         };
         AssetListDto: {
             items: components["schemas"]["AssetDetailDto"][];
@@ -3810,8 +3793,8 @@ export type components = {
             created: components["schemas"]["BatchCreateAgentCreatedDto"][];
             failed: components["schemas"]["BatchCreateAgentFailedDto"][];
         };
-        BatchUpsertWorldResourceBindingsDto: {
-            bindingUpserts: components["schemas"]["WorldResourceBindingUpsertDto"][];
+        BatchUpsertBindingsDto: {
+            bindingUpserts: components["schemas"]["BindingUpsertDto"][];
         };
         BindEmailDto: {
             email: string;
@@ -3819,24 +3802,87 @@ export type components = {
             emailOtpCode: string;
             password: string;
         };
+        BindingDetailDto: {
+            /** @enum {string} */
+            bindingKind: "PRESENTATION" | "USE" | "IMPORT";
+            /** @enum {string|null} */
+            bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
+            conditionHash: string;
+            conditions?: {
+                [key: string]: string;
+            };
+            createdAt: string;
+            createdBy: string;
+            hostId: string;
+            /** @enum {string} */
+            hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
+            id: string;
+            intentPrompt?: string;
+            objectId: string;
+            /** @enum {string} */
+            objectType: "RESOURCE" | "ASSET" | "BUNDLE";
+            priority: number;
+            resource?: components["schemas"]["BindingResourceDetailDto"] | null;
+            scopeWorldId: string;
+            tags: string[];
+            updatedAt: string;
+            versionPin?: string | null;
+        };
+        BindingListDto: {
+            items: components["schemas"]["BindingDetailDto"][];
+            worldId: string;
+        };
+        BindingResourceDetailDto: {
+            durationSec?: number;
+            hashSha256?: string;
+            height?: number;
+            id: string;
+            label?: string;
+            mimeType?: string;
+            /** @enum {string} */
+            provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
+            /** @enum {string} */
+            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
+            /** @enum {string} */
+            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
+            sizeBytes?: number;
+            sourceRef?: string;
+            storageRef: string;
+            tags: string[];
+            url: string;
+            width?: number;
+        };
+        BindingUpsertDto: {
+            /** @enum {string} */
+            bindingKind: "PRESENTATION" | "USE" | "IMPORT";
+            /** @enum {string|null} */
+            bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
+            conditions?: {
+                [key: string]: string;
+            };
+            hostId: string;
+            /** @enum {string} */
+            hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
+            intentPrompt?: string;
+            objectId: string;
+            /** @enum {string} */
+            objectType: "RESOURCE" | "ASSET" | "BUNDLE";
+            priority?: number;
+            tags?: string[];
+            versionPin?: string | null;
+        };
         BlockUserBodyDto: {
             reason?: string;
         };
-        BundleAcquisitionDto: {
-            accountId: string;
-            createdAt: string;
-        };
         BundleDetailDto: {
-            acquisitions: components["schemas"]["BundleAcquisitionDto"][];
             compatibleApps: string[];
             coverAssetId: string;
             createdAt: string;
             description: string;
             id: string;
-            importTargets: string[];
+            importPolicy?: components["schemas"]["ImportPolicyDto"] | null;
             members: components["schemas"]["BundleMemberDto"][];
             ownerId: string;
-            price: string;
             /** @enum {string} */
             status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
             tags: string[];
@@ -3972,7 +4018,6 @@ export type components = {
             name: string;
         };
         CloneAssetDto: {
-            allowedBindingTargets?: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
             /** @enum {string} */
             clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
             ownerId?: string;
@@ -3980,6 +4025,7 @@ export type components = {
             status?: "DRAFT" | "READY" | "ARCHIVED" | "DELETED";
             /** @enum {string} */
             transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
+            usePolicy?: components["schemas"]["UsePolicyDto"] | null;
         };
         CommitAgentMemoryDto: {
             commit: components["schemas"]["AgentMemoryCommitEnvelopeDto"];
@@ -4098,7 +4144,6 @@ export type components = {
             type: components["schemas"]["ApiKeyType"];
         };
         CreateAssetDto: {
-            allowedBindingTargets?: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
             authorId?: string;
             /** @enum {string} */
             clonePolicy: "ALLOW" | "DENY" | "INHERIT";
@@ -4118,6 +4163,7 @@ export type components = {
             };
             /** @enum {string} */
             transferPolicy: "ALLOW" | "DENY" | "INHERIT";
+            usePolicy?: components["schemas"]["UsePolicyDto"] | null;
         };
         CreateAudioDirectUploadDto: {
             agentId?: string;
@@ -4153,9 +4199,8 @@ export type components = {
             compatibleApps?: string[];
             coverAssetId: string;
             description: string;
-            importTargets?: string[];
+            importPolicy?: components["schemas"]["ImportPolicyDto"] | null;
             memberAssetIds: string[];
-            price?: string;
             /** @enum {string} */
             status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
             tags?: string[];
@@ -4678,6 +4723,9 @@ export type components = {
             importance?: string;
             term: string;
         };
+        ImportPolicyDto: {
+            allowedHostTypes: "WORLD"[];
+        };
         InvitationCodeResponseDto: {
             code: string;
             /** Format: date-time */
@@ -5016,6 +5064,34 @@ export type components = {
         };
         /** @enum {string} */
         PresenceStatus: "online" | "invisible";
+        PublicBindingDto: {
+            /** @enum {string} */
+            bindingKind: "PRESENTATION" | "USE" | "IMPORT";
+            /** @enum {string|null} */
+            bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE" | null;
+            hostId: string;
+            /** @enum {string} */
+            hostType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
+            id: string;
+            objectId: string;
+            /** @enum {string} */
+            objectType: "RESOURCE" | "ASSET" | "BUNDLE";
+            priority: number;
+            resource?: components["schemas"]["PublicBindingResourceDto"] | null;
+            tags: string[];
+            versionPin?: string | null;
+        };
+        PublicBindingListDto: {
+            items: components["schemas"]["PublicBindingDto"][];
+            worldId: string;
+        };
+        PublicBindingResourceDto: {
+            id: string;
+            label?: string;
+            /** @enum {string} */
+            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
+            url: string;
+        };
         PublicFilterDto: {
             minViewerAssetTier?: number;
             minViewerInfluenceTier?: number;
@@ -5066,28 +5142,6 @@ export type components = {
         PublicWorldLorebookListDto: {
             items: components["schemas"]["PublicWorldLorebookDto"][];
             worldId: string;
-        };
-        PublicWorldResourceBindingDto: {
-            id: string;
-            priority: number;
-            resource: components["schemas"]["PublicWorldResourceDto"];
-            /** @enum {string} */
-            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
-            tags: string[];
-            targetId: string;
-            /** @enum {string} */
-            targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-        };
-        PublicWorldResourceBindingListDto: {
-            items: components["schemas"]["PublicWorldResourceBindingDto"][];
-            worldId: string;
-        };
-        PublicWorldResourceDto: {
-            id: string;
-            label?: string;
-            /** @enum {string} */
-            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
-            url: string;
         };
         PublishWorldDraftDto: {
             reason?: string;
@@ -5185,24 +5239,6 @@ export type components = {
         ResourceCostDto: {
             amount: number;
             type: string;
-        };
-        ResourceCreateDto: {
-            durationSec?: number;
-            hashSha256?: string;
-            height?: number;
-            label?: string;
-            mimeType?: string;
-            /** @enum {string} */
-            provenance?: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
-            /** @enum {string} */
-            provider?: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
-            /** @enum {string} */
-            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
-            sizeBytes?: number;
-            sourceRef?: string;
-            storageRef: string;
-            tags?: string[];
-            width?: number;
         };
         ResourceDefinitionDto: {
             acquisitionRules?: components["schemas"]["ResourceAcquisitionRuleDto"][];
@@ -5638,7 +5674,6 @@ export type components = {
             profileVisibility?: components["schemas"]["Visibility"];
         };
         UpdateAssetDto: {
-            allowedBindingTargets?: ("WORLD" | "AGENT" | "SCENE" | "WORKSPACE")[];
             /** @enum {string} */
             clonePolicy?: "ALLOW" | "DENY" | "INHERIT";
             previewResourceId?: string | null;
@@ -5650,14 +5685,14 @@ export type components = {
             };
             /** @enum {string} */
             transferPolicy?: "ALLOW" | "DENY" | "INHERIT";
+            usePolicy?: components["schemas"]["UsePolicyDto"] | null;
         };
         UpdateBundleDto: {
             compatibleApps?: string[];
             coverAssetId: string;
             description: string;
-            importTargets?: string[];
+            importPolicy?: components["schemas"]["ImportPolicyDto"] | null;
             memberAssetIds: string[];
-            price?: string;
             /** @enum {string} */
             status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
             tags?: string[];
@@ -5804,6 +5839,10 @@ export type components = {
             title?: string;
             validFrom?: string;
             validUntil?: string;
+        };
+        UsePolicyDto: {
+            allowedBindingPoints?: ("WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE")[];
+            allowedHostTypes: ("WORLD" | "AGENT" | "SCENE")[];
         };
         UserAgentAppearanceDto: {
             artStyle?: string;
@@ -6568,66 +6607,6 @@ export type components = {
             /** @enum {string} */
             importance: "PRIMARY" | "SECONDARY" | "BACKGROUND";
             name: string;
-        };
-        WorldResourceBindingDetailDto: {
-            conditionHash: string;
-            conditions?: {
-                [key: string]: string;
-            };
-            createdAt: string;
-            createdBy: string;
-            id: string;
-            intentPrompt?: string;
-            priority: number;
-            resource: components["schemas"]["WorldResourceDetailDto"];
-            resourceId: string;
-            scopeWorldId: string;
-            /** @enum {string} */
-            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
-            tags: string[];
-            targetId: string;
-            /** @enum {string} */
-            targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-            updatedAt: string;
-        };
-        WorldResourceBindingListDto: {
-            items: components["schemas"]["WorldResourceBindingDetailDto"][];
-            worldId: string;
-        };
-        WorldResourceBindingUpsertDto: {
-            conditions?: {
-                [key: string]: string;
-            };
-            intentPrompt?: string;
-            priority?: number;
-            resource?: components["schemas"]["ResourceCreateDto"];
-            resourceId?: string;
-            /** @enum {string} */
-            slot: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
-            tags?: string[];
-            targetId: string;
-            /** @enum {string} */
-            targetType: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-        };
-        WorldResourceDetailDto: {
-            durationSec?: number;
-            hashSha256?: string;
-            height?: number;
-            id: string;
-            label?: string;
-            mimeType?: string;
-            /** @enum {string} */
-            provenance: "UPLOADED" | "GENERATED" | "IMPORTED" | "REFERENCE";
-            /** @enum {string} */
-            provider: "CF_IMAGE" | "CF_STREAM" | "S3_OBJECT" | "EXTERNAL_URL";
-            /** @enum {string} */
-            resourceType: "IMAGE" | "VIDEO" | "AUDIO" | "TEXT";
-            sizeBytes?: number;
-            sourceRef?: string;
-            storageRef: string;
-            tags: string[];
-            url: string;
-            width?: number;
         };
         WorldRuleDto: {
             /** @enum {string} */
@@ -8096,27 +8075,6 @@ export interface operations {
                 "application/json": components["schemas"]["UpdateBundleDto"];
             };
         };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BundleDetailDto"];
-                };
-            };
-        };
-    };
-    acquireBundle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                bundleId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -11096,6 +11054,28 @@ export interface operations {
             };
         };
     };
+    WorldController_getWorldBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicBindingListDto"];
+                };
+            };
+        };
+    };
     WorldController_getWorldDetailWithAgents: {
         parameters: {
             query?: {
@@ -11184,28 +11164,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PublicWorldLorebookListDto"];
-                };
-            };
-        };
-    };
-    WorldController_getWorldResourceBindings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PublicWorldResourceBindingListDto"];
                 };
             };
         };
@@ -11999,6 +11957,84 @@ export interface operations {
             };
         };
     };
+    WorldControlController_listWorldBindings: {
+        parameters: {
+            query?: {
+                take?: number;
+                bindingPoint?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
+                bindingKind?: "PRESENTATION" | "USE" | "IMPORT";
+                hostId?: string;
+                hostType?: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
+                objectId?: string;
+                objectType?: "RESOURCE" | "ASSET" | "BUNDLE";
+            };
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BindingListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_batchUpsertWorldBindings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchUpsertBindingsDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BindingListDto"];
+                };
+            };
+        };
+    };
+    WorldControlController_deleteWorldBinding: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Binding ID */
+                bindingId: string;
+                /** @description World ID */
+                worldId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     WorldControlController_listWorldHistory: {
         parameters: {
             query?: never;
@@ -12066,81 +12102,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WorldLorebookListDto"];
                 };
-            };
-        };
-    };
-    WorldControlController_listWorldResourceBindings: {
-        parameters: {
-            query?: {
-                take?: number;
-                slot?: "WORLD_ICON" | "WORLD_BANNER" | "WORLD_GALLERY" | "WORLD_THEME_AUDIO" | "WORLD_TRAILER_VIDEO" | "SCENE_BACKGROUND" | "SCENE_AMBIENT_AUDIO" | "EVENT_CG" | "WORLDVIEW_REFERENCE" | "AGENT_AVATAR" | "AGENT_PORTRAIT" | "AGENT_EXPRESSION" | "AGENT_OUTFIT" | "AGENT_CANDIDATE" | "AGENT_VOICE_SAMPLE";
-                targetId?: string;
-                targetType?: "WORLD" | "AGENT" | "SCENE" | "WORLD_EVENT" | "WORLDVIEW";
-            };
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldResourceBindingListDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_batchUpsertWorldResourceBindings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BatchUpsertWorldResourceBindingsDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorldResourceBindingListDto"];
-                };
-            };
-        };
-    };
-    WorldControlController_deleteWorldResourceBinding: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Resource binding ID */
-                bindingId: string;
-                /** @description World ID */
-                worldId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };

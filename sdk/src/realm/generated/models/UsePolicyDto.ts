@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type WorldResourceBindingUpsertDto = components['schemas']['WorldResourceBindingUpsertDto'];
+export type UsePolicyDto = components['schemas']['UsePolicyDto'];

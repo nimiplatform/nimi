@@ -46,10 +46,13 @@ export type RealmGeneratedModelMap = {
   BatchCreateAgentFailedDto: components['schemas']['BatchCreateAgentFailedDto'];
   BatchCreateAgentsRequestDto: components['schemas']['BatchCreateAgentsRequestDto'];
   BatchCreateAgentsResponseDto: components['schemas']['BatchCreateAgentsResponseDto'];
-  BatchUpsertWorldResourceBindingsDto: components['schemas']['BatchUpsertWorldResourceBindingsDto'];
+  BatchUpsertBindingsDto: components['schemas']['BatchUpsertBindingsDto'];
   BindEmailDto: components['schemas']['BindEmailDto'];
+  BindingDetailDto: components['schemas']['BindingDetailDto'];
+  BindingListDto: components['schemas']['BindingListDto'];
+  BindingResourceDetailDto: components['schemas']['BindingResourceDetailDto'];
+  BindingUpsertDto: components['schemas']['BindingUpsertDto'];
   BlockUserBodyDto: components['schemas']['BlockUserBodyDto'];
-  BundleAcquisitionDto: components['schemas']['BundleAcquisitionDto'];
   BundleDetailDto: components['schemas']['BundleDetailDto'];
   BundleListDto: components['schemas']['BundleListDto'];
   BundleMemberDto: components['schemas']['BundleMemberDto'];
@@ -138,6 +141,7 @@ export type RealmGeneratedModelMap = {
   GiftTransactionDto: components['schemas']['GiftTransactionDto'];
   GiftTransactionRichDto: components['schemas']['GiftTransactionRichDto'];
   GlossaryTermDto: components['schemas']['GlossaryTermDto'];
+  ImportPolicyDto: components['schemas']['ImportPolicyDto'];
   InvitationCodeResponseDto: components['schemas']['InvitationCodeResponseDto'];
   InvitationCodeUsedByAccountDto: components['schemas']['InvitationCodeUsedByAccountDto'];
   ListChatsResultDto: components['schemas']['ListChatsResultDto'];
@@ -182,14 +186,14 @@ export type RealmGeneratedModelMap = {
   PPSlotConfigResponseDto: components['schemas']['PPSlotConfigResponseDto'];
   PPSlotItemDto: components['schemas']['PPSlotItemDto'];
   PresenceStatus: components['schemas']['PresenceStatus'];
+  PublicBindingDto: components['schemas']['PublicBindingDto'];
+  PublicBindingListDto: components['schemas']['PublicBindingListDto'];
+  PublicBindingResourceDto: components['schemas']['PublicBindingResourceDto'];
   PublicFilterDto: components['schemas']['PublicFilterDto'];
   PublicWorldHistoryEventDto: components['schemas']['PublicWorldHistoryEventDto'];
   PublicWorldHistoryListDto: components['schemas']['PublicWorldHistoryListDto'];
   PublicWorldLorebookDto: components['schemas']['PublicWorldLorebookDto'];
   PublicWorldLorebookListDto: components['schemas']['PublicWorldLorebookListDto'];
-  PublicWorldResourceBindingDto: components['schemas']['PublicWorldResourceBindingDto'];
-  PublicWorldResourceBindingListDto: components['schemas']['PublicWorldResourceBindingListDto'];
-  PublicWorldResourceDto: components['schemas']['PublicWorldResourceDto'];
   PublishWorldDraftDto: components['schemas']['PublishWorldDraftDto'];
   PublishWorldDraftResultDto: components['schemas']['PublishWorldDraftResultDto'];
   ReceivedGiftsResponseDto: components['schemas']['ReceivedGiftsResponseDto'];
@@ -204,7 +208,6 @@ export type RealmGeneratedModelMap = {
   ResourceAcquisitionRuleDto: components['schemas']['ResourceAcquisitionRuleDto'];
   ResourceConsumptionRuleDto: components['schemas']['ResourceConsumptionRuleDto'];
   ResourceCostDto: components['schemas']['ResourceCostDto'];
-  ResourceCreateDto: components['schemas']['ResourceCreateDto'];
   ResourceDefinitionDto: components['schemas']['ResourceDefinitionDto'];
   ResourceDetailDto: components['schemas']['ResourceDetailDto'];
   ResourceDirectUploadSessionDto: components['schemas']['ResourceDirectUploadSessionDto'];
@@ -269,6 +272,7 @@ export type RealmGeneratedModelMap = {
   UpdateUserSettingsDto: components['schemas']['UpdateUserSettingsDto'];
   UpdateWorldDraftDto: components['schemas']['UpdateWorldDraftDto'];
   UpdateWorldRuleDto: components['schemas']['UpdateWorldRuleDto'];
+  UsePolicyDto: components['schemas']['UsePolicyDto'];
   UserAgentAppearanceDto: components['schemas']['UserAgentAppearanceDto'];
   UserAgentBiologicalDto: components['schemas']['UserAgentBiologicalDto'];
   UserAgentCommunicationDto: components['schemas']['UserAgentCommunicationDto'];
@@ -339,10 +343,6 @@ export type RealmGeneratedModelMap = {
   WorldLorebookDetailDto: components['schemas']['WorldLorebookDetailDto'];
   WorldLorebookListDto: components['schemas']['WorldLorebookListDto'];
   WorldRecommendedAgentDto: components['schemas']['WorldRecommendedAgentDto'];
-  WorldResourceBindingDetailDto: components['schemas']['WorldResourceBindingDetailDto'];
-  WorldResourceBindingListDto: components['schemas']['WorldResourceBindingListDto'];
-  WorldResourceBindingUpsertDto: components['schemas']['WorldResourceBindingUpsertDto'];
-  WorldResourceDetailDto: components['schemas']['WorldResourceDetailDto'];
   WorldRuleDto: components['schemas']['WorldRuleDto'];
   WorldRuleItemDto: components['schemas']['WorldRuleItemDto'];
   WorldStateDto: components['schemas']['WorldStateDto'];

@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type BundleAcquisitionDto = components['schemas']['BundleAcquisitionDto'];
+export type BatchUpsertBindingsDto = components['schemas']['BatchUpsertBindingsDto'];

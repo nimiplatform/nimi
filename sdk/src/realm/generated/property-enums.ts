@@ -121,15 +121,6 @@ export const AgentRuleStatus = {
 
 export type AgentRuleStatus = (typeof AgentRuleStatus)[keyof typeof AgentRuleStatus];
 
-export const AssetDetailAllowedBindingTargetsItem = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORKSPACE: "WORKSPACE",
-} as const satisfies Record<string, (NonNullable<components['schemas']['AssetDetailDto']['allowedBindingTargets']> extends ReadonlyArray<infer Item> ? Item : never)>;
-
-export type AssetDetailAllowedBindingTargetsItem = (typeof AssetDetailAllowedBindingTargetsItem)[keyof typeof AssetDetailAllowedBindingTargetsItem];
-
 export const AssetDetailClonePolicy = {
   ALLOW: "ALLOW",
   DENY: "DENY",
@@ -177,6 +168,125 @@ export const BatchCreateAgentCreatedOwnershipType = {
 
 export type BatchCreateAgentCreatedOwnershipType = (typeof BatchCreateAgentCreatedOwnershipType)[keyof typeof BatchCreateAgentCreatedOwnershipType];
 
+export const BindingDetailBindingKind = {
+  PRESENTATION: "PRESENTATION",
+  USE: "USE",
+  IMPORT: "IMPORT",
+} as const satisfies Record<string, components['schemas']['BindingDetailDto']['bindingKind']>;
+
+export type BindingDetailBindingKind = (typeof BindingDetailBindingKind)[keyof typeof BindingDetailBindingKind];
+
+export const BindingDetailBindingPoint = {
+  WORLD_ICON: "WORLD_ICON",
+  WORLD_BANNER: "WORLD_BANNER",
+  WORLD_GALLERY: "WORLD_GALLERY",
+  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
+  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
+  SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
+  EVENT_CG: "EVENT_CG",
+  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
+  AGENT_AVATAR: "AGENT_AVATAR",
+  AGENT_PORTRAIT: "AGENT_PORTRAIT",
+  AGENT_EXPRESSION: "AGENT_EXPRESSION",
+  AGENT_OUTFIT: "AGENT_OUTFIT",
+  AGENT_CANDIDATE: "AGENT_CANDIDATE",
+  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
+} as const satisfies Record<string, components['schemas']['BindingDetailDto']['bindingPoint']>;
+
+export type BindingDetailBindingPoint = (typeof BindingDetailBindingPoint)[keyof typeof BindingDetailBindingPoint];
+
+export const BindingDetailHostType = {
+  WORLD: "WORLD",
+  AGENT: "AGENT",
+  SCENE: "SCENE",
+  WORLD_EVENT: "WORLD_EVENT",
+  WORLDVIEW: "WORLDVIEW",
+} as const satisfies Record<string, components['schemas']['BindingDetailDto']['hostType']>;
+
+export type BindingDetailHostType = (typeof BindingDetailHostType)[keyof typeof BindingDetailHostType];
+
+export const BindingDetailObjectType = {
+  RESOURCE: "RESOURCE",
+  ASSET: "ASSET",
+  BUNDLE: "BUNDLE",
+} as const satisfies Record<string, components['schemas']['BindingDetailDto']['objectType']>;
+
+export type BindingDetailObjectType = (typeof BindingDetailObjectType)[keyof typeof BindingDetailObjectType];
+
+export const BindingResourceDetailProvenance = {
+  UPLOADED: "UPLOADED",
+  GENERATED: "GENERATED",
+  IMPORTED: "IMPORTED",
+  REFERENCE: "REFERENCE",
+} as const satisfies Record<string, components['schemas']['BindingResourceDetailDto']['provenance']>;
+
+export type BindingResourceDetailProvenance = (typeof BindingResourceDetailProvenance)[keyof typeof BindingResourceDetailProvenance];
+
+export const BindingResourceDetailProvider = {
+  CF_IMAGE: "CF_IMAGE",
+  CF_STREAM: "CF_STREAM",
+  S3_OBJECT: "S3_OBJECT",
+  EXTERNAL_URL: "EXTERNAL_URL",
+} as const satisfies Record<string, components['schemas']['BindingResourceDetailDto']['provider']>;
+
+export type BindingResourceDetailProvider = (typeof BindingResourceDetailProvider)[keyof typeof BindingResourceDetailProvider];
+
+export const BindingResourceDetailResourceType = {
+  IMAGE: "IMAGE",
+  VIDEO: "VIDEO",
+  AUDIO: "AUDIO",
+  TEXT: "TEXT",
+} as const satisfies Record<string, components['schemas']['BindingResourceDetailDto']['resourceType']>;
+
+export type BindingResourceDetailResourceType = (typeof BindingResourceDetailResourceType)[keyof typeof BindingResourceDetailResourceType];
+
+export const BindingUpsertBindingKind = {
+  PRESENTATION: "PRESENTATION",
+  USE: "USE",
+  IMPORT: "IMPORT",
+} as const satisfies Record<string, components['schemas']['BindingUpsertDto']['bindingKind']>;
+
+export type BindingUpsertBindingKind = (typeof BindingUpsertBindingKind)[keyof typeof BindingUpsertBindingKind];
+
+export const BindingUpsertBindingPoint = {
+  WORLD_ICON: "WORLD_ICON",
+  WORLD_BANNER: "WORLD_BANNER",
+  WORLD_GALLERY: "WORLD_GALLERY",
+  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
+  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
+  SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
+  EVENT_CG: "EVENT_CG",
+  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
+  AGENT_AVATAR: "AGENT_AVATAR",
+  AGENT_PORTRAIT: "AGENT_PORTRAIT",
+  AGENT_EXPRESSION: "AGENT_EXPRESSION",
+  AGENT_OUTFIT: "AGENT_OUTFIT",
+  AGENT_CANDIDATE: "AGENT_CANDIDATE",
+  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
+} as const satisfies Record<string, components['schemas']['BindingUpsertDto']['bindingPoint']>;
+
+export type BindingUpsertBindingPoint = (typeof BindingUpsertBindingPoint)[keyof typeof BindingUpsertBindingPoint];
+
+export const BindingUpsertHostType = {
+  WORLD: "WORLD",
+  AGENT: "AGENT",
+  SCENE: "SCENE",
+  WORLD_EVENT: "WORLD_EVENT",
+  WORLDVIEW: "WORLDVIEW",
+} as const satisfies Record<string, components['schemas']['BindingUpsertDto']['hostType']>;
+
+export type BindingUpsertHostType = (typeof BindingUpsertHostType)[keyof typeof BindingUpsertHostType];
+
+export const BindingUpsertObjectType = {
+  RESOURCE: "RESOURCE",
+  ASSET: "ASSET",
+  BUNDLE: "BUNDLE",
+} as const satisfies Record<string, components['schemas']['BindingUpsertDto']['objectType']>;
+
+export type BindingUpsertObjectType = (typeof BindingUpsertObjectType)[keyof typeof BindingUpsertObjectType];
+
 export const BundleDetailStatus = {
   DRAFT: "DRAFT",
   PUBLISHED: "PUBLISHED",
@@ -199,15 +309,6 @@ export const ChatSyncMode = {
 } as const satisfies Record<string, components['schemas']['ChatSyncResultDto']['mode']>;
 
 export type ChatSyncMode = (typeof ChatSyncMode)[keyof typeof ChatSyncMode];
-
-export const CloneAssetAllowedBindingTargetsItem = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORKSPACE: "WORKSPACE",
-} as const satisfies Record<string, (NonNullable<components['schemas']['CloneAssetDto']['allowedBindingTargets']> extends ReadonlyArray<infer Item> ? Item : never)>;
-
-export type CloneAssetAllowedBindingTargetsItem = (typeof CloneAssetAllowedBindingTargetsItem)[keyof typeof CloneAssetAllowedBindingTargetsItem];
 
 export const CloneAssetClonePolicy = {
   ALLOW: "ALLOW",
@@ -287,15 +388,6 @@ export const CreateAgentRuleScope = {
 } as const satisfies Record<string, components['schemas']['CreateAgentRuleDto']['scope']>;
 
 export type CreateAgentRuleScope = (typeof CreateAgentRuleScope)[keyof typeof CreateAgentRuleScope];
-
-export const CreateAssetAllowedBindingTargetsItem = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORKSPACE: "WORKSPACE",
-} as const satisfies Record<string, (NonNullable<components['schemas']['CreateAssetDto']['allowedBindingTargets']> extends ReadonlyArray<infer Item> ? Item : never)>;
-
-export type CreateAssetAllowedBindingTargetsItem = (typeof CreateAssetAllowedBindingTargetsItem)[keyof typeof CreateAssetAllowedBindingTargetsItem];
 
 export const CreateAssetClonePolicy = {
   ALLOW: "ALLOW",
@@ -558,6 +650,12 @@ export const FinalizeResourceDeliveryAccess = {
 
 export type FinalizeResourceDeliveryAccess = (typeof FinalizeResourceDeliveryAccess)[keyof typeof FinalizeResourceDeliveryAccess];
 
+export const ImportPolicyAllowedHostTypesItem = {
+  WORLD: "WORLD",
+} as const satisfies Record<string, (NonNullable<components['schemas']['ImportPolicyDto']['allowedHostTypes']> extends ReadonlyArray<infer Item> ? Item : never)>;
+
+export type ImportPolicyAllowedHostTypesItem = (typeof ImportPolicyAllowedHostTypesItem)[keyof typeof ImportPolicyAllowedHostTypesItem];
+
 export const MutationCommitEnvelopeEffectClass = {
   NONE: "NONE",
   MEMORY_ONLY: "MEMORY_ONLY",
@@ -602,15 +700,33 @@ export const PermissionCheckAction = {
 
 export type PermissionCheckAction = (typeof PermissionCheckAction)[keyof typeof PermissionCheckAction];
 
-export const PublicWorldHistoryEventVisibility = {
-  PUBLIC: "PUBLIC",
+export const PublicBindingHostType = {
   WORLD: "WORLD",
-  RESTRICTED: "RESTRICTED",
-} as const satisfies Record<string, components['schemas']['PublicWorldHistoryEventDto']['visibility']>;
+  AGENT: "AGENT",
+  SCENE: "SCENE",
+  WORLD_EVENT: "WORLD_EVENT",
+  WORLDVIEW: "WORLDVIEW",
+} as const satisfies Record<string, components['schemas']['PublicBindingDto']['hostType']>;
 
-export type PublicWorldHistoryEventVisibility = (typeof PublicWorldHistoryEventVisibility)[keyof typeof PublicWorldHistoryEventVisibility];
+export type PublicBindingHostType = (typeof PublicBindingHostType)[keyof typeof PublicBindingHostType];
 
-export const PublicWorldResourceBindingSlot = {
+export const PublicBindingKind = {
+  PRESENTATION: "PRESENTATION",
+  USE: "USE",
+  IMPORT: "IMPORT",
+} as const satisfies Record<string, components['schemas']['PublicBindingDto']['bindingKind']>;
+
+export type PublicBindingKind = (typeof PublicBindingKind)[keyof typeof PublicBindingKind];
+
+export const PublicBindingObjectType = {
+  RESOURCE: "RESOURCE",
+  ASSET: "ASSET",
+  BUNDLE: "BUNDLE",
+} as const satisfies Record<string, components['schemas']['PublicBindingDto']['objectType']>;
+
+export type PublicBindingObjectType = (typeof PublicBindingObjectType)[keyof typeof PublicBindingObjectType];
+
+export const PublicBindingPoint = {
   WORLD_ICON: "WORLD_ICON",
   WORLD_BANNER: "WORLD_BANNER",
   WORLD_GALLERY: "WORLD_GALLERY",
@@ -626,28 +742,26 @@ export const PublicWorldResourceBindingSlot = {
   AGENT_OUTFIT: "AGENT_OUTFIT",
   AGENT_CANDIDATE: "AGENT_CANDIDATE",
   AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
-} as const satisfies Record<string, components['schemas']['PublicWorldResourceBindingDto']['slot']>;
+} as const satisfies Record<string, components['schemas']['PublicBindingDto']['bindingPoint']>;
 
-export type PublicWorldResourceBindingSlot = (typeof PublicWorldResourceBindingSlot)[keyof typeof PublicWorldResourceBindingSlot];
+export type PublicBindingPoint = (typeof PublicBindingPoint)[keyof typeof PublicBindingPoint];
 
-export const PublicWorldResourceBindingTargetType = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORLD_EVENT: "WORLD_EVENT",
-  WORLDVIEW: "WORLDVIEW",
-} as const satisfies Record<string, components['schemas']['PublicWorldResourceBindingDto']['targetType']>;
-
-export type PublicWorldResourceBindingTargetType = (typeof PublicWorldResourceBindingTargetType)[keyof typeof PublicWorldResourceBindingTargetType];
-
-export const PublicWorldResourceType = {
+export const PublicBindingResourceType = {
   IMAGE: "IMAGE",
   VIDEO: "VIDEO",
   AUDIO: "AUDIO",
   TEXT: "TEXT",
-} as const satisfies Record<string, components['schemas']['PublicWorldResourceDto']['resourceType']>;
+} as const satisfies Record<string, components['schemas']['PublicBindingResourceDto']['resourceType']>;
 
-export type PublicWorldResourceType = (typeof PublicWorldResourceType)[keyof typeof PublicWorldResourceType];
+export type PublicBindingResourceType = (typeof PublicBindingResourceType)[keyof typeof PublicBindingResourceType];
+
+export const PublicWorldHistoryEventVisibility = {
+  PUBLIC: "PUBLIC",
+  WORLD: "WORLD",
+  RESTRICTED: "RESTRICTED",
+} as const satisfies Record<string, components['schemas']['PublicWorldHistoryEventDto']['visibility']>;
+
+export type PublicWorldHistoryEventVisibility = (typeof PublicWorldHistoryEventVisibility)[keyof typeof PublicWorldHistoryEventVisibility];
 
 export const RequestDataExportFormat = {
   JSON: "JSON",
@@ -656,33 +770,6 @@ export const RequestDataExportFormat = {
 } as const satisfies Record<string, components['schemas']['RequestDataExportDto']['format']>;
 
 export type RequestDataExportFormat = (typeof RequestDataExportFormat)[keyof typeof RequestDataExportFormat];
-
-export const ResourceCreateProvenance = {
-  UPLOADED: "UPLOADED",
-  GENERATED: "GENERATED",
-  IMPORTED: "IMPORTED",
-  REFERENCE: "REFERENCE",
-} as const satisfies Record<string, components['schemas']['ResourceCreateDto']['provenance']>;
-
-export type ResourceCreateProvenance = (typeof ResourceCreateProvenance)[keyof typeof ResourceCreateProvenance];
-
-export const ResourceCreateProvider = {
-  CF_IMAGE: "CF_IMAGE",
-  CF_STREAM: "CF_STREAM",
-  S3_OBJECT: "S3_OBJECT",
-  EXTERNAL_URL: "EXTERNAL_URL",
-} as const satisfies Record<string, components['schemas']['ResourceCreateDto']['provider']>;
-
-export type ResourceCreateProvider = (typeof ResourceCreateProvider)[keyof typeof ResourceCreateProvider];
-
-export const ResourceCreateResourceType = {
-  IMAGE: "IMAGE",
-  VIDEO: "VIDEO",
-  AUDIO: "AUDIO",
-  TEXT: "TEXT",
-} as const satisfies Record<string, components['schemas']['ResourceCreateDto']['resourceType']>;
-
-export type ResourceCreateResourceType = (typeof ResourceCreateResourceType)[keyof typeof ResourceCreateResourceType];
 
 export const ResourceDetailControllerKind = {
   ACCOUNT: "ACCOUNT",
@@ -867,15 +954,6 @@ export const UpdateAgentRuleScope = {
 
 export type UpdateAgentRuleScope = (typeof UpdateAgentRuleScope)[keyof typeof UpdateAgentRuleScope];
 
-export const UpdateAssetAllowedBindingTargetsItem = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORKSPACE: "WORKSPACE",
-} as const satisfies Record<string, (NonNullable<components['schemas']['UpdateAssetDto']['allowedBindingTargets']> extends ReadonlyArray<infer Item> ? Item : never)>;
-
-export type UpdateAssetAllowedBindingTargetsItem = (typeof UpdateAssetAllowedBindingTargetsItem)[keyof typeof UpdateAssetAllowedBindingTargetsItem];
-
 export const UpdateAssetClonePolicy = {
   ALLOW: "ALLOW",
   DENY: "DENY",
@@ -961,6 +1039,34 @@ export const UpdateWorldRuleScope = {
 } as const satisfies Record<string, components['schemas']['UpdateWorldRuleDto']['scope']>;
 
 export type UpdateWorldRuleScope = (typeof UpdateWorldRuleScope)[keyof typeof UpdateWorldRuleScope];
+
+export const UsePolicyAllowedBindingPointsItem = {
+  WORLD_ICON: "WORLD_ICON",
+  WORLD_BANNER: "WORLD_BANNER",
+  WORLD_GALLERY: "WORLD_GALLERY",
+  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
+  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
+  SCENE_BACKGROUND: "SCENE_BACKGROUND",
+  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
+  EVENT_CG: "EVENT_CG",
+  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
+  AGENT_AVATAR: "AGENT_AVATAR",
+  AGENT_PORTRAIT: "AGENT_PORTRAIT",
+  AGENT_EXPRESSION: "AGENT_EXPRESSION",
+  AGENT_OUTFIT: "AGENT_OUTFIT",
+  AGENT_CANDIDATE: "AGENT_CANDIDATE",
+  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
+} as const satisfies Record<string, (NonNullable<components['schemas']['UsePolicyDto']['allowedBindingPoints']> extends ReadonlyArray<infer Item> ? Item : never)>;
+
+export type UsePolicyAllowedBindingPointsItem = (typeof UsePolicyAllowedBindingPointsItem)[keyof typeof UsePolicyAllowedBindingPointsItem];
+
+export const UsePolicyAllowedHostTypesItem = {
+  WORLD: "WORLD",
+  AGENT: "AGENT",
+  SCENE: "SCENE",
+} as const satisfies Record<string, (NonNullable<components['schemas']['UsePolicyDto']['allowedHostTypes']> extends ReadonlyArray<infer Item> ? Item : never)>;
+
+export type UsePolicyAllowedHostTypesItem = (typeof UsePolicyAllowedHostTypesItem)[keyof typeof UsePolicyAllowedHostTypesItem];
 
 export const UserAgentCommunicationFormality = {
   CASUAL: "casual",
@@ -1214,93 +1320,6 @@ export const WorldRecommendedAgentImportance = {
 } as const satisfies Record<string, components['schemas']['WorldRecommendedAgentDto']['importance']>;
 
 export type WorldRecommendedAgentImportance = (typeof WorldRecommendedAgentImportance)[keyof typeof WorldRecommendedAgentImportance];
-
-export const WorldResourceBindingDetailSlot = {
-  WORLD_ICON: "WORLD_ICON",
-  WORLD_BANNER: "WORLD_BANNER",
-  WORLD_GALLERY: "WORLD_GALLERY",
-  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
-  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
-  SCENE_BACKGROUND: "SCENE_BACKGROUND",
-  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
-  EVENT_CG: "EVENT_CG",
-  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
-  AGENT_AVATAR: "AGENT_AVATAR",
-  AGENT_PORTRAIT: "AGENT_PORTRAIT",
-  AGENT_EXPRESSION: "AGENT_EXPRESSION",
-  AGENT_OUTFIT: "AGENT_OUTFIT",
-  AGENT_CANDIDATE: "AGENT_CANDIDATE",
-  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
-} as const satisfies Record<string, components['schemas']['WorldResourceBindingDetailDto']['slot']>;
-
-export type WorldResourceBindingDetailSlot = (typeof WorldResourceBindingDetailSlot)[keyof typeof WorldResourceBindingDetailSlot];
-
-export const WorldResourceBindingDetailTargetType = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORLD_EVENT: "WORLD_EVENT",
-  WORLDVIEW: "WORLDVIEW",
-} as const satisfies Record<string, components['schemas']['WorldResourceBindingDetailDto']['targetType']>;
-
-export type WorldResourceBindingDetailTargetType = (typeof WorldResourceBindingDetailTargetType)[keyof typeof WorldResourceBindingDetailTargetType];
-
-export const WorldResourceBindingUpsertSlot = {
-  WORLD_ICON: "WORLD_ICON",
-  WORLD_BANNER: "WORLD_BANNER",
-  WORLD_GALLERY: "WORLD_GALLERY",
-  WORLD_THEME_AUDIO: "WORLD_THEME_AUDIO",
-  WORLD_TRAILER_VIDEO: "WORLD_TRAILER_VIDEO",
-  SCENE_BACKGROUND: "SCENE_BACKGROUND",
-  SCENE_AMBIENT_AUDIO: "SCENE_AMBIENT_AUDIO",
-  EVENT_CG: "EVENT_CG",
-  WORLDVIEW_REFERENCE: "WORLDVIEW_REFERENCE",
-  AGENT_AVATAR: "AGENT_AVATAR",
-  AGENT_PORTRAIT: "AGENT_PORTRAIT",
-  AGENT_EXPRESSION: "AGENT_EXPRESSION",
-  AGENT_OUTFIT: "AGENT_OUTFIT",
-  AGENT_CANDIDATE: "AGENT_CANDIDATE",
-  AGENT_VOICE_SAMPLE: "AGENT_VOICE_SAMPLE",
-} as const satisfies Record<string, components['schemas']['WorldResourceBindingUpsertDto']['slot']>;
-
-export type WorldResourceBindingUpsertSlot = (typeof WorldResourceBindingUpsertSlot)[keyof typeof WorldResourceBindingUpsertSlot];
-
-export const WorldResourceBindingUpsertTargetType = {
-  WORLD: "WORLD",
-  AGENT: "AGENT",
-  SCENE: "SCENE",
-  WORLD_EVENT: "WORLD_EVENT",
-  WORLDVIEW: "WORLDVIEW",
-} as const satisfies Record<string, components['schemas']['WorldResourceBindingUpsertDto']['targetType']>;
-
-export type WorldResourceBindingUpsertTargetType = (typeof WorldResourceBindingUpsertTargetType)[keyof typeof WorldResourceBindingUpsertTargetType];
-
-export const WorldResourceDetailProvenance = {
-  UPLOADED: "UPLOADED",
-  GENERATED: "GENERATED",
-  IMPORTED: "IMPORTED",
-  REFERENCE: "REFERENCE",
-} as const satisfies Record<string, components['schemas']['WorldResourceDetailDto']['provenance']>;
-
-export type WorldResourceDetailProvenance = (typeof WorldResourceDetailProvenance)[keyof typeof WorldResourceDetailProvenance];
-
-export const WorldResourceDetailProvider = {
-  CF_IMAGE: "CF_IMAGE",
-  CF_STREAM: "CF_STREAM",
-  S3_OBJECT: "S3_OBJECT",
-  EXTERNAL_URL: "EXTERNAL_URL",
-} as const satisfies Record<string, components['schemas']['WorldResourceDetailDto']['provider']>;
-
-export type WorldResourceDetailProvider = (typeof WorldResourceDetailProvider)[keyof typeof WorldResourceDetailProvider];
-
-export const WorldResourceDetailResourceType = {
-  IMAGE: "IMAGE",
-  VIDEO: "VIDEO",
-  AUDIO: "AUDIO",
-  TEXT: "TEXT",
-} as const satisfies Record<string, components['schemas']['WorldResourceDetailDto']['resourceType']>;
-
-export type WorldResourceDetailResourceType = (typeof WorldResourceDetailResourceType)[keyof typeof WorldResourceDetailResourceType];
 
 export const WorldRuleCategory = {
   CONSTRAINT: "CONSTRAINT",

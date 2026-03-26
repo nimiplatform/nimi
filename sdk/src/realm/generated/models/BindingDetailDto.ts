@@ -3,4 +3,4 @@
 
 import type { components } from '../schema.js';
 
-export type PublicWorldResourceBindingListDto = components['schemas']['PublicWorldResourceBindingListDto'];
+export type BindingDetailDto = components['schemas']['BindingDetailDto'];

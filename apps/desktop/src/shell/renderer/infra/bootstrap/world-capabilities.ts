@@ -12,9 +12,9 @@ import { registerCoreDataCapability, withRuntimeOpenApiContext } from './shared'
 type CreateWorldDraftInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerCreateDraft'>[0];
 type CommitWorldStateInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerCommitState'>[1];
 type AppendWorldHistoryInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerAppendWorldHistory'>[1];
-type BatchUpsertWorldResourceBindingsInput = RealmServiceArgs<
+type BatchUpsertBindingsInput = RealmServiceArgs<
   'WorldControlService',
-  'worldControlControllerBatchUpsertWorldResourceBindings'
+  'worldControlControllerBatchUpsertWorldBindings'
 >[1];
 type MutationCommitEnvelope = NonNullable<CommitWorldStateInput['commit']>;
 type MutationActorRef = MutationCommitEnvelope['actorRefs'][number];
@@ -157,13 +157,13 @@ function requireMutationCommitEnvelope(input: unknown, code: string): MutationCo
   };
 }
 
-function parseBatchUpsertWorldResourceBindingsInput(
+function parseBatchUpsertBindingsInput(
   input: unknown,
   code: string,
-): BatchUpsertWorldResourceBindingsInput {
+): BatchUpsertBindingsInput {
   const record = requireRecord(input, code);
   return {
-    bindingUpserts: requireObjectArray<Record<string, unknown>>(record.bindingUpserts, code) as BatchUpsertWorldResourceBindingsInput['bindingUpserts'],
+    bindingUpserts: requireObjectArray<Record<string, unknown>>(record.bindingUpserts, code) as BatchUpsertBindingsInput['bindingUpserts'],
   };
 }
 
@@ -432,45 +432,48 @@ export async function registerWorldDataCapabilities(): Promise<void> {
     return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_HISTORY_LIST_CONTRACT_INVALID');
   });
 
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.resourceBindingsList, async (query) => {
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.bindingsList, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     const payload = await withRuntimeOpenApiContext((realm) => (
-      realm.services.WorldControlService.worldControlControllerListWorldResourceBindings(
+      realm.services.WorldControlService.worldControlControllerListWorldBindings(
         worldId,
         typeof record.take === 'number' ? record.take : undefined,
-        typeof record.slot === 'string' ? record.slot : undefined,
-        typeof record.targetId === 'string' ? record.targetId : undefined,
-        typeof record.targetType === 'string' ? record.targetType : undefined,
+        typeof record.bindingPoint === 'string' ? record.bindingPoint : undefined,
+        typeof record.bindingKind === 'string' ? record.bindingKind : undefined,
+        typeof record.hostId === 'string' ? record.hostId : undefined,
+        typeof record.hostType === 'string' ? record.hostType : undefined,
+        typeof record.objectId === 'string' ? record.objectId : undefined,
+        typeof record.objectType === 'string' ? record.objectType : undefined,
       )
     ));
-    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_RESOURCE_BINDING_LIST_CONTRACT_INVALID');
+    return requireItemsPayload(payload as { items?: unknown[] } & Record<string, unknown>, 'WORLD_BINDING_LIST_CONTRACT_INVALID');
   });
 
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.resourceBindingsBatchUpsert, async (query) => {
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.bindingsBatchUpsert, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
     return withRuntimeOpenApiContext((realm) => (
-      realm.services.WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings(
+      realm.services.WorldControlService.worldControlControllerBatchUpsertWorldBindings(
         worldId,
-        parseBatchUpsertWorldResourceBindingsInput(
+        parseBatchUpsertBindingsInput(
           record.payload,
-          'WORLD_RESOURCE_BINDING_BATCH_UPSERT_INPUT_REQUIRED',
+          'WORLD_BINDING_BATCH_UPSERT_INPUT_REQUIRED',
         ),
       )
     ));
   });
 
-  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.resourceBindingsDelete, async (query) => {
+  await registerCoreDataCapability(WORLD_DATA_API_CAPABILITIES.bindingsDelete, async (query) => {
     const record = toRecord(query);
     const worldId = String(record.worldId || '').trim();
     const bindingId = String(record.bindingId || '').trim();
     if (!worldId) throw new Error('WORLD_ID_REQUIRED');
-    if (!bindingId) throw new Error('WORLD_RESOURCE_BINDING_ID_REQUIRED');
+    if (!bindingId) throw new Error('WORLD_BINDING_ID_REQUIRED');
     return withRuntimeOpenApiContext((realm) => (
-      realm.services.WorldControlService.worldControlControllerDeleteWorldResourceBinding(
+      realm.services.WorldControlService.worldControlControllerDeleteWorldBinding(
         worldId,
         bindingId,
       )

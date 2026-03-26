@@ -1087,31 +1087,6 @@ export const REALM_OPERATION_MAP = {
     "successContentTypes": [],
     "hasSuccessBody": false
   },
-  "BundlesService.acquireBundle": {
-    "operationId": "acquireBundle",
-    "method": "POST",
-    "path": "/api/bundles/{bundleId}/acquire",
-    "service": "BundlesService",
-    "methodName": "acquireBundle",
-    "tag": "Bundles",
-    "parameters": [
-      {
-        "name": "bundleId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
   "BundlesService.archiveBundle": {
     "operationId": "archiveBundle",
     "method": "POST",
@@ -4753,12 +4728,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings": {
-    "operationId": "WorldControlController_batchUpsertWorldResourceBindings",
+  "WorldControlService.worldControlControllerBatchUpsertWorldBindings": {
+    "operationId": "WorldControlController_batchUpsertWorldBindings",
     "method": "POST",
-    "path": "/api/worlds/{worldId}/resource-bindings",
+    "path": "/api/worlds/{worldId}/bindings",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerBatchUpsertWorldResourceBindings",
+    "methodName": "worldControlControllerBatchUpsertWorldBindings",
     "tag": "World Control",
     "parameters": [
       {
@@ -4824,12 +4799,12 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
-  "WorldControlService.worldControlControllerDeleteWorldResourceBinding": {
-    "operationId": "WorldControlController_deleteWorldResourceBinding",
+  "WorldControlService.worldControlControllerDeleteWorldBinding": {
+    "operationId": "WorldControlController_deleteWorldBinding",
     "method": "DELETE",
-    "path": "/api/worlds/{worldId}/resource-bindings/{bindingId}",
+    "path": "/api/worlds/{worldId}/bindings/{bindingId}",
     "service": "WorldControlService",
-    "methodName": "worldControlControllerDeleteWorldResourceBinding",
+    "methodName": "worldControlControllerDeleteWorldBinding",
     "tag": "World Control",
     "parameters": [
       {
@@ -4957,6 +4932,73 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "WorldControlService.worldControlControllerListWorldBindings": {
+    "operationId": "WorldControlController_listWorldBindings",
+    "method": "GET",
+    "path": "/api/worlds/{worldId}/bindings",
+    "service": "WorldControlService",
+    "methodName": "worldControlControllerListWorldBindings",
+    "tag": "World Control",
+    "parameters": [
+      {
+        "name": "worldId",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      },
+      {
+        "name": "take",
+        "in": "query",
+        "required": false,
+        "valueType": "number"
+      },
+      {
+        "name": "bindingPoint",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "bindingKind",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "hostId",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "hostType",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "objectId",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      },
+      {
+        "name": "objectType",
+        "in": "query",
+        "required": false,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "WorldControlService.worldControlControllerListWorldHistory": {
     "operationId": "WorldControlController_listWorldHistory",
     "method": "GET",
@@ -4994,55 +5036,6 @@ export const REALM_OPERATION_MAP = {
         "name": "worldId",
         "in": "path",
         "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "WorldControlService.worldControlControllerListWorldResourceBindings": {
-    "operationId": "WorldControlController_listWorldResourceBindings",
-    "method": "GET",
-    "path": "/api/worlds/{worldId}/resource-bindings",
-    "service": "WorldControlService",
-    "methodName": "worldControlControllerListWorldResourceBindings",
-    "tag": "World Control",
-    "parameters": [
-      {
-        "name": "worldId",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      },
-      {
-        "name": "take",
-        "in": "query",
-        "required": false,
-        "valueType": "number"
-      },
-      {
-        "name": "slot",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetId",
-        "in": "query",
-        "required": false,
-        "valueType": "string"
-      },
-      {
-        "name": "targetType",
-        "in": "query",
-        "required": false,
         "valueType": "string"
       }
     ],
@@ -5476,6 +5469,31 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "WorldsService.worldControllerGetWorldBindings": {
+    "operationId": "WorldController_getWorldBindings",
+    "method": "GET",
+    "path": "/api/world/by-id/{id}/bindings",
+    "service": "WorldsService",
+    "methodName": "worldControllerGetWorldBindings",
+    "tag": "Worlds",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "WorldsService.worldControllerGetWorldDetailWithAgents": {
     "operationId": "WorldController_getWorldDetailWithAgents",
     "method": "GET",
@@ -5569,31 +5587,6 @@ export const REALM_OPERATION_MAP = {
     "path": "/api/world/by-id/{id}/lorebooks",
     "service": "WorldsService",
     "methodName": "worldControllerGetWorldLorebooks",
-    "tag": "Worlds",
-    "parameters": [
-      {
-        "name": "id",
-        "in": "path",
-        "required": true,
-        "valueType": "string"
-      }
-    ],
-    "hasBody": false,
-    "bodyRequired": false,
-    "successStatusCodes": [
-      "200"
-    ],
-    "successContentTypes": [
-      "application/json"
-    ],
-    "hasSuccessBody": true
-  },
-  "WorldsService.worldControllerGetWorldResourceBindings": {
-    "operationId": "WorldController_getWorldResourceBindings",
-    "method": "GET",
-    "path": "/api/world/by-id/{id}/resource-bindings",
-    "service": "WorldsService",
-    "methodName": "worldControllerGetWorldResourceBindings",
     "tag": "Worlds",
     "parameters": [
       {
@@ -5771,7 +5764,6 @@ export const REALM_SERVICE_METHODS = {
     "walletLogin": "AuthService.walletLogin"
   },
   "BundlesService": {
-    "acquireBundle": "BundlesService.acquireBundle",
     "archiveBundle": "BundlesService.archiveBundle",
     "createBundle": "BundlesService.createBundle",
     "getBundle": "BundlesService.getBundle",
@@ -5974,18 +5966,18 @@ export const REALM_SERVICE_METHODS = {
   },
   "WorldControlService": {
     "worldControlControllerAppendWorldHistory": "WorldControlService.worldControlControllerAppendWorldHistory",
-    "worldControlControllerBatchUpsertWorldResourceBindings": "WorldControlService.worldControlControllerBatchUpsertWorldResourceBindings",
+    "worldControlControllerBatchUpsertWorldBindings": "WorldControlService.worldControlControllerBatchUpsertWorldBindings",
     "worldControlControllerCommitState": "WorldControlService.worldControlControllerCommitState",
     "worldControlControllerCreateDraft": "WorldControlService.worldControlControllerCreateDraft",
-    "worldControlControllerDeleteWorldResourceBinding": "WorldControlService.worldControlControllerDeleteWorldResourceBinding",
+    "worldControlControllerDeleteWorldBinding": "WorldControlService.worldControlControllerDeleteWorldBinding",
     "worldControlControllerGetDraft": "WorldControlService.worldControlControllerGetDraft",
     "worldControlControllerGetMyAccess": "WorldControlService.worldControlControllerGetMyAccess",
     "worldControlControllerGetState": "WorldControlService.worldControlControllerGetState",
     "worldControlControllerListDrafts": "WorldControlService.worldControlControllerListDrafts",
     "worldControlControllerListMyWorlds": "WorldControlService.worldControlControllerListMyWorlds",
+    "worldControlControllerListWorldBindings": "WorldControlService.worldControlControllerListWorldBindings",
     "worldControlControllerListWorldHistory": "WorldControlService.worldControlControllerListWorldHistory",
     "worldControlControllerListWorldLorebooks": "WorldControlService.worldControlControllerListWorldLorebooks",
-    "worldControlControllerListWorldResourceBindings": "WorldControlService.worldControlControllerListWorldResourceBindings",
     "worldControlControllerPublishDraft": "WorldControlService.worldControlControllerPublishDraft",
     "worldControlControllerResolveLanding": "WorldControlService.worldControlControllerResolveLanding",
     "worldControlControllerUpdateDraft": "WorldControlService.worldControlControllerUpdateDraft"
@@ -6007,11 +5999,11 @@ export const REALM_SERVICE_METHODS = {
     "worldControllerGetMainWorld": "WorldsService.worldControllerGetMainWorld",
     "worldControllerGetWorld": "WorldsService.worldControllerGetWorld",
     "worldControllerGetWorldAgents": "WorldsService.worldControllerGetWorldAgents",
+    "worldControllerGetWorldBindings": "WorldsService.worldControllerGetWorldBindings",
     "worldControllerGetWorldDetailWithAgents": "WorldsService.worldControllerGetWorldDetailWithAgents",
     "worldControllerGetWorldHistory": "WorldsService.worldControllerGetWorldHistory",
     "worldControllerGetWorldLevelAudits": "WorldsService.worldControllerGetWorldLevelAudits",
     "worldControllerGetWorldLorebooks": "WorldsService.worldControllerGetWorldLorebooks",
-    "worldControllerGetWorldResourceBindings": "WorldsService.worldControllerGetWorldResourceBindings",
     "worldControllerGetWorldview": "WorldsService.worldControllerGetWorldview",
     "worldControllerListWorlds": "WorldsService.worldControllerListWorlds",
     "worldControllerReturnToMainWorld": "WorldsService.worldControllerReturnToMainWorld",
