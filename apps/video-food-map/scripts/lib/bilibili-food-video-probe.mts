@@ -9,7 +9,6 @@ import process from 'node:process';
 
 export type ProbeArgs = {
   url: string;
-  cookie: string;
   profilePath: string;
   envFilePath: string;
   resolveOnly: boolean;
@@ -20,6 +19,7 @@ export type VideoMetadata = {
   aid: string;
   cid: string;
   title: string;
+  ownerMid: string;
   ownerName: string;
   durationSec: number;
   description: string;
@@ -31,7 +31,6 @@ export type FoodProbeResult = {
   metadata: VideoMetadata;
   audioSourceUrl: string;
   selectedSttModel: string;
-  selectedAudioMode: 'bytes';
   extractionCoverage: {
     state: 'full' | 'leading_segments_only';
     processedSegmentCount: number;
@@ -69,6 +68,7 @@ type VideoApiResponse = {
     duration?: number;
     desc?: string;
     owner?: {
+      mid?: number;
       name?: string;
     };
   };
@@ -81,8 +81,9 @@ type TagApiResponse = {
   }>;
 };
 
-type PlayInfoPayload = {
+type PlayUrlApiResponse = {
   code?: number;
+  message?: string;
   data?: {
     dash?: {
       audio?: PlayInfoAudioTrack[];
@@ -106,6 +107,10 @@ const DEFAULT_SUBJECT_USER_ID = 'video-food-probe';
 const BILIBILI_PAGE_URL = 'https://www.bilibili.com/video/';
 const BILIBILI_VIEW_API = 'https://api.bilibili.com/x/web-interface/view';
 const BILIBILI_TAG_API = 'https://api.bilibili.com/x/tag/archive/tags';
+const BILIBILI_PLAYURL_API = 'https://api.bilibili.com/x/player/playurl';
+const MCDN_HOST_PATTERN = /\.mcdn\.bilivideo\.cn/u;
+const DEFAULT_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36';
+const DEFAULT_REFERER = 'https://www.bilibili.com/';
 
 function readArg(flag: string, argv: string[] = process.argv): string {
   const index = argv.indexOf(flag);
@@ -113,14 +118,6 @@ function readArg(flag: string, argv: string[] = process.argv): string {
     return '';
   }
   return String(argv[index + 1] || '').trim();
-}
-
-function normalizeCookie(value: string): string {
-  return String(value || '')
-    .split(';')
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .join('; ');
 }
 
 function requireArg(name: string, value: string): string {
@@ -153,13 +150,18 @@ function toAbsolutePath(value: string, fallbackPath: string): string {
   return path.resolve(process.cwd(), normalized);
 }
 
-function defaultHeaders(cookie: string): HeadersInit {
+function apiHeaders(): HeadersInit {
   return {
-    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
-    'cookie': cookie,
-    'referer': 'https://www.bilibili.com/',
-    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+    'accept': 'application/json',
+    'referer': DEFAULT_REFERER,
+    'user-agent': DEFAULT_UA,
+  };
+}
+
+function cdnHeaders(): HeadersInit {
+  return {
+    'referer': DEFAULT_REFERER,
+    'user-agent': DEFAULT_UA,
   };
 }
 
@@ -173,56 +175,6 @@ export function extractBvid(input: string): string {
     return directMatch[1];
   }
   throw new Error(`unable to extract BVID from input: ${normalized}`);
-}
-
-export function extractInlineJson(html: string, prefix: string): unknown {
-  const marker = `${prefix}=`;
-  const start = String(html || '').indexOf(marker);
-  if (start < 0) {
-    throw new Error(`missing inline json marker: ${prefix}`);
-  }
-  let index = start + marker.length;
-  while (index < html.length && /\s/u.test(html[index] || '')) {
-    index += 1;
-  }
-  if (html[index] !== '{') {
-    throw new Error(`inline json marker ${prefix} is not followed by an object`);
-  }
-
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  for (let cursor = index; cursor < html.length; cursor += 1) {
-    const char = html[cursor] || '';
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (char === '\\') {
-      escaped = true;
-      continue;
-    }
-    if (char === '"') {
-      inString = !inString;
-      continue;
-    }
-    if (inString) {
-      continue;
-    }
-    if (char === '{') {
-      depth += 1;
-      continue;
-    }
-    if (char !== '}') {
-      continue;
-    }
-    depth -= 1;
-    if (depth === 0) {
-      return JSON.parse(html.slice(index, cursor + 1));
-    }
-  }
-
-  throw new Error(`unterminated inline json for marker: ${prefix}`);
 }
 
 function parseJsonResponse<T>(payload: string, label: string): T {
@@ -262,40 +214,47 @@ async function fetchJson<T>(url: string, init: RequestInit, label: string): Prom
   return parseJsonResponse<T>(payload, label);
 }
 
-function assertBilibiliPageAvailable(html: string): void {
-  if (/<title>验证码_哔哩哔哩<\/title>/u.test(html)) {
-    throw new Error('bilibili blocked page fetch with captcha; refresh the login cookie and retry');
-  }
+function isStandardCdn(url: string): boolean {
+  return !MCDN_HOST_PATTERN.test(url);
 }
 
-function chooseBestAudioUrl(playInfo: PlayInfoPayload): string {
+function chooseBestAudioUrl(playInfo: PlayUrlApiResponse): string {
   const audioTracks = Array.isArray(playInfo?.data?.dash?.audio)
     ? playInfo.data?.dash?.audio || []
     : [];
   const rankedAudio = [...audioTracks]
-    .map((track) => ({
-      url: String(track.baseUrl || track.base_url || '').trim(),
-      backupUrl: Array.isArray(track.backupUrl)
+    .map((track) => {
+      const primaryUrl = String(track.baseUrl || track.base_url || '').trim();
+      const backups = Array.isArray(track.backupUrl)
         ? track.backupUrl
         : Array.isArray(track.backup_url)
           ? track.backup_url
-          : [],
-      bandwidth: Number(track.bandwidth || 0),
-      id: Number(track.id || 0),
-    }))
+          : [];
+      const allUrls = [primaryUrl, ...backups.map((u) => String(u || '').trim())].filter(Boolean);
+      return {
+        allUrls,
+        bandwidth: Number(track.bandwidth || 0),
+        id: Number(track.id || 0),
+      };
+    })
     .sort((left, right) => {
       if (right.bandwidth !== left.bandwidth) {
         return right.bandwidth - left.bandwidth;
       }
       return right.id - left.id;
     });
+
+  // Prefer standard CDN over MCDN for cookieless reliability
   for (const track of rankedAudio) {
-    if (track.url) {
-      return track.url;
+    const standardUrl = track.allUrls.find(isStandardCdn);
+    if (standardUrl) {
+      return standardUrl;
     }
-    const backup = track.backupUrl.find((item) => String(item || '').trim());
-    if (backup) {
-      return backup;
+  }
+  // Fall back to any available URL
+  for (const track of rankedAudio) {
+    if (track.allUrls.length > 0) {
+      return track.allUrls[0]!;
     }
   }
 
@@ -313,7 +272,7 @@ function chooseBestAudioUrl(playInfo: PlayInfoPayload): string {
     }
   }
 
-  throw new Error('unable to find audio source in bilibili playinfo');
+  throw new Error('unable to find audio source in bilibili playurl response');
 }
 
 function extractJsonObject(text: string): Record<string, unknown> | null {
@@ -430,13 +389,7 @@ function buildFoodExtractionPrompt(input: {
 async function resolveVideoMetadata(bvid: string): Promise<VideoMetadata> {
   const view = await fetchJson<VideoApiResponse>(
     `${BILIBILI_VIEW_API}?bvid=${encodeURIComponent(bvid)}`,
-    {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'user-agent': defaultHeaders('')['user-agent'] || '',
-      },
-    },
+    { method: 'GET', headers: apiHeaders() },
     'bilibili view api',
   );
   if (Number(view?.code || 0) !== 0 || !view.data) {
@@ -445,13 +398,7 @@ async function resolveVideoMetadata(bvid: string): Promise<VideoMetadata> {
 
   const tagsResponse = await fetchJson<TagApiResponse>(
     `${BILIBILI_TAG_API}?bvid=${encodeURIComponent(bvid)}`,
-    {
-      method: 'GET',
-      headers: {
-        'accept': 'application/json',
-        'user-agent': defaultHeaders('')['user-agent'] || '',
-      },
-    },
+    { method: 'GET', headers: apiHeaders() },
     'bilibili tag api',
   );
   const tags = Array.isArray(tagsResponse?.data)
@@ -465,6 +412,7 @@ async function resolveVideoMetadata(bvid: string): Promise<VideoMetadata> {
     aid: String(view.data?.aid || '').trim(),
     cid: String(view.data?.cid || '').trim(),
     title: String(view.data?.title || '').trim(),
+    ownerMid: String(view.data?.owner?.mid || '').trim(),
     ownerName: String(view.data?.owner?.name || '').trim(),
     durationSec: Number(view.data?.duration || 0),
     description: String(view.data?.desc || '').trim(),
@@ -473,19 +421,22 @@ async function resolveVideoMetadata(bvid: string): Promise<VideoMetadata> {
   };
 }
 
-async function fetchPlayInfoHtml(url: string, cookie: string): Promise<string> {
-  const html = await fetchText(url, {
-    method: 'GET',
-    headers: defaultHeaders(cookie),
-  }, 'bilibili video page');
-  assertBilibiliPageAvailable(html);
-  return html;
+async function fetchPlayUrl(bvid: string, cid: string): Promise<PlayUrlApiResponse> {
+  const response = await fetchJson<PlayUrlApiResponse>(
+    `${BILIBILI_PLAYURL_API}?bvid=${encodeURIComponent(bvid)}&cid=${encodeURIComponent(cid)}&fnval=16&fourk=1`,
+    { method: 'GET', headers: apiHeaders() },
+    'bilibili playurl api',
+  );
+  if (Number(response?.code || 0) !== 0 || !response.data) {
+    throw new Error(`bilibili playurl api returned code=${String(response?.code ?? '')}, message=${String(response?.message ?? '')}`);
+  }
+  return response;
 }
 
-async function downloadAudioTrack(url: string, cookie: string): Promise<{ bytes: Uint8Array; mimeType: string }> {
+async function downloadAudioTrack(url: string): Promise<{ bytes: Uint8Array; mimeType: string }> {
   const response = await fetchBytes(url, {
     method: 'GET',
-    headers: defaultHeaders(cookie),
+    headers: cdnHeaders(),
   }, 'bilibili audio track');
   if (response.mimeType) {
     return response;
@@ -497,23 +448,6 @@ async function downloadAudioTrack(url: string, cookie: string): Promise<{ bytes:
     return { ...response, mimeType: 'audio/mpeg' };
   }
   return response;
-}
-
-function inferAudioMimeTypeFromUrl(url: string): string {
-  const normalized = String(url || '').trim().toLowerCase();
-  if (normalized.includes('.m4s') || normalized.includes('.m4a')) {
-    return 'audio/mp4';
-  }
-  if (normalized.includes('.mp3')) {
-    return 'audio/mpeg';
-  }
-  if (normalized.includes('.wav')) {
-    return 'audio/wav';
-  }
-  if (normalized.includes('.ogg')) {
-    return 'audio/ogg';
-  }
-  return 'audio/mp4';
 }
 
 function requireEnvValue(env: Record<string, string>, key: string): string {
@@ -552,8 +486,21 @@ export function resolveSttModel(input: {
   return coerceCloudModelId(DEFAULT_SHORT_AUDIO_STT_MODEL);
 }
 
-export function resolveAudioMode(_durationSec: number): 'bytes' {
-  return 'bytes';
+export function computeExtractionCoverage(durationSec: number): FoodProbeResult['extractionCoverage'] {
+  const total = Number(durationSec || 0);
+  const isLong = total > LONG_AUDIO_THRESHOLD_SEC;
+  const segmentCount = isLong
+    ? Math.min(DEFAULT_MAX_SEGMENTS, Math.ceil(total / DEFAULT_SEGMENT_DURATION_SEC))
+    : 1;
+  const processedDuration = isLong
+    ? Math.min(total, DEFAULT_MAX_SEGMENTS * DEFAULT_SEGMENT_DURATION_SEC)
+    : total;
+  return {
+    state: processedDuration < total ? 'leading_segments_only' : 'full',
+    processedSegmentCount: segmentCount,
+    processedDurationSec: processedDuration,
+    totalDurationSec: total,
+  };
 }
 
 type WavePcm16 = {
@@ -705,16 +652,14 @@ function transcodeAudioToWavePcm16(input: {
   const outputPath = path.join(tempDir, 'audio.wav');
   try {
     writeFileSync(inputPath, input.sourceBytes);
-    execFileSync('afconvert', [
-      inputPath,
-      '-o',
+    execFileSync('ffmpeg', [
+      '-i', inputPath,
+      '-ar', '16000',
+      '-ac', '1',
+      '-sample_fmt', 's16',
+      '-f', 'wav',
+      '-y',
       outputPath,
-      '-f',
-      'WAVE',
-      '-d',
-      'LEI16@16000',
-      '-c',
-      '1',
     ], {
       stdio: 'pipe',
     });
@@ -744,13 +689,12 @@ async function transcribeAndExtract(input: {
   audioBytes: Uint8Array;
   audioMimeType: string;
   mergedEnv: Record<string, string>;
-}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'selectedAudioMode' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
+}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
   const shouldSegment = Number(input.metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC;
   const sttModel = resolveSttModel({
     durationSec: shouldSegment ? DEFAULT_SEGMENT_DURATION_SEC : input.metadata.durationSec,
     mergedEnv: input.mergedEnv,
   });
-  const audioMode: 'bytes' = 'bytes';
   const textModel = coerceCloudModelId(requireEnvValue(input.mergedEnv, 'NIMI_LIVE_DASHSCOPE_MODEL_ID'));
   const runtimeEnv = buildRuntimeEnv({ mergedEnv: input.mergedEnv });
   const segments = shouldSegment
@@ -812,7 +756,7 @@ async function transcribeAndExtract(input: {
             bytes: segment.bytes,
           },
           mimeType: segment.mimeType,
-          language: 'yue',
+          language: 'auto',
           route: 'cloud',
           timeoutMs: 240_000,
         });
@@ -844,7 +788,6 @@ async function transcribeAndExtract(input: {
 
   return {
     selectedSttModel: sttModel,
-    selectedAudioMode: audioMode,
     extractionCoverage,
     transcript,
     extractionRaw,
@@ -855,10 +798,10 @@ async function transcribeAndExtract(input: {
 export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodProbeResult> {
   const bvid = extractBvid(args.url);
   const metadata = await resolveVideoMetadata(bvid);
-  const html = await fetchPlayInfoHtml(metadata.canonicalUrl, args.cookie);
-  const playInfo = extractInlineJson(html, 'window.__playinfo__') as PlayInfoPayload;
-  const audioSourceUrl = chooseBestAudioUrl(playInfo);
-  const selectedAudioMode = resolveAudioMode(metadata.durationSec);
+  const playUrlResponse = await fetchPlayUrl(metadata.bvid, metadata.cid);
+  const audioSourceUrl = chooseBestAudioUrl(playUrlResponse);
+  const extractionCoverage = computeExtractionCoverage(metadata.durationSec);
+
   if (args.resolveOnly) {
     const selectedSttModel = resolveSttModel({
       durationSec: metadata.durationSec,
@@ -870,16 +813,7 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
     const saved = saveProbeArtifacts({
       metadata,
       audioSourceUrl,
-      extractionCoverage: {
-        state: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC ? 'leading_segments_only' : 'full',
-        processedSegmentCount: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
-          ? Math.min(DEFAULT_MAX_SEGMENTS, Math.ceil(Number(metadata.durationSec || 0) / DEFAULT_SEGMENT_DURATION_SEC))
-          : 1,
-        processedDurationSec: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
-          ? Math.min(Number(metadata.durationSec || 0), DEFAULT_MAX_SEGMENTS * DEFAULT_SEGMENT_DURATION_SEC)
-          : Number(metadata.durationSec || 0),
-        totalDurationSec: Number(metadata.durationSec || 0),
-      },
+      extractionCoverage,
       transcript: '',
       extractionRaw: '',
       extractionJson: null,
@@ -888,17 +822,7 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
       metadata,
       audioSourceUrl,
       selectedSttModel,
-      selectedAudioMode,
-      extractionCoverage: {
-        state: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC ? 'leading_segments_only' : 'full',
-        processedSegmentCount: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
-          ? Math.min(DEFAULT_MAX_SEGMENTS, Math.ceil(Number(metadata.durationSec || 0) / DEFAULT_SEGMENT_DURATION_SEC))
-          : 1,
-        processedDurationSec: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
-          ? Math.min(Number(metadata.durationSec || 0), DEFAULT_MAX_SEGMENTS * DEFAULT_SEGMENT_DURATION_SEC)
-          : Number(metadata.durationSec || 0),
-        totalDurationSec: Number(metadata.durationSec || 0),
-      },
+      extractionCoverage,
       transcript: '',
       extractionRaw: '',
       extractionJson: null,
@@ -911,11 +835,12 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
       },
     };
   }
+
   const mergedEnv = buildMergedEnv({
     baseEnv: process.env,
     filePaths: [args.profilePath, args.envFilePath],
   }) as Record<string, string>;
-  const audioTrack = await downloadAudioTrack(audioSourceUrl, args.cookie);
+  const audioTrack = await downloadAudioTrack(audioSourceUrl);
 
   const result = await transcribeAndExtract({
     metadata,
@@ -937,7 +862,6 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
     metadata,
     audioSourceUrl,
     selectedSttModel: result.selectedSttModel,
-    selectedAudioMode: result.selectedAudioMode,
     extractionCoverage: result.extractionCoverage,
     transcript: result.transcript,
     extractionRaw: result.extractionRaw,
@@ -954,15 +878,10 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
 
 export function parseProbeArgs(argv: string[] = process.argv): ProbeArgs {
   const url = requireArg('--url', readArg('--url', argv));
-  const cookie = normalizeCookie(process.env.BILIBILI_COOKIE || readArg('--cookie', argv));
-  if (!cookie) {
-    throw new Error('BILIBILI_COOKIE or --cookie is required');
-  }
   const profilePath = toAbsolutePath(readArg('--profile', argv), DEFAULT_PROFILE_PATH);
   const envFilePath = toAbsolutePath(readArg('--env-file', argv), DEFAULT_ENV_FILE_PATH);
   return {
     url,
-    cookie,
     profilePath,
     envFilePath,
     resolveOnly: argv.includes('--resolve-only'),

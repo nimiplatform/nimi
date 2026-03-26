@@ -2,7 +2,9 @@
 
 ## Phase 1
 
-- single video intake
+- single video intake via cookieless direct API (playurl + player v2)
+- platform subtitle-first; STT fallback via FFmpeg transcoding
+- creator batch intake via space API with incremental diff
 - Bilibili-first extraction validation
 - map promotion for locatable records
 - creator / store / dish / cuisine / flavor search
@@ -10,7 +12,7 @@
 
 ## Phase 2
 
-- comment ingestion
+- comment-based store name and address completion via reply API
 - targeted visual clue extraction
 - stronger store/address confirmation
 - coordinate confirmation for map promotion

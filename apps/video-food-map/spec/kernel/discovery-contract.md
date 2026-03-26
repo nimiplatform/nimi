@@ -31,10 +31,14 @@ Store confirmation must follow `VFM-PIPE-002`:
 
 Comment or visual clues that conflict with stage-1 evidence must keep the record in review state.
 
-## VFM-DISC-005 — Review Queue is Product Surface
+## VFM-DISC-005 — Comment Store/Address Completion
+
+Stage-2 comment ingestion uses the platform reply API (e.g. Bilibili `/x/v2/reply/main`) to fetch public comments without login state. The scope is store name and address completion only. Comment signals that confirm or clarify an unresolved store name or address may promote a record out of review. Comment signals that contradict stage-1 evidence must keep the record in review state, not silently override.
+
+## VFM-DISC-006 — Review Queue is Product Surface
 
 Unresolved or conflicting records are not discarded. They enter a review queue so later signals can promote them into map truth.
 
-## VFM-DISC-006 — Geocoding Gate
+## VFM-DISC-007 — Geocoding Gate
 
 Address text or geographic candidates must be normalized into usable map coordinates before map promotion. Text-only location clues may remain searchable or reviewable, but they are not yet confirmed map locations.

@@ -3,9 +3,8 @@ import assert from 'node:assert/strict';
 
 import {
   extractBvid,
-  extractInlineJson,
-  resolveAudioMode,
   resolveSttModel,
+  computeExtractionCoverage,
   splitWaveIntoSegments,
 } from './lib/bilibili-food-video-probe.mts';
 
@@ -44,14 +43,6 @@ test('extractBvid supports raw bvid input', () => {
   assert.equal(extractBvid('BV1P2Awz6EUQ'), 'BV1P2Awz6EUQ');
 });
 
-test('extractInlineJson extracts window inline objects', () => {
-  const html = '<script>window.__playinfo__={"code":0,"data":{"dash":{"audio":[{"baseUrl":"https://example.com/audio.m4s","bandwidth":128000}]}}}</script>';
-  const payload = extractInlineJson(html, 'window.__playinfo__') as {
-    data?: { dash?: { audio?: Array<{ baseUrl?: string }> } };
-  };
-  assert.equal(payload.data?.dash?.audio?.[0]?.baseUrl, 'https://example.com/audio.m4s');
-});
-
 test('resolveSttModel keeps configured stt model for long audio when no long-audio override exists', () => {
   assert.equal(
     resolveSttModel({
@@ -76,12 +67,20 @@ test('resolveSttModel keeps standard stt model for short audio', () => {
   );
 });
 
-test('resolveAudioMode keeps long audio on bytes mode for segmented probe', () => {
-  assert.equal(resolveAudioMode(1167), 'bytes');
+test('computeExtractionCoverage returns full for short videos', () => {
+  const coverage = computeExtractionCoverage(120);
+  assert.equal(coverage.state, 'full');
+  assert.equal(coverage.processedSegmentCount, 1);
+  assert.equal(coverage.processedDurationSec, 120);
+  assert.equal(coverage.totalDurationSec, 120);
 });
 
-test('resolveAudioMode uses bytes for short audio', () => {
-  assert.equal(resolveAudioMode(120), 'bytes');
+test('computeExtractionCoverage returns leading_segments_only for long videos', () => {
+  const coverage = computeExtractionCoverage(1167);
+  assert.equal(coverage.state, 'leading_segments_only');
+  assert.equal(coverage.processedSegmentCount, 3);
+  assert.equal(coverage.processedDurationSec, 720);
+  assert.equal(coverage.totalDurationSec, 1167);
 });
 
 test('splitWaveIntoSegments slices pcm wav by time window', () => {

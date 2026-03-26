@@ -11,7 +11,7 @@ The canonical intake unit is one creator video link. Every extracted record must
 Stage 1 default extraction order is fixed:
 
 1. title / description / tags / visible metadata
-2. subtitles or speech transcription
+2. platform subtitles first; speech transcription only when platform subtitles are unavailable
 3. structured recommendation extraction
 
 Stage 2 may extend the same record with:
@@ -37,7 +37,7 @@ Partial coverage records remain valid for recommendation validation, but they mu
 
 Each extracted record must retain, whether sourced from platform metadata, transcript extraction, or later enrichment:
 
-- creator identity, using a stable platform creator id when available and display name as companion metadata
+- creator identity, using the platform's stable numeric id (e.g. Bilibili `owner.mid`) as the primary key and display name as companion metadata
 - source video link
 - store name candidate
 - address text or geographic candidate
@@ -66,3 +66,21 @@ Repeated submissions of the same canonical source video link must merge into the
 ## VFM-PIPE-008 — Validation Artifact Boundary
 
 Local probe files are validation artifacts only. Canonical app records must persist in app-managed storage and must not treat local scratch files as the product data store.
+
+## VFM-PIPE-009 — STT Language Strategy
+
+The extraction pipeline should use automatic language detection when the STT model supports it. If auto-detect is unavailable for the chosen model, the pipeline must accept an explicit language override. The default must not be hard-coded to a single dialect.
+
+## VFM-PIPE-010 — Cookieless Public Video Access
+
+For public videos, the pipeline must prefer direct platform APIs over HTML page scraping. Bilibili audio streams should be obtained via the playurl API (`/x/player/playurl`) and platform subtitles via the player API (`/x/player/v2`), both of which do not require login state for public content. Cookie-based access may remain as a fallback for restricted content, but must not be the default path.
+
+When selecting audio CDN URLs from the playurl response, the pipeline must prefer standard CDN hosts (`*.bilivideo.com`) over MCDN/P2P nodes (`*.mcdn.bilivideo.cn`), which are unreliable for cookieless access. Backup URLs in the playurl response provide standard CDN alternatives.
+
+## VFM-PIPE-011 — Creator Batch Intake
+
+The pipeline must support creator-scoped batch intake: given a creator's platform id (e.g. Bilibili `mid`), enumerate the creator's published videos via the platform space API (e.g. `/x/space/wbi/arc/search`), diff against already-known intake records, and feed new video entries into the single-video extraction pipeline. Batch intake is creator-scoped only; site-wide crawling is a non-goal.
+
+## VFM-PIPE-012 — Audio Transcoding Portability
+
+Audio transcoding must use FFmpeg, not platform-specific tools (e.g. macOS `afconvert`). The pipeline must be runnable on both macOS and Linux.

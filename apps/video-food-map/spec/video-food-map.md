@@ -9,6 +9,8 @@
 - K-JOB-* — async media job lifecycle
 - S-RUNTIME-* — SDK runtime surface and transport usage
 - S-SURFACE-* — typed surface usage from the SDK
+- P-DESIGN-* — cross-app design pattern, shared primitives, theme packs
+- P-KIT-* — nimi-kit package contract and kit-first protocol
 
 ## 1. Document Positioning
 
@@ -28,8 +30,10 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 
 | Module | Purpose |
 |--------|---------|
-| Video Intake | accept Bilibili / future creator video links |
-| Extraction Pipeline | metadata, transcription, structured recommendation extraction |
+| Video Intake | accept Bilibili (stage 1), Douyin and user-submitted links (future) |
+| Creator Intake | pull a creator's full video list and feed new entries into the extraction pipeline |
+| Extraction Pipeline | platform subtitles or speech transcription, structured recommendation extraction |
+| Comment Supplement | store name and address completion from video comments |
 | Review Queue | unresolved store names, address conflicts, mixed-result cleanup |
 | Creator Search | search by creator, area, dish, cuisine, flavor |
 | Map Surface | show only locatable food records |
@@ -39,7 +43,9 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 
 ### Stage 1
 
-- single video in
+- single video in, cookieless public video access via direct API
+- platform subtitle-first; speech transcription as fallback
+- creator batch intake via platform space API with incremental diff
 - structured recommendation record out
 - locatable records on map
 - creator / store / dish / cuisine / flavor search
@@ -47,7 +53,7 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 
 ### Stage 2
 
-- comment-based store name clues
+- comment-based store name and address completion via reply API
 - targeted visual clues from storefronts, signs, menus
 - stronger store/address confirmation
 - area search strengthened by confirmed coordinates
@@ -58,8 +64,15 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 - dietary warnings
 - party-size and flavor-preference dish suggestions
 
-## 4. Non-Goals
+## 4. Platform Scope
 
-- no requirement to batch-crawl all creator videos in stage 1
+- Stage 1: Bilibili only. URL pattern and metadata structure are Bilibili-specific.
+- Future: Douyin + Bilibili + user-submitted arbitrary video links.
+- Cross-platform creator dedup (same person on Bilibili and Douyin) is a future concern, not a stage-1 requirement.
+
+## 5. Non-Goals
+
+- no site-wide crawling; batch intake is creator-scoped only
 - no dependence on Dianping-like external APIs as a launch precondition
 - no full-video visual understanding as the default extraction path
+- no yt-dlp or heavy external CLI dependencies; video and audio fetching uses direct platform APIs
