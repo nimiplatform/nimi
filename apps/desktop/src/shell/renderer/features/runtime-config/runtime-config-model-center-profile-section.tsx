@@ -231,16 +231,11 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
                     value={effectiveCapability}
                     onChange={props.onSetSelectedProfileCapability}
                     className="w-full md:max-w-xs"
-                    options={[
-                      {
-                        value: '',
-                        label: t('runtimeConfig.local.selectCapability', { defaultValue: 'Select capability' }),
-                      },
-                      ...capabilityOptions.map((capability) => ({
-                        value: capability,
-                        label: capability,
-                      })),
-                    ]}
+                    placeholder={t('runtimeConfig.local.selectCapability', { defaultValue: 'Select capability' })}
+                    options={capabilityOptions.map((capability) => ({
+                      value: capability,
+                      label: capability,
+                    }))}
                   />
                   {!effectiveCapability ? (
                     <p className="mt-1 text-xs text-[var(--nimi-status-warning)]">

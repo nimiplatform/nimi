@@ -90,6 +90,7 @@ export function RuntimeSelect({
   value,
   onChange,
   options,
+  placeholder,
   disabled,
   size = 'md',
   className = '',
@@ -97,6 +98,7 @@ export function RuntimeSelect({
   value: string;
   onChange: (value: string) => void;
   options: RuntimeSelectOption[];
+  placeholder?: string;
   disabled?: boolean;
   size?: 'sm' | 'md';
   className?: string;
@@ -110,6 +112,7 @@ export function RuntimeSelect({
       value={value}
       onValueChange={onChange}
       options={options}
+      placeholder={placeholder}
       disabled={disabled}
       className={className}
       selectClassName={triggerClass}

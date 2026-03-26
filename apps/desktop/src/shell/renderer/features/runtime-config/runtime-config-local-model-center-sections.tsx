@@ -331,13 +331,8 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
               value={props.auxiliaryEngine}
               onChange={(value) => props.onAuxiliaryEngineChange((value || '') as AssetEngineOption | '')}
               className="w-32"
-              options={[
-                {
-                  value: '',
-                  label: i18n.t('runtimeConfig.localModelCenter.selectEngine', { defaultValue: 'Select engine' }),
-                },
-                ...ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine })),
-              ]}
+              placeholder={i18n.t('runtimeConfig.localModelCenter.selectEngine', { defaultValue: 'Select engine' })}
+              options={ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
             />
           </div>
         ) : null}
@@ -480,13 +475,8 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                         value={String(draft.engine || '')}
                         onChange={(value) => props.onAuxiliaryEngineChange(asset.path, (value || '') as AssetEngineOption | '')}
                         className="w-36"
-                        options={[
-                          {
-                            value: '',
-                            label: i18n.t('runtimeConfig.localModelCenter.selectEngine', { defaultValue: 'Select engine' }),
-                          },
-                          ...ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine })),
-                        ]}
+                        placeholder={i18n.t('runtimeConfig.localModelCenter.selectEngine', { defaultValue: 'Select engine' })}
+                        options={ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
                       />
                     ) : null}
                     <button
