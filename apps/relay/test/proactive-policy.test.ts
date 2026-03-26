@@ -1,16 +1,8 @@
 // Unit tests for proactive/policy.ts — wake strategy and policy gates (RL-PIPE-007)
 // Uses mock.module to avoid Electron dependency from policy-store → relay-chat-storage
 
-import { describe, it, mock } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-
-// Mock policy-store before importing policy.ts (avoids electron import)
-mock.module('../src/main/proactive/policy-store.js', {
-  namedExports: {
-    readProactivePolicyTargetState: async () => ({ lastSentAtMs: 0, dailyCount: 0 }),
-    markProactiveContactSent: async () => {},
-  },
-});
 
 const {
   resolveLocalChatWakeStrategy,
@@ -157,6 +149,8 @@ describe('evaluateLocalChatProactivePolicy', () => {
       sessionId: 'session-1',
       idleMs: PROACTIVE_IDLE_MIN_MS + 1000,
       nowMs: Date.now(),
+    }, {
+      readTargetState: async () => ({ lastSentAtMs: 0, dailyCount: 0 }),
     });
     assert.equal(result.allowed, true);
     assert.equal(result.reasonCode, 'LOCAL_CHAT_PROACTIVE_ALLOWED');

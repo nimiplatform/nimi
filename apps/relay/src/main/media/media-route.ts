@@ -59,8 +59,8 @@ export function resolveMediaRouteConfig(input: {
     };
   }
 
-  // Relay does not manage local models — auto/local both resolve to cloud
-  if (routeSource === 'auto') {
+  // Relay does not manage local models — auto/local both resolve to cloud bindings when configured.
+  if (routeSource === 'auto' || routeSource === 'local') {
     if (connectorId || model) {
       const override: RouteBinding = {
         source: 'cloud',
@@ -103,27 +103,23 @@ export function isMediaRouteReady(input: {
   const routeSource = normalizeRouteSource(input.kind === 'image'
     ? input.settings.imageRouteSource
     : input.settings.videoRouteSource);
+  const connectorId = asTrimmedString(input.kind === 'image'
+    ? input.settings.imageConnectorId
+    : input.settings.videoConnectorId);
+  const model = asTrimmedString(input.kind === 'image'
+    ? input.settings.imageModel
+    : input.settings.videoModel);
 
   // For relay: cloud routes are ready if connectorId is configured
   if (routeSource === 'cloud') {
-    const connectorId = asTrimmedString(input.kind === 'image'
-      ? input.settings.imageConnectorId
-      : input.settings.videoConnectorId);
     return Boolean(connectorId);
   }
 
-  // For auto: check if any route config exists
-  if (routeSource === 'auto') {
-    const connectorId = asTrimmedString(input.kind === 'image'
-      ? input.settings.imageConnectorId
-      : input.settings.videoConnectorId);
-    const model = asTrimmedString(input.kind === 'image'
-      ? input.settings.imageModel
-      : input.settings.videoModel);
+  // Relay resolves both auto and local selections through cloud bindings when configured.
+  if (routeSource === 'auto' || routeSource === 'local') {
     return Boolean(connectorId || model);
   }
 
-  // local — relay cannot serve local routes
   return false;
 }
 

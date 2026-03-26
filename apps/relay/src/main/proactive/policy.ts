@@ -16,6 +16,20 @@ export const PROACTIVE_IDLE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
 export const PROACTIVE_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 export const PROACTIVE_DAILY_CAP = 3;
 
+type ProactivePolicyDeps = {
+  readTargetState: (input: {
+    targetId: string;
+    nowMs: number;
+  }) => Promise<{
+    lastSentAtMs: number;
+    dailyCount: number;
+  }>;
+};
+
+const defaultProactivePolicyDeps: ProactivePolicyDeps = {
+  readTargetState: readProactivePolicyTargetState,
+};
+
 function readWakeStrategyText(record: JsonObject): string {
   return String(record.wakeStrategy || record.wake_strategy || '').trim().toUpperCase();
 }
@@ -57,6 +71,7 @@ function buildPolicyResult(
 
 export async function evaluateLocalChatProactivePolicy(
   input: LocalChatProactiveGateInput,
+  deps: ProactivePolicyDeps = defaultProactivePolicyDeps,
 ): Promise<LocalChatProactivePolicyResult> {
   if (!input.allowProactiveContact) {
     return buildPolicyResult(
@@ -80,7 +95,7 @@ export async function evaluateLocalChatProactivePolicy(
   }
 
   try {
-    const state = await readProactivePolicyTargetState({
+    const state = await deps.readTargetState({
       targetId: input.targetId,
       nowMs: input.nowMs,
     });

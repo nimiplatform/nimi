@@ -10,17 +10,17 @@ const stylesSource = readFileSync(path.join(testDir, '..', 'src', 'renderer', 's
 
 describe('relay design theme entry contract', () => {
   it('uses the shared Nimi theme provider with the relay accent pack', () => {
-    assert.match(mainSource, /@nimiplatform\/nimi-ui/u);
+    assert.match(mainSource, /@nimiplatform\/nimi-kit\/ui/u);
     assert.match(mainSource, /NimiThemeProvider/u);
     assert.match(mainSource, /accentPack="relay-accent"/u);
     assert.match(mainSource, /defaultScheme="dark"/u);
   });
 
   it('imports the shared foundation and relay accent styles', () => {
-    assert.match(stylesSource, /@nimiplatform\/nimi-ui\/styles\.css/u);
-    assert.match(stylesSource, /@nimiplatform\/nimi-ui\/themes\/light\.css/u);
-    assert.match(stylesSource, /@nimiplatform\/nimi-ui\/themes\/dark\.css/u);
-    assert.match(stylesSource, /@nimiplatform\/nimi-ui\/themes\/relay-accent\.css/u);
+    assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/styles\.css/u);
+    assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/themes\/light\.css/u);
+    assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/themes\/dark\.css/u);
+    assert.match(stylesSource, /@nimiplatform\/nimi-kit\/ui\/themes\/relay-accent\.css/u);
     assert.doesNotMatch(stylesSource, /relay-dark\.css|overtone-studio\.css/u);
   });
 

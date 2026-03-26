@@ -1,6 +1,8 @@
-import { app } from 'electron';
+import electron from 'electron';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
+const { app } = electron;
 
 // ── Interface ──────────────────────────────────────────────────────
 

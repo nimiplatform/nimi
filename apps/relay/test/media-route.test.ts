@@ -85,7 +85,12 @@ describe('isMediaRouteReady', () => {
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), false);
   });
 
-  it('local route never ready in relay', () => {
+  it('local route is ready when relay can resolve a cloud binding from connector config', () => {
+    const settings = createSettings({ imageRouteSource: 'local', imageConnectorId: 'conn-1' });
+    assert.equal(isMediaRouteReady({ kind: 'image', settings }), true);
+  });
+
+  it('local route is not ready when no connector or model is configured', () => {
     const settings = createSettings({ imageRouteSource: 'local' });
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), false);
   });
