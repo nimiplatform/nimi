@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import {
   getExternalAgentGatewayStatus,
   issueExternalAgentToken,
@@ -118,25 +118,25 @@ export function ExternalAgentAccessPanel() {
       <Card className="space-y-3 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">
+            <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
               {t('runtimeConfig.eaa.gatewayStatusTitle', { defaultValue: 'Gateway Status & Issue Token' })}
             </h4>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-[var(--nimi-text-muted)]">
               {t('runtimeConfig.eaa.gatewayStatusDesc', {
                 defaultValue: 'External Agent Access gateway and token issuance.',
               })}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className={`inline-block h-2.5 w-2.5 rounded-full ${gatewayEnabled ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-            <span className="text-xs text-gray-600">
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${gatewayEnabled ? 'bg-[var(--nimi-status-success)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'}`} />
+            <span className="text-xs text-[var(--nimi-text-secondary)]">
               {gatewayEnabled
                 ? t('runtimeConfig.eaa.enabled', { defaultValue: 'Enabled' })
                 : t('runtimeConfig.eaa.disabled', { defaultValue: 'Disabled' })}
             </span>
           </div>
         </div>
-        <p className="text-[11px] text-gray-500">{statusText}</p>
+        <p className="text-[11px] text-[var(--nimi-text-muted)]">{statusText}</p>
 
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Input
@@ -152,7 +152,7 @@ export function ExternalAgentAccessPanel() {
             placeholder={t('runtimeConfig.eaa.subjectAccountPlaceholder', { defaultValue: 'user_123 / external_456' })}
           />
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.runtime.mode', { defaultValue: 'Mode' })}
             </label>
             <RuntimeSelect
@@ -173,7 +173,7 @@ export function ExternalAgentAccessPanel() {
           />
         </div>
         {ttlValidationMessage ? (
-          <p className="text-xs text-amber-600">{ttlValidationMessage}</p>
+          <p className="text-xs text-[var(--nimi-status-warning)]">{ttlValidationMessage}</p>
         ) : null}
 
         <Input
@@ -195,11 +195,11 @@ export function ExternalAgentAccessPanel() {
         </div>
 
         {tokenId ? (
-          <p className="text-[11px] text-gray-500">{t('runtimeConfig.eaa.tokenIdLabel', { defaultValue: 'tokenId' })}: {tokenId}</p>
+          <p className="text-[11px] text-[var(--nimi-text-muted)]">{t('runtimeConfig.eaa.tokenIdLabel', { defaultValue: 'tokenId' })}: {tokenId}</p>
         ) : null}
         {issuedToken ? (
           <div className="space-y-1.5">
-            <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-[11px] text-amber-900 break-all">
+            <div className="rounded-md border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] p-2 text-[11px] text-[var(--nimi-status-warning)] break-all">
               {issuedToken}
             </div>
             <Button variant="ghost" size="sm" disabled={busy || !gatewayEnabled || !tokenId.trim()} onClick={() => handleRevokeToken()}>
@@ -208,41 +208,41 @@ export function ExternalAgentAccessPanel() {
           </div>
         ) : null}
         {errorMessage ? (
-          <p className="text-xs text-red-600">{errorMessage}</p>
+          <p className="text-xs text-[var(--nimi-status-danger)]">{errorMessage}</p>
         ) : null}
       </Card>
 
       <Card className="space-y-3 p-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-gray-900">
+          <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.eaa.issuedTokens', { defaultValue: 'Issued Tokens' })}
           </p>
-          <p className="text-xs text-gray-500">{t('runtimeConfig.eaa.tokenCount', { count: tokens.length, defaultValue: '{{count}} token' })}</p>
+          <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.eaa.tokenCount', { count: tokens.length, defaultValue: '{{count}} token' })}</p>
         </div>
         {tokens.length <= 0 ? (
-          <p className="text-xs text-gray-500">{t('runtimeConfig.eaa.noTokensIssued', { defaultValue: 'No tokens issued.' })}</p>
+          <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.eaa.noTokensIssued', { defaultValue: 'No tokens issued.' })}</p>
         ) : (
-            <ScrollShell className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
+            <ScrollArea className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
             {tokens.map((token) => {
               const isRevoked = Boolean(token.revokedAt);
               const isExpired = token.expiresAt && new Date(token.expiresAt).getTime() < Date.now();
               const tokenStatus = isRevoked ? 'revoked' : isExpired ? 'expired' : 'active';
               const statusColor = tokenStatus === 'active'
-                ? 'border-emerald-200 bg-emerald-50'
+                ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]'
                 : tokenStatus === 'expired'
-                  ? 'border-amber-200 bg-amber-50'
-                  : 'border-gray-200 bg-gray-50';
+                  ? 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]'
+                  : 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]';
               return (
-                <div key={token.tokenId} className={`rounded-[10px] border p-3 text-[11px] text-gray-700 ${statusColor}`}>
+                <div key={token.tokenId} className={`rounded-[10px] border p-3 text-[11px] text-[var(--nimi-text-secondary)] ${statusColor}`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{token.principalId}</span>
+                      <span className="font-medium text-[var(--nimi-text-primary)]">{token.principalId}</span>
                       <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
                         tokenStatus === 'active'
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
                           : tokenStatus === 'expired'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-gray-100 text-gray-600'
+                            ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'
+                            : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]'
                       }`}>
                         {tokenStatus === 'active'
                           ? t('runtimeConfig.eaa.tokenStatusActive', { defaultValue: 'active' })
@@ -254,7 +254,7 @@ export function ExternalAgentAccessPanel() {
                     {!isRevoked ? (
                       <button
                         type="button"
-                        className="text-[11px] font-medium text-red-600 hover:text-red-700 disabled:text-gray-400"
+                        className="text-[11px] font-medium text-[var(--nimi-status-danger)] hover:text-[var(--nimi-status-danger)] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]"
                         disabled={busy || !gatewayEnabled}
                         onClick={() => handleRevokeToken(token.tokenId)}
                       >
@@ -268,7 +268,7 @@ export function ExternalAgentAccessPanel() {
                 </div>
               );
             })}
-          </ScrollShell>
+          </ScrollArea>
         )}
       </Card>
     </div>

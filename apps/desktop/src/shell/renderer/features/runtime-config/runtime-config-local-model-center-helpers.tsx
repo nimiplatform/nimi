@@ -257,11 +257,11 @@ export function recommendationTierLabel(value?: LocalRuntimeCatalogRecommendatio
 }
 
 export function recommendationTierClass(value?: LocalRuntimeCatalogRecommendation['tier']): string {
-  if (value === 'recommended') return 'bg-emerald-100 text-emerald-700';
-  if (value === 'runnable') return 'bg-sky-100 text-sky-700';
-  if (value === 'tight') return 'bg-amber-100 text-amber-700';
-  if (value === 'not_recommended') return 'bg-rose-100 text-rose-700';
-  return 'bg-slate-100 text-slate-600';
+  if (value === 'recommended') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_15%,transparent)] text-[var(--nimi-status-success)]';
+  if (value === 'runnable') return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_15%,transparent)] text-[var(--nimi-status-info)]';
+  if (value === 'tight') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-[var(--nimi-status-warning)]';
+  if (value === 'not_recommended') return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)]';
+  return 'bg-[color-mix(in_srgb,var(--nimi-status-neutral)_15%,transparent)] text-[var(--nimi-status-neutral)]';
 }
 
 export function recommendationHostSupportLabel(
@@ -624,8 +624,8 @@ export function RecommendationDetailList(props: {
   return (
     <div className={props.className || 'mt-2 space-y-1'}>
       {items.map((item) => (
-        <p key={item.key} className={props.rowClassName || 'text-[11px] text-gray-500'}>
-          <span className={props.labelClassName || 'font-medium text-gray-700'}>{item.label}:</span>{' '}
+        <p key={item.key} className={props.rowClassName || 'text-[11px] text-[var(--nimi-text-muted)]'}>
+          <span className={props.labelClassName || 'font-medium text-[var(--nimi-text-secondary)]'}>{item.label}:</span>{' '}
           <span className={props.valueClassName || ''}>{item.value}</span>
         </p>
       ))}
@@ -654,7 +654,7 @@ export function RecommendationDiagnosticsPanel(props: {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className={props.buttonClassName || 'text-[10px] font-medium text-slate-500 underline decoration-slate-200 underline-offset-2 hover:text-slate-700'}
+        className={props.buttonClassName || 'text-[10px] font-medium text-[var(--nimi-text-muted)] underline decoration-[color:var(--nimi-border-subtle)] underline-offset-2 hover:text-[var(--nimi-text-secondary)]'}
       >
         {open
           ? i18n.t('runtimeConfig.local.recommendationDiagnosticsHide', {
@@ -665,15 +665,15 @@ export function RecommendationDiagnosticsPanel(props: {
             })}
       </button>
       {open ? (
-        <div className={props.panelClassName || 'mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] text-slate-600'}>
-          <p className="font-medium text-slate-700">
+        <div className={props.panelClassName || 'mt-2 space-y-2 rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-[10px] text-[var(--nimi-text-secondary)]'}>
+          <p className="font-medium text-[var(--nimi-text-primary)]">
             {i18n.t('runtimeConfig.local.recommendationDiagnosticsTitle', {
               defaultValue: 'Recommendation diagnostics',
             })}
           </p>
           <div className="space-y-1">
             <p>
-              <span className="font-medium text-slate-700">
+              <span className="font-medium text-[var(--nimi-text-primary)]">
                 {i18n.t('runtimeConfig.local.recommendationDiagnosticsSource', {
                   defaultValue: 'Source',
                 })}
@@ -683,7 +683,7 @@ export function RecommendationDiagnosticsPanel(props: {
             </p>
             {recommendation.format ? (
               <p>
-                <span className="font-medium text-slate-700">
+                <span className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.local.recommendationDiagnosticsFormat', {
                     defaultValue: 'Format',
                   })}
@@ -694,7 +694,7 @@ export function RecommendationDiagnosticsPanel(props: {
             ) : null}
           </div>
           <div className="space-y-1">
-            <p className="font-medium text-slate-700">
+            <p className="font-medium text-[var(--nimi-text-primary)]">
               {i18n.t('runtimeConfig.local.recommendationDiagnosticsReasonCodes', {
                 defaultValue: 'Reason codes',
               })}
@@ -705,10 +705,10 @@ export function RecommendationDiagnosticsPanel(props: {
                 {reasonCodes.map((reasonCode) => (
                   <div
                     key={reasonCode}
-                    className="rounded border border-slate-200 bg-white px-2 py-1 text-slate-600"
+                    className="rounded border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-2 py-1 text-[var(--nimi-text-secondary)]"
                   >
                     <p>{recommendationReasonLabel(reasonCode)}</p>
-                    <p className="font-mono text-[10px] text-slate-500">{reasonCode}</p>
+                    <p className="font-mono text-[10px] text-[var(--nimi-text-muted)]">{reasonCode}</p>
                   </div>
                 ))}
               </div>

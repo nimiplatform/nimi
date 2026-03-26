@@ -1,14 +1,11 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ChatComposerShellProps = {
   children: ReactNode;
   height?: number | string;
   className?: string;
 };
-
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
 
 export function ChatComposerShell({
   children,

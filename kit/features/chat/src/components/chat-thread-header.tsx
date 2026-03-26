@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ChatThreadHeaderProps = {
   title: ReactNode;
@@ -9,10 +10,6 @@ export type ChatThreadHeaderProps = {
   actions?: ReactNode;
 };
 
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
-
 export function ChatThreadHeader({
   title,
   onTitleClick,
@@ -22,18 +19,21 @@ export function ChatThreadHeader({
   actions,
 }: ChatThreadHeaderProps) {
   return (
-    <header className={cn('flex h-14 shrink-0 items-center justify-between bg-white px-4', className)}>
+    <header className={cn('flex h-14 shrink-0 items-center justify-between bg-[var(--nimi-surface-canvas)] px-4', className)}>
       {onTitleClick ? (
         <button
           type="button"
           onClick={onTitleClick}
           aria-label={titleAriaLabel}
-          className={cn('text-[15px] font-semibold text-gray-900 transition-colors hover:text-gray-700', titleClassName)}
+          className={cn(
+            'text-[15px] font-semibold text-[var(--nimi-text-primary)] transition-colors hover:text-[var(--nimi-text-secondary)]',
+            titleClassName,
+          )}
         >
           {title}
         </button>
       ) : (
-        <div className={cn('text-[15px] font-semibold text-gray-900', titleClassName)}>
+        <div className={cn('text-[15px] font-semibold text-[var(--nimi-text-primary)]', titleClassName)}>
           {title}
         </div>
       )}

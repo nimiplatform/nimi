@@ -1,13 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { IconButton, SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, ScrollArea, SidebarHeader, SidebarResizeHandle, SidebarSearch, SidebarSection, SidebarShell, Surface, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
-import { Tooltip } from '@renderer/components/tooltip.js';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';
 import type { ProfileData, ProfileSource } from '@renderer/features/profile/profile-model';
@@ -41,7 +38,7 @@ function ContactsLoadingSkeleton() {
           </div>
         </div>
 
-        <ScrollShell
+        <ScrollArea
           className="flex-1"
           contentClassName="space-y-3 px-3 py-2"
         >
@@ -56,7 +53,7 @@ function ContactsLoadingSkeleton() {
               </div>
             </Surface>
           ))}
-        </ScrollShell>
+        </ScrollArea>
       </Surface>
 
       <Surface as="main" tone="card" padding="none" className="flex min-w-0 flex-1 flex-col rounded-none border-0 p-8">
@@ -428,13 +425,13 @@ export function ContactsView(props: ContactsViewProps) {
   }
 
   return (
-    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="nimi-surface nimi-surface--canvas flex h-full rounded-none border-0">
+    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
       {/* 左侧联系人列表 */}
       <SidebarShell
         width={sidebarWidth}
         data-testid={E2E_IDS.panel('contacts')}
       >
-        <SidebarHeader title={<h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Contacts.title')}</h1>} />
+        <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Contacts.title')}</h1>} />
         <SidebarSearch
           value={props.searchText}
           onChange={props.onSearchTextChange}
@@ -464,7 +461,7 @@ export function ContactsView(props: ContactsViewProps) {
           )}
         />
 
-        <ScrollShell
+        <ScrollArea
           className="flex-1"
           contentClassName="space-y-1 py-1.5"
         >
@@ -506,7 +503,7 @@ export function ContactsView(props: ContactsViewProps) {
               />
             )}
           </SidebarSection>
-        </ScrollShell>
+        </ScrollArea>
         <SidebarResizeHandle
           ariaLabel={t('Contacts.resizeSidebar', { defaultValue: 'Resize contacts sidebar' })}
           onMouseDown={startResize}
@@ -514,7 +511,7 @@ export function ContactsView(props: ContactsViewProps) {
       </SidebarShell>
 
       {/* 右侧详情区 - 使用共享 profile 详情页 */}
-      <ScrollShell
+      <ScrollArea
         as="main"
         className="flex min-w-0 flex-1 flex-col bg-white"
         viewportClassName="bg-white"
@@ -604,7 +601,7 @@ export function ContactsView(props: ContactsViewProps) {
             </div>
           </div>
         )}
-      </ScrollShell>
+      </ScrollArea>
 
       {/* Block 确认对话框 */}
       {blockingContact && (

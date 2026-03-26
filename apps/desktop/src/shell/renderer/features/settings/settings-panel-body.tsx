@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, SidebarAffordanceChevron, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@nimiplatform/nimi-kit/ui';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { getSettingsMenuSections } from './settings-assets.js';
 import { renderSettingsPage } from './settings-pages.js';
 import {
@@ -89,8 +87,8 @@ export function SettingsPanelBody() {
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1" data-testid="panel:settings">
       <SidebarShell width={sidebarWidth} data-testid="panel:settings-sidebar">
-        <SidebarHeader title={<h1 className={APP_PAGE_TITLE_CLASS}>{t('Navigation.settings')}</h1>} className="px-6" />
-        <ScrollShell className="flex-1" contentClassName="space-y-5 px-3 pb-3 pt-2">
+        <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Navigation.settings')}</h1>} className="px-6" />
+        <ScrollArea className="flex-1" contentClassName="space-y-5 px-3 pb-3 pt-2">
           {menuSections.map((section) => {
             const sectionKey = SETTINGS_SECTION_KEY_BY_LABEL[section.label];
             return (
@@ -110,21 +108,21 @@ export function SettingsPanelBody() {
                       onClick={() => handleSelect(item.id)}
                       icon={<span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>}
                       label={itemTitle}
-                      trailing={active ? <span className="nimi-sidebar-affordance nimi-sidebar-affordance--chevron">{'›'}</span> : undefined}
+                      trailing={active ? <SidebarAffordanceChevron /> : undefined}
                     />
                   );
                 })}
               </SidebarSection>
             );
           })}
-        </ScrollShell>
+        </ScrollArea>
         <SidebarResizeHandle
           ariaLabel={t('Settings.resizeSidebarAriaLabel')}
           onMouseDown={startResize}
         />
       </SidebarShell>
 
-      <div className="nimi-surface--canvas flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
         {renderSettingsPage(selectedId)}
       </div>
     </div>

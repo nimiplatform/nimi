@@ -80,11 +80,11 @@ export function Toggle({ checked, onChange, disabled }: { checked: boolean; onCh
       onClick={onChange}
       disabled={disabled}
       className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-        checked ? 'bg-mint-500' : 'bg-gray-200'
+        checked ? 'bg-[var(--nimi-action-primary-bg)]' : 'bg-[var(--nimi-border-subtle)]'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
-        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[var(--nimi-surface-card)] transition-transform ${
           checked ? 'translate-x-5' : 'translate-x-0.5'
         }`}
       />
@@ -94,19 +94,19 @@ export function Toggle({ checked, onChange, disabled }: { checked: boolean; onCh
 
 export function ModelIcon({ engine }: { engine: string }) {
   const colors: Record<string, string> = {
-    llama: 'from-emerald-400 to-teal-500',
-    media: 'from-rose-400 to-orange-500',
-    speech: 'from-sky-400 to-indigo-500',
-    sidecar: 'from-sky-400 to-cyan-500',
-    ollama: 'from-amber-400 to-orange-500',
-    llamacpp: 'from-blue-400 to-indigo-500',
-    vllm: 'from-purple-400 to-pink-500',
-    default: 'from-gray-400 to-gray-500',
+    llama: 'from-[var(--nimi-status-success)] to-[var(--nimi-action-primary-bg)]',
+    media: 'from-[var(--nimi-status-warning)] to-[var(--nimi-status-danger)]',
+    speech: 'from-[var(--nimi-status-info)] to-[var(--nimi-action-primary-bg)]',
+    sidecar: 'from-[var(--nimi-action-primary-bg)] to-[var(--nimi-status-info)]',
+    ollama: 'from-[var(--nimi-status-warning)] to-[var(--nimi-action-primary-bg)]',
+    llamacpp: 'from-[var(--nimi-action-primary-bg)] to-[var(--nimi-status-info)]',
+    vllm: 'from-[var(--nimi-status-danger)] to-[var(--nimi-action-primary-bg)]',
+    default: 'from-[var(--nimi-text-muted)] to-[var(--nimi-text-secondary)]',
   };
   const color = colors[engine.toLowerCase()] || colors.default;
 
   return (
-    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${color} text-[10px] font-bold text-white shadow-sm`}>
+    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${color} text-[10px] font-bold text-[var(--nimi-action-primary-text)] shadow-sm`}>
       {engine.slice(0, 2).toUpperCase()}
     </div>
   );

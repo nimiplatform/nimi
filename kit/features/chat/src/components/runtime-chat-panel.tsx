@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
-import { Button, Surface, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, Surface, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
 import type {
   RuntimeChatSessionMessage,
   UseRuntimeChatSessionResult,
@@ -30,10 +30,6 @@ export type RuntimeChatPanelProps = {
   messageStatusClassName?: string;
   renderMessage?: (message: RuntimeChatSessionMessage, index: number) => ReactNode;
 };
-
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
 
 function defaultFormatMessageStatus(message: RuntimeChatSessionMessage): string | null {
   if (message.status === 'streaming') {

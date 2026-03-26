@@ -8,8 +8,7 @@ import {
 import { useRealmGiftInbox } from '@nimiplatform/nimi-kit/features/commerce/realm';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { formatLocaleDate } from '@renderer/i18n';
 import { invalidateNotificationQueries } from '@renderer/features/notification/notification-query.js';
 import { persistStoredSettingsSelected } from '@renderer/features/settings/settings-storage';
@@ -152,7 +151,7 @@ export function GiftInboxPanel() {
             >
               {t('Common.back', { defaultValue: 'Back' })}
             </button>
-            <h1 className={APP_PAGE_TITLE_CLASS}>
+            <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
               {t('GiftInbox.title', { defaultValue: 'Gifts' })}
             </h1>
           </div>
@@ -174,7 +173,7 @@ export function GiftInboxPanel() {
             >
               {t('Common.back', { defaultValue: 'Back' })}
             </button>
-            <h1 className={APP_PAGE_TITLE_CLASS}>
+            <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
               {t('GiftInbox.title', { defaultValue: 'Gifts' })}
             </h1>
           </div>
@@ -205,7 +204,7 @@ export function GiftInboxPanel() {
             {t('Common.back', { defaultValue: 'Back' })}
           </button>
           <div>
-            <h1 className={APP_PAGE_TITLE_CLASS}>
+            <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
               {t('GiftInbox.title', { defaultValue: 'Gifts' })}
             </h1>
             <p className="text-xs text-gray-400">
@@ -214,7 +213,7 @@ export function GiftInboxPanel() {
           </div>
         </div>
 
-        <ScrollShell className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-4 px-6 py-5">
+        <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-4 px-6 py-5">
           <GiftInboxDetail
             gift={selectedGift}
             status={selectedGiftStatus}
@@ -280,7 +279,7 @@ export function GiftInboxPanel() {
               defaultValue: 'You are viewing this gift as the sender. Status changes happen on the receiver side.',
             })}
           />
-        </ScrollShell>
+        </ScrollArea>
       </div>
     );
   }
@@ -296,7 +295,7 @@ export function GiftInboxPanel() {
           {t('Common.back', { defaultValue: 'Back' })}
         </button>
         <div>
-          <h1 className={APP_PAGE_TITLE_CLASS}>
+          <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
             {t('GiftInbox.title', { defaultValue: 'Gifts' })}
           </h1>
           <p className="text-xs text-gray-400">
@@ -305,7 +304,7 @@ export function GiftInboxPanel() {
         </div>
       </div>
 
-      <ScrollShell className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-3 px-6 py-5">
+      <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto w-full max-w-3xl space-y-3 px-6 py-5">
         <GiftInboxList
           items={giftItems}
           loading={listLoading}
@@ -332,7 +331,7 @@ export function GiftInboxPanel() {
           emptyLabel={t('GiftInbox.empty', { defaultValue: 'No received gifts yet' })}
           refreshLabel={t('NotificationPanel.refresh', { defaultValue: 'Refresh' })}
         />
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }

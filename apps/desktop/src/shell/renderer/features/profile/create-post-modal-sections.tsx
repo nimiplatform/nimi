@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { TFunction } from 'i18next';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { MAX_CAPTION_LENGTH, type Location, type SelectedAttachmentRef, type SelectedFile } from './create-post-modal-helpers.js';
 
 type CreatePostModalHeaderProps = {
@@ -385,7 +385,7 @@ export function CreatePostModalBody(props: {
   t: TFunction;
 }) {
   return (
-    <ScrollShell className="flex-1" contentClassName="px-5 py-4">
+    <ScrollArea className="flex-1" contentClassName="px-5 py-4">
       <CreatePostAttachmentSection
         fileInputRef={props.fileInputRef}
         selectedFile={props.selectedFile}
@@ -418,7 +418,7 @@ export function CreatePostModalBody(props: {
         toggleTagPanel={props.toggleTagPanel}
         t={props.t}
       />
-    </ScrollShell>
+    </ScrollArea>
   );
 }
 

@@ -164,9 +164,9 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           onRefresh={() => void refreshFeed()}
         />
       ) : !loading ? null : (
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-white/95 px-5 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-mint-500 border-t-transparent" />
-          <span className="text-sm text-slate-500">{t('runtimeConfig.recommend.loadingFeed', { defaultValue: 'Detecting hardware\u2026' })}</span>
+        <div className="flex items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 px-5 py-3 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--nimi-action-primary-bg)] border-t-transparent" />
+          <span className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.loadingFeed', { defaultValue: 'Detecting hardware\u2026' })}</span>
         </div>
       )}
 
@@ -179,14 +179,14 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
         <div className="relative min-w-0 flex-1">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             <SearchIcon className="h-4 w-4" />
           </div>
           <input
             value={filters.query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models\u2026' })}
-            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
+            className="h-9 w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-white pl-9 pr-3 text-sm text-[var(--nimi-text-primary)] outline-none placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100"
           />
         </div>
 
@@ -227,14 +227,14 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         />
 
         {/* Result count */}
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
           {sortedItems.length}/{allItems.length}
         </span>
       </div>
 
       {/* Stale notice */}
       {cacheState === 'stale' ? (
-        <Card className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <Card className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] p-3 text-sm text-[var(--nimi-status-warning)]">
           {t('runtimeConfig.recommend.staleNotice', {
             defaultValue: 'Showing the last successful snapshot. Refresh when the model-index worker is reachable again.',
           })}
@@ -243,7 +243,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
       {/* Error state */}
       {error && !feed ? (
-        <Card className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-900">
+        <Card className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] p-6 text-sm text-[var(--nimi-status-danger)]">
           <p className="font-medium">{t('runtimeConfig.recommend.loadFailed', { defaultValue: 'Failed to load recommendation feed.' })}</p>
           <p className="mt-2 text-xs opacity-80">{error}</p>
         </Card>
@@ -251,7 +251,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
       {/* Empty state */}
       {feed && sortedItems.length === 0 && !loading ? (
-        <Card className="rounded-xl border border-dashed border-slate-200 bg-white/95 p-6 text-sm text-slate-500">
+        <Card className="rounded-xl border border-dashed border-[var(--nimi-border-subtle)] bg-white/95 p-6 text-sm text-[var(--nimi-text-muted)]">
           {cacheState === 'empty'
             ? t('runtimeConfig.recommend.offlineEmpty', { defaultValue: 'No recommendation snapshot is available yet. Connect the model-index worker, then refresh.' })
             : t('runtimeConfig.recommend.noMatches', { defaultValue: 'Nothing matched the current filters. Try another search term or capability.' })}
@@ -260,7 +260,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
       {/* Column headers */}
       {sortedItems.length > 0 ? (
-        <div className="flex items-center gap-3 px-4 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+        <div className="flex items-center gap-3 px-4 text-[10px] font-medium uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
           <span className="min-w-0 flex-1">{t('runtimeConfig.recommend.colModel', { defaultValue: 'Model' })}</span>
           <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colLicense', { defaultValue: 'License' })}</span>
           <span className="hidden w-16 shrink-0 text-right md:block">{t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' })}</span>

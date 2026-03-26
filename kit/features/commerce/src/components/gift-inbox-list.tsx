@@ -1,3 +1,4 @@
+import { Button, StatusBadge, Surface, cn } from '@nimiplatform/nimi-kit/ui';
 import { GiftStatusBadge } from './gift-status-badge.js';
 import type { CommerceGiftStatus, CommerceGiftSummary } from '../types.js';
 
@@ -38,72 +39,77 @@ export function GiftInboxList({
 }: GiftInboxListProps) {
   if (loading) {
     return (
-      <div className={`rounded-[28px] bg-white p-8 text-center text-sm text-gray-400 ${className || ''}`.trim()}>
-        <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-mint-200 border-t-mint-500" />
+      <Surface tone="card" className={cn('rounded-[28px] p-8 text-center text-sm text-[var(--nimi-text-muted)]', className)}>
+        <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_20%,transparent)] border-t-[var(--nimi-action-primary-bg)]" />
         {loadingLabel}
-      </div>
+      </Surface>
     );
   }
 
   if (error) {
     return (
-      <div className={`rounded-[28px] border border-red-200 bg-red-50 p-8 text-center text-sm text-red-700 ${className || ''}`.trim()}>
+      <Surface
+        tone="card"
+        className={cn(
+          'rounded-[28px] border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))] p-8 text-center text-sm text-[var(--nimi-status-danger)]',
+          className,
+        )}
+      >
         <p>{error}</p>
         {onRefresh ? (
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="mt-3 inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
-          >
+          <Button tone="secondary" size="sm" onClick={onRefresh} className="mt-3 rounded-full">
             {refreshLabel}
-          </button>
+          </Button>
         ) : null}
-      </div>
+      </Surface>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className={`rounded-[28px] bg-white p-8 text-center text-sm text-gray-400 ${className || ''}`.trim()}>
+      <Surface tone="card" className={cn('rounded-[28px] p-8 text-center text-sm text-[var(--nimi-text-muted)]', className)}>
         {emptyLabel}
-      </div>
+      </Surface>
     );
   }
 
   return (
-    <div className={`space-y-3 ${className || ''}`.trim()}>
+    <div className={cn('space-y-3', className)}>
       {items.map((item) => {
         const senderName = getSenderDisplayName(item);
         const giftStatus = item.status || 'PENDING';
         return (
-          <button
+          <Surface
             key={item.id}
+            as="button"
             type="button"
+            tone="card"
+            padding="none"
             onClick={() => {
               onSelect(item.id);
             }}
-            className="flex w-full items-start gap-4 rounded-[28px] bg-white p-5 text-left shadow-sm transition-transform hover:-translate-y-0.5"
+            className="flex w-full items-start gap-4 rounded-[28px] p-5 text-left transition-transform hover:-translate-y-0.5"
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-amber-50 text-3xl">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-3xl">
               {item.gift?.emoji || '🎁'}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-base font-semibold text-gray-900">
+                <p className="text-base font-semibold text-[var(--nimi-text-primary)]">
                   {item.gift?.name || unknownGiftLabel}
                 </p>
                 <GiftStatusBadge status={giftStatus} label={getStatusLabel(giftStatus)} />
-                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                <StatusBadge tone="warning">
                   {sparkAmountLabel(item.sparkCost)}
-                </span>
+                </StatusBadge>
               </div>
-              <p className="mt-1 text-sm text-gray-500">{fromSenderLabel(senderName)}</p>
+              <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">{fromSenderLabel(senderName)}</p>
               {item.message ? (
-                <p className="mt-2 line-clamp-2 text-sm text-gray-600">{item.message}</p>
+                <p className="mt-2 line-clamp-2 text-sm text-[var(--nimi-text-secondary)]">{item.message}</p>
               ) : null}
             </div>
-            <div className="shrink-0 text-xs text-gray-400">{formatDate(item.createdAt)}</div>
-          </button>
+            <div className="shrink-0 text-xs text-[var(--nimi-text-muted)]">{formatDate(item.createdAt)}</div>
+          </Surface>
         );
       })}
     </div>

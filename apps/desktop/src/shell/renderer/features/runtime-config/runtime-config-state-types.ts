@@ -218,11 +218,11 @@ export function statusTextV11(status: ProviderStatusV11): string {
 }
 
 export function statusClassV11(status: ProviderStatusV11): string {
-  if (status === 'healthy') return 'bg-green-50 text-green-700';
-  if (status === 'degraded') return 'bg-yellow-50 text-yellow-700';
-  if (status === 'unreachable') return 'bg-red-50 text-red-700';
-  if (status === 'unsupported') return 'bg-orange-50 text-orange-700';
-  return 'bg-gray-100 text-gray-600';
+  if (status === 'healthy') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]';
+  if (status === 'degraded') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]';
+  if (status === 'unreachable') return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] text-[var(--nimi-status-danger)]';
+  if (status === 'unsupported') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]';
+  return 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]';
 }
 
 export function dedupeStringsV11(values: string[]): string[] {

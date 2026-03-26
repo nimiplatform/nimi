@@ -5,7 +5,7 @@ import type {
   AIProviderHealthSnapshot,
   AIProviderSubHealth,
 } from '@nimiplatform/sdk/runtime';
-import { Tooltip } from '@renderer/components/tooltip.js';
+import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { Card } from './runtime-config-primitives.js';
 import {
   runtimeHealthStatusLabel,
@@ -36,7 +36,7 @@ function IconButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={title}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] bg-white/90 text-[var(--nimi-text-secondary)] transition-colors hover:bg-white hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {icon}
       </button>
@@ -94,21 +94,21 @@ export function RuntimeHealthSection({
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">
+        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
           {t('runtimeConfig.runtime.runtimeHealth', { defaultValue: 'Runtime Health' })}
         </h3>
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
               streamConnected && !stale
-                ? 'bg-green-100 text-green-700'
+                ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
                 : runtimeHealth
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'
+                  : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]'
             }`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${
-              streamConnected && !stale ? 'bg-green-500' : runtimeHealth ? 'bg-yellow-500' : 'bg-gray-400'
+              streamConnected && !stale ? 'bg-[var(--nimi-status-success)]' : runtimeHealth ? 'bg-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_55%,transparent)]'
             }`} />
             {streamConnected && !stale
               ? t('runtimeConfig.runtime.live', { defaultValue: 'Live' })
@@ -126,7 +126,7 @@ export function RuntimeHealthSection({
       </div>
 
       {error ? (
-        <p className="text-xs text-red-600">{error}</p>
+        <p className="text-xs text-[var(--nimi-status-danger)]">{error}</p>
       ) : null}
 
       {streamError ? (
@@ -141,38 +141,38 @@ export function RuntimeHealthSection({
             <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-medium ${runtimeHealthStatusColor(health.status)}`}>
               {runtimeHealthStatusLabel(health.status)}
             </span>
-            <span className="text-gray-600">{t('runtimeConfig.runtime.queue', { defaultValue: 'Queue' })}: <strong>{health.queueDepth}</strong></span>
-            <span className="text-gray-600">{t('runtimeConfig.runtime.workflows', { defaultValue: 'Workflows' })}: <strong>{health.activeWorkflows}</strong></span>
-            <span className="text-gray-600">{t('runtimeConfig.runtime.jobs', { defaultValue: 'Jobs' })}: <strong>{health.activeInferenceJobs}</strong></span>
+            <span className="text-[var(--nimi-text-secondary)]">{t('runtimeConfig.runtime.queue', { defaultValue: 'Queue' })}: <strong>{health.queueDepth}</strong></span>
+            <span className="text-[var(--nimi-text-secondary)]">{t('runtimeConfig.runtime.workflows', { defaultValue: 'Workflows' })}: <strong>{health.activeWorkflows}</strong></span>
+            <span className="text-[var(--nimi-text-secondary)]">{t('runtimeConfig.runtime.jobs', { defaultValue: 'Jobs' })}: <strong>{health.activeInferenceJobs}</strong></span>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--nimi-text-secondary)]">
             <span>{t('runtimeConfig.runtime.cpu', { defaultValue: 'CPU' })}: <strong>{formatCpuMilli(health.cpuMilli)}</strong></span>
             <span>{t('runtimeConfig.runtime.ram', { defaultValue: 'RAM' })}: <strong>{formatBytes(health.memoryBytes)}</strong></span>
             <span>{t('runtimeConfig.runtime.vram', { defaultValue: 'VRAM' })}: <strong>{formatBytes(health.vramBytes)}</strong></span>
             {health.sampledAt ? (
-              <span className="text-gray-400">
+              <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
                 {t('runtimeConfig.runtime.sampled', { defaultValue: 'Sampled' })}: {relativeTimeShort(timestampToIso(health.sampledAt))}
               </span>
             ) : null}
           </div>
           {health.reason ? (
-            <p className="text-[11px] text-gray-500">{health.reason}</p>
+            <p className="text-[11px] text-[var(--nimi-text-muted)]">{health.reason}</p>
           ) : null}
         </div>
       ) : !loading ? (
-        <p className="text-xs text-gray-500">{t('runtimeConfig.runtime.noHealthData', { defaultValue: 'No health data available.' })}</p>
+        <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.runtime.noHealthData', { defaultValue: 'No health data available.' })}</p>
       ) : null}
 
       {/* AI Providers */}
       {providerHealth.length > 0 ? (
         <div className="space-y-1">
-          <p className="text-[11px] font-medium text-gray-500">
+          <p className="text-[11px] font-medium text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.runtime.aiProviders', { defaultValue: 'AI Providers' })}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-gray-100 text-left text-[11px] text-gray-500">
+                <tr className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] text-left text-[11px] text-[var(--nimi-text-muted)]">
                   <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.name', { defaultValue: 'Name' })}</th>
                   <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.state', { defaultValue: 'State' })}</th>
                   <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.failures', { defaultValue: 'Failures' })}</th>
@@ -213,38 +213,38 @@ function ProviderRow({
   return (
     <>
       <tr
-        className="cursor-pointer border-b border-gray-200/70 hover:bg-white/80"
+        className="cursor-pointer border-b border-[var(--nimi-border-subtle)]/70 hover:bg-white/80"
         onClick={onToggle}
       >
-        <td className="py-1.5 pr-3 font-medium text-gray-800">
+        <td className="py-1.5 pr-3 font-medium text-[var(--nimi-text-primary)]">
           {provider.subHealth.length > 0 ? (
-            <span className="mr-1 text-gray-400">{expanded ? '\u25BC' : '\u25B6'}</span>
+            <span className="mr-1 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{expanded ? '\u25BC' : '\u25B6'}</span>
           ) : null}
           {provider.providerName}
         </td>
         <td className={`py-1.5 pr-3 font-medium ${providerStateColor(provider.state)}`}>
           {provider.state}
         </td>
-        <td className="py-1.5 pr-3 text-gray-600">{provider.consecutiveFailures}</td>
-        <td className="py-1.5 text-gray-500">
+        <td className="py-1.5 pr-3 text-[var(--nimi-text-secondary)]">{provider.consecutiveFailures}</td>
+        <td className="py-1.5 text-[var(--nimi-text-muted)]">
           {lastChecked}
           {provider.reason ? (
-            <span className="ml-1 text-gray-400">({provider.reason})</span>
+            <span className="ml-1 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">({provider.reason})</span>
           ) : null}
         </td>
       </tr>
       {expanded && provider.subHealth.length > 0 ? (
         provider.subHealth.map((sub: AIProviderSubHealth) => (
-          <tr key={sub.providerName} className="border-b border-gray-200/70 bg-white/60">
-            <td className="py-1 pr-3 pl-6 text-gray-600">{sub.providerName}</td>
+          <tr key={sub.providerName} className="border-b border-[var(--nimi-border-subtle)]/70 bg-white/60">
+            <td className="py-1 pr-3 pl-6 text-[var(--nimi-text-secondary)]">{sub.providerName}</td>
             <td className={`py-1 pr-3 font-medium ${providerStateColor(sub.state)}`}>
               {sub.state}
             </td>
-            <td className="py-1 pr-3 text-gray-600">{sub.consecutiveFailures}</td>
-            <td className="py-1 text-gray-500">
+            <td className="py-1 pr-3 text-[var(--nimi-text-secondary)]">{sub.consecutiveFailures}</td>
+            <td className="py-1 text-[var(--nimi-text-muted)]">
               {sub.lastCheckedAt ? relativeTimeShort(timestampToIso(sub.lastCheckedAt)) : '-'}
               {sub.reason ? (
-                <span className="ml-1 text-gray-400">({sub.reason})</span>
+                <span className="ml-1 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">({sub.reason})</span>
               ) : null}
             </td>
           </tr>

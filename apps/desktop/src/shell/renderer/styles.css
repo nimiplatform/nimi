@@ -3,20 +3,6 @@
 @import "@nimiplatform/nimi-kit/ui/themes/dark.css";
 @import "@nimiplatform/nimi-kit/ui/themes/desktop-accent.css";
 @import "tailwindcss";
-@source "../../../../../kit/auth/src/**/*.{ts,tsx}";
-
-/* ---- Scroll Shell primitive ---- */
-
-.scroll-shell__viewport {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.scroll-shell__viewport::-webkit-scrollbar {
-  display: none;
-  width: 0;
-  height: 0;
-}
 
 /* ---- Custom utilities ---- */
 

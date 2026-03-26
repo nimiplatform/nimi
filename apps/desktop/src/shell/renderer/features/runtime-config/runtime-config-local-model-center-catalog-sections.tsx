@@ -51,7 +51,7 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
           type="button"
           onClick={() => props.onInstallMissingArtifacts(props.relatedArtifacts)}
           disabled={props.artifactBusy || hasPendingMissingArtifacts}
-          className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50"
+          className="inline-flex items-center rounded-full border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] disabled:opacity-50"
         >
           {hasPendingMissingArtifacts
             ? i18n.t('runtimeConfig.localModelCenter.installingAssets', { defaultValue: 'Installing assets...' })
@@ -69,8 +69,8 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
             key={`${props.modelTemplateId}-${artifact.templateId}`}
             className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${
               installed
-                ? 'border-green-200 bg-green-50 text-green-700'
-                : 'border-amber-200 bg-amber-50 text-amber-700'
+                ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]'
+                : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
             }`}
           >
             <span>{formatArtifactKindLabel(artifact.kind)}</span>
@@ -89,7 +89,7 @@ function ArtifactRequirementBadges(props: ArtifactRequirementBadgesProps) {
                   props.onInstallArtifact(artifact.templateId);
                 }}
                 disabled={props.artifactBusy || pending}
-                className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-white disabled:opacity-50"
+                className="rounded-full bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-status-warning)] hover:bg-white disabled:opacity-50"
               >
                 {pending
                   ? i18n.t('runtimeConfig.localModelCenter.installing', { defaultValue: 'Installing...' })
@@ -115,11 +115,11 @@ type VerifiedArtifactsSectionProps = {
 
 function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectionProps) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FolderOpenIcon className="h-4 w-4 text-slate-500" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <FolderOpenIcon className="h-4 w-4 text-[var(--nimi-text-muted)]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
             {i18n.t('runtimeConfig.localModelCenter.verifiedCompanionAssets', { defaultValue: 'Verified Companion Assets' })}
           </span>
         </div>
@@ -127,7 +127,7 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
           type="button"
           onClick={props.onRefresh}
           disabled={props.loadingVerifiedArtifacts || props.artifactBusy}
-          className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
         >
           <RefreshIcon className="h-3 w-3" />
           {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
@@ -135,7 +135,7 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
       </div>
       {props.loadingVerifiedArtifacts ? (
         <div className="py-6 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--nimi-text-muted)]">
             {i18n.t('runtimeConfig.localModelCenter.loadingVerifiedArtifacts', { defaultValue: 'Loading verified artifacts...' })}
           </p>
         </div>
@@ -144,30 +144,30 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
           {props.visibleVerifiedArtifacts.slice(0, props.hasSearchQuery ? 12 : 6).map((artifact) => {
             const pending = props.isArtifactPending(artifact.templateId);
             return (
-              <div key={artifact.templateId} className="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition-colors hover:border-mint-200 hover:bg-mint-50/30">
+              <div key={artifact.templateId} className="flex items-center gap-3 rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-slate-500 to-slate-700 text-[11px] font-semibold text-white">
                   {formatArtifactKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-gray-900">{artifact.title}</p>
+                    <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{artifact.title}</p>
                     {isRecommendedDescriptor(artifact.tags) ? (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-status-warning)]">
                         {i18n.t('runtimeConfig.localModelCenter.recommended', { defaultValue: 'Recommended' })}
                       </span>
                     ) : null}
-                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
                       {formatArtifactKindLabel(artifact.kind)}
                     </span>
                   </div>
-                  <p className="truncate text-xs text-gray-500">{artifact.artifactId}</p>
-                  {artifact.description ? <p className="mt-0.5 truncate text-[11px] text-gray-400">{artifact.description}</p> : null}
+                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{artifact.artifactId}</p>
+                  {artifact.description ? <p className="mt-0.5 truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{artifact.description}</p> : null}
                 </div>
                 <button
                   type="button"
                   onClick={() => props.onInstallArtifact(artifact.templateId)}
                   disabled={props.artifactBusy || pending}
-                  className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
                 >
                   <DownloadIcon className="h-3.5 w-3.5" />
                   {pending
@@ -180,7 +180,7 @@ function LocalModelCenterVerifiedArtifactsSection(props: VerifiedArtifactsSectio
         </div>
       ) : (
         <div className="py-6 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-[var(--nimi-text-muted)]">
             {props.hasSearchQuery
               ? i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsMatchSearch', { defaultValue: 'No verified companion assets matched your search.' })
               : i18n.t('runtimeConfig.localModelCenter.noVerifiedAssetsForFilter', { defaultValue: 'No verified companion assets available for the current filter.' })}
@@ -205,7 +205,7 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
         {i18n.t('runtimeConfig.localModelCenter.activeDownloads', {
           count: props.downloads.length,
           defaultValue: 'Active Downloads ({{count}})',
@@ -240,38 +240,38 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
         return (
           <div key={event.installSessionId} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
             <div className="mb-2 flex items-center gap-3">
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-red-100 text-red-600' : 'bg-mint-100 text-mint-600'}`}>
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]'}`}>
                 <DownloadIcon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">{event.modelId}</p>
-                <p className="text-xs text-gray-500">{phaseLabel}</p>
-                {event.phase !== 'download' && event.message ? <p className="truncate text-[11px] text-gray-400">{event.message}</p> : null}
+                <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{event.modelId}</p>
+                <p className="text-xs text-[var(--nimi-text-muted)]">{phaseLabel}</p>
+                {event.phase !== 'download' && event.message ? <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{event.message}</p> : null}
               </div>
               <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
-                isFailed ? 'bg-red-100 text-red-700' :
-                isPaused ? 'bg-amber-100 text-amber-700' :
-                isRunning ? 'bg-blue-100 text-blue-700' :
-                'bg-gray-100 text-gray-600'
+                isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' :
+                isPaused ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' :
+                isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)]' :
+                'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]'
               }`}>
                 {downloadStateLabel(event.state)}
               </span>
             </div>
             {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
               <div className="mb-2">
-                <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
                   <div
-                    className={`h-full transition-all ${isFailed ? 'bg-red-500' : 'bg-mint-500'}`}
+                    className={`h-full transition-all ${isFailed ? 'bg-[var(--nimi-status-danger)]' : 'bg-[var(--nimi-action-primary-bg)]'}`}
                     style={{ width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%` }}
                   />
                 </div>
-                <div className="mt-1 flex justify-between text-[10px] text-gray-500">
+                <div className="mt-1 flex justify-between text-[10px] text-[var(--nimi-text-muted)]">
                   <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
                   {isRunning ? <span>{progressMeta}</span> : null}
                 </div>
               </div>
             ) : (
-              <p className="mb-2 text-xs text-gray-500">
+              <p className="mb-2 text-xs text-[var(--nimi-text-muted)]">
                 {i18n.t('runtimeConfig.localModelCenter.downloadedBytes', {
                   value: formatBytes(event.bytesReceived),
                   defaultValue: '{{value}} downloaded',
@@ -279,9 +279,9 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
               </p>
             )}
             <div className="flex items-center gap-2">
-              {canPause ? <button type="button" onClick={() => props.onPause(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">{i18n.t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
-              {canResume ? <button type="button" onClick={() => props.onResume(event.installSessionId)} className="rounded bg-mint-500 px-2 py-1 text-xs text-white hover:bg-mint-600">{i18n.t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</button> : null}
-              {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:border-red-200 hover:text-red-600">{i18n.t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
+              {canPause ? <button type="button" onClick={() => props.onPause(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">{i18n.t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
+              {canResume ? <button type="button" onClick={() => props.onResume(event.installSessionId)} className="rounded bg-[var(--nimi-action-primary-bg)] px-2 py-1 text-xs text-white hover:bg-[var(--nimi-action-primary-bg-hover)]">{i18n.t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</button> : null}
+              {canCancel ? <button type="button" onClick={() => props.onCancel(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] hover:text-[var(--nimi-status-danger)]">{i18n.t('Common.cancel', { defaultValue: 'Cancel' })}</button> : null}
             </div>
           </div>
         );
@@ -303,7 +303,7 @@ function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) 
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
         {i18n.t('runtimeConfig.localModelCenter.assetTasks', {
           count: props.tasks.length,
           defaultValue: 'Asset Tasks ({{count}})',
@@ -318,22 +318,22 @@ function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) 
             <div key={`artifact-task-${task.templateId}`} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
               <div className="flex items-center gap-3">
                 <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                  isFailed ? 'bg-red-100 text-red-600' : isRunning ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                  isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
                 }`}>
                   <FolderOpenIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-gray-900">{task.title}</p>
-                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                    <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{task.title}</p>
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
                       {formatArtifactKindLabel(task.kind)}
                     </span>
                   </div>
-                  <p className="truncate text-xs text-gray-500">{task.artifactId}</p>
-                  {task.detail ? <p className={`mt-0.5 truncate text-[11px] ${isFailed ? 'text-red-500' : 'text-gray-400'}`}>{task.detail}</p> : null}
+                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{task.artifactId}</p>
+                  {task.detail ? <p className={`mt-0.5 truncate text-[11px] ${isFailed ? 'text-[var(--nimi-status-danger)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'}`}>{task.detail}</p> : null}
                 </div>
                 <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
-                  isFailed ? 'bg-red-100 text-red-700' : isRunning ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+                  isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
                 }`}>
                   {artifactTaskStatusLabel(task.state)}
                 </span>
@@ -344,7 +344,7 @@ function LocalModelCenterArtifactTasksSection(props: ArtifactTasksSectionProps) 
                     type="button"
                     onClick={() => props.onRetryTask(task.templateId)}
                     disabled={pendingRetry}
-                    className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
                   >
                     {pendingRetry
                       ? i18n.t('runtimeConfig.localModelCenter.retrying', { defaultValue: 'Retrying...' })
@@ -380,11 +380,11 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--nimi-border-subtle)] bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <StarIcon className="h-4 w-4 text-amber-500" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+          <StarIcon className="h-4 w-4 text-[var(--nimi-status-warning)]" />
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
             {i18n.t('runtimeConfig.localModelCenter.quickPicks', { defaultValue: 'Quick Picks' })}
           </span>
         </div>
@@ -392,7 +392,7 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
           type="button"
           onClick={props.onRefresh}
           disabled={props.loadingVerifiedModels}
-          className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+          className="flex items-center gap-1.5 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
         >
           <RefreshIcon className="h-3 w-3" />
           {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
@@ -402,20 +402,20 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
         {props.verifiedModels.map((item) => {
           const relatedArtifacts = props.relatedArtifactsByModelTemplate.get(item.templateId) || [];
           return (
-            <div key={item.templateId} className="flex items-center gap-3 rounded-lg border border-gray-100 p-3 transition-colors hover:border-mint-200 hover:bg-mint-50/30">
+            <div key={item.templateId} className="flex items-center gap-3 rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] p-3 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-white">
                 <StarIcon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
+                  <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{item.title}</p>
                   {isRecommendedDescriptor(item.tags) ? (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-status-warning)]">
                       {i18n.t('runtimeConfig.localModelCenter.recommended', { defaultValue: 'Recommended' })}
                     </span>
                   ) : null}
                 </div>
-                <p className="truncate text-xs text-gray-500">{item.modelId}</p>
+                <p className="truncate text-xs text-[var(--nimi-text-muted)]">{item.modelId}</p>
                 <ArtifactRequirementBadges
                   modelTemplateId={`${item.templateId}-quick`}
                   relatedArtifacts={relatedArtifacts}
@@ -430,7 +430,7 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
                 type="button"
                 onClick={() => props.onInstallVerifiedModel(item.templateId)}
                 disabled={props.installing}
-                className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
               >
                 <DownloadIcon className="h-3.5 w-3.5" />
                 {i18n.t('runtimeConfig.localModelCenter.install', { defaultValue: 'Install' })}

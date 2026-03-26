@@ -119,12 +119,12 @@ function Button({
   icon?: React.ReactNode;
 }) {
   const variantClass = variant === 'primary'
-    ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
+    ? 'bg-[var(--nimi-action-primary-bg)] text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
     : variant === 'secondary'
-      ? 'border border-mint-200 bg-white text-mint-700 hover:bg-mint-50 disabled:bg-gray-100 disabled:text-gray-400'
+      ? 'border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-white text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'
       : variant === 'danger'
-        ? 'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50'
-        : 'text-mint-700 hover:bg-mint-50 disabled:text-gray-300';
+        ? 'border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50'
+        : 'text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -181,15 +181,15 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
 
   if (filteredModels.length === 0) {
     return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+      <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center justify-center text-center">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-            <CpuIcon className="h-6 w-6 text-gray-400" />
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
+            <CpuIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
           </div>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
             {t('runtimeConfig.local.noModelsInstalled', { defaultValue: 'No Models Installed' })}
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
             {props.sortedModels.length === 0
               ? t('runtimeConfig.local.noModelsInstalledDesc', {
                   defaultValue: 'No local model registered. Install or import one to enable Local Runtime capability resolution.',
@@ -202,26 +202,26 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-white shadow-sm overflow-hidden">
       {/* Search Header */}
-      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-50">
+      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_52%,transparent)]">
         <div className="relative flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
           <input
             type="text"
             value={props.searchQuery}
             onChange={(e) => props.onSearchQueryChange(e.target.value)}
             placeholder={t('runtimeConfig.local.filterInstalledModels', { defaultValue: 'Filter installed models...' })}
-            className="w-full rounded-xl border border-mint-100 bg-[#F4FBF8] py-2 pl-9 pr-4 text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+            className="w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] py-2 pl-9 pr-4 text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100"
           />
         </div>
-        <span className="text-xs text-gray-500 whitespace-nowrap">
+        <span className="text-xs text-[var(--nimi-text-muted)] whitespace-nowrap">
           {filteredModels.length} / {props.sortedModels.length}
         </span>
       </div>
 
       {/* Model List */}
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-[color-mix(in_srgb,var(--nimi-border-subtle)_52%,transparent)]">
         {filteredModels.map((model) => {
           const busy = Boolean(busyByModelId[model.localModelId]);
           const status = statusLabel(model.status);
@@ -233,7 +233,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
           return (
             <div
               key={`local-model-${model.localModelId}`}
-              className={`${isHighlighted ? 'bg-mint-50/50' : 'hover:bg-gray-50/50'} transition-colors`}
+              className={`${isHighlighted ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/50' : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/50'} transition-colors`}
             >
               <div className="px-5 py-4">
                 {/* Header Row */}
@@ -243,14 +243,14 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                     className="flex flex-1 items-center gap-3 text-left min-w-0"
                     onClick={() => setExpandedModelId(isExpanded ? '' : model.localModelId)}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]">
                       <CpuIcon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-medium text-gray-900">{model.model}</p>
+                        <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{model.model}</p>
                         {isHighlighted && (
-                          <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                          <span className="shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-status-success)]">
                             New
                           </span>
                         )}
@@ -260,16 +260,16 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                           </span>
                         ) : null}
                       </div>
-                      <p className="truncate text-xs text-gray-500">
+                      <p className="truncate text-xs text-[var(--nimi-text-muted)]">
                         {model.localModelId} · {model.engine}
                       </p>
                       {model.recommendation ? (
-                        <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                        <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
                           {recommendationSummary(model.recommendation)}
                         </p>
                       ) : null}
                     </div>
-                    <div className="shrink-0 text-gray-400">
+                    <div className="shrink-0 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
                       {isExpanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
                     </div>
                   </button>
@@ -281,7 +281,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                   {(model.capabilities || ['chat']).map((cap) => (
                     <span
                       key={cap}
-                      className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600"
+                      className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-text-secondary)]"
                     >
                       {cap}
                     </span>
@@ -290,30 +290,30 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="mt-3 space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-4 text-xs text-gray-600">
+                  <div className="mt-3 space-y-2 rounded-xl border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] p-4 text-xs text-[var(--nimi-text-secondary)]">
                     <div className="grid grid-cols-2 gap-2">
-                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.endpoint', { defaultValue: 'Endpoint' })}:</span> {model.endpoint}</p>
-                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.engine', { defaultValue: 'Engine' })}:</span> {model.engine}</p>
-                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.status', { defaultValue: 'Status' })}:</span> {model.status}</p>
-                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.installed', { defaultValue: 'Installed' })}:</span> {model.installedAt || '-'}</p>
+                      <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.endpoint', { defaultValue: 'Endpoint' })}:</span> {model.endpoint}</p>
+                      <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.engine', { defaultValue: 'Engine' })}:</span> {model.engine}</p>
+                      <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.status', { defaultValue: 'Status' })}:</span> {model.status}</p>
+                      <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.installed', { defaultValue: 'Installed' })}:</span> {model.installedAt || '-'}</p>
                     </div>
-                    {model.hash && <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.hash', { defaultValue: 'Hash' })}:</span> {model.hash}</p>}
+                    {model.hash && <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.hash', { defaultValue: 'Hash' })}:</span> {model.hash}</p>}
                     {model.updatedAt && model.updatedAt !== model.installedAt && (
-                      <p><span className="font-medium text-gray-700">{t('runtimeConfig.local.updated', { defaultValue: 'Updated' })}:</span> {model.updatedAt}</p>
+                      <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.updated', { defaultValue: 'Updated' })}:</span> {model.updatedAt}</p>
                     )}
                     {model.recommendation ? (
-                      <div className="grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-600">
-                        <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.recommendation', { defaultValue: 'Recommendation' })}:</span> {recommendationTierLabel(model.recommendation.tier)}</p>
-                        <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.host', { defaultValue: 'Host' })}:</span> {recommendationHostSupportLabel(model.recommendation.hostSupportClass)}</p>
-                        <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.confidence', { defaultValue: 'Confidence' })}:</span> {recommendationConfidenceLabel(model.recommendation.confidence)}</p>
+                      <div className="grid grid-cols-1 gap-2 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-2 text-[11px] text-[var(--nimi-text-secondary)]">
+                        <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.recommendation', { defaultValue: 'Recommendation' })}:</span> {recommendationTierLabel(model.recommendation.tier)}</p>
+                        <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.host', { defaultValue: 'Host' })}:</span> {recommendationHostSupportLabel(model.recommendation.hostSupportClass)}</p>
+                        <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.confidence', { defaultValue: 'Confidence' })}:</span> {recommendationConfidenceLabel(model.recommendation.confidence)}</p>
                         {model.recommendation.baseline ? (
-                          <p><span className="font-medium text-slate-700">{t('runtimeConfig.local.baseline', { defaultValue: 'Baseline' })}:</span> {recommendationBaselineLabel(model.recommendation.baseline)}</p>
+                          <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.baseline', { defaultValue: 'Baseline' })}:</span> {recommendationBaselineLabel(model.recommendation.baseline)}</p>
                         ) : null}
                         <RecommendationDetailList
                           recommendation={model.recommendation}
-                          className="space-y-1 border-t border-slate-100 pt-2"
-                          rowClassName="text-[11px] text-slate-600"
-                          labelClassName="font-medium text-slate-700"
+                          className="space-y-1 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] pt-2"
+                          rowClassName="text-[11px] text-[var(--nimi-text-secondary)]"
+                          labelClassName="font-medium text-[var(--nimi-text-secondary)]"
                           maxFallbackEntries={3}
                         />
                         <RecommendationDiagnosticsPanel recommendation={model.recommendation} />
@@ -324,7 +324,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
 
                 {/* Error Message */}
                 {error && (
-                  <p className="mt-2 text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">{error}</p>
+                  <p className="mt-2 text-xs text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] rounded-lg px-3 py-2">{error}</p>
                 )}
 
                 {/* Action Buttons */}
@@ -392,8 +392,8 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
 
                 {/* Confirm Remove */}
                 {isConfirmingRemove && (
-                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-                    <p className="flex-1 text-sm text-rose-800">
+                  <div className="mt-3 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-3">
+                    <p className="flex-1 text-sm text-[var(--nimi-status-danger)]">
                       {t('runtimeConfig.local.confirmRemove', {
                         defaultValue: 'Remove "{{name}}"? This cannot be undone.',
                         name: model.model,

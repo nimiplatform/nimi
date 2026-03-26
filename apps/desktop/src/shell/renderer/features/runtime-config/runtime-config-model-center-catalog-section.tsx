@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { i18n } from '@renderer/i18n';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import {
   localRuntime,
   type LocalRuntimeCatalogItemDescriptor,
@@ -94,10 +94,10 @@ function Button({
   icon?: React.ReactNode;
 }) {
   const variantClass = variant === 'primary'
-    ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
+    ? 'bg-[var(--nimi-action-primary-bg)] text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
     : variant === 'secondary'
-      ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100'
-      : 'text-gray-600 hover:bg-gray-50 disabled:text-gray-300';
+      ? 'border border-[var(--nimi-border-subtle)] bg-white text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]'
+      : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -134,10 +134,10 @@ function Input({
 }) {
   return (
     <div>
-      {label && <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>}
+      {label && <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label>}
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             {icon}
           </div>
         )}
@@ -147,7 +147,7 @@ function Input({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`h-11 w-full rounded-xl border border-mint-100 bg-[#F4FBF8] text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
+          className={`h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
         />
       </div>
     </div>
@@ -310,11 +310,11 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
   return (
     <div className="space-y-4">
       {/* Catalog Search */}
-      <div className="rounded-xl border border-mint-100 bg-mint-50/50 p-4 space-y-3">
+      <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/50 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <PackageIcon className="h-4 w-4 text-mint-600" />
-            <p className="text-sm font-semibold text-gray-900">
+            <PackageIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
+            <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
               {i18n.t('runtimeConfig.catalog.searchCatalog', { defaultValue: 'Search Catalog' })}
             </p>
           </div>
@@ -353,13 +353,13 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
           </div>
         </div>
         {catalogItems.length === 0 ? (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--nimi-text-muted)]">
             {loadingCatalog
               ? i18n.t('runtimeConfig.catalog.searchingCatalog', { defaultValue: 'Searching catalog...' })
               : i18n.t('runtimeConfig.catalog.noCatalogMatch', { defaultValue: 'No catalog model matched your query.' })}
           </p>
         ) : (
-                <ScrollShell className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
+                <ScrollArea className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
             {catalogItems.map((item) => {
               const selected = selectedCatalogItemId === item.itemId;
               return (
@@ -369,29 +369,29 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                   onClick={() => setSelectedCatalogItemId(item.itemId)}
                   className={`w-full rounded-xl border p-3 text-left transition-all ${
                     selected
-                      ? 'border-mint-300 bg-mint-50/40 ring-1 ring-mint-200'
-                      : 'border-mint-100 bg-white hover:border-mint-200 hover:bg-mint-50/30'
+                      ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/40 ring-1 ring-mint-200'
+                      : 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.title || item.modelId}</p>
-                      <p className="text-xs text-gray-500">{item.modelId}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm font-medium text-[var(--nimi-text-primary)] truncate">{item.title || item.modelId}</p>
+                      <p className="text-xs text-[var(--nimi-text-muted)]">{item.modelId}</p>
+                      <p className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
                         {(item.source === 'verified'
                           ? i18n.t('runtimeConfig.catalog.verified', { defaultValue: 'Verified' })
                           : i18n.t('runtimeConfig.catalog.huggingFace', { defaultValue: 'Hugging Face' }))} · {item.engine}
                       </p>
                       {item.recommendation ? (
-                        <p className="mt-1 line-clamp-2 text-[11px] text-gray-500">
+                        <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
                           {recommendationSummary(item.recommendation)}
                         </p>
                       ) : null}
                       <RecommendationDetailList
                         recommendation={item.recommendation}
                         className="mt-1 space-y-0.5"
-                        rowClassName="text-[10px] text-gray-500"
-                        labelClassName="font-medium text-gray-700"
+                        rowClassName="text-[10px] text-[var(--nimi-text-muted)]"
+                        labelClassName="font-medium text-[var(--nimi-text-secondary)]"
                         maxFallbackEntries={2}
                       />
                       <RecommendationDiagnosticsPanel
@@ -401,8 +401,8 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                     </div>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       item.installAvailable
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-amber-100 text-amber-700'
+                        ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
+                        : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'
                     }`}
                     >
                       {item.installAvailable
@@ -411,28 +411,28 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                     </span>
                   </div>
                   {item.description ? (
-                    <p className="mt-1 text-xs text-gray-500 line-clamp-2">{item.description}</p>
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)] line-clamp-2">{item.description}</p>
                   ) : null}
                 </button>
               );
             })}
-          </ScrollShell>
+          </ScrollArea>
         )}
       </div>
 
       {/* Install Plan Confirmation */}
       {selectedCatalogItem ? (
-        <div className="rounded-xl border border-mint-100 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-sm font-semibold text-gray-900">
+        <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white p-4 shadow-sm">
+          <p className="mb-3 text-sm font-semibold text-[var(--nimi-text-primary)]">
             {i18n.t('runtimeConfig.catalog.installPlan', { defaultValue: 'Install Plan' })}
           </p>
           {loadingPlanPreview ? (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-[var(--nimi-text-muted)]">
               <RefreshIcon className="h-4 w-4 animate-spin" />
               {i18n.t('runtimeConfig.catalog.resolvingInstallPlan', { defaultValue: 'Resolving install plan...' })}
             </div>
           ) : !planPreview ? (
-            <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+            <div className="flex items-start gap-2 text-sm text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] rounded-lg px-3 py-2">
               <span>
                 {i18n.t('runtimeConfig.catalog.installPlanUnavailable', {
                   defaultValue: 'Install plan unavailable. Try another model or use Advanced install.',
@@ -442,24 +442,24 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]">
                   <CheckIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{planPreview.modelId}</p>
-                  <p className="text-xs text-gray-500">{planPreview.engine} · {planPreview.engineRuntimeMode}</p>
+                  <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{planPreview.modelId}</p>
+                  <p className="text-xs text-[var(--nimi-text-muted)]">{planPreview.engine} · {planPreview.engineRuntimeMode}</p>
                   {planPreview.recommendation ? (
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(planPreview.recommendation.tier)}`}>
                         {recommendationTierLabel(planPreview.recommendation.tier)}
                       </span>
                       {planPreview.recommendation.hostSupportClass ? (
-                        <span className="rounded border border-sky-100 bg-sky-50 px-1.5 py-0.5 text-[10px] text-sky-700">
+                        <span className="rounded border border-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-status-info)]">
                           {recommendationHostSupportLabel(planPreview.recommendation.hostSupportClass)}
                         </span>
                       ) : null}
                       {planPreview.recommendation.confidence ? (
-                        <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
+                        <span className="rounded border border-[var(--nimi-border-subtle)] bg-white px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
                           {recommendationConfidenceLabel(planPreview.recommendation.confidence)}
                         </span>
                       ) : null}
@@ -467,7 +467,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                   ) : null}
                 </div>
               </div>
-              <div className="text-xs text-gray-500 space-y-1">
+              <div className="text-xs text-[var(--nimi-text-muted)] space-y-1">
                 <p>
                   {i18n.t('runtimeConfig.catalog.filesCount', {
                     count: planPreview.files.length,
@@ -486,8 +486,8 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                     <RecommendationDetailList
                       recommendation={planPreview.recommendation}
                       className="space-y-1"
-                      rowClassName="text-[11px] text-gray-500"
-                      labelClassName="font-medium text-gray-700"
+                      rowClassName="text-[11px] text-[var(--nimi-text-muted)]"
+                      labelClassName="font-medium text-[var(--nimi-text-secondary)]"
                       maxFallbackEntries={3}
                     />
                     <RecommendationDiagnosticsPanel recommendation={planPreview.recommendation} />
@@ -495,7 +495,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                 ) : null}
               </div>
               {planPreview.warnings.length > 0 ? (
-                <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">{planPreview.warnings.join(' ; ')}</p>
+                <p className="text-xs text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] rounded-lg px-3 py-2">{planPreview.warnings.join(' ; ')}</p>
               ) : null}
               <Button
                 variant="primary"
@@ -525,11 +525,11 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
       ) : null}
 
       {/* Verified Quick Picks */}
-      <div className="rounded-xl border border-mint-100 bg-mint-50/30 p-4 space-y-3">
+      <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30 p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <StarIcon className="h-4 w-4 text-mint-600" />
-            <p className="text-sm font-semibold text-gray-900">
+            <StarIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
+            <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
               {i18n.t('runtimeConfig.catalog.verifiedQuickPicks', { defaultValue: 'Verified Quick Picks' })}
             </p>
           </div>
@@ -552,23 +552,23 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
           icon={<SearchIcon />}
         />
         {filteredVerifiedModels.length === 0 ? (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--nimi-text-muted)]">
             {loadingVerifiedModels
               ? i18n.t('runtimeConfig.catalog.loadingVerifiedModels', { defaultValue: 'Loading verified models...' })
               : i18n.t('runtimeConfig.catalog.noVerifiedMatch', { defaultValue: 'No verified model matched your query.' })}
           </p>
         ) : (
-                <ScrollShell className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
+                <ScrollArea className="max-h-64" viewportClassName="max-h-64" contentClassName="space-y-2">
             {filteredVerifiedModels.map((item) => {
               const installing = installingVerifiedTemplateId === item.templateId;
               return (
-                <div key={`verified-model-${item.templateId}`} className="rounded-xl border border-mint-100 bg-white p-3 transition-colors hover:border-mint-200 hover:bg-mint-50/20">
+                <div key={`verified-model-${item.templateId}`} className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white p-3 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/20">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900">{item.title}</p>
-                      <p className="text-xs text-gray-500">{item.modelId}</p>
+                      <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{item.title}</p>
+                      <p className="text-xs text-[var(--nimi-text-muted)]">{item.modelId}</p>
                       {item.description ? (
-                        <p className="mt-1 text-xs text-gray-400 line-clamp-2">{item.description}</p>
+                        <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] line-clamp-2">{item.description}</p>
                       ) : null}
                     </div>
                     <Button
@@ -596,7 +596,7 @@ export function ModelCenterCatalogSection(props: ModelCenterCatalogSectionProps)
                 </div>
               );
             })}
-          </ScrollShell>
+          </ScrollArea>
         )}
       </div>
     </div>

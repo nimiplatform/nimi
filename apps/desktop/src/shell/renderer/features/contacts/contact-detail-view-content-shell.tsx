@@ -1,7 +1,6 @@
 import { type RefObject } from 'react';
 import { i18n } from '@renderer/i18n';
-import { Tooltip } from '@renderer/components/tooltip.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import {
   AlertIcon,
   CheckIcon,
@@ -21,7 +20,7 @@ const TOPBAR_TOOLTIP_CLASS = 'rounded-full bg-[#0f172a] px-3 py-1.5 text-xs font
 export function ContactDetailLoadingState({ label: _label }: { label: string }) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]">
-      <ScrollShell
+      <ScrollArea
         className="flex-1"
         contentClassName="mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6"
       >
@@ -103,7 +102,7 @@ export function ContactDetailLoadingState({ label: _label }: { label: string }) 
             </div>
           </div>
         </section>
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }
@@ -174,8 +173,7 @@ export function ContactDetailActionButtons(input: {
             ? input.addFriendHint
             : i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' })}
           placement="bottom"
-          contentClassName={TOPBAR_TOOLTIP_CLASS}
-          multiline={Boolean(input.canAddFriend === false && input.addFriendHint)}
+          contentClassName={`${TOPBAR_TOOLTIP_CLASS}${input.canAddFriend === false && input.addFriendHint ? ' whitespace-pre-wrap max-w-xs' : ''}`}
         >
           <IconButton
             icon={<UserPlusIcon className="h-4 w-4" />}

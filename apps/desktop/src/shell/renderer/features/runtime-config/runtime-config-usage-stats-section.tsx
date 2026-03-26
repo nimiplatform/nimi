@@ -1,7 +1,7 @@
 import type { UsageStatRecord } from '@nimiplatform/sdk/runtime';
 import { UsageWindow } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from '@renderer/components/tooltip.js';
+import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { Button, Card } from './runtime-config-primitives.js';
 import {
   formatTokenCount,
@@ -31,7 +31,7 @@ function IconButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={title}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] bg-white/90 text-[var(--nimi-text-secondary)] transition-colors hover:bg-white hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {icon}
       </button>
@@ -89,7 +89,7 @@ export function UsageStatsSection({
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">
+        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
           {t('runtimeConfig.runtime.usageStatistics', { defaultValue: 'Usage Statistics' })}
         </h3>
         <IconButton
@@ -100,11 +100,11 @@ export function UsageStatsSection({
         />
       </div>
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-md border border-mint-100 bg-[#F4FBF8] text-xs">
+        <div className="flex rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-xs">
           {[UsageWindow.MINUTE, UsageWindow.HOUR, UsageWindow.DAY].map((w) => (
             <button
               key={w}
@@ -112,8 +112,8 @@ export function UsageStatsSection({
               onClick={() => onUpdateFilters({ window: w })}
               className={`px-3 py-1.5 font-medium transition-colors ${
                 filters.window === w
-                  ? 'bg-mint-500 text-white'
-                  : 'text-mint-700 hover:bg-mint-50'
+                  ? 'bg-[var(--nimi-action-primary-bg)] text-white'
+                  : 'text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]'
               } ${w === UsageWindow.MINUTE ? 'rounded-l-md' : ''} ${w === UsageWindow.DAY ? 'rounded-r-md' : ''}`}
             >
               {usageWindowLabel(w)}
@@ -124,38 +124,38 @@ export function UsageStatsSection({
           value={filters.capability}
           onChange={(e) => onUpdateFilters({ capability: e.target.value })}
           placeholder={t('runtimeConfig.runtime.capabilityPlaceholder', { defaultValue: 'Capability...' })}
-          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+          className="h-8 rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-2 text-xs text-[var(--nimi-text-primary)] outline-none transition-all focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
         <input
           value={filters.modelId}
           onChange={(e) => onUpdateFilters({ modelId: e.target.value })}
           placeholder={t('runtimeConfig.runtime.modelIdPlaceholder', { defaultValue: 'Model ID...' })}
-          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+          className="h-8 rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-2 text-xs text-[var(--nimi-text-primary)] outline-none transition-all focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100"
         />
       </div>
 
       {/* Summary row */}
       {records.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-gray-200 bg-white/70 px-3 py-2 text-xs">
-          <span className="text-gray-600">
+        <div className="flex flex-wrap items-center gap-4 rounded-lg border border-[var(--nimi-border-subtle)] bg-white/70 px-3 py-2 text-xs">
+          <span className="text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.runtime.total', { defaultValue: 'Total' })}: <strong>{formatNumber(String(summary.totalRequests))}</strong>{' '}
             {t('runtimeConfig.runtime.requests', { defaultValue: 'Requests' }).toLowerCase()}
           </span>
-          <span className="text-green-700">
+          <span className="text-[var(--nimi-status-success)]">
             {t('runtimeConfig.runtime.success', { defaultValue: 'Success' })}: <strong>{formatNumber(String(summary.totalSuccess))}</strong>
           </span>
-          <span className="text-red-700">
+          <span className="text-[var(--nimi-status-danger)]">
             {t('runtimeConfig.runtime.errors', { defaultValue: 'Errors' })}: <strong>{formatNumber(String(summary.totalErrors))}</strong>
           </span>
-          <span className="text-gray-600">
+          <span className="text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.runtime.input', { defaultValue: 'Input' })}: <strong>{formatTokenCount(String(summary.totalInput))}</strong>{' '}
             {t('runtimeConfig.runtime.tokens', { defaultValue: 'tokens' })}
           </span>
-          <span className="text-gray-600">
+          <span className="text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.runtime.output', { defaultValue: 'Output' })}: <strong>{formatTokenCount(String(summary.totalOutput))}</strong>{' '}
             {t('runtimeConfig.runtime.tokens', { defaultValue: 'tokens' })}
           </span>
-          <span className="text-gray-600">
+          <span className="text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.runtime.compute', { defaultValue: 'Compute' })}: <strong>{formatComputeMs(String(summary.totalCompute))}</strong>
           </span>
         </div>
@@ -165,7 +165,7 @@ export function UsageStatsSection({
       <div className="overflow-x-auto max-h-[calc(100vh-36rem)]">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-gray-100 text-left text-[11px] text-gray-500">
+            <tr className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] text-left text-[11px] text-[var(--nimi-text-muted)]">
               <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.capability', { defaultValue: 'Capability' })}</th>
               <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.model', { defaultValue: 'Model' })}</th>
               <th className="pb-1.5 pr-3 font-medium">{t('runtimeConfig.runtime.requests', { defaultValue: 'Requests' })}</th>
@@ -181,7 +181,7 @@ export function UsageStatsSection({
           <tbody>
             {records.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={10} className="px-4 py-6 text-center text-[var(--nimi-text-muted)]">
                   {loading
                     ? t('runtimeConfig.runtime.loadingUsageStats', { defaultValue: 'Loading usage stats...' })
                     : t('runtimeConfig.runtime.noUsageData', { defaultValue: 'No usage data available.' })}
@@ -191,17 +191,17 @@ export function UsageStatsSection({
               records.map((r, idx) => {
                 const bucketTs = timestampToIso(r.bucketStart);
                 return (
-                  <tr key={`${r.capability}-${r.modelId}-${idx}`} className="border-b border-gray-200/70">
-                    <td className="py-1.5 pr-3 text-gray-800">{r.capability || '-'}</td>
-                    <td className="py-1.5 pr-3 font-mono text-gray-700">{r.modelId || '-'}</td>
-                    <td className="py-1.5 pr-3 text-gray-800">{formatNumber(r.requestCount)}</td>
-                    <td className="py-1.5 pr-3 text-green-700">{formatNumber(r.successCount)}</td>
-                    <td className="py-1.5 pr-3 text-red-700">{formatNumber(r.errorCount)}</td>
-                    <td className="py-1.5 pr-3 text-gray-600">{formatTokenCount(r.inputTokens)}</td>
-                    <td className="py-1.5 pr-3 text-gray-600">{formatTokenCount(r.outputTokens)}</td>
-                    <td className="py-1.5 pr-3 text-gray-600">{formatComputeMs(r.computeMs)}</td>
-                    <td className="py-1.5 pr-3 text-gray-600">{formatComputeMs(r.queueWaitMs)}</td>
-                    <td className="py-1.5 text-gray-400">
+                  <tr key={`${r.capability}-${r.modelId}-${idx}`} className="border-b border-[var(--nimi-border-subtle)]/70">
+                    <td className="py-1.5 pr-3 text-[var(--nimi-text-primary)]">{r.capability || '-'}</td>
+                    <td className="py-1.5 pr-3 font-mono text-[var(--nimi-text-secondary)]">{r.modelId || '-'}</td>
+                    <td className="py-1.5 pr-3 text-[var(--nimi-text-primary)]">{formatNumber(r.requestCount)}</td>
+                    <td className="py-1.5 pr-3 text-[var(--nimi-status-success)]">{formatNumber(r.successCount)}</td>
+                    <td className="py-1.5 pr-3 text-[var(--nimi-status-danger)]">{formatNumber(r.errorCount)}</td>
+                    <td className="py-1.5 pr-3 text-[var(--nimi-text-secondary)]">{formatTokenCount(r.inputTokens)}</td>
+                    <td className="py-1.5 pr-3 text-[var(--nimi-text-secondary)]">{formatTokenCount(r.outputTokens)}</td>
+                    <td className="py-1.5 pr-3 text-[var(--nimi-text-secondary)]">{formatComputeMs(r.computeMs)}</td>
+                    <td className="py-1.5 pr-3 text-[var(--nimi-text-secondary)]">{formatComputeMs(r.queueWaitMs)}</td>
+                    <td className="py-1.5 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
                       <Tooltip content={bucketTs} placement="top">
                         <span>{bucketTs !== '-' ? relativeTimeShort(bucketTs) : '-'}</span>
                       </Tooltip>

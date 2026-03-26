@@ -11,7 +11,7 @@ import type {
   OrphanArtifactFile,
   OrphanModelFile,
 } from '@runtime/local-runtime';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type {
   ArtifactTaskEntry,
 } from './runtime-config-local-model-center-helpers';
@@ -140,7 +140,7 @@ type LocalModelCenterRuntimeViewProps = {
 export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <ScrollShell className="flex-1" contentClassName="mx-auto max-w-4xl space-y-6 p-6">
+      <ScrollArea className="flex-1" contentClassName="mx-auto max-w-4xl space-y-6 p-6">
         <LocalModelCenterImportControls
           checkingHealth={props.checkingHealth}
           localHealthy={props.localHealthy}
@@ -270,7 +270,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
             onInstallMissingArtifacts={props.onInstallMissingArtifacts}
           />
         ) : null}
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }

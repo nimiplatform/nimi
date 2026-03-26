@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { i18n } from '@renderer/i18n';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { UiExtensionContext } from '@renderer/mod-ui/contracts';
 import { resolveRouteTabExtension } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions';
 import { StatusBanner } from '@renderer/ui/feedback/status-banner';
@@ -204,7 +204,7 @@ function ChatLayout() {
 
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1">
-      <div className="relative shrink-0 bg-white" style={{ width: `${chatListWidth}px` }}>
+      <div className="relative shrink-0 bg-[var(--nimi-sidebar-canvas)]" style={{ width: `${chatListWidth}px` }}>
         <ChatList />
         <div
           role="separator"
@@ -214,7 +214,7 @@ function ChatLayout() {
           className="absolute inset-y-0 right-0 z-10 w-2 translate-x-1/2 cursor-col-resize bg-transparent"
         />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col bg-white">
+      <div className="flex min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
         <MessageTimeline />
       </div>
     </div>
@@ -453,7 +453,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   };
 
   return (
-    <div data-testid={E2E_IDS.mainShell} className="flex h-screen w-screen flex-col overflow-hidden bg-gray-50">
+    <div data-testid={E2E_IDS.mainShell} className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--nimi-app-background)]">
       <MainLayoutTopBar
         enableModWorkspaceTabs={flags.enableModWorkspaceTabs}
         titlebarLeftInsetClass={titlebarLeftInsetClass}
@@ -474,7 +474,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         {hidePrimaryRail ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
-            className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}
+            className={`flex h-full shrink-0 flex-col bg-[var(--nimi-sidebar-canvas)] border-r border-r-[var(--nimi-sidebar-border)] transition-[width] duration-200 ${sidebarWidthClass}`}
           >
             <div className="flex h-14 shrink-0 items-center justify-center">
               <SidebarTooltipButton
@@ -488,7 +488,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 {nimiHomeNode}
               </SidebarTooltipButton>
             </div>
-            <ScrollShell as="nav" className="flex-1" viewportClassName="pt-2">
+            <ScrollArea as="nav" className="flex-1" viewportClassName="pt-2">
               <div className="flex flex-col gap-1">
                 {primaryCoreNavItems.map((item) => (
                   <NavLink
@@ -517,7 +517,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                   />
                 ) : null}
               </div>
-            </ScrollShell>
+            </ScrollArea>
 
           </aside>
         )}
@@ -667,7 +667,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
 
           <div className="mx-4 my-2 h-px bg-gradient-to-r from-transparent via-[#4ECCA3]/20 to-transparent" />
 
-          <ScrollShell className="flex-1">
+          <ScrollArea className="flex-1">
             <div className="px-2">
               <button
                 type="button"
@@ -740,7 +740,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 </svg>
               </button>
             </div>
-          </ScrollShell>
+          </ScrollArea>
         </div>
       ) : null}
     </div>

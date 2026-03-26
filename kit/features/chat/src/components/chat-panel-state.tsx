@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ChatPanelStateProps = {
   children: ReactNode;
@@ -7,10 +8,6 @@ export type ChatPanelStateProps = {
   tone?: 'default' | 'error';
   className?: string;
 };
-
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
 
 export function ChatPanelState({
   children,
@@ -25,7 +22,9 @@ export function ChatPanelState({
       data-active-chat-id={String(activeChatId || '')}
       className={cn(
         'flex h-full items-center justify-center',
-        tone === 'error' ? 'text-sm text-red-600' : 'text-sm text-gray-500',
+        tone === 'error'
+          ? 'text-sm text-[var(--nimi-status-danger)]'
+          : 'text-sm text-[var(--nimi-text-muted)]',
         className,
       )}
     >

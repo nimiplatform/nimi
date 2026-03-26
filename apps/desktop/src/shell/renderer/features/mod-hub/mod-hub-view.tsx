@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { ModHubRow } from './mod-hub-row';
 import type { ModHubPageModel } from './mod-hub-controller';
@@ -175,7 +174,7 @@ export function ModHubView(model: ModHubPageModel) {
           </div>
         </div>
 
-        <ScrollShell className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
+        <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
             <section>
               <ModHubSkeletonBlock className="mb-6 h-4 w-28 rounded-lg" />
               <div className="grid grid-cols-4 gap-x-4 gap-y-8 md:grid-cols-6 lg:grid-cols-8">
@@ -220,7 +219,7 @@ export function ModHubView(model: ModHubPageModel) {
                 ))}
               </div>
             </section>
-        </ScrollShell>
+        </ScrollArea>
       </div>
     );
   }
@@ -229,7 +228,7 @@ export function ModHubView(model: ModHubPageModel) {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F5F5F7]">
       <div className="z-10 shrink-0 bg-[#F5F5F7]/95 px-8 py-8 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6">
-          <h1 className={APP_PAGE_TITLE_CLASS}>{t('ModHub.title')}</h1>
+          <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('ModHub.title')}</h1>
           <div className="flex items-center gap-3">
             <div ref={searchBarRef} className="relative w-80">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -279,7 +278,7 @@ export function ModHubView(model: ModHubPageModel) {
         </div>
       </div>
 
-      <ScrollShell className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
+      <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${
               showDock ? 'opacity-100' : 'opacity-0'
@@ -355,7 +354,7 @@ export function ModHubView(model: ModHubPageModel) {
               {t('ModHub.noSearchResults')}
             </div>
           )}
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }

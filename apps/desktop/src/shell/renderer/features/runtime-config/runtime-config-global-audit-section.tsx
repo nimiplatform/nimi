@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AuditEventRecord } from '@nimiplatform/sdk/runtime';
 import { CallerKind } from '@nimiplatform/sdk/runtime';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { Tooltip } from '@renderer/components/tooltip.js';
+import { ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { Button, Card, RuntimeSelect } from './runtime-config-primitives.js';
 import {
   callerKindLabel,
@@ -31,7 +30,7 @@ function IconButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={title}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {icon}
       </button>
@@ -94,7 +93,7 @@ export function GlobalAuditSection({
   return (
     <Card className="p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-900">
+        <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
           {t('runtimeConfig.runtime.globalAuditTitle', { defaultValue: 'Global Audit Events' })}
         </h3>
         <div className="flex items-center gap-2">
@@ -112,7 +111,7 @@ export function GlobalAuditSection({
         </div>
       </div>
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-[var(--nimi-status-danger)]">{error}</p> : null}
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
@@ -120,7 +119,7 @@ export function GlobalAuditSection({
           value={filters.domain}
           onChange={(e) => onUpdateFilters({ domain: e.target.value })}
           placeholder={t('runtimeConfig.runtime.filterDomain', { defaultValue: 'Filter domain...' })}
-          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+          className="h-8 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 text-xs text-[var(--nimi-text-primary)] outline-none transition-all focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-surface-card)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
         />
         <RuntimeSelect
           value={String(filters.callerKind)}
@@ -139,23 +138,23 @@ export function GlobalAuditSection({
           type="datetime-local"
           value={filters.timeFrom}
           onChange={(e) => onUpdateFilters({ timeFrom: e.target.value })}
-          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+          className="h-8 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 text-xs text-[var(--nimi-text-primary)] outline-none transition-all focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-surface-card)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
         />
         <input
           type="datetime-local"
           value={filters.timeTo}
           onChange={(e) => onUpdateFilters({ timeTo: e.target.value })}
-          className="h-8 rounded-md border border-mint-100 bg-[#F4FBF8] px-2 text-xs text-gray-800 outline-none transition-all focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
+          className="h-8 rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-2 text-xs text-[var(--nimi-text-primary)] outline-none transition-all focus:border-[var(--nimi-field-focus)] focus:bg-[var(--nimi-surface-card)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
         />
       </div>
 
       {/* Event List */}
-      <ScrollShell
-        className="max-h-[calc(100vh-32rem)] rounded-lg border border-gray-200 bg-white/60"
+      <ScrollArea
+        className="max-h-[calc(100vh-32rem)] rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]"
         viewportClassName="max-h-[calc(100vh-32rem)]"
       >
         {events.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-gray-500">
+          <p className="px-4 py-6 text-center text-sm text-[var(--nimi-text-muted)]">
             {loading
               ? t('runtimeConfig.runtime.loadingAuditEvents', { defaultValue: 'Loading audit events...' })
               : t('runtimeConfig.runtime.noAuditEvents', { defaultValue: 'No audit events matching current filters.' })}
@@ -165,7 +164,7 @@ export function GlobalAuditSection({
             <AuditEventRow key={event.auditId} event={event} />
           ))
         )}
-      </ScrollShell>
+      </ScrollArea>
 
       {/* Load More */}
       {hasNextPage ? (
@@ -187,31 +186,31 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
   const ts = timestampToIso(event.timestamp);
 
   return (
-    <div className="border-b border-gray-200/70 last:border-b-0">
+    <div className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] last:border-b-0">
       <div
-        className="flex cursor-pointer items-start justify-between gap-3 px-4 py-2.5 hover:bg-white/80"
+        className="flex cursor-pointer items-start justify-between gap-3 px-4 py-2.5 hover:bg-[var(--nimi-surface-card)]"
         onClick={() => setExpanded((p) => !p)}
       >
         <div className="flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="text-gray-400">{expanded ? '\u25BC' : '\u25B6'}</span>
-          <span className="font-mono text-gray-400">{event.auditId.slice(0, 8)}...</span>
-          <span className="rounded-md border border-mint-200 bg-mint-50 px-1.5 py-0.5 font-medium text-mint-700">
+          <span className="text-[var(--nimi-text-muted)]">{expanded ? '\u25BC' : '\u25B6'}</span>
+          <span className="font-mono text-[var(--nimi-text-muted)]">{event.auditId.slice(0, 8)}...</span>
+          <span className="rounded-md border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-card))] px-1.5 py-0.5 font-medium text-[var(--nimi-action-primary-bg)]">
             {event.domain}
           </span>
-          <span className="text-gray-700">{event.operation}</span>
-          <span className="text-gray-500">{callerKindLabel(event.callerKind)}</span>
+          <span className="text-[var(--nimi-text-secondary)]">{event.operation}</span>
+          <span className="text-[var(--nimi-text-muted)]">{callerKindLabel(event.callerKind)}</span>
           {event.reasonCode ? (
-            <span className="text-gray-400">reason={event.reasonCode}</span>
+            <span className="text-[var(--nimi-text-muted)]">reason={event.reasonCode}</span>
           ) : null}
         </div>
         <Tooltip content={ts} placement="top">
-          <span className="shrink-0 text-[11px] text-gray-400">
+          <span className="shrink-0 text-[11px] text-[var(--nimi-text-muted)]">
             {ts !== '-' ? relativeTimeShort(ts) : '-'}
           </span>
         </Tooltip>
       </div>
       {expanded ? (
-        <div className="space-y-2 bg-white/60 px-4 py-3">
+        <div className="space-y-2 bg-[var(--nimi-surface-panel)] px-4 py-3">
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
             <FieldRow label={t('runtimeConfig.runtime.auditId', { defaultValue: 'Audit ID' })} value={event.auditId} />
             <FieldRow label={t('runtimeConfig.runtime.appId', { defaultValue: 'App ID' })} value={event.appId} />
@@ -238,8 +237,8 @@ function AuditEventRow({ event }: { event: AuditEventRecord }) {
           </div>
           {event.payload ? (
             <div>
-              <p className="text-[11px] font-medium text-gray-500 mb-1">{t('runtimeConfig.runtime.payload', { defaultValue: 'Payload' })}</p>
-              <pre className="max-h-40 overflow-x-auto rounded-md border border-gray-200 bg-white/80 p-2 text-[10px] text-gray-700">
+              <p className="mb-1 text-[11px] font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.runtime.payload', { defaultValue: 'Payload' })}</p>
+              <pre className="max-h-40 overflow-x-auto rounded-md border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-2 text-[10px] text-[var(--nimi-text-secondary)]">
                 {JSON.stringify(structToRecord(event.payload as { fields: Record<string, unknown> }), null, 2)}
               </pre>
             </div>
@@ -254,8 +253,8 @@ function FieldRow({ label, value }: { label: string; value: string }) {
   if (!value) return null;
   return (
     <div className="flex gap-2">
-      <span className="text-gray-500 shrink-0">{label}:</span>
-      <span className="text-gray-800 font-mono break-all">{value}</span>
+      <span className="shrink-0 text-[var(--nimi-text-muted)]">{label}:</span>
+      <span className="font-mono break-all text-[var(--nimi-text-primary)]">{value}</span>
     </div>
   );
 }

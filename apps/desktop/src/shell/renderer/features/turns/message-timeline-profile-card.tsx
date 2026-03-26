@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from '@renderer/components/tooltip.js';
+import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import type { ProfileData } from '@renderer/features/profile/profile-model';
 import { formatProfileDate } from '@renderer/features/profile/profile-model';

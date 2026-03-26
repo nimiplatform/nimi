@@ -1,4 +1,10 @@
 import type { ReactNode } from 'react';
+import {
+  Button,
+  StatusBadge,
+  Surface,
+  TextareaField,
+} from '@nimiplatform/nimi-kit/ui';
 import { GiftStatusBadge } from './gift-status-badge.js';
 import type {
   CommerceGiftParty,
@@ -57,23 +63,33 @@ function PartyCard({
   getPartyDisplayName: (party: CommerceGiftParty | null | undefined) => string;
 }) {
   const name = getPartyDisplayName(party);
+
   return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">{label}</div>
+    <Surface tone="card" className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--nimi-text-muted)]">{label}</div>
       <div className="mt-3 flex items-center gap-3">
         {renderAvatar ? (
           renderAvatar
         ) : (
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--nimi-surface-card)] text-sm font-semibold text-[var(--nimi-text-secondary)]">
             {name[0]?.toUpperCase() || '?'}
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-gray-900">{name}</p>
-          <p className="truncate text-xs text-gray-500">{party?.handle || ''}</p>
+          <p className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{name}</p>
+          <p className="truncate text-xs text-[var(--nimi-text-muted)]">{party?.handle || ''}</p>
         </div>
       </div>
-    </div>
+    </Surface>
+  );
+}
+
+function MetaCard({ label, value }: { label: string; value: string }) {
+  return (
+    <Surface tone="card" className="rounded-2xl p-4">
+      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--nimi-text-muted)]">{label}</div>
+      <div className="mt-2 font-medium text-[var(--nimi-text-primary)]">{value}</div>
+    </Surface>
   );
 }
 
@@ -116,33 +132,31 @@ export function GiftInboxDetail({
   senderReadonlyLabel = 'You are viewing this gift as the sender. Status changes happen on the receiver side.',
 }: GiftInboxDetailProps) {
   return (
-    <section className="rounded-[28px] bg-white p-6 shadow-sm">
+    <Surface tone="card" className="rounded-[28px] p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-50 text-3xl">
+          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_15%,transparent)] text-3xl">
             {gift.gift?.emoji || '🎁'}
           </div>
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-2xl font-semibold text-gray-900">
+              <h2 className="text-2xl font-semibold text-[var(--nimi-text-primary)]">
                 {gift.gift?.name || unknownGiftLabel}
               </h2>
               <GiftStatusBadge status={status} label={getStatusLabel(status)} />
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-              <span className="rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-700">
-                {sparkAmountLabel(gift.sparkCost)}
-              </span>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--nimi-text-muted)]">
+              <StatusBadge tone="warning">{sparkAmountLabel(gift.sparkCost)}</StatusBadge>
               <span>{gemAmountLabel(gift.gemToReceiver || 0)}</span>
               <span>{formatDate(gift.createdAt)}</span>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
-          <div className="font-medium text-gray-900">{transactionLabel}</div>
-          <div className="mt-1 break-all text-xs text-gray-500">{gift.id}</div>
-        </div>
+        <Surface tone="card" className="rounded-2xl bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm text-[var(--nimi-text-secondary)]">
+          <div className="font-medium text-[var(--nimi-text-primary)]">{transactionLabel}</div>
+          <div className="mt-1 break-all text-xs text-[var(--nimi-text-muted)]">{gift.id}</div>
+        </Surface>
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -161,90 +175,80 @@ export function GiftInboxDetail({
       </div>
 
       {gift.message ? (
-        <div className="mt-5 rounded-2xl bg-mint-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-mint-700">{senderMessageLabel}</div>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-mint-950">{gift.message}</p>
+        <div className="mt-5 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,var(--nimi-surface-card))] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--nimi-status-success)]">{senderMessageLabel}</div>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--nimi-text-primary)]">{gift.message}</p>
         </div>
       ) : null}
 
       {gift.rejectReason ? (
-        <div className="mt-4 rounded-2xl bg-rose-50 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-rose-700">{rejectReasonLabel}</div>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-rose-950">{gift.rejectReason}</p>
+        <div className="mt-4 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--nimi-status-danger)]">{rejectReasonLabel}</div>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--nimi-text-primary)]">{gift.rejectReason}</p>
         </div>
       ) : null}
 
-      <div className="mt-5 grid gap-3 text-sm text-gray-600 md:grid-cols-3">
-        <div className="rounded-2xl border border-gray-100 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">{expiresAtLabel}</div>
-          <div className="mt-2 font-medium text-gray-900">{formatDate(gift.expiresAt)}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-100 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">{acceptedAtLabel}</div>
-          <div className="mt-2 font-medium text-gray-900">{formatDate(gift.acceptedAt || null)}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-100 p-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">{rejectedAtLabel}</div>
-          <div className="mt-2 font-medium text-gray-900">{formatDate(gift.rejectedAt || null)}</div>
-        </div>
+      <div className="mt-5 grid gap-3 text-sm text-[var(--nimi-text-secondary)] md:grid-cols-3">
+        <MetaCard label={expiresAtLabel} value={formatDate(gift.expiresAt)} />
+        <MetaCard label={acceptedAtLabel} value={formatDate(gift.acceptedAt || null)} />
+        <MetaCard label={rejectedAtLabel} value={formatDate(gift.rejectedAt || null)} />
       </div>
 
       {status === 'PENDING' && isReceiver ? (
-        <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-          <div className="text-sm font-semibold text-gray-900">{pendingTitle}</div>
-          <p className="mt-1 text-sm text-gray-500">{pendingDescription}</p>
-          <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.08em] text-gray-400" htmlFor="gift-inbox-reject-reason">
+        <Surface tone="card" className="mt-6 rounded-2xl bg-[var(--nimi-surface-panel)] p-4">
+          <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{pendingTitle}</div>
+          <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">{pendingDescription}</p>
+          <label className="mt-4 block text-xs font-semibold uppercase tracking-[0.08em] text-[var(--nimi-text-muted)]" htmlFor="gift-inbox-reject-reason">
             {rejectReasonOptionalLabel}
           </label>
-          <textarea
+          <TextareaField
             id="gift-inbox-reject-reason"
             value={rejectReason}
             onChange={(event) => onRejectReasonChange(event.target.value)}
             rows={3}
             maxLength={160}
             placeholder={rejectReasonPlaceholder}
-            className="mt-2 w-full resize-none rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-mint-300 focus:ring-2 focus:ring-mint-100"
+            className="mt-2 rounded-2xl"
+            textareaClassName="resize-none px-4 py-3 text-sm"
           />
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
+            <Button
               type="button"
+              tone="primary"
               disabled={pendingAction !== null}
               onClick={onAccept}
-              className="rounded-2xl bg-mint-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-mint-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-2xl"
             >
               {pendingAction === 'accept' ? acceptingLabel : acceptLabel}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              tone="secondary"
               disabled={pendingAction !== null}
               onClick={onReject}
-              className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-2xl"
             >
               {pendingAction === 'reject' ? rejectingLabel : rejectLabel}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Surface>
       ) : null}
 
       {status === 'ACCEPTED' && isReceiver ? (
-        <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-          <div className="text-sm font-semibold text-emerald-900">{withdrawTitle}</div>
-          <p className="mt-1 text-sm text-emerald-800">{withdrawDescription}</p>
-          <button
-            type="button"
-            onClick={onOpenWallet}
-            className="mt-4 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-          >
+        <Surface className="mt-6 rounded-2xl border-[color-mix(in_srgb,var(--nimi-status-success)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_10%,var(--nimi-surface-card))] p-4">
+          <div className="text-sm font-semibold text-[var(--nimi-text-primary)]">{withdrawTitle}</div>
+          <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{withdrawDescription}</p>
+          <Button type="button" tone="primary" onClick={onOpenWallet} className="mt-4 rounded-2xl">
             {openWalletLabel}
-          </button>
-        </div>
+          </Button>
+        </Surface>
       ) : null}
 
       {!isReceiver ? (
-        <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-600">
+        <Surface tone="card" className="mt-6 rounded-2xl bg-[var(--nimi-surface-panel)] p-4 text-sm text-[var(--nimi-text-secondary)]">
           {senderReadonlyLabel}
-        </div>
+        </Surface>
       ) : null}
-    </section>
+    </Surface>
   );
 }

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { APP_PAGE_TITLE_CLASS, APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import {
   DEFAULT_OPENAI_ENDPOINT_V11,
@@ -142,8 +141,8 @@ function PageShell({
       {title && (
         <div className="flex h-14 shrink-0 items-center bg-white px-6">
           <div className="flex items-end gap-3">
-            <h2 className={APP_PAGE_TITLE_CLASS}>{title}</h2>
-            {description && <p className="text-xs text-gray-500 pb-[3px]">{description}</p>}
+            <h2 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{title}</h2>
+            {description && <p className="text-xs text-[var(--nimi-text-muted)] pb-[3px]">{description}</p>}
           </div>
         </div>
       )}
@@ -155,8 +154,8 @@ function PageShell({
 function SectionTitle({ children, description }: { children: React.ReactNode; description?: string }) {
   return (
     <div>
-      <h3 className={APP_SECTION_TITLE_CLASS}>{children}</h3>
-      {description && <p className="mt-0.5 text-xs text-gray-500">{description}</p>}
+      <h3 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)]`}>{children}</h3>
+      {description && <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{description}</p>}
     </div>
   );
 }
@@ -176,13 +175,13 @@ function SettingRow({
     <div className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-white/80">
       <div className="flex items-center gap-4">
         {icon && (
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint-100 text-mint-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] text-[var(--nimi-action-primary-bg)]">
             {icon}
           </div>
         )}
         <div>
-          <p className="text-sm font-medium text-gray-900">{title}</p>
-          {description && <p className="text-xs text-gray-500">{description}</p>}
+          <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{title}</p>
+          {description && <p className="text-xs text-[var(--nimi-text-muted)]">{description}</p>}
         </div>
       </div>
       {action && <div className="flex items-center gap-2">{action}</div>}
@@ -207,12 +206,12 @@ function Button({
   icon?: React.ReactNode;
 }) {
   const variantClass = variant === 'primary'
-    ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
+    ? 'bg-[var(--nimi-action-primary-bg)] text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
     : variant === 'secondary'
-      ? 'border border-mint-200 bg-white text-mint-700 hover:bg-mint-50 disabled:bg-gray-100 disabled:text-gray-400'
+      ? 'border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-white text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'
       : variant === 'danger'
-        ? 'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50'
-        : 'text-mint-700 hover:bg-mint-50 disabled:text-gray-300';
+        ? 'border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50'
+        : 'text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -249,10 +248,10 @@ function Input({
 }) {
   return (
     <div>
-      {label && <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>}
+      {label && <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label>}
       <div className="relative">
         {icon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             {icon}
           </div>
         )}
@@ -262,7 +261,7 @@ function Input({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`h-11 w-full rounded-xl border border-mint-100 bg-[#F4FBF8] text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
+          className={`h-11 w-full rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] text-sm text-[var(--nimi-text-primary)] outline-none transition-all placeholder:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100 disabled:opacity-60 ${icon ? 'pl-10 pr-4' : 'px-4'}`}
         />
       </div>
     </div>
@@ -486,9 +485,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
                   type="button"
                   disabled={model.testingConnector || !selectedConnector}
                   onClick={() => void model.testSelectedConnector()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-[var(--nimi-text-secondary)] shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <BoltIcon className="text-mint-500" />
+                  <BoltIcon className="text-[var(--nimi-action-primary-bg)]" />
                   {model.testingConnector
                     ? t('runtimeConfig.cloud.testing', { defaultValue: 'Testing...' })
                     : t('runtimeConfig.cloud.testConnector', { defaultValue: 'Test' })}
@@ -497,17 +496,17 @@ export function CloudPage({ model, state }: CloudPageProps) {
             }
           />
 
-          <div className="mx-5 h-px bg-gray-200/70" />
+          <div className="mx-5 h-px bg-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]" />
 
           {/* Connector Chips */}
           <div className="px-5 py-4">
             {orderedConnectors.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
-                  <CloudIcon className="h-6 w-6 text-gray-400" />
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
+                  <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
                 </div>
-                <p className="text-sm font-medium text-gray-900">{t('runtimeConfig.cloud.noConnectors', { defaultValue: 'No Connectors' })}</p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.cloud.noConnectors', { defaultValue: 'No Connectors' })}</p>
+                <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
                   {t('runtimeConfig.cloud.noConnectorsHint', { defaultValue: 'Click "Add" to create your first connector' })}
                 </p>
               </div>
@@ -523,26 +522,26 @@ export function CloudPage({ model, state }: CloudPageProps) {
                       onClick={() => onSelectConnector(connector.id)}
                       className={`rounded-xl border px-4 py-2.5 text-left text-xs transition-all ${
                         active
-                          ? 'border-mint-300 bg-mint-50 ring-1 ring-mint-200'
-                          : 'border-gray-200 bg-white/90 hover:border-mint-200 hover:bg-mint-50/30'
+                          ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] ring-1 ring-mint-200'
+                          : 'border-[var(--nimi-border-subtle)] bg-white/90 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <span className={`inline-block h-2 w-2 rounded-full ${
-                          isHealthy ? 'bg-green-500' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-red-500' : 'bg-gray-300'
+                          isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
                         }`} />
-                        <p className="font-semibold text-gray-900">{connector.label}</p>
+                        <p className="font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
                         {connector.isSystemOwned ? (
-                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500">
+                          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[9px] text-[var(--nimi-text-muted)]">
                             {t('runtimeConfig.cloud.system', { defaultValue: 'system' })}
                           </span>
                         ) : connector.isDraft ? (
-                          <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] text-amber-600">
+                          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-status-warning)]">
                             {t('runtimeConfig.cloud.draft', { defaultValue: 'draft' })}
                           </span>
                         ) : null}
                       </div>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{getVendorLabelV11(connector.vendor)}</p>
+                      <p className="text-[10px] text-[var(--nimi-text-muted)] mt-0.5">{getVendorLabelV11(connector.vendor)}</p>
                     </button>
                   );
                 })}
@@ -570,7 +569,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 icon={<ServerIcon />}
               />
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
                 </label>
                 <RuntimeSelect
@@ -597,11 +596,11 @@ export function CloudPage({ model, state }: CloudPageProps) {
               />
               {isSystemOwned ? (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                     {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
                   </label>
-                  <div className="rounded-xl bg-[#F7F9FC] px-4 py-3 ring-1 ring-black/5">
-                    <p className="text-xs text-gray-500">
+                  <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3 ring-1 ring-black/5">
+                    <p className="text-xs text-[var(--nimi-text-muted)]">
                       {selectedConnector.hasCredential
                         ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
                         : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
@@ -665,25 +664,25 @@ export function CloudPage({ model, state }: CloudPageProps) {
 
             {/* Info Messages */}
             <div className="space-y-2">
-              <p className="text-xs text-gray-400">ID: {selectedConnector.id}</p>
+              <p className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">ID: {selectedConnector.id}</p>
               {selectedConnector.hasCredential && (
-                <p className="flex items-center gap-1.5 text-xs text-green-600">
+                <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
                   <CheckIcon className="h-3.5 w-3.5" />
                   {t('runtimeConfig.cloud.credentialConfigured', { defaultValue: 'Credential configured' })}
                 </p>
               )}
               {tokenSavedConnectorId === selectedConnector.id && (
-                <p className="flex items-center gap-1.5 text-xs text-green-600">
+                <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
                   <CheckIcon className="h-3.5 w-3.5" />
                   {t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
                 </p>
               )}
               {tokenSaveError && (
-                <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{tokenSaveError}</p>
+                <p className="text-xs text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] rounded-lg px-3 py-2">{tokenSaveError}</p>
               )}
             </div>
 
-            <div className="h-px bg-gray-200/70" />
+            <div className="h-px bg-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]" />
 
             {/* Models Section */}
             <div className="space-y-3">
@@ -695,7 +694,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 icon={<SearchIcon />}
               />
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">
+                <p className="text-sm font-medium text-[var(--nimi-text-secondary)] mb-2">
                   {t('runtimeConfig.cloud.availableModels', { defaultValue: 'Available Models' })}
                 </p>
                 {renderModelChips(model.filteredConnectorModels, `connector-${selectedConnector.id}`)}
@@ -707,12 +706,12 @@ export function CloudPage({ model, state }: CloudPageProps) {
         <div className="rounded-2xl bg-white p-8 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
           <div className="flex flex-col items-center justify-center text-center">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-200">
-              <CloudIcon className="h-6 w-6 text-gray-400" />
+              <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
             </div>
-            <p className="text-sm font-medium text-gray-900">
+            <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
               {t('runtimeConfig.cloud.noConnectorSelected', { defaultValue: 'No Connector Selected' })}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
               {t('runtimeConfig.cloud.noConnectorSelectedHint', { defaultValue: 'Select a connector above or create a new one' })}
             </p>
           </div>

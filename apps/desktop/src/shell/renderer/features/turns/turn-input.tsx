@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { queryClient } from '@renderer/infra/query-client/query-client';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { SlotHost } from '@renderer/mod-ui/host/slot-host';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
@@ -468,7 +468,7 @@ export function TurnInput(props: TurnInputProps = {}) {
           </div>
 
           {/* Emoji grid */}
-          <ScrollShell className="max-h-[260px]" viewportClassName="max-h-[260px]" contentClassName="p-3">
+          <ScrollArea className="max-h-[260px]" viewportClassName="max-h-[260px]" contentClassName="p-3">
             <div className="grid grid-cols-8 gap-1">
               {activeCategory.emojis.map((emoji, index) => (
                 <button
@@ -481,13 +481,13 @@ export function TurnInput(props: TurnInputProps = {}) {
                 </button>
               ))}
             </div>
-          </ScrollShell>
+          </ScrollArea>
         </div>
       )}
 
       {/* Input container with border */}
       <div className="relative flex h-full min-h-0 flex-col rounded-2xl border border-gray-200 bg-gray-50/50 p-3">
-        <ScrollShell className="min-h-0 flex-1" viewportClassName="pr-2">
+        <ScrollArea className="min-h-0 flex-1" viewportClassName="pr-2">
           {pendingAttachments.length > 0 ? (
             <div className="mb-2 flex flex-wrap gap-2">
               {pendingAttachments.map((attachment, index) => (
@@ -557,7 +557,7 @@ export function TurnInput(props: TurnInputProps = {}) {
             onPaste={handlePaste}
             onKeyDown={composer.handleKeyDown}
           />
-        </ScrollShell>
+        </ScrollArea>
 
         {/* Toolbar row */}
         <div className="mt-2 flex shrink-0 items-center justify-between">

@@ -1,6 +1,5 @@
-import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
+import { OverlayShell, ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { Location } from './create-post-modal-helpers.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { i18n } from '@renderer/i18n';
 
@@ -68,7 +67,7 @@ export function EmojiPickerPanel(input: {
           ) : null}
         </div>
       </div>
-      <ScrollShell className="max-h-[260px]" viewportClassName="max-h-[260px]" contentClassName="p-3">
+      <ScrollArea className="max-h-[260px]" viewportClassName="max-h-[260px]" contentClassName="p-3">
         <div className="grid grid-cols-8 gap-1">
           {activeCategory.emojis.map((emoji, index) => (
             <button
@@ -81,7 +80,7 @@ export function EmojiPickerPanel(input: {
             </button>
           ))}
         </div>
-      </ScrollShell>
+      </ScrollArea>
     </OverlayShell>
   );
 }
@@ -127,7 +126,7 @@ export function LocationPickerPanel(input: {
           />
         </div>
       </div>
-      <ScrollShell className="max-h-48" viewportClassName="max-h-48" contentClassName="py-2">
+      <ScrollArea className="max-h-48" viewportClassName="max-h-48" contentClassName="py-2">
         {input.loadingLocations ? (
           <div className="px-3 py-4 text-center text-sm text-gray-500">
             {i18n.t('Profile.CreatePost.loadingLocations', { defaultValue: 'Loading locations...' })}
@@ -164,7 +163,7 @@ export function LocationPickerPanel(input: {
               : i18n.t('Profile.CreatePost.noWorldsAvailable', { defaultValue: 'No worlds available' })}
           </div>
         )}
-      </ScrollShell>
+      </ScrollArea>
     </OverlayShell>
   );
 }
@@ -213,7 +212,7 @@ export function TagPickerPanel(input: {
           />
         </div>
       </div>
-      <ScrollShell className="max-h-48" viewportClassName="max-h-48" contentClassName="py-2">
+      <ScrollArea className="max-h-48" viewportClassName="max-h-48" contentClassName="py-2">
         {input.filteredTags.length > 0 ? (
           <div className="mb-1">
             {input.filteredTags.map((tag) => (
@@ -270,7 +269,7 @@ export function TagPickerPanel(input: {
             {i18n.t('Profile.CreatePost.typeToSearchOrCreateTag', { defaultValue: 'Type to search or create a new tag' })}
           </div>
         ) : null}
-      </ScrollShell>
+      </ScrollArea>
     </OverlayShell>
   );
 }

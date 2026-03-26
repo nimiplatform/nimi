@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { AgentDetailData } from './agent-detail-model.js';
 import { getStateBadgeColor } from './agent-detail-model.js';
 
@@ -130,7 +130,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-gray-50">
-      <ScrollShell
+      <ScrollArea
         className="flex-1 bg-gray-50"
         viewportClassName="bg-gray-50"
         contentClassName="mx-auto max-w-md px-6 py-8"
@@ -313,7 +313,7 @@ export function AgentDetailView(props: AgentDetailViewProps) {
           </div>
 
 
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }

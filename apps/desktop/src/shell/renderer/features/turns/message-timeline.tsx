@@ -19,7 +19,7 @@ import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { GiftMessageBubble, type GiftMessagePayload } from '@renderer/features/economy/gift-message-bubble.js';
 import { toProfileData } from '@renderer/features/profile/profile-model';
@@ -241,7 +241,7 @@ export function MessageTimeline() {
         />
 
         {/* Messages */}
-        <ScrollShell
+        <ScrollArea
           className="flex-1 bg-white"
           viewportClassName="bg-white"
           contentClassName="space-y-4 px-4 py-4"
@@ -337,7 +337,7 @@ export function MessageTimeline() {
           )}
 
           <div ref={bottomRef} />
-        </ScrollShell>
+        </ScrollArea>
         <ChatComposerResizeHandle
           ariaLabel={t('ChatTimeline.resizeInputArea')}
           onMouseDown={startComposerResize}
@@ -354,7 +354,7 @@ export function MessageTimeline() {
 
       {profilePanelTarget ? (
         <aside className="flex h-full w-80 shrink-0 flex-col border-l border-gray-200 bg-white">
-          <ScrollShell className="flex-1" contentClassName="px-4 py-4">
+          <ScrollArea className="flex-1" contentClassName="px-4 py-4">
             <ChatProfileCard
               profileData={toProfileData(profileQuery.data || profileSummary)}
               onClose={() => setProfilePanelTarget(null)}
@@ -367,7 +367,7 @@ export function MessageTimeline() {
                 ? () => setGiftModalOpen(true)
                 : undefined}
             />
-          </ScrollShell>
+          </ScrollArea>
         </aside>
       ) : null}
 

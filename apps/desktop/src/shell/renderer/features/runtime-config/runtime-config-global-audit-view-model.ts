@@ -11,20 +11,20 @@ export function runtimeHealthStatusLabel(status: number): string {
 
 export function runtimeHealthStatusColor(status: number): string {
   switch (status) {
-    case 3: return 'text-green-700 bg-green-50 border-green-200';
-    case 4: return 'text-yellow-700 bg-yellow-50 border-yellow-200';
-    case 1: return 'text-red-700 bg-red-50 border-red-200';
+    case 3: return 'tone-green text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)]';
+    case 4: return 'tone-yellow text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)]';
+    case 1: return 'tone-red text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)]';
     case 2:
-    case 5: return 'text-blue-700 bg-blue-50 border-blue-200';
-    default: return 'text-gray-700 bg-gray-50 border-gray-200';
+    case 5: return 'tone-blue text-[var(--nimi-status-info)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
+    default: return 'tone-gray text-[var(--nimi-text-secondary)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] border-[var(--nimi-border-subtle)]';
   }
 }
 
 export function providerStateColor(state: string): string {
   const s = state.toLowerCase();
-  if (s === 'healthy') return 'text-green-700';
-  if (s === 'unhealthy' || s === 'degraded') return 'text-red-700';
-  return 'text-gray-500';
+  if (s === 'healthy') return 'tone-green text-[var(--nimi-status-success)]';
+  if (s === 'unhealthy' || s === 'degraded') return 'tone-red text-[var(--nimi-status-danger)]';
+  return 'tone-gray text-[var(--nimi-text-muted)]';
 }
 
 export function formatBytes(bytesStr: string): string {

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import {
   mapCultivationRingsData,
   mapRealmConstellationData,
@@ -53,7 +53,7 @@ function WorldCultivationCard({
             ))}
           </div>
         ) : null}
-        <ScrollShell viewportClassName="xl:max-h-[430px]" contentClassName="grid gap-2 xl:pr-1">
+        <ScrollArea viewportClassName="xl:max-h-[430px]" contentClassName="grid gap-2 xl:pr-1">
           {data.levels.map((level, index) => (
             <div key={level.name} className="rounded-xl border border-[#4ECCA3]/10 bg-[#0a0f0c]/45 p-3">
               <div className="flex items-center justify-between gap-3">
@@ -66,7 +66,7 @@ function WorldCultivationCard({
               {level.extra ? <div className="mt-2 text-xs text-[#86f0ca]/76">{level.extra}</div> : null}
             </div>
           ))}
-        </ScrollShell>
+        </ScrollArea>
       </div>
     </SectionShell>
   );

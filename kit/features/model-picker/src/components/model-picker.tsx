@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
-import { SearchField, Surface } from '@nimiplatform/nimi-kit/ui';
+import {
+  SearchField,
+  SelectField,
+  StatusBadge,
+  Surface,
+} from '@nimiplatform/nimi-kit/ui';
 import type { UseModelPickerResult } from '../hooks/use-model-picker.js';
 import type { ModelPickerBadge } from '../types.js';
 
@@ -18,16 +23,16 @@ type ModelPickerItemCardProps<TModel> = {
 };
 
 function sourceTone(source: string) {
-  if (source === 'overridden') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (source === 'custom') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  return 'border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] text-[color:var(--nimi-text-secondary)]';
+  if (source === 'overridden') return 'warning' as const;
+  if (source === 'custom') return 'success' as const;
+  return 'neutral' as const;
 }
 
 function badgeTone(tone: ModelPickerBadge['tone']) {
-  if (tone === 'accent') return 'border-sky-200 bg-sky-50 text-sky-700';
-  if (tone === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (tone === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] text-[color:var(--nimi-text-secondary)]';
+  if (tone === 'accent') return 'info' as const;
+  if (tone === 'success') return 'success' as const;
+  if (tone === 'warning') return 'warning' as const;
+  return 'neutral' as const;
 }
 
 export function ModelPicker<TModel>({
@@ -49,29 +54,33 @@ export function ModelPicker<TModel>({
         />
         <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
           <span>Capability</span>
-          <select
+          <SelectField
             value={state.capabilityFilter}
-            onChange={(event) => state.setCapabilityFilter(event.target.value)}
-            className="rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] px-3 py-2 text-sm font-normal text-[color:var(--nimi-text-primary)] outline-none focus:border-[color:var(--nimi-field-focus)]"
-          >
-            <option value="all">All</option>
-            {state.capabilityOptions.map((capability) => (
-              <option key={capability} value={capability}>{capability}</option>
-            ))}
-          </select>
+            onValueChange={state.setCapabilityFilter}
+            options={[
+              { value: 'all', label: 'All' },
+              ...state.capabilityOptions.map((capability) => ({
+                value: capability,
+                label: capability,
+              })),
+            ]}
+            selectClassName="font-normal"
+          />
         </label>
         <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
           <span>Source</span>
-          <select
+          <SelectField
             value={state.sourceFilter}
-            onChange={(event) => state.setSourceFilter(event.target.value)}
-            className="rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] px-3 py-2 text-sm font-normal text-[color:var(--nimi-text-primary)] outline-none focus:border-[color:var(--nimi-field-focus)]"
-          >
-            <option value="all">All</option>
-            {state.sourceOptions.map((source) => (
-              <option key={source} value={source}>{source}</option>
-            ))}
-          </select>
+            onValueChange={state.setSourceFilter}
+            options={[
+              { value: 'all', label: 'All' },
+              ...state.sourceOptions.map((source) => ({
+                value: source,
+                label: source,
+              })),
+            ]}
+            selectClassName="font-normal"
+          />
         </label>
       </div>
 
@@ -137,7 +146,10 @@ function ModelPickerItemCard<TModel>({
       as="div"
       tone="card"
       padding="md"
-      className={`rounded-2xl border transition-colors ${selected ? 'border-emerald-400 bg-emerald-50/70' : 'border-[color:var(--nimi-border-subtle)] bg-white hover:border-emerald-200 hover:bg-emerald-50/30'}`}
+      className={selected
+        ? 'rounded-2xl border border-[var(--nimi-action-primary-bg)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] transition-colors'
+        : 'rounded-2xl border border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,var(--nimi-border-subtle))] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,var(--nimi-surface-card))]'
+      }
     >
       <button type="button" onClick={() => state.selectModel(id)} className="w-full text-left">
         <div className="flex items-start justify-between gap-3">
@@ -145,7 +157,7 @@ function ModelPickerItemCard<TModel>({
             <p className="text-sm font-semibold text-[color:var(--nimi-text-primary)]">{state.adapter.getTitle(model)}</p>
             {description ? <p className="mt-1 text-xs text-[color:var(--nimi-text-secondary)]">{description}</p> : null}
           </div>
-          <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${sourceTone(source)}`}>{source}</span>
+          <StatusBadge tone={sourceTone(source)}>{source}</StatusBadge>
         </div>
         {capabilities.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-1">
@@ -159,9 +171,9 @@ function ModelPickerItemCard<TModel>({
         {badges.length > 0 ? (
           <div className="mt-2 flex flex-wrap gap-1">
             {badges.map((badge) => (
-              <span key={`${id}-${badge.label}`} className={`rounded-full border px-2 py-0.5 text-[10px] ${badgeTone(badge.tone)}`}>
+              <StatusBadge key={`${id}-${badge.label}`} tone={badgeTone(badge.tone)} className="text-[10px]">
                 {badge.label}
-              </span>
+              </StatusBadge>
             ))}
           </div>
         ) : null}

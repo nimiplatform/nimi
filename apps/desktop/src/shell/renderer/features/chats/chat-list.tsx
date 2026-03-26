@@ -4,11 +4,9 @@ import { resolveRealmMessageText } from '@nimiplatform/nimi-kit/features/chat/re
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import { SidebarHeader, SidebarItem, SidebarSearch, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
+import { ScrollArea, SidebarAffordanceBadge, SidebarHeader, SidebarItem, SidebarSearch, SidebarShell, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { resolveCanonicalChatAttachmentPreviewText } from '@renderer/features/turns/chat-attachment-contract.js';
@@ -23,13 +21,13 @@ function ChatListLoadingSkeleton() {
   return (
     <SidebarShell data-testid={E2E_IDS.chatList} className="h-full">
       <SidebarHeader title={<ChatSkeletonBlock className="h-7 w-20 rounded-lg" />} />
-      <div className="nimi-sidebar-search-row">
-        <div className="nimi-sidebar-search flex px-4">
+      <div className="px-3 pb-3">
+        <div className="flex min-h-10 items-center gap-2 px-2">
           <ChatSkeletonBlock className="h-4 w-4 shrink-0" />
           <ChatSkeletonBlock className="ml-3 h-4 w-40 rounded-md" />
         </div>
       </div>
-      <ScrollShell
+      <ScrollArea
         className="flex-1"
         contentClassName="space-y-2 px-3 py-2 pb-3"
       >
@@ -45,7 +43,7 @@ function ChatListLoadingSkeleton() {
             </div>
           </Surface>
         ))}
-      </ScrollShell>
+      </ScrollArea>
     </SidebarShell>
   );
 }
@@ -122,9 +120,9 @@ function ChatRowAffordance(props: { timeLabel: string; unread: number }) {
     <div className="flex min-w-[46px] flex-col items-end gap-2">
       {props.timeLabel ? <span className="text-xs text-gray-400">{props.timeLabel}</span> : <span className="h-4" />}
       {props.unread > 0 ? (
-        <span className="nimi-sidebar-affordance nimi-sidebar-affordance--badge">
+        <SidebarAffordanceBadge>
           {props.unread > 99 ? '99+' : props.unread}
-        </span>
+        </SidebarAffordanceBadge>
       ) : null}
     </div>
   );
@@ -210,7 +208,7 @@ export function ChatList() {
 
   return (
     <SidebarShell data-testid={E2E_IDS.chatList} className="h-full">
-      <SidebarHeader title={<h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('Chat.title')}</h1>} />
+      <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Chat.title')}</h1>} />
       <SidebarSearch
         value={searchText}
         onChange={setSearchText}
@@ -218,7 +216,7 @@ export function ChatList() {
         clearLabel={t('Home.clear', { defaultValue: 'Clear' })}
         placeholder={t('Chat.searchPlaceholder', { defaultValue: 'Search chats...' })}
       />
-      <ScrollShell
+      <ScrollArea
         className="flex-1"
         contentClassName="px-3 py-2 pb-3"
       >
@@ -263,7 +261,7 @@ export function ChatList() {
             );
           })
         )}
-      </ScrollShell>
+      </ScrollArea>
     </SidebarShell>
   );
 }

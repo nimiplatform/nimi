@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { IconButton } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, ScrollArea, Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { Tooltip } from '@renderer/components/tooltip.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { formatProfileDate } from '@renderer/features/profile/profile-model';
@@ -118,7 +116,7 @@ export function ContactDetailViewContent(input: {
       data-testid={E2E_IDS.profileDetailSurface}
       className="flex h-full min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,#eef3f4_0%,#f7fafb_48%,#fcfefd_100%)]"
     >
-      <ScrollShell
+      <ScrollArea
         ref={scrollContainerRef}
         className="flex-1"
         contentClassName={input.fullBleed ? 'flex min-h-full w-full flex-col' : 'mx-auto flex min-h-full w-full max-w-[1440px] flex-col px-6 py-6'}
@@ -170,7 +168,7 @@ export function ContactDetailViewContent(input: {
                     <button
                       type="button"
                       onClick={toggleEditing}
-                      className="nimi-action nimi-action--ghost nimi-action--size-md inline-flex h-11 w-auto gap-2 rounded-full border border-[#9fe3cd] bg-white/92 px-4 text-[#1f8f69] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[#4ECCA3] hover:bg-white"
+                      className="inline-flex h-11 w-auto cursor-pointer items-center gap-2 rounded-full border border-[var(--nimi-border-subtle)] bg-white/92 px-4 text-[var(--nimi-action-primary-bg)] shadow-[0_10px_26px_rgba(31,143,105,0.12)] backdrop-blur-md transition hover:border-[var(--nimi-action-primary-bg)] hover:bg-white"
                     >
                       {isEditing ? <EyeIcon className="h-4 w-4" /> : <PencilIcon className="h-4 w-4" />}
                       <span className="text-sm font-semibold">
@@ -495,7 +493,7 @@ export function ContactDetailViewContent(input: {
               </div>
             </div>
           </section>
-      </ScrollShell>
+      </ScrollArea>
       {input.isOwnProfile && showScrollTop ? (
         <button
           type="button"

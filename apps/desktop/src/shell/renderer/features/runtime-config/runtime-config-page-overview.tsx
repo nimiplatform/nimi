@@ -1,5 +1,10 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  Surface,
+  StatusBadge as KitStatusBadge,
+  cn,
+} from '@nimiplatform/nimi-kit/ui';
 import {
   CAPABILITIES_V11,
   type CapabilityV11,
@@ -9,7 +14,7 @@ import { formatLocaleDateTime, formatLocaleNumber } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
-import { Button } from './runtime-config-primitives';
+import { Button, DaemonStatusBadge } from './runtime-config-primitives';
 import { useSystemResources } from './runtime-config-system-resources';
 import { useUsageEstimate } from './runtime-config-cost-estimator';
 
@@ -23,6 +28,57 @@ type CapabilityStatus = {
   localAvailable: boolean;
   cloudAvailable: boolean;
   localProvider?: string;
+};
+
+type RuntimeTone = 'neutral' | 'success' | 'warning' | 'danger';
+type ProgressTone = 'info' | 'action' | 'warning';
+
+const TOKEN_TEXT_PRIMARY = 'text-[var(--nimi-text-primary)]';
+const TOKEN_TEXT_SECONDARY = 'text-[var(--nimi-text-secondary)]';
+const TOKEN_TEXT_MUTED = 'text-[var(--nimi-text-muted)]';
+const TOKEN_PANEL_CARD = 'rounded-2xl';
+const METRIC_CARD_CLASS = 'rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-3';
+
+const TONE_STYLES: Record<RuntimeTone, {
+  surface: string;
+  subtleText: string;
+  badge: 'neutral' | 'success' | 'warning' | 'danger';
+}> = {
+  neutral: {
+    surface: 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]',
+    subtleText: 'text-[var(--nimi-text-secondary)]',
+    badge: 'neutral',
+  },
+  success: {
+    surface: 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))]',
+    subtleText: 'text-[var(--nimi-status-success)]',
+    badge: 'success',
+  },
+  warning: {
+    surface: 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))]',
+    subtleText: 'text-[var(--nimi-status-warning)]',
+    badge: 'warning',
+  },
+  danger: {
+    surface: 'border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))]',
+    subtleText: 'text-[var(--nimi-status-danger)]',
+    badge: 'danger',
+  },
+};
+
+const PROGRESS_STYLES: Record<ProgressTone, { track: string; fill: string }> = {
+  info: {
+    track: 'bg-[color-mix(in_srgb,var(--nimi-status-info)_14%,var(--nimi-surface-panel))]',
+    fill: 'bg-[var(--nimi-status-info)]',
+  },
+  action: {
+    track: 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,var(--nimi-surface-panel))]',
+    fill: 'bg-[var(--nimi-action-primary-bg)]',
+  },
+  warning: {
+    track: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,var(--nimi-surface-panel))]',
+    fill: 'bg-[var(--nimi-status-warning)]',
+  },
 };
 
 function deriveCapabilityStatuses(state: RuntimeConfigStateV11): CapabilityStatus[] {
@@ -66,19 +122,17 @@ function formatCost(value: number | null, currency: string): string {
   return `~${prefix}${value.toFixed(2)}`;
 }
 
-function ProgressBar({ percent, color }: { percent: number; color: string }) {
+function ProgressBar({ percent, tone }: { percent: number; tone: ProgressTone }) {
+  const style = PROGRESS_STYLES[tone];
+
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+    <div className={cn('h-2 w-full overflow-hidden rounded-full', style.track)}>
       <div
-        className={`h-full transition-all ${color}`}
+        className={cn('h-full transition-all', style.fill)}
         style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
       />
     </div>
   );
-}
-
-function SurfaceCard({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
 }
 
 function StatTile({
@@ -92,22 +146,33 @@ function StatTile({
   subtitle: string;
   onClick?: () => void;
 }) {
-  const body = (
-    <SurfaceCard className="p-5 text-center transition-all hover:shadow-md">
-      <p className="text-xs text-gray-500">{title}</p>
-      <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
-      <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
-    </SurfaceCard>
+  const content = (
+    <>
+      <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{title}</p>
+      <p className={cn('mt-2 text-3xl font-bold', TOKEN_TEXT_PRIMARY)}>{value}</p>
+      <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>{subtitle}</p>
+    </>
   );
 
-  if (!onClick) {
-    return body;
+  if (onClick) {
+    return (
+      <Surface
+        as="button"
+        type="button"
+        tone="card"
+        interactive
+        className={cn(TOKEN_PANEL_CARD, 'w-full p-5 text-center')}
+        onClick={onClick}
+      >
+        {content}
+      </Surface>
+    );
   }
 
   return (
-    <button type="button" onClick={onClick} className="block w-full text-left">
-      {body}
-    </button>
+    <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5 text-center')}>
+      {content}
+    </Surface>
   );
 }
 
@@ -121,12 +186,17 @@ function QuickLinkCard({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className="text-left">
-      <SurfaceCard className="p-4 transition-all hover:shadow-md hover:border-mint-200">
-        <p className="text-sm font-semibold text-gray-900">{title}</p>
-        <p className="mt-1 text-xs text-gray-500">{description}</p>
-      </SurfaceCard>
-    </button>
+    <Surface
+      as="button"
+      type="button"
+      tone="card"
+      interactive
+      className="w-full rounded-2xl p-4 text-left"
+      onClick={onClick}
+    >
+      <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{title}</p>
+      <p className={cn('mt-1 text-xs', TOKEN_TEXT_MUTED)}>{description}</p>
+    </Surface>
   );
 }
 
@@ -190,46 +260,46 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           {t('runtimeConfig.overview.runtimeLoadTitle', { defaultValue: 'Runtime Load & Usage' })}
         </SectionTitle>
         <div className="mt-3 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <SurfaceCard className="p-5">
+          <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
             <div className="mb-4">
-              <p className="text-sm font-semibold text-gray-900">{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
-              <p className="text-xs text-gray-500">{t('runtimeConfig.overview.systemResourcesDescription', { defaultValue: 'Live snapshot from desktop runtime' })}</p>
+              <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
+              <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.systemResourcesDescription', { defaultValue: 'Live snapshot from desktop runtime' })}</p>
             </div>
             <div className="space-y-3">
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-gray-600">{t('runtimeConfig.overview.cpu', { defaultValue: 'CPU' })}</span>
-                  <span className="font-medium text-gray-900">{sysResources.cpuPercent.toFixed(0)}%</span>
+                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.cpu', { defaultValue: 'CPU' })}</span>
+                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>{sysResources.cpuPercent.toFixed(0)}%</span>
                 </div>
-                <ProgressBar percent={sysResources.cpuPercent} color="bg-blue-500" />
+                <ProgressBar percent={sysResources.cpuPercent} tone="info" />
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-gray-600">{t('runtimeConfig.overview.memory', { defaultValue: 'Memory' })}</span>
-                  <span className="font-medium text-gray-900">
+                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.memory', { defaultValue: 'Memory' })}</span>
+                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
                     {formatBytes(sysResources.memoryUsedBytes)} / {formatBytes(sysResources.memoryTotalBytes)}
                   </span>
                 </div>
-                <ProgressBar percent={memoryPercent} color="bg-purple-500" />
+                <ProgressBar percent={memoryPercent} tone="action" />
               </div>
               <div>
                 <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-gray-600">{t('runtimeConfig.overview.disk', { defaultValue: 'Disk' })}</span>
-                  <span className="font-medium text-gray-900">
+                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.disk', { defaultValue: 'Disk' })}</span>
+                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
                     {formatBytes(sysResources.diskUsedBytes)} / {formatBytes(sysResources.diskTotalBytes)}
                   </span>
                 </div>
-                <ProgressBar percent={diskPercent} color="bg-amber-500" />
+                <ProgressBar percent={diskPercent} tone="warning" />
               </div>
               {typeof sysResources.temperatureCelsius === 'number' ? (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600">{t('runtimeConfig.overview.temperature', { defaultValue: 'Temperature' })}</span>
-                  <span className="font-medium text-gray-900">
+                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.temperature', { defaultValue: 'Temperature' })}</span>
+                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
                     {t('runtimeConfig.overview.temperatureValue', { value: sysResources.temperatureCelsius.toFixed(0), defaultValue: '{{value}} C' })}
                   </span>
                 </div>
               ) : null}
-              <p className="pt-1 text-xs text-gray-500">
+              <p className={cn('pt-1 text-xs', TOKEN_TEXT_MUTED)}>
                 {t('runtimeConfig.overview.systemResourceMeta', {
                   source: sysResources.source,
                   capturedAt: formatLocaleDateTime(new Date(sysResources.capturedAtMs).toISOString()),
@@ -237,65 +307,68 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 })}
               </p>
             </div>
-          </SurfaceCard>
+          </Surface>
 
-          <SurfaceCard className="p-5">
+          <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
             <div className="mb-4">
-              <p className="text-sm font-semibold text-gray-900">{t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}</p>
-              <p className="text-xs text-gray-500">{t('runtimeConfig.overview.usageEstimateDescription', { defaultValue: 'Aggregated from runtime usage stats' })}</p>
+              <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.usageEstimate', { defaultValue: 'Usage Estimate' })}</p>
+              <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.usageEstimateDescription', { defaultValue: 'Aggregated from runtime usage stats' })}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.requests', { defaultValue: 'Requests' })}</p>
-                <p className="text-lg font-semibold text-gray-900">{formatCount(usageEstimate.totalRequests)}</p>
+              <div className={METRIC_CARD_CLASS}>
+                <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.requests', { defaultValue: 'Requests' })}</p>
+                <p className={cn('text-lg font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalRequests)}</p>
               </div>
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.compute', { defaultValue: 'Compute' })}</p>
-                <p className="text-lg font-semibold text-gray-900">
+              <div className={METRIC_CARD_CLASS}>
+                <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.compute', { defaultValue: 'Compute' })}</p>
+                <p className={cn('text-lg font-semibold', TOKEN_TEXT_PRIMARY)}>
                   {t('runtimeConfig.overview.computeValue', {
                     value: formatCount(usageEstimate.totalComputeMs),
                     defaultValue: '{{value}} ms',
                   })}
                 </p>
               </div>
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.inputTokens', { defaultValue: 'Input Tokens' })}</p>
-                <p className="text-sm font-semibold text-gray-900">{formatCount(usageEstimate.totalInputTokens)}</p>
+              <div className={METRIC_CARD_CLASS}>
+                <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.inputTokens', { defaultValue: 'Input Tokens' })}</p>
+                <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalInputTokens)}</p>
               </div>
-              <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.outputTokens', { defaultValue: 'Output Tokens' })}</p>
-                <p className="text-sm font-semibold text-gray-900">{formatCount(usageEstimate.totalOutputTokens)}</p>
+              <div className={METRIC_CARD_CLASS}>
+                <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.outputTokens', { defaultValue: 'Output Tokens' })}</p>
+                <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{formatCount(usageEstimate.totalOutputTokens)}</p>
               </div>
-              <div className="col-span-2 rounded-xl border border-gray-100 bg-gray-50 p-3" title={usageEstimate.totalEstimatedCost === null ? t('runtimeConfig.overview.costTooltipUnknown', { defaultValue: 'Some models have unknown pricing' }) : ''}>
-                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.estimatedCost', { defaultValue: 'Estimated Cost' })}</p>
-                <p className="text-lg font-semibold text-gray-900">
+              <div
+                className={cn(METRIC_CARD_CLASS, 'col-span-2')}
+                title={usageEstimate.totalEstimatedCost === null ? t('runtimeConfig.overview.costTooltipUnknown', { defaultValue: 'Some models have unknown pricing' }) : ''}
+              >
+                <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.estimatedCost', { defaultValue: 'Estimated Cost' })}</p>
+                <p className={cn('text-lg font-semibold', TOKEN_TEXT_PRIMARY)}>
                   {usageEstimate.pricingLoading ? '...' : formatCost(usageEstimate.totalEstimatedCost, usageEstimate.costCurrency)}
                 </p>
               </div>
             </div>
             {usageEstimate.error ? (
-              <p className="mt-3 text-xs text-red-600">{usageEstimate.error}</p>
+              <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{usageEstimate.error}</p>
             ) : null}
-            <div className="mt-4 space-y-1 border-t border-gray-100 pt-3">
+            <div className="mt-4 space-y-1 border-t border-[var(--nimi-border-subtle)] pt-3">
               {usageEstimate.breakdown.map((entry) => (
-                <div key={entry.label} className="flex items-center justify-between gap-2 text-xs text-gray-600">
+                <div key={entry.label} className={cn('flex items-center justify-between gap-2 text-xs', TOKEN_TEXT_SECONDARY)}>
                   <span className="min-w-0 flex-1 truncate">{entry.label}</span>
-                  <span className="shrink-0 font-medium">
+                  <span className={cn('shrink-0 font-medium', TOKEN_TEXT_PRIMARY)}>
                     {t('runtimeConfig.overview.requestsShort', {
                       value: formatCount(entry.requests),
                       defaultValue: '{{value}} req',
                     })}
                   </span>
-                  <span className="w-16 shrink-0 text-right font-medium text-gray-500">
+                  <span className="w-16 shrink-0 text-right font-medium text-[var(--nimi-text-muted)]">
                     {formatCost(entry.estimatedCost, entry.costCurrency)}
                   </span>
                 </div>
               ))}
               {usageEstimate.breakdown.length === 0 && !usageEstimate.loading ? (
-                <p className="text-xs text-gray-500">{t('runtimeConfig.overview.noUsageRecords', { defaultValue: 'No usage records in current window.' })}</p>
+                <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.noUsageRecords', { defaultValue: 'No usage records in current window.' })}</p>
               ) : null}
               {usageEstimate.updatedAt ? (
-                <p className="pt-1 text-xs text-gray-500">
+                <p className={cn('pt-1 text-xs', TOKEN_TEXT_MUTED)}>
                   {t('runtimeConfig.overview.updatedAt', {
                     value: formatLocaleDateTime(usageEstimate.updatedAt),
                     defaultValue: 'Updated: {{value}}',
@@ -303,12 +376,12 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 </p>
               ) : null}
               {usageEstimate.breakdown.length > 0 ? (
-                <p className="pt-1 text-[11px] text-gray-400">
+                <p className="pt-1 text-[11px] text-[var(--nimi-text-muted)]">
                   {t('runtimeConfig.overview.costDisclaimer', { defaultValue: 'Estimates based on catalog pricing; actual costs may vary.' })}
                 </p>
               ) : null}
             </div>
-          </SurfaceCard>
+          </Surface>
         </div>
       </section>
 
@@ -316,10 +389,11 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <SectionTitle description={t('runtimeConfig.overview.capabilityCoverageDescription', { defaultValue: 'Available AI capabilities from local runtime and cloud fallback.' })}>
           {t('runtimeConfig.overview.capabilityCoverageTitle', { defaultValue: 'Capability Coverage' })}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
             {capabilityStatuses.map((item) => {
               const available = item.localAvailable || item.cloudAvailable;
+              const tone: RuntimeTone = item.localAvailable ? 'success' : item.cloudAvailable ? 'warning' : 'neutral';
               const source = item.localAvailable
                 ? t('runtimeConfig.overview.capabilitySourceLocal', {
                   providerSuffix: item.localProvider ? ` (${item.localProvider})` : '',
@@ -328,84 +402,86 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
                 : item.cloudAvailable
                   ? t('runtimeConfig.overview.capabilitySourceCloudFallback', { defaultValue: 'cloud API fallback' })
                   : t('runtimeConfig.overview.capabilitySourceUnavailable', { defaultValue: 'unavailable' });
+              const toneStyle = TONE_STYLES[tone];
+
               return (
-                <div
+                <Surface
                   key={`capability-overview-${item.capability}`}
-                  className={`flex items-center justify-between rounded-xl border p-3 ${
-                    item.localAvailable
-                      ? 'border-emerald-200 bg-emerald-50'
-                      : item.cloudAvailable
-                        ? 'border-amber-200 bg-amber-50'
-                        : 'border-gray-200 bg-gray-50'
-                  }`}
+                  tone="card"
+                  className={cn('flex items-center justify-between rounded-xl p-3', toneStyle.surface)}
                 >
-                  <div>
-                    <p className={`text-sm font-medium ${
-                      item.localAvailable ? 'text-emerald-900'
-                      : item.cloudAvailable ? 'text-amber-900'
-                      : 'text-gray-600'
-                    }`}>{item.capability}</p>
-                    <p className={`text-xs ${
-                      item.localAvailable ? 'text-emerald-700'
-                      : item.cloudAvailable ? 'text-amber-700'
-                      : 'text-gray-500'
-                    }`}>{source}</p>
+                  <div className="min-w-0">
+                    <p className={cn('text-sm font-medium', TOKEN_TEXT_PRIMARY)}>{item.capability}</p>
+                    <p className={cn('text-xs', toneStyle.subtleText)}>{source}</p>
                   </div>
-                  {!available ? (
-                    <button
-                      type="button"
-                      onClick={() => model.onChangePage('local')}
-                      className="text-xs font-medium text-mint-700 hover:text-mint-800"
-                    >
+                  {available ? (
+                    <KitStatusBadge tone={toneStyle.badge}>
+                      {item.localAvailable
+                        ? t('runtimeConfig.overview.available', { defaultValue: 'Available' })
+                        : t('runtimeConfig.overview.fallback', { defaultValue: 'Fallback' })}
+                    </KitStatusBadge>
+                  ) : (
+                    <Button variant="ghost" size="sm" onClick={() => model.onChangePage('local')}>
                       {t('runtimeConfig.overview.setup', { defaultValue: 'Setup' })}
-                    </button>
-                  ) : null}
-                </div>
+                    </Button>
+                  )}
+                </Surface>
               );
             })}
           </div>
-        </SurfaceCard>
+        </Surface>
       </section>
 
       <section className="mt-8">
         <SectionTitle description={t('runtimeConfig.overview.runtimeDaemonDescription', { defaultValue: 'Control and inspect local runtime daemon status.' })}>
           {t('runtimeConfig.overview.runtimeDaemonTitle', { defaultValue: 'Runtime Daemon' })}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'mt-3 p-5')}>
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">{t('runtimeConfig.overview.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}</div>
-            <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-              daemonRunning ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
-              {daemonRunning
-                ? t('runtimeConfig.overview.running', { defaultValue: 'running' })
-                : t('runtimeConfig.overview.stopped', { defaultValue: 'stopped' })}
-            </span>
+            <div className={cn('text-sm', TOKEN_TEXT_SECONDARY)}>{t('runtimeConfig.overview.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}</div>
+            <DaemonStatusBadge running={daemonRunning} />
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>{t('runtimeConfig.overview.grpc', { defaultValue: 'gRPC' })}</p>
-              <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>{model.runtimeDaemonStatus?.grpcAddr || '127.0.0.1:46371'}</p>
-            </div>
-            <div className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>{t('runtimeConfig.overview.pid', { defaultValue: 'PID' })}</p>
-              <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>{model.runtimeDaemonStatus?.pid || '-'}</p>
-            </div>
-            <div className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>{t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' })}</p>
-              <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>{model.runtimeDaemonUpdatedAt ? formatLocaleDateTime(model.runtimeDaemonUpdatedAt) : '-'}</p>
-            </div>
+            {[
+              {
+                key: 'grpc',
+                label: t('runtimeConfig.overview.grpc', { defaultValue: 'gRPC' }),
+                value: model.runtimeDaemonStatus?.grpcAddr || '127.0.0.1:46371',
+              },
+              {
+                key: 'pid',
+                label: t('runtimeConfig.overview.pid', { defaultValue: 'PID' }),
+                value: model.runtimeDaemonStatus?.pid || '-',
+              },
+              {
+                key: 'last-check',
+                label: t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' }),
+                value: model.runtimeDaemonUpdatedAt ? formatLocaleDateTime(model.runtimeDaemonUpdatedAt) : '-',
+              },
+            ].map((entry) => {
+              const toneStyle = TONE_STYLES[daemonRunning ? 'success' : 'danger'];
+              return (
+                <Surface
+                  key={entry.key}
+                  tone="card"
+                  className={cn('rounded-xl p-3', toneStyle.surface)}
+                >
+                  <p className={cn('text-xs', toneStyle.subtleText)}>{entry.label}</p>
+                  <p className={cn('text-sm font-medium', TOKEN_TEXT_PRIMARY)}>{entry.value}</p>
+                </Surface>
+              );
+            })}
           </div>
 
           {daemonIssue ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
-              <p className="text-sm font-medium text-amber-900">{daemonIssue.title}</p>
-              <p className="mt-1 text-xs text-amber-800">{daemonIssue.message}</p>
-              <p className="mt-2 text-[11px] text-amber-700">{daemonIssue.rawError}</p>
+            <div className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-3 py-3">
+              <p className="text-sm font-medium text-[var(--nimi-status-warning)]">{daemonIssue.title}</p>
+              <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,var(--nimi-text-secondary))]">{daemonIssue.message}</p>
+              <p className="mt-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
             </div>
           ) : model.runtimeDaemonError ? (
-            <p className="mt-3 text-xs text-red-600">{model.runtimeDaemonError}</p>
+            <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p>
           ) : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -424,7 +500,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
               {t('runtimeConfig.overview.stop', { defaultValue: 'Stop' })}
             </Button>
           </div>
-        </SurfaceCard>
+        </Surface>
       </section>
 
       <section className="mt-8">

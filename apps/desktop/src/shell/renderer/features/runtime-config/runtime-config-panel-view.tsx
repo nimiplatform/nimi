@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@nimiplatform/nimi-kit/ui';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { ScrollArea, SidebarAffordanceBadge, SidebarAffordanceChevron, SidebarAffordanceStatusDot, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
-import { ICON_CHEVRON_RIGHT, RUNTIME_SIDEBAR_ITEMS, getRuntimeSidebarBadge } from './runtime-config-sidebar';
+import { RUNTIME_SIDEBAR_ITEMS, getRuntimeSidebarBadge } from './runtime-config-sidebar';
 import { StatusBadge, DaemonStatusBadge } from './runtime-config-primitives';
 import { OverviewPage } from './runtime-config-page-overview';
 import { RecommendPage } from './runtime-config-page-recommend';
@@ -21,7 +19,7 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
 
 function RuntimeSkeletonBlock({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-2xl bg-white ${className}`} />;
+  return <div className={`animate-pulse rounded-2xl bg-[var(--nimi-surface-card)] ${className}`} />;
 }
 
 const RUNTIME_SECTION_LABEL_KEY: Record<(typeof RUNTIME_SIDEBAR_ITEMS)[number]['section'], string> = {
@@ -97,8 +95,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="nimi-surface--canvas flex min-h-0 flex-1">
-        <aside className="nimi-surface--canvas flex w-[224px] shrink-0 flex-col px-4 py-4">
+      <div className="flex min-h-0 flex-1 bg-[var(--nimi-surface-canvas)]">
+        <aside className="flex w-[224px] shrink-0 flex-col bg-[var(--nimi-surface-canvas)] px-4 py-4">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-5 space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -106,7 +104,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             ))}
           </div>
         </aside>
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
           <div className="flex h-14 shrink-0 items-center justify-between px-6">
             <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
             <div className="flex items-center gap-2">
@@ -114,14 +112,14 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               <RuntimeSkeletonBlock className="h-7 w-20 rounded-full" />
             </div>
           </div>
-          <ScrollShell className="flex-1 bg-white" viewportClassName="bg-white" contentClassName="mx-auto max-w-5xl space-y-6 p-6">
+          <ScrollArea className="flex-1 bg-[var(--nimi-surface-canvas)]" viewportClassName="bg-[var(--nimi-surface-canvas)]" contentClassName="mx-auto max-w-5xl space-y-6 p-6">
             <RuntimeSkeletonBlock className="h-36 w-full" />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <RuntimeSkeletonBlock className="h-48 w-full" />
               <RuntimeSkeletonBlock className="h-48 w-full" />
             </div>
             <RuntimeSkeletonBlock className="h-64 w-full" />
-          </ScrollShell>
+          </ScrollArea>
         </main>
       </div>
     );
@@ -139,13 +137,13 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }, {});
 
   return (
-    <div ref={containerRef} className="nimi-surface--canvas flex min-h-0 flex-1">
+    <div ref={containerRef} className="flex min-h-0 flex-1 bg-[var(--nimi-surface-canvas)]">
       <SidebarShell
         width={sidebarWidth}
         data-testid={E2E_IDS.panel('runtime-sidebar')}
       >
-        <SidebarHeader title={<h1 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>} className="px-5" />
-        <ScrollShell className="flex-1" contentClassName="px-3 pb-3 pt-2">
+        <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('runtimeConfig.panel.title', { defaultValue: 'AI Runtime' })}</h1>} className="px-5" />
+        <ScrollArea className="flex-1" contentClassName="px-3 pb-3 pt-2">
           <div className="space-y-5">
             {Object.entries(sidebarSections).map(([section, items]) => (
               <SidebarSection
@@ -171,18 +169,16 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                       active={active}
                       onClick={() => model.onChangePage(item.id)}
                       label={t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label })}
-                      icon={<span className={active ? 'text-mint-600' : 'text-gray-400'}>{item.icon}</span>}
+                      icon={<span className={active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}>{item.icon}</span>}
                       trailing={(
                         <div className="ml-1 flex items-center gap-2">
                           {item.id === 'runtime' ? (
-                            <span className="nimi-sidebar-affordance nimi-sidebar-affordance--status-dot">
-                              <span className={daemonRunning ? 'bg-mint-500' : 'bg-red-400'} />
-                            </span>
+                            <SidebarAffordanceStatusDot color={daemonRunning ? 'var(--nimi-status-success)' : 'var(--nimi-status-danger)'} />
                           ) : null}
                           {badge ? (
-                            <span className="nimi-sidebar-affordance nimi-sidebar-affordance--badge">{badge}</span>
+                            <SidebarAffordanceBadge>{badge}</SidebarAffordanceBadge>
                           ) : null}
-                          {active ? <span className="nimi-sidebar-affordance nimi-sidebar-affordance--chevron">{ICON_CHEVRON_RIGHT}</span> : null}
+                          {active ? <SidebarAffordanceChevron /> : null}
                         </div>
                       )}
                     />
@@ -191,21 +187,21 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               </SidebarSection>
             ))}
           </div>
-        </ScrollShell>
+        </ScrollArea>
         <SidebarResizeHandle
           ariaLabel={t('runtimeConfig.panel.resizeSidebar', { defaultValue: 'Resize runtime sidebar' })}
           onMouseDown={startResize}
         />
       </SidebarShell>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
-        <div className="flex h-14 shrink-0 items-center bg-white px-6">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+        <div className="flex h-14 shrink-0 items-center bg-[var(--nimi-surface-canvas)] px-6">
           <div className="flex w-full items-center justify-between">
-            <h2 className={`${APP_PAGE_TITLE_CLASS} text-[22px]`}>{pageMeta.name}</h2>
+            <h2 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{pageMeta.name}</h2>
             <div className="flex items-center gap-2">
               {(model.discovering || model.checkingHealth) && (
-                <span className="flex items-center gap-1.5 text-xs text-gray-400">
-                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
+                <span className="flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-transparent" />
                   {model.discovering
                     ? t('runtimeConfig.panel.discovering', { defaultValue: 'Discovering...' })
                     : t('runtimeConfig.panel.checkingHealth', { defaultValue: 'Checking...' })}
@@ -217,7 +213,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <ScrollShell className="flex-1 bg-white" viewportClassName="bg-white">
+        <ScrollArea className="flex-1 bg-[var(--nimi-surface-canvas)]" viewportClassName="bg-[var(--nimi-surface-canvas)]">
           {activePage === 'local' ? (
             <div data-testid={E2E_IDS.runtimePageRoot('local')}>
               <LocalPage model={model} state={state} />
@@ -268,7 +264,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               )}
             </div>
           )}
-        </ScrollShell>
+        </ScrollArea>
       </main>
     </div>
   );

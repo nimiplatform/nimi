@@ -1,6 +1,5 @@
 ﻿import { useState } from 'react';
-import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { OverlayShell, ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { formatLocaleDate, formatLocaleNumber, i18n } from '@renderer/i18n';
 
@@ -473,7 +472,7 @@ function TopSupportersModal({
       )}
     >
 
-      <ScrollShell className="max-h-[400px]" viewportClassName="max-h-[400px]">
+      <ScrollArea className="max-h-[400px]" viewportClassName="max-h-[400px]">
           {MOCK_TOP_SUPPORTERS.map((supporter) => (
             <div 
               key={supporter.id}
@@ -509,7 +508,7 @@ function TopSupportersModal({
               </div>
             </div>
           ))}
-      </ScrollShell>
+      </ScrollArea>
 
       <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
         <p className="text-xs text-gray-400 text-center">

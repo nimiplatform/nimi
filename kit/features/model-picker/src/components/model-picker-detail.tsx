@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
-import { Surface } from '@nimiplatform/nimi-kit/ui';
+import { StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { UseModelPickerResult } from '../hooks/use-model-picker.js';
 import type { ModelPickerBadge } from '../types.js';
 
 function badgeTone(tone: ModelPickerBadge['tone']) {
-  if (tone === 'accent') return 'border-sky-200 bg-sky-50 text-sky-700';
-  if (tone === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (tone === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] text-[color:var(--nimi-text-secondary)]';
+  if (tone === 'accent') return 'info' as const;
+  if (tone === 'success') return 'success' as const;
+  if (tone === 'warning') return 'warning' as const;
+  return 'neutral' as const;
 }
 
 export type ModelPickerDetailProps<TModel> = {
@@ -48,16 +48,16 @@ export function ModelPickerDetail<TModel>({
         </div>
         <div className="flex items-center gap-2">
           {renderActions ? renderActions(model) : null}
-          {source ? <span className="rounded-full border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-card)] px-2 py-0.5 text-[11px] font-medium text-[color:var(--nimi-text-secondary)]">{source}</span> : null}
+          {source ? <StatusBadge tone="neutral">{source}</StatusBadge> : null}
         </div>
       </div>
 
       {capabilities.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-1">
           {capabilities.map((capability) => (
-            <span key={`${title}-${capability}`} className="rounded-full bg-[color:var(--nimi-surface-card)] px-2 py-0.5 text-[10px] text-[color:var(--nimi-text-secondary)]">
+            <StatusBadge key={`${title}-${capability}`} tone="neutral" className="text-[10px]">
               {capability}
-            </span>
+            </StatusBadge>
           ))}
         </div>
       ) : null}
@@ -65,9 +65,9 @@ export function ModelPickerDetail<TModel>({
       {badges.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1">
           {badges.map((badge) => (
-            <span key={`${title}-${badge.label}`} className={`rounded-full border px-2 py-0.5 text-[10px] ${badgeTone(badge.tone)}`}>
+            <StatusBadge key={`${title}-${badge.label}`} tone={badgeTone(badge.tone)} className="text-[10px]">
               {badge.label}
-            </span>
+            </StatusBadge>
           ))}
         </div>
       ) : null}

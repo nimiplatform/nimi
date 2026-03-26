@@ -33,7 +33,7 @@ function DefaultRuntimeModelDetail({ detail }: { detail: RuntimeCatalogModelDeta
   return (
     <div className="space-y-4">
       {detail.warnings.length > 0 ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-status-warning)]">
           {detail.warnings.map((warning) => warning.message).join(' ')}
         </div>
       ) : null}
@@ -67,7 +67,7 @@ function DefaultRuntimeModelDetail({ detail }: { detail: RuntimeCatalogModelDeta
       ) : null}
 
       {detail.videoGeneration ? (
-        <pre className="overflow-x-auto rounded-2xl border border-[color:var(--nimi-border-subtle)] bg-slate-950 p-3 text-xs text-slate-100">
+        <pre className="overflow-x-auto rounded-2xl border border-[color:var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-3 text-xs text-[var(--nimi-text-primary)]">
           {JSON.stringify(detail.videoGeneration, null, 2)}
         </pre>
       ) : null}

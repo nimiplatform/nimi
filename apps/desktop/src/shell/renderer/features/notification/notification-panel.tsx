@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
@@ -7,9 +7,7 @@ import { ReviewRating as ReviewRatingEnum } from '@nimiplatform/sdk/realm';
 import { dataSync } from '@runtime/data-sync';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
-import { APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
 import { formatLocaleDate, formatRelativeLocaleTime, i18n } from '@renderer/i18n';
 import {
   type NotificationFilterTab,
@@ -568,7 +566,7 @@ export function NotificationPanel() {
   return (
     <Surface data-testid={E2E_IDS.panel('notification')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
       <Surface tone="card" padding="none" className="flex h-16 shrink-0 items-center justify-between rounded-none border-x-0 border-t-0 px-6">
-        <h1 className={`${APP_PAGE_TITLE_CLASS} flex items-center gap-2`}>
+        <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)] flex items-center gap-2`}>
           {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
           {unreadCount > 0 ? (
             <span className="rounded-full bg-mint-500 px-2 py-0.5 text-xs font-semibold text-white">
@@ -607,7 +605,7 @@ export function NotificationPanel() {
         ))}
       </Surface>
 
-      <ScrollShell
+      <ScrollArea
         className="min-h-0 flex-1"
         contentClassName="mx-auto max-w-2xl space-y-3 px-6 py-4"
       >
@@ -760,7 +758,7 @@ export function NotificationPanel() {
             </Button>
           </div>
         ) : null}
-      </ScrollShell>
+      </ScrollArea>
 
       {rejectingItem ? (
         <RejectGiftDialog

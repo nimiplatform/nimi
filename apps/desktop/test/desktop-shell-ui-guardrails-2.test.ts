@@ -26,7 +26,7 @@ const createPostModalSource = readSource('../src/shell/renderer/features/profile
 const createPostModalPanelsSource = readSource('../src/shell/renderer/features/profile/create-post-modal-panels.tsx');
 const giftsTabSource = readSource('../src/shell/renderer/features/profile/gifts-tab.tsx');
 const sendGiftModalSource = readSource('../src/shell/renderer/features/economy/send-gift-modal.tsx');
-const overlayPrimitiveSource = readSource('../../../kit/ui/src/components/overlay.tsx');
+const dialogPrimitiveSource = readSource('../../../kit/ui/src/components/dialog.tsx');
 const designSurfacesTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
 const designOverlaysTable = readSource('../../../spec/desktop/kernel/tables/renderer-design-overlays.yaml');
 
@@ -127,9 +127,9 @@ test('governed roots and overlays expose stable testability hooks', () => {
   assert.match(giftsTabSource, /dataTestId=\{E2E_IDS\.profileTopSupportersDialog\}/);
 });
 
-test('overlay primitive keeps data-testid passthrough and panel style support for governed popovers/dialogs', () => {
-  assert.match(overlayPrimitiveSource, /data-testid=\{dataTestId\}/);
-  assert.match(overlayPrimitiveSource, /style=\{panelStyle\}/);
+test('dialog primitive keeps data-testid passthrough and panel style support for governed overlays', () => {
+  assert.match(dialogPrimitiveSource, /data-testid=\{dataTestId\}/);
+  assert.match(dialogPrimitiveSource, /style=\{panelStyle\}/);
 });
 
 test('profile post feeds keep a stable two-column breakpoint instead of a late private width threshold', () => {

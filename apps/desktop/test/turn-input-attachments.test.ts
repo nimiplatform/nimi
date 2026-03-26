@@ -227,7 +227,7 @@ describe('TurnInput attachment staging helpers', () => {
   test('composer keeps attachment preview in a scrollable content area', () => {
     assert.match(
       turnInputSource,
-      /<ScrollShell className="min-h-0 flex-1" viewportClassName="pr-2">/,
+      /<ScrollArea className="min-h-0 flex-1" viewportClassName="pr-2">/,
     );
   });
 

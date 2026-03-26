@@ -1,14 +1,11 @@
 import type { MouseEventHandler } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ChatComposerResizeHandleProps = {
   onMouseDown?: MouseEventHandler<HTMLDivElement>;
   ariaLabel?: string;
   className?: string;
 };
-
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
 
 export function ChatComposerResizeHandle({
   onMouseDown,
@@ -23,7 +20,7 @@ export function ChatComposerResizeHandle({
       onMouseDown={onMouseDown}
       className={cn('relative h-2 shrink-0 cursor-row-resize bg-transparent', className)}
     >
-      <div className="absolute left-0 right-0 top-1/2 h-[0.5px] -translate-y-1/2 bg-gray-100/80" />
+      <div className="absolute left-0 right-0 top-1/2 h-[0.5px] -translate-y-1/2 bg-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]" />
     </div>
   );
 }

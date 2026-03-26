@@ -112,15 +112,15 @@ export function ModsPage({ model, state }: ModsPageProps) {
   if (runtimeProfileTargets.length === 0) {
     return (
       <SurfaceCard className="p-8 text-center">
-        <div className="mx-auto h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
+        <div className="mx-auto h-12 w-12 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] flex items-center justify-center mb-3">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
             <line x1="8" y1="21" x2="16" y2="21" />
             <line x1="12" y1="17" x2="12" y2="21" />
           </svg>
         </div>
-        <p className="text-sm font-semibold text-gray-900">{t('runtimeConfig.mods.noAiMods')}</p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.mods.noAiMods')}</p>
+        <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
           {t('runtimeConfig.mods.noAiModsDesc')}
         </p>
       </SurfaceCard>
@@ -135,7 +135,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
           {t('runtimeConfig.mods.modsWithAiProfiles')}
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
-          <div className="mb-4 text-xs text-gray-500">
+          <div className="mb-4 text-xs text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.mods.registeredModsSummary', {
               defaultValue: '{{registered}} registered mods · {{configured}} with AI profiles',
               registered: model.registeredRuntimeModIds.length,
@@ -172,7 +172,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
             {/* Capability status badges */}
             {selectedTarget.consumeCapabilities.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-700">{t('runtimeConfig.mods.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}</p>
+                <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.mods.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedTarget.consumeCapabilities.map((cap) => {
                     const localNode = state.local.nodeMatrix.find(
@@ -187,8 +187,8 @@ export function ModsPage({ model, state }: ModsPageProps) {
                         key={`mod-cap-${cap}`}
                         className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${
                           localAvailable
-                            ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                            : 'border-amber-200 bg-amber-50 text-amber-800'
+                            ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)]'
+                            : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]'
                         }`}
                       >
                         {cap}: {localAvailable
@@ -228,9 +228,9 @@ export function ModsPage({ model, state }: ModsPageProps) {
               const hasLocalModel = state.local.models.some((m) => m.status === 'active' && m.capabilities.includes(cap));
               return !localNode && !hasLocalModel;
             }) ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-                <p className="text-sm font-semibold text-amber-900">{t('runtimeConfig.mods.setupRequired')}</p>
-                <p className="text-xs text-amber-800">
+              <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] p-4 space-y-3">
+                <p className="text-sm font-semibold text-[var(--nimi-status-warning)]">{t('runtimeConfig.mods.setupRequired')}</p>
+                <p className="text-xs text-[var(--nimi-status-warning)]">
                   {t('runtimeConfig.mods.setupRequiredDesc')}
                 </p>
                 <div className="flex items-center gap-2">
@@ -267,15 +267,15 @@ function ModTargetRow({
       onClick={onSelect}
       className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-all ${
         active
-          ? 'border-mint-300 bg-mint-50 ring-1 ring-mint-200'
-          : 'border-gray-200 bg-white hover:border-mint-200 hover:bg-mint-50/30'
+          ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] ring-1 ring-mint-200'
+          : 'border-[var(--nimi-border-subtle)] bg-white hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'
       }`}
     >
       <div className="min-w-0 flex-1">
-        <p className={`text-sm font-medium ${active ? 'text-gray-900' : 'text-gray-900'}`}>
+        <p className={`text-sm font-medium ${active ? 'text-[var(--nimi-text-primary)]' : 'text-[var(--nimi-text-primary)]'}`}>
           {target.modName}
         </p>
-        <p className={`text-xs ${active ? 'text-gray-500' : 'text-gray-400'}`}>
+        <p className={`text-xs ${active ? 'text-[var(--nimi-text-muted)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'}`}>
           {target.modId}
         </p>
       </div>
@@ -293,8 +293,8 @@ function ModTargetRow({
               key={`${target.modId}-cap-${cap}`}
               className={`rounded-lg px-2 py-0.5 text-[10px] font-medium ${
                 available
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-800'
+                  ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
+                  : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'
               }`}
             >
               {cap}

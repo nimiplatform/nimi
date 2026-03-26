@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import { i18n } from '@renderer/i18n';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type {
   LocalRuntimeAssetDeclaration,
   LocalRuntimeArtifactKind,
@@ -75,20 +75,20 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="flex h-14 shrink-0 items-center border-b border-gray-200 bg-white px-6">
-        <h2 className="text-lg font-semibold text-gray-900">
+      <div className="flex h-14 shrink-0 items-center border-b border-[var(--nimi-border-subtle)] bg-white px-6">
+        <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
           {i18n.t('runtimeConfig.localModelCenter.localModels', { defaultValue: 'Local Models' })}
         </h2>
       </div>
-    <ScrollShell className="flex-1" contentClassName="space-y-6 p-6">
+    <ScrollArea className="flex-1" contentClassName="space-y-6 p-6">
           <div className="space-y-4 rounded-2xl bg-white p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
             <div>
-              <h4 className="text-sm font-semibold text-gray-900">
+              <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                 {selectedProfileTarget?.modName
                   || props.selectedProfileModId
                   || i18n.t('runtimeConfig.localModelCenter.runtimeMod', { defaultValue: 'Runtime Mod' })}
               </h4>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--nimi-text-muted)]">
                 {i18n.t('runtimeConfig.localModelCenter.modProfilesDescription', {
                   defaultValue: 'Configure only this mod&apos;s declared local AI profiles.',
                 })}
@@ -96,12 +96,12 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
             </div>
             {modCapabilities.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium text-gray-700">
+                <p className="text-xs font-medium text-[var(--nimi-text-secondary)]">
                   {i18n.t('runtimeConfig.localModelCenter.aiCapabilityStatus', { defaultValue: 'AI Capability Status' })}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {capabilityStatuses.map((item) => (
-                    <span key={`mod-cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                    <span key={`mod-cap-status-${item.capability}`} className={`rounded-full px-3 py-1 text-[11px] font-medium ${item.localAvailable ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]'}`}>
                       {item.capability}:{' '}
                       {item.localAvailable
                         ? i18n.t('runtimeConfig.localModelCenter.capabilityLocal', { defaultValue: 'local' })
@@ -129,26 +129,26 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
             />
           </div>
           {hasUnavailable ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-              <p className="text-xs font-semibold text-amber-900">
+            <div className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] p-5">
+              <p className="text-xs font-semibold text-[var(--nimi-status-warning)]">
                 {i18n.t('runtimeConfig.localModelCenter.setupRequired', { defaultValue: 'Setup Required' })}
               </p>
-              <p className="mt-1 text-[11px] text-amber-800">
+              <p className="mt-1 text-[11px] text-[var(--nimi-status-warning)]">
                 {i18n.t('runtimeConfig.localModelCenter.setupRequiredDescription', {
                   defaultValue: 'Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.',
                 })}
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_34%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
                   {i18n.t('runtimeConfig.localModelCenter.installModels', { defaultValue: 'Install Models' })}
                 </button>
-                <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
                   {i18n.t('runtimeConfig.localModelCenter.configureCloudApi', { defaultValue: 'Configure Cloud API' })}
                 </button>
               </div>
             </div>
           ) : null}
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }
@@ -182,8 +182,8 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           title={healthTooltip}
           className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
             props.localHealthy
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-              : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)] hover:bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)]'
+              : 'border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'
           }`}
         >
           <HeartPulseIcon className="h-4 w-4" />
@@ -195,7 +195,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           type="button"
           onClick={props.onRefresh}
           disabled={props.discovering}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
         >
           <RefreshIcon className="h-4 w-4" />
           {props.discovering
@@ -205,7 +205,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
         <button
           type="button"
           onClick={props.onOpenModelsFolder}
-          className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
         >
           <FolderOpenIcon className="h-4 w-4" />
           {i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
@@ -214,28 +214,28 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           <button
             type="button"
             onClick={props.onToggleImportMenu}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
           >
             <FolderOpenIcon className="h-4 w-4" />
             {i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
           </button>
           {props.showImportMenu ? (
-            <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-gray-200 bg-white shadow-lg">
-              <button type="button" onClick={props.onOpenImportFile} className="w-full rounded-t-lg px-3 py-2.5 text-left text-xs hover:bg-gray-50">
-                <div className="font-medium text-gray-900">
+            <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-white shadow-lg">
+              <button type="button" onClick={props.onOpenImportFile} className="w-full rounded-t-lg px-3 py-2.5 text-left text-xs hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">
+                <div className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.localModelCenter.importAssetFile', { defaultValue: 'Import Asset File' })}
                 </div>
-                <div className="mt-0.5 text-gray-500">
+                <div className="mt-0.5 text-[var(--nimi-text-muted)]">
                   {i18n.t('runtimeConfig.localModelCenter.supportedAssetFileTypes', {
                     defaultValue: '.gguf, .safetensors, .bin, .onnx',
                   })}
                 </div>
               </button>
-              <button type="button" onClick={props.onImportManifest} className="w-full rounded-b-lg border-t border-gray-100 px-3 py-2.5 text-left text-xs hover:bg-gray-50">
-                <div className="font-medium text-gray-900">
+              <button type="button" onClick={props.onImportManifest} className="w-full rounded-b-lg border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-3 py-2.5 text-left text-xs hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">
+                <div className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.localModelCenter.importRuntimeManifest', { defaultValue: 'Import Runtime Manifest' })}
                 </div>
-                <div className="mt-0.5 text-gray-500">
+                <div className="mt-0.5 text-[var(--nimi-text-muted)]">
                   {i18n.t('runtimeConfig.localModelCenter.supportedRuntimeManifestFileType', {
                     defaultValue: 'manifest.json or artifact.manifest.json',
                   })}
@@ -273,18 +273,18 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
     <div className="rounded-2xl bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <FolderOpenIcon className="h-4 w-4 text-mint-600" />
-          <h3 className="text-sm font-semibold text-gray-900">
+          <FolderOpenIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {i18n.t('runtimeConfig.localModelCenter.importLocalAssetFile', { defaultValue: 'Import Local Asset File' })}
           </h3>
         </div>
-        <button type="button" onClick={props.onClose} className="text-xs text-gray-400 hover:text-gray-600">
+        <button type="button" onClick={props.onClose} className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] hover:text-[var(--nimi-text-secondary)]">
           {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
         </button>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-[var(--nimi-text-muted)]">
             {i18n.t('runtimeConfig.localModelCenter.assetClassLabel', { defaultValue: 'Asset:' })}
           </span>
           <RuntimeSelect
@@ -299,7 +299,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
         </div>
         {props.assetClass === 'model' ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.modelTypeLabel', { defaultValue: 'Type:' })}
             </span>
             <RuntimeSelect
@@ -311,7 +311,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.artifactKindLabel', { defaultValue: 'Kind:' })}
             </span>
             <RuntimeSelect
@@ -324,7 +324,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
         )}
         {props.assetClass === 'artifact' && props.artifactKind === 'auxiliary' ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.engineLabel', { defaultValue: 'Engine:' })}
             </span>
             <RuntimeSelect
@@ -345,7 +345,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           type="button"
           onClick={props.onChooseFile}
           disabled={props.canChooseFile === false}
-          className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
         >
           <FolderOpenIcon className="h-3.5 w-3.5" />
           {i18n.t('runtimeConfig.localModelCenter.chooseFile', { defaultValue: 'Choose File' })}
@@ -376,15 +376,15 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
 
   return (
     <div className="rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4">
+      <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-4 py-4">
         <div>
-          <h3 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {i18n.t('runtimeConfig.localModelCenter.unregisteredAssets', {
               count: props.assets.length,
               defaultValue: 'Unregistered Assets ({{count}})',
             })}
           </h3>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-[var(--nimi-text-muted)]">
             {i18n.t('runtimeConfig.localModelCenter.unregisteredAssetsDescription', {
               defaultValue: 'Typed folders import automatically. Unknown files stay here until you confirm the type.',
             })}
@@ -393,14 +393,14 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
         <button
           type="button"
           onClick={props.onRefresh}
-          className="flex items-center gap-1.5 rounded border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50"
+          className="flex items-center gap-1.5 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
         >
           <RefreshIcon className="h-3 w-3" />
           {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
         </button>
       </div>
       {props.assetImportError ? (
-        <div className="border-b border-red-100 bg-red-50 px-4 py-2 text-xs text-red-600">
+        <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2 text-xs text-[var(--nimi-status-danger)]">
           {props.assetImportError}
         </div>
       ) : null}
@@ -413,8 +413,8 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
             ? Boolean(draft.modelType)
             : Boolean(draft.artifactKind) && (!requiresEngine || Boolean(String(draft.engine || '').trim()));
           const confidenceClass = asset.confidence === 'high'
-            ? 'bg-emerald-100 text-emerald-700'
-            : 'bg-amber-100 text-amber-700';
+            ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
+            : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]';
           const sourceLabel = asset.suggestionSource === 'folder'
             ? i18n.t('runtimeConfig.localModelCenter.sourceFolder', { defaultValue: 'Folder' })
             : asset.suggestionSource === 'filename'
@@ -426,28 +426,28 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
           return (
             <div key={asset.path} className="px-4 py-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]">
                   <FolderOpenIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-medium text-gray-900">{asset.filename}</p>
+                    <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{asset.filename}</p>
                     <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${confidenceClass}`}>
                       {asset.confidence === 'high'
                         ? i18n.t('runtimeConfig.localModelCenter.highConfidence', { defaultValue: 'High confidence' })
                         : i18n.t('runtimeConfig.localModelCenter.reviewNeeded', { defaultValue: 'Review needed' })}
                     </span>
-                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
                       {sourceLabel}
                     </span>
                     {asset.folderName ? (
-                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-500">
+                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
                         {asset.folderName}
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 truncate text-xs text-gray-500">{asset.path}</p>
-                  <p className="mt-1 text-[11px] text-gray-400">{formatBytes(asset.sizeBytes)}</p>
+                  <p className="mt-1 truncate text-xs text-[var(--nimi-text-muted)]">{asset.path}</p>
+                  <p className="mt-1 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{formatBytes(asset.sizeBytes)}</p>
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <RuntimeSelect
                       value={draft.assetClass}
@@ -493,7 +493,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                       type="button"
                       onClick={() => props.onImport(asset.path)}
                       disabled={!canImport || importing}
-                      className="flex items-center gap-1.5 rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mint-600 disabled:opacity-50"
+                      className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
                     >
                       <DownloadIcon className="h-3.5 w-3.5" />
                       {importing

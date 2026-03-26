@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
 import { ReportReason } from '@nimiplatform/sdk/realm';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 
 type PostDto = RealmModel<'PostDto'>;
 
@@ -53,7 +53,7 @@ export function ReportModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <ScrollShell
+      <ScrollArea
         className="relative mx-4 max-h-[80vh] w-full max-w-md rounded-2xl bg-white shadow-2xl"
         viewportClassName="max-h-[80vh]"
         contentClassName="p-6"
@@ -140,7 +140,7 @@ export function ReportModal({
               : t('Home.submitReport', { defaultValue: 'Submit Report' })}
           </button>
         </div>
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }

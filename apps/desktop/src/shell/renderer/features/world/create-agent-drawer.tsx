@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 
 export type CreateAgentInput = {
   handle: string;
@@ -209,7 +209,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
           </div>
         </header>
 
-        <ScrollShell className="min-h-0 flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           {/* World Banner & Description Header */}
           {(hasWorldBanner || hasWorldDescription) && (
             <div className="relative w-full">
@@ -537,7 +537,7 @@ export function CreateAgentDrawer(props: CreateAgentDrawerProps) {
               </div>
             </section>
           </div>
-        </ScrollShell>
+        </ScrollArea>
 
         <footer className="sticky bottom-0 z-10 border-t border-emerald-400/12 bg-[#0B1313]/80 px-7 py-5 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4">

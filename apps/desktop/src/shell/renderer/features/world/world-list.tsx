@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { prefetchWorldDetailAndHistory, worldListQueryKey } from './world-detail-queries';
 import { prefetchWorldDetailPanel } from './world-detail-route-state';
@@ -80,7 +79,7 @@ export function WorldList() {
             <div className="h-11 w-[300px] animate-pulse rounded-full bg-white/80" />
           </div>
         </div>
-        <ScrollShell className="flex-1" contentClassName="px-6 py-6">
+        <ScrollArea className="flex-1" contentClassName="px-6 py-6">
           <div className="mx-auto max-w-6xl space-y-8">
             <div className="space-y-4">
               <div className="h-6 w-28 animate-pulse rounded-lg bg-white/80" />
@@ -116,7 +115,7 @@ export function WorldList() {
               </div>
             </div>
           </div>
-        </ScrollShell>
+        </ScrollArea>
       </div>
     );
   }
@@ -139,7 +138,7 @@ export function WorldList() {
       <div className="relative shrink-0 px-6 py-6">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
           <div className="min-w-0">
-            <h1 className={APP_PAGE_TITLE_CLASS} style={{ color: '#F8FAFF' }}>{t('World.title')}</h1>
+            <h1 className="nimi-type-page-title" style={{ color: '#F8FAFF' }}>{t('World.title')}</h1>
             <span className="text-xs" style={{ color: 'rgba(226,232,240,0.78)' }}>
               {t('World.syncedFromDesktop', { defaultValue: 'Synced from Desktop' })}
             </span>
@@ -166,12 +165,12 @@ export function WorldList() {
       </div>
 
       {/* Scrollable content */}
-      <ScrollShell className="flex-1" viewportClassName="" contentClassName="px-6 pb-10 pt-2">
+      <ScrollArea className="flex-1" viewportClassName="" contentClassName="px-6 pb-10 pt-2">
         <div className="mx-auto max-w-6xl">
           {/* Main World Card */}
           {mainWorld && !searchText && (
             <div className="mb-24">
-              <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#F8FAFF' }}>{t('World.mainWorld')}</h2>
+              <h2 className={`nimi-type-section-title mb-4`} style={{ fontFamily: 'var(--font-display)', color: '#F8FAFF' }}>{t('World.mainWorld')}</h2>
                 <div
                   onClick={() => openWorldDetail(mainWorld.id)}
                   onMouseEnter={() => {
@@ -310,7 +309,7 @@ export function WorldList() {
 
           {/* Sub Worlds Grid */}
           <div className="pt-8">
-            <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-6`} style={{ fontFamily: 'var(--font-display)', color: searchText ? '#1A1A1A' : '#F8FAFF' }}>
+            <h2 className={`nimi-type-section-title mb-6`} style={{ fontFamily: 'var(--font-display)', color: searchText ? '#1A1A1A' : '#F8FAFF' }}>
               {searchText ? t('World.searchResults') : t('World.subWorlds')}
             </h2>
             {subWorlds.length === 0 ? (
@@ -465,7 +464,7 @@ export function WorldList() {
             )}
           </div>
         </div>
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }

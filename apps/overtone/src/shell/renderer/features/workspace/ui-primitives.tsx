@@ -1,9 +1,7 @@
 import React, { forwardRef, useState, useCallback, useRef, useEffect } from 'react';
-import { Button, IconButton, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
+import { Button, IconButton, TextField, TextareaField, cn } from '@nimiplatform/nimi-kit/ui';
 
-function cx(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
+const cx = cn;
 
 /* ─── OtButton ─── */
 

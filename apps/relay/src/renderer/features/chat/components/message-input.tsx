@@ -2,6 +2,7 @@
 // Shared nimi-kit ChatComposer shell with relay-specific copy and toolbar
 
 import { useTranslation } from 'react-i18next';
+import { Surface } from '@nimiplatform/nimi-kit/ui';
 import { ChatComposer } from '@nimiplatform/nimi-kit/features/chat/ui';
 
 interface MessageInputProps {
@@ -16,7 +17,12 @@ export function MessageInput({ onSend, disabled, placeholder, modelName, toolbar
   const { t } = useTranslation();
 
   return (
-    <div className="px-6 pb-4 pt-2">
+    <Surface
+      as="div"
+      tone="canvas"
+      padding="none"
+      className="border-transparent bg-transparent px-6 pb-4 pt-2 shadow-none"
+    >
       <ChatComposer
         adapter={{
           submit: async ({ text }) => {
@@ -30,6 +36,6 @@ export function MessageInput({ onSend, disabled, placeholder, modelName, toolbar
         sendHint={t('chat.enterToSend')}
         sendLabel={t('chat.send', { defaultValue: 'Send' })}
       />
-    </div>
+    </Surface>
   );
 }

@@ -1,8 +1,15 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
-import { APP_SECTION_TITLE_CLASS } from '@renderer/components/typography.js';
-import { C } from './settings-assets.js';
+import {
+  Button as KitButton,
+  ScrollArea,
+  StatusBadge as KitStatusBadge,
+  Surface,
+} from '@nimiplatform/nimi-kit/ui';
+
+/* ------------------------------------------------------------------ */
+/*  Card — thin wrapper around kit Surface with tone="card"           */
+/* ------------------------------------------------------------------ */
 
 export function Card({
   children,
@@ -14,11 +21,15 @@ export function Card({
   style?: CSSProperties;
 }) {
   return (
-    <div className={`rounded-[10px] border border-gray-200 bg-white ${className}`} style={style}>
+    <Surface tone="card" padding="none" className={className} style={style}>
       {children}
-    </div>
+    </Surface>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  PageShell — settings page chrome with kit ScrollArea              */
+/* ------------------------------------------------------------------ */
 
 export function PageShell({
   children,
@@ -31,24 +42,32 @@ export function PageShell({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ScrollShell className="flex-1 bg-[#F8F9FB]" viewportClassName="bg-[#F8F9FB]">
+      <ScrollArea className="flex-1 bg-[#F8F9FB]" viewportClassName="bg-[#F8F9FB]">
         <div className="mx-auto max-w-2xl px-6 py-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {children}
         </div>
-      </ScrollShell>
+      </ScrollArea>
       {footer}
     </div>
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  SectionTitle — typography composition (kept as-is)                */
+/* ------------------------------------------------------------------ */
+
 export function SectionTitle({ children, description }: { children: ReactNode; description?: string }) {
   return (
     <div>
-      <h3 className={APP_SECTION_TITLE_CLASS}>{children}</h3>
+      <h3 className="text-sm font-semibold text-gray-900">{children}</h3>
       {description && <p className="mt-0.5 text-xs text-gray-500">{description}</p>}
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  InfoRow — layout composition (kept as-is)                         */
+/* ------------------------------------------------------------------ */
 
 export function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
@@ -58,6 +77,10 @@ export function InfoRow({ label, value, highlight }: { label: string; value: str
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  Button — delegates to kit Button, mapping variant→tone            */
+/* ------------------------------------------------------------------ */
 
 export function Button({
   children,
@@ -76,31 +99,23 @@ export function Button({
   disabled?: boolean;
   className?: string;
 }) {
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-4 py-2 text-sm',
-    lg: 'px-5 py-2.5 text-sm',
-  };
-
-  const variantClasses = {
-    primary: 'bg-mint-600 text-white hover:bg-mint-700 disabled:bg-gray-300',
-    secondary: 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 disabled:bg-gray-100',
-    ghost: 'text-gray-600 hover:bg-gray-50 disabled:text-gray-300',
-    danger: 'border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50',
-  };
-
   return (
-    <button
-      type="button"
+    <KitButton
+      tone={variant}
+      size={size}
+      leadingIcon={icon}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-colors disabled:cursor-not-allowed ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
+      className={className}
     >
-      {icon}
       {children}
-    </button>
+    </KitButton>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/*  SaveFooter — composition using local Button wrapper               */
+/* ------------------------------------------------------------------ */
 
 export function SaveFooter({
   onCancel,
@@ -128,6 +143,17 @@ export function SaveFooter({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  StatusBadge — delegates to kit StatusBadge, mapping status→tone   */
+/* ------------------------------------------------------------------ */
+
+const STATUS_TO_TONE = {
+  success: 'success',
+  warning: 'warning',
+  error: 'danger',
+  info: 'info',
+} as const;
+
 export function StatusBadge({
   status,
   text,
@@ -135,20 +161,9 @@ export function StatusBadge({
   status: 'success' | 'warning' | 'error' | 'info';
   text: string;
 }) {
-  const styles = {
-    success: { bg: C.green50, text: C.green700 },
-    warning: { bg: C.orange50, text: C.orange700 },
-    error: { bg: C.red50, text: C.red700 },
-    info: { bg: C.brand50, text: C.brand700 },
-  };
-  const style = styles[status];
-
   return (
-    <span
-      className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-      style={{ backgroundColor: style.bg, color: style.text }}
-    >
+    <KitStatusBadge tone={STATUS_TO_TONE[status]}>
       {text}
-    </span>
+    </KitStatusBadge>
   );
 }

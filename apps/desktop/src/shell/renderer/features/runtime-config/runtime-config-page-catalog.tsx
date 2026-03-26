@@ -7,7 +7,7 @@ import {
   useRuntimeModelPickerPanel,
 } from '@nimiplatform/nimi-kit/features/model-picker/runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
 import {
   sdkDeleteCatalogModelOverlay,
@@ -162,9 +162,9 @@ function capabilityMatchesFilter(capabilities: string[], filter: CatalogCapabili
 }
 
 function sourceTone(source: RuntimeModelCatalogProvider['source'] | RuntimeCatalogModelSummary['source']) {
-  if (source === 'overridden') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (source === 'custom') return 'border-mint-200 bg-mint-50 text-mint-700';
-  return 'border-slate-200 bg-slate-50 text-slate-600';
+  if (source === 'overridden') return 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]';
+  if (source === 'custom') return 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]';
+  return 'border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]';
 }
 
 export function CatalogPage({ state: _state }: CatalogPageProps) {
@@ -374,8 +374,8 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
     <Card className="border border-transparent bg-gradient-to-br from-white via-[#f7fffb] to-[#eefaf5] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">{value}</p>
     </Card>
   );
 }
@@ -399,28 +399,28 @@ function ProviderRail(props: {
         <Input label={t('runtimeConfig.catalogCenter.searchProviders', { defaultValue: 'Search Providers' })} value={props.providerSearch} onChange={props.onProviderSearch} placeholder={t('runtimeConfig.catalogCenter.searchProvidersPlaceholder', { defaultValue: 'provider, default model, capability' })} />
         <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-1">
           <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{t('runtimeConfig.catalogCenter.capability', { defaultValue: 'Capability' })}</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{t('runtimeConfig.catalogCenter.capability', { defaultValue: 'Capability' })}</p>
             <RuntimeSelect value={props.providerCapabilityFilter} onChange={(value) => props.onCapabilityFilter(value as CatalogCapabilityFilter)} options={MODEL_CAPABILITY_OPTIONS} />
           </div>
           <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{t('runtimeConfig.catalogCenter.source', { defaultValue: 'Source' })}</p>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{t('runtimeConfig.catalogCenter.source', { defaultValue: 'Source' })}</p>
             <RuntimeSelect value={props.providerSourceFilter} onChange={(value) => props.onSourceFilter(value as 'all' | 'builtin' | 'custom' | 'overridden')} options={[{ value: 'all', label: t('runtimeConfig.catalogCenter.all', { defaultValue: 'All' }) }, { value: 'builtin', label: t('runtimeConfig.catalogCenter.builtin', { defaultValue: 'Builtin' }) }, { value: 'custom', label: t('runtimeConfig.catalogCenter.custom', { defaultValue: 'Custom' }) }, { value: 'overridden', label: t('runtimeConfig.catalogCenter.overridden', { defaultValue: 'Overridden' }) }]} />
           </div>
         </div>
       </div>
       <div className="space-y-2">
-        {props.loading ? <p className="text-sm text-slate-500">{t('runtimeConfig.catalogCenter.loadingProviders', { defaultValue: 'Loading providers...' })}</p> : null}
+        {props.loading ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.catalogCenter.loadingProviders', { defaultValue: 'Loading providers...' })}</p> : null}
         {props.providers.map((provider) => (
-          <button key={provider.provider} type="button" onClick={() => props.onSelectProvider(provider.provider)} className={`w-full rounded-2xl border p-3 text-left transition-colors ${props.selectedProviderId === provider.provider ? 'border-mint-400 bg-mint-50/80' : 'border-slate-200 bg-white hover:border-mint-200 hover:bg-mint-50/30'}`}>
+          <button key={provider.provider} type="button" onClick={() => props.onSelectProvider(provider.provider)} className={`w-full rounded-2xl border p-3 text-left transition-colors ${props.selectedProviderId === provider.provider ? 'border-[var(--nimi-field-focus)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/80' : 'border-[var(--nimi-border-subtle)] bg-white hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'}`}>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-slate-900">{provider.provider}</p>
+              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{provider.provider}</p>
               <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${sourceTone(provider.source)}`}>{provider.source}</span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">{provider.defaultTextModel || 'No default text model'} · {provider.modelCount} models</p>
+            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{provider.defaultTextModel || 'No default text model'} · {provider.modelCount} models</p>
             <div className="mt-2 flex flex-wrap gap-1">
-              {provider.capabilities.slice(0, 4).map((capability) => <span key={`${provider.provider}-${capability}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">{capability}</span>)}
+              {provider.capabilities.slice(0, 4).map((capability) => <span key={`${provider.provider}-${capability}`} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-2 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">{capability}</span>)}
             </div>
-            <p className="mt-2 text-[11px] text-slate-400">{provider.requiresExplicitEndpoint ? 'Endpoint required' : provider.defaultEndpoint || 'Managed default endpoint'}</p>
+            <p className="mt-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{provider.requiresExplicitEndpoint ? 'Endpoint required' : provider.defaultEndpoint || 'Managed default endpoint'}</p>
           </button>
         ))}
       </div>
@@ -429,17 +429,17 @@ function ProviderRail(props: {
 }
 
 function ProviderHeader(props: { provider: RuntimeModelCatalogProvider | null; loadingModels: boolean; onRefresh: () => void; onAddModel: () => void; onToggleYaml: () => void }) {
-  if (!props.provider) return <Card className="p-6 text-sm text-slate-500">No provider selected.</Card>;
+  if (!props.provider) return <Card className="p-6 text-sm text-[var(--nimi-text-muted)]">No provider selected.</Card>;
   const provider = props.provider;
   return (
     <Card className="space-y-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-slate-900">{provider.provider}</h2>
+            <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{provider.provider}</h2>
             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${sourceTone(provider.source)}`}>{provider.source}</span>
           </div>
-          <p className="mt-1 text-sm text-slate-500">{props.provider.runtimePlane || 'remote'} · {props.provider.executionModule || 'nimillm'} · {props.provider.modelCount} models · {props.provider.customModelCount + props.provider.overriddenModelCount} personal entries</p>
+          <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">{props.provider.runtimePlane || 'remote'} · {props.provider.executionModule || 'nimillm'} · {props.provider.modelCount} models · {props.provider.customModelCount + props.provider.overriddenModelCount} personal entries</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="secondary" size="sm" onClick={props.onRefresh} disabled={props.loadingModels}>{props.loadingModels ? 'Refreshing...' : 'Refresh'}</Button>
@@ -448,7 +448,7 @@ function ProviderHeader(props: { provider: RuntimeModelCatalogProvider | null; l
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        {provider.capabilities.map((capability) => <span key={`${provider.provider}-${capability}`} className="rounded-full border border-mint-100 bg-mint-50/70 px-2.5 py-1 text-[11px] text-mint-800">{capability}</span>)}
+        {provider.capabilities.map((capability) => <span key={`${provider.provider}-${capability}`} className="rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/70 px-2.5 py-1 text-[11px] text-[var(--nimi-action-primary-bg)]">{capability}</span>)}
       </div>
     </Card>
   );
@@ -497,12 +497,12 @@ function YamlPanel(props: { provider: RuntimeModelCatalogProvider; overlayYamlDr
   return (
     <Card className="space-y-4 p-4">
       <div className="flex items-center justify-between gap-3">
-        <div><p className="text-sm font-semibold text-slate-900">Advanced YAML</p><p className="text-xs text-slate-500">Editable overlay fragment on the left, effective merged YAML on the right.</p></div>
+        <div><p className="text-sm font-semibold text-[var(--nimi-text-primary)]">Advanced YAML</p><p className="text-xs text-[var(--nimi-text-muted)]">Editable overlay fragment on the left, effective merged YAML on the right.</p></div>
         <div className="flex gap-2"><Button variant="secondary" size="sm" onClick={props.onDelete} disabled={props.saving || !props.provider.hasOverlay}>Remove Overlay</Button><Button size="sm" onClick={props.onSave} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save YAML'}</Button></div>
       </div>
       <div className="grid gap-3 xl:grid-cols-2">
-        <textarea value={props.overlayYamlDraft} onChange={(event) => props.onChangeOverlayYaml(event.target.value)} spellCheck={false} className="min-h-[320px] rounded-2xl border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-900 outline-none focus:border-mint-400 focus:ring-2 focus:ring-mint-100" />
-        <textarea value={props.provider.effectiveYaml} readOnly spellCheck={false} className="min-h-[320px] rounded-2xl border border-slate-200 bg-slate-950 p-3 font-mono text-xs text-slate-100 opacity-95" />
+        <textarea value={props.overlayYamlDraft} onChange={(event) => props.onChangeOverlayYaml(event.target.value)} spellCheck={false} className="min-h-[320px] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100" />
+        <textarea value={props.provider.effectiveYaml} readOnly spellCheck={false} className="min-h-[320px] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color:rgb(15_23_42)] p-3 font-mono text-xs text-[color:rgb(241_245_249)] opacity-95" />
       </div>
     </Card>
   );
@@ -514,14 +514,14 @@ function AddModelDialog(props: { provider: RuntimeModelCatalogProvider; formStat
   const updateWorkflow = (index: number, patch: Partial<WorkflowRow>) => props.onChange({ ...props.formState, workflows: props.formState.workflows.map((workflow, workflowIndex) => (workflowIndex === index ? { ...workflow, ...patch } : workflow)) });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 p-4">
-      <ScrollShell
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(15_23_42/0.35)] p-4">
+      <ScrollArea
         className="max-h-[92vh] w-full max-w-6xl rounded-[28px] bg-white shadow-[0_32px_120px_rgba(15,23,42,0.28)]"
         viewportClassName="max-h-[92vh] rounded-[28px]"
         contentClassName="p-5"
       >
         <div className="flex items-center justify-between gap-3">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{props.provider.provider}</p><h3 className="mt-1 text-xl font-semibold text-slate-900">Add Personal Catalog Model</h3></div>
+          <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{props.provider.provider}</p><h3 className="mt-1 text-xl font-semibold text-[var(--nimi-text-primary)]">Add Personal Catalog Model</h3></div>
           <Button variant="ghost" size="sm" onClick={props.onClose}>Close</Button>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -539,8 +539,8 @@ function AddModelDialog(props: { provider: RuntimeModelCatalogProvider; formStat
           <Input label="Source Retrieved" value={props.formState.sourceRetrievedAt} onChange={(value) => setField('sourceRetrievedAt', value)} placeholder="2026-03-15" />
         </div>
         <div className="mt-3">
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Source Note</label>
-          <textarea value={props.formState.sourceNote} onChange={(event) => setField('sourceNote', event.target.value)} className="min-h-[72px] w-full rounded-[10px] border border-mint-100 bg-[#F4FBF8] p-3 text-sm text-gray-900 outline-none focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100" />
+          <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">Source Note</label>
+          <textarea value={props.formState.sourceNote} onChange={(event) => setField('sourceNote', event.target.value)} className="min-h-[72px] w-full rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100" />
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <Input label="Voice Set ID" value={props.formState.voiceSetId} onChange={(value) => setField('voiceSetId', value)} placeholder="required for TTS" />
@@ -553,23 +553,23 @@ function AddModelDialog(props: { provider: RuntimeModelCatalogProvider; formStat
           <JsonArea label="Video Input Roles JSON" value={props.formState.videoInputRolesText} onChange={(value) => setField('videoInputRolesText', value)} placeholder='{"t2v":["prompt"]}' />
           <JsonArea label="Video Limits JSON" value={props.formState.videoLimitsJson} onChange={(value) => setField('videoLimitsJson', value)} placeholder='{"duration_sec":{"min":1,"max":8}}' />
           <JsonArea label="Video Constraints JSON" value={props.formState.videoConstraintsJson} onChange={(value) => setField('videoConstraintsJson', value)} placeholder='{"service_tier":["standard"]}' />
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Video Outputs</p><label className="mt-3 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={props.formState.videoOutputVideoUrl} onChange={(event) => setField('videoOutputVideoUrl', event.target.checked)} /> Video URL</label><label className="mt-2 flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={props.formState.videoOutputLastFrameUrl} onChange={(event) => setField('videoOutputLastFrameUrl', event.target.checked)} /> Last Frame URL</label></div>
+          <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] p-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">Video Outputs</p><label className="mt-3 flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]"><input type="checkbox" checked={props.formState.videoOutputVideoUrl} onChange={(event) => setField('videoOutputVideoUrl', event.target.checked)} /> Video URL</label><label className="mt-2 flex items-center gap-2 text-sm text-[var(--nimi-text-secondary)]"><input type="checkbox" checked={props.formState.videoOutputLastFrameUrl} onChange={(event) => setField('videoOutputLastFrameUrl', event.target.checked)} /> Last Frame URL</label></div>
         </div>
         <SectionHeader title="Voices" actionLabel="Add Voice" onAction={() => props.onChange({ ...props.formState, voices: [...props.formState.voices, createEmptyVoiceRow()] })} />
-        <div className="space-y-3">{props.formState.voices.map((voice, index) => <div key={`voice-${index}`} className="grid gap-3 rounded-2xl border border-slate-200 p-3 md:grid-cols-3"><Input label="Voice ID" value={voice.voiceId} onChange={(value) => updateVoice(index, { voiceId: value })} /><Input label="Name" value={voice.name} onChange={(value) => updateVoice(index, { name: value })} /><Input label="Langs" value={voice.langs} onChange={(value) => updateVoice(index, { langs: value })} placeholder="zh-cn, en-us" /><Input label="Model IDs" value={voice.modelIds} onChange={(value) => updateVoice(index, { modelIds: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Source URL" value={voice.sourceUrl} onChange={(value) => updateVoice(index, { sourceUrl: value })} /><Input label="Retrieved At" value={voice.sourceRetrievedAt} onChange={(value) => updateVoice(index, { sourceRetrievedAt: value })} /><div className="md:col-span-3"><label className="mb-1.5 block text-sm font-medium text-gray-700">Voice Note</label><textarea value={voice.sourceNote} onChange={(event) => updateVoice(index, { sourceNote: event.target.value })} className="min-h-[64px] w-full rounded-[10px] border border-mint-100 bg-[#F4FBF8] p-3 text-sm text-gray-900 outline-none focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100" /></div></div>)}</div>
+        <div className="space-y-3">{props.formState.voices.map((voice, index) => <div key={`voice-${index}`} className="grid gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-3"><Input label="Voice ID" value={voice.voiceId} onChange={(value) => updateVoice(index, { voiceId: value })} /><Input label="Name" value={voice.name} onChange={(value) => updateVoice(index, { name: value })} /><Input label="Langs" value={voice.langs} onChange={(value) => updateVoice(index, { langs: value })} placeholder="zh-cn, en-us" /><Input label="Model IDs" value={voice.modelIds} onChange={(value) => updateVoice(index, { modelIds: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Source URL" value={voice.sourceUrl} onChange={(value) => updateVoice(index, { sourceUrl: value })} /><Input label="Retrieved At" value={voice.sourceRetrievedAt} onChange={(value) => updateVoice(index, { sourceRetrievedAt: value })} /><div className="md:col-span-3"><label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">Voice Note</label><textarea value={voice.sourceNote} onChange={(event) => updateVoice(index, { sourceNote: event.target.value })} className="min-h-[64px] w-full rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 text-sm text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100" /></div></div>)}</div>
         <SectionHeader title="Voice Workflow Models" actionLabel="Add Workflow" onAction={() => props.onChange({ ...props.formState, workflows: [...props.formState.workflows, createEmptyWorkflowRow()] })} />
-        <div className="space-y-3">{props.formState.workflows.map((workflow, index) => <div key={`workflow-${index}`} className="grid gap-3 rounded-2xl border border-slate-200 p-3 md:grid-cols-3"><Input label="Workflow Model ID" value={workflow.workflowModelId} onChange={(value) => updateWorkflow(index, { workflowModelId: value })} /><Input label="Workflow Type" value={workflow.workflowType} onChange={(value) => updateWorkflow(index, { workflowType: value })} /><Input label="Input Contract Ref" value={workflow.inputContractRef} onChange={(value) => updateWorkflow(index, { inputContractRef: value })} /><Input label="Output Persistence" value={workflow.outputPersistence} onChange={(value) => updateWorkflow(index, { outputPersistence: value })} /><Input label="Target Model Refs" value={workflow.targetModelRefs} onChange={(value) => updateWorkflow(index, { targetModelRefs: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Langs" value={workflow.langs} onChange={(value) => updateWorkflow(index, { langs: value })} /><Input label="Source URL" value={workflow.sourceUrl} onChange={(value) => updateWorkflow(index, { sourceUrl: value })} /><Input label="Retrieved At" value={workflow.sourceRetrievedAt} onChange={(value) => updateWorkflow(index, { sourceRetrievedAt: value })} /><Input label="Note" value={workflow.sourceNote} onChange={(value) => updateWorkflow(index, { sourceNote: value })} /></div>)}</div>
+        <div className="space-y-3">{props.formState.workflows.map((workflow, index) => <div key={`workflow-${index}`} className="grid gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] p-3 md:grid-cols-3"><Input label="Workflow Model ID" value={workflow.workflowModelId} onChange={(value) => updateWorkflow(index, { workflowModelId: value })} /><Input label="Workflow Type" value={workflow.workflowType} onChange={(value) => updateWorkflow(index, { workflowType: value })} /><Input label="Input Contract Ref" value={workflow.inputContractRef} onChange={(value) => updateWorkflow(index, { inputContractRef: value })} /><Input label="Output Persistence" value={workflow.outputPersistence} onChange={(value) => updateWorkflow(index, { outputPersistence: value })} /><Input label="Target Model Refs" value={workflow.targetModelRefs} onChange={(value) => updateWorkflow(index, { targetModelRefs: value })} placeholder={props.formState.modelId || 'model-id'} /><Input label="Langs" value={workflow.langs} onChange={(value) => updateWorkflow(index, { langs: value })} /><Input label="Source URL" value={workflow.sourceUrl} onChange={(value) => updateWorkflow(index, { sourceUrl: value })} /><Input label="Retrieved At" value={workflow.sourceRetrievedAt} onChange={(value) => updateWorkflow(index, { sourceRetrievedAt: value })} /><Input label="Note" value={workflow.sourceNote} onChange={(value) => updateWorkflow(index, { sourceNote: value })} /></div>)}</div>
         <div className="mt-4 grid gap-3 md:grid-cols-2"><Input label="Binding Workflow Refs" value={props.formState.bindingRefsText} onChange={(value) => setField('bindingRefsText', value)} placeholder="workflow-a, workflow-b" /><Input label="Binding Workflow Types" value={props.formState.bindingTypesText} onChange={(value) => setField('bindingTypesText', value)} placeholder="tts_v2v, tts_t2v" /></div>
         <div className="mt-5 flex items-center justify-end gap-2"><Button variant="secondary" onClick={props.onClose}>Cancel</Button><Button onClick={props.onSubmit} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save Model'}</Button></div>
-      </ScrollShell>
+      </ScrollArea>
     </div>
   );
 }
 
 function JsonArea({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
-  return <div><label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label><textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="min-h-[96px] w-full rounded-[10px] border border-mint-100 bg-[#F4FBF8] p-3 font-mono text-xs text-gray-900 outline-none focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100" /></div>;
+  return <div><label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label><textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="min-h-[96px] w-full rounded-[10px] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:bg-white focus:ring-2 focus:ring-mint-100" /></div>;
 }
 
 function SectionHeader({ title, actionLabel, onAction }: { title: string; actionLabel: string; onAction: () => void }) {
-  return <div className="mt-5 mb-3 flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{title}</p><Button variant="secondary" size="sm" onClick={onAction}>{actionLabel}</Button></div>;
+  return <div className="mt-5 mb-3 flex items-center justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{title}</p><Button variant="secondary" size="sm" onClick={onAction}>{actionLabel}</Button></div>;
 }

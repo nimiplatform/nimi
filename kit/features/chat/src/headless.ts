@@ -4,6 +4,7 @@ export type {
   ChatComposerState,
   ChatComposerSubmitInput,
 } from './types.js';
+export { normalizeRealmMessagePayload } from './realm/codec.js';
 export { useChatComposer } from './hooks/use-chat-composer.js';
 export type {
   UseChatComposerOptions,

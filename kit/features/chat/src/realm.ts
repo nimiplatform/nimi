@@ -1,11 +1,23 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useEffect, useMemo, useRef } from 'react';
 import {
+  normalizeRealmMessagePayload,
   useChatComposer,
   type UseChatComposerOptions,
   type UseChatComposerResult,
 } from './headless.js';
+import type {
+  RealmMessageInputPayload,
+  RealmMessageViewDto,
+  RealmSendMessageInputDto,
+} from './realm/codec.js';
 import type { ChatComposerAdapter, ChatComposerSubmitInput } from './types.js';
+export type {
+  RealmMessageInputPayload,
+  RealmMessagePayload,
+  RealmMessageViewDto,
+  RealmSendMessageInputDto,
+} from './realm/codec.js';
 
 function realm() {
   return getPlatformClient().realm;
@@ -23,12 +35,6 @@ export type RealmStartChatInputDto =
   Parameters<HumanChatsService['startChat']>[0];
 export type RealmStartChatResultDto =
   Awaited<ReturnType<HumanChatsService['startChat']>>;
-export type RealmSendMessageInputDto =
-  Parameters<HumanChatsService['sendMessage']>[1];
-export type RealmMessageViewDto =
-  Awaited<ReturnType<HumanChatsService['sendMessage']>>;
-export type RealmMessagePayload = Exclude<RealmMessageViewDto['payload'], null>;
-export type RealmMessageInputPayload = NonNullable<RealmSendMessageInputDto['payload']>;
 export type RealmChatSyncResultDto =
   Awaited<ReturnType<HumanChatsService['syncChatEvents']>>;
 export type RealmChatEventEnvelopeDto =
@@ -213,92 +219,6 @@ function createCanonicalTextPayload(
   return { content };
 }
 
-type RealmAttachmentPayload = Extract<RealmMessagePayload, { attachment: unknown }>;
-type RealmAttachmentEnvelope = RealmAttachmentPayload['attachment'];
-type RealmAttachmentTargetType = RealmAttachmentEnvelope['targetType'];
-type RealmAttachmentDisplayKind = NonNullable<RealmAttachmentEnvelope['displayKind']>;
-
-function normalizeFiniteNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
-}
-
-function normalizeAttachmentTargetType(value: unknown): RealmAttachmentTargetType | null {
-  const normalized = normalizeString(value).toUpperCase();
-  if (normalized === 'RESOURCE' || normalized === 'ASSET' || normalized === 'BUNDLE') {
-    return normalized as RealmAttachmentTargetType;
-  }
-  return null;
-}
-
-function normalizeAttachmentDisplayKind(value: unknown): RealmAttachmentDisplayKind | undefined {
-  const normalized = normalizeString(value).toUpperCase();
-  if (
-    normalized === 'IMAGE'
-    || normalized === 'VIDEO'
-    || normalized === 'AUDIO'
-    || normalized === 'TEXT'
-    || normalized === 'CARD'
-  ) {
-    return normalized as RealmAttachmentDisplayKind;
-  }
-  return undefined;
-}
-
-function normalizeAttachmentEnvelope(input: unknown): RealmAttachmentEnvelope | null {
-  const record = asRecord(input);
-  if (!record) {
-    return null;
-  }
-
-  const targetType = normalizeAttachmentTargetType(record.targetType);
-  const targetId = normalizeString(record.targetId);
-  if (!targetType || !targetId) {
-    return null;
-  }
-
-  const normalized: RealmAttachmentEnvelope = {
-    targetType,
-    targetId,
-  };
-  const displayKind = normalizeAttachmentDisplayKind(record.displayKind);
-  if (displayKind) {
-    normalized.displayKind = displayKind;
-  }
-  const url = normalizeString(record.url);
-  if (url) {
-    normalized.url = url;
-  }
-  const thumbnail = normalizeString(record.thumbnail);
-  if (thumbnail) {
-    normalized.thumbnail = thumbnail;
-  }
-  const title = normalizeString(record.title);
-  if (title) {
-    normalized.title = title;
-  }
-  const subtitle = normalizeString(record.subtitle);
-  if (subtitle) {
-    normalized.subtitle = subtitle;
-  }
-  const width = normalizeFiniteNumber(record.width);
-  if (width !== undefined) {
-    normalized.width = width;
-  }
-  const height = normalizeFiniteNumber(record.height);
-  if (height !== undefined) {
-    normalized.height = height;
-  }
-  const duration = normalizeFiniteNumber(record.duration);
-  if (duration !== undefined) {
-    normalized.duration = duration;
-  }
-  const preview = normalizeAttachmentEnvelope(record.preview);
-  if (preview) {
-    normalized.preview = preview;
-  }
-  return normalized;
-}
-
 function normalizeDateString(value: unknown): string {
   if (value instanceof Date && Number.isFinite(value.getTime())) {
     return value.toISOString();
@@ -328,77 +248,6 @@ function normalizeMessageType(value: unknown): RealmMessageViewDto['type'] | nul
   return allowed.has(normalized as RealmMessageViewDto['type'])
     ? (normalized as RealmMessageViewDto['type'])
     : null;
-}
-
-export function normalizeRealmMessagePayload(input: unknown): RealmMessageViewDto['payload'] {
-  if (input === null || input === undefined) {
-    return null;
-  }
-  const record = asRecord(input);
-  if (!record) {
-    return null;
-  }
-
-  const content = normalizeString(record.content);
-  if (content) {
-    return { content };
-  }
-
-  const attachment = normalizeAttachmentEnvelope(record.attachment);
-  if (attachment) {
-    return { attachment };
-  }
-
-  const postId = normalizeString(record.postId);
-  if (postId) {
-    return { postId };
-  }
-
-  const userId = normalizeString(record.userId);
-  if (userId) {
-    const snapshot = asRecord(record.snapshot);
-    return snapshot ? { userId, snapshot } : { userId };
-  }
-
-  const url = normalizeString(record.url);
-  if (url) {
-    const title = normalizeString(record.title);
-    return title ? { url, title } : { url };
-  }
-
-  const interactionId = normalizeString(record.interactionId);
-  if (interactionId) {
-    const normalized: Extract<RealmMessagePayload, { interactionId: string }> = { interactionId };
-    const amount = normalizeFiniteNumber(record.amount);
-    if (amount !== undefined) {
-      normalized.amount = amount;
-    }
-    const tokenSymbol = normalizeString(record.tokenSymbol);
-    if (tokenSymbol) {
-      normalized.tokenSymbol = tokenSymbol;
-    }
-    const status = normalizeString(record.status);
-    if (status) {
-      normalized.status = status;
-    }
-    return normalized;
-  }
-
-  const requestId = normalizeString(record.requestId);
-  const status = normalizeString(record.status);
-  if (requestId && status) {
-    const normalized: Extract<RealmMessagePayload, { requestId: string }> = {
-      requestId,
-      status,
-    };
-    const requestMessage = normalizeString(record.requestMessage);
-    if (requestMessage) {
-      normalized.requestMessage = requestMessage;
-    }
-    return normalized;
-  }
-
-  return null;
 }
 
 function normalizeReplyTo(input: unknown): RealmMessageViewDto['replyTo'] {

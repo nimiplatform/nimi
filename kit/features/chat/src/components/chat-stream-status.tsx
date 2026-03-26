@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 
 export type ChatStreamStatusProps = {
   partialText?: string | null;
@@ -13,16 +14,12 @@ export type ChatStreamStatusProps = {
   interruptedSuffix?: ReactNode;
 };
 
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
-
 function DefaultLoadingIndicator() {
   return (
-    <span className="inline-flex items-center gap-1 text-gray-400">
-      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '0ms' }} />
-      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '150ms' }} />
-      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: '300ms' }} />
+    <span className="inline-flex items-center gap-1 text-[var(--nimi-text-muted)]">
+      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '0ms' }} />
+      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '150ms' }} />
+      <span className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-[var(--nimi-text-muted)]" style={{ animationDelay: '300ms' }} />
     </span>
   );
 }
@@ -41,14 +38,18 @@ export function ChatStreamStatus({
 }: ChatStreamStatusProps) {
   const resolvedEmptyStreamingFallback = emptyStreamingFallback ?? loadingIndicator;
   const resolvedInterruptedSuffix = interruptedSuffix ?? (
-    <span className="ml-1 text-xs text-red-400">[Interrupted]</span>
+    <span className="ml-1 text-xs text-[var(--nimi-status-danger)]">[Interrupted]</span>
   );
 
   return (
     <div className={cn('flex gap-2', className)}>
       {avatar}
       <div className="max-w-[75%]">
-        <div className={cn('inline-block rounded-[18px] bg-[#F2F2F7] px-4 py-2.5 text-[15px] leading-snug text-gray-900', bubbleClassName)}>
+        <div className={cn(
+          'inline-block rounded-[18px] bg-[var(--nimi-surface-card)] px-4 py-2.5 text-[15px] leading-snug text-[var(--nimi-text-primary)]',
+          bubbleClassName,
+        )}
+        >
           {mode === 'streaming'
             ? (partialText || resolvedEmptyStreamingFallback)
             : (
@@ -60,7 +61,7 @@ export function ChatStreamStatus({
         </div>
         {actions ? <div className="mt-1">{actions}</div> : null}
         {mode === 'interrupted' && errorMessage ? (
-          <p className="mt-1 text-xs text-red-400">{errorMessage}</p>
+          <p className="mt-1 text-xs text-[var(--nimi-status-danger)]">{errorMessage}</p>
         ) : null}
       </div>
     </div>

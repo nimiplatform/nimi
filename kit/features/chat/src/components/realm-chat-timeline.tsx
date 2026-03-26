@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { cn } from '@nimiplatform/nimi-kit/ui';
 import {
   getRealmChatTimelineDisplayModel,
   resolveRealmChatMediaUrl,
@@ -44,10 +45,6 @@ export type RealmChatTimelineProps = {
   renderAvatar?: (input: RealmChatTimelineAvatarRenderInput) => ReactNode;
   renderGiftMessage?: (input: RealmChatTimelineGiftRenderInput) => ReactNode;
 };
-
-function cn(...parts: Array<string | false | null | undefined>) {
-  return parts.filter(Boolean).join(' ');
-}
 
 function toMessageTimestamp(message: Pick<RealmChatTimelineMessage, 'createdAt'>): number {
   const parsed = Date.parse(String(message.createdAt || ''));
@@ -186,7 +183,7 @@ export function RealmChatTimeline({
   currentUserId,
   realmBaseUrl = '',
   authToken = '',
-  emptyState = <p className="text-center text-sm text-gray-500">No messages</p>,
+  emptyState = <p className="text-center text-sm text-[var(--nimi-text-muted)]">No messages</p>,
   emptyMessageLabel = 'Empty message',
   imageMessageLabel = 'Image',
   videoMessageLabel = 'Video',
@@ -225,7 +222,7 @@ export function RealmChatTimeline({
             <div key={message.id || message.clientMessageId || index}>
               {showTimestamp && timestampLabel ? (
                 <div className="my-6 flex items-center justify-center">
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] font-medium text-gray-500">{timestampLabel}</span>
+                  <span className="rounded-full bg-[var(--nimi-surface-panel)] px-3 py-1 text-[11px] font-medium text-[var(--nimi-text-muted)]">{timestampLabel}</span>
                 </div>
               ) : null}
               <div
@@ -242,10 +239,10 @@ export function RealmChatTimeline({
                     className={cn(
                       'inline-block rounded-[18px] text-[15px] leading-snug',
                       display.isMediaMessage || display.isGiftMessage
-                        ? 'overflow-hidden bg-transparent p-0 text-gray-900'
+                        ? 'overflow-hidden bg-transparent p-0 text-[var(--nimi-text-primary)]'
                         : isMe
-                          ? 'bg-[#0066CC] px-4 py-2.5 text-white'
-                          : 'bg-[#F2F2F7] px-4 py-2.5 text-gray-900',
+                          ? 'bg-[var(--nimi-action-primary-bg)] px-4 py-2.5 text-[var(--nimi-action-primary-text)]'
+                          : 'bg-[var(--nimi-surface-card)] px-4 py-2.5 text-[var(--nimi-text-primary)]',
                       bubbleClassName,
                       isMe ? userBubbleClassName : otherBubbleClassName,
                     )}
@@ -262,8 +259,8 @@ export function RealmChatTimeline({
                             authToken={authToken}
                           />
                           {display.isUploadingMedia ? (
-                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-white/55 backdrop-blur-[1px]">
-                              <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/70 border-t-[#0066CC] shadow-sm" />
+                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-overlay)_65%,transparent)] backdrop-blur-[1px]">
+                              <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-[color-mix(in_srgb,var(--nimi-surface-overlay)_70%,transparent)] border-t-[var(--nimi-action-primary-bg)] shadow-sm" />
                             </div>
                           ) : null}
                         </div>
@@ -282,8 +279,8 @@ export function RealmChatTimeline({
                             className="max-h-[320px] max-w-[260px] rounded-xl"
                           />
                           {display.isUploadingMedia ? (
-                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/35">
-                              <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/60 border-t-white shadow-sm" />
+                            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--nimi-overlay-backdrop)_55%,transparent)]">
+                              <span className="h-10 w-10 animate-spin rounded-full border-[3px] border-[color-mix(in_srgb,var(--nimi-surface-overlay)_60%,transparent)] border-t-[var(--nimi-surface-overlay)] shadow-sm" />
                             </div>
                           ) : null}
                         </div>
@@ -299,7 +296,9 @@ export function RealmChatTimeline({
                       className={cn(
                         'mt-1 px-1 text-[11px]',
                         isMe ? 'text-right' : 'text-left',
-                        display.deliveryState === 'failed' ? 'text-red-500' : 'text-amber-600',
+                        display.deliveryState === 'failed'
+                          ? 'text-[var(--nimi-status-danger)]'
+                          : 'text-[var(--nimi-status-warning)]',
                       )}
                     >
                       {display.isUploadingMedia

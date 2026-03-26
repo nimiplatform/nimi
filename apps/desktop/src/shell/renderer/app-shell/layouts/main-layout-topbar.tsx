@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from '@renderer/components/tooltip.js';
+import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { ModWorkspaceTabs } from '@renderer/features/mod-workspace/mod-workspace-tabs';
 
 type MainLayoutTopBarProps = {

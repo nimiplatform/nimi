@@ -48,17 +48,17 @@ export function gradeLabel(grade: RecommendGrade): string {
 }
 
 export function gradeColorClass(grade: RecommendGrade): string {
-  if (grade === 'runs_great') return 'bg-emerald-100 text-emerald-700';
-  if (grade === 'runs_well') return 'bg-green-100 text-green-700';
-  if (grade === 'tight_fit') return 'bg-amber-100 text-amber-700';
-  return 'bg-rose-100 text-rose-700';
+  if (grade === 'runs_great') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]';
+  if (grade === 'runs_well') return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]';
+  if (grade === 'tight_fit') return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]';
+  return 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]';
 }
 
 export function gradeDotClass(grade: RecommendGrade): string {
-  if (grade === 'runs_great') return 'bg-emerald-500';
-  if (grade === 'runs_well') return 'bg-green-500';
-  if (grade === 'tight_fit') return 'bg-amber-500';
-  return 'bg-rose-500';
+  if (grade === 'runs_great') return 'bg-[var(--nimi-status-success)]';
+  if (grade === 'runs_well') return 'bg-[var(--nimi-status-success)]';
+  if (grade === 'tight_fit') return 'bg-[var(--nimi-status-warning)]';
+  return 'bg-[var(--nimi-status-danger)]';
 }
 
 // ---------------------------------------------------------------------------
@@ -107,11 +107,11 @@ export function parseLicenseShort(license?: string): string {
 }
 
 export function licenseColorClass(label: string): string {
-  if (label.startsWith('Apache')) return 'bg-green-100 text-green-700 border-green-200';
-  if (label === 'MIT') return 'bg-sky-100 text-sky-700 border-sky-200';
-  if (label.startsWith('Llama')) return 'bg-orange-100 text-orange-700 border-orange-200';
-  if (label.startsWith('Gemma')) return 'bg-purple-100 text-purple-700 border-purple-200';
-  return 'bg-slate-100 text-slate-600 border-slate-200';
+  if (label.startsWith('Apache')) return 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)] border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)]';
+  if (label === 'MIT') return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
+  if (label.startsWith('Llama')) return 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)] border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)]';
+  if (label.startsWith('Gemma')) return 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)] border-[color-mix(in_srgb,var(--nimi-status-info)_28%,transparent)]';
+  return 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)] border-[var(--nimi-border-subtle)]';
 }
 
 export function parseProviderFromRepo(repo: string): string {
@@ -162,19 +162,19 @@ export function computeVramPercentage(
 }
 
 export function vramPercentageColorClass(pct: number | null): string {
-  if (pct === null) return 'text-slate-400';
-  if (pct <= 50) return 'text-emerald-600';
-  if (pct <= 80) return 'text-amber-600';
-  if (pct <= 100) return 'text-orange-600';
-  return 'text-rose-600';
+  if (pct === null) return 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]';
+  if (pct <= 50) return 'text-[var(--nimi-status-success)]';
+  if (pct <= 80) return 'text-[var(--nimi-status-warning)]';
+  if (pct <= 100) return 'text-[var(--nimi-status-warning)]';
+  return 'text-[var(--nimi-status-danger)]';
 }
 
 export function vramBarColorClass(pct: number | null): string {
-  if (pct === null) return 'bg-slate-200';
-  if (pct <= 50) return 'bg-emerald-400';
-  if (pct <= 80) return 'bg-amber-400';
-  if (pct <= 100) return 'bg-orange-400';
-  return 'bg-rose-400';
+  if (pct === null) return 'bg-[var(--nimi-border-subtle)]';
+  if (pct <= 50) return 'bg-[var(--nimi-status-success)]';
+  if (pct <= 80) return 'bg-[var(--nimi-status-warning)]';
+  if (pct <= 100) return 'bg-[var(--nimi-status-warning)]';
+  return 'bg-[var(--nimi-status-danger)]';
 }
 
 // ---------------------------------------------------------------------------
@@ -325,13 +325,13 @@ export function quantQualityLabel(bits: number | null): string {
 }
 
 export function quantQualityColorClass(label: string): string {
-  if (label === 'Lossless') return 'text-emerald-600 bg-emerald-50';
-  if (label === 'High') return 'text-green-600 bg-green-50';
-  if (label === 'Medium-High') return 'text-sky-600 bg-sky-50';
-  if (label === 'Medium') return 'text-amber-600 bg-amber-50';
-  if (label === 'Low-Medium') return 'text-orange-600 bg-orange-50';
-  if (label === 'Low') return 'text-rose-600 bg-rose-50';
-  return 'text-slate-500 bg-slate-50';
+  if (label === 'Lossless') return 'text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]';
+  if (label === 'High') return 'text-[var(--nimi-status-success)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]';
+  if (label === 'Medium-High') return 'text-[var(--nimi-status-info)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)]';
+  if (label === 'Medium') return 'text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]';
+  if (label === 'Low-Medium') return 'text-[var(--nimi-status-warning)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]';
+  if (label === 'Low') return 'text-[var(--nimi-status-danger)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]';
+  return 'text-[var(--nimi-text-muted)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]';
 }
 
 export function buildHuggingFaceUrl(repo: string): string {

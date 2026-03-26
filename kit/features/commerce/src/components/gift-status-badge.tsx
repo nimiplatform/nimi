@@ -1,17 +1,18 @@
+import { StatusBadge, type StatusTone } from '@nimiplatform/nimi-kit/ui';
 import type { CommerceGiftStatus } from '../types.js';
 
-function getStatusTone(status: CommerceGiftStatus): string {
+function getStatusTone(status: CommerceGiftStatus): StatusTone {
   switch (status) {
     case 'ACCEPTED':
-      return 'bg-emerald-50 text-emerald-700';
+      return 'success';
     case 'REJECTED':
-      return 'bg-rose-50 text-rose-700';
+      return 'danger';
     case 'EXPIRED':
-      return 'bg-gray-100 text-gray-500';
+      return 'neutral';
     case 'REFUNDED':
-      return 'bg-amber-50 text-amber-700';
+      return 'warning';
     default:
-      return 'bg-blue-50 text-blue-700';
+      return 'info';
   }
 }
 
@@ -23,10 +24,8 @@ export type GiftStatusBadgeProps = {
 
 export function GiftStatusBadge({ status, label, className }: GiftStatusBadgeProps) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusTone(status)} ${className || ''}`.trim()}
-    >
+    <StatusBadge tone={getStatusTone(status)} className={className}>
       {label}
-    </span>
+    </StatusBadge>
   );
 }

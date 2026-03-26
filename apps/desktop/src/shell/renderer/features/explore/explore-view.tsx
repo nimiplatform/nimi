@@ -1,9 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
-import { IconButton, Surface } from '@nimiplatform/nimi-kit/ui';
+import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { APP_DISPLAY_SECTION_TITLE_CLASS, APP_PAGE_TITLE_CLASS } from '@renderer/components/typography.js';
-import { ScrollShell } from '@renderer/components/scroll-shell.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { PostCard, type PostCardAuthorProfileTarget } from '../home/post-card';
 import { PostFeed } from '../home/post-feed';
@@ -113,7 +111,7 @@ export function ExploreView(props: ExploreViewProps) {
             <ExploreSkeletonBlock className="h-11 w-[300px] rounded-full" />
           </div>
         </div>
-        <ScrollShell className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto max-w-6xl space-y-10 px-6 py-8">
+        <ScrollArea className="flex-1" viewportClassName="bg-transparent" contentClassName="mx-auto max-w-6xl space-y-10 px-6 py-8">
             <section className="space-y-3">
               <ExploreSkeletonBlock className="h-6 w-24 rounded-lg" />
               <ExploreSkeletonBlock className="h-[280px] w-full rounded-[2rem]" />
@@ -150,7 +148,7 @@ export function ExploreView(props: ExploreViewProps) {
                 ))}
               </div>
             </section>
-        </ScrollShell>
+        </ScrollArea>
       </Surface>
     );
   }
@@ -170,7 +168,7 @@ export function ExploreView(props: ExploreViewProps) {
       {/* Header bar */}
       <div className="shrink-0 px-6 py-4">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
-          <h1 className={APP_PAGE_TITLE_CLASS}>
+          <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>
             {t('Explore.pageTitle')}
           </h1>
           <div className="w-[300px] shrink-0">
@@ -191,7 +189,7 @@ export function ExploreView(props: ExploreViewProps) {
       </div>
 
       {/* Scrollable content */}
-      <ScrollShell
+      <ScrollArea
         ref={scrollContainerRef}
         className="min-h-0 flex-1"
         viewportClassName="bg-transparent"
@@ -202,7 +200,7 @@ export function ExploreView(props: ExploreViewProps) {
             <section className="relative mb-10">
               {/* Worlds Title */}
               <div className="mb-3">
-                <h2 className={`${APP_DISPLAY_SECTION_TITLE_CLASS} mb-3`} style={{ fontFamily: 'var(--font-display)' }}>
+                <h2 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)] mb-3`} style={{ fontFamily: 'var(--font-display)' }}>
                   {t('World.title')}
                 </h2>
               </div>
@@ -315,7 +313,7 @@ export function ExploreView(props: ExploreViewProps) {
           {props.topAgents.length > 0 && (
             <section className="mb-10">
               <div className="mb-4 flex items-center justify-between gap-3">
-                <h3 className={APP_DISPLAY_SECTION_TITLE_CLASS} style={{ fontFamily: 'var(--font-display)' }}>
+                <h3 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)]`} style={{ fontFamily: 'var(--font-display)' }}>
                   {t('Explore.topAgents', { defaultValue: 'Top Agents' })}
                 </h3>
                 {topAgentsPages.length > 1 ? (
@@ -364,7 +362,7 @@ export function ExploreView(props: ExploreViewProps) {
 
           <section className="mt-12">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className={APP_DISPLAY_SECTION_TITLE_CLASS} style={{ fontFamily: 'var(--font-display)' }}>
+              <h2 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)]`} style={{ fontFamily: 'var(--font-display)' }}>
                 {t('Explore.dynamicFeed', { defaultValue: 'Dynamic Feed' })}
               </h2>
             </div>
@@ -384,7 +382,7 @@ export function ExploreView(props: ExploreViewProps) {
               className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2"
             />
           </section>
-      </ScrollShell>
+      </ScrollArea>
 
       <IconButton
         onClick={scrollToTop}

@@ -47,9 +47,9 @@ export type DeviceProfileBarProps = {
 };
 
 function cacheStateBadge(state: 'fresh' | 'stale' | 'empty'): { label: string; cls: string } {
-  if (state === 'fresh') return { label: 'Fresh', cls: 'bg-emerald-100 text-emerald-700' };
-  if (state === 'stale') return { label: 'Cached', cls: 'bg-amber-100 text-amber-700' };
-  return { label: 'Empty', cls: 'bg-slate-100 text-slate-500' };
+  if (state === 'fresh') return { label: 'Fresh', cls: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' };
+  if (state === 'stale') return { label: 'Cached', cls: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' };
+  return { label: 'Empty', cls: 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]' };
 }
 
 export function DeviceProfileBar({
@@ -69,25 +69,25 @@ export function DeviceProfileBar({
   const ram = formatBytes(totalRamBytes);
 
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
       {/* Row 1: GPU name (bold title) + refresh controls right-aligned */}
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
         <div className="flex items-center gap-2.5">
           {/* Monitor / GPU icon */}
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
-            <svg className="h-5 w-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
+            <svg className="h-5 w-5 text-[var(--nimi-text-secondary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="3" width="20" height="14" rx="2" />
               <line x1="8" y1="21" x2="16" y2="21" />
               <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
           </div>
-          <span className="text-base font-bold text-slate-900">{gpuName}</span>
+          <span className="text-base font-bold text-[var(--nimi-text-primary)]">{gpuName}</span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>{badge.label}</span>
         </div>
 
         <div className="flex items-center gap-3">
           {generatedAt ? (
-            <span className="text-xs text-slate-400" title={generatedAt}>
+            <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" title={generatedAt}>
               {t('runtimeConfig.recommend.lastChecked', { defaultValue: 'Last checked:' })} {formatRelativeLocaleTime(generatedAt)}
             </span>
           ) : null}
@@ -106,10 +106,10 @@ export function DeviceProfileBar({
       </div>
 
       {/* Row 2: Two spec columns */}
-      <div className="grid grid-cols-2 gap-4 border-t border-slate-100 px-5 py-3">
+      <div className="grid grid-cols-2 gap-4 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-5 py-3">
         {/* Left column: GPU Specs */}
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             {t('runtimeConfig.recommend.hwGpuSpecs', { defaultValue: 'GPU Specs' })}
           </span>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm">
@@ -125,7 +125,7 @@ export function DeviceProfileBar({
 
         {/* Right column: System */}
         <div className="space-y-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             {t('runtimeConfig.recommend.hwSystem', { defaultValue: 'System' })}
           </span>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm">
@@ -141,8 +141,8 @@ export function DeviceProfileBar({
 function HwStat({ label, value, title, muted }: { label: string; value: string; title?: string; muted?: boolean }) {
   return (
     <div className="flex items-baseline gap-1.5" title={title}>
-      <span className="text-xs font-medium text-slate-400">{label}:</span>
-      <span className={`font-semibold ${muted ? 'text-slate-300' : 'text-slate-800'}`}>{value}</span>
+      <span className="text-xs font-medium text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}:</span>
+      <span className={`font-semibold ${muted ? 'text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]' : 'text-[var(--nimi-text-primary)]'}`}>{value}</span>
     </div>
   );
 }
@@ -158,10 +158,10 @@ export type TierSummaryBarProps = {
 };
 
 const TIER_BAR_ITEMS: { grade: string; label: string; dot: string; bg: string; activeBg: string }[] = [
-  { grade: 'runs_great', label: 'Runs Great', dot: 'bg-emerald-500', bg: 'hover:bg-emerald-50', activeBg: 'bg-emerald-50 ring-1 ring-emerald-300' },
-  { grade: 'runs_well', label: 'Runs Well', dot: 'bg-green-500', bg: 'hover:bg-green-50', activeBg: 'bg-green-50 ring-1 ring-green-300' },
-  { grade: 'tight_fit', label: 'Tight Fit', dot: 'bg-amber-500', bg: 'hover:bg-amber-50', activeBg: 'bg-amber-50 ring-1 ring-amber-300' },
-  { grade: 'not_recommended', label: 'Not Recommended', dot: 'bg-rose-500', bg: 'hover:bg-rose-50', activeBg: 'bg-rose-50 ring-1 ring-rose-300' },
+  { grade: 'runs_great', label: 'Runs Great', dot: 'bg-[var(--nimi-status-success)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] ring-1 ring-emerald-300' },
+  { grade: 'runs_well', label: 'Runs Well', dot: 'bg-[var(--nimi-status-success)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] ring-1 ring-green-300' },
+  { grade: 'tight_fit', label: 'Tight Fit', dot: 'bg-[var(--nimi-status-warning)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] ring-1 ring-amber-300' },
+  { grade: 'not_recommended', label: 'Not Recommended', dot: 'bg-[var(--nimi-status-danger)]', bg: 'hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)]', activeBg: 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] ring-1 ring-rose-300' },
 ];
 
 export function TierSummaryBar({ counts, activeGrades, onToggleGrade }: TierSummaryBarProps) {
@@ -175,7 +175,7 @@ export function TierSummaryBar({ counts, activeGrades, onToggleGrade }: TierSumm
             key={item.grade}
             type="button"
             onClick={() => onToggleGrade(item.grade)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-slate-700 transition-all ${active ? item.activeBg : item.bg}`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-all ${active ? item.activeBg : item.bg}`}
           >
             <span className={`h-2 w-2 rounded-full ${item.dot}`} />
             <span className="font-bold">{count}</span>
@@ -212,18 +212,18 @@ export function FilterChip({
         onClick={() => setOpen((prev) => !prev)}
         className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
           count > 0
-            ? 'border-mint-300 bg-mint-50 text-mint-700'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+            ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]'
+            : 'border-[var(--nimi-border-subtle)] bg-white text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)]'
         }`}
       >
         {label}
-        {count > 0 ? <span className="rounded-full bg-mint-500 px-1.5 text-[10px] text-white">{count}</span> : null}
+        {count > 0 ? <span className="rounded-full bg-[var(--nimi-action-primary-bg)] px-1.5 text-[10px] text-white">{count}</span> : null}
         <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {open ? (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 z-50 mt-1 max-h-56 w-52 overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+          <div className="absolute left-0 z-50 mt-1 max-h-56 w-52 overflow-auto rounded-xl border border-[var(--nimi-border-subtle)] bg-white py-1 shadow-lg">
             {options.map((option) => {
               const checked = selected.has(option);
               return (
@@ -231,9 +231,9 @@ export function FilterChip({
                   key={option}
                   type="button"
                   onClick={() => onToggle(option)}
-                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-mint-50 text-mint-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
                 >
-                  <span className={`flex h-4 w-4 items-center justify-center rounded border ${checked ? 'border-mint-500 bg-mint-500' : 'border-slate-300'}`}>
+                  <span className={`flex h-4 w-4 items-center justify-center rounded border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
                     {checked ? (
                       <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                     ) : null}
@@ -273,16 +273,16 @@ export function SelectChip({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-border-strong)]"
       >
-        <span className="text-slate-400">{label}</span>
-        <span className="text-slate-700">{displayLabel}</span>
+        <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}</span>
+        <span className="text-[var(--nimi-text-secondary)]">{displayLabel}</span>
         <svg className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
       {open ? (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 z-50 mt-1 max-h-56 w-52 overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+          <div className="absolute left-0 z-50 mt-1 max-h-56 w-52 overflow-auto rounded-xl border border-[var(--nimi-border-subtle)] bg-white py-1 shadow-lg">
             {options.map((option) => {
               const checked = option.value === value;
               return (
@@ -293,9 +293,9 @@ export function SelectChip({
                     onChange(option.value);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-mint-50 text-mint-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${checked ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'}`}
                 >
-                  <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${checked ? 'border-mint-500 bg-mint-500' : 'border-slate-300'}`}>
+                  <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${checked ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-action-primary-bg)]' : 'border-[var(--nimi-border-strong)]'}`}>
                     {checked ? (
                       <svg className="h-2.5 w-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
                     ) : null}
@@ -335,25 +335,25 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
     <button
       type="button"
       onClick={onSelect}
-      className="group flex w-full items-center gap-3 rounded-2xl border border-slate-200/70 bg-white/95 px-4 py-3 text-left shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-all hover:border-slate-300 hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]"
+      className="group flex w-full items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 px-4 py-3 text-left shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]"
     >
       {/* Name + params + badges */}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="truncate text-sm font-semibold text-slate-900">{item.title}</span>
-          {params ? <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">{params}</span> : null}
+          <span className="truncate text-sm font-semibold text-[var(--nimi-text-primary)]">{item.title}</span>
+          {params ? <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-text-muted)]">{params}</span> : null}
           {item.verified ? (
-            <span className="rounded-full bg-mint-100 px-1.5 py-0.5 text-[10px] font-medium text-mint-700">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
               {t('runtimeConfig.recommend.verified', { defaultValue: 'Verified' })}
             </span>
           ) : null}
           {item.installedState.installed ? (
-            <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--nimi-status-success)]">
               {t('runtimeConfig.recommend.installedState', { defaultValue: 'Installed' })}
             </span>
           ) : null}
         </div>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-400">
+        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
           <span>{parseProviderFromRepo(item.repo)}</span>
           <span>·</span>
           <span>{lastMod}</span>
@@ -364,18 +364,18 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
       <div className="hidden w-20 shrink-0 text-center md:block">
         {license ? (
           <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${licenseColorClass(license)}`}>{license}</span>
-        ) : <span className="text-[11px] text-slate-300">—</span>}
+        ) : <span className="text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">—</span>}
       </div>
 
       {/* Size */}
       <div className="hidden w-16 shrink-0 text-right md:block">
-        <span className="text-xs font-medium text-slate-700">{formatSizeLabel(sizeBytes)}</span>
+        <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{formatSizeLabel(sizeBytes)}</span>
       </div>
 
       {/* VRAM % */}
       <div className="hidden w-20 shrink-0 md:block">
         <div className="flex items-center gap-1.5">
-          <div className="h-1.5 flex-1 rounded-full bg-slate-100">
+          <div className="h-1.5 flex-1 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
             <div
               className={`h-full rounded-full transition-all ${vramBarColorClass(vramPct)}`}
               style={{ width: `${Math.min(vramPct ?? 0, 100)}%` }}
@@ -396,7 +396,7 @@ export function ModelRow({ item, totalVramBytes, onSelect }: ModelRowProps) {
 
       {/* Arrow right */}
       <svg
-        className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5"
+        className="h-4 w-4 shrink-0 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] transition-transform group-hover:translate-x-0.5"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

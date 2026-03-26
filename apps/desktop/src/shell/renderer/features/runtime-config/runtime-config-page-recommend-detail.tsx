@@ -171,7 +171,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-primary)] transition-colors"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
         {t('runtimeConfig.recommend.backToList', { defaultValue: 'Back to models' })}
@@ -184,7 +184,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
             <ModelIcon engine={item.preferredEngine} />
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">{item.title}</h1>
+            <h1 className="text-2xl font-bold text-[var(--nimi-text-primary)]">{item.title}</h1>
 
             {/* License sub-line */}
             {license ? (
@@ -194,20 +194,20 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
             ) : null}
 
             {/* Meta tags row */}
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span className="font-medium text-slate-700">{provider}</span>
-              <span className="text-slate-300">&middot;</span>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[var(--nimi-text-muted)]">
+              <span className="font-medium text-[var(--nimi-text-secondary)]">{provider}</span>
+              <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">&middot;</span>
               {params ? (
                 <>
-                  <span className="font-medium text-slate-700">{params}</span>
-                  <span className="text-slate-300">&middot;</span>
+                  <span className="font-medium text-[var(--nimi-text-secondary)]">{params}</span>
+                  <span className="text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">&middot;</span>
                 </>
               ) : null}
               <span>{item.preferredEngine}</span>
             </div>
 
             {/* Tagline / summary */}
-            <p className="mt-3 text-sm leading-6 text-slate-600">
+            <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-secondary)]">
               {recommendationSummary(recommendation)}
             </p>
 
@@ -217,7 +217,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
                 href={hfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] transition-colors"
               >
                 HuggingFace
                 <ExternalLinkIcon />
@@ -235,7 +235,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
       </div>
 
       {/* ── Stats row ─────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-6 rounded-xl border border-slate-200/70 bg-slate-50/50 px-5 py-3">
+      <div className="flex flex-wrap items-center gap-6 rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/50 px-5 py-3">
         {item.downloads ? (
           <StatBlock label={t('runtimeConfig.recommend.detailStatDownloads', { defaultValue: 'Downloads' })} value={item.downloads.toLocaleString()} />
         ) : null}
@@ -258,7 +258,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
           <SectionHeading>{t('runtimeConfig.recommend.detailUseCases', { defaultValue: 'Use Cases' })}</SectionHeading>
           <div className="mt-2 flex flex-wrap gap-2">
             {item.capabilities.map((cap) => (
-              <span key={cap} className="rounded-full bg-sky-50 px-3.5 py-1.5 text-xs font-medium text-sky-700">{cap}</span>
+              <span key={cap} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-3.5 py-1.5 text-xs font-medium text-[var(--nimi-status-info)]">{cap}</span>
             ))}
           </div>
         </div>
@@ -268,15 +268,15 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
       {item.entries.length > 0 ? (
         <div>
           <SectionHeading>{t('runtimeConfig.recommend.quantTitle', { defaultValue: 'Quantization Options' })}</SectionHeading>
-          <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200/70">
+          <div className="mt-2 overflow-x-auto rounded-xl border border-[var(--nimi-border-subtle)]/70">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/80 text-xs">
-                  <th className="px-4 py-2.5 font-medium text-slate-500">{t('runtimeConfig.recommend.quantColQuant', { defaultValue: 'Quant' })}</th>
-                  <th className="px-4 py-2.5 font-medium text-slate-500">{t('runtimeConfig.recommend.quantColBits', { defaultValue: 'Bits' })}</th>
-                  <th className="px-4 py-2.5 font-medium text-slate-500">VRAM</th>
-                  <th className="px-4 py-2.5 font-medium text-slate-500">{t('runtimeConfig.recommend.quantColQuality', { defaultValue: 'Quality' })}</th>
-                  <th className="px-4 py-2.5 font-medium text-slate-500">{t('runtimeConfig.recommend.detailQuantStatus', { defaultValue: 'Status' })}</th>
+                <tr className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/80 text-xs">
+                  <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.quantColQuant', { defaultValue: 'Quant' })}</th>
+                  <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.quantColBits', { defaultValue: 'Bits' })}</th>
+                  <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">VRAM</th>
+                  <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.quantColQuality', { defaultValue: 'Quality' })}</th>
+                  <th className="px-4 py-2.5 font-medium text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.detailQuantStatus', { defaultValue: 'Status' })}</th>
                   <th className="px-4 py-2.5" />
                 </tr>
               </thead>
@@ -289,19 +289,19 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
                   const vramPct = computeVramPercentage(entry.totalSizeBytes, totalVramBytes);
                   const isRecommended = recommendation?.recommendedEntry === entry.entry;
                   return (
-                    <tr key={entry.entryId} className={`border-b border-slate-50 transition-colors hover:bg-slate-50/80 ${isRecommended ? 'bg-mint-50/30' : ''}`}>
+                    <tr key={entry.entryId} className={`border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_52%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/80 ${isRecommended ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30' : ''}`}>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-xs font-medium text-slate-800">{quantLevel || entry.entry}</span>
+                        <span className="font-mono text-xs font-medium text-[var(--nimi-text-primary)]">{quantLevel || entry.entry}</span>
                         {isRecommended ? (
-                          <span className="ml-2 rounded bg-mint-100 px-1.5 py-0.5 text-[9px] font-bold text-mint-700">
+                          <span className="ml-2 rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--nimi-action-primary-bg)]">
                             {t('runtimeConfig.recommend.quantBest', { defaultValue: 'BEST' })}
                           </span>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-600">{bits ?? '\u2014'}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--nimi-text-secondary)]">{bits ?? '\u2014'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-slate-700">{formatSizeLabel(entry.totalSizeBytes)}</span>
+                          <span className="text-xs font-medium text-[var(--nimi-text-secondary)]">{formatSizeLabel(entry.totalSizeBytes)}</span>
                           {vramPct !== null ? (
                             <span className={`text-[10px] font-medium ${vramPercentageColorClass(vramPct)}`}>({vramPct}%)</span>
                           ) : null}
@@ -310,9 +310,9 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
                       <td className="px-4 py-3">
                         {quality ? (
                           <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${qualityColor}`}>{quality}</span>
-                        ) : <span className="text-xs text-slate-400">{'\u2014'}</span>}
+                        ) : <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{'\u2014'}</span>}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">{'\u2014'}</td>
+                      <td className="px-4 py-3 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{'\u2014'}</td>
                       <td className="px-4 py-3 text-right">
                         <Button
                           variant="secondary"
@@ -339,7 +339,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
       {item.description ? (
         <div>
           <SectionHeading>{t('runtimeConfig.recommend.aboutTitle', { defaultValue: 'About This Model' })}</SectionHeading>
-          <p className="mt-2 text-sm leading-7 text-slate-600">{item.description}</p>
+          <p className="mt-2 text-sm leading-7 text-[var(--nimi-text-secondary)]">{item.description}</p>
         </div>
       ) : null}
 
@@ -349,7 +349,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
           <SectionHeading>{t('runtimeConfig.recommend.highlightsTitle', { defaultValue: 'Highlights' })}</SectionHeading>
           <div className="mt-2 flex flex-wrap gap-2">
             {item.verified ? (
-              <span className="rounded-full bg-mint-100 px-3 py-1.5 text-xs font-medium text-mint-700">
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-action-primary-bg)]">
                 {t('runtimeConfig.recommend.verified', { defaultValue: 'Verified' })}
               </span>
             ) : null}
@@ -357,7 +357,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
               <span key={`fmt-${fmt}`} className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700">{fmt}</span>
             ))}
             {item.tags.map((tag) => (
-              <span key={`tag-${tag}`} className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600">{tag}</span>
+              <span key={`tag-${tag}`} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)]">{tag}</span>
             ))}
           </div>
         </div>
@@ -366,7 +366,7 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
       {/* ── Specifications ────────────────────────────────────────────── */}
       <div>
         <SectionHeading>{t('runtimeConfig.recommend.specsTitle', { defaultValue: 'Specifications' })}</SectionHeading>
-        <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-3 rounded-xl border border-slate-200/70 bg-slate-50/50 p-5 text-sm sm:grid-cols-3">
+        <div className="mt-2 grid grid-cols-2 gap-x-8 gap-y-3 rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/50 p-5 text-sm sm:grid-cols-3">
           <SpecRow label={t('runtimeConfig.recommend.specParams', { defaultValue: 'Parameters' })} value={params || '\u2014'} />
           <SpecRow label={t('runtimeConfig.recommend.specEngine', { defaultValue: 'Engine' })} value={item.preferredEngine || '\u2014'} />
           <SpecRow
@@ -426,11 +426,11 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
             </>
           )}
           {installing ? (
-            <span className="rounded-full bg-mint-100 px-2.5 py-1 text-xs font-medium text-mint-700">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-2.5 py-1 text-xs font-medium text-[var(--nimi-action-primary-bg)]">
               {t('runtimeConfig.recommend.installing', { defaultValue: 'Installing\u2026' })}
             </span>
           ) : model.runtimeWritesDisabled ? (
-            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-2.5 py-1 text-xs font-medium text-[var(--nimi-status-warning)]">
               {t('runtimeConfig.recommend.readOnly', { defaultValue: 'Read-only mode' })}
             </span>
           ) : null}
@@ -438,42 +438,42 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
 
         {/* Install Plan Review */}
         {(planPreview || planError) ? (
-          <Card className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-none">
+          <Card className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-white p-5 shadow-none">
             <div className="flex items-center gap-2 mb-3">
-              <PackageIcon className="h-4 w-4 text-mint-600" />
-              <h4 className="text-sm font-semibold text-slate-900">
+              <PackageIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
+              <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                 {t('runtimeConfig.recommend.installPreviewTitle', { defaultValue: 'Install Review' })}
               </h4>
             </div>
             {planError ? (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">{planError}</div>
+              <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">{planError}</div>
             ) : null}
             {planPreview ? (
               <div className="space-y-3">
-                <div className="rounded-lg bg-slate-50 px-4 py-3">
-                  <p className="text-sm font-semibold text-slate-900">{planPreview.modelId}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">{planPreview.repo}</p>
+                <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-3">
+                  <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{planPreview.modelId}</p>
+                  <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{planPreview.repo}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 text-xs text-[var(--nimi-text-secondary)] sm:grid-cols-4">
                   <div>
-                    <span className="font-medium text-slate-800">{t('runtimeConfig.recommend.planEngine', { defaultValue: 'Engine' })}</span>
+                    <span className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.planEngine', { defaultValue: 'Engine' })}</span>
                     <p className="mt-0.5">{planPreview.engine}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-slate-800">{t('runtimeConfig.recommend.planEntry', { defaultValue: 'Entry' })}</span>
+                    <span className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.planEntry', { defaultValue: 'Entry' })}</span>
                     <p className="mt-0.5 font-mono">{planPreview.entry}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-slate-800">{t('runtimeConfig.recommend.planFiles', { defaultValue: 'Files' })}</span>
+                    <span className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.planFiles', { defaultValue: 'Files' })}</span>
                     <p className="mt-0.5">{planPreview.files.length}</p>
                   </div>
                   <div>
-                    <span className="font-medium text-slate-800">{t('runtimeConfig.recommend.planRuntimeMode', { defaultValue: 'Runtime mode' })}</span>
+                    <span className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.planRuntimeMode', { defaultValue: 'Runtime mode' })}</span>
                     <p className="mt-0.5">{planPreview.engineRuntimeMode}</p>
                   </div>
                 </div>
                 {planPreview.warnings.length > 0 ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+                  <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] px-4 py-3 text-xs text-[var(--nimi-status-warning)]">
                     <p className="font-medium">{t('runtimeConfig.recommend.planWarnings', { defaultValue: 'Warnings' })}</p>
                     <ul className="mt-1 list-disc space-y-0.5 pl-4">
                       {planPreview.warnings.map((w) => <li key={w}>{w}</li>)}
@@ -499,19 +499,19 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
 
         {/* Variants */}
         {variantsError ? (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-900">{variantsError}</div>
+          <div className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">{variantsError}</div>
         ) : null}
         {variants.length > 0 ? (
-          <Card className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-none">
-            <h4 className="text-sm font-semibold text-slate-900 mb-3">
+          <Card className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-white p-5 shadow-none">
+            <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)] mb-3">
               {t('runtimeConfig.recommend.variantsTitle', { defaultValue: 'Variants' })}
             </h4>
             <div className="space-y-2">
               {variants.map((variant) => (
-                <div key={variant.entry || variant.filename} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5">
+                <div key={variant.entry || variant.filename} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-4 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-mono text-xs text-slate-700">{variant.entry || variant.filename}</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
+                    <p className="truncate font-mono text-xs text-[var(--nimi-text-secondary)]">{variant.entry || variant.filename}</p>
+                    <p className="mt-0.5 text-[11px] text-[var(--nimi-text-muted)]">
                       {[variant.format || 'unknown', variant.sizeBytes ? formatBytes(variant.sizeBytes) : ''].filter(Boolean).join(' \u00b7 ')}
                     </p>
                   </div>
@@ -540,22 +540,22 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
 
       {/* ── Hardware Detection (placeholder) ──────────────────────────── */}
       {totalVramBytes ? (
-        <div className="rounded-xl border border-slate-200/70 bg-slate-50/50 px-5 py-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/50 px-5 py-4">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.recommend.detailHardware', { defaultValue: 'Your Hardware' })}
           </h4>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">
             VRAM: {formatBytes(totalVramBytes)}
           </p>
         </div>
       ) : null}
 
       {/* ── Diagnostics (collapsible) ─────────────────────────────────── */}
-      <div className="border-t border-slate-100 pt-4">
+      <div className="border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] pt-4">
         <button
           type="button"
           onClick={() => setShowDiagnostics((prev) => !prev)}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)] transition-colors"
         >
           {t('runtimeConfig.recommend.showDiagnostics', { defaultValue: 'Show diagnostics' })}
           <svg className={`h-3 w-3 transition-transform ${showDiagnostics ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9" /></svg>
@@ -565,9 +565,9 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
             <RecommendationDetailList
               recommendation={recommendation}
               className="space-y-1"
-              rowClassName="text-xs text-slate-500"
-              labelClassName="font-medium text-slate-700"
-              valueClassName="text-slate-600"
+              rowClassName="text-xs text-[var(--nimi-text-muted)]"
+              labelClassName="font-medium text-[var(--nimi-text-secondary)]"
+              valueClassName="text-[var(--nimi-text-secondary)]"
             />
             <RecommendationDiagnosticsPanel recommendation={recommendation} className="mt-0" />
           </div>
@@ -582,14 +582,14 @@ export function RecommendDetailPage({ item, totalVramBytes, model, onBack }: Rec
 // ---------------------------------------------------------------------------
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-sm font-bold text-slate-900">{children}</h3>;
+  return <h3 className="text-sm font-bold text-[var(--nimi-text-primary)]">{children}</h3>;
 }
 
 function StatBlock({ label, value, title }: { label: string; value: string; title?: string }) {
   return (
     <div className="flex flex-col" title={title}>
-      <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">{label}</span>
-      <span className="text-sm font-bold text-slate-800">{value}</span>
+      <span className="text-[11px] font-medium uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{label}</span>
+      <span className="text-sm font-bold text-[var(--nimi-text-primary)]">{value}</span>
     </div>
   );
 }
@@ -597,8 +597,8 @@ function StatBlock({ label, value, title }: { label: string; value: string; titl
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-xs font-medium text-slate-500">{label}</span>
-      <p className="mt-0.5 text-sm font-medium text-slate-800">{value}</p>
+      <span className="text-xs font-medium text-[var(--nimi-text-muted)]">{label}</span>
+      <p className="mt-0.5 text-sm font-medium text-[var(--nimi-text-primary)]">{value}</p>
     </div>
   );
 }

@@ -54,10 +54,10 @@ function Button({
   icon?: React.ReactNode;
 }) {
   const variantClass = variant === 'primary'
-    ? 'bg-mint-500 text-white hover:bg-mint-600 disabled:bg-gray-300'
+    ? 'bg-[var(--nimi-action-primary-bg)] text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
     : variant === 'secondary'
-      ? 'border border-mint-200 bg-white text-mint-700 hover:bg-mint-50 disabled:bg-gray-100 disabled:text-gray-400'
-      : 'text-mint-700 hover:bg-mint-50 disabled:text-gray-300';
+      ? 'border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-white text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'
+      : 'text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] disabled:text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]';
 
   const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm';
 
@@ -121,11 +121,11 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
   const capabilitySelectionMissing = capabilityOptions.length > 1 && !effectiveCapability;
 
   return (
-    <div className="rounded-xl border border-mint-100 bg-mint-50/30 p-4 space-y-3">
+    <div className="rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <PackageIcon className="h-4 w-4 text-mint-600" />
-          <p className="text-sm font-semibold text-gray-900">
+          <PackageIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
+          <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {props.isModMode
               ? t('runtimeConfig.local.modelProfiles', { defaultValue: 'Recommended Profiles' })
               : t('runtimeConfig.mods.modProfiles', { defaultValue: 'Mod Profiles' })}
@@ -145,7 +145,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
       </div>
 
       {props.runtimeProfileTargets.length <= 0 ? (
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-[var(--nimi-text-muted)]">
           {t('runtimeConfig.local.noProfileEnabledMod', { defaultValue: 'No profile-enabled runtime mod found.' })}
         </p>
       ) : (
@@ -153,10 +153,10 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
           <div className={`grid grid-cols-1 gap-3 ${props.profileSelectionLocked ? '' : 'md:grid-cols-2'}`}>
             {props.profileSelectionLocked ? (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
                 </label>
-                <div className="flex h-11 w-full items-center rounded-xl border border-mint-100 bg-[#F4FBF8] px-3 text-sm text-gray-900">
+                <div className="flex h-11 w-full items-center rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,var(--nimi-surface-card))] px-3 text-sm text-[var(--nimi-text-primary)]">
                   {props.selectedProfileTarget?.modName
                     || props.selectedProfileModId
                     || t('runtimeConfig.local.unknownRuntimeMod', { defaultValue: 'Unknown runtime mod' })}
@@ -164,7 +164,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
               </div>
             ) : (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                   {t('runtimeConfig.local.runtimeMod', { defaultValue: 'Runtime Mod' })}
                 </label>
                 <RuntimeSelect
@@ -179,7 +179,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
               </div>
             )}
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                 {t('runtimeConfig.local.profile', { defaultValue: 'Profile' })}
               </label>
               <RuntimeSelect
@@ -197,16 +197,16 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
           </div>
 
           {selectedProfile ? (
-            <div className="space-y-3 rounded-xl border border-mint-100 bg-white p-4 shadow-sm">
+            <div className="space-y-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-white p-4 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">{selectedProfile.title}</p>
+                  <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{selectedProfile.title}</p>
                   {selectedProfile.description ? (
-                    <p className="mt-1 text-xs text-gray-500">{selectedProfile.description}</p>
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{selectedProfile.description}</p>
                   ) : null}
                 </div>
                 {selectedProfile.recommended ? (
-                  <span className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-medium text-mint-700">
+                  <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
                     {t('runtimeConfig.local.recommended', { defaultValue: 'Recommended' })}
                   </span>
                 ) : null}
@@ -215,7 +215,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
               {selectedProfile.consumeCapabilities.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
                   {selectedProfile.consumeCapabilities.map((capability) => (
-                    <span key={capability} className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-medium text-mint-700">
+                    <span key={capability} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
                       {capability}
                     </span>
                   ))}
@@ -224,7 +224,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
 
               {capabilityOptions.length > 1 ? (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                     {t('runtimeConfig.local.profileCapability', { defaultValue: 'Capability' })}
                   </label>
                   <RuntimeSelect
@@ -243,7 +243,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
                     ]}
                   />
                   {!effectiveCapability ? (
-                    <p className="mt-1 text-xs text-amber-700">
+                    <p className="mt-1 text-xs text-[var(--nimi-status-warning)]">
                       {t('runtimeConfig.local.selectProfileCapability', {
                         defaultValue: 'Select which capability to resolve and install for this profile.',
                       })}
@@ -253,7 +253,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
               ) : null}
 
               {selectedProfile.requirements ? (
-                <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] px-3 py-2 text-xs text-[var(--nimi-text-secondary)]">
                   {selectedProfile.requirements.minGpuMemoryGb
                     ? `${selectedProfile.requirements.minGpuMemoryGb} GB VRAM · `
                     : ''}
@@ -266,10 +266,10 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
 
               <div className="space-y-2">
                 {(selectedProfile.entries || []).map((entry) => (
-                  <div key={entry.entryId} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-xs">
+                  <div key={entry.entryId} className="flex items-center justify-between rounded-lg border border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-3 py-2 text-xs">
                     <div>
-                      <p className="font-medium text-gray-900">{entry.title || entry.entryId}</p>
-                      <p className="text-gray-500">
+                      <p className="font-medium text-[var(--nimi-text-primary)]">{entry.title || entry.entryId}</p>
+                      <p className="text-[var(--nimi-text-muted)]">
                         {entry.kind}
                         {entry.capability ? ` · ${entry.capability}` : ''}
                         {entry.artifactKind ? ` · ${entry.artifactKind}` : ''}
@@ -277,11 +277,11 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
                     </div>
                     <div className="flex gap-1">
                       {entry.required !== false ? (
-                        <span className="rounded-full bg-mint-100 px-2 py-0.5 text-[10px] font-medium text-mint-700">
+                        <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-action-primary-bg)]">
                           {t('runtimeConfig.local.required', { defaultValue: 'Required' })}
                         </span>
                       ) : (
-                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                        <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-2 py-0.5 text-[10px] font-medium text-[var(--nimi-text-secondary)]">
                           {t('runtimeConfig.local.optional', { defaultValue: 'Optional' })}
                         </span>
                       )}
@@ -291,15 +291,15 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
               </div>
 
               {props.loadingProfilePlan ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-[var(--nimi-text-muted)]">
                   <RefreshIcon className="h-4 w-4 animate-spin" />
                   {t('runtimeConfig.local.resolvingProfilePlan', { defaultValue: 'Resolving profile install plan...' })}
                 </div>
               ) : props.executionPlanPreview ? (
-                <div className="rounded-lg bg-mint-50/60 px-3 py-2 text-xs text-mint-900">
+                <div className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/60 px-3 py-2 text-xs text-[var(--nimi-action-primary-bg)]">
                   <p className="font-medium">{summaryLine(props.executionPlanPreview)}</p>
                   {props.executionPlanPreview.warnings.length > 0 ? (
-                    <p className="mt-1 text-mint-800">
+                    <p className="mt-1 text-[var(--nimi-action-primary-bg)]">
                       {props.executionPlanPreview.warnings.join(' · ')}
                     </p>
                   ) : null}
@@ -346,7 +346,7 @@ export function ModelCenterProfileSection(props: ModelCenterProfileSectionProps)
               </Button>
 
               {applySummary ? (
-                <p className="rounded-lg bg-mint-50/60 px-3 py-2 text-xs text-mint-800">{applySummary}</p>
+                <p className="rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/60 px-3 py-2 text-xs text-[var(--nimi-action-primary-bg)]">{applySummary}</p>
               ) : null}
             </div>
           ) : null}

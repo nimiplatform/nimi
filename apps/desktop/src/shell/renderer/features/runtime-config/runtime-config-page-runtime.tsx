@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { desktopBridge } from '@renderer/bridge';
-import { Tooltip } from '@renderer/components/tooltip.js';
+import { Surface, Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
@@ -14,7 +14,7 @@ import { useGlobalAuditData } from './runtime-config-use-global-audit-data.js';
 import { ExternalAgentAccessPanel } from './runtime-config-external-agent-access';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
-import { Button, Input, StatusBadge } from './runtime-config-primitives';
+import { Button, DaemonStatusBadge, Input, StatusBadge } from './runtime-config-primitives';
 
 // Icon Button Component
 function IconButton({
@@ -35,7 +35,7 @@ function IconButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={title}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white/90 text-gray-600 transition-colors hover:bg-white hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-border-strong)] hover:text-[var(--nimi-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {icon}
       </button>
@@ -69,7 +69,11 @@ type RuntimePageProps = {
 
 // SurfaceCard component matching Overview page style
 function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
+  return (
+    <Surface tone="card" className={cn('rounded-2xl', className)}>
+      {children}
+    </Surface>
+  );
 }
 
 export function RuntimePage({ model, state }: RuntimePageProps) {
@@ -84,6 +88,15 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
     status: model.runtimeDaemonStatus,
     runtimeDaemonError: model.runtimeDaemonError,
   });
+  const daemonToneClass = daemonRunning
+    ? {
+        shell: 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))]',
+        meta: 'text-[var(--nimi-status-success)]',
+      }
+    : {
+        shell: 'border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,var(--nimi-surface-card))]',
+        meta: 'text-[var(--nimi-status-danger)]',
+      };
 
   // Capability summary
   const capabilitySummary = useMemo(() => {
@@ -175,68 +188,52 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.runtime.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}
             </div>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                daemonRunning ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              }`}
-            >
-              {daemonRunning
-                ? t('runtimeConfig.overview.running', { defaultValue: 'running' })
-                : t('runtimeConfig.overview.stopped', { defaultValue: 'stopped' })}
-            </span>
+            <DaemonStatusBadge running={daemonRunning} />
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-            <div
-              className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
-            >
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={cn('rounded-xl border p-3', daemonToneClass.shell)}>
+              <p className={cn('text-xs', daemonToneClass.meta)}>
                 {t('runtimeConfig.overview.grpc', { defaultValue: 'gRPC' })}
               </p>
-              <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
                 {model.runtimeDaemonStatus?.grpcAddr || '127.0.0.1:46371'}
               </p>
             </div>
-            <div
-              className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
-            >
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>PID</p>
-              <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>
+            <div className={cn('rounded-xl border p-3', daemonToneClass.shell)}>
+              <p className={cn('text-xs', daemonToneClass.meta)}>PID</p>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
                 {model.runtimeDaemonStatus?.pid || '-'}
               </p>
             </div>
-            <div
-              className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
-            >
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={cn('rounded-xl border p-3', daemonToneClass.shell)}>
+              <p className={cn('text-xs', daemonToneClass.meta)}>
                 {t('runtimeConfig.runtime.mode', { defaultValue: 'Mode' })}
               </p>
-              <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
                 {model.runtimeDaemonStatus?.launchMode || '-'}
               </p>
             </div>
-            <div
-              className={`rounded-xl border p-3 ${daemonRunning ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
-            >
-              <p className={`text-xs ${daemonRunning ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={cn('rounded-xl border p-3', daemonToneClass.shell)}>
+              <p className={cn('text-xs', daemonToneClass.meta)}>
                 {t('runtimeConfig.overview.lastCheck', { defaultValue: 'Last check' })}
               </p>
-              <p className={`text-sm font-medium ${daemonRunning ? 'text-green-900' : 'text-red-900'}`}>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
                 {model.runtimeDaemonUpdatedAt ? formatLocaleDateTime(model.runtimeDaemonUpdatedAt) : '-'}
               </p>
             </div>
           </div>
 
           {daemonIssue ? (
-            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-3">
-              <p className="text-sm font-medium text-amber-900">{daemonIssue.title}</p>
-              <p className="mt-1 text-xs text-amber-800">{daemonIssue.message}</p>
-              <p className="mt-2 text-[11px] text-amber-700">{daemonIssue.rawError}</p>
+            <div className="mt-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] px-3 py-3">
+              <p className="text-sm font-medium text-[var(--nimi-status-warning)]">{daemonIssue.title}</p>
+              <p className="mt-1 text-xs text-[color-mix(in_srgb,var(--nimi-status-warning)_80%,var(--nimi-text-secondary))]">{daemonIssue.message}</p>
+              <p className="mt-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-status-warning)_75%,var(--nimi-text-secondary))]">{daemonIssue.rawError}</p>
             </div>
-          ) : model.runtimeDaemonError ? <p className="mt-3 text-xs text-red-600">{model.runtimeDaemonError}</p> : null}
+          ) : model.runtimeDaemonError ? <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{model.runtimeDaemonError}</p> : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" disabled={daemonBusy} onClick={() => void model.refreshRuntimeDaemonStatus()}>
@@ -316,20 +313,20 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                   : t('runtimeConfig.overview.capabilitySourceUnavailable', { defaultValue: 'unavailable' });
               const toneClass = item.localAvailable
                 ? {
-                    shell: 'bg-mint-50/60 ring-1 ring-mint-100',
-                    title: 'text-gray-900',
-                    meta: 'text-mint-700',
+                    shell: 'bg-[color-mix(in_srgb,var(--nimi-status-success)_8%,var(--nimi-surface-card))] ring-1 ring-[color-mix(in_srgb,var(--nimi-status-success)_20%,transparent)]',
+                    title: 'text-[var(--nimi-text-primary)]',
+                    meta: 'text-[var(--nimi-status-success)]',
                   }
                 : item.cloudAvailable
                   ? {
-                      shell: 'bg-amber-50/80 ring-1 ring-amber-100',
-                      title: 'text-gray-900',
-                      meta: 'text-amber-700',
+                      shell: 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,var(--nimi-surface-card))] ring-1 ring-[color-mix(in_srgb,var(--nimi-status-warning)_20%,transparent)]',
+                      title: 'text-[var(--nimi-text-primary)]',
+                      meta: 'text-[var(--nimi-status-warning)]',
                     }
                   : {
-                      shell: 'bg-[#F7F9FC] ring-1 ring-black/5',
-                      title: 'text-gray-800',
-                      meta: 'text-gray-500',
+                      shell: 'bg-[var(--nimi-surface-panel)] ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]',
+                      title: 'text-[var(--nimi-text-primary)]',
+                      meta: 'text-[var(--nimi-text-muted)]',
                     };
               return (
                 <div
@@ -374,21 +371,21 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         </SectionTitle>
         <SurfaceCard className="mt-3 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.runtime.localRuntimeProviderStatus', { defaultValue: 'Local runtime provider status' })}
             </div>
             <StatusBadge status={state.local.status} />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
-              <p className="text-xs text-gray-500">{t('runtimeConfig.runtime.lastCheckLabel', { defaultValue: 'Last Check' })}</p>
-              <p className="text-sm font-medium text-gray-800">
+            <div className="rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]">
+              <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.runtime.lastCheckLabel', { defaultValue: 'Last Check' })}</p>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
                 {state.local.lastCheckedAt ? formatLocaleDateTime(state.local.lastCheckedAt) : '-'}
               </p>
             </div>
-            <div className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5 md:col-span-2">
-              <p className="text-xs text-gray-500">{t('runtimeConfig.runtime.detail', { defaultValue: 'Detail' })}</p>
-              <p className="text-sm font-medium text-gray-800">{state.local.lastDetail || '-'}</p>
+            <div className="rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)] md:col-span-2">
+              <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.runtime.detail', { defaultValue: 'Detail' })}</p>
+              <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{state.local.lastDetail || '-'}</p>
             </div>
           </div>
         </SurfaceCard>
@@ -405,19 +402,19 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             className="flex w-full items-center justify-between text-left mb-3"
             onClick={() => setNodeMatrixExpanded((prev) => !prev)}
           >
-            <span className="text-sm font-medium text-gray-900">
+            <span className="text-sm font-medium text-[var(--nimi-text-primary)]">
               {t('runtimeConfig.runtime.nodeMatrixShort', { defaultValue: 'Node Matrix' })}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[var(--nimi-text-muted)]">
               {nodeMatrixExpanded
                 ? t('runtimeConfig.runtime.collapse', { defaultValue: 'Collapse' })
                 : t('runtimeConfig.runtime.expand', { defaultValue: 'Expand' })}
             </span>
           </button>
           {providerStatusSummary.length > 0 ? (
-            <div className="mb-3 space-y-2 rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
+            <div className="mb-3 space-y-2 rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]">
               {providerStatusSummary.map((summary) => (
-                <p key={`provider-summary-${summary.provider}`} className="text-[11px] text-gray-700">
+                <p key={`provider-summary-${summary.provider}`} className="text-[11px] text-[var(--nimi-text-secondary)]">
                   provider={summary.provider}
                   {' · '}available={summary.available}/{summary.total}
                   {summary.reasonCodes.size > 0 ? ` · reasonCodes=${[...summary.reasonCodes].join(',')}` : ''}
@@ -428,7 +425,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             </div>
           ) : null}
           {!nodeMatrixExpanded ? null : sortedNodeMatrix.length === 0 ? (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[var(--nimi-text-muted)]">
               {t('runtimeConfig.runtime.noNodeAvailabilityData', {
                 defaultValue: 'No node availability data. Run Refresh to probe the local runtime.',
               })}
@@ -439,11 +436,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                 const runtimeSupportClass = String(row.providerHints?.extra?.runtime_support_class || '').trim();
                 const runtimeSupportDetail = String(row.providerHints?.extra?.runtime_support_detail || '').trim();
                 return (
-                  <div key={`node-matrix-${row.nodeId}`} className="rounded-xl bg-[#F7F9FC] p-3 ring-1 ring-black/5">
-                    <p className="text-xs font-medium text-gray-900">
+                  <div key={`node-matrix-${row.nodeId}`} className="rounded-xl bg-[var(--nimi-surface-panel)] p-3 ring-1 ring-[color-mix(in_srgb,var(--nimi-border-subtle)_80%,transparent)]">
+                    <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
                       {row.capability} · {row.nodeId}
                     </p>
-                    <p className="text-xs text-gray-700">
+                    <p className="text-xs text-[var(--nimi-text-secondary)]">
                       {row.available ? 'available' : 'unavailable'} · provider={row.provider || 'llama'} · adapter={
                         row.adapter
                       }
@@ -451,14 +448,14 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
                       {runtimeSupportClass ? ` · runtimeSupport=${runtimeSupportClass}` : ''}
                     </p>
                     {runtimeSupportDetail ? (
-                      <p className="text-xs text-gray-600">runtimeSupportDetail={runtimeSupportDetail}</p>
+                      <p className="text-xs text-[var(--nimi-text-secondary)]">runtimeSupportDetail={runtimeSupportDetail}</p>
                     ) : null}
-                    {row.policyGate ? <p className="text-xs text-gray-600">policyGate={row.policyGate}</p> : null}
+                    {row.policyGate ? <p className="text-xs text-[var(--nimi-text-secondary)]">policyGate={row.policyGate}</p> : null}
                     {!row.available && row.reasonCode ? (
-                      <p className="text-xs text-amber-700">reason={row.reasonCode}</p>
+                      <p className="text-xs text-[var(--nimi-status-warning)]">reason={row.reasonCode}</p>
                     ) : null}
                     {(runtimeSupportClass === 'attached_only' || runtimeSupportClass === 'unsupported') ? (
-                      <p className="text-xs text-amber-700">
+                      <p className="text-xs text-[var(--nimi-status-warning)]">
                         Managed local engine is unavailable on this host. Configure an attached endpoint to use this provider.
                       </p>
                     ) : null}
