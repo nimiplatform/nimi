@@ -54,12 +54,91 @@ fn load_state_from_path(path: &Path) -> Result<LocalAiRuntimeState, String> {
             path.display()
         )
     })?;
+    sanitize_legacy_runtime_state(&mut parsed);
     for model in &mut parsed.models {
         if model.logical_model_id.is_empty() {
             model.logical_model_id = default_logical_model_id(&model.model_id);
         }
     }
     Ok(parsed)
+}
+
+fn is_legacy_local_runtime_value(value: &str) -> bool {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.is_empty() {
+        return false;
+    }
+    normalized.contains("localai")
+        || normalized.contains("nexa")
+        || normalized.contains("nimi_media")
+        || normalized.contains("localsidecar")
+}
+
+fn rebuild_capability_index(state: &mut LocalAiRuntimeState) {
+    let mut index = HashMap::<String, Vec<String>>::new();
+    for model in &state.models {
+        if model.status == super::types::LocalAiModelStatus::Removed {
+            continue;
+        }
+        let local_model_id = model.local_model_id.trim();
+        if local_model_id.is_empty() {
+            continue;
+        }
+        for capability in &model.capabilities {
+            let normalized = capability.trim().to_ascii_lowercase();
+            if normalized.is_empty() {
+                continue;
+            }
+            let bucket = index.entry(normalized).or_default();
+            if !bucket.iter().any(|item| item == local_model_id) {
+                bucket.push(local_model_id.to_string());
+            }
+        }
+    }
+    state.capability_index = index;
+}
+
+fn sanitize_legacy_runtime_state(state: &mut LocalAiRuntimeState) {
+    state.models.retain(|model| {
+        !is_legacy_local_runtime_value(model.engine.as_str())
+            && !is_legacy_local_runtime_value(model.model_id.as_str())
+            && !model
+                .preferred_engine
+                .as_deref()
+                .is_some_and(is_legacy_local_runtime_value)
+            && !model
+                .fallback_engines
+                .iter()
+                .any(|engine| is_legacy_local_runtime_value(engine.as_str()))
+    });
+
+    state.artifacts.retain(|artifact| {
+        !is_legacy_local_runtime_value(artifact.engine.as_str())
+            && !is_legacy_local_runtime_value(artifact.artifact_id.as_str())
+    });
+
+    state.services.retain(|service| {
+        !is_legacy_local_runtime_value(service.engine.as_str())
+            && !is_legacy_local_runtime_value(service.service_id.as_str())
+    });
+
+    let valid_service_ids = state
+        .services
+        .iter()
+        .map(|service| service.service_id.trim().to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    state.capability_matrix.retain(|entry| {
+        valid_service_ids
+            .iter()
+            .any(|service_id| service_id == &entry.service_id.trim().to_ascii_lowercase())
+            && !is_legacy_local_runtime_value(entry.provider.as_str())
+            && !entry
+                .model_engine
+                .as_deref()
+                .is_some_and(is_legacy_local_runtime_value)
+    });
+
+    rebuild_capability_index(state);
 }
 
 pub fn load_state(app: &AppHandle) -> Result<LocalAiRuntimeState, String> {
@@ -372,6 +451,36 @@ mod tests {
         fs::write(&state_path, "not json").expect("write invalid json");
         let result = load_state_from_path(&state_path);
         assert!(result.is_err());
+        let _ = fs::remove_dir_all(&temp);
+    }
+
+    #[test]
+    fn load_state_prunes_legacy_runtime_records() {
+        let temp = unique_temp_dir("legacy-prune");
+        let state_path = temp.join("state.json");
+        let mut legacy_model = model_fixture("legacy-model");
+        legacy_model.model_id = "local/z_image_turbo".to_string();
+        legacy_model.engine = "localai".to_string();
+        legacy_model.preferred_engine = Some("localai".to_string());
+        let state = LocalAiRuntimeState {
+            version: 11,
+            models: vec![legacy_model],
+            artifacts: Vec::new(),
+            capability_index: HashMap::from([(
+                "image".to_string(),
+                vec!["legacy-model".to_string()],
+            )]),
+            capability_matrix: Vec::new(),
+            services: Vec::new(),
+            downloads: Vec::new(),
+            audits: Vec::new(),
+        };
+        save_state_to_path(&state_path, &state).expect("save state");
+
+        let loaded = load_state_from_path(&state_path).expect("load state");
+
+        assert!(loaded.models.is_empty());
+        assert!(loaded.capability_index.is_empty());
         let _ = fs::remove_dir_all(&temp);
     }
 

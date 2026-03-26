@@ -49,15 +49,17 @@ function mergeLocalSnapshot(
       status: item.status,
       recommendation: item.recommendation,
     }));
-  const models = nextModels.length > 0 ? nextModels : previous.local.models;
 
   return {
     ...previous,
     local: {
       ...previous.local,
-      models,
+      // Snapshot data is the live source of truth. When the runtime reports
+      // no installed models, stale hydrated UI state must be cleared rather
+      // than preserved.
+      models: nextModels,
       status: previous.local.status,
-      lastCheckedAt: previous.local.lastCheckedAt || snapshot.generatedAt,
+      lastCheckedAt: snapshot.generatedAt,
       lastDetail: previous.local.lastDetail,
     },
   };
