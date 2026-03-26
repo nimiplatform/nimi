@@ -22,16 +22,19 @@ Search and filter must support at least:
 
 Map cards and search results must preserve creator-specific evidence. The app must not flatten multiple creator recommendations into a source-less summary.
 
-## VFM-DISC-004 — Store Confirmation Order
+## VFM-DISC-004 — Store Confirmation Follows Extraction Order
 
-Store confirmation order is fixed:
+Store confirmation must follow `VFM-PIPE-002`:
 
-1. video正文 and transcription
-2. comments
-3. targeted visual clues
+- stage 1 uses video body text (`title`, `description`, `tags`) and transcription
+- stage 2 may add comments, then targeted visual clues
 
-Comment or visual clues that conflict with the spoken/video text must keep the record in review state.
+Comment or visual clues that conflict with stage-1 evidence must keep the record in review state.
 
 ## VFM-DISC-005 — Review Queue is Product Surface
 
 Unresolved or conflicting records are not discarded. They enter a review queue so later signals can promote them into map truth.
+
+## VFM-DISC-006 — Geocoding Gate
+
+Address text or geographic candidates must be normalized into usable map coordinates before map promotion. Text-only location clues may remain searchable or reviewable, but they are not yet confirmed map locations.

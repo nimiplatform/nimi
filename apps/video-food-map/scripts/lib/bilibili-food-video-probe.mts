@@ -31,7 +31,13 @@ export type FoodProbeResult = {
   metadata: VideoMetadata;
   audioSourceUrl: string;
   selectedSttModel: string;
-  selectedAudioMode: 'url' | 'bytes';
+  selectedAudioMode: 'bytes';
+  extractionCoverage: {
+    state: 'full' | 'leading_segments_only';
+    processedSegmentCount: number;
+    processedDurationSec: number;
+    totalDurationSec: number;
+  };
   transcript: string;
   extractionRaw: string;
   extractionJson: Record<string, unknown> | null;
@@ -90,7 +96,7 @@ type PlayInfoPayload = {
 
 const DEFAULT_PROFILE_PATH = path.resolve(process.cwd(), 'dev/config/dashscope-gold-path.env');
 const DEFAULT_ENV_FILE_PATH = path.resolve(process.cwd(), '.env');
-const DEFAULT_OUTPUT_ROOT = path.resolve(process.cwd(), 'tmp/bilibili-food-video-probe');
+const DEFAULT_OUTPUT_ROOT = path.resolve(process.cwd(), '.tmp/bilibili-food-video-probe');
 const DEFAULT_SHORT_AUDIO_STT_MODEL = 'qwen3-asr-flash';
 const LONG_AUDIO_THRESHOLD_SEC = 300;
 const DEFAULT_SEGMENT_DURATION_SEC = 240;
@@ -101,12 +107,12 @@ const BILIBILI_PAGE_URL = 'https://www.bilibili.com/video/';
 const BILIBILI_VIEW_API = 'https://api.bilibili.com/x/web-interface/view';
 const BILIBILI_TAG_API = 'https://api.bilibili.com/x/tag/archive/tags';
 
-function readArg(flag: string): string {
-  const index = process.argv.indexOf(flag);
+function readArg(flag: string, argv: string[] = process.argv): string {
+  const index = argv.indexOf(flag);
   if (index < 0) {
     return '';
   }
-  return String(process.argv[index + 1] || '').trim();
+  return String(argv[index + 1] || '').trim();
 }
 
 function normalizeCookie(value: string): string {
@@ -345,6 +351,7 @@ function ensureOutputDir(bvid: string): string {
 function saveProbeArtifacts(input: {
   metadata: VideoMetadata;
   audioSourceUrl: string;
+  extractionCoverage: FoodProbeResult['extractionCoverage'];
   transcript: string;
   extractionRaw: string;
   extractionJson: Record<string, unknown> | null;
@@ -358,6 +365,7 @@ function saveProbeArtifacts(input: {
   writeFileSync(metadataJson, `${JSON.stringify({
     metadata: input.metadata,
     audioSourceUrl: input.audioSourceUrl,
+    extractionCoverage: input.extractionCoverage,
   }, null, 2)}\n`, 'utf8');
   writeFileSync(transcriptText, input.transcript, 'utf8');
   writeFileSync(extractionRawText, input.extractionRaw, 'utf8');
@@ -393,9 +401,12 @@ function buildFoodExtractionPrompt(input: {
     '  "venues": [',
     '    {',
     '      "venue_name": "店名，拿不准就写空字符串",',
+    '      "address_text": "地址文本、商圈或地理线索，拿不准就写空字符串",',
     '      "recommended_dishes": ["明确推荐的菜"],',
+    '      "cuisine_tags": ["菜系标签，没有就空数组"],',
+    '      "flavor_tags": ["口味标签，没有就空数组"],',
     '      "evidence": ["直接支持推荐判断的原句"],',
-    '      "polarity": "positive|mixed|uncertain|negative",',
+    '      "recommendation_polarity": "positive|mixed|uncertain|negative",',
     '      "confidence": "high|medium|low",',
     '      "needs_review": true',
     '    }',
@@ -404,8 +415,9 @@ function buildFoodExtractionPrompt(input: {
     '}',
     '规则：',
     '1. 只收明确推荐的菜，不收只是出现过的菜。',
-    '2. 只要店名、推荐菜、证据三者缺一，就把 needs_review 设为 true。',
-    '3. 没有把握时，不要编造店名或菜名。',
+    '2. 店名、地址、菜系、口味拿不准时可以留空，但不要编造。',
+    '3. 只要店名、推荐菜、证据三者缺一，就把 needs_review 设为 true。',
+    '4. 如果同一视频提到多家店，必须拆成多个 venue 对象。',
     '',
     '视频元信息：',
     metadataBlock,
@@ -540,11 +552,7 @@ export function resolveSttModel(input: {
   return coerceCloudModelId(DEFAULT_SHORT_AUDIO_STT_MODEL);
 }
 
-export function resolveAudioMode(durationSec: number): 'url' | 'bytes' {
-  const normalized = Number(durationSec || 0);
-  if (Number.isFinite(normalized) && normalized > LONG_AUDIO_THRESHOLD_SEC) {
-    return 'bytes';
-  }
+export function resolveAudioMode(_durationSec: number): 'bytes' {
   return 'bytes';
 }
 
@@ -736,7 +744,7 @@ async function transcribeAndExtract(input: {
   audioBytes: Uint8Array;
   audioMimeType: string;
   mergedEnv: Record<string, string>;
-}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'selectedAudioMode' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
+}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'selectedAudioMode' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
   const shouldSegment = Number(input.metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC;
   const sttModel = resolveSttModel({
     durationSec: shouldSegment ? DEFAULT_SEGMENT_DURATION_SEC : input.metadata.durationSec,
@@ -761,6 +769,18 @@ async function transcribeAndExtract(input: {
       bytes: input.audioBytes,
       mimeType: input.audioMimeType,
     }];
+  const processedDurationSec = Math.min(
+    Number(input.metadata.durationSec || 0),
+    Math.max(0, ...segments.map((segment) => Number(segment.endSec || 0))),
+  );
+  const extractionCoverage: FoodProbeResult['extractionCoverage'] = {
+    state: processedDurationSec < Number(input.metadata.durationSec || 0)
+      ? 'leading_segments_only'
+      : 'full',
+    processedSegmentCount: segments.length,
+    processedDurationSec,
+    totalDurationSec: Number(input.metadata.durationSec || 0),
+  };
 
   let transcript = '';
   let extractionRaw = '';
@@ -825,6 +845,7 @@ async function transcribeAndExtract(input: {
   return {
     selectedSttModel: sttModel,
     selectedAudioMode: audioMode,
+    extractionCoverage,
     transcript,
     extractionRaw,
     extractionJson: extractJsonObject(extractionRaw),
@@ -849,6 +870,16 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
     const saved = saveProbeArtifacts({
       metadata,
       audioSourceUrl,
+      extractionCoverage: {
+        state: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC ? 'leading_segments_only' : 'full',
+        processedSegmentCount: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
+          ? Math.min(DEFAULT_MAX_SEGMENTS, Math.ceil(Number(metadata.durationSec || 0) / DEFAULT_SEGMENT_DURATION_SEC))
+          : 1,
+        processedDurationSec: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
+          ? Math.min(Number(metadata.durationSec || 0), DEFAULT_MAX_SEGMENTS * DEFAULT_SEGMENT_DURATION_SEC)
+          : Number(metadata.durationSec || 0),
+        totalDurationSec: Number(metadata.durationSec || 0),
+      },
       transcript: '',
       extractionRaw: '',
       extractionJson: null,
@@ -858,6 +889,16 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
       audioSourceUrl,
       selectedSttModel,
       selectedAudioMode,
+      extractionCoverage: {
+        state: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC ? 'leading_segments_only' : 'full',
+        processedSegmentCount: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
+          ? Math.min(DEFAULT_MAX_SEGMENTS, Math.ceil(Number(metadata.durationSec || 0) / DEFAULT_SEGMENT_DURATION_SEC))
+          : 1,
+        processedDurationSec: Number(metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC
+          ? Math.min(Number(metadata.durationSec || 0), DEFAULT_MAX_SEGMENTS * DEFAULT_SEGMENT_DURATION_SEC)
+          : Number(metadata.durationSec || 0),
+        totalDurationSec: Number(metadata.durationSec || 0),
+      },
       transcript: '',
       extractionRaw: '',
       extractionJson: null,
@@ -886,6 +927,7 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
   const saved = saveProbeArtifacts({
     metadata,
     audioSourceUrl,
+    extractionCoverage: result.extractionCoverage,
     transcript: result.transcript,
     extractionRaw: result.extractionRaw,
     extractionJson: result.extractionJson,
@@ -896,6 +938,7 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
     audioSourceUrl,
     selectedSttModel: result.selectedSttModel,
     selectedAudioMode: result.selectedAudioMode,
+    extractionCoverage: result.extractionCoverage,
     transcript: result.transcript,
     extractionRaw: result.extractionRaw,
     extractionJson: result.extractionJson,
@@ -909,19 +952,19 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
   };
 }
 
-export function parseProbeArgs(): ProbeArgs {
-  const url = requireArg('--url', readArg('--url'));
-  const cookie = normalizeCookie(process.env.BILIBILI_COOKIE || readArg('--cookie'));
+export function parseProbeArgs(argv: string[] = process.argv): ProbeArgs {
+  const url = requireArg('--url', readArg('--url', argv));
+  const cookie = normalizeCookie(process.env.BILIBILI_COOKIE || readArg('--cookie', argv));
   if (!cookie) {
     throw new Error('BILIBILI_COOKIE or --cookie is required');
   }
-  const profilePath = toAbsolutePath(readArg('--profile'), DEFAULT_PROFILE_PATH);
-  const envFilePath = toAbsolutePath(readArg('--env-file'), DEFAULT_ENV_FILE_PATH);
+  const profilePath = toAbsolutePath(readArg('--profile', argv), DEFAULT_PROFILE_PATH);
+  const envFilePath = toAbsolutePath(readArg('--env-file', argv), DEFAULT_ENV_FILE_PATH);
   return {
     url,
     cookie,
     profilePath,
     envFilePath,
-    resolveOnly: process.argv.includes('--resolve-only'),
+    resolveOnly: argv.includes('--resolve-only'),
   };
 }

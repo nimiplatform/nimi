@@ -42,13 +42,15 @@ The product truth unit is a single video extraction record. Multi-creator aggreg
 - single video in
 - structured recommendation record out
 - locatable records on map
-- creator / dish / cuisine / flavor search
+- creator / store / dish / cuisine / flavor search
+- partial-coverage disclosure for long-video validation
 
 ### Stage 2
 
 - comment-based store name clues
 - targeted visual clues from storefronts, signs, menus
 - stronger store/address confirmation
+- area search strengthened by confirmed coordinates
 
 ### Stage 3
 
