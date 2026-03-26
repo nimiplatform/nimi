@@ -35,14 +35,8 @@ export function toCheckEmailResponseDto(value: unknown): CheckEmailResponseDto {
     throw new Error('Malformed check-email response');
   }
 
-  const hasPassword = record.hasPassword;
-  if (hasPassword != null && typeof hasPassword !== 'boolean') {
-    throw new Error('Malformed check-email response');
-  }
-
   return {
     available: record.available,
-    hasPassword: typeof hasPassword === 'boolean' ? hasPassword : undefined,
   };
 }
 

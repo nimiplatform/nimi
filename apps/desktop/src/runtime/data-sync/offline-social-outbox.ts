@@ -66,7 +66,7 @@ async function executeSocialMutation(
   if (entry.kind === 'post-like') {
     const postId = String(entry.payload.postId || '').trim();
     await callApi(
-      (realm) => realm.services.PostService.likePost(postId),
+      (realm) => realm.services.PostsService.likePost(postId),
       '点赞失败',
     );
     return;
@@ -74,7 +74,7 @@ async function executeSocialMutation(
   if (entry.kind === 'post-unlike') {
     const postId = String(entry.payload.postId || '').trim();
     await callApi(
-      (realm) => realm.services.PostService.unlikePost(postId),
+      (realm) => realm.services.PostsService.unlikePost(postId),
       '取消点赞失败',
     );
     return;

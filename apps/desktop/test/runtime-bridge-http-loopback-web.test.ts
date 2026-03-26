@@ -24,7 +24,7 @@ test('web proxy http fallback allows loopback backend across localhost and 127.0
   globalThis.fetch = (async (input: RequestInfo | URL) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     calls.push(url);
-    return new Response('{"available":false,"hasPassword":true}', {
+    return new Response('{"available":false}', {
       status: 200,
       headers: {
         'content-type': 'application/json',
@@ -46,7 +46,7 @@ test('web proxy http fallback allows loopback backend across localhost and 127.0
     assert.equal(calls.length, 1);
     assert.equal(calls[0], 'http://127.0.0.1:3000/api/auth/email/check');
     assert.equal(result.status, 200);
-    assert.match(result.body, /hasPassword/);
+    assert.match(result.body, /available/);
   } finally {
     globalThis.fetch = originalFetch;
   }

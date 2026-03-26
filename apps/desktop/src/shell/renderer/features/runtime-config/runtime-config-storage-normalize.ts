@@ -30,9 +30,13 @@ function normalizeLocalFromAny(
     DEFAULT_LOCAL_ENDPOINT_V11,
   );
 
-  // Installed model inventory is runtime-derived live state and must not be
-  // resurrected from browser storage during hydration.
-  const models = fallback.local.models;
+  const rawModels = Array.isArray(rawLocalRecord.models)
+    ? rawLocalRecord.models
+    : [];
+  const models = rawModels
+    .map((item) => parseOptionalJsonObject(item))
+    .filter((item): item is JsonObject => Boolean(item))
+    .map((item) => normalizeLocalModelV11(item as Partial<RuntimeConfigStateV11['local']['models'][number]>));
   const rawNodeMatrix = Array.isArray(rawLocalRecord.nodeMatrix)
     ? rawLocalRecord.nodeMatrix
     : [];
@@ -45,7 +49,7 @@ function normalizeLocalFromAny(
     ...fallback.local,
     ...(rawLocal || {}),
     endpoint,
-    models,
+    models: models.length > 0 ? models : fallback.local.models,
     nodeMatrix: nodeMatrix.length > 0 ? nodeMatrix : fallback.local.nodeMatrix,
   };
 }

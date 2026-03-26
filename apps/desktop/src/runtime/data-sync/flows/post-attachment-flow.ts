@@ -44,7 +44,7 @@ export async function loadPostFeed(
   };
   try {
     return await callApi(
-      (realm) => realm.services.PostService.getHomeFeed(
+      (realm) => realm.services.PostsService.getHomeFeed(
         normalized.visibility,
         normalized.worldId,
         normalized.authorId,
@@ -66,7 +66,7 @@ export async function createPost(
 ): Promise<PostDto> {
   try {
     return await callApi(
-      (realm) => realm.services.PostService.createPost(payload),
+      (realm) => realm.services.PostsService.createPost(payload),
       '发布帖子失败',
     );
   } catch (error) {
@@ -132,7 +132,7 @@ export async function deletePost(
 ): Promise<void> {
   try {
     await callApi(
-      (realm) => realm.services.PostService.deletePost(postId),
+      (realm) => realm.services.PostsService.deletePost(postId),
       '删除帖子失败',
     );
   } catch (error) {
@@ -149,7 +149,7 @@ export async function updatePostVisibility(
 ): Promise<PostDto> {
   try {
     return await callApi(
-      (realm) => realm.services.PostService.updatePost(postId, { visibility }),
+      (realm) => realm.services.PostsService.updatePost(postId, { visibility }),
       '更新帖子可见性失败',
     );
   } catch (error) {
@@ -168,7 +168,7 @@ export async function likePost(
 ): Promise<void> {
   try {
     await callApi(
-      (realm) => realm.services.PostService.likePost(postId),
+      (realm) => realm.services.PostsService.likePost(postId),
       '点赞失败',
     );
   } catch (error) {
@@ -192,7 +192,7 @@ export async function unlikePost(
 ): Promise<void> {
   try {
     await callApi(
-      (realm) => realm.services.PostService.unlikePost(postId),
+      (realm) => realm.services.PostsService.unlikePost(postId),
       '取消点赞失败',
     );
   } catch (error) {

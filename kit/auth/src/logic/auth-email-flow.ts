@@ -12,12 +12,7 @@ export function resolveEmailEntryRoute(result: CheckEmailResponseDto): EmailEntr
   if (result.available) {
     return 'register_with_otp';
   }
-
-  if (result.hasPassword === false) {
-    return 'login_with_otp';
-  }
-
-  return 'login_with_password';
+  return 'login_with_otp';
 }
 
 export function shouldPromptPasswordSetupAfterEmailOtp(

@@ -58,7 +58,7 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
         } else {
           setLoadingInitial(true);
         }
-        const data = await dataSync.callApi((realm) => realm.services.PostService.listLikedPosts(undefined, PAGE_SIZE, cursorArg ?? undefined, profileId));
+        const data = await dataSync.callApi((realm) => realm.services.PostsService.listLikedPosts(undefined, PAGE_SIZE, cursorArg ?? undefined, profileId));
         const newItems = Array.isArray(data?.items) ? (data.items as PostDto[]) : [];
         const nextCursor = data?.page?.nextCursor ?? null;
 

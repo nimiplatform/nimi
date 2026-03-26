@@ -99,7 +99,7 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
       const results = await Promise.all(
         pageIds.map(async (postId) => {
           try {
-            const post = await dataSync.callApi((realm) => realm.services.PostService.getPost(postId));
+            const post = await dataSync.callApi((realm) => realm.services.PostsService.getPost(postId));
             return post as PostDto;
           } catch {
             return null;
