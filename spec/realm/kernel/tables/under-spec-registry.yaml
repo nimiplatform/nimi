@@ -1,5 +1,5 @@
 version: 1
-updated_at: 2026-03-25
+updated_at: 2026-03-26
 owner: '@team'
 description: Registry of acknowledged under-specified items after the hard-cut realm refactor.
 under_spec:
@@ -30,3 +30,12 @@ under_spec:
     impact: medium
     resolution: introduce VOICE only with a dedicated typed storage, delivery, and binding contract instead of overloading the current AUDIO model
     deferred_to: resource-voice-contract
+  - id: U4
+    rule_id: R-BIND-*
+    category: external-blocker
+    status: blocked
+    summary: Binding contract sync is blocked on upstream authoritative text
+    detail: Binding-facing rule catalog rows, enums, alignment maps, and write authorization facts are intentionally not inferred from local artifacts. They must be mirrored only after the upstream R-BIND source text is provided.
+    impact: high
+    resolution: import upstream binding contract text and regenerate dependent tables in one change
+    deferred_to: upstream-realm-binding-contract

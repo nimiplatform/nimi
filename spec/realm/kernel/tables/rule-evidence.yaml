@@ -1,4 +1,4 @@
-version: 2026-03-25
+version: 2026-03-26
 owner: '@team'
 description: Hard-cut rule-to-evidence map for the refactored realm kernel.
 profiles:
@@ -8,9 +8,9 @@ profiles:
       - GET /api/world/by-id/{worldId}/rules
       - POST /api/world/by-id/{worldId}/rules
       - GET /api/world/by-id/{worldId}/agents/{agentId}/rules
-      - GET /api/world/by-id/{id}
-      - GET /api/world/by-id/{id}/worldview
-      - GET /api/world/by-id/{id}/lorebooks
+      - GET /api/world/by-id/{worldId}
+      - GET /api/world/by-id/{worldId}/worldview
+      - GET /api/world/by-id/{worldId}/lorebooks
     prisma_models: [World, WorldRule, AgentRule, WorldRelease, Worldview, WorldLorebook]
     service_files:
       - nimi-backend/libs/domains/world/src/world-rule.service.ts
@@ -48,11 +48,11 @@ profiles:
       - tests/arch/world.spec.ts
   agent_memory:
     openapi:
-      - GET /api/agent/accounts/{id}/memory/core
-      - GET /api/agent/accounts/{id}/memory/dyadic/{userId}
-      - POST /api/agent/accounts/{id}/memory/commits
-      - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}/{memoryId}
-      - DELETE /api/agent/accounts/{id}/memory/dyadic/{userId}
+      - GET /api/agent/accounts/{accountId}/memory/core
+      - GET /api/agent/accounts/{accountId}/memory/dyadic/{userId}
+      - POST /api/agent/accounts/{accountId}/memory/commits
+      - DELETE /api/agent/accounts/{accountId}/memory/dyadic/{userId}/{memoryId}
+      - DELETE /api/agent/accounts/{accountId}/memory/dyadic/{userId}
     prisma_models: [AgentMemory]
     service_files:
       - nimi-backend/libs/common/src/realm-commit-policy.ts
@@ -83,9 +83,9 @@ profiles:
       - tests/arch/social.spec.ts
   social:
     openapi:
-      - GET /api/human/accounts/{id}/friends
-      - POST /api/human/accounts/{id}/friends
-      - DELETE /api/human/accounts/{id}/friends
+      - GET /api/human/accounts/{accountId}/friends
+      - POST /api/human/accounts/{accountId}/friends
+      - DELETE /api/human/accounts/{accountId}/friends
       - GET /api/human/me/friends
       - GET /api/human/me/friends/list
       - GET /api/human/me/friends/pending
@@ -132,7 +132,7 @@ profiles:
       - PATCH /api/resources/{resourceId}
       - POST /api/resources/{resourceId}/finalize
       - DELETE /api/resources/{resourceId}
-      - GET /api/world/by-id/{id}/resource-bindings
+      - GET /api/world/by-id/{worldId}/resource-bindings
       - GET /api/worlds/{worldId}/resource-bindings
     prisma_models: [Resource, ResourceBinding, PostAttachment]
     service_files:
@@ -172,10 +172,10 @@ profiles:
       - nimi-backend/libs/domains/bundle/src/bundle.service.spec.ts
   transit:
     openapi:
-      - POST /api/world/by-id/{id}/transit
-      - POST /api/world/by-id/{id}/return
+      - POST /api/world/by-id/{worldId}/transit
+      - POST /api/world/by-id/{worldId}/return
       - GET /api/world/transit/active/{agentId}
-      - POST /api/world/transit/{id}/complete
+      - POST /api/world/transit/{transitId}/complete
     prisma_models: [Transit]
     service_files:
       - nimi-backend/libs/domains/world/src/transit.service.ts

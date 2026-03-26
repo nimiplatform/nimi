@@ -6,50 +6,50 @@
 
 | Item ID | Title | Category | Target Layers | Status | Complexity | Depends On | Sources |
 |---|---|---|---|---|---|---|---|
-| `F-MCP-001` | MCP 协议支持 | `integration` | runtime, sdk, desktop | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-RENDER-001` | 富文本渲染（LaTeX、Mermaid、代码高亮） | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-CODE-001` | 代码块增强（复制、语言检测、行号） | `ux` | desktop, web | `proposed` | `small` | — | `RESEARCH-OFANG-001` |
-| `F-SEARCH-001` | Web 搜索集成 | `integration` | runtime, sdk | `proposed` | `medium` | `F-MCP-001` | `RESEARCH-OFANG-001` |
-| `F-MARKETPLACE-001` | Mod 市场平台 | `platform` | desktop, web | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-WEBINFER-001` | 浏览器端轻量推理 | `platform` | web, sdk | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-AVATAR-001` | 虚拟形象系统（VRM/Live2D） | `ux` | desktop, web | `proposed` | `large` | `F-MULTIMODAL-001` | `RESEARCH-OFANG-001` |
-| `F-WFTRIGGER-001` | 工作流触发器系统 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-HEARTBEAT-001` | 心跳驱动的主动 Agent | `platform` | sdk, desktop | `proposed` | `medium` | `F-WFTRIGGER-001` | `RESEARCH-OFANG-001` |
-| `F-AIMETA-001` | AI 产物元数据标准 | `platform` | sdk, runtime | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-MULTIMODAL-001` | 多模态 AI 能力（TTS/STT/图像/视频生成） | `platform` | runtime, sdk, desktop | `spec-drafted` | `large` | — | `RESEARCH-OFANG-001` |
+| `F-MCP-001` | MCP 协议支持 | `integration` | runtime, sdk, desktop | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-RENDER-001` | 富文本渲染（LaTeX、Mermaid、代码高亮） | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-CODE-001` | 代码块增强（复制、语言检测、行号） | `ux` | desktop, web | `proposed` | `small` | — | `RESEARCH-AUI-001` |
+| `F-SEARCH-001` | Web 搜索集成 | `integration` | runtime, sdk | `proposed` | `medium` | `F-MCP-001` | `RESEARCH-AUI-001` |
+| `F-MARKETPLACE-001` | Mod 市场平台 | `platform` | desktop, web | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-WEBINFER-001` | 浏览器端轻量推理 | `platform` | web, sdk | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-AVATAR-001` | 虚拟形象系统（VRM/Live2D） | `ux` | desktop, web | `proposed` | `large` | `F-MULTIMODAL-001` | `RESEARCH-AUI-001` |
+| `F-WFTRIGGER-001` | 工作流触发器系统 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-HEARTBEAT-001` | 心跳驱动的主动 Agent | `platform` | sdk, desktop | `proposed` | `medium` | `F-WFTRIGGER-001` | `RESEARCH-AUI-001` |
+| `F-AIMETA-001` | AI 产物元数据标准 | `platform` | sdk, runtime | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-MULTIMODAL-001` | 多模态 AI 能力（TTS/STT/图像/视频生成） | `platform` | runtime, sdk, desktop | `spec-drafted` | `large` | — | `RESEARCH-AUI-001` |
 
 ## Medium Priority
 
 | Item ID | Title | Category | Target Layers | Status | Complexity | Depends On | Sources |
 |---|---|---|---|---|---|---|---|
-| `F-RAG-001` | 知识库/RAG 系统 | `platform` | runtime, sdk, desktop | `spec-drafted` | `large` | `F-DOCPROC-001` | `RESEARCH-OFANG-001` |
-| `F-DOCPROC-001` | 文档处理 Pipeline | `platform` | runtime | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-DEVPROBE-001` | 设备能力发现与报告 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-TURNHOOK-001` | turn-hook 精细拦截点增强 | `platform` | sdk, desktop | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-IMGGEN-001` | 专业图像生成 Mod | `integration` | desktop | `proposed` | `large` | `F-MULTIMODAL-001`, `F-AIMETA-001` | `RESEARCH-OFANG-001` |
-| `F-MODELUI-001` | 多 Provider 模型路由 UI | `platform` | desktop, web | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-OAUTH-001` | OAuth/OIDC 登录 | `auth` | runtime, sdk, desktop | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-WFVIS-001` | 工作流可视化 DAG 编辑器 | `platform` | desktop, web | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-HITL-001` | 人工介入工作流节点 | `platform` | runtime, sdk, desktop | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-MODERATION-001` | 内容审核模型类型 | `security` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-RERANK-001` | 多检索策略 + Rerank | `platform` | runtime | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-OFANG-001` |
-| `F-ITER-001` | 工作流迭代/循环节点 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-CITATION-001` | RAG 引用追踪 | `platform` | runtime, sdk, desktop | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-OFANG-001` |
-| `F-MULTIROUTE-001` | 多数据集智能路由 | `platform` | runtime | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-OFANG-001` |
-| `F-CODEEDIT-001` | 内嵌代码编辑器 | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-PROMPTVAR-001` | Prompt 变量模板系统 | `platform` | sdk, desktop | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-CHANGEREQ-001` | 社区协作贡献机制（Change Request） | `platform` | desktop, web | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-LEADERBOARD-001` | 创作者排行榜与游戏化 | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-PROMPTHUB-001` | 外部 Prompt 源集成 | `integration` | sdk, desktop | `proposed` | `medium` | `F-MCP-001` | `RESEARCH-OFANG-001` |
-| `F-MOBILE-001` | 移动端覆盖（iOS/Android） | `platform` | sdk, desktop | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-SOCIALINT-001` | 游戏/社交平台集成 | `integration` | sdk, runtime | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-MULTIAGENT-001` | 多 Agent 群聊编排 | `platform` | runtime, sdk, desktop | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-PERSONA-001` | Markdown 人格/记忆编辑系统 | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-CTXCOMP-001` | 自动上下文压缩 | `platform` | sdk, desktop | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-IMCHAN-001` | IM Channel Mod（钉钉/飞书/Discord） | `integration` | sdk, desktop | `proposed` | `medium` | `F-SOCIALINT-001` | `RESEARCH-OFANG-001` |
-| `F-MERKLE-001` | Merkle 防篡改审计链 | `security` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-OAICOMPAT-001` | OpenAI-Compatible API 兼容层 | `integration` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-MODELCAT-001` | 统一模型目录与路由增强 | `platform` | runtime, sdk, desktop | `proposed` | `medium` | `F-MODELUI-001` | `RESEARCH-OFANG-001` |
+| `F-RAG-001` | 知识库/RAG 系统 | `platform` | runtime, sdk, desktop | `spec-drafted` | `large` | `F-DOCPROC-001` | `RESEARCH-AUI-001` |
+| `F-DOCPROC-001` | 文档处理 Pipeline | `platform` | runtime | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-DEVPROBE-001` | 设备能力发现与报告 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-TURNHOOK-001` | turn-hook 精细拦截点增强 | `platform` | sdk, desktop | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-IMGGEN-001` | 专业图像生成 Mod | `integration` | desktop | `proposed` | `large` | `F-MULTIMODAL-001`, `F-AIMETA-001` | `RESEARCH-AUI-001` |
+| `F-MODELUI-001` | 多 Provider 模型路由 UI | `platform` | desktop, web | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-OAUTH-001` | OAuth/OIDC 登录 | `auth` | runtime, sdk, desktop | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-WFVIS-001` | 工作流可视化 DAG 编辑器 | `platform` | desktop, web | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-HITL-001` | 人工介入工作流节点 | `platform` | runtime, sdk, desktop | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-MODERATION-001` | 内容审核模型类型 | `security` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-RERANK-001` | 多检索策略 + Rerank | `platform` | runtime | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-AUI-001` |
+| `F-ITER-001` | 工作流迭代/循环节点 | `platform` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-CITATION-001` | RAG 引用追踪 | `platform` | runtime, sdk, desktop | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-AUI-001` |
+| `F-MULTIROUTE-001` | 多数据集智能路由 | `platform` | runtime | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-AUI-001` |
+| `F-CODEEDIT-001` | 内嵌代码编辑器 | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-PROMPTVAR-001` | Prompt 变量模板系统 | `platform` | sdk, desktop | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-CHANGEREQ-001` | 社区协作贡献机制（Change Request） | `platform` | desktop, web | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-LEADERBOARD-001` | 创作者排行榜与游戏化 | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-PROMPTHUB-001` | 外部 Prompt 源集成 | `integration` | sdk, desktop | `proposed` | `medium` | `F-MCP-001` | `RESEARCH-AUI-001` |
+| `F-MOBILE-001` | 移动端覆盖（iOS/Android） | `platform` | sdk, desktop | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-SOCIALINT-001` | 游戏/社交平台集成 | `integration` | sdk, runtime | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-MULTIAGENT-001` | 多 Agent 群聊编排 | `platform` | runtime, sdk, desktop | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-PERSONA-001` | Markdown 人格/记忆编辑系统 | `ux` | desktop, web | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-CTXCOMP-001` | 自动上下文压缩 | `platform` | sdk, desktop | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-IMCHAN-001` | IM Channel Mod（钉钉/飞书/Discord） | `integration` | sdk, desktop | `proposed` | `medium` | `F-SOCIALINT-001` | `RESEARCH-AUI-001` |
+| `F-MERKLE-001` | Merkle 防篡改审计链 | `security` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-OAICOMPAT-001` | OpenAI-Compatible API 兼容层 | `integration` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-MODELCAT-001` | 统一模型目录与路由增强 | `platform` | runtime, sdk, desktop | `proposed` | `medium` | `F-MODELUI-001` | `RESEARCH-AUI-001` |
 | `F-AGUI-001` | Agent 声明式 UI Surface 协议 | `integration` | runtime, sdk, desktop, web | `proposed` | `large` | — | `RESEARCH-AUI-001` |
 | `F-AGUI-002` | Agent UI Path Binding 与 Generic Binder | `platform` | sdk, desktop, web | `proposed` | `medium` | `F-AGUI-001` | `RESEARCH-AUI-001` |
 | `F-AGUI-003` | Agent UI 安全组件目录与富文本硬化 | `security` | sdk, desktop, web | `proposed` | `medium` | `F-AGUI-001` | `RESEARCH-AUI-001` |
@@ -58,20 +58,20 @@
 
 | Item ID | Title | Category | Target Layers | Status | Complexity | Depends On | Sources |
 |---|---|---|---|---|---|---|---|
-| `F-EMBED-001` | 内容嵌入预览（Embed） | `ux` | web | `proposed` | `small` | — | `RESEARCH-OFANG-001` |
-| `F-WEBHOOK-001` | Webhook 事件通知 | `integration` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-SANDBOX-001` | 代码执行沙箱 | `platform` | runtime | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-CRDT-001` | 协作编辑 | `ux` | sdk, desktop, web | `proposed` | `large` | — | `RESEARCH-OFANG-001` |
-| `F-SCIM-001` | SCIM 企业用户配置 | `auth` | runtime, sdk | `proposed` | `medium` | `F-OAUTH-001` | `RESEARCH-OFANG-001` |
-| `F-EMBEDCACHE-001` | 嵌入向量缓存 | `platform` | runtime | `proposed` | `small` | `F-RAG-001` | `RESEARCH-OFANG-001` |
-| `F-METAFILTER-001` | LLM 驱动元数据过滤 | `platform` | runtime | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-OFANG-001` |
-| `F-LITESDK-001` | 超轻量 AI SDK | `platform` | sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-IDEEXT-001` | IDE 开发者扩展 | `integration` | sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-SDENGINE-001` | Stable Diffusion 引擎集成 | `integration` | runtime | `proposed` | `large` | `F-IMGGEN-001` | `RESEARCH-OFANG-001` |
-| `F-MODELMART-001` | 模型/LoRA/工作流交易市场 | `platform` | desktop, web | `proposed` | `large` | `F-MARKETPLACE-001` | `RESEARCH-OFANG-001` |
-| `F-VRAMGOV-001` | 模型级显存仲裁 | `platform` | runtime | `proposed` | `large` | `F-DEVPROBE-001` | `RESEARCH-OFANG-001` |
-| `F-OTEL-001` | OpenTelemetry 可观测性 | `observability` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-OFANG-001` |
-| `F-ATA-001` | Agent-to-Agent 跨实例通信协议 | `integration` | runtime, sdk | `proposed` | `large` | `F-MCP-001` | `RESEARCH-OFANG-001` |
+| `F-EMBED-001` | 内容嵌入预览（Embed） | `ux` | web | `proposed` | `small` | — | `RESEARCH-AUI-001` |
+| `F-WEBHOOK-001` | Webhook 事件通知 | `integration` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-SANDBOX-001` | 代码执行沙箱 | `platform` | runtime | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-CRDT-001` | 协作编辑 | `ux` | sdk, desktop, web | `proposed` | `large` | — | `RESEARCH-AUI-001` |
+| `F-SCIM-001` | SCIM 企业用户配置 | `auth` | runtime, sdk | `proposed` | `medium` | `F-OAUTH-001` | `RESEARCH-AUI-001` |
+| `F-EMBEDCACHE-001` | 嵌入向量缓存 | `platform` | runtime | `proposed` | `small` | `F-RAG-001` | `RESEARCH-AUI-001` |
+| `F-METAFILTER-001` | LLM 驱动元数据过滤 | `platform` | runtime | `proposed` | `medium` | `F-RAG-001` | `RESEARCH-AUI-001` |
+| `F-LITESDK-001` | 超轻量 AI SDK | `platform` | sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-IDEEXT-001` | IDE 开发者扩展 | `integration` | sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-SDENGINE-001` | Stable Diffusion 引擎集成 | `integration` | runtime | `proposed` | `large` | `F-IMGGEN-001` | `RESEARCH-AUI-001` |
+| `F-MODELMART-001` | 模型/LoRA/工作流交易市场 | `platform` | desktop, web | `proposed` | `large` | `F-MARKETPLACE-001` | `RESEARCH-AUI-001` |
+| `F-VRAMGOV-001` | 模型级显存仲裁 | `platform` | runtime | `proposed` | `large` | `F-DEVPROBE-001` | `RESEARCH-AUI-001` |
+| `F-OTEL-001` | OpenTelemetry 可观测性 | `observability` | runtime, sdk | `proposed` | `medium` | — | `RESEARCH-AUI-001` |
+| `F-ATA-001` | Agent-to-Agent 跨实例通信协议 | `integration` | runtime, sdk | `proposed` | `large` | `F-MCP-001` | `RESEARCH-AUI-001` |
 
 ## Architecture Notes
 

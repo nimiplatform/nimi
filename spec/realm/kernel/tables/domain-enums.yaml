@@ -1,5 +1,5 @@
 version: 1
-updated_at: 2026-03-25
+updated_at: 2026-03-26
 owner: '@team'
 enums:
   - enum_id: STATE-SCOPE
@@ -82,7 +82,7 @@ enums:
   - enum_id: OWNABLE-ASSET-ORIGIN
     domain: asset
     values: [ORIGINAL, CLONE, DERIVED]
-    source_rules: [R-ASSET-101, R-ASSET-103]
+    source_rules: [R-ASSET-101]
   - enum_id: OWNABLE-ASSET-POLICY
     domain: asset
     values: [ALLOW, DENY, INHERIT]

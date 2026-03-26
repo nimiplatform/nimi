@@ -3,7 +3,7 @@ id: SPEC-REALM-SOCIAL-001
 title: Realm Social Domain
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-03-26
 ---
 
 # Realm Social Domain
@@ -27,7 +27,4 @@ No duplicate rule prose beyond kernel references.
 
 ## Relationship Boundary
 
-- `Friendship` is the normative V1 social graph for `R-SOC-001`.
-- `Friendship` owns user-visible friend state and admission facts.
-- `AccountRelationship` is a separate extension graph for richer semantics such as partner, business, ally, rival, or enemy edges.
-- `AccountRelationship` does not replace `Friendship` and must not be used as proof for friendship or app admission rules.
+`Friendship` 是 `R-SOC-001` 当前唯一的规范性 social graph。任何 richer relationship graph（包括但不限于 `AccountRelationship`）在缺少新的 `R-SOC-*` kernel 规则前，都只能视为产品层或 backend 私有扩展，不得作为 friendship、chat admission、或 realm-level social truth 的证明。

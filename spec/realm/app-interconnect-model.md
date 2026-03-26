@@ -3,7 +3,7 @@ id: SPEC-REALM-APP-INTERCONNECT-001
 title: Realm App Interconnect Model Bridge
 status: active
 owner: "@team"
-updated: 2026-03-25
+updated: 2026-03-26
 ---
 
 # Realm App Interconnect Model
@@ -15,15 +15,18 @@ updated: 2026-03-25
 - `kernel/world-history-contract.md` (`R-WHIST-001..006`)
 - `kernel/agent-memory-contract.md` (`R-MEM-001..006`)
 - `kernel/chat-contract.md` (`R-CHAT-001..005`)
+- `kernel/resource-contract.md` (`R-RSRC-001..006`)
 - `kernel/social-contract.md` (`R-SOC-001..004`)
 - `kernel/economy-contract.md` (`R-ECON-001..004`)
+- `kernel/attachment-contract.md` (`R-ATTACH-001..004`)
 - `kernel/asset-contract.md` (`R-ASSET-101..105`)
+- `kernel/bundle-contract.md` (`R-BNDL-001..004`)
 - `kernel/transit-contract.md` (`R-TRANSIT-001..006`)
 - `spec/platform/ai-last-mile.md`
 
 ## Scope
 
-Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set without introducing a second rule system in open spec.
+Bridge-only document. It mirrors the hard-cut realm interconnect semantics exposed by the local canonical contract set without introducing a second rule system in open spec. `R-BIND-*` remains intentionally excluded here until the upstream binding contract text is provided and mirrored verbatim.
 
 ## Mapping Declaration
 
@@ -34,9 +37,12 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 | `R-WHIST-001..006` | `R-WHIST-001..006` |
 | `R-MEM-001..006` | `R-MEM-001..006` |
 | `R-CHAT-001..005` | `R-CHAT-001..005` |
+| `R-RSRC-001..006` | `R-RSRC-001..006` |
 | `R-SOC-001..004` | `R-SOC-001..004` |
 | `R-ECON-001..004` | `R-ECON-001..004` |
+| `R-ATTACH-001..004` | `R-ATTACH-001..004` |
 | `R-ASSET-101..105` | `R-ASSET-101..105` |
+| `R-BNDL-001..004` | `R-BNDL-001..004` |
 | `R-TRANSIT-001..006` | `R-TRANSIT-001..006` |
 
 ## Reading Path
@@ -47,11 +53,14 @@ Bridge-only document. It mirrors the hard-cut realm interconnect semantics expos
 4. `kernel/world-history-contract.md`
 5. `kernel/agent-memory-contract.md`
 6. `kernel/chat-contract.md`
-7. `kernel/social-contract.md`
-8. `kernel/economy-contract.md`
-9. `kernel/asset-contract.md`
-10. `kernel/transit-contract.md`
-11. `spec/platform/ai-last-mile.md`
+7. `kernel/resource-contract.md`
+8. `kernel/social-contract.md`
+9. `kernel/economy-contract.md`
+10. `kernel/attachment-contract.md`
+11. `kernel/asset-contract.md`
+12. `kernel/bundle-contract.md`
+13. `kernel/transit-contract.md`
+14. `spec/platform/ai-last-mile.md`
 
 ## Non-goals
 

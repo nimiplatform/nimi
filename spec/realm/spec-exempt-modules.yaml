@@ -1,9 +1,10 @@
 version: 2026-03-25
 owner: '@team'
 description: >
-  Registry of backend API modules that are NOT governed by active Realm Kernel Spec rules
-  but are required for product functionality. These modules are infrastructure or
-  product features outside the core world/agent/social/economy/chat domains.
+  Registry of currently registered external backend API modules that are NOT governed by
+  active Realm Kernel Spec rules but are required for product functionality. This list
+  is a maintained exempt registry for modules observed from the current workspace, not a
+  claim of exhaustive backend coverage.
 
 modules:
   - module: ExploreModule

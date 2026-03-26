@@ -10,7 +10,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: Runtime 需实现 MCP server/client 双向支持；SDK 暴露 MCP tool
     注册接口；Desktop 提供 MCP 服务器管理 UI。影响 runtime gRPC 面和
@@ -28,7 +28,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 前端集成 KaTeX/MathJax、Mermaid 渲染器、代码高亮库。
     需统一 Markdown 渲染管道，支持按需加载。
@@ -41,7 +41,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: small
   architecture_notes: 扩展现有 Markdown 渲染的代码块组件，添加复制按钮、
     语言自动检测、行号显示。纯前端变更。
@@ -54,7 +54,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-MCP-001
@@ -69,7 +69,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: 构建 Mod 分发市场，支持 Mod 搜索、安装、评分、版本管理。
     是 Mod 生态增长的核心基础设施。需与 Mod 治理链（签名验证、审计）集成。
@@ -84,7 +84,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: 通过 WebGPU / ONNX Runtime / Transformers.js 实现浏览器内
     轻量 AI 推理，降低非技术用户上手门槛——浏览器打开即可体验核心功能，
@@ -101,7 +101,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   depends_on:
   - F-MULTIMODAL-001
@@ -119,7 +119,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 工作流增加显式触发器支持：Webhook（外部事件驱动）、
     Schedule（定时触发）、Plugin/Mod（扩展触发）。当前 Nimi 仅支持 SDK 显式调用
@@ -135,7 +135,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-WFTRIGGER-001
@@ -157,7 +157,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: SDK 层定义统一的 AI 产物元数据格式，所有 AI 生成内容
     （图像、音频、视频、文本）嵌入生成参数元数据，支持"一键复现"。
@@ -179,7 +179,7 @@ items:
   - desktop
   status: spec-drafted
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: Runtime 扩展 AI 推理管道支持多模态输入输出：TTS（文字转语音）、
     STT（语音转文字）、图像生成/理解、视频生成。SDK 暴露多模态调用接口；
@@ -197,7 +197,7 @@ items:
   - desktop
   status: spec-drafted
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   depends_on:
   - F-DOCPROC-001
@@ -211,7 +211,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 新增文档解析管道，支持 PDF/DOCX/HTML 提取。
     作为 RAG 的前置依赖，独立于检索系统。
@@ -224,7 +224,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 增加设备能力发现 RPC，向 SDK/App 层报告本地硬件环境信息：
     GPU 型号、显存容量、支持的精度（FP16/BF16/FP8）、可用计算后端
@@ -245,7 +245,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 增强 nimi-hook 的 turn-hook 子系统，增加 streaming chunk 级别
     和 tool call 级别的精细拦截点。当前 turn-hook 在对话级别操作，无法在推理
@@ -264,7 +264,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   depends_on:
   - F-MULTIMODAL-001
@@ -287,7 +287,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 前端增强模型选择器，展示多 provider 来源、模型能力、
     价格信息。依赖 SDK 已有的 provider 能力查询接口。
@@ -301,7 +301,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: Runtime AuthService 扩展 OAuth2/OIDC 登录流；
     SDK 增加 OAuth token 交换；Desktop 集成 OAuth 回调。
@@ -315,7 +315,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: 前端引入 DAG 可视化编辑器（基于 React Flow 或类似库），
     支持节点拖拽、连线、配置。依赖 RuntimeWorkflowService 契约。
@@ -332,7 +332,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 工作流引擎增加 human-in-the-loop 节点类型；
     SDK 暴露审批/介入 API；Desktop 提供介入通知和操作 UI。
@@ -345,7 +345,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 新增 moderation 模型类型，支持输入/输出审核；
     集成到对话管道的 pre/post 处理阶段。
@@ -357,7 +357,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-RAG-001
@@ -372,7 +372,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 工作流引擎增加 Iteration（并行迭代）和 Loop
     （顺序循环）节点类型，支持数组并行处理，是批量任务场景必需能力。
@@ -387,7 +387,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-RAG-001
@@ -402,7 +402,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-RAG-001
@@ -418,7 +418,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 集成 Monaco Editor 或同类代码编辑器，用于工作流脚本节点编辑、
     Mod 开发调试、配置文件编辑等场景。应提供完整的代码编辑体验（语法高亮、
@@ -433,7 +433,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Agent System Prompt 支持动态变量占位符，语法 ${name} 和
     ${name:default}。SDK 提供变量检测（detect）、编译（compile）、规范化
@@ -449,7 +449,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 为 World 和 Mod 增加 PR 式社区改进提议。非作者用户可对公开
     World/Mod 提交 Change Request（包含修改内容、理由说明），作者审核后决定
@@ -464,7 +464,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Mod Circle 和 World 展示创作者排行榜，排序维度包括总投票数和
     人均质量（votes/count），支持全部/月/周时间筛选。排行榜激励高质量
@@ -480,7 +480,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-MCP-001
@@ -498,7 +498,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: 通过 Capacitor 或 Tauri Mobile 将桌面 renderer 扩展到
     iOS/Android，实现全平台覆盖（Web + Desktop + Mobile），尽可能复用单一
@@ -514,7 +514,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: 以 Mod 或独立 service 形式提供主流平台集成：Discord Bot、
     Telegram Bot、Minecraft 插件、Bilibili 直播互动等。AI 角色可在这些平台中
@@ -531,7 +531,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: 支持多个 AI Agent 角色与真人用户在同一对话中交互。Runtime 需管理
     多 Agent 并发推理调度（发言顺序、注意力分配、角色一致性维护）。
@@ -546,7 +546,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Desktop Agent 配置面板提供 Markdown 编辑器，让用户以自然语言
     编辑 Agent 的人格描述、行为规则和用户画像。通过人格定义、行为规则、
@@ -564,7 +564,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: SDK/Desktop 层实现对话上下文自动压缩。当对话 token 数接近模型
     上下文窗口限制时（如 70% 阈值），自动调用 LLM 生成历史摘要，替换旧消息，
@@ -581,7 +581,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-SOCIALINT-001
@@ -602,7 +602,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: small
   architecture_notes: 支持将 World/Agent 的预览卡片通过 iframe 嵌入外部网站，
     用于推广和分享。提供 Embed 设计器 UI，可配置主题（亮/暗/自动）、主色调、
@@ -617,7 +617,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 平台事件（Mod 安装/更新、World 发布/变更、审计告警等）通过
     出站 HTTP Webhook 通知外部系统。管理员配置 Webhook URL、触发事件类型、
@@ -631,7 +631,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-  - RESEARCH-OFANG-001
+  - RESEARCH-AUI-001
   complexity: large
   architecture_notes: Runtime 提供安全的代码执行环境，支持 Python/JS。
     实现路径选项：(1) 容器化沙箱（Docker/nsjail）——隔离性最强但依赖
@@ -658,7 +658,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   architecture_notes: 基于 CRDT 的多人协作编辑。CRDT 库选型：Yjs（JS 生态最成熟，
     支持 y-webrtc/y-websocket 多种 provider）或 Automerge（更纯粹的 CRDT 实现，
@@ -678,7 +678,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-OAUTH-001
@@ -692,7 +692,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: small
   depends_on:
   - F-RAG-001
@@ -707,7 +707,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-RAG-001
@@ -722,7 +722,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 减少 SDK 打包体积（当前依赖 Vercel AI SDK，体积较大），
     支持更多 JS 运行时（Cloudflare Workers、Deno、Bun 等边缘环境）。
@@ -736,7 +736,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: 开发 VS Code 扩展，让开发者在 IDE 中即可与 Nimi AI 交互、
     调试 Mod、预览工作流。扩展通过 SDK headless 模式连接本地 Runtime，提供
@@ -750,7 +750,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   depends_on:
   - F-IMGGEN-001
@@ -773,7 +773,7 @@ items:
   - web
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   depends_on:
   - F-MARKETPLACE-001
@@ -794,7 +794,7 @@ items:
   - runtime
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: large
   depends_on:
   - F-DEVPROBE-001
@@ -815,7 +815,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-    - RESEARCH-OFANG-001
+    - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 和 SDK 集成 OpenTelemetry traces/metrics/logs。
     Runtime Go 侧使用 otel-go SDK，TypeScript SDK 侧使用 @opentelemetry/api。
@@ -828,7 +828,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-  - RESEARCH-OFANG-001
+  - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 审计日志增加 Merkle hash chain 防篡改能力。当前 Nimi
     的 RuntimeAuditService 基于事件总线记录审计事件，但日志本身可被修改或删除，
@@ -848,7 +848,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-  - RESEARCH-OFANG-001
+  - RESEARCH-AUI-001
   complexity: medium
   architecture_notes: Runtime 暴露 OpenAI-compatible REST API（/v1/chat/completions、
     /v1/models、/v1/embeddings），作为 gRPC 之外的可选接入方式，降低开发者
@@ -872,7 +872,7 @@ items:
   - sdk
   status: proposed
   source_ids:
-  - RESEARCH-OFANG-001
+  - RESEARCH-AUI-001
   complexity: large
   depends_on:
   - F-MCP-001
@@ -896,7 +896,7 @@ items:
   - desktop
   status: proposed
   source_ids:
-  - RESEARCH-OFANG-001
+  - RESEARCH-AUI-001
   complexity: medium
   depends_on:
   - F-MODELUI-001

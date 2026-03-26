@@ -3,7 +3,7 @@ id: SPEC-REALM-TRUTH-001
 title: Realm Truth Domain
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-03-26
 ---
 
 # Realm Truth Domain
@@ -11,7 +11,7 @@ updated: 2026-03-23
 ## Normative Imports
 
 - `kernel/truth-contract.md`: `R-TRUTH-001..006` defines the canonical rule of truth core; `R-TRUTH-007..008` extend the same contract for `OASIS` and the formal read surface.
-- Kernel import anchor: `kernel/truth-contract.md`, `r-truth-001..006`.
+- Kernel import anchor: `kernel/truth-contract.md`, `R-TRUTH-001..006`.
 
 ## Scope
 

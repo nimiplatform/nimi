@@ -3,7 +3,7 @@ id: SPEC-REALM-CREATOR-REVENUE-POLICY-001
 title: Realm Creator Revenue Policy Bridge
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-03-26
 ---
 
 # Creator Revenue Policy
@@ -14,7 +14,7 @@ updated: 2026-03-23
 
 ## Scope
 
-Bridge-only policy alignment. This file preserves the legacy open revenue anchors while mapping them onto the current kernel execution anchors and tables.
+Bridge-only policy alignment. This file preserves the legacy open revenue anchors as compatibility labels only while mapping them onto the current kernel execution anchors and tables. The legacy anchors below do not create a second active `R-ECON-*` rule family.
 
 ## Mapping Declaration
 

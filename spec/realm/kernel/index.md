@@ -3,7 +3,7 @@ id: SPEC-REALM-KERNEL-INDEX-001
 title: Realm Kernel Index
 status: active
 owner: "@team"
-updated: 2026-03-25
+updated: 2026-03-26
 ---
 
 # Realm Kernel Index
@@ -15,26 +15,33 @@ updated: 2026-03-25
 - `world-history-contract.md` (`R-WHIST-*`)
 - `agent-memory-contract.md` (`R-MEM-*`)
 - `chat-contract.md` (`R-CHAT-*`)
+- `resource-contract.md` (`R-RSRC-*`)
 - `attachment-contract.md` (`R-ATTACH-*`)
 - `social-contract.md` (`R-SOC-*`)
 - `economy-contract.md` (`R-ECON-*`)
 - `asset-contract.md` (`R-ASSET-*`)
+- `bundle-contract.md` (`R-BNDL-*`)
 - `transit-contract.md` (`R-TRANSIT-*`)
+
+`R-BIND-*` 对应的 binding contract / enums / alignment 条目当前不在本仓反推，必须等待上游权威正文后再同步；在此之前以 `tables/under-spec-registry.yaml` 记录阻塞状态。
 
 ## Tables
 
 - `tables/rule-catalog.yaml`
 - `tables/rule-evidence.yaml`
 - `tables/commit-authorization-matrix.yaml`
+- `tables/object-write-authorization.yaml`
 - `tables/truth-contract.yaml`
 - `tables/world-state-contract.yaml`
 - `tables/world-history-contract.yaml`
 - `tables/agent-memory-contract.yaml`
 - `tables/chat-contract.yaml`
+- `tables/resource-contract.yaml`
 - `tables/attachment-contract.yaml`
 - `tables/social-contract.yaml`
 - `tables/economy-contract.yaml`
 - `tables/asset-contract.yaml`
+- `tables/bundle-contract.yaml`
 - `tables/transit-contract.yaml`
 - `tables/domain-enums.yaml`
 - `tables/domain-state-machines.yaml`
@@ -47,15 +54,18 @@ updated: 2026-03-25
 - `generated/rule-catalog.md`
 - `generated/rule-evidence.md`
 - `generated/commit-authorization-matrix.md`
+- `generated/object-write-authorization.md`
 - `generated/truth-contract.md`
 - `generated/world-state-contract.md`
 - `generated/world-history-contract.md`
 - `generated/agent-memory-contract.md`
 - `generated/chat-contract.md`
+- `generated/resource-contract.md`
 - `generated/attachment-contract.md`
 - `generated/social-contract.md`
 - `generated/economy-contract.md`
 - `generated/asset-contract.md`
+- `generated/bundle-contract.md`
 - `generated/transit-contract.md`
 - `generated/domain-enums.md`
 - `generated/domain-state-machines.md`

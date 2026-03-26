@@ -3,7 +3,7 @@ id: SPEC-REALM-AGENT-001
 title: Realm Agent Domain
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-03-26
 ---
 
 # Realm Agent Boundary
@@ -12,7 +12,7 @@ updated: 2026-03-23
 
 - `kernel/truth-contract.md`: `R-TRUTH-001..008`
 - `kernel/agent-memory-contract.md`: `R-MEM-001..006`
-- `kernel/world-state-contract.md`: `R-WSTATE-002..004`
+- `kernel/world-state-contract.md`: `R-WSTATE-002..004`（仅导入当前共享状态投影边界；`R-WSTATE-005..006` 的 app 授权矩阵属于 world-state 写入治理，不在 Agent 域内重述）
 
 ## Scope
 

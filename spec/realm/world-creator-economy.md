@@ -3,7 +3,7 @@ id: SPEC-REALM-WORLD-CREATOR-ECONOMY-001
 title: Realm World Creator Economy Bridge
 status: active
 owner: "@team"
-updated: 2026-03-23
+updated: 2026-03-26
 ---
 
 # World Creator Economy
@@ -14,7 +14,7 @@ updated: 2026-03-23
 
 ## Scope
 
-Bridge-only document for creator economy semantics. Kernel authority remains in `spec/realm/kernel/economy-contract.md`; this file preserves the legacy open bridge anchors while mirroring the local hard-cut semantics.
+Bridge-only document for creator economy semantics. Kernel authority remains in `spec/realm/kernel/economy-contract.md`; this file preserves the legacy open bridge anchors as compatibility labels while mirroring the local hard-cut semantics.
 
 ## Mapping Declaration
 
