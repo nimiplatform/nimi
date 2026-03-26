@@ -1,9 +1,7 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initI18n } from '@renderer/i18n';
-import { App as LandingApp } from './landing/App.js';
 import { isWebShellHashRoute } from './site-entry-hash.js';
-import { PostPermalinkPage } from './post-permalink-page.js';
 import { installBundledImportMetaEnv } from './import-meta-env.js';
 import './web-styles.css';
 import './landing/styles.css';
@@ -17,6 +15,16 @@ const WebShellApp = lazy(async () => {
   await appI18nInitPromise;
   const mod = await import('@renderer/App');
   return { default: mod.default };
+});
+
+const PostPermalinkPage = lazy(async () => {
+  const mod = await import('./post-permalink-page.js');
+  return { default: mod.PostPermalinkPage };
+});
+
+const LandingApp = lazy(async () => {
+  const mod = await import('./landing/App.js');
+  return { default: mod.App };
 });
 
 function SiteEntry() {
@@ -44,7 +52,11 @@ function SiteEntry() {
   }
 
   if (!isWebShellHashRoute(hash)) {
-    return <LandingApp />;
+    return (
+      <Suspense fallback={null}>
+        <LandingApp />
+      </Suspense>
+    );
   }
 
   return (
