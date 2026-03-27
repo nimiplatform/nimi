@@ -1,4 +1,4 @@
-version: 2026-03-25
+version: 2026-03-28
 owner: '@team'
 description: >
   Registry of currently registered external backend API modules that are NOT governed by
@@ -16,6 +16,46 @@ modules:
     path: nimi-backend/apps/api/src/modules/invitation
     reason: Invitation system for user onboarding; not in kernel scope
     product_area: growth
+
+  - module: AdminApiModule
+    path: nimi-backend/apps/api/src/modules/@admin
+    reason: Backoffice moderation, user operations, and system audit surfaces; not an active realm kernel domain
+    product_area: admin-ops
+
+  - module: AuthModule
+    path: nimi-backend/apps/api/src/modules/auth
+    reason: Account authentication, OAuth, password login, and session cookies live outside realm kernel contracts
+    product_area: identity
+
+  - module: CreatorModule
+    path: nimi-backend/apps/api/src/modules/creator
+    reason: Creator API keys and creator-scoped agent management are product tooling surfaces, not kernel-governed realm objects
+    product_area: creator-tooling
+
+  - module: CreatorSurfaceModule
+    path: nimi-backend/apps/api/src/modules/creator-surface
+    reason: Creator control-plane routes for mod grants, revocations, and manifest/signature verification are outside active realm kernel scope
+    product_area: creator-tooling
+
+  - module: DesktopModule
+    path: nimi-backend/apps/api/src/modules/desktop
+    reason: Desktop-specific chat route policy is an integration surface outside realm kernel contracts
+    product_area: desktop-integration
+
+  - module: DiscoverModule
+    path: nimi-backend/apps/api/src/modules/discover
+    reason: Personalized recommendation/feed aggregation surface is not governed by active realm kernel rules
+    product_area: discovery
+
+  - module: DiscoveryEngineApiModule
+    path: nimi-backend/apps/api/src/modules/discovery-engine
+    reason: API wiring layer for the discovery engine domain is outside active realm kernel scope
+    product_area: discovery
+
+  - module: HumanModule
+    path: nimi-backend/apps/api/src/modules/human
+    reason: Human NSFW consent and account-side human settings are product policy surfaces outside kernel scope
+    product_area: account-safety
 
   - module: WorldSurfaceModule
     path: nimi-backend/apps/api/src/modules/world-surface
@@ -42,15 +82,75 @@ modules:
     reason: Push notification delivery; not in kernel scope
     product_area: infrastructure
 
+  - module: RelationshipModule
+    path: nimi-backend/apps/api/src/modules/relationship
+    reason: Meta-graph account relationship APIs extend beyond the active friendship-only social kernel rules
+    product_area: social-graph
+
+  - module: RuntimeSurfaceModule
+    path: nimi-backend/apps/api/src/modules/runtime-surface
+    reason: Runtime control-plane and realm grant issuance are execution-plane integration surfaces, not realm kernel domains
+    product_area: runtime-control-plane
+
+  - module: SupportModule
+    path: nimi-backend/apps/api/src/modules/support
+    reason: Feedback and support intake flows are product support surfaces outside kernel scope
+    product_area: support
+
+  - module: VisibilityModule
+    path: nimi-backend/apps/api/src/modules/visibility
+    reason: User/account visibility preferences and DM eligibility checks are policy surfaces outside active realm kernel rules
+    product_area: privacy
+
   - module: DiscoveryEngineModule
     path: nimi-backend/libs/domains/discovery-engine
     reason: Recommendation/embedding engine; not in kernel scope
     product_area: discovery
 
+  - module: AccessControlDomain
+    path: nimi-backend/libs/domains/access-control
+    reason: Shared visibility and interaction authorization helpers sit outside active realm kernel contracts
+    product_area: access-control
+
+  - module: DesktopDomain
+    path: nimi-backend/libs/domains/desktop
+    reason: Desktop routing policy logic is a client-integration domain rather than a realm kernel domain
+    product_area: desktop-integration
+
   - module: GovernanceModule
     path: nimi-backend/apps/api/src/modules/governance
     reason: Content moderation/reporting; not in kernel scope
     product_area: trust-safety
+
+  - module: GovernanceDomain
+    path: nimi-backend/libs/domains/governance
+    reason: Moderation and reporting domain services are trust-safety surfaces outside active realm kernel rules
+    product_area: trust-safety
+
+  - module: NotificationDomain
+    path: nimi-backend/libs/domains/notification
+    reason: Notification orchestration domain is delivery infrastructure, not a realm kernel contract surface
+    product_area: infrastructure
+
+  - module: SocialDomain
+    path: nimi-backend/libs/domains/social
+    reason: Creator unlock, NSFW consent, and default visibility logic extend beyond the active friendship-only social kernel rules
+    product_area: social-policy
+
+  - module: SupportDomain
+    path: nimi-backend/libs/domains/support
+    reason: Feedback/support domain services are outside active realm kernel scope
+    product_area: support
+
+  - module: TierDomain
+    path: nimi-backend/libs/domains/tier
+    reason: Subscription tier calculation and lookup are product entitlement logic outside active realm kernel rules
+    product_area: monetization
+
+  - module: TranslationDomain
+    path: nimi-backend/libs/domains/translation
+    reason: Translation provider orchestration and caching are i18n infrastructure outside active realm kernel scope
+    product_area: i18n
 
   - module: CoreModule
     path: nimi-backend/libs/core
