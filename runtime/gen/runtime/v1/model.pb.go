@@ -596,6 +596,7 @@ func (x *RemoveModelRequest) GetModelId() string {
 type CheckModelHealthRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	AppId         string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -633,6 +634,13 @@ func (*CheckModelHealthRequest) Descriptor() ([]byte, []int) {
 func (x *CheckModelHealthRequest) GetModelId() string {
 	if x != nil {
 		return x.ModelId
+	}
+	return ""
+}
+
+func (x *CheckModelHealthRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
 	}
 	return ""
 }
@@ -744,9 +752,10 @@ const file_runtime_v1_model_proto_rawDesc = "" +
 	"reasonCode\"F\n" +
 	"\x12RemoveModelRequest\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x19\n" +
-	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"4\n" +
+	"\bmodel_id\x18\x02 \x01(\tR\amodelId\"K\n" +
 	"\x17CheckModelHealthRequest\x12\x19\n" +
-	"\bmodel_id\x18\x01 \x01(\tR\amodelId\"\x93\x01\n" +
+	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x12\x15\n" +
+	"\x06app_id\x18\x02 \x01(\tR\x05appId\"\x93\x01\n" +
 	"\x18CheckModelHealthResponse\x12\x18\n" +
 	"\ahealthy\x18\x01 \x01(\bR\ahealthy\x12<\n" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +

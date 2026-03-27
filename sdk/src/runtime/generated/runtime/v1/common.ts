@@ -383,6 +383,20 @@ export enum ReasonCode {
      */
     AI_LOCAL_MANIFEST_SCHEMA_INVALID = 363,
     /**
+     * LOCAL_SERVICE family (364+)
+     *
+     * @generated from protobuf enum value: AI_LOCAL_SERVICE_UNAVAILABLE = 364;
+     */
+    AI_LOCAL_SERVICE_UNAVAILABLE = 364,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SERVICE_ALREADY_INSTALLED = 365;
+     */
+    AI_LOCAL_SERVICE_ALREADY_INSTALLED = 365,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_SERVICE_INVALID_TRANSITION = 366;
+     */
+    AI_LOCAL_SERVICE_INVALID_TRANSITION = 366,
+    /**
      * FINISH family (370+)
      *
      * @generated from protobuf enum value: AI_FINISH_LENGTH = 370;

@@ -96,10 +96,14 @@ func exitIfCommandError(command string, err error) {
 }
 
 func normalizeRootArgs(args []string) []string {
-	if len(args) > 1 && args[1] == "--" {
-		normalized := make([]string, 0, len(args)-1)
+	firstArg := 1
+	for firstArg < len(args) && args[firstArg] == "--" {
+		firstArg++
+	}
+	if firstArg > 1 {
+		normalized := make([]string, 0, len(args)-(firstArg-1))
 		normalized = append(normalized, args[0])
-		normalized = append(normalized, args[2:]...)
+		normalized = append(normalized, args[firstArg:]...)
 		return normalized
 	}
 	return args
@@ -174,7 +178,10 @@ func runTopLevelRun(args []string) error {
 		healthResp, healthErr := entrypoint.CheckModelHealthGRPC(
 			cfg.GRPCAddr,
 			minDuration(timeout, 3*time.Second),
-			&runtimev1.CheckModelHealthRequest{ModelId: modelID},
+			&runtimev1.CheckModelHealthRequest{
+				AppId:   onboardingAppID,
+				ModelId: modelID,
+			},
 			onboardingAppID,
 		)
 		if healthErr != nil {
@@ -245,14 +252,8 @@ func runTopLevelRun(args []string) error {
 			if err != nil {
 				return err
 			}
-			configPath, savedTarget, saveErr := saveInlineProviderAPIKey(target.ProviderName, apiKey)
-			if saveErr != nil {
-				return saveErr
-			}
-			providerTarget = savedTarget
-			target.ProviderEndpoint = resolveProviderEndpoint(target.ProviderName, savedTarget)
 			if !*jsonOutput {
-				fmt.Printf("Saved %s API key to %s.\n", target.ProviderName, configPath)
+				fmt.Printf("Using pasted %s API key for this run only. Persist credentials with '%s'.\n", target.ProviderName, cloudCredentialSetupCommand(target.ProviderName, *cloudTarget))
 			}
 		}
 		endpoint := target.ProviderEndpoint

@@ -104,17 +104,17 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalM
 func (s *Service) updateServiceStatus(serviceID string, status runtimev1.LocalServiceStatus, detail string) (*runtimev1.LocalServiceDescriptor, error) {
 	id := strings.TrimSpace(serviceID)
 	if id == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
 	now := nowISO()
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	current := cloneServiceDescriptor(s.services[id])
 	if current == nil {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
 	if !isValidServiceTransition(current.GetStatus(), status) {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION)
 	}
 	current.Status = status
 	current.UpdatedAt = now

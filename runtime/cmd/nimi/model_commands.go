@@ -233,6 +233,7 @@ func runRuntimeModelHealth(args []string) error {
 	}
 	callerMeta := runtimeAICallerMetadataFromFlags(*callerKind, *callerID, *surfaceID, *traceID)
 	resp, err := entrypoint.CheckModelHealthGRPC(*grpcAddr, timeout, &runtimev1.CheckModelHealthRequest{
+		AppId:   strings.TrimSpace(*appID),
 		ModelId: strings.TrimSpace(*modelID),
 	}, strings.TrimSpace(*appID), callerMeta)
 	if err != nil {

@@ -193,6 +193,10 @@ export interface CheckModelHealthRequest {
      * @generated from protobuf field: string model_id = 1
      */
     modelId: string;
+    /**
+     * @generated from protobuf field: string app_id = 2
+     */
+    appId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CheckModelHealthResponse
@@ -773,12 +777,14 @@ export const RemoveModelRequest = new RemoveModelRequest$Type();
 class CheckModelHealthRequest$Type extends MessageType<CheckModelHealthRequest> {
     constructor() {
         super("nimi.runtime.v1.CheckModelHealthRequest", [
-            { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CheckModelHealthRequest>): CheckModelHealthRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.modelId = "";
+        message.appId = "";
         if (value !== undefined)
             reflectionMergePartial<CheckModelHealthRequest>(this, message, value);
         return message;
@@ -790,6 +796,9 @@ class CheckModelHealthRequest$Type extends MessageType<CheckModelHealthRequest> 
             switch (fieldNo) {
                 case /* string model_id */ 1:
                     message.modelId = reader.string();
+                    break;
+                case /* string app_id */ 2:
+                    message.appId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -806,6 +815,9 @@ class CheckModelHealthRequest$Type extends MessageType<CheckModelHealthRequest> 
         /* string model_id = 1; */
         if (message.modelId !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.modelId);
+        /* string app_id = 2; */
+        if (message.appId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.appId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

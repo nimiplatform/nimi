@@ -1180,13 +1180,16 @@ func (x *ChatContentArtifactRef) GetDisplayName() string {
 }
 
 type ChatContentPart struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	Type          ChatContentPartType     `protobuf:"varint,1,opt,name=type,proto3,enum=nimi.runtime.v1.ChatContentPartType" json:"type,omitempty"`
-	Text          string                  `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`
-	ImageUrl      *ChatContentImageURL    `protobuf:"bytes,3,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	VideoUrl      string                  `protobuf:"bytes,4,opt,name=video_url,json=videoUrl,proto3" json:"video_url,omitempty"`
-	AudioUrl      string                  `protobuf:"bytes,5,opt,name=audio_url,json=audioUrl,proto3" json:"audio_url,omitempty"`
-	ArtifactRef   *ChatContentArtifactRef `protobuf:"bytes,6,opt,name=artifact_ref,json=artifactRef,proto3" json:"artifact_ref,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Type  ChatContentPartType    `protobuf:"varint,1,opt,name=type,proto3,enum=nimi.runtime.v1.ChatContentPartType" json:"type,omitempty"`
+	// Types that are valid to be assigned to Content:
+	//
+	//	*ChatContentPart_Text
+	//	*ChatContentPart_ImageUrl
+	//	*ChatContentPart_VideoUrl
+	//	*ChatContentPart_AudioUrl
+	//	*ChatContentPart_ArtifactRef
+	Content       isChatContentPart_Content `protobuf_oneof:"content"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1228,40 +1231,91 @@ func (x *ChatContentPart) GetType() ChatContentPartType {
 	return ChatContentPartType_CHAT_CONTENT_PART_TYPE_UNSPECIFIED
 }
 
+func (x *ChatContentPart) GetContent() isChatContentPart_Content {
+	if x != nil {
+		return x.Content
+	}
+	return nil
+}
+
 func (x *ChatContentPart) GetText() string {
 	if x != nil {
-		return x.Text
+		if x, ok := x.Content.(*ChatContentPart_Text); ok {
+			return x.Text
+		}
 	}
 	return ""
 }
 
 func (x *ChatContentPart) GetImageUrl() *ChatContentImageURL {
 	if x != nil {
-		return x.ImageUrl
+		if x, ok := x.Content.(*ChatContentPart_ImageUrl); ok {
+			return x.ImageUrl
+		}
 	}
 	return nil
 }
 
 func (x *ChatContentPart) GetVideoUrl() string {
 	if x != nil {
-		return x.VideoUrl
+		if x, ok := x.Content.(*ChatContentPart_VideoUrl); ok {
+			return x.VideoUrl
+		}
 	}
 	return ""
 }
 
 func (x *ChatContentPart) GetAudioUrl() string {
 	if x != nil {
-		return x.AudioUrl
+		if x, ok := x.Content.(*ChatContentPart_AudioUrl); ok {
+			return x.AudioUrl
+		}
 	}
 	return ""
 }
 
 func (x *ChatContentPart) GetArtifactRef() *ChatContentArtifactRef {
 	if x != nil {
-		return x.ArtifactRef
+		if x, ok := x.Content.(*ChatContentPart_ArtifactRef); ok {
+			return x.ArtifactRef
+		}
 	}
 	return nil
 }
+
+type isChatContentPart_Content interface {
+	isChatContentPart_Content()
+}
+
+type ChatContentPart_Text struct {
+	Text string `protobuf:"bytes,2,opt,name=text,proto3,oneof"`
+}
+
+type ChatContentPart_ImageUrl struct {
+	ImageUrl *ChatContentImageURL `protobuf:"bytes,3,opt,name=image_url,json=imageUrl,proto3,oneof"`
+}
+
+type ChatContentPart_VideoUrl struct {
+	VideoUrl string `protobuf:"bytes,4,opt,name=video_url,json=videoUrl,proto3,oneof"`
+}
+
+type ChatContentPart_AudioUrl struct {
+	AudioUrl string `protobuf:"bytes,5,opt,name=audio_url,json=audioUrl,proto3,oneof"`
+}
+
+type ChatContentPart_ArtifactRef struct {
+	ArtifactRef *ChatContentArtifactRef `protobuf:"bytes,6,opt,name=artifact_ref,json=artifactRef,proto3,oneof"`
+}
+
+func (*ChatContentPart_Text) isChatContentPart_Content() {}
+
+func (*ChatContentPart_ImageUrl) isChatContentPart_Content() {}
+
+func (*ChatContentPart_VideoUrl) isChatContentPart_Content() {}
+
+func (*ChatContentPart_AudioUrl) isChatContentPart_Content() {}
+
+func (*ChatContentPart_ArtifactRef) isChatContentPart_Content() {}
 
 type ToolSpec struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2897,9 +2951,9 @@ type ScenarioOutput struct {
 	//	*ScenarioOutput_TextEmbed
 	//	*ScenarioOutput_ImageGenerate
 	//	*ScenarioOutput_VideoGenerate
+	//	*ScenarioOutput_SpeechSynthesize
 	//	*ScenarioOutput_SpeechTranscribe
 	//	*ScenarioOutput_MusicGenerate
-	//	*ScenarioOutput_SpeechSynthesize
 	Output        isScenarioOutput_Output `protobuf_oneof:"output"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2978,6 +3032,15 @@ func (x *ScenarioOutput) GetVideoGenerate() *VideoGenerateResult {
 	return nil
 }
 
+func (x *ScenarioOutput) GetSpeechSynthesize() *SpeechSynthesizeResult {
+	if x != nil {
+		if x, ok := x.Output.(*ScenarioOutput_SpeechSynthesize); ok {
+			return x.SpeechSynthesize
+		}
+	}
+	return nil
+}
+
 func (x *ScenarioOutput) GetSpeechTranscribe() *SpeechTranscribeResult {
 	if x != nil {
 		if x, ok := x.Output.(*ScenarioOutput_SpeechTranscribe); ok {
@@ -2991,15 +3054,6 @@ func (x *ScenarioOutput) GetMusicGenerate() *MusicGenerateResult {
 	if x != nil {
 		if x, ok := x.Output.(*ScenarioOutput_MusicGenerate); ok {
 			return x.MusicGenerate
-		}
-	}
-	return nil
-}
-
-func (x *ScenarioOutput) GetSpeechSynthesize() *SpeechSynthesizeResult {
-	if x != nil {
-		if x, ok := x.Output.(*ScenarioOutput_SpeechSynthesize); ok {
-			return x.SpeechSynthesize
 		}
 	}
 	return nil
@@ -3025,16 +3079,16 @@ type ScenarioOutput_VideoGenerate struct {
 	VideoGenerate *VideoGenerateResult `protobuf:"bytes,4,opt,name=video_generate,json=videoGenerate,proto3,oneof"`
 }
 
+type ScenarioOutput_SpeechSynthesize struct {
+	SpeechSynthesize *SpeechSynthesizeResult `protobuf:"bytes,5,opt,name=speech_synthesize,json=speechSynthesize,proto3,oneof"`
+}
+
 type ScenarioOutput_SpeechTranscribe struct {
-	SpeechTranscribe *SpeechTranscribeResult `protobuf:"bytes,5,opt,name=speech_transcribe,json=speechTranscribe,proto3,oneof"`
+	SpeechTranscribe *SpeechTranscribeResult `protobuf:"bytes,6,opt,name=speech_transcribe,json=speechTranscribe,proto3,oneof"`
 }
 
 type ScenarioOutput_MusicGenerate struct {
-	MusicGenerate *MusicGenerateResult `protobuf:"bytes,6,opt,name=music_generate,json=musicGenerate,proto3,oneof"`
-}
-
-type ScenarioOutput_SpeechSynthesize struct {
-	SpeechSynthesize *SpeechSynthesizeResult `protobuf:"bytes,7,opt,name=speech_synthesize,json=speechSynthesize,proto3,oneof"`
+	MusicGenerate *MusicGenerateResult `protobuf:"bytes,7,opt,name=music_generate,json=musicGenerate,proto3,oneof"`
 }
 
 func (*ScenarioOutput_TextGenerate) isScenarioOutput_Output() {}
@@ -3045,11 +3099,11 @@ func (*ScenarioOutput_ImageGenerate) isScenarioOutput_Output() {}
 
 func (*ScenarioOutput_VideoGenerate) isScenarioOutput_Output() {}
 
+func (*ScenarioOutput_SpeechSynthesize) isScenarioOutput_Output() {}
+
 func (*ScenarioOutput_SpeechTranscribe) isScenarioOutput_Output() {}
 
 func (*ScenarioOutput_MusicGenerate) isScenarioOutput_Output() {}
-
-func (*ScenarioOutput_SpeechSynthesize) isScenarioOutput_Output() {}
 
 type ExecuteScenarioResponse struct {
 	state             protoimpl.MessageState      `protogen:"open.v1"`
@@ -6751,14 +6805,15 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"artifactId\x12*\n" +
 	"\x11local_artifact_id\x18\x02 \x01(\tR\x0flocalArtifactId\x12\x1b\n" +
 	"\tmime_type\x18\x03 \x01(\tR\bmimeType\x12!\n" +
-	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\"\xa8\x02\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\"\xbd\x02\n" +
 	"\x0fChatContentPart\x128\n" +
-	"\x04type\x18\x01 \x01(\x0e2$.nimi.runtime.v1.ChatContentPartTypeR\x04type\x12\x12\n" +
-	"\x04text\x18\x02 \x01(\tR\x04text\x12A\n" +
-	"\timage_url\x18\x03 \x01(\v2$.nimi.runtime.v1.ChatContentImageURLR\bimageUrl\x12\x1b\n" +
-	"\tvideo_url\x18\x04 \x01(\tR\bvideoUrl\x12\x1b\n" +
-	"\taudio_url\x18\x05 \x01(\tR\baudioUrl\x12J\n" +
-	"\fartifact_ref\x18\x06 \x01(\v2'.nimi.runtime.v1.ChatContentArtifactRefR\vartifactRef\"Z\n" +
+	"\x04type\x18\x01 \x01(\x0e2$.nimi.runtime.v1.ChatContentPartTypeR\x04type\x12\x14\n" +
+	"\x04text\x18\x02 \x01(\tH\x00R\x04text\x12C\n" +
+	"\timage_url\x18\x03 \x01(\v2$.nimi.runtime.v1.ChatContentImageURLH\x00R\bimageUrl\x12\x1d\n" +
+	"\tvideo_url\x18\x04 \x01(\tH\x00R\bvideoUrl\x12\x1d\n" +
+	"\taudio_url\x18\x05 \x01(\tH\x00R\baudioUrl\x12L\n" +
+	"\fartifact_ref\x18\x06 \x01(\v2'.nimi.runtime.v1.ChatContentArtifactRefH\x00R\vartifactRefB\t\n" +
+	"\acontent\"Z\n" +
 	"\bToolSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12:\n" +
 	"\finput_schema\x18\x02 \x01(\v2\x17.google.protobuf.StructR\vinputSchema\"\xaf\x02\n" +
@@ -6889,9 +6944,9 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"text_embed\x18\x02 \x01(\v2 .nimi.runtime.v1.TextEmbedOutputH\x00R\ttextEmbed\x12M\n" +
 	"\x0eimage_generate\x18\x03 \x01(\v2$.nimi.runtime.v1.ImageGenerateResultH\x00R\rimageGenerate\x12M\n" +
 	"\x0evideo_generate\x18\x04 \x01(\v2$.nimi.runtime.v1.VideoGenerateResultH\x00R\rvideoGenerate\x12V\n" +
-	"\x11speech_transcribe\x18\x05 \x01(\v2'.nimi.runtime.v1.SpeechTranscribeResultH\x00R\x10speechTranscribe\x12M\n" +
-	"\x0emusic_generate\x18\x06 \x01(\v2$.nimi.runtime.v1.MusicGenerateResultH\x00R\rmusicGenerate\x12V\n" +
-	"\x11speech_synthesize\x18\a \x01(\v2'.nimi.runtime.v1.SpeechSynthesizeResultH\x00R\x10speechSynthesizeB\b\n" +
+	"\x11speech_synthesize\x18\x05 \x01(\v2'.nimi.runtime.v1.SpeechSynthesizeResultH\x00R\x10speechSynthesize\x12V\n" +
+	"\x11speech_transcribe\x18\x06 \x01(\v2'.nimi.runtime.v1.SpeechTranscribeResultH\x00R\x10speechTranscribe\x12M\n" +
+	"\x0emusic_generate\x18\a \x01(\v2$.nimi.runtime.v1.MusicGenerateResultH\x00R\rmusicGenerateB\b\n" +
 	"\x06output\"\xaa\x03\n" +
 	"\x17ExecuteScenarioResponse\x127\n" +
 	"\x06output\x18\x01 \x01(\v2\x1f.nimi.runtime.v1.ScenarioOutputR\x06output\x12B\n" +
@@ -6929,7 +6984,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\vreason_code\x18\x01 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x02 \x01(\tR\n" +
-	"actionHint\"\x94\x04\n" +
+	"actionHint\"\xa0\x04\n" +
 	"\x13StreamScenarioEvent\x12?\n" +
 	"\n" +
 	"event_type\x18\x01 \x01(\x0e2 .nimi.runtime.v1.StreamEventTypeR\teventType\x12\x1a\n" +
@@ -6942,7 +6997,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x05usage\x18\x0e \x01(\v2\x1b.nimi.runtime.v1.UsageStatsH\x00R\x05usage\x12H\n" +
 	"\tcompleted\x18\x0f \x01(\v2(.nimi.runtime.v1.ScenarioStreamCompletedH\x00R\tcompleted\x12?\n" +
 	"\x06failed\x18\x10 \x01(\v2%.nimi.runtime.v1.ScenarioStreamFailedH\x00R\x06failedB\t\n" +
-	"\apayload\"\x9f\x03\n" +
+	"\apayloadJ\x04\b\f\x10\rJ\x04\b\r\x10\x0e\"\x9f\x03\n" +
 	"\x10ScenarioArtifact\x12\x1f\n" +
 	"\vartifact_id\x18\x01 \x01(\tR\n" +
 	"artifactId\x12\x1b\n" +
@@ -7121,7 +7176,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12C\n" +
 	"\x0eroute_decision\x18\x02 \x01(\x0e2\x1c.nimi.runtime.v1.RoutePolicyR\rrouteDecision\x12%\n" +
 	"\x0emodel_resolved\x18\x03 \x01(\tR\rmodelResolved\x12\x19\n" +
-	"\btrace_id\x18\x04 \x01(\tR\atraceId\"\x91\x02\n" +
+	"\btrace_id\x18\x04 \x01(\tR\atraceId\"\x97\x02\n" +
 	"\x12RealtimeAudioInput\x12!\n" +
 	"\vaudio_bytes\x18\x01 \x01(\fH\x00R\n" +
 	"audioBytes\x12\x1d\n" +
@@ -7130,7 +7185,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\tmime_type\x18\x04 \x01(\tR\bmimeType\x12$\n" +
 	"\x0esample_rate_hz\x18\x05 \x01(\x05R\fsampleRateHz\x12\x1e\n" +
 	"\vend_of_turn\x18\x06 \x01(\bR\tendOfTurnB\b\n" +
-	"\x06source\"\x92\x01\n" +
+	"\x06sourceJ\x04\b\a\x10\x10\"\x92\x01\n" +
 	"\x11RealtimeInputItem\x128\n" +
 	"\amessage\x18\x01 \x01(\v2\x1c.nimi.runtime.v1.ChatMessageH\x00R\amessage\x12;\n" +
 	"\x05audio\x18\x02 \x01(\v2#.nimi.runtime.v1.RealtimeAudioInputH\x00R\x05audioB\x06\n" +
@@ -7496,9 +7551,9 @@ var file_runtime_v1_ai_proto_depIdxs = []int32{
 	38,  // 40: nimi.runtime.v1.ScenarioOutput.text_embed:type_name -> nimi.runtime.v1.TextEmbedOutput
 	39,  // 41: nimi.runtime.v1.ScenarioOutput.image_generate:type_name -> nimi.runtime.v1.ImageGenerateResult
 	40,  // 42: nimi.runtime.v1.ScenarioOutput.video_generate:type_name -> nimi.runtime.v1.VideoGenerateResult
-	42,  // 43: nimi.runtime.v1.ScenarioOutput.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeResult
-	43,  // 44: nimi.runtime.v1.ScenarioOutput.music_generate:type_name -> nimi.runtime.v1.MusicGenerateResult
-	41,  // 45: nimi.runtime.v1.ScenarioOutput.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeResult
+	41,  // 43: nimi.runtime.v1.ScenarioOutput.speech_synthesize:type_name -> nimi.runtime.v1.SpeechSynthesizeResult
+	42,  // 44: nimi.runtime.v1.ScenarioOutput.speech_transcribe:type_name -> nimi.runtime.v1.SpeechTranscribeResult
+	43,  // 45: nimi.runtime.v1.ScenarioOutput.music_generate:type_name -> nimi.runtime.v1.MusicGenerateResult
 	44,  // 46: nimi.runtime.v1.ExecuteScenarioResponse.output:type_name -> nimi.runtime.v1.ScenarioOutput
 	5,   // 47: nimi.runtime.v1.ExecuteScenarioResponse.finish_reason:type_name -> nimi.runtime.v1.FinishReason
 	102, // 48: nimi.runtime.v1.ExecuteScenarioResponse.usage:type_name -> nimi.runtime.v1.UsageStats
@@ -7632,6 +7687,13 @@ func file_runtime_v1_ai_proto_init() {
 	}
 	file_runtime_v1_common_proto_init()
 	file_runtime_v1_voice_proto_init()
+	file_runtime_v1_ai_proto_msgTypes[3].OneofWrappers = []any{
+		(*ChatContentPart_Text)(nil),
+		(*ChatContentPart_ImageUrl)(nil),
+		(*ChatContentPart_VideoUrl)(nil),
+		(*ChatContentPart_AudioUrl)(nil),
+		(*ChatContentPart_ArtifactRef)(nil),
+	}
 	file_runtime_v1_ai_proto_msgTypes[17].OneofWrappers = []any{
 		(*ScenarioSpec_TextGenerate)(nil),
 		(*ScenarioSpec_TextEmbed)(nil),
@@ -7648,9 +7710,9 @@ func file_runtime_v1_ai_proto_init() {
 		(*ScenarioOutput_TextEmbed)(nil),
 		(*ScenarioOutput_ImageGenerate)(nil),
 		(*ScenarioOutput_VideoGenerate)(nil),
+		(*ScenarioOutput_SpeechSynthesize)(nil),
 		(*ScenarioOutput_SpeechTranscribe)(nil),
 		(*ScenarioOutput_MusicGenerate)(nil),
-		(*ScenarioOutput_SpeechSynthesize)(nil),
 	}
 	file_runtime_v1_ai_proto_msgTypes[33].OneofWrappers = []any{
 		(*ScenarioStreamDelta_Text)(nil),

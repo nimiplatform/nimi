@@ -71,6 +71,7 @@ message RemoveModelRequest {
 
 message CheckModelHealthRequest {
   string model_id = 1;
+  string app_id = 2;
 }
 
 message CheckModelHealthResponse {

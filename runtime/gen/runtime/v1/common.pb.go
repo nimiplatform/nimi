@@ -99,6 +99,10 @@ const (
 	ReasonCode_AI_LOCAL_HF_REPO_INVALID          ReasonCode = 361
 	ReasonCode_AI_LOCAL_HF_SEARCH_FAILED         ReasonCode = 362
 	ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID  ReasonCode = 363
+	// LOCAL_SERVICE family (364+)
+	ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE        ReasonCode = 364
+	ReasonCode_AI_LOCAL_SERVICE_ALREADY_INSTALLED  ReasonCode = 365
+	ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION ReasonCode = 366
 	// FINISH family (370+)
 	ReasonCode_AI_FINISH_LENGTH         ReasonCode = 370
 	ReasonCode_AI_FINISH_CONTENT_FILTER ReasonCode = 371
@@ -220,6 +224,9 @@ var (
 		361: "AI_LOCAL_HF_REPO_INVALID",
 		362: "AI_LOCAL_HF_SEARCH_FAILED",
 		363: "AI_LOCAL_MANIFEST_SCHEMA_INVALID",
+		364: "AI_LOCAL_SERVICE_UNAVAILABLE",
+		365: "AI_LOCAL_SERVICE_ALREADY_INSTALLED",
+		366: "AI_LOCAL_SERVICE_INVALID_TRANSITION",
 		370: "AI_FINISH_LENGTH",
 		371: "AI_FINISH_CONTENT_FILTER",
 		380: "AI_MODEL_PROVIDER_MISMATCH",
@@ -327,6 +334,9 @@ var (
 		"AI_LOCAL_HF_REPO_INVALID":              361,
 		"AI_LOCAL_HF_SEARCH_FAILED":             362,
 		"AI_LOCAL_MANIFEST_SCHEMA_INVALID":      363,
+		"AI_LOCAL_SERVICE_UNAVAILABLE":          364,
+		"AI_LOCAL_SERVICE_ALREADY_INSTALLED":    365,
+		"AI_LOCAL_SERVICE_INVALID_TRANSITION":   366,
 		"AI_FINISH_LENGTH":                      370,
 		"AI_FINISH_CONTENT_FILTER":              371,
 		"AI_MODEL_PROVIDER_MISMATCH":            380,
@@ -852,7 +862,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xfa\x19\n" +
+	"actionHint*\xf0\x1a\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -917,7 +927,10 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1fAI_LOCAL_DOWNLOAD_HASH_MISMATCH\x10\xe8\x02\x12\x1d\n" +
 	"\x18AI_LOCAL_HF_REPO_INVALID\x10\xe9\x02\x12\x1e\n" +
 	"\x19AI_LOCAL_HF_SEARCH_FAILED\x10\xea\x02\x12%\n" +
-	" AI_LOCAL_MANIFEST_SCHEMA_INVALID\x10\xeb\x02\x12\x15\n" +
+	" AI_LOCAL_MANIFEST_SCHEMA_INVALID\x10\xeb\x02\x12!\n" +
+	"\x1cAI_LOCAL_SERVICE_UNAVAILABLE\x10\xec\x02\x12'\n" +
+	"\"AI_LOCAL_SERVICE_ALREADY_INSTALLED\x10\xed\x02\x12(\n" +
+	"#AI_LOCAL_SERVICE_INVALID_TRANSITION\x10\xee\x02\x12\x15\n" +
 	"\x10AI_FINISH_LENGTH\x10\xf2\x02\x12\x1d\n" +
 	"\x18AI_FINISH_CONTENT_FILTER\x10\xf3\x02\x12\x1f\n" +
 	"\x1aAI_MODEL_PROVIDER_MISMATCH\x10\xfc\x02\x12#\n" +

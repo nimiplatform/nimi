@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 	"strings"
 	"time"
 )
@@ -22,7 +23,11 @@ func ListModelsGRPC(grpcAddr string, timeout time.Duration, appID string, metada
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, appID, firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, appID, firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -53,7 +58,11 @@ func PullModelGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.PullMo
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -84,7 +93,11 @@ func RemoveModelGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Remo
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -109,13 +122,26 @@ func CheckModelHealthGRPC(grpcAddr string, timeout time.Duration, req *runtimev1
 	if req == nil {
 		return nil, errors.New("check model health request is required")
 	}
+	trimmedAppID := strings.TrimSpace(appID)
+	if req.GetAppId() == "" && trimmedAppID != "" {
+		cloned, ok := proto.Clone(req).(*runtimev1.CheckModelHealthRequest)
+		if !ok {
+			return nil, errors.New("clone check model health request")
+		}
+		cloned.AppId = trimmedAppID
+		req = cloned
+	}
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, appID, firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, trimmedAppID, firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

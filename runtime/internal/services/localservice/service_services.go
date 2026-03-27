@@ -62,7 +62,7 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	}
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
 
 	now := nowISO()
@@ -71,7 +71,7 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 
 	model := cloneLocalModel(s.models[localModelID])
 	if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
 	modelMode := normalizeRuntimeMode(s.modelRuntimeModes[localModelID])
 
@@ -88,13 +88,13 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 			continue
 		}
 		if existing.GetLocalModelId() == localModelID && existingID != serviceID {
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
+			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_SERVICE_ALREADY_INSTALLED)
 		}
 	}
 
 	if existing := cloneServiceDescriptor(s.services[serviceID]); existing != nil && existing.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {
 		if existing.GetLocalModelId() != localModelID {
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
+			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_SERVICE_ALREADY_INSTALLED)
 		}
 		return &runtimev1.InstallLocalServiceResponse{Service: existing}, nil
 	}
@@ -142,7 +142,7 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLocalServiceRequest) (*runtimev1.StartLocalServiceResponse, error) {
 	serviceID := strings.TrimSpace(req.GetServiceId())
 	if serviceID == "" {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    "service id is required",
 			ActionHint: "select_local_service",
 		})
@@ -152,13 +152,13 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    fmt.Sprintf("local service %s not found", serviceID),
 			ActionHint: "select_installed_local_service",
 		})
 	}
 	if current.GetStatus() == runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_REMOVED {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION)
 	}
 
 	profile := collectDeviceProfile()
@@ -183,7 +183,7 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 		s.resetServiceRecovery(serviceID)
 		latest := s.serviceByID(serviceID)
 		if latest == nil {
-			return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 				Message:    fmt.Sprintf("local service %s not found", serviceID),
 				ActionHint: "select_installed_local_service",
 			})
@@ -210,7 +210,7 @@ func (s *Service) StartLocalService(ctx context.Context, req *runtimev1.StartLoc
 func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalServiceRequest) (*runtimev1.StopLocalServiceResponse, error) {
 	serviceID := strings.TrimSpace(req.GetServiceId())
 	if serviceID == "" {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    "service id is required",
 			ActionHint: "select_local_service",
 		})
@@ -220,7 +220,7 @@ func (s *Service) StopLocalService(_ context.Context, req *runtimev1.StopLocalSe
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    fmt.Sprintf("local service %s not found", serviceID),
 			ActionHint: "select_installed_local_service",
 		})
@@ -249,7 +249,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 	}
 	s.mu.RUnlock()
 	if target != "" && len(services) == 0 {
-		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    fmt.Sprintf("local service %s not found", target),
 			ActionHint: "select_installed_local_service",
 		})
@@ -345,7 +345,7 @@ func (s *Service) CheckLocalServiceHealth(ctx context.Context, req *runtimev1.Ch
 func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLocalServiceRequest) (*runtimev1.RemoveLocalServiceResponse, error) {
 	serviceID := strings.TrimSpace(req.GetServiceId())
 	if serviceID == "" {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    "service id is required",
 			ActionHint: "select_local_service",
 		})
@@ -355,7 +355,7 @@ func (s *Service) RemoveLocalService(_ context.Context, req *runtimev1.RemoveLoc
 	}
 	current := s.serviceByID(serviceID)
 	if current == nil {
-		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+		return nil, grpcerr.WithReasonCodeOptions(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    fmt.Sprintf("local service %s not found", serviceID),
 			ActionHint: "select_installed_local_service",
 		})
@@ -372,7 +372,7 @@ func isManagedMediaDiffusersBackendServiceID(serviceID string) bool {
 }
 
 func managedMediaDiffusersBackendServiceMutationError(serviceID string) error {
-	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION, grpcerr.ReasonOptions{
+	return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SERVICE_INVALID_TRANSITION, grpcerr.ReasonOptions{
 		Message:    fmt.Sprintf("local service %s is daemon-managed", strings.TrimSpace(serviceID)),
 		ActionHint: "manage_llama_image_backend_from_runtime_config",
 	})

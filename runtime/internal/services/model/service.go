@@ -2,12 +2,18 @@ package model
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
@@ -16,11 +22,18 @@ import (
 
 type pullExecutor func(modelID string, complete func(runtimev1.ModelStatus))
 
+const (
+	defaultPullCompletionDelay   = 10 * time.Millisecond
+	checkModelHealthProbeTimeout = 5 * time.Second
+	localSidecarEndpointEnv      = "NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"
+)
+
 // Service implements RuntimeModelService with an in-memory registry.
 type Service struct {
 	runtimev1.UnimplementedRuntimeModelServiceServer
 	logger *slog.Logger
 
+	mu              sync.Mutex
 	registry        *modelregistry.Registry
 	persistencePath string
 	pullExecutor    pullExecutor
@@ -40,16 +53,22 @@ func New(logger *slog.Logger, registry ...*modelregistry.Registry) *Service {
 }
 
 func defaultPullExecutor(modelID string, complete func(runtimev1.ModelStatus)) {
-	go complete(runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	time.AfterFunc(defaultPullCompletionDelay, func() {
+		complete(runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	})
 }
 
 func (s *Service) SetPersistencePath(path string) {
+	s.mu.Lock()
 	s.persistencePath = strings.TrimSpace(path)
+	s.mu.Unlock()
 }
 
 func (s *Service) SetPullExecutor(executor pullExecutor) {
 	if executor != nil {
+		s.mu.Lock()
 		s.pullExecutor = executor
+		s.mu.Unlock()
 	}
 }
 
@@ -79,14 +98,16 @@ func (s *Service) PullModel(_ context.Context, req *runtimev1.PullModelRequest) 
 	}
 
 	now := time.Now().UTC()
+	s.mu.Lock()
 	entry, exists := s.registry.Get(modelID)
 	if exists {
 		if !canTransitionModel(entry.Status, runtimev1.ModelStatus_MODEL_STATUS_PULLING) {
+			s.mu.Unlock()
 			return nil, status.Errorf(codes.FailedPrecondition, "invalid model transition %s -> %s", entry.Status, runtimev1.ModelStatus_MODEL_STATUS_PULLING)
 		}
 		entry.Version = version
 		entry.Status = runtimev1.ModelStatus_MODEL_STATUS_PULLING
-		entry.Capabilities = inferCapabilities(modelID)
+		entry.Capabilities = modelregistry.InferCapabilities(modelID)
 		entry.LastHealthAt = now
 		entry.Source = strings.TrimSpace(req.GetSource())
 		s.registry.Upsert(entry)
@@ -95,16 +116,19 @@ func (s *Service) PullModel(_ context.Context, req *runtimev1.PullModelRequest) 
 			ModelID:      modelID,
 			Version:      version,
 			Status:       runtimev1.ModelStatus_MODEL_STATUS_PULLING,
-			Capabilities: inferCapabilities(modelID),
+			Capabilities: modelregistry.InferCapabilities(modelID),
 			LastHealthAt: now,
 			Source:       strings.TrimSpace(req.GetSource()),
 		})
 	}
-	s.persistRegistry()
+	persistencePath := s.persistencePath
+	executor := s.pullExecutor
+	s.mu.Unlock()
+	s.persistRegistryPath(persistencePath)
 
 	taskID := ulid.Make().String()
-	if s.pullExecutor != nil {
-		s.pullExecutor(modelID, func(next runtimev1.ModelStatus) {
+	if executor != nil {
+		executor(modelID, func(next runtimev1.ModelStatus) {
 			if err := s.transitionModel(modelID, next); err != nil && s.logger != nil {
 				s.logger.Warn("model transition failed", "model_id", modelID, "status", next, "error", err)
 			}
@@ -120,6 +144,13 @@ func (s *Service) PullModel(_ context.Context, req *runtimev1.PullModelRequest) 
 }
 
 func (s *Service) RemoveModel(_ context.Context, req *runtimev1.RemoveModelRequest) (*runtimev1.Ack, error) {
+	if strings.TrimSpace(req.GetAppId()) == "" {
+		return &runtimev1.Ack{
+			Ok:         false,
+			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			ActionHint: "set app_id",
+		}, nil
+	}
 	modelID := strings.TrimSpace(req.GetModelId())
 	if modelID == "" {
 		return &runtimev1.Ack{
@@ -129,8 +160,10 @@ func (s *Service) RemoveModel(_ context.Context, req *runtimev1.RemoveModelReque
 		}, nil
 	}
 
+	s.mu.Lock()
 	entry, exists := s.registry.Get(modelID)
 	if !exists {
+		s.mu.Unlock()
 		return &runtimev1.Ack{
 			Ok:         false,
 			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
@@ -138,11 +171,14 @@ func (s *Service) RemoveModel(_ context.Context, req *runtimev1.RemoveModelReque
 		}, nil
 	}
 	if !canTransitionModel(entry.Status, runtimev1.ModelStatus_MODEL_STATUS_REMOVED) {
+		s.mu.Unlock()
 		return nil, status.Errorf(codes.FailedPrecondition, "invalid model transition %s -> %s", entry.Status, runtimev1.ModelStatus_MODEL_STATUS_REMOVED)
 	}
 
 	s.registry.Remove(modelID)
-	s.persistRegistry()
+	persistencePath := s.persistencePath
+	s.mu.Unlock()
+	s.persistRegistryPath(persistencePath)
 
 	s.logger.Info("model removed", "model_id", modelID, "app_id", req.GetAppId())
 	return &runtimev1.Ack{
@@ -151,7 +187,16 @@ func (s *Service) RemoveModel(_ context.Context, req *runtimev1.RemoveModelReque
 	}, nil
 }
 
-func (s *Service) CheckModelHealth(_ context.Context, req *runtimev1.CheckModelHealthRequest) (*runtimev1.CheckModelHealthResponse, error) {
+func (s *Service) CheckModelHealth(ctx context.Context, req *runtimev1.CheckModelHealthRequest) (*runtimev1.CheckModelHealthResponse, error) {
+	appID := strings.TrimSpace(req.GetAppId())
+	if appID == "" {
+		return &runtimev1.CheckModelHealthResponse{
+			Healthy:    false,
+			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
+			ActionHint: "set app_id",
+		}, nil
+	}
+
 	modelID := strings.TrimSpace(req.GetModelId())
 	if modelID == "" {
 		return &runtimev1.CheckModelHealthResponse{
@@ -178,33 +223,232 @@ func (s *Service) CheckModelHealth(_ context.Context, req *runtimev1.CheckModelH
 		}, nil
 	}
 
+	projection, err := modelregistry.InferNativeProjection(item.ModelID, item.Capabilities, item.Files, item.Status)
+	if err != nil {
+		return &runtimev1.CheckModelHealthResponse{
+			Healthy:    false,
+			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
+			ActionHint: "repair local model metadata",
+		}, nil
+	}
+	if isLocalNativeModel(item) {
+		probeCtx, cancel := context.WithTimeout(ctx, checkModelHealthProbeTimeout)
+		defer cancel()
+
+		if healthy, reasonCode, actionHint := checkLocalNativeModelHealth(probeCtx, item, projection); !healthy {
+			return &runtimev1.CheckModelHealthResponse{
+				Healthy:    false,
+				ReasonCode: reasonCode,
+				ActionHint: actionHint,
+			}, nil
+		}
+	}
+
 	return &runtimev1.CheckModelHealthResponse{
 		Healthy:    true,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
 }
 
+func isLocalNativeModel(item modelregistry.Entry) bool {
+	if strings.EqualFold(strings.TrimSpace(item.Source), "local") {
+		return true
+	}
+	lower := strings.ToLower(strings.TrimSpace(item.ModelID))
+	for _, prefix := range []string{"local/", "llama/", "media/", "speech/", "sidecar/"} {
+		if strings.HasPrefix(lower, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func checkLocalNativeModelHealth(
+	ctx context.Context,
+	item modelregistry.Entry,
+	projection modelregistry.NativeProjection,
+) (bool, runtimev1.ReasonCode, string) {
+	if projection.BundleState != runtimev1.LocalBundleState_LOCAL_BUNDLE_STATE_READY {
+		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "finish local model install"
+	}
+	if projection.WarmState == runtimev1.LocalWarmState_LOCAL_WARM_STATE_FAILED {
+		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model"
+	}
+
+	preferredEngine := strings.ToLower(strings.TrimSpace(projection.PreferredEngine))
+	switch preferredEngine {
+	case "llama":
+		if projection.WarmState != runtimev1.LocalWarmState_LOCAL_WARM_STATE_READY {
+			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "warm local model"
+		}
+		if err := probeLlamaHealth(ctx); err != nil {
+			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local llama engine"
+		}
+	case "media":
+		if err := probeTargetCatalogHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", engine.DefaultMediaConfig().Endpoint()), "media", projection.LogicalModelID, item.ModelID); err != nil {
+			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local media engine"
+		}
+	case "speech":
+		if err := probeTargetCatalogHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", engine.DefaultSpeechConfig().Endpoint()), "speech", projection.LogicalModelID, item.ModelID); err != nil {
+			return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "start local speech engine"
+		}
+	case "sidecar":
+		if strings.TrimSpace(os.Getenv(localSidecarEndpointEnv)) == "" {
+			return false, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED, "set sidecar endpoint"
+		}
+		return false, runtimev1.ReasonCode_AI_MODEL_NOT_READY, "validate sidecar availability via a music request"
+	}
+	return true, runtimev1.ReasonCode_ACTION_EXECUTED, ""
+}
+
+func probeLlamaHealth(ctx context.Context) error {
+	cfg := engine.DefaultLlamaConfig()
+	return engine.ProbeHealth(ctx, resolveEngineEndpoint("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", cfg.Endpoint()), cfg.HealthPath, cfg.HealthResponse)
+}
+
+func resolveEngineEndpoint(envKey string, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(envKey)); value != "" {
+		return value
+	}
+	return strings.TrimSpace(fallback)
+}
+
+func probeTargetCatalogHealth(ctx context.Context, endpoint string, engineLabel string, expectedIDs ...string) error {
+	normalizedEndpoint := strings.TrimSpace(endpoint)
+	if normalizedEndpoint == "" {
+		return fmt.Errorf("%s endpoint missing", engineLabel)
+	}
+	switch engineLabel {
+	case "media":
+		if err := engine.ProbeMediaHealth(ctx, normalizedEndpoint); err != nil {
+			return err
+		}
+	case "speech":
+		if err := engine.ProbeSpeechHealth(ctx, normalizedEndpoint); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unsupported engine probe: %s", engineLabel)
+	}
+
+	models, err := fetchReadyCatalogModels(ctx, normalizedEndpoint)
+	if err != nil {
+		return err
+	}
+	if len(models) == 0 {
+		return fmt.Errorf("%s catalog missing ready models", engineLabel)
+	}
+	if hasComparableProbeModel(models, expectedIDs...) {
+		return nil
+	}
+	return fmt.Errorf("%s catalog missing target model", engineLabel)
+}
+
+func fetchReadyCatalogModels(ctx context.Context, endpoint string) ([]string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimSuffix(endpoint, "/")+"/v1/catalog", nil)
+	if err != nil {
+		return nil, fmt.Errorf("build catalog probe: %w", err)
+	}
+
+	resp, err := (&http.Client{Timeout: checkModelHealthProbeTimeout}).Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("catalog probe failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 128*1024))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("catalog probe returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	payload := struct {
+		Models []struct {
+			ID    string `json:"id"`
+			Ready bool   `json:"ready"`
+		} `json:"models"`
+	}{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, fmt.Errorf("catalog probe parse failed: %w", err)
+	}
+
+	readyModels := make([]string, 0, len(payload.Models))
+	for _, model := range payload.Models {
+		if strings.TrimSpace(model.ID) == "" || !model.Ready {
+			continue
+		}
+		readyModels = append(readyModels, strings.TrimSpace(model.ID))
+	}
+	return readyModels, nil
+}
+
+func hasComparableProbeModel(models []string, expectedIDs ...string) bool {
+	for _, expected := range expectedIDs {
+		expectedComparable := comparableModelID(expected)
+		expectedBase := comparableModelIDBase(expected)
+		if expectedComparable == "" {
+			continue
+		}
+		for _, modelID := range models {
+			if comparableModelID(modelID) == expectedComparable {
+				return true
+			}
+			if comparableModelIDBase(modelID) == expectedBase && expectedBase != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func comparableModelID(value string) string {
+	comparable := strings.ToLower(strings.TrimSpace(value))
+	for _, prefix := range []string{"models/", "model/", "local/", "llama/", "media/", "speech/", "sidecar/"} {
+		comparable = strings.TrimPrefix(comparable, prefix)
+	}
+	return comparable
+}
+
+func comparableModelIDBase(value string) string {
+	comparable := comparableModelID(value)
+	if idx := strings.Index(comparable, "@"); idx > 0 {
+		return strings.TrimSpace(comparable[:idx])
+	}
+	return comparable
+}
+
 func (s *Service) transitionModel(modelID string, next runtimev1.ModelStatus) error {
+	s.mu.Lock()
 	entry, exists := s.registry.Get(modelID)
 	if !exists {
+		s.mu.Unlock()
 		return fmt.Errorf("model not found: %s", modelID)
 	}
 	if !canTransitionModel(entry.Status, next) {
+		s.mu.Unlock()
 		return fmt.Errorf("invalid model transition %s -> %s", entry.Status, next)
 	}
 	entry.Status = next
 	entry.LastHealthAt = time.Now().UTC()
 	s.registry.Upsert(entry)
-	s.persistRegistry()
+	persistencePath := s.persistencePath
+	s.mu.Unlock()
+	s.persistRegistryPath(persistencePath)
 	return nil
 }
 
 func (s *Service) persistRegistry() {
-	if s.persistencePath == "" {
+	s.mu.Lock()
+	path := s.persistencePath
+	s.mu.Unlock()
+	s.persistRegistryPath(path)
+}
+
+func (s *Service) persistRegistryPath(path string) {
+	if path == "" {
 		return
 	}
-	if err := s.registry.SaveToFile(s.persistencePath); err != nil {
-		s.logger.Error("persist model registry failed", "path", s.persistencePath, "error", err)
+	if err := s.registry.SaveToFile(path); err != nil {
+		s.logger.Error("persist model registry failed", "path", path, "error", err)
 	}
 }
 
@@ -234,8 +478,4 @@ func parseModelRef(raw string) (string, string) {
 	}
 
 	return ref, defaultVersion
-}
-
-func inferCapabilities(modelID string) []string {
-	return modelregistry.InferCapabilities(modelID)
 }

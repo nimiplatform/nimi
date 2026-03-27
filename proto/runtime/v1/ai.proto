@@ -155,11 +155,13 @@ message ChatContentArtifactRef {
 
 message ChatContentPart {
   ChatContentPartType type = 1;
-  string text = 2;
-  ChatContentImageURL image_url = 3;
-  string video_url = 4;
-  string audio_url = 5;
-  ChatContentArtifactRef artifact_ref = 6;
+  oneof content {
+    string text = 2;
+    ChatContentImageURL image_url = 3;
+    string video_url = 4;
+    string audio_url = 5;
+    ChatContentArtifactRef artifact_ref = 6;
+  }
 }
 
 message ToolSpec {
@@ -328,9 +330,9 @@ message ScenarioOutput {
     TextEmbedOutput text_embed = 2;
     ImageGenerateResult image_generate = 3;
     VideoGenerateResult video_generate = 4;
-    SpeechTranscribeResult speech_transcribe = 5;
-    MusicGenerateResult music_generate = 6;
-    SpeechSynthesizeResult speech_synthesize = 7;
+    SpeechSynthesizeResult speech_synthesize = 5;
+    SpeechTranscribeResult speech_transcribe = 6;
+    MusicGenerateResult music_generate = 7;
   }
 }
 
@@ -389,6 +391,7 @@ message StreamScenarioEvent {
   uint64 sequence = 2;
   string trace_id = 3;
   google.protobuf.Timestamp timestamp = 4;
+  reserved 12, 13;
   oneof payload {
     ScenarioStreamStarted started = 10;
     ScenarioStreamDelta delta = 11;
@@ -645,6 +648,7 @@ message RealtimeAudioInput {
   string mime_type = 4;
   int32 sample_rate_hz = 5;
   bool end_of_turn = 6;
+  reserved 7 to 15;
 }
 
 message RealtimeInputItem {

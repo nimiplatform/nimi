@@ -93,25 +93,41 @@ export interface ChatContentPart {
      */
     type: ChatContentPartType;
     /**
-     * @generated from protobuf field: string text = 2
+     * @generated from protobuf oneof: content
      */
-    text: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ChatContentImageURL image_url = 3
-     */
-    imageUrl?: ChatContentImageURL;
-    /**
-     * @generated from protobuf field: string video_url = 4
-     */
-    videoUrl: string;
-    /**
-     * @generated from protobuf field: string audio_url = 5
-     */
-    audioUrl: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.ChatContentArtifactRef artifact_ref = 6
-     */
-    artifactRef?: ChatContentArtifactRef;
+    content: {
+        oneofKind: "text";
+        /**
+         * @generated from protobuf field: string text = 2
+         */
+        text: string;
+    } | {
+        oneofKind: "imageUrl";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ChatContentImageURL image_url = 3
+         */
+        imageUrl: ChatContentImageURL;
+    } | {
+        oneofKind: "videoUrl";
+        /**
+         * @generated from protobuf field: string video_url = 4
+         */
+        videoUrl: string;
+    } | {
+        oneofKind: "audioUrl";
+        /**
+         * @generated from protobuf field: string audio_url = 5
+         */
+        audioUrl: string;
+    } | {
+        oneofKind: "artifactRef";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ChatContentArtifactRef artifact_ref = 6
+         */
+        artifactRef: ChatContentArtifactRef;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ToolSpec
@@ -640,23 +656,23 @@ export interface ScenarioOutput {
          */
         videoGenerate: VideoGenerateResult;
     } | {
+        oneofKind: "speechSynthesize";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.SpeechSynthesizeResult speech_synthesize = 5
+         */
+        speechSynthesize: SpeechSynthesizeResult;
+    } | {
         oneofKind: "speechTranscribe";
         /**
-         * @generated from protobuf field: nimi.runtime.v1.SpeechTranscribeResult speech_transcribe = 5
+         * @generated from protobuf field: nimi.runtime.v1.SpeechTranscribeResult speech_transcribe = 6
          */
         speechTranscribe: SpeechTranscribeResult;
     } | {
         oneofKind: "musicGenerate";
         /**
-         * @generated from protobuf field: nimi.runtime.v1.MusicGenerateResult music_generate = 6
+         * @generated from protobuf field: nimi.runtime.v1.MusicGenerateResult music_generate = 7
          */
         musicGenerate: MusicGenerateResult;
-    } | {
-        oneofKind: "speechSynthesize";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.SpeechSynthesizeResult speech_synthesize = 7
-         */
-        speechSynthesize: SpeechSynthesizeResult;
     } | {
         oneofKind: undefined;
     };
@@ -2448,19 +2464,17 @@ class ChatContentPart$Type extends MessageType<ChatContentPart> {
     constructor() {
         super("nimi.runtime.v1.ChatContentPart", [
             { no: 1, name: "type", kind: "enum", T: () => ["nimi.runtime.v1.ChatContentPartType", ChatContentPartType, "CHAT_CONTENT_PART_TYPE_"] },
-            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "image_url", kind: "message", T: () => ChatContentImageURL },
-            { no: 4, name: "video_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "audio_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "artifact_ref", kind: "message", T: () => ChatContentArtifactRef }
+            { no: 2, name: "text", kind: "scalar", oneof: "content", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "image_url", kind: "message", oneof: "content", T: () => ChatContentImageURL },
+            { no: 4, name: "video_url", kind: "scalar", oneof: "content", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "audio_url", kind: "scalar", oneof: "content", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "artifact_ref", kind: "message", oneof: "content", T: () => ChatContentArtifactRef }
         ]);
     }
     create(value?: PartialMessage<ChatContentPart>): ChatContentPart {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.type = 0;
-        message.text = "";
-        message.videoUrl = "";
-        message.audioUrl = "";
+        message.content = { oneofKind: undefined };
         if (value !== undefined)
             reflectionMergePartial<ChatContentPart>(this, message, value);
         return message;
@@ -2474,19 +2488,34 @@ class ChatContentPart$Type extends MessageType<ChatContentPart> {
                     message.type = reader.int32();
                     break;
                 case /* string text */ 2:
-                    message.text = reader.string();
+                    message.content = {
+                        oneofKind: "text",
+                        text: reader.string()
+                    };
                     break;
                 case /* nimi.runtime.v1.ChatContentImageURL image_url */ 3:
-                    message.imageUrl = ChatContentImageURL.internalBinaryRead(reader, reader.uint32(), options, message.imageUrl);
+                    message.content = {
+                        oneofKind: "imageUrl",
+                        imageUrl: ChatContentImageURL.internalBinaryRead(reader, reader.uint32(), options, (message.content as any).imageUrl)
+                    };
                     break;
                 case /* string video_url */ 4:
-                    message.videoUrl = reader.string();
+                    message.content = {
+                        oneofKind: "videoUrl",
+                        videoUrl: reader.string()
+                    };
                     break;
                 case /* string audio_url */ 5:
-                    message.audioUrl = reader.string();
+                    message.content = {
+                        oneofKind: "audioUrl",
+                        audioUrl: reader.string()
+                    };
                     break;
                 case /* nimi.runtime.v1.ChatContentArtifactRef artifact_ref */ 6:
-                    message.artifactRef = ChatContentArtifactRef.internalBinaryRead(reader, reader.uint32(), options, message.artifactRef);
+                    message.content = {
+                        oneofKind: "artifactRef",
+                        artifactRef: ChatContentArtifactRef.internalBinaryRead(reader, reader.uint32(), options, (message.content as any).artifactRef)
+                    };
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2504,20 +2533,20 @@ class ChatContentPart$Type extends MessageType<ChatContentPart> {
         if (message.type !== 0)
             writer.tag(1, WireType.Varint).int32(message.type);
         /* string text = 2; */
-        if (message.text !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.text);
+        if (message.content.oneofKind === "text")
+            writer.tag(2, WireType.LengthDelimited).string(message.content.text);
         /* nimi.runtime.v1.ChatContentImageURL image_url = 3; */
-        if (message.imageUrl)
-            ChatContentImageURL.internalBinaryWrite(message.imageUrl, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        if (message.content.oneofKind === "imageUrl")
+            ChatContentImageURL.internalBinaryWrite(message.content.imageUrl, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* string video_url = 4; */
-        if (message.videoUrl !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.videoUrl);
+        if (message.content.oneofKind === "videoUrl")
+            writer.tag(4, WireType.LengthDelimited).string(message.content.videoUrl);
         /* string audio_url = 5; */
-        if (message.audioUrl !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.audioUrl);
+        if (message.content.oneofKind === "audioUrl")
+            writer.tag(5, WireType.LengthDelimited).string(message.content.audioUrl);
         /* nimi.runtime.v1.ChatContentArtifactRef artifact_ref = 6; */
-        if (message.artifactRef)
-            ChatContentArtifactRef.internalBinaryWrite(message.artifactRef, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        if (message.content.oneofKind === "artifactRef")
+            ChatContentArtifactRef.internalBinaryWrite(message.content.artifactRef, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4162,9 +4191,9 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
             { no: 2, name: "text_embed", kind: "message", oneof: "output", T: () => TextEmbedOutput },
             { no: 3, name: "image_generate", kind: "message", oneof: "output", T: () => ImageGenerateResult },
             { no: 4, name: "video_generate", kind: "message", oneof: "output", T: () => VideoGenerateResult },
-            { no: 5, name: "speech_transcribe", kind: "message", oneof: "output", T: () => SpeechTranscribeResult },
-            { no: 6, name: "music_generate", kind: "message", oneof: "output", T: () => MusicGenerateResult },
-            { no: 7, name: "speech_synthesize", kind: "message", oneof: "output", T: () => SpeechSynthesizeResult }
+            { no: 5, name: "speech_synthesize", kind: "message", oneof: "output", T: () => SpeechSynthesizeResult },
+            { no: 6, name: "speech_transcribe", kind: "message", oneof: "output", T: () => SpeechTranscribeResult },
+            { no: 7, name: "music_generate", kind: "message", oneof: "output", T: () => MusicGenerateResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioOutput>): ScenarioOutput {
@@ -4203,22 +4232,22 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
                         videoGenerate: VideoGenerateResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).videoGenerate)
                     };
                     break;
-                case /* nimi.runtime.v1.SpeechTranscribeResult speech_transcribe */ 5:
+                case /* nimi.runtime.v1.SpeechSynthesizeResult speech_synthesize */ 5:
+                    message.output = {
+                        oneofKind: "speechSynthesize",
+                        speechSynthesize: SpeechSynthesizeResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).speechSynthesize)
+                    };
+                    break;
+                case /* nimi.runtime.v1.SpeechTranscribeResult speech_transcribe */ 6:
                     message.output = {
                         oneofKind: "speechTranscribe",
                         speechTranscribe: SpeechTranscribeResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).speechTranscribe)
                     };
                     break;
-                case /* nimi.runtime.v1.MusicGenerateResult music_generate */ 6:
+                case /* nimi.runtime.v1.MusicGenerateResult music_generate */ 7:
                     message.output = {
                         oneofKind: "musicGenerate",
                         musicGenerate: MusicGenerateResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).musicGenerate)
-                    };
-                    break;
-                case /* nimi.runtime.v1.SpeechSynthesizeResult speech_synthesize */ 7:
-                    message.output = {
-                        oneofKind: "speechSynthesize",
-                        speechSynthesize: SpeechSynthesizeResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).speechSynthesize)
                     };
                     break;
                 default:
@@ -4245,15 +4274,15 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
         /* nimi.runtime.v1.VideoGenerateResult video_generate = 4; */
         if (message.output.oneofKind === "videoGenerate")
             VideoGenerateResult.internalBinaryWrite(message.output.videoGenerate, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.SpeechTranscribeResult speech_transcribe = 5; */
-        if (message.output.oneofKind === "speechTranscribe")
-            SpeechTranscribeResult.internalBinaryWrite(message.output.speechTranscribe, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.MusicGenerateResult music_generate = 6; */
-        if (message.output.oneofKind === "musicGenerate")
-            MusicGenerateResult.internalBinaryWrite(message.output.musicGenerate, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.SpeechSynthesizeResult speech_synthesize = 7; */
+        /* nimi.runtime.v1.SpeechSynthesizeResult speech_synthesize = 5; */
         if (message.output.oneofKind === "speechSynthesize")
-            SpeechSynthesizeResult.internalBinaryWrite(message.output.speechSynthesize, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+            SpeechSynthesizeResult.internalBinaryWrite(message.output.speechSynthesize, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.SpeechTranscribeResult speech_transcribe = 6; */
+        if (message.output.oneofKind === "speechTranscribe")
+            SpeechTranscribeResult.internalBinaryWrite(message.output.speechTranscribe, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MusicGenerateResult music_generate = 7; */
+        if (message.output.oneofKind === "musicGenerate")
+            MusicGenerateResult.internalBinaryWrite(message.output.musicGenerate, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -1801,16 +1801,24 @@ pub struct ChatContentArtifactRef {
 pub struct ChatContentPart {
     #[prost(enumeration = "ChatContentPartType", tag = "1")]
     pub r#type: i32,
-    #[prost(string, tag = "2")]
-    pub text: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub image_url: ::core::option::Option<ChatContentImageUrl>,
-    #[prost(string, tag = "4")]
-    pub video_url: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub audio_url: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub artifact_ref: ::core::option::Option<ChatContentArtifactRef>,
+    #[prost(oneof = "chat_content_part::Content", tags = "2, 3, 4, 5, 6")]
+    pub content: ::core::option::Option<chat_content_part::Content>,
+}
+/// Nested message and enum types in `ChatContentPart`.
+pub mod chat_content_part {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Content {
+        #[prost(string, tag = "2")]
+        Text(::prost::alloc::string::String),
+        #[prost(message, tag = "3")]
+        ImageUrl(super::ChatContentImageUrl),
+        #[prost(string, tag = "4")]
+        VideoUrl(::prost::alloc::string::String),
+        #[prost(string, tag = "5")]
+        AudioUrl(::prost::alloc::string::String),
+        #[prost(message, tag = "6")]
+        ArtifactRef(super::ChatContentArtifactRef),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ToolSpec {
@@ -2085,11 +2093,11 @@ pub mod scenario_output {
         #[prost(message, tag = "4")]
         VideoGenerate(super::VideoGenerateResult),
         #[prost(message, tag = "5")]
-        SpeechTranscribe(super::SpeechTranscribeResult),
-        #[prost(message, tag = "6")]
-        MusicGenerate(super::MusicGenerateResult),
-        #[prost(message, tag = "7")]
         SpeechSynthesize(super::SpeechSynthesizeResult),
+        #[prost(message, tag = "6")]
+        SpeechTranscribe(super::SpeechTranscribeResult),
+        #[prost(message, tag = "7")]
+        MusicGenerate(super::MusicGenerateResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

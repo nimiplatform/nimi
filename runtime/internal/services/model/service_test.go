@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
@@ -17,10 +19,12 @@ import (
 func TestPullModelTransitionsThroughPullingState(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	release := make(chan struct{})
+	done := make(chan struct{})
 	svc.SetPullExecutor(func(modelID string, complete func(runtimev1.ModelStatus)) {
 		go func() {
 			<-release
 			complete(runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+			close(done)
 		}()
 	})
 
@@ -53,7 +57,19 @@ func TestPullModelTransitionsThroughPullingState(t *testing.T) {
 	}
 
 	close(release)
-	waitForModelStatus(t, svc, "qwen2.5", runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
+	select {
+	case <-done:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("model pull did not complete in time")
+	}
+
+	installedResp, err := svc.ListModels(context.Background(), &runtimev1.ListModelsRequest{})
+	if err != nil {
+		t.Fatalf("list models after completion: %v", err)
+	}
+	if len(installedResp.GetModels()) != 1 || installedResp.GetModels()[0].GetStatus() != runtimev1.ModelStatus_MODEL_STATUS_INSTALLED {
+		t.Fatalf("expected installed model after pull completion, got %#v", installedResp.GetModels())
+	}
 }
 
 func TestModelLifecycle(t *testing.T) {
@@ -78,7 +94,10 @@ func TestModelLifecycle(t *testing.T) {
 	}
 	<-done
 
-	healthResp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{ModelId: "qwen2.5"})
+	healthResp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "qwen2.5",
+	})
 	if err != nil {
 		t.Fatalf("check model health: %v", err)
 	}
@@ -97,7 +116,10 @@ func TestModelLifecycle(t *testing.T) {
 		t.Fatalf("family mismatch: %q", got)
 	}
 
-	removeResp, err := svc.RemoveModel(context.Background(), &runtimev1.RemoveModelRequest{ModelId: "qwen2.5"})
+	removeResp, err := svc.RemoveModel(context.Background(), &runtimev1.RemoveModelRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "qwen2.5",
+	})
 	if err != nil {
 		t.Fatalf("remove model: %v", err)
 	}
@@ -105,7 +127,10 @@ func TestModelLifecycle(t *testing.T) {
 		t.Fatalf("remove must succeed")
 	}
 
-	healthAfterRemove, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{ModelId: "qwen2.5"})
+	healthAfterRemove, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "qwen2.5",
+	})
 	if err != nil {
 		t.Fatalf("check model health after remove: %v", err)
 	}
@@ -115,6 +140,156 @@ func TestModelLifecycle(t *testing.T) {
 	if healthAfterRemove.ReasonCode != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
 		t.Fatalf("unexpected reason code: %v", healthAfterRemove.ReasonCode)
 	}
+}
+
+func TestCheckModelHealthLocalLlamaRequiresWarmProof(t *testing.T) {
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID:      "local/qwen2.5",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"text.generate"},
+		Source:       "local",
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "local/qwen2.5",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("local llama model without warm proof must fail closed")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if got := resp.GetActionHint(); got != "warm local model" {
+		t.Fatalf("unexpected action hint: %q", got)
+	}
+}
+
+func TestCheckModelHealthLocalMediaRequiresTargetReadyCatalogEntry(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"models":[{"id":"media/demo-image","ready":true}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", server.URL)
+
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID:      "media/demo-image",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"image.generate"},
+		Source:       "local",
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "media/demo-image",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if !resp.GetHealthy() {
+		t.Fatalf("local media model with matching ready catalog entry must be healthy: %+v", resp)
+	}
+}
+
+func TestCheckModelHealthLocalMediaFailsClosedWhenCatalogMissesTarget(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"ok","ready":true}`))
+		case "/v1/catalog":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"models":[{"id":"media/other-model","ready":true}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", server.URL)
+
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID:      "media/demo-image",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"image.generate"},
+		Source:       "local",
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "media/demo-image",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("local media model must fail closed when target catalog entry is missing")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if got := resp.GetActionHint(); got != "start local media engine" {
+		t.Fatalf("unexpected action hint: %q", got)
+	}
+}
+
+func TestDefaultPullExecutorKeepsPullingStateObservable(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	pullResp, err := svc.PullModel(context.Background(), &runtimev1.PullModelRequest{
+		AppId:    "nimi.desktop",
+		ModelRef: "qwen2.5:latest",
+	})
+	if err != nil {
+		t.Fatalf("pull model: %v", err)
+	}
+	if !pullResp.GetAccepted() {
+		t.Fatalf("pull model must be accepted")
+	}
+
+	listResp, err := svc.ListModels(context.Background(), &runtimev1.ListModelsRequest{})
+	if err != nil {
+		t.Fatalf("list models: %v", err)
+	}
+	if len(listResp.GetModels()) != 1 {
+		t.Fatalf("expected 1 model, got %d", len(listResp.GetModels()))
+	}
+	if got := listResp.GetModels()[0].GetStatus(); got != runtimev1.ModelStatus_MODEL_STATUS_PULLING {
+		t.Fatalf("expected default executor to leave pulling observable, got %v", got)
+	}
+
+	deadline := time.Now().Add(500 * time.Millisecond)
+	for time.Now().Before(deadline) {
+		listResp, err = svc.ListModels(context.Background(), &runtimev1.ListModelsRequest{})
+		if err != nil {
+			t.Fatalf("list models after pull: %v", err)
+		}
+		if len(listResp.GetModels()) == 1 && listResp.GetModels()[0].GetStatus() == runtimev1.ModelStatus_MODEL_STATUS_INSTALLED {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatalf("default executor did not complete install in time: %#v", listResp.GetModels())
 }
 
 func TestPullModelInvalidInput(t *testing.T) {
@@ -144,9 +319,49 @@ func TestRemoveModelRejectsIllegalSourceState(t *testing.T) {
 	})
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
 
-	_, err := svc.RemoveModel(context.Background(), &runtimev1.RemoveModelRequest{ModelId: "qwen2.5"})
+	_, err := svc.RemoveModel(context.Background(), &runtimev1.RemoveModelRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "qwen2.5",
+	})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("expected failed precondition, got %v", err)
+	}
+}
+
+func TestRemoveModelRequiresAppID(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	resp, err := svc.RemoveModel(context.Background(), &runtimev1.RemoveModelRequest{ModelId: "qwen2.5"})
+	if err != nil {
+		t.Fatalf("remove model without app id: %v", err)
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+}
+
+func TestCheckModelHealthRequiresAppID(t *testing.T) {
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID: "qwen2.5",
+		Version: "latest",
+		Status:  runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		ModelId: "qwen2.5",
+	})
+	if err != nil {
+		t.Fatalf("check model health without app id: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("health check without app id must fail closed")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if resp.GetActionHint() != "set app_id" {
+		t.Fatalf("unexpected action hint: %q", resp.GetActionHint())
 	}
 }
 
@@ -219,22 +434,4 @@ func TestModelRegistryPersistence(t *testing.T) {
 	if item.ProviderHint != modelregistry.ProviderHintDashScope {
 		t.Fatalf("provider hint mismatch: got=%s", item.ProviderHint)
 	}
-}
-
-func waitForModelStatus(t *testing.T, svc *Service, modelID string, want runtimev1.ModelStatus) {
-	t.Helper()
-	deadline := time.Now().Add(500 * time.Millisecond)
-	for time.Now().Before(deadline) {
-		resp, err := svc.ListModels(context.Background(), &runtimev1.ListModelsRequest{})
-		if err != nil {
-			t.Fatalf("list models: %v", err)
-		}
-		for _, model := range resp.GetModels() {
-			if model.GetModelId() == modelID && model.GetStatus() == want {
-				return
-			}
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	t.Fatalf("model %s did not reach status %v", modelID, want)
 }
