@@ -51,7 +51,9 @@
     "generationFailed": "Generation failed",
     "estimatedTimeMini": "~30s",
     "estimatedTimeStandard": "~5min",
-    "iframeTitle": "Marble 3D Viewer"
+    "iframeTitle": "Marble 3D Viewer",
+    "embedUnavailable": "Embedded Marble viewer is unavailable in the current desktop sandbox. Open it in your browser instead.",
+    "openInBrowser": "Open in Browser"
   },
   "chat": {
     "placeholder": "Type a message...",

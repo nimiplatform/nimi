@@ -26,6 +26,7 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
   const [errorMessage, setErrorMessage] = useState('');
   const abortRef = useRef<AbortController | null>(null);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [viewerBlocked, setViewerBlocked] = useState(false);
 
   const state: ViewerState = marbleJob?.status ?? 'idle';
   const viewerUrl = marbleJob?.viewerUrl;
@@ -117,6 +118,7 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
     setElapsed(0);
     setErrorMessage('');
     setIframeLoaded(false);
+    setViewerBlocked(false);
 
     try {
       // Compose prompt
@@ -178,6 +180,21 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
       abortRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (state !== 'completed' || !viewerUrl) {
+      setViewerBlocked(false);
+      return;
+    }
+    if (iframeLoaded) {
+      setViewerBlocked(false);
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      setViewerBlocked(true);
+    }, 5000);
+    return () => window.clearTimeout(timeout);
+  }, [state, viewerUrl, iframeLoaded]);
 
   // Idle state
   if (state === 'idle') {
@@ -253,9 +270,20 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
   // Ready state — iframe embed
   return (
     <div className="relative h-full w-full">
-      {!iframeLoaded && (
+      {!iframeLoaded && !viewerBlocked && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+      {viewerBlocked && viewerUrl && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-neutral-950/95 px-8 text-center">
+          <p className="text-sm text-neutral-200">{t('viewer.embedUnavailable')}</p>
+          <button
+            onClick={() => window.open(viewerUrl, '_blank', 'noopener,noreferrer')}
+            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black hover:bg-neutral-200 transition-colors"
+          >
+            {t('viewer.openInBrowser')}
+          </button>
         </div>
       )}
       {viewerUrl && (
@@ -263,8 +291,12 @@ export function MarbleViewer({ worldId, worldName, worldReference, quality }: Ma
           src={viewerUrl}
           title={t('viewer.iframeTitle')}
           className="h-full w-full border-0"
-          onLoad={() => setIframeLoaded(true)}
-          sandbox="allow-scripts allow-same-origin allow-popups"
+          onLoad={() => {
+            setIframeLoaded(true);
+            setViewerBlocked(false);
+          }}
+          onError={() => setViewerBlocked(true)}
+          sandbox="allow-scripts allow-popups"
           allow="autoplay; fullscreen"
         />
       )}

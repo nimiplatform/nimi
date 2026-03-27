@@ -14,7 +14,7 @@ Realm Drift runs as a standalone Tauri 2.10 application.
 | Window default | 1440 x 900 |
 | Window minimum | 1120 x 780 |
 | `titleBarStyle` | `Overlay` (macOS native traffic lights) |
-| `withGlobalTauri` | `true` |
+| `withGlobalTauri` | `false` |
 
 CSP policy extends the forge baseline with iframe embedding for the Marble viewer:
 
@@ -25,11 +25,11 @@ style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob: file: https:;
 media-src 'self' data: blob: file:;
 font-src 'self' data:;
-connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws: wss: ws://127.0.0.1:* ws://localhost:*;
+connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;
 frame-src https://marble.worldlabs.ai;
 ```
 
-The `frame-src https://marble.worldlabs.ai;` directive is the key addition enabling Marble viewer iframe embedding. The `img-src` adds `https:` to allow loading remote world thumbnails and Marble-hosted images.
+The `frame-src https://marble.worldlabs.ai;` directive is the key addition enabling Marble viewer embedding. The `img-src` adds `https:` to allow loading remote world thumbnails and Marble-hosted images. Broad `ws:` / `wss:` origins are not allowed.
 
 ## RD-SHELL-002: Rust Shell (Trimmed)
 
@@ -60,10 +60,10 @@ Step 1: i18n
 
 Step 2: Runtime Defaults
   → getRuntimeDefaults()
-  → Store realm base URL + access token defaults
+  → Store realm base URL + JWT validation defaults
 
 Step 3: Platform Client
-  → createPlatformClient({ realmBaseUrl, accessToken, accessTokenProvider, subjectUserIdProvider })
+  → createPlatformClient({ realmBaseUrl, accessToken: '', accessTokenProvider, subjectUserIdProvider })
   → Produces { runtime, realm } SDK clients
 
 Step 4: Auth Session
@@ -84,13 +84,14 @@ Errors at any step → `setBootstrapError(message)` + show error state.
 
 ## RD-SHELL-004: Auth Flow
 
-Auth reuses the desktop JWT auth pattern:
+Auth reuses the desktop JWT auth pattern, with a stricter renderer boundary:
 
-1. On bootstrap, validate the stored access token by loading the current user through `MeService.getMe()`
-2. If valid → authenticated state → render app
-3. If invalid → show error state (demo does not implement full OAuth login flow)
-4. Token refresh is owned by the Realm SDK configuration (`refreshToken`, `onTokenRefreshed`, `onRefreshFailed`), not by app-installed raw request interceptors
-5. `useAppStore.auth` holds: `status`, `user`, `token`, `refreshToken`
+1. Rust `runtime_defaults` does not project raw access tokens into renderer state
+2. On bootstrap, Realm Drift only validates a token if the current in-memory session already has one
+3. If valid → authenticated state → render app
+4. If absent or invalid → show error / anonymous state (demo does not implement full OAuth login flow)
+5. Token refresh is owned by the Realm SDK configuration (`refreshToken`, `onTokenRefreshed`, `onRefreshFailed`), not by app-installed raw request interceptors
+6. `useAppStore.auth` holds: `status`, `user`, `token`, `refreshToken`
 
 Auth states: `bootstrapping` → `authenticated` | `unauthenticated`
 

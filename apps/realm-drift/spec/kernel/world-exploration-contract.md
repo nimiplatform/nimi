@@ -96,7 +96,7 @@ The Marble web viewer at `https://marble.worldlabs.ai/world/{marble_world_id}` i
   title="Marble 3D Viewer"
   class="h-full w-full border-0"
   allow="autoplay; fullscreen"
-  sandbox="allow-scripts allow-same-origin allow-popups"
+  sandbox="allow-scripts allow-popups"
 />
 ```
 
@@ -105,61 +105,25 @@ Requirements:
 - The iframe MUST fill the entire left pane
 - The iframe MUST be loaded only after Marble generation completes (`status === 'completed'`)
 
-### Fallback Strategy: Tauri Dual WebView
+### Fallback Strategy: Fail-Closed Open-In-Browser
 
-If the Marble viewer page sets `X-Frame-Options: DENY` or `Content-Security-Policy: frame-ancestors 'none'`, the iframe approach will fail. The fallback uses **Tauri 2's native multi-WebView** capability to split the main window into two side-by-side webviews.
+If the Marble viewer page cannot load under the stricter iframe sandbox (for example because it requires same-origin access or sets a blocking frame policy), the desktop app must fail-close inside the embed pane instead of silently hanging on a spinner.
 
-Detection: listen for iframe `load` error event or `onerror` callback within a 5-second timeout.
+Detection: listen for iframe `error` or a no-load timeout of 5 seconds.
 
-Fallback architecture:
+Fallback behavior:
 
-```
-┌─── Main Tauri Window ─────────────────────────────────────┐
-│  [Header Bar — rendered by left webview]                   │
-├──────────────────────────────┬─────────────────────────────┤
-│                              │                             │
-│  WebView "marble"            │  WebView "main"             │
-│  url: marble.worldlabs.ai   │  url: localhost:1424         │
-│       /world/{id}            │       /world/:id/chat       │
-│                              │                             │
-│  70% width                   │  30% width                  │
-│                              │                             │
-└──────────────────────────────┴─────────────────────────────┘
-```
-
-Implementation uses `Webview` (not `WebviewWindow`) to create a second webview within the existing window:
-
-```typescript
-import { Webview } from '@tauri-apps/api/webview';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-
-// Create a second webview within the SAME window
-const appWindow = getCurrentWindow();
-const marbleWebview = new Webview(appWindow, 'marble-viewer', {
-  url: `https://marble.worldlabs.ai/world/${marbleWorldId}`,
-  x: 0,
-  y: headerHeight,
-  width: windowWidth * 0.7,
-  height: windowHeight - headerHeight,
-});
-```
-
-> **API distinction**: `Webview` creates a webview inside an existing window. `WebviewWindow` creates a new window with a webview — which is NOT what we want here. The Tauri v2 multi-webview feature requires `Webview` attached to a parent window.
-
-Key behaviors:
-- The marble webview fills the left 70% of the window, the main renderer webview resizes to the right 30%
-- The header bar remains in the main webview (always above both panes)
-- On world navigation change, the marble webview is destroyed and recreated
-- The main webview handles agent chat independently — no cross-webview communication needed
+- show a deterministic unsupported state inside the left pane
+- present an explicit `Open in Browser` CTA for the same `viewerUrl`
+- do not auto-create a second Tauri WebView
+- keep the right-side chat panel active
 
 ### Embedding Decision Flow
 
 ```
 Attempt iframe embed (5s timeout)
-  → Success → interactive 3D in left pane (single webview)
-  → Failure → activate Tauri dual WebView mode
-      → Marble webview: left 70% (marble.worldlabs.ai)
-      → Main webview: right 30% (local renderer — chat panel only)
+  → Success → interactive 3D in left pane
+  → Failure → show unsupported state + Open in Browser CTA
 ```
 
 ### Dual WebView Lifecycle
@@ -167,10 +131,10 @@ Attempt iframe embed (5s timeout)
 | Event | Behavior |
 |-------|----------|
 | World loaded, iframe works | Single webview mode — iframe in left pane |
-| World loaded, iframe blocked | Create marble webview, resize main webview |
-| Navigate to different world | Destroy marble webview, recreate with new URL |
-| Navigate back to browser (`/`) | Destroy marble webview, restore main webview to full width |
-| Window resize | Recompute 70/30 split, update webview bounds |
+| World loaded, iframe blocked | Unsupported state + Open in Browser CTA |
+| Navigate to different world | Reset iframe state and retry embed for the new URL |
+| Navigate back to browser (`/`) | Tear down viewer pane state |
+| Window resize | Standard responsive layout only |
 
 ## RD-EXPLORE-005: Viewer State Machine
 

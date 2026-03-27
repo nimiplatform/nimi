@@ -51,7 +51,9 @@
     "generationFailed": "生成失败",
     "estimatedTimeMini": "约30秒",
     "estimatedTimeStandard": "约5分钟",
-    "iframeTitle": "Marble 3D 查看器"
+    "iframeTitle": "Marble 3D 查看器",
+    "embedUnavailable": "当前桌面沙箱下无法嵌入 Marble 查看器，请改为在浏览器中打开。",
+    "openInBrowser": "在浏览器中打开"
   },
   "chat": {
     "placeholder": "输入消息...",

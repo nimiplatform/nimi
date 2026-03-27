@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -20,6 +20,8 @@ vi.mock('react-i18next', () => ({
         'viewer.pollTimeout': 'Generation timed out.',
         'viewer.generationFailed': 'Generation failed',
         'viewer.iframeTitle': 'Marble 3D Viewer',
+        'viewer.embedUnavailable': 'Embedded Marble viewer is unavailable in the current desktop sandbox. Open it in your browser instead.',
+        'viewer.openInBrowser': 'Open in Browser',
         'error.rateLimited': 'Too many requests.',
         'error.unauthorized': 'Authentication expired.',
         'error.forbidden': 'No permission.',
@@ -95,6 +97,10 @@ describe('MarbleViewer', () => {
     vi.clearAllMocks();
     mockStore.marbleJobs = {};
     mockAssembleRawContext.mockReturnValue('World: Test World\nDescription: A test world');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   // --- Idle state ---
@@ -281,6 +287,43 @@ describe('MarbleViewer', () => {
     expect(iframe.src).toBe('https://marble.worldlabs.ai/world/marble-w1');
     expect(iframe.title).toBe('Marble 3D Viewer');
     expect(iframe.getAttribute('sandbox')).toContain('allow-scripts');
+    expect(iframe.getAttribute('sandbox')).not.toContain('allow-same-origin');
+  });
+
+  it('fails closed to open-in-browser when iframe embed errors', async () => {
+    mockStore.marbleJobs = {
+      w1: {
+        operationId: 'op-1',
+        status: 'completed',
+        viewerUrl: 'https://marble.worldlabs.ai/world/marble-w1',
+        startedAt: Date.now(),
+      },
+    };
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+    vi.useFakeTimers();
+
+    render(
+      <MarbleViewer
+        worldId="w1"
+        worldName="Test World"
+        worldReference={makeWorldContext()}
+        quality="mini"
+      />,
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+    });
+
+    expect(
+      screen.getByText(
+        'Embedded Marble viewer is unavailable in the current desktop sandbox. Open it in your browser instead.',
+      ),
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByText('Open in Browser'));
+    expect(openSpy).toHaveBeenCalledWith('https://marble.worldlabs.ai/world/marble-w1', '_blank', 'noopener,noreferrer');
+    openSpy.mockRestore();
   });
 
   it('shows loading spinner before iframe loads', () => {
