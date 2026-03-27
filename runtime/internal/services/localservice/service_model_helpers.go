@@ -148,6 +148,43 @@ func validateResolvedModelManifestPath(manifestPath string, modelsRoot string) e
 	return nil
 }
 
+func validateLocalArtifactManifestPath(manifestPath string, modelsRoot string) error {
+	cleanManifestPath := filepath.Clean(strings.TrimSpace(manifestPath))
+	if cleanManifestPath == "." || cleanManifestPath == "" {
+		return fmt.Errorf("manifest path required")
+	}
+	if !strings.EqualFold(filepath.Base(cleanManifestPath), "artifact.manifest.json") {
+		return fmt.Errorf("artifact manifest must be named artifact.manifest.json")
+	}
+	cleanModelsRoot := filepath.Clean(strings.TrimSpace(modelsRoot))
+	if cleanModelsRoot == "." || cleanModelsRoot == "" {
+		return fmt.Errorf("models root required")
+	}
+	resolvedModelsRoot, err := filepath.EvalSymlinks(cleanModelsRoot)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("models root invalid: %w", err)
+		}
+		resolvedModelsRoot = cleanModelsRoot
+	}
+	resolvedManifestPath, err := filepath.EvalSymlinks(cleanManifestPath)
+	if err != nil {
+		return fmt.Errorf("manifest path invalid: %w", err)
+	}
+	rel, err := filepath.Rel(resolvedModelsRoot, resolvedManifestPath)
+	if err != nil {
+		return fmt.Errorf("manifest path invalid: %w", err)
+	}
+	if rel == "." || rel == "" || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("artifact manifest must stay under runtime models root")
+	}
+	parent := filepath.Dir(rel)
+	if parent == "." {
+		return fmt.Errorf("artifact manifest must live under <artifact-dir>/artifact.manifest.json")
+	}
+	return nil
+}
+
 func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
 	localModelID := strings.TrimSpace(req.GetLocalModelId())
 	if localModelID == "" {

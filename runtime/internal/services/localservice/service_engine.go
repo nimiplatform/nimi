@@ -118,7 +118,7 @@ func (s *Service) GetEngineStatus(_ context.Context, req *runtimev1.GetEngineSta
 
 func mapEngineManagerError(operation string, err error) error {
 	if err == nil {
-		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		return nil
 	}
 	raw := strings.TrimSpace(err.Error())
 	lower := strings.ToLower(raw)

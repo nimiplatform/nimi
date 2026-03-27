@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 const speechPythonVersion = "3.12"
@@ -45,7 +46,7 @@ func ensureSpeech(ctx context.Context, baseDir string, cfg EngineConfig) (Engine
 	cfg.CommandArgs = []string{
 		scriptPath,
 		"--host", "127.0.0.1",
-		"--port", itoa(cfg.Port),
+		"--port", strconv.Itoa(cfg.Port),
 	}
 	cfg.WorkingDir = root
 	if cfg.CommandEnv == nil {

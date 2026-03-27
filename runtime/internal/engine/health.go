@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const canonicalCatalogProbeBodyLimitBytes = 128 * 1024
+
 // ProbeHealth performs a single HTTP health check against the engine endpoint.
 // Returns nil if healthy, error otherwise.
 func ProbeHealth(ctx context.Context, endpoint string, healthPath string, expectedBody string) error {
@@ -118,7 +120,7 @@ func probeCanonicalCatalogHealth(ctx context.Context, endpoint string, engineLab
 	}
 	defer catalogResp.Body.Close()
 
-	body, _ = io.ReadAll(io.LimitReader(catalogResp.Body, 1<<20))
+	body, _ = io.ReadAll(io.LimitReader(catalogResp.Body, canonicalCatalogProbeBodyLimitBytes))
 	if catalogResp.StatusCode < 200 || catalogResp.StatusCode >= 300 {
 		return fmt.Errorf("catalog probe returned status %d: %s", catalogResp.StatusCode, string(body))
 	}

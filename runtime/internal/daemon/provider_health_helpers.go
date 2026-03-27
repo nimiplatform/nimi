@@ -10,7 +10,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/providerhealth"
 	"github.com/oklog/ulid/v2"
-	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -31,12 +30,14 @@ func providerTargetNameForEngine(kind engine.EngineKind) (string, bool) {
 	switch kind {
 	case engine.EngineLlama:
 		return "local", true
-	case engine.EngineKind("media-diffusers-backend"):
+	case engineMediaDiffusersBackend:
 		return "local-image", true
 	case engine.EngineMedia:
 		return "local-media", true
 	case engine.EngineSpeech:
 		return "local-speech", true
+	case engineSidecar:
+		return "local-sidecar", true
 	default:
 		return "", false
 	}
@@ -50,6 +51,8 @@ func localProviderEnvBinding(kind engine.EngineKind) (string, string, bool) {
 		return "media", "NIMI_RUNTIME_LOCAL_MEDIA_API_KEY", true
 	case engine.EngineSpeech:
 		return "speech", "NIMI_RUNTIME_LOCAL_SPEECH_API_KEY", true
+	case engineSidecar:
+		return "sidecar", "NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY", true
 	default:
 		return "", "", false
 	}
@@ -63,8 +66,10 @@ func engineKindForName(engineName string) (engine.EngineKind, bool) {
 		return engine.EngineMedia, true
 	case string(engine.EngineSpeech):
 		return engine.EngineSpeech, true
-	case "media-diffusers-backend":
-		return engine.EngineKind("media-diffusers-backend"), true
+	case string(engineMediaDiffusersBackend):
+		return engineMediaDiffusersBackend, true
+	case string(engineSidecar):
+		return engineSidecar, true
 	default:
 		return "", false
 	}
@@ -125,7 +130,7 @@ func appendProviderHealthAudit(store *auditlog.Store, providerName string, befor
 	if after.State == providerhealth.StateUnhealthy {
 		reasonCode = runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 	}
-	payload, _ := structpb.NewStruct(map[string]any{
+	payload := auditPayloadStruct(map[string]any{
 		"providerName": strings.TrimSpace(providerName),
 		"previous": map[string]any{
 			"state":               string(before.State),

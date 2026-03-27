@@ -9,12 +9,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"strings"
 	"testing"
 	"time"
-	"unsafe"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -45,6 +43,7 @@ func setDaemonTestHome(t *testing.T, homeDir string) {
 	t.Helper()
 	t.Setenv("HOME", homeDir)
 	t.Setenv("USERPROFILE", homeDir)
+	t.Setenv("NIMI_RUNTIME_CONNECTOR_STORE_PATH", filepath.Join(homeDir, ".nimi-connectors"))
 	volume := filepath.VolumeName(homeDir)
 	if volume == "" {
 		volume = "C:"
@@ -57,24 +56,6 @@ func setDaemonTestHome(t *testing.T, homeDir string) {
 	t.Setenv("HOMEPATH", homePath)
 }
 
-func setUnexportedField[T any](t *testing.T, target any, fieldName string, value T) {
-	t.Helper()
-	field := reflect.ValueOf(target).Elem().FieldByName(fieldName)
-	if !field.IsValid() {
-		t.Fatalf("field %s not found", fieldName)
-	}
-	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().Set(reflect.ValueOf(value))
-}
-
-func getUnexportedStringField(t *testing.T, target any, fieldName string) string {
-	t.Helper()
-	field := reflect.ValueOf(target).Elem().FieldByName(fieldName)
-	if !field.IsValid() {
-		t.Fatalf("field %s not found", fieldName)
-	}
-	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().String()
-}
-
 func newHealthyEngineManager(t *testing.T, kind engine.EngineKind, port int) *engine.Manager {
 	t.Helper()
 	manager, err := engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
@@ -82,11 +63,8 @@ func newHealthyEngineManager(t *testing.T, kind engine.EngineKind, port int) *en
 		t.Fatalf("create engine manager: %v", err)
 	}
 	supervisor := engine.NewSupervisor(engine.EngineConfig{Kind: kind, Port: port}, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
-	setUnexportedField(t, supervisor, "status", engine.StatusHealthy)
-	setUnexportedField(t, supervisor, "lastHealthyAt", time.Now())
-	setUnexportedField(t, manager, "supervisors", map[engine.EngineKind]*engine.Supervisor{
-		kind: supervisor,
-	})
+	supervisor.SetStateForTesting(engine.StatusHealthy, time.Now())
+	manager.SetSupervisorForTesting(kind, supervisor)
 	return manager
 }
 
@@ -234,13 +212,9 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 		t.Cleanup(func() { svc.Close() })
 	}
 
-	originalDetect := detectMediaHostSupport
-	detectMediaHostSupport = func() (engine.MediaHostSupport, string) {
+	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
 		return engine.MediaHostSupportAttachedOnly, "attached only"
 	}
-	t.Cleanup(func() {
-		detectMediaHostSupport = originalDetect
-	})
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
@@ -261,7 +235,7 @@ func TestStartSupervisedEnginesDoesNotExposeManagedMediaLoopbackOnAttachedOnlyHo
 	}
 
 	if svc := daemon.grpc.LocalService(); svc != nil {
-		if managedEndpoint := getUnexportedStringField(t, svc, "managedMediaEndpointValue"); managedEndpoint != "" {
+		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "" {
 			t.Fatalf("managed media endpoint should stay empty on attached-only host, got %q", managedEndpoint)
 		}
 	}
@@ -288,13 +262,9 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 		t.Cleanup(func() { svc.Close() })
 	}
 
-	originalDetect := detectMediaHostSupport
-	detectMediaHostSupport = func() (engine.MediaHostSupport, string) {
+	daemon.detectMediaHostSupportFn = func() (engine.MediaHostSupport, string) {
 		return engine.MediaHostSupportSupportedSupervised, "supported"
 	}
-	t.Cleanup(func() {
-		detectMediaHostSupport = originalDetect
-	})
 
 	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), t.TempDir(), nil)
@@ -311,7 +281,7 @@ func TestStartSupervisedEnginesExposesManagedMediaLoopbackOnSupportedHost(t *tes
 		t.Fatalf("expected supported host to bootstrap media engine, got=%v", startCalls)
 	}
 	if svc := daemon.grpc.LocalService(); svc != nil {
-		if managedEndpoint := getUnexportedStringField(t, svc, "managedMediaEndpointValue"); managedEndpoint != "http://127.0.0.1:8321/v1" {
+		if managedEndpoint := svc.ManagedMediaEndpoint(); managedEndpoint != "http://127.0.0.1:8321/v1" {
 			t.Fatalf("expected managed media endpoint to be exposed on supported host, got %q", managedEndpoint)
 		}
 	}
@@ -330,6 +300,9 @@ func TestAppendEngineCrashAuditIncludesStructuredFields(t *testing.T) {
 	record := events.GetEvents()[0]
 	if record.GetOperation() != "engine.unhealthy" {
 		t.Fatalf("unexpected operation: %s", record.GetOperation())
+	}
+	if record.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("unexpected reason code: %v", record.GetReasonCode())
 	}
 	payload := record.GetPayload().GetFields()
 	if payload["engine"].GetStringValue() != "llama" {
@@ -608,5 +581,68 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	}
 	if !strings.Contains(record.GetPayload().GetFields()["detail"].GetStringValue(), "sync managed llama assets") {
 		t.Fatalf("unexpected bootstrap failure detail: %q", record.GetPayload().GetFields()["detail"].GetStringValue())
+	}
+}
+
+func TestStartSupervisedEnginesFailsClosedForUnsupportedSidecar(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineSidecarEnabled: true,
+		EngineSidecarPort:    9331,
+		EngineSidecarVersion: "test",
+	}
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	daemon.auditStore = auditlog.New(32, 32)
+	daemon.aiHealth = providerhealth.New()
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return &engine.Manager{}, nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+
+	snapshot := daemon.state.Snapshot()
+	if snapshot.Status != health.StatusDegraded {
+		t.Fatalf("expected degraded state, got=%s (%s)", snapshot.Status, snapshot.Reason)
+	}
+	if !strings.Contains(snapshot.Reason, "sidecar: engine sidecar is not yet supported for supervised lifecycle") {
+		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
+	}
+
+	sidecarProvider := daemon.aiHealth.SnapshotOf("local-sidecar")
+	if sidecarProvider.State != providerhealth.StateUnhealthy {
+		t.Fatalf("expected local-sidecar unhealthy, got=%s", sidecarProvider.State)
+	}
+	if !strings.Contains(sidecarProvider.LastReason, "sidecar") {
+		t.Fatalf("unexpected sidecar provider reason: %s", sidecarProvider.LastReason)
+	}
+
+	events := mustListAuditEvents(t, daemon.auditStore, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
+	if len(events) != 1 {
+		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
+	}
+	record := events[0]
+	if record.GetOperation() != "engine.bootstrap_failed" {
+		t.Fatalf("unexpected operation: %s", record.GetOperation())
+	}
+	if got := record.GetPayload().GetFields()["provider"].GetStringValue(); got != "local-sidecar" {
+		t.Fatalf("unexpected provider payload: %q", got)
+	}
+}
+
+func TestRuntimeSetenvRejectsInvalidKeys(t *testing.T) {
+	if err := runtimeSetenv("invalid=key", "value"); err == nil {
+		t.Fatal("expected invalid env key to fail")
 	}
 }

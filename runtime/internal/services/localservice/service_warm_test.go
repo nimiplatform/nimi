@@ -260,10 +260,18 @@ func TestWarmLocalModelRetriesManagedProbeUntilReady(t *testing.T) {
 
 func TestRecordWarmKeyCapsCacheSize(t *testing.T) {
 	svc := newTestService(t)
-	for i := 0; i < 600; i++ {
+	for i := 0; i < 512; i++ {
 		svc.recordWarmKey(fmt.Sprintf("key-%d", i))
 	}
+	svc.recordWarmKey("key-0")
+	svc.recordWarmKey("key-512")
 	if got := len(svc.warmedModelKeys); got > 512 {
 		t.Fatalf("warm key cache should stay bounded, got %d", got)
+	}
+	if _, ok := svc.warmedModelKeys["key-1"]; ok {
+		t.Fatal("expected oldest untouched key to be evicted first")
+	}
+	if _, ok := svc.warmedModelKeys["key-0"]; !ok {
+		t.Fatal("expected recently touched key to remain cached")
 	}
 }

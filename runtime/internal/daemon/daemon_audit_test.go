@@ -151,7 +151,7 @@ func TestProviderTargetNameForEngineSeparatesMediaDiffusersBackend(t *testing.T)
 		t.Fatalf("unexpected llama provider target: %s", llamaTarget)
 	}
 
-	diffusersTarget, ok := providerTargetNameForEngine(engine.EngineKind("media-diffusers-backend"))
+	diffusersTarget, ok := providerTargetNameForEngine(engineMediaDiffusersBackend)
 	if !ok {
 		t.Fatal("expected media diffusers provider target mapping")
 	}
@@ -160,5 +160,15 @@ func TestProviderTargetNameForEngineSeparatesMediaDiffusersBackend(t *testing.T)
 	}
 	if diffusersTarget == llamaTarget {
 		t.Fatalf("media diffusers backend must not share provider target name with llama")
+	}
+}
+
+func TestProviderTargetNameForEngineIncludesSidecar(t *testing.T) {
+	sidecarTarget, ok := providerTargetNameForEngine(engineSidecar)
+	if !ok {
+		t.Fatal("expected sidecar provider target mapping")
+	}
+	if sidecarTarget != "local-sidecar" {
+		t.Fatalf("unexpected sidecar provider target: %s", sidecarTarget)
 	}
 }

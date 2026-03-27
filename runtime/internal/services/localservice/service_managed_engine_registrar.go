@@ -153,6 +153,12 @@ func (s *Service) SetManagedMediaEndpoint(endpoint string) {
 	}
 }
 
+// ManagedMediaEndpoint returns the currently exposed managed media loopback
+// endpoint, if any.
+func (s *Service) ManagedMediaEndpoint() string {
+	return s.managedMediaEndpoint()
+}
+
 // SetManagedSpeechEndpoint records the managed speech endpoint exposed
 // by the daemon and rewrites supervised speech model endpoints to that value.
 func (s *Service) SetManagedSpeechEndpoint(endpoint string) {
@@ -422,28 +428,6 @@ func inspectManagedLlamaModelRegistration(
 	}
 	registration.RelativeModelPath = relativeModelPath
 	return registration
-}
-
-func resolveManifestEntryPath(modelDir string, modelSlug string, entry string) (string, string, error) {
-	trimmedEntry := strings.TrimSpace(entry)
-	if trimmedEntry == "" {
-		return "", "", fmt.Errorf("entry is required")
-	}
-	if filepath.IsAbs(trimmedEntry) {
-		return "", "", fmt.Errorf("entry must be relative")
-	}
-
-	cleanEntry := filepath.Clean(trimmedEntry)
-	if cleanEntry == "." || cleanEntry == string(filepath.Separator) {
-		return "", "", fmt.Errorf("entry is required")
-	}
-	if strings.HasPrefix(cleanEntry, ".."+string(filepath.Separator)) || cleanEntry == ".." {
-		return "", "", fmt.Errorf("entry must stay inside model directory")
-	}
-
-	absEntryPath := filepath.Join(modelDir, cleanEntry)
-	relativeModelPath := filepath.ToSlash(filepath.Join(modelSlug, cleanEntry))
-	return absEntryPath, relativeModelPath, nil
 }
 
 func defaultCapabilitiesForRegistration(runtimeCaps []string, manifestCaps []string) []string {

@@ -1,11 +1,16 @@
 package engine
 
 import (
+	"bytes"
 	"context"
 	"log/slog"
+	"net"
 	"os"
+	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -34,7 +39,7 @@ func testSupervisorCfg(scriptPath string) EngineConfig {
 	return EngineConfig{
 		Kind:             EngineLlama,
 		BinaryPath:       scriptPath,
-		Port:             0,
+		Port:             mustAllocateTestPort(),
 		Version:          "test",
 		HealthPath:       "/readyz",
 		StartupTimeout:   500 * time.Millisecond,
@@ -80,6 +85,62 @@ func testProcessAlive(pid int) bool {
 		return false
 	}
 	return process.Signal(syscall.Signal(0)) == nil
+}
+
+func mustAllocateTestPort() int {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		panic(err)
+	}
+	defer ln.Close()
+	return ln.Addr().(*net.TCPAddr).Port
+}
+
+func startSupervisorHelperProcess(t *testing.T, mode string) *exec.Cmd {
+	t.Helper()
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+	cmd := exec.Command(executablePath, "-test.run=TestSupervisorHelperProcess", "--", mode)
+	cmd.Env = append(os.Environ(), "GO_WANT_SUPERVISOR_HELPER_PROCESS=1")
+	if runtime.GOOS != "windows" {
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	}
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("start helper process: %v", err)
+	}
+	t.Cleanup(func() {
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+		_ = cmd.Wait()
+	})
+	return cmd
+}
+
+func TestSupervisorHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_SUPERVISOR_HELPER_PROCESS") != "1" {
+		return
+	}
+	if len(os.Args) < 3 {
+		os.Exit(2)
+	}
+	mode := os.Args[len(os.Args)-1]
+	switch mode {
+	case "sleep":
+		time.Sleep(60 * time.Second)
+		os.Exit(0)
+	case "ignore-term":
+		if runtime.GOOS != "windows" {
+			signalChannel := make(chan os.Signal, 1)
+			signal.Notify(signalChannel, syscall.SIGTERM)
+		}
+		time.Sleep(60 * time.Second)
+		os.Exit(0)
+	default:
+		os.Exit(2)
+	}
 }
 
 func TestSupervisorStartStop(t *testing.T) {
@@ -366,5 +427,201 @@ func TestSupervisorStateCallback(t *testing.T) {
 	}
 	if !hasStarting {
 		t.Errorf("expected at least 'starting' state in callbacks, got: %v", stateCopy)
+	}
+}
+
+func TestSupervisorHealthFailuresDoNotConsumeCrashRestartCounter(t *testing.T) {
+	sup := NewSupervisor(EngineConfig{
+		Kind:           EngineMedia,
+		HealthMode:     HealthModeTCP,
+		Address:        "127.0.0.1:1",
+		HealthInterval: 10 * time.Millisecond,
+		MaxRestarts:    1,
+	}, testLogger(), nil)
+	sup.mu.Lock()
+	sup.status = StatusHealthy
+	sup.runEpoch = 1
+	sup.process = &supervisedProcess{done: make(chan struct{})}
+	sup.mu.Unlock()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	go func() {
+		sup.monitor(ctx, 1)
+		close(done)
+	}()
+
+	if !waitForStatus(sup, StatusUnhealthy, time.Second) {
+		t.Fatalf("expected unhealthy after health probe failures, got %s", sup.Status())
+	}
+	if got := sup.Info().ConsecutiveFailures; got != 0 {
+		t.Fatalf("crash restart counter should stay at 0 for health-only failures, got %d", got)
+	}
+
+	cancel()
+	<-done
+}
+
+func TestSupervisorStreamsProcessOutputToLogger(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("supervisor process tests require unix shell scripts")
+	}
+	setSupervisorTestHome(t)
+
+	var logBuffer bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	script := writeTestScript(t, "echo stdout-line\n>&2 echo stderr-line\nsleep 2")
+	cfg := testSupervisorCfg(script)
+	cfg.StartupTimeout = 100 * time.Millisecond
+
+	sup := NewSupervisor(cfg, logger, nil)
+	ctx := context.Background()
+	if err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	defer func() { _ = sup.Stop() }()
+
+	if !waitForCondition(2*time.Second, func() bool {
+		output := logBuffer.String()
+		return strings.Contains(output, "stdout-line") && strings.Contains(output, "stderr-line")
+	}) {
+		t.Fatalf("expected streamed process logs, got: %s", logBuffer.String())
+	}
+}
+
+func TestCleanStalePIDKillsOnlyMatchingProcessIdentity(t *testing.T) {
+	setSupervisorTestHome(t)
+
+	helperCmd := startSupervisorHelperProcess(t, "sleep")
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+	sup := NewSupervisor(EngineConfig{
+		Kind:       EngineLlama,
+		BinaryPath: executablePath,
+		Port:       mustAllocateTestPort(),
+	}, testLogger(), nil)
+
+	pidPath := sup.pidFilePath()
+	metadataPath := sup.pidMetadataPath()
+	if err := os.MkdirAll(filepath.Dir(pidPath), 0o755); err != nil {
+		t.Fatalf("mkdir pid dir: %v", err)
+	}
+	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(helperCmd.Process.Pid)), 0o644); err != nil {
+		t.Fatalf("write pid file: %v", err)
+	}
+	encodedMetadata, err := encodeSupervisorPIDMetadata(supervisorPIDMetadata{
+		PID:                    helperCmd.Process.Pid,
+		EngineKind:             EngineLlama,
+		ExpectedExecutablePath: canonicalSupervisorProcessPath(executablePath),
+	})
+	if err != nil {
+		t.Fatalf("encode metadata: %v", err)
+	}
+	if err := os.WriteFile(metadataPath, encodedMetadata, 0o644); err != nil {
+		t.Fatalf("write metadata: %v", err)
+	}
+
+	sup.cleanStalePID()
+
+	waitErr := make(chan error, 1)
+	go func() {
+		waitErr <- helperCmd.Wait()
+	}()
+	select {
+	case err := <-waitErr:
+		if err != nil && !strings.Contains(err.Error(), "signal: terminated") && !strings.Contains(err.Error(), "killed") {
+			t.Fatalf("expected helper process termination, got %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("expected matching helper process %d to exit", helperCmd.Process.Pid)
+	}
+	if _, err := os.Stat(pidPath); !os.IsNotExist(err) {
+		t.Fatalf("expected pid file to be removed, got err=%v", err)
+	}
+	if _, err := os.Stat(metadataPath); !os.IsNotExist(err) {
+		t.Fatalf("expected pid metadata to be removed, got err=%v", err)
+	}
+}
+
+func TestCleanStalePIDSkipsMismatchedProcessIdentity(t *testing.T) {
+	setSupervisorTestHome(t)
+
+	helperCmd := startSupervisorHelperProcess(t, "sleep")
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+	sup := NewSupervisor(EngineConfig{
+		Kind:       EngineLlama,
+		BinaryPath: executablePath,
+		Port:       mustAllocateTestPort(),
+	}, testLogger(), nil)
+
+	pidPath := sup.pidFilePath()
+	metadataPath := sup.pidMetadataPath()
+	if err := os.MkdirAll(filepath.Dir(pidPath), 0o755); err != nil {
+		t.Fatalf("mkdir pid dir: %v", err)
+	}
+	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(helperCmd.Process.Pid)), 0o644); err != nil {
+		t.Fatalf("write pid file: %v", err)
+	}
+	encodedMetadata, err := encodeSupervisorPIDMetadata(supervisorPIDMetadata{
+		PID:                    helperCmd.Process.Pid,
+		EngineKind:             EngineLlama,
+		ExpectedExecutablePath: canonicalSupervisorProcessPath(filepath.Join(t.TempDir(), "other-binary")),
+	})
+	if err != nil {
+		t.Fatalf("encode metadata: %v", err)
+	}
+	if err := os.WriteFile(metadataPath, encodedMetadata, 0o644); err != nil {
+		t.Fatalf("write metadata: %v", err)
+	}
+
+	sup.cleanStalePID()
+
+	if !testProcessAlive(helperCmd.Process.Pid) {
+		t.Fatalf("expected mismatched helper process %d to remain alive", helperCmd.Process.Pid)
+	}
+	if _, err := os.Stat(pidPath); !os.IsNotExist(err) {
+		t.Fatalf("expected pid file cleanup on mismatch, got err=%v", err)
+	}
+	if _, err := os.Stat(metadataPath); !os.IsNotExist(err) {
+		t.Fatalf("expected pid metadata cleanup on mismatch, got err=%v", err)
+	}
+}
+
+func TestCleanStalePIDSkipsKillWithoutMetadata(t *testing.T) {
+	setSupervisorTestHome(t)
+
+	helperCmd := startSupervisorHelperProcess(t, "sleep")
+	executablePath, err := os.Executable()
+	if err != nil {
+		t.Fatalf("os.Executable: %v", err)
+	}
+	sup := NewSupervisor(EngineConfig{
+		Kind:       EngineLlama,
+		BinaryPath: executablePath,
+		Port:       mustAllocateTestPort(),
+	}, testLogger(), nil)
+
+	pidPath := sup.pidFilePath()
+	if err := os.MkdirAll(filepath.Dir(pidPath), 0o755); err != nil {
+		t.Fatalf("mkdir pid dir: %v", err)
+	}
+	if err := os.WriteFile(pidPath, []byte(strconv.Itoa(helperCmd.Process.Pid)), 0o644); err != nil {
+		t.Fatalf("write pid file: %v", err)
+	}
+
+	sup.cleanStalePID()
+
+	if !testProcessAlive(helperCmd.Process.Pid) {
+		t.Fatalf("expected helper process %d to remain alive without metadata", helperCmd.Process.Pid)
+	}
+	if _, err := os.Stat(pidPath); !os.IsNotExist(err) {
+		t.Fatalf("expected pid file cleanup without metadata, got err=%v", err)
 	}
 }

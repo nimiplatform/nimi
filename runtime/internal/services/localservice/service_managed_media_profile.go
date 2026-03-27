@@ -387,6 +387,11 @@ func resolveManagedBaseDir(modelsRoot string, itemID string, sourceRepo string) 
 				baseDir := filepath.Dir(path)
 				baseDir, err = filepath.Abs(baseDir)
 				if err == nil {
+					if resolvedBaseDir, resolveErr := filepath.EvalSymlinks(baseDir); resolveErr == nil {
+						baseDir = resolvedBaseDir
+					} else if !os.IsNotExist(resolveErr) {
+						return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+					}
 					return baseDir, nil
 				}
 			}

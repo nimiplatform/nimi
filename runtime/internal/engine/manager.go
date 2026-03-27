@@ -26,11 +26,15 @@ type Manager struct {
 
 	mu          sync.RWMutex
 	supervisors map[EngineKind]*Supervisor
+	starting    map[EngineKind]bool
 }
 
 // NewManager creates a new engine manager.
 // baseDir is the root engines directory (typically ~/.nimi/engines/).
 func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*Manager, error) {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	if baseDir == "" {
 		home, err := os.UserHomeDir()
 		if err != nil {
@@ -66,7 +70,20 @@ func NewManager(logger *slog.Logger, baseDir string, onState StateChangeFunc) (*
 		llamaModelsConfigPath: modelsConfigPath,
 		llamaBackendsPath:     backendsPath,
 		supervisors:           make(map[EngineKind]*Supervisor),
+		starting:              make(map[EngineKind]bool),
 	}, nil
+}
+
+// SetSupervisorForTesting allows higher-level package tests to seed a managed
+// supervisor without mutating unexported fields via reflection.
+func (m *Manager) SetSupervisorForTesting(kind EngineKind, supervisor *Supervisor) {
+	m.mu.Lock()
+	if supervisor == nil {
+		delete(m.supervisors, kind)
+	} else {
+		m.supervisors[kind] = supervisor
+	}
+	m.mu.Unlock()
 }
 
 func defaultLlamaPaths() (string, string, error) {
@@ -199,6 +216,10 @@ func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConf
 // StartEngine starts the engine with the given configuration.
 func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 	cfg = m.applyLlamaPaths(cfg)
+	if err := m.beginEngineStart(cfg.Kind); err != nil {
+		return err
+	}
+	defer m.finishEngineStart(cfg.Kind)
 	if cfg.Kind == EngineLlama && strings.TrimSpace(cfg.BackendsPath) != "" {
 		if err := os.MkdirAll(cfg.BackendsPath, 0o755); err != nil {
 			return fmt.Errorf("create llama backends directory: %w", err)
@@ -222,7 +243,11 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 	m.supervisors[cfg.Kind] = sup
 	m.mu.Unlock()
 
-	return sup.Start(ctx)
+	if err := sup.Start(ctx); err != nil {
+		m.removeSupervisorIfCurrent(cfg.Kind, sup)
+		return err
+	}
+	return nil
 }
 
 // StopEngine stops the specified engine.
@@ -238,35 +263,42 @@ func (m *Manager) StopEngine(kind EngineKind) error {
 	if err := sup.Stop(); err != nil {
 		return err
 	}
-	m.mu.Lock()
-	if current, exists := m.supervisors[kind]; exists && current == sup {
-		delete(m.supervisors, kind)
-	}
-	m.mu.Unlock()
 	if kind == EngineLlama {
 		if err := m.stopLlamaImageBackend(); err != nil {
 			return err
 		}
 	}
+	m.removeSupervisorIfCurrent(kind, sup)
 	return nil
 }
 
 // StopAll stops all running engines.
 func (m *Manager) StopAll() {
+	type managedSupervisor struct {
+		kind EngineKind
+		sup  *Supervisor
+	}
+
 	m.mu.RLock()
-	sups := make([]*Supervisor, 0, len(m.supervisors))
-	for _, s := range m.supervisors {
-		sups = append(sups, s)
+	sups := make([]managedSupervisor, 0, len(m.supervisors))
+	for kind, s := range m.supervisors {
+		sups = append(sups, managedSupervisor{kind: kind, sup: s})
 	}
 	m.mu.RUnlock()
 
-	for _, s := range sups {
-		if err := s.Stop(); err != nil {
+	for _, entry := range sups {
+		if entry.sup == nil {
+			m.removeSupervisorIfCurrent(entry.kind, nil)
+			continue
+		}
+		if err := entry.sup.Stop(); err != nil {
 			m.logger.Warn("stop engine failed",
-				"engine", s.cfg.Kind,
+				"engine", entry.sup.cfg.Kind,
 				"error", err,
 			)
+			continue
 		}
+		m.removeSupervisorIfCurrent(entry.kind, entry.sup)
 	}
 }
 
@@ -415,20 +447,30 @@ func (m *Manager) prepareLlamaStart(ctx context.Context, cfg EngineConfig) (Engi
 func (m *Manager) startLlamaImageBackend(ctx context.Context, cfg EngineConfig) error {
 	m.mu.Lock()
 	existing, ok := m.supervisors[engineMediaDiffusersBackend]
+	if m.starting[engineMediaDiffusersBackend] {
+		m.mu.Unlock()
+		return nil
+	}
 	if ok && (existing.Status() == StatusHealthy || existing.Status() == StatusStarting) {
 		m.mu.Unlock()
 		return nil
 	}
+	m.starting[engineMediaDiffusersBackend] = true
 	if ok {
 		delete(m.supervisors, engineMediaDiffusersBackend)
 	}
 	sup := NewSupervisor(cfg, m.logger, m.onState)
 	m.supervisors[engineMediaDiffusersBackend] = sup
 	m.mu.Unlock()
+	defer m.finishEngineStart(engineMediaDiffusersBackend)
 	if ok {
 		_ = existing.Stop()
 	}
-	return sup.Start(ctx)
+	if err := sup.Start(ctx); err != nil {
+		m.removeSupervisorIfCurrent(engineMediaDiffusersBackend, sup)
+		return err
+	}
+	return nil
 }
 
 func (m *Manager) stopLlamaImageBackend() error {
@@ -438,7 +480,45 @@ func (m *Manager) stopLlamaImageBackend() error {
 	if !ok {
 		return nil
 	}
-	return sup.Stop()
+	if err := sup.Stop(); err != nil {
+		return err
+	}
+	m.removeSupervisorIfCurrent(engineMediaDiffusersBackend, sup)
+	return nil
+}
+
+func (m *Manager) removeSupervisorIfCurrent(kind EngineKind, expected *Supervisor) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	current, exists := m.supervisors[kind]
+	if !exists {
+		return
+	}
+	if expected != nil && current != expected {
+		return
+	}
+	delete(m.supervisors, kind)
+}
+
+func (m *Manager) beginEngineStart(kind EngineKind) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.starting[kind] {
+		return fmt.Errorf("engine %s already running", kind)
+	}
+	if existing, ok := m.supervisors[kind]; ok {
+		if existing.Status() == StatusHealthy || existing.Status() == StatusStarting {
+			return fmt.Errorf("engine %s already running", kind)
+		}
+	}
+	m.starting[kind] = true
+	return nil
+}
+
+func (m *Manager) finishEngineStart(kind EngineKind) {
+	m.mu.Lock()
+	delete(m.starting, kind)
+	m.mu.Unlock()
 }
 
 func (m *Manager) latestRegistryEntry(kind EngineKind) *RegistryEntry {

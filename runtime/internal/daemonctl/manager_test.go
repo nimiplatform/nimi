@@ -36,7 +36,7 @@ func newTestManager(t *testing.T) (*Manager, Paths, map[int]bool) {
 	manager.isProcessAlive = func(pid int) bool {
 		return alive[pid]
 	}
-	manager.stopProcess = func(pid int, _ bool) error {
+	manager.stopProcess = func(pid int, _ string, _ bool) error {
 		delete(alive, pid)
 		_ = os.Remove(paths.LockFile)
 		return nil
@@ -59,13 +59,14 @@ func writeMetadata(t *testing.T, path string, metadata Metadata) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatalf("mkdir metadata dir: %v", err)
 	}
-	content := fmt.Sprintf("{\n  \"pid\": %d,\n  \"version\": %q,\n  \"grpcAddr\": %q,\n  \"configPath\": %q,\n  \"logPath\": %q,\n  \"startedAt\": %q,\n  \"mode\": %q\n}\n",
+	content := fmt.Sprintf("{\n  \"pid\": %d,\n  \"version\": %q,\n  \"grpcAddr\": %q,\n  \"configPath\": %q,\n  \"logPath\": %q,\n  \"startedAt\": %q,\n  \"executablePath\": %q,\n  \"mode\": %q\n}\n",
 		metadata.PID,
 		metadata.Version,
 		metadata.GRPCAddr,
 		metadata.ConfigPath,
 		metadata.LogPath,
 		metadata.StartedAt,
+		metadata.ExecutablePath,
 		metadata.Mode,
 	)
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
@@ -136,7 +137,7 @@ func TestManagerStartFailsOnProbeTimeoutAndCleansState(t *testing.T) {
 	manager.probe = func(_ string, _ time.Duration) (map[string]any, error) {
 		return nil, errors.New("dial refused")
 	}
-	manager.stopProcess = func(pid int, _ bool) error {
+	manager.stopProcess = func(pid int, _ string, _ bool) error {
 		delete(alive, pid)
 		_ = os.Remove(paths.LockFile)
 		return nil
@@ -207,7 +208,7 @@ func TestManagerStartCleansUpWhenMetadataWriteFails(t *testing.T) {
 		}
 		return writeBytesAtomic(path, content, mode)
 	}
-	manager.stopProcess = func(pid int, _ bool) error {
+	manager.stopProcess = func(pid int, _ string, _ bool) error {
 		delete(alive, pid)
 		_ = os.Remove(paths.LockFile)
 		return nil
@@ -222,6 +223,31 @@ func TestManagerStartCleansUpWhenMetadataWriteFails(t *testing.T) {
 	}
 	if _, statErr := os.Stat(paths.PIDFile); !os.IsNotExist(statErr) {
 		t.Fatalf("expected pid cleanup after metadata failure, stat err=%v", statErr)
+	}
+}
+
+func TestWriteBytesAtomicUsesUniqueTempFilePattern(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "daemon.json")
+	if err := writeBytesAtomic(target, []byte("first"), 0o600); err != nil {
+		t.Fatalf("first writeBytesAtomic: %v", err)
+	}
+	if err := writeBytesAtomic(target, []byte("second"), 0o600); err != nil {
+		t.Fatalf("second writeBytesAtomic: %v", err)
+	}
+	content, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read target: %v", err)
+	}
+	if string(content) != "second" {
+		t.Fatalf("target content mismatch: %q", string(content))
+	}
+	matches, err := filepath.Glob(filepath.Join(dir, "daemon.json.*.tmp"))
+	if err != nil {
+		t.Fatalf("glob temp files: %v", err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("expected no leftover temp files, got=%v", matches)
 	}
 }
 
@@ -319,18 +345,22 @@ func TestManagerStopGracefullyStopsManagedInstance(t *testing.T) {
 	writePID(t, paths.LockFile, 108)
 	writePID(t, paths.PIDFile, 108)
 	writeMetadata(t, paths.MetadataFile, Metadata{
-		PID:        108,
-		Version:    "0.2.0",
-		GRPCAddr:   "127.0.0.1:46371",
-		ConfigPath: "config.json",
-		LogPath:    paths.LogFile,
-		StartedAt:  time.Now().UTC().Format(time.RFC3339Nano),
-		Mode:       ModeBackground,
+		PID:            108,
+		Version:        "0.2.0",
+		GRPCAddr:       "127.0.0.1:46371",
+		ConfigPath:     "config.json",
+		LogPath:        paths.LogFile,
+		StartedAt:      time.Now().UTC().Format(time.RFC3339Nano),
+		ExecutablePath: "/usr/local/bin/nimi",
+		Mode:           ModeBackground,
 	})
 	forceCalled := false
-	manager.stopProcess = func(pid int, force bool) error {
+	manager.stopProcess = func(pid int, executable string, force bool) error {
 		delete(alive, pid)
 		forceCalled = force
+		if executable != "/usr/local/bin/nimi" {
+			t.Fatalf("unexpected executable path: %q", executable)
+		}
 		_ = os.Remove(paths.LockFile)
 		return nil
 	}
@@ -368,7 +398,7 @@ func TestManagerStopForceSetsForceFlag(t *testing.T) {
 	alive[110] = true
 	writePID(t, paths.LockFile, 110)
 	forceCalled := false
-	manager.stopProcess = func(pid int, force bool) error {
+	manager.stopProcess = func(pid int, _ string, force bool) error {
 		delete(alive, pid)
 		forceCalled = force
 		_ = os.Remove(paths.LockFile)
@@ -438,4 +468,57 @@ func TestManagerPrintLogsFailsForExternalMode(t *testing.T) {
 	if !strings.Contains(err.Error(), "background mode") {
 		t.Fatalf("unexpected error: %v", err)
 	}
+}
+
+func TestManagerPrintLogsFollowStreamsAppendedContent(t *testing.T) {
+	manager, paths, alive := newTestManager(t)
+	alive[114] = true
+	writePID(t, paths.LockFile, 114)
+	writePID(t, paths.PIDFile, 114)
+	writeMetadata(t, paths.MetadataFile, Metadata{
+		PID:        114,
+		Version:    "0.2.0",
+		GRPCAddr:   "127.0.0.1:46371",
+		ConfigPath: "config.json",
+		LogPath:    paths.LogFile,
+		StartedAt:  time.Now().UTC().Format(time.RFC3339Nano),
+		Mode:       ModeBackground,
+	})
+	if err := os.MkdirAll(filepath.Dir(paths.LogFile), 0o755); err != nil {
+		t.Fatalf("mkdir log dir: %v", err)
+	}
+	if err := os.WriteFile(paths.LogFile, []byte("booting\n"), 0o600); err != nil {
+		t.Fatalf("write initial log: %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var out bytes.Buffer
+	done := make(chan error, 1)
+	go func() {
+		done <- manager.PrintLogs(ctx, &out, 10, true)
+	}()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if err := os.WriteFile(paths.LogFile, []byte("booting\nready\n"), 0o600); err != nil {
+			t.Fatalf("append log content: %v", err)
+		}
+		if strings.Contains(out.String(), "ready") {
+			cancel()
+			err := <-done
+			if !errors.Is(err, context.Canceled) {
+				t.Fatalf("expected context cancellation, got %v", err)
+			}
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	cancel()
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context cancellation, got %v", err)
+	}
+	t.Fatalf("expected follow output to include appended log line, got %q", out.String())
 }

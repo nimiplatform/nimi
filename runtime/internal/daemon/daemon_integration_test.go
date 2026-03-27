@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 )
 
@@ -34,6 +36,7 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 	defer cancelUpdates()
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	done := make(chan error, 1)
 	go func() {
 		done <- daemon.Run(ctx)
@@ -88,6 +91,73 @@ func TestDaemonRunTransitionsStartupAndShutdownStates(t *testing.T) {
 	}
 	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusStopped {
 		t.Fatalf("expected daemon to end in STOPPED, got %s (%s)", snapshot.Status, snapshot.Reason)
+	}
+}
+
+func TestDaemonRunTransitionsReadyBeforeStartupDegraded(t *testing.T) {
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		ShutdownTimeout:      2 * time.Second,
+		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineLlamaEnabled:   true,
+		EngineLlamaPort:      18321,
+		EngineLlamaVersion:   "test",
+	}
+	daemon, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	if svc := daemon.grpc.LocalService(); svc != nil {
+		t.Cleanup(func() { svc.Close() })
+	}
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return nil, errors.New("engine manager unavailable")
+	}
+
+	updates, cancelUpdates := daemon.state.Subscribe(32)
+	defer cancelUpdates()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		done <- daemon.Run(ctx)
+	}()
+
+	deadline := time.Now().Add(2 * time.Second)
+	seenReady := false
+	seenDegraded := false
+	for time.Now().Before(deadline) {
+		select {
+		case snapshot := <-updates:
+			if snapshot.Status == health.StatusReady {
+				seenReady = true
+			}
+			if snapshot.Status == health.StatusDegraded {
+				if !seenReady {
+					t.Fatal("daemon degraded before reaching ready")
+				}
+				seenDegraded = true
+				cancel()
+			}
+		case <-time.After(20 * time.Millisecond):
+		}
+		if seenDegraded {
+			break
+		}
+	}
+	if !seenReady {
+		t.Fatal("expected daemon to reach READY before DEGRADED")
+	}
+	if !seenDegraded {
+		t.Fatal("expected daemon to enter DEGRADED after READY")
+	}
+	if err := <-done; err != nil {
+		t.Fatalf("daemon run returned error: %v", err)
 	}
 }
 

@@ -27,7 +27,7 @@ func defaultProcessAlive(pid int) bool {
 	return process.Signal(syscall.Signal(0)) == nil
 }
 
-func defaultStopProcess(pid int, _ bool) error {
+func defaultStopProcess(pid int, _ string, _ bool) error {
 	if pid <= 0 {
 		return nil
 	}

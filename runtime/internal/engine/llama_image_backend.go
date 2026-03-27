@@ -16,6 +16,12 @@ import (
 
 const llamaBackendRunScript = "run.sh"
 
+var officialLlamaBackendAllowlist = map[string]struct{}{
+	"llama-cpp":            {},
+	"whisper-ggml":         {},
+	"stablediffusion-ggml": {},
+}
+
 type llamaBackendMetadata struct {
 	Name           string `json:"name,omitempty"`
 	Alias          string `json:"alias,omitempty"`
@@ -101,6 +107,11 @@ func ensureOfficialLlamaImageBackend(ctx context.Context, llamaBinaryPath string
 	if normalized.Mode != LlamaImageBackendOfficial {
 		return normalized, nil
 	}
+	validatedBackendName, err := validateOfficialLlamaBackendName(normalized.BackendName)
+	if err != nil {
+		return nil, err
+	}
+	normalized.BackendName = validatedBackendName
 	if strings.TrimSpace(llamaBinaryPath) == "" {
 		return nil, fmt.Errorf("llama binary path is required")
 	}
@@ -113,8 +124,8 @@ func ensureOfficialLlamaImageBackend(ctx context.Context, llamaBinaryPath string
 
 	runPath, err := discoverInstalledLlamaBackendRunPath(backendsPath, normalized.BackendName)
 	if err != nil {
-		if err := installLlamaBackend(ctx, llamaBinaryPath, backendsPath, normalized.BackendName); err != nil {
-			return nil, err
+		if installErr := installLlamaBackend(ctx, llamaBinaryPath, backendsPath, normalized.BackendName); installErr != nil {
+			return nil, installErr
 		}
 		runPath, err = discoverInstalledLlamaBackendRunPath(backendsPath, normalized.BackendName)
 		if err != nil {
@@ -128,12 +139,27 @@ func ensureOfficialLlamaImageBackend(ctx context.Context, llamaBinaryPath string
 }
 
 func installLlamaBackend(ctx context.Context, llamaBinaryPath string, backendsPath string, backendName string) error {
-	cmd := exec.CommandContext(ctx, llamaBinaryPath, "backends", "install", backendName, "--backends-path", backendsPath)
+	validatedBackendName, err := validateOfficialLlamaBackendName(backendName)
+	if err != nil {
+		return err
+	}
+	cmd := exec.CommandContext(ctx, llamaBinaryPath, "backends", "install", validatedBackendName, "--backends-path", backendsPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("install llama backend %s: %w: %s", backendName, err, strings.TrimSpace(string(output)))
+		return fmt.Errorf("install llama backend %s: %w: %s", validatedBackendName, err, strings.TrimSpace(string(output)))
 	}
 	return nil
+}
+
+func validateOfficialLlamaBackendName(backendName string) (string, error) {
+	trimmedBackendName := strings.TrimSpace(backendName)
+	if trimmedBackendName == "" {
+		return "", fmt.Errorf("llama backend name is required")
+	}
+	if _, ok := officialLlamaBackendAllowlist[trimmedBackendName]; !ok {
+		return "", fmt.Errorf("unsupported official llama backend %q", trimmedBackendName)
+	}
+	return trimmedBackendName, nil
 }
 
 func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName string) (string, error) {
@@ -173,7 +199,11 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 		}
 		targetRunPath := runPath
 		if metadata != nil && strings.TrimSpace(metadata.MetaBackendFor) != "" {
-			targetRunPath = filepath.Join(backendsPath, strings.TrimSpace(metadata.MetaBackendFor), llamaBackendRunScript)
+			resolvedRunPath, ok := resolveMetaBackendRunPath(backendsPath, metadata.MetaBackendFor)
+			if !ok {
+				continue
+			}
+			targetRunPath = resolvedRunPath
 		}
 		if _, statErr := os.Stat(targetRunPath); statErr != nil {
 			continue
@@ -194,6 +224,23 @@ func discoverInstalledLlamaBackendRunPath(backendsPath string, backendName strin
 		return candidates[i].dir < candidates[j].dir
 	})
 	return candidates[0].runPath, nil
+}
+
+func resolveMetaBackendRunPath(backendsPath string, metaBackendFor string) (string, bool) {
+	trimmed := strings.TrimSpace(metaBackendFor)
+	if trimmed == "" {
+		return "", false
+	}
+	cleaned := filepath.Clean(trimmed)
+	if cleaned == "." || cleaned == ".." || filepath.IsAbs(cleaned) || cleaned != filepath.Base(cleaned) {
+		return "", false
+	}
+	targetDir := filepath.Join(backendsPath, cleaned)
+	rel, err := filepath.Rel(backendsPath, targetDir)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return filepath.Join(targetDir, llamaBackendRunScript), true
 }
 
 func readLlamaBackendMetadata(path string) (*llamaBackendMetadata, error) {

@@ -75,7 +75,7 @@ func probeOpenAICompatibleEndpoint(ctx context.Context, endpoint string) endpoin
 		}
 	}
 
-	resp, err := (&http.Client{Timeout: localHealthProbeTimeout}).Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return endpointProbeResult{
 			healthy:  false,
@@ -162,7 +162,7 @@ func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResul
 			probeURL: healthURL,
 		}
 	}
-	healthResp, err := (&http.Client{Timeout: localHealthProbeTimeout}).Do(healthReq)
+	healthResp, err := http.DefaultClient.Do(healthReq)
 	if err != nil {
 		return endpointProbeResult{
 			healthy:  false,
@@ -212,7 +212,7 @@ func probeMediaEndpoint(ctx context.Context, endpoint string) endpointProbeResul
 			probeURL: catalogURL,
 		}
 	}
-	catalogResp, err := (&http.Client{Timeout: localHealthProbeTimeout}).Do(catalogReq)
+	catalogResp, err := http.DefaultClient.Do(catalogReq)
 	if err != nil {
 		return endpointProbeResult{
 			healthy:  false,

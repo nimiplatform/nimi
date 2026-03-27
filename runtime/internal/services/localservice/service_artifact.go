@@ -135,6 +135,9 @@ func (s *Service) ImportLocalArtifact(_ context.Context, req *runtimev1.ImportLo
 	if manifestPath == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 	}
+	if err := validateLocalArtifactManifestPath(manifestPath, resolveLocalModelsPath(s.localModelsPath)); err != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
+	}
 	content, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)

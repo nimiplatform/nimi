@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"log/slog"
 	"os"
 	"sort"
 	"strings"
@@ -47,6 +48,7 @@ func detectLlamaExternalBackends(configPath string) []string {
 	}
 	var entries []llamaModelsConfigEntry
 	if err := yaml.Unmarshal(raw, &entries); err != nil {
+		slog.Warn("llama external backend config parse failed", "path", trimmedPath, "error", err)
 		return nil
 	}
 	backends := make([]string, 0, len(entries))

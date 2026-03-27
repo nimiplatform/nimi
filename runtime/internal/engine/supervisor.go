@@ -1,15 +1,15 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/rand/v2"
 	"net"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -33,14 +33,18 @@ type Supervisor struct {
 	startedAt           time.Time
 	lastHealthyAt       time.Time
 	consecutiveFailures int
+	healthProbeFailures int
 	cancel              context.CancelFunc
 	runEpoch            uint64
 }
+
+const maxConsecutiveHealthProbeFailures = 3
 
 type supervisedProcess struct {
 	cmd     *exec.Cmd
 	done    chan struct{}
 	waitErr error
+	release func()
 }
 
 // NewSupervisor creates a new engine process supervisor.
@@ -169,6 +173,15 @@ func (s *Supervisor) Info() SupervisorInfo {
 	}
 }
 
+// SetStateForTesting allows higher-level package tests to seed supervisor
+// state without mutating unexported fields via reflection.
+func (s *Supervisor) SetStateForTesting(status EngineStatus, lastHealthyAt time.Time) {
+	s.mu.Lock()
+	s.status = status
+	s.lastHealthyAt = lastHealthyAt
+	s.mu.Unlock()
+}
+
 // SupervisorInfo holds observable state of a supervised engine.
 type SupervisorInfo struct {
 	Kind                EngineKind
@@ -225,8 +238,16 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		cmd.Env = env
 	}
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		cancel()
+		return fmt.Errorf("capture stdout for engine %s: %w", s.cfg.Kind, err)
+	}
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		cancel()
+		return fmt.Errorf("capture stderr for engine %s: %w", s.cfg.Kind, err)
+	}
 
 	if !s.isRunEpochActive(epoch) {
 		cancel()
@@ -251,14 +272,43 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 		s.mu.Unlock()
 		cancel()
 		if cmd.Process != nil {
+			waitDone := make(chan struct{})
+			go func() {
+				_ = cmd.Wait()
+				close(waitDone)
+			}()
 			_ = signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL)
+			select {
+			case <-waitDone:
+			case <-time.After(3 * time.Second):
+			}
 		}
 		return nil
 	}
+	processRelease, lifecycleErr := bindSupervisorProcessLifecycle(cmd)
+	if lifecycleErr != nil {
+		s.mu.Unlock()
+		cancel()
+		if cmd.Process != nil {
+			waitDone := make(chan struct{})
+			go func() {
+				_ = cmd.Wait()
+				close(waitDone)
+			}()
+			_ = signalSupervisorProcess(cmd.Process.Pid, syscall.SIGKILL)
+			select {
+			case <-waitDone:
+			case <-time.After(3 * time.Second):
+			}
+		}
+		s.setStatus(StatusStopped, fmt.Sprintf("start failed: %v", lifecycleErr))
+		return fmt.Errorf("bind engine %s process lifecycle: %w", s.cfg.Kind, lifecycleErr)
+	}
 	s.cmd = cmd
 	process := &supervisedProcess{
-		cmd:  cmd,
-		done: make(chan struct{}),
+		cmd:     cmd,
+		done:    make(chan struct{}),
+		release: processRelease,
 	}
 	s.process = process
 	s.pid = cmd.Process.Pid
@@ -266,6 +316,8 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	s.mu.Unlock()
 
 	go waitSupervisorProcess(process)
+	go s.streamProcessLogs(stdoutPipe, "stdout", slog.LevelInfo)
+	go s.streamProcessLogs(stderrPipe, "stderr", slog.LevelWarn)
 	s.writePIDFile()
 
 	s.logger.Info("engine process started",
@@ -370,6 +422,9 @@ func probeSupervisorHealth(ctx context.Context, cfg EngineConfig) error {
 		if cfg.Kind == EngineMedia {
 			return ProbeMediaHealth(ctx, cfg.Endpoint())
 		}
+		if cfg.Kind == EngineSpeech {
+			return ProbeSpeechHealth(ctx, cfg.Endpoint())
+		}
 		return ProbeHealth(ctx, cfg.Endpoint(), cfg.HealthPath, cfg.HealthResponse)
 	}
 }
@@ -423,21 +478,22 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 			}
 			if err := probeSupervisorHealth(ctx, s.cfg); err != nil {
 				s.mu.Lock()
-				s.consecutiveFailures++
-				failures := s.consecutiveFailures
+				s.healthProbeFailures++
+				failures := s.healthProbeFailures
 				s.mu.Unlock()
 
 				s.logger.Warn("engine health probe failed",
 					"engine", s.cfg.Kind,
-					"failures", failures,
+					"health_failures", failures,
 					"error", err,
 				)
 
-				if failures >= s.cfg.MaxRestarts {
-					s.setStatus(StatusUnhealthy, fmt.Sprintf("max failures reached (%d)", failures))
+				if failures >= maxConsecutiveHealthProbeFailures {
+					s.setStatus(StatusUnhealthy, fmt.Sprintf("max health probe failures reached (%d)", failures))
 				}
 			} else {
 				s.mu.Lock()
+				s.healthProbeFailures = 0
 				s.consecutiveFailures = 0
 				s.lastHealthyAt = time.Now()
 				s.mu.Unlock()
@@ -453,6 +509,9 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 func waitSupervisorProcess(process *supervisedProcess) {
 	if process == nil || process.cmd == nil {
 		return
+	}
+	if process.release != nil {
+		defer process.release()
 	}
 	process.waitErr = process.cmd.Wait()
 	close(process.done)
@@ -500,6 +559,7 @@ func (s *Supervisor) handleCrash(ctx context.Context, procErr error, epoch uint6
 		return
 	}
 	s.consecutiveFailures++
+	s.healthProbeFailures = 0
 	failures := s.consecutiveFailures
 	s.mu.Unlock()
 
@@ -564,103 +624,31 @@ func (s *Supervisor) setStatus(status EngineStatus, detail string) {
 	}
 }
 
-// PID file management for zombie cleanup.
-
-func (s *Supervisor) pidFilePath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".nimi", "engines", string(s.cfg.Kind), "supervised.pid")
-}
-
-func (s *Supervisor) writePIDFile() {
-	path := s.pidFilePath()
-	if path == "" {
+func (s *Supervisor) streamProcessLogs(reader io.ReadCloser, stream string, level slog.Level) {
+	if reader == nil {
 		return
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		s.logger.Warn("failed to create engine pid directory", "engine", s.cfg.Kind, "path", path, "error", err)
-		return
-	}
-	s.mu.RLock()
-	pid := s.pid
-	s.mu.RUnlock()
-	if err := os.WriteFile(path, []byte(strconv.Itoa(pid)), 0o644); err != nil {
-		s.logger.Warn("failed to write engine pid file", "engine", s.cfg.Kind, "path", path, "error", err)
-	}
-}
-
-func (s *Supervisor) removePIDFile() {
-	path := s.pidFilePath()
-	if path != "" {
-		_ = os.Remove(path)
-	}
-}
-
-func (s *Supervisor) cleanStalePID() {
-	path := s.pidFilePath()
-	if path == "" {
-		return
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return
-	}
-	pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
-	if err != nil || pid <= 0 {
-		_ = os.Remove(path)
-		return
-	}
-
-	process, err := os.FindProcess(pid)
-	if err != nil {
-		_ = os.Remove(path)
-		return
-	}
-
-	// Check if process is still alive (signal 0 test).
-	if err := process.Signal(syscall.Signal(0)); err != nil {
-		// Process is dead — clean up.
-		_ = os.Remove(path)
-		return
-	}
-
-	// Process is alive — kill it.
-	s.logger.Warn("killing stale engine process",
-		"engine", s.cfg.Kind,
-		"pid", pid,
-	)
-	_ = process.Signal(syscall.SIGTERM)
-	time.Sleep(2 * time.Second)
-	_ = process.Signal(syscall.SIGKILL)
-	_ = os.Remove(path)
-}
-
-// Port resolution.
-
-// resolvePort checks if the desired port is available and tries alternatives.
-func resolvePort(desired int) (int, error) {
-	if portAvailable(desired) {
-		return desired, nil
-	}
-	// Try up to 10 consecutive ports.
-	for offset := 1; offset <= 10; offset++ {
-		candidate := desired + offset
-		if portAvailable(candidate) {
-			return candidate, nil
+	defer reader.Close()
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
 		}
+		s.logger.Log(context.Background(), level, "engine process output",
+			"engine", s.cfg.Kind,
+			"stream", stream,
+			"line", line,
+		)
 	}
-	return 0, fmt.Errorf("no available port found near %d", desired)
-}
-
-func portAvailable(port int) bool {
-	ln, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
-	if err != nil {
-		return false
+	if err := scanner.Err(); err != nil {
+		s.logger.Warn("engine log stream closed with error",
+			"engine", s.cfg.Kind,
+			"stream", stream,
+			"error", err,
+		)
 	}
-	ln.Close()
-	return true
 }
 
 func (s *Supervisor) isRunEpochActive(epoch uint64) bool {

@@ -32,5 +32,8 @@ func llamaSupervisedAssetSuffix(goos string, goarch string) (string, bool) {
 			return "linux-arm64", true
 		}
 	}
+	// Runtime only ships supervised llama sidecar assets for darwin/linux today.
+	// Keep other platforms, including Windows, unsupported until there is a
+	// supported packaging and update path for those managed binaries.
 	return "", false
 }

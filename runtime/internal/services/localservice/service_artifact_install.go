@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -21,6 +22,11 @@ import (
 )
 
 const defaultHFDownloadBaseURL = "https://huggingface.co"
+
+const (
+	localArtifactDownloadTimeout      = 20 * time.Second
+	localArtifactDownloadMaxBodyBytes = 1 << 30
+)
 
 func (s *Service) installVerifiedArtifactFromHuggingFace(
 	ctx context.Context,
@@ -173,7 +179,11 @@ func (s *Service) downloadVerifiedArtifactFile(
 	if err != nil {
 		return "", fmt.Errorf("build artifact download request: %w", err)
 	}
-	resp, err := (&http.Client{}).Do(httpReq)
+	timeout := s.artifactDownloadTimeout
+	if timeout <= 0 {
+		timeout = localArtifactDownloadTimeout
+	}
+	resp, err := (&http.Client{Timeout: timeout}).Do(httpReq)
 	if err != nil {
 		return "", fmt.Errorf("download artifact file %q: %w", relativeFile, err)
 	}
@@ -191,11 +201,20 @@ func (s *Service) downloadVerifiedArtifactFile(
 		return "", fmt.Errorf("create artifact temp file %q: %w", relativeFile, err)
 	}
 	hasher := sha256.New()
-	_, copyErr := io.Copy(io.MultiWriter(file, hasher), resp.Body)
+	maxBodyBytes := s.artifactDownloadMaxBodyBytes
+	if maxBodyBytes <= 0 {
+		maxBodyBytes = localArtifactDownloadMaxBodyBytes
+	}
+	limitedBody := io.LimitReader(resp.Body, maxBodyBytes+1)
+	written, copyErr := io.Copy(io.MultiWriter(file, hasher), limitedBody)
 	closeErr := file.Close()
 	if copyErr != nil {
 		_ = os.Remove(tempPath)
 		return "", fmt.Errorf("write artifact file %q: %w", relativeFile, copyErr)
+	}
+	if written > maxBodyBytes {
+		_ = os.Remove(tempPath)
+		return "", fmt.Errorf("write artifact file %q: response body exceeds %d bytes", relativeFile, maxBodyBytes)
 	}
 	if closeErr != nil {
 		_ = os.Remove(tempPath)

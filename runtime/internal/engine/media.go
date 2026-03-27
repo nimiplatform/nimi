@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -75,7 +76,7 @@ func ensureMedia(ctx context.Context, baseDir string, cfg EngineConfig) (EngineC
 	cfg.CommandArgs = []string{
 		scriptPath,
 		"--host", "127.0.0.1",
-		"--port", itoa(cfg.Port),
+		"--port", strconv.Itoa(cfg.Port),
 	}
 	cfg.WorkingDir = root
 	if cfg.CommandEnv == nil {

@@ -11,8 +11,11 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 )
+
+type dialContextFunc func(ctx context.Context, network, addr string) (net.Conn, error)
 
 // ValidateEndpoint checks that rawURL is a safe outbound endpoint.
 //
@@ -21,8 +24,8 @@ import (
 //     a loopback address (127.0.0.0/8, ::1, or "localhost").
 //   - Link-local (169.254.0.0/16, fe80::/10) and ULA (fc00::/7) addresses
 //     are always blocked.
-func ValidateEndpoint(rawURL string, allowLoopback bool) error {
-	_, _, err := resolveValidatedEndpoint(rawURL, allowLoopback)
+func ValidateEndpoint(ctx context.Context, rawURL string, allowLoopback bool) error {
+	_, _, err := resolveValidatedEndpoint(ctx, net.DefaultResolver, rawURL, allowLoopback)
 	return err
 }
 
@@ -32,11 +35,16 @@ func ValidateEndpoint(rawURL string, allowLoopback bool) error {
 //
 // Returns an error if the URL fails validation or DNS resolution yields
 // only blocked addresses.
-func NewPinnedTransport(rawURL string, allowLoopback bool) (*http.Transport, error) {
-	parsed, safeIPs, err := resolveValidatedEndpoint(rawURL, allowLoopback)
+func NewPinnedTransport(ctx context.Context, rawURL string, allowLoopback bool) (*http.Transport, error) {
+	parsed, safeIPs, err := resolveValidatedEndpoint(ctx, net.DefaultResolver, rawURL, allowLoopback)
 	if err != nil {
 		return nil, err
 	}
+	dialer := &net.Dialer{Timeout: 10 * time.Second}
+	return newPinnedTransport(parsed, safeIPs, dialer.DialContext), nil
+}
+
+func newPinnedTransport(parsed *url.URL, safeIPs []string, dialFn dialContextFunc) *http.Transport {
 	host := parsed.Hostname()
 	port := parsed.Port()
 	if port == "" {
@@ -47,7 +55,7 @@ func NewPinnedTransport(rawURL string, allowLoopback bool) (*http.Transport, err
 		}
 	}
 
-	pinnedAddr := net.JoinHostPort(safeIPs[0], port)
+	var nextIP uint32
 
 	transport := &http.Transport{
 		MaxIdleConns:        10,
@@ -55,22 +63,42 @@ func NewPinnedTransport(rawURL string, allowLoopback bool) (*http.Transport, err
 		IdleConnTimeout:     90 * time.Second,
 		TLSHandshakeTimeout: 10 * time.Second,
 		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
-			dialer := &net.Dialer{Timeout: 10 * time.Second}
-			return dialer.DialContext(ctx, network, pinnedAddr)
+			var lastErr error
+			for attempt := 0; attempt < len(safeIPs); attempt++ {
+				index := int(atomic.AddUint32(&nextIP, 1)-1) % len(safeIPs)
+				pinnedAddr := net.JoinHostPort(safeIPs[index], port)
+				conn, err := dialFn(ctx, network, pinnedAddr)
+				if err == nil {
+					return conn, nil
+				}
+				lastErr = err
+			}
+			return nil, lastErr
 		},
 	}
 
 	// Preserve original hostname for TLS verification when using HTTPS.
 	if parsed.Scheme == "https" {
 		transport.TLSClientConfig = &tls.Config{
+			MinVersion: tls.VersionTLS12,
 			ServerName: host,
 		}
 	}
 
-	return transport, nil
+	return transport
 }
 
-func resolveValidatedEndpoint(rawURL string, allowLoopback bool) (*url.URL, []string, error) {
+type hostResolver interface {
+	LookupHost(ctx context.Context, host string) ([]string, error)
+}
+
+func resolveValidatedEndpoint(ctx context.Context, resolver hostResolver, rawURL string, allowLoopback bool) (*url.URL, []string, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if resolver == nil {
+		resolver = net.DefaultResolver
+	}
 	parsed, err := parseAndNormalize(rawURL)
 	if err != nil {
 		return nil, nil, err
@@ -81,9 +109,12 @@ func resolveValidatedEndpoint(rawURL string, allowLoopback bool) (*url.URL, []st
 		if parsed.Scheme != "http" || !allowLoopback {
 			return nil, nil, fmt.Errorf("endpointsec: HTTPS required for endpoint %q", rawURL)
 		}
+		if !isLoopbackHost(host) {
+			return nil, nil, fmt.Errorf("endpointsec: HTTP endpoint host %q is not loopback", host)
+		}
 	}
 
-	ips, err := net.DefaultResolver.LookupHost(context.Background(), host)
+	ips, err := resolver.LookupHost(ctx, host)
 	if err != nil {
 		return nil, nil, fmt.Errorf("endpointsec: DNS resolution failed for %q: %w", host, err)
 	}
@@ -141,7 +172,7 @@ func parseAndNormalize(rawURL string) (*url.URL, error) {
 }
 
 // checkIP rejects link-local and ULA addresses per K-SEC-002.
-// RFC 1918 private addresses (10/8, 172.16/12, 192.168/16) are allowed.
+// RFC 1918 private IPv4 ranges are intentionally not blocked here.
 func checkIP(ip net.IP) error {
 	if ip == nil {
 		return fmt.Errorf("invalid IP address")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -67,14 +68,17 @@ type Service struct {
 	engineMgr                 EngineManager
 	managedLlamaRegistrations map[string]managedLlamaRegistration
 	warmedModelKeys           map[string]struct{}
+	warmedModelOrder          []string
 
-	endpointProbe     endpointProbeFunc
-	hfCatalogSearch   hfCatalogSearchFunc
-	hfDownloadBaseURL string
-	modelProbeState   map[string]*probeRecoveryState
-	serviceProbeState map[string]*probeRecoveryState
-	recoveryCancel    context.CancelFunc
-	recoveryDone      chan struct{}
+	endpointProbe                endpointProbeFunc
+	hfCatalogSearch              hfCatalogSearchFunc
+	hfDownloadBaseURL            string
+	artifactDownloadTimeout      time.Duration
+	artifactDownloadMaxBodyBytes int64
+	modelProbeState              map[string]*probeRecoveryState
+	serviceProbeState            map[string]*probeRecoveryState
+	recoveryCancel               context.CancelFunc
+	recoveryDone                 chan struct{}
 }
 
 func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int) (*Service, error) {
@@ -104,9 +108,12 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		catalog:                      defaultCatalogFromVerified(verified),
 		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
 		warmedModelKeys:              make(map[string]struct{}),
+		warmedModelOrder:             make([]string, 0, 512),
 		endpointProbe:                defaultEndpointProbe,
 		hfCatalogSearch:              defaultHFCatalogSearch,
 		hfDownloadBaseURL:            defaultHFDownloadBaseURL,
+		artifactDownloadTimeout:      localArtifactDownloadTimeout,
+		artifactDownloadMaxBodyBytes: localArtifactDownloadMaxBodyBytes,
 		modelProbeState:              make(map[string]*probeRecoveryState),
 		serviceProbeState:            make(map[string]*probeRecoveryState),
 	}

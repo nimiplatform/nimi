@@ -108,10 +108,6 @@ func (s *Service) ResolveModelInstallPlan(_ context.Context, req *runtimev1.Reso
 	return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 }
 
-func engineRequiresExplicitEndpoint(engine string) bool {
-	return strings.TrimSpace(engine) != ""
-}
-
 func defaultLocalEngine(raw string, capabilities []string) string {
 	if trimmed := strings.TrimSpace(raw); trimmed != "" {
 		return trimmed
@@ -208,18 +204,7 @@ func (s *Service) installLocalModelRecord(
 	auditEventType string,
 	auditDetail string,
 ) (*runtimev1.LocalModelRecord, error) {
-	s.mu.RLock()
 	modelKey := localModelIdentityKey(modelID, engine)
-	for _, existing := range s.models {
-		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-			continue
-		}
-		if localModelIdentityKey(existing.GetModelId(), existing.GetEngine()) == modelKey {
-			s.mu.RUnlock()
-			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
-		}
-	}
-	s.mu.RUnlock()
 
 	now := nowISO()
 	projection, err := modelregistry.InferNativeProjection(modelID, capabilities, nil, runtimev1.ModelStatus_MODEL_STATUS_INSTALLED)
@@ -284,6 +269,15 @@ func (s *Service) installLocalModelRecord(
 	}
 
 	s.mu.Lock()
+	for _, existing := range s.models {
+		if existing.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+			continue
+		}
+		if localModelIdentityKey(existing.GetModelId(), existing.GetEngine()) == modelKey {
+			s.mu.Unlock()
+			return nil, grpcerr.WithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED)
+		}
+	}
 	s.models[record.GetLocalModelId()] = cloneLocalModel(record)
 	s.setModelRuntimeModeLocked(record.GetLocalModelId(), mode)
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
@@ -311,7 +305,7 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	capabilities := normalizeStringSlice(req.GetCapabilities())
 	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
 	endpoint := strings.TrimSpace(req.GetEndpoint())
-	if engineRequiresExplicitEndpoint(engine) && endpoint == "" {
+	if endpoint == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 	record, err := s.installLocalModelRecord(
@@ -425,7 +419,7 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	if endpoint == "" {
 		endpoint = manifestStringDefault(manifest, "endpoint")
 	}
-	if engineRequiresExplicitEndpoint(engine) && strings.TrimSpace(endpoint) == "" {
+	if strings.TrimSpace(endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 

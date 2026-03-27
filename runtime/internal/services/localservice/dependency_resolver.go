@@ -69,34 +69,34 @@ func resolveExecutionPlan(req *executionResolveRequest) *runtimev1.LocalExecutio
 		}
 		descriptor := &runtimev1.LocalExecutionEntryDescriptor{
 			EntryId:    strings.TrimSpace(opt.GetEntryId()),
-			Kind:         opt.GetKind(),
-			Capability:   strings.TrimSpace(opt.GetCapability()),
-			Required:     required,
-			Selected:     selected,
-			Preferred:    preferred,
-			ModelId:      strings.TrimSpace(opt.GetModelId()),
-			Repo:         strings.TrimSpace(opt.GetRepo()),
-			Engine:       strings.TrimSpace(opt.GetEngine()),
-			ServiceId:    strings.TrimSpace(opt.GetServiceId()),
-			NodeId:       strings.TrimSpace(opt.GetNodeId()),
-			ReasonCode:   check.reasonCode,
-			Warnings:     append([]string(nil), check.warnings...),
+			Kind:       opt.GetKind(),
+			Capability: strings.TrimSpace(opt.GetCapability()),
+			Required:   required,
+			Selected:   selected,
+			Preferred:  preferred,
+			ModelId:    strings.TrimSpace(opt.GetModelId()),
+			Repo:       strings.TrimSpace(opt.GetRepo()),
+			Engine:     strings.TrimSpace(opt.GetEngine()),
+			ServiceId:  strings.TrimSpace(opt.GetServiceId()),
+			NodeId:     strings.TrimSpace(opt.GetNodeId()),
+			ReasonCode: check.reasonCode,
+			Warnings:   append([]string(nil), check.warnings...),
 		}
 
 		plan.Entries = append(plan.Entries, descriptor)
 		plan.SelectionRationale = append(plan.SelectionRationale, &runtimev1.LocalExecutionSelectionRationale{
 			EntryId:    descriptor.GetEntryId(),
-			Selected:     selected,
-			ReasonCode:   check.reasonCode,
-			Detail:       check.detail,
+			Selected:   selected,
+			ReasonCode: check.reasonCode,
+			Detail:     check.detail,
 		})
 		plan.PreflightDecisions = append(plan.PreflightDecisions, &runtimev1.LocalPreflightDecision{
 			EntryId:    descriptor.GetEntryId(),
-			Target:       preflightTargetForDependency(descriptor),
-			Check:        defaultString(check.check, "dependency-shape"),
-			Ok:           check.ok,
-			ReasonCode:   check.reasonCode,
-			Detail:       check.detail,
+			Target:     preflightTargetForDependency(descriptor),
+			Check:      defaultString(check.check, "dependency-shape"),
+			Ok:         check.ok,
+			ReasonCode: check.reasonCode,
+			Detail:     check.detail,
 		})
 		if len(check.warnings) > 0 {
 			plan.Warnings = append(plan.Warnings, check.warnings...)
@@ -184,11 +184,11 @@ func resolveExecutionPlan(req *executionResolveRequest) *runtimev1.LocalExecutio
 
 	if len(plan.Entries) == 0 && capability != "" {
 		item := &runtimev1.LocalExecutionOptionDescriptor{
-			EntryId: "dep_" + slug(capability),
-			Kind:         runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
-			Capability:   capability,
-			ModelId:      "local/" + capability + "-default",
-			Engine:       "llama",
+			EntryId:    "dep_" + slug(capability),
+			Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
+			Capability: capability,
+			ModelId:    "local/" + capability + "-default",
+			Engine:     "llama",
 		}
 		check := evaluateDependencyCandidate(item, profile)
 		check.reasonCode = "LOCAL_DEPENDENCY_DEFAULT_SELECTED"
@@ -339,7 +339,7 @@ func requiresPython(engine string) bool {
 }
 
 func requiresNPU(engine string) bool {
-	return strings.Contains(engine, "npu")
+	return strings.Contains(strings.ToLower(strings.TrimSpace(engine)), "npu")
 }
 
 func preflightTargetForDependency(dep *runtimev1.LocalExecutionEntryDescriptor) string {

@@ -223,7 +223,7 @@ func (c EngineConfig) Endpoint() string {
 		}
 		return "http://" + trimmed
 	}
-	return "http://127.0.0.1:" + itoa(c.Port)
+	return "http://127.0.0.1:" + strconv.Itoa(c.Port)
 }
 
 func containsScheme(value string) bool {
@@ -233,9 +233,4 @@ func containsScheme(value string) bool {
 		}
 	}
 	return false
-}
-
-// itoa converts an int to string without importing strconv in this file.
-func itoa(n int) string {
-	return strconv.Itoa(n)
 }

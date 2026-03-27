@@ -260,13 +260,29 @@ func (s *Service) recordWarmKey(key string) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, exists := s.warmedModelKeys[key]; !exists && len(s.warmedModelKeys) >= 512 {
-		for staleKey := range s.warmedModelKeys {
-			delete(s.warmedModelKeys, staleKey)
-			break
-		}
+	if _, exists := s.warmedModelKeys[key]; exists {
+		s.moveWarmKeyToTailLocked(key)
+		return
 	}
+	if len(s.warmedModelKeys) >= 512 && len(s.warmedModelOrder) > 0 {
+		staleKey := s.warmedModelOrder[0]
+		delete(s.warmedModelKeys, staleKey)
+		s.warmedModelOrder = s.warmedModelOrder[1:]
+	}
+	s.warmedModelOrder = append(s.warmedModelOrder, key)
 	s.warmedModelKeys[key] = struct{}{}
+}
+
+func (s *Service) moveWarmKeyToTailLocked(key string) {
+	for i, existing := range s.warmedModelOrder {
+		if existing != key {
+			continue
+		}
+		copy(s.warmedModelOrder[i:], s.warmedModelOrder[i+1:])
+		s.warmedModelOrder[len(s.warmedModelOrder)-1] = key
+		return
+	}
+	s.warmedModelOrder = append(s.warmedModelOrder, key)
 }
 
 func (s *Service) appendWarmLocalModelAudit(

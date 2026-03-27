@@ -9,6 +9,16 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+type modelRecoveryTarget struct {
+	record *runtimev1.LocalModelRecord
+	mode   runtimev1.LocalEngineRuntimeMode
+}
+
+type serviceRecoveryTarget struct {
+	record *runtimev1.LocalServiceDescriptor
+	mode   runtimev1.LocalEngineRuntimeMode
+}
+
 func (s *Service) startRecoveryLoop() {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -44,15 +54,16 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 	now := time.Now().UTC()
 
 	for _, model := range models {
-		localModelID := strings.TrimSpace(model.GetLocalModelId())
+		localModel := model.record
+		localModelID := strings.TrimSpace(localModel.GetLocalModelId())
 		if localModelID == "" || !s.shouldProbeModelNow(localModelID, now) {
 			continue
 		}
-		endpoint := s.effectiveLocalModelEndpoint(model)
-		bootstrapErr := s.bootstrapEngineIfManaged(ctx, model.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
-		probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
-		registration := s.managedLlamaRegistrationForModel(model)
-		if modelProbeSucceeded(model, probe, registration) {
+		endpoint := s.effectiveLocalModelEndpoint(localModel)
+		bootstrapErr := s.bootstrapEngineIfManaged(ctx, localModel.GetEngine(), model.mode, endpoint)
+		probe := s.probeEndpoint(ctx, localModel.GetEngine(), endpoint)
+		registration := s.managedLlamaRegistrationForModel(localModel)
+		if modelProbeSucceeded(localModel, probe, registration) {
 			successes := s.modelRecoverySuccess(localModelID, now)
 			if successes >= localRecoverySuccessThreshold {
 				if _, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
@@ -63,7 +74,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 			continue
 		}
 		failures, interval := s.modelRecoveryFailure(localModelID, now)
-		detail := modelProbeFailureDetail(model, probe, registration)
+		detail := modelProbeFailureDetail(localModel, probe, registration)
 		if bootstrapErr != nil {
 			detail += "; bootstrap_error=" + strings.TrimSpace(bootstrapErr.Error())
 		}
@@ -75,13 +86,14 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 	}
 
 	for _, service := range services {
-		serviceID := strings.TrimSpace(service.GetServiceId())
+		serviceRecord := service.record
+		serviceID := strings.TrimSpace(serviceRecord.GetServiceId())
 		if serviceID == "" || !s.shouldProbeServiceNow(serviceID, now) {
 			continue
 		}
-		probeEndpoint := s.serviceProbeEndpoint(service)
-		bootstrapErr := s.bootstrapEngineIfManaged(ctx, service.GetEngine(), s.serviceRuntimeMode(serviceID), probeEndpoint)
-		probe := s.probeEndpoint(ctx, service.GetEngine(), probeEndpoint)
+		probeEndpoint := s.serviceProbeEndpoint(serviceRecord)
+		bootstrapErr := s.bootstrapEngineIfManaged(ctx, serviceRecord.GetEngine(), service.mode, probeEndpoint)
+		probe := s.probeEndpoint(ctx, serviceRecord.GetEngine(), probeEndpoint)
 		if probe.healthy {
 			successes := s.serviceRecoverySuccess(serviceID, now)
 			if successes >= localRecoverySuccessThreshold {
@@ -105,10 +117,10 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 	}
 }
 
-func (s *Service) collectUnhealthyRecoveryTargets() ([]*runtimev1.LocalModelRecord, []*runtimev1.LocalServiceDescriptor) {
+func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []serviceRecoveryTarget) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	models := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
+	models := make([]modelRecoveryTarget, 0, len(s.models))
 	for _, model := range s.models {
 		if model == nil {
 			continue
@@ -116,9 +128,12 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]*runtimev1.LocalModelReco
 		if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
 			continue
 		}
-		models = append(models, cloneLocalModel(model))
+		models = append(models, modelRecoveryTarget{
+			record: cloneLocalModel(model),
+			mode:   s.modelRuntimeModes[model.GetLocalModelId()],
+		})
 	}
-	services := make([]*runtimev1.LocalServiceDescriptor, 0, len(s.services))
+	services := make([]serviceRecoveryTarget, 0, len(s.services))
 	for _, service := range s.services {
 		if service == nil {
 			continue
@@ -126,7 +141,10 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]*runtimev1.LocalModelReco
 		if service.GetStatus() != runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY {
 			continue
 		}
-		services = append(services, cloneServiceDescriptor(service))
+		services = append(services, serviceRecoveryTarget{
+			record: cloneServiceDescriptor(service),
+			mode:   s.serviceRuntimeModes[service.GetServiceId()],
+		})
 	}
 	return models, services
 }

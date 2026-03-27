@@ -39,12 +39,15 @@ type Daemon struct {
 	auditStore *auditlog.Store
 	engineMgr  *engine.Manager
 
-	newEngineManager  func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
-	startEngineFn     func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
-	probeAIProviderFn func(ctx context.Context, client *http.Client, target aiProviderTarget) error
+	newEngineManager         func(logger *slog.Logger, baseDir string, onState engine.StateChangeFunc) (*engine.Manager, error)
+	startEngineFn            func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
+	probeAIProviderFn        func(ctx context.Context, client *http.Client, target aiProviderTarget) error
+	detectMediaHostSupportFn func() (engine.MediaHostSupport, string)
 
 	providerFailureHintMu sync.RWMutex
 	providerFailureHints  map[string]string
+	startupStatusMu       sync.Mutex
+	startupDegradedReason string
 }
 
 var (
@@ -53,9 +56,16 @@ var (
 	runtimeEnvMu                 sync.RWMutex
 )
 
+const (
+	engineMediaDiffusersBackend = engine.EngineKind("media-diffusers-backend")
+	engineSidecar               = engine.EngineKind("sidecar")
+)
+
 func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error) {
 	if value := strings.TrimSpace(cfg.LocalStatePath); value != "" {
-		runtimeSetenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value)
+		if err := runtimeSetenv("NIMI_RUNTIME_LOCAL_STATE_PATH", value); err != nil {
+			return nil, fmt.Errorf("set NIMI_RUNTIME_LOCAL_STATE_PATH: %w", err)
+		}
 	}
 	state := health.NewState()
 	grpcServer, err := grpcserver.New(cfg, state, logger, version)
@@ -63,16 +73,17 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 		return nil, err
 	}
 	return &Daemon{
-		cfg:                  cfg,
-		logger:               logger,
-		state:                state,
-		grpc:                 grpcServer,
-		http:                 httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker()),
-		aiHealth:             nil,
-		auditStore:           nil,
-		newEngineManager:     engine.NewManager,
-		probeAIProviderFn:    probeAIProvider,
-		providerFailureHints: map[string]string{},
+		cfg:                      cfg,
+		logger:                   logger,
+		state:                    state,
+		grpc:                     grpcServer,
+		http:                     httpserver.New(cfg.HTTPAddr, state, logger, grpcServer.AIHealthTracker()),
+		aiHealth:                 nil,
+		auditStore:               nil,
+		newEngineManager:         engine.NewManager,
+		probeAIProviderFn:        probeAIProvider,
+		detectMediaHostSupportFn: engine.DetectMediaHostSupport,
+		providerFailureHints:     map[string]string{},
 	}, nil
 }
 
@@ -85,7 +96,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 	backgroundCtx, cancelBackground := context.WithCancel(context.Background())
 	defer cancelBackground()
 	var backgroundWG sync.WaitGroup
-	backgroundWG.Add(1)
+	backgroundWG.Add(2)
 	go func() {
 		defer backgroundWG.Done()
 		d.sampleRuntimeResource(backgroundCtx)
@@ -102,28 +113,37 @@ func (d *Daemon) Run(ctx context.Context) error {
 	// Start supervised engines if configured.
 	d.startSupervisedEngines(ctx)
 
-	if d.state.Snapshot().Status == health.StatusDegraded {
-		d.logger.Warn("runtime started in degraded state", "reason", d.state.Snapshot().Reason)
-	} else {
-		d.state.SetStatus(health.StatusReady, "ready")
-		d.grpc.SyncServingState()
-		d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
+	startupDegradedReason := d.consumeStartupDegradedReason()
+	d.state.SetStatus(health.StatusReady, "ready")
+	d.grpc.SyncServingState()
+	d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
+	if startupDegradedReason != "" {
+		d.transitionToDegraded(startupDegradedReason)
+		d.logger.Warn("runtime started in degraded state", "reason", startupDegradedReason)
 	}
 
-	backgroundWG.Add(1)
 	go func() {
 		defer backgroundWG.Done()
 		d.sampleAIProviderHealth(backgroundCtx)
 	}()
 
 	var serveErr error
-	select {
-	case <-ctx.Done():
-		d.logger.Info("runtime shutdown requested")
-	case err := <-errCh:
-		if err != nil {
+	remainingServers := cap(errCh)
+waitForShutdown:
+	for remainingServers > 0 {
+		select {
+		case <-ctx.Done():
+			d.logger.Info("runtime shutdown requested")
+			break waitForShutdown
+		case err := <-errCh:
+			remainingServers--
+			if err == nil {
+				d.logger.Warn("runtime server exited without error before shutdown")
+				continue
+			}
 			serveErr = err
 			d.logger.Error("runtime server exited with error", "error", err)
+			break waitForShutdown
 		}
 	}
 
@@ -181,6 +201,36 @@ func (d *Daemon) sampleRuntimeResource(ctx context.Context) {
 			d.state.SetResource(0, int64(ms.Alloc), 0)
 		}
 	}
+}
+
+func (d *Daemon) setDegradedStatus(reason string) {
+	trimmedReason := strings.TrimSpace(reason)
+	if trimmedReason == "" {
+		trimmedReason = "degraded"
+	}
+	snapshot := d.state.Snapshot()
+	if snapshot.Status == health.StatusStarting {
+		d.startupStatusMu.Lock()
+		if d.startupDegradedReason == "" {
+			d.startupDegradedReason = trimmedReason
+		}
+		d.startupStatusMu.Unlock()
+		return
+	}
+	d.transitionToDegraded(trimmedReason)
+}
+
+func (d *Daemon) transitionToDegraded(reason string) {
+	d.state.SetStatus(health.StatusDegraded, reason)
+	d.grpc.SyncServingState()
+}
+
+func (d *Daemon) consumeStartupDegradedReason() string {
+	d.startupStatusMu.Lock()
+	defer d.startupStatusMu.Unlock()
+	reason := strings.TrimSpace(d.startupDegradedReason)
+	d.startupDegradedReason = ""
+	return reason
 }
 
 func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
@@ -255,8 +305,7 @@ func (d *Daemon) sampleAIProviderHealth(ctx context.Context) {
 		if firstErr == "" {
 			firstErr = "ai-provider:all unavailable"
 		}
-		d.state.SetStatus(health.StatusDegraded, firstErr)
-		d.grpc.SyncServingState()
+		d.setDegradedStatus(firstErr)
 	}
 
 	probe()
@@ -277,7 +326,8 @@ type aiProviderTarget struct {
 }
 
 func configuredAIProviderTargets(cfg config.Config) []aiProviderTarget {
-	targets := make([]aiProviderTarget, 0, 16)
+	cloudTargets := config.ResolveCloudProviderTargets(cfg.Providers)
+	targets := make([]aiProviderTarget, 0, 3+len(cloudTargets))
 	seen := map[string]bool{}
 
 	add := func(name string, base string, apiKey string) {
@@ -300,7 +350,7 @@ func configuredAIProviderTargets(cfg config.Config) []aiProviderTarget {
 	add("local", runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_LLAMA_API_KEY"))
 	add("local-media", runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_MEDIA_API_KEY"))
 	add("local-sidecar", runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL"), runtimeGetenv("NIMI_RUNTIME_LOCAL_SIDECAR_API_KEY"))
-	for _, target := range config.ResolveCloudProviderTargets(cfg.Providers) {
+	for _, target := range cloudTargets {
 		add(cloudProviderTargetName(target.CanonicalID), target.BaseURL, target.APIKey)
 	}
 	return targets
@@ -391,12 +441,23 @@ func resolveProbeEndpoint(base string, path string) string {
 	return parsed.String()
 }
 
+func auditPayloadStruct(fields map[string]any) *structpb.Struct {
+	payload, err := structpb.NewStruct(fields)
+	if err == nil {
+		return payload
+	}
+	fallback, _ := structpb.NewStruct(map[string]any{
+		"payload_encode_error": err.Error(),
+	})
+	return fallback
+}
+
 func appendStartupFailureAudit(store *auditlog.Store, reason string) {
 	if store == nil {
 		return
 	}
 	now := time.Now().UTC()
-	payload, _ := structpb.NewStruct(map[string]any{
+	payload := auditPayloadStruct(map[string]any{
 		"phase":  "starting",
 		"reason": reason,
 	})
@@ -420,7 +481,7 @@ func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail str
 	}
 	attempt, maxAttempt, exitCode := parseEngineCrashDetail(detail)
 	now := time.Now().UTC()
-	payload, _ := structpb.NewStruct(map[string]any{
+	payload := auditPayloadStruct(map[string]any{
 		"engine":      engineName,
 		"detail":      detail,
 		"attempt":     attempt,
@@ -431,7 +492,7 @@ func appendEngineCrashAudit(store *auditlog.Store, engineName string, detail str
 		AuditId:    ulid.Make().String(),
 		Domain:     "runtime.engine",
 		Operation:  "engine.unhealthy",
-		ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE,
+		ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
 		TraceId:    ulid.Make().String(),
 		Timestamp:  timestamppb.New(now),
 		Payload:    payload,
@@ -446,7 +507,7 @@ func appendEngineBootstrapFailureAudit(store *auditlog.Store, engineName string,
 		return
 	}
 	now := time.Now().UTC()
-	payload, _ := structpb.NewStruct(map[string]any{
+	payload := auditPayloadStruct(map[string]any{
 		"engine":   strings.TrimSpace(engineName),
 		"provider": strings.TrimSpace(providerName),
 		"detail":   detail,
@@ -489,8 +550,7 @@ func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) {
 		}
 	}
 	appendEngineBootstrapFailureAudit(d.auditStore, string(engine.EngineLlama), "local", trimmedDetail)
-	d.state.SetStatus(health.StatusDegraded, reason)
-	d.grpc.SyncServingState()
+	d.setDegradedStatus(reason)
 }
 
 func parseEngineCrashDetail(detail string) (attempt int, maxAttempt int, exitCode int) {
@@ -530,8 +590,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	if err != nil {
 		d.logger.Error("create engine manager failed", "error", err)
 		reason := fmt.Sprintf("engine manager init failed (%v)", err)
-		d.state.SetStatus(health.StatusDegraded, reason)
-		d.grpc.SyncServingState()
+		d.setDegradedStatus(reason)
 		appendStartupFailureAudit(d.auditStore, reason)
 		return
 	}
@@ -541,7 +600,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 
 	// Inject engine manager into local service for gRPC access.
 	skipLlamaBootstrap := false
-	mediaHostSupport, _ := detectMediaHostSupport()
+	mediaHostSupport, _ := d.detectMediaHostSupport()
 	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
 	if svc := d.grpc.LocalService(); svc != nil {
 		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLlamaEnabled)
@@ -606,6 +665,11 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 			"NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL")
 	}
 
+	if d.cfg.EngineSidecarEnabled {
+		bootstrap(engineSidecar, d.cfg.EngineSidecarVersion, d.cfg.EngineSidecarPort,
+			"NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL")
+	}
+
 	wg.Wait()
 	close(failures)
 
@@ -628,8 +692,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		}
 	}
 	if firstFailure != "" {
-		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine bootstrap failed (%s)", firstFailure))
-		d.grpc.SyncServingState()
+		d.setDegradedStatus(fmt.Sprintf("engine bootstrap failed (%s)", firstFailure))
 	}
 }
 
@@ -642,6 +705,8 @@ func (d *Daemon) startEngine(ctx context.Context, kind engine.EngineKind, versio
 		cfg = engine.DefaultMediaConfig()
 	case engine.EngineSpeech:
 		cfg = engine.DefaultSpeechConfig()
+	case engineSidecar:
+		return fmt.Errorf("engine %s is not yet supported for supervised lifecycle", kind)
 	default:
 		return fmt.Errorf("unsupported engine kind: %s", kind)
 	}
@@ -690,7 +755,15 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 	if trimmed == "" {
 		return
 	}
-	runtimeSetenv(envKey, trimmed+"/v1")
+	if err := runtimeSetenv(envKey, trimmed+"/v1"); err != nil {
+		d.logger.Warn("set engine endpoint env failed",
+			"engine", kind,
+			"source", source,
+			"env", envKey,
+			"error", err,
+		)
+		return
+	}
 	if aiSvc := d.grpc.AIService(); aiSvc != nil {
 		if providerID, apiKeyEnv, ok := localProviderEnvBinding(kind); ok {
 			aiSvc.SetLocalProviderEndpoint(providerID, trimmed+"/v1", runtimeGetenv(apiKeyEnv))
@@ -704,10 +777,10 @@ func (d *Daemon) injectEngineEndpointEnv(kind engine.EngineKind, envKey string, 
 	)
 }
 
-func runtimeSetenv(key string, value string) {
+func runtimeSetenv(key string, value string) error {
 	runtimeEnvMu.Lock()
 	defer runtimeEnvMu.Unlock()
-	_ = os.Setenv(key, value)
+	return os.Setenv(key, value)
 }
 
 func runtimeGetenv(key string) string {
@@ -730,7 +803,7 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	if snapshot.Status == health.StatusStopping || snapshot.Status == health.StatusStopped {
 		return
 	}
-	if strings.EqualFold(strings.TrimSpace(engineName), "media-diffusers-backend") {
+	if strings.EqualFold(strings.TrimSpace(engineName), string(engineMediaDiffusersBackend)) {
 		if svc := d.grpc.LocalService(); svc != nil {
 			switch strings.ToLower(strings.TrimSpace(status)) {
 			case "healthy":
@@ -743,8 +816,7 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 
 	switch status {
 	case "unhealthy":
-		d.state.SetStatus(health.StatusDegraded, fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
-		d.grpc.SyncServingState()
+		d.setDegradedStatus(fmt.Sprintf("engine:%s unhealthy (%s)", engineName, detail))
 		appendEngineCrashAudit(d.auditStore, engineName, detail)
 		if kind, ok := engineKindForName(engineName); ok {
 			if providerName, ok := providerTargetNameForEngine(kind); ok {
@@ -754,21 +826,18 @@ func (d *Daemon) onEngineStateChange(engineName string, status string, detail st
 	case "healthy":
 		recoveringSameEngine := snapshot.Status == health.StatusDegraded &&
 			engineUnhealthyReasonMatches(snapshot.Reason, engineName)
-		if recoveringSameEngine {
-			if kind, envKey, ok := engineEnvKey(engineName); ok {
-				d.injectEngineEndpointEnv(kind, envKey, "recovered")
+		if !recoveringSameEngine {
+			return
+		}
+		if kind, envKey, ok := engineEnvKey(engineName); ok {
+			d.injectEngineEndpointEnv(kind, envKey, "recovered")
+		}
+		if kind, ok := engineKindForName(engineName); ok {
+			if providerName, ok := providerTargetNameForEngine(kind); ok {
+				d.clearProviderFailureHint(providerName)
 			}
 		}
-		if recoveringSameEngine {
-			if kind, ok := engineKindForName(engineName); ok {
-				if providerName, ok := providerTargetNameForEngine(kind); ok {
-					d.clearProviderFailureHint(providerName)
-				}
-			}
-		}
-		if recoveringSameEngine {
-			d.state.SetStatus(health.StatusReady, "ready")
-			d.grpc.SyncServingState()
-		}
+		d.state.SetStatus(health.StatusReady, "ready")
+		d.grpc.SyncServingState()
 	}
 }

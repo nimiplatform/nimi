@@ -6,11 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/codes"
@@ -77,6 +79,34 @@ func TestLocalImportLocalArtifactAndList(t *testing.T) {
 	if listed.GetArtifacts()[0].GetArtifactId() != "local/z_image_ae" {
 		t.Fatalf("unexpected artifact id: %q", listed.GetArtifacts()[0].GetArtifactId())
 	}
+}
+
+func TestLocalImportArtifactRejectsManifestOutsideModelsRoot(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	outsideDir := t.TempDir()
+	manifestPath := filepath.Join(outsideDir, "artifact.manifest.json")
+	manifestBody, err := json.Marshal(map[string]any{
+		"artifactId": "local/outside-artifact",
+		"kind":       "vae",
+		"engine":     "media",
+		"entry":      "vae/model.safetensors",
+		"files":      []string{"vae/model.safetensors"},
+	})
+	if err != nil {
+		t.Fatalf("marshal outside artifact manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, manifestBody, 0o600); err != nil {
+		t.Fatalf("write outside artifact manifest: %v", err)
+	}
+
+	_, err = svc.ImportLocalArtifact(context.Background(), &runtimev1.ImportLocalArtifactRequest{ManifestPath: manifestPath})
+	if err == nil {
+		t.Fatal("expected artifact manifest outside models root to be rejected")
+	}
+	assertGRPCReasonCode(t, err, "ImportLocalArtifact(outside root)", runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
 }
 
 func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
@@ -205,6 +235,87 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 	if len(listed.GetArtifacts()) != 0 {
 		t.Fatalf("expected no installed artifacts after rollback, got %d", len(listed.GetArtifacts()))
 	}
+}
+
+func TestInstallVerifiedArtifactFailsClosedOnResponseSizeLimit(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	svc.artifactDownloadMaxBodyBytes = 4
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/vae/diffusion_pytorch_model.safetensors" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = io.WriteString(w, "oversized")
+	}))
+	defer server.Close()
+
+	svc.hfDownloadBaseURL = server.URL
+	svc.verifiedArtifacts = []*runtimev1.LocalVerifiedArtifactDescriptor{
+		{
+			TemplateId: "verified.artifact.z_image.vae",
+			ArtifactId: "local/z_image_ae",
+			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Engine:     "media",
+			Entry:      "vae/diffusion_pytorch_model.safetensors",
+			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
+			Repo:       "Tongyi-MAI/Z-Image-Turbo",
+			Revision:   "main",
+		},
+	}
+
+	_, err := svc.InstallVerifiedArtifact(context.Background(), &runtimev1.InstallVerifiedArtifactRequest{
+		TemplateId: "verified.artifact.z_image.vae",
+	})
+	if err == nil {
+		t.Fatal("expected oversized artifact response to fail")
+	}
+	assertGRPCReasonCode(t, err, "InstallVerifiedArtifact(oversized)", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+}
+
+func TestInstallVerifiedArtifactUsesDownloadTimeout(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+	svc.artifactDownloadTimeout = 50 * time.Millisecond
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/Tongyi-MAI/Z-Image-Turbo/resolve/main/vae/diffusion_pytorch_model.safetensors" {
+			http.NotFound(w, r)
+			return
+		}
+		time.Sleep(250 * time.Millisecond)
+		_, _ = io.WriteString(w, "late")
+	}))
+	defer server.Close()
+
+	svc.hfDownloadBaseURL = server.URL
+	svc.verifiedArtifacts = []*runtimev1.LocalVerifiedArtifactDescriptor{
+		{
+			TemplateId: "verified.artifact.z_image.vae",
+			ArtifactId: "local/z_image_ae",
+			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Engine:     "media",
+			Entry:      "vae/diffusion_pytorch_model.safetensors",
+			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
+			Repo:       "Tongyi-MAI/Z-Image-Turbo",
+			Revision:   "main",
+		},
+	}
+
+	start := time.Now()
+	_, err := svc.InstallVerifiedArtifact(context.Background(), &runtimev1.InstallVerifiedArtifactRequest{
+		TemplateId: "verified.artifact.z_image.vae",
+	})
+	if err == nil {
+		t.Fatal("expected timed-out artifact download to fail")
+	}
+	if elapsed := time.Since(start); elapsed >= 200*time.Millisecond {
+		t.Fatalf("expected client timeout before server response, elapsed=%s", elapsed)
+	}
+	assertGRPCReasonCode(t, err, "InstallVerifiedArtifact(timeout)", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 }
 
 func TestInstallVerifiedArtifactRejectsCanonicalAliasDuplicate(t *testing.T) {

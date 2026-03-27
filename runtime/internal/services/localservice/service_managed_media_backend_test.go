@@ -256,6 +256,49 @@ func TestResolveManagedMediaImageProfileRejectsMissingComponents(t *testing.T) {
 	}
 }
 
+func TestResolveManagedArtifactPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	outsideDir := filepath.Join(t.TempDir(), "outside-artifact")
+	if err := os.MkdirAll(outsideDir, 0o755); err != nil {
+		t.Fatalf("mkdir outside artifact dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(outsideDir, "weights.safetensors"), []byte("artifact"), 0o600); err != nil {
+		t.Fatalf("write outside artifact file: %v", err)
+	}
+
+	if err := os.MkdirAll(modelsRoot, 0o755); err != nil {
+		t.Fatalf("mkdir models root: %v", err)
+	}
+	linkedDir := filepath.Join(modelsRoot, "linked-artifact")
+	if err := os.Symlink(outsideDir, linkedDir); err != nil {
+		t.Fatalf("create symlinked artifact dir: %v", err)
+	}
+
+	artifact, err := svc.installLocalArtifactRecord(&runtimev1.LocalArtifactRecord{
+		LocalArtifactId: "artifact_" + ulid.Make().String(),
+		ArtifactId:      "linked/artifact",
+		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+		Engine:          "media",
+		Entry:           "weights.safetensors",
+		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
+		Source: &runtimev1.LocalArtifactSource{
+			Repo: "file://" + filepath.Join(linkedDir, "artifact.manifest.json"),
+		},
+	})
+	if err != nil {
+		t.Fatalf("install linked artifact: %v", err)
+	}
+
+	_, err = svc.ResolveManagedArtifactPath(context.Background(), artifact.GetLocalArtifactId())
+	if err == nil {
+		t.Fatal("expected symlinked artifact base dir outside root to be rejected")
+	}
+	assertGRPCReasonCode(t, err, "ResolveManagedArtifactPath(symlink outside root)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+}
+
 func containsString(values []string, target string) bool {
 	for _, value := range values {
 		if value == target {

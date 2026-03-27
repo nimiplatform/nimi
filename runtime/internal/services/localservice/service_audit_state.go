@@ -158,26 +158,26 @@ func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
 	if event == nil {
 		return
 	}
-	copy := cloneLocalAuditEvent(event)
-	if copy.GetId() == "" {
-		copy.Id = "audit_" + ulid.Make().String()
+	eventCopy := cloneLocalAuditEvent(event)
+	if eventCopy.GetId() == "" {
+		eventCopy.Id = "audit_" + ulid.Make().String()
 	}
-	if copy.GetOccurredAt() == "" {
-		copy.OccurredAt = nowISO()
+	if eventCopy.GetOccurredAt() == "" {
+		eventCopy.OccurredAt = nowISO()
 	}
-	if strings.TrimSpace(copy.GetTraceId()) == "" {
-		copy.TraceId = ulid.Make().String()
+	if strings.TrimSpace(eventCopy.GetTraceId()) == "" {
+		eventCopy.TraceId = ulid.Make().String()
 	}
-	if strings.TrimSpace(copy.GetDomain()) == "" {
-		copy.Domain = localAuditDomain
+	if strings.TrimSpace(eventCopy.GetDomain()) == "" {
+		eventCopy.Domain = localAuditDomain
 	}
-	if strings.TrimSpace(copy.GetOperation()) == "" {
-		copy.Operation = strings.TrimSpace(copy.GetEventType())
+	if strings.TrimSpace(eventCopy.GetOperation()) == "" {
+		eventCopy.Operation = strings.TrimSpace(eventCopy.GetEventType())
 	}
-	if strings.TrimSpace(copy.GetOperation()) == "" {
-		copy.Operation = "local_runtime_event"
+	if strings.TrimSpace(eventCopy.GetOperation()) == "" {
+		eventCopy.Operation = "local_runtime_event"
 	}
-	s.audits = append([]*runtimev1.LocalAuditEvent{copy}, s.audits...)
+	s.audits = append([]*runtimev1.LocalAuditEvent{eventCopy}, s.audits...)
 	capacity := s.effectiveLocalAuditCapacity()
 	if len(s.audits) > capacity {
 		s.audits = append([]*runtimev1.LocalAuditEvent(nil), s.audits[:capacity]...)
@@ -188,21 +188,21 @@ func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
 	}
 
 	reasonCode := runtimev1.ReasonCode_ACTION_EXECUTED
-	if raw := strings.TrimSpace(copy.GetReasonCode()); raw != "" {
+	if raw := strings.TrimSpace(eventCopy.GetReasonCode()); raw != "" {
 		if parsed, ok := runtimev1.ReasonCode_value[raw]; ok {
 			reasonCode = runtimev1.ReasonCode(parsed)
 		}
 	}
 	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{
-		AuditId:       copy.GetId(),
-		AppId:         defaultString(strings.TrimSpace(copy.GetAppId()), "nimi.desktop"),
-		SubjectUserId: strings.TrimSpace(copy.GetSubjectUserId()),
-		Domain:        defaultString(strings.TrimSpace(copy.GetDomain()), localAuditDomain),
-		Operation:     defaultString(strings.TrimSpace(copy.GetOperation()), strings.TrimSpace(copy.GetEventType())),
+		AuditId:       eventCopy.GetId(),
+		AppId:         defaultString(strings.TrimSpace(eventCopy.GetAppId()), "nimi.desktop"),
+		SubjectUserId: strings.TrimSpace(eventCopy.GetSubjectUserId()),
+		Domain:        defaultString(strings.TrimSpace(eventCopy.GetDomain()), localAuditDomain),
+		Operation:     defaultString(strings.TrimSpace(eventCopy.GetOperation()), strings.TrimSpace(eventCopy.GetEventType())),
 		ReasonCode:    reasonCode,
-		TraceId:       defaultString(strings.TrimSpace(copy.GetTraceId()), ulid.Make().String()),
+		TraceId:       defaultString(strings.TrimSpace(eventCopy.GetTraceId()), ulid.Make().String()),
 		Timestamp:     timestamppb.New(time.Now().UTC()),
-		Payload:       cloneStruct(copy.GetPayload()),
+		Payload:       cloneStruct(eventCopy.GetPayload()),
 		CallerKind:    runtimev1.CallerKind_CALLER_KIND_DESKTOP_CORE,
 		CallerId:      "runtime.local_runtime.service",
 		SurfaceId:     "runtime.local_runtime",

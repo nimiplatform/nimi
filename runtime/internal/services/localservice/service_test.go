@@ -526,7 +526,7 @@ func TestLocalCheckLocalServiceHealthNotFoundWhenTargetMissing(t *testing.T) {
 		ServiceId: "svc_missing",
 	})
 	assertGRPCCode(t, err, "CheckLocalServiceHealth(not_found)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "CheckLocalServiceHealth(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "CheckLocalServiceHealth(not_found)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 }
 
 func TestLocalDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
@@ -1040,6 +1040,37 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 	}
 	if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
 		t.Fatalf("expected ACTIVE after third successful recovery sweep, got %s", current.GetStatus())
+	}
+}
+
+func TestCollectUnhealthyRecoveryTargetsSnapshotsRuntimeModes(t *testing.T) {
+	svc := newTestService(t)
+	svc.mu.Lock()
+	svc.models["model-1"] = &runtimev1.LocalModelRecord{
+		LocalModelId: "model-1",
+		ModelId:      "local/recovery-snapshot-model",
+		Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
+	}
+	svc.modelRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+	svc.services["service-1"] = &runtimev1.LocalServiceDescriptor{
+		ServiceId: "service-1",
+		Engine:    "media",
+		Status:    runtimev1.LocalServiceStatus_LOCAL_SERVICE_STATUS_UNHEALTHY,
+	}
+	svc.serviceRuntimeModes["service-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+	svc.mu.Unlock()
+
+	models, services := svc.collectUnhealthyRecoveryTargets()
+	svc.mu.Lock()
+	svc.modelRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+	svc.serviceRuntimeModes["service-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+	svc.mu.Unlock()
+
+	if len(models) != 1 || models[0].mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		t.Fatalf("expected model runtime mode snapshot to preserve original value, got %#v", models)
+	}
+	if len(services) != 1 || services[0].mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT {
+		t.Fatalf("expected service runtime mode snapshot to preserve original value, got %#v", services)
 	}
 }
 
@@ -1911,8 +1942,8 @@ func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
 	if st.Code() != codes.InvalidArgument {
 		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
-		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %s", st.Message())
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String() {
+		t.Fatalf("expected AI_LOCAL_SERVICE_UNAVAILABLE, got %s", st.Message())
 	}
 
 	_, err = svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -1927,8 +1958,8 @@ func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
 	if st.Code() != codes.NotFound {
 		t.Fatalf("expected NotFound, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
-		t.Fatalf("expected AI_LOCAL_MODEL_UNAVAILABLE, got %s", st.Message())
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String() {
+		t.Fatalf("expected AI_LOCAL_SERVICE_UNAVAILABLE, got %s", st.Message())
 	}
 }
 
@@ -1969,8 +2000,8 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 	if st.Code() != codes.AlreadyExists {
 		t.Fatalf("expected AlreadyExists, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED.String() {
-		t.Fatalf("expected AI_LOCAL_MODEL_ALREADY_INSTALLED, got %s", st.Message())
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_SERVICE_ALREADY_INSTALLED.String() {
+		t.Fatalf("expected AI_LOCAL_SERVICE_ALREADY_INSTALLED, got %s", st.Message())
 	}
 	if secondTry != nil {
 		t.Fatalf("second install response must be nil on conflict")
@@ -1988,8 +2019,8 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 	if st.Code() != codes.AlreadyExists {
 		t.Fatalf("expected AlreadyExists for rebinding, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED.String() {
-		t.Fatalf("expected AI_LOCAL_MODEL_ALREADY_INSTALLED for rebinding, got %s", st.Message())
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_SERVICE_ALREADY_INSTALLED.String() {
+		t.Fatalf("expected AI_LOCAL_SERVICE_ALREADY_INSTALLED for rebinding, got %s", st.Message())
 	}
 }
 
@@ -2679,7 +2710,7 @@ func TestLocalRollbackApplyCombinesReasonCodesOnRollbackFailure(t *testing.T) {
 	if !strings.Contains(result.GetReasonCode(), "LOCAL_DEPENDENCY_MODEL_HEALTH_FAILED") {
 		t.Fatalf("result reason code must retain original failure, got %s", result.GetReasonCode())
 	}
-	if !strings.Contains(result.GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String()) {
+	if !strings.Contains(result.GetReasonCode(), runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String()) {
 		t.Fatalf("result reason code must include rollback failure reason, got %s", result.GetReasonCode())
 	}
 	if len(result.GetStageResults()) != 1 {
@@ -2692,7 +2723,7 @@ func TestLocalRollbackApplyCombinesReasonCodesOnRollbackFailure(t *testing.T) {
 	if stage.GetOk() {
 		t.Fatalf("rollback stage must fail when rollback remove operations fail")
 	}
-	if stage.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String() {
+	if stage.GetReasonCode() != runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE.String() {
 		t.Fatalf("unexpected rollback reason code: %s", stage.GetReasonCode())
 	}
 	if len(result.GetWarnings()) < 2 {
@@ -3192,27 +3223,27 @@ func TestLocalManagementRPCsUseReasonCodesForServiceIDs(t *testing.T) {
 
 	_, err := svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{ServiceId: ""})
 	assertGRPCCode(t, err, "StartLocalService(empty_id)", codes.InvalidArgument)
-	assertGRPCReasonCode(t, err, "StartLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "StartLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 
 	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{ServiceId: ""})
 	assertGRPCCode(t, err, "StopLocalService(empty_id)", codes.InvalidArgument)
-	assertGRPCReasonCode(t, err, "StopLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "StopLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 
 	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: ""})
 	assertGRPCCode(t, err, "RemoveLocalService(empty_id)", codes.InvalidArgument)
-	assertGRPCReasonCode(t, err, "RemoveLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "RemoveLocalService(empty_id)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 
 	_, err = svc.StartLocalService(ctx, &runtimev1.StartLocalServiceRequest{ServiceId: "svc_missing"})
 	assertGRPCCode(t, err, "StartLocalService(not_found)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "StartLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "StartLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 
 	_, err = svc.StopLocalService(ctx, &runtimev1.StopLocalServiceRequest{ServiceId: "svc_missing"})
 	assertGRPCCode(t, err, "StopLocalService(not_found)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "StopLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "StopLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 
 	_, err = svc.RemoveLocalService(ctx, &runtimev1.RemoveLocalServiceRequest{ServiceId: "svc_missing"})
 	assertGRPCCode(t, err, "RemoveLocalService(not_found)", codes.NotFound)
-	assertGRPCReasonCode(t, err, "RemoveLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "RemoveLocalService(not_found)", runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 }
 
 func TestEngineRPCStartEngineAlreadyRunning(t *testing.T) {
@@ -3246,6 +3277,12 @@ func TestEngineRPCGetEngineStatusUnknownEngine(t *testing.T) {
 	_, err := svc.GetEngineStatus(context.Background(), &runtimev1.GetEngineStatusRequest{Engine: "mystery"})
 	assertGRPCCode(t, err, "GetEngineStatus(unknown_engine)", codes.InvalidArgument)
 	assertGRPCReasonCode(t, err, "GetEngineStatus(unknown_engine)", runtimev1.ReasonCode_AI_INPUT_INVALID)
+}
+
+func TestMapEngineManagerErrorReturnsNilForNilInput(t *testing.T) {
+	if err := mapEngineManagerError("status", nil); err != nil {
+		t.Fatalf("expected nil passthrough for nil engine error, got %v", err)
+	}
 }
 
 // --- Enum mapping test ---

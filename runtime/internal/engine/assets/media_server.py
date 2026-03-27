@@ -3,8 +3,10 @@
 import argparse
 import base64
 import io
+import ipaddress
 import json
 import os
+import socket
 import tempfile
 import threading
 import urllib.parse
@@ -24,6 +26,11 @@ DEVICE = os.environ.get("NIMI_MEDIA_DEVICE", "cuda")
 TORCH_DTYPE = os.environ.get("NIMI_MEDIA_TORCH_DTYPE", "float16")
 IMAGE_DRIVER = os.environ.get("NIMI_MEDIA_IMAGE_DRIVER", "flux")
 VIDEO_DRIVER = os.environ.get("NIMI_MEDIA_VIDEO_DRIVER", "wan")
+MAX_JSON_BODY_BYTES = 10 * 1024 * 1024
+MAX_REMOTE_IMAGE_BYTES = 20 * 1024 * 1024
+MAX_IMAGE_DIMENSION = 4096
+MAX_VIDEO_FRAMES = 300
+REMOTE_FETCH_TIMEOUT_SEC = 10
 
 PIPELINE_LOCK = threading.Lock()
 PIPELINE_CACHE = {}
@@ -59,9 +66,14 @@ def _error_response(handler, status, code, message, detail=None):
 
 
 def _read_json(handler):
-    length = int(handler.headers.get("Content-Length", "0") or "0")
+    try:
+        length = int(handler.headers.get("Content-Length", "0") or "0")
+    except ValueError as err:
+        raise ValueError("invalid Content-Length header") from err
     if length <= 0:
         return {}
+    if length > MAX_JSON_BODY_BYTES:
+        raise ValueError("request body exceeds %d bytes" % MAX_JSON_BODY_BYTES)
     raw = handler.rfile.read(length)
     if not raw:
         return {}
@@ -171,18 +183,27 @@ def _parse_size(value):
     text = str(value or "").strip().lower()
     if "x" in text:
         width, height = text.split("x", 1)
-        return max(int(width), 64), max(int(height), 64)
+        width = max(int(width), 64)
+        height = max(int(height), 64)
+        if width > MAX_IMAGE_DIMENSION or height > MAX_IMAGE_DIMENSION:
+            raise ValueError("image size exceeds %dx%d" % (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION))
+        return width, height
     return 1024, 1024
 
 
 def _parse_frames(spec):
     frames = int(spec.get("frames") or 0)
     if frames > 0:
+        if frames > MAX_VIDEO_FRAMES:
+            raise ValueError("frame count exceeds %d" % MAX_VIDEO_FRAMES)
         return frames
     fps = _parse_fps(spec)
     duration = int(spec.get("duration_sec") or 0)
     if duration > 0 and fps > 0:
-        return duration * fps
+        frames = duration * fps
+        if frames > MAX_VIDEO_FRAMES:
+            raise ValueError("frame count exceeds %d" % MAX_VIDEO_FRAMES)
+        return frames
     return 49
 
 
@@ -213,8 +234,9 @@ def _load_image_from_uri(uri):
 
     parsed = urllib.parse.urlparse(uri)
     if parsed.scheme in ("http", "https"):
-        with urllib.request.urlopen(uri) as response:
-            return Image.open(io.BytesIO(response.read())).convert("RGB")
+        _validate_remote_image_url(parsed)
+        with urllib.request.urlopen(uri, timeout=REMOTE_FETCH_TIMEOUT_SEC) as response:
+            return Image.open(io.BytesIO(_read_limited(response, MAX_REMOTE_IMAGE_BYTES))).convert("RGB")
     if parsed.scheme == "data":
         _, encoded = uri.split(",", 1)
         return Image.open(io.BytesIO(base64.b64decode(encoded))).convert("RGB")
@@ -247,6 +269,39 @@ def _seeded_generator(torch, seed):
     if seed:
         return torch.Generator(device=DEVICE).manual_seed(int(seed))
     return None
+
+
+def _read_limited(response, limit):
+    payload = response.read(limit + 1)
+    if len(payload) > limit:
+        raise ValueError("remote image exceeds %d bytes" % limit)
+    return payload
+
+
+def _validate_remote_image_url(parsed):
+    hostname = str(parsed.hostname or "").strip()
+    if not hostname:
+        raise ValueError("remote image URL must include a hostname")
+    try:
+        addrinfo = socket.getaddrinfo(hostname, parsed.port or 80, type=socket.SOCK_STREAM)
+    except socket.gaierror as err:
+        raise ValueError("failed to resolve remote image host") from err
+    seen = set()
+    for _, _, _, _, sockaddr in addrinfo:
+        ip_text = sockaddr[0]
+        if ip_text in seen:
+            continue
+        seen.add(ip_text)
+        address = ipaddress.ip_address(ip_text)
+        if (
+            address.is_loopback
+            or address.is_private
+            or address.is_link_local
+            or address.is_multicast
+            or address.is_reserved
+            or address.is_unspecified
+        ):
+            raise ValueError("remote image host resolves to a disallowed address")
 
 
 def _flux_pipeline(model_id):

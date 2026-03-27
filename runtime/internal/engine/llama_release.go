@@ -40,7 +40,7 @@ func llamaExpectedSHA256(version string, assetName string) (string, error) {
 		return "", fmt.Errorf("%w: llama asset is required", ErrEngineBinaryDownloadFailed)
 	}
 	checksumURL := llamaChecksumURL(version)
-	resp, err := currentLlamaReleaseHTTPClient().Get(checksumURL)
+	resp, err := newEngineDownloadHTTPClient(checksumURL, currentLlamaReleaseHTTPClient(), 60*time.Second).Get(checksumURL)
 	if err != nil {
 		return "", fmt.Errorf("%w: fetch llama checksums: %v", ErrEngineBinaryDownloadFailed, err)
 	}

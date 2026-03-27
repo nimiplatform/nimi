@@ -2,4 +2,9 @@ package daemon
 
 import "github.com/nimiplatform/nimi/runtime/internal/engine"
 
-var detectMediaHostSupport = engine.DetectMediaHostSupport
+func (d *Daemon) detectMediaHostSupport() (engine.MediaHostSupport, string) {
+	if d != nil && d.detectMediaHostSupportFn != nil {
+		return d.detectMediaHostSupportFn()
+	}
+	return engine.DetectMediaHostSupport()
+}

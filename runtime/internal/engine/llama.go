@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -33,7 +34,7 @@ func llamaAssetName(version string) (string, error) {
 func llamaCommand(cfg EngineConfig) *exec.Cmd {
 	args := []string{
 		"run",
-		"--address", ":" + itoa(cfg.Port),
+		"--address", ":" + strconv.Itoa(cfg.Port),
 		"--disable-web-ui",
 		"--log-level", "info",
 	}

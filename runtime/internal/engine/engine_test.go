@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -63,27 +64,6 @@ func TestEngineConfigEndpoint(t *testing.T) {
 	cfg.Address = "  localhost:1234  "
 	if got := cfg.Endpoint(); got != "http://localhost:1234" {
 		t.Fatalf("expected trimmed endpoint, got %q", got)
-	}
-}
-
-func TestItoa(t *testing.T) {
-	maxInt := int(^uint(0) >> 1)
-	minInt := -maxInt - 1
-	tests := []struct {
-		input int
-		want  string
-	}{
-		{0, "0"},
-		{1, "1"},
-		{1234, "1234"},
-		{-5, "-5"},
-		{8000, "8000"},
-		{minInt, strconv.FormatInt(int64(minInt), 10)},
-	}
-	for _, tt := range tests {
-		if got := itoa(tt.input); got != tt.want {
-			t.Errorf("itoa(%d) = %q, want %q", tt.input, got, tt.want)
-		}
 	}
 }
 
@@ -175,6 +155,36 @@ func TestRegistryPersistence(t *testing.T) {
 	}
 	if got.BinaryPath != "/tmp/test" {
 		t.Errorf("expected binary path /tmp/test, got %s", got.BinaryPath)
+	}
+}
+
+func TestRegistryListReturnsCopies(t *testing.T) {
+	dir := t.TempDir()
+	reg, err := NewRegistry(dir)
+	if err != nil {
+		t.Fatalf("NewRegistry: %v", err)
+	}
+	if err := reg.Put(&RegistryEntry{
+		Engine:     EngineLlama,
+		Version:    "1.0.0",
+		BinaryPath: "/tmp/test",
+		Platform:   "linux/amd64",
+	}); err != nil {
+		t.Fatalf("Put: %v", err)
+	}
+
+	entries := reg.List()
+	if len(entries) != 1 {
+		t.Fatalf("expected one entry, got %d", len(entries))
+	}
+	entries[0].BinaryPath = "/tmp/mutated"
+
+	got := reg.Get(EngineLlama, "1.0.0")
+	if got == nil {
+		t.Fatal("expected stored entry")
+	}
+	if got.BinaryPath != "/tmp/test" {
+		t.Fatalf("registry entry was mutated through List(): %q", got.BinaryPath)
 	}
 }
 
@@ -515,6 +525,56 @@ func TestProbeMediaHealthRequiresCatalog(t *testing.T) {
 	}
 }
 
+func TestProbeMediaHealthRejectsOversizedCatalogPayload(t *testing.T) {
+	oversizedModelID := strings.Repeat("m", canonicalCatalogProbeBodyLimitBytes)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":true}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"models":[{"id":"` + oversizedModelID + `","ready":true}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	if err := ProbeMediaHealth(context.Background(), server.URL); err == nil {
+		t.Fatal("expected media health probe to fail on oversized catalog payload")
+	}
+}
+
+func TestProbeSupervisorHealthUsesSpeechProbe(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"ready":true}`))
+		case "/v1/catalog":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"models":[{"id":"speech-default","ready":true}]}`))
+		case "/v1/models":
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"detail":"generic health path should not be used for speech"}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	cfg := EngineConfig{
+		Kind:           EngineSpeech,
+		Address:        strings.TrimPrefix(server.URL, "http://"),
+		HealthPath:     "/v1/models",
+		HealthInterval: 100 * time.Millisecond,
+	}
+	if err := probeSupervisorHealth(context.Background(), cfg); err != nil {
+		t.Fatalf("probeSupervisorHealth(speech): %v", err)
+	}
+}
+
 func TestProbeSupervisorHealthTCP(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -534,10 +594,10 @@ func TestProbeSupervisorHealthTCP(t *testing.T) {
 }
 
 func TestWaitHealthySuccess(t *testing.T) {
-	callCount := 0
+	var callCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		callCount++
-		if callCount < 3 {
+		next := callCount.Add(1)
+		if next < 3 {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
@@ -550,8 +610,8 @@ func TestWaitHealthySuccess(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected healthy after retries, got error: %v", err)
 	}
-	if callCount < 3 {
-		t.Errorf("expected at least 3 calls, got %d", callCount)
+	if got := callCount.Load(); got < 3 {
+		t.Errorf("expected at least 3 calls, got %d", got)
 	}
 }
 
@@ -586,12 +646,12 @@ func TestWaitHealthyCancelled(t *testing.T) {
 }
 
 func TestWaitMediaHealthySuccess(t *testing.T) {
-	callCount := 0
+	var callCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/healthz":
-			callCount++
-			if callCount < 2 {
+			next := callCount.Add(1)
+			if next < 2 {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				return
 			}
@@ -617,17 +677,6 @@ func TestPortAvailable(t *testing.T) {
 	// Port 0 should find an available port.
 	if !portAvailable(0) {
 		t.Skip("port 0 not available (unusual system)")
-	}
-}
-
-func TestResolvePort(t *testing.T) {
-	// Port 0 should resolve to something.
-	port, err := resolvePort(0)
-	if err != nil {
-		t.Fatalf("resolvePort(0): %v", err)
-	}
-	if port < 0 {
-		t.Errorf("expected non-negative port, got %d", port)
 	}
 }
 
@@ -790,6 +839,9 @@ func TestNewManager(t *testing.T) {
 	if !seen[EngineLlama] || !seen[EngineMedia] || !seen[EngineSpeech] {
 		t.Fatalf("expected list to include llama, media, and speech, got %+v", engines)
 	}
+	if mgr.logger == nil {
+		t.Fatal("expected NewManager to install a default logger when nil is provided")
+	}
 }
 
 func TestManagerStopAllEmpty(t *testing.T) {
@@ -801,6 +853,43 @@ func TestManagerStopAllEmpty(t *testing.T) {
 
 	// StopAll on empty manager should not panic.
 	mgr.StopAll()
+}
+
+func TestManagerBeginEngineStartGuardsConcurrentStarts(t *testing.T) {
+	dir := t.TempDir()
+	mgr, err := NewManager(nil, dir, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+
+	if err := mgr.beginEngineStart(EngineLlama); err != nil {
+		t.Fatalf("first beginEngineStart: %v", err)
+	}
+	if err := mgr.beginEngineStart(EngineLlama); err == nil {
+		t.Fatal("expected concurrent start guard to reject second begin")
+	}
+
+	mgr.finishEngineStart(EngineLlama)
+	if err := mgr.beginEngineStart(EngineLlama); err != nil {
+		t.Fatalf("beginEngineStart after finish: %v", err)
+	}
+	mgr.finishEngineStart(EngineLlama)
+}
+
+func TestManagerStopAllRemovesStoppedSupervisors(t *testing.T) {
+	dir := t.TempDir()
+	mgr, err := NewManager(nil, dir, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	mgr.supervisors[EngineMedia] = NewSupervisor(EngineConfig{Kind: EngineMedia, ShutdownTimeout: time.Second}, nil, nil)
+	mgr.supervisors[engineMediaDiffusersBackend] = NewSupervisor(EngineConfig{Kind: engineMediaDiffusersBackend, ShutdownTimeout: time.Second}, nil, nil)
+
+	mgr.StopAll()
+
+	if len(mgr.supervisors) != 0 {
+		t.Fatalf("expected StopAll to clear stopped supervisors, got %d entries", len(mgr.supervisors))
+	}
 }
 
 func TestManagerStopEngineRemovesSupervisor(t *testing.T) {
@@ -817,6 +906,26 @@ func TestManagerStopEngineRemovesSupervisor(t *testing.T) {
 	}
 	if _, exists := mgr.supervisors[EngineMedia]; exists {
 		t.Fatal("expected stopped supervisor to be removed from manager map")
+	}
+}
+
+func TestManagerStopEngineLlamaRemovesImageBackendSupervisor(t *testing.T) {
+	dir := t.TempDir()
+	mgr, err := NewManager(nil, dir, nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	mgr.supervisors[EngineLlama] = NewSupervisor(EngineConfig{Kind: EngineLlama, ShutdownTimeout: time.Second}, nil, nil)
+	mgr.supervisors[engineMediaDiffusersBackend] = NewSupervisor(EngineConfig{Kind: engineMediaDiffusersBackend, ShutdownTimeout: time.Second}, nil, nil)
+
+	if err := mgr.StopEngine(EngineLlama); err != nil {
+		t.Fatalf("StopEngine llama: %v", err)
+	}
+	if _, exists := mgr.supervisors[EngineLlama]; exists {
+		t.Fatal("expected llama supervisor to be removed from manager map")
+	}
+	if _, exists := mgr.supervisors[engineMediaDiffusersBackend]; exists {
+		t.Fatal("expected managed llama image backend supervisor to be removed from manager map")
 	}
 }
 
@@ -1089,6 +1198,17 @@ func TestDetectLlamaExternalBackends(t *testing.T) {
 	}
 }
 
+func TestDetectLlamaExternalBackendsReturnsNilOnInvalidYaml(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "llama-models-invalid.yaml")
+	if err := os.WriteFile(configPath, []byte(":\n- not-valid"), 0o644); err != nil {
+		t.Fatalf("write invalid llama models config: %v", err)
+	}
+
+	if got := detectLlamaExternalBackends(configPath); got != nil {
+		t.Fatalf("expected nil external backends for invalid yaml, got %v", got)
+	}
+}
+
 func TestDiscoverInstalledLlamaBackendRunPathPrefersAlias(t *testing.T) {
 	backendsPath := t.TempDir()
 	backendDir := filepath.Join(backendsPath, "metal-stablediffusion-ggml")
@@ -1109,6 +1229,37 @@ func TestDiscoverInstalledLlamaBackendRunPathPrefersAlias(t *testing.T) {
 	}
 	if discovered != runPath {
 		t.Fatalf("run path mismatch: got=%q want=%q", discovered, runPath)
+	}
+}
+
+func TestDiscoverInstalledLlamaBackendRunPathRejectsMetaBackendTraversal(t *testing.T) {
+	backendsPath := t.TempDir()
+	backendDir := filepath.Join(backendsPath, "meta-stablediffusion-ggml")
+	if err := os.MkdirAll(backendDir, 0o755); err != nil {
+		t.Fatalf("mkdir backend dir: %v", err)
+	}
+	runPath := filepath.Join(backendDir, "run.sh")
+	if err := os.WriteFile(runPath, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("write run.sh: %v", err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(backendDir, "metadata.json"),
+		[]byte(`{"name":"meta-stablediffusion-ggml","alias":"stablediffusion-ggml","meta_backend_for":"../escape"}`),
+		0o644,
+	); err != nil {
+		t.Fatalf("write metadata.json: %v", err)
+	}
+	escapeDir := filepath.Join(backendsPath, "..", "escape")
+	if err := os.MkdirAll(escapeDir, 0o755); err != nil {
+		t.Fatalf("mkdir escape dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(escapeDir, "run.sh"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatalf("write escape run.sh: %v", err)
+	}
+
+	_, err := discoverInstalledLlamaBackendRunPath(backendsPath, "stablediffusion-ggml")
+	if err == nil {
+		t.Fatal("expected meta_backend_for traversal to be rejected")
 	}
 }
 
@@ -1201,28 +1352,5 @@ func TestSupervisorInfoBinarySizeBytes(t *testing.T) {
 }
 
 // --- Port conflict resolution test ---
-
-func TestResolvePortOccupied(t *testing.T) {
-	// Occupy a port.
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("listen: %v", err)
-	}
-	defer ln.Close()
-
-	addr := ln.Addr().(*net.TCPAddr)
-	occupiedPort := addr.Port
-
-	resolved, err := resolvePort(occupiedPort)
-	if err != nil {
-		t.Fatalf("resolvePort(%d): %v", occupiedPort, err)
-	}
-	if resolved == occupiedPort {
-		t.Errorf("expected different port than occupied %d, got %d", occupiedPort, resolved)
-	}
-	if resolved < occupiedPort+1 {
-		t.Errorf("expected resolved port > %d, got %d", occupiedPort, resolved)
-	}
-}
 
 // --- State change callback test ---
