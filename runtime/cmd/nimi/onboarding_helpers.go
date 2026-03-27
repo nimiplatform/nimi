@@ -145,7 +145,7 @@ func resolveOnboardingRunTarget(cfg config.Config, prompt string, modelFlag stri
 	if cloud {
 		providerName, target, err := texttarget.ResolveCloudProvider(cfg, "")
 		if err != nil {
-			return onboardingRunTarget{}, fmt.Errorf("default cloud target is not configured. Run 'nimi provider set <provider> --api-key ... --default'")
+			return onboardingRunTarget{}, fmt.Errorf("default cloud target is not configured. Run 'nimi provider set <provider> --api-key-env <ENV_VAR> --default'")
 		}
 		return onboardingRunTarget{
 			Prompt:           prompt,
@@ -182,9 +182,9 @@ func promptOnboardingAPIKey(providerName string) (string, error) {
 func cloudCredentialSetupCommand(providerName string, setDefault bool) string {
 	providerName = strings.TrimSpace(providerName)
 	if providerName == "" {
-		return "nimi provider set <provider> --api-key ..."
+		return "nimi provider set <provider> --api-key-env <ENV_VAR>"
 	}
-	command := fmt.Sprintf("nimi provider set %s --api-key ...", providerName)
+	command := fmt.Sprintf("nimi provider set %s --api-key-env <ENV_VAR>", providerName)
 	if setDefault {
 		command += " --default"
 	}

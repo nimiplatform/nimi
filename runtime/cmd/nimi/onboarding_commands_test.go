@@ -459,8 +459,8 @@ func TestRunTopLevelRunCloudInteractiveCredentialCapture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load saved provider config: %v", err)
 	}
-	if got := fileCfg.Providers["gemini"].APIKey; got != "gemini-inline-key" {
-		t.Fatalf("saved provider api key mismatch: %q", got)
+	if _, ok := fileCfg.Providers["gemini"]; ok {
+		t.Fatalf("interactive run must not persist inline provider api key: %#v", fileCfg.Providers["gemini"])
 	}
 	md := service.lastStreamMetadata()
 	if got := firstMD(md, "x-nimi-key-source"); got != "inline" {
@@ -498,7 +498,7 @@ func TestRunTopLevelRunCloudNonInteractiveCredentialHint(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected cloud credential error")
 	}
-	if !strings.Contains(err.Error(), "nimi provider set openai --api-key ...") {
+	if !strings.Contains(err.Error(), "nimi provider set openai --api-key-env <ENV_VAR>") {
 		t.Fatalf("unexpected cloud credential error: %v", err)
 	}
 }

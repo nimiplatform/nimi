@@ -43,6 +43,7 @@ type Store struct {
 	maxEvents int
 	maxUsage  int
 	events    []*runtimev1.AuditEventRecord
+	eventHead int
 	usage     []UsageInput
 }
 
@@ -82,8 +83,8 @@ func (s *Store) AppendEvent(event *runtimev1.AuditEventRecord) {
 
 	s.mu.Lock()
 	if len(s.events) == s.maxEvents {
-		copy(s.events, s.events[1:])
-		s.events[len(s.events)-1] = eventCopy
+		s.events[s.eventHead] = eventCopy
+		s.eventHead = (s.eventHead + 1) % s.maxEvents
 	} else {
 		s.events = append(s.events, eventCopy)
 	}
@@ -125,8 +126,9 @@ func (s *Store) RecordUsage(input UsageInput) {
 func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) (*runtimev1.ListAuditEventsResponse, error) {
 	filterDigest := eventFilterDigest(req)
 	s.mu.RLock()
-	filtered := make([]*runtimev1.AuditEventRecord, 0, len(s.events))
-	for _, event := range s.events {
+	ordered := s.snapshotEventsLocked()
+	filtered := make([]*runtimev1.AuditEventRecord, 0, len(ordered))
+	for _, event := range ordered {
 		if !matchesEventFilter(event, req) {
 			continue
 		}
@@ -171,6 +173,19 @@ func (s *Store) ListEvents(req *runtimev1.ListAuditEventsRequest) (*runtimev1.Li
 		Events:        filtered[start:end],
 		NextPageToken: nextToken,
 	}, nil
+}
+
+func (s *Store) snapshotEventsLocked() []*runtimev1.AuditEventRecord {
+	if len(s.events) == 0 {
+		return nil
+	}
+	if len(s.events) < s.maxEvents || s.eventHead == 0 {
+		return s.events
+	}
+	ordered := make([]*runtimev1.AuditEventRecord, 0, len(s.events))
+	ordered = append(ordered, s.events[s.eventHead:]...)
+	ordered = append(ordered, s.events[:s.eventHead]...)
+	return ordered
 }
 
 func (s *Store) ListUsage(req *runtimev1.ListUsageStatsRequest) (*runtimev1.ListUsageStatsResponse, error) {
@@ -449,10 +464,10 @@ func isSensitiveKey(key string) bool {
 }
 
 // maskValue masks a sensitive string value per K-AUDIT-017:
-//   - len >= 8: first4 + "***" + last4
-//   - len < 8: "***"
+//   - len >= 12: first4 + "***" + last4
+//   - len < 12: "***"
 func maskValue(value string) string {
-	if len(value) >= 8 {
+	if len(value) >= 12 {
 		return value[:4] + "***" + value[len(value)-4:]
 	}
 	return "***"

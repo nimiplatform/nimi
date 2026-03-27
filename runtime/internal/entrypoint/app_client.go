@@ -28,7 +28,11 @@ func SendAppMessageGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.S
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetFromAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetFromAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -56,7 +60,11 @@ func SubscribeAppMessagesGRPC(ctx context.Context, grpcAddr string, req *runtime
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

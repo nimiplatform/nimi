@@ -98,6 +98,15 @@ func TestValidateScopesUnrecognizedPrefix(t *testing.T) {
 	}
 }
 
+func TestValidateScopesRejectsMalformedRecognizedPrefix(t *testing.T) {
+	c := New()
+	for _, scope := range []string{"runtime.", "realm..settings", "app. ", "read:", "write:bad:extra"} {
+		if code := c.ValidateScopes("sdk-v1", []string{scope}); code != runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH {
+			t.Fatalf("malformed scope %q should return CAPABILITY_CATALOG_MISMATCH, got=%v", scope, code)
+		}
+	}
+}
+
 func TestValidateScopesUnpublishedVersion(t *testing.T) {
 	c := New()
 	code := c.ValidateScopes("v999", []string{"runtime.health"})

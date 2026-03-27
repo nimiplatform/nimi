@@ -2,6 +2,7 @@ package grant
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"testing"
@@ -28,6 +29,17 @@ func newGrantServiceForTest() *Service {
 		panic(err)
 	}
 	return NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), registry, scopecatalog.New())
+}
+
+func withTokenSecretFailure(t *testing.T) {
+	t.Helper()
+	original := generateTokenSecret
+	generateTokenSecret = func() (string, error) {
+		return "", errors.New("entropy unavailable")
+	}
+	t.Cleanup(func() {
+		generateTokenSecret = original
+	})
 }
 
 func TestGrantAuthorizeValidateRevoke(t *testing.T) {
@@ -91,6 +103,121 @@ func TestGrantAuthorizeValidateRevoke(t *testing.T) {
 	}
 	if validateAfterRevoke.ReasonCode != runtimev1.ReasonCode_APP_TOKEN_REVOKED {
 		t.Fatalf("expected APP_TOKEN_REVOKED, got %v", validateAfterRevoke.ReasonCode)
+	}
+}
+
+func TestAuthorizeExternalPrincipalUsesInternalReasonCodeWhenSecretGenerationFails(t *testing.T) {
+	svc := newGrantServiceForTest()
+	withTokenSecretFailure(t)
+
+	_, err := svc.AuthorizeExternalPrincipal(context.Background(), &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE,
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err == nil {
+		t.Fatal("expected internal error when token secret generation fails")
+	}
+	st, _ := status.FromError(err)
+	if st.Code() != codes.Internal {
+		t.Fatalf("expected Internal, got %v", st.Code())
+	}
+	if st.Message() != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String() {
+		t.Fatalf("expected AI_PROVIDER_INTERNAL, got %s", st.Message())
+	}
+}
+
+func TestRevokeAppAccessTokenRejectsCrossAppRevocation(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	authorizeResp, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE,
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+
+	revokeResp, err := svc.RevokeAppAccessToken(ctx, &runtimev1.RevokeAppAccessTokenRequest{
+		AppId:   "other.app",
+		TokenId: authorizeResp.GetTokenId(),
+	})
+	if err != nil {
+		t.Fatalf("revoke cross-app: %v", err)
+	}
+	if revokeResp.GetOk() {
+		t.Fatalf("expected cross-app revoke to fail")
+	}
+	if revokeResp.GetReasonCode() != runtimev1.ReasonCode_APP_GRANT_INVALID {
+		t.Fatalf("unexpected reason: %v", revokeResp.GetReasonCode())
+	}
+}
+
+func TestSelectorsWithinRejectsExplicitSelectorsWhenParentMissing(t *testing.T) {
+	if selectorsWithin(nil, &runtimev1.ResourceSelectors{ConversationIds: []string{"conv-1"}}) {
+		t.Fatalf("selectorsWithin must fail when requested selectors exceed nil parent scope")
+	}
+}
+
+func TestValidateProtectedCapabilityRejectsTrimmedSecretVariant(t *testing.T) {
+	svc := newGrantServiceForTest()
+	ctx := context.Background()
+
+	authorizeResp, err := svc.AuthorizeExternalPrincipal(ctx, &runtimev1.AuthorizeExternalPrincipalRequest{
+		AppId:                 "nimi.desktop",
+		Domain:                "app-auth",
+		ExternalPrincipalId:   "agent-openclaw",
+		ExternalPrincipalType: runtimev1.ExternalPrincipalType_EXTERNAL_PRINCIPAL_TYPE_AGENT,
+		SubjectUserId:         "user-001",
+		ConsentId:             "consent-001",
+		ConsentVersion:        "v1",
+		DecisionAt:            timestamppb.Now(),
+		PolicyVersion:         "p1",
+		PolicyMode:            runtimev1.PolicyMode_POLICY_MODE_PRESET,
+		Preset:                runtimev1.AuthorizationPreset_AUTHORIZATION_PRESET_DELEGATE,
+		TtlSeconds:            600,
+		ScopeCatalogVersion:   "sdk-v1",
+	})
+	if err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+
+	secretWithWhitespace := " " + authorizeResp.GetSecret() + " "
+	if reason, _, ok := svc.ValidateProtectedCapability("nimi.desktop", authorizeResp.GetTokenId(), secretWithWhitespace, "read:chat"); ok || reason != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED {
+		t.Fatalf("whitespace-mutated secret must fail validation, got ok=%v reason=%v", ok, reason)
+	}
+}
+
+func TestRevokeAppAccessTokenUsesUnderscoreActionHintForMissingTokenID(t *testing.T) {
+	svc := newGrantServiceForTest()
+	resp, err := svc.RevokeAppAccessToken(context.Background(), &runtimev1.RevokeAppAccessTokenRequest{AppId: "nimi.desktop"})
+	if err != nil {
+		t.Fatalf("revoke missing token id: %v", err)
+	}
+	if resp.GetActionHint() != "set_token_id" {
+		t.Fatalf("unexpected action hint: %q", resp.GetActionHint())
 	}
 }
 

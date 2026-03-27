@@ -20,6 +20,13 @@ func newTestService(opts ...Option) *Service {
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), opts...)
 }
 
+func appContext(appID string) context.Context {
+	if appID == "" {
+		return metadata.NewIncomingContext(context.Background(), metadata.Pairs())
+	}
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
+}
+
 func TestSendAppMessageSuccess(t *testing.T) {
 	svc := newTestService()
 	resp, err := svc.SendAppMessage(context.Background(), &runtimev1.SendAppMessageRequest{
@@ -53,15 +60,12 @@ func TestSendAppMessageMissingFields(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := svc.SendAppMessage(context.Background(), tt.req)
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
+			_, err := svc.SendAppMessage(context.Background(), tt.req)
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("expected invalid argument, got %v", err)
 			}
-			if resp.GetAccepted() {
-				t.Fatal("should not be accepted")
-			}
-			if resp.GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
-				t.Fatalf("reason code: got=%v", resp.GetReasonCode())
+			if status.Convert(err).Message() != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String() {
+				t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
 			}
 		})
 	}
@@ -501,6 +505,20 @@ func TestSubscribeAppMessagesRequiresRegisteredAppSession(t *testing.T) {
 		}
 	case <-time.After(500 * time.Millisecond):
 		t.Fatalf("subscribe did not exit after cancel")
+	}
+}
+
+func TestSendAppMessageRejectsContextAppMismatch(t *testing.T) {
+	svc := newTestService()
+	_, err := svc.SendAppMessage(appContext("app-b"), &runtimev1.SendAppMessageRequest{
+		FromAppId: "app-a",
+		ToAppId:   "app-b",
+	})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
 	}
 }
 

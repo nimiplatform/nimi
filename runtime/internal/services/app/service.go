@@ -13,6 +13,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/streamutil"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -84,11 +85,10 @@ func (s *Service) SendAppMessage(ctx context.Context, req *runtimev1.SendAppMess
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	messageType := strings.TrimSpace(req.GetMessageType())
 	if fromAppID == "" || toAppID == "" {
-		return &runtimev1.SendAppMessageResponse{
-			MessageId:  "",
-			Accepted:   false,
-			ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-		}, nil
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if contextAppID := appIDFromContext(ctx); contextAppID != "" && contextAppID != fromAppID {
+		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 
 	if s.sessionValidator != nil {
@@ -153,6 +153,9 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	if req == nil || strings.TrimSpace(req.GetAppId()) == "" {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	if contextAppID := appIDFromContext(stream.Context()); contextAppID != "" && contextAppID != strings.TrimSpace(req.GetAppId()) {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
 	if s.sessionValidator != nil {
 		sessionID, sessionToken, _ := envelope.ParseSessionFromContext(stream.Context())
 		if reasonCode, ok := s.sessionValidator.ValidateAppSession(strings.TrimSpace(req.GetAppId()), sessionID, sessionToken); !ok {
@@ -165,6 +168,18 @@ func (s *Service) SubscribeAppMessages(req *runtimev1.SubscribeAppMessagesReques
 	return sub.relay.Run(stream.Context(), func(event *runtimev1.AppMessageEvent) error {
 		return stream.Send(event)
 	})
+}
+
+func appIDFromContext(ctx context.Context) string {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ""
+	}
+	values := md.Get("x-nimi-app-id")
+	if len(values) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(values[0])
 }
 
 func (s *Service) addSubscriber(req *runtimev1.SubscribeAppMessagesRequest) subscriber {

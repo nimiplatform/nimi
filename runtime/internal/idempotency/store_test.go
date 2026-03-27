@@ -1,6 +1,7 @@
 package idempotency
 
 import (
+	"container/list"
 	"testing"
 	"time"
 
@@ -158,5 +159,25 @@ func TestStoreKeyPreservesWhitespaceAndAvoidsDelimiterCollisions(t *testing.T) {
 	padded := s.key(" method ", "app", "user", "key")
 	if trimmed == padded {
 		t.Fatal("whitespace must remain significant")
+	}
+}
+
+func TestStoreSaveSkipsCorruptLRUElementValue(t *testing.T) {
+	s, err := New(time.Hour, 1)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	s.order = list.New()
+	s.order.PushBack("corrupt")
+
+	s.Save("method", "app1", "user1", "key1", "hash1", wrapperspb.String("response1"))
+
+	resp, hit, conflict := s.Load("method", "app1", "user1", "key1", "hash1")
+	if !hit || conflict {
+		t.Fatalf("expected hit without conflict, hit=%v conflict=%v", hit, conflict)
+	}
+	value, ok := resp.(*wrapperspb.StringValue)
+	if !ok || value.GetValue() != "response1" {
+		t.Fatalf("got %#v, want response1", resp)
 	}
 }

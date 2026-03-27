@@ -3,14 +3,15 @@ package grpcserver
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"strings"
+	"time"
+
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"strings"
-	"time"
 )
 
 type auditEventInput struct {
@@ -44,7 +45,7 @@ func appendAuditEvent(store *auditlog.Store, input auditEventInput) {
 	if input.TraceID == "" {
 		input.TraceID = ulid.Make().String()
 	}
-	payload, _ := structpb.NewStruct(input.Payload)
+	payload := auditEventPayload(input.Payload)
 	store.AppendEvent(&runtimev1.AuditEventRecord{
 		AppId:                 input.AppID,
 		SubjectUserId:         input.SubjectUserID,
@@ -69,6 +70,17 @@ func appendAuditEvent(store *auditlog.Store, input auditEventInput) {
 		ResourceSelectorHash:  input.ResourceSelectorHash,
 		ScopeCatalogVersion:   input.ScopeCatalogVersion,
 	})
+}
+
+func auditEventPayload(fields map[string]any) *structpb.Struct {
+	payload, err := structpb.NewStruct(fields)
+	if err == nil {
+		return payload
+	}
+	fallback, _ := structpb.NewStruct(map[string]any{
+		"payload_encode_error": err.Error(),
+	})
+	return fallback
 }
 
 type grantAuditDetails struct {

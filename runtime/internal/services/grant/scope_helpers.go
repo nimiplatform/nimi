@@ -128,7 +128,7 @@ func selectorsWithin(parent *runtimev1.ResourceSelectors, requested *runtimev1.R
 		return true
 	}
 	if parent == nil {
-		return true
+		return false
 	}
 
 	if !sliceWithin(parent.GetConversationIds(), requested.GetConversationIds()) {

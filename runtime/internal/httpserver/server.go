@@ -96,7 +96,7 @@ func (s *Server) handleRuntimeHealth(w http.ResponseWriter, req *http.Request) {
 	}
 	snapshot := s.state.Snapshot()
 	providers := providerSnapshotsPayload(s.aiHealth)
-	s.writeJSON(w, http.StatusOK, map[string]any{
+	s.writeJSON(w, runtimeHealthStatusCode(snapshot.Status), map[string]any{
 		"status":                snapshot.Status.String(),
 		"status_code":           int32(snapshot.Status),
 		"reason":                snapshot.Reason,
@@ -118,7 +118,7 @@ func providerSnapshotsPayload(tracker *providerhealth.Tracker) []map[string]any 
 	snapshots := tracker.List()
 	// Reserve room for every provider plus one possible aggregated cloud entry.
 	out := make([]map[string]any, 0, len(snapshots)+1)
-	cloudSubHealth := make([]map[string]any, 0, minInt(len(snapshots), 4))
+	cloudSubHealth := make([]map[string]any, 0, min(len(snapshots), 4))
 	cloudState := string(providerhealth.StateHealthy)
 	cloudReason := ""
 	cloudConsecutiveFailures := 0
@@ -201,7 +201,9 @@ func (s *Server) writeJSON(w http.ResponseWriter, statusCode int, body map[strin
 
 func allowReadMethod(w http.ResponseWriter, req *http.Request) bool {
 	if req == nil {
-		return true
+		w.Header().Set("Allow", http.MethodGet+", "+http.MethodHead)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return false
 	}
 	switch req.Method {
 	case http.MethodGet, http.MethodHead:
@@ -213,9 +215,9 @@ func allowReadMethod(w http.ResponseWriter, req *http.Request) bool {
 	}
 }
 
-func minInt(left int, right int) int {
-	if left < right {
-		return left
+func runtimeHealthStatusCode(status health.Status) int {
+	if status.Ready() {
+		return http.StatusOK
 	}
-	return right
+	return http.StatusServiceUnavailable
 }

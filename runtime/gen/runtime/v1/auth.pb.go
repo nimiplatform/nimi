@@ -1106,10 +1106,10 @@ const file_runtime_v1_auth_proto_rawDesc = "" +
 	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\"W\n" +
 	"%RevokeExternalPrincipalSessionRequest\x12.\n" +
-	"\x13external_session_id\x18\x01 \x01(\tR\x11externalSessionId*[\n" +
+	"\x13external_session_id\x18\x01 \x01(\tR\x11externalSessionId*|\n" +
 	"\x11ExternalProofType\x12#\n" +
 	"\x1fEXTERNAL_PROOF_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
-	"\x17EXTERNAL_PROOF_TYPE_JWT\x10\x01\"\x04\b\x02\x10\x02*a\n" +
+	"\x17EXTERNAL_PROOF_TYPE_JWT\x10\x01\"\x04\b\x02\x10\x02*\x1fEXTERNAL_PROOF_TYPE_HMAC_SHA256*a\n" +
 	"\aAppMode\x12\x18\n" +
 	"\x14APP_MODE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rAPP_MODE_LITE\x10\x01\x12\x16\n" +

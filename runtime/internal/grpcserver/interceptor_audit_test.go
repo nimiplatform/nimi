@@ -245,7 +245,7 @@ func TestUnaryAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 	}
 }
 
-func TestStreamAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
+func TestStreamAuditInterceptorDoesNotDuplicateMetadataAppIDConflictValidation(t *testing.T) {
 	store := auditlog.New(128, 128)
 	interceptor := newStreamAuditInterceptor(store)
 
@@ -266,18 +266,8 @@ func TestStreamAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 		var got runtimev1.StreamScenarioRequest
 		return ss.RecvMsg(&got)
 	})
-	if err == nil {
-		t.Fatalf("expected conflict error")
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatalf("expected grpc status error")
-	}
-	if st.Code() != codes.InvalidArgument {
-		t.Fatalf("unexpected code: %v", st.Code())
-	}
-	if st.Message() != runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT.String() {
-		t.Fatalf("unexpected reason: %s", st.Message())
+	if err != nil {
+		t.Fatalf("audit interceptor should not re-run app id conflict validation: %v", err)
 	}
 
 	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
@@ -285,7 +275,7 @@ func TestStreamAuditInterceptorRejectsMetadataAppIDConflict(t *testing.T) {
 		t.Fatalf("expected 1 audit event, got=%d", len(events.GetEvents()))
 	}
 	event := events.GetEvents()[0]
-	if event.GetReasonCode() != runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT {
+	if event.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
 		t.Fatalf("unexpected audit reason: %v", event.GetReasonCode())
 	}
 	if !strings.Contains(event.GetOperation(), "stream_scenario") {
@@ -506,6 +496,33 @@ func TestAuditEventMandatoryFieldsCompleteness(t *testing.T) {
 	}
 	if event.GetTimestamp() == nil {
 		t.Error("mandatory field timestamp is nil")
+	}
+}
+
+func TestAppendAuditEventFallsBackWhenPayloadCannotBeEncoded(t *testing.T) {
+	store := auditlog.New(16, 16)
+
+	appendAuditEvent(store, auditEventInput{
+		AppID:      "nimi.desktop",
+		Domain:     "runtime.ai",
+		Operation:  "execute_scenario",
+		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		TraceID:    "trace-payload-fallback",
+		Payload: map[string]any{
+			"bad": func() {},
+		},
+	})
+
+	events := mustListAuditEvents(t, store, &runtimev1.ListAuditEventsRequest{Domain: "runtime.ai"})
+	if len(events.GetEvents()) != 1 {
+		t.Fatalf("expected 1 event, got=%d", len(events.GetEvents()))
+	}
+	payload := events.GetEvents()[0].GetPayload()
+	if payload == nil {
+		t.Fatal("expected fallback payload")
+	}
+	if payload.GetFields()["payload_encode_error"].GetStringValue() == "" {
+		t.Fatalf("expected payload encode error field, got=%v", payload.GetFields())
 	}
 }
 

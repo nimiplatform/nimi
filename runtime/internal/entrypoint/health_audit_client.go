@@ -289,7 +289,11 @@ func ListAuditEventsGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.
 	if strings.TrimSpace(meta.Domain) == "" {
 		meta.Domain = strings.TrimSpace(req.GetDomain())
 	}
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), meta)
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), meta)
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -320,7 +324,11 @@ func ListUsageStatsGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.L
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -351,7 +359,11 @@ func ExportAuditEventsGRPC(grpcAddr string, timeout time.Duration, req *runtimev
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

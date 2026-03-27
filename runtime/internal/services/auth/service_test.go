@@ -24,11 +24,17 @@ import (
 
 func buildTestJWT(t *testing.T, issuer string, expiresAt time.Time, privateKey *rsa.PrivateKey) string {
 	t.Helper()
+	issuedAt := expiresAt.Add(-5 * time.Minute)
+	return buildTestJWTWithClaims(t, map[string]any{"iss": issuer, "iat": issuedAt.Unix(), "exp": expiresAt.Unix()}, privateKey)
+}
+
+func buildTestJWTWithClaims(t *testing.T, claimsPayload map[string]any, privateKey *rsa.PrivateKey) string {
+	t.Helper()
 	header, err := json.Marshal(map[string]any{"alg": "RS256", "typ": "JWT"})
 	if err != nil {
 		t.Fatalf("marshal header: %v", err)
 	}
-	claims, err := json.Marshal(map[string]any{"iss": issuer, "exp": expiresAt.Unix()})
+	claims, err := json.Marshal(claimsPayload)
 	if err != nil {
 		t.Fatalf("marshal claims: %v", err)
 	}
@@ -41,7 +47,7 @@ func buildTestJWT(t *testing.T, issuer string, expiresAt time.Time, privateKey *
 	return signingInput + "." + base64.RawURLEncoding.EncodeToString(signature)
 }
 
-func buildUnsignedExpOmittedJWT(t *testing.T, issuer string, privateKey *rsa.PrivateKey) string {
+func buildExpOmittedJWT(t *testing.T, issuer string, privateKey *rsa.PrivateKey) string {
 	t.Helper()
 	header, err := json.Marshal(map[string]any{"alg": "RS256", "typ": "JWT"})
 	if err != nil {
@@ -67,6 +73,13 @@ func encodePublicKeyDERBase64(t *testing.T, pub *rsa.PublicKey) string {
 		t.Fatalf("marshal public key: %v", err)
 	}
 	return base64.StdEncoding.EncodeToString(der)
+}
+
+func sessionContext(sessionID string, sessionToken string) context.Context {
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-session-id", sessionID,
+		"x-nimi-session-token", sessionToken,
+	))
 }
 
 func TestAppSessionLifecycle(t *testing.T) {
@@ -104,7 +117,10 @@ func TestAppSessionLifecycle(t *testing.T) {
 		t.Fatalf("open session invalid response: %+v", openResp)
 	}
 
-	refreshResp, err := svc.RefreshSession(ctx, &runtimev1.RefreshSessionRequest{SessionId: openResp.SessionId, TtlSeconds: 600})
+	refreshResp, err := svc.RefreshSession(sessionContext(openResp.GetSessionId(), openResp.GetSessionToken()), &runtimev1.RefreshSessionRequest{
+		SessionId:  openResp.SessionId,
+		TtlSeconds: 600,
+	})
 	if err != nil {
 		t.Fatalf("refresh session: %v", err)
 	}
@@ -120,12 +136,46 @@ func TestAppSessionLifecycle(t *testing.T) {
 		t.Fatalf("revoke session must be ok")
 	}
 
-	refreshAfterRevoke, err := svc.RefreshSession(ctx, &runtimev1.RefreshSessionRequest{SessionId: openResp.SessionId, TtlSeconds: 600})
+	refreshAfterRevoke, err := svc.RefreshSession(sessionContext(openResp.GetSessionId(), openResp.GetSessionToken()), &runtimev1.RefreshSessionRequest{
+		SessionId:  openResp.SessionId,
+		TtlSeconds: 600,
+	})
 	if err != nil {
 		t.Fatalf("refresh after revoke: %v", err)
 	}
 	if refreshAfterRevoke.ReasonCode != runtimev1.ReasonCode_APP_TOKEN_REVOKED {
 		t.Fatalf("expected APP_TOKEN_REVOKED, got %v", refreshAfterRevoke.ReasonCode)
+	}
+}
+
+func TestRegisterAppMaintainsPerAppIndexOncePerInstance(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := context.Background()
+	req := &runtimev1.RegisterAppRequest{
+		AppId:         "nimi.desktop",
+		AppInstanceId: "instance-1",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	}
+
+	if _, err := svc.RegisterApp(ctx, req); err != nil {
+		t.Fatalf("first register app: %v", err)
+	}
+	if _, err := svc.RegisterApp(ctx, req); err != nil {
+		t.Fatalf("second register app: %v", err)
+	}
+
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+	if got := svc.registeredApps["nimi.desktop"]; got != 1 {
+		t.Fatalf("registeredApps[nimi.desktop] = %d, want 1", got)
+	}
+	if !svc.appRegisteredLocked("nimi.desktop") {
+		t.Fatalf("appRegisteredLocked should use maintained index")
 	}
 }
 
@@ -183,6 +233,42 @@ func TestExternalPrincipalSessionLifecycle(t *testing.T) {
 	}
 	if !revokeResp.Ok {
 		t.Fatalf("revoke external principal session must be ok")
+	}
+	svc.mu.RLock()
+	_, exists := svc.externalSessions[openResp.ExternalSessionId]
+	svc.mu.RUnlock()
+	if exists {
+		t.Fatalf("revoked external session must be removed from in-memory store")
+	}
+}
+
+func TestRevokeExternalPrincipalSessionMissingRecordKeepsAuditPayloadScoped(t *testing.T) {
+	store := auditlog.New(16, 16)
+	svc := NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, store, 60, 86400)
+
+	resp, err := svc.RevokeExternalPrincipalSession(context.Background(), &runtimev1.RevokeExternalPrincipalSessionRequest{
+		ExternalSessionId: "ext_missing",
+	})
+	if err != nil {
+		t.Fatalf("revoke external principal session: %v", err)
+	}
+	if !resp.GetOk() {
+		t.Fatalf("expected ok response, got %+v", resp)
+	}
+
+	events, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("list audit events: %v", err)
+	}
+	if len(events.GetEvents()) == 0 {
+		t.Fatal("expected audit event")
+	}
+	payload := events.GetEvents()[0].GetPayload().AsMap()
+	if _, ok := payload["external_principal_id"]; ok {
+		t.Fatalf("unexpected external_principal_id in payload: %+v", payload)
+	}
+	if _, ok := payload["external_session_id"]; !ok {
+		t.Fatalf("expected external_session_id in payload: %+v", payload)
 	}
 }
 
@@ -250,6 +336,13 @@ func TestOpenSessionRejectsTTLBounds(t *testing.T) {
 	}
 }
 
+func TestNewWithDependenciesPreservesInt32TTLBounds(t *testing.T) {
+	svc := NewWithDependencies(slog.New(slog.NewTextHandler(io.Discard, nil)), nil, nil, 123, 456)
+	if svc.ttlMinSeconds != 123 || svc.ttlMaxSeconds != 456 {
+		t.Fatalf("unexpected ttl bounds: min=%d max=%d", svc.ttlMinSeconds, svc.ttlMaxSeconds)
+	}
+}
+
 func TestOpenSessionDefaultTTL3600(t *testing.T) {
 	// K-AUTHSVC-011: omitted ttl_seconds uses the default 3600s TTL.
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -313,7 +406,7 @@ func TestSessionLostAfterServiceReset(t *testing.T) {
 	}
 
 	resetSvc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	refreshResp, err := resetSvc.RefreshSession(ctx, &runtimev1.RefreshSessionRequest{
+	refreshResp, err := resetSvc.RefreshSession(sessionContext(openResp.GetSessionId(), openResp.GetSessionToken()), &runtimev1.RefreshSessionRequest{
 		SessionId:  openResp.GetSessionId(),
 		TtlSeconds: 600,
 	})
@@ -512,6 +605,12 @@ func TestRevokeSessionIdempotent(t *testing.T) {
 	if !revokeResp.GetOk() {
 		t.Fatalf("first revoke must be ok")
 	}
+	svc.mu.RLock()
+	_, exists := svc.appSessions[openResp.GetSessionId()]
+	svc.mu.RUnlock()
+	if exists {
+		t.Fatalf("revoked session must be removed from in-memory store")
+	}
 
 	// Second revoke of the same session must also succeed (idempotent).
 	revokeResp2, err := svc.RevokeSession(ctx, &runtimev1.RevokeSessionRequest{SessionId: openResp.GetSessionId()})
@@ -523,7 +622,7 @@ func TestRevokeSessionIdempotent(t *testing.T) {
 	}
 
 	// Refreshing the revoked session must indicate revocation.
-	refreshResp, err := svc.RefreshSession(ctx, &runtimev1.RefreshSessionRequest{
+	refreshResp, err := svc.RefreshSession(sessionContext(openResp.GetSessionId(), openResp.GetSessionToken()), &runtimev1.RefreshSessionRequest{
 		SessionId:  openResp.GetSessionId(),
 		TtlSeconds: 600,
 	})
@@ -532,5 +631,86 @@ func TestRevokeSessionIdempotent(t *testing.T) {
 	}
 	if refreshResp.GetReasonCode() != runtimev1.ReasonCode_APP_TOKEN_REVOKED {
 		t.Fatalf("expected APP_TOKEN_REVOKED, got %v", refreshResp.GetReasonCode())
+	}
+}
+
+func TestAuthWritePathsPruneExpiredSessions(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	now := time.Now().UTC()
+
+	svc.mu.Lock()
+	svc.appSessions["expired-app"] = appSession{
+		SessionID:     "expired-app",
+		AppID:         "nimi.desktop",
+		SubjectUserID: "user-001",
+		ExpiresAt:     now.Add(-time.Minute),
+	}
+	svc.externalSessions["expired-external"] = externalSession{
+		ExternalSessionID:   "expired-external",
+		AppID:               "nimi.desktop",
+		ExternalPrincipalID: "agent-openclaw",
+		ExpiresAt:           now.Add(-time.Minute),
+	}
+	svc.mu.Unlock()
+
+	_, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:    "nimi.desktop",
+		DeviceId: "local-device",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+
+	svc.mu.RLock()
+	_, appExists := svc.appSessions["expired-app"]
+	_, externalExists := svc.externalSessions["expired-external"]
+	svc.mu.RUnlock()
+	if appExists || externalExists {
+		t.Fatalf("expired sessions must be pruned on auth write paths: app=%v external=%v", appExists, externalExists)
+	}
+}
+
+func TestRefreshSessionRejectsMissingSessionMetadata(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	registerResp, err := svc.RegisterApp(context.Background(), &runtimev1.RegisterAppRequest{
+		AppId:    "nimi.desktop",
+		DeviceId: "local-device",
+		ModeManifest: &runtimev1.AppModeManifest{
+			AppMode:         runtimev1.AppMode_APP_MODE_FULL,
+			RuntimeRequired: true,
+			RealmRequired:   true,
+			WorldRelation:   runtimev1.WorldRelation_WORLD_RELATION_NONE,
+		},
+	})
+	if err != nil {
+		t.Fatalf("register app: %v", err)
+	}
+	openResp, err := svc.OpenSession(context.Background(), &runtimev1.OpenSessionRequest{
+		AppId:         "nimi.desktop",
+		AppInstanceId: registerResp.GetAppInstanceId(),
+		DeviceId:      "local-device",
+		SubjectUserId: "user-001",
+		TtlSeconds:    600,
+	})
+	if err != nil {
+		t.Fatalf("open session: %v", err)
+	}
+
+	_, err = svc.RefreshSession(context.Background(), &runtimev1.RefreshSessionRequest{
+		SessionId:  openResp.GetSessionId(),
+		TtlSeconds: 600,
+	})
+	if status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expected unauthenticated, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
 	}
 }

@@ -33,7 +33,8 @@ func pruneEmptyAuthConfig(fileCfg *config.FileConfig) {
 	if fileCfg.Auth.JWT != nil {
 		if strings.TrimSpace(fileCfg.Auth.JWT.Issuer) == "" &&
 			strings.TrimSpace(fileCfg.Auth.JWT.Audience) == "" &&
-			strings.TrimSpace(fileCfg.Auth.JWT.JWKSURL) == "" {
+			strings.TrimSpace(fileCfg.Auth.JWT.JWKSURL) == "" &&
+			strings.TrimSpace(fileCfg.Auth.JWT.RevocationURL) == "" {
 			fileCfg.Auth.JWT = nil
 		}
 	}

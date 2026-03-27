@@ -116,7 +116,11 @@ func (s *Store) Save(method string, appID string, participantID string, idempote
 		if oldest == nil {
 			break
 		}
-		evictKey, _ := oldest.Value.(storeKey)
+		evictKey, ok := oldest.Value.(storeKey)
+		if !ok {
+			s.order.Remove(oldest)
+			continue
+		}
 		if item := s.entries[evictKey]; item != nil {
 			s.removeEntry(evictKey, item)
 			continue

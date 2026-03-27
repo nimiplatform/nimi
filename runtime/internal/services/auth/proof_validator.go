@@ -18,6 +18,7 @@ import (
 
 // allowedClockSkew is the tolerance for exp claim validation.
 const allowedClockSkew = 60 * time.Second
+const maxProofLifetime = 24 * time.Hour
 
 var (
 	ErrUnsupportedProofType = errors.New("unsupported proof type")
@@ -52,7 +53,9 @@ type jwtHeader struct {
 // jwtClaims is the minimal JWT payload for proof validation.
 type jwtClaims struct {
 	Iss string `json:"iss,omitempty"`
+	Iat int64  `json:"iat,omitempty"`
 	Exp int64  `json:"exp,omitempty"`
+	Nbf int64  `json:"nbf,omitempty"`
 }
 
 func validateJWTProof(token string, principal externalPrincipal) error {
@@ -93,9 +96,29 @@ func validateJWTProof(token string, principal externalPrincipal) error {
 	if claims.Exp <= 0 {
 		return fmt.Errorf("%w: JWT exp claim is required", ErrTokenInvalid)
 	}
+	if claims.Iat <= 0 {
+		return fmt.Errorf("%w: JWT iat claim is required", ErrTokenInvalid)
+	}
 	expiresAt := time.Unix(claims.Exp, 0)
-	if time.Now().After(expiresAt.Add(allowedClockSkew)) {
+	issuedAt := time.Unix(claims.Iat, 0)
+	now := time.Now()
+	if now.After(expiresAt.Add(allowedClockSkew)) {
 		return ErrTokenExpired
+	}
+	if issuedAt.After(now.Add(allowedClockSkew)) {
+		return fmt.Errorf("%w: JWT iat claim is not valid yet", ErrTokenInvalid)
+	}
+	if expiresAt.Before(issuedAt) {
+		return fmt.Errorf("%w: JWT exp claim precedes iat", ErrTokenInvalid)
+	}
+	if expiresAt.Sub(issuedAt) > maxProofLifetime {
+		return fmt.Errorf("%w: JWT lifetime exceeds maximum allowed duration", ErrTokenInvalid)
+	}
+	if claims.Nbf > 0 {
+		notBefore := time.Unix(claims.Nbf, 0)
+		if now.Before(notBefore.Add(-allowedClockSkew)) {
+			return fmt.Errorf("%w: JWT nbf claim is not valid yet", ErrTokenInvalid)
+		}
 	}
 
 	// Check issuer matches registered principal.
@@ -165,12 +188,19 @@ func verifySignature(alg string, keyPEM string, signingInput []byte, signature [
 }
 
 func parseJWTPublicKey(raw string) (any, error) {
-	keyBytes, err := base64.StdEncoding.DecodeString(strings.TrimSpace(raw))
-	if err != nil {
-		keyBytes = []byte(strings.TrimSpace(raw))
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, fmt.Errorf("public key is empty")
 	}
+	keyBytes := []byte(trimmed)
 	if block, _ := pem.Decode(keyBytes); block != nil {
 		keyBytes = block.Bytes
+	} else {
+		decoded, err := base64.StdEncoding.DecodeString(trimmed)
+		if err != nil {
+			return nil, fmt.Errorf("decode base64 public key: %w", err)
+		}
+		keyBytes = decoded
 	}
 	return x509.ParsePKIXPublicKey(keyBytes)
 }

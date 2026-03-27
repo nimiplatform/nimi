@@ -1,12 +1,14 @@
 package authn
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -228,6 +230,158 @@ func TestValidateRS256ValidTokenWithJWKS(t *testing.T) {
 	}
 	if server.HitCount() != 1 {
 		t.Fatalf("expected one jwks request, got %d", server.HitCount())
+	}
+}
+
+func TestValidateCallsRevocationEndpointAfterSuccessfulJWTValidation(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer jwksServer.Close()
+
+	var captured revocationRequest
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method %s", r.Method)
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("ReadAll: %v", err)
+		}
+		if err := json.Unmarshal(body, &captured); err != nil {
+			t.Fatalf("Unmarshal: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true})
+	}))
+	defer revocationServer.Close()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.SetRevocationURL(revocationServer.URL)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	identity, err := validator.Validate(token)
+	if err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	if identity == nil {
+		t.Fatal("expected identity")
+	}
+	if captured.SessionID != "session-abc" {
+		t.Fatalf("expected session_id=session-abc, got %q", captured.SessionID)
+	}
+	if captured.SubjectUserID != "user-123" {
+		t.Fatalf("expected subject_user_id=user-123, got %q", captured.SubjectUserID)
+	}
+	if captured.Issuer != "test-issuer" || captured.Audience != "test-audience" {
+		t.Fatalf("unexpected revocation payload issuer/audience: %+v", captured)
+	}
+	if strings.TrimSpace(captured.IssuedAt) == "" || strings.TrimSpace(captured.ExpiresAt) == "" {
+		t.Fatalf("expected issued_at and expires_at in revocation payload: %+v", captured)
+	}
+}
+
+func TestValidateRejectsRevokedSession(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer jwksServer.Close()
+
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: true, Revoked: true})
+	}))
+	defer revocationServer.Close()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.SetRevocationURL(revocationServer.URL)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	if _, err := validator.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected revoked session error, got %v", err)
+	}
+}
+
+func TestValidateRejectsInactiveSession(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer jwksServer.Close()
+
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(revocationResponse{Active: false})
+	}))
+	defer revocationServer.Close()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.SetRevocationURL(revocationServer.URL)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	if _, err := validator.Validate(token); err == nil || !strings.Contains(err.Error(), "session revoked") {
+		t.Fatalf("expected inactive session rejection, got %v", err)
+	}
+}
+
+func TestValidateRejectsMalformedRevocationResponse(t *testing.T) {
+	key := generateRSAKey(t)
+	jwksServer := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer jwksServer.Close()
+
+	revocationServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"active":true,"expires_at":"not-rfc3339"}`)
+	}))
+	defer revocationServer.Close()
+
+	validator, err := NewValidator(jwksServer.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+	validator.SetRevocationURL(revocationServer.URL)
+
+	token := signRS256(t, key, "kid-1", validClaims())
+	if _, err := validator.Validate(token); err == nil || !strings.Contains(err.Error(), "invalid revocation response expires_at") {
+		t.Fatalf("expected malformed revocation response rejection, got %v", err)
+	}
+}
+
+func TestRefreshJWKSCoalescesConcurrentRefreshesForSameKid(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	const goroutines = 8
+	var wg sync.WaitGroup
+	errCh := make(chan error, goroutines)
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errCh <- validator.refreshJWKS(context.Background(), "kid-1")
+		}()
+	}
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			t.Fatalf("refreshJWKS: %v", err)
+		}
+	}
+	if hits := server.HitCount(); hits != 1 {
+		t.Fatalf("expected 1 JWKS fetch, got %d", hits)
 	}
 }
 
@@ -455,6 +609,51 @@ func TestValidateMissingIssuedAtRejected(t *testing.T) {
 	}
 }
 
+func TestValidateIssuedAtBeyondClockSkewRejected(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	claims := validClaims()
+	claims["iat"] = time.Now().Add(61 * time.Second).Unix()
+	claims["exp"] = time.Now().Add(2 * time.Hour).Unix()
+	token := signRS256(t, key, "kid-1", claims)
+	_, err = validator.Validate(token)
+	if err == nil {
+		t.Fatal("expected future issued-at validation failure")
+	}
+}
+
+func TestValidateRejectsTokenLifetimeAboveTwentyFourHours(t *testing.T) {
+	key := generateRSAKey(t)
+	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
+	defer server.Close()
+
+	validator, err := NewValidator(server.URL(), "test-issuer", "test-audience")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	now := time.Now()
+	token := signRS256(t, key, "kid-1", jwt.MapClaims{
+		"sub": "user-123",
+		"iss": "test-issuer",
+		"aud": "test-audience",
+		"iat": now.Unix(),
+		"exp": now.Add(25 * time.Hour).Unix(),
+		"nbf": now.Unix(),
+	})
+	_, err = validator.Validate(token)
+	if err == nil {
+		t.Fatal("expected excessive token lifetime validation failure")
+	}
+}
+
 func TestValidateNbfInFutureRejected(t *testing.T) {
 	key := generateRSAKey(t)
 	server := newJWKSTestServer(t, jwksDocument{Keys: []jwkEntry{rsaJWKFromPrivateKey(t, key, "kid-1")}})
@@ -516,8 +715,40 @@ func TestValidateAlgNoneTokenRejected(t *testing.T) {
 	}
 }
 
+func TestNewValidatorRejectsPartialConfig(t *testing.T) {
+	if _, err := NewValidator("https://realm.nimi.xyz/api/auth/jwks", "", "runtime"); err == nil {
+		t.Fatal("expected partial jwt config to be rejected")
+	}
+}
+
+func TestNewValidatorRejectsNonLoopbackHTTPJWKS(t *testing.T) {
+	if _, err := NewValidator("http://realm.nimi.xyz/api/auth/jwks", "issuer", "audience"); err == nil {
+		t.Fatal("expected non-loopback http jwks url to be rejected")
+	}
+}
+
+func TestNewValidatorAllowsLoopbackHTTPJWKS(t *testing.T) {
+	if _, err := NewValidator("http://127.0.0.1:3002/api/auth/jwks", "issuer", "audience"); err != nil {
+		t.Fatalf("expected loopback http jwks url to be allowed: %v", err)
+	}
+}
+
+func TestParseRSAJWKRejectsPlatformIntOverflow(t *testing.T) {
+	_, err := parseRSAJWK(jwkEntry{
+		Kty: "RSA",
+		N:   base64.RawURLEncoding.EncodeToString(new(big.Int).Lsh(big.NewInt(1), 2047).Bytes()),
+		E:   base64.RawURLEncoding.EncodeToString([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}),
+	})
+	if err == nil {
+		t.Fatal("expected exponent overflow to fail")
+	}
+	if !strings.Contains(err.Error(), "overflows platform int") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestValidateEmptyTokenFailsClosed(t *testing.T) {
-	validator, err := NewValidator("https://realm.nimi.xyz/api/auth/jwks", "", "")
+	validator, err := NewValidator("", "", "")
 	if err != nil {
 		t.Fatalf("NewValidator: %v", err)
 	}
@@ -528,8 +759,8 @@ func TestValidateEmptyTokenFailsClosed(t *testing.T) {
 	if identity != nil {
 		t.Fatalf("expected nil identity, got %#v", identity)
 	}
-	if err != ErrEmptyToken {
-		t.Fatalf("expected ErrEmptyToken, got %v", err)
+	if err != errEmptyToken {
+		t.Fatalf("expected errEmptyToken, got %v", err)
 	}
 }
 

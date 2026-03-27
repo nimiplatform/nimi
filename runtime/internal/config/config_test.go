@@ -545,6 +545,16 @@ func TestLoadAllowsInlineProviderAPIKey(t *testing.T) {
 	}
 }
 
+func TestResolveProviderAPIKeyTreatsGenericEnvInterpolationAsLiteralInlineAPIKey(t *testing.T) {
+	t.Setenv("NIMI_RUNTIME_UNSAFE_API_KEY", "secret-from-env")
+	got := ResolveProviderAPIKey(RuntimeFileTarget{
+		APIKey: "${NIMI_RUNTIME_UNSAFE_API_KEY}",
+	})
+	if got != "${NIMI_RUNTIME_UNSAFE_API_KEY}" {
+		t.Fatalf("generic env interpolation should stay literal inline secret, got=%q", got)
+	}
+}
+
 func TestLoadRejectsProviderAPIKeyAndEnvConflict(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
@@ -595,6 +605,34 @@ func TestLoadRejectsDefaultCloudProviderWithoutConfiguredTarget(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), `defaultCloudProvider "openai" must reference a configured provider`) {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLoadDefaultCloudProviderEnvOverrideWinsAndNormalizes(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
+	configBody := `{
+  "schemaVersion": 1,
+  "defaultCloudProvider": "gemini",
+  "providers": {
+    "gemini": {
+      "apiKeyEnv": "NIMI_RUNTIME_CLOUD_GEMINI_API_KEY"
+    }
+  }
+}`
+	if err := os.WriteFile(configPath, []byte(configBody), 0o600); err != nil {
+		t.Fatalf("write config file: %v", err)
+	}
+	t.Setenv("NIMI_RUNTIME_CONFIG_PATH", configPath)
+	clearRuntimeConfigEnv(t)
+	t.Setenv("NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER", " Gemini ")
+	t.Setenv("NIMI_RUNTIME_CLOUD_GEMINI_API_KEY", "gemini-from-env")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	if cfg.DefaultCloudProvider != "gemini" {
+		t.Fatalf("expected normalized env override, got %q", cfg.DefaultCloudProvider)
 	}
 }
 
@@ -901,7 +939,8 @@ func TestLoadAuthJWTFromConfigFile(t *testing.T) {
     "jwt": {
       "issuer": "https://realm.nimi.xyz",
       "audience": "nimi-runtime",
-      "jwksUrl": "https://realm.nimi.xyz/api/auth/jwks"
+      "jwksUrl": "https://realm.nimi.xyz/api/auth/jwks",
+      "revocationUrl": "https://realm.nimi.xyz/api/auth/revocation"
     }
   }
 }`
@@ -925,6 +964,9 @@ func TestLoadAuthJWTFromConfigFile(t *testing.T) {
 	if cfg.AuthJWTJWKSURL != "https://realm.nimi.xyz/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.AuthJWTJWKSURL)
 	}
+	if cfg.AuthJWTRevocationURL != "https://realm.nimi.xyz/api/auth/revocation" {
+		t.Fatalf("revocationUrl mismatch: %q", cfg.AuthJWTRevocationURL)
+	}
 }
 
 func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
@@ -935,7 +977,8 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
     "jwt": {
       "issuer": "https://realm.config.test",
       "audience": "runtime-config",
-      "jwksUrl": "https://realm.config.test/api/auth/jwks"
+      "jwksUrl": "https://realm.config.test/api/auth/jwks",
+      "revocationUrl": "https://realm.config.test/api/auth/revocation"
     }
   }
 }`
@@ -948,6 +991,7 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_ISSUER", "https://realm.env.test")
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", "runtime-env")
 	t.Setenv("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", "https://realm.env.test/api/auth/jwks")
+	t.Setenv("NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL", "https://realm.env.test/api/auth/revocation")
 
 	cfg, err := Load()
 	if err != nil {
@@ -961,6 +1005,9 @@ func TestLoadAuthJWTEnvOverridesConfigFile(t *testing.T) {
 	}
 	if cfg.AuthJWTJWKSURL != "https://realm.env.test/api/auth/jwks" {
 		t.Fatalf("jwksUrl env override mismatch: %q", cfg.AuthJWTJWKSURL)
+	}
+	if cfg.AuthJWTRevocationURL != "https://realm.env.test/api/auth/revocation" {
+		t.Fatalf("revocationUrl env override mismatch: %q", cfg.AuthJWTRevocationURL)
 	}
 }
 
@@ -987,7 +1034,7 @@ func TestLoadRejectsIncompleteJWTConfig(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected incomplete jwt config to fail")
 	}
-	if !strings.Contains(err.Error(), "requires issuer, audience, and jwks url together") {
+	if !strings.Contains(err.Error(), "requires issuer, audience, jwks url, and revocation url together") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -1000,7 +1047,8 @@ func TestLoadAllowsLoopbackHTTPJWKSURL(t *testing.T) {
     "jwt": {
       "issuer": "http://localhost:3002",
       "audience": "nimi-runtime",
-      "jwksUrl": "http://127.0.0.1:3002/api/auth/jwks"
+      "jwksUrl": "http://127.0.0.1:3002/api/auth/jwks",
+      "revocationUrl": "http://127.0.0.1:3002/api/auth/revocation"
     }
   }
 }`
@@ -1028,7 +1076,8 @@ func TestLoadRejectsNonLoopbackHTTPJWKSURL(t *testing.T) {
     "jwt": {
       "issuer": "https://realm.nimi.xyz",
       "audience": "nimi-runtime",
-      "jwksUrl": "http://realm.nimi.xyz/api/auth/jwks"
+      "jwksUrl": "http://realm.nimi.xyz/api/auth/jwks",
+      "revocationUrl": "https://realm.nimi.xyz/api/auth/revocation"
     }
   }
 }`
@@ -1078,6 +1127,7 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_SHUTDOWN_TIMEOUT",
 		"NIMI_RUNTIME_LOCAL_STATE_PATH",
 		"NIMI_RUNTIME_LOCAL_MODELS_PATH",
+		"NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER",
 		"NIMI_RUNTIME_AI_HTTP_TIMEOUT",
 		"NIMI_RUNTIME_AI_HEALTH_INTERVAL",
 		"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL",
@@ -1121,6 +1171,7 @@ func clearRuntimeConfigEnv(t *testing.T) {
 		"NIMI_RUNTIME_AUTH_JWT_ISSUER",
 		"NIMI_RUNTIME_AUTH_JWT_AUDIENCE",
 		"NIMI_RUNTIME_AUTH_JWT_JWKS_URL",
+		"NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL",
 		"LOCALAI_API_KEY",
 		"NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT",
 		"NIMI_RUNTIME_SESSION_TTL_MIN_SECONDS",

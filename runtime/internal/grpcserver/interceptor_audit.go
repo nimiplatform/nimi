@@ -2,17 +2,14 @@ package grpcserver
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"time"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/usagemetrics"
 )
 
@@ -36,9 +33,9 @@ func newUnaryAuditInterceptor(store *auditlog.Store) grpc.UnaryServerInterceptor
 		if identity := authn.IdentityFromContext(handlerCtx); identity != nil {
 			subjectUserID = identity.SubjectUserID
 		}
-		callerKind, callerID, surfaceID, traceID := readCallerMetadata(ctx)
-		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(ctx)
-		tokenID := accessTokenIDFromMetadata(ctx)
+		callerKind, callerID, surfaceID, traceID := readCallerMetadata(handlerCtx)
+		credentialSource, providerEndpoint, providerAPIKeyFingerprint := providerCredentialMetadata(handlerCtx)
+		tokenID := accessTokenIDFromMetadata(handlerCtx)
 		grantDetails := inferGrantAuditDetails(req, resp)
 		if tokenID == "" && grantDetails.TokenID != "" {
 			tokenID = grantDetails.TokenID
@@ -109,9 +106,8 @@ func newStreamAuditInterceptor(store *auditlog.Store) grpc.StreamServerIntercept
 		startedAt := time.Now().UTC()
 		streamCtx, queueWaitRecorder := usagemetrics.WithQueueWaitRecorder(ss.Context())
 		wrapped := &auditStream{
-			ServerStream:  ss,
-			metadataAppID: appIDFromMetadata(ss.Context()),
-			ctx:           streamCtx,
+			ServerStream: ss,
+			ctx:          streamCtx,
 		}
 		err := handler(srv, wrapped)
 		request, usage, modelResolved, traceID := wrapped.snapshot()
@@ -181,7 +177,6 @@ type auditStream struct {
 	usage         *runtimev1.UsageStats
 	modelResolved string
 	traceID       string
-	metadataAppID string
 	ctx           context.Context
 	mu            sync.RWMutex
 }
@@ -190,11 +185,6 @@ func (s *auditStream) RecvMsg(m any) error {
 	err := s.ServerStream.RecvMsg(m)
 	if err != nil {
 		return err
-	}
-	if metadataAppID := strings.TrimSpace(s.metadataAppID); metadataAppID != "" {
-		if requestAppID := appIDFromRequest(m); requestAppID != "" && requestAppID != metadataAppID {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT)
-		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -30,12 +30,35 @@ func writeBytesAtomic(path string, content []byte, mode os.FileMode) error {
 	if path == "" {
 		return fmt.Errorf("runtime config path is empty")
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create runtime config directory: %w", err)
 	}
-	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, content, mode); err != nil {
+
+	tmpFile, err := os.CreateTemp(dir, filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return fmt.Errorf("create temp runtime config file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	cleanupTemp := func() {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpPath)
+	}
+	if err := tmpFile.Chmod(mode); err != nil {
+		cleanupTemp()
+		return fmt.Errorf("set temp runtime config permissions: %w", err)
+	}
+	if _, err := tmpFile.Write(content); err != nil {
+		cleanupTemp()
 		return fmt.Errorf("write temp runtime config file: %w", err)
+	}
+	if err := tmpFile.Sync(); err != nil {
+		cleanupTemp()
+		return fmt.Errorf("sync temp runtime config file: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("close temp runtime config file: %w", err)
 	}
 	if err := os.Rename(tmpPath, path); err != nil {
 		_ = os.Remove(tmpPath)
@@ -167,7 +190,7 @@ func ValidateFileConfig(fileCfg FileConfig) error {
 		}
 	}
 	if fileCfg.Auth != nil && fileCfg.Auth.JWT != nil {
-		if err := validateJWTSettings(fileCfg.Auth.JWT.Issuer, fileCfg.Auth.JWT.Audience, fileCfg.Auth.JWT.JWKSURL); err != nil {
+		if err := validateJWTSettings(fileCfg.Auth.JWT.Issuer, fileCfg.Auth.JWT.Audience, fileCfg.Auth.JWT.JWKSURL, fileCfg.Auth.JWT.RevocationURL); err != nil {
 			return err
 		}
 	}

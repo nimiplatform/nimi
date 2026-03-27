@@ -53,13 +53,14 @@ func TestMaskValue(t *testing.T) {
 		input    string
 		expected string
 	}{
-		// len >= 8: first4 + "***" + last4
-		{"12345678", "1234***5678"},
+		// len >= 12: first4 + "***" + last4
+		{"12345678", "***"},
 		{"abcdefghijklmnop", "abcd***mnop"},
 		{"sk-1234567890abcdef", "sk-1***cdef"},
 
-		// len < 8: "***"
+		// len < 12: "***"
 		{"short", "***"},
+		{"12345678901", "***"},
 		{"1234567", "***"},
 		{"", "***"},
 		{"a", "***"},

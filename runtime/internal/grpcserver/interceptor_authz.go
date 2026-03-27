@@ -3,6 +3,7 @@ package grpcserver
 import (
 	"context"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -47,12 +48,47 @@ func newStreamAuthzInterceptor(authorizer protectedCapabilityAuthorizer) grpc.St
 			return handler(srv, ss)
 		}
 		tokenID, secret, _ := envelope.ParseAccessTokenFromContext(ss.Context())
-		appID := appIDFromMetadata(ss.Context())
-		if reasonCode, _, ok := authorizer.ValidateProtectedCapability(appID, tokenID, secret, capability); !ok {
-			return grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
+		wrapped := &authzStream{
+			ServerStream:  ss,
+			authorizer:    authorizer,
+			tokenID:       tokenID,
+			secret:        secret,
+			capability:    capability,
+			metadataAppID: appIDFromMetadata(ss.Context()),
 		}
-		return handler(srv, ss)
+		return handler(srv, wrapped)
 	}
+}
+
+type authzStream struct {
+	grpc.ServerStream
+	authorizer    protectedCapabilityAuthorizer
+	tokenID       string
+	secret        string
+	capability    string
+	metadataAppID string
+	checked       bool
+	mu            sync.Mutex
+}
+
+func (s *authzStream) RecvMsg(m any) error {
+	if err := s.ServerStream.RecvMsg(m); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.checked {
+		return nil
+	}
+	s.checked = true
+	appID := strings.TrimSpace(s.metadataAppID)
+	if appID == "" {
+		appID = appIDFromRequest(m)
+	}
+	if reasonCode, _, ok := s.authorizer.ValidateProtectedCapability(appID, s.tokenID, s.secret, s.capability); !ok {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, reasonCode)
+	}
+	return nil
 }
 
 func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {

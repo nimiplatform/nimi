@@ -1,7 +1,10 @@
 package authn
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -27,6 +30,22 @@ func TestExtractBearerTokenMissingHeader(t *testing.T) {
 func TestExtractBearerTokenMalformedHeader(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Basic abc",
+	))
+	token, hasAuthHeader, malformed := extractBearerToken(ctx)
+	if token != "" {
+		t.Fatalf("expected empty token, got=%q", token)
+	}
+	if !hasAuthHeader {
+		t.Fatalf("expected hasAuthHeader=true")
+	}
+	if !malformed {
+		t.Fatalf("expected malformed=true")
+	}
+}
+
+func TestExtractBearerTokenRejectsLowercaseBearerPrefix(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"authorization", "bearer abc",
 	))
 	token, hasAuthHeader, malformed := extractBearerToken(ctx)
 	if token != "" {
@@ -93,6 +112,12 @@ func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
 	if identity.SubjectUserID != "user-123" {
 		t.Fatalf("subject mismatch: %s", identity.SubjectUserID)
 	}
+	if identity.Issuer != "test-issuer" {
+		t.Fatalf("issuer mismatch: %s", identity.Issuer)
+	}
+	if identity.Audience != "test-audience" {
+		t.Fatalf("audience mismatch: %s", identity.Audience)
+	}
 }
 
 func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
@@ -123,5 +148,30 @@ func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
 	}
 	if st.Message() != runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String() {
 		t.Fatalf("unexpected reason code: %s", st.Message())
+	}
+}
+
+func TestAuthenticateLogsValidationFailure(t *testing.T) {
+	validator, err := NewValidator("", "", "")
+	if err != nil {
+		t.Fatalf("NewValidator: %v", err)
+	}
+
+	var logs bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() {
+		slog.SetDefault(previous)
+	})
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"authorization", "Bearer test-token",
+	))
+	_, authErr := authenticate(ctx, validator)
+	if authErr == nil {
+		t.Fatal("expected auth error")
+	}
+	if !strings.Contains(logs.String(), "jwt validation failed") {
+		t.Fatalf("expected validation failure log, got=%q", logs.String())
 	}
 }

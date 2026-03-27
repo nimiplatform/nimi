@@ -76,9 +76,10 @@ func mergeFileConfigWithDefaults(raw config.FileConfig) config.FileConfig {
 	if raw.Auth != nil && raw.Auth.JWT != nil {
 		merged.Auth = &config.FileConfigAuth{
 			JWT: &config.FileConfigJWT{
-				Issuer:   strings.TrimSpace(raw.Auth.JWT.Issuer),
-				Audience: strings.TrimSpace(raw.Auth.JWT.Audience),
-				JWKSURL:  strings.TrimSpace(raw.Auth.JWT.JWKSURL),
+				Issuer:        strings.TrimSpace(raw.Auth.JWT.Issuer),
+				Audience:      strings.TrimSpace(raw.Auth.JWT.Audience),
+				JWKSURL:       strings.TrimSpace(raw.Auth.JWT.JWKSURL),
+				RevocationURL: strings.TrimSpace(raw.Auth.JWT.RevocationURL),
 			},
 		}
 	}
@@ -151,6 +152,19 @@ func validateMergedRuntimeFields(fileCfg config.FileConfig) error {
 			}
 			if strings.TrimSpace(parsed.Host) == "" {
 				return fmt.Errorf("auth.jwt.jwksUrl must include host")
+			}
+		}
+		revocationURL := strings.TrimSpace(fileCfg.Auth.JWT.RevocationURL)
+		if revocationURL != "" {
+			parsed, err := url.Parse(revocationURL)
+			if err != nil {
+				return fmt.Errorf("auth.jwt.revocationUrl invalid: %w", err)
+			}
+			if parsed.Scheme != "http" && parsed.Scheme != "https" {
+				return fmt.Errorf("auth.jwt.revocationUrl must use http/https scheme")
+			}
+			if strings.TrimSpace(parsed.Host) == "" {
+				return fmt.Errorf("auth.jwt.revocationUrl must include host")
 			}
 		}
 	}

@@ -2,15 +2,15 @@ package grant
 
 import (
 	"crypto/subtle"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"strings"
 	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func (s *Service) ValidateProtectedCapability(appID string, tokenID string, secret string, capability string) (runtimev1.ReasonCode, string, bool) {
 	appID = strings.TrimSpace(appID)
 	tokenID = strings.TrimSpace(tokenID)
-	secret = strings.TrimSpace(secret)
 	capability = strings.TrimSpace(capability)
 	if appID == "" || tokenID == "" || secret == "" || capability == "" {
 		return runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, "provide_access_token_credentials", false
@@ -57,10 +57,8 @@ func (s *Service) cascadeRevokeLocked(tokenID string) {
 	}
 	token.Revoked = true
 	s.tokens[tokenID] = token
-	for childID, child := range s.tokens {
-		if child.ParentTokenID == tokenID {
-			s.cascadeRevokeLocked(childID)
-		}
+	for childID := range s.parentChildren[tokenID] {
+		s.cascadeRevokeLocked(childID)
 	}
 }
 

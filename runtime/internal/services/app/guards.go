@@ -11,10 +11,13 @@ const (
 	rateLimitPerSecond       = 100
 	loopLimitPerSecond       = 20
 	loopBreakDurationSeconds = 60
+	rateLimiterIdleTTL       = 5 * time.Minute
+	rateLimiterCleanupEvery  = 256
 )
 
 type appRateLimiter struct {
-	buckets sync.Map
+	buckets        sync.Map
+	cleanupCounter atomic.Uint64
 }
 
 type rateBucket struct {
@@ -23,6 +26,7 @@ type rateBucket struct {
 	currentCount   atomic.Int64
 	previousSecond atomic.Int64
 	previousCount  atomic.Int64
+	lastSeenUnix   atomic.Int64
 }
 
 func newAppRateLimiter() *appRateLimiter {
@@ -36,6 +40,7 @@ func (l *appRateLimiter) Allow(appID string, now time.Time) bool {
 	raw, _ := l.buckets.LoadOrStore(appID, &rateBucket{})
 	bucket := raw.(*rateBucket)
 	second := now.Unix()
+	bucket.lastSeenUnix.Store(second)
 	bucket.rollWindow(second)
 
 	current := bucket.currentCount.Add(1)
@@ -47,11 +52,31 @@ func (l *appRateLimiter) Allow(appID string, now time.Time) bool {
 	fractionRemaining := 1 - float64(now.Nanosecond())/float64(time.Second)
 	estimate := float64(current) + float64(previous)*fractionRemaining
 	if estimate <= rateLimitPerSecond {
+		l.maybeCleanup(now)
 		return true
 	}
 
 	bucket.currentCount.Add(-1)
+	l.maybeCleanup(now)
 	return false
+}
+
+func (l *appRateLimiter) maybeCleanup(now time.Time) {
+	if l.cleanupCounter.Add(1)%rateLimiterCleanupEvery != 0 {
+		return
+	}
+	cutoff := now.Add(-rateLimiterIdleTTL).Unix()
+	l.buckets.Range(func(key, value any) bool {
+		bucket, ok := value.(*rateBucket)
+		if !ok {
+			l.buckets.Delete(key)
+			return true
+		}
+		if bucket.lastSeenUnix.Load() < cutoff {
+			l.buckets.Delete(key)
+		}
+		return true
+	})
 }
 
 func (b *rateBucket) rollWindow(second int64) {

@@ -39,6 +39,9 @@ func restartRequiredFieldsChanged(before, after config.FileConfig) bool {
 	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.JWKSURL }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.JWKSURL }) {
 		return true
 	}
+	if authJWTFieldValue(before, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.RevocationURL }) != authJWTFieldValue(after, func(jwtCfg *config.FileConfigJWT) string { return jwtCfg.RevocationURL }) {
+		return true
+	}
 	if !runtimeProvidersEqual(before.Providers, after.Providers) {
 		return true
 	}

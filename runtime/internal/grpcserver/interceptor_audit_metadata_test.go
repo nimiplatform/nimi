@@ -45,3 +45,12 @@ func TestCloneUsageReturnsTypedClone(t *testing.T) {
 		t.Fatalf("usage mismatch: %d", cloned.GetInputTokens())
 	}
 }
+
+func TestCamelToSnakeKeepsAcronymsGrouped(t *testing.T) {
+	if got := camelToSnake("ReadAIEvents"); got != "read_ai_events" {
+		t.Fatalf("unexpected snake case: %q", got)
+	}
+	if got := camelToSnake("GetHTTPURL"); got != "get_httpurl" {
+		t.Fatalf("unexpected acronym handling: %q", got)
+	}
+}

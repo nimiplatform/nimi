@@ -43,10 +43,5 @@ func (s *Service) ValidateAppSession(appID string, sessionID string, sessionToke
 }
 
 func (s *Service) appRegisteredLocked(appID string) bool {
-	for _, record := range s.apps {
-		if record.AppID == appID {
-			return true
-		}
-	}
-	return false
+	return s.registeredApps[appID] > 0
 }

@@ -73,6 +73,20 @@ func TestHandleRuntimeHealthIncludesProviders(t *testing.T) {
 	}
 }
 
+func TestHandleRuntimeHealthReturnsUnavailableWhenNotReady(t *testing.T) {
+	state := health.NewState()
+	state.SetStatus(health.StatusDegraded, "warming")
+	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/v1/runtime/health", nil)
+	server.handleRuntimeHealth(recorder, request)
+
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status mismatch: got=%d want=%d", recorder.Code, http.StatusServiceUnavailable)
+	}
+}
+
 func TestHandleRuntimeHealthRejectsNonReadMethods(t *testing.T) {
 	state := health.NewState()
 	server := New("127.0.0.1:0", state, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
@@ -81,6 +95,20 @@ func TestHandleRuntimeHealthRejectsNonReadMethods(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/v1/runtime/health", nil)
 	server.handleRuntimeHealth(recorder, request)
 
+	if recorder.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status mismatch: got=%d want=%d", recorder.Code, http.StatusMethodNotAllowed)
+	}
+	if got := recorder.Header().Get("Allow"); got != "GET, HEAD" {
+		t.Fatalf("allow header mismatch: got=%q", got)
+	}
+}
+
+func TestAllowReadMethodRejectsNilRequests(t *testing.T) {
+	recorder := httptest.NewRecorder()
+
+	if allowReadMethod(recorder, nil) {
+		t.Fatal("nil request should fail closed")
+	}
 	if recorder.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status mismatch: got=%d want=%d", recorder.Code, http.StatusMethodNotAllowed)
 	}

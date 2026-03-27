@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -30,7 +30,10 @@ func newUnaryProtocolInterceptor(store *idempotency.Store) grpc.UnaryServerInter
 			if appID == "" {
 				appID = appIDFromRequest(req)
 			}
-			requestHash := hashRequest(req)
+			requestHash, hashErr := hashRequest(req)
+			if hashErr != nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			}
 			if replay, hit, conflict := store.Load(info.FullMethod, appID, meta.ParticipantID, meta.IdempotencyKey, requestHash); conflict {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 			} else if hit {
@@ -70,12 +73,15 @@ type protocolStream struct {
 	grpc.ServerStream
 	metadataAppID  string
 	checkedRequest bool
+	mu             sync.Mutex
 }
 
 func (s *protocolStream) RecvMsg(m any) error {
 	if err := s.ServerStream.RecvMsg(m); err != nil {
 		return err
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.checkedRequest {
 		return nil
 	}
@@ -93,18 +99,17 @@ func (s *protocolStream) RecvMsg(m any) error {
 	return nil
 }
 
-func hashRequest(req any) string {
+func hashRequest(req any) (string, error) {
 	msg, ok := req.(proto.Message)
-	if ok && msg != nil {
-		raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
-		if err == nil {
-			sum := sha256.Sum256(raw)
-			return hex.EncodeToString(sum[:])
-		}
+	if !ok || msg == nil {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	fallback := fmt.Sprintf("%#v", req)
-	sum := sha256.Sum256([]byte(fallback))
-	return hex.EncodeToString(sum[:])
+	raw, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
+	if err != nil {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:]), nil
 }
 
 func isWriteMethod(fullMethod string) bool {
@@ -114,6 +119,10 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+		"/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
+		"/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
+		"/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
+		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
 		"/nimi.runtime.v1.RuntimeWorkflowService/SubmitWorkflow",
 		"/nimi.runtime.v1.RuntimeWorkflowService/CancelWorkflow",
 		"/nimi.runtime.v1.RuntimeModelService/PullModel",
@@ -131,10 +140,34 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeKnowledgeService/BuildIndex",
 		"/nimi.runtime.v1.RuntimeKnowledgeService/DeleteIndex",
 		"/nimi.runtime.v1.RuntimeAppService/SendAppMessage",
+		"/nimi.runtime.v1.RuntimeLocalService/InstallLocalModel",
+		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedModel",
+		"/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedArtifact",
+		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalModel",
+		"/nimi.runtime.v1.RuntimeLocalService/ImportLocalArtifact",
+		"/nimi.runtime.v1.RuntimeLocalService/RemoveLocalModel",
+		"/nimi.runtime.v1.RuntimeLocalService/RemoveLocalArtifact",
+		"/nimi.runtime.v1.RuntimeLocalService/StartLocalModel",
+		"/nimi.runtime.v1.RuntimeLocalService/StopLocalModel",
+		"/nimi.runtime.v1.RuntimeLocalService/WarmLocalModel",
+		"/nimi.runtime.v1.RuntimeLocalService/ApplyProfile",
+		"/nimi.runtime.v1.RuntimeLocalService/InstallLocalService",
+		"/nimi.runtime.v1.RuntimeLocalService/StartLocalService",
+		"/nimi.runtime.v1.RuntimeLocalService/StopLocalService",
+		"/nimi.runtime.v1.RuntimeLocalService/RemoveLocalService",
+		"/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
+		"/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
+		"/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
+		"/nimi.runtime.v1.RuntimeLocalService/StartEngine",
+		"/nimi.runtime.v1.RuntimeLocalService/StopEngine",
 		"/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
+		"/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
+		"/nimi.runtime.v1.RuntimeConnectorService/DeleteModelCatalogProvider",
+		"/nimi.runtime.v1.RuntimeConnectorService/UpsertCatalogModelOverlay",
+		"/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
 		"/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return true
 	default:

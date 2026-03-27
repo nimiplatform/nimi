@@ -25,7 +25,11 @@ func RegisterAppGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Regi
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -56,7 +60,11 @@ func OpenSessionGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Open
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -87,7 +95,11 @@ func RefreshSessionGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.R
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, appID, firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, appID, firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -118,7 +130,11 @@ func RevokeSessionGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.Re
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, appID, firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, appID, firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -149,7 +165,11 @@ func RegisterExternalPrincipalGRPC(grpcAddr string, timeout time.Duration, req *
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -180,7 +200,11 @@ func OpenExternalPrincipalSessionGRPC(grpcAddr string, timeout time.Duration, re
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -211,7 +235,11 @@ func RevokeExternalPrincipalSessionGRPC(grpcAddr string, timeout time.Duration, 
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, appID, firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, appID, firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

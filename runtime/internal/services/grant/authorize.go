@@ -87,9 +87,9 @@ func (s *Service) AuthorizeExternalPrincipal(ctx context.Context, req *runtimev1
 	}
 	expiresAt := issuedAt.Add(ttl)
 	tokenID := ulid.Make().String()
-	secret, err := newTokenSecret()
+	secret, err := generateTokenSecret()
 	if err != nil {
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
 	}
 
 	policyVersion := strings.TrimSpace(req.GetPolicyVersion())

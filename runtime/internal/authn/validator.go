@@ -12,7 +12,9 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -27,12 +29,15 @@ const (
 	defaultJWKSCacheTTL       = 5 * time.Minute
 	defaultJWKSFallbackTTL    = 2 * time.Minute
 	defaultJWKSRequestTimeout = 5 * time.Second
+	defaultRevocationTimeout  = 5 * time.Second
 	refreshCoalesceWindow     = 1 * time.Second
 	maxJWKSBodyBytes          = 1 << 20
+	maxRevocationBodyBytes    = 1 << 20
 	minimumRSAKeyBits         = 2048
+	defaultJWTMaxLifetime     = 24 * time.Hour
 )
 
-var ErrEmptyToken = errors.New("empty token")
+var errEmptyToken = errors.New("empty token")
 
 // allowedAlgorithms lists the signing algorithms accepted by the validator.
 // alg=none is explicitly rejected (K-AUTHN-002).
@@ -61,9 +66,10 @@ type jwkEntry struct {
 
 // Validator verifies JWT tokens using a configured JWKS endpoint.
 type Validator struct {
-	jwksURL string
-	issuer  string // expected iss claim; empty = skip check
-	aud     string // expected aud claim; empty = skip check
+	jwksURL       string
+	issuer        string // expected iss claim; empty = skip check
+	aud           string // expected aud claim; empty = skip check
+	revocationURL string
 
 	cacheTTL    time.Duration
 	fallbackTTL time.Duration
@@ -75,13 +81,34 @@ type Validator struct {
 	refreshMu   sync.Mutex
 }
 
+type revocationRequest struct {
+	SessionID     string `json:"session_id"`
+	SubjectUserID string `json:"subject_user_id"`
+	Issuer        string `json:"issuer"`
+	Audience      string `json:"audience"`
+	IssuedAt      string `json:"issued_at"`
+	ExpiresAt     string `json:"expires_at"`
+}
+
+type revocationResponse struct {
+	Active    bool   `json:"active"`
+	Revoked   bool   `json:"revoked"`
+	ExpiresAt string `json:"expires_at,omitempty"`
+}
+
 // NewValidator creates a JWT validator from configuration.
 // If jwksURL is empty, returns a validator that rejects all tokens.
 func NewValidator(jwksURL, issuer, audience string) (*Validator, error) {
+	jwksURL = strings.TrimSpace(jwksURL)
+	issuer = strings.TrimSpace(issuer)
+	audience = strings.TrimSpace(audience)
+	if err := validateConfig(jwksURL, issuer, audience); err != nil {
+		return nil, err
+	}
 	return &Validator{
-		jwksURL:     strings.TrimSpace(jwksURL),
-		issuer:      strings.TrimSpace(issuer),
-		aud:         strings.TrimSpace(audience),
+		jwksURL:     jwksURL,
+		issuer:      issuer,
+		aud:         audience,
 		cacheTTL:    defaultJWKSCacheTTL,
 		fallbackTTL: defaultJWKSFallbackTTL,
 		httpClient: &http.Client{
@@ -89,6 +116,12 @@ func NewValidator(jwksURL, issuer, audience string) (*Validator, error) {
 		},
 		signingKeys: map[string]cachedSigningKey{},
 	}, nil
+}
+
+// SetRevocationURL configures the optional session revocation endpoint used
+// after successful JWT validation.
+func (v *Validator) SetRevocationURL(rawURL string) {
+	v.revocationURL = strings.TrimSpace(rawURL)
 }
 
 // Validate parses and verifies a JWT token string.
@@ -100,7 +133,7 @@ func (v *Validator) Validate(tokenString string) (*Identity, error) {
 // ValidateContext parses and verifies a JWT token string with caller cancellation.
 func (v *Validator) ValidateContext(ctx context.Context, tokenString string) (*Identity, error) {
 	if strings.TrimSpace(tokenString) == "" {
-		return nil, ErrEmptyToken
+		return nil, errEmptyToken
 	}
 	if v.jwksURL == "" {
 		return nil, fmt.Errorf("no jwks url configured")
@@ -147,8 +180,22 @@ func (v *Validator) ValidateContext(ctx context.Context, tokenString string) (*I
 	if strings.TrimSpace(sub) == "" {
 		return nil, fmt.Errorf("token missing sub claim")
 	}
-	if _, err := numericDateClaim(claims["iat"]); err != nil {
+	iatUnix, err := numericDateClaim(claims["iat"])
+	if err != nil {
 		return nil, fmt.Errorf("token missing or invalid iat claim: %w", err)
+	}
+	expUnix, err := numericDateClaim(claims["exp"])
+	if err != nil {
+		return nil, fmt.Errorf("token missing or invalid exp claim: %w", err)
+	}
+	iatAt := time.Unix(iatUnix, 0)
+	expAt := time.Unix(expUnix, 0)
+	now := time.Now()
+	if iatAt.After(now.Add(clockSkew)) {
+		return nil, fmt.Errorf("token issued-at exceeds allowed clock skew")
+	}
+	if expAt.Sub(iatAt) > defaultJWTMaxLifetime {
+		return nil, fmt.Errorf("token lifetime exceeds maximum allowed duration")
 	}
 
 	iss, _ := claims.GetIssuer()
@@ -159,11 +206,66 @@ func (v *Validator) ValidateContext(ctx context.Context, tokenString string) (*I
 		SubjectUserID: sub,
 		Issuer:        iss,
 		SessionID:     sid,
+		IssuedAt:      iatAt,
+		ExpiresAt:     expAt,
 	}
 	if len(aud) > 0 {
 		identity.Audience = aud[0]
 	}
+	if err := v.checkRevocation(ctx, identity); err != nil {
+		return nil, err
+	}
 	return identity, nil
+}
+
+func (v *Validator) checkRevocation(ctx context.Context, identity *Identity) error {
+	if identity == nil || strings.TrimSpace(identity.SessionID) == "" || strings.TrimSpace(v.revocationURL) == "" {
+		return nil
+	}
+	payload := revocationRequest{
+		SessionID:     identity.SessionID,
+		SubjectUserID: identity.SubjectUserID,
+		Issuer:        identity.Issuer,
+		Audience:      identity.Audience,
+		IssuedAt:      identity.IssuedAt.UTC().Format(time.RFC3339),
+		ExpiresAt:     identity.ExpiresAt.UTC().Format(time.RFC3339),
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("encode revocation request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, v.revocationURL, strings.NewReader(string(body)))
+	if err != nil {
+		return fmt.Errorf("build revocation request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := v.httpClient
+	if client == nil {
+		client = &http.Client{Timeout: defaultRevocationTimeout}
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("request revocation endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("revocation endpoint returned status %d", resp.StatusCode)
+	}
+	limited := io.LimitReader(resp.Body, maxRevocationBodyBytes)
+	var result revocationResponse
+	if err := json.NewDecoder(limited).Decode(&result); err != nil {
+		return fmt.Errorf("decode revocation response: %w", err)
+	}
+	if result.Revoked || !result.Active {
+		return fmt.Errorf("session revoked")
+	}
+	if expiry := strings.TrimSpace(result.ExpiresAt); expiry != "" {
+		if _, err := time.Parse(time.RFC3339, expiry); err != nil {
+			return fmt.Errorf("invalid revocation response expires_at: %w", err)
+		}
+	}
+	return nil
 }
 
 func (v *Validator) resolveSigningKey(ctx context.Context, kid, tokenAlg string) (crypto.PublicKey, error) {
@@ -175,7 +277,11 @@ func (v *Validator) resolveSigningKey(ctx context.Context, kid, tokenAlg string)
 			}
 			return key.publicKey, nil
 		}
-		if err := v.refreshJWKS(ctx, true, kid); err != nil {
+		// Re-fetch stale keys before use. refreshJWKS() coalesces refreshes
+		// within refreshCoalesceWindow for the same kid, so concurrent validators
+		// do not stampede the JWKS endpoint even though this lookup happens
+		// outside the cache read lock.
+		if err := v.refreshJWKS(ctx, kid); err != nil {
 			if age <= v.cacheTTL+v.fallbackTTL {
 				if compatErr := ensureAlgorithmCompatibility(tokenAlg, key); compatErr == nil {
 					return key.publicKey, nil
@@ -192,7 +298,7 @@ func (v *Validator) resolveSigningKey(ctx context.Context, kid, tokenAlg string)
 		return nil, fmt.Errorf("signing key not found for kid %q", kid)
 	}
 
-	if err := v.refreshJWKS(ctx, true, kid); err != nil {
+	if err := v.refreshJWKS(ctx, kid); err != nil {
 		return nil, fmt.Errorf("refresh jwks for missing kid %q: %w", kid, err)
 	}
 	refreshed, _, ok := v.cacheLookup(kid)
@@ -212,27 +318,17 @@ func (v *Validator) cacheLookup(kid string) (cachedSigningKey, time.Time, bool) 
 	return key, v.fetchedAt, ok
 }
 
-func (v *Validator) refreshJWKS(ctx context.Context, force bool, requiredKid string) error {
+func (v *Validator) refreshJWKS(ctx context.Context, requiredKid string) error {
 	v.refreshMu.Lock()
 	defer v.refreshMu.Unlock()
 
-	if !force {
-		v.mu.RLock()
-		cached := len(v.signingKeys) > 0
-		fetchedAt := v.fetchedAt
-		v.mu.RUnlock()
-		if cached && !fetchedAt.IsZero() && time.Since(fetchedAt) <= v.cacheTTL {
-			return nil
-		}
-	} else {
-		v.mu.RLock()
-		cached := len(v.signingKeys) > 0
-		fetchedAt := v.fetchedAt
-		_, hasRequiredKid := v.signingKeys[requiredKid]
-		v.mu.RUnlock()
-		if cached && !fetchedAt.IsZero() && time.Since(fetchedAt) <= refreshCoalesceWindow && hasRequiredKid {
-			return nil
-		}
+	v.mu.RLock()
+	cached := len(v.signingKeys) > 0
+	fetchedAt := v.fetchedAt
+	_, hasRequiredKid := v.signingKeys[requiredKid]
+	v.mu.RUnlock()
+	if cached && !fetchedAt.IsZero() && time.Since(fetchedAt) <= refreshCoalesceWindow && hasRequiredKid {
+		return nil
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, v.jwksURL, nil)
@@ -243,7 +339,10 @@ func (v *Validator) refreshJWKS(ctx context.Context, force bool, requiredKid str
 	if err != nil {
 		return fmt.Errorf("request jwks endpoint: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, maxJWKSBodyBytes))
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("jwks endpoint returned status %d", resp.StatusCode)
@@ -262,6 +361,9 @@ func (v *Validator) refreshJWKS(ctx context.Context, force bool, requiredKid str
 	}
 
 	v.mu.Lock()
+	// Replace the cache atomically with the newly parsed JWKS document. Keeping
+	// the cache as a single coherent snapshot avoids mixing keys from different
+	// rotations and preserves deterministic validation semantics for each fetch.
 	v.signingKeys = parsedKeys
 	v.fetchedAt = time.Now()
 	v.mu.Unlock()
@@ -314,9 +416,13 @@ func parseRSAJWK(entry jwkEntry) (crypto.PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("decode rsa exponent: %w", err)
 	}
-	exponent := 0
+	maxPlatformInt := int64(^uint(0) >> 1)
+	var exponent int64
 	for _, b := range eBytes {
-		exponent = exponent<<8 + int(b)
+		if exponent > (maxPlatformInt-int64(b))/256 {
+			return nil, fmt.Errorf("rsa exponent overflows platform int")
+		}
+		exponent = exponent<<8 + int64(b)
 	}
 	if exponent <= 0 {
 		return nil, fmt.Errorf("invalid rsa exponent")
@@ -327,7 +433,7 @@ func parseRSAJWK(entry jwkEntry) (crypto.PublicKey, error) {
 	}
 	return &rsa.PublicKey{
 		N: modulus,
-		E: exponent,
+		E: int(exponent),
 	}, nil
 }
 
@@ -412,4 +518,40 @@ func numericDateClaim(value any) (int64, error) {
 	default:
 		return 0, fmt.Errorf("invalid numeric date type %T", value)
 	}
+}
+
+func validateConfig(jwksURL, issuer, audience string) error {
+	if jwksURL == "" && issuer == "" && audience == "" {
+		return nil
+	}
+	if jwksURL == "" || issuer == "" || audience == "" {
+		return fmt.Errorf("jwt auth config requires issuer, audience, and jwks url together")
+	}
+	parsed, err := url.Parse(jwksURL)
+	if err != nil {
+		return fmt.Errorf("auth jwt jwks url invalid: %w", err)
+	}
+	host := strings.TrimSpace(strings.ToLower(parsed.Hostname()))
+	if host == "" {
+		return fmt.Errorf("auth jwt jwks url must include host")
+	}
+	if parsed.Scheme == "https" {
+		return nil
+	}
+	if parsed.Scheme == "http" && isLoopbackHost(host) {
+		return nil
+	}
+	return fmt.Errorf("auth jwt jwks url must use https unless host is loopback")
+}
+
+func isLoopbackHost(host string) bool {
+	host = strings.TrimSpace(strings.ToLower(host))
+	if host == "" {
+		return false
+	}
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }

@@ -3,6 +3,7 @@ package scopecatalog
 import (
 	"strings"
 	"sync"
+	"unicode"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -138,18 +139,40 @@ func (c *Catalog) emitAudit(operation string, version string, code runtimev1.Rea
 func isRecognizedScope(scope string) bool {
 	switch {
 	case strings.HasPrefix(scope, "runtime."):
-		return true
+		return hasValidScopeSuffix(scope, "runtime.")
 	case strings.HasPrefix(scope, "realm."):
-		return true
+		return hasValidScopeSuffix(scope, "realm.")
 	case strings.HasPrefix(scope, "app."):
-		return true
+		return hasValidScopeSuffix(scope, "app.")
 	case strings.HasPrefix(scope, "read:"):
-		return true
+		return hasValidScopeSuffix(scope, "read:")
 	case strings.HasPrefix(scope, "write:"):
-		return true
+		return hasValidScopeSuffix(scope, "write:")
 	case strings.HasPrefix(scope, "grant:"):
-		return true
+		return hasValidScopeSuffix(scope, "grant:")
 	default:
 		return false
 	}
+}
+
+func hasValidScopeSuffix(scope string, prefix string) bool {
+	suffix := strings.TrimSpace(strings.TrimPrefix(scope, prefix))
+	if suffix == "" {
+		return false
+	}
+	if strings.HasPrefix(suffix, ".") || strings.HasSuffix(suffix, ".") || strings.Contains(suffix, "..") {
+		return false
+	}
+	for _, r := range suffix {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			continue
+		}
+		switch r {
+		case '.', '_', '-', '*':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }

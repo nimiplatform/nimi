@@ -90,7 +90,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	)
 	authSvc := authservice.NewWithDependencies(
 		logger, appRegistry, auditStore,
-		cfg.SessionTTLMinSeconds, cfg.SessionTTLMaxSeconds,
+		int32(cfg.SessionTTLMinSeconds), int32(cfg.SessionTTLMaxSeconds),
 	)
 
 	// AuthN validator — JWKS mode (K-AUTHN-004)
@@ -99,6 +99,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		logger.Warn("JWT authn validator init failed; all JWT tokens will be rejected", "error", authnErr)
 		authnValidator, _ = authn.NewValidator("", "", "")
 	}
+	authnValidator.SetRevocationURL(cfg.AuthJWTRevocationURL)
 
 	g := grpc.NewServer(
 		grpc.MaxRecvMsgSize(maxGRPCMessageBytes),
@@ -107,7 +108,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 		grpc.ReadBufferSize(grpcIOBufferBytes),
 		grpc.WriteBufferSize(grpcIOBufferBytes),
 		grpc.ChainUnaryInterceptor(
-			newUnaryVersionInterceptor(version),
+			newUnaryVersionInterceptor(logger, version),
 			newUnaryLifecycleInterceptor(state),
 			newUnaryProtocolInterceptor(idempotencyStore),
 			authn.NewUnaryInterceptor(authnValidator),
@@ -116,7 +117,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 			newUnaryAuditInterceptor(auditStore),
 		),
 		grpc.ChainStreamInterceptor(
-			newStreamVersionInterceptor(version),
+			newStreamVersionInterceptor(logger, version),
 			newStreamLifecycleInterceptor(state),
 			newStreamProtocolInterceptor(),
 			authn.NewStreamInterceptor(authnValidator),
@@ -130,15 +131,15 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 
 	connStore := connectorservice.NewConnectorStore(connectorservice.ResolveBasePath())
 	if err := connStore.ReconcileStartup(); err != nil {
-		logger.Warn("connector store reconcile startup failed", "error", err)
+		return nil, fmt.Errorf("reconcile connector store: %w", err)
 	}
 	if err := connectorservice.EnsureLocalConnectors(connStore); err != nil {
-		logger.Warn("local connector bootstrap failed", "error", err)
+		return nil, fmt.Errorf("ensure local connectors: %w", err)
 	}
 
 	cloudDefs := buildCloudConnectorDefs(cfg)
 	if err := connectorservice.EnsureCloudConnectorsFromConfig(connStore, cloudDefs); err != nil {
-		logger.Warn("cloud connector auto-registration failed", "error", err)
+		return nil, fmt.Errorf("ensure cloud connectors: %w", err)
 	}
 
 	aiSvc, err := aiservice.New(logger, modelRegistry, aiHealth, auditStore, connStore, cfg)

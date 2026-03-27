@@ -132,6 +132,34 @@ func TestUnaryProtocolInterceptorRejectsVersionMinorMismatch(t *testing.T) {
 	}
 }
 
+func TestUnaryProtocolInterceptorRejectsNonProtoWriteRequest(t *testing.T) {
+	store, err := idempotency.New(time.Hour, 16)
+	if err != nil {
+		t.Fatalf("New idempotency store: %v", err)
+	}
+	interceptor := newUnaryProtocolInterceptor(store)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-protocol-version", "1.0.0",
+		"x-nimi-participant-protocol-version", "1.0.0",
+		"x-nimi-participant-id", "nimi-cli",
+		"x-nimi-domain", "runtime.model",
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-idempotency-key", "idem-bad-req",
+		"x-nimi-caller-kind", "third-party-service",
+		"x-nimi-caller-id", "nimi-cli",
+	))
+	_, err = interceptor(ctx, struct{ AppID string }{AppID: "nimi.desktop"}, &grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeModelService/RemoveModel"}, func(_ context.Context, _ any) (any, error) {
+		t.Fatal("handler must not be called for unsupported request type")
+		return nil, nil
+	})
+	if err == nil {
+		t.Fatal("expected protocol error for non-proto write request")
+	}
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("unexpected status code: %v", status.Code(err))
+	}
+}
+
 func TestUnaryAuthzInterceptorProtectedCapability(t *testing.T) {
 	registry := appregistry.New()
 	if err := registry.Upsert("nimi.desktop", &runtimev1.AppModeManifest{
@@ -202,10 +230,18 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/DeleteVoiceAsset",
+		"/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
+		"/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession",
+		"/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
+		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
+		"/nimi.runtime.v1.RuntimeLocalService/InstallLocalModel",
+		"/nimi.runtime.v1.RuntimeLocalService/EnsureEngine",
 		"/nimi.runtime.v1.RuntimeConnectorService/CreateConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/UpdateConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/DeleteConnector",
 		"/nimi.runtime.v1.RuntimeConnectorService/TestConnector",
+		"/nimi.runtime.v1.RuntimeConnectorService/UpsertModelCatalogProvider",
+		"/nimi.runtime.v1.RuntimeConnectorService/DeleteCatalogModelOverlay",
 	}
 	for _, method := range writeMethods {
 		if !isWriteMethod(method) {
@@ -217,6 +253,8 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob",
 		"/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts",
 		"/nimi.runtime.v1.RuntimeAiService/ListScenarioProfiles",
+		"/nimi.runtime.v1.RuntimeConnectorService/ListProviderCatalog",
+		"/nimi.runtime.v1.RuntimeWorkflowService/GetWorkflow",
 	}
 	for _, method := range readMethods {
 		if isWriteMethod(method) {

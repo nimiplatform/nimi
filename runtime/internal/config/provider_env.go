@@ -108,14 +108,7 @@ func resolveProviderAPIKeyWithBinding(target RuntimeFileTarget, fallbackEnvKey s
 			return value
 		}
 	}
-	value := strings.TrimSpace(target.APIKey)
-	if strings.HasPrefix(value, "${") && strings.HasSuffix(value, "}") {
-		envRef := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(value, "${"), "}"))
-		if envRef != "" {
-			return strings.TrimSpace(os.Getenv(envRef))
-		}
-	}
-	return value
+	return strings.TrimSpace(target.APIKey)
 }
 
 // NormalizeProviderName strips non-alphanumeric characters and lowercases.

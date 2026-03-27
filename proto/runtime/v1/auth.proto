@@ -11,6 +11,7 @@ enum ExternalProofType {
   EXTERNAL_PROOF_TYPE_UNSPECIFIED = 0;
   EXTERNAL_PROOF_TYPE_JWT = 1;
   reserved 2;
+  reserved "EXTERNAL_PROOF_TYPE_HMAC_SHA256";
 }
 
 enum AppMode {

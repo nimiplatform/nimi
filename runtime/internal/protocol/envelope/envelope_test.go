@@ -3,9 +3,12 @@ package envelope
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 func validMD() metadata.MD {
@@ -20,7 +23,7 @@ func validMD() metadata.MD {
 		"x-nimi-caller-id", "caller-1",
 		"x-nimi-surface-id", "surface-1",
 		"x-nimi-app-id", "app-1",
-		"x-nimi-key-source", "LOCAL",
+		"x-nimi-key-source", "INLINE",
 		"x-nimi-provider-type", "openai",
 		"x-nimi-provider-endpoint", "https://api.openai.com",
 		"x-nimi-provider-api-key", "test-api-key",
@@ -42,7 +45,7 @@ func TestValidateSuccess(t *testing.T) {
 	if meta.Domain != "test.domain" {
 		t.Fatalf("domain: got=%q", meta.Domain)
 	}
-	if meta.CredentialSource != "local" {
+	if meta.CredentialSource != "inline" {
 		t.Fatalf("credential source should be lowercased: got=%q", meta.CredentialSource)
 	}
 }
@@ -109,6 +112,59 @@ func TestValidateIdempotencyRequiresCallerFields(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsUnknownCredentialSource(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-id", "part-1",
+		"x-nimi-domain", "test",
+		"x-nimi-key-source", "local",
+	))
+	_, err := Validate(ctx, nil, false)
+	if err == nil {
+		t.Fatal("should fail on unsupported credential source")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Message() != "credential source must be inline or managed" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateRejectsOversizedHeaderValues(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-id", "part-1",
+		"x-nimi-domain", "test",
+		"x-nimi-provider-api-key", strings.Repeat("a", maxEnvelopeHeaderValueBytes+1),
+	))
+	_, err := Validate(ctx, nil, false)
+	if err == nil {
+		t.Fatal("should fail on oversized envelope header")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Message() != "x-nimi-provider-api-key exceeds 4096-byte limit" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateRejectsRequestDomainConflictForGenericGetDomain(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-protocol-version", PlatformProtocolVersion,
+		"x-nimi-participant-id", "part-1",
+		"x-nimi-domain", "runtime.audit",
+	))
+	_, err := Validate(ctx, &runtimev1.ListAuditEventsRequest{Domain: "runtime.other"}, false)
+	if err == nil {
+		t.Fatal("should fail on request/envelope domain conflict")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Message() != "request domain conflicts with envelope domain" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestParseMajorMinorSemver(t *testing.T) {
 	tests := []struct {
 		input string
@@ -153,7 +209,7 @@ func TestHeaderPairs(t *testing.T) {
 		CallerID:                   "caller-1",
 		AppID:                      "app-1",
 		TraceID:                    "trace-1",
-		CredentialSource:           "local",
+		CredentialSource:           "inline",
 		ProviderType:               "openai",
 		ProviderEndpoint:           "https://api.example.com",
 		ProviderAPIKey:             "key-123",
@@ -226,6 +282,20 @@ func TestParseAccessTokenFromContextMissingMetadata(t *testing.T) {
 	}
 }
 
+func TestParseAccessTokenFromContextRejectsEmptyValues(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-access-token-id", "tok-id",
+		"x-nimi-access-token-secret", " ",
+	))
+	_, _, err := ParseAccessTokenFromContext(ctx)
+	if err == nil {
+		t.Fatal("should fail when token secret is empty")
+	}
+	if !errors.Is(err, ErrEnvelopeMetadataMissing) {
+		t.Fatalf("expected wrapped metadata missing error, got=%v", err)
+	}
+}
+
 func TestParseSessionFromContext(t *testing.T) {
 	md := metadata.Pairs(
 		"x-nimi-session-id", "sess-id",
@@ -251,9 +321,23 @@ func TestParseSessionFromContextMissingMetadata(t *testing.T) {
 	}
 }
 
+func TestParseSessionFromContextRejectsEmptyValues(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-session-id", "sess-id",
+		"x-nimi-session-token", "",
+	))
+	_, _, err := ParseSessionFromContext(ctx)
+	if err == nil {
+		t.Fatal("should fail when session token is empty")
+	}
+	if !errors.Is(err, ErrEnvelopeMetadataMissing) {
+		t.Fatalf("expected wrapped metadata missing error, got=%v", err)
+	}
+}
+
 func TestParseCredentialMetadataFromContext(t *testing.T) {
 	md := metadata.Pairs(
-		"x-nimi-key-source", "LOCAL",
+		"x-nimi-key-source", "INLINE",
 		"x-nimi-provider-type", "openai",
 		"x-nimi-provider-endpoint", "https://api.openai.com",
 		"x-nimi-provider-api-key", "test-api-key",
@@ -263,7 +347,7 @@ func TestParseCredentialMetadataFromContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
-	if credentialMeta.Source != "local" {
+	if credentialMeta.Source != "inline" {
 		t.Fatalf("source should be lowercased: got=%q", credentialMeta.Source)
 	}
 	if credentialMeta.ProviderType != "openai" || credentialMeta.Endpoint != "https://api.openai.com" || credentialMeta.APIKey != "test-api-key" {

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"log/slog"
 	"strings"
@@ -74,6 +75,7 @@ type Service struct {
 
 	mu                 sync.RWMutex
 	apps               map[string]appRegistration
+	registeredApps     map[string]int
 	appSessions        map[string]appSession
 	externalPrincipals map[string]externalPrincipal
 	externalSessions   map[string]externalSession
@@ -88,7 +90,7 @@ func NewWithRegistry(logger *slog.Logger, registry *appregistry.Registry) *Servi
 }
 
 // NewWithDependencies creates a Service with audit store and configurable TTL bounds.
-func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, auditStore *auditlog.Store, ttlMinSeconds int, ttlMaxSeconds int) *Service {
+func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, auditStore *auditlog.Store, ttlMinSeconds int32, ttlMaxSeconds int32) *Service {
 	if registry == nil {
 		registry = appregistry.New()
 	}
@@ -102,12 +104,26 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, au
 		logger:             logger,
 		registry:           registry,
 		auditStore:         auditStore,
-		ttlMinSeconds:      int32(ttlMinSeconds),
-		ttlMaxSeconds:      int32(ttlMaxSeconds),
+		ttlMinSeconds:      ttlMinSeconds,
+		ttlMaxSeconds:      ttlMaxSeconds,
 		apps:               make(map[string]appRegistration),
+		registeredApps:     make(map[string]int),
 		appSessions:        make(map[string]appSession),
 		externalPrincipals: make(map[string]externalPrincipal),
 		externalSessions:   make(map[string]externalSession),
+	}
+}
+
+func (s *Service) pruneExpiredSessionsLocked(now time.Time) {
+	for sessionID, session := range s.appSessions {
+		if !session.ExpiresAt.IsZero() && !session.ExpiresAt.After(now) {
+			delete(s.appSessions, sessionID)
+		}
+	}
+	for sessionID, session := range s.externalSessions {
+		if !session.ExpiresAt.IsZero() && !session.ExpiresAt.After(now) {
+			delete(s.externalSessions, sessionID)
+		}
 	}
 }
 
@@ -144,12 +160,17 @@ func (s *Service) RegisterApp(ctx context.Context, req *runtimev1.RegisterAppReq
 		RegisteredAt:  now,
 	}
 
-	s.mu.Lock()
-	s.apps[appID+"::"+instanceID] = registration
-	s.mu.Unlock()
 	if err := s.registry.Upsert(appID, req.GetModeManifest(), req.GetCapabilities()); err != nil {
 		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
+	s.mu.Lock()
+	s.pruneExpiredSessionsLocked(now)
+	appKey := appID + "::" + instanceID
+	if _, exists := s.apps[appKey]; !exists {
+		s.registeredApps[appID]++
+	}
+	s.apps[appKey] = registration
+	s.mu.Unlock()
 
 	s.emitAudit(ctx, "RegisterApp", appID, "", runtimev1.ReasonCode_ACTION_EXECUTED)
 	s.logger.Info("app registered", "app_id", appID, "app_instance_id", instanceID)
@@ -194,6 +215,7 @@ func (s *Service) OpenSession(ctx context.Context, req *runtimev1.OpenSessionReq
 	}
 
 	s.mu.Lock()
+	s.pruneExpiredSessionsLocked(now)
 	s.appSessions[sessionID] = appSession{
 		SessionID:     sessionID,
 		AppID:         appID,
@@ -225,6 +247,11 @@ func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSess
 		s.emitAudit(ctx, "RefreshSession", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
 	}
+	contextSessionID, contextSessionToken, err := envelope.ParseSessionFromContext(ctx)
+	if err != nil || strings.TrimSpace(contextSessionID) != sessionID {
+		s.emitAudit(ctx, "RefreshSession", "", "", runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 
 	ttl, err := s.resolveTTL(req.GetTtlSeconds(), 3600)
 	if err != nil {
@@ -235,6 +262,7 @@ func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSess
 	s.mu.Lock()
 	session, exists := s.appSessions[sessionID]
 	if !exists {
+		s.pruneExpiredSessionsLocked(time.Now().UTC())
 		s.mu.Unlock()
 		s.emitAudit(ctx, "RefreshSession", "", "", runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED}, nil
@@ -244,11 +272,16 @@ func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSess
 		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_APP_TOKEN_REVOKED)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_APP_TOKEN_REVOKED}, nil
 	}
+	if subtle.ConstantTimeCompare([]byte(session.SessionToken), []byte(strings.TrimSpace(contextSessionToken))) != 1 {
+		s.mu.Unlock()
+		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
+	}
 
 	now := time.Now().UTC()
 	if now.After(session.ExpiresAt) {
-		session.Revoked = true
-		s.appSessions[sessionID] = session
+		delete(s.appSessions, sessionID)
+		s.pruneExpiredSessionsLocked(now)
 		s.mu.Unlock()
 		s.emitAudit(ctx, "RefreshSession", session.AppID, session.SubjectUserID, runtimev1.ReasonCode_SESSION_EXPIRED)
 		return &runtimev1.RefreshSessionResponse{ReasonCode: runtimev1.ReasonCode_SESSION_EXPIRED}, nil
@@ -263,6 +296,7 @@ func (s *Service) RefreshSession(ctx context.Context, req *runtimev1.RefreshSess
 		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
 	}
 	session.SessionToken = sessionToken
+	s.pruneExpiredSessionsLocked(now)
 	s.appSessions[sessionID] = session
 	s.mu.Unlock()
 
@@ -287,9 +321,9 @@ func (s *Service) RevokeSession(ctx context.Context, req *runtimev1.RevokeSessio
 	s.mu.Lock()
 	session, exists := s.appSessions[sessionID]
 	if exists {
-		session.Revoked = true
-		s.appSessions[sessionID] = session
+		delete(s.appSessions, sessionID)
 	}
+	s.pruneExpiredSessionsLocked(time.Now().UTC())
 	s.mu.Unlock()
 
 	auditAppID := ""
@@ -336,6 +370,7 @@ func (s *Service) RegisterExternalPrincipal(ctx context.Context, req *runtimev1.
 	}
 
 	s.mu.Lock()
+	s.pruneExpiredSessionsLocked(time.Now().UTC())
 	s.externalPrincipals[principalKey(appID, externalID)] = principal
 	s.mu.Unlock()
 
@@ -398,6 +433,7 @@ func (s *Service) OpenExternalPrincipalSession(ctx context.Context, req *runtime
 	}
 
 	s.mu.Lock()
+	s.pruneExpiredSessionsLocked(now)
 	s.externalSessions[externalSessionID] = externalSession{
 		ExternalSessionID:   externalSessionID,
 		AppID:               appID,
@@ -430,15 +466,20 @@ func (s *Service) RevokeExternalPrincipalSession(ctx context.Context, req *runti
 	s.mu.Lock()
 	session, exists := s.externalSessions[externalSessionID]
 	if exists {
-		session.Revoked = true
-		s.externalSessions[externalSessionID] = session
+		delete(s.externalSessions, externalSessionID)
 	}
+	s.pruneExpiredSessionsLocked(time.Now().UTC())
 	s.mu.Unlock()
 
-	s.emitAuditWithPayload(ctx, "RevokeExternalPrincipalSession", session.AppID, "", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-		"external_principal_id": session.ExternalPrincipalID,
-		"external_session_id":   externalSessionID,
-	})
+	auditAppID := ""
+	payload := map[string]any{
+		"external_session_id": externalSessionID,
+	}
+	if exists {
+		auditAppID = session.AppID
+		payload["external_principal_id"] = session.ExternalPrincipalID
+	}
+	s.emitAuditWithPayload(ctx, "RevokeExternalPrincipalSession", auditAppID, "", runtimev1.ReasonCode_ACTION_EXECUTED, payload)
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -482,7 +523,14 @@ func (s *Service) emitAuditWithPayload(ctx context.Context, operation string, ap
 	}
 	var payloadStruct *structpb.Struct
 	if len(payload) > 0 {
-		payloadStruct, _ = structpb.NewStruct(payload)
+		built, err := structpb.NewStruct(payload)
+		if err != nil {
+			if s.logger != nil {
+				s.logger.Warn("auth audit payload serialization failed", "operation", operation, "error", err)
+			}
+		} else {
+			payloadStruct = built
+		}
 	}
 	traceID := strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx))
 	s.auditStore.AppendEvent(&runtimev1.AuditEventRecord{

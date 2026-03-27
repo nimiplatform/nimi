@@ -74,7 +74,7 @@ func (c Config) Validate() error {
 	if err := validateOptionalPort(c.EngineSidecarPort, c.EngineSidecarEnabled || c.EngineSidecarPort != 0, "sidecar engine port"); err != nil {
 		return err
 	}
-	if err := validateJWTSettings(c.AuthJWTIssuer, c.AuthJWTAudience, c.AuthJWTJWKSURL); err != nil {
+	if err := validateJWTSettings(c.AuthJWTIssuer, c.AuthJWTAudience, c.AuthJWTJWKSURL, c.AuthJWTRevocationURL); err != nil {
 		return err
 	}
 	return nil
@@ -130,16 +130,17 @@ func validateOptionalPort(port int, required bool, name string) error {
 	return nil
 }
 
-func validateJWTSettings(issuer string, audience string, jwksURL string) error {
+func validateJWTSettings(issuer string, audience string, jwksURL string, revocationURL string) error {
 	issuer = strings.TrimSpace(issuer)
 	audience = strings.TrimSpace(audience)
 	jwksURL = strings.TrimSpace(jwksURL)
+	revocationURL = strings.TrimSpace(revocationURL)
 
-	if issuer == "" && audience == "" && jwksURL == "" {
+	if issuer == "" && audience == "" && jwksURL == "" && revocationURL == "" {
 		return nil
 	}
-	if issuer == "" || audience == "" || jwksURL == "" {
-		return fmt.Errorf("jwt auth config requires issuer, audience, and jwks url together")
+	if issuer == "" || audience == "" || jwksURL == "" || revocationURL == "" {
+		return fmt.Errorf("jwt auth config requires issuer, audience, jwks url, and revocation url together")
 	}
 	parsed, err := url.Parse(jwksURL)
 	if err != nil {
@@ -153,9 +154,24 @@ func validateJWTSettings(issuer string, audience string, jwksURL string) error {
 		return nil
 	}
 	if parsed.Scheme == "http" && isLoopbackHost(host) {
+	} else if parsed.Scheme != "https" {
+		return fmt.Errorf("auth jwt jwks url must use https unless host is loopback")
+	}
+	revocationParsed, err := url.Parse(revocationURL)
+	if err != nil {
+		return fmt.Errorf("auth jwt revocation url invalid: %w", err)
+	}
+	revocationHost := strings.TrimSpace(strings.ToLower(revocationParsed.Hostname()))
+	if revocationHost == "" {
+		return fmt.Errorf("auth jwt revocation url must include host")
+	}
+	if revocationParsed.Scheme == "https" {
 		return nil
 	}
-	return fmt.Errorf("auth jwt jwks url must use https unless host is loopback")
+	if revocationParsed.Scheme == "http" && isLoopbackHost(revocationHost) {
+		return nil
+	}
+	return fmt.Errorf("auth jwt revocation url must use https unless host is loopback")
 }
 
 func isLoopbackHost(host string) bool {

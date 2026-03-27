@@ -219,6 +219,7 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 		return runRuntimeConfig([]string{
 			"set",
 			"--set", "auth.jwt.jwksUrl=https://realm.nimi.xyz/api/auth/jwks",
+			"--set", "auth.jwt.revocationUrl=https://realm.nimi.xyz/api/auth/revocation",
 			"--set", "auth.jwt.issuer=https://realm.nimi.xyz",
 			"--set", "auth.jwt.audience=nimi-runtime",
 			"--json",
@@ -243,6 +244,9 @@ func TestRunRuntimeConfigSetAuthJWTFieldsRequireRestart(t *testing.T) {
 	if cfg.Auth.JWT.JWKSURL != "https://realm.nimi.xyz/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.Auth.JWT.JWKSURL)
 	}
+	if cfg.Auth.JWT.RevocationURL != "https://realm.nimi.xyz/api/auth/revocation" {
+		t.Fatalf("revocationUrl mismatch: %q", cfg.Auth.JWT.RevocationURL)
+	}
 	if cfg.Auth.JWT.Issuer != "https://realm.nimi.xyz" {
 		t.Fatalf("issuer mismatch: %q", cfg.Auth.JWT.Issuer)
 	}
@@ -264,6 +268,7 @@ func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 	if err := runRuntimeConfig([]string{
 		"set",
 		"--set", "auth.jwt.jwksUrl=https://realm.nimi.xyz/api/auth/jwks",
+		"--set", "auth.jwt.revocationUrl=https://realm.nimi.xyz/api/auth/revocation",
 		"--set", "auth.jwt.issuer=https://realm.nimi.xyz",
 		"--set", "auth.jwt.audience=nimi-runtime",
 		"--json",
@@ -275,6 +280,7 @@ func TestRunRuntimeConfigUnsetAuthJWTFieldsPrunesObject(t *testing.T) {
 		return runRuntimeConfig([]string{
 			"set",
 			"--unset", "auth.jwt.jwksUrl",
+			"--unset", "auth.jwt.revocationUrl",
 			"--unset", "auth.jwt.issuer",
 			"--unset", "auth.jwt.audience",
 			"--json",
@@ -334,6 +340,7 @@ func TestRunRuntimeConfigSetAcceptsLoopbackHTTPJWKSURL(t *testing.T) {
 	if err := runRuntimeConfig([]string{
 		"set",
 		"--set", "auth.jwt.jwksUrl=http://localhost:3002/api/auth/jwks",
+		"--set", "auth.jwt.revocationUrl=http://localhost:3002/api/auth/revocation",
 		"--set", "auth.jwt.issuer=http://localhost:3002",
 		"--set", "auth.jwt.audience=nimi-runtime",
 		"--json",
@@ -351,6 +358,9 @@ func TestRunRuntimeConfigSetAcceptsLoopbackHTTPJWKSURL(t *testing.T) {
 	}
 	if cfg.Auth.JWT.JWKSURL != "http://localhost:3002/api/auth/jwks" {
 		t.Fatalf("jwksUrl mismatch: %q", cfg.Auth.JWT.JWKSURL)
+	}
+	if cfg.Auth.JWT.RevocationURL != "http://localhost:3002/api/auth/revocation" {
+		t.Fatalf("revocationUrl mismatch: %q", cfg.Auth.JWT.RevocationURL)
 	}
 }
 
@@ -573,6 +583,7 @@ func clearRuntimeConfigCommandEnv(t *testing.T) {
 		"NIMI_RUNTIME_AUTH_JWT_ISSUER",
 		"NIMI_RUNTIME_AUTH_JWT_AUDIENCE",
 		"NIMI_RUNTIME_AUTH_JWT_JWKS_URL",
+		"NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT",

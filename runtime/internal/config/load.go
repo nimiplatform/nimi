@@ -102,7 +102,7 @@ func Load() (Config, error) {
 		LocalStatePath:          resolveLocalStatePath(fileCfg),
 		LocalModelsPath:         resolveLocalModelsPath(fileCfg),
 		DefaultLocalTextModel:   readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_LOCAL_TEXT_MODEL", fileCfg.DefaultLocalTextModel, ""),
-		DefaultCloudProvider:    strings.TrimSpace(fileCfg.DefaultCloudProvider),
+		DefaultCloudProvider:    normalizeDefaultCloudProvider(readStringWithFileConfigFallback("NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER", fileCfg.DefaultCloudProvider, "")),
 		SessionTTLMinSeconds:    sessionTTLMinSeconds,
 		SessionTTLMaxSeconds:    sessionTTLMaxSeconds,
 		AIHealthIntervalSeconds: aiHealthIntervalSeconds,
@@ -119,6 +119,7 @@ func Load() (Config, error) {
 		AuthJWTIssuer:           readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_ISSUER", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Issuer }), ""),
 		AuthJWTAudience:         readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_AUDIENCE", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.Audience }), ""),
 		AuthJWTJWKSURL:          readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
+		AuthJWTRevocationURL:    readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.RevocationURL }), ""),
 		Providers:               resolvedProviders,
 		EngineLlamaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), "3.12.1"),
 		EngineLlamaPort:         engineLlamaPort,
@@ -358,4 +359,15 @@ func readString(envKey string, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func normalizeDefaultCloudProvider(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	if canonical, ok := ResolveCanonicalProviderID(trimmed); ok {
+		return canonical
+	}
+	return trimmed
 }

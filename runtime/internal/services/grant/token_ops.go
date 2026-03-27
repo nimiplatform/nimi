@@ -105,19 +105,29 @@ func (s *Service) ValidateAppAccessToken(ctx context.Context, req *runtimev1.Val
 
 func (s *Service) RevokeAppAccessToken(ctx context.Context, req *runtimev1.RevokeAppAccessTokenRequest) (*runtimev1.Ack, error) {
 	tokenID := strings.TrimSpace(req.GetTokenId())
+	appID := strings.TrimSpace(req.GetAppId())
 	if tokenID == "" {
 		s.emitAudit(ctx, "RevokeAppAccessToken", "", "", runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, ActionHint: "set token_id"}, nil
+		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, ActionHint: "set_token_id"}, nil
 	}
 
 	s.mu.Lock()
 	token, exists := s.tokens[tokenID]
+	if exists && appID != "" && token.AppID != appID {
+		s.mu.Unlock()
+		s.emitAudit(ctx, "RevokeAppAccessToken", appID, "", runtimev1.ReasonCode_APP_GRANT_INVALID)
+		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_APP_GRANT_INVALID, ActionHint: "use_token_id_for_target_app"}, nil
+	}
 	if exists {
 		s.cascadeRevokeLocked(tokenID)
 	}
 	s.mu.Unlock()
 
-	s.emitAudit(ctx, "RevokeAppAccessToken", token.AppID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
+	auditAppID := token.AppID
+	if auditAppID == "" {
+		auditAppID = appID
+	}
+	s.emitAudit(ctx, "RevokeAppAccessToken", auditAppID, token.SubjectUserID, runtimev1.ReasonCode_ACTION_EXECUTED)
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -188,9 +198,9 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 	}
 
 	tokenID := ulid.Make().String()
-	secret, err := newTokenSecret()
+	secret, err := generateTokenSecret()
 	if err != nil {
-		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AUTH_TOKEN_INVALID.String())
+		return nil, status.Error(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL.String())
 	}
 	childCanDelegate := parent.CanDelegate && parent.MaxDelegationDepth > 1 && childDepth < parent.MaxDelegationDepth
 	child := tokenRecord{
@@ -214,6 +224,10 @@ func (s *Service) IssueDelegatedAccessToken(ctx context.Context, req *runtimev1.
 	}
 
 	s.tokens[tokenID] = child
+	if s.parentChildren[parent.TokenID] == nil {
+		s.parentChildren[parent.TokenID] = make(map[string]bool)
+	}
+	s.parentChildren[parent.TokenID][tokenID] = true
 	key := policyKey(parent.AppID, parent.SubjectUserID, parent.ExternalPrincipalID)
 	if s.policyTokens[key] == nil {
 		s.policyTokens[key] = make(map[string]bool)
@@ -307,10 +321,8 @@ func (s *Service) ListTokenChain(ctx context.Context, req *runtimev1.ListTokenCh
 			IssuedScopeCatalogVersion: token.IssuedScopeCatalog,
 		})
 
-		for childID, child := range s.tokens {
-			if child.ParentTokenID == token.TokenID {
-				queue = append(queue, childID)
-			}
+		for childID := range s.parentChildren[token.TokenID] {
+			queue = append(queue, childID)
 		}
 	}
 

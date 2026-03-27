@@ -90,6 +90,10 @@ type Config struct {
 	// verification is disabled (all tokens rejected). (K-AUTHN-004, K-DAEMON-009)
 	AuthJWTJWKSURL string
 
+	// AuthJWTRevocationURL is the optional session revocation / introspection
+	// endpoint consulted after successful JWT validation.
+	AuthJWTRevocationURL string
+
 	// Providers holds the parsed config.json providers section for cloud connector
 	// auto-registration at startup.
 	Providers map[string]RuntimeFileTarget
@@ -205,9 +209,10 @@ type FileConfigAuth struct {
 
 // FileConfigJWT holds JWT-specific authentication configuration.
 type FileConfigJWT struct {
-	Issuer   string `json:"issuer,omitempty"`
-	Audience string `json:"audience,omitempty"`
-	JWKSURL  string `json:"jwksUrl,omitempty"`
+	Issuer        string `json:"issuer,omitempty"`
+	Audience      string `json:"audience,omitempty"`
+	JWKSURL       string `json:"jwksUrl,omitempty"`
+	RevocationURL string `json:"revocationUrl,omitempty"`
 }
 
 type RuntimeFileTarget struct {

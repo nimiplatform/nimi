@@ -112,6 +112,20 @@ func TestEncode_OpaqueFormat(t *testing.T) {
 	}
 }
 
+func TestEncode_EscapesQuotedFieldsWithoutPanic(t *testing.T) {
+	token := Encode("cursor\"line", "digest\nvalue")
+	cursor, digest, err := Decode(token)
+	if err != nil {
+		t.Fatalf("Decode escaped token: %v", err)
+	}
+	if cursor != "cursor\"line" {
+		t.Fatalf("expected escaped cursor roundtrip, got %q", cursor)
+	}
+	if digest != "digest\nvalue" {
+		t.Fatalf("expected escaped digest roundtrip, got %q", digest)
+	}
+}
+
 func TestDecode_RejectsOversizedToken(t *testing.T) {
 	oversized := strings.Repeat("a", maxEncodedTokenBytes+1)
 	_, _, err := Decode(oversized)

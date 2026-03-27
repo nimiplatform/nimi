@@ -146,6 +146,9 @@ func applyConfigSetOperation(cfg *config.FileConfig, key string, value string) e
 	case "auth.jwt.jwksUrl":
 		ensureAuthJWTConfig(cfg).JWKSURL = value
 		return nil
+	case "auth.jwt.revocationUrl":
+		ensureAuthJWTConfig(cfg).RevocationURL = value
+		return nil
 	case "engines.llama.enabled":
 		parsed, err := parseBooleanConfigValue(value)
 		if err != nil {
@@ -284,6 +287,10 @@ func applyConfigUnsetOperation(cfg *config.FileConfig, key string) error {
 		return nil
 	case "auth.jwt.jwksUrl":
 		ensureAuthJWTConfig(cfg).JWKSURL = ""
+		pruneEmptyAuthConfig(cfg)
+		return nil
+	case "auth.jwt.revocationUrl":
+		ensureAuthJWTConfig(cfg).RevocationURL = ""
 		pruneEmptyAuthConfig(cfg)
 		return nil
 	case "engines.llama.enabled":

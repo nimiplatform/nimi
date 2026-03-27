@@ -2,6 +2,7 @@ package authn
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -53,6 +54,7 @@ func authenticate(ctx context.Context, v *Validator) (context.Context, error) {
 
 	identity, err := v.ValidateContext(ctx, token)
 	if err != nil {
+		slog.Warn("jwt validation failed", "error", err)
 		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
 	if identity == nil {
@@ -80,7 +82,7 @@ func extractBearerToken(ctx context.Context) (string, bool, bool) {
 	if len(auth) < len(bearerPrefix) {
 		return "", hasAuthHeader, true
 	}
-	if !strings.EqualFold(auth[:len(bearerPrefix)], bearerPrefix) {
+	if auth[:len(bearerPrefix)] != bearerPrefix {
 		return "", hasAuthHeader, true
 	}
 	token := strings.TrimSpace(auth[len(bearerPrefix):])

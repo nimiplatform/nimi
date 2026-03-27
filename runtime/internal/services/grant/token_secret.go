@@ -8,6 +8,8 @@ import (
 
 const tokenSecretBytes = 32
 
+var generateTokenSecret = newTokenSecret
+
 func newTokenSecret() (string, error) {
 	buf := make([]byte, tokenSecretBytes)
 	if _, err := rand.Read(buf); err != nil {

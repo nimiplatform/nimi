@@ -2,6 +2,7 @@ package envelope
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,10 +14,15 @@ import (
 )
 
 const (
-	PlatformProtocolVersion = "1.0.0"
+	PlatformProtocolVersion     = "1.0.0"
+	maxEnvelopeHeaderValueBytes = 4 << 10
 )
 
-var ErrEnvelopeMetadataMissing = fmt.Errorf("envelope metadata missing")
+var ErrEnvelopeMetadataMissing = errors.New("envelope metadata missing")
+var allowedCredentialSources = map[string]struct{}{
+	"inline":  {},
+	"managed": {},
+}
 
 type Metadata struct {
 	ProtocolVersion            string
@@ -70,6 +76,12 @@ func Validate(ctx context.Context, req any, requireIdempotency bool) (Metadata, 
 	if requireIdempotency && (meta.CallerKind == "" || meta.CallerID == "") {
 		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "caller kind and caller id are required with idempotency")
 	}
+	if meta.CredentialSource != "" && !isAllowedCredentialSource(meta.CredentialSource) {
+		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, "credential source must be inline or managed")
+	}
+	if err := validateMetadataValueLengths(meta); err != nil {
+		return Metadata{}, err
+	}
 
 	if requestAppID := appIDFromRequest(req); requestAppID != "" && meta.AppID != "" && requestAppID != meta.AppID {
 		return Metadata{}, protocolError(runtimev1.ReasonCode_PROTOCOL_DOMAIN_FIELD_CONFLICT, "request app id conflicts with envelope app id")
@@ -117,6 +129,36 @@ func first(md metadata.MD, key string) string {
 	return strings.TrimSpace(values[0])
 }
 
+func isAllowedCredentialSource(value string) bool {
+	_, ok := allowedCredentialSources[strings.ToLower(strings.TrimSpace(value))]
+	return ok
+}
+
+func validateMetadataValueLengths(meta Metadata) error {
+	fields := map[string]string{
+		"x-nimi-protocol-version":             meta.ProtocolVersion,
+		"x-nimi-participant-protocol-version": meta.ParticipantProtocolVersion,
+		"x-nimi-participant-id":               meta.ParticipantID,
+		"x-nimi-domain":                       meta.Domain,
+		"x-nimi-app-id":                       meta.AppID,
+		"x-nimi-trace-id":                     meta.TraceID,
+		"x-nimi-idempotency-key":              meta.IdempotencyKey,
+		"x-nimi-caller-kind":                  meta.CallerKind,
+		"x-nimi-caller-id":                    meta.CallerID,
+		"x-nimi-surface-id":                   meta.SurfaceID,
+		"x-nimi-key-source":                   meta.CredentialSource,
+		"x-nimi-provider-type":                meta.ProviderType,
+		"x-nimi-provider-endpoint":            meta.ProviderEndpoint,
+		"x-nimi-provider-api-key":             meta.ProviderAPIKey,
+	}
+	for key, value := range fields {
+		if len(value) > maxEnvelopeHeaderValueBytes {
+			return protocolError(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, fmt.Sprintf("%s exceeds %d-byte limit", key, maxEnvelopeHeaderValueBytes))
+		}
+	}
+	return nil
+}
+
 func protocolError(reason runtimev1.ReasonCode, message string) error {
 	return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, reason, grpcerr.ReasonOptions{Message: message})
 }
@@ -133,12 +175,14 @@ func appIDFromRequest(req any) string {
 }
 
 func domainFromRequest(req any) string {
-	switch value := req.(type) {
-	case *runtimev1.AuthorizeExternalPrincipalRequest:
-		return strings.TrimSpace(value.GetDomain())
-	default:
+	if req == nil {
 		return ""
 	}
+	item, ok := req.(interface{ GetDomain() string })
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(item.GetDomain())
 }
 
 func NormalizeProtocolVersion(value string) string {
@@ -215,6 +259,9 @@ func ParseAccessTokenFromContext(ctx context.Context) (string, string, error) {
 	}
 	tokenID := first(md, "x-nimi-access-token-id")
 	secret := first(md, "x-nimi-access-token-secret")
+	if tokenID == "" || secret == "" {
+		return "", "", fmt.Errorf("parse access token from context: %w", ErrEnvelopeMetadataMissing)
+	}
 	return tokenID, secret, nil
 }
 
@@ -225,6 +272,9 @@ func ParseSessionFromContext(ctx context.Context) (string, string, error) {
 	}
 	sessionID := first(md, "x-nimi-session-id")
 	sessionToken := first(md, "x-nimi-session-token")
+	if sessionID == "" || sessionToken == "" {
+		return "", "", fmt.Errorf("parse session from context: %w", ErrEnvelopeMetadataMissing)
+	}
 	return sessionID, sessionToken, nil
 }
 

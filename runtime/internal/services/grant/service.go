@@ -48,10 +48,11 @@ type Service struct {
 	// Delegation depth cap (K-GRANT-005).
 	maxDelegationDepth int32
 
-	mu           sync.RWMutex
-	tokens       map[string]tokenRecord
-	policyIndex  map[string]string
-	policyTokens map[string]map[string]bool
+	mu             sync.RWMutex
+	tokens         map[string]tokenRecord
+	parentChildren map[string]map[string]bool
+	policyIndex    map[string]string
+	policyTokens   map[string]map[string]bool
 }
 
 func New(logger *slog.Logger) *Service {
@@ -73,6 +74,7 @@ func NewWithDependencies(logger *slog.Logger, registry *appregistry.Registry, ca
 		ttlMaxSeconds:      86400,
 		maxDelegationDepth: 3,
 		tokens:             make(map[string]tokenRecord),
+		parentChildren:     make(map[string]map[string]bool),
 		policyIndex:        make(map[string]string),
 		policyTokens:       make(map[string]map[string]bool),
 	}

@@ -1,13 +1,18 @@
 package authn
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Identity represents a verified JWT identity extracted from the request.
 type Identity struct {
 	SubjectUserID string // sub claim
 	Issuer        string // iss claim
-	Audience      string // aud claim (first audience)
+	Audience      string // aud claim projected to the first audience for current runtime callers
 	SessionID     string // sid claim, if present
+	IssuedAt      time.Time
+	ExpiresAt     time.Time
 }
 
 type contextKey struct{}

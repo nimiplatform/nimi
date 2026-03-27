@@ -13,6 +13,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"io"
+	"net"
+	"net/url"
 	"strings"
 )
 
@@ -33,7 +35,11 @@ func StreamScenarioGRPC(ctx context.Context, grpcAddr string, req *runtimev1.Str
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	ctx = withNimiOutgoingMetadata(ctx, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -77,59 +83,7 @@ func StreamScenarioGRPC(ctx context.Context, grpcAddr string, req *runtimev1.Str
 func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverride *ClientMetadata) context.Context {
 	appID = strings.TrimSpace(appID)
 	metadataValue := defaultClientMetadata()
-	if metadataOverride != nil {
-		if value := strings.TrimSpace(metadataOverride.CallerKind); value != "" {
-			metadataValue.CallerKind = value
-		}
-		if value := strings.TrimSpace(metadataOverride.CallerID); value != "" {
-			metadataValue.CallerID = value
-		}
-		if value := strings.TrimSpace(metadataOverride.SurfaceID); value != "" {
-			metadataValue.SurfaceID = value
-		}
-		if value := strings.TrimSpace(metadataOverride.TraceID); value != "" {
-			metadataValue.TraceID = value
-		}
-		if value := strings.ToLower(strings.TrimSpace(metadataOverride.CredentialSource)); value != "" {
-			metadataValue.CredentialSource = value
-		}
-		if value := strings.TrimSpace(metadataOverride.ProviderType); value != "" {
-			metadataValue.ProviderType = value
-		}
-		if value := strings.TrimSpace(metadataOverride.ProviderEndpoint); value != "" {
-			metadataValue.ProviderEndpoint = value
-		}
-		if value := strings.TrimSpace(metadataOverride.ProviderAPIKey); value != "" {
-			metadataValue.ProviderAPIKey = value
-		}
-		if value := strings.TrimSpace(metadataOverride.ProtocolVersion); value != "" {
-			metadataValue.ProtocolVersion = value
-		}
-		if value := strings.TrimSpace(metadataOverride.ParticipantProtocolVersion); value != "" {
-			metadataValue.ParticipantProtocolVersion = value
-		}
-		if value := strings.TrimSpace(metadataOverride.ParticipantID); value != "" {
-			metadataValue.ParticipantID = value
-		}
-		if value := strings.TrimSpace(metadataOverride.Domain); value != "" {
-			metadataValue.Domain = value
-		}
-		if value := strings.TrimSpace(metadataOverride.IdempotencyKey); value != "" {
-			metadataValue.IdempotencyKey = value
-		}
-		if value := strings.TrimSpace(metadataOverride.AccessTokenID); value != "" {
-			metadataValue.AccessTokenID = value
-		}
-		if value := strings.TrimSpace(metadataOverride.AccessTokenSecret); value != "" {
-			metadataValue.AccessTokenSecret = value
-		}
-		if value := strings.TrimSpace(metadataOverride.SessionID); value != "" {
-			metadataValue.SessionID = value
-		}
-		if value := strings.TrimSpace(metadataOverride.SessionToken); value != "" {
-			metadataValue.SessionToken = value
-		}
-	}
+	applyClientMetadataOverrides(&metadataValue, metadataOverride)
 	if metadataValue.IdempotencyKey == "" {
 		metadataValue.IdempotencyKey = ulid.Make().String()
 	}
@@ -174,6 +128,107 @@ func withNimiOutgoingMetadata(ctx context.Context, appID string, metadataOverrid
 		pairs = append(pairs, "x-nimi-session-token", sessionToken)
 	}
 	return metadata.AppendToOutgoingContext(ctx, pairs...)
+}
+
+type clientMetadataOverrideField struct {
+	value string
+	set   func(string)
+}
+
+func applyClientMetadataOverrides(dst *ClientMetadata, override *ClientMetadata) {
+	if dst == nil || override == nil {
+		return
+	}
+	fields := []clientMetadataOverrideField{
+		{value: strings.TrimSpace(override.ProtocolVersion), set: func(value string) { dst.ProtocolVersion = value }},
+		{value: strings.TrimSpace(override.ParticipantProtocolVersion), set: func(value string) { dst.ParticipantProtocolVersion = value }},
+		{value: strings.TrimSpace(override.ParticipantID), set: func(value string) { dst.ParticipantID = value }},
+		{value: strings.TrimSpace(override.Domain), set: func(value string) { dst.Domain = value }},
+		{value: strings.TrimSpace(override.IdempotencyKey), set: func(value string) { dst.IdempotencyKey = value }},
+		{value: strings.TrimSpace(override.CallerKind), set: func(value string) { dst.CallerKind = value }},
+		{value: strings.TrimSpace(override.CallerID), set: func(value string) { dst.CallerID = value }},
+		{value: strings.TrimSpace(override.SurfaceID), set: func(value string) { dst.SurfaceID = value }},
+		{value: strings.TrimSpace(override.TraceID), set: func(value string) { dst.TraceID = value }},
+		{value: strings.ToLower(strings.TrimSpace(override.CredentialSource)), set: func(value string) { dst.CredentialSource = value }},
+		{value: strings.TrimSpace(override.ProviderType), set: func(value string) { dst.ProviderType = value }},
+		{value: strings.TrimSpace(override.ProviderEndpoint), set: func(value string) { dst.ProviderEndpoint = value }},
+		{value: strings.TrimSpace(override.ProviderAPIKey), set: func(value string) { dst.ProviderAPIKey = value }},
+		{value: strings.TrimSpace(override.AccessTokenID), set: func(value string) { dst.AccessTokenID = value }},
+		{value: strings.TrimSpace(override.AccessTokenSecret), set: func(value string) { dst.AccessTokenSecret = value }},
+		{value: strings.TrimSpace(override.SessionID), set: func(value string) { dst.SessionID = value }},
+		{value: strings.TrimSpace(override.SessionToken), set: func(value string) { dst.SessionToken = value }},
+	}
+	for _, field := range fields {
+		if field.value != "" {
+			field.set(field.value)
+		}
+	}
+}
+
+func prepareInsecureOutgoingContext(
+	ctx context.Context,
+	grpcAddr string,
+	appID string,
+	metadataOverride *ClientMetadata,
+) (context.Context, error) {
+	if err := validateInsecureTransportMetadata(grpcAddr, metadataOverride); err != nil {
+		return nil, err
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return withNimiOutgoingMetadata(ctx, appID, metadataOverride), nil
+}
+
+func validateInsecureTransportMetadata(grpcAddr string, metadataOverride *ClientMetadata) error {
+	if metadataOverride == nil || strings.TrimSpace(metadataOverride.ProviderAPIKey) == "" {
+		return nil
+	}
+	if insecureGRPCTargetIsLocal(grpcAddr) {
+		return nil
+	}
+	return errors.New("provider_api_key requires loopback or unix gRPC target when using insecure transport")
+}
+
+func insecureGRPCTargetIsLocal(grpcAddr string) bool {
+	target := strings.TrimSpace(grpcAddr)
+	if target == "" {
+		return false
+	}
+	if strings.HasPrefix(target, "unix:") {
+		return true
+	}
+	if strings.Contains(target, "://") {
+		parsed, err := url.Parse(target)
+		if err == nil && parsed.Scheme != "" {
+			switch parsed.Scheme {
+			case "unix", "unix-abstract":
+				return true
+			}
+			switch {
+			case strings.TrimSpace(parsed.Host) != "":
+				target = parsed.Host
+			case strings.TrimSpace(parsed.Opaque) != "":
+				target = parsed.Opaque
+			case strings.TrimSpace(parsed.Path) != "":
+				target = strings.TrimPrefix(parsed.Path, "/")
+			}
+		}
+	}
+	target = strings.TrimPrefix(target, "/")
+	if slash := strings.Index(target, "/"); slash >= 0 {
+		target = target[:slash]
+	}
+	host := target
+	if parsedHost, _, err := net.SplitHostPort(target); err == nil {
+		host = parsedHost
+	}
+	host = strings.Trim(strings.TrimSpace(host), "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 // WithNimiOutgoingMetadata applies the standard runtime protocol envelope onto

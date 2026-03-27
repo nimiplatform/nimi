@@ -279,3 +279,33 @@ func TestAuditRetentionPolicyEnforced(t *testing.T) {
 		}
 	}
 }
+
+func TestAppendEventRingBufferWrapPreservesNewestEvents(t *testing.T) {
+	store := New(3, 10)
+	now := time.Now().UTC()
+	for i := 0; i < 6; i++ {
+		store.AppendEvent(&runtimev1.AuditEventRecord{
+			Domain:    "wrap",
+			Operation: "op-" + strconv.Itoa(i),
+			Timestamp: timestamppb.New(now.Add(time.Duration(i) * time.Second)),
+		})
+	}
+
+	resp, err := store.ListEvents(&runtimev1.ListAuditEventsRequest{
+		Domain:   "wrap",
+		PageSize: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListEvents: %v", err)
+	}
+	if len(resp.GetEvents()) != 3 {
+		t.Fatalf("expected 3 retained events, got %d", len(resp.GetEvents()))
+	}
+
+	want := []string{"op-5", "op-4", "op-3"}
+	for i, event := range resp.GetEvents() {
+		if event.GetOperation() != want[i] {
+			t.Fatalf("event[%d] = %q, want %q", i, event.GetOperation(), want[i])
+		}
+	}
+}

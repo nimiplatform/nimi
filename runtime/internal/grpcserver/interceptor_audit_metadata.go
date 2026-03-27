@@ -232,7 +232,7 @@ func camelToSnake(input string) string {
 	out := make([]rune, 0, len(runes)+4)
 	for idx, r := range runes {
 		if unicode.IsUpper(r) {
-			if idx > 0 {
+			if idx > 0 && shouldInsertSnakeBoundary(runes, idx) {
 				out = append(out, '_')
 			}
 			out = append(out, unicode.ToLower(r))
@@ -241,6 +241,18 @@ func camelToSnake(input string) string {
 		out = append(out, unicode.ToLower(r))
 	}
 	return string(out)
+}
+
+func shouldInsertSnakeBoundary(runes []rune, idx int) bool {
+	prev := runes[idx-1]
+	if unicode.IsLower(prev) || unicode.IsDigit(prev) {
+		return true
+	}
+	if idx+1 >= len(runes) {
+		return false
+	}
+	next := runes[idx+1]
+	return unicode.IsLower(next) || unicode.IsDigit(next)
 }
 
 func cloneUsage(input *runtimev1.UsageStats) *runtimev1.UsageStats {

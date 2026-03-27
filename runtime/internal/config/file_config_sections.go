@@ -27,7 +27,7 @@ func isCanonicalProviderName(raw string) bool {
 }
 
 func normalizedProviderKey(raw string) string {
-	return strings.ToLower(strings.TrimSpace(raw))
+	return NormalizeProviderName(raw)
 }
 
 // fileConfigEngineBool extracts the Enabled *bool for the named engine from FileConfig.
