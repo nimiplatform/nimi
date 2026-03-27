@@ -513,11 +513,11 @@ export function ContactsView(props: ContactsViewProps) {
       </SidebarShell>
 
       {/* 右侧详情区 - 使用共享 profile 详情页 */}
-      <ScrollArea
-        as="main"
-        className="flex min-w-0 flex-1 flex-col bg-white"
-        viewportClassName="bg-white"
-      >
+      <main className="flex min-w-0 flex-1 flex-col bg-white">
+        <ScrollArea
+          className="flex min-w-0 flex-1 flex-col bg-white"
+          viewportClassName="bg-white"
+        >
         {selectedRequest ? (
           // 单个好友请求详情
           <FriendRequestDetail
@@ -603,7 +603,8 @@ export function ContactsView(props: ContactsViewProps) {
             </div>
           </div>
         )}
-      </ScrollArea>
+        </ScrollArea>
+      </main>
 
       {/* Block 确认对话框 */}
       {blockingContact && (

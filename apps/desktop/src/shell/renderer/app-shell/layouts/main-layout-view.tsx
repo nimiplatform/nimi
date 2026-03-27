@@ -488,8 +488,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                 {nimiHomeNode}
               </SidebarTooltipButton>
             </div>
-            <ScrollArea as="nav" className="flex-1" viewportClassName="pt-2">
-              <div className="flex flex-col gap-1">
+            <nav className="flex-1">
+              <ScrollArea className="flex-1" viewportClassName="pt-2">
+                <div className="flex flex-col gap-1">
                 {primaryCoreNavItems.map((item) => (
                   <NavLink
                     key={item.id}
@@ -516,8 +517,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     onClick={() => props.onNav('mods')}
                   />
                 ) : null}
-              </div>
-            </ScrollArea>
+                </div>
+              </ScrollArea>
+            </nav>
 
           </aside>
         )}

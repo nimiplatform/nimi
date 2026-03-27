@@ -285,15 +285,20 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
   const initialLoading = worldCompositeQuery.isPending && !detail;
   const initialError = !initialLoading
     && (worldCompositeQuery.isError || (worldCompositeQuery.isSuccess && !detail));
+  const supplementalError = worldHistoryQuery.isError
+    || worldSemanticQuery.isError
+    || worldAuditQuery.isError
+    || worldPublicAssetsQuery.isError;
+  const pageError = initialError || supplementalError;
   const worldData = toXianxiaWorldData(world, detail);
 
   const agentRecords = Array.isArray(detail?.agents) ? (detail.agents as Array<Record<string, unknown>>) : [];
   const agents: WorldAgent[] = agentRecords.map((agent) => toWorldAgent(agent, world.createdAt));
 
-  const safeHistory = worldHistoryQuery.data ?? EMPTY_WORLD_HISTORY;
-  const safeSemantic = worldSemanticQuery.data ?? EMPTY_WORLD_SEMANTIC;
-  const safeAudits = worldAuditQuery.data ?? [];
-  const safePublicAssets = worldPublicAssetsQuery.data ?? EMPTY_WORLD_PUBLIC_ASSETS;
+  const safeHistory = worldHistoryQuery.isSuccess ? worldHistoryQuery.data : EMPTY_WORLD_HISTORY;
+  const safeSemantic = worldSemanticQuery.isSuccess ? worldSemanticQuery.data : EMPTY_WORLD_SEMANTIC;
+  const safeAudits = worldAuditQuery.isSuccess ? worldAuditQuery.data : [];
+  const safePublicAssets = worldPublicAssetsQuery.isSuccess ? worldPublicAssetsQuery.data : EMPTY_WORLD_PUBLIC_ASSETS;
 
   useEffect(() => {
     if (!isReady) {
@@ -508,7 +513,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           audits={safeAudits}
           publicAssets={safePublicAssets}
           loading={initialLoading}
-          error={initialError}
+          error={pageError}
           agentsLoading={worldCompositeQuery.isPending}
           historyLoading={worldHistoryQuery.isPending}
           semanticLoading={worldSemanticQuery.isPending}
@@ -532,7 +537,7 @@ export function WorldDetail({ world, onBack }: WorldDetailProps) {
           audits={safeAudits}
           publicAssets={safePublicAssets}
           loading={initialLoading}
-          error={initialError}
+          error={pageError}
           agentsLoading={worldCompositeQuery.isPending}
           historyLoading={worldHistoryQuery.isPending}
           semanticLoading={worldSemanticQuery.isPending}

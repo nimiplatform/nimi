@@ -264,7 +264,6 @@ export function ContactsCategoryAccordion({
                 </span>
               )}
               trailing={count > 0 ? <span>{count}</span> : undefined}
-              trailingAffordance={count > 0 ? 'count' : undefined}
             />
 
             {/* 展开的列表内容 */}
