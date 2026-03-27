@@ -33,6 +33,7 @@
   "include": [
     "ui/src/**/*.ts",
     "ui/src/**/*.tsx",
+    "ui/src/**/*.d.ts",
     "ui/test/**/*.ts",
     "ui/test/**/*.tsx",
     "auth/src/**/*.ts",

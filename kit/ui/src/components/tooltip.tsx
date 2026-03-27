@@ -13,7 +13,6 @@ type TooltipProps = {
   placement?: 'top' | 'bottom';
   className?: string;
   contentClassName?: string;
-  delayDuration?: number;
 };
 
 export function Tooltip({
@@ -22,27 +21,24 @@ export function Tooltip({
   placement = 'bottom',
   className,
   contentClassName,
-  delayDuration = 300,
 }: TooltipProps) {
   return (
-    <TooltipPrimitive.Provider delayDuration={delayDuration}>
-      <TooltipPrimitive.Root>
-        <TooltipPrimitive.Trigger asChild>
-          <span className={cn('inline-flex items-center justify-center', className)}>
-            {children}
-          </span>
-        </TooltipPrimitive.Trigger>
-        <TooltipPrimitive.Portal>
-          <TooltipPrimitive.Content
-            side={placement}
-            sideOffset={8}
-            className={cn(CONTENT_CLASSES, contentClassName)}
-          >
-            {content}
-          </TooltipPrimitive.Content>
-        </TooltipPrimitive.Portal>
-      </TooltipPrimitive.Root>
-    </TooltipPrimitive.Provider>
+    <TooltipPrimitive.Root>
+      <TooltipPrimitive.Trigger asChild>
+        <span className={cn('inline-flex items-center justify-center', className)}>
+          {children}
+        </span>
+      </TooltipPrimitive.Trigger>
+      <TooltipPrimitive.Portal>
+        <TooltipPrimitive.Content
+          side={placement}
+          sideOffset={8}
+          className={cn(CONTENT_CLASSES, contentClassName)}
+        >
+          {content}
+        </TooltipPrimitive.Content>
+      </TooltipPrimitive.Portal>
+    </TooltipPrimitive.Root>
   );
 }
 

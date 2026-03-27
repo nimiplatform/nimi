@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { type NimiAccentPack, type NimiThemeScheme } from './design-tokens.js';
 
 type NimiThemeContextValue = {

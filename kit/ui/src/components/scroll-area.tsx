@@ -1,21 +1,17 @@
-import React, { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, type ReactNode, type Ref } from 'react';
 import * as ScrollAreaPrimitive from '@radix-ui/react-scroll-area';
 import { cn } from '../design-tokens.js';
 
-type ScrollAreaTag = 'div' | 'main' | 'aside' | 'nav' | 'section';
-
 export type ScrollAreaProps = {
-  as?: ScrollAreaTag;
   children: ReactNode;
   className?: string;
   viewportClassName?: string;
   contentClassName?: string;
-  viewportRef?: React.Ref<HTMLDivElement>;
+  viewportRef?: Ref<HTMLDivElement>;
 };
 
 export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
   {
-    as: _as,
     children,
     className,
     viewportClassName,

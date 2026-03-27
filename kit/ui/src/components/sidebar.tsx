@@ -130,7 +130,6 @@ type SidebarItemProps = {
   label: ReactNode;
   description?: ReactNode;
   trailing?: ReactNode;
-  trailingAffordance?: string | string[];
   className?: string;
 } & Omit<ComponentPropsWithoutRef<'button'>, 'children'>;
 
@@ -141,7 +140,6 @@ export function SidebarItem({
   label,
   description,
   trailing,
-  trailingAffordance: _trailingAffordance,
   className,
   type = 'button',
   ...rest

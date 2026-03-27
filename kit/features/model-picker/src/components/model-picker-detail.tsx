@@ -1,14 +1,7 @@
 import type { ReactNode } from 'react';
 import { StatusBadge, Surface } from '@nimiplatform/nimi-kit/ui';
 import type { UseModelPickerResult } from '../hooks/use-model-picker.js';
-import type { ModelPickerBadge } from '../types.js';
-
-function badgeTone(tone: ModelPickerBadge['tone']) {
-  if (tone === 'accent') return 'info' as const;
-  if (tone === 'success') return 'success' as const;
-  if (tone === 'warning') return 'warning' as const;
-  return 'neutral' as const;
-}
+import { modelPickerBadgeTone } from './badge-tone.js';
 
 export type ModelPickerDetailProps<TModel> = {
   state: UseModelPickerResult<TModel>;
@@ -65,7 +58,7 @@ export function ModelPickerDetail<TModel>({
       {badges.length > 0 ? (
         <div className="mt-2 flex flex-wrap gap-1">
           {badges.map((badge) => (
-            <StatusBadge key={`${title}-${badge.label}`} tone={badgeTone(badge.tone)} className="text-[10px]">
+            <StatusBadge key={`${title}-${badge.label}`} tone={modelPickerBadgeTone(badge.tone)} className="text-[10px]">
               {badge.label}
             </StatusBadge>
           ))}
