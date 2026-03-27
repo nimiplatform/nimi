@@ -14,9 +14,19 @@ Forge runs as a standalone Tauri 2.10 application.
 | Window default | 1440 × 900 |
 | Window minimum | 1120 × 780 |
 | `titleBarStyle` | `Overlay` (macOS native traffic lights) |
-| `withGlobalTauri` | `true` |
+| `withGlobalTauri` | `false` |
 
-CSP policy mirrors desktop app but scoped to Forge needs.
+CSP policy mirrors desktop app but scoped to Forge needs:
+
+```
+default-src 'self' ipc:;
+script-src 'self';
+style-src 'self' 'unsafe-inline';
+img-src 'self' data: blob: file:;
+media-src 'self' data: blob: file:;
+font-src 'self' data:;
+connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;
+```
 
 ## FG-SHELL-002: Rust Shell (Trimmed)
 
@@ -42,10 +52,10 @@ Retained subsystems:
 ```
 Step 1: Runtime Defaults
   → desktopBridge.getRuntimeDefaults()
-  → Store realm base URL + access token defaults
+  → Store realm base URL + JWT validation defaults
 
 Step 2: Platform Client
-  → createPlatformClient({ realmBaseUrl, accessToken, accessTokenProvider, subjectUserIdProvider })
+  → createPlatformClient({ realmBaseUrl, accessToken: '', accessTokenProvider, subjectUserIdProvider })
   → Produces { runtime, realm } SDK clients
 
 Step 3: Auth Session
@@ -74,13 +84,14 @@ Errors at any step → `setBootstrapError(message)` + show error state.
 
 ## FG-SHELL-004: Auth Flow
 
-Auth reuses the desktop JWT auth pattern:
+Auth reuses the desktop JWT auth pattern, with one hard cut for standalone shells:
 
-1. On bootstrap, attempt token refresh via stored refresh token
-2. If valid → authenticated state → render app
-3. If invalid → show login view (OAuth redirect flow)
-4. Token refresh uses the Realm SDK refresh flow; app code does not install its own raw REST interceptor
-5. `useAppStore.auth` holds: `status`, `user`, `token`, `refreshToken`
+1. Rust `runtime_defaults` does not project raw access tokens into renderer state
+2. On bootstrap, Forge starts anonymous unless the current in-memory session has already applied a token
+3. If a token is present in the current session → authenticated state → render app
+4. If absent or invalid → show login view (OAuth redirect flow)
+5. Token refresh uses the Realm SDK refresh flow; app code does not install its own raw REST interceptor
+6. `useAppStore.auth` holds: `status`, `user`, `token`, `refreshToken`
 
 Auth states: `bootstrapping` → `authenticated` | `unauthenticated`
 

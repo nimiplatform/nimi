@@ -127,6 +127,10 @@ pub enum ReasonCode {
     AiLocalHfRepoInvalid = 361,
     AiLocalHfSearchFailed = 362,
     AiLocalManifestSchemaInvalid = 363,
+    /// LOCAL_SERVICE family (364+)
+    AiLocalServiceUnavailable = 364,
+    AiLocalServiceAlreadyInstalled = 365,
+    AiLocalServiceInvalidTransition = 366,
     /// FINISH family (370+)
     AiFinishLength = 370,
     AiFinishContentFilter = 371,
@@ -253,6 +257,11 @@ impl ReasonCode {
             Self::AiLocalHfRepoInvalid => "AI_LOCAL_HF_REPO_INVALID",
             Self::AiLocalHfSearchFailed => "AI_LOCAL_HF_SEARCH_FAILED",
             Self::AiLocalManifestSchemaInvalid => "AI_LOCAL_MANIFEST_SCHEMA_INVALID",
+            Self::AiLocalServiceUnavailable => "AI_LOCAL_SERVICE_UNAVAILABLE",
+            Self::AiLocalServiceAlreadyInstalled => "AI_LOCAL_SERVICE_ALREADY_INSTALLED",
+            Self::AiLocalServiceInvalidTransition => {
+                "AI_LOCAL_SERVICE_INVALID_TRANSITION"
+            }
             Self::AiFinishLength => "AI_FINISH_LENGTH",
             Self::AiFinishContentFilter => "AI_FINISH_CONTENT_FILTER",
             Self::AiModelProviderMismatch => "AI_MODEL_PROVIDER_MISMATCH",
@@ -378,6 +387,13 @@ impl ReasonCode {
             "AI_LOCAL_HF_SEARCH_FAILED" => Some(Self::AiLocalHfSearchFailed),
             "AI_LOCAL_MANIFEST_SCHEMA_INVALID" => {
                 Some(Self::AiLocalManifestSchemaInvalid)
+            }
+            "AI_LOCAL_SERVICE_UNAVAILABLE" => Some(Self::AiLocalServiceUnavailable),
+            "AI_LOCAL_SERVICE_ALREADY_INSTALLED" => {
+                Some(Self::AiLocalServiceAlreadyInstalled)
+            }
+            "AI_LOCAL_SERVICE_INVALID_TRANSITION" => {
+                Some(Self::AiLocalServiceInvalidTransition)
             }
             "AI_FINISH_LENGTH" => Some(Self::AiFinishLength),
             "AI_FINISH_CONTENT_FILTER" => Some(Self::AiFinishContentFilter),
@@ -1801,16 +1817,24 @@ pub struct ChatContentArtifactRef {
 pub struct ChatContentPart {
     #[prost(enumeration = "ChatContentPartType", tag = "1")]
     pub r#type: i32,
-    #[prost(string, tag = "2")]
-    pub text: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub image_url: ::core::option::Option<ChatContentImageUrl>,
-    #[prost(string, tag = "4")]
-    pub video_url: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub audio_url: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "6")]
-    pub artifact_ref: ::core::option::Option<ChatContentArtifactRef>,
+    #[prost(oneof = "chat_content_part::Content", tags = "2, 3, 4, 5, 6")]
+    pub content: ::core::option::Option<chat_content_part::Content>,
+}
+/// Nested message and enum types in `ChatContentPart`.
+pub mod chat_content_part {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Content {
+        #[prost(string, tag = "2")]
+        Text(::prost::alloc::string::String),
+        #[prost(message, tag = "3")]
+        ImageUrl(super::ChatContentImageUrl),
+        #[prost(string, tag = "4")]
+        VideoUrl(::prost::alloc::string::String),
+        #[prost(string, tag = "5")]
+        AudioUrl(::prost::alloc::string::String),
+        #[prost(message, tag = "6")]
+        ArtifactRef(super::ChatContentArtifactRef),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ToolSpec {
@@ -2085,11 +2109,11 @@ pub mod scenario_output {
         #[prost(message, tag = "4")]
         VideoGenerate(super::VideoGenerateResult),
         #[prost(message, tag = "5")]
-        SpeechTranscribe(super::SpeechTranscribeResult),
-        #[prost(message, tag = "6")]
-        MusicGenerate(super::MusicGenerateResult),
-        #[prost(message, tag = "7")]
         SpeechSynthesize(super::SpeechSynthesizeResult),
+        #[prost(message, tag = "6")]
+        SpeechTranscribe(super::SpeechTranscribeResult),
+        #[prost(message, tag = "7")]
+        MusicGenerate(super::MusicGenerateResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6079,6 +6103,8 @@ pub struct RemoveModelRequest {
 pub struct CheckModelHealthRequest {
     #[prost(string, tag = "1")]
     pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CheckModelHealthResponse {
