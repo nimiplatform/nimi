@@ -301,6 +301,7 @@ providers:
       - K-MCAT-027
       - K-LOCAL-001
       - K-LOCAL-002
+      - K-KEYSRC-009
   - provider: loudly
     runtime_plane: remote
     execution_module: nimillm

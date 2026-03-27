@@ -4,8 +4,8 @@
 > Source: `spec/platform/kernel/tables/nimi-ui-adoption.yaml`
 | Module ID | App | Default Scheme | Accent Pack | Supported Schemes | Families | Test ID Required | Exception Policy | Source |
 |---|---|---|---|---|---|---|---|---|
-| `desktop.chat.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
-| `desktop.contacts.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
+| `desktop.chat.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `avatar`, `surface`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
+| `desktop.contacts.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `avatar`, `surface`, `action`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
 | `desktop.runtime.sidebar` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `sidebar` | `true` | `none` | `P-DESIGN-020` |
 | `desktop.runtime.shared` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `field`, `status` | `false` | `none` | `P-DESIGN-020` |
 | `desktop.runtime.overview.page` | `desktop` | `light` | `desktop-accent` | `light`, `dark` | `surface`, `action`, `status` | `false` | `none` | `P-DESIGN-020` |

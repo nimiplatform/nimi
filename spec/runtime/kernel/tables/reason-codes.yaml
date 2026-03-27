@@ -170,6 +170,18 @@ codes:
     value: 363
     family: MODEL
     source_rule: K-LOCAL-026
+  - name: AI_LOCAL_SERVICE_UNAVAILABLE
+    value: 364
+    family: MODEL
+    source_rule: K-LOCAL-006
+  - name: AI_LOCAL_SERVICE_ALREADY_INSTALLED
+    value: 365
+    family: MODEL
+    source_rule: K-LOCAL-009
+  - name: AI_LOCAL_SERVICE_INVALID_TRANSITION
+    value: 366
+    family: MODEL
+    source_rule: K-LOCAL-005
   # AI legacy frozen codes (201-213): stable wire values, see numbering_note
   - name: AI_MODEL_NOT_READY
     value: 201
@@ -428,13 +440,13 @@ codes:
     source_rule: K-KNOW-005
   - name: APP_MESSAGE_PAYLOAD_TOO_LARGE
     value: 550
-    family: APP_AUTH
+    family: APP_MESSAGE
     source_rule: K-APP-005
   - name: APP_MESSAGE_RATE_LIMITED
     value: 551
-    family: APP_AUTH
+    family: APP_MESSAGE
     source_rule: K-APP-005
   - name: APP_MESSAGE_LOOP_DETECTED
     value: 552
-    family: APP_AUTH
+    family: APP_MESSAGE
     source_rule: K-APP-005

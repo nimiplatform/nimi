@@ -413,9 +413,19 @@ mappings:
     surface: install_local_model_duplicate
     exit_shape: grpc_status
     source_rule: K-LOCAL-009
+  - reason_code: AI_LOCAL_SERVICE_UNAVAILABLE
+    grpc_code: FAILED_PRECONDITION
+    surface: local_service_lifecycle_or_probe
+    exit_shape: grpc_status_or_payload_ok_false
+    source_rule: K-LOCAL-006
+  - reason_code: AI_LOCAL_SERVICE_ALREADY_INSTALLED
+    grpc_code: ALREADY_EXISTS
+    surface: install_local_service_duplicate
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
   - reason_code: AI_LOCAL_ENDPOINT_REQUIRED
     grpc_code: INVALID_ARGUMENT
-    surface: install_or_start_local_model_nexa_no_endpoint
+    surface: install_or_start_local_model_endpoint_required
     exit_shape: grpc_status
     source_rule: K-LENG-005
   - reason_code: AI_LOCAL_TEMPLATE_NOT_FOUND
@@ -431,6 +441,11 @@ mappings:
   - reason_code: AI_LOCAL_MODEL_INVALID_TRANSITION
     grpc_code: FAILED_PRECONDITION
     surface: local_model_or_service_state_transition
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-005
+  - reason_code: AI_LOCAL_SERVICE_INVALID_TRANSITION
+    grpc_code: FAILED_PRECONDITION
+    surface: local_service_state_transition
     exit_shape: grpc_status
     source_rule: K-LOCAL-005
   - reason_code: AI_LOCAL_DOWNLOAD_FAILED

@@ -49,3 +49,11 @@ Source Rules: `S-BOUNDARY-001`
 Allowed: `@nimiplatform/sdk/types`
 
 Forbidden: `@nimiplatform/sdk/runtime/internal/**`, `@nimiplatform/sdk/realm/internal/**`, `runtime/internal/**`
+
+## legacy-entrypoints
+
+Source Rules: `S-BOUNDARY-001`, `S-BOUNDARY-004`
+
+Allowed: —
+
+Forbidden: `createNimiClient`, `OpenAPI.BASE`, `OpenAPI.TOKEN`

@@ -175,6 +175,11 @@ WorkflowEventType 枚举（12 种）：
 
 ## K-WF-012 消费契约要求
 
+### Cross-Domain Dependencies
+
+- SDK 方法投影缺口由 `spec/sdk/kernel/runtime-contract.md` 的 `S-RUNTIME-023` 记录。
+- Desktop 侧当前没有对应 Workflow DataSync surface；现有 DataSync 规则只覆盖 `D-DSYNC-000~013`，后续若引入 Workflow 消费面，必须先在 Desktop kernel 中新增对应 `D-DSYNC-*` 规则后再由 domain/UI 文档消费。
+
 Workflow 服务的跨域消费契约状态：
 
 | 消费层 | 当前状态 | Phase 2 启动前必须 |

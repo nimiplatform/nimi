@@ -56,6 +56,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 
 - 探测路径：`ok=false` + `AI_LOCAL_MODEL_UNAVAILABLE`
 - 执行路径：`FAILED_PRECONDITION` + `AI_LOCAL_MODEL_UNAVAILABLE`
+- service 生命周期与探测路径必须使用 service 专属 sibling codes：`AI_LOCAL_SERVICE_UNAVAILABLE`、`AI_LOCAL_SERVICE_ALREADY_INSTALLED`、`AI_LOCAL_SERVICE_INVALID_TRANSITION`
 
 ## K-LOCAL-007 模型三层抽象
 

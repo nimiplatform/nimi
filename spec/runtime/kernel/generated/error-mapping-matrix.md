@@ -85,10 +85,13 @@
 | `AI_LOCAL_MODEL_PROFILE_MISSING` | `FAILED_PRECONDITION` | `local_consume_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-003` |
 | `AI_LOCAL_MODEL_UNAVAILABLE` | `FAILED_PRECONDITION` | `local_consume_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-006` |
 | `AI_LOCAL_MODEL_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `install_local_model_duplicate` | `grpc_status` | `K-LOCAL-009` |
-| `AI_LOCAL_ENDPOINT_REQUIRED` | `INVALID_ARGUMENT` | `install_or_start_local_model_nexa_no_endpoint` | `grpc_status` | `K-LENG-005` |
+| `AI_LOCAL_SERVICE_UNAVAILABLE` | `FAILED_PRECONDITION` | `local_service_lifecycle_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-006` |
+| `AI_LOCAL_SERVICE_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `install_local_service_duplicate` | `grpc_status` | `K-LOCAL-009` |
+| `AI_LOCAL_ENDPOINT_REQUIRED` | `INVALID_ARGUMENT` | `install_or_start_local_model_endpoint_required` | `grpc_status` | `K-LENG-005` |
 | `AI_LOCAL_TEMPLATE_NOT_FOUND` | `NOT_FOUND` | `install_verified_model_template_missing` | `grpc_status` | `K-LOCAL-010` |
 | `AI_LOCAL_MANIFEST_INVALID` | `INVALID_ARGUMENT` | `import_local_model_manifest_parse_fail` | `grpc_status` | `K-LOCAL-009` |
 | `AI_LOCAL_MODEL_INVALID_TRANSITION` | `FAILED_PRECONDITION` | `local_model_or_service_state_transition` | `grpc_status` | `K-LOCAL-005` |
+| `AI_LOCAL_SERVICE_INVALID_TRANSITION` | `FAILED_PRECONDITION` | `local_service_state_transition` | `grpc_status` | `K-LOCAL-005` |
 | `AI_LOCAL_DOWNLOAD_FAILED` | `INTERNAL` | `local_model_download` | `grpc_status` | `K-LOCAL-024` |
 | `AI_LOCAL_DOWNLOAD_HASH_MISMATCH` | `DATA_LOSS` | `local_model_download_verify` | `grpc_status` | `K-LOCAL-024` |
 | `AI_LOCAL_HF_REPO_INVALID` | `INVALID_ARGUMENT` | `local_model_hf_repo_parse` | `grpc_status` | `K-LOCAL-023` |

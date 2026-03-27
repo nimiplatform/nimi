@@ -3,7 +3,7 @@
 # and reason-codes.yaml (K-ERR-*) by defining the formal correspondence.
 #
 # Direction: Platform protocol error → Runtime reason code
-# Source rules: P-PROTO-020, P-PROTO-050, P-PROTO-060, P-PROTO-070, K-ERR-004
+# Source rules: P-PROTO-020, P-PROTO-030, P-PROTO-040, P-PROTO-050, P-PROTO-060, P-PROTO-070, K-ERR-004, K-AUTHSVC-013
 #
 # Categories:
 #   mapped — same or equivalent code exists in both layers

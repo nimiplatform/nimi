@@ -4,11 +4,44 @@ modules:
 lint:
   use:
     - STANDARD
-  except:
-    - PACKAGE_DIRECTORY_MATCH
-    - ENUM_VALUE_PREFIX
-    - RPC_RESPONSE_STANDARD_NAME
-    - RPC_REQUEST_RESPONSE_UNIQUE
+  ignore_only:
+    PACKAGE_DIRECTORY_MATCH:
+      - runtime/v1/ai.proto
+      - runtime/v1/app.proto
+      - runtime/v1/audit.proto
+      - runtime/v1/auth.proto
+      - runtime/v1/common.proto
+      - runtime/v1/connector.proto
+      - runtime/v1/grant.proto
+      - runtime/v1/knowledge.proto
+      - runtime/v1/local_runtime.proto
+      - runtime/v1/local_runtime_engine.proto
+      - runtime/v1/local_runtime_types.proto
+      - runtime/v1/model.proto
+      - runtime/v1/voice.proto
+      - runtime/v1/workflow.proto
+    ENUM_VALUE_PREFIX:
+      - runtime/v1/ai.proto
+      - runtime/v1/app.proto
+      - runtime/v1/common.proto
+      - runtime/v1/workflow.proto
+    RPC_RESPONSE_STANDARD_NAME:
+      - runtime/v1/ai.proto
+      - runtime/v1/app.proto
+      - runtime/v1/audit.proto
+      - runtime/v1/auth.proto
+      - runtime/v1/grant.proto
+      - runtime/v1/knowledge.proto
+      - runtime/v1/local_runtime.proto
+      - runtime/v1/model.proto
+      - runtime/v1/workflow.proto
+    RPC_REQUEST_RESPONSE_UNIQUE:
+      - runtime/v1/auth.proto
+      - runtime/v1/grant.proto
+      - runtime/v1/knowledge.proto
+      - runtime/v1/local_runtime.proto
+      - runtime/v1/model.proto
+      - runtime/v1/workflow.proto
 breaking:
   use:
     - PACKAGE

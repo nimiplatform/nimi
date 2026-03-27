@@ -27,14 +27,9 @@ Mod Hub 消费 `D-MOD-001` — `D-MOD-019` 的统一安装治理链。具体的 
 - `activeTab = 'mods'` 时渲染单页 Mod Hub。
 - 已安装 mod、catalog 可发现 mod、更新提示和本地文件夹入口必须出现在同一个 Hub 页面中，而不是拆成旧的两段式结构。
 
-## UI Contract
+### Projection Boundary (D-SHELL-002, D-MOD-007, D-SHELL-010)
 
-Mod Hub 只定义 catalog/install/update/manage UX：
-
-- 默认态展示已安装 mod 主视图，并提供 `Open Mods Folder`
-- 搜索/聚焦态展开统一 management list
-- 行项目动作、图标真相源、trust tier、update/re-consent/warning 与失败态展示都由 `D-MOD-*` 与 `D-SHELL-002` 约束
-- source 诊断、来源目录与冲突排障不在本域定义，统一回到 `mods-panel.md` / `D-SHELL-010`
+Mod Hub 只保留 catalog/install/update/manage 的域级投影边界：默认入口是统一 Hub 页面，具体列表动作、trust tier、update / re-consent / warning / failure 展示都直接回指 `D-MOD-*` 与 `D-SHELL-002`。source 诊断、来源目录和 conflict / developer-facing observability 不在本域复述，统一留给 `mods-panel.md` 与 `D-SHELL-010`。
 
 ## CI 门禁引用
 

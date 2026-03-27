@@ -23,9 +23,7 @@
 
 ### 跨域数据流委托
 
-Explore 作为导航入口触发以下数据流，数据流所有权归各自 domain：
-- World 数据流（`D-DSYNC-005`）— 所有权归 `world-detail`。
-- Feed 数据流（`D-DSYNC-007`）— 所有权归 `home`。
+Explore 只作为导航入口触发其他 domain 已定义的数据流，不在本域补充额外委托语义。跨域读取仍直接回指各自的 authoritative DataSync 规则：World 读取遵循 `D-DSYNC-005`，Feed 读取遵循 `D-DSYNC-007`。
 
 ### State (D-STATE-004)
 

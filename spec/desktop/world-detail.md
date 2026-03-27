@@ -23,12 +23,9 @@ World 详情功能域 — World 详情页、语义数据、穿越管理、关卡
 
 世界数据流（方法清单见 `D-DSYNC-005`）。
 
-## Data Responsibility
+## Data Projection Boundary
 
-- `world.rules` 只承载基础规则卡片，字段固定为 `key / title / value`，用于 `世界如何运转` 区块。
-- `world.lorebooks` 承载扩展知识、背景、细节、派生机制与补充说明，不与 `world.rules` 混用。
-- `world mutations` 在技术层仍保留 `mutationType / targetPath / reason`，但 `world detail` 默认只消费 `title / summary / createdAt`。
-- `desktop` 不负责把 world 内容字段翻译成人话；规则标题、维护标题与维护摘要都以 realm 返回内容为准。
+World Detail 只消费 `D-DSYNC-005` 暴露的 world projection，不在本域重新定义 Realm 字段语义。字段分层与可读投影边界以 Realm truth / worldview contract 为准：`world.rules` 保持规则卡片投影，`world.lorebooks` 保持扩展知识投影，mutation 审计在 UI 上只消费列表所需的展示字段，Desktop 不把 Realm 返回内容改写成另一套本地语义。
 
 ### DataSync (D-DSYNC-012) — Transit 数据流
 

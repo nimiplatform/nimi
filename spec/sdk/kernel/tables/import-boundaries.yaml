@@ -59,3 +59,12 @@ rules:
       - "runtime/internal/**"
     source_rules:
       - S-BOUNDARY-001
+  - surface: legacy-entrypoints
+    allowed: []
+    forbidden:
+      - "createNimiClient"
+      - "OpenAPI.BASE"
+      - "OpenAPI.TOKEN"
+    source_rules:
+      - S-BOUNDARY-001
+      - S-BOUNDARY-004

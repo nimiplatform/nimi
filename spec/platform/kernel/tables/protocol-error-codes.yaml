@@ -146,6 +146,7 @@ codes:
     source_rule: P-PROTO-103
   - name: PRESENCE_STATE_INVALID
     group: state_machine
+    action_hint: retry_from_valid_presence_state
     source_rule: P-PROTO-105
   - name: TIMEFLOW_NON_MONOTONIC
     group: state_machine
