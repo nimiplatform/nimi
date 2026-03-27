@@ -13,7 +13,7 @@ def create_app() -> FastAPI:
 
     @app.get("/healthz")
     def healthz():
-        return {"status": "ok", "ready": True}
+        return {"status": "stub", "ready": False}
 
     @app.get("/v1/catalog")
     def catalog():
@@ -21,7 +21,7 @@ def create_app() -> FastAPI:
             "models": [
                 {
                     "id": "speech-default",
-                    "ready": True,
+                    "ready": False,
                     "capabilities": [
                         "audio.transcribe",
                         "audio.synthesize",
