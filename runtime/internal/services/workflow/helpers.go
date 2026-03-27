@@ -3,7 +3,6 @@ package workflow
 import (
 	"sort"
 	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"google.golang.org/protobuf/proto"
@@ -226,6 +225,9 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 			if strings.TrimSpace(cfg.GetText()) == "" && !hasAnySlot(bindings, "text", "prompt") {
 				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
+		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS_CREATE_VOICE,
+			runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_TTS_SYNTHESIZE:
+			return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_AI_STT:
 			cfg := node.GetAiSttConfig()
 			if cfg == nil || strings.TrimSpace(cfg.GetMimeType()) == "" {
@@ -254,13 +256,7 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 			}
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_SCRIPT:
-			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
-				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
-			}
-			cfg := node.GetScriptConfig()
-			if cfg == nil || strings.TrimSpace(cfg.GetRuntime()) == "" || strings.TrimSpace(cfg.GetCode()) == "" {
-				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
-			}
+			return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 		case runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_BRANCH:
 			if mode == runtimev1.WorkflowExecutionMode_WORKFLOW_EXECUTION_MODE_EXTERNAL_ASYNC {
 				return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
@@ -316,6 +312,9 @@ func validateDefinition(def *runtimev1.WorkflowDefinition) (*workflowGraph, runt
 		default:
 			return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
 		}
+		if node.GetRetryMaxAttempts() > 0 || strings.TrimSpace(node.GetRetryBackoff()) != "" {
+			return nil, runtimev1.ReasonCode_WF_NODE_CONFIG_MISMATCH
+		}
 	}
 
 	return graph, runtimev1.ReasonCode_ACTION_EXECUTED
@@ -342,13 +341,6 @@ func containsString(values []string, target string) bool {
 	return false
 }
 
-func resolveWorkflowTimeout(timeoutMs int32) time.Duration {
-	if timeoutMs <= 0 {
-		return 0
-	}
-	return time.Duration(timeoutMs) * time.Millisecond
-}
-
 func cloneTask(task *taskRecord) *taskRecord {
 	if task == nil {
 		return nil
@@ -368,11 +360,86 @@ func cloneTask(task *taskRecord) *taskRecord {
 		Output:           cloneStruct(task.Output),
 		ReasonCode:       task.ReasonCode,
 		CancelRequested:  task.CancelRequested,
+		CancelSignal:     task.CancelSignal,
 		Definition:       cloneDefinition(task.Definition),
-		Graph:            task.Graph,
+		Graph:            cloneWorkflowGraph(task.Graph),
 		RequestedTimeout: task.RequestedTimeout,
 		UpdatedAt:        task.UpdatedAt,
+		TerminalAt:       task.TerminalAt,
 	}
+}
+
+func cloneWorkflowGraph(graph *workflowGraph) *workflowGraph {
+	if graph == nil {
+		return nil
+	}
+
+	cloned := &workflowGraph{
+		Order:        append([]string(nil), graph.Order...),
+		NodeByID:     make(map[string]*runtimev1.WorkflowNode, len(graph.NodeByID)),
+		Upstream:     make(map[string][]string, len(graph.Upstream)),
+		Downstream:   make(map[string][]string, len(graph.Downstream)),
+		Incoming:     make(map[string][]*runtimev1.WorkflowEdge, len(graph.Incoming)),
+		Outgoing:     make(map[string][]*runtimev1.WorkflowEdge, len(graph.Outgoing)),
+		InputBinding: make(map[string]map[string]edgeBinding, len(graph.InputBinding)),
+	}
+
+	for nodeID, node := range graph.NodeByID {
+		cloned.NodeByID[nodeID] = cloneWorkflowNode(node)
+	}
+	for nodeID, deps := range graph.Upstream {
+		cloned.Upstream[nodeID] = append([]string(nil), deps...)
+	}
+	for nodeID, deps := range graph.Downstream {
+		cloned.Downstream[nodeID] = append([]string(nil), deps...)
+	}
+	for nodeID, edges := range graph.Incoming {
+		clonedEdges := make([]*runtimev1.WorkflowEdge, 0, len(edges))
+		for _, edge := range edges {
+			clonedEdges = append(clonedEdges, cloneWorkflowEdge(edge))
+		}
+		cloned.Incoming[nodeID] = clonedEdges
+	}
+	for nodeID, edges := range graph.Outgoing {
+		clonedEdges := make([]*runtimev1.WorkflowEdge, 0, len(edges))
+		for _, edge := range edges {
+			clonedEdges = append(clonedEdges, cloneWorkflowEdge(edge))
+		}
+		cloned.Outgoing[nodeID] = clonedEdges
+	}
+	for nodeID, bindings := range graph.InputBinding {
+		clonedBindings := make(map[string]edgeBinding, len(bindings))
+		for slot, binding := range bindings {
+			clonedBindings[slot] = binding
+		}
+		cloned.InputBinding[nodeID] = clonedBindings
+	}
+
+	return cloned
+}
+
+func cloneWorkflowNode(input *runtimev1.WorkflowNode) *runtimev1.WorkflowNode {
+	if input == nil {
+		return nil
+	}
+	cloned := proto.Clone(input)
+	copied, ok := cloned.(*runtimev1.WorkflowNode)
+	if !ok {
+		return nil
+	}
+	return copied
+}
+
+func cloneWorkflowEdge(input *runtimev1.WorkflowEdge) *runtimev1.WorkflowEdge {
+	if input == nil {
+		return nil
+	}
+	cloned := proto.Clone(input)
+	copied, ok := cloned.(*runtimev1.WorkflowEdge)
+	if !ok {
+		return nil
+	}
+	return copied
 }
 
 func cloneDefinition(input *runtimev1.WorkflowDefinition) *runtimev1.WorkflowDefinition {
@@ -452,7 +519,11 @@ func structFromMap(values map[string]any) *structpb.Struct {
 	}
 	built, err := structpb.NewStruct(values)
 	if err != nil {
-		return &structpb.Struct{Fields: map[string]*structpb.Value{}}
+		return &structpb.Struct{
+			Fields: map[string]*structpb.Value{
+				"payload_encode_error": structpb.NewStringValue(err.Error()),
+			},
+		}
 	}
 	return built
 }
@@ -468,13 +539,6 @@ func structFromValue(value any) *structpb.Struct {
 		return structFromMap(asMap)
 	}
 	return structFromMap(map[string]any{"value": value})
-}
-
-func coerceStructMap(input *structpb.Struct) map[string]any {
-	if input == nil {
-		return map[string]any{}
-	}
-	return input.AsMap()
 }
 
 func coerceString(input *structpb.Struct) string {

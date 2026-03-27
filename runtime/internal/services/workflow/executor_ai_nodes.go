@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -229,23 +231,7 @@ func (s *Service) executeAIImageNode(ctx context.Context, record *taskRecord, no
 	if err != nil {
 		return nil, err
 	}
-	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
-	if runErr != nil {
-		return nil, runErr
-	}
-	first := firstScenarioArtifact(artifacts)
-	if first == nil || len(first.GetBytes()) == 0 {
-		return nil, fmt.Errorf("image artifacts are empty")
-	}
-	mimeType := strings.TrimSpace(first.GetMimeType())
-	if mimeType == "" {
-		return nil, fmt.Errorf("image artifact mime_type is empty")
-	}
-	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, first.GetBytes())
-	if err != nil {
-		return nil, err
-	}
-	return artifactOutput, nil
+	return s.executeAISyncArtifactNode(ctx, client, record, node, inputs, "image")
 }
 
 func (s *Service) executeAIVideoNode(ctx context.Context, record *taskRecord, node *runtimev1.WorkflowNode, inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {
@@ -262,23 +248,7 @@ func (s *Service) executeAIVideoNode(ctx context.Context, record *taskRecord, no
 	if err != nil {
 		return nil, err
 	}
-	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
-	if runErr != nil {
-		return nil, runErr
-	}
-	first := firstScenarioArtifact(artifacts)
-	if first == nil || len(first.GetBytes()) == 0 {
-		return nil, fmt.Errorf("video artifacts are empty")
-	}
-	mimeType := strings.TrimSpace(first.GetMimeType())
-	if mimeType == "" {
-		return nil, fmt.Errorf("video artifact mime_type is empty")
-	}
-	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, first.GetBytes())
-	if err != nil {
-		return nil, err
-	}
-	return artifactOutput, nil
+	return s.executeAISyncArtifactNode(ctx, client, record, node, inputs, "video")
 }
 
 func (s *Service) executeAITTSNode(ctx context.Context, record *taskRecord, node *runtimev1.WorkflowNode, inputs map[string]*structpb.Struct) (map[string]*structpb.Struct, error) {
@@ -295,19 +265,7 @@ func (s *Service) executeAITTSNode(ctx context.Context, record *taskRecord, node
 	if err != nil {
 		return nil, err
 	}
-	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
-	if runErr != nil {
-		return nil, runErr
-	}
-	first := firstScenarioArtifact(artifacts)
-	if first == nil || len(first.GetBytes()) == 0 {
-		return nil, fmt.Errorf("tts artifacts are empty")
-	}
-	mimeType := strings.TrimSpace(first.GetMimeType())
-	if mimeType == "" {
-		return nil, fmt.Errorf("tts artifact mime_type is empty")
-	}
-	artifactOutput, err := s.writeArtifact(record, node, "artifact", mimeType, first.GetBytes())
+	artifactOutput, err := s.executeAISyncArtifactNode(ctx, client, record, node, inputs, "tts")
 	if err != nil {
 		return nil, err
 	}
@@ -354,6 +312,29 @@ func (s *Service) requireRuntimeAIClient() (runtimev1.RuntimeAiServiceClient, er
 	return client, nil
 }
 
+func (s *Service) executeAISyncArtifactNode(
+	ctx context.Context,
+	client runtimev1.RuntimeAiServiceClient,
+	record *taskRecord,
+	node *runtimev1.WorkflowNode,
+	inputs map[string]*structpb.Struct,
+	artifactKind string,
+) (map[string]*structpb.Struct, error) {
+	_, artifacts, runErr := s.runScenarioJobSync(ctx, client, record, node, inputs)
+	if runErr != nil {
+		return nil, runErr
+	}
+	first := firstScenarioArtifact(artifacts)
+	if first == nil || len(first.GetBytes()) == 0 {
+		return nil, fmt.Errorf("%s artifacts are empty", artifactKind)
+	}
+	mimeType := strings.TrimSpace(first.GetMimeType())
+	if mimeType == "" {
+		return nil, fmt.Errorf("%s artifact mime_type is empty", artifactKind)
+	}
+	return s.writeArtifact(record, node, "artifact", mimeType, first.GetBytes())
+}
+
 func (s *Service) runScenarioJobSync(
 	ctx context.Context,
 	client runtimev1.RuntimeAiServiceClient,
@@ -376,12 +357,11 @@ func (s *Service) runScenarioJobSync(
 	}
 
 	jobID := strings.TrimSpace(job.GetJobId())
-	cancelForwarded := false
+	var cancelForwarded atomic.Bool
 	forwardCancel := func(reason string) {
-		if cancelForwarded || jobID == "" {
+		if jobID == "" || !cancelForwarded.CompareAndSwap(false, true) {
 			return
 		}
-		cancelForwarded = true
 		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		_, _ = client.CancelScenarioJob(cancelCtx, &runtimev1.CancelScenarioJobRequest{
@@ -473,8 +453,8 @@ func workflowReasonCodeFromError(err error) runtimev1.ReasonCode {
 	case codes.FailedPrecondition:
 		return runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED
 	default:
-		if value, exists := runtimev1.ReasonCode_value[strings.TrimSpace(st.Message())]; exists {
-			return runtimev1.ReasonCode(value)
+		if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+			return reason
 		}
 		return runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -53,12 +54,11 @@ func (s *Service) executeNodeExternalAsync(
 	taskID := record.TaskID
 	nodeID := node.GetNodeId()
 	jobID := strings.TrimSpace(job.GetJobId())
-	cancelForwarded := false
+	var cancelForwarded atomic.Bool
 	forwardCancel := func(reason string) {
-		if cancelForwarded || jobID == "" {
+		if jobID == "" || !cancelForwarded.CompareAndSwap(false, true) {
 			return
 		}
-		cancelForwarded = true
 		cancelCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		_, _ = client.CancelScenarioJob(cancelCtx, &runtimev1.CancelScenarioJobRequest{

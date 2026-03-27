@@ -10,6 +10,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -238,7 +239,7 @@ func TestWorkflowExternalAsyncMediaNode(t *testing.T) {
 		t.Fatalf("external async labels must include workflow_task_id/workflow_node_id")
 	}
 
-	stream := &workflowEventCollector{ctx: context.Background()}
+	stream := &workflowEventCollector{ctx: workflowContext("nimi.desktop")}
 	if err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{
 		TaskId: submitResp.GetTaskId(),
 	}, stream); err != nil {
@@ -300,6 +301,13 @@ func TestExecuteAINodesFailClosedWithoutRuntimeAIClient(t *testing.T) {
 	}
 }
 
+func TestWorkflowReasonCodeFromErrorPrefersStructuredErrorInfo(t *testing.T) {
+	err := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+	if got := workflowReasonCodeFromError(err); got != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+		t.Fatalf("workflowReasonCodeFromError() = %v, want %v", got, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
+	}
+}
+
 func TestWorkflowExternalAsyncCancelPropagatesToScenarioJob(t *testing.T) {
 	client := &recordingRuntimeAIClient{
 		scenarioPollStatuses: []runtimev1.ScenarioJobStatus{
@@ -356,7 +364,7 @@ func TestWorkflowExternalAsyncCancelPropagatesToScenarioJob(t *testing.T) {
 	if client.submittedScenarioRequest() == nil {
 		t.Fatalf("scenario submit request was not issued")
 	}
-	if _, cancelErr := svc.CancelWorkflow(ctx, &runtimev1.CancelWorkflowRequest{
+	if _, cancelErr := svc.CancelWorkflow(workflowContext("nimi.desktop"), &runtimev1.CancelWorkflowRequest{
 		TaskId: submitResp.GetTaskId(),
 	}); cancelErr != nil {
 		t.Fatalf("cancel workflow: %v", cancelErr)

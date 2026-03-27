@@ -2,6 +2,7 @@ package workflow
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 func (s *Service) writeArtifact(record *taskRecord, node *runtimev1.WorkflowNode, slot string, mimeType string, content []byte) (map[string]*structpb.Struct, error) {
 	if s.artifactStore == nil {
 		return nil, fmt.Errorf("workflow artifact store is unavailable")
+	}
+	if len(content) == 0 {
+		return nil, fmt.Errorf("workflow artifact content is empty")
 	}
 	meta, err := s.artifactStore.Write(record.TaskID, node.GetNodeId(), slot, mimeType, content)
 	if err != nil {
@@ -96,8 +100,8 @@ func firstInputString(inputs map[string]*structpb.Struct, slots ...string) strin
 			}
 		}
 	}
-	for _, value := range inputs {
-		if text := coerceString(value); text != "" {
+	for _, key := range sortedInputKeys(inputs) {
+		if text := coerceString(inputs[key]); text != "" {
 			return text
 		}
 	}
@@ -112,12 +116,24 @@ func firstInputStrings(inputs map[string]*structpb.Struct, slots ...string) []st
 			}
 		}
 	}
-	for _, value := range inputs {
-		if list := stringsFromStruct(value); len(list) > 0 {
+	for _, key := range sortedInputKeys(inputs) {
+		if list := stringsFromStruct(inputs[key]); len(list) > 0 {
 			return list
 		}
 	}
 	return []string{}
+}
+
+func sortedInputKeys(inputs map[string]*structpb.Struct) []string {
+	if len(inputs) == 0 {
+		return []string{}
+	}
+	keys := make([]string, 0, len(inputs))
+	for key := range inputs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func stringsFromStruct(input *structpb.Struct) []string {
@@ -210,6 +226,12 @@ func (s *Service) markTaskTerminal(taskID string) {
 		s.artifactStore.MarkTaskDone(taskID)
 		s.artifactStore.CleanupExpired(time.Now().UTC())
 	}
+	s.mu.Lock()
+	if record := s.tasks[taskID]; record != nil && record.TerminalAt.IsZero() {
+		record.TerminalAt = time.Now().UTC()
+	}
+	s.cleanupTerminalTasksLocked(time.Now().UTC())
+	s.mu.Unlock()
 }
 
 func (s *Service) publishEvent(taskID string, event *runtimev1.WorkflowEvent) error {

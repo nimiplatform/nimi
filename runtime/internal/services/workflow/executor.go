@@ -67,21 +67,18 @@ func (s *Service) executeTask(taskID string) {
 	execCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	stopWatch := make(chan struct{})
-	go func() {
-		ticker := time.NewTicker(20 * time.Millisecond)
-		defer ticker.Stop()
+	cancelSignal := record.CancelSignal
+	go func(cancelSignal <-chan struct{}) {
 		for {
 			select {
 			case <-stopWatch:
 				return
-			case <-ticker.C:
-				if s.isCancelRequested(taskID) {
-					cancel()
-					return
-				}
+			case <-cancelSignal:
+				cancel()
+				return
 			}
 		}
-	}()
+	}(cancelSignal)
 	defer close(stopWatch)
 
 	for _, nodeID := range record.NodeOrder {
@@ -148,7 +145,9 @@ func (s *Service) executeTask(taskID string) {
 				ReasonCode:      reasonCode,
 				Payload:         structFromMap(map[string]any{"error": executeErr.Error()}),
 			}); err != nil {
-				s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+				if s.logger != nil {
+					s.logger.Warn("workflow event publish failed", "task_id", taskID, "error", err)
+				}
 			}
 			s.finishFailed(taskID, reasonCode, executeErr.Error())
 			return

@@ -18,6 +18,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func workflowContext(appID string) context.Context {
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
+}
+
 func TestWorkflowSubmitGetSubscribe(t *testing.T) {
 	aiClient := &fakeRuntimeAIClient{
 		executeScenarioFn: func(context.Context, *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
@@ -80,7 +84,7 @@ func TestWorkflowSubmitGetSubscribe(t *testing.T) {
 		}
 	}
 
-	stream := &workflowEventCollector{ctx: context.Background()}
+	stream := &workflowEventCollector{ctx: workflowContext("nimi.desktop")}
 	if err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{
 		TaskId: submitResp.GetTaskId(),
 	}, stream); err != nil {
@@ -199,7 +203,7 @@ func TestWorkflowBranchSkipAndMergeAny(t *testing.T) {
 		t.Fatalf("final node should complete, got=%v", statusByNode["final"])
 	}
 
-	stream := &workflowEventCollector{ctx: context.Background()}
+	stream := &workflowEventCollector{ctx: workflowContext("nimi.desktop")}
 	if err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{TaskId: submitResp.GetTaskId()}, stream); err != nil {
 		t.Fatalf("subscribe workflow events: %v", err)
 	}
@@ -307,7 +311,7 @@ func TestWorkflowBranchFalseSkipAndMergeAny(t *testing.T) {
 		t.Fatalf("merge node should be completed, got=%v", statusByNode["merge"])
 	}
 
-	stream := &workflowEventCollector{ctx: context.Background()}
+	stream := &workflowEventCollector{ctx: workflowContext("nimi.desktop")}
 	if err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{TaskId: submitResp.GetTaskId()}, stream); err != nil {
 		t.Fatalf("subscribe workflow events: %v", err)
 	}
@@ -400,7 +404,7 @@ func TestWorkflowMergeAllFailsWhenBranchSkipsPath(t *testing.T) {
 		t.Fatalf("merge node should fail under ALL strategy, got=%v", statusByNode["merge"])
 	}
 
-	stream := &workflowEventCollector{ctx: context.Background()}
+	stream := &workflowEventCollector{ctx: workflowContext("nimi.desktop")}
 	if err := svc.SubscribeWorkflowEvents(&runtimev1.SubscribeWorkflowEventsRequest{TaskId: submitResp.GetTaskId()}, stream); err != nil {
 		t.Fatalf("subscribe workflow events: %v", err)
 	}
@@ -572,7 +576,7 @@ func TestWorkflowCancel(t *testing.T) {
 	}
 
 	_ = waitWorkflowStatus(t, svc, submitResp.GetTaskId(), runtimev1.WorkflowStatus_WORKFLOW_STATUS_RUNNING, 2*time.Second)
-	cancelResp, err := svc.CancelWorkflow(ctx, &runtimev1.CancelWorkflowRequest{TaskId: submitResp.GetTaskId()})
+	cancelResp, err := svc.CancelWorkflow(workflowContext("nimi.desktop"), &runtimev1.CancelWorkflowRequest{TaskId: submitResp.GetTaskId()})
 	if err != nil {
 		t.Fatalf("cancel workflow: %v", err)
 	}
@@ -586,12 +590,97 @@ func TestWorkflowCancel(t *testing.T) {
 	}
 }
 
+func TestWorkflowBranchMissingPathFailsClosed(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	submitResp, err := svc.SubmitWorkflow(context.Background(), &runtimev1.SubmitWorkflowRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		Definition: &runtimev1.WorkflowDefinition{
+			WorkflowType: "branch.invalid-path",
+			Nodes: []*runtimev1.WorkflowNode{
+				{
+					NodeId:   "source",
+					NodeType: runtimev1.WorkflowNodeType_WORKFLOW_NODE_TRANSFORM_TEMPLATE,
+					TypeConfig: &runtimev1.WorkflowNode_TemplateConfig{
+						TemplateConfig: &runtimev1.TemplateNodeConfig{Template: "payload"},
+					},
+				},
+				{
+					NodeId:   "branch",
+					NodeType: runtimev1.WorkflowNodeType_WORKFLOW_NODE_CONTROL_BRANCH,
+					TypeConfig: &runtimev1.WorkflowNode_BranchConfig{
+						BranchConfig: &runtimev1.BranchNodeConfig{
+							Condition:   "$.missing > 0",
+							TrueTarget:  "true-node",
+							FalseTarget: "false-node",
+						},
+					},
+				},
+				templateNode("true-node"),
+				templateNode("false-node"),
+			},
+			Edges: []*runtimev1.WorkflowEdge{
+				{FromNodeId: "source", FromOutput: "output", ToNodeId: "branch", ToInput: "data"},
+				{FromNodeId: "branch", FromOutput: "output", ToNodeId: "true-node", ToInput: "input"},
+				{FromNodeId: "branch", FromOutput: "output", ToNodeId: "false-node", ToInput: "input"},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submit workflow: %v", err)
+	}
+	if !submitResp.GetAccepted() {
+		t.Fatalf("workflow must be accepted for runtime evaluation")
+	}
+
+	statusResp := waitWorkflowStatus(t, svc, submitResp.GetTaskId(), runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED, 3*time.Second)
+	if statusResp.GetReasonCode() != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("expected AI_INPUT_INVALID, got %v", statusResp.GetReasonCode())
+	}
+	statusByNode := map[string]runtimev1.WorkflowStatus{}
+	for _, node := range statusResp.GetNodes() {
+		statusByNode[node.GetNodeId()] = node.GetStatus()
+	}
+	if statusByNode["branch"] != runtimev1.WorkflowStatus_WORKFLOW_STATUS_FAILED {
+		t.Fatalf("branch node should fail, got=%v", statusByNode["branch"])
+	}
+}
+
+func TestCleanupTerminalTasksRemovesExpiredEntries(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	expiredAt := time.Now().UTC().Add(-svc.taskTTL - time.Minute)
+	svc.tasks["expired"] = &taskRecord{
+		TaskID:       "expired",
+		Status:       runtimev1.WorkflowStatus_WORKFLOW_STATUS_COMPLETED,
+		UpdatedAt:    expiredAt,
+		TerminalAt:   expiredAt,
+		NodeOrder:    []string{},
+		Nodes:        map[string]*runtimev1.WorkflowNodeStatus{},
+		Definition:   &runtimev1.WorkflowDefinition{WorkflowType: "done"},
+		Graph:        &workflowGraph{},
+		CancelSignal: make(chan struct{}),
+	}
+	svc.eventLog["expired"] = []*runtimev1.WorkflowEvent{{TaskId: "expired"}}
+
+	svc.mu.Lock()
+	svc.cleanupTerminalTasksLocked(time.Now().UTC())
+	svc.mu.Unlock()
+
+	if _, exists := svc.tasks["expired"]; exists {
+		t.Fatal("expected expired terminal task to be removed")
+	}
+	if _, exists := svc.eventLog["expired"]; exists {
+		t.Fatal("expected expired terminal event log to be removed")
+	}
+}
+
 func waitWorkflowStatus(t *testing.T, svc *Service, taskID string, want runtimev1.WorkflowStatus, timeout time.Duration) *runtimev1.GetWorkflowResponse {
 	t.Helper()
 
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		resp, err := svc.GetWorkflow(context.Background(), &runtimev1.GetWorkflowRequest{TaskId: taskID})
+		resp, err := svc.GetWorkflow(workflowContext("nimi.desktop"), &runtimev1.GetWorkflowRequest{TaskId: taskID})
 		if err != nil {
 			t.Fatalf("get workflow: %v", err)
 		}
@@ -600,7 +689,7 @@ func waitWorkflowStatus(t *testing.T, svc *Service, taskID string, want runtimev
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	resp, err := svc.GetWorkflow(context.Background(), &runtimev1.GetWorkflowRequest{TaskId: taskID})
+	resp, err := svc.GetWorkflow(workflowContext("nimi.desktop"), &runtimev1.GetWorkflowRequest{TaskId: taskID})
 	if err != nil {
 		t.Fatalf("get workflow: %v", err)
 	}
@@ -719,7 +808,7 @@ func TestSubscribeWorkflowEventsTerminalEventPriority(t *testing.T) {
 	}
 
 	stream := &blockingWorkflowEventCollector{
-		ctx:  context.Background(),
+		ctx:  workflowContext("nimi.desktop"),
 		gate: make(chan struct{}),
 	}
 	done := make(chan error, 1)
@@ -749,6 +838,27 @@ func TestSubscribeWorkflowEventsTerminalEventPriority(t *testing.T) {
 	}
 	if !hasTerminal {
 		t.Fatal("expected terminal event to be retained under backpressure")
+	}
+}
+
+func TestGetWorkflowRejectsAppMismatch(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	submitResp, err := svc.SubmitWorkflow(context.Background(), &runtimev1.SubmitWorkflowRequest{
+		AppId:         "nimi.desktop",
+		SubjectUserId: "user-001",
+		Definition:    longWorkflowDefinition(2),
+		TimeoutMs:     30_000,
+	})
+	if err != nil {
+		t.Fatalf("submit workflow: %v", err)
+	}
+
+	_, err = svc.GetWorkflow(workflowContext("other.app"), &runtimev1.GetWorkflowRequest{TaskId: submitResp.GetTaskId()})
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
 	}
 }
 

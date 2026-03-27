@@ -7,6 +7,9 @@ import (
 	"strings"
 	"unicode"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -29,7 +32,9 @@ func evaluateBranchCondition(condition string, inputs map[string]*structpb.Struc
 
 		left, ok := extractConditionValue(pathExpr, inputs)
 		if !ok {
-			return false, nil
+			return false, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
+				Message: fmt.Sprintf("branch condition path %q did not resolve", pathExpr),
+			})
 		}
 		right := parseLiteral(rawRight)
 		return compareCondition(left, op, right)
@@ -37,7 +42,9 @@ func evaluateBranchCondition(condition string, inputs map[string]*structpb.Struc
 
 	left, ok := extractConditionValue(trimmed, inputs)
 	if !ok {
-		return false, nil
+		return false, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
+			Message: fmt.Sprintf("branch condition path %q did not resolve", trimmed),
+		})
 	}
 	return truthy(left), nil
 }

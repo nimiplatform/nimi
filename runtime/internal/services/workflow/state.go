@@ -17,6 +17,7 @@ func (s *Service) addSubscriber(taskID string) (subscriber, []*runtimev1.Workflo
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	s.cleanupTerminalTasksLocked(time.Now().UTC())
 	record, exists := s.tasks[taskID]
 	if !exists {
 		return subscriber{}, nil, false, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_GRANT_INVALID)
@@ -75,6 +76,41 @@ func (s *Service) isCancelRequested(taskID string) bool {
 		return true
 	}
 	return record.CancelRequested
+}
+
+func (s *Service) cleanupTerminalTasksLocked(now time.Time) {
+	if s.taskTTL <= 0 {
+		return
+	}
+
+	activeTaskIDs := make(map[string]struct{}, len(s.subscribers))
+	for _, sub := range s.subscribers {
+		activeTaskIDs[sub.TaskID] = struct{}{}
+	}
+
+	for taskID, record := range s.tasks {
+		if record == nil || !isTerminalStatus(record.Status) {
+			continue
+		}
+		if _, active := activeTaskIDs[taskID]; active {
+			continue
+		}
+
+		terminalAt := record.TerminalAt
+		if terminalAt.IsZero() {
+			terminalAt = record.UpdatedAt
+			if terminalAt.IsZero() {
+				terminalAt = now
+			}
+			record.TerminalAt = terminalAt
+		}
+		if !now.After(terminalAt.Add(s.taskTTL)) {
+			continue
+		}
+
+		delete(s.tasks, taskID)
+		delete(s.eventLog, taskID)
+	}
 }
 
 func (s *Service) setTaskStatus(taskID string, statusValue runtimev1.WorkflowStatus, reason runtimev1.ReasonCode, output *structpb.Struct) bool {

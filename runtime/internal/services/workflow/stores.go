@@ -309,6 +309,12 @@ func sanitizeSegment(value string) string {
 	}
 	replacer := strings.NewReplacer("/", "_", "\\", "_", " ", "_", ":", "_")
 	sanitized := replacer.Replace(trimmed)
+	sanitized = strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return '_'
+		}
+		return r
+	}, sanitized)
 	for strings.Contains(sanitized, "..") {
 		sanitized = strings.ReplaceAll(sanitized, "..", "_")
 	}

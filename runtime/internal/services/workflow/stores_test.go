@@ -93,6 +93,13 @@ func TestSanitizeSegmentRemovesDotDotSequences(t *testing.T) {
 	}
 }
 
+func TestSanitizeSegmentReplacesControlCharacters(t *testing.T) {
+	got := sanitizeSegment("task\x00name\nnext")
+	if strings.ContainsRune(got, '\x00') || strings.ContainsRune(got, '\n') {
+		t.Fatalf("sanitizeSegment should replace control characters, got %q", got)
+	}
+}
+
 func TestResultStoreWriteSkipsFrequentCleanup(t *testing.T) {
 	store := newResultStore(10 * time.Millisecond)
 	store.tasks["expired"] = &resultTaskStore{
