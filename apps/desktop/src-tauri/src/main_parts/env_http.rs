@@ -1,4 +1,6 @@
-fn load_dotenv_files() {
+use super::*;
+
+pub(super) fn load_dotenv_files() {
     let root_env_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../.env");
     eprintln!(
         "[boot:{:}] load_dotenv_candidate path={}",
@@ -37,10 +39,10 @@ fn load_dotenv_file_preserve_env(path: &Path) -> Result<(), String> {
         parsed.insert(key, value);
     }
 
-    // For project-scoped NIMI variables, prefer dotenv values to avoid stale
-    // inherited shell/IDE env overriding repository .env unexpectedly.
-    // For non-NIMI keys, keep explicit process env precedence.
     for (key, value) in parsed {
+        if !cfg!(debug_assertions) && is_security_critical_dotenv_key(&key) {
+            continue;
+        }
         let should_override = key.starts_with("NIMI_") || key.starts_with("VITE_NIMI_");
         if should_override || env::var_os(&key).is_none() {
             env::set_var(key, value);
@@ -49,32 +51,61 @@ fn load_dotenv_file_preserve_env(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn normalize_http_method(input: Option<String>) -> Result<Method, String> {
+fn is_security_critical_dotenv_key(key: &str) -> bool {
+    matches!(
+        key.trim(),
+        "NIMI_ACCESS_TOKEN"
+            | "NIMI_REALM_URL"
+            | "NIMI_REALM_JWKS_URL"
+            | "NIMI_REALM_JWT_ISSUER"
+            | "NIMI_REALM_JWT_AUDIENCE"
+            | "NIMI_LOCAL_PROVIDER_ENDPOINT"
+            | "NIMI_LOCAL_OPENAI_ENDPOINT"
+            | "NIMI_EXTERNAL_AGENT_BIND"
+            | "NIMI_EXTERNAL_AGENT_ISSUER"
+            | "NIMI_DESKTOP_UPDATER_ENDPOINT"
+            | "NIMI_DESKTOP_UPDATER_PUBLIC_KEY"
+            | "VITE_NIMI_WEB_URL"
+            | "VITE_NIMI_REALM_URL"
+    )
+}
+
+fn env_http_error(code: &str, message: impl AsRef<str>) -> String {
+    crate::runtime_bridge::bridge_error(code, message.as_ref())
+}
+
+pub(super) fn normalize_http_method(input: Option<String>) -> Result<Method, String> {
     let method = input.unwrap_or_else(|| "GET".to_string()).to_uppercase();
     match method.as_str() {
         "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD" => {
             Method::from_bytes(method.as_bytes()).map_err(|error| error.to_string())
         }
-        _ => Err(format!("不支持的请求方法：{method}")),
+        _ => Err(env_http_error(
+            "DESKTOP_HTTP_METHOD_INVALID",
+            format!("unsupported request method: {method}"),
+        )),
     }
 }
 
-fn normalize_origin(url: &Url) -> Result<String, String> {
+pub(super) fn normalize_origin(url: &Url) -> Result<String, String> {
     let scheme = url.scheme();
     if scheme != "http" && scheme != "https" {
-        return Err(format!("不支持的协议：{scheme}"));
+        return Err(env_http_error(
+            "DESKTOP_HTTP_URL_SCHEME_INVALID",
+            format!("unsupported URL scheme: {scheme}"),
+        ));
     }
 
     let host = url
         .host_str()
-        .ok_or_else(|| "URL 缺少 host".to_string())?
+        .ok_or_else(|| env_http_error("DESKTOP_HTTP_URL_HOST_MISSING", "URL host is required"))?
         .to_ascii_lowercase();
 
     let port = url.port_or_known_default().unwrap_or(80);
     Ok(format!("{scheme}://{host}:{port}"))
 }
 
-fn allowed_http_origins() -> HashSet<String> {
+pub(super) fn allowed_http_origins() -> HashSet<String> {
     let mut origins = HashSet::new();
     let candidates = [
         env_value("NIMI_REALM_URL", "http://localhost:3002"),
@@ -111,7 +142,7 @@ fn allowed_http_origins() -> HashSet<String> {
     origins
 }
 
-fn is_private_lan_http_origin(url: &Url) -> bool {
+pub(super) fn is_private_lan_http_origin(url: &Url) -> bool {
     if url.scheme() != "http" {
         return false;
     }
@@ -140,13 +171,16 @@ fn is_private_lan_http_origin(url: &Url) -> bool {
     }
 }
 
-fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMap, String> {
+pub(super) fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMap, String> {
     let mut header_map = HeaderMap::new();
     if let Some(values) = headers {
         for (name, value) in values {
             let normalized_name = name.trim().to_ascii_lowercase();
             if is_restricted_outbound_header(normalized_name.as_str()) {
-                return Err(format!("不允许覆盖受限请求头：{name}"));
+                return Err(env_http_error(
+                    "DESKTOP_HTTP_HEADER_RESTRICTED",
+                    format!("restricted outbound header override blocked: {name}"),
+                ));
             }
             let header_name = reqwest::header::HeaderName::from_bytes(name.as_bytes())
                 .map_err(|error| error.to_string())?;
@@ -165,11 +199,14 @@ fn is_loopback_http(url: &Url) -> bool {
     matches!(url.host_str(), Some("localhost" | "127.0.0.1"))
 }
 
-fn validate_external_url(url: &Url) -> Result<(), String> {
+pub(super) fn validate_external_url(url: &Url) -> Result<(), String> {
     if url.scheme() == "https" || is_loopback_http(url) {
         return Ok(());
     }
-    Err("仅支持 https 或 localhost/127.0.0.1 的 http 地址".to_string())
+    Err(env_http_error(
+        "DESKTOP_HTTP_URL_SCHEME_INVALID",
+        "only https or loopback http URLs are allowed",
+    ))
 }
 
 fn is_restricted_outbound_header(name: &str) -> bool {
@@ -245,7 +282,41 @@ fn normalize_oauth_callback_target(target: &str, expected_path: &str) -> Result<
     Ok(normalized)
 }
 
-fn read_request_target(stream: &mut std::net::TcpStream) -> Result<String, String> {
+#[derive(Debug)]
+struct ParsedOauthCallbackRequest {
+    target: String,
+    params: HashMap<String, String>,
+}
+
+fn parse_form_urlencoded_pairs(input: &str) -> HashMap<String, String> {
+    url::form_urlencoded::parse(input.as_bytes())
+        .map(|(key, value)| (key.to_string(), value.to_string()))
+        .collect::<HashMap<_, _>>()
+}
+
+fn parse_oauth_callback_http_request(request: &str) -> Result<ParsedOauthCallbackRequest, String> {
+    let (head, body) = request.split_once("\r\n\r\n").unwrap_or((request, ""));
+    let first_line = head
+        .lines()
+        .next()
+        .ok_or_else(|| "OAuth callback 请求格式无效".to_string())?;
+    let mut parts = first_line.split_whitespace();
+    let method = parts.next().unwrap_or_default().to_ascii_uppercase();
+    let target = parts.next().unwrap_or_default().to_string();
+    if target.trim().is_empty() {
+        return Err("OAuth callback 缺少请求 target".to_string());
+    }
+    let params = match method.as_str() {
+        "GET" => HashMap::new(),
+        "POST" => parse_form_urlencoded_pairs(body),
+        _ => return Err(format!("OAuth callback 仅支持 GET 或 POST，当前={method}")),
+    };
+    Ok(ParsedOauthCallbackRequest { target, params })
+}
+
+fn read_oauth_callback_request(
+    stream: &mut std::net::TcpStream,
+) -> Result<ParsedOauthCallbackRequest, String> {
     let mut buffer = [0_u8; 8192];
     let bytes = stream
         .read(&mut buffer)
@@ -254,25 +325,11 @@ fn read_request_target(stream: &mut std::net::TcpStream) -> Result<String, Strin
         return Err("OAuth callback 请求体为空".to_string());
     }
     let request = String::from_utf8_lossy(&buffer[..bytes]);
-    let first_line = request
-        .lines()
-        .next()
-        .ok_or_else(|| "OAuth callback 请求格式无效".to_string())?;
-    let mut parts = first_line.split_whitespace();
-    let method = parts.next().unwrap_or_default().to_ascii_uppercase();
-    let target = parts.next().unwrap_or_default().to_string();
-    if method != "GET" {
-        return Err(format!("OAuth callback 仅支持 GET，当前={method}"));
-    }
-    if target.trim().is_empty() {
-        return Err("OAuth callback 缺少请求 target".to_string());
-    }
-    Ok(target)
+    parse_oauth_callback_http_request(request.as_ref())
 }
 
-const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str = include_str!(
-    "../../../../../kit/auth/src/logic/native-oauth-result-page.template.html"
-);
+const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str =
+    include_str!("../../../../../kit/auth/src/logic/native-oauth-result-page.template.html");
 
 fn render_oauth_callback_page(success: bool) -> String {
     if success {
@@ -365,7 +422,7 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
     let _ = stream.flush();
 }
 
-fn oauth_listen_for_code_blocking(
+pub(super) fn oauth_listen_for_code_blocking(
     payload: OauthListenForCodePayload,
 ) -> Result<OauthListenForCodeResult, String> {
     let (host, port, expected_path) = parse_oauth_redirect_uri(payload.redirect_uri.as_str())?;
@@ -390,32 +447,31 @@ fn oauth_listen_for_code_blocking(
                     .set_nonblocking(false)
                     .map_err(|error| error.to_string())?;
                 let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
-                let target = read_request_target(&mut stream)?;
-                let normalized_target =
-                    match normalize_oauth_callback_target(target.as_str(), expected_path.as_str())
-                    {
-                        Ok(value) => value,
-                        Err(_) => {
-                            write_oauth_callback_page(&mut stream, false);
-                            continue;
-                        }
-                    };
+                let callback_request = read_oauth_callback_request(&mut stream)?;
+                let normalized_target = match normalize_oauth_callback_target(
+                    callback_request.target.as_str(),
+                    expected_path.as_str(),
+                ) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        write_oauth_callback_page(&mut stream, false);
+                        continue;
+                    }
+                };
 
                 let callback_url = format!("http://localhost:{port}{normalized_target}");
                 let parsed =
                     Url::parse(callback_url.as_str()).map_err(|error| error.to_string())?;
-                let code = parsed
+                let mut callback_params = parsed
                     .query_pairs()
-                    .find(|(key, _)| key == "code")
-                    .map(|(_, value)| value.to_string());
-                let state = parsed
-                    .query_pairs()
-                    .find(|(key, _)| key == "state")
-                    .map(|(_, value)| value.to_string());
-                let error = parsed
-                    .query_pairs()
-                    .find(|(key, _)| key == "error")
-                    .map(|(_, value)| value.to_string());
+                    .map(|(key, value)| (key.to_string(), value.to_string()))
+                    .collect::<HashMap<_, _>>();
+                for (key, value) in callback_request.params {
+                    callback_params.insert(key, value);
+                }
+                let code = callback_params.get("code").cloned();
+                let state = callback_params.get("state").cloned();
+                let error = callback_params.get("error").cloned();
 
                 write_oauth_callback_page(&mut stream, code.is_some() && error.is_none());
 
@@ -469,8 +525,7 @@ mod env_http_tests {
 
     #[test]
     fn parse_oauth_redirect_uri_rejects_query_and_fragment() {
-        assert!(parse_oauth_redirect_uri("http://127.0.0.1:4100/oauth/callback?next=%2F")
-            .is_err());
+        assert!(parse_oauth_redirect_uri("http://127.0.0.1:4100/oauth/callback?next=%2F").is_err());
         assert!(parse_oauth_redirect_uri("http://127.0.0.1:4100/oauth/callback#done").is_err());
     }
 
@@ -484,18 +539,38 @@ mod env_http_tests {
             .unwrap(),
             "/oauth/callback?code=abc&state=123"
         );
-        assert!(
-            normalize_oauth_callback_target("/oauth/callback/extra?code=abc", "/oauth/callback")
-                .is_err()
-        );
+        assert!(normalize_oauth_callback_target(
+            "/oauth/callback/extra?code=abc",
+            "/oauth/callback"
+        )
+        .is_err());
         assert!(
             normalize_oauth_callback_target("//oauth/callback?code=abc", "/oauth/callback")
                 .is_err()
         );
     }
+
+    #[test]
+    fn parse_oauth_callback_http_request_accepts_post_form_body() {
+        let request = "POST /oauth/callback HTTP/1.1\r\nHost: 127.0.0.1:4100\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\ncode=token-123&state=abc";
+        let parsed = parse_oauth_callback_http_request(request).unwrap();
+        assert_eq!(parsed.target, "/oauth/callback");
+        assert_eq!(
+            parsed.params.get("code").map(String::as_str),
+            Some("token-123")
+        );
+        assert_eq!(parsed.params.get("state").map(String::as_str), Some("abc"));
+    }
+
+    #[test]
+    fn security_critical_dotenv_keys_are_blocked_in_release_mode() {
+        assert!(is_security_critical_dotenv_key("NIMI_ACCESS_TOKEN"));
+        assert!(is_security_critical_dotenv_key("NIMI_EXTERNAL_AGENT_BIND"));
+        assert!(!is_security_critical_dotenv_key("NIMI_OPTIONAL_LABEL"));
+    }
 }
 
-fn preview_text_utf8_safe(input: &str, max_bytes: usize) -> String {
+pub(super) fn preview_text_utf8_safe(input: &str, max_bytes: usize) -> String {
     if input.len() <= max_bytes {
         return input.to_string();
     }
@@ -509,7 +584,7 @@ fn preview_text_utf8_safe(input: &str, max_bytes: usize) -> String {
     format!("{head}... (截断, 共 {} 字节)", input.len())
 }
 
-fn is_sensitive_key(key: &str) -> bool {
+pub(super) fn is_sensitive_key(key: &str) -> bool {
     let normalized = key.trim().to_ascii_lowercase();
     normalized == "authorization"
         || normalized == "cookie"
@@ -544,7 +619,7 @@ fn redact_json_value(value: &mut serde_json::Value) {
     }
 }
 
-fn redact_body_preview(input: &str, max_bytes: usize) -> String {
+pub(super) fn redact_body_preview(input: &str, max_bytes: usize) -> String {
     let trimmed = input.trim();
     if trimmed.starts_with('{') || trimmed.starts_with('[') {
         if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(trimmed) {

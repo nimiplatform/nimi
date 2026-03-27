@@ -11,6 +11,7 @@ use serde_json::Value;
 use tauri::AppHandle;
 
 pub use daemon_manager::RuntimeBridgeDaemonStatus;
+pub(crate) use error_map::bridge_error;
 pub use metadata::RuntimeBridgeMetadata;
 pub use stream::RuntimeBridgeStreamOpenResult;
 pub use unary::RuntimeBridgeUnaryResult;

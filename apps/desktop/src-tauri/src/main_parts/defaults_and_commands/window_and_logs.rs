@@ -1,5 +1,7 @@
+use super::*;
+
 #[tauri::command]
-fn confirm_private_sync(payload: ConfirmPrivateSyncPayload) -> ConfirmPrivateSyncResult {
+pub(crate) fn confirm_private_sync(payload: ConfirmPrivateSyncPayload) -> ConfirmPrivateSyncResult {
     let target_label = payload
         .agent_id
         .as_deref()
@@ -28,7 +30,7 @@ fn confirm_private_sync(payload: ConfirmPrivateSyncPayload) -> ConfirmPrivateSyn
 }
 
 #[tauri::command]
-fn log_renderer_event(payload: RendererLogPayload) {
+pub(crate) fn log_renderer_event(payload: RendererLogPayload) {
     let area = payload.area.trim();
     if area.is_empty() {
         return;
@@ -93,7 +95,7 @@ fn log_renderer_event(payload: RendererLogPayload) {
 }
 
 #[tauri::command]
-fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+pub(crate) fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     if window.is_fullscreen().unwrap_or(false) {
         return Ok(());
@@ -111,7 +113,7 @@ fn start_window_drag(window: tauri::WebviewWindow) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn focus_main_window(app: tauri::AppHandle) -> Result<(), String> {
+pub(crate) fn focus_main_window(app: tauri::AppHandle) -> Result<(), String> {
     crate::menu_bar_shell::window::focus_main_window(&app)?;
     crate::menu_bar_shell::set_window_visible(&app, true);
     Ok(())

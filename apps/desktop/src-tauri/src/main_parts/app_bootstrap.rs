@@ -1,3 +1,9 @@
+use super::*;
+use crate::{
+    desktop_release, desktop_updates, external_agent_gateway, local_runtime, menu_bar_shell,
+    runtime_bridge, runtime_mod,
+};
+
 fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
     let updater_pubkey = crate::desktop_updates::configured_updater_pubkey();
     let updater_plugin = if let Some(pubkey) = updater_pubkey {
@@ -144,22 +150,22 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            runtime_defaults,
+            super::defaults_and_commands::runtime_defaults,
             desktop_release::desktop_release_info_get,
             desktop_updates::desktop_update_state_get,
             desktop_updates::desktop_update_check,
             desktop_updates::desktop_update_download,
             desktop_updates::desktop_update_install,
             desktop_updates::desktop_update_restart,
-            get_system_resource_snapshot,
-            http_request,
-            open_external_url,
-            oauth_token_exchange,
-            oauth_listen_for_code,
-            confirm_private_sync,
-            log_renderer_event,
-            focus_main_window,
-            start_window_drag,
+            super::defaults_and_commands::system_resources::get_system_resource_snapshot,
+            super::defaults_and_commands::http_request,
+            super::defaults_and_commands::open_external_url,
+            super::defaults_and_commands::oauth_token_exchange,
+            super::defaults_and_commands::oauth_listen_for_code,
+            super::defaults_and_commands::window_and_logs::confirm_private_sync,
+            super::defaults_and_commands::window_and_logs::log_renderer_event,
+            super::defaults_and_commands::window_and_logs::focus_main_window,
+            super::defaults_and_commands::window_and_logs::start_window_drag,
             menu_bar_shell::menu_bar_sync_runtime_health,
             menu_bar_shell::menu_bar_complete_quit,
             runtime_mod::commands::runtime_mod_append_audit,
@@ -283,6 +289,22 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
 
 /// RL-INTOP-004 — Parse deep-link URL and emit navigation event to webview.
 /// URL format: nimi-desktop://runtime-config/{pageId}
+pub(super) fn normalize_runtime_config_page_id(page_id: Option<&str>) -> Option<&'static str> {
+    match page_id.unwrap_or("overview") {
+        "" | "overview" => Some("overview"),
+        "recommend" => Some("recommend"),
+        "local" => Some("local"),
+        "cloud" => Some("cloud"),
+        "catalog" => Some("catalog"),
+        "runtime" => Some("runtime"),
+        "mods" => Some("mods"),
+        "data-management" => Some("data-management"),
+        "performance" => Some("performance"),
+        "mod-developer" => Some("mod-developer"),
+        _ => None,
+    }
+}
+
 fn handle_deep_link_url(app: &tauri::AppHandle, raw_url: &str) {
     use tauri::Emitter;
     eprintln!("[deep-link] received url: {}", raw_url);
@@ -297,10 +319,11 @@ fn handle_deep_link_url(app: &tauri::AppHandle, raw_url: &str) {
     if host != "runtime-config" {
         return;
     }
-    let page_id = parsed
-        .path_segments()
-        .and_then(|mut s| s.next())
-        .unwrap_or("overview");
+    let Some(page_id) = normalize_runtime_config_page_id(
+        parsed.path_segments().and_then(|mut s| s.next()),
+    ) else {
+        return;
+    };
 
     #[derive(Clone, serde::Serialize)]
     #[serde(rename_all = "camelCase")]
@@ -323,7 +346,7 @@ fn handle_deep_link_url(app: &tauri::AppHandle, raw_url: &str) {
     );
 }
 
-fn main() {
+pub(crate) fn run() {
     install_panic_hook();
     eprintln!(
         "[boot:{:}] desktop process start pid={}",

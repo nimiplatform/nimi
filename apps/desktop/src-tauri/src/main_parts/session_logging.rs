@@ -1,11 +1,13 @@
-fn env_value(key: &str, default: &str) -> String {
+use super::*;
+
+pub(super) fn env_value(key: &str, default: &str) -> String {
     std::env::var(key)
         .ok()
         .filter(|value| !value.trim().is_empty())
         .unwrap_or_else(|| default.to_string())
 }
 
-fn now_ms() -> u128 {
+pub(super) fn now_ms() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
@@ -16,7 +18,7 @@ fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
 
-fn app_run_session_id() -> &'static str {
+pub(super) fn app_run_session_id() -> &'static str {
     APP_RUN_SESSION_ID
         .get_or_init(|| format!("desktop-run-{}-{}", now_ms(), std::process::id()))
         .as_str()
@@ -45,7 +47,7 @@ fn normalize_session_trace_id(raw: &str) -> String {
     }
 }
 
-fn append_diag_log_entry(
+pub(super) fn append_diag_log_entry(
     source: &str,
     level: &str,
     area: &str,
@@ -89,7 +91,7 @@ fn append_diag_log_entry(
     eprintln!("[diag-log] {line}");
 }
 
-fn session_trace_id_from_details(details: &Option<serde_json::Value>) -> Option<String> {
+pub(super) fn session_trace_id_from_details(details: &Option<serde_json::Value>) -> Option<String> {
     details
         .as_ref()
         .and_then(|value| value.as_object())
@@ -100,7 +102,7 @@ fn session_trace_id_from_details(details: &Option<serde_json::Value>) -> Option<
         .map(|value| value.to_string())
 }
 
-fn log_boot_marker(message: &str) {
+pub(super) fn log_boot_marker(message: &str) {
     let boot_ms = now_ms();
     let trace_id = format!("boot-{boot_ms}");
     eprintln!("[boot:{boot_ms}] {}", message);
@@ -123,17 +125,17 @@ fn env_flag(name: &str) -> bool {
     )
 }
 
-fn debug_boot_enabled() -> bool {
+pub(super) fn debug_boot_enabled() -> bool {
     env_flag("NIMI_DEBUG_BOOT") || env_flag("VITE_NIMI_DEBUG_BOOT")
 }
 
-fn verbose_renderer_logs_enabled() -> bool {
+pub(super) fn verbose_renderer_logs_enabled() -> bool {
     debug_boot_enabled()
         || env_flag("NIMI_VERBOSE_RENDERER_LOGS")
         || env_flag("VITE_NIMI_VERBOSE_RENDERER_LOGS")
 }
 
-fn should_echo_renderer_log(level: &str) -> bool {
+pub(super) fn should_echo_renderer_log(level: &str) -> bool {
     match level.trim().to_ascii_lowercase().as_str() {
         "warn" | "error" => true,
         "debug" | "info" => verbose_renderer_logs_enabled(),
@@ -141,7 +143,7 @@ fn should_echo_renderer_log(level: &str) -> bool {
     }
 }
 
-fn should_echo_diag_log(source: &str, level: &str) -> bool {
+pub(super) fn should_echo_diag_log(source: &str, level: &str) -> bool {
     let normalized_source = source.trim().to_ascii_lowercase();
     if normalized_source == "renderer-log" {
         return should_echo_renderer_log(level);
@@ -156,7 +158,7 @@ fn should_echo_diag_log(source: &str, level: &str) -> bool {
 }
 
 #[cfg(target_os = "macos")]
-fn apply_macos_traffic_light_position(
+pub(super) fn apply_macos_traffic_light_position(
     window: &tauri::WebviewWindow,
     x: f64,
     y: f64,
@@ -172,7 +174,11 @@ fn apply_macos_traffic_light_position(
 
     window
         .with_webview(move |webview| unsafe {
-            let ns_window: &NSWindow = &*webview.ns_window().cast();
+            let ns_window_ptr = webview.ns_window();
+            if ns_window_ptr.is_null() {
+                return;
+            }
+            let ns_window: &NSWindow = &*ns_window_ptr.cast();
 
             let Some(close_button) = ns_window.standardWindowButton(NSWindowButton::CloseButton)
             else {
@@ -217,7 +223,7 @@ fn apply_macos_traffic_light_position(
 }
 
 #[cfg(target_os = "macos")]
-fn schedule_macos_traffic_light_reapply(window: tauri::WebviewWindow, x: f64, y: f64) {
+pub(super) fn schedule_macos_traffic_light_reapply(window: tauri::WebviewWindow, x: f64, y: f64) {
     for delay_ms in [80_u64, 240_u64, 800_u64] {
         let window_for_timer = window.clone();
         std::thread::spawn(move || {
@@ -236,7 +242,7 @@ fn schedule_macos_traffic_light_reapply(window: tauri::WebviewWindow, x: f64, y:
     }
 }
 
-fn install_panic_hook() {
+pub(super) fn install_panic_hook() {
     std::panic::set_hook(Box::new(|panic_info| {
         let payload = panic_info
             .payload()

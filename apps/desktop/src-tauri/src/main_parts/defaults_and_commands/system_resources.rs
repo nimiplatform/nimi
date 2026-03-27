@@ -46,6 +46,19 @@ fn collect_disk_usage_bytes() -> Option<(u64, u64)> {
 }
 
 #[cfg(target_os = "macos")]
+static MACOS_CPU_COUNT: OnceLock<f64> = OnceLock::new();
+
+#[cfg(target_os = "macos")]
+fn macos_cpu_count() -> f64 {
+    *MACOS_CPU_COUNT.get_or_init(|| {
+        read_command_output("sysctl", &["-n", "hw.ncpu"])
+            .and_then(|value| value.trim().parse::<f64>().ok())
+            .filter(|value| *value > 0.0)
+            .unwrap_or(1.0)
+    })
+}
+
+#[cfg(target_os = "macos")]
 fn collect_cpu_percent() -> Option<f64> {
     let ps_output = read_command_output("ps", &["-A", "-o", "%cpu"])?;
     let sum_cpu = ps_output
@@ -53,11 +66,7 @@ fn collect_cpu_percent() -> Option<f64> {
         .skip(1)
         .filter_map(|line| line.trim().parse::<f64>().ok())
         .sum::<f64>();
-    let cpu_count = read_command_output("sysctl", &["-n", "hw.ncpu"])
-        .and_then(|value| value.trim().parse::<f64>().ok())
-        .filter(|value| *value > 0.0)
-        .unwrap_or(1.0);
-    Some((sum_cpu / cpu_count).clamp(0.0, 100.0))
+    Some((sum_cpu / macos_cpu_count()).clamp(0.0, 100.0))
 }
 
 #[cfg(target_os = "macos")]
@@ -294,6 +303,7 @@ fn collect_system_resource_snapshot() -> SystemResourceSnapshot {
 }
 
 #[tauri::command]
-fn get_system_resource_snapshot() -> SystemResourceSnapshot {
+pub(crate) fn get_system_resource_snapshot() -> SystemResourceSnapshot {
     collect_system_resource_snapshot()
 }
+use super::*;

@@ -1,3 +1,8 @@
+use super::*;
+
+pub(crate) mod system_resources;
+pub(crate) mod window_and_logs;
+
 fn normalize_loopback_http_url(raw: &str, default_port: u16, trim_trailing_slash: bool) -> String {
     let value = raw.trim();
     if value.is_empty() {
@@ -35,8 +40,55 @@ fn resolve_realm_default_port(realm_base_url: &str) -> u16 {
         .unwrap_or(3002)
 }
 
+pub(crate) const HTTP_REQUEST_RATE_LIMIT_BURST: usize = 32;
+pub(crate) const HTTP_REQUEST_RATE_LIMIT_WINDOW: Duration = Duration::from_secs(5);
+
+static HTTP_REQUEST_CLIENT: OnceLock<Result<reqwest::Client, String>> = OnceLock::new();
+static HTTP_REQUEST_RATE_LIMITER: OnceLock<Mutex<HashMap<String, VecDeque<Duration>>>> =
+    OnceLock::new();
+
+fn shared_http_client() -> Result<&'static reqwest::Client, String> {
+    match HTTP_REQUEST_CLIENT.get_or_init(|| {
+        reqwest::Client::builder()
+            .timeout(Duration::from_secs(20))
+            .pool_max_idle_per_host(8)
+            .build()
+            .map_err(|error| error.to_string())
+    }) {
+        Ok(client) => Ok(client),
+        Err(error) => Err(error.clone()),
+    }
+}
+
+pub(crate) fn allow_http_request_origin_with_history(
+    history: &mut VecDeque<Duration>,
+    now: Duration,
+) -> bool {
+    let cutoff = now.saturating_sub(HTTP_REQUEST_RATE_LIMIT_WINDOW);
+    while history.front().is_some_and(|timestamp| *timestamp < cutoff) {
+        history.pop_front();
+    }
+    if history.len() >= HTTP_REQUEST_RATE_LIMIT_BURST {
+        return false;
+    }
+    history.push_back(now);
+    true
+}
+
+fn allow_http_request_origin(origin: &str) -> bool {
+    let limiter = HTTP_REQUEST_RATE_LIMITER.get_or_init(|| Mutex::new(HashMap::new()));
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let mut guard = limiter.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let history = guard
+        .entry(origin.trim().to_string())
+        .or_insert_with(VecDeque::new);
+    allow_http_request_origin_with_history(history, now)
+}
+
 #[tauri::command]
-fn runtime_defaults() -> Result<RuntimeDefaults, String> {
+pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
     if let Some(override_defaults) = crate::desktop_e2e_fixture::runtime_defaults_override()? {
         return Ok(override_defaults);
     }
@@ -101,10 +153,8 @@ fn runtime_defaults() -> Result<RuntimeDefaults, String> {
     Ok(defaults)
 }
 
-include!("defaults_and_commands/system_resources.rs");
-
 #[tauri::command]
-async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload, String> {
+pub(crate) async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload, String> {
     let diag_session_id = payload
         .diagnostic_session_id
         .as_deref()
@@ -147,6 +197,25 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
             "目标地址不在允许列表：{origin}。允许列表：{}",
             allowed_list.join(", ")
         ));
+    }
+    if !allow_http_request_origin(&origin) {
+        append_diag_log_entry(
+            "http-request",
+            "warn",
+            "http_request",
+            "request:rate-limited",
+            diag_session_id.as_deref(),
+            None,
+            None,
+            json!({
+                "method": method.to_string(),
+                "url": url.as_str(),
+                "origin": origin,
+                "windowSeconds": HTTP_REQUEST_RATE_LIMIT_WINDOW.as_secs(),
+                "burst": HTTP_REQUEST_RATE_LIMIT_BURST,
+            }),
+        );
+        return Err("HTTP 请求过于频繁，请稍后重试".to_string());
     }
 
     // 打印请求日志
@@ -204,7 +273,7 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
     );
 
     let headers = sanitize_headers(payload.headers)?;
-    let client = reqwest::Client::new();
+    let client = shared_http_client()?;
     let mut request = client.request(method.clone(), url.clone()).headers(headers);
     if let Some(authorization) = payload
         .authorization
@@ -295,7 +364,7 @@ async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload
 }
 
 #[tauri::command]
-fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternalUrlResult, String> {
+pub(crate) fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternalUrlResult, String> {
     let parsed = Url::parse(payload.url.as_str()).map_err(|error| error.to_string())?;
     validate_external_url(&parsed)?;
     webbrowser::open(parsed.as_str()).map_err(|error| error.to_string())?;
@@ -303,7 +372,7 @@ fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternalUrlR
 }
 
 #[tauri::command]
-async fn oauth_token_exchange(
+pub(crate) async fn oauth_token_exchange(
     payload: OauthTokenExchangePayload,
 ) -> Result<OauthTokenExchangeResult, String> {
     let token_url = Url::parse(payload.token_url.as_str()).map_err(|error| error.to_string())?;
@@ -345,7 +414,7 @@ async fn oauth_token_exchange(
         }
     }
 
-    let response = reqwest::Client::new()
+    let response = shared_http_client()?
         .post(token_url.clone())
         .header("content-type", "application/x-www-form-urlencoded")
         .form(&form)
@@ -398,12 +467,12 @@ async fn oauth_token_exchange(
 }
 
 #[tauri::command]
-async fn oauth_listen_for_code(
+pub(crate) async fn oauth_listen_for_code(
     payload: OauthListenForCodePayload,
 ) -> Result<OauthListenForCodeResult, String> {
-    tauri::async_runtime::spawn_blocking(move || oauth_listen_for_code_blocking(payload))
+    tauri::async_runtime::spawn_blocking(move || {
+        super::env_http::oauth_listen_for_code_blocking(payload)
+    })
         .await
         .map_err(|error| error.to_string())?
 }
-
-include!("defaults_and_commands/window_and_logs.rs");

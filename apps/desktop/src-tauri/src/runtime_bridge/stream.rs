@@ -14,6 +14,7 @@ use super::metadata;
 use super::{RuntimeBridgeStreamClosePayload, RuntimeBridgeStreamOpenPayload};
 
 static STREAM_COUNTER: AtomicU64 = AtomicU64::new(1);
+const MAX_OPEN_STREAMS: usize = 256;
 static OPEN_STREAMS: OnceLock<Mutex<HashMap<String, tauri::async_runtime::JoinHandle<()>>>> =
     OnceLock::new();
 
@@ -117,6 +118,24 @@ fn emit_stream_completed(app: &AppHandle, event_name: &str, stream_id: &str) {
             error: None,
         },
     );
+}
+
+fn register_stream_task(
+    stream_id: &str,
+    task: tauri::async_runtime::JoinHandle<()>,
+) -> Result<(), String> {
+    let mut guard = stream_registry()
+        .lock()
+        .expect("runtime stream registry lock poisoned");
+    if guard.len() >= MAX_OPEN_STREAMS {
+        task.abort();
+        return Err(bridge_error(
+            "RUNTIME_BRIDGE_STREAM_LIMIT_EXCEEDED",
+            format!("too many open streams (limit {MAX_OPEN_STREAMS})").as_str(),
+        ));
+    }
+    guard.insert(stream_id.to_string(), task);
+    Ok(())
 }
 
 fn next_stream_id() -> String {
@@ -225,12 +244,7 @@ pub async fn open_stream(
         guard.remove(stream_id_for_task.as_str());
     });
 
-    {
-        let mut guard = stream_registry()
-            .lock()
-            .expect("runtime stream registry lock poisoned");
-        guard.insert(stream_id.clone(), task);
-    }
+    register_stream_task(stream_id.as_str(), task)?;
 
     Ok(RuntimeBridgeStreamOpenResult { stream_id })
 }
@@ -246,7 +260,9 @@ pub fn close_stream(payload: &RuntimeBridgeStreamClosePayload) {
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_request_bytes, validate_stream_method};
+    use super::{
+        decode_request_bytes, register_stream_task, stream_registry, validate_stream_method,
+    };
     use crate::runtime_bridge::RuntimeBridgeStreamOpenPayload;
 
     fn payload(method_id: &str, request_bytes_base64: &str) -> RuntimeBridgeStreamOpenPayload {
@@ -288,5 +304,34 @@ mod tests {
             .err()
             .unwrap_or_default()
             .contains("RUNTIME_BRIDGE_REQUEST_DECODE_FAILED"));
+    }
+
+    #[test]
+    fn register_stream_task_rejects_when_registry_limit_is_reached() {
+        let mut guard = stream_registry()
+            .lock()
+            .expect("runtime stream registry lock poisoned");
+        guard.clear();
+        for index in 0..super::MAX_OPEN_STREAMS {
+            guard.insert(
+                format!("existing-{index}"),
+                tauri::async_runtime::spawn(async {}),
+            );
+        }
+        drop(guard);
+
+        let result = register_stream_task("overflow", tauri::async_runtime::spawn(async {}));
+
+        assert!(result
+            .err()
+            .unwrap_or_default()
+            .contains("RUNTIME_BRIDGE_STREAM_LIMIT_EXCEEDED"));
+
+        let mut guard = stream_registry()
+            .lock()
+            .expect("runtime stream registry lock poisoned");
+        for (_, handle) in guard.drain() {
+            handle.abort();
+        }
     }
 }

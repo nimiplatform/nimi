@@ -240,6 +240,29 @@ fn runtime_cli_command_spec_uses_runtime_mode_branch() {
     let _ = fs::remove_dir_all(dir);
 }
 
+#[cfg(unix)]
+#[test]
+fn runtime_dev_root_dir_is_debug_only() {
+    let _guard = test_guard();
+
+    #[cfg(debug_assertions)]
+    {
+        let spec = runtime_cli_command_spec(&["version", "--json"]);
+        if let Ok(spec) = spec {
+            let current_dir = spec.current_dir.expect("runtime mode debug current dir");
+            assert!(current_dir.ends_with("runtime"));
+        }
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        let error = runtime_cli_command_spec(&["version", "--json"])
+            .err()
+            .unwrap_or_default();
+        assert!(error.contains("RUNTIME_BRIDGE_RUNTIME_ROOT_NOT_FOUND"));
+    }
+}
+
 #[test]
 fn runtime_cli_command_spec_rejects_invalid_mode() {
     let _guard = test_guard();

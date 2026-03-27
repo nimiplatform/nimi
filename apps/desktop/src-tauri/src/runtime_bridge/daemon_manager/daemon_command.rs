@@ -19,12 +19,20 @@ pub(super) enum RuntimeBridgeMode {
 }
 
 fn runtime_dev_root_dir() -> Option<PathBuf> {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../runtime");
-    if root.exists() {
-        Some(root)
-    } else {
-        None
+    #[cfg(debug_assertions)]
+    {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../runtime");
+        if root.exists() {
+            return Some(root);
+        }
     }
+
+    #[cfg(not(debug_assertions))]
+    {
+        return None;
+    }
+
+    None
 }
 
 fn is_executable_available(name: &str) -> bool {
