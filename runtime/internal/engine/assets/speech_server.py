@@ -11,6 +11,17 @@ import uvicorn
 def create_app() -> FastAPI:
     app = FastAPI()
 
+    def unavailable_response(operation: str) -> JSONResponse:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": {
+                    "message": f"speech runtime unavailable: {operation} requires supervised speech drivers and artifacts",
+                    "reason": "speech_engine_unavailable",
+                }
+            },
+        )
+
     @app.get("/healthz")
     def healthz():
         return {"status": "stub", "ready": False}
@@ -32,19 +43,19 @@ def create_app() -> FastAPI:
 
     @app.post("/v1/audio/transcriptions")
     def transcribe():
-        return JSONResponse(status_code=501, content={"detail": "speech runtime stub does not implement transcription"})
+        return unavailable_response("audio transcription")
 
     @app.post("/v1/audio/speech")
     def synthesize():
-        return JSONResponse(status_code=501, content={"detail": "speech runtime stub does not implement synthesis"})
+        return unavailable_response("audio synthesis")
 
     @app.post("/v1/voice/clone")
     def clone_voice():
-        return JSONResponse(status_code=501, content={"detail": "speech runtime stub does not implement voice clone"})
+        return unavailable_response("voice clone")
 
     @app.post("/v1/voice/design")
     def design_voice():
-        return JSONResponse(status_code=501, content={"detail": "speech runtime stub does not implement voice design"})
+        return unavailable_response("voice design")
 
     return app
 
