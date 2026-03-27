@@ -64,6 +64,15 @@ func TestNormalizeAndRankingHelpers(t *testing.T) {
 	if got := NormalizeCapability("  CHAT "); got != "text.generate" {
 		t.Fatalf("NormalizeCapability alias mismatch: %q", got)
 	}
+	if got := NormalizeCapability("text.generate.vision"); got != "text.generate" {
+		t.Fatalf("vision capability should collapse to text.generate, got %q", got)
+	}
+	if got := NormalizeCapability("music"); got != "music.generate" {
+		t.Fatalf("music alias should collapse to music.generate, got %q", got)
+	}
+	if got := NormalizeCapability("music.generate.iteration"); got != "music.generate" {
+		t.Fatalf("music iteration capability should collapse to music.generate, got %q", got)
+	}
 	if got := NormalizeProvider(" Speech "); got != "speech" {
 		t.Fatalf("NormalizeProvider mismatch: %q", got)
 	}

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -32,7 +34,15 @@ const (
 	resolvedBundleManifestFileName = "manifest.json"
 )
 
-var errResolvedBundleSearchComplete = errors.New("resolved bundle manifest search complete")
+type resolvedBundleManifestIndex struct {
+	rootModTime    time.Time
+	manifestByID   map[string]string
+}
+
+var (
+	resolvedBundleManifestIndexMu    sync.Mutex
+	resolvedBundleManifestIndexCache = make(map[string]*resolvedBundleManifestIndex)
+)
 
 func InferNativeProjection(modelID string, capabilities []string, files []string, status runtimev1.ModelStatus) (NativeProjection, error) {
 	normalizedModelID := strings.TrimSpace(modelID)
@@ -82,8 +92,11 @@ type resolvedBundleManifestDisk struct {
 
 func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) (NativeProjection, bool, error) {
 	manifestPath, err := resolvedBundleManifestPath(modelID)
-	if strings.TrimSpace(manifestPath) == "" {
+	if err != nil {
 		return NativeProjection{}, false, err
+	}
+	if strings.TrimSpace(manifestPath) == "" {
+		return NativeProjection{}, false, nil
 	}
 	raw, err := os.ReadFile(manifestPath)
 	if err != nil {
@@ -205,7 +218,62 @@ func findResolvedBundleManifestByModelID(resolvedRoot string, modelID string) (s
 	if expectedComparable == "" {
 		return "", nil
 	}
-	var discovered string
+	rootModTime, err := resolvedBundleRootModTime(resolvedRoot)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
+	}
+	if cachedPath, ok := resolvedBundleManifestFromIndex(resolvedRoot, rootModTime, expectedComparable); ok {
+		return cachedPath, nil
+	}
+	index, err := buildResolvedBundleManifestIndex(resolvedRoot, rootModTime, modelID)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
+	}
+	storeResolvedBundleManifestIndex(resolvedRoot, index)
+	return strings.TrimSpace(index.manifestByID[expectedComparable]), nil
+}
+
+func resolvedBundleRootModTime(resolvedRoot string) (time.Time, error) {
+	info, err := os.Stat(resolvedRoot)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if info == nil || !info.IsDir() {
+		return time.Time{}, os.ErrNotExist
+	}
+	return info.ModTime(), nil
+}
+
+func resolvedBundleManifestFromIndex(resolvedRoot string, rootModTime time.Time, comparableModelID string) (string, bool) {
+	resolvedBundleManifestIndexMu.Lock()
+	defer resolvedBundleManifestIndexMu.Unlock()
+	index := resolvedBundleManifestIndexCache[resolvedRoot]
+	if index == nil || !index.rootModTime.Equal(rootModTime) {
+		return "", false
+	}
+	return strings.TrimSpace(index.manifestByID[comparableModelID]), true
+}
+
+func storeResolvedBundleManifestIndex(resolvedRoot string, index *resolvedBundleManifestIndex) {
+	if strings.TrimSpace(resolvedRoot) == "" || index == nil {
+		return
+	}
+	resolvedBundleManifestIndexMu.Lock()
+	resolvedBundleManifestIndexCache[resolvedRoot] = index
+	resolvedBundleManifestIndexMu.Unlock()
+}
+
+func buildResolvedBundleManifestIndex(resolvedRoot string, rootModTime time.Time, modelID string) (*resolvedBundleManifestIndex, error) {
+	index := &resolvedBundleManifestIndex{
+		rootModTime:  rootModTime,
+		manifestByID: make(map[string]string),
+	}
 	manifestReads := 0
 	err := filepath.WalkDir(resolvedRoot, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -236,22 +304,23 @@ func findResolvedBundleManifestByModelID(resolvedRoot string, modelID string) (s
 		if jsonErr := json.Unmarshal(raw, &disk); jsonErr != nil {
 			return fmt.Errorf("parse resolved manifest %q: %w", path, jsonErr)
 		}
-		if comparableResolvedModelID(disk.ModelID) == expectedComparable || comparableResolvedModelID(disk.LogicalModelID) == expectedComparable {
-			discovered = path
-			return errResolvedBundleSearchComplete
+		for _, comparableID := range []string{
+			comparableResolvedModelID(disk.ModelID),
+			comparableResolvedModelID(disk.LogicalModelID),
+		} {
+			if comparableID == "" {
+				continue
+			}
+			if _, exists := index.manifestByID[comparableID]; !exists {
+				index.manifestByID[comparableID] = path
+			}
 		}
 		return nil
 	})
-	if errors.Is(err, errResolvedBundleSearchComplete) {
-		return discovered, nil
-	}
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return "", nil
-		}
-		return "", err
+		return nil, err
 	}
-	return discovered, nil
+	return index, nil
 }
 
 func comparableResolvedModelID(modelID string) string {

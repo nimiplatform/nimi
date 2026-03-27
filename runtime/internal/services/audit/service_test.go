@@ -1,6 +1,7 @@
 package audit
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"log/slog"
@@ -16,6 +17,13 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
+
+func auditContext(appID string) context.Context {
+	if appID == "" {
+		return metadata.NewIncomingContext(context.Background(), metadata.Pairs())
+	}
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
+}
 
 func TestListAIProviderHealth(t *testing.T) {
 	state := health.NewState()
@@ -478,7 +486,7 @@ func TestExportAuditEventsEofTrue(t *testing.T) {
 	state.SetStatus(health.StatusReady, "ready")
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
 
-	ctx := context.Background()
+	ctx := auditContext("runtime")
 	stream := &exportStreamCollector{ctx: ctx}
 	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{}, stream)
 	if err != nil {
@@ -500,7 +508,7 @@ func TestExportAuditEventsCompressed(t *testing.T) {
 	state := health.NewState()
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
 
-	ctx := context.Background()
+	ctx := auditContext("runtime")
 	stream := &exportStreamCollector{ctx: ctx}
 	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{
 		Compress: true,
@@ -520,7 +528,7 @@ func TestExportAuditEventsSequenceStartsFromZero(t *testing.T) {
 	state := health.NewState()
 	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
 
-	ctx := context.Background()
+	ctx := auditContext("runtime")
 	stream := &exportStreamCollector{ctx: ctx}
 	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{}, stream)
 	if err != nil {
@@ -530,6 +538,78 @@ func TestExportAuditEventsSequenceStartsFromZero(t *testing.T) {
 		if chunk.GetSequence() != uint64(i) {
 			t.Fatalf("chunk %d sequence: got=%d want=%d", i, chunk.GetSequence(), i)
 		}
+	}
+}
+
+func TestExportAuditEventsRejectsMissingPrincipal(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	stream := &exportStreamCollector{ctx: auditContext("")}
+	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{}, stream)
+	if status.Code(err) != codes.Unauthenticated {
+		t.Fatalf("expected unauthenticated, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
+func TestExportAuditEventsRejectsAppMismatch(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	stream := &exportStreamCollector{ctx: auditContext("runtime")}
+	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{AppId: "other-app"}, stream)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected permission denied, got %v", err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
+func TestExportAuditEventsUsesZeroLengthChunkForEmptyPayload(t *testing.T) {
+	state := health.NewState()
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	stream := &exportStreamCollector{ctx: auditContext("runtime")}
+	err := svc.ExportAuditEvents(&runtimev1.ExportAuditEventsRequest{SubjectUserId: "no-matching-events"}, stream)
+	if err != nil {
+		t.Fatalf("ExportAuditEvents: %v", err)
+	}
+	if len(stream.chunks) != 1 {
+		t.Fatalf("expected single chunk, got %d", len(stream.chunks))
+	}
+	if !stream.chunks[0].GetEof() {
+		t.Fatal("expected eof chunk for empty export")
+	}
+	if len(stream.chunks[0].GetChunk()) != 0 {
+		t.Fatalf("expected zero-length chunk, got %d bytes", len(stream.chunks[0].GetChunk()))
+	}
+}
+
+func TestSyntheticAuditEventsUseSnakeCaseInferenceKey(t *testing.T) {
+	state := health.NewState()
+	state.SetActivity(3, 2, 0)
+	svc := New(state, slog.New(slog.NewTextHandler(io.Discard, nil)), providerhealth.New())
+
+	resp, err := svc.ListAuditEvents(context.Background(), &runtimev1.ListAuditEventsRequest{})
+	if err != nil {
+		t.Fatalf("ListAuditEvents: %v", err)
+	}
+	if len(resp.GetEvents()) == 0 {
+		t.Fatal("expected synthetic audit event")
+	}
+	payloadJSON, err := resp.GetEvents()[0].GetPayload().MarshalJSON()
+	if err != nil {
+		t.Fatalf("marshal payload: %v", err)
+	}
+	if !bytes.Contains(payloadJSON, []byte(`"active_inference_jobs"`)) {
+		t.Fatalf("expected snake_case key in payload: %s", payloadJSON)
+	}
+	if bytes.Contains(payloadJSON, []byte(`"active_inferenceJobs"`)) {
+		t.Fatalf("unexpected legacy mixed-case key in payload: %s", payloadJSON)
 	}
 }
 

@@ -117,6 +117,9 @@ func (s *State) Subscribe(buffer int) (<-chan Snapshot, func()) {
 	defer s.mu.Unlock()
 
 	s.nextID++
+	if s.nextID == 0 {
+		s.nextID++
+	}
 	id := s.nextID
 	ch := make(chan Snapshot, buffer)
 	s.watchers[id] = ch

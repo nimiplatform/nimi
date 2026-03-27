@@ -180,6 +180,9 @@ func TestRunRuntimeModelHealthJSON(t *testing.T) {
 	if got := firstMD(md, "x-nimi-trace-id"); got != "trace-health-cli" {
 		t.Fatalf("trace-id mismatch: %q", got)
 	}
+	if got := service.lastHealthRequest().GetAppId(); got != "nimi.desktop" {
+		t.Fatalf("health request app-id mismatch: %q", got)
+	}
 }
 
 func startCmdTestRuntimeModelServer(t *testing.T, service runtimev1.RuntimeModelServiceServer) (string, func()) {
@@ -284,6 +287,15 @@ func (s *cmdTestRuntimeModelService) lastRemoveRequest() *runtimev1.RemoveModelR
 		return &runtimev1.RemoveModelRequest{}
 	}
 	return s.removeReq
+}
+
+func (s *cmdTestRuntimeModelService) lastHealthRequest() *runtimev1.CheckModelHealthRequest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.healthReq == nil {
+		return &runtimev1.CheckModelHealthRequest{}
+	}
+	return s.healthReq
 }
 
 func (s *cmdTestRuntimeModelService) lastHealthMetadata() metadata.MD {

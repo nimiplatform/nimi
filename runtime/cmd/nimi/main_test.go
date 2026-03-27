@@ -335,6 +335,20 @@ func TestNormalizeRootArgsLeavesRegularArgsUntouched(t *testing.T) {
 	}
 }
 
+func TestNormalizeRootArgsStripsAllLeadingDoubleDashMarkers(t *testing.T) {
+	input := []string{"nimi", "--", "--", "config", "init"}
+	got := normalizeRootArgs(input)
+	want := []string{"nimi", "config", "init"}
+	if len(got) != len(want) {
+		t.Fatalf("normalized args length mismatch: got=%d want=%d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("normalized arg[%d] mismatch: got=%q want=%q", i, got[i], want[i])
+		}
+	}
+}
+
 func TestParseRoutePolicy(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -236,3 +236,16 @@ func TestConcurrentAccess(t *testing.T) {
 	// Should not panic or race.
 	_ = <-ch
 }
+
+func TestSubscribeSkipsZeroWatcherIDAfterWrap(t *testing.T) {
+	s := NewState()
+	s.nextID = ^uint64(0)
+
+	ch, cancel := s.Subscribe(1)
+	defer cancel()
+
+	if _, exists := s.watchers[0]; exists {
+		t.Fatal("watcher id 0 must remain unused after counter wrap")
+	}
+	_ = <-ch
+}

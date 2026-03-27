@@ -1,41 +1,60 @@
 package localrouting
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
+)
 
 func knownProviders() []string {
 	return []string{"llama", "media", "speech", "sidecar"}
 }
 
 func NormalizeCapability(capability string) string {
-	switch strings.ToLower(strings.TrimSpace(capability)) {
-	case "chat", "text.generate":
-		return "text.generate"
-	case "embedding", "embed", "text.embed":
-		return "text.embed"
+	normalized := strings.ToLower(strings.TrimSpace(capability))
+	switch normalized {
+	case "chat":
+		normalized = aicapabilities.TextGenerate
+	case "embedding", "embed":
+		normalized = aicapabilities.TextEmbed
+	case "image":
+		normalized = aicapabilities.ImageGenerate
+	case "video":
+		normalized = aicapabilities.VideoGenerate
+	case "music":
+		normalized = aicapabilities.MusicGenerate
+	case "tts", "speech":
+		normalized = aicapabilities.AudioSynthesize
+	case "stt", "transcription":
+		normalized = aicapabilities.AudioTranscribe
+	}
+
+	if catalogCapability, err := aicapabilities.NormalizeCatalogCapability(normalized); err == nil {
+		switch catalogCapability {
+		case aicapabilities.TextGenerateVision, aicapabilities.TextGenerateAudio, aicapabilities.TextGenerateVideo:
+			return aicapabilities.TextGenerate
+		case aicapabilities.MusicGenerateIteration:
+			return aicapabilities.MusicGenerate
+		default:
+			return catalogCapability
+		}
+	}
+
+	switch normalized {
 	case "image.understand":
 		return "image.understand"
-	case "image", "image.generate":
-		return "image.generate"
 	case "image.edit":
 		return "image.edit"
-	case "video", "video.generate":
-		return "video.generate"
 	case "i2v":
 		return "i2v"
-	case "tts", "speech", "audio.synthesize":
-		return "audio.synthesize"
 	case "voice_workflow.tts_v2v":
 		return "voice_workflow.tts_v2v"
 	case "voice_workflow.tts_t2v":
 		return "voice_workflow.tts_t2v"
-	case "stt", "transcription", "audio.transcribe":
-		return "audio.transcribe"
 	case "audio.understand":
 		return "audio.understand"
-	case "music", "music.generate":
-		return "music.generate"
 	default:
-		return strings.ToLower(strings.TrimSpace(capability))
+		return normalized
 	}
 }
 
@@ -63,8 +82,10 @@ func ProviderSupportsCapability(provider string, capability string) bool {
 	return false
 }
 
-func PreferenceOrder(goos string, capability string) []string {
-	_ = strings.ToLower(strings.TrimSpace(goos))
+// PreferenceOrder is intentionally capability-only today. The reserved first
+// parameter keeps the call shape stable for a future OS-specific ordering
+// policy without implying that the current implementation uses it.
+func PreferenceOrder(_ string, capability string) []string {
 	return providersForNormalizedCapability(NormalizeCapability(capability))
 }
 

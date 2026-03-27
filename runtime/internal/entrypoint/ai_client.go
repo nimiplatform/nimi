@@ -31,7 +31,11 @@ func ExecuteScenarioGRPC(grpcAddr string, timeout time.Duration, req *runtimev1.
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -68,7 +72,11 @@ func SubmitScenarioJobAndCollectGRPC(grpcAddr string, timeout time.Duration, req
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	ctx = withNimiOutgoingMetadata(ctx, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
+	preparedCtx, err := prepareInsecureOutgoingContext(ctx, addr, req.GetHead().GetAppId(), firstMetadataOverride(metadataOverride...))
+	if err != nil {
+		return nil, err
+	}
+	ctx = preparedCtx
 
 	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {

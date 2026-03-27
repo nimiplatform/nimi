@@ -243,6 +243,8 @@ func inferProviderHint(modelID string, source string) ProviderHint {
 	case strings.HasPrefix(id, "dashscope/"), src == "dashscope":
 		return ProviderHintDashScope
 	case strings.HasPrefix(id, "volcengine/"), strings.HasPrefix(id, "volcengine_openspeech/"), src == "volcengine", src == "volcengine_openspeech":
+		// Runtime currently exposes one public Volcengine provider family even when
+		// source identifiers differ between text/media and OpenSpeech adapters.
 		return ProviderHintVolcengine
 	case strings.HasPrefix(id, "gemini/"), src == "gemini":
 		return ProviderHintGemini

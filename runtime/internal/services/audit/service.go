@@ -114,9 +114,17 @@ func appIDFromContext(ctx context.Context) string {
 }
 
 func (s *Service) ExportAuditEvents(req *runtimev1.ExportAuditEventsRequest, stream grpc.ServerStreamingServer[runtimev1.AuditExportChunk]) error {
-	filterAppId := strings.TrimSpace(req.GetAppId())
+	requestAppID := strings.TrimSpace(req.GetAppId())
+	contextAppID := appIDFromContext(stream.Context())
+	if requestAppID != "" && contextAppID != "" && requestAppID != contextAppID {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
+	filterAppId := requestAppID
 	if filterAppId == "" {
-		filterAppId = appIDFromContext(stream.Context())
+		filterAppId = contextAppID
+	}
+	if filterAppId == "" {
+		return grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	listResp, err := s.ListAuditEvents(stream.Context(), &runtimev1.ListAuditEventsRequest{
 		AppId:         filterAppId,
@@ -134,9 +142,6 @@ func (s *Service) ExportAuditEvents(req *runtimev1.ExportAuditEventsRequest, str
 	if err != nil {
 		return err
 	}
-	if len(payload) == 0 {
-		payload = []byte("{}\n")
-	}
 	if req.GetCompress() {
 		payload, err = gzipCompress(payload)
 		if err != nil {
@@ -146,6 +151,15 @@ func (s *Service) ExportAuditEvents(req *runtimev1.ExportAuditEventsRequest, str
 
 	const chunkSize = 1024
 	chunks := splitChunks(payload, chunkSize)
+	if len(chunks) == 0 {
+		return stream.Send(&runtimev1.AuditExportChunk{
+			ExportId: exportID,
+			Sequence: 0,
+			Chunk:    nil,
+			Eof:      true,
+			MimeType: exportMimeType(req.GetFormat(), req.GetCompress()),
+		})
+	}
 	for i, part := range chunks {
 		eof := i == len(chunks)-1
 		if err := stream.Send(&runtimev1.AuditExportChunk{
@@ -553,13 +567,13 @@ func (s *Service) syntheticAuditEvents() []*runtimev1.AuditEventRecord {
 	}
 
 	payload, _ := structpb.NewStruct(map[string]any{
-		"status":               mapStatus(snapshot.Status).String(),
-		"queue_depth":          snapshot.QueueDepth,
-		"active_workflows":     snapshot.ActiveWorkflows,
-		"active_inferenceJobs": snapshot.ActiveInferenceJobs,
-		"cpu_milli":            snapshot.CPUMilli,
-		"memory_bytes":         snapshot.MemoryBytes,
-		"vram_bytes":           snapshot.VRAMBytes,
+		"status":                mapStatus(snapshot.Status).String(),
+		"queue_depth":           snapshot.QueueDepth,
+		"active_workflows":      snapshot.ActiveWorkflows,
+		"active_inference_jobs": snapshot.ActiveInferenceJobs,
+		"cpu_milli":             snapshot.CPUMilli,
+		"memory_bytes":          snapshot.MemoryBytes,
+		"vram_bytes":            snapshot.VRAMBytes,
 	})
 
 	record := &runtimev1.AuditEventRecord{
@@ -712,7 +726,7 @@ func splitChunks(data []byte, chunkSize int) [][]byte {
 		chunkSize = len(data)
 	}
 	if len(data) == 0 {
-		return [][]byte{{}}
+		return nil
 	}
 
 	out := make([][]byte, 0, (len(data)+chunkSize-1)/chunkSize)

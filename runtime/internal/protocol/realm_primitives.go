@@ -3,6 +3,7 @@ package protocol
 import (
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 )
@@ -23,6 +24,13 @@ type PrimitiveContract struct {
 	Coverage       PrimitiveCoverage
 }
 
+const (
+	maxPlatformInt = int(^uint(0) >> 1)
+	minPlatformInt = -maxPlatformInt - 1
+)
+
+var primitiveContractsByName = buildPrimitiveContractIndex()
+
 func PrimitiveContracts() []PrimitiveContract {
 	out := append([]PrimitiveContract(nil), primitiveContractDefinitions()...)
 	sort.Slice(out, func(i, j int) bool {
@@ -32,13 +40,13 @@ func PrimitiveContracts() []PrimitiveContract {
 }
 
 func PrimitiveContractByName(name string) (PrimitiveContract, bool) {
-	contract, ok := primitiveContractIndex()[strings.TrimSpace(name)]
+	contract, ok := primitiveContractsByName[strings.TrimSpace(name)]
 	return contract, ok
 }
 
 func ValidatePrimitiveContract(name string, payload map[string]any) error {
 	normalized := strings.TrimSpace(name)
-	contract, ok := primitiveContractIndex()[normalized]
+	contract, ok := primitiveContractsByName[normalized]
 	if !ok {
 		return fmt.Errorf("validate primitive contract: %w: %s", ErrUnknownPrimitiveContract, normalized)
 	}
@@ -201,7 +209,7 @@ func primitiveContractDefinitions() []PrimitiveContract {
 	}
 }
 
-func primitiveContractIndex() map[string]PrimitiveContract {
+func buildPrimitiveContractIndex() map[string]PrimitiveContract {
 	index := make(map[string]PrimitiveContract, len(primitiveContractDefinitions()))
 	for _, contract := range primitiveContractDefinitions() {
 		index[contract.Name] = contract
@@ -253,15 +261,24 @@ func intField(payload map[string]any, key string) (int, error) {
 	case int32:
 		return int(value), nil
 	case int64:
+		if value < int64(minPlatformInt) || value > int64(maxPlatformInt) {
+			return 0, fmt.Errorf("%s must be within the supported integer range", key)
+		}
 		return int(value), nil
 	case float64:
-		if value != float64(int(value)) {
+		if math.Trunc(value) != value {
 			return 0, fmt.Errorf("%s must be an integer", key)
+		}
+		if value < float64(minPlatformInt) || value > float64(maxPlatformInt) {
+			return 0, fmt.Errorf("%s must be within the supported integer range", key)
 		}
 		return int(value), nil
 	case float32:
-		if value != float32(int(value)) {
+		if math.Trunc(float64(value)) != float64(value) {
 			return 0, fmt.Errorf("%s must be an integer", key)
+		}
+		if value < float32(minPlatformInt) || value > float32(maxPlatformInt) {
+			return 0, fmt.Errorf("%s must be within the supported integer range", key)
 		}
 		return int(value), nil
 	default:

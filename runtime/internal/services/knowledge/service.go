@@ -7,12 +7,20 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
+)
+
+const (
+	defaultKnowledgeTopK = 5
+	maxKnowledgeTopK     = 50
+	maxKnowledgeSources  = 256
+	maxKnowledgeIndexes  = 512
 )
 
 type document struct {
@@ -50,8 +58,15 @@ func (s *Service) BuildIndex(_ context.Context, req *runtimev1.BuildIndexRequest
 	subjectUserID := strings.TrimSpace(req.GetSubjectUserId())
 	indexID := strings.TrimSpace(req.GetIndexId())
 	if appID == "" || subjectUserID == "" || indexID == "" {
-		return &runtimev1.BuildIndexResponse{TaskId: "", Accepted: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
+	if err := validateIndexKeyPart(appID, subjectUserID, indexID); err != nil {
+		return nil, err
+	}
+	if len(req.GetSourceUris()) > maxKnowledgeSources {
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+	}
+	s.logIgnoredBuildIndexFields(req)
 
 	key := indexKey(appID, subjectUserID, indexID)
 	now := time.Now().UTC()
@@ -66,7 +81,7 @@ func (s *Service) BuildIndex(_ context.Context, req *runtimev1.BuildIndexRequest
 		docs = append(docs, document{
 			DocumentID: ulid.Make().String(),
 			SourceURI:  u,
-			Text:       u,
+			Text:       documentTextFromSource(u),
 		})
 	}
 
@@ -84,6 +99,10 @@ func (s *Service) BuildIndex(_ context.Context, req *runtimev1.BuildIndexRequest
 		s.mu.Unlock()
 		return nil, status.Error(codes.AlreadyExists, runtimev1.ReasonCode_KNOWLEDGE_INDEX_ALREADY_EXISTS.String())
 	}
+	if !exists && len(s.indexes) >= maxKnowledgeIndexes {
+		s.mu.Unlock()
+		return nil, status.Error(codes.ResourceExhausted, "knowledge index capacity exceeded")
+	}
 	s.indexes[key] = record
 	s.mu.Unlock()
 
@@ -97,8 +116,12 @@ func (s *Service) SearchIndex(_ context.Context, req *runtimev1.SearchIndexReque
 	indexID := strings.TrimSpace(req.GetIndexId())
 	query := strings.TrimSpace(req.GetQuery())
 	if appID == "" || subjectUserID == "" || indexID == "" || query == "" {
-		return &runtimev1.SearchIndexResponse{Hits: []*runtimev1.SearchHit{}, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID}, nil
+		return nil, status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
 	}
+	if err := validateIndexKeyPart(appID, subjectUserID, indexID); err != nil {
+		return nil, err
+	}
+	s.logIgnoredSearchIndexFields(req)
 
 	s.mu.RLock()
 	record, exists := s.indexes[indexKey(appID, subjectUserID, indexID)]
@@ -109,7 +132,9 @@ func (s *Service) SearchIndex(_ context.Context, req *runtimev1.SearchIndexReque
 
 	topK := int(req.GetTopK())
 	if topK <= 0 {
-		topK = 5
+		topK = defaultKnowledgeTopK
+	} else if topK > maxKnowledgeTopK {
+		topK = maxKnowledgeTopK
 	}
 
 	queryLower := strings.ToLower(query)
@@ -150,6 +175,9 @@ func (s *Service) DeleteIndex(_ context.Context, req *runtimev1.DeleteIndexReque
 	if appID == "" || subjectUserID == "" || indexID == "" {
 		return &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, ActionHint: "set app_id, subject_user_id, index_id"}, nil
 	}
+	if err := validateIndexKeyPart(appID, subjectUserID, indexID); err != nil {
+		return nil, err
+	}
 
 	s.mu.Lock()
 	delete(s.indexes, indexKey(appID, subjectUserID, indexID))
@@ -159,26 +187,71 @@ func (s *Service) DeleteIndex(_ context.Context, req *runtimev1.DeleteIndexReque
 }
 
 func snippet(text string, query string) string {
-	if len(text) <= 120 {
+	runes := []rune(text)
+	if len(runes) <= 120 {
 		return text
 	}
 	queryLower := strings.ToLower(query)
 	textLower := strings.ToLower(text)
 	idx := strings.Index(textLower, queryLower)
 	if idx < 0 {
-		return text[:120]
+		return string(runes[:120])
 	}
-	start := idx - 40
+	start := utf8.RuneCountInString(text[:idx]) - 40
 	if start < 0 {
 		start = 0
 	}
 	end := start + 120
-	if end > len(text) {
-		end = len(text)
+	if end > len(runes) {
+		end = len(runes)
 	}
-	return text[start:end]
+	return string(runes[start:end])
 }
 
 func indexKey(appID string, subjectUserID string, indexID string) string {
 	return appID + "::" + subjectUserID + "::" + indexID
+}
+
+func validateIndexKeyPart(parts ...string) error {
+	for _, part := range parts {
+		if strings.Contains(part, "::") {
+			return status.Error(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID.String())
+		}
+	}
+	return nil
+}
+
+func documentTextFromSource(source string) string {
+	if strings.Contains(source, "://") {
+		return ""
+	}
+	return source
+}
+
+func (s *Service) logIgnoredBuildIndexFields(req *runtimev1.BuildIndexRequest) {
+	if s.logger == nil {
+		return
+	}
+	if strings.TrimSpace(req.GetSourceKind()) == "" && strings.TrimSpace(req.GetEmbeddingModelId()) == "" && req.GetOptions() == nil {
+		return
+	}
+	s.logger.Warn(
+		"knowledge build_index ignored unsupported fields",
+		"app_id", strings.TrimSpace(req.GetAppId()),
+		"index_id", strings.TrimSpace(req.GetIndexId()),
+		"source_kind", strings.TrimSpace(req.GetSourceKind()),
+		"embedding_model_id", strings.TrimSpace(req.GetEmbeddingModelId()),
+		"has_options", req.GetOptions() != nil,
+	)
+}
+
+func (s *Service) logIgnoredSearchIndexFields(req *runtimev1.SearchIndexRequest) {
+	if s.logger == nil || req.GetFilters() == nil {
+		return
+	}
+	s.logger.Warn(
+		"knowledge search_index ignored unsupported filters",
+		"app_id", strings.TrimSpace(req.GetAppId()),
+		"index_id", strings.TrimSpace(req.GetIndexId()),
+	)
 }

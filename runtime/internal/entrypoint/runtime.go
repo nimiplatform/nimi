@@ -21,6 +21,8 @@ import (
 	"time"
 )
 
+const maxRuntimeLockAcquireAttempts = 8
+
 func RunDaemonFromArgs(program string, args []string, version ...string) error {
 	runtimeVersion := "0.0.0-dev"
 	if len(version) > 0 && version[0] != "" {
@@ -91,10 +93,10 @@ func acquireRuntimeInstanceLock() (func(), error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0o700); err != nil {
 		return nil, fmt.Errorf("create runtime lock directory: %w", err)
 	}
-	for {
+	for attempts := 0; attempts < maxRuntimeLockAcquireAttempts; attempts++ {
 		lockFile, openErr := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 		if openErr == nil {
 			if _, err := lockFile.WriteString(strconv.Itoa(os.Getpid())); err != nil {
@@ -121,6 +123,7 @@ func acquireRuntimeInstanceLock() (func(), error) {
 			return nil, fmt.Errorf("remove stale runtime lock: %w", err)
 		}
 	}
+	return nil, fmt.Errorf("acquire runtime instance lock: exceeded %d stale-lock recovery attempts", maxRuntimeLockAcquireAttempts)
 }
 
 func runtimeLockIsStale(lockPath string) (bool, error) {

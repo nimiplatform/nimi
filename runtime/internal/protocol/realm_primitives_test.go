@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"errors"
+	"math"
 	"testing"
 )
 
@@ -54,5 +55,44 @@ func TestPrimitiveContractsReturnsStableContracts(t *testing.T) {
 	}
 	if contracts[0].Name != "context" || contracts[len(contracts)-1].Name != "transit" {
 		t.Fatalf("unexpected contract ordering: %#v", contracts)
+	}
+}
+
+func TestPrimitiveContractByNameFindsCachedContract(t *testing.T) {
+	contract, ok := PrimitiveContractByName("timeflow")
+	if !ok {
+		t.Fatal("expected timeflow contract to be present")
+	}
+	if contract.Name != "timeflow" {
+		t.Fatalf("unexpected contract: %#v", contract)
+	}
+}
+
+func TestValidateTimeflowContractRejectsFloatOverflow(t *testing.T) {
+	_, err := intField(map[string]any{
+		"tickSeconds": float64(maxPlatformInt) * 2,
+	}, "tickSeconds")
+	if err == nil {
+		t.Fatal("expected overflow to fail")
+	}
+	if err.Error() != "tickSeconds must be within the supported integer range" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateTimeflowContractRejectsInt64Overflow(t *testing.T) {
+	currentMax := int64(maxPlatformInt)
+	if currentMax == math.MaxInt64 {
+		t.Skip("int64 overflow path is unreachable when int is already 64-bit")
+	}
+
+	_, err := intField(map[string]any{
+		"tickSeconds": currentMax + 1,
+	}, "tickSeconds")
+	if err == nil {
+		t.Fatal("expected int64 overflow to fail")
+	}
+	if err.Error() != "tickSeconds must be within the supported integer range" {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

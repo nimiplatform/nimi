@@ -343,6 +343,62 @@ func TestRegistryListDescriptorsPropagatesProjectionError(t *testing.T) {
 	}
 }
 
+func TestFindResolvedBundleManifestByModelIDRefreshesIndexWhenRootChanges(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "resolved")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatalf("mkdir resolved root: %v", err)
+	}
+
+	pathOne := filepath.Join(root, "vendor-a", "manifest.json")
+	writeResolvedManifest(t, pathOne, resolvedBundleManifestDisk{
+		ModelID: "local/qwen2.5",
+		Family:  "vendor-a",
+	})
+
+	got, err := findResolvedBundleManifestByModelID(root, "local/qwen2.5")
+	if err != nil {
+		t.Fatalf("first manifest lookup: %v", err)
+	}
+	if got != pathOne {
+		t.Fatalf("unexpected first manifest path: got=%q want=%q", got, pathOne)
+	}
+
+	if err := os.Remove(pathOne); err != nil {
+		t.Fatalf("remove first manifest: %v", err)
+	}
+	pathTwo := filepath.Join(root, "vendor-b", "manifest.json")
+	writeResolvedManifest(t, pathTwo, resolvedBundleManifestDisk{
+		ModelID: "local/qwen2.5",
+		Family:  "vendor-b",
+	})
+	changedAt := time.Now().UTC().Add(2 * time.Second)
+	if err := os.Chtimes(root, changedAt, changedAt); err != nil {
+		t.Fatalf("chtimes resolved root: %v", err)
+	}
+
+	got, err = findResolvedBundleManifestByModelID(root, "local/qwen2.5")
+	if err != nil {
+		t.Fatalf("second manifest lookup: %v", err)
+	}
+	if got != pathTwo {
+		t.Fatalf("expected refreshed manifest path: got=%q want=%q", got, pathTwo)
+	}
+}
+
+func writeResolvedManifest(t *testing.T, path string, manifest resolvedBundleManifestDisk) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatalf("mkdir manifest dir: %v", err)
+	}
+	raw, err := json.Marshal(manifest)
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(path, raw, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+}
+
 func TestInferCapabilitiesVision(t *testing.T) {
 	tests := []struct {
 		name      string

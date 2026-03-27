@@ -188,9 +188,6 @@ func (r *Relay[T]) shiftLeftFromLocked(idx int) {
 	var zero T
 	r.queue[last] = zero
 	r.queue = r.queue[:last]
-	if len(r.queue) == 0 {
-		r.queue = r.queue[:0]
-	}
 }
 
 func (r *Relay[T]) firstDroppableLocked() int {
