@@ -3,9 +3,11 @@ package connector
 import (
 	"context"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
@@ -77,8 +79,8 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 		Status:        r.Status,
 		LocalCategory: r.LocalCategory,
 		HasCredential: r.HasCredential,
-		CreatedAt:     r.CreatedAt,
-		UpdatedAt:     r.UpdatedAt,
+		CreatedAt:     timestamppb.New(time.UnixMilli(r.CreatedAt)),
+		UpdatedAt:     timestamppb.New(time.UnixMilli(r.UpdatedAt)),
 	}
 }
 
@@ -89,7 +91,14 @@ func (s *Service) emitAudit(ctx context.Context, operation string, reasonCode ru
 	}
 	var payloadStruct *structpb.Struct
 	if len(payload) > 0 {
-		payloadStruct, _ = structpb.NewStruct(payload)
+		built, err := structpb.NewStruct(payload)
+		if err != nil {
+			if s.logger != nil {
+				s.logger.Warn("connector audit payload serialization failed", "operation", operation, "error", err)
+			}
+		} else {
+			payloadStruct = built
+		}
 	}
 	traceID := strings.TrimSpace(envelope.ParseTraceIDFromContext(ctx))
 	subjectUserID, _ := subjectUserIDFromContext(ctx)

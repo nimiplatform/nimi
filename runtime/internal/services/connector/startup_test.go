@@ -1,8 +1,6 @@
 package connector
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -11,7 +9,7 @@ import (
 func tempConnectorStore(t *testing.T) *ConnectorStore {
 	t.Helper()
 	dir := t.TempDir()
-	return NewConnectorStore(dir)
+	return NewConnectorStoreWithMemorySecrets(dir)
 }
 
 func TestEnsureCloudConnectorsFromConfig_CreateNew(t *testing.T) {
@@ -201,7 +199,7 @@ func TestSystemCloudConnectorID(t *testing.T) {
 	}
 }
 
-func TestEnsureCloudConnectorsFromConfig_CredentialFileExists(t *testing.T) {
+func TestEnsureCloudConnectorsFromConfig_CredentialStored(t *testing.T) {
 	store := tempConnectorStore(t)
 
 	defs := []CloudConnectorDef{
@@ -211,11 +209,14 @@ func TestEnsureCloudConnectorsFromConfig_CredentialFileExists(t *testing.T) {
 		t.Fatalf("create: %v", err)
 	}
 
-	// Verify credential file exists
+	// Verify credential is stored through the secure store abstraction.
 	connectorID := SystemCloudConnectorID("deepseek")
-	credPath := filepath.Join(store.credDir, connectorID+".key")
-	if _, err := os.Stat(credPath); os.IsNotExist(err) {
-		t.Error("credential file should exist")
+	apiKey, err := store.LoadCredential(connectorID)
+	if err != nil {
+		t.Fatalf("LoadCredential: %v", err)
+	}
+	if apiKey != "sk-test" {
+		t.Fatalf("expected stored credential, got %q", apiKey)
 	}
 }
 

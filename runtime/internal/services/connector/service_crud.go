@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"strconv"
 	"strings"
@@ -36,20 +37,6 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		return nil, err
 	}
 
-	existing, err := s.store.Load()
-	if err != nil {
-		return nil, s.internalProviderError("create_connector.load_connectors", err)
-	}
-	count := 0
-	for _, r := range existing {
-		if r.OwnerID == ownerID && r.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
-			count++
-		}
-	}
-	if count >= maxConnectorsPerUser {
-		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED)
-	}
-
 	endpoint := strings.TrimSpace(req.GetEndpoint())
 	if endpoint == "" {
 		endpoint = ResolveEndpoint(provider, "")
@@ -71,29 +58,23 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		rec.Label = defaultManagedConnectorLabel(provider)
 	}
 
-	if err := s.store.Create(rec, apiKey); err != nil {
+	created, err := s.store.CreateWithOwnerLimit(rec, apiKey, maxConnectorsPerUser)
+	if err != nil {
+		if errors.Is(err, errConnectorLimitExceeded) {
+			return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_CONNECTOR_LIMIT_EXCEEDED)
+		}
 		s.emitAudit(ctx, "connector.create", runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, map[string]any{
 			"provider": provider,
 		})
 		return nil, s.internalProviderError("create_connector.persist", err)
 	}
-
-	records, err := s.store.Load()
-	if err != nil {
-		return nil, s.internalProviderError("create_connector.reload_connectors", err)
-	}
-	for i := len(records) - 1; i >= 0; i-- {
-		if records[i].OwnerID == ownerID && records[i].Provider == provider {
-			s.emitAudit(ctx, "connector.create", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
-				"connector_id": records[i].ConnectorID,
-				"provider":     provider,
-			})
-			return &runtimev1.CreateConnectorResponse{
-				Connector: recordToProto(records[i]),
-			}, nil
-		}
-	}
-	return nil, s.internalProviderError("create_connector.reload_missing_record", nil)
+	s.emitAudit(ctx, "connector.create", runtimev1.ReasonCode_ACTION_EXECUTED, map[string]any{
+		"connector_id": created.ConnectorID,
+		"provider":     provider,
+	})
+	return &runtimev1.CreateConnectorResponse{
+		Connector: recordToProto(created),
+	}, nil
 }
 
 func (s *Service) GetConnector(ctx context.Context, req *runtimev1.GetConnectorRequest) (*runtimev1.GetConnectorResponse, error) {
@@ -124,6 +105,7 @@ func (s *Service) ListConnectors(ctx context.Context, req *runtimev1.ListConnect
 	if err != nil {
 		return nil, s.internalProviderError("list_connectors.load", err)
 	}
+	// store.Load already hides delete_pending records, so filtering here only applies business visibility rules.
 
 	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 	if !hasOwner {

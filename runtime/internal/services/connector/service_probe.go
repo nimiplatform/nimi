@@ -41,7 +41,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 	}
 
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-		if s.localModel == nil {
+		if s.localModelLister() == nil {
 			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_ACTION_EXECUTED, auditPayload)
 			return &runtimev1.TestConnectorResponse{
 				Ack: &runtimev1.Ack{Ok: true},
@@ -74,15 +74,15 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		}, nil
 	}
 
-	if s.cloud != nil {
-		backend, _, probeErr := s.cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
+	if cloud := s.cloudProvider(); cloud != nil {
+		backend, _, probeErr := cloud.ResolveProbeBackend(rec.Provider, rec.Endpoint, apiKey)
 		if probeErr != nil {
 			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
 			return &runtimev1.TestConnectorResponse{
 				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
 			}, nil
 		}
-		models, listErr := backend.ListModels(ctx)
+		_, listErr := backend.ListModels(ctx)
 		if listErr != nil {
 			s.logger.Warn("connector test probe failed", "connector_id", connectorID, "error", listErr)
 			s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, auditPayload)
@@ -90,7 +90,6 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 				Ack: &runtimev1.Ack{Ok: false, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
 			}, nil
 		}
-		_ = models
 	}
 
 	s.emitAudit(ctx, "connector.test", runtimev1.ReasonCode_ACTION_EXECUTED, auditPayload)
@@ -126,7 +125,7 @@ func (s *Service) ListConnectorModels(ctx context.Context, req *runtimev1.ListCo
 
 	var models []*runtimev1.ConnectorModelDescriptor
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL {
-		if s.localModel == nil {
+		if s.localModelLister() == nil {
 			models = []*runtimev1.ConnectorModelDescriptor{}
 		} else {
 			localModels, listErr := s.listAllActiveLocalModels(ctx)

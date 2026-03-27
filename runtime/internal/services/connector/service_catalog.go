@@ -61,13 +61,14 @@ func modelCatalogProviderEntryFromRecord(record aicatalog.CatalogProviderRecord)
 }
 
 func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalModelRecord, error) {
-	if s.localModel == nil {
+	localModel := s.localModelLister()
+	if localModel == nil {
 		return nil, nil
 	}
 	pageToken := ""
 	collected := make([]*runtimev1.LocalModelRecord, 0, 16)
 	for i := 0; i < 20; i++ {
-		resp, err := s.localModel.ListLocalModels(ctx, &runtimev1.ListLocalModelsRequest{
+		resp, err := localModel.ListLocalModels(ctx, &runtimev1.ListLocalModelsRequest{
 			StatusFilter: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
 			PageSize:     100,
 			PageToken:    pageToken,
@@ -110,13 +111,14 @@ func buildLocalConnectorModelDescriptors(models []*runtimev1.LocalModelRecord, c
 }
 
 func (s *Service) listCatalogConnectorModels(subjectUserID string, provider string) ([]*runtimev1.ConnectorModelDescriptor, error) {
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
 	}
 
-	models, _, err := s.modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
+	models, _, err := modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrProviderUnsupported) {
 			return []*runtimev1.ConnectorModelDescriptor{}, nil

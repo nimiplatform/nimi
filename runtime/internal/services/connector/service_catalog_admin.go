@@ -29,14 +29,15 @@ func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProvid
 }
 
 func (s *Service) ListModelCatalogProviders(ctx context.Context, _ *runtimev1.ListModelCatalogProvidersRequest) (*runtimev1.ListModelCatalogProvidersResponse, error) {
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
 	}
 
 	subjectUserID, _ := subjectUserIDFromContext(ctx)
-	records := s.modelCatalog.ListProvidersForSubject(subjectUserID)
+	records := modelCatalog.ListProvidersForSubject(subjectUserID)
 	entries := make([]*runtimev1.ModelCatalogProviderEntry, 0, len(records))
 	for _, record := range records {
 		entries = append(entries, modelCatalogProviderEntryFromRecord(record))
@@ -49,7 +50,8 @@ func (s *Service) UpsertModelCatalogProvider(ctx context.Context, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
@@ -61,7 +63,7 @@ func (s *Service) UpsertModelCatalogProvider(ctx context.Context, req *runtimev1
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	record, err := s.modelCatalog.UpsertCustomProviderForSubject(subjectUserID, provider, []byte(rawYAML))
+	record, err := modelCatalog.UpsertCustomProviderForSubject(subjectUserID, provider, []byte(rawYAML))
 	if err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
@@ -88,7 +90,8 @@ func (s *Service) DeleteModelCatalogProvider(ctx context.Context, req *runtimev1
 	if err != nil {
 		return nil, err
 	}
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
@@ -98,7 +101,7 @@ func (s *Service) DeleteModelCatalogProvider(ctx context.Context, req *runtimev1
 	if provider == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	if err := s.modelCatalog.DeleteCustomProviderForSubject(subjectUserID, provider); err != nil {
+	if err := modelCatalog.DeleteCustomProviderForSubject(subjectUserID, provider); err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
 			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{

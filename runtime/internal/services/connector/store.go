@@ -1,7 +1,9 @@
 package connector
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -15,9 +17,11 @@ import (
 )
 
 const (
-	registryFileName = "connector-registry.json"
-	credentialDir    = "credentials"
+	registryFileName    = "connector-registry.json"
+	legacyCredentialDir = "credentials"
 )
+
+var errConnectorLimitExceeded = errors.New("connector limit exceeded")
 
 // ConnectorRecord is the persistent representation of a connector.
 type ConnectorRecord struct {
@@ -46,16 +50,22 @@ type ConnectorMutations struct {
 
 // ConnectorStore manages connector records and credentials on disk.
 type ConnectorStore struct {
-	mu           sync.Mutex
-	registryPath string
-	credDir      string
+	mu            sync.Mutex
+	registryPath  string
+	legacyCredDir string
+	secretStore   connectorSecretStore
 }
 
 // NewConnectorStore creates a store rooted at basePath.
 func NewConnectorStore(basePath string) *ConnectorStore {
+	return newConnectorStore(basePath, newOSKeychainSecretStore())
+}
+
+func newConnectorStore(basePath string, secretStore connectorSecretStore) *ConnectorStore {
 	return &ConnectorStore{
-		registryPath: filepath.Join(basePath, registryFileName),
-		credDir:      filepath.Join(basePath, credentialDir),
+		registryPath:  filepath.Join(basePath, registryFileName),
+		legacyCredDir: filepath.Join(basePath, legacyCredentialDir),
+		secretStore:   secretStore,
 	}
 }
 
@@ -104,15 +114,25 @@ func (s *ConnectorStore) Get(connectorID string) (ConnectorRecord, bool, error) 
 	return ConnectorRecord{}, false, nil
 }
 
-// Create persists a new connector record and its credential file.
-func (s *ConnectorStore) Create(record ConnectorRecord, apiKey string) error {
+// Create persists a new connector record and its credential secret.
+func (s *ConnectorStore) Create(record ConnectorRecord, apiKey string) (ConnectorRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.createLocked(record, apiKey, 0)
+}
 
+// CreateWithOwnerLimit persists a new connector while enforcing a per-owner managed-connector limit.
+func (s *ConnectorStore) CreateWithOwnerLimit(record ConnectorRecord, apiKey string, maxManagedPerOwner int) (ConnectorRecord, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.createLocked(record, apiKey, maxManagedPerOwner)
+}
+
+func (s *ConnectorStore) createLocked(record ConnectorRecord, apiKey string, maxManagedPerOwner int) (ConnectorRecord, error) {
 	if record.ConnectorID == "" {
 		record.ConnectorID = ulid.Make().String()
 	} else if _, err := sanitizeConnectorID(record.ConnectorID); err != nil {
-		return fmt.Errorf("invalid connector id: %w", err)
+		return ConnectorRecord{}, fmt.Errorf("invalid connector id: %w", err)
 	}
 	now := time.Now().UnixMilli()
 	if record.CreatedAt == 0 {
@@ -124,27 +144,44 @@ func (s *ConnectorStore) Create(record ConnectorRecord, apiKey string) error {
 
 	records, err := s.loadRegistryLocked()
 	if err != nil {
-		return fmt.Errorf("load registry: %w", err)
+		return ConnectorRecord{}, fmt.Errorf("load registry: %w", err)
 	}
 
 	for _, r := range records {
 		if r.ConnectorID == record.ConnectorID {
-			return fmt.Errorf("connector %q already exists", record.ConnectorID)
+			return ConnectorRecord{}, fmt.Errorf("connector %q already exists", record.ConnectorID)
+		}
+	}
+	if maxManagedPerOwner > 0 &&
+		record.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
+		record.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
+		managedCount := 0
+		for _, r := range records {
+			if r.DeletePending ||
+				r.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
+				r.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER ||
+				r.OwnerID != record.OwnerID {
+				continue
+			}
+			managedCount++
+		}
+		if managedCount >= maxManagedPerOwner {
+			return ConnectorRecord{}, errConnectorLimitExceeded
 		}
 	}
 
 	if apiKey != "" {
 		if err := s.writeCredentialLocked(record.ConnectorID, apiKey); err != nil {
-			return fmt.Errorf("write credential: %w", err)
+			return ConnectorRecord{}, fmt.Errorf("write credential: %w", err)
 		}
 		record.HasCredential = true
 	}
 
 	records = append(records, record)
 	if err := s.persistRegistryLocked(records); err != nil {
-		return fmt.Errorf("persist registry: %w", err)
+		return ConnectorRecord{}, fmt.Errorf("persist registry: %w", err)
 	}
-	return nil
+	return record, nil
 }
 
 // Update applies mutations to a connector record.
@@ -227,7 +264,7 @@ func (s *ConnectorStore) Delete(connectorID string) error {
 		return fmt.Errorf("mark delete_pending: %w", err)
 	}
 
-	// Step 2: delete credential file (missing = ok)
+	// Step 2: delete credential secret (missing = ok)
 	_ = s.deleteCredentialLocked(connectorID)
 
 	// Step 3: remove from registry and persist
@@ -248,7 +285,7 @@ func (s *ConnectorStore) LoadCredential(connectorID string) (string, error) {
 // ReconcileStartup performs startup reconciliation:
 // 1. Clean up delete_pending residuals
 // 2. Sync has_credential flags
-// 3. Remove orphan credential files
+// 3. Remove orphan legacy credential files
 func (s *ConnectorStore) ReconcileStartup() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -272,24 +309,32 @@ func (s *ConnectorStore) ReconcileStartup() error {
 	}
 	records = filtered
 
-	// Sync has_credential flag
+	// Sync has_credential flag and migrate any legacy on-disk secrets.
 	knownIDs := make(map[string]bool, len(records))
 	for i := range records {
 		r := &records[i]
 		knownIDs[r.ConnectorID] = true
-		credPath, err := s.credentialPath(r.ConnectorID)
+		legacyPath, err := s.credentialPath(r.ConnectorID)
 		if err != nil {
 			return fmt.Errorf("invalid connector id %q: %w", r.ConnectorID, err)
 		}
-		_, statErr := os.Stat(credPath)
-		hasCred := statErr == nil
+		_, statErr := os.Stat(legacyPath)
+		legacyExists := statErr == nil
+		hasCred := false
+		if r.HasCredential || legacyExists {
+			secret, readErr := s.readCredentialLocked(r.ConnectorID)
+			if readErr != nil {
+				return fmt.Errorf("load credential %q: %w", r.ConnectorID, readErr)
+			}
+			hasCred = strings.TrimSpace(secret) != ""
+		}
 		if r.HasCredential != hasCred {
 			r.HasCredential = hasCred
 			dirty = true
 		}
 	}
 
-	// Remove orphan credential files
+	// Remove orphan legacy credential files after migration.
 	if err := s.cleanOrphanCredentialsLocked(knownIDs); err != nil {
 		return fmt.Errorf("clean orphan credentials: %w", err)
 	}
@@ -312,7 +357,7 @@ func (s *ConnectorStore) loadRegistryLocked() ([]ConnectorRecord, error) {
 		}
 		return nil, fmt.Errorf("read registry: %w", err)
 	}
-	if len(strings.TrimSpace(string(data))) == 0 {
+	if len(bytes.TrimSpace(data)) == 0 {
 		slog.Warn("connector registry file is whitespace-only; treating as empty store", "path", s.registryPath)
 		return nil, nil
 	}
@@ -337,21 +382,42 @@ func (s *ConnectorStore) credentialPath(connectorID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(s.credDir, sanitized+".key"), nil
+	return filepath.Join(s.legacyCredDir, sanitized+".key"), nil
 }
 
 func (s *ConnectorStore) writeCredentialLocked(connectorID string, apiKey string) error {
-	path, err := s.credentialPath(connectorID)
+	sanitized, err := sanitizeConnectorID(connectorID)
 	if err != nil {
-		return fmt.Errorf("resolve credential path: %w", err)
+		return fmt.Errorf("resolve credential key: %w", err)
 	}
-	return atomicWriteFile(path, []byte(apiKey), 0o600)
+	if err := s.secretStore.Write(sanitized, apiKey); err != nil {
+		return err
+	}
+	legacyPath, err := s.credentialPath(sanitized)
+	if err != nil {
+		return fmt.Errorf("resolve legacy credential path: %w", err)
+	}
+	if removeErr := os.Remove(legacyPath); removeErr != nil && !os.IsNotExist(removeErr) {
+		return fmt.Errorf("remove legacy credential: %w", removeErr)
+	}
+	return nil
 }
 
 func (s *ConnectorStore) readCredentialLocked(connectorID string) (string, error) {
-	path, err := s.credentialPath(connectorID)
+	sanitized, err := sanitizeConnectorID(connectorID)
 	if err != nil {
-		return "", fmt.Errorf("resolve credential path: %w", err)
+		return "", fmt.Errorf("resolve credential key: %w", err)
+	}
+
+	if secret, ok, err := s.secretStore.Read(sanitized); err != nil {
+		return "", err
+	} else if ok {
+		return secret, nil
+	}
+
+	path, err := s.credentialPath(sanitized)
+	if err != nil {
+		return "", fmt.Errorf("resolve legacy credential path: %w", err)
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -360,17 +426,31 @@ func (s *ConnectorStore) readCredentialLocked(connectorID string) (string, error
 		}
 		return "", fmt.Errorf("read credential: %w", err)
 	}
-	return string(data), nil
+	secret := string(data)
+	if err := s.secretStore.Write(sanitized, secret); err != nil {
+		return "", fmt.Errorf("migrate legacy credential: %w", err)
+	}
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("remove migrated legacy credential: %w", err)
+	}
+	return secret, nil
 }
 
 func (s *ConnectorStore) deleteCredentialLocked(connectorID string) error {
-	path, err := s.credentialPath(connectorID)
+	sanitized, err := sanitizeConnectorID(connectorID)
 	if err != nil {
-		return fmt.Errorf("resolve credential path: %w", err)
+		return fmt.Errorf("resolve credential key: %w", err)
+	}
+	if err := s.secretStore.Delete(sanitized); err != nil {
+		return err
+	}
+	path, err := s.credentialPath(sanitized)
+	if err != nil {
+		return fmt.Errorf("resolve legacy credential path: %w", err)
 	}
 	err = os.Remove(path)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("delete credential: %w", err)
+		return fmt.Errorf("delete legacy credential: %w", err)
 	}
 	return nil
 }
@@ -390,7 +470,7 @@ func sanitizeConnectorID(connectorID string) (string, error) {
 }
 
 func (s *ConnectorStore) cleanOrphanCredentialsLocked(knownIDs map[string]bool) error {
-	entries, err := os.ReadDir(s.credDir)
+	entries, err := os.ReadDir(s.legacyCredDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -407,7 +487,7 @@ func (s *ConnectorStore) cleanOrphanCredentialsLocked(knownIDs map[string]bool) 
 		}
 		id := strings.TrimSuffix(name, ".key")
 		if !knownIDs[id] {
-			_ = os.Remove(filepath.Join(s.credDir, name))
+			_ = os.Remove(filepath.Join(s.legacyCredDir, name))
 		}
 	}
 	return nil

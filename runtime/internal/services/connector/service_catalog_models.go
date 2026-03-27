@@ -17,7 +17,8 @@ import (
 )
 
 func (s *Service) ListCatalogProviderModels(ctx context.Context, req *runtimev1.ListCatalogProviderModelsRequest) (*runtimev1.ListCatalogProviderModelsResponse, error) {
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
@@ -28,11 +29,11 @@ func (s *Service) ListCatalogProviderModels(ctx context.Context, req *runtimev1.
 	}
 
 	subjectUserID, _ := subjectUserIDFromContext(ctx)
-	record, ok := lookupCatalogProviderRecord(s.modelCatalog.ListProvidersForSubject(subjectUserID), provider)
+	record, ok := lookupCatalogProviderRecord(modelCatalog.ListProvidersForSubject(subjectUserID), provider)
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	}
-	models, _, err := s.modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
+	models, _, err := modelCatalog.ListModelsForProviderForSubject(subjectUserID, provider)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrProviderUnsupported) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
@@ -82,7 +83,8 @@ func (s *Service) ListCatalogProviderModels(ctx context.Context, req *runtimev1.
 }
 
 func (s *Service) GetCatalogModelDetail(ctx context.Context, req *runtimev1.GetCatalogModelDetailRequest) (*runtimev1.GetCatalogModelDetailResponse, error) {
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
@@ -94,7 +96,7 @@ func (s *Service) GetCatalogModelDetail(ctx context.Context, req *runtimev1.GetC
 	}
 
 	subjectUserID, _ := subjectUserIDFromContext(ctx)
-	detail, record, _, err := s.modelCatalog.GetModelDetailForSubject(subjectUserID, provider, modelID)
+	detail, record, _, err := modelCatalog.GetModelDetailForSubject(subjectUserID, provider, modelID)
 	if err != nil {
 		if errors.Is(err, aicatalog.ErrModelNotFound) || errors.Is(err, aicatalog.ErrProviderUnsupported) {
 			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
@@ -113,7 +115,8 @@ func (s *Service) UpsertCatalogModelOverlay(ctx context.Context, req *runtimev1.
 	if err != nil {
 		return nil, err
 	}
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
@@ -137,7 +140,7 @@ func (s *Service) UpsertCatalogModelOverlay(ctx context.Context, req *runtimev1.
 		binding = &item
 	}
 
-	detail, record, err := s.modelCatalog.UpsertModelOverlayForSubject(subjectUserID, req.GetProvider(), modelEntry, voices, workflows, binding)
+	detail, record, err := modelCatalog.UpsertModelOverlayForSubject(subjectUserID, req.GetProvider(), modelEntry, voices, workflows, binding)
 	if err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):
@@ -166,7 +169,8 @@ func (s *Service) DeleteCatalogModelOverlay(ctx context.Context, req *runtimev1.
 	if err != nil {
 		return nil, err
 	}
-	if s.modelCatalog == nil {
+	modelCatalog := s.modelCatalogResolver()
+	if modelCatalog == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_MODULE_CONFIG_INVALID, grpcerr.ReasonOptions{
 			ActionHint: "configure_runtime_model_catalog_custom_dir",
 		})
@@ -177,7 +181,7 @@ func (s *Service) DeleteCatalogModelOverlay(ctx context.Context, req *runtimev1.
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	record, err := s.modelCatalog.DeleteModelOverlayForSubject(subjectUserID, provider, modelID)
+	record, err := modelCatalog.DeleteModelOverlayForSubject(subjectUserID, provider, modelID)
 	if err != nil {
 		switch {
 		case errors.Is(err, aicatalog.ErrCatalogMutationDisabled):

@@ -7,6 +7,7 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 import "runtime/v1/common.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 enum ConnectorKind {
   CONNECTOR_KIND_UNSPECIFIED = 0;
@@ -47,8 +48,8 @@ message Connector {
   ConnectorStatus status = 8;
   LocalConnectorCategory local_category = 9;
   bool has_credential = 10;
-  int64 created_at = 11;
-  int64 updated_at = 12;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
 }
 
 message CreateConnectorRequest {
@@ -57,6 +58,7 @@ message CreateConnectorRequest {
   string label = 3;
   string api_key = 4;
   reserved 5;
+  reserved "owner_id";
 }
 
 message CreateConnectorResponse {
@@ -66,6 +68,7 @@ message CreateConnectorResponse {
 message GetConnectorRequest {
   string connector_id = 1;
   reserved 2;
+  reserved "owner_id";
 }
 
 message GetConnectorResponse {
@@ -74,6 +77,7 @@ message GetConnectorResponse {
 
 message ListConnectorsRequest {
   reserved 1;
+  reserved "owner_id";
   int32 page_size = 2;
   string page_token = 3;
   ConnectorKind kind_filter = 4;
@@ -89,6 +93,7 @@ message ListConnectorsResponse {
 message UpdateConnectorRequest {
   string connector_id = 1;
   reserved 2;
+  reserved "owner_id";
   optional string label = 3;
   optional string endpoint = 4;
   optional string api_key = 5;
@@ -103,6 +108,7 @@ message UpdateConnectorResponse {
 message DeleteConnectorRequest {
   string connector_id = 1;
   reserved 2;
+  reserved "owner_id";
 }
 
 message DeleteConnectorResponse {
@@ -112,6 +118,7 @@ message DeleteConnectorResponse {
 message TestConnectorRequest {
   string connector_id = 1;
   reserved 2;
+  reserved "owner_id";
 }
 
 message TestConnectorResponse {
@@ -128,6 +135,7 @@ message ConnectorModelDescriptor {
 message ListConnectorModelsRequest {
   string connector_id = 1;
   reserved 2;
+  reserved "owner_id";
   bool force_refresh = 3;
   int32 page_size = 4;
   string page_token = 5;

@@ -122,6 +122,34 @@ func TestCreateConnectorDefaultEndpoint(t *testing.T) {
 	}
 }
 
+func TestCreateConnectorReturnsFreshRecordWhenProviderRepeats(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+
+	first, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		Label:    "First",
+		ApiKey:   "key-1",
+	})
+	if err != nil {
+		t.Fatalf("first CreateConnector: %v", err)
+	}
+	second, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		Label:    "Second",
+		ApiKey:   "key-2",
+	})
+	if err != nil {
+		t.Fatalf("second CreateConnector: %v", err)
+	}
+	if first.GetConnector().GetConnectorId() == second.GetConnector().GetConnectorId() {
+		t.Fatalf("expected distinct connector ids for repeated provider creates")
+	}
+	if second.GetConnector().GetLabel() != "Second" {
+		t.Fatalf("expected second connector label to match created record, got %q", second.GetConnector().GetLabel())
+	}
+}
+
 func TestCreateConnectorLimit(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")
@@ -844,7 +872,7 @@ func TestTestConnectorRemoteStillProbesOutbound(t *testing.T) {
 
 func TestTestConnectorSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 	svc := newTestService(t)
-	if err := svc.store.Create(ConnectorRecord{
+	if _, err := svc.store.Create(ConnectorRecord{
 		ConnectorID: "sys-openai",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
@@ -987,7 +1015,7 @@ func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 
 func TestListConnectorModelsSystemOwnedRemoteVisibleWithoutCaller(t *testing.T) {
 	svc := newTestService(t)
-	if err := svc.store.Create(ConnectorRecord{
+	if _, err := svc.store.Create(ConnectorRecord{
 		ConnectorID: "sys-openai",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,

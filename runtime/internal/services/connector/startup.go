@@ -99,7 +99,7 @@ func EnsureCloudConnectorsFromConfig(store *ConnectorStore, defs []CloudConnecto
 			Label:       label,
 			Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 		}
-		if err := store.Create(rec, def.APIKey); err != nil {
+		if _, err := store.Create(rec, def.APIKey); err != nil {
 			return fmt.Errorf("create cloud connector %s: %w", connectorID, err)
 		}
 	}
@@ -149,7 +149,7 @@ func EnsureLocalConnectors(store *ConnectorStore) error {
 			Status:        runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 			LocalCategory: def.Category,
 		}
-		if err := store.Create(rec, ""); err != nil {
+		if _, err := store.Create(rec, ""); err != nil {
 			return fmt.Errorf("create local connector %s: %w", def.Label, err)
 		}
 	}

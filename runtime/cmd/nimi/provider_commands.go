@@ -80,31 +80,6 @@ func mutateProviderConfig(mutator func(*config.FileConfig) error) (string, confi
 	return path, fileCfg, nil
 }
 
-func saveInlineProviderAPIKey(providerName string, apiKey string) (string, config.RuntimeFileTarget, error) {
-	providerName = strings.TrimSpace(providerName)
-	apiKey = strings.TrimSpace(apiKey)
-	if providerName == "" {
-		return "", config.RuntimeFileTarget{}, fmt.Errorf("provider name is required. Usage: nimi provider set <provider> --api-key ...")
-	}
-	if apiKey == "" {
-		return "", config.RuntimeFileTarget{}, fmt.Errorf("api key is required to save provider credentials")
-	}
-	path, fileCfg, err := mutateProviderConfig(func(fileCfg *config.FileConfig) error {
-		target := fileCfg.Providers[providerName]
-		target.APIKey = apiKey
-		target.APIKeyEnv = ""
-		if strings.TrimSpace(target.BaseURL) == "" {
-			target.BaseURL = connector.ResolveEndpoint(providerName, "")
-		}
-		fileCfg.Providers[providerName] = target
-		return nil
-	})
-	if err != nil {
-		return "", config.RuntimeFileTarget{}, err
-	}
-	return path, fileCfg.Providers[providerName], nil
-}
-
 func providerDefaultModelValue(providerName string, fileCfg config.FileConfig) (string, string) {
 	target := fileCfg.Providers[providerName]
 	if value := strings.TrimSpace(target.DefaultModel); value != "" {

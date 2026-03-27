@@ -1,6 +1,8 @@
 package connector
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,10 +10,26 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+type failingSecretStore struct {
+	err error
+}
+
+func (f failingSecretStore) Write(string, string) error {
+	return f.err
+}
+
+func (f failingSecretStore) Read(string) (string, bool, error) {
+	return "", false, f.err
+}
+
+func (f failingSecretStore) Delete(string) error {
+	return f.err
+}
+
 func newTestStore(t *testing.T) *ConnectorStore {
 	t.Helper()
 	dir := t.TempDir()
-	return NewConnectorStore(dir)
+	return NewConnectorStoreWithMemorySecrets(dir)
 }
 
 func TestConnectorStoreCRUD(t *testing.T) {
@@ -27,7 +45,7 @@ func TestConnectorStoreCRUD(t *testing.T) {
 		Label:     "My OpenAI",
 		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if err := store.Create(rec, "sk-test-key"); err != nil {
+	if _, err := store.Create(rec, "sk-test-key"); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
@@ -136,10 +154,10 @@ func TestConnectorStoreDuplicateCreate(t *testing.T) {
 		Provider:    "openai",
 		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if err := store.Create(rec, "key1"); err != nil {
+	if _, err := store.Create(rec, "key1"); err != nil {
 		t.Fatalf("first Create: %v", err)
 	}
-	if err := store.Create(rec, "key2"); err == nil {
+	if _, err := store.Create(rec, "key2"); err == nil {
 		t.Fatal("expected error on duplicate Create")
 	}
 }
@@ -163,7 +181,7 @@ func TestConnectorStoreUpdateClearCredential(t *testing.T) {
 		Provider:  "openai",
 		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if err := store.Create(rec, "key1"); err != nil {
+	if _, err := store.Create(rec, "key1"); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 	records, _ := store.Load()
@@ -195,7 +213,7 @@ func TestConnectorStoreReconcileStartup(t *testing.T) {
 		UpdatedAt:     1000,
 	}
 	// Write registry directly with delete_pending=true
-	if err := store.Create(ConnectorRecord{
+	if _, err := store.Create(ConnectorRecord{
 		ConnectorID: "healthy-conn",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
@@ -214,7 +232,7 @@ func TestConnectorStoreReconcileStartup(t *testing.T) {
 	store.mu.Unlock()
 
 	// Create orphan credential file
-	orphanPath := filepath.Join(store.credDir, "orphan-id.key")
+	orphanPath := filepath.Join(store.legacyCredDir, "orphan-id.key")
 	if err := os.MkdirAll(filepath.Dir(orphanPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -279,19 +297,19 @@ func TestConnectorStoreDeleteCompensation(t *testing.T) {
 		Provider:  "openai",
 		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if err := store.Create(rec, "secret-key"); err != nil {
+	if _, err := store.Create(rec, "secret-key"); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 	records, _ := store.Load()
 	connID := records[0].ConnectorID
 
 	// Verify credential exists
-	credPath, err := store.credentialPath(connID)
+	cred, err := store.LoadCredential(connID)
 	if err != nil {
-		t.Fatalf("credentialPath: %v", err)
+		t.Fatalf("LoadCredential before delete: %v", err)
 	}
-	if _, err := os.Stat(credPath); err != nil {
-		t.Fatalf("credential should exist: %v", err)
+	if cred != "secret-key" {
+		t.Fatalf("expected secret-key, got %q", cred)
 	}
 
 	// Delete
@@ -300,8 +318,12 @@ func TestConnectorStoreDeleteCompensation(t *testing.T) {
 	}
 
 	// Verify credential file is removed
-	if _, err := os.Stat(credPath); !os.IsNotExist(err) {
-		t.Error("expected credential to be deleted")
+	credAfterDelete, err := store.LoadCredential(connID)
+	if err != nil {
+		t.Fatalf("LoadCredential after delete: %v", err)
+	}
+	if credAfterDelete != "" {
+		t.Errorf("expected deleted credential, got %q", credAfterDelete)
 	}
 
 	// Verify registry is clean
@@ -314,7 +336,7 @@ func TestConnectorStoreDeleteCompensation(t *testing.T) {
 func TestConnectorStoreRejectsTraversalConnectorID(t *testing.T) {
 	store := newTestStore(t)
 
-	err := store.Create(ConnectorRecord{
+	_, err := store.Create(ConnectorRecord{
 		ConnectorID: "../escape",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
 		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
@@ -327,5 +349,128 @@ func TestConnectorStoreRejectsTraversalConnectorID(t *testing.T) {
 	}
 	if _, loadErr := store.LoadCredential("../escape"); loadErr == nil {
 		t.Fatalf("expected credential path validation error")
+	}
+}
+
+func TestConnectorStoreCreateWithOwnerLimit(t *testing.T) {
+	store := newTestStore(t)
+	for i := 0; i < 2; i++ {
+		if _, err := store.CreateWithOwnerLimit(ConnectorRecord{
+			Kind:      runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+			OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+			OwnerID:   "user-1",
+			Provider:  "openai",
+			Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		}, "secret", 2); err != nil {
+			t.Fatalf("CreateWithOwnerLimit #%d: %v", i, err)
+		}
+	}
+	if _, err := store.CreateWithOwnerLimit(ConnectorRecord{
+		Kind:      runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:   "user-1",
+		Provider:  "openai",
+		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "secret", 2); !errors.Is(err, errConnectorLimitExceeded) {
+		t.Fatalf("expected errConnectorLimitExceeded, got %v", err)
+	}
+}
+
+func TestConnectorStoreMigratesLegacyCredentialFile(t *testing.T) {
+	dir := t.TempDir()
+	store := NewConnectorStoreWithMemorySecrets(dir)
+	record, err := store.Create(ConnectorRecord{
+		ConnectorID: "legacy-migrate",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "")
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	legacyPath, err := store.credentialPath(record.ConnectorID)
+	if err != nil {
+		t.Fatalf("credentialPath: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	if err := os.WriteFile(legacyPath, []byte("legacy-secret"), 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if err := store.ReconcileStartup(); err != nil {
+		t.Fatalf("ReconcileStartup: %v", err)
+	}
+	loaded, err := store.LoadCredential(record.ConnectorID)
+	if err != nil {
+		t.Fatalf("LoadCredential: %v", err)
+	}
+	if loaded != "legacy-secret" {
+		t.Fatalf("expected migrated secret, got %q", loaded)
+	}
+	if _, err := os.Stat(legacyPath); !os.IsNotExist(err) {
+		t.Fatalf("expected legacy credential file removed, stat err=%v", err)
+	}
+
+	reconciled, found, err := store.Get(record.ConnectorID)
+	if err != nil || !found {
+		t.Fatalf("Get: found=%v err=%v", found, err)
+	}
+	if !reconciled.HasCredential {
+		t.Fatal("expected has_credential=true after migration")
+	}
+}
+
+func TestConnectorStoreCreateFailsWhenSecureStoreUnavailable(t *testing.T) {
+	store := newConnectorStore(t.TempDir(), failingSecretStore{err: fmt.Errorf("secure store unavailable")})
+	_, err := store.Create(ConnectorRecord{
+		ConnectorID: "no-secure-store",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:     "user-1",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "secret")
+	if err == nil {
+		t.Fatal("expected create failure when secure store is unavailable")
+	}
+}
+
+func TestConnectorStoreReconcileFailsWhenLegacyMigrationFails(t *testing.T) {
+	store := newConnectorStore(t.TempDir(), failingSecretStore{err: fmt.Errorf("secure store unavailable")})
+	store.mu.Lock()
+	if err := store.persistRegistryLocked([]ConnectorRecord{{
+		ConnectorID:   "legacy-migrate-fail",
+		Kind:          runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:     runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
+		OwnerID:       "user-1",
+		Provider:      "openai",
+		Status:        runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+		HasCredential: true,
+	}}); err != nil {
+		store.mu.Unlock()
+		t.Fatalf("persistRegistryLocked: %v", err)
+	}
+	legacyPath, err := store.credentialPath("legacy-migrate-fail")
+	if err != nil {
+		store.mu.Unlock()
+		t.Fatalf("credentialPath: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		store.mu.Unlock()
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	if err := os.WriteFile(legacyPath, []byte("legacy-secret"), 0o600); err != nil {
+		store.mu.Unlock()
+		t.Fatalf("WriteFile: %v", err)
+	}
+	store.mu.Unlock()
+
+	if err := store.ReconcileStartup(); err == nil {
+		t.Fatal("expected reconcile failure when legacy migration cannot use secure store")
 	}
 }
