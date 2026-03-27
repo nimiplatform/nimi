@@ -30,6 +30,10 @@ export function getAuthErrorMessage(error: unknown, fallbackMessage: string): st
   return fallbackMessage;
 }
 
+export function isAuthFormSubmittable(identifier: string, password: string): boolean {
+  return identifier.trim().length > 0 && password.trim().length > 0;
+}
+
 export function useAuthFormState(): AuthFormModel {
   const [mode, setMode] = useState<AuthMode>('login');
   const [identifier, setIdentifier] = useState('');
@@ -49,6 +53,6 @@ export function useAuthFormState(): AuthFormModel {
     setPassword,
     setShowPassword,
     setPending,
-    canSubmit: identifier.trim().length > 0 && password.length > 0,
+    canSubmit: isAuthFormSubmittable(identifier, password),
   };
 }

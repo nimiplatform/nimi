@@ -111,6 +111,16 @@ function toAuthUserRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function handleUnexpectedAsyncError(
+  error: unknown,
+  fallbackMessage: string,
+  setPending: (value: boolean) => void,
+  setLoginError: (value: string | null) => void,
+): void {
+  setPending(false);
+  setLoginError(toErrorMessage(error, fallbackMessage));
+}
+
 export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
   const {
     adapter,
@@ -322,7 +332,9 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
           normalizedEmail,
           setters,
           adapter,
-        );
+        ).catch((error) => {
+          handleUnexpectedAsyncError(error, '发送验证码失败', setPending, setLoginError);
+        });
       } else {
         if (!supportsPasswordLogin) {
           void doRequestEmailOtp(
@@ -330,7 +342,9 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
             normalizedEmail,
             setters,
             adapter,
-          );
+          ).catch((error) => {
+            handleUnexpectedAsyncError(error, '发送验证码失败', setPending, setLoginError);
+          });
           return;
         }
         setEmbeddedStage('credential');
@@ -349,7 +363,9 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
       email.trim(),
       setters,
       adapter,
-    );
+    ).catch((error) => {
+      handleUnexpectedAsyncError(error, '发送验证码失败', setPending, setLoginError);
+    });
   };
 
   const handleCancelRegister = () => {
@@ -358,7 +374,14 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
 
   const handleInlineOtpRequest = () => {
     setShowAlternatives(false);
-    void doRequestEmailOtp({ preventDefault: () => undefined } as FormEvent, email, setters, adapter);
+    void doRequestEmailOtp(
+      { preventDefault: () => undefined } as FormEvent,
+      email,
+      setters,
+      adapter,
+    ).catch((error) => {
+      handleUnexpectedAsyncError(error, '发送验证码失败', setPending, setLoginError);
+    });
   };
 
   const handleUseAnotherDesktopAccount = () => {

@@ -1,5 +1,6 @@
 import type { ShellAuthWindow } from '../types/auth-types.js';
 import { readEnv } from '@nimiplatform/nimi-kit/core/oauth';
+import { AUTH_COPY } from './auth-copy.js';
 
 export function getGoogleClientId(): string {
   return (
@@ -12,7 +13,7 @@ export function getGoogleClientId(): string {
 export function loadGoogleScript(): Promise<void> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') {
-      reject(new Error('window is undefined'));
+      reject(new Error(AUTH_COPY.googleInitFailed));
       return;
     }
 
@@ -30,7 +31,7 @@ export function loadGoogleScript(): Promise<void> {
       }
       existingScript.addEventListener('load', () => resolve());
       existingScript.addEventListener('error', () =>
-        reject(new Error('Failed to load Google Identity Services script')));
+        reject(new Error(AUTH_COPY.googleScriptLoadFailed)));
       return;
     }
 
@@ -43,7 +44,7 @@ export function loadGoogleScript(): Promise<void> {
       script.setAttribute('data-loaded', 'true');
       resolve();
     };
-    script.onerror = () => reject(new Error('Failed to load Google Identity Services script'));
+    script.onerror = () => reject(new Error(AUTH_COPY.googleScriptLoadFailed));
     document.head.appendChild(script);
   });
 }

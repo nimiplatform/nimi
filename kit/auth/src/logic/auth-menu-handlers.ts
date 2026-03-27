@@ -3,13 +3,18 @@ import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { OAuthLoginState } from '@nimiplatform/sdk/realm';
 import {
   startSocialOauth,
-  toErrorMessage,
   type SocialOauthProvider,
 } from '@nimiplatform/nimi-kit/core/oauth';
 import type { AuthView, DesktopCallbackRequest, ShellAuthWindow } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { persistAuthSession } from './auth-session-storage.js';
-import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
+import {
+  AUTH_COPY,
+  formatProviderLoginFailureMessage,
+  formatProviderLoginSuccessMessage,
+  toAuthUiErrorMessage,
+} from './auth-copy.js';
+import { submitDesktopCallbackResult } from './desktop-callback-helpers.js';
 import { saveRememberedLogin, clearRememberedLogin } from './remember-login.js';
 import { loadGoogleScript, getGoogleClientId } from './google-helpers.js';
 
@@ -54,7 +59,7 @@ export async function applyTokens(
 ): Promise<void> {
   const accessToken = String(tokens.accessToken || '').trim();
   if (!accessToken) {
-    throw new Error('登录返回缺少 access token');
+    throw new Error(AUTH_COPY.loginMissingAccessToken);
   }
 
   const refreshToken =
@@ -72,11 +77,10 @@ export async function applyTokens(
   });
 
   if (desktopCtx.desktopCallbackRequest) {
-    const callbackReturnUrl = buildDesktopCallbackReturnUrl({
+    submitDesktopCallbackResult({
       request: desktopCtx.desktopCallbackRequest,
-      accessToken,
+      code: accessToken,
     });
-    window.location.replace(callbackReturnUrl);
     return;
   }
 
@@ -118,7 +122,7 @@ export async function handleLoginResult(
   }
 
   if (!result.tokens) {
-    throw new Error('登录返回缺少 tokens');
+    throw new Error(AUTH_COPY.loginMissingTokenPayload);
   }
 
   await applyTokens(result.tokens, successMessage, setters, desktopCtx, adapter);
@@ -126,7 +130,7 @@ export async function handleLoginResult(
   if (result.loginState === OAuthLoginState.NEEDS_ONBOARDING) {
     setters.setStatusBanner({
       kind: 'warning',
-      message: '已登录，请完成资料设置。',
+      message: AUTH_COPY.onboardingPending,
     });
   }
 }
@@ -143,7 +147,7 @@ export async function handleGoogleLogin(
   const googleClientId = getGoogleClientId();
   setters.setLoginError(null);
   if (!googleClientId) {
-    setters.setLoginError('缺少 Google Client ID（VITE_NIMI_GOOGLE_CLIENT_ID）');
+    setters.setLoginError(AUTH_COPY.googleClientIdMissing);
     return;
   }
 
@@ -153,7 +157,7 @@ export async function handleGoogleLogin(
     const win = window as ShellAuthWindow;
     const initTokenClient = win.google?.accounts?.oauth2?.initTokenClient;
     if (!initTokenClient) {
-      throw new Error('Google OAuth 初始化失败');
+      throw new Error(AUTH_COPY.googleOAuthInitFailed);
     }
 
     const tokenClient = initTokenClient({
@@ -162,7 +166,7 @@ export async function handleGoogleLogin(
       callback: (tokenResponse) => {
         const accessToken = String(tokenResponse?.access_token || '').trim();
         if (!accessToken) {
-          setters.setLoginError('Google 没有返回 access token');
+          setters.setLoginError(AUTH_COPY.googleAccessTokenMissing);
           setters.setPending(false);
           return;
         }
@@ -170,9 +174,17 @@ export async function handleGoogleLogin(
         void (async () => {
           try {
             const result = await adapter.oauthLogin('GOOGLE', accessToken);
-            await handleLoginResult(result, 'Google 登录成功。', setters, desktopCtx, adapter);
+            await handleLoginResult(
+              result,
+              formatProviderLoginSuccessMessage('Google'),
+              setters,
+              desktopCtx,
+              adapter,
+            );
           } catch (error) {
-            setters.setLoginError(toErrorMessage(error, 'Google 登录失败'));
+            setters.setLoginError(
+              toAuthUiErrorMessage(error, formatProviderLoginFailureMessage('Google')),
+            );
           } finally {
             setters.setPending(false);
           }
@@ -182,7 +194,7 @@ export async function handleGoogleLogin(
 
     tokenClient.requestAccessToken();
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, 'Google 初始化失败'));
+    setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.googleInitFailed));
     setters.setPending(false);
   }
 }
@@ -206,9 +218,17 @@ export async function handleSocialLogin(
       oauthResult.provider,
       oauthResult.accessToken,
     );
-    await handleLoginResult(result, `${providerLabel} 登录成功。`, setters, desktopCtx, adapter);
+    await handleLoginResult(
+      result,
+      formatProviderLoginSuccessMessage(providerLabel),
+      setters,
+      desktopCtx,
+      adapter,
+    );
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, `${providerLabel} 登录失败`));
+    setters.setLoginError(
+      toAuthUiErrorMessage(error, formatProviderLoginFailureMessage(providerLabel)),
+    );
   } finally {
     setters.setPending(false);
   }
@@ -230,7 +250,7 @@ export async function handleEmailLogin(
   event.preventDefault();
   const identifier = email.trim();
   if (!identifier || !password) {
-    setters.setLoginError('请输入邮箱和密码');
+    setters.setLoginError(AUTH_COPY.emailAndPasswordRequired);
     return;
   }
 
@@ -238,7 +258,7 @@ export async function handleEmailLogin(
   setters.setLoginError(null);
   try {
     if (typeof adapter.passwordLogin !== 'function') {
-      throw new Error('当前环境不支持密码登录，请使用邮箱验证码登录');
+      throw new Error(AUTH_COPY.passwordLoginUnsupported);
     }
     const result = await adapter.passwordLogin(identifier, password);
 
@@ -248,9 +268,9 @@ export async function handleEmailLogin(
       clearRememberedLogin();
     }
 
-    await handleLoginResult(result, '登录成功。', setters, desktopCtx, adapter, 'main');
+    await handleLoginResult(result, AUTH_COPY.emailLoginSuccess, setters, desktopCtx, adapter, 'main');
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, '邮箱登录失败'));
+    setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.emailLoginFailed));
   } finally {
     setters.setPending(false);
   }
@@ -271,12 +291,12 @@ export async function handleSetPasswordAfterOtp(
 ): Promise<void> {
   event.preventDefault();
   if (password.length < 8) {
-    setters.setLoginError('密码至少 8 位');
+    setters.setLoginError(AUTH_COPY.passwordTooShort);
     return;
   }
 
   if (password !== confirmPassword) {
-    setters.setLoginError('两次输入的密码不一致');
+    setters.setLoginError(AUTH_COPY.passwordMismatch);
     return;
   }
 
@@ -314,9 +334,9 @@ export async function handleSetPasswordAfterOtp(
         : pendingTokens;
 
     setters.setPendingTokens(null);
-    await applyTokens(finalizedTokens, '注册成功。', setters, desktopCtx, adapter);
+    await applyTokens(finalizedTokens, AUTH_COPY.setPasswordSuccess, setters, desktopCtx, adapter);
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, '设置密码失败'));
+    setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.setPasswordFailed));
   } finally {
     setters.setPending(false);
   }

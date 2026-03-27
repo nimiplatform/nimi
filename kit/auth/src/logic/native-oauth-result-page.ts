@@ -3,6 +3,23 @@ import template from './native-oauth-result-page.template.html';
 export type DesktopOAuthResultPageStatus = 'success' | 'error';
 export type DesktopOAuthResultPageLocale = 'en';
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function normalizeAutoCloseMs(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return 3000;
+  }
+  return Math.min(Math.round(numeric), 30000);
+}
+
 export function renderDesktopOAuthResultPage(input: {
   status: DesktopOAuthResultPageStatus;
   locale?: DesktopOAuthResultPageLocale;
@@ -13,7 +30,7 @@ export function renderDesktopOAuthResultPage(input: {
     throw new Error(`Unsupported desktop OAuth result page locale: ${locale}`);
   }
 
-  const autoCloseMs = input.autoCloseMs ?? 3000;
+  const autoCloseMs = normalizeAutoCloseMs(input.autoCloseMs);
   if (input.status === 'success') {
     return renderTemplate({
       pageTitle: 'OAuth Complete - Nimi',
@@ -33,7 +50,7 @@ export function renderDesktopOAuthResultPage(input: {
       messageSecondaryBlock: '',
       actionBlock: `<div class="auto_close">You can close this window now<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>`,
       actionAnimation: 'fadeIn 0.5s ease-out 0.7s both',
-      autoCloseScript: `<script>setTimeout(function(){window.close();}, ${String(autoCloseMs)});</script>`,
+      autoCloseScript: `<script>setTimeout(function(){window.close();}, ${autoCloseMs});</script>`,
     });
   }
 
@@ -80,22 +97,22 @@ function renderTemplate(input: {
   autoCloseScript: string;
 }): string {
   return template
-    .replace('__PAGE_TITLE__', input.pageTitle)
-    .replace('__BODY_BACKGROUND__', input.bodyBackground)
-    .replace('__LOGO_ANIMATION_NAME__', input.logoAnimationName)
-    .replace('__LOGO_ANIMATION_DURATION__', input.logoAnimationDuration)
-    .replace('__LOGO_ANIMATION_REPEAT__', input.logoAnimationRepeat)
-    .replace('__LOGO_FILTER__', input.logoFilter)
-    .replace('__SUCCESS_ICON_ANIMATION__', input.successIconAnimation)
-    .replace('__ERROR_ICON_ANIMATION__', input.errorIconAnimation)
-    .replace('__STATUS_ICON_CLASS__', input.statusIconClass)
+    .replace('__PAGE_TITLE__', escapeHtml(input.pageTitle))
+    .replace('__BODY_BACKGROUND__', escapeHtml(input.bodyBackground))
+    .replace('__LOGO_ANIMATION_NAME__', escapeHtml(input.logoAnimationName))
+    .replace('__LOGO_ANIMATION_DURATION__', escapeHtml(input.logoAnimationDuration))
+    .replace('__LOGO_ANIMATION_REPEAT__', escapeHtml(input.logoAnimationRepeat))
+    .replace('__LOGO_FILTER__', escapeHtml(input.logoFilter))
+    .replace('__SUCCESS_ICON_ANIMATION__', escapeHtml(input.successIconAnimation))
+    .replace('__ERROR_ICON_ANIMATION__', escapeHtml(input.errorIconAnimation))
+    .replace('__STATUS_ICON_CLASS__', escapeHtml(input.statusIconClass))
     .replace('__STATUS_ICON_SVG__', input.statusIconSvg)
-    .replace('__HEADING__', input.heading)
-    .replace('__HEADING_ANIMATION__', input.headingAnimation)
-    .replace('__MESSAGE_PRIMARY__', input.messagePrimary)
-    .replace('__MESSAGE_ANIMATION__', input.messageAnimation)
+    .replace('__HEADING__', escapeHtml(input.heading))
+    .replace('__HEADING_ANIMATION__', escapeHtml(input.headingAnimation))
+    .replace('__MESSAGE_PRIMARY__', escapeHtml(input.messagePrimary))
+    .replace('__MESSAGE_ANIMATION__', escapeHtml(input.messageAnimation))
     .replace('__MESSAGE_SECONDARY_BLOCK__', input.messageSecondaryBlock)
     .replace('__ACTION_BLOCK__', input.actionBlock)
-    .replace('__ACTION_ANIMATION__', input.actionAnimation)
+    .replace('__ACTION_ANIMATION__', escapeHtml(input.actionAnimation))
     .replace('__AUTO_CLOSE_SCRIPT__', input.autoCloseScript);
 }

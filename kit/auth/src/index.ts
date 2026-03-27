@@ -86,6 +86,7 @@ export {
   readLocationQueryParams,
   resolveDesktopCallbackRequestFromLocation,
   buildDesktopCallbackReturnUrl,
+  submitDesktopCallbackResult,
   createDesktopCallbackState,
   createDesktopCallbackRedirectUri,
   normalizeWebAuthLaunchPath,

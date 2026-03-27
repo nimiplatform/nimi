@@ -1,16 +1,20 @@
 import type { FormEvent } from 'react';
-import { toErrorMessage } from '@nimiplatform/nimi-kit/core/oauth';
 import type { WalletType } from '../types/auth-types.js';
 import type { AuthPlatformAdapter } from '../platform/auth-platform-adapter.js';
 import { shouldPromptPasswordSetupAfterEmailOtp } from './auth-email-flow.js';
 import { persistAuthSession } from './auth-session-storage.js';
-import { buildDesktopCallbackReturnUrl } from './desktop-callback-helpers.js';
+import {
+  AUTH_COPY,
+  toAuthUiErrorMessage,
+  walletUnavailableMessage,
+} from './auth-copy.js';
+import { submitDesktopCallbackResult } from './desktop-callback-helpers.js';
 import { parseChainId, resolveWalletProvider } from './wallet-helpers.js';
 import type { AuthMenuSetters, DesktopCallbackContext } from './auth-menu-handlers.js';
 import { applyTokens, handleLoginResult } from './auth-menu-handlers.js';
 
 const WALLET_LOGIN_TIMEOUT_MS = 30000;
-const WALLET_LOGIN_TIMEOUT_MESSAGE = '钱包登录超时，请重试。';
+const WALLET_LOGIN_TIMEOUT_MESSAGE = AUTH_COPY.walletLoginTimeout;
 
 function isWalletCancellationError(error: unknown): boolean {
   if (typeof error === 'object' && error !== null && 'code' in error) {
@@ -57,7 +61,7 @@ export async function handleRequestEmailOtp(
   event.preventDefault();
   const normalizedEmail = email.trim();
   if (!normalizedEmail) {
-    setters.setLoginError('请输入邮箱');
+    setters.setLoginError(AUTH_COPY.emailRequired);
     return;
   }
 
@@ -66,13 +70,13 @@ export async function handleRequestEmailOtp(
   try {
     const result = await adapter.requestEmailOtp(normalizedEmail);
     if (!result?.success) {
-      throw new Error(String(result?.message || '发送验证码失败'));
+      throw new Error(String(result?.message || AUTH_COPY.requestOtpFailed));
     }
     setters.setOtpCode('');
     setters.setOtpResendCountdown(60);
     setters.setView('email_otp_verify');
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, '发送验证码失败'));
+    setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.requestOtpFailed));
   } finally {
     setters.setPending(false);
   }
@@ -93,7 +97,7 @@ export async function handleVerifyEmailOtp(
   event.preventDefault();
   const normalizedEmail = email.trim();
   if (!normalizedEmail || otpCode.length !== 6) {
-    setters.setLoginError('请输入 6 位验证码');
+    setters.setLoginError(AUTH_COPY.otpCodeRequired);
     return;
   }
 
@@ -110,9 +114,16 @@ export async function handleVerifyEmailOtp(
       setters.setView('email_set_password');
       return;
     }
-    await handleLoginResult(result, '验证码登录成功。', setters, desktopCtx, adapter, 'email_otp_verify');
+    await handleLoginResult(
+      result,
+      AUTH_COPY.otpVerifySuccess,
+      setters,
+      desktopCtx,
+      adapter,
+      'email_otp_verify',
+    );
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, '验证码登录失败'));
+    setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.otpVerifyFailed));
   } finally {
     setters.setPending(false);
   }
@@ -134,7 +145,7 @@ export async function handleResendOtp(
 
   const normalizedEmail = email.trim();
   if (!normalizedEmail) {
-    setters.setLoginError('请输入邮箱');
+    setters.setLoginError(AUTH_COPY.emailRequired);
     return;
   }
 
@@ -143,12 +154,12 @@ export async function handleResendOtp(
   try {
     const result = await adapter.requestEmailOtp(normalizedEmail);
     if (!result?.success) {
-      throw new Error(String(result?.message || '重新发送验证码失败'));
+      throw new Error(String(result?.message || AUTH_COPY.resendOtpFailed));
     }
     setters.setOtpResendCountdown(60);
     setters.setOtpCode('');
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, '重新发送验证码失败'));
+    setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.resendOtpFailed));
   } finally {
     setters.setPending(false);
   }
@@ -168,7 +179,7 @@ export async function handleVerify2Fa(
 ): Promise<void> {
   event.preventDefault();
   if (!tempToken || twoFactorCode.length !== 6) {
-    setters.setLoginError('请输入 6 位 2FA 验证码');
+    setters.setLoginError(AUTH_COPY.twoFactorCodeRequired);
     return;
   }
 
@@ -176,9 +187,9 @@ export async function handleVerify2Fa(
   setters.setLoginError(null);
   try {
     const tokens = await adapter.verifyTwoFactor(tempToken, twoFactorCode);
-    await applyTokens(tokens, '2FA 验证成功，已登录。', setters, desktopCtx, adapter);
+    await applyTokens(tokens, AUTH_COPY.twoFactorSuccess, setters, desktopCtx, adapter);
   } catch (error) {
-    setters.setLoginError(toErrorMessage(error, '2FA 验证失败'));
+    setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.twoFactorFailed));
   } finally {
     setters.setPending(false);
   }
@@ -196,7 +207,7 @@ export async function handleConfirmDesktopAuthorization(
 ): Promise<void> {
   event.preventDefault();
   if (!desktopCtx.desktopCallbackRequest) {
-    setters.setLoginError('无效的桌面授权请求，请重试。');
+    setters.setLoginError(AUTH_COPY.desktopRequestInvalid);
     setters.setView('main');
     return;
   }
@@ -207,7 +218,7 @@ export async function handleConfirmDesktopAuthorization(
     || '',
   ).trim();
   if (!accessToken) {
-    setters.setLoginError('当前未检测到已登录会话，请先登录后再授权。');
+    setters.setLoginError(AUTH_COPY.desktopSessionMissing);
     setters.setView('main');
     return;
   }
@@ -231,18 +242,16 @@ export async function handleConfirmDesktopAuthorization(
       user: normalizedUser ?? desktopCtx.desktopCallbackUser,
     });
 
-    const callbackReturnUrl = buildDesktopCallbackReturnUrl({
+    submitDesktopCallbackResult({
       request: desktopCtx.desktopCallbackRequest,
-      accessToken,
+      code: accessToken,
     });
-    window.location.replace(callbackReturnUrl);
   } catch (error) {
-    const message = toErrorMessage(error, '当前登录态已失效，请重新登录后再授权。');
-    const normalized = message.toUpperCase();
     setters.setLoginError(
-      normalized.includes('HTTP_401') || normalized.includes('UNAUTHORIZED')
-        ? '当前登录态已过期，请重新登录后再授权。'
-        : message,
+      toAuthUiErrorMessage(error, AUTH_COPY.desktopSessionInvalid, {
+        expiredMessage: AUTH_COPY.desktopSessionExpired,
+        forbiddenMessage: AUTH_COPY.desktopPermissionDenied,
+      }),
     );
     setters.setView('main');
   } finally {
@@ -267,7 +276,7 @@ export async function handleWalletLogin(
   const timeoutId = window.setTimeout(() => {
     timedOut = true;
     setters.setPending(false);
-    setters.setLoginError(WALLET_LOGIN_TIMEOUT_MESSAGE);
+    setters.setLoginError(AUTH_COPY.walletLoginTimeout);
   }, WALLET_LOGIN_TIMEOUT_MS);
 
   const throwIfTimedOut = (): void => {
@@ -281,10 +290,10 @@ export async function handleWalletLogin(
     if (!provider) {
       throw new Error(
         walletType === 'metamask'
-          ? '未检测到 MetaMask 钱包'
+          ? walletUnavailableMessage('MetaMask')
           : walletType === 'okx'
-            ? '未检测到 OKX 钱包'
-            : '未检测到 Binance 钱包',
+            ? walletUnavailableMessage('OKX')
+            : walletUnavailableMessage('Binance'),
       );
     }
 
@@ -294,7 +303,7 @@ export async function handleWalletLogin(
     throwIfTimedOut();
     const walletAddress = firstStringEntry(accounts);
     if (!walletAddress) {
-      throw new Error('钱包未返回地址');
+      throw new Error(AUTH_COPY.walletAddressMissing);
     }
 
     const chainIdRaw = await provider.request({
@@ -312,7 +321,7 @@ export async function handleWalletLogin(
 
     const challengeMessage = String(challenge?.message || '').trim();
     if (!challengeMessage) {
-      throw new Error('无效的钱包签名挑战');
+      throw new Error(AUTH_COPY.walletChallengeInvalid);
     }
 
     const signatureResult = await provider.request({
@@ -322,7 +331,7 @@ export async function handleWalletLogin(
     throwIfTimedOut();
     const signature = typeof signatureResult === 'string' ? signatureResult.trim() : '';
     if (!signature) {
-      throw new Error('钱包签名失败');
+      throw new Error(AUTH_COPY.walletSignatureFailed);
     }
 
     const result = await adapter.walletLogin({
@@ -335,11 +344,11 @@ export async function handleWalletLogin(
     });
     throwIfTimedOut();
 
-    await handleLoginResult(result, '钱包登录成功。', setters, desktopCtx, adapter);
+    await handleLoginResult(result, AUTH_COPY.walletLoginSuccess, setters, desktopCtx, adapter);
   } catch (error) {
     if (!isWalletCancellationError(error)) {
       if (!isWalletTimeoutError(error)) {
-        setters.setLoginError(toErrorMessage(error, '钱包登录失败'));
+        setters.setLoginError(toAuthUiErrorMessage(error, AUTH_COPY.walletLoginFailed));
       }
     }
   } finally {

@@ -10,6 +10,12 @@ import {
   validateDesktopCallbackState,
 } from '@nimiplatform/nimi-kit/core/oauth';
 import { REMEMBER_LOGIN_KEY, loadRememberedLogin, saveRememberedLogin } from '../../../kit/auth/src/logic/remember-login.js';
+import {
+  WEB_AUTH_SESSION_KEY,
+  loadPersistedAuthSession,
+  persistAuthSession,
+} from '../../../kit/auth/src/logic/auth-session-storage.js';
+import { submitDesktopCallbackResult } from '../../../kit/auth/src/logic/desktop-callback-helpers.js';
 import { handleWalletLogin } from '../../../kit/auth/src/logic/auth-menu-handlers-ext.js';
 
 type StorageLike = {
@@ -108,12 +114,16 @@ test('saveRememberedLogin stores only email and rememberMe', () => {
       email: 'user@example.com',
       rememberMe: true,
     });
-    const stored = globalThis.localStorage.getItem(REMEMBER_LOGIN_KEY);
-    assert.equal(stored, JSON.stringify({
-      email: 'user@example.com',
-      rememberMe: true,
-    }));
-    assert.ok(!String(stored).includes('password'));
+    const stored = JSON.parse(String(globalThis.localStorage.getItem(REMEMBER_LOGIN_KEY) || '{}')) as {
+      email?: string;
+      rememberMe?: boolean;
+      password?: string;
+      expiresAt?: string;
+    };
+    assert.equal(stored.email, 'user@example.com');
+    assert.equal(stored.rememberMe, true);
+    assert.equal(typeof stored.expiresAt, 'string');
+    assert.equal('password' in stored, false);
   } finally {
     restoreWindow();
   }
@@ -131,11 +141,143 @@ test('loadRememberedLogin migrates legacy stored passwords out of localStorage',
       email: 'legacy@example.com',
       rememberMe: true,
     });
-    assert.equal(globalThis.localStorage.getItem(REMEMBER_LOGIN_KEY), JSON.stringify({
-      email: 'legacy@example.com',
-      rememberMe: true,
-    }));
+    const stored = JSON.parse(String(globalThis.localStorage.getItem(REMEMBER_LOGIN_KEY) || '{}')) as {
+      email?: string;
+      rememberMe?: boolean;
+      password?: string;
+      expiresAt?: string;
+    };
+    assert.equal(stored.email, 'legacy@example.com');
+    assert.equal(stored.rememberMe, true);
+    assert.equal(typeof stored.expiresAt, 'string');
+    assert.equal('password' in stored, false);
   } finally {
+    restoreWindow();
+  }
+});
+
+test('loadRememberedLogin clears expired entries from localStorage', () => {
+  const restoreWindow = installWindowForTest();
+  try {
+    globalThis.localStorage.setItem(REMEMBER_LOGIN_KEY, JSON.stringify({
+      email: 'expired@example.com',
+      rememberMe: true,
+      updatedAt: new Date(Date.now() - (40 * 24 * 60 * 60 * 1000)).toISOString(),
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    }));
+    assert.equal(loadRememberedLogin(), null);
+    assert.equal(globalThis.localStorage.getItem(REMEMBER_LOGIN_KEY), null);
+  } finally {
+    restoreWindow();
+  }
+});
+
+test('loadPersistedAuthSession clears expired web auth session metadata from localStorage', () => {
+  const restoreWindow = installWindowForTest();
+  const restoreEnv = installImportMetaEnvForTest({
+    VITE_NIMI_SHELL_MODE: 'web',
+  });
+  try {
+    globalThis.localStorage.setItem(WEB_AUTH_SESSION_KEY, JSON.stringify({
+      accessToken: 'header.payload.signature',
+      user: { id: 'u1' },
+      updatedAt: new Date(Date.now() - 7200000).toISOString(),
+      expiresAt: new Date(Date.now() - 1000).toISOString(),
+    }));
+    assert.equal(loadPersistedAuthSession(), null);
+    assert.equal(globalThis.localStorage.getItem(WEB_AUTH_SESSION_KEY), null);
+  } finally {
+    restoreEnv();
+    restoreWindow();
+  }
+});
+
+test('persistAuthSession stores explicit session expiry metadata without persisting access token', () => {
+  const restoreWindow = installWindowForTest();
+  const restoreEnv = installImportMetaEnvForTest({
+    VITE_NIMI_SHELL_MODE: 'web',
+  });
+  try {
+    const payload = Buffer.from(JSON.stringify({
+      sub: 'user-1',
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    })).toString('base64url');
+    persistAuthSession({
+      accessToken: `header.${payload}.signature`,
+      user: { id: 'u1' },
+    });
+    const stored = JSON.parse(String(globalThis.localStorage.getItem(WEB_AUTH_SESSION_KEY) || '{}')) as {
+      accessToken?: string;
+      expiresAt?: string;
+      user?: { id?: string };
+    };
+    assert.equal(typeof stored.expiresAt, 'string');
+    assert.equal(stored.accessToken, undefined);
+    assert.equal(stored.user?.id, 'u1');
+  } finally {
+    restoreEnv();
+    restoreWindow();
+  }
+});
+
+test('submitDesktopCallbackResult posts access token via form body instead of query string', () => {
+  const submitted: Array<{ method?: string; action?: string; fields: Record<string, string> }> = [];
+  const restoreWindow = installWindowForTest({
+    document: {
+      body: {
+        appendChild: () => undefined,
+      },
+      createElement: (tag: string) => {
+        if (tag === 'form') {
+          const fields: Array<{ name: string; value: string }> = [];
+          return {
+            method: '',
+            action: '',
+            style: { display: '' },
+            appendChild: (field: { name: string; value: string }) => {
+              fields.push({ name: field.name, value: field.value });
+            },
+            submit() {
+              submitted.push({
+                method: this.method,
+                action: this.action,
+                fields: Object.fromEntries(fields.map((field) => [field.name, field.value])),
+              });
+            },
+          };
+        }
+        return {
+          type: '',
+          name: '',
+          value: '',
+        };
+      },
+    },
+  });
+  const previousDocument = (globalThis as typeof globalThis & { document?: unknown }).document;
+  Object.defineProperty(globalThis, 'document', {
+    value: (globalThis.window as typeof globalThis.window & { document: Document }).document,
+    configurable: true,
+  });
+  try {
+    submitDesktopCallbackResult({
+      request: {
+        callbackUrl: 'http://127.0.0.1:43123/oauth/callback',
+        state: 'desktop-state',
+      },
+      code: 'access-token-123',
+    });
+    assert.equal(submitted.length, 1);
+    assert.equal(submitted[0]?.method, 'POST');
+    assert.equal(submitted[0]?.action, 'http://127.0.0.1:43123/oauth/callback');
+    assert.equal(submitted[0]?.fields.code, 'access-token-123');
+    assert.equal(submitted[0]?.fields.state, 'desktop-state');
+    assert.equal(submitted[0]?.action?.includes('code='), false);
+  } finally {
+    Object.defineProperty(globalThis, 'document', {
+      value: previousDocument,
+      configurable: true,
+    });
     restoreWindow();
   }
 });

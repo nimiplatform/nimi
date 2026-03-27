@@ -6,6 +6,7 @@ import {
   validateDesktopCallbackState,
   buildDesktopWebAuthLaunchUrl,
 } from './desktop-callback-helpers.js';
+import { AUTH_COPY } from './auth-copy.js';
 
 export type DesktopWebAuthResult = {
   accessToken: string;
@@ -16,7 +17,7 @@ export async function performDesktopWebAuth(
   options?: { baseUrl?: string; timeoutMs?: number; onOpened?: () => void },
 ): Promise<DesktopWebAuthResult> {
   if (!bridge.hasTauriInvoke()) {
-    throw new Error('当前环境不支持浏览器授权回调');
+    throw new Error(AUTH_COPY.desktopBrowserAuthUnsupported);
   }
 
   const callbackUrl = createDesktopCallbackRedirectUri();
@@ -34,7 +35,7 @@ export async function performDesktopWebAuth(
 
   const launchResult = await bridge.openExternalUrl(launchUrl);
   if (!launchResult.opened) {
-    throw new Error('无法打开系统浏览器');
+    throw new Error(AUTH_COPY.desktopBrowserOpenFailed);
   }
   options?.onOpened?.();
 
@@ -50,12 +51,12 @@ export async function performDesktopWebAuth(
     actualState: String(callback.state || ''),
     maxAgeMs: options?.timeoutMs ?? DESKTOP_CALLBACK_TIMEOUT_MS,
   })) {
-    throw new Error('网页登录回调 state 校验失败');
+    throw new Error(AUTH_COPY.desktopBrowserStateInvalid);
   }
 
   const accessToken = String(callback.code || '').trim();
   if (!accessToken) {
-    throw new Error('网页登录回调缺少 access token');
+    throw new Error(AUTH_COPY.desktopBrowserAccessTokenMissing);
   }
 
   return { accessToken };

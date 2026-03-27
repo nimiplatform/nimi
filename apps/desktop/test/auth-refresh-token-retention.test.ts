@@ -75,15 +75,15 @@ test('auth menu storage sync forwards persisted refresh token when available', (
   assert.match(authFlowSource, /void adapter\.applyToken\(''\)/);
 });
 
-test('web auth session storage persists access token for full-page reload bootstrap', () => {
+test('web auth session storage persists only non-sensitive session metadata', () => {
   assert.match(authSessionStorageSource, /accessToken: z\.string\(\)\.optional\(\)/);
   assert.match(
     authSessionStorageSource,
-    /export function loadPersistedAccessToken\(\): string \{\s*const session = loadPersistedAuthSession\(\);\s*return String\(session\?\.accessToken \|\| ''\)\.trim\(\);\s*\}/s,
+    /export function loadPersistedAccessToken\(\): string \{\s*return '';\s*\}/s,
   );
   assert.match(
     authSessionStorageSource,
-    /const payload: PersistedWebAuthSession = \{\s*\.\.\.\(normalizedToken \? \{ accessToken: normalizedToken \} : \{\}\),/s,
+    /const payload: PersistedWebAuthSession = \{\s*\.\.\.\(normalizedUserValue \? \{ user: normalizedUserValue \} : \{\}\),/s,
   );
 
   const repoRoot = path.join(import.meta.dirname, '../../..');
@@ -121,10 +121,11 @@ test('web auth session storage persists access token for full-page reload bootst
     raw?: string;
   };
 
-  assert.equal(parsed.token, 'access-123');
-  assert.equal(parsed.session?.accessToken, 'access-123');
+  assert.equal(parsed.token, '');
+  assert.equal(parsed.session?.accessToken, undefined);
   assert.equal(parsed.session?.user?.id, 'u1');
-  assert.match(String(parsed.raw || ''), /"accessToken":"access-123"/);
+  assert.doesNotMatch(String(parsed.raw || ''), /accessToken/);
+  assert.match(String(parsed.raw || ''), /"user":\{"id":"u1"\}/);
 });
 
 test('desktop callback auth flow upgrades main view after async session restore', () => {
@@ -157,7 +158,7 @@ test('verify email otp sends onboarding users through password setup before logi
   assert.match(authMenuHandlersExtSource, /setters\.setView\('email_set_password'\)/);
   assert.match(
     authMenuHandlersExtSource,
-    /handleLoginResult\(result, '验证码登录成功。', setters, desktopCtx, adapter, 'email_otp_verify'\)/,
+    /handleLoginResult\(\s*result,\s*AUTH_COPY\.otpVerifySuccess,\s*setters,\s*desktopCtx,\s*adapter,\s*'email_otp_verify',?\s*\)/s,
   );
 });
 
