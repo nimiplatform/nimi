@@ -20,12 +20,33 @@ fn now_unix_secs() -> usize {
         .as_secs() as usize
 }
 
+fn token_id_fragment(value: &str) -> String {
+    let fragment = value
+        .trim()
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric())
+        .map(|ch| ch.to_ascii_lowercase())
+        .take(8)
+        .collect::<String>();
+    if fragment.is_empty() {
+        "anon".to_string()
+    } else {
+        fragment
+    }
+}
+
 fn build_token_id(
-    _principal_id: &str,
-    _subject_account_id: &str,
-    _mode: &str,
+    principal_id: &str,
+    subject_account_id: &str,
+    mode: &str,
 ) -> Result<String, String> {
-    Ok(format!("ext-{}", secure_random_hex(16)?))
+    Ok(format!(
+        "ext-{}-{}-{}-{}",
+        token_id_fragment(mode),
+        token_id_fragment(principal_id),
+        token_id_fragment(subject_account_id),
+        secure_random_hex(16)?
+    ))
 }
 
 fn is_supported_scope_op(value: &str) -> bool {

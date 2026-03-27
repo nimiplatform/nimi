@@ -103,13 +103,13 @@ async fn list_actions(
     let token = match bearer_token(&headers) {
         Ok(value) => value,
         Err(reason) => {
-            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response()
+            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
     let claims = match verify_external_agent_token(&state, token.as_str()).await {
         Ok(value) => value,
         Err(reason) => {
-            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response()
+            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
 
@@ -353,13 +353,13 @@ async fn execution_events(
     let token = match bearer_token(&headers) {
         Ok(value) => value,
         Err(reason) => {
-            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response()
+            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
     let claims = match verify_external_agent_token(&state, token.as_str()).await {
         Ok(value) => value,
         Err(reason) => {
-            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response()
+            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
 
@@ -417,13 +417,13 @@ async fn list_audits(
     let token = match bearer_token(&headers) {
         Ok(value) => value,
         Err(reason) => {
-            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response()
+            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
     let claims = match verify_external_agent_token(&state, token.as_str()).await {
         Ok(value) => value,
         Err(reason) => {
-            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response()
+            return error_response(StatusCode::UNAUTHORIZED, reason.as_str()).into_response();
         }
     };
     if let Some(principal_id) = &query.principal_id {
@@ -533,7 +533,7 @@ fn is_loopback_bind_address(bind_address: &str) -> bool {
     };
     if let Ok(url) = url::Url::parse(parsed.as_str()) {
         if let Some(host) = url.host_str() {
-            return host == "127.0.0.1" || host == "::1";
+            return host == "127.0.0.1" || host == "::1" || host.eq_ignore_ascii_case("localhost");
         }
     }
     false

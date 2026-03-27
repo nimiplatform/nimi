@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -169,6 +170,7 @@ pub struct ExternalAgentGatewayConfig {
 }
 
 const EXTERNAL_AGENT_SECRET_KV_KEY: &str = "external-agent.gateway.jws-secret";
+const DEFAULT_EXTERNAL_AGENT_BIND_ADDRESS: &str = "127.0.0.1:44777";
 
 fn now_rfc3339() -> String {
     chrono::Utc::now().to_rfc3339()
@@ -202,12 +204,58 @@ fn read_or_create_gateway_secret(app: &AppHandle) -> Result<String, String> {
     Ok(generated)
 }
 
+fn normalize_external_agent_bind_address(raw: &str) -> Result<String, String> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err("EXTERNAL_AGENT_BIND_ADDRESS_EMPTY".to_string());
+    }
+    if trimmed.contains("://")
+        || trimmed.contains('/')
+        || trimmed.contains('?')
+        || trimmed.contains('#')
+    {
+        return Err("EXTERNAL_AGENT_BIND_ADDRESS_MUST_BE_SOCKET_ADDR".to_string());
+    }
+    if let Ok(parsed) = trimmed.parse::<SocketAddr>() {
+        if parsed.ip().is_loopback() {
+            return Ok(parsed.to_string());
+        }
+        return Err("EXTERNAL_AGENT_BIND_ADDRESS_NOT_LOOPBACK".to_string());
+    }
+
+    let (host_raw, port_raw) = trimmed
+        .rsplit_once(':')
+        .ok_or_else(|| "EXTERNAL_AGENT_BIND_ADDRESS_INVALID".to_string())?;
+    let port = port_raw
+        .parse::<u16>()
+        .map_err(|_| "EXTERNAL_AGENT_BIND_ADDRESS_INVALID_PORT".to_string())?;
+    let host = host_raw
+        .trim()
+        .trim_start_matches('[')
+        .trim_end_matches(']');
+    match host.to_ascii_lowercase().as_str() {
+        "localhost" | "127.0.0.1" => Ok(format!("127.0.0.1:{port}")),
+        "::1" => Ok(format!("[::1]:{port}")),
+        _ => Err("EXTERNAL_AGENT_BIND_ADDRESS_NOT_LOOPBACK".to_string()),
+    }
+}
+
 impl ExternalAgentGatewayConfig {
     fn from_app(app: &AppHandle) -> Self {
         let bind_address = std::env::var("NIMI_EXTERNAL_AGENT_BIND")
             .ok()
             .filter(|value| !value.trim().is_empty())
-            .unwrap_or_else(|| "127.0.0.1:44777".to_string());
+            .and_then(|value| match normalize_external_agent_bind_address(value.as_str()) {
+                Ok(normalized) => Some(normalized),
+                Err(error) => {
+                    eprintln!(
+                        "[external-agent] ignoring invalid NIMI_EXTERNAL_AGENT_BIND value={} error={}",
+                        value, error
+                    );
+                    None
+                }
+            })
+            .unwrap_or_else(|| DEFAULT_EXTERNAL_AGENT_BIND_ADDRESS.to_string());
         let issuer = std::env::var("NIMI_EXTERNAL_AGENT_ISSUER")
             .ok()
             .filter(|value| !value.trim().is_empty())
@@ -219,6 +267,29 @@ impl ExternalAgentGatewayConfig {
             issuer,
             jws_secret,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_external_agent_bind_address;
+
+    #[test]
+    fn normalize_external_agent_bind_address_accepts_loopback_only() {
+        assert_eq!(
+            normalize_external_agent_bind_address("localhost:44777").unwrap(),
+            "127.0.0.1:44777"
+        );
+        assert_eq!(
+            normalize_external_agent_bind_address("127.0.0.1:44777").unwrap(),
+            "127.0.0.1:44777"
+        );
+        assert_eq!(
+            normalize_external_agent_bind_address("[::1]:44777").unwrap(),
+            "[::1]:44777"
+        );
+        assert!(normalize_external_agent_bind_address("0.0.0.0:44777").is_err());
+        assert!(normalize_external_agent_bind_address("http://127.0.0.1:44777").is_err());
     }
 }
 

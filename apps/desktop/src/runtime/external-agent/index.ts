@@ -1,4 +1,5 @@
 import { tauriInvoke, hasTauriInvoke } from '@runtime/llm-adapter/tauri-bridge';
+import { listenTauri } from '@runtime/tauri-api';
 import { getRuntimeHookRuntime } from '@runtime/mod';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 
@@ -131,29 +132,10 @@ function queueActionDescriptorResync(): void {
 }
 
 function readGlobalTauriEventListen(): TauriEventListen | null {
-  const value = globalThis as {
-    window?: {
-      __TAURI__?: {
-        event?: {
-          listen?: TauriEventListen;
-        };
-      };
-    };
-    __TAURI__?: {
-      event?: {
-        listen?: TauriEventListen;
-      };
-    };
-  };
-  const fromWindow = value.window?.__TAURI__?.event?.listen;
-  if (typeof fromWindow === 'function') {
-    return fromWindow.bind(value.window?.__TAURI__?.event);
+  if (!hasTauriInvoke()) {
+    return null;
   }
-  const fromGlobal = value.__TAURI__?.event?.listen;
-  if (typeof fromGlobal === 'function') {
-    return fromGlobal.bind(value.__TAURI__?.event);
-  }
-  return null;
+  return listenTauri;
 }
 
 function parseExecutionRequest(value: unknown): ExternalAgentActionExecutionRequest {

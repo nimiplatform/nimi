@@ -1,3 +1,4 @@
+import { listenTauri } from '@runtime/tauri-api';
 import { hasTauriInvoke } from './env';
 import { invoke, invokeChecked } from './invoke';
 import { parseOptionalJsonObject } from './shared.js';
@@ -22,11 +23,10 @@ type TauriListenResult = Promise<TauriEventUnsubscribe | undefined> | TauriEvent
 const EXTERNAL_AGENT_ACTION_REQUEST_EVENT = 'external-agent://action-request';
 
 function resolveTauriEventListen(): ((eventName: string, handler: (event: { payload: unknown }) => void) => TauriListenResult) | null {
-  const listenFn = window.__TAURI__?.event?.listen;
-  if (typeof listenFn !== 'function') {
+  if (!hasTauriInvoke()) {
     return null;
   }
-  return listenFn.bind(window.__TAURI__?.event);
+  return listenTauri;
 }
 
 export async function issueExternalAgentToken(
