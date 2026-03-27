@@ -272,6 +272,31 @@ mappings:
     external_path: nimi/spec/realm/kernel/asset-contract.md#R-ASSET-105
     local_anchor: spec/realm/asset.md#Reading Path
     coverage_status: mapped
+  - external_id: R-BIND-001
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/binding-contract.md#R-BIND-001
+    local_anchor: spec/realm/kernel/index.md#Blocked External Bindings
+    coverage_status: blocked
+  - external_id: R-BIND-002
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/binding-contract.md#R-BIND-002
+    local_anchor: spec/realm/kernel/index.md#Blocked External Bindings
+    coverage_status: blocked
+  - external_id: R-BIND-003
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/binding-contract.md#R-BIND-003
+    local_anchor: spec/realm/kernel/index.md#Blocked External Bindings
+    coverage_status: blocked
+  - external_id: R-BIND-004
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/binding-contract.md#R-BIND-004
+    local_anchor: spec/realm/kernel/index.md#Blocked External Bindings
+    coverage_status: blocked
+  - external_id: R-BIND-005
+    external_type: kernel_rule
+    external_path: nimi/spec/realm/kernel/binding-contract.md#R-BIND-005
+    local_anchor: spec/realm/kernel/index.md#Blocked External Bindings
+    coverage_status: blocked
   - external_id: R-BNDL-001
     external_type: kernel_rule
     external_path: nimi/spec/realm/kernel/bundle-contract.md#R-BNDL-001

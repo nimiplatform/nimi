@@ -6,6 +6,7 @@
 Generated at: 2026-03-25T00:00:00Z
 
 Total rules: 64
+Blocked external rules: 5
 
 | Rule ID | Domain | Level | Source | Statement |
 | --- | --- | --- | --- | --- |
@@ -52,12 +53,12 @@ Total rules: 64
 | R-RSRC-002 | resource | must | spec/realm/kernel/resource-contract.md | Active Resource types are fixed to IMAGE, VIDEO, AUDIO, and TEXT; VOICE remains outside the active hard-cut model. |
 | R-RSRC-003 | resource | must | spec/realm/kernel/resource-contract.md | Resource lifecycle mutation is explicit, idempotent, and auditable; prepare upload, finalize, update, and delete are lifecycle transitions. |
 | R-RSRC-004 | resource | must | spec/realm/kernel/resource-contract.md | Posts, chat attachment envelopes, and presentation surfaces may consume Resource objects through attachment or binding relations without promoting them into OwnableAsset by default. |
+| R-RSRC-005 | resource | must | spec/realm/kernel/resource-contract.md | Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone. |
+| R-RSRC-006 | resource | must | spec/realm/kernel/resource-contract.md | Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources. |
 | R-ATTACH-001 | attachment | must | spec/realm/kernel/attachment-contract.md | Realm Attachment is a first-class cross-surface envelope with stable targetType plus targetId identity and is not equivalent to Resource, OwnableAsset, or Bundle. |
 | R-ATTACH-002 | attachment | must | spec/realm/kernel/attachment-contract.md | Active attachment targets are fixed to RESOURCE, ASSET, and BUNDLE; write surfaces persist target references only and read surfaces may resolve display metadata. |
 | R-ATTACH-003 | attachment | must | spec/realm/kernel/attachment-contract.md | Post attachments persist as ordered PostAttachment relations and chat non-text attachment messages persist as MessageType ATTACHMENT with payload.attachment envelope. |
 | R-ATTACH-004 | attachment | must | spec/realm/kernel/attachment-contract.md | Resolved attachment read models may expose displayKind, URLs, thumbnails, duration, title, subtitle, and nested preview attachments for card targets; surface readability authorizes preview resolution, and stable APIs must not collapse back to resourceId-only or assetId-only attachment contracts. |
-| R-RSRC-005 | resource | must | spec/realm/kernel/resource-contract.md | Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone. |
-| R-RSRC-006 | resource | must | spec/realm/kernel/resource-contract.md | Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources. |
 | R-ASSET-101 | asset | must | spec/realm/kernel/asset-contract.md | Realm OwnableAsset objects are independently ownable formal objects with stable identity, owner, authorship, lineage, lifecycle, and binding policy semantics. |
 | R-ASSET-102 | asset | must | spec/realm/kernel/asset-contract.md | OwnableAsset is distinct from Resource, truth, history, and memory; raw content carriers and app-private archives must not masquerade as ownable realm assets. |
 | R-ASSET-103 | asset | must | spec/realm/kernel/asset-contract.md | OwnableAsset mutations are explicit, idempotent, and auditable; create, update, clone, and lifecycle transitions are first-class state changes. |
@@ -73,3 +74,11 @@ Total rules: 64
 | R-TRANSIT-004 | transit | must | spec/realm/kernel/transit-contract.md | Transit may hand off durable references but app-local runtime checkpoints stay outside Realm. |
 | R-TRANSIT-005 | transit | must | spec/realm/kernel/transit-contract.md | OASIS is the default return point and transit hub for creator-world continuity transfer. |
 | R-TRANSIT-006 | transit | must | spec/realm/kernel/transit-contract.md | Creator worlds must not transit directly to other creator worlds; transit stays single-hop via OASIS and excludes scene quota/runtime gating. |
+
+| Blocked Rule ID | Status | Blocker | Summary |
+| --- | --- | --- | --- |
+| R-BIND-001 | blocked | U4 | Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred. |
+| R-BIND-002 | blocked | U4 | Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred. |
+| R-BIND-003 | blocked | U4 | Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred. |
+| R-BIND-004 | blocked | U4 | Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred. |
+| R-BIND-005 | blocked | U4 | Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred. |

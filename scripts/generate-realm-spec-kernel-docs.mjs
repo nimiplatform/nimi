@@ -56,10 +56,12 @@ function formatTitle(stem) {
 function renderRuleCatalog(doc, sourceFile) {
   const data = doc ?? {};
   const rules = Array.isArray(data.rules) ? data.rules : [];
+  const blockedRules = Array.isArray(data.blocked_rules) ? data.blocked_rules : [];
   const lines = [
     `Generated at: ${data.generated_at ?? 'unknown'}`,
     '',
     `Total rules: ${rules.length}`,
+    `Blocked external rules: ${blockedRules.length}`,
     '',
     '| Rule ID | Domain | Level | Source | Statement |',
     '| --- | --- | --- | --- | --- |',
@@ -68,6 +70,14 @@ function renderRuleCatalog(doc, sourceFile) {
     lines.push(
       `| ${escapeCell(row.rule_id)} | ${escapeCell(row.domain)} | ${escapeCell(row.level)} | ${escapeCell(row.source)} | ${escapeCell(row.statement)} |`,
     );
+  }
+  if (blockedRules.length > 0) {
+    lines.push('', '| Blocked Rule ID | Status | Blocker | Summary |', '| --- | --- | --- | --- |');
+    for (const row of blockedRules) {
+      lines.push(
+        `| ${escapeCell(row.rule_id)} | ${escapeCell(row.status)} | ${escapeCell(row.blocker_id)} | ${escapeCell(row.summary)} |`,
+      );
+    }
   }
   return withPreamble('Rule Catalog (Generated)', sourceFile, lines);
 }
@@ -158,13 +168,14 @@ function renderDomainEnums(doc, sourceFile) {
   const lines = [
     `Version: \`${data.version ?? 'unknown'}\``,
     `Updated: \`${data.updated_at ?? 'unknown'}\``,
+    `Scope note: ${data.scope_note ?? 'n/a'}`,
     '',
-    '| Enum ID | Domain | Values | Source Rules |',
-    '| --- | --- | --- | --- |',
+    '| Enum ID | Domain | Values | Source Rules | Status | Blocker | Notes |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
   ];
   for (const row of rows) {
     lines.push(
-      `| ${escapeCell(row.enum_id)} | ${escapeCell(row.domain)} | ${escapeCell(asStringArray(row.values).join(', '))} | ${escapeCell(asStringArray(row.source_rules).join(', '))} |`,
+      `| ${escapeCell(row.enum_id)} | ${escapeCell(row.domain)} | ${escapeCell(asStringArray(row.values).join(', '))} | ${escapeCell(asStringArray(row.source_rules).join(', '))} | ${escapeCell(row.status || 'active')} | ${escapeCell(row.blocker_id || '')} | ${escapeCell(row.notes || '')} |`,
     );
   }
   return withPreamble('Domain Enums (Generated)', sourceFile, lines);

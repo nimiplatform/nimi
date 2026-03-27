@@ -1,5 +1,26 @@
-id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BNDL|TRANSIT)-[0-9]{3}$'
+id_pattern: '^R-(TRUTH|WSTATE|WHIST|MEM|CHAT|SOC|ECON|ATTACH|ASSET|RSRC|BIND|BNDL|TRANSIT)-[0-9]{3}$'
 generated_at: '2026-03-25T00:00:00Z'
+blocked_rules:
+  - rule_id: R-BIND-001
+    status: blocked
+    blocker_id: U4
+    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
+  - rule_id: R-BIND-002
+    status: blocked
+    blocker_id: U4
+    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
+  - rule_id: R-BIND-003
+    status: blocked
+    blocker_id: U4
+    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
+  - rule_id: R-BIND-004
+    status: blocked
+    blocker_id: U4
+    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
+  - rule_id: R-BIND-005
+    status: blocked
+    blocker_id: U4
+    summary: Binding contract sync is blocked on upstream authoritative text; local rule text must not be inferred.
 rules:
   - rule_id: R-TRUTH-001
     domain: truth
@@ -216,6 +237,16 @@ rules:
     level: must
     statement: Posts, chat attachment envelopes, and presentation surfaces may consume Resource objects through attachment or binding relations without promoting them into OwnableAsset by default.
     source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-005
+    domain: resource
+    level: must
+    statement: Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone.
+    source: spec/realm/kernel/resource-contract.md
+  - rule_id: R-RSRC-006
+    domain: resource
+    level: must
+    statement: Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources.
+    source: spec/realm/kernel/resource-contract.md
   - rule_id: R-ATTACH-001
     domain: attachment
     level: must
@@ -236,16 +267,6 @@ rules:
     level: must
     statement: Resolved attachment read models may expose displayKind, URLs, thumbnails, duration, title, subtitle, and nested preview attachments for card targets; surface readability authorizes preview resolution, and stable APIs must not collapse back to resourceId-only or assetId-only attachment contracts.
     source: spec/realm/kernel/attachment-contract.md
-  - rule_id: R-RSRC-005
-    domain: resource
-    level: must
-    statement: Resource deliveryAccess defines delivery strategy such as public versus signed URL resolution only; viewer authorization is enforced by the reading surface or controller and must not be inferred from deliveryAccess alone.
-    source: spec/realm/kernel/resource-contract.md
-  - rule_id: R-RSRC-006
-    domain: resource
-    level: must
-    statement: Public resource upload preparation defaults to SIGNED delivery unless the caller explicitly requests PUBLIC; this default applies to direct upload and inline text creation surfaces for managed realm resources.
-    source: spec/realm/kernel/resource-contract.md
   - rule_id: R-ASSET-101
     domain: asset
     level: must

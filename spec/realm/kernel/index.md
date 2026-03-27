@@ -25,6 +25,10 @@ updated: 2026-03-26
 
 `R-BIND-*` 对应的 binding contract / enums / alignment 条目当前不在本仓反推，必须等待上游权威正文后再同步；在此之前以 `tables/under-spec-registry.yaml` 记录阻塞状态。
 
+## Blocked External Bindings
+
+`R-BIND-*` 相关条目当前只允许以阻塞元数据形式出现在本仓表格中，用于记录缺口本身与上游 blocker；不得在本仓反推 binding 规则正文、枚举语义或写入授权事实。权威阻塞来源固定为 `tables/under-spec-registry.yaml` 中的 `U4`。
+
 ## Tables
 
 - `tables/rule-catalog.yaml`

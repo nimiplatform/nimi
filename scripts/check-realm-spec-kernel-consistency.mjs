@@ -9,9 +9,10 @@ const REALM_ROOT = path.join(PROJECT_ROOT, 'spec', 'realm');
 const KERNEL_ROOT = path.join(REALM_ROOT, 'kernel');
 const TABLES_DIR = path.join(KERNEL_ROOT, 'tables');
 
-const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'MEM', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BNDL', 'TRANSIT'];
+const RULE_FAMILIES = ['TRUTH', 'WSTATE', 'WHIST', 'MEM', 'CHAT', 'SOC', 'ECON', 'ATTACH', 'ASSET', 'RSRC', 'BIND', 'BNDL', 'TRANSIT'];
 const EXPECTED_ID_PATTERN = `^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`;
 const RULE_ID_PATTERN = new RegExp(`^R-(${RULE_FAMILIES.join('|')})-[0-9]{3}$`);
+const BLOCKED_BIND_RULE_ID_PATTERN = /^R-BIND-[0-9]{3}$/;
 
 const RULE_CATALOG_PATH = path.join(TABLES_DIR, 'rule-catalog.yaml');
 const RULE_EVIDENCE_PATH = path.join(TABLES_DIR, 'rule-evidence.yaml');
@@ -19,6 +20,7 @@ const DOMAIN_ENUMS_PATH = path.join(TABLES_DIR, 'domain-enums.yaml');
 const DOMAIN_STATE_MACHINES_PATH = path.join(TABLES_DIR, 'domain-state-machines.yaml');
 const OPEN_SPEC_ALIGNMENT_MAP_PATH = path.join(TABLES_DIR, 'open-spec-alignment-map.yaml');
 const COMMIT_AUTHORIZATION_MATRIX_PATH = path.join(TABLES_DIR, 'commit-authorization-matrix.yaml');
+const UNDER_SPEC_REGISTRY_PATH = path.join(TABLES_DIR, 'under-spec-registry.yaml');
 
 const DOMAIN_DOCS = [
   path.join(REALM_ROOT, 'truth.md'),
@@ -145,6 +147,12 @@ function main() {
   const stateMachines = readYaml(DOMAIN_STATE_MACHINES_PATH);
   const alignment = readYaml(OPEN_SPEC_ALIGNMENT_MAP_PATH);
   const commitAuthorization = readYaml(COMMIT_AUTHORIZATION_MATRIX_PATH);
+  const underSpecRegistry = readYaml(UNDER_SPEC_REGISTRY_PATH);
+  const blockedRegistryIds = new Set(
+    (Array.isArray(underSpecRegistry.under_spec) ? underSpecRegistry.under_spec : [])
+      .map((row) => String(row.id || '').trim())
+      .filter(Boolean),
+  );
 
   if (catalog.id_pattern !== EXPECTED_ID_PATTERN) {
     pushIssue(issues, 'rule-catalog', `id_pattern must equal ${EXPECTED_ID_PATTERN}`);
@@ -166,6 +174,24 @@ function main() {
     } else if (!fs.existsSync(path.join(PROJECT_ROOT, source))) {
       pushIssue(issues, 'rule-catalog', `${ruleId}: source file not found ${source}`);
     }
+  }
+
+  const blockedRules = Array.isArray(catalog.blocked_rules) ? catalog.blocked_rules : [];
+  const blockedRuleIds = new Set();
+  for (const row of blockedRules) {
+    const ruleId = String(row.rule_id || '').trim();
+    if (!BLOCKED_BIND_RULE_ID_PATTERN.test(ruleId)) {
+      pushIssue(issues, 'rule-catalog', `invalid blocked rule_id: ${ruleId || '<empty>'}`);
+      continue;
+    }
+    if (blockedRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `duplicate blocked rule_id: ${ruleId}`);
+    blockedRuleIds.add(ruleId);
+    if (catalogRuleIds.has(ruleId)) pushIssue(issues, 'rule-catalog', `${ruleId}: blocked rule must not appear in active catalog rules`);
+    const status = String(row.status || '').trim();
+    if (status !== 'blocked') pushIssue(issues, 'rule-catalog', `${ruleId}: blocked rule status must be blocked`);
+    const blockerId = String(row.blocker_id || '').trim();
+    if (!blockedRegistryIds.has(blockerId)) pushIssue(issues, 'rule-catalog', `${ruleId}: unknown blocker_id ${blockerId || '<empty>'}`);
+    if (!String(row.summary || '').trim()) pushIssue(issues, 'rule-catalog', `${ruleId}: summary is required`);
   }
 
   const contractRuleIds = new Set();
@@ -236,6 +262,15 @@ function main() {
     if (asStringArray(row.values).length === 0) pushIssue(issues, 'domain-enums', `${enumId}: values must be non-empty`);
     for (const ruleId of asStringArray(row.source_rules)) {
       if (!contractRuleIds.has(ruleId)) pushIssue(issues, 'domain-enums', `${enumId}: unknown source rule ${ruleId}`);
+    }
+    const status = String(row.status || '').trim();
+    if (status && status !== 'blocked-legacy') {
+      pushIssue(issues, 'domain-enums', `${enumId}: unsupported status ${status}`);
+    }
+    if (status === 'blocked-legacy') {
+      const blockerId = String(row.blocker_id || '').trim();
+      if (!blockedRegistryIds.has(blockerId)) pushIssue(issues, 'domain-enums', `${enumId}: unknown blocker_id ${blockerId || '<empty>'}`);
+      if (!String(row.notes || '').trim()) pushIssue(issues, 'domain-enums', `${enumId}: blocked-legacy rows must declare notes`);
     }
   }
 
@@ -360,8 +395,12 @@ function main() {
         pushIssue(issues, 'alignment-map', `${externalId}: local anchor missing ${anchor}`);
       }
     }
-    if (String(row.coverage_status || '').trim() !== 'mapped') {
-      pushIssue(issues, 'alignment-map', `${externalId}: coverage_status must be mapped`);
+    const coverageStatus = String(row.coverage_status || '').trim();
+    if (coverageStatus !== 'mapped' && coverageStatus !== 'blocked') {
+      pushIssue(issues, 'alignment-map', `${externalId}: coverage_status must be mapped or blocked`);
+    }
+    if (coverageStatus === 'blocked' && !BLOCKED_BIND_RULE_ID_PATTERN.test(externalId)) {
+      pushIssue(issues, 'alignment-map', `${externalId}: blocked coverage_status is reserved for R-BIND rows`);
     }
   }
 

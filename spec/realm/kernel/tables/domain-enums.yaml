@@ -1,6 +1,7 @@
 version: 1
 updated_at: 2026-03-26
 owner: '@team'
+scope_note: Binding-facing enum rows remain blocked legacy placeholders until upstream R-BIND material is mirrored. Do not rename or extend them locally before blocker U4 is resolved.
 enums:
   - enum_id: STATE-SCOPE
     domain: world-state
@@ -42,6 +43,9 @@ enums:
     domain: resource
     values: [WORLD, AGENT, SCENE, WORLD_EVENT, WORLDVIEW]
     source_rules: [R-RSRC-004]
+    status: blocked-legacy
+    blocker_id: U4
+    notes: Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change.
   - enum_id: RESOURCE-BINDING-SLOT
     domain: resource
     values:
@@ -63,6 +67,9 @@ enums:
         AGENT_VOICE_SAMPLE,
       ]
     source_rules: [R-RSRC-004]
+    status: blocked-legacy
+    blocker_id: U4
+    notes: Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change.
   - enum_id: ATTACHMENT-TARGET-TYPE
     domain: attachment
     values: [RESOURCE, ASSET, BUNDLE]
@@ -91,6 +98,9 @@ enums:
     domain: asset
     values: [WORLD, AGENT, SCENE, WORKSPACE]
     source_rules: [R-ASSET-104]
+    status: blocked-legacy
+    blocker_id: U4
+    notes: Legacy pre-binding placeholder. Upstream binding sync is expected to replace this row with mirrored binding enum families in one change.
   - enum_id: BUNDLE-STATUS
     domain: bundle
     values: [DRAFT, PUBLISHED, ARCHIVED]
