@@ -143,14 +143,33 @@ export type PlatformClient = {
   domains: PlatformDomains;
 };
 
+// Single shared client per JS execution context. Call clearPlatformClient()
+// before switching tenants or auth sessions in the same process.
 let currentPlatformClient: PlatformClient | null = null;
 const DEFAULT_PLATFORM_APP_ID = 'nimi.app';
-const DEFAULT_REALM_BASE_URL = 'http://localhost:3002';
 
 function detectTauriTransport(): RuntimeTransportConfig | null {
+  const globalRecord = globalThis as {
+    __NIMI_TAURI_TEST__?: unknown;
+    __TAURI__?: unknown;
+    __TAURI_INTERNALS__?: unknown;
+    __TAURI_IPC__?: unknown;
+    window?: {
+      __NIMI_TAURI_TEST__?: unknown;
+      __TAURI__?: unknown;
+      __TAURI_INTERNALS__?: unknown;
+      __TAURI_IPC__?: unknown;
+    };
+  };
   const tauriRuntime = (
-    (globalThis as { __TAURI__?: unknown }).__TAURI__
-    || ((globalThis as { window?: { __TAURI__?: unknown } }).window?.__TAURI__)
+    globalRecord.__NIMI_TAURI_TEST__
+    || globalRecord.__TAURI_INTERNALS__
+    || globalRecord.__TAURI_IPC__
+    || globalRecord.__TAURI__
+    || globalRecord.window?.__NIMI_TAURI_TEST__
+    || globalRecord.window?.__TAURI_INTERNALS__
+    || globalRecord.window?.__TAURI_IPC__
+    || globalRecord.window?.__TAURI__
   );
   if (!tauriRuntime) {
     return null;
@@ -185,7 +204,12 @@ function resolvePlatformRealmBaseUrl(explicitBaseUrl: string | undefined): strin
     return locationOrigin;
   }
 
-  return DEFAULT_REALM_BASE_URL;
+  throw createNimiError({
+    message: 'platform client requires realmBaseUrl, NIMI_REALM_URL, or a browser location origin',
+    reasonCode: ReasonCode.SDK_REALM_ENDPOINT_REQUIRED,
+    actionHint: 'set_platform_realm_base_url',
+    source: 'sdk',
+  });
 }
 
 function decodeBase64UrlUtf8(input: string): string {

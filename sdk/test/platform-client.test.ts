@@ -95,6 +95,41 @@ test('createPlatformClient resolves realm base url from environment when omitted
   }
 });
 
+test('createPlatformClient fails closed when no realm base url source is available', async () => {
+  clearPlatformClient();
+  const previousRealmUrl = process.env.NIMI_REALM_URL;
+  const originalLocation = (globalThis as { location?: unknown }).location;
+  delete process.env.NIMI_REALM_URL;
+  Object.defineProperty(globalThis, 'location', {
+    value: undefined,
+    configurable: true,
+  });
+
+  try {
+    await assert.rejects(
+      () => createPlatformClient({
+        appId: 'nimi.sdk.platform.missing-realm',
+        runtimeTransport: null,
+        allowAnonymousRealm: true,
+      }),
+      (error: unknown) => {
+        assert.equal((error as { reasonCode?: string }).reasonCode, ReasonCode.SDK_REALM_ENDPOINT_REQUIRED);
+        return true;
+      },
+    );
+  } finally {
+    if (previousRealmUrl == null) {
+      delete process.env.NIMI_REALM_URL;
+    } else {
+      process.env.NIMI_REALM_URL = previousRealmUrl;
+    }
+    Object.defineProperty(globalThis, 'location', {
+      value: originalLocation,
+      configurable: true,
+    });
+  }
+});
+
 test('createPlatformClient prefers sessionStore token over provider and explicit token', async () => {
   clearPlatformClient();
   let authorizationHeader = '';

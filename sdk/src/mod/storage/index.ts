@@ -1,6 +1,8 @@
 import { createHookClient } from '../hook/index.js';
-import type { ModRuntimeContextInput } from '../types/runtime-mod';
-import type { HookStorageClient } from '../types/storage';
+import { createNimiError } from '../../runtime/errors.js';
+import { ReasonCode } from '../../types/index.js';
+import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
+import type { HookStorageClient } from '../types/storage.js';
 
 export function createModStorageClient(modId: string, context?: ModRuntimeContextInput): HookStorageClient {
   return createHookClient(modId, context).storage;
@@ -23,7 +25,12 @@ function normalizeKvName(input: string): string {
 function requireKvName(input: string, field: 'namespace' | 'key'): string {
   const normalized = normalizeKvName(input);
   if (!normalized) {
-    throw new Error(`mod kv store requires ${field}`);
+    throw createNimiError({
+      message: `mod kv store requires ${field}`,
+      reasonCode: ReasonCode.ACTION_INPUT_INVALID,
+      actionHint: field === 'namespace' ? 'set_namespace' : 'set_key',
+      source: 'sdk',
+    });
   }
   return normalized;
 }

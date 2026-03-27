@@ -1,6 +1,6 @@
 import { createNimiError } from '../runtime/errors.js';
 import { ReasonCode } from '../types/index.js';
-import type { ModSdkHost } from './internal/host-types';
+import type { ModSdkHost } from './internal/host-types.js';
 
 const MOD_SDK_HOST_KEY = Symbol.for('nimi.mod.sdk.host');
 

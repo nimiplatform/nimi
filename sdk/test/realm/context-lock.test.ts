@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { Realm } from '../../src/realm/client.js';
-import { withRealmContextLock } from '../../src/realm/context-lock.js';
+import { getRealmContextLockQueueSizeForTest, withRealmContextLock } from '../../src/realm/context-lock.js';
 
 test('withRealmContextLock serializes concurrent calls', async () => {
   const originalConnect = Realm.prototype.connect;
@@ -118,6 +118,45 @@ test('withRealmContextLock does not serialize different realmBaseUrl values behi
 
     releaseFirst();
     assert.deepEqual(await Promise.all([first, second]), ['a', 'b']);
+  } finally {
+    releaseFirst?.();
+    Realm.prototype.connect = originalConnect;
+    Realm.prototype.close = originalClose;
+  }
+});
+
+test('withRealmContextLock evicts queue entries after pending work drains', async () => {
+  const originalConnect = Realm.prototype.connect;
+  const originalClose = Realm.prototype.close;
+  let releaseFirst!: () => void;
+  const firstGate = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+
+  Realm.prototype.connect = async function patchedConnect() { /* noop */ };
+  Realm.prototype.close = async function patchedClose() { /* noop */ };
+
+  try {
+    assert.equal(getRealmContextLockQueueSizeForTest(), 0);
+
+    const first = withRealmContextLock({ realmBaseUrl: 'https://realm-queue.nimi.xyz', accessToken: 'token-a' }, async () => {
+      await firstGate;
+      return 'first';
+    });
+    const second = withRealmContextLock({ realmBaseUrl: 'https://realm-queue.nimi.xyz', accessToken: 'token-b' }, async () => 'second');
+    const third = withRealmContextLock({ realmBaseUrl: 'https://realm-other.nimi.xyz', accessToken: 'token-c' }, async () => 'third');
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    assert.equal(getRealmContextLockQueueSizeForTest(), 2);
+
+    releaseFirst();
+    assert.deepEqual(await Promise.all([first, second, third]), ['first', 'second', 'third']);
+
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(getRealmContextLockQueueSizeForTest(), 0);
   } finally {
     releaseFirst?.();
     Realm.prototype.connect = originalConnect;

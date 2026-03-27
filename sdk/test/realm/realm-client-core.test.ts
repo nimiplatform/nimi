@@ -95,6 +95,26 @@ test('Realm exposes unsafeRaw as the explicit escape hatch', () => {
   assert.equal(typeof realm.unsafeRaw.request, 'function');
 });
 
+test('Realm unsafeRaw.request rejects unsupported HTTP methods with supported list', async () => {
+  const realm = new Realm({
+    baseUrl: 'https://realm-methods.nimi.xyz',
+    auth: null,
+  });
+
+  await assert.rejects(
+    () => realm.unsafeRaw.request({ method: 'TRACE', path: '/api/policy' }),
+    (error: unknown) => {
+      const nimiError = asNimiError(error, { source: 'realm' });
+      assert.equal(nimiError.reasonCode, ReasonCode.ACTION_INPUT_INVALID);
+      assert.match(
+        nimiError.message,
+        /supported methods: GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD/,
+      );
+      return true;
+    },
+  );
+});
+
 test('Realm unsafeRaw.request only returns typed data through explicit parsing', async () => {
   const originalFetch = globalThis.fetch;
 

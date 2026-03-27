@@ -10,7 +10,12 @@ export type RealmContextInput = {
   onRefreshFailed?: (error: unknown) => void;
 };
 
-const contextQueues = new Map<string, Promise<void>>();
+type RealmContextQueueEntry = {
+  pending: number;
+  tail: Promise<void>;
+};
+
+const contextQueues = new Map<string, RealmContextQueueEntry>();
 
 function createRealmContext(input: RealmContextInput): Realm {
   const refreshToken = String(input.refreshToken || '').trim();
@@ -31,7 +36,13 @@ export async function withRealmContextLock<T>(
   task: (realm: Realm) => Promise<T>,
 ): Promise<T> {
   const queueKey = String(input.realmBaseUrl || '').trim();
-  const previous = contextQueues.get(queueKey) || Promise.resolve();
+  const entry = contextQueues.get(queueKey) ?? {
+    pending: 0,
+    tail: Promise.resolve(),
+  };
+  const previous = entry.tail;
+  entry.pending += 1;
+  contextQueues.set(queueKey, entry);
   const current = previous.then(async () => {
     const realm = createRealmContext(input);
     try {
@@ -46,12 +57,17 @@ export async function withRealmContextLock<T>(
     () => undefined,
     () => undefined,
   );
-  contextQueues.set(queueKey, nextQueue);
+  entry.tail = nextQueue;
   void nextQueue.finally(() => {
-    if (contextQueues.get(queueKey) === nextQueue) {
+    entry.pending -= 1;
+    if (entry.pending === 0 && contextQueues.get(queueKey) === entry) {
       contextQueues.delete(queueKey);
     }
   });
 
   return current;
+}
+
+export function getRealmContextLockQueueSizeForTest(): number {
+  return contextQueues.size;
 }

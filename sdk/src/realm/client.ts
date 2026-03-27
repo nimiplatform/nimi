@@ -14,6 +14,7 @@ import type {
   RealmConnectionState,
   RealmEventsModule,
   RealmOptions,
+  RealmResponseParser,
   RealmRetryOptions,
   RealmServiceRegistry,
   RealmTokenRefreshResult,
@@ -42,6 +43,7 @@ const DEFAULT_RETRY_STATUSES = [429, 502, 503, 504];
 const DEFAULT_RETRY_MAX_RETRIES = 2;
 const DEFAULT_RETRY_BACKOFF_MS = 1000;
 const DEFAULT_RETRY_MAX_BACKOFF_MS = 10000;
+const REALM_HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'] as const;
 
 function hasOwn(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
@@ -78,6 +80,22 @@ function resolvePositiveTimeoutMs(value: unknown, fallback: number): number {
     });
   }
   return timeoutMs;
+}
+
+type RealmHttpMethod = (typeof REALM_HTTP_METHODS)[number];
+
+function getOpenApiMethod(
+  client: Record<string, unknown>,
+  methodName: string,
+): ((url: string, options?: Record<string, unknown>) => Promise<unknown>) | null {
+  if (!REALM_HTTP_METHODS.includes(methodName as RealmHttpMethod)) {
+    return null;
+  }
+  const candidate = client[methodName];
+  if (typeof candidate !== 'function') {
+    return null;
+  }
+  return candidate as (url: string, options?: Record<string, unknown>) => Promise<unknown>;
 }
 
 export class Realm {
@@ -135,15 +153,19 @@ export class Realm {
     };
 
     const requestUnknown = (input: RealmRawRequestInput): Promise<unknown> => this.#requestUnknown(input);
-    const requestUnsafeRaw: RealmUnsafeRawModule['request'] = async <T>(
-      input: RealmRawRequestInput & { parseResponse?: (value: unknown) => T },
-    ): Promise<unknown | T> => {
+    async function requestUnsafeRaw(input: RealmRawRequestInput): Promise<unknown>;
+    async function requestUnsafeRaw<T>(
+      input: RealmRawRequestInput & { parseResponse: RealmResponseParser<T> },
+    ): Promise<T>;
+    async function requestUnsafeRaw<T>(
+      input: RealmRawRequestInput & { parseResponse?: RealmResponseParser<T> },
+    ): Promise<unknown | T> {
       const value = await requestUnknown(input);
       if (typeof input.parseResponse === 'function') {
         return input.parseResponse(value);
       }
       return value;
-    };
+    }
 
     const unsafeRaw: RealmUnsafeRawModule = {
       request: requestUnsafeRaw,
@@ -323,12 +345,14 @@ export class Realm {
       }
 
       const methodName = normalizeText(input.method).toUpperCase();
-      const method = (this.#openapiClient as unknown as Record<string, unknown>)[methodName]
-        || (this.#openapiClient as unknown as Record<string, unknown>)[methodName.toLowerCase()];
+      const method = getOpenApiMethod(
+        this.#openapiClient as unknown as Record<string, unknown>,
+        methodName,
+      );
 
-      if (typeof method !== 'function') {
+      if (method === null) {
         throw createNimiError({
-          message: `unsupported realm HTTP method: ${methodName}`,
+          message: `unsupported realm HTTP method: ${methodName || '(empty)'}; supported methods: ${REALM_HTTP_METHODS.join(', ')}`,
           reasonCode: ReasonCode.ACTION_INPUT_INVALID,
           actionHint: 'check_realm_request_method',
           source: 'sdk',
@@ -362,7 +386,7 @@ export class Realm {
         }
         const headers = await this.#resolveHeaders(input.headers);
         try {
-          const responseTuple = await (method as (url: string, options?: Record<string, unknown>) => Promise<unknown>)(
+          const responseTuple = await method(
             path,
             {
               params: input.query ? { query: input.query } : undefined,
@@ -499,6 +523,7 @@ export class Realm {
       return '';
     }
     const accessToken = this.#options.auth?.accessToken;
+    // `resolved` is assigned in both branches so we can normalize sync/async token sources once.
     let resolved: string;
     if (typeof accessToken === 'function') {
       resolved = normalizeText(await accessToken());
@@ -658,6 +683,13 @@ export class Realm {
     });
   }
 
+  /**
+   * Decodes the unverified JWT payload for UX hints only.
+   * Do not use this helper for trust, authorization, or expiry enforcement.
+   *
+   * @deprecated Prefer {@link Realm.decodeTokenExpiryUnsafe} in new code to make
+   * the lack of signature verification explicit.
+   */
   static decodeTokenExpiry(jwt: string): { expiresAt: number; expiresInMs: number } | null {
     try {
       const parts = jwt.split('.');
@@ -683,6 +715,11 @@ export class Realm {
     } catch {
       return null;
     }
+  }
+
+  // Explicit alias for the unverified UX-only JWT decode path.
+  static decodeTokenExpiryUnsafe(jwt: string): { expiresAt: number; expiresInMs: number } | null {
+    return Realm.decodeTokenExpiry(jwt);
   }
 
   async #resolveHeaders(overrides?: Record<string, string>): Promise<Record<string, string>> {
