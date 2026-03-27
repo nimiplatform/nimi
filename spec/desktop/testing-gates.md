@@ -7,7 +7,7 @@
 - `kernel/testing-gates-contract.md`（D-GATE-001, D-GATE-010, D-GATE-020, D-GATE-030, D-GATE-040, D-GATE-050, D-GATE-060, D-GATE-070, D-GATE-080）
 - `kernel/bootstrap-contract.md`（D-BOOT-001, D-BOOT-008, D-BOOT-012）
 - `kernel/ui-shell-contract.md`（D-SHELL-001, D-SHELL-006, D-SHELL-008）
-- `kernel/bridge-ipc-contract.md`（D-IPC-001, D-IPC-002, D-IPC-009）
+- `kernel/bridge-ipc-contract.md`（D-IPC-001, D-IPC-002, D-IPC-009, D-IPC-014, D-IPC-015）
 - `kernel/offline-degradation-contract.md`（D-OFFLINE-001, D-OFFLINE-004）
 - `kernel/tables/desktop-testing-gates.yaml`
 - `kernel/tables/desktop-feature-coverage.yaml`
@@ -63,7 +63,7 @@ Desktop 规范验收门禁与执行证据契约，覆盖 kernel 规则集合 `D-
 - `rule-evidence.yaml` 可为 canonical runtime config path、runtime-only cloud routing、runtime-aligned mod/hook surface、local-ai bridge 命令边界、manifest capabilities-only policy 绑定额外静态 gate。
 - 这些 hard-cut gate 不替代 lint/test/e2e，只负责阻断 legacy surface 回流。
 
-### Self-Update Hard-Cut Coverage (D-BOOT-001, D-IPC-002, D-IPC-009)
+### Self-Update Hard-Cut Coverage (D-BOOT-001, D-IPC-002, D-IPC-014, D-IPC-015)
 
 - desktop self-update 必须覆盖三类验证：
   - Rust/Tauri：release info fail-close、bundled runtime `nimi version --json` 真值校验、running/not-running version probe 优先级、download/install 两阶段 updater 状态机、stop/update 前后的 channel invalidation。

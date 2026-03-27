@@ -5,12 +5,12 @@
 | Command | Module | Description | Source Rule |
 |---|---|---|---|
 | `runtime_defaults` | `runtime-defaults` | Get realm and runtime execution defaults | `D-IPC-001` |
-| `desktop_release_info_get` | `desktop-release` | Read validated desktop release metadata for the packaged shell + bundled runtime unit | `D-IPC-009` |
-| `desktop_update_state_get` | `desktop-update` | Read current desktop updater state machine snapshot | `D-IPC-009` |
-| `desktop_update_check` | `desktop-update` | Check GitHub release metadata for a newer packaged desktop update | `D-IPC-009` |
-| `desktop_update_download` | `desktop-update` | Download the currently available packaged desktop update | `D-IPC-009` |
-| `desktop_update_install` | `desktop-update` | Consume already-downloaded update bytes and enter installer stage for the packaged desktop update | `D-IPC-009` |
-| `desktop_update_restart` | `desktop-update` | Restart the packaged desktop after updater install is ready | `D-IPC-009` |
+| `desktop_release_info_get` | `desktop-release` | Read validated desktop release metadata for the packaged shell + bundled runtime unit | `D-IPC-015` |
+| `desktop_update_state_get` | `desktop-update` | Read current desktop updater state machine snapshot | `D-IPC-015` |
+| `desktop_update_check` | `desktop-update` | Check GitHub release metadata for a newer packaged desktop update | `D-IPC-015` |
+| `desktop_update_download` | `desktop-update` | Download the currently available packaged desktop update | `D-IPC-015` |
+| `desktop_update_install` | `desktop-update` | Consume already-downloaded update bytes and enter installer stage for the packaged desktop update | `D-IPC-015` |
+| `desktop_update_restart` | `desktop-update` | Restart the packaged desktop after updater install is ready | `D-IPC-015` |
 | `get_system_resource_snapshot` | `system` | Collect system resource snapshot (CPU, memory, GPU) for device profiling | `D-IPC-009` |
 | `http_request` | `http` | Proxy HTTP request through Tauri backend (bypasses browser CORS) | `D-IPC-004` |
 | `open_external_url` | `ui` | Open external URL in system browser | `D-IPC-005` |

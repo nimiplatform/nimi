@@ -24,7 +24,7 @@
 |---|---|---|
 | `bootstrap-contract.md` | `D-BOOT-*` | 多阶段异步初始化、feature flag 门控 |
 | `bridge-ipc-contract.md` | `D-IPC-*` | Tauri IPC 命令与桥接类型 |
-| `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-009`) | packaged desktop 自更新、bundled runtime staging 与 release 真值契约 |
+| `self-update-contract.md` | cross-cutting (`D-BOOT-001`, `D-IPC-002`, `D-IPC-014`, `D-IPC-015`) | packaged desktop 自更新、bundled runtime staging 与 release 真值契约 |
 | `state-contract.md` | `D-STATE-*` | Zustand slices 与持久化策略 |
 | `auth-session-contract.md` | `D-AUTH-*` | 会话生命周期、token 持久化 |
 | `data-sync-contract.md` | `D-DSYNC-*` | DataSync 业务流规则 |

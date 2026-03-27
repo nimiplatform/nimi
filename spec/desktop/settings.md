@@ -37,7 +37,7 @@ Settings 内部左侧栏属于 desktop governed sidebar family：
 - sectioned nav 只能使用 `nav-row` item kind。
 - sidebar 背景、active row、section label 与 resize handle 必须通过 shared sidebar primitive 与 sidebar token 统一。
 
-### Bootstrap / IPC (D-BOOT-001, D-IPC-009)
+### Bootstrap / IPC (D-BOOT-001, D-IPC-014, D-IPC-015)
 
 Settings 的 Application Update 区域必须投影 desktop self-update 状态：
 

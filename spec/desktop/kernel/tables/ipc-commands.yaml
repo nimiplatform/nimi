@@ -12,32 +12,32 @@ commands:
   - command: desktop_release_info_get
     module: desktop-release
     description: Read validated desktop release metadata for the packaged shell + bundled runtime unit
-    source_rule: D-IPC-009
+    source_rule: D-IPC-015
 
   - command: desktop_update_state_get
     module: desktop-update
     description: Read current desktop updater state machine snapshot
-    source_rule: D-IPC-009
+    source_rule: D-IPC-015
 
   - command: desktop_update_check
     module: desktop-update
     description: Check GitHub release metadata for a newer packaged desktop update
-    source_rule: D-IPC-009
+    source_rule: D-IPC-015
 
   - command: desktop_update_download
     module: desktop-update
     description: Download the currently available packaged desktop update
-    source_rule: D-IPC-009
+    source_rule: D-IPC-015
 
   - command: desktop_update_install
     module: desktop-update
     description: Consume already-downloaded update bytes and enter installer stage for the packaged desktop update
-    source_rule: D-IPC-009
+    source_rule: D-IPC-015
 
   - command: desktop_update_restart
     module: desktop-update
     description: Restart the packaged desktop after updater install is ready
-    source_rule: D-IPC-009
+    source_rule: D-IPC-015
 
   # System / telemetry
   - command: get_system_resource_snapshot

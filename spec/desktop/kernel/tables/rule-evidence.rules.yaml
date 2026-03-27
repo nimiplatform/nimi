@@ -432,6 +432,20 @@
     - desktop_lint_gate
     - desktop_test_gate
     - desktop_e2e_journey_gate
+- rule_id: D-IPC-014
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_journey_gate
+- rule_id: D-IPC-015
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_lint_gate
+    - desktop_test_gate
+    - desktop_e2e_journey_gate
 - rule_id: D-IPC-010
   status: covered
   evidence_refs:
