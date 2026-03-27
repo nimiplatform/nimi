@@ -3,6 +3,17 @@ import * as THREE from 'three';
 import { createNoise3D } from 'simplex-noise';
 
 type ParticleBackgroundProfile = 'desktop' | 'web';
+type ParticleBackgroundEnvironment = {
+  document: Pick<Document, 'createElement'>;
+  matchMedia?: (query: string) => { matches: boolean };
+  navigator?: {
+    hardwareConcurrency?: number;
+    deviceMemory?: number;
+    connection?: {
+      saveData?: boolean;
+    };
+  };
+};
 
 const BASE_PARTICLE_CONFIG = {
   particleCount: 500,
@@ -21,6 +32,11 @@ const BASE_PARTICLE_CONFIG = {
   hoverNoiseScale: 0.006,
 } as const;
 
+const lowCapabilityThresholds = {
+  hardwareConcurrency: 2,
+  deviceMemory: 2,
+} as const;
+
 function resolveParticleConfig(profile: ParticleBackgroundProfile) {
   if (profile === 'web') {
     // Web viewport is usually larger; increase density/speed to keep desktop-like perception.
@@ -35,6 +51,36 @@ function resolveParticleConfig(profile: ParticleBackgroundProfile) {
   return { ...BASE_PARTICLE_CONFIG };
 }
 
+export function shouldEnableDesktopParticleBackground(env: ParticleBackgroundEnvironment): boolean {
+  if (env.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    return false;
+  }
+
+  const navigatorInfo = env.navigator;
+  if (navigatorInfo?.connection?.saveData) {
+    return false;
+  }
+  if (
+    typeof navigatorInfo?.hardwareConcurrency === 'number' &&
+    navigatorInfo.hardwareConcurrency <= lowCapabilityThresholds.hardwareConcurrency
+  ) {
+    return false;
+  }
+  if (
+    typeof navigatorInfo?.deviceMemory === 'number' &&
+    navigatorInfo.deviceMemory <= lowCapabilityThresholds.deviceMemory
+  ) {
+    return false;
+  }
+
+  const canvas = env.document.createElement('canvas') as HTMLCanvasElement;
+  return Boolean(
+    canvas.getContext('webgl2') ??
+      canvas.getContext('webgl') ??
+      canvas.getContext('experimental-webgl' as 'webgl'),
+  );
+}
+
 export function DesktopParticleBackgroundLight(
   { isLogoHovered = false, profile = 'desktop' }: { isLogoHovered?: boolean; profile?: ParticleBackgroundProfile },
 ) {
@@ -47,6 +93,13 @@ export function DesktopParticleBackgroundLight(
 
   useEffect(() => {
     if (!containerRef.current) return;
+    if (!shouldEnableDesktopParticleBackground({
+      document: window.document,
+      matchMedia: window.matchMedia?.bind(window),
+      navigator: window.navigator,
+    })) {
+      return;
+    }
 
     const container = containerRef.current;
     let width = container.clientWidth;
@@ -56,11 +109,20 @@ export function DesktopParticleBackgroundLight(
     const camera = new THREE.PerspectiveCamera(50, width / height, 1, 1000);
     camera.position.z = 500;
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: 'high-performance',
-    });
+    const renderer = (() => {
+      try {
+        return new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true,
+          powerPreference: 'high-performance',
+        });
+      } catch {
+        return null;
+      }
+    })();
+    if (!renderer) {
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height);
     renderer.setClearColor(0x000000, 0);
@@ -346,7 +408,7 @@ export function DesktopParticleBackgroundLight(
 
         let mx = 0;
         let my = 0;
-        
+
         if (isHovered) {
           const dcx = -px;
           const dcy = -py;
