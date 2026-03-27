@@ -88,7 +88,7 @@ Content 面板映射：
 Shell 模式检测优先级（由高到低）：
 
 1. `VITE_NIMI_SHELL_MODE` 环境变量（`'desktop'` / `'web'`）。
-2. `window.__TAURI__` / `window.__TAURI_INTERNALS__` / `window.__TAURI_IPC__` 存在性检测。
+2. Tauri runtime presence 检测（`window.__TAURI_INTERNALS__` / `window.__TAURI_IPC__` 或等价 bridge 环境），不得要求 `window.__TAURI__` 全局暴露。
 3. SSR 环境默认 `'desktop'`。
 
 检测结果驱动所有 feature flag 的默认值（`D-SHELL-001` ~ `D-SHELL-003`、`D-BOOT-004`）。

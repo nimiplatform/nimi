@@ -81,7 +81,7 @@ machines:
         to: TIMEOUT
         trigger: job_timeout
         source_rule: K-JOB-002
-    note: ScenarioJob 与 workflow 是并行但不相同的状态机；Workflow 以 ACCEPTED 起步并支持 branch-driven SKIPPED，详见 tables/workflow-states.yaml。
+    note: ScenarioJob 与 workflow 是并行但不相同的状态机；ScenarioJob 以 SUBMITTED 起步且不产生 SKIPPED，Workflow 以 ACCEPTED 起步并支持 branch-driven SKIPPED。对照见 tables/workflow-states.yaml 与 K-WF-003~007。
   - machine: local_model_lifecycle
     states: [INSTALLED, ACTIVE, UNHEALTHY, REMOVED]
     transitions:

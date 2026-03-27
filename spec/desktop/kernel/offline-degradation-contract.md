@@ -67,4 +67,4 @@ Runtime 和 Realm 均不可达时的行为规则：
 ## Fact Sources
 
 - `tables/ipc-commands.yaml` — IPC 命令清单
-- Cross-reference: D-BOOT-012, D-DSYNC-003, D-NET-006, D-NET-007
+- Cross-reference: D-BOOT-008（Runtime bootstrap 失败/降级路径）, D-BOOT-012（Realm 可达性策略）, D-DSYNC-003, D-NET-006, D-NET-007

@@ -2,9 +2,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 
-const cwd = process.cwd();
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const cwd = path.resolve(scriptDir, '..');
 
 let failed = false;
 

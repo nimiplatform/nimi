@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { execFileSync, spawnSync } from 'node:child_process';
 
 function getArgFlag(flag) {

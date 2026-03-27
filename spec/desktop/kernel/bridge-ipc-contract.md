@@ -4,7 +4,7 @@
 
 ## Scope
 
-Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `window.__TAURI__.core.invoke` 与 Tauri backend 通信的命令集、类型解析、错误归一化。
+Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/core` / `@tauri-apps/api/event` 的显式桥接与 Tauri backend 通信的命令集、类型解析、错误归一化。
 
 ## D-IPC-001 — Runtime Defaults 命令
 
@@ -123,6 +123,7 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 所有 IPC 调用通过 `invoke()` / `invokeChecked()` 统一入口：
 
 - 前置检查 `hasTauriInvoke()`（`window.__TAURI__` 存在性）。
+- 前置检查 `hasTauriInvoke()`（Tauri runtime presence；不得依赖 `withGlobalTauri`）。
 - 生成 `invokeId`（`${command}-${timestamp}-${random}`）。
 - 结构化日志：invoke-start、invoke-success、invoke-failed。
 - 错误归一化：`toBridgeUserError()` 将 Tauri 错误转为用户可读消息。

@@ -88,7 +88,14 @@ const failures = [];
 
 for (const check of checks) {
   const filePath = path.join(repoRoot, check.file);
-  const content = fs.readFileSync(filePath, 'utf8');
+  let content = '';
+  try {
+    content = fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    failures.push(`${check.file}: unable to read file (${message})`);
+    continue;
+  }
 
   for (const token of check.required || []) {
     if (!content.includes(token)) {

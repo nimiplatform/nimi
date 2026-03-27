@@ -142,6 +142,8 @@ Voice 工作流 canonical 输入字段（`tts_v2v` / `tts_t2v`）由 `multimodal
 
 对 `tts_v2v`，canonical 输入允许可选 `v2v.text`。当 provider 明确要求提供参考音频的 transcript / text 描述时，必须显式透传并在缺失时 fail-close；禁止 runtime 伪造 transcript。
 
+provider extension 若暴露 `base_url` 覆写入口，仅允许与当前 provider 基线 endpoint 保持同一 scheme、host 与 canonical base path。不得借由 same-origin 不同 path 的覆写把请求转发到管理端点、私有运维路径或其它非 voice workflow API 面。
+
 ## K-MMPROV-020 Voice Workflow Fail-Close
 
 Voice 工作流输入不完整、workflow 不支持、目标模型不匹配、资产状态非法时必须 fail-close，不得自动降级到 provider 默认 voice。

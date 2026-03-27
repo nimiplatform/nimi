@@ -44,7 +44,7 @@ provider 对应 `baseUrl/apiKey` 的环境变量绑定以 `provider-probe-target
 
 ## K-CFG-011 Credential Plane Boundary
 
-配置层允许声明凭据引用，也允许在 canonical config file 中保留 fallback inline secret；更高层的安装与配置入口必须优先提供 env / secure-store path。对 public CLI first-run 而言，interactive credential capture 若发生，必须立即把 inline `apiKey` 写入 canonical config，并保持 `apiKey` / `apiKeyEnv` 互斥。
+配置层允许声明凭据引用，也允许在 canonical config file 中保留 fallback inline secret；更高层的安装与配置入口必须优先提供 env / secure-store path。对 public CLI first-run 而言，interactive credential capture 若发生，只允许把凭据用于当前 invocation 的内存执行上下文；后续持久化必须显式走 `apiKeyEnv` 或 secure-store 路径，不得自动把 inline `apiKey` 写入 canonical config。
 
 ## K-CFG-012 Default Value Governance
 

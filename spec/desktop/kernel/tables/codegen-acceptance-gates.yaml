@@ -8,8 +8,17 @@ gates:
   - gate: capability_tier
     requirement: t2 reject and t1 consent enforced
     source_rule: D-CODEGEN-060
+  - gate: deny_audit
+    requirement: rejected installs emit both governance log and audit evidence
+    source_rule: D-CODEGEN-060
   - gate: static_scan
     requirement: deny patterns block install
+    source_rule: D-CODEGEN-060
+  - gate: reload_leak
+    requirement: repeated reload does not leave duplicate registrations or leaked resources
+    source_rule: D-CODEGEN-060
+  - gate: scenario_coverage
+    requirement: at least three representative generation scenarios complete successfully
     source_rule: D-CODEGEN-060
   - gate: rollback
     requirement: failed install does not leave enabled state

@@ -191,6 +191,7 @@ function buildWaivers(waivers) {
     ...waiver,
     matcher: globToRegExp(String(waiver.pattern || '').trim()),
     checks: new Set((waiver.checks || []).map((value) => String(value).trim()).filter(Boolean)),
+    hasUntil: typeof waiver.until !== 'undefined' && String(waiver.until).trim().length > 0,
     untilDate: parseDateMaybe(waiver.until),
   }));
 }
@@ -206,6 +207,22 @@ function findWaiver(filePath, check, waivers) {
     return waiver;
   }
   return null;
+}
+
+function getWaiverDisposition(waiver) {
+  if (!waiver) {
+    return 'none';
+  }
+  if (!waiver.hasUntil) {
+    return 'active';
+  }
+  if (waiver.untilDate && waiver.untilDate.getTime() >= Date.now()) {
+    return 'active';
+  }
+  if (waiver.untilDate && waiver.untilDate.getTime() < Date.now()) {
+    return 'expired';
+  }
+  return 'none';
 }
 
 function compareRows(left, right) {
@@ -282,9 +299,9 @@ export function evaluateAiStructureBudget(options = {}) {
       rows.push(row);
       if (depthSeverity === 'warning') {
         warnings.push(row);
-      } else if (waiver?.untilDate && waiver.untilDate.getTime() >= Date.now()) {
+      } else if (getWaiverDisposition(waiver) === 'active') {
         waivedErrors.push(row);
-      } else if (waiver?.untilDate && waiver.untilDate.getTime() < Date.now()) {
+      } else if (getWaiverDisposition(waiver) === 'expired') {
         expiredWaivers.push(row);
       } else {
         errors.push(row);
@@ -306,9 +323,9 @@ export function evaluateAiStructureBudget(options = {}) {
       waiver,
     };
     rows.push(row);
-    if (waiver?.untilDate && waiver.untilDate.getTime() >= Date.now()) {
+    if (getWaiverDisposition(waiver) === 'active') {
       waivedErrors.push(row);
-    } else if (waiver?.untilDate && waiver.untilDate.getTime() < Date.now()) {
+    } else if (getWaiverDisposition(waiver) === 'expired') {
       expiredWaivers.push(row);
     } else {
       errors.push(row);

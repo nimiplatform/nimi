@@ -35,7 +35,7 @@ OAuth 流程通过 Tauri IPC 执行（参考 `D-IPC-006`）：
 
 ## D-SEC-004 — IPC 桥接安全
 
-- `hasTauriInvoke()` 检查 `window.__TAURI__` 存在性。
+- `hasTauriInvoke()` 检查 Tauri runtime presence（`__TAURI_INTERNALS__` / `__TAURI_IPC__` 或等价的显式 bridge 环境），不得要求 `window.__TAURI__` 全局暴露。
 - 非 Tauri 环境抛出明确错误而非静默失败。
 - 所有 IPC 调用通过统一入口 `invoke()` 执行，确保日志追踪覆盖。
 
@@ -90,9 +90,9 @@ AI provider 凭据（API key）的唯一托管者是 Runtime ConnectorService（
 
 ## D-SEC-010 — Web 端 Token 存储安全
 
-Web 环境 token 存储安全约束（参考 `D-AUTH-003`）：
+Web 环境 session 存储安全约束（参考 `D-AUTH-003`）：
 
-- localStorage 存储的 token 必须设置合理的过期时间。
+- localStorage 不得持久化 raw access token；浏览器持久化层只允许保存非敏感会话元数据并设置合理过期时间。
 - 敏感页面（economy、auth）需在操作前重新验证 token 有效性。
 - 禁止将 token 写入 cookie 以避免 CSRF 风险。
 - logout 操作必须清除所有 localStorage 中的认证数据。

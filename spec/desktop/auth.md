@@ -23,7 +23,7 @@ Desktop 环境通过 Tauri backend IPC 持久化 token。
 
 ### Auth (D-AUTH-003)
 
-Web 环境通过 localStorage 持久化 token。
+Web 环境只通过 localStorage 持久化非敏感会话元数据；raw access token 不落浏览器持久化存储。
 
 ### Auth (D-AUTH-004)
 

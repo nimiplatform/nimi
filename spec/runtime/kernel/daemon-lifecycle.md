@@ -68,6 +68,10 @@ gRPC 请求经过 6 层有序拦截器，unary 与 stream 分别注册：
 | 5 | authz | 是 | 是（仅 ExportAuditEvents） | 保护能力校验：通过 grant service 验证 token 有效性 |
 | 6 | audit | 是 | 是 | 审计记录：请求/响应写入审计日志，更新使用量指标 |
 
+说明：`StreamScenario` 的授权范围豁免由 `K-KEYSRC-004` 在请求评估链中单独定义，不归入本表的 stream authz 适用面；本表中 stream authz 拦截器仅对 `ExportAuditEvents` 生效。
+
+协议信封 metadata 的单字段值必须不超过 `4096` bytes。超限时 protocol interceptor 必须以 `PROTOCOL_ENVELOPE_INVALID` fail-close，避免在现有 gRPC/HTTP header 总预算（64 KiB）内被单个异常大字段挤占或污染日志链路。
+
 ## K-DAEMON-006 幂等性契约
 
 - **适用范围**：仅 unary RPC，流式 RPC 不做幂等性检查。

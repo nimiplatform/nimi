@@ -8,9 +8,9 @@ profiles:
       - GET /api/world/by-id/{worldId}/rules
       - POST /api/world/by-id/{worldId}/rules
       - GET /api/world/by-id/{worldId}/agents/{agentId}/rules
-      - GET /api/world/by-id/{worldId}
-      - GET /api/world/by-id/{worldId}/worldview
-      - GET /api/world/by-id/{worldId}/lorebooks
+      - GET /api/world/by-id/{id}
+      - GET /api/world/by-id/{id}/worldview
+      - GET /api/world/by-id/{id}/lorebooks
     prisma_models: [World, WorldRule, AgentRule, WorldRelease, Worldview, WorldLorebook]
     service_files:
       - nimi-backend/libs/domains/world/src/world-rule.service.ts

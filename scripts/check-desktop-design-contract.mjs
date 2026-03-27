@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
 
-const repoRoot = process.cwd();
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '..');
 const rendererRoot = path.join(repoRoot, 'apps/desktop/src/shell/renderer');
 const surfacesPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-surfaces.yaml');
 const sidebarsPath = path.join(repoRoot, 'spec/desktop/kernel/tables/renderer-design-sidebars.yaml');

@@ -25,7 +25,7 @@
 
 本文件是“AI Agent 安全调用接口”主题的薄域导引。  
 安全主张、授权语义、执行约束、审计字段的规范定义以 kernel Rule 为权威，本文件仅提供映射与阅读顺序。
-对外说明主文档见：`nimi/docs/architecture/ai-agent-security-interface.md`。
+对外说明主文档见：`docs/architecture/ai-agent-security-interface.md`。
 
 ## 2. 安全主张到 Rule ID 映射
 
@@ -43,8 +43,8 @@
 ## 3. 阅读路径
 
 1. 先读平台总契约：`kernel/ai-last-mile-contract.md`、`kernel/architecture-contract.md`、`kernel/protocol-contract.md`。
-2. 再读 Runtime 安全执行链：`spec/runtime/kernel/auth-service.md`、`grant-service.md`、`connector-contract.md`、`pagination-filtering.md`、`audit-contract.md`、`error-model.md`。
-3. 最后读 Desktop 沙盒边界：`spec/desktop/kernel/security-contract.md`、`hook-capability-contract.md`、`mod-governance-contract.md`、`bridge-ipc-contract.md`。
+2. 再读 Runtime 安全执行链：`spec/runtime/kernel/auth-service.md`、`spec/runtime/kernel/grant-service.md`、`spec/runtime/kernel/connector-contract.md`、`spec/runtime/kernel/pagination-filtering.md`、`spec/runtime/kernel/audit-contract.md`、`spec/runtime/kernel/error-model.md`。
+3. 最后读 Desktop 沙盒边界：`spec/desktop/kernel/security-contract.md`、`spec/desktop/kernel/hook-capability-contract.md`、`spec/desktop/kernel/mod-governance-contract.md`、`spec/desktop/kernel/bridge-ipc-contract.md`。
 
 ### 3.1 按角色阅读
 

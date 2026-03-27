@@ -117,6 +117,9 @@ Proto 枚举冻结约束：
 
 - `signature_key_id` 必须指向已注册的公钥（通过 `RegisterExternalPrincipal` 的 `signature_key_id` 关联）。
 - 签名算法限制：与 `K-AUTHN-003` 一致（RS256/ES256）。
+- proof JWT 必须包含 `iat`，并参与时序校验。
+- `nbf` 如存在，必须按 `K-AUTHN-005` 的 `±60s` skew 参与校验。
+- proof JWT 最大生命周期固定为 `24h`，即 `exp - iat <= 24h`；超限必须 fail-close。
 - `exp` 过期的 token 统一映射到 `UNAUTHENTICATED` + `AUTH_TOKEN_EXPIRED`。
 - `iss` 不匹配统一映射到 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
 - 不支持的 `proof_type` 返回 `INVALID_ARGUMENT` + `AUTH_UNSUPPORTED_PROOF_TYPE`。

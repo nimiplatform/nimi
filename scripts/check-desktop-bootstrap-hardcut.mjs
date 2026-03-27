@@ -1,4 +1,10 @@
+#!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '..');
 
 const checks = [
   {
@@ -31,11 +37,14 @@ const checks = [
 function runRipgrep(pattern, paths) {
   try {
     return execFileSync('rg', ['-n', pattern, ...paths], {
-      cwd: process.cwd(),
+      cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
   } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+      throw new Error('desktop bootstrap hardcut requires `rg` to be installed');
+    }
     if (typeof error.status === 'number' && error.status === 1) {
       return '';
     }

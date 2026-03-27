@@ -7,9 +7,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..');
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptDir, '..');
 const runtimeDir = path.join(repoRoot, 'runtime');
 
 const minAiStatementsCoverage = Number(process.env.NIMI_RUNTIME_MIN_AI_STATEMENTS_COVERAGE || '70');

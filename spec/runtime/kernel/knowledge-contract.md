@@ -60,6 +60,7 @@
 - 已存在同一 `app_id` + `subject_user_id` + `index_id` 且 `overwrite=false` 时，`BuildIndex` 必须返回 `ALREADY_EXISTS` + `KNOWLEDGE_INDEX_ALREADY_EXISTS`。
 - `overwrite=true` 时先删除旧索引再构建新索引。
 - 索引存储为 in-memory，runtime 重启后丢失。此为 Phase 2 有意的设计约束（见 K-KNOW-006 deferred decisions）。
+- in-memory Phase 1 实现必须对总活跃索引数设置硬上限，默认 `512` 个 index。达到上限后，新建索引必须以 `RESOURCE_EXHAUSTED` fail-close；已存在索引的 `overwrite=true` 不受该上限阻塞。
 
 ## K-KNOW-005a 消费契约状态
 

@@ -20,24 +20,24 @@ const SCAN_EXTENSIONS = new Set(['.md', '.css']);
 const SKIP_DIR_PREFIXES = ['docs/.vitepress/dist/', 'docs/.vitepress/cache/', 'docs/.vitepress/.temp/'];
 
 const BANNED_PATTERNS = [
-  { pattern: /@nimi\//g, label: 'legacy package scope "@nimi/*"' },
-  { pattern: /\bruntime-service\.md\b/g, label: 'legacy doc alias "runtime-service.md"' },
-  { pattern: /\bruntime-proto\.md\b/g, label: 'legacy doc alias "runtime-proto.md"' },
-  { pattern: /\bsdk-design\.md\b/g, label: 'legacy doc alias "sdk-design.md"' },
-  { pattern: /\bdesktop-demotion\.md\b/g, label: 'legacy doc alias "desktop-demotion.md"' },
-  { pattern: /\bplatform-protocol\.md\b/g, label: 'legacy doc alias "platform-protocol.md"' },
-  { pattern: /\barchitecture-overview\.md\b/g, label: 'legacy doc alias "architecture-overview.md"' },
-  { pattern: /\brealm-mapping\.md\b/g, label: 'legacy doc alias "realm-mapping.md"' },
-  { pattern: /\bmigration-cutover\.md\b/g, label: 'stale cutover runbook entry "migration-cutover.md"' },
-  { pattern: /NIMI_MODS_DIR/g, label: 'deprecated env alias "NIMI_MODS_DIR"' },
-  { pattern: /desktop\/mods\b(?!-)/g, label: 'legacy in-repo mods directory "desktop/mods"' },
-  { pattern: /\.\.\/\.\.\/nimi-mods/g, label: 'legacy relative mods path "../../nimi-mods"' },
-  { pattern: /nimi-public/g, label: 'legacy repository name "nimi-public"' },
-  { pattern: /docs\/refactory/g, label: 'legacy docs path "docs/refactory"' },
-  { pattern: /sync-from-realm\.sh/g, label: 'legacy sync script "sync-from-realm.sh"' },
-  { pattern: /\bnimi-dapp\b/g, label: 'legacy app name "nimi-dapp"' },
-  { pattern: /\blocal-default\b/g, label: 'legacy provider alias "local-default"' },
-  { pattern: /\bai\.modelPacks\b/g, label: 'legacy manifest field "ai.modelPacks"' },
+  { pattern: /@nimi\//, label: 'legacy package scope "@nimi/*"' },
+  { pattern: /\bruntime-service\.md\b/, label: 'legacy doc alias "runtime-service.md"' },
+  { pattern: /\bruntime-proto\.md\b/, label: 'legacy doc alias "runtime-proto.md"' },
+  { pattern: /\bsdk-design\.md\b/, label: 'legacy doc alias "sdk-design.md"' },
+  { pattern: /\bdesktop-demotion\.md\b/, label: 'legacy doc alias "desktop-demotion.md"' },
+  { pattern: /\bplatform-protocol\.md\b/, label: 'legacy doc alias "platform-protocol.md"' },
+  { pattern: /\barchitecture-overview\.md\b/, label: 'legacy doc alias "architecture-overview.md"' },
+  { pattern: /\brealm-mapping\.md\b/, label: 'legacy doc alias "realm-mapping.md"' },
+  { pattern: /\bmigration-cutover\.md\b/, label: 'stale cutover runbook entry "migration-cutover.md"' },
+  { pattern: /NIMI_MODS_DIR/, label: 'deprecated env alias "NIMI_MODS_DIR"' },
+  { pattern: /desktop\/mods\b(?!-)/, label: 'legacy in-repo mods directory "desktop/mods"' },
+  { pattern: /\.\.\/\.\.\/nimi-mods/, label: 'legacy relative mods path "../../nimi-mods"' },
+  { pattern: /nimi-public/, label: 'legacy repository name "nimi-public"' },
+  { pattern: /docs\/refactory/, label: 'legacy docs path "docs/refactory"' },
+  { pattern: /sync-from-realm\.sh/, label: 'legacy sync script "sync-from-realm.sh"' },
+  { pattern: /\bnimi-dapp\b/, label: 'legacy app name "nimi-dapp"' },
+  { pattern: /\blocal-default\b/, label: 'legacy provider alias "local-default"' },
+  { pattern: /\bai\.modelPacks\b/, label: 'legacy manifest field "ai.modelPacks"' },
 ];
 
 async function collectFiles(entry, output) {
@@ -103,7 +103,6 @@ async function main() {
         continue;
       }
       violations.push(`${relPath}: ${item.label}`);
-      item.pattern.lastIndex = 0;
     }
   }
 

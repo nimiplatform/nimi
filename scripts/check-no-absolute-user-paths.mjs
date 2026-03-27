@@ -23,7 +23,7 @@ const BANNED_PATTERNS = [
 
 function isTextCandidate(filePath) {
   const ext = path.extname(filePath).toLowerCase();
-  return ext === '.md' || ext === '.css';
+  return ext === '.md' || ext === '.css' || ext === '.yaml' || ext === '.yml';
 }
 
 async function walk(dir) {

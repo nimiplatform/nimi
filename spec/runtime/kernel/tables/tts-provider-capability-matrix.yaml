@@ -1,5 +1,5 @@
 version: 1
-# Voice capability columns map to K-VOICE-* workflow and discovery semantics; provider rows remain catalog facts, not a second voice contract.
+# Voice capability columns map to K-VOICE-* workflow and discovery semantics, especially K-VOICE-005 (ScenarioJob lifecycle), K-VOICE-009 (dual discovery channel), and K-VOICE-013 (discovery mode responsibility boundary); provider rows remain catalog facts, not a second voice contract.
 entries:
   - provider_id: aws_polly
     runtime_plane: remote

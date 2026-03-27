@@ -45,6 +45,8 @@ Phase 1 本地执行引擎固定为：
 - 重启策略：指数退避（2s base + jitter），最大重试 5 次，累计失败后标记 `UNHEALTHY`。
 - 二进制/运行时目录：`~/.nimi/engines/{engine}/{version}/...`。
 - 注册表：`~/.nimi/engines/registry.json`，必须原子写入。
+- stale pid 清理只能在 runtime 能证明该 pid 仍属于当前 supervised engine binary 时执行；缺少身份元数据或无法完成身份校验时，runtime 必须只清理跟踪文件，不得终止该进程。
+- supervised engine bootstrap 下载只允许 `https -> https` redirect；同 host redirect 允许，`github.com` release 资产仅允许跳到显式 GitHub release-chain host（`github.com`、`objects.githubusercontent.com`、`release-assets.githubusercontent.com`），其它 redirect 一律 fail-close。
 
 受管引擎职责：
 
@@ -66,6 +68,7 @@ Phase 1 本地执行引擎固定为：
 - `media`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
 - `speech`：`SUPERVISED` 允许默认 loopback 端口；`ATTACHED_ENDPOINT` 无默认端点。
 - `sidecar`：无默认端点。
+- `SUPERVISED` 的默认 loopback 端口是固定绑定；端口冲突必须显式失败，不得静默漂移到邻近端口，也不得在当前 contract 下偷偷切到动态端口模式。
 
 当安装或启动时 `endpoint` 为空：
 
@@ -129,6 +132,14 @@ Phase 1 本地执行引擎固定为：
 - `voice_workflow.tts_v2v` / `voice_workflow.tts_t2v` 必须验证 workflow driver 可用；缺失 `qwen3tts` 等必要 bundle 时必须 fail-close。
 
 `sidecar` 当前不进入标准 supervised 健康探测，attached endpoint 的可用性由实际 music 请求 fail-close。
+
+`llama` official image backend 名称当前固定只允许：
+
+- `llama-cpp`
+- `whisper-ggml`
+- `stablediffusion-ggml`
+
+runtime 不得把任意 backend 名称直接透传给 LocalAI CLI。
 
 ## K-LENG-008 配置来源优先级
 

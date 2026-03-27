@@ -12,7 +12,7 @@ Full unrestricted access for core platform code
 
 ## builtin
 
-Platform-bundled desktop mods shipped with the product and granted the builtin capability envelope
+Platform-bundled desktop mods shipped with the product; trust level is below core and above injected/sideload sources
 
 | Capability Pattern |
 |---|

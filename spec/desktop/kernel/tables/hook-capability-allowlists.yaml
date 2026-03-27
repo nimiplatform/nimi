@@ -59,7 +59,7 @@ source_types:
       - "audit.read.self"
       - "meta.read.self"
       - "meta.read.all"
-    description: Platform-bundled desktop mods shipped with the product and granted the builtin capability envelope
+    description: Platform-bundled desktop mods shipped with the product; trust level is below core and above injected/sideload sources
     source_rule: D-HOOK-008
 
   - source_type: injected

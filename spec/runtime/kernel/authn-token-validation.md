@@ -44,6 +44,20 @@ Realm JWT 最小必校验集合：
 
 - token 通过签名校验后仍需检查会话撤销状态（若会话域可用）。
 - 已撤销或已过期会话必须返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
+- Runtime 通过 `auth.jwt.revocationUrl` 配置的内省端点执行撤销检查；bearer JWT 验签成功后必须携带 `sid` 继续查询该端点。
+- `auth.jwt.revocationUrl` 与 `auth.jwt.issuer` / `auth.jwt.audience` / `auth.jwt.jwksUrl` 属于同一组 restart 配置，缺任一项时 bearer JWT 链路必须 fail-close。
+- 撤销查询 contract 固定为 `POST auth.jwt.revocationUrl`，JSON body 包含：
+  - `session_id`
+  - `subject_user_id`
+  - `issuer`
+  - `audience`
+  - `issued_at`
+  - `expires_at`
+- 内省响应 contract 固定为 `200 application/json`，字段为：
+  - `active: boolean`
+  - `revoked: boolean`
+  - `expires_at?: string`（RFC3339）
+- `revoked=true` 或 `active=false` 均视为撤销；网络错误、非 2xx、非法响应不得降级为 anonymous，必须返回 `UNAUTHENTICATED` + `AUTH_TOKEN_INVALID`。
 
 ## K-AUTHN-007 失败语义统一
 

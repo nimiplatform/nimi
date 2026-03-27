@@ -26,6 +26,7 @@
 
 - 必须 pin 已校验 IP 作为实际拨号目标。
 - TLS `ServerName` 与 HTTP `Host` 仍使用原始域名。
+- 当 DNS 返回多个已校验的 safe IP 时，transport 必须允许在这些 pinned IP 之间做连接级 failover；不得因为只固定第一个 safe IP 而把同一 hostname 的后续 safe 地址全部浪费掉。
 
 ## K-SEC-004 执行期强制校验
 

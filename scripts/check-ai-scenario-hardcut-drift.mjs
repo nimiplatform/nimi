@@ -122,6 +122,12 @@ function isAllowed(key, rel, line, lines, lineIndex) {
 }
 
 const files = [];
+for (const item of allowLineMatch) {
+  const abs = path.join(cwd, item.rel);
+  if (!fs.existsSync(abs)) {
+    failures.push(`allowLineMatch target is missing: ${item.rel}`);
+  }
+}
 for (const rel of targets) {
   const abs = path.join(cwd, rel);
   if (!fs.existsSync(abs)) {
