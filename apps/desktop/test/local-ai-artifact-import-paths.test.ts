@@ -22,15 +22,14 @@ type TauriInvokeCall = {
 test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker', async () => {
   const calls: TauriInvokeCall[] = [];
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__TAURI__;
+  const previousHook = globalRecord.__NIMI_TAURI_TEST__;
 
-  globalRecord.__TAURI__ = {
-    core: {
-      invoke: async (command: string, payload?: unknown) => {
-        calls.push({ command, payload });
-        return '/tmp/runtime-models/resolved/demo/manifest.json';
-      },
+  globalRecord.__NIMI_TAURI_TEST__ = {
+    invoke: async (command: string, payload?: unknown) => {
+      calls.push({ command, payload });
+      return '/tmp/runtime-models/resolved/demo/manifest.json';
     },
+    listen: async () => () => {},
   };
 
   try {
@@ -42,10 +41,10 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
       payload: {},
     }]);
   } finally {
-    if (typeof previousTauri === 'undefined') {
-      delete globalRecord.__TAURI__;
+    if (typeof previousHook === 'undefined') {
+      delete globalRecord.__NIMI_TAURI_TEST__;
     } else {
-      globalRecord.__TAURI__ = previousTauri;
+      globalRecord.__NIMI_TAURI_TEST__ = previousHook;
     }
   }
 });

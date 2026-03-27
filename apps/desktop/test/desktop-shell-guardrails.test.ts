@@ -8,13 +8,9 @@ import { openExternalUrl } from '../src/shell/renderer/bridge/runtime-bridge/ui'
 import { subscribeRuntimeModReloadResult } from '../src/shell/renderer/bridge/runtime-bridge/mod-local';
 
 type WindowLike = {
-  __TAURI__?: {
-    core?: {
-      invoke?: (command: string, payload?: unknown) => Promise<unknown> | unknown;
-    };
-    event?: {
-      listen?: (eventName: string, handler: (event: { payload: unknown }) => void) => (() => void) | Promise<() => void>;
-    };
+  __NIMI_TAURI_TEST__?: {
+    invoke?: (command: string, payload?: unknown) => Promise<unknown> | unknown;
+    listen?: (eventName: string, handler: (event: { payload: unknown }) => void) => (() => void) | Promise<() => void>;
   };
   open?: (url?: string | URL, target?: string, features?: string) => unknown;
   location?: {
@@ -101,14 +97,12 @@ test('subscribeRuntimeModReloadResult forwards parsed reload events through the 
   let handler: ((event: { payload: unknown }) => void) | null = null;
   let unsubscribed = false;
   const restoreWindow = installWindowMock({
-    __TAURI__: {
-      event: {
-        listen: (_eventName, nextHandler) => {
-          handler = nextHandler;
-          return () => {
-            unsubscribed = true;
-          };
-        },
+    __NIMI_TAURI_TEST__: {
+      listen: (_eventName, nextHandler) => {
+        handler = nextHandler;
+        return () => {
+          unsubscribed = true;
+        };
       },
     },
   });
@@ -149,12 +143,32 @@ test('subscribeRuntimeModReloadResult forwards parsed reload events through the 
 });
 
 test('desktop shell source guardrails keep particle cleanup and auth helpers centralized', () => {
+  const desktopTauriConfigSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-tauri/tauri.conf.json'),
+    'utf8',
+  );
   const authMenuSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/web-auth-menu.tsx'),
     'utf8',
   );
   const authAdapterSource = fs.readFileSync(
     path.join(import.meta.dirname, '../src/shell/renderer/features/auth/desktop-auth-adapter.ts'),
+    'utf8',
+  );
+  const bootstrapAuthSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-auth.ts'),
+    'utf8',
+  );
+  const gatewayServerSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-tauri/src/external_agent_gateway/server.rs'),
+    'utf8',
+  );
+  const sessionLoggingSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-tauri/src/main_parts/session_logging.rs'),
+    'utf8',
+  );
+  const systemResourcesSource = fs.readFileSync(
+    path.join(import.meta.dirname, '../src-tauri/src/main_parts/defaults_and_commands/system_resources.rs'),
     'utf8',
   );
   const particleSource = fs.readFileSync(
@@ -167,8 +181,16 @@ test('desktop shell source guardrails keep particle cleanup and auth helpers cen
   );
 
   assert.doesNotMatch(authMenuSource, /function toAuthUserRecord/);
+  assert.doesNotMatch(desktopTauriConfigSource, /"pubkey"\s*:\s*"dev-placeholder"/);
   assert.doesNotMatch(authAdapterSource, /as Promise</);
   assert.doesNotMatch(authAdapterSource, /发送验证码失败|验证码登录失败|2FA 验证失败|获取钱包签名挑战失败|钱包登录失败|OAuth 登录失败/);
+  assert.match(bootstrapAuthSource, /toAuthUserRecord\(user\)/);
+  assert.doesNotMatch(bootstrapAuthSource, /as Record<string, unknown>/);
+  assert.match(gatewayServerSource, /host\.eq_ignore_ascii_case\("localhost"\)/);
+  assert.match(sessionLoggingSource, /ns_window_ptr\.is_null\(\)/);
+  assert.match(systemResourcesSource, /static MACOS_CPU_COUNT: OnceLock<f64> = OnceLock::new\(\);/);
+  assert.match(systemResourcesSource, /MACOS_CPU_COUNT\.get_or_init/);
+  assert.doesNotMatch(systemResourcesSource, /collect_cpu_percent\(\)[\s\S]*read_command_output\("sysctl", &\["-n", "hw\.ncpu"\]\)/);
   assert.match(particleSource, /spatialBuckets/);
   assert.match(particleSource, /renderer\.forceContextLoss\(\)/);
   assert.match(turnInputSource, /from '\.\/emoji-data'/);

@@ -22,47 +22,46 @@ import {
 function installRuntimeStorageTauriMock(): () => void {
   const storage = new Map<string, string>();
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__TAURI__;
+  const previousHook = globalRecord.__NIMI_TAURI_TEST__;
 
-  globalRecord.__TAURI__ = {
-    core: {
-      invoke: async (command: string, payload?: unknown) => {
-        if (command === 'runtime_mod_storage_sqlite_query') {
-          const params = (payload as { payload?: { params?: unknown[] } })?.payload?.params || [];
-          const namespace = String(params[0] || '');
-          const key = String(params[1] || '');
-          const stored = storage.get(`${namespace}:${key}`);
-          return stored == null ? { rows: [] } : { rows: [{ value: stored }] };
+  globalRecord.__NIMI_TAURI_TEST__ = {
+    invoke: async (command: string, payload?: unknown) => {
+      if (command === 'runtime_mod_storage_sqlite_query') {
+        const params = (payload as { payload?: { params?: unknown[] } })?.payload?.params || [];
+        const namespace = String(params[0] || '');
+        const key = String(params[1] || '');
+        const stored = storage.get(`${namespace}:${key}`);
+        return stored == null ? { rows: [] } : { rows: [{ value: stored }] };
+      }
+
+      if (command === 'runtime_mod_storage_sqlite_execute') {
+        const sql = String((payload as { payload?: { sql?: string } })?.payload?.sql || '').toLowerCase();
+        const params = (payload as { payload?: { params?: unknown[] } })?.payload?.params || [];
+        const namespace = String(params[0] || '');
+        const key = String(params[1] || '');
+        if (sql.includes('create table if not exists mod_state_kv')) {
+          return { rowsAffected: 0, lastInsertRowid: 0 };
         }
-
-        if (command === 'runtime_mod_storage_sqlite_execute') {
-          const sql = String((payload as { payload?: { sql?: string } })?.payload?.sql || '').toLowerCase();
-          const params = (payload as { payload?: { params?: unknown[] } })?.payload?.params || [];
-          const namespace = String(params[0] || '');
-          const key = String(params[1] || '');
-          if (sql.includes('create table if not exists mod_state_kv')) {
-            return { rowsAffected: 0, lastInsertRowid: 0 };
-          }
-          if (sql.includes('insert into mod_state_kv')) {
-            storage.set(`${namespace}:${key}`, String(params[2] || ''));
-            return { rowsAffected: 1, lastInsertRowid: 0 };
-          }
-          if (sql.includes('delete from mod_state_kv')) {
-            storage.delete(`${namespace}:${key}`);
-            return { rowsAffected: 1, lastInsertRowid: 0 };
-          }
+        if (sql.includes('insert into mod_state_kv')) {
+          storage.set(`${namespace}:${key}`, String(params[2] || ''));
+          return { rowsAffected: 1, lastInsertRowid: 0 };
         }
+        if (sql.includes('delete from mod_state_kv')) {
+          storage.delete(`${namespace}:${key}`);
+          return { rowsAffected: 1, lastInsertRowid: 0 };
+        }
+      }
 
-        throw new Error(`UNEXPECTED_TAURI_COMMAND:${command}`);
-      },
+      throw new Error(`UNEXPECTED_TAURI_COMMAND:${command}`);
     },
+    listen: async () => () => {},
   };
 
   return () => {
-    if (typeof previousTauri === 'undefined') {
-      delete globalRecord.__TAURI__;
+    if (typeof previousHook === 'undefined') {
+      delete globalRecord.__NIMI_TAURI_TEST__;
     } else {
-      globalRecord.__TAURI__ = previousTauri;
+      globalRecord.__NIMI_TAURI_TEST__ = previousHook;
     }
   };
 }
