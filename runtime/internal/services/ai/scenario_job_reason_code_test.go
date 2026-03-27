@@ -70,7 +70,7 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 			nil,
 		)
 
-		_, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: jobID})
+		_, err := svc.CancelScenarioJob(scenarioJobContext("nimi.desktop"), &runtimev1.CancelScenarioJobRequest{JobId: jobID})
 		if err == nil {
 			t.Fatal("expected error canceling completed scenario job")
 		}

@@ -27,7 +27,10 @@ func ExecutePikaTask(
 	if baseURL == "" {
 		baseURL = "https://api.pika.art"
 	}
-	apiKey := strings.TrimSpace(cfg.APIKey)
+	apiKey, err := requireProviderAPIKey(cfg.APIKey)
+	if err != nil {
+		return nil, nil, "", err
+	}
 
 	if scenarioModal(req) != runtimev1.Modal_MODAL_VIDEO {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -68,7 +71,7 @@ func ExecutePikaTask(
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
-	providerJobID := ExtractTaskIDFromPayload(submitResp)
+	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterPikaTask, submitResp)
 	if providerJobID == "" {
 		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 		if len(artifactBytes) == 0 {

@@ -14,7 +14,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-const maxUploadedArtifactBytes = 32 << 20
+const (
+	maxUploadedArtifactBytes      = 32 << 20
+	maxUploadedArtifactChunkBytes = 4 << 20
+)
 
 func (s *Service) UploadArtifact(stream runtimev1.RuntimeAiService_UploadArtifactServer) error {
 	var (
@@ -52,6 +55,9 @@ func (s *Service) UploadArtifact(stream runtimev1.RuntimeAiService_UploadArtifac
 			chunk := part.Chunk
 			if chunk == nil || chunk.GetSequence() != expectedSeq || len(chunk.GetBytes()) == 0 {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_INVALID)
+			}
+			if len(chunk.GetBytes()) > maxUploadedArtifactChunkBytes {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE)
 			}
 			if len(payload)+len(chunk.GetBytes()) > maxUploadedArtifactBytes {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE)

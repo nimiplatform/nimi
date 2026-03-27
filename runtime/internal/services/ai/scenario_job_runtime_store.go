@@ -50,17 +50,19 @@ type scenarioIdempotencyBinding struct {
 }
 
 type scenarioJobStore struct {
-	mu          sync.RWMutex
-	jobs        map[string]*scenarioJobRecord
-	idempotency map[string]scenarioIdempotencyBinding
-	uploads     map[string]*uploadedArtifactRecord
+	mu           sync.RWMutex
+	jobs         map[string]*scenarioJobRecord
+	artifactJobs map[string]string
+	idempotency  map[string]scenarioIdempotencyBinding
+	uploads      map[string]*uploadedArtifactRecord
 }
 
 func newScenarioJobStore() *scenarioJobStore {
 	return &scenarioJobStore{
-		jobs:        make(map[string]*scenarioJobRecord),
-		idempotency: make(map[string]scenarioIdempotencyBinding),
-		uploads:     make(map[string]*uploadedArtifactRecord),
+		jobs:         make(map[string]*scenarioJobRecord),
+		artifactJobs: make(map[string]string),
+		idempotency:  make(map[string]scenarioIdempotencyBinding),
+		uploads:      make(map[string]*uploadedArtifactRecord),
 	}
 }
 
@@ -95,6 +97,7 @@ func (s *scenarioJobStore) create(job *runtimev1.ScenarioJob, cancel context.Can
 
 	s.mu.Lock()
 	s.jobs[id] = record
+	s.syncArtifactIndexLocked(id, record)
 	s.publishLocked(record, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_SUBMITTED)
 	s.pruneLocked(nowTime)
 	s.mu.Unlock()
@@ -174,6 +177,7 @@ func (s *scenarioJobStore) transition(
 	if status != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_UNSPECIFIED {
 		record.job.Status = status
 	}
+	s.syncArtifactIndexLocked(id, record)
 	nowTime := time.Now().UTC()
 	record.updatedAt = nowTime
 	record.job.UpdatedAt = timestamppb.New(nowTime)
@@ -239,6 +243,21 @@ func (s *scenarioJobStore) findArtifact(appID string, subjectUserID string, arti
 			return nil, "", false
 		}
 		return cloneScenarioArtifact(uploaded.artifact), strings.TrimSpace(uploaded.traceID), true
+	}
+	if jobID := strings.TrimSpace(s.artifactJobs[id]); jobID != "" {
+		record := s.jobs[jobID]
+		if record != nil && record.job != nil {
+			head := record.job.GetHead()
+			if wantAppID == "" || strings.TrimSpace(head.GetAppId()) == wantAppID {
+				if wantSubjectUserID == "" || strings.TrimSpace(head.GetSubjectUserId()) == wantSubjectUserID {
+					for _, artifact := range record.job.GetArtifacts() {
+						if strings.TrimSpace(artifact.GetArtifactId()) == id {
+							return cloneScenarioArtifact(artifact), record.job.GetTraceId(), true
+						}
+					}
+				}
+			}
+		}
 	}
 
 	for _, record := range s.jobs {
@@ -470,9 +489,35 @@ func (s *scenarioJobStore) deleteJobLocked(jobID string) {
 	if record == nil {
 		return
 	}
+	for artifactID, indexedJobID := range s.artifactJobs {
+		if indexedJobID == jobID {
+			delete(s.artifactJobs, artifactID)
+		}
+	}
 	for subID, ch := range record.subscribers {
 		delete(record.subscribers, subID)
 		close(ch)
+	}
+}
+
+func (s *scenarioJobStore) syncArtifactIndexLocked(jobID string, record *scenarioJobRecord) {
+	if jobID == "" {
+		return
+	}
+	for artifactID, indexedJobID := range s.artifactJobs {
+		if indexedJobID == jobID {
+			delete(s.artifactJobs, artifactID)
+		}
+	}
+	if record == nil || record.job == nil {
+		return
+	}
+	for _, artifact := range record.job.GetArtifacts() {
+		artifactID := strings.TrimSpace(artifact.GetArtifactId())
+		if artifactID == "" {
+			continue
+		}
+		s.artifactJobs[artifactID] = jobID
 	}
 }
 

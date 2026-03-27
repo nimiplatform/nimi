@@ -93,3 +93,41 @@ func TestScenarioJobStorePrunesExpiredTerminalState(t *testing.T) {
 		t.Fatalf("expected fresh job to remain")
 	}
 }
+
+func TestScenarioJobStoreFindArtifactUsesJobArtifactIndex(t *testing.T) {
+	store := newScenarioJobStore()
+	job := &runtimev1.ScenarioJob{
+		JobId:        "job-indexed",
+		Head:         &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		TraceId:      "trace-indexed",
+	}
+	if snapshot := store.create(job, nil); snapshot == nil {
+		t.Fatalf("expected create snapshot")
+	}
+	if _, ok := store.transition(
+		"job-indexed",
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
+		func(job *runtimev1.ScenarioJob) {
+			job.Artifacts = []*runtimev1.ScenarioArtifact{{
+				ArtifactId: "artifact-indexed",
+				MimeType:   "image/png",
+			}}
+		},
+	); !ok {
+		t.Fatalf("expected completed transition")
+	}
+
+	artifact, traceID, ok := store.findArtifact("app", "user", "artifact-indexed")
+	if !ok || artifact == nil {
+		t.Fatalf("expected indexed artifact lookup hit")
+	}
+	if traceID != "trace-indexed" {
+		t.Fatalf("unexpected trace id: %q", traceID)
+	}
+	if artifact.GetMimeType() != "image/png" {
+		t.Fatalf("unexpected artifact mime type: %q", artifact.GetMimeType())
+	}
+}

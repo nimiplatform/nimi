@@ -14,6 +14,45 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
+func scenarioJobContext(appID string) context.Context {
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
+}
+
+func TestInheritAsyncJobContextPreservesMetadata(t *testing.T) {
+	parent := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-trace-id", "trace-123",
+	))
+	parent = metadata.NewOutgoingContext(parent, metadata.Pairs(
+		"x-nimi-trace-id", "trace-123",
+		"x-nimi-participant-id", "nimi.desktop.test",
+	))
+
+	child := inheritAsyncJobContext(parent)
+
+	incoming, ok := metadata.FromIncomingContext(child)
+	if !ok {
+		t.Fatal("expected incoming metadata on child context")
+	}
+	if got := incoming.Get("x-nimi-trace-id"); len(got) != 1 || got[0] != "trace-123" {
+		t.Fatalf("incoming trace metadata mismatch: %v", got)
+	}
+	if got := incoming.Get("x-nimi-app-id"); len(got) != 1 || got[0] != "nimi.desktop" {
+		t.Fatalf("incoming app metadata mismatch: %v", got)
+	}
+
+	outgoing, ok := metadata.FromOutgoingContext(child)
+	if !ok {
+		t.Fatal("expected outgoing metadata on child context")
+	}
+	if got := outgoing.Get("x-nimi-trace-id"); len(got) != 1 || got[0] != "trace-123" {
+		t.Fatalf("outgoing trace metadata mismatch: %v", got)
+	}
+	if got := outgoing.Get("x-nimi-participant-id"); len(got) != 1 || got[0] != "nimi.desktop.test" {
+		t.Fatalf("outgoing participant metadata mismatch: %v", got)
+	}
+}
+
 func TestSubmitScenarioJobSpeechSynthesizeCompletes(t *testing.T) {
 	speechBytes := []byte("scenario-job-speech")
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +102,7 @@ func TestSubmitScenarioJobSpeechSynthesizeCompletes(t *testing.T) {
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("expected completed, got=%v reason=%v detail=%q", job.GetStatus(), job.GetReasonCode(), job.GetReasonDetail())
 	}
-	artifactsResp, err := svc.GetScenarioArtifacts(context.Background(), &runtimev1.GetScenarioArtifactsRequest{
+	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext("nimi.desktop"), &runtimev1.GetScenarioArtifactsRequest{
 		JobId: job.GetJobId(),
 	})
 	if err != nil {
@@ -158,7 +197,7 @@ func TestSubscribeScenarioJobEventsForMediaScenario(t *testing.T) {
 		t.Fatalf("submit scenario job: %v", err)
 	}
 
-	collector := &scenarioJobEventCollector{ctx: context.Background()}
+	collector := &scenarioJobEventCollector{ctx: scenarioJobContext("nimi.desktop")}
 	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{
 		JobId: submitResp.GetJob().GetJobId(),
 	}, collector); err != nil {
@@ -189,7 +228,7 @@ func waitScenarioJobTerminal(t *testing.T, svc *Service, jobID string, timeout t
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		resp, err := svc.GetScenarioJob(context.Background(), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+		resp, err := svc.GetScenarioJob(scenarioJobContext("nimi.desktop"), &runtimev1.GetScenarioJobRequest{JobId: jobID})
 		if err != nil {
 			t.Fatalf("get scenario job: %v", err)
 		}
@@ -202,7 +241,7 @@ func waitScenarioJobTerminal(t *testing.T, svc *Service, jobID string, timeout t
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	resp, err := svc.GetScenarioJob(context.Background(), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+	resp, err := svc.GetScenarioJob(scenarioJobContext("nimi.desktop"), &runtimev1.GetScenarioJobRequest{JobId: jobID})
 	if err != nil {
 		t.Fatalf("get scenario job: %v", err)
 	}

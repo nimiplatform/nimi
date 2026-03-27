@@ -87,16 +87,30 @@ func ExecuteMiniMaxTask(
 			miniMaxPayload["audio_setting"] = audioSetting
 		}
 		openAIPayload := map[string]any{
-			"model":          modelResolved,
-			"input":          strings.TrimSpace(spec.GetText()),
-			"text":           strings.TrimSpace(spec.GetText()),
-			"voice":          strings.TrimSpace(scenarioVoiceRef(spec)),
-			"language":       strings.TrimSpace(spec.GetLanguage()),
-			"emotion":        strings.TrimSpace(spec.GetEmotion()),
-			"speed":          spec.GetSpeed(),
-			"pitch":          spec.GetPitch(),
-			"volume":         spec.GetVolume(),
-			"sample_rate_hz": spec.GetSampleRateHz(),
+			"model": modelResolved,
+			"input": strings.TrimSpace(spec.GetText()),
+			"text":  strings.TrimSpace(spec.GetText()),
+		}
+		if voice := strings.TrimSpace(scenarioVoiceRef(spec)); voice != "" {
+			openAIPayload["voice"] = voice
+		}
+		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
+			openAIPayload["language"] = language
+		}
+		if emotion := strings.TrimSpace(spec.GetEmotion()); emotion != "" {
+			openAIPayload["emotion"] = emotion
+		}
+		if speed := spec.GetSpeed(); speed > 0 {
+			openAIPayload["speed"] = speed
+		}
+		if pitch := spec.GetPitch(); pitch != 0 {
+			openAIPayload["pitch"] = pitch
+		}
+		if volume := spec.GetVolume(); volume > 0 {
+			openAIPayload["volume"] = volume
+		}
+		if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
+			openAIPayload["sample_rate_hz"] = sampleRate
 		}
 		if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
 			openAIPayload["audio_format"] = audioFormat
@@ -106,7 +120,8 @@ func ExecuteMiniMaxTask(
 			openAIPayload["extensions"] = scenarioExtensions
 		}
 		paths := resolveMiniMaxSpeechPaths(scenarioExtensions)
-		var lastErr error
+		var firstNotFoundErr error
+		var firstOtherErr error
 		for _, endpointPath := range paths {
 			payload := openAIPayload
 			if isMiniMaxNativeTTSPath(endpointPath) {
@@ -115,14 +130,18 @@ func ExecuteMiniMaxTask(
 			body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpointPath), apiKey, payload, nil)
 			if err != nil {
 				if status.Code(err) == codes.NotFound {
-					lastErr = err
+					if firstNotFoundErr == nil {
+						firstNotFoundErr = err
+					}
 					continue
 				}
 				return nil, nil, "", err
 			}
 			artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(body)
 			if len(artifactBytes) == 0 {
-				lastErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+				if firstOtherErr == nil {
+					firstOtherErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+				}
 				continue
 			}
 			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
@@ -140,11 +159,11 @@ func ExecuteMiniMaxTask(
 			ApplySpeechSpecMetadata(artifact, spec)
 			return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
 		}
-		if lastErr != nil {
-			if status.Code(lastErr) == codes.NotFound {
-				return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-			}
-			return nil, nil, "", lastErr
+		if firstOtherErr != nil {
+			return nil, nil, "", firstOtherErr
+		}
+		if firstNotFoundErr != nil {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 		}
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.Modal_MODAL_STT:
@@ -283,6 +302,10 @@ func ExecuteMiniMaxTask(
 			ValueAsString(MapField(pollResp["result"], "status")),
 		)))
 		if isMiniMaxTaskPendingStatus(statusText) {
+			if providerPollRetryLimitReached(retryCount) {
+				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+				return nil, nil, providerJobID, providerPollTimeoutError()
+			}
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 			time.Sleep(500 * time.Millisecond)
 			continue

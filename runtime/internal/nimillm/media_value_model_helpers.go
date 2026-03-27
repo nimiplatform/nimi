@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+const (
+	maxInt32Value = int64(^uint32(0) >> 1)
+	minInt32Value = -maxInt32Value - 1
+)
+
 // ---------------------------------------------------------------------------
 // Value conversion
 // ---------------------------------------------------------------------------
@@ -80,7 +85,11 @@ func ValueAsPositiveInt32(value any) int32 {
 }
 
 func ValueAsInt32(value any) int32 {
-	return ValueAsPositiveInt32(value)
+	parsed := ValueAsInt64(value)
+	if parsed < minInt32Value || parsed > maxInt32Value {
+		return 0
+	}
+	return int32(parsed)
 }
 
 // MapField returns the value of a key from a map[string]any, or nil if the

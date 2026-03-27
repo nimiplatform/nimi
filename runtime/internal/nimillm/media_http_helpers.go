@@ -1,9 +1,11 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -27,25 +29,27 @@ type JSONOrBinaryBody struct {
 
 const maxJSONOrBinaryResponseBytes = 32 << 20
 
-// DoJSONOrBinaryRequest performs an HTTP request with a JSON body and returns
-// the response parsed as either JSON (extracting text/audio fields) or raw
-// binary bytes.
-func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string, body any, headers map[string]string) (*JSONOrBinaryBody, error) {
-	requestBody, err := json.Marshal(body)
-	if err != nil {
-		return nil, MapProviderRequestError(err)
+func requireProviderAPIKey(raw string) (string, error) {
+	apiKey := strings.TrimSpace(raw)
+	if apiKey == "" {
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
 	}
-	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, strings.NewReader(string(requestBody)))
-	if err != nil {
-		return nil, err
+	return apiKey, nil
+}
+
+func allowProviderRequestHeader(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "", "authorization", "proxy-authorization", "host", "cookie", "set-cookie", "content-length", "transfer-encoding", "connection":
+		return false
+	default:
+		return true
 	}
-	request.Header.Set("Content-Type", "application/json")
-	if strings.TrimSpace(apiKey) != "" {
-		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
-	}
+}
+
+func applyProviderRequestHeaders(request *http.Request, headers map[string]string) {
 	for key, value := range headers {
 		headerName := strings.TrimSpace(key)
-		if headerName == "" {
+		if !allowProviderRequestHeader(headerName) {
 			continue
 		}
 		headerValue := strings.TrimSpace(value)
@@ -54,11 +58,37 @@ func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string
 		}
 		request.Header.Set(headerName, headerValue)
 	}
+}
+
+// DoJSONOrBinaryRequest performs an HTTP request with a JSON body and returns
+// the response parsed as either JSON (extracting text/audio fields) or raw
+// binary bytes.
+func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string, body any, headers map[string]string) (*JSONOrBinaryBody, error) {
+	requestBody, err := marshalJSONRequestBody(body)
+	if err != nil {
+		return nil, err
+	}
+	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, bytes.NewReader(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	applyProviderRequestHeaders(request, headers)
+	if trimmedAPIKey := strings.TrimSpace(apiKey); trimmedAPIKey != "" {
+		request.Header.Set("Authorization", "Bearer "+trimmedAPIKey)
+	}
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, MapProviderRequestError(err)
 	}
 	defer response.Body.Close()
+	return decodeJSONOrBinaryResponse(response)
+}
+
+func decodeJSONOrBinaryResponse(response *http.Response) (*JSONOrBinaryBody, error) {
+	if response == nil {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var payload map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&payload)
@@ -99,6 +129,17 @@ func DoJSONOrBinaryRequest(ctx context.Context, method, targetURL, apiKey string
 	return &JSONOrBinaryBody{Bytes: raw, MIME: contentType}, nil
 }
 
+func marshalJSONRequestBody(body any) ([]byte, error) {
+	if body == nil {
+		return nil, nil
+	}
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return nil, MapProviderRequestError(err)
+	}
+	return raw, nil
+}
+
 func readLimitedResponseBody(reader io.Reader, limit int64) ([]byte, error) {
 	if limit <= 0 {
 		return io.ReadAll(reader)
@@ -118,11 +159,11 @@ func readLimitedResponseBody(reader io.Reader, limit int64) ([]byte, error) {
 func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body any, target *map[string]any) error {
 	var requestBody io.Reader
 	if body != nil {
-		raw, err := json.Marshal(body)
+		raw, err := marshalJSONRequestBody(body)
 		if err != nil {
-			return MapProviderRequestError(err)
+			return err
 		}
-		requestBody = strings.NewReader(string(raw))
+		requestBody = bytes.NewReader(raw)
 	}
 	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, requestBody)
 	if err != nil {
@@ -132,8 +173,8 @@ func DoJSONRequest(ctx context.Context, method, targetURL, apiKey string, body a
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
-	if strings.TrimSpace(apiKey) != "" {
-		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
+	if trimmedAPIKey := strings.TrimSpace(apiKey); trimmedAPIKey != "" {
+		request.Header.Set("Authorization", "Bearer "+trimmedAPIKey)
 	}
 	response, err := client.Do(request)
 	if err != nil {
@@ -180,11 +221,11 @@ func DoJSONRequestWithHeadersAndTimeout(
 ) error {
 	var requestBody io.Reader
 	if body != nil {
-		raw, err := json.Marshal(body)
+		raw, err := marshalJSONRequestBody(body)
 		if err != nil {
-			return MapProviderRequestError(err)
+			return err
 		}
-		requestBody = strings.NewReader(string(raw))
+		requestBody = bytes.NewReader(raw)
 	}
 	client, request, err := newSecuredHTTPRequest(ctx, method, targetURL, requestBody)
 	if err != nil {
@@ -197,19 +238,9 @@ func DoJSONRequestWithHeadersAndTimeout(
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
-	if strings.TrimSpace(apiKey) != "" {
-		request.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
-	}
-	for key, value := range headers {
-		headerName := strings.TrimSpace(key)
-		if headerName == "" {
-			continue
-		}
-		headerValue := strings.TrimSpace(value)
-		if headerValue == "" {
-			continue
-		}
-		request.Header.Set(headerName, headerValue)
+	applyProviderRequestHeaders(request, headers)
+	if trimmedAPIKey := strings.TrimSpace(apiKey); trimmedAPIKey != "" {
+		request.Header.Set("Authorization", "Bearer "+trimmedAPIKey)
 	}
 	response, err := client.Do(request)
 	if err != nil {
@@ -228,6 +259,85 @@ func DoJSONRequestWithHeadersAndTimeout(
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return nil
+}
+
+func doJSONRequestWithBackendAndHeaders(
+	ctx context.Context,
+	backend *Backend,
+	method string,
+	targetURL string,
+	body any,
+	target *map[string]any,
+	headers map[string]string,
+) error {
+	if backend == nil {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+	}
+	requestBody, err := marshalJSONRequestBody(body)
+	if err != nil {
+		return err
+	}
+	request, err := backend.newRequest(ctx, method, targetURL, bytes.NewReader(requestBody))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Accept", "application/json")
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	applyProviderRequestHeaders(request, headers)
+	if backend.apiKey != "" {
+		request.Header.Set("Authorization", "Bearer "+backend.apiKey)
+	}
+	response, err := backend.do(request)
+	if err != nil {
+		return MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		var payload map[string]any
+		_ = json.NewDecoder(response.Body).Decode(&payload)
+		return MapProviderHTTPError(response.StatusCode, payload)
+	}
+	if target == nil {
+		return nil
+	}
+	if err := json.NewDecoder(response.Body).Decode(target); err != nil {
+		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	return nil
+}
+
+func doJSONOrBinaryRequestWithBackend(
+	ctx context.Context,
+	backend *Backend,
+	method string,
+	targetURL string,
+	body any,
+	headers map[string]string,
+) (*JSONOrBinaryBody, error) {
+	if backend == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
+	}
+	requestBody, err := marshalJSONRequestBody(body)
+	if err != nil {
+		return nil, err
+	}
+	request, err := backend.newRequest(ctx, method, targetURL, bytes.NewReader(requestBody))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	applyProviderRequestHeaders(request, headers)
+	if backend.apiKey != "" {
+		request.Header.Set("Authorization", "Bearer "+backend.apiKey)
+	}
+	response, err := backend.do(request)
+	if err != nil {
+		return nil, MapProviderRequestError(err)
+	}
+	defer response.Body.Close()
+	return decodeJSONOrBinaryResponse(response)
 }
 
 // JoinURL joins a base URL with a suffix path. If the suffix is already an

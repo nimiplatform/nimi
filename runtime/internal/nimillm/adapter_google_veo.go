@@ -27,7 +27,10 @@ func ExecuteGoogleVeoOperation(
 	if baseURL == "" {
 		baseURL = "https://generativelanguage.googleapis.com"
 	}
-	apiKey := strings.TrimSpace(cfg.APIKey)
+	apiKey, err := requireProviderAPIKey(cfg.APIKey)
+	if err != nil {
+		return nil, nil, "", err
+	}
 
 	if scenarioModal(req) != runtimev1.Modal_MODAL_VIDEO {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -80,10 +83,7 @@ func ExecuteGoogleVeoOperation(
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
-	providerJobID := strings.TrimSpace(FirstNonEmpty(
-		ValueAsString(submitResp["name"]),
-		ExtractTaskIDFromPayload(submitResp),
-	))
+	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterGoogleVeoOperation, submitResp)
 	if providerJobID == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

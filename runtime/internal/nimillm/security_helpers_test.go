@@ -7,12 +7,13 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-func TestResolveVoiceWorkflowBaseURLRejectsForeignOverride(t *testing.T) {
+func TestResolveVoiceWorkflowBaseURLRejectsForeignAndPathOverride(t *testing.T) {
 	cfg := MediaAdapterConfig{BaseURL: "https://api.example.com/v1"}
 
 	got := resolveVoiceWorkflowBaseURL("elevenlabs", cfg, map[string]any{
@@ -25,8 +26,15 @@ func TestResolveVoiceWorkflowBaseURLRejectsForeignOverride(t *testing.T) {
 	got = resolveVoiceWorkflowBaseURL("elevenlabs", cfg, map[string]any{
 		"base_url": "https://api.example.com/custom",
 	})
-	if got != "https://api.example.com/custom" {
-		t.Fatalf("same-origin override should be allowed, got %q", got)
+	if got != "https://api.example.com/v1" {
+		t.Fatalf("same-origin path override should fall back to config base URL, got %q", got)
+	}
+
+	got = resolveVoiceWorkflowBaseURL("elevenlabs", cfg, map[string]any{
+		"base_url": "https://api.example.com/v1/",
+	})
+	if got != "https://api.example.com/v1" {
+		t.Fatalf("same base URL should still be allowed, got %q", got)
 	}
 }
 
@@ -51,6 +59,15 @@ func TestVoiceWorkflowHeadersAllowOnlySafeCustomHeaders(t *testing.T) {
 	}
 	if got := headers["x-api-key"]; got != "secret" {
 		t.Fatalf("api key header mismatch: %#v", headers)
+	}
+}
+
+func TestVoiceWorkflowHeadersRejectUnsafeAPIKeyHeaderOverride(t *testing.T) {
+	headers := voiceWorkflowHeaders("elevenlabs", "secret", map[string]any{
+		"api_key_header": "Authorization",
+	})
+	if _, exists := headers["Authorization"]; exists {
+		t.Fatalf("unsafe api key header should be rejected: %#v", headers)
 	}
 }
 
@@ -115,6 +132,29 @@ func TestDoJSONOrBinaryRequestRejectsOversizedBody(t *testing.T) {
 	}
 }
 
+func TestApplyProviderRequestHeadersRejectsSensitiveOverrides(t *testing.T) {
+	request, err := http.NewRequest(http.MethodPost, "https://example.com", nil)
+	if err != nil {
+		t.Fatalf("NewRequest: %v", err)
+	}
+	applyProviderRequestHeaders(request, map[string]string{
+		"Authorization": "Bearer injected",
+		"Host":          "evil.example.com",
+		"X-Trace-Id":    "trace-1",
+	})
+	request.Header.Set("Authorization", "Bearer real-key")
+
+	if got := request.Header.Get("Authorization"); got != "Bearer real-key" {
+		t.Fatalf("unexpected Authorization header: %q", got)
+	}
+	if got := request.Header.Get("X-Trace-Id"); got != "trace-1" {
+		t.Fatalf("unexpected X-Trace-Id header: %q", got)
+	}
+	if got := request.Header.Get("Host"); got != "" {
+		t.Fatalf("host header should be filtered, got %q", got)
+	}
+}
+
 func TestDecodeBase64ArtifactPayloadSupportsRawAndURLSafeVariants(t *testing.T) {
 	payload := []byte("hello-audio")
 	for _, encoded := range []string{
@@ -167,12 +207,79 @@ func TestFetchAudioFromURIRejectsOversizedResponse(t *testing.T) {
 	}
 }
 
+func TestFetchAudioFromURIRejectsNonHTTPSchemes(t *testing.T) {
+	_, _, err := FetchAudioFromURI(context.Background(), "ftp://example.com/audio.wav")
+	if err == nil {
+		t.Fatal("expected invalid scheme to fail")
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
+	}
+}
+
 func TestIsAsyncTaskPendingStatusUsesNormalizedStatus(t *testing.T) {
 	if !IsAsyncTaskPendingStatus(ResolveAsyncTaskStatus(map[string]any{"status": " Pending "})) {
 		t.Fatal("normalized pending status should match")
 	}
 	if IsAsyncTaskPendingStatus(" Pending ") {
 		t.Fatal("unnormalized status should not be re-normalized here")
+	}
+	if IsAsyncTaskPendingStatus("") {
+		t.Fatal("empty status should not be treated as pending")
+	}
+}
+
+func TestExtractTaskIDFromAdapterPayloadUsesAdapterSpecificPaths(t *testing.T) {
+	testCases := []struct {
+		name    string
+		adapter string
+		payload map[string]any
+		want    string
+	}{
+		{
+			name:    "dashscope async task uses output task id",
+			adapter: AdapterAlibabaNative,
+			payload: map[string]any{"output": map[string]any{"task_id": "dash-1"}, "id": "wrong"},
+			want:    "dash-1",
+		},
+		{
+			name:    "google veo uses operation name",
+			adapter: AdapterGoogleVeoOperation,
+			payload: map[string]any{"name": "operations/veo-1", "task_id": "wrong"},
+			want:    "operations/veo-1",
+		},
+		{
+			name:    "runway uses top level id only",
+			adapter: AdapterRunwayTask,
+			payload: map[string]any{"id": "runway-1", "output": map[string]any{"task_id": "wrong"}},
+			want:    "runway-1",
+		},
+		{
+			name:    "bytedance uses data task id",
+			adapter: AdapterBytedanceARKTask,
+			payload: map[string]any{"data": map[string]any{"task_id": "ark-1"}, "id": "wrong"},
+			want:    "ark-1",
+		},
+		{
+			name:    "elevenlabs voice uses job id",
+			adapter: "voice:elevenlabs",
+			payload: map[string]any{"job_id": "el-1", "output": map[string]any{"task_id": "wrong"}},
+			want:    "el-1",
+		},
+		{
+			name:    "unknown adapter does not guess",
+			adapter: "unknown",
+			payload: map[string]any{"task_id": "wrong"},
+			want:    "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ExtractTaskIDFromAdapterPayload(tc.adapter, tc.payload); got != tc.want {
+				t.Fatalf("ExtractTaskIDFromAdapterPayload(%q) = %q, want %q", tc.adapter, got, tc.want)
+			}
+		})
 	}
 }
 
@@ -181,7 +288,10 @@ func TestValueAsPositiveInt32RejectsNegativeValues(t *testing.T) {
 		t.Fatalf("negative values should clamp to 0, got %d", got)
 	}
 	if got := ValueAsInt32("12"); got != 12 {
-		t.Fatalf("ValueAsInt32 should delegate to positive conversion, got %d", got)
+		t.Fatalf("ValueAsInt32 should parse full int32 values, got %d", got)
+	}
+	if got := ValueAsInt32(-5); got != -5 {
+		t.Fatalf("ValueAsInt32 should preserve negative values in range, got %d", got)
 	}
 }
 
@@ -209,6 +319,29 @@ func TestExecuteBytedanceOpenSpeechRejectsOversizedInlineAudio(t *testing.T) {
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
 		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
+	}
+}
+
+func TestResolveBytedanceOpenSpeechWSReadTimeoutClampsToMaximum(t *testing.T) {
+	got := resolveBytedanceOpenSpeechWSReadTimeout(map[string]any{
+		"ws_read_timeout_ms": int64((90 * time.Second) / time.Millisecond),
+	})
+	if got != bytedanceOpenSpeechMaxWSReadTimeout {
+		t.Fatalf("expected clamp to %v, got %v", bytedanceOpenSpeechMaxWSReadTimeout, got)
+	}
+}
+
+func TestExtractSpeechArtifactFromResponseBodyRejectsTextOnlyJSON(t *testing.T) {
+	artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(&JSONOrBinaryBody{
+		Bytes: []byte(`{"text":"not-audio"}`),
+		Text:  "not-audio",
+		MIME:  "application/json",
+	})
+	if len(artifactBytes) != 0 {
+		t.Fatalf("expected no artifact bytes, got %q", string(artifactBytes))
+	}
+	if mimeType != "" {
+		t.Fatalf("expected empty mime type when response is text only, got %q", mimeType)
 	}
 }
 

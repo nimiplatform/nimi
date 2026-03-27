@@ -100,6 +100,11 @@ func TestValidateVoiceWorkflowExtensionPayloadRejectsInvalidStructures(t *testin
 	}); err == nil {
 		t.Fatalf("expected invalid header rejection")
 	}
+	if _, err := validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
+		"headers": map[string]any{"X-Test": "ok\r\nInjected: bad"},
+	}); err == nil {
+		t.Fatalf("expected CRLF header rejection")
+	}
 
 	_, err := validateVoiceWorkflowExtensionPayload("stepfun", runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CLONE, map[string]any{
 		"endpoint": "https://legacy.example.com",

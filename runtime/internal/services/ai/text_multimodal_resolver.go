@@ -2,7 +2,6 @@ package ai
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -163,20 +162,26 @@ func (s *Service) resolveTextGenerateArtifactPart(
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
 		return &runtimev1.ChatContentPart{
 			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-			ImageUrl: &runtimev1.ChatContentImageURL{
-				Url:    resolvedPath,
-				Detail: "auto",
+			Content: &runtimev1.ChatContentPart_ImageUrl{
+				ImageUrl: &runtimev1.ChatContentImageURL{
+					Url:    resolvedPath,
+					Detail: "auto",
+				},
 			},
 		}, cleanup, nil
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL:
 		return &runtimev1.ChatContentPart{
-			Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
-			VideoUrl: resolvedPath,
+			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
+			Content: &runtimev1.ChatContentPart_VideoUrl{
+				VideoUrl: resolvedPath,
+			},
 		}, cleanup, nil
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL:
 		return &runtimev1.ChatContentPart{
-			Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
-			AudioUrl: resolvedPath,
+			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
+			Content: &runtimev1.ChatContentPart_AudioUrl{
+				AudioUrl: resolvedPath,
+			},
 		}, cleanup, nil
 	default:
 		if cleanup != nil {
@@ -370,17 +375,4 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
-}
-
-func describeTextGenerateArtifactRef(ref *runtimev1.ChatContentArtifactRef) string {
-	if ref == nil {
-		return "artifact_ref"
-	}
-	if value := strings.TrimSpace(ref.GetArtifactId()); value != "" {
-		return fmt.Sprintf("artifact_id=%s", value)
-	}
-	if value := strings.TrimSpace(ref.GetLocalArtifactId()); value != "" {
-		return fmt.Sprintf("local_artifact_id=%s", value)
-	}
-	return "artifact_ref"
 }

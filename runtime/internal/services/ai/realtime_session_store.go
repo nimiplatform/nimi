@@ -27,6 +27,8 @@ type realtimeSessionRecord struct {
 	events        []*runtimev1.RealtimeEvent
 }
 
+const maxRealtimeEventBacklog = 256
+
 type realtimeSessionStore struct {
 	mu       sync.RWMutex
 	sessions map[string]*realtimeSessionRecord
@@ -83,6 +85,10 @@ func (s *realtimeSessionStore) appendEvent(sessionID string, event *runtimev1.Re
 		cloned.Timestamp = timestamppb.New(time.Now().UTC())
 	}
 	record.events = append(record.events, cloned)
+	if overflow := len(record.events) - maxRealtimeEventBacklog; overflow > 0 {
+		copy(record.events, record.events[overflow:])
+		record.events = record.events[:len(record.events)-overflow]
+	}
 	if record.reader != nil {
 		select {
 		case record.reader <- cloneRealtimeEvent(cloned):
@@ -153,14 +159,21 @@ func (s *realtimeSessionStore) close(sessionID string) {
 	if record == nil {
 		return
 	}
+	record.sendMu.Lock()
 	record.mu.Lock()
 	record.closed = true
 	reader := record.reader
+	conn := record.conn
+	record.conn = nil
 	record.reader = nil
 	record.readerActive = false
 	record.mu.Unlock()
+	record.sendMu.Unlock()
 	if reader != nil {
 		close(reader)
+	}
+	if conn != nil {
+		_ = conn.Close()
 	}
 }
 

@@ -17,6 +17,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 )
 
+func realtimeContext(appID string) context.Context {
+	return metadata.NewIncomingContext(context.Background(), metadata.Pairs("x-nimi-app-id", appID))
+}
+
 func TestUploadArtifactStoresArtifact(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	stream := &mockUploadArtifactStream{
@@ -62,6 +66,25 @@ func TestUploadArtifactStoresArtifact(t *testing.T) {
 	}
 	if string(stored.GetBytes()) != "wave-bytes" {
 		t.Fatalf("unexpected stored bytes: %q", string(stored.GetBytes()))
+	}
+}
+
+func TestLooksLikeLocalFilePathOnlyMatchesLocalPrefixes(t *testing.T) {
+	cases := map[string]bool{
+		"/tmp/file.wav":         true,
+		"../tmp/file.wav":       true,
+		".\\tmp\\file.wav":      true,
+		"C:/tmp/file.wav":       true,
+		"~/tmp/file.wav":        true,
+		"folder/file.wav":       false,
+		"folder\\\\file.wav":    false,
+		"https://cdn.nimi.ai/a": false,
+		"artifact://voice/ref":  false,
+	}
+	for input, want := range cases {
+		if got := looksLikeLocalFilePath(input); got != want {
+			t.Fatalf("looksLikeLocalFilePath(%q) = %v, want %v", input, got, want)
+		}
 	}
 }
 
@@ -132,6 +155,40 @@ func TestUploadArtifactStoresNormalizedMimeType(t *testing.T) {
 	}
 }
 
+func TestUploadArtifactRejectsOversizedChunk(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	stream := &mockUploadArtifactStream{
+		ctx: context.Background(),
+		reqs: []*runtimev1.UploadArtifactRequest{
+			{
+				Payload: &runtimev1.UploadArtifactRequest_Metadata{
+					Metadata: &runtimev1.UploadArtifactMetadata{
+						AppId:         "nimi.desktop",
+						SubjectUserId: "user-001",
+						MimeType:      "audio/wav",
+					},
+				},
+			},
+			{
+				Payload: &runtimev1.UploadArtifactRequest_Chunk{
+					Chunk: &runtimev1.UploadArtifactChunk{
+						Sequence: 0,
+						Bytes:    make([]byte, maxUploadedArtifactChunkBytes+1),
+					},
+				},
+			},
+		},
+	}
+
+	err := svc.UploadArtifact(stream)
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("status code mismatch: got=%s want=%s err=%v", status.Code(err), codes.InvalidArgument, err)
+	}
+	if status.Convert(err).Message() != runtimev1.ReasonCode_AI_ARTIFACT_UPLOAD_TOO_LARGE.String() {
+		t.Fatalf("unexpected reason: %s", status.Convert(err).Message())
+	}
+}
+
 func TestRealtimeSessionLifecycle(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger, Config{
@@ -166,7 +223,7 @@ func TestRealtimeSessionLifecycle(t *testing.T) {
 		t.Fatalf("expected session.update envelope, got=%v", got)
 	}
 
-	appendResp, err := svc.AppendRealtimeInput(context.Background(), &runtimev1.AppendRealtimeInputRequest{
+	appendResp, err := svc.AppendRealtimeInput(realtimeContext("nimi.desktop"), &runtimev1.AppendRealtimeInputRequest{
 		SessionId: openResp.GetSessionId(),
 		Items: []*runtimev1.RealtimeInputItem{
 			{
@@ -174,10 +231,7 @@ func TestRealtimeSessionLifecycle(t *testing.T) {
 					Message: &runtimev1.ChatMessage{
 						Role: "user",
 						Parts: []*runtimev1.ChatContentPart{
-							{
-								Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT,
-								Text: "hello realtime",
-							},
+							textPart("hello realtime"),
 						},
 					},
 				},
@@ -222,7 +276,7 @@ func TestRealtimeSessionLifecycle(t *testing.T) {
 
 	waitForRealtimeEvents(t, svc, openResp.GetSessionId(), 4)
 
-	readCtx, cancelRead := context.WithCancel(context.Background())
+	readCtx, cancelRead := context.WithCancel(realtimeContext("nimi.desktop"))
 	stream := &mockRealtimeEventStream{
 		ctx: readCtx,
 		onSend: func(event *runtimev1.RealtimeEvent) {
@@ -244,7 +298,7 @@ func TestRealtimeSessionLifecycle(t *testing.T) {
 		t.Fatalf("expected opened event first, got=%v", stream.events[0].GetEventType())
 	}
 
-	if _, err := svc.CloseRealtimeSession(context.Background(), &runtimev1.CloseRealtimeSessionRequest{
+	if _, err := svc.CloseRealtimeSession(realtimeContext("nimi.desktop"), &runtimev1.CloseRealtimeSessionRequest{
 		SessionId: openResp.GetSessionId(),
 	}); err != nil {
 		t.Fatalf("close realtime session: %v", err)
@@ -254,12 +308,53 @@ func TestRealtimeSessionLifecycle(t *testing.T) {
 	}
 }
 
+func TestOpenRealtimeSessionFailsClosedWhenInitialSessionUpdateFails(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger, Config{
+		LocalProviders: map[string]nimillm.ProviderCredentials{
+			"llama": {BaseURL: "http://127.0.0.1:18080"},
+		},
+	})
+
+	fakeConn := newFakeRealtimeConn()
+	fakeConn.sendErr = io.ErrClosedPipe
+	restore := swapRealtimeDialer(func(context.Context, *nimillm.Backend, string) (realtimeConn, error) {
+		return fakeConn, nil
+	})
+	defer restore()
+
+	_, err := svc.OpenRealtimeSession(context.Background(), &runtimev1.OpenRealtimeSessionRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/realtime-model",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		SystemPrompt: "fail immediately",
+	})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("expected unavailable, got %v", err)
+	}
+	if !fakeConn.isClosed() {
+		t.Fatal("expected failed open to close upstream connection")
+	}
+	svc.realtimeSessions.mu.RLock()
+	sessionCount := len(svc.realtimeSessions.sessions)
+	svc.realtimeSessions.mu.RUnlock()
+	if sessionCount != 0 {
+		t.Fatalf("expected no dangling realtime sessions, got %d", sessionCount)
+	}
+}
+
 func TestReadRealtimeEventsRejectsSecondReader(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	record := svc.realtimeSessions.create(&realtimeSessionRecord{
-		sessionID: "rt_conflict",
-		traceID:   "trace-1",
-		events:    []*runtimev1.RealtimeEvent{},
+		sessionID:     "rt_conflict",
+		appID:         "nimi.desktop",
+		subjectUserID: "user-001",
+		traceID:       "trace-1",
+		events:        []*runtimev1.RealtimeEvent{},
 	})
 	if record == nil {
 		t.Fatal("expected session record")
@@ -270,7 +365,7 @@ func TestReadRealtimeEventsRejectsSecondReader(t *testing.T) {
 	}
 	defer svc.realtimeSessions.releaseReader("rt_conflict")
 
-	err := svc.ReadRealtimeEvents(&runtimev1.ReadRealtimeEventsRequest{SessionId: "rt_conflict"}, &mockRealtimeEventStream{ctx: context.Background()})
+	err := svc.ReadRealtimeEvents(&runtimev1.ReadRealtimeEventsRequest{SessionId: "rt_conflict"}, &mockRealtimeEventStream{ctx: realtimeContext("nimi.desktop")})
 	if status.Code(err) != codes.FailedPrecondition {
 		t.Fatalf("status code mismatch: got=%s want=%s err=%v", status.Code(err), codes.FailedPrecondition, err)
 	}
@@ -332,10 +427,11 @@ func (m *mockRealtimeEventStream) SendMsg(any) error              { return nil }
 func (m *mockRealtimeEventStream) RecvMsg(any) error              { return nil }
 
 type fakeRealtimeConn struct {
-	mu     sync.Mutex
-	sent   []map[string]any
-	recv   chan map[string]any
-	closed bool
+	mu      sync.Mutex
+	sent    []map[string]any
+	recv    chan map[string]any
+	closed  bool
+	sendErr error
 }
 
 func newFakeRealtimeConn() *fakeRealtimeConn {
@@ -346,6 +442,9 @@ func newFakeRealtimeConn() *fakeRealtimeConn {
 }
 
 func (f *fakeRealtimeConn) Send(v any) error {
+	if f.sendErr != nil {
+		return f.sendErr
+	}
 	payload, _ := v.(map[string]any)
 	f.mu.Lock()
 	f.sent = append(f.sent, payload)

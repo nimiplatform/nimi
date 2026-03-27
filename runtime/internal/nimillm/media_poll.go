@@ -13,6 +13,16 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+const maxProviderPollAttempts int32 = 120
+
+func providerPollRetryLimitReached(retryCount int32) bool {
+	return retryCount >= maxProviderPollAttempts
+}
+
+func providerPollTimeoutError() error {
+	return grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+}
+
 // PollProviderTaskForArtifact polls a provider's async task endpoint until
 // the task completes and returns the resulting artifact.
 func PollProviderTaskForArtifact(
@@ -45,6 +55,10 @@ func PollProviderTaskForArtifact(
 		}
 		statusText := ResolveAsyncTaskStatus(pollResp)
 		if IsAsyncTaskPendingStatus(statusText) {
+			if providerPollRetryLimitReached(retryCount) {
+				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+				return nil, nil, providerJobID, providerPollTimeoutError()
+			}
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 			time.Sleep(500 * time.Millisecond)
 			continue

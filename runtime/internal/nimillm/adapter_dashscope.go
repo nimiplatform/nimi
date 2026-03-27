@@ -46,6 +46,9 @@ func ExecuteAlibabaNative(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
+	if apiKey == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
+	}
 
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
@@ -59,7 +62,7 @@ func ExecuteAlibabaNative(
 		if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp, submitHeaders); err != nil {
 			return nil, nil, "", err
 		}
-		providerJobID := ExtractTaskIDFromPayload(submitResp)
+		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterAlibabaNative, submitResp)
 		if providerJobID == "" {
 			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 			if len(artifactBytes) == 0 {
@@ -142,7 +145,7 @@ func ExecuteAlibabaNative(
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
 			return nil, nil, "", err
 		}
-		providerJobID := ExtractTaskIDFromPayload(submitResp)
+		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterAlibabaNative, submitResp)
 		if providerJobID == "" {
 			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 			if len(artifactBytes) == 0 {

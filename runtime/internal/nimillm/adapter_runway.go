@@ -27,7 +27,10 @@ func ExecuteRunwayTask(
 	if baseURL == "" {
 		baseURL = "https://api.dev.runwayml.com"
 	}
-	apiKey := strings.TrimSpace(cfg.APIKey)
+	apiKey, err := requireProviderAPIKey(cfg.APIKey)
+	if err != nil {
+		return nil, nil, "", err
+	}
 
 	if scenarioModal(req) != runtimev1.Modal_MODAL_VIDEO {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -42,8 +45,8 @@ func ExecuteRunwayTask(
 		resolvedModel = "gen3a_turbo"
 	}
 	payload := map[string]any{
-		"model":          resolvedModel,
-		"promptText":     VideoPrompt(spec),
+		"model":      resolvedModel,
+		"promptText": VideoPrompt(spec),
 	}
 	if dur := VideoDurationSec(spec); dur > 0 {
 		payload["duration"] = dur
@@ -80,7 +83,7 @@ func ExecuteRunwayTask(
 	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp, headers); err != nil {
 		return nil, nil, "", err
 	}
-	providerJobID := ExtractTaskIDFromPayload(submitResp)
+	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterRunwayTask, submitResp)
 	if providerJobID == "" {
 		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 		if len(artifactBytes) == 0 {

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -134,7 +135,8 @@ func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.
 	}))
 	defer server.Close()
 
-	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)), Config{
+	var logs bytes.Buffer
+	svc := newTestService(slog.New(slog.NewTextHandler(&logs, nil)), Config{
 		CloudProviders: map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
 	})
 	stream := &mockScenarioEventStream{ctx: context.Background()}
@@ -173,6 +175,9 @@ func TestStreamScenarioSpeechSynthesizeProviderErrorSendsFailedEvent(t *testing.
 	}
 	if last.GetFailed().GetReasonCode() == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		t.Fatalf("failed event reason_code should be set")
+	}
+	if !strings.Contains(logs.String(), "scenario stream failed") {
+		t.Fatalf("expected failure cause to be logged, got logs=%q", logs.String())
 	}
 }
 

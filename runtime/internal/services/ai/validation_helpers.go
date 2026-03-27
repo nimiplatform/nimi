@@ -158,26 +158,6 @@ func composeInputText(systemPrompt string, input []*runtimev1.ChatMessage) strin
 	return strings.Join(textParts, "\n")
 }
 
-func splitText(text string, chunkSize int) []string {
-	if chunkSize <= 0 {
-		chunkSize = 1
-	}
-	runes := []rune(text)
-	if len(runes) == 0 {
-		return []string{""}
-	}
-
-	parts := make([]string, 0, (len(runes)+chunkSize-1)/chunkSize)
-	for start := 0; start < len(runes); start += chunkSize {
-		end := start + chunkSize
-		if end > len(runes) {
-			end = len(runes)
-		}
-		parts = append(parts, string(runes[start:end]))
-	}
-	return parts
-}
-
 func estimateUsage(input string, output string) *runtimev1.UsageStats {
 	inTokens := estimateTokens(input)
 	outTokens := estimateTokens(output)
@@ -201,38 +181,6 @@ func estimateTokens(text string) int64 {
 		tokens = 1
 	}
 	return int64(tokens)
-}
-
-func wordCount(input string) int {
-	fields := strings.Fields(strings.TrimSpace(input))
-	return len(fields)
-}
-
-func vowelCount(input string) int {
-	count := 0
-	for _, r := range strings.ToLower(input) {
-		switch r {
-		case 'a', 'e', 'i', 'o', 'u':
-			count++
-		}
-	}
-	return count
-}
-
-func consonantCount(input string) int {
-	count := 0
-	for _, r := range strings.ToLower(input) {
-		if r < 'a' || r > 'z' {
-			continue
-		}
-		switch r {
-		case 'a', 'e', 'i', 'o', 'u':
-			continue
-		default:
-			count++
-		}
-	}
-	return count
 }
 
 func isMultiModel(modelID string) bool {

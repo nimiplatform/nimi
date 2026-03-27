@@ -149,7 +149,7 @@ func ExecuteBytedanceARKTask(
 		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
 			return nil, nil, "", err
 		}
-		providerJobID := ExtractTaskIDFromPayload(submitResp)
+		providerJobID := ExtractTaskIDFromAdapterPayload(AdapterBytedanceARKTask, submitResp)
 		if providerJobID == "" {
 			artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 			if len(artifactBytes) == 0 {

@@ -32,52 +32,35 @@ func TestChatMessageHasRenderableContent(t *testing.T) {
 		{
 			name: "text_part",
 			message: &runtimev1.ChatMessage{
-				Parts: []*runtimev1.ChatContentPart{{
-					Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT,
-					Text: "render me",
-				}},
+				Parts: []*runtimev1.ChatContentPart{textPart("render me")},
 			},
 			want: true,
 		},
 		{
 			name: "image_part",
 			message: &runtimev1.ChatMessage{
-				Parts: []*runtimev1.ChatContentPart{{
-					Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-					ImageUrl: &runtimev1.ChatContentImageURL{
-						Url: "file:///tmp/image.png",
-					},
-				}},
+				Parts: []*runtimev1.ChatContentPart{imagePart("file:///tmp/image.png")},
 			},
 			want: true,
 		},
 		{
 			name: "video_part",
 			message: &runtimev1.ChatMessage{
-				Parts: []*runtimev1.ChatContentPart{{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
-					VideoUrl: "file:///tmp/video.mp4",
-				}},
+				Parts: []*runtimev1.ChatContentPart{videoPart("file:///tmp/video.mp4")},
 			},
 			want: true,
 		},
 		{
 			name: "audio_part",
 			message: &runtimev1.ChatMessage{
-				Parts: []*runtimev1.ChatContentPart{{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
-					AudioUrl: "file:///tmp/audio.wav",
-				}},
+				Parts: []*runtimev1.ChatContentPart{audioPart("file:///tmp/audio.wav")},
 			},
 			want: true,
 		},
 		{
 			name: "empty",
 			message: &runtimev1.ChatMessage{
-				Parts: []*runtimev1.ChatContentPart{{
-					Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT,
-					Text: "   ",
-				}},
+				Parts: []*runtimev1.ChatContentPart{textPart("   ")},
 			},
 			want: false,
 		},
@@ -129,10 +112,7 @@ func TestValidateResolvedTextGenerateInput(t *testing.T) {
 			name: "assistant_text_part",
 			input: []*runtimev1.ChatMessage{{
 				Role: "assistant",
-				Parts: []*runtimev1.ChatContentPart{{
-					Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT,
-					Text: "renderable",
-				}},
+				Parts: []*runtimev1.ChatContentPart{textPart("renderable")},
 			}},
 			wantErr: false,
 		},
@@ -443,15 +423,6 @@ func TestTextGenerateArtifactHelpers(t *testing.T) {
 	if got := firstNonEmpty("", "  ", "value", "fallback"); got != "value" {
 		t.Fatalf("firstNonEmpty() = %q", got)
 	}
-	if got := describeTextGenerateArtifactRef(&runtimev1.ChatContentArtifactRef{ArtifactId: "artifact-1"}); got != "artifact_id=artifact-1" {
-		t.Fatalf("describeTextGenerateArtifactRef(artifact) = %q", got)
-	}
-	if got := describeTextGenerateArtifactRef(&runtimev1.ChatContentArtifactRef{LocalArtifactId: "local-1"}); got != "local_artifact_id=local-1" {
-		t.Fatalf("describeTextGenerateArtifactRef(local) = %q", got)
-	}
-	if got := describeTextGenerateArtifactRef(nil); got != "artifact_ref" {
-		t.Fatalf("describeTextGenerateArtifactRef(nil) = %q", got)
-	}
 }
 
 func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T) {
@@ -481,12 +452,9 @@ func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T
 		&runtimev1.TextGenerateScenarioSpec{
 			Input: []*runtimev1.ChatMessage{{
 				Role: "user",
-				Parts: []*runtimev1.ChatContentPart{{
-					Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_ARTIFACT_REF,
-					ArtifactRef: &runtimev1.ChatContentArtifactRef{
+				Parts: []*runtimev1.ChatContentPart{artifactRefPart(&runtimev1.ChatContentArtifactRef{
 						ArtifactId: "artifact-audio",
-					},
-				}},
+					})},
 			}},
 		},
 	)
@@ -660,27 +628,4 @@ func TestVoiceWorkflowHelperFunctions(t *testing.T) {
 		t.Fatalf("resolveVoiceWorkflowPreferredName(nil) = %q", got)
 	}
 
-	if got := firstNonEmptyStringSlice(nil, []string{"  "}, []string{"", "alpha", "beta"}); len(got) != 3 || got[1] != "alpha" {
-		t.Fatalf("firstNonEmptyStringSlice() = %#v", got)
-	}
-	if got := firstNonEmptyStringSlice(nil, []string{" "}); got != nil {
-		t.Fatalf("firstNonEmptyStringSlice(empty) = %#v", got)
-	}
-
-	trimmedFromStrings := valueAsTrimmedStringSlice([]string{" alpha ", "", "beta"})
-	if len(trimmedFromStrings) != 2 || trimmedFromStrings[0] != "alpha" || trimmedFromStrings[1] != "beta" {
-		t.Fatalf("valueAsTrimmedStringSlice([]string) = %#v", trimmedFromStrings)
-	}
-
-	trimmedFromAny := valueAsTrimmedStringSlice([]any{" gamma ", 42, true, ""})
-	if len(trimmedFromAny) != 1 || trimmedFromAny[0] != "gamma" {
-		t.Fatalf("valueAsTrimmedStringSlice([]any) = %#v", trimmedFromAny)
-	}
-
-	if got := valueAsTrimmedStringSlice([]any{"", "   "}); got != nil {
-		t.Fatalf("valueAsTrimmedStringSlice(empty) = %#v", got)
-	}
-	if got := valueAsTrimmedStringSlice("not-a-slice"); got != nil {
-		t.Fatalf("valueAsTrimmedStringSlice(default) = %#v", got)
-	}
 }

@@ -7,13 +7,14 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -136,7 +137,7 @@ func (s *Service) submitVoiceWorkflowJob(
 	adapterCfg := s.resolveNativeAdapterConfig(workflowResolution.Provider, remoteTarget)
 
 	timeout := timeoutDuration(req.GetHead().GetTimeoutMs(), defaultSynthesizeTimeout)
-	jobCtx := context.Background()
+	jobCtx := inheritAsyncJobContext(ctx)
 	var cancel context.CancelFunc
 	if timeout > 0 {
 		jobCtx, cancel = context.WithTimeout(jobCtx, timeout)
@@ -329,13 +330,18 @@ func authorizeScenarioJob(ctx context.Context, job *runtimev1.ScenarioJob) error
 		return nil
 	}
 	head := job.GetHead()
-	if appID := incomingAppID(ctx); appID != "" && strings.TrimSpace(head.GetAppId()) != "" && strings.TrimSpace(head.GetAppId()) != appID {
+	expectedAppID := strings.TrimSpace(head.GetAppId())
+	expectedSubject := strings.TrimSpace(head.GetSubjectUserId())
+	if expectedAppID == "" || expectedSubject == "" {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
+	appID := incomingAppID(ctx)
+	if appID == "" || expectedAppID != appID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
-		expectedSubject := strings.TrimSpace(head.GetSubjectUserId())
 		actualSubject := strings.TrimSpace(identity.SubjectUserID)
-		if expectedSubject != "" && actualSubject != "" && expectedSubject != actualSubject {
+		if actualSubject == "" || expectedSubject != actualSubject {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		}
 	}
@@ -448,6 +454,20 @@ func (s *Service) submitScenarioAsyncJob(
 	return &runtimev1.SubmitScenarioJobResponse{
 		Job: snapshot,
 	}, nil
+}
+
+func inheritAsyncJobContext(parent context.Context) context.Context {
+	ctx := context.Background()
+	if parent == nil {
+		return ctx
+	}
+	if incoming, ok := metadata.FromIncomingContext(parent); ok {
+		ctx = metadata.NewIncomingContext(ctx, incoming.Copy())
+	}
+	if outgoing, ok := metadata.FromOutgoingContext(parent); ok {
+		ctx = metadata.NewOutgoingContext(ctx, outgoing.Copy())
+	}
+	return ctx
 }
 
 func (s *Service) executeScenarioAsyncJob(

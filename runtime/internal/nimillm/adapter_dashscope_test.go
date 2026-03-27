@@ -123,6 +123,27 @@ func TestExecuteAlibabaNativeTTSPreservesRequestedVoice(t *testing.T) {
 	}
 }
 
+func TestExecuteAlibabaNativeRejectsMissingAPIKey(t *testing.T) {
+	_, _, _, err := ExecuteAlibabaNative(
+		context.Background(),
+		MediaAdapterConfig{BaseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"},
+		nil,
+		"job-test",
+		&runtimev1.SubmitScenarioJobRequest{
+			ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+			Spec: &runtimev1.ScenarioSpec{
+				Spec: &runtimev1.ScenarioSpec_ImageGenerate{
+					ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cat"},
+				},
+			},
+		},
+		"qwen-image-2.0-pro",
+	)
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED {
+		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got err=%v reason=%v ok=%v", err, reason, ok)
+	}
+}
+
 func TestExecuteDashScopeTranscribeUsesCompatibleChatPath(t *testing.T) {
 	var captured map[string]any
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -469,9 +490,11 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForClone(t *testi
 		WorkflowModelID: "qwen-voice-enrollment",
 		ModelID:         "qwen3-tts-vc-2026-01-22",
 		Payload: map[string]any{
-			"target_model_id":     "qwen3-tts-vc-2026-01-22",
-			"reference_audio_uri": "https://example.com/reference.wav",
-			"preferred_name":      "nimi-clone-voice",
+			"target_model_id": "qwen3-tts-vc-2026-01-22",
+			"input": map[string]any{
+				"reference_audio_uri": "https://example.com/reference.wav",
+				"preferred_name":      "nimi-clone-voice",
+			},
 		},
 	}, MediaAdapterConfig{
 		BaseURL: server.URL + "/compatible-mode/v1",
@@ -534,11 +557,13 @@ func TestExecuteDashScopeVoiceWorkflowUsesCustomizationContractForDesign(t *test
 		WorkflowModelID: "qwen-voice-design",
 		ModelID:         "qwen3-tts-vd-2026-01-26",
 		Payload: map[string]any{
-			"target_model_id":  "qwen3-tts-vd-2026-01-26",
-			"instruction_text": "Warm, calm and natural documentary narrator voice.",
-			"preview_text":     "Hello from Nimi voice design gold path.",
-			"language":         "en",
-			"preferred_name":   "nimi_voice",
+			"target_model_id": "qwen3-tts-vd-2026-01-26",
+			"input": map[string]any{
+				"instruction_text": "Warm, calm and natural documentary narrator voice.",
+				"preview_text":     "Hello from Nimi voice design gold path.",
+				"language":         "en",
+				"preferred_name":   "nimi_voice",
+			},
 		},
 	}, MediaAdapterConfig{
 		BaseURL: server.URL + "/compatible-mode/v1",

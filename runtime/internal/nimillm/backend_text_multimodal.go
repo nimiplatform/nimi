@@ -419,7 +419,7 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if isRemoteHTTPURL(value) {
-		if err := endpointsec.ValidateEndpoint(value, b != nil && b.allowLoopbackEndpoint); err != nil {
+		if err := endpointsec.ValidateEndpoint(ctx, value, b != nil && b.allowLoopbackEndpoint); err != nil {
 			return nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 		}
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, value, nil)

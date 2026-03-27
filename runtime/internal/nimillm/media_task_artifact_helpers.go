@@ -14,31 +14,132 @@ import (
 // Async task helpers
 // ---------------------------------------------------------------------------
 
-// ExtractTaskIDFromPayload extracts a task/job ID from a provider response
-// payload, searching common field names and nested objects.
-func ExtractTaskIDFromPayload(payload map[string]any) string {
+type payloadStringPath []string
+
+// ExtractTaskIDFromAdapterPayload extracts a provider task/job ID using the
+// response contract for the specific adapter instead of searching arbitrary
+// cross-provider field permutations.
+func ExtractTaskIDFromAdapterPayload(adapter string, payload map[string]any) string {
 	if payload == nil {
 		return ""
 	}
-	return strings.TrimSpace(FirstNonEmpty(
-		ValueAsString(payload["job_id"]),
-		ValueAsString(payload["jobId"]),
-		ValueAsString(payload["task_id"]),
-		ValueAsString(payload["taskId"]),
-		ValueAsString(payload["id"]),
-		ValueAsString(MapField(payload["task"], "id")),
-		ValueAsString(MapField(payload["task"], "task_id")),
-		ValueAsString(MapField(payload["task"], "job_id")),
-		ValueAsString(MapField(payload["result"], "id")),
-		ValueAsString(MapField(payload["result"], "task_id")),
-		ValueAsString(MapField(payload["result"], "job_id")),
-		ValueAsString(MapField(payload["data"], "id")),
-		ValueAsString(MapField(payload["data"], "task_id")),
-		ValueAsString(MapField(payload["data"], "job_id")),
-		ValueAsString(MapField(payload["output"], "id")),
-		ValueAsString(MapField(payload["output"], "task_id")),
-		ValueAsString(MapField(payload["output"], "job_id")),
-	))
+	switch strings.TrimSpace(adapter) {
+	case AdapterAlibabaNative:
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"output", "task_id"},
+			payloadStringPath{"output", "taskId"},
+			payloadStringPath{"task_id"},
+			payloadStringPath{"taskId"},
+		)
+	case AdapterGoogleVeoOperation:
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"name"},
+			payloadStringPath{"id"},
+		)
+	case AdapterRunwayTask, AdapterFluxNative, AdapterLumaTask:
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"id"},
+			payloadStringPath{"data", "id"},
+		)
+	case AdapterPikaTask:
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"task_id"},
+			payloadStringPath{"taskId"},
+			payloadStringPath{"id"},
+		)
+	case AdapterKlingTask:
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"task_id"},
+			payloadStringPath{"taskId"},
+			payloadStringPath{"data", "task_id"},
+			payloadStringPath{"data", "taskId"},
+			payloadStringPath{"data", "id"},
+		)
+	case AdapterBytedanceARKTask:
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"task_id"},
+			payloadStringPath{"taskId"},
+			payloadStringPath{"data", "task_id"},
+			payloadStringPath{"data", "taskId"},
+		)
+	case "voice:dashscope":
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"output", "task_id"},
+			payloadStringPath{"output", "taskId"},
+			payloadStringPath{"task_id"},
+			payloadStringPath{"taskId"},
+			payloadStringPath{"job_id"},
+			payloadStringPath{"jobId"},
+		)
+	case "voice:elevenlabs", "voice:fish_audio":
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"task_id"},
+			payloadStringPath{"taskId"},
+			payloadStringPath{"job_id"},
+			payloadStringPath{"jobId"},
+			payloadStringPath{"data", "task_id"},
+			payloadStringPath{"data", "job_id"},
+		)
+	case "voice:stepfun":
+		return firstStringAtPayloadPaths(payload,
+			payloadStringPath{"task_id"},
+			payloadStringPath{"taskId"},
+			payloadStringPath{"id"},
+			payloadStringPath{"data", "task_id"},
+			payloadStringPath{"data", "id"},
+		)
+	default:
+		return ""
+	}
+}
+
+func firstStringAtPayloadPaths(payload map[string]any, paths ...payloadStringPath) string {
+	for _, path := range paths {
+		if value := payloadStringAtPath(payload, path); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func payloadStringAtPath(payload map[string]any, path payloadStringPath) string {
+	if len(path) == 0 || payload == nil {
+		return ""
+	}
+	var current any = payload
+	for index, part := range path {
+		node, ok := current.(map[string]any)
+		if !ok {
+			return ""
+		}
+		current = node[part]
+		if index == len(path)-1 {
+			return strings.TrimSpace(ValueAsString(current))
+		}
+	}
+	return ""
+}
+
+func anyAsyncTaskID(payload map[string]any) string {
+	return firstStringAtPayloadPaths(payload,
+		payloadStringPath{"job_id"},
+		payloadStringPath{"jobId"},
+		payloadStringPath{"task_id"},
+		payloadStringPath{"taskId"},
+		payloadStringPath{"id"},
+		payloadStringPath{"task", "id"},
+		payloadStringPath{"task", "task_id"},
+		payloadStringPath{"task", "job_id"},
+		payloadStringPath{"result", "id"},
+		payloadStringPath{"result", "task_id"},
+		payloadStringPath{"result", "job_id"},
+		payloadStringPath{"data", "id"},
+		payloadStringPath{"data", "task_id"},
+		payloadStringPath{"data", "job_id"},
+		payloadStringPath{"output", "id"},
+		payloadStringPath{"output", "task_id"},
+		payloadStringPath{"output", "job_id"},
+	)
 }
 
 // ResolveAsyncTaskStatus extracts and normalises the status string from a
@@ -63,7 +164,7 @@ func ResolveAsyncTaskStatus(payload map[string]any) string {
 // is still in progress.
 func IsAsyncTaskPendingStatus(statusText string) bool {
 	switch statusText {
-	case "", "submitted", "queued", "pending", "running", "processing", "in_progress":
+	case "submitted", "queued", "pending", "running", "processing", "in_progress":
 		return true
 	default:
 		return false

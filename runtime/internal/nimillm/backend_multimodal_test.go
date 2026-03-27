@@ -38,7 +38,7 @@ func TestHasMultimodalParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "hello"},
+					textPart("hello"),
 				},
 			},
 		}
@@ -52,11 +52,8 @@ func TestHasMultimodalParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe this"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png", Detail: "auto"},
-					},
+					textPart("describe this"),
+					imagePartWithDetail("https://example.com/img.png", "auto"),
 				},
 			},
 		}
@@ -71,10 +68,7 @@ func TestHasMultimodalParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-					},
+					imagePart("https://example.com/img.png"),
 				},
 			},
 		}
@@ -96,11 +90,8 @@ func TestHasUnsupportedOpenAITextChatParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-					},
+					textPart("describe"),
+					imagePart("https://example.com/img.png"),
 				},
 			},
 		}
@@ -114,11 +105,8 @@ func TestHasUnsupportedOpenAITextChatParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "transcribe"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
-						AudioUrl: "https://example.com/sample.wav",
-					},
+					textPart("transcribe"),
+					audioPart("https://example.com/sample.wav"),
 				},
 			},
 		}
@@ -132,11 +120,8 @@ func TestHasUnsupportedOpenAITextChatParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "watch"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
-						VideoUrl: "https://example.com/demo.mp4",
-					},
+					textPart("watch"),
+					videoPart("https://example.com/demo.mp4"),
 				},
 			},
 		}
@@ -151,10 +136,10 @@ func TestBuildLlamaTextMessages(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL, ImageUrl: &runtimev1.ChatContentImageURL{Url: "/tmp/image.png"}},
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL, VideoUrl: "/tmp/video.mp4"},
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, AudioUrl: "/tmp/audio.wav"},
+				textPart("describe"),
+				imagePart("/tmp/image.png"),
+				videoPart("/tmp/video.mp4"),
+				audioPart("/tmp/audio.wav"),
 			},
 		},
 	}
@@ -236,11 +221,8 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe this"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png", Detail: "high"},
-					},
+					textPart("describe this"),
+					imagePartWithDetail("https://example.com/img.png", "high"),
 				},
 			},
 		}
@@ -275,11 +257,8 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "with image"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-					},
+					textPart("with image"),
+					imagePart("https://example.com/img.png"),
 				},
 			},
 			{Role: "assistant", Content: "response"},
@@ -335,7 +314,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "  "},
+					textPart("  "),
 				},
 			},
 		}
@@ -363,10 +342,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-					},
+					imagePart("https://example.com/img.png"),
 				},
 			},
 		}
@@ -415,11 +391,8 @@ func TestBuildOpenAIMultimodalMessagesJSON(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png", Detail: "auto"},
-					},
+					textPart("describe"),
+					imagePartWithDetail("https://example.com/img.png", "auto"),
 				},
 			},
 		}
@@ -510,11 +483,8 @@ func TestGenerateTextRejectsUnsupportedOpenAITextChatParts(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "watch this"},
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
-					VideoUrl: "https://example.com/demo.mp4",
-				},
+				textPart("watch this"),
+				videoPart("https://example.com/demo.mp4"),
 			},
 		},
 	}
@@ -550,8 +520,8 @@ func TestGenerateTextOpenAIProviderNativeAudioRequest(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "transcribe this"},
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, AudioUrl: server.URL + "/sample.wav"},
+				textPart("transcribe this"),
+				audioPart(server.URL + "/sample.wav"),
 			},
 		},
 	}, "", 0, 0, 0)
@@ -602,8 +572,8 @@ func TestGenerateTextGenericOpenAICompatibleRejectsAudioPart(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "transcribe"},
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL, AudioUrl: "https://example.com/sample.wav"},
+				textPart("transcribe"),
+				audioPart("https://example.com/sample.wav"),
 			},
 		},
 	}, "", 0, 0, 0)

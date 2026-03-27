@@ -27,7 +27,10 @@ func ExecuteFishAudioTTS(
 	if baseURL == "" {
 		baseURL = "https://api.fish.audio"
 	}
-	apiKey := strings.TrimSpace(cfg.APIKey)
+	apiKey, err := requireProviderAPIKey(cfg.APIKey)
+	if err != nil {
+		return nil, nil, "", err
+	}
 
 	if scenarioModal(req) != runtimev1.Modal_MODAL_TTS {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)

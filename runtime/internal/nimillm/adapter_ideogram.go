@@ -26,6 +26,9 @@ func ExecuteIdeogramImage(
 		baseURL = "https://api.ideogram.ai"
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
+	if apiKey == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
+	}
 
 	if scenarioModal(req) != runtimev1.Modal_MODAL_IMAGE {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)

@@ -22,6 +22,8 @@ import (
 const AdapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
 
 const bytedanceOpenSpeechMaxInlineAudioBytes = 10 << 20
+const bytedanceOpenSpeechDefaultWSReadTimeout = 4 * time.Second
+const bytedanceOpenSpeechMaxWSReadTimeout = 60 * time.Second
 
 // ExecuteBytedanceOpenSpeech handles TTS and STT scenario jobs via the Bytedance
 // OpenSpeech API. It replaces the former Service.executeBytedanceOpenSpeech
@@ -36,7 +38,10 @@ func ExecuteBytedanceOpenSpeech(
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	apiKey := strings.TrimSpace(cfg.APIKey)
+	apiKey, err := requireProviderAPIKey(cfg.APIKey)
+	if err != nil {
+		return nil, nil, "", err
+	}
 
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_TTS:
@@ -65,7 +70,14 @@ func ExecuteBytedanceOpenSpeech(
 		if err != nil {
 			return nil, nil, "", err
 		}
-		artifact := BinaryArtifact(ResolveSpeechArtifactMIME(spec, body.Bytes), body.Bytes, map[string]any{
+		artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(body)
+		if len(artifactBytes) == 0 {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
+			mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
+		}
+		artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
 			"adapter":    AdapterBytedanceOpenSpeech,
 			"voice":      scenarioVoiceRef(spec),
 			"language":   spec.GetLanguage(),
@@ -74,7 +86,7 @@ func ExecuteBytedanceOpenSpeech(
 			"mime_type":  body.MIME,
 		})
 		ApplySpeechSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), body.Bytes, 120), "", nil
+		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(spec.GetText(), artifactBytes, 120), "", nil
 
 	case runtimev1.Modal_MODAL_STT:
 		spec := scenarioSpeechTranscribeSpec(req)
@@ -253,10 +265,7 @@ func executeBytedanceOpenSpeechWS(
 		return "", nil, MapProviderRequestError(err)
 	}
 
-	readTimeout := 4 * time.Second
-	if rawTimeout := ValueAsInt64(FirstNonNil(scenarioExtensions["ws_read_timeout_ms"], scenarioExtensions["read_timeout_ms"])); rawTimeout > 0 {
-		readTimeout = time.Duration(rawTimeout) * time.Millisecond
-	}
+	readTimeout := resolveBytedanceOpenSpeechWSReadTimeout(scenarioExtensions)
 	messageCount := 0
 	lastStatus := ""
 	finalText := ""
@@ -332,6 +341,17 @@ func executeBytedanceOpenSpeechWS(
 		"transport":     "ws",
 		"response":      responsePayload,
 	}, nil
+}
+
+func resolveBytedanceOpenSpeechWSReadTimeout(scenarioExtensions map[string]any) time.Duration {
+	readTimeout := bytedanceOpenSpeechDefaultWSReadTimeout
+	if rawTimeout := ValueAsInt64(FirstNonNil(scenarioExtensions["ws_read_timeout_ms"], scenarioExtensions["read_timeout_ms"])); rawTimeout > 0 {
+		readTimeout = time.Duration(rawTimeout) * time.Millisecond
+	}
+	if readTimeout > bytedanceOpenSpeechMaxWSReadTimeout {
+		return bytedanceOpenSpeechMaxWSReadTimeout
+	}
+	return readTimeout
 }
 
 func computeWSReadDeadline(ctx context.Context, readTimeout time.Duration) time.Time {

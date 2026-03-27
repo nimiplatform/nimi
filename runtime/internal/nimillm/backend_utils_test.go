@@ -67,6 +67,16 @@ func TestDecodeMediaURLRejectsOversizedPayload(t *testing.T) {
 	}
 }
 
+func TestArtifactUsageEstimatesBinaryBySize(t *testing.T) {
+	usage := ArtifactUsage("prompt", []byte{0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49}, 123)
+	if usage == nil {
+		t.Fatal("expected usage")
+	}
+	if got, want := usage.GetOutputTokens(), int64(3); got != want {
+		t.Fatalf("unexpected binary token estimate: got=%d want=%d", got, want)
+	}
+}
+
 type zeroReader struct{}
 
 func (zeroReader) Read(p []byte) (int, error) {

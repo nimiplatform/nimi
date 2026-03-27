@@ -60,11 +60,11 @@ func TestTextHelpersAndTokenEstimation(t *testing.T) {
 		t.Fatalf("unexpected composed text: %q", text)
 	}
 
-	parts := splitText("你好world", 2)
+	parts := nimillm.SplitText("你好world", 2)
 	if len(parts) != 4 {
 		t.Fatalf("unexpected chunk count: %d", len(parts))
 	}
-	if split := splitText("", 0); len(split) != 1 || split[0] != "" {
+	if split := nimillm.SplitText("", 0); len(split) != 0 {
 		t.Fatalf("unexpected empty split result: %#v", split)
 	}
 
@@ -90,7 +90,7 @@ func TestComposeInputTextWithParts(t *testing.T) {
 				Role:    "user",
 				Content: "should be ignored",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "from parts"},
+					textPart("from parts"),
 				},
 			},
 		}
@@ -105,12 +105,9 @@ func TestComposeInputTextWithParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe this"},
-					{
-						Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-						ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-					},
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "in detail"},
+					textPart("describe this"),
+					imagePart("https://example.com/img.png"),
+					textPart("in detail"),
 				},
 			},
 		}
@@ -135,7 +132,7 @@ func TestComposeInputTextWithParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "part text"},
+					textPart("part text"),
 				},
 			},
 			{Role: "assistant", Content: "reply"},
@@ -151,8 +148,8 @@ func TestComposeInputTextWithParts(t *testing.T) {
 			{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "  "},
-					{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "actual text"},
+					textPart("  "),
+					textPart("actual text"),
 				},
 			},
 		}
@@ -163,16 +160,7 @@ func TestComposeInputTextWithParts(t *testing.T) {
 	})
 }
 
-func TestSimpleCountersAndPredicates(t *testing.T) {
-	if got := wordCount(" a  bb c "); got != 3 {
-		t.Fatalf("word count mismatch: %d", got)
-	}
-	if got := vowelCount("Nimi Platform"); got != 4 {
-		t.Fatalf("vowel count mismatch: %d", got)
-	}
-	if got := consonantCount("Nimi Platform!"); got != 8 {
-		t.Fatalf("consonant count mismatch: %d", got)
-	}
+func TestSimplePredicates(t *testing.T) {
 	if !isMultiModel("a->b") || !isMultiModel("a|b") || !isMultiModel("a,b") {
 		t.Fatalf("isMultiModel should detect separators")
 	}

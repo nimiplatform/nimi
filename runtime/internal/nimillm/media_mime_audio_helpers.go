@@ -212,11 +212,16 @@ func FetchAudioFromURI(ctx context.Context, audioURI string) ([]byte, string, er
 	if err != nil || parsed == nil || parsed.Scheme == "" {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	switch strings.ToLower(strings.TrimSpace(parsed.Scheme)) {
+	case "http", "https":
+	default:
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, parsed.String(), nil)
 	if err != nil {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	client, err := newSecuredHTTPClient(parsed.String(), allowLoopbackForTargetURL(parsed.String()))
+	client, err := newSecuredHTTPClient(ctx, parsed.String(), allowLoopbackForTargetURL(parsed.String()))
 	if err != nil {
 		return nil, "", err
 	}

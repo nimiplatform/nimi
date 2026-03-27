@@ -108,12 +108,15 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		},
 	})
 	if instructions := strings.TrimSpace(req.GetSystemPrompt()); instructions != "" {
-		_ = sendRealtimeEnvelope(record, map[string]any{
+		if err := sendRealtimeEnvelope(record, map[string]any{
 			"type": "session.update",
 			"session": map[string]any{
 				"instructions": instructions,
 			},
-		})
+		}); err != nil {
+			s.realtimeSessions.close(sessionID)
+			return nil, err
+		}
 	}
 	go s.consumeRealtimeEvents(record)
 
@@ -283,9 +286,6 @@ func (s *Service) CloseRealtimeSession(ctx context.Context, req *runtimev1.Close
 			},
 		})
 	}
-	if record.conn != nil {
-		_ = record.conn.Close()
-	}
 	s.realtimeSessions.close(record.sessionID)
 	return &runtimev1.CloseRealtimeSessionResponse{
 		Ack: &runtimev1.Ack{Ok: true},
@@ -395,7 +395,7 @@ func dialLlamaRealtime(ctx context.Context, backend *nimillm.Backend, modelID st
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	endpoint := strings.TrimSpace(backend.Endpoint())
-	if err := endpointsec.ValidateEndpoint(endpoint, false); err != nil {
+	if err := endpointsec.ValidateEndpoint(ctx, endpoint, true); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 	}
 	targetURL, err := url.Parse(endpoint)
@@ -439,12 +439,19 @@ func realtimeWebsocketOrigin(targetURL *url.URL) string {
 }
 
 func sendRealtimeEnvelope(record *realtimeSessionRecord, payload map[string]any) error {
-	if record == nil || record.conn == nil {
+	if record == nil {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
 	}
 	record.sendMu.Lock()
 	defer record.sendMu.Unlock()
-	if err := record.conn.Send(payload); err != nil {
+	record.mu.Lock()
+	closed := record.closed
+	conn := record.conn
+	record.mu.Unlock()
+	if closed || conn == nil {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
+	}
+	if err := conn.Send(payload); err != nil {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	return nil
@@ -529,10 +536,7 @@ func readRealtimeLocationBytes(ctx context.Context, location string) ([]byte, er
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
-		if err := endpointsec.ValidateEndpoint(value, false); err != nil {
-			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
-		}
-		transport, err := endpointsec.NewPinnedTransport(value, false)
+		transport, err := endpointsec.NewPinnedTransport(ctx, value, false)
 		if err != nil {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 		}
@@ -573,13 +577,18 @@ func authorizeRealtimeSession(ctx context.Context, record *realtimeSessionRecord
 	if record == nil {
 		return grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_REALTIME_SESSION_NOT_FOUND)
 	}
-	if appID := incomingAppID(ctx); appID != "" && strings.TrimSpace(record.appID) != "" && strings.TrimSpace(record.appID) != appID {
+	expectedAppID := strings.TrimSpace(record.appID)
+	expectedSubject := strings.TrimSpace(record.subjectUserID)
+	if expectedAppID == "" || expectedSubject == "" {
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
+	}
+	appID := incomingAppID(ctx)
+	if appID == "" || expectedAppID != appID {
 		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 	}
 	if identity := authn.IdentityFromContext(ctx); identity != nil {
-		expectedSubject := strings.TrimSpace(record.subjectUserID)
 		actualSubject := strings.TrimSpace(identity.SubjectUserID)
-		if expectedSubject != "" && actualSubject != "" && expectedSubject != actualSubject {
+		if actualSubject == "" || expectedSubject != actualSubject {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
 		}
 	}
@@ -602,10 +611,16 @@ func looksLikeLocalFilePath(value string) bool {
 	if strings.HasPrefix(value, "/") || strings.HasPrefix(value, "\\") {
 		return true
 	}
+	if strings.HasPrefix(value, "./") || strings.HasPrefix(value, "../") || strings.HasPrefix(value, ".\\") || strings.HasPrefix(value, "..\\") {
+		return true
+	}
+	if strings.HasPrefix(value, "~/") || strings.HasPrefix(value, "~\\") {
+		return true
+	}
 	if len(value) >= 3 && value[1] == ':' && (value[2] == '\\' || value[2] == '/') {
 		return true
 	}
-	return strings.Contains(value, "/") || strings.Contains(value, "\\")
+	return false
 }
 
 func splitRealtimeAudio(payload []byte, chunkSize int) [][]byte {

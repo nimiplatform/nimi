@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -23,11 +24,14 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 		t.Run(provider, func(t *testing.T) {
 			t.Parallel()
 			requestPaths := make([]string, 0, 2)
+			var requestPathsMu sync.Mutex
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodPost {
 					t.Fatalf("expected POST, got %s", r.Method)
 				}
+				requestPathsMu.Lock()
 				requestPaths = append(requestPaths, r.URL.Path)
+				requestPathsMu.Unlock()
 				if got := strings.TrimSpace(r.Header.Get("Authorization")); got == "" {
 					t.Fatalf("authorization header must be set")
 				}
@@ -57,9 +61,12 @@ func TestVoiceWorkflowViaNimillmCloneSuccess(t *testing.T) {
 			if strings.TrimSpace(result.ProviderJobID) == "" {
 				t.Fatalf("provider job id must be set")
 			}
+			requestPathsMu.Lock()
 			if len(requestPaths) == 0 {
+				requestPathsMu.Unlock()
 				t.Fatalf("expected at least one provider request")
 			}
+			requestPathsMu.Unlock()
 		})
 	}
 }
@@ -411,6 +418,58 @@ func TestElevenLabsVoiceDesignWorkflowSuccess(t *testing.T) {
 	}
 	if _, ok := requestBodies[1]["name"]; ok {
 		t.Fatalf("design create payload must not use legacy name field")
+	}
+}
+
+func TestBuildVoiceWorkflowPayloadCloneUsesCanonicalInputShape(t *testing.T) {
+	req := voiceCloneRequest()
+	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
+		Provider:        "dashscope",
+		ModelID:         "dashscope/qwen3-tts-vc",
+		WorkflowType:    "tts_v2v",
+		WorkflowModelID: "qwen-voice-enrollment",
+	}, nil)
+
+	if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "dashscope/qwen3-tts-vc" {
+		t.Fatalf("unexpected target_model_id: %q", got)
+	}
+	input, ok := payload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected canonical input map, got=%T", payload["input"])
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(input["preferred_name"])); got == "" {
+		t.Fatalf("expected canonical preferred_name in input")
+	}
+	for _, legacyKey := range []string{"model", "name", "voice_name", "preferred_name", "reference_audio_uri", "audio_url", "reference_audio_mime", "reference_audio_base64", "text"} {
+		if _, ok := payload[legacyKey]; ok {
+			t.Fatalf("unexpected legacy top-level key %q in canonical payload", legacyKey)
+		}
+	}
+}
+
+func TestBuildVoiceWorkflowPayloadDesignUsesCanonicalInputShape(t *testing.T) {
+	req := voiceDesignRequest()
+	payload := buildVoiceWorkflowPayload(req, catalog.ResolveVoiceWorkflowResult{
+		Provider:        "elevenlabs",
+		ModelID:         "elevenlabs/eleven_ttv_v3",
+		WorkflowType:    "tts_t2v",
+		WorkflowModelID: "elevenlabs-voice-design",
+	}, nil)
+
+	if got := strings.TrimSpace(nimillm.ValueAsString(payload["target_model_id"])); got != "elevenlabs/eleven_ttv_v3" {
+		t.Fatalf("unexpected target_model_id: %q", got)
+	}
+	input, ok := payload["input"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected canonical input map, got=%T", payload["input"])
+	}
+	if got := strings.TrimSpace(nimillm.ValueAsString(input["instruction_text"])); got == "" {
+		t.Fatalf("expected canonical instruction_text in input")
+	}
+	for _, legacyKey := range []string{"model", "model_id", "name", "voice_name", "instruction_text", "description", "preview_text", "text", "preferred_name", "language"} {
+		if _, ok := payload[legacyKey]; ok {
+			t.Fatalf("unexpected legacy top-level key %q in canonical payload", legacyKey)
+		}
 	}
 }
 

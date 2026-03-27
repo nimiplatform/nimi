@@ -68,11 +68,11 @@ func ExecuteStabilityMusic(
 		if negativePrompt := strings.TrimSpace(spec.GetNegativePrompt()); negativePrompt != "" {
 			payload["negative_prompt"] = negativePrompt
 		}
-		body, err = DoJSONOrBinaryRequest(
+		body, err = doJSONOrBinaryRequestWithBackend(
 			ctx,
+			backend,
 			http.MethodPost,
 			JoinURL(baseURL, "/v2beta/audio/stable-audio-2/text-to-audio"),
-			strings.TrimSpace(cfg.APIKey),
 			payload,
 			cfg.Headers,
 		)
@@ -166,11 +166,11 @@ func ExecuteSoundverseMusic(
 		payload["style_prompt"] = style
 	}
 
+	backend := NewBackend("cloud-soundverse", baseURL, strings.TrimSpace(cfg.APIKey), 5*time.Minute)
 	response := map[string]any{}
-	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, "/v5/generate/song/sync"), strings.TrimSpace(cfg.APIKey), payload, &response, cfg.Headers); err != nil {
+	if err := doJSONRequestWithBackendAndHeaders(ctx, backend, http.MethodPost, JoinURL(baseURL, "/v5/generate/song/sync"), payload, &response, cfg.Headers); err != nil {
 		return nil, nil, "", err
 	}
-	backend := NewBackend("cloud-soundverse", baseURL, strings.TrimSpace(cfg.APIKey), 5*time.Minute)
 	body, err := bodyFromMusicResponse(ctx, backend, response)
 	if err != nil {
 		return nil, nil, "", err
@@ -265,6 +265,12 @@ func ExecuteMubertMusic(
 			return nil, nil, trackID, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 		}
 		retryCount++
+		if providerPollRetryLimitReached(retryCount) {
+			if updater != nil {
+				updater.UpdatePollState(jobID, trackID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+			}
+			return nil, nil, trackID, providerPollTimeoutError()
+		}
 		if updater != nil {
 			updater.UpdatePollState(jobID, trackID, retryCount, timestamppb.New(time.Now().UTC().Add(1*time.Second)), statusText)
 		}

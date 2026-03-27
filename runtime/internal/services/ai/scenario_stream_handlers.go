@@ -124,10 +124,9 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 
 	traceID := ulid.Make().String()
-	var seq uint64
+	var seq atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
-		seq++
-		event.Sequence = seq
+		event.Sequence = seq.Add(1)
 		event.TraceId = traceID
 		event.Timestamp = timestamppb.New(time.Now().UTC())
 		return stream.Send(event)
@@ -135,6 +134,14 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	failAndStop := func(cause error) error {
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		}
+		if s.logger != nil {
+			s.logger.Warn("scenario stream failed",
+				"scenario_type", req.GetScenarioType().String(),
+				"model_resolved", modelResolved,
+				"trace_id", traceID,
+				"error", cause,
+			)
 		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,
@@ -348,10 +355,9 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	)
 
 	traceID := ulid.Make().String()
-	var seq uint64
+	var seq atomic.Uint64
 	send := func(event *runtimev1.StreamScenarioEvent) error {
-		seq++
-		event.Sequence = seq
+		event.Sequence = seq.Add(1)
 		event.TraceId = traceID
 		event.Timestamp = timestamppb.New(time.Now().UTC())
 		return stream.Send(event)
@@ -359,6 +365,14 @@ func streamSpeechSynthesizeScenario(s *Service, req *runtimev1.StreamScenarioReq
 	failAndStop := func(cause error) error {
 		if firstPacketTimedOut.Load() && !firstPacketSeen.Load() {
 			cause = grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT)
+		}
+		if s.logger != nil {
+			s.logger.Warn("scenario stream failed",
+				"scenario_type", req.GetScenarioType().String(),
+				"model_resolved", modelResolved,
+				"trace_id", traceID,
+				"error", cause,
+			)
 		}
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_FAILED,

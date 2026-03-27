@@ -110,6 +110,10 @@ func ExecuteGLMTask(
 		)))
 		switch statusText {
 		case "", "queued", "pending", "running", "processing", "in_progress":
+			if providerPollRetryLimitReached(retryCount) {
+				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+				return nil, nil, providerJobID, providerPollTimeoutError()
+			}
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 			time.Sleep(500 * time.Millisecond)
 			continue

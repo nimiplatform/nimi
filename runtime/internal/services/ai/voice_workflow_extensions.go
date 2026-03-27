@@ -180,7 +180,7 @@ func normalizeVoiceWorkflowHeaderMap(value any) (map[string]any, error) {
 		for key, item := range typed {
 			normalizedKey := strings.TrimSpace(key)
 			normalizedValue := strings.TrimSpace(item)
-			if normalizedKey == "" || normalizedValue == "" {
+			if normalizedKey == "" || normalizedValue == "" || containsHeaderLineBreak(normalizedKey) || containsHeaderLineBreak(normalizedValue) {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 			}
 			headers[normalizedKey] = normalizedValue
@@ -189,7 +189,7 @@ func normalizeVoiceWorkflowHeaderMap(value any) (map[string]any, error) {
 		for key, item := range typed {
 			normalizedKey := strings.TrimSpace(key)
 			normalizedValue := strings.TrimSpace(nimillm.ValueAsString(item))
-			if normalizedKey == "" || normalizedValue == "" {
+			if normalizedKey == "" || normalizedValue == "" || containsHeaderLineBreak(normalizedKey) || containsHeaderLineBreak(normalizedValue) {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 			}
 			headers[normalizedKey] = normalizedValue
@@ -201,4 +201,8 @@ func normalizeVoiceWorkflowHeaderMap(value any) (map[string]any, error) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 	return headers, nil
+}
+
+func containsHeaderLineBreak(value string) bool {
+	return strings.ContainsAny(value, "\r\n")
 }

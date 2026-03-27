@@ -79,7 +79,7 @@ func TestScenarioJobStateEnumerationMatchesSpec(t *testing.T) {
 
 func TestScenarioJobStoreCancelAndArtifactsPaths(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
-	ctx := context.Background()
+	ctx := scenarioJobContext("app")
 
 	jobID := "scenario-cancelable-job"
 	snapshot := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
@@ -117,7 +117,7 @@ func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
 			"dashscope": {BaseURL: "http://example.com", APIKey: "test-key"},
 		},
 	})
-	ctx := context.Background()
+	ctx := scenarioJobContext("nimi.desktop")
 
 	submitResp, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
 		Head: &runtimev1.ScenarioRequestHead{
@@ -259,13 +259,13 @@ func TestScenarioJobStoreSubscribeBranches(t *testing.T) {
 	sendErr := errors.New("stream-send-failed")
 	err := svc.SubscribeScenarioJobEvents(
 		&runtimev1.SubscribeScenarioJobEventsRequest{JobId: terminalJobID},
-		&scenarioJobFailingCollector{ctx: context.Background(), sendErr: sendErr},
+		&scenarioJobFailingCollector{ctx: scenarioJobContext("app"), sendErr: sendErr},
 	)
 	if !errors.Is(err, sendErr) {
 		t.Fatalf("expected send error branch, got %v", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(scenarioJobContext("app"))
 	cancel()
 	runningJobID := "scenario-subscribe-cancel-context"
 	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
@@ -378,7 +378,7 @@ func TestScenarioJobStoreSubscribeVoiceStreamingBranch(t *testing.T) {
 	}
 	svc.voiceAssets.mu.Unlock()
 
-	collector := &scenarioJobEventCollector{ctx: context.Background()}
+	collector := &scenarioJobEventCollector{ctx: scenarioJobContext("app")}
 	done := make(chan error, 1)
 	go func() {
 		done <- svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector)
@@ -433,7 +433,7 @@ func TestScenarioJobStoreSubscribeVoiceTerminalBacklogBranch(t *testing.T) {
 	}
 	svc.voiceAssets.mu.Unlock()
 
-	collector := &scenarioJobEventCollector{ctx: context.Background()}
+	collector := &scenarioJobEventCollector{ctx: scenarioJobContext("app")}
 	if err := svc.SubscribeScenarioJobEvents(&runtimev1.SubscribeScenarioJobEventsRequest{JobId: jobID}, collector); err != nil {
 		t.Fatalf("subscribe voice terminal backlog branch returned error: %v", err)
 	}

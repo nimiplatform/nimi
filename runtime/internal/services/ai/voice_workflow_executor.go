@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/aicatalog"
+	catalog "github.com/nimiplatform/nimi/runtime/internal/aicatalog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/oklog/ulid/v2"
@@ -145,14 +145,6 @@ func (s *Service) executeVoiceWorkflowJob(
 		s.voiceAssets.failJob(jobID, reasonCode, sanitizeScenarioJobReasonDetail(err, reasonCode))
 		return
 	}
-	if ctx.Err() != nil {
-		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
-			s.voiceAssets.timeoutJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT, "voice workflow timeout")
-			return
-		}
-		s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, ctx.Err().Error())
-		return
-	}
 	if strings.TrimSpace(result.ProviderVoiceRef) == "" {
 		s.voiceAssets.failJob(jobID, runtimev1.ReasonCode_AI_OUTPUT_INVALID, "adapter returned empty provider_voice_ref")
 		return
@@ -235,37 +227,18 @@ func buildVoiceWorkflowPayload(
 		if targetModelID == "" {
 			targetModelID = strings.TrimSpace(resolution.ModelID)
 		}
-		explicitPreferredName := strings.TrimSpace(input.GetPreferredName())
 		resolvedPreferredName := resolveVoiceWorkflowPreferredName(req)
-		payload["model"] = targetModelID
 		payload["target_model_id"] = targetModelID
-		payload["name"] = resolvedPreferredName
-		payload["voice_name"] = resolvedPreferredName
-		if explicitPreferredName != "" {
-			payload["preferred_name"] = explicitPreferredName
-		}
 
 		inputPayload := map[string]any{
 			"reference_audio_uri":  strings.TrimSpace(input.GetReferenceAudioUri()),
 			"reference_audio_mime": strings.TrimSpace(input.GetReferenceAudioMime()),
 			"language_hints":       append([]string(nil), input.GetLanguageHints()...),
-			"preferred_name":       strings.TrimSpace(input.GetPreferredName()),
+			"preferred_name":       resolvedPreferredName,
 			"text":                 strings.TrimSpace(input.GetText()),
 		}
 		if len(input.GetReferenceAudioBytes()) > 0 {
-			encoded := base64.StdEncoding.EncodeToString(input.GetReferenceAudioBytes())
-			inputPayload["reference_audio_base64"] = encoded
-			payload["reference_audio_base64"] = encoded
-		}
-		if uri := strings.TrimSpace(input.GetReferenceAudioUri()); uri != "" {
-			payload["reference_audio_uri"] = uri
-			payload["audio_url"] = uri
-		}
-		if mime := strings.TrimSpace(input.GetReferenceAudioMime()); mime != "" {
-			payload["reference_audio_mime"] = mime
-		}
-		if text := strings.TrimSpace(input.GetText()); text != "" {
-			payload["text"] = text
+			inputPayload["reference_audio_base64"] = base64.StdEncoding.EncodeToString(input.GetReferenceAudioBytes())
 		}
 		payload["input"] = inputPayload
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN:
@@ -279,25 +252,10 @@ func buildVoiceWorkflowPayload(
 		previewText := strings.TrimSpace(input.GetPreviewText())
 		language := strings.TrimSpace(input.GetLanguage())
 		preferredName := strings.TrimSpace(input.GetPreferredName())
-		explicitPreferredName := preferredName
 		if preferredName == "" {
 			preferredName = resolveVoiceWorkflowPreferredName(req)
 		}
-		payload["model"] = targetModelID
-		payload["model_id"] = targetModelID
 		payload["target_model_id"] = targetModelID
-		payload["name"] = preferredName
-		payload["voice_name"] = preferredName
-		payload["instruction_text"] = instruction
-		payload["description"] = instruction
-		payload["preview_text"] = previewText
-		payload["text"] = nimillm.FirstNonEmpty(previewText, instruction)
-		if explicitPreferredName != "" {
-			payload["preferred_name"] = explicitPreferredName
-		}
-		if language != "" {
-			payload["language"] = language
-		}
 		payload["input"] = map[string]any{
 			"instruction_text": instruction,
 			"preview_text":     previewText,
@@ -406,40 +364,4 @@ func resolveVoiceWorkflowPreferredName(req *runtimev1.SubmitScenarioJobRequest) 
 		}
 	}
 	return "nimi-voice-" + strings.ToLower(ulid.Make().String())
-}
-
-func firstNonEmptyStringSlice(values ...[]string) []string {
-	for _, group := range values {
-		if len(group) == 0 {
-			continue
-		}
-		for _, item := range group {
-			if strings.TrimSpace(item) != "" {
-				return group
-			}
-		}
-	}
-	return nil
-}
-
-func valueAsTrimmedStringSlice(value any) []string {
-	items := make([]string, 0)
-	switch typed := value.(type) {
-	case []string:
-		for _, item := range typed {
-			if trimmed := strings.TrimSpace(item); trimmed != "" {
-				items = append(items, trimmed)
-			}
-		}
-	case []any:
-		for _, item := range typed {
-			if trimmed := strings.TrimSpace(nimillm.ValueAsString(item)); trimmed != "" {
-				items = append(items, trimmed)
-			}
-		}
-	}
-	if len(items) == 0 {
-		return nil
-	}
-	return items
 }

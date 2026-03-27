@@ -116,7 +116,7 @@ func TestLiveSmokeLocalSidecarMusicPromptOnly(t *testing.T) {
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 		t.Fatalf("local sidecar music job status not completed: %s reason=%s detail=%s", job.GetStatus().String(), job.GetReasonCode().String(), job.GetReasonDetail())
 	}
-	artifactsResp, err := svc.GetScenarioArtifacts(context.Background(), &runtimev1.GetScenarioArtifactsRequest{
+	artifactsResp, err := svc.GetScenarioArtifacts(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioArtifactsRequest{
 		JobId: submitResp.GetJob().GetJobId(),
 	})
 	if err != nil {
@@ -640,7 +640,7 @@ func waitLiveSmokeScenarioJob(t *testing.T, svc *Service, jobID string) *runtime
 	t.Helper()
 	deadline := time.Now().Add(3 * time.Minute)
 	for {
-		resp, err := svc.GetScenarioJob(context.Background(), &runtimev1.GetScenarioJobRequest{JobId: jobID})
+		resp, err := svc.GetScenarioJob(scenarioJobContext(liveSmokeMatrixAppID), &runtimev1.GetScenarioJobRequest{JobId: jobID})
 		if err != nil {
 			t.Fatalf("GetScenarioJob(%s): %v", jobID, err)
 		}

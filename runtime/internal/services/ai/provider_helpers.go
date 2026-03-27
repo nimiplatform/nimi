@@ -42,11 +42,3 @@ var (
 	mapProviderRequestError = nimillm.MapProviderRequestError
 	mapProviderHTTPError    = nimillm.MapProviderHTTPError
 )
-
-func normalizeFallbackText(input string) string {
-	text := strings.TrimSpace(input)
-	if text == "" {
-		return "empty input"
-	}
-	return text
-}

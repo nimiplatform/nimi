@@ -98,7 +98,7 @@ func voiceWorkflowTryEndpoints(
 			}
 			return VoiceWorkflowResult{}, err
 		}
-		providerJobID := strings.TrimSpace(ExtractTaskIDFromPayload(response))
+		providerJobID := ExtractTaskIDFromAdapterPayload("voice:"+provider, response)
 		providerVoiceRef := extractVoiceWorkflowVoiceRef(response)
 		if providerVoiceRef == "" {
 			lastErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -160,7 +160,7 @@ func resolveVoiceWorkflowBaseURL(provider string, cfg MediaAdapterConfig, extPay
 					defaultBaseURL = normalizeBaseURL(record.DefaultEndpoint)
 				}
 			}
-			if sameVoiceWorkflowOrigin(defaultBaseURL, overrideURL) {
+			if sameVoiceWorkflowBaseURL(defaultBaseURL, overrideURL) {
 				return overrideURL
 			}
 		}
@@ -192,12 +192,15 @@ func voiceWorkflowHeaders(provider string, apiKey string, extPayload map[string]
 		headers["xi-api-key"] = strings.TrimSpace(apiKey)
 	}
 	if apiKeyHeader := strings.TrimSpace(ValueAsString(extPayload["api_key_header"])); apiKeyHeader != "" && strings.TrimSpace(apiKey) != "" {
+		if !allowVoiceWorkflowHeader(apiKeyHeader) {
+			return headers
+		}
 		headers[apiKeyHeader] = strings.TrimSpace(apiKey)
 	}
 	return headers
 }
 
-func sameVoiceWorkflowOrigin(baseURL string, candidate string) bool {
+func sameVoiceWorkflowBaseURL(baseURL string, candidate string) bool {
 	if strings.TrimSpace(baseURL) == "" || strings.TrimSpace(candidate) == "" {
 		return false
 	}
@@ -209,7 +212,12 @@ func sameVoiceWorkflowOrigin(baseURL string, candidate string) bool {
 	if err != nil {
 		return false
 	}
-	return strings.EqualFold(baseParsed.Scheme, candidateParsed.Scheme) && strings.EqualFold(baseParsed.Host, candidateParsed.Host)
+	if !strings.EqualFold(baseParsed.Scheme, candidateParsed.Scheme) || !strings.EqualFold(baseParsed.Host, candidateParsed.Host) {
+		return false
+	}
+	basePath := strings.TrimSuffix(strings.TrimSpace(baseParsed.EscapedPath()), "/")
+	candidatePath := strings.TrimSuffix(strings.TrimSpace(candidateParsed.EscapedPath()), "/")
+	return basePath == candidatePath
 }
 
 func allowVoiceWorkflowHeader(name string) bool {
@@ -250,7 +258,7 @@ func extractVoiceWorkflowVoiceRef(payload map[string]any) string {
 	if voiceRef != "" {
 		return voiceRef
 	}
-	providerJobID := strings.TrimSpace(ExtractTaskIDFromPayload(payload))
+	providerJobID := anyAsyncTaskID(payload)
 	if providerJobID != "" {
 		return ""
 	}

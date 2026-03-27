@@ -149,16 +149,16 @@ func TestValidateKeySourceImplicitInlineFailsClose(t *testing.T) {
 	}
 	err := validateKeySource(parsed, "nimi.desktop")
 	if err == nil {
-		t.Fatal("expected inline missing credential error")
+		t.Fatal("expected implicit inline credential error")
 	}
 	st, _ := status.FromError(err)
-	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING) {
-		t.Fatalf("expected AI_REQUEST_CREDENTIAL_MISSING, got %s", st.Message())
+	if !containsReason(st.Message(), runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID) {
+		t.Fatalf("expected AI_REQUEST_CREDENTIAL_INVALID, got %s", st.Message())
 	}
 }
 
 func TestResolveKeySourceManaged(t *testing.T) {
-	store := connector.NewConnectorStore(t.TempDir())
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	rec := connector.ConnectorRecord{
 		ConnectorID: "conn-test",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
@@ -168,7 +168,7 @@ func TestResolveKeySourceManaged(t *testing.T) {
 		Endpoint:    "https://api.openai.com/v1",
 		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if err := store.Create(rec, "sk-managed-key"); err != nil {
+	if _, err := store.Create(rec, "sk-managed-key"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -228,7 +228,7 @@ func TestResolveKeySourceRuntimeConfig(t *testing.T) {
 }
 
 func TestResolveKeySourceManagedDisabled(t *testing.T) {
-	store := connector.NewConnectorStore(t.TempDir())
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	rec := connector.ConnectorRecord{
 		ConnectorID: "conn-disabled",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
@@ -237,7 +237,7 @@ func TestResolveKeySourceManagedDisabled(t *testing.T) {
 		Provider:    "openai",
 		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_DISABLED,
 	}
-	if err := store.Create(rec, "key"); err != nil {
+	if _, err := store.Create(rec, "key"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -256,7 +256,7 @@ func TestResolveKeySourceManagedDisabled(t *testing.T) {
 }
 
 func TestResolveKeySourceManagedNotFound(t *testing.T) {
-	store := connector.NewConnectorStore(t.TempDir())
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 
 	parsed := ParsedKeySource{
 		KeySource:   "managed",
@@ -269,7 +269,7 @@ func TestResolveKeySourceManagedNotFound(t *testing.T) {
 }
 
 func TestResolveKeySourceManagedLocalConnectorInvalid(t *testing.T) {
-	store := connector.NewConnectorStore(t.TempDir())
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	rec := connector.ConnectorRecord{
 		ConnectorID:   "conn-local",
 		Kind:          runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL,
@@ -279,7 +279,7 @@ func TestResolveKeySourceManagedLocalConnectorInvalid(t *testing.T) {
 		Status:        runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 		LocalCategory: runtimev1.LocalConnectorCategory_LOCAL_CONNECTOR_CATEGORY_LLM,
 	}
-	if err := store.Create(rec, ""); err != nil {
+	if _, err := store.Create(rec, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -297,7 +297,7 @@ func TestResolveKeySourceManagedLocalConnectorInvalid(t *testing.T) {
 }
 
 func TestResolveKeySourceManagedOwnerMismatchNotFound(t *testing.T) {
-	store := connector.NewConnectorStore(t.TempDir())
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	rec := connector.ConnectorRecord{
 		ConnectorID: "conn-owned",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
@@ -307,7 +307,7 @@ func TestResolveKeySourceManagedOwnerMismatchNotFound(t *testing.T) {
 		Endpoint:    "https://api.openai.com/v1",
 		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if err := store.Create(rec, "key"); err != nil {
+	if _, err := store.Create(rec, "key"); err != nil {
 		t.Fatal(err)
 	}
 	_, err := resolveKeySourceToTarget(userCtx("user-other"), ParsedKeySource{
@@ -324,7 +324,7 @@ func TestResolveKeySourceManagedOwnerMismatchNotFound(t *testing.T) {
 }
 
 func TestResolveKeySourceManagedAnonymousNotFound(t *testing.T) {
-	store := connector.NewConnectorStore(t.TempDir())
+	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())
 	rec := connector.ConnectorRecord{
 		ConnectorID: "conn-owned",
 		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
@@ -334,7 +334,7 @@ func TestResolveKeySourceManagedAnonymousNotFound(t *testing.T) {
 		Endpoint:    "https://api.openai.com/v1",
 		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
 	}
-	if err := store.Create(rec, "key"); err != nil {
+	if _, err := store.Create(rec, "key"); err != nil {
 		t.Fatal(err)
 	}
 	_, err := resolveKeySourceToTarget(context.Background(), ParsedKeySource{

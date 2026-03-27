@@ -110,16 +110,9 @@ func validateKeySource(parsed ParsedKeySource, requestAppID string) error {
 			break
 		}
 		if parsed.ProviderType != "" || parsed.Endpoint != "" || parsed.APIKey != "" {
-			// Implicit inline — fail-close and validate completeness.
-			if parsed.ProviderType == "" {
-				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
-			}
-			if parsed.APIKey == "" {
-				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
-			}
-			if entry, ok := connector.ProviderCatalog[parsed.ProviderType]; ok && entry.RequiresExplicitEndpoint && parsed.Endpoint == "" {
-				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_MISSING)
-			}
+			// Inline credentials are only valid when the caller explicitly
+			// declares key_source=inline.
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REQUEST_CREDENTIAL_INVALID)
 		}
 		// No key-source, no connector_id, no inline fields = use runtime config
 	default:
@@ -136,7 +129,7 @@ func resolveKeySourceToTarget(ctx context.Context, parsed ParsedKeySource, connS
 
 	// Determine effective mode
 	isManaged := ks == keySourceManaged || (ks == "" && parsed.ConnectorID != "")
-	isInline := ks == keySourceInline || (ks == "" && parsed.APIKey != "" && parsed.ConnectorID == "")
+	isInline := ks == keySourceInline
 
 	if isManaged {
 		return resolveManagedTarget(ctx, parsed.ConnectorID, connStore, allowLoopback)
@@ -204,7 +197,7 @@ func resolveManagedTarget(ctx context.Context, connectorID string, connStore *co
 
 	// Endpoint security validation (K-SEC-004)
 	allowLoopbackTarget := allowLoopback
-	if err := endpointsec.ValidateEndpoint(endpoint, allowLoopbackTarget); err != nil {
+	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopbackTarget); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 	}
 
@@ -223,7 +216,7 @@ func resolveInlineTarget(parsed ParsedKeySource, allowLoopback bool) (*nimillm.R
 	}
 
 	// Endpoint security validation (K-SEC-004)
-	if err := endpointsec.ValidateEndpoint(endpoint, allowLoopback); err != nil {
+	if err := endpointsec.ValidateEndpoint(context.Background(), endpoint, allowLoopback); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 	}
 

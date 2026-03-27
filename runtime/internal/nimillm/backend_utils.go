@@ -89,9 +89,22 @@ func StructToMap(input *structpb.Struct) map[string]any {
 func ArtifactUsage(inputText string, artifactBytes []byte, computeMs int64) *runtimev1.UsageStats {
 	return &runtimev1.UsageStats{
 		InputTokens:  EstimateTokens(strings.TrimSpace(inputText)),
-		OutputTokens: EstimateTokens(string(artifactBytes)),
+		OutputTokens: estimateArtifactOutputTokens(artifactBytes),
 		ComputeMs:    computeMs,
 	}
+}
+
+func estimateArtifactOutputTokens(artifactBytes []byte) int64 {
+	if len(artifactBytes) == 0 {
+		return 0
+	}
+	contentType := strings.ToLower(strings.TrimSpace(http.DetectContentType(artifactBytes)))
+	if strings.HasPrefix(contentType, "text/") || contentType == "application/json" || contentType == "application/xml" {
+		return EstimateTokens(string(artifactBytes))
+	}
+	// Binary artifacts do not carry meaningful text tokens; estimate from size
+	// so media outputs do not inherit arbitrary UTF-8 decoding artifacts.
+	return MaxInt64(1, int64(len(artifactBytes)+3)/4)
 }
 
 // EstimateUsage estimates usage stats from input/output text.

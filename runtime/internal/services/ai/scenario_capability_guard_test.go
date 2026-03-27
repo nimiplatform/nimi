@@ -149,7 +149,7 @@ func TestRequiredTextGenerateCapabilitiesTextOnly(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "just text"},
+				textPart("just text"),
 			},
 		},
 	}
@@ -163,11 +163,8 @@ func TestRequiredTextGenerateCapabilitiesWithImage(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-				},
+				textPart("describe"),
+				imagePart("https://example.com/img.png"),
 			},
 		},
 	}
@@ -188,11 +185,8 @@ func TestUnsupportedTextGeneratePartTypeImageOnlySupported(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-				},
+				textPart("describe"),
+				imagePart("https://example.com/img.png"),
 			},
 		},
 	}
@@ -206,10 +200,7 @@ func TestUnsupportedTextGeneratePartTypeVideoAccepted(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
-					VideoUrl: "https://example.com/demo.mp4",
-				},
+				videoPart("https://example.com/demo.mp4"),
 			},
 		},
 	}
@@ -241,11 +232,8 @@ func TestValidateTextGenerateInputPartsUnknownCatalogModelPasses(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "describe"},
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-				},
+				textPart("describe"),
+				imagePart("https://example.com/img.png"),
 			},
 		},
 	}
@@ -262,10 +250,7 @@ func TestValidateTextGenerateInputPartsNonVisionModelRejects(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-				},
+				imagePart("https://example.com/img.png"),
 			},
 		},
 	}
@@ -289,11 +274,8 @@ func TestValidateTextGenerateInputPartsRejectsVideoForNonVideoModel(t *testing.T
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Text: "watch this"},
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
-					VideoUrl: "https://example.com/demo.mp4",
-				},
+				textPart("watch this"),
+				videoPart("https://example.com/demo.mp4"),
 			},
 		},
 	}
@@ -317,10 +299,7 @@ func TestValidateTextGenerateInputPartsDelegatesImageVisionCheck(t *testing.T) {
 		{
 			Role: "user",
 			Parts: []*runtimev1.ChatContentPart{
-				{
-					Type:     runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
-					ImageUrl: &runtimev1.ChatContentImageURL{Url: "https://example.com/img.png"},
-				},
+				imagePart("https://example.com/img.png"),
 			},
 		},
 	}

@@ -58,23 +58,6 @@ func ExecuteGeminiOperation(
 	defaultMIME := ""
 	var computeMs int64
 	switch scenarioModal(req) {
-	case runtimev1.Modal_MODAL_IMAGE:
-		spec := scenarioImageSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		prompt = spec.GetPrompt()
-		defaultMIME = "image/png"
-		computeMs = 180
-		submitPayload["prompt"] = spec.GetPrompt()
-		submitPayload["negative_prompt"] = spec.GetNegativePrompt()
-		submitPayload["size"] = spec.GetSize()
-		submitPayload["aspect_ratio"] = spec.GetAspectRatio()
-		submitPayload["quality"] = spec.GetQuality()
-		submitPayload["style"] = spec.GetStyle()
-		submitPayload["response_format"] = spec.GetResponseFormat()
-		submitPayload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
-		submitPayload["mask"] = spec.GetMask()
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := scenarioVideoSpec(req)
 		if spec == nil {
@@ -159,6 +142,10 @@ func ExecuteGeminiOperation(
 		}
 		done := ValueAsBool(pollResp["done"])
 		if !done {
+			if providerPollRetryLimitReached(retryCount) {
+				updater.UpdatePollState(jobID, providerJobID, retryCount, nil, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT.String())
+				return nil, nil, providerJobID, providerPollTimeoutError()
+			}
 			updater.UpdatePollState(jobID, providerJobID, retryCount, timestamppb.New(time.Now().UTC().Add(500*time.Millisecond)), "")
 			time.Sleep(500 * time.Millisecond)
 			continue

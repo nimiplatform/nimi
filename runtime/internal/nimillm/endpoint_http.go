@@ -17,7 +17,7 @@ import (
 
 func newSecuredHTTPRequest(ctx context.Context, method string, targetURL string, body io.Reader) (*http.Client, *http.Request, error) {
 	allowLoopback := allowLoopbackForTargetURL(targetURL)
-	client, err := newSecuredHTTPClient(targetURL, allowLoopback)
+	client, err := newSecuredHTTPClient(ctx, targetURL, allowLoopback)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -28,11 +28,8 @@ func newSecuredHTTPRequest(ctx context.Context, method string, targetURL string,
 	return client, request, nil
 }
 
-func newSecuredHTTPClient(targetURL string, allowLoopback bool) (*http.Client, error) {
-	if err := endpointsec.ValidateEndpoint(targetURL, allowLoopback); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
-	}
-	transport, err := endpointsec.NewPinnedTransport(targetURL, allowLoopback)
+func newSecuredHTTPClient(ctx context.Context, targetURL string, allowLoopback bool) (*http.Client, error) {
+	transport, err := endpointsec.NewPinnedTransport(ctx, targetURL, allowLoopback)
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 	}

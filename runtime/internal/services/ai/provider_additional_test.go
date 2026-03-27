@@ -15,13 +15,6 @@ import (
 )
 
 func TestProviderHelpersAndRouteSelectorWrapper(t *testing.T) {
-	if got := normalizeFallbackText("   "); got != "empty input" {
-		t.Fatalf("unexpected normalized fallback text: %q", got)
-	}
-	if got := normalizeFallbackText("  ok "); got != "ok" {
-		t.Fatalf("unexpected trimmed fallback text: %q", got)
-	}
-
 	selector := newRouteSelector(Config{
 		LocalProviders: map[string]nimillm.ProviderCredentials{
 			"llama": {BaseURL: "http://127.0.0.1:18080/v1"},

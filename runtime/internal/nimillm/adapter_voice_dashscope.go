@@ -41,10 +41,13 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) map[string]any
 		ValueAsString(req.Payload["target_model_id"]),
 		ValueAsString(req.Payload["model"]),
 		ValueAsString(req.Payload["model_id"]),
+		ValueAsString(MapField(req.Payload["input"], "target_model")),
+		ValueAsString(MapField(req.Payload["input"], "target_model_id")),
 		req.ModelID,
 	))
 	name := strings.TrimSpace(FirstNonEmpty(
 		ValueAsString(req.Payload["preferred_name"]),
+		ValueAsString(MapField(req.Payload["input"], "preferred_name")),
 	))
 	safeName := normalizeDashScopePreferredName(name)
 	switch workflow {
@@ -52,9 +55,17 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) map[string]any
 		audioData := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(req.Payload["audio_url"]),
 			ValueAsString(req.Payload["reference_audio_uri"]),
+			ValueAsString(MapField(req.Payload["input"], "audio_url")),
+			ValueAsString(MapField(req.Payload["input"], "reference_audio_uri")),
 			buildDashScopeVoiceReferenceAudioData(
-				ValueAsString(req.Payload["reference_audio_mime"]),
-				ValueAsString(req.Payload["reference_audio_base64"]),
+				FirstNonEmpty(
+					ValueAsString(req.Payload["reference_audio_mime"]),
+					ValueAsString(MapField(req.Payload["input"], "reference_audio_mime")),
+				),
+				FirstNonEmpty(
+					ValueAsString(req.Payload["reference_audio_base64"]),
+					ValueAsString(MapField(req.Payload["input"], "reference_audio_base64")),
+				),
 			),
 		))
 		input := map[string]any{
@@ -76,13 +87,20 @@ func buildDashScopeVoiceWorkflowPayload(req VoiceWorkflowRequest) map[string]any
 		voicePrompt := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(req.Payload["instruction_text"]),
 			ValueAsString(req.Payload["description"]),
+			ValueAsString(MapField(req.Payload["input"], "instruction_text")),
+			ValueAsString(MapField(req.Payload["input"], "description")),
 		))
 		previewText := strings.TrimSpace(FirstNonEmpty(
 			ValueAsString(req.Payload["preview_text"]),
 			ValueAsString(req.Payload["text"]),
+			ValueAsString(MapField(req.Payload["input"], "preview_text")),
+			ValueAsString(MapField(req.Payload["input"], "text")),
 			voicePrompt,
 		))
-		language := strings.TrimSpace(ValueAsString(req.Payload["language"]))
+		language := strings.TrimSpace(FirstNonEmpty(
+			ValueAsString(req.Payload["language"]),
+			ValueAsString(MapField(req.Payload["input"], "language")),
+		))
 		input := map[string]any{
 			"action":       "create",
 			"target_model": targetModelID,

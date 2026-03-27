@@ -93,7 +93,7 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 		// If the preview response already contains a voice_ref, return it directly.
 		if voiceRef := extractVoiceWorkflowVoiceRef(previewResp); voiceRef != "" {
 			return VoiceWorkflowResult{
-				ProviderJobID:    strings.TrimSpace(ExtractTaskIDFromPayload(previewResp)),
+				ProviderJobID:    ExtractTaskIDFromAdapterPayload("voice:elevenlabs", previewResp),
 				ProviderVoiceRef: voiceRef,
 				Metadata: map[string]any{
 					"provider":          "elevenlabs",
@@ -140,7 +140,7 @@ func executeElevenLabsTwoPhaseDesign(ctx context.Context, req VoiceWorkflowReque
 			lastErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 			continue
 		}
-		providerJobID := strings.TrimSpace(ExtractTaskIDFromPayload(createResp))
+		providerJobID := ExtractTaskIDFromAdapterPayload("voice:elevenlabs", createResp)
 		return VoiceWorkflowResult{
 			ProviderJobID:    providerJobID,
 			ProviderVoiceRef: providerVoiceRef,
@@ -216,7 +216,7 @@ func executeElevenLabsInstantVoiceClone(ctx context.Context, req VoiceWorkflowRe
 			continue
 		}
 		return VoiceWorkflowResult{
-			ProviderJobID:    strings.TrimSpace(ExtractTaskIDFromPayload(response)),
+			ProviderJobID:    ExtractTaskIDFromAdapterPayload("voice:elevenlabs", response),
 			ProviderVoiceRef: providerVoiceRef,
 			Metadata: map[string]any{
 				"provider":          "elevenlabs",

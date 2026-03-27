@@ -82,10 +82,7 @@ func NewSecuredBackend(name string, baseURL string, apiKey string, timeout time.
 	if normalized == "" {
 		return nil
 	}
-	if err := endpointsec.ValidateEndpoint(normalized, allowLoopback); err != nil {
-		return nil
-	}
-	transport, err := endpointsec.NewPinnedTransport(normalized, allowLoopback)
+	transport, err := endpointsec.NewPinnedTransport(context.Background(), normalized, allowLoopback)
 	if err != nil {
 		return nil
 	}
@@ -189,7 +186,7 @@ func (b *Backend) Endpoint() string {
 
 func (b *Backend) newRequest(ctx context.Context, method string, endpoint string, body io.Reader) (*http.Request, error) {
 	if b.enforceEndpointSecurity {
-		if err := endpointsec.ValidateEndpoint(endpoint, b.allowLoopbackEndpoint); err != nil {
+		if err := endpointsec.ValidateEndpoint(ctx, endpoint, b.allowLoopbackEndpoint); err != nil {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 		}
 	}

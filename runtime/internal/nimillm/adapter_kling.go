@@ -27,7 +27,10 @@ func ExecuteKlingTask(
 	if baseURL == "" {
 		baseURL = "https://api.klingai.com"
 	}
-	apiKey := strings.TrimSpace(cfg.APIKey)
+	apiKey, err := requireProviderAPIKey(cfg.APIKey)
+	if err != nil {
+		return nil, nil, "", err
+	}
 
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
@@ -80,7 +83,7 @@ func executeKlingImageTask(
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
-	providerJobID := ExtractTaskIDFromPayload(submitResp)
+	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterKlingTask, submitResp)
 	if providerJobID == "" {
 		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 		if len(artifactBytes) == 0 {
@@ -150,7 +153,7 @@ func executeKlingVideoTask(
 	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, payload, &submitResp); err != nil {
 		return nil, nil, "", err
 	}
-	providerJobID := ExtractTaskIDFromPayload(submitResp)
+	providerJobID := ExtractTaskIDFromAdapterPayload(AdapterKlingTask, submitResp)
 	if providerJobID == "" {
 		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactBytesAndMIME(submitResp)
 		if len(artifactBytes) == 0 {
