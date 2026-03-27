@@ -228,4 +228,62 @@ describe('useRuntimeChatSession', () => {
     expect(container.querySelector('[data-testid="streaming"]')?.textContent).toBe('false');
     expect(container.querySelector('[data-testid="error"]')?.textContent).toBe('');
   });
+
+  it('drops overlapping sendPrompt calls while a stream is already starting', async () => {
+    let release: (() => void) | null = null;
+    const stream = vi.fn().mockResolvedValue({
+      stream: (async function* () {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        yield { type: 'delta', text: 'Only once' } as TextStreamPart;
+        yield { type: 'finish', finishReason: 'stop' } as TextStreamPart;
+      })(),
+    });
+    const runtime = {
+      ai: {
+        text: {
+          generate: vi.fn(),
+          stream,
+        },
+      },
+    } as unknown as Runtime;
+    let api: {
+      sendPrompt: (input: string) => Promise<void>;
+      resetMessages: (messages?: readonly RuntimeChatSessionMessage[]) => void;
+      cancelCurrent: () => void;
+    } | undefined;
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(<Harness runtime={runtime} onReady={(value) => { api = value as typeof api; }} />);
+      await flush();
+    });
+
+    await act(async () => {
+      container?.querySelector('button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      await flush();
+    });
+
+    const first = api?.sendPrompt('First prompt');
+    const second = api?.sendPrompt('Second prompt');
+
+    await act(async () => {
+      await flush();
+    });
+
+    expect(stream).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      release?.();
+      await Promise.all([first, second]);
+      await flush();
+    });
+
+    expect(container.querySelector('[data-testid="count"]')?.textContent).toBe('2');
+    expect(container.querySelector('[data-testid="last"]')?.textContent).toBe('Only once');
+  });
 });

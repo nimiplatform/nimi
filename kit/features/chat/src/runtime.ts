@@ -233,6 +233,7 @@ export function useRuntimeChatSession({
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesRef = useRef(messages);
+  const isStreamingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const commitMessages = useCallback((
@@ -252,6 +253,10 @@ export function useRuntimeChatSession({
     onMessagesChange?.(messages);
   }, [messages, onMessagesChange]);
 
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
   const clearError = useCallback(() => {
     setError(null);
   }, []);
@@ -260,6 +265,7 @@ export function useRuntimeChatSession({
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
     commitMessages([...nextMessages]);
+    isStreamingRef.current = false;
     setIsStreaming(false);
     setError(null);
   }, [commitMessages]);
@@ -271,7 +277,7 @@ export function useRuntimeChatSession({
   const sendPrompt = useCallback(async (input: string | RuntimeChatSessionSendInput) => {
     const payload = typeof input === 'string' ? { prompt: input } : input;
     const prompt = String(payload.prompt || '').trim();
-    if (!prompt || isStreaming) {
+    if (!prompt || isStreamingRef.current) {
       return;
     }
 
@@ -293,6 +299,7 @@ export function useRuntimeChatSession({
     const nextMessages = [...messagesRef.current, userMessage];
 
     commitMessages([...nextMessages, assistantPlaceholder]);
+    isStreamingRef.current = true;
     setIsStreaming(true);
     setError(null);
 
@@ -359,9 +366,10 @@ export function useRuntimeChatSession({
       onError?.(resolvedError);
     } finally {
       abortControllerRef.current = null;
+      isStreamingRef.current = false;
       setIsStreaming(false);
     }
-  }, [commitMessages, isStreaming, onError, resolveRequest, runtimeClient]);
+  }, [commitMessages, onError, resolveRequest, runtimeClient]);
 
   return {
     messages,

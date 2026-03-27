@@ -1,11 +1,24 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { useCallback, useState } from 'react';
-import { ScenarioJobStatus, type Runtime } from '@nimiplatform/sdk/runtime';
+import {
+  ScenarioJobStatus,
+  type Runtime,
+  type ScenarioJobSubmitInput,
+} from '@nimiplatform/sdk/runtime';
 import { useGenerationPanel, type UseGenerationPanelResult } from './hooks/use-generation-panel.js';
 import type { GenerationRunItem } from './types.js';
-export type RuntimeGenerationSubmitRequest = Parameters<Runtime['media']['jobs']['submit']>[0];
-export type RuntimeScenarioJob = Awaited<ReturnType<Runtime['media']['jobs']['submit']>>;
-export type RuntimeScenarioArtifact = Awaited<ReturnType<Runtime['media']['jobs']['getArtifacts']>>['artifacts'][number];
+export type RuntimeGenerationSubmitRequest = ScenarioJobSubmitInput;
+export type RuntimeScenarioJob = {
+  jobId: string;
+  status: ScenarioJobStatus;
+  reasonDetail?: string | null;
+};
+export type RuntimeScenarioArtifact = {
+  artifactId?: string;
+  mimeType?: string;
+  text?: string;
+  bytes?: Uint8Array;
+};
 export type RuntimeGenerationMappedStatus = 'pending' | 'running' | 'completed' | 'failed' | 'timeout' | 'canceled';
 
 export type RuntimeGenerationJobResult = {

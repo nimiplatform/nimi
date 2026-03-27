@@ -20,6 +20,10 @@ function isSensitiveKey(key: string): boolean {
   }
   return normalized === 'authorization'
     || normalized === 'cookie'
+    || normalized.includes('email')
+    || normalized.includes('phone')
+    || normalized.includes('mobile')
+    || normalized.includes('address')
     || normalized.includes('bearer')
     || normalized.includes('credential')
     || normalized.includes('jwt')

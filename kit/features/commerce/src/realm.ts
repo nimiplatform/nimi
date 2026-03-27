@@ -1,4 +1,5 @@
 import { getPlatformClient } from '@nimiplatform/sdk';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useMemo } from 'react';
 import {
   normalizeCommerceGiftCatalog,
@@ -22,16 +23,10 @@ function realm() {
   return getPlatformClient().realm;
 }
 
-type EconomyGiftService = ReturnType<typeof realm>['services']['EconomyCurrencyGiftsService'];
-
-export type RealmGiftCatalogResponse =
-  Awaited<ReturnType<EconomyGiftService['economyControllerGetGiftCatalog']>>;
-export type RealmSendGiftInput =
-  Parameters<EconomyGiftService['economyControllerSendGift']>[0];
-export type RealmReceivedGiftsResponse =
-  Awaited<ReturnType<EconomyGiftService['economyControllerGetReceivedGifts']>>;
-export type RealmRejectGiftInput =
-  Parameters<EconomyGiftService['economyControllerRejectGift']>[1];
+export type RealmGiftCatalogResponse = RealmModel<'GiftCatalogItemDto'>[];
+export type RealmSendGiftInput = RealmModel<'SendGiftDto'>;
+export type RealmReceivedGiftsResponse = RealmModel<'ReceivedGiftsResponseDto'>;
+export type RealmRejectGiftInput = RealmModel<'RejectGiftDto'>;
 
 export type RealmCommerceGiftService = {
   listGiftCatalog: () => Promise<RealmGiftCatalogResponse>;
