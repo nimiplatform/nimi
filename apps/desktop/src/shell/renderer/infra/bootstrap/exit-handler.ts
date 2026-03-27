@@ -1,4 +1,5 @@
 import { dataSync } from '@runtime/data-sync';
+import { hasTauriRuntime, listenTauri } from '@runtime/tauri-api';
 import { completeMenuBarQuit, stopRuntimeBridge } from '@renderer/bridge';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { stopAuthStateWatcher } from './auth-state-watcher';
@@ -11,8 +12,7 @@ export function registerExitHandler(options: { managed: boolean }) {
   }
   registered = true;
 
-  const tauriEvent = window.__TAURI__?.event;
-  if (!tauriEvent?.listen) {
+  if (!hasTauriRuntime()) {
     logRendererEvent({
       level: 'warn',
       area: 'exit-handler',
@@ -21,7 +21,7 @@ export function registerExitHandler(options: { managed: boolean }) {
     return;
   }
 
-  tauriEvent.listen('menu-bar://quit-requested', async () => {
+  void listenTauri('menu-bar://quit-requested', async () => {
     logRendererEvent({
       level: 'info',
       area: 'exit-handler',

@@ -83,3 +83,51 @@ test('toBridgeNimiError preserves structured payload fields and adds userMessage
     'AI provider request timed out.',
   );
 });
+
+test('toBridgeNimiError maps DESKTOP_HTTP_METHOD_INVALID reason code', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: 'DESKTOP_HTTP_METHOD_INVALID',
+    message: 'unsupported request method: TRACE',
+  }));
+  assert.equal(error.reasonCode, 'DESKTOP_HTTP_METHOD_INVALID');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Unsupported request method. Please review the request configuration.',
+  );
+});
+
+test('toBridgeNimiError maps DESKTOP_HTTP_URL_SCHEME_INVALID reason code', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: 'DESKTOP_HTTP_URL_SCHEME_INVALID',
+    message: 'unsupported URL scheme: ftp',
+  }));
+  assert.equal(error.reasonCode, 'DESKTOP_HTTP_URL_SCHEME_INVALID');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Invalid request URL. Please review the configuration.',
+  );
+});
+
+test('toBridgeNimiError maps DESKTOP_HTTP_PAYLOAD_INVALID reason code', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: 'DESKTOP_HTTP_PAYLOAD_INVALID',
+    message: 'proxyHttp payload must be an object',
+  }));
+  assert.equal(error.reasonCode, 'DESKTOP_HTTP_PAYLOAD_INVALID');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Request payload is invalid. Please try again.',
+  );
+});
+
+test('toBridgeNimiError maps DESKTOP_HTTP_FETCH_UNAVAILABLE reason code', () => {
+  const error = toBridgeNimiError(JSON.stringify({
+    reasonCode: 'DESKTOP_HTTP_FETCH_UNAVAILABLE',
+    message: 'native fetch is unavailable in the current environment',
+  }));
+  assert.equal(error.reasonCode, 'DESKTOP_HTTP_FETCH_UNAVAILABLE');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'This feature is not available in the current environment.',
+  );
+});

@@ -1,3 +1,4 @@
+import { listenTauri } from '@runtime/tauri-api';
 import { hasTauriInvoke } from './env';
 import { invoke, invokeChecked } from './invoke';
 import {
@@ -43,11 +44,10 @@ const RUNTIME_MOD_SOURCE_CHANGED_EVENT = 'runtime-mod://source-changed';
 const RUNTIME_MOD_RELOAD_RESULT_EVENT = 'runtime-mod://reload-result';
 
 function resolveTauriEventListen(): ((eventName: string, handler: (event: { payload: unknown }) => void) => TauriListenResult) | null {
-  const listenFn = window.__TAURI__?.event?.listen;
-  if (typeof listenFn !== 'function') {
+  if (!hasTauriInvoke()) {
     return null;
   }
-  return listenFn.bind(window.__TAURI__?.event);
+  return listenTauri;
 }
 
 export async function listRuntimeLocalModManifests(): Promise<RuntimeLocalManifestSummary[]> {

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { getShellFeatureFlags } from '@nimiplatform/nimi-kit/core/shell-mode';
+import { hasTauriRuntime, listenTauri } from '@runtime/tauri-api';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import {
   loadRuntimeConfigStateV11,
@@ -19,11 +20,10 @@ type TauriEventUnsubscribe = () => void;
 type TauriListenResult = Promise<TauriEventUnsubscribe | undefined> | TauriEventUnsubscribe | undefined;
 
 function resolveTauriEventListen(): ((eventName: string, handler: (event: { payload: unknown }) => void) => TauriListenResult) | null {
-  const listenFn = window.__TAURI__?.event?.listen;
-  if (typeof listenFn !== 'function') {
+  if (!hasTauriRuntime()) {
     return null;
   }
-  return listenFn.bind(window.__TAURI__?.event);
+  return listenTauri;
 }
 
 function asOpenTabPayload(value: unknown): MenuBarOpenTabEvent {

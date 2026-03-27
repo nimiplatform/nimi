@@ -76,3 +76,24 @@ test('web proxy http fallback still rejects non-loopback private network targets
     globalThis.fetch = originalFetch;
   }
 });
+
+test('web proxy http fallback rejects off-origin https targets outside explicit loopback', async () => {
+  const originalFetch = globalThis.fetch;
+  setWindowOrigin('https://app.nimi.example');
+  globalThis.fetch = (async () => {
+    throw new Error('fetch should not be reached for off-origin https requests');
+  }) as typeof fetch;
+
+  try {
+    const { proxyHttp } = await import(`../src/shell/renderer/bridge/runtime-bridge/http.ts?https-origin-block=${Date.now()}`);
+    await assert.rejects(
+      () => proxyHttp({
+        url: 'https://api.third-party.example/v1/data',
+        method: 'GET',
+      }),
+      /Web fallback 仅允许同源或显式 loopback 请求/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

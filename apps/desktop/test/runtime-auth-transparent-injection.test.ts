@@ -18,8 +18,16 @@ type TauriRuntime = {
 };
 
 type MutableGlobalTauri = Record<string, unknown> & {
-  __TAURI__?: TauriRuntime;
-  window?: Record<string, unknown> & { __TAURI__?: TauriRuntime };
+  __NIMI_TAURI_TEST__?: {
+    invoke?: TauriRuntime['core']['invoke'];
+    listen?: TauriRuntime['event']['listen'];
+  };
+  window?: Record<string, unknown> & {
+    __NIMI_TAURI_TEST__?: {
+      invoke?: TauriRuntime['core']['invoke'];
+      listen?: TauriRuntime['event']['listen'];
+    };
+  };
 };
 
 function toBase64Url(input: string): string {
@@ -50,7 +58,7 @@ function unwrapPayload(payload: unknown): Record<string, unknown> {
 
 function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
   const target = globalThis as unknown as MutableGlobalTauri;
-  const previousRoot = target.__TAURI__;
+  const previousRoot = target.__NIMI_TAURI_TEST__;
   const previousWindow = target.window;
   const runtime: TauriRuntime = {
     core: {
@@ -68,15 +76,15 @@ function installTauriRuntime(calls: TauriInvokeCall[]): () => void {
   };
 
   const windowObject = previousWindow || {};
-  windowObject.__TAURI__ = runtime;
-  target.__TAURI__ = runtime;
+  windowObject.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
+  target.__NIMI_TAURI_TEST__ = { invoke: runtime.core.invoke, listen: runtime.event.listen };
   target.window = windowObject;
 
   return () => {
     if (typeof previousRoot === 'undefined') {
-      delete target.__TAURI__;
+      delete target.__NIMI_TAURI_TEST__;
     } else {
-      target.__TAURI__ = previousRoot;
+      target.__NIMI_TAURI_TEST__ = previousRoot;
     }
 
     if (typeof previousWindow === 'undefined') {

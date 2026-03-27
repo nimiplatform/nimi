@@ -6,7 +6,6 @@ type LogRendererEvent = (typeof import('@renderer/infra/telemetry/renderer-log')
 type UseAppStore = (typeof import('@renderer/app-shell/providers/app-store'))['useAppStore'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/nimi-kit/auth'))['clearPersistedAccessToken'];
 type LoadPersistedAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['loadPersistedAuthSession'];
-type LoadPersistedAccessToken = (typeof import('@nimiplatform/nimi-kit/auth'))['loadPersistedAccessToken'];
 type PersistAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['persistAuthSession'];
 
 type RuntimeBootstrapWebDeps = {
@@ -18,7 +17,6 @@ type RuntimeBootstrapWebDeps = {
   useAppStore: UseAppStore;
   clearPersistedAccessToken: ClearPersistedAccessToken;
   loadPersistedAuthSession: LoadPersistedAuthSession;
-  loadPersistedAccessToken: LoadPersistedAccessToken;
   persistAuthSession: PersistAuthSession;
 };
 
@@ -57,7 +55,6 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       useAppStore: appStoreModule.useAppStore,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
       loadPersistedAuthSession: authStorageModule.loadPersistedAuthSession,
-      loadPersistedAccessToken: authStorageModule.loadPersistedAccessToken,
       persistAuthSession: authStorageModule.persistAuthSession,
     };
   })();
@@ -176,9 +173,8 @@ export function bootstrapRuntime(): Promise<void> {
     });
 
     const defaults = await deps.desktopBridge.getRuntimeDefaults();
-    const fallbackToken = String(deps.loadPersistedAccessToken() || '').trim();
     const refreshToken = '';
-    const accessToken = fallbackToken || String(defaults.realm.accessToken || '').trim();
+    const accessToken = String(defaults.realm.accessToken || '').trim();
     const proxyFetch = deps.createProxyFetch();
     deps.useAppStore.getState().setRuntimeDefaults(defaults);
 

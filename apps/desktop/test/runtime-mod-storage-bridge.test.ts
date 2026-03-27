@@ -24,17 +24,15 @@ function installTauriInvokeMock(
   handler: (command: string, payload?: unknown) => Promise<unknown> | unknown,
 ): () => void {
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__TAURI__;
-  globalRecord.__TAURI__ = {
-    core: {
-      invoke: handler,
-    },
+  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
+  globalRecord.__NIMI_TAURI_TEST__ = {
+    invoke: handler,
   };
   return () => {
     if (typeof previousTauri === 'undefined') {
-      delete globalRecord.__TAURI__;
+      delete globalRecord.__NIMI_TAURI_TEST__;
     } else {
-      globalRecord.__TAURI__ = previousTauri;
+      globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
     }
   };
 }

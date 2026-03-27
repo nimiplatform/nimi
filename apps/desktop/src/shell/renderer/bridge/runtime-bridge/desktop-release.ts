@@ -1,3 +1,4 @@
+import { listenTauri } from '@runtime/tauri-api';
 import { hasTauriInvoke } from './env';
 import { invokeChecked } from './invoke';
 import {
@@ -15,11 +16,10 @@ type TauriListenResult = Promise<TauriEventUnsubscribe | undefined> | TauriEvent
 const DESKTOP_UPDATE_STATE_EVENT = 'desktop-update://state';
 
 function resolveTauriEventListen(): ((eventName: string, handler: (event: { payload: unknown }) => void) => TauriListenResult) | null {
-  const listenFn = window.__TAURI__?.event?.listen;
-  if (typeof listenFn !== 'function') {
+  if (!hasTauriInvoke()) {
     return null;
   }
-  return listenFn.bind(window.__TAURI__?.event);
+  return listenTauri;
 }
 
 export async function getDesktopReleaseInfo(): Promise<DesktopReleaseInfo> {

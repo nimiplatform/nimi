@@ -1,3 +1,5 @@
+import { hasTauriRuntime } from '@runtime/tauri-api';
+
 export const nativeFetch =
   typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : null;
 
@@ -45,5 +47,5 @@ export function shouldForwardRendererLogLevel(level: 'debug' | 'info' | 'warn' |
 }
 
 export function hasTauriInvoke() {
-  return typeof window.__TAURI__?.core?.invoke === 'function';
+  return hasTauriRuntime();
 }

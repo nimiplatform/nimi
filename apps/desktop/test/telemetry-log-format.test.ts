@@ -31,12 +31,14 @@ if (typeof globalThis.sessionStorage === 'undefined') {
 }
 
 function withTauriInvoke(invokeImpl: TauriInvoke): void {
+  const globalRecord = globalThis as unknown as Record<string, unknown>;
   const windowRecord = globalThis.window as unknown as Record<string, unknown>;
-  windowRecord.__TAURI__ = {
-    core: {
-      invoke: invokeImpl,
-    },
+  const testHook = {
+    invoke: invokeImpl,
+    listen: async () => () => {},
   };
+  globalRecord.__NIMI_TAURI_TEST__ = testHook;
+  windowRecord.__NIMI_TAURI_TEST__ = testHook;
 }
 
 function clearTelemetryTestState(): void {
@@ -46,7 +48,8 @@ function clearTelemetryTestState(): void {
   resetRendererTelemetryStateForTest();
   (globalThis.sessionStorage as { clear?: () => void }).clear?.();
   delete globalRecord.__NIMI_RENDERER_ENV__;
-  delete windowRecord.__TAURI__;
+  delete globalRecord.__NIMI_TAURI_TEST__;
+  delete windowRecord.__NIMI_TAURI_TEST__;
   delete windowRecord.__NIMI_HTML_BOOT_ID__;
 }
 

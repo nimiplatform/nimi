@@ -1,3 +1,4 @@
+import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { assertRecord } from './shared.js';
 import { hasTauriInvoke, nativeFetch } from './env';
 import { invokeChecked } from './invoke';
@@ -10,6 +11,15 @@ import {
   OauthTokenExchangeResult,
 } from './types';
 
+function createDesktopOauthError(reasonCode: string, message: string) {
+  return createNimiError({
+    message,
+    reasonCode,
+    actionHint: 'check_desktop_bridge_config',
+    source: 'runtime',
+  });
+}
+
 export async function oauthTokenExchange(
   payload: OauthTokenExchangePayload,
 ): Promise<OauthTokenExchangeResult> {
@@ -17,12 +27,12 @@ export async function oauthTokenExchange(
   const clientId = String(payload.clientId || '').trim();
   const code = String(payload.code || '').trim();
   if (!tokenUrl || !clientId || !code) {
-    throw new Error('tokenUrl/clientId/code 不能为空');
+    throw createDesktopOauthError('DESKTOP_OAUTH_TOKEN_EXCHANGE_INPUT_INVALID', 'tokenUrl, clientId, and code are required');
   }
 
   if (!hasTauriInvoke()) {
     if (!nativeFetch) {
-      throw new Error('当前环境不支持 OAuth token exchange');
+      throw createDesktopOauthError('DESKTOP_OAUTH_TOKEN_EXCHANGE_UNAVAILABLE', 'OAuth token exchange is unavailable in the current environment');
     }
     const form = new URLSearchParams();
     form.set('grant_type', 'authorization_code');
@@ -59,7 +69,7 @@ export async function oauthTokenExchange(
     const parsed = assertRecord(JSON.parse(body), 'oauth_token_exchange returned invalid JSON payload');
     const accessToken = String(parsed.access_token || '').trim();
     if (!accessToken) {
-      throw new Error('OAuth token 响应缺少 access_token');
+      throw createDesktopOauthError('DESKTOP_OAUTH_TOKEN_EXCHANGE_RESPONSE_INVALID', 'OAuth token response is missing access_token');
     }
     return parseOauthTokenExchangeResult({
       accessToken,
@@ -89,11 +99,11 @@ export async function oauthListenForCode(
 ): Promise<OauthListenForCodeResult> {
   const redirectUri = String(payload.redirectUri || '').trim();
   if (!redirectUri) {
-    throw new Error('redirectUri 不能为空');
+    throw createDesktopOauthError('DESKTOP_OAUTH_REDIRECT_URI_REQUIRED', 'redirectUri is required');
   }
 
   if (!hasTauriInvoke()) {
-    throw new Error('oauth_listen_for_code 仅支持 Tauri 运行时');
+    throw createDesktopOauthError('DESKTOP_OAUTH_LISTEN_UNAVAILABLE', 'oauth_listen_for_code requires the Tauri runtime');
   }
 
   return invokeChecked('oauth_listen_for_code', {

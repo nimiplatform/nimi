@@ -1,3 +1,4 @@
+import { invokeTauri } from '@runtime/tauri-api';
 import {
   hasTauriInvoke,
   RENDERER_DEBUG_ENABLED,
@@ -226,13 +227,8 @@ export async function emitRendererLog(payload: RendererLogPayload): Promise<void
     return;
   }
 
-  const invokeFn = window.__TAURI__?.core?.invoke;
-  if (typeof invokeFn !== 'function') {
-    return;
-  }
-
   try {
-    await invokeFn('log_renderer_event', {
+    await invokeTauri('log_renderer_event', {
       payload: normalized,
     });
   } catch (error) {

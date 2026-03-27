@@ -1,17 +1,4 @@
-type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
-type TauriCore = {
-  invoke?: TauriInvoke;
-};
-type TauriLikeGlobal = {
-  window?: {
-    __TAURI__?: {
-      core?: TauriCore;
-    };
-  };
-  __TAURI__?: {
-    core?: TauriCore;
-  };
-};
+import { hasTauriInvoke, invokeTauri } from '../tauri-api';
 
 type RuntimeAuditRecord = {
   id: string;
@@ -125,21 +112,11 @@ export type RuntimeModStorageSqliteExecuteResult = {
   lastInsertRowid: number;
 };
 
-function readGlobalTauriInvoke(): TauriInvoke | null {
-  const value = globalThis as TauriLikeGlobal;
-  const windowCore = value.window?.__TAURI__?.core;
-  const fromWindow = windowCore?.invoke;
-  if (typeof fromWindow === 'function') {
-    return fromWindow.bind(windowCore);
+function readGlobalTauriInvoke() {
+  if (!hasTauriInvoke()) {
+    return null;
   }
-
-  const globalCore = value.__TAURI__?.core;
-  const fromGlobal = globalCore?.invoke;
-  if (typeof fromGlobal === 'function') {
-    return fromGlobal.bind(globalCore);
-  }
-
-  return null;
+  return invokeTauri;
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -218,7 +195,7 @@ function parseStorageSqliteExecuteResult(value: unknown): RuntimeModStorageSqlit
 }
 
 export function hasRuntimeStoreInvoke() {
-  return Boolean(readGlobalTauriInvoke());
+  return hasTauriInvoke();
 }
 
 export async function appendRuntimeAudit(record: RuntimeAuditRecord): Promise<void> {

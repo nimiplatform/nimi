@@ -1,3 +1,4 @@
+import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { assertRecord, parseOptionalJsonObject } from './shared.js';
 import { hasTauriInvoke, nativeFetch } from './env';
 import { invokeChecked } from './invoke';
@@ -17,6 +18,15 @@ type ProxyHttpResult = {
   headers: Record<string, string>;
   body: string;
 };
+
+function createDesktopBridgeError(reasonCode: string, message: string) {
+  return createNimiError({
+    message,
+    reasonCode,
+    actionHint: 'check_desktop_bridge_config',
+    source: 'runtime',
+  });
+}
 
 function parseProxyHttpResult(value: unknown): ProxyHttpResult {
   const record = assertRecord(value, 'http_request returned invalid payload');
@@ -157,13 +167,13 @@ function resolveFallbackFetchUrl(url: URL, runtimeOrigin: string, allowSameMachi
 
 async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpResult> {
   if (!payload || typeof payload !== 'object') {
-    throw new Error('请求载荷无效');
+    throw createDesktopBridgeError('DESKTOP_HTTP_PAYLOAD_INVALID', 'proxyHttp payload must be an object');
   }
 
   const method = typeof payload.method === 'string' ? payload.method.toUpperCase() : 'GET';
   const rawUrl = String(payload.url || '').trim();
   if (!rawUrl) {
-    throw new Error('请求地址为空');
+    throw createDesktopBridgeError('DESKTOP_HTTP_URL_REQUIRED', 'proxyHttp request URL is required');
   }
   const runtimeBaseUrl =
     typeof window !== 'undefined' && window.location
@@ -171,14 +181,18 @@ async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpRe
       : 'http://localhost';
   const url = new URL(rawUrl, runtimeBaseUrl);
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new Error(`不支持的协议：${url.protocol}`);
+    throw createDesktopBridgeError('DESKTOP_HTTP_URL_SCHEME_INVALID', `unsupported URL scheme: ${url.protocol}`);
   }
   const runtimeUrl = new URL(runtimeBaseUrl);
   const runtimeOrigin = runtimeUrl.origin;
+  const isSameOriginRequest = url.origin === runtimeOrigin;
   const isLoopbackToLoopbackRequest =
     isLoopbackHost(runtimeUrl.hostname) && isLoopbackHost(url.hostname);
   if (url.origin !== runtimeOrigin && isPrivateNetworkHost(url.hostname) && !isLoopbackToLoopbackRequest) {
     throw new Error(`禁止访问私有网络地址：${url.hostname}`);
+  }
+  if (!isSameOriginRequest && !isLoopbackToLoopbackRequest) {
+    throw new Error(`Web fallback 仅允许同源或显式 loopback 请求：${url.origin}`);
   }
   const { headers, authorization } = splitAuthorization(payload.headers, payload.authorization);
 
@@ -197,7 +211,7 @@ async function proxyHttpFallback(payload: ProxyHttpPayload): Promise<ProxyHttpRe
   }
 
   if (!nativeFetch) {
-    throw new Error('当前环境不支持 fetch');
+    throw createDesktopBridgeError('DESKTOP_HTTP_FETCH_UNAVAILABLE', 'native fetch is unavailable in the current environment');
   }
   const response = await nativeFetch(
     resolveFallbackFetchUrl(url, runtimeOrigin, isLoopbackToLoopbackRequest),

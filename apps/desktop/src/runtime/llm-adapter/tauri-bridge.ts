@@ -1,46 +1,14 @@
-type TauriInvoke = (command: string, payload?: unknown) => Promise<unknown>;
-type TauriCore = {
-  invoke?: TauriInvoke;
-};
-type TauriLikeGlobal = {
-  window?: {
-    __TAURI__?: {
-      core?: TauriCore;
-    };
-  };
-  __TAURI__?: {
-    core?: TauriCore;
-  };
-};
-
-function readGlobalTauriInvoke(): TauriInvoke | null {
-  const value = globalThis as TauriLikeGlobal;
-  const windowCore = value.window?.__TAURI__?.core;
-  const fromWindow = windowCore?.invoke;
-  if (typeof fromWindow === 'function') {
-    return fromWindow.bind(windowCore);
-  }
-
-  const globalCore = value.__TAURI__?.core;
-  const fromGlobal = globalCore?.invoke;
-  if (typeof fromGlobal === 'function') {
-    return fromGlobal.bind(globalCore);
-  }
-
-  return null;
-}
+import { hasTauriInvoke as hasTauriRuntime, invokeTauri } from '../tauri-api';
 
 export function hasTauriInvoke() {
-  return Boolean(readGlobalTauriInvoke());
+  return hasTauriRuntime();
 }
 
 export async function tauriInvoke<T>(command: string, payload: unknown = {}): Promise<T> {
-  const invoke = readGlobalTauriInvoke();
-  if (!invoke) {
+  if (!hasTauriRuntime()) {
     throw new Error(`Tauri invoke unavailable for command: ${command}`);
   }
-
-  return (await invoke(command, payload)) as T;
+  return await invokeTauri<T>(command, payload);
 }
 
 export type RuntimeModMediaCachePutInput = {
@@ -111,8 +79,7 @@ function parseMediaCacheGcResult(value: unknown): RuntimeModMediaCacheGcResult |
 export async function runtimeModMediaCachePut(
   input: RuntimeModMediaCachePutInput,
 ): Promise<RuntimeModMediaCachePutResult> {
-  const invoke = readGlobalTauriInvoke();
-  if (!invoke) {
+  if (!hasTauriRuntime()) {
     throw new Error('RUNTIME_MOD_MEDIA_CACHE_UNAVAILABLE');
   }
   const mimeType = String(input.mimeType || '').trim();
@@ -120,7 +87,7 @@ export async function runtimeModMediaCachePut(
     throw new Error('RUNTIME_MOD_MEDIA_CACHE_MIME_TYPE_REQUIRED');
   }
   try {
-    const result = await invoke('runtime_mod_media_cache_put', {
+    const result = await invokeTauri('runtime_mod_media_cache_put', {
       payload: {
         mediaBase64: String(input.mediaBase64 || '').trim(),
         mimeType,
@@ -141,12 +108,11 @@ export async function runtimeModMediaCachePut(
 }
 
 export async function runtimeModMediaCacheGc(maxAgeSeconds?: number): Promise<RuntimeModMediaCacheGcResult | null> {
-  const invoke = readGlobalTauriInvoke();
-  if (!invoke) {
+  if (!hasTauriRuntime()) {
     return null;
   }
   try {
-    const result = await invoke('runtime_mod_media_cache_gc', {
+    const result = await invokeTauri('runtime_mod_media_cache_gc', {
       payload: typeof maxAgeSeconds === 'number' && Number.isFinite(maxAgeSeconds)
         ? { maxAgeSeconds: Math.max(1, Math.floor(maxAgeSeconds)) }
         : {},

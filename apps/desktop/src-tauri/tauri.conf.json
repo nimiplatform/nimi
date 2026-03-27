@@ -10,7 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
+    "withGlobalTauri": false,
     "windows": [
       {
         "label": "main",
@@ -31,7 +31,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; media-src 'self' data: blob: file:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws: wss: ws://127.0.0.1:* ws://localhost:*;"
+      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; media-src 'self' data: blob: file:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*;"
     }
   },
   "bundle": {
@@ -55,7 +55,6 @@
       }
     },
     "updater": {
-      "pubkey": "dev-placeholder",
       "endpoints": [],
       "windows": {
         "installMode": "passive"

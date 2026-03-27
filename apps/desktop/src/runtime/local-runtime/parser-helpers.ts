@@ -1,5 +1,6 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { hasTauriInvoke, tauriInvoke } from '../llm-adapter/tauri-bridge';
+import { listenTauri } from '../tauri-api';
 import { emitRuntimeLog } from '../telemetry/logger';
 import type { LocalRuntimeWriteOptions } from './types';
 import { asRecord, asString } from './parser-primitives';
@@ -58,29 +59,10 @@ export function asPlainObject(value: unknown): Record<string, unknown> | undefin
 }
 
 export function readGlobalTauriEventListen(): TauriEventListen | null {
-  const value = globalThis as {
-    window?: {
-      __TAURI__?: {
-        event?: {
-          listen?: TauriEventListen;
-        };
-      };
-    };
-    __TAURI__?: {
-      event?: {
-        listen?: TauriEventListen;
-      };
-    };
-  };
-  const fromWindow = value.window?.__TAURI__?.event?.listen;
-  if (typeof fromWindow === 'function') {
-    return fromWindow.bind(value.window?.__TAURI__?.event);
+  if (!hasTauriInvoke()) {
+    return null;
   }
-  const fromGlobal = value.__TAURI__?.event?.listen;
-  if (typeof fromGlobal === 'function') {
-    return fromGlobal.bind(value.__TAURI__?.event);
-  }
-  return null;
+  return listenTauri;
 }
 
 export function normalizeCaller(caller: LocalRuntimeWriteOptions['caller']): string {

@@ -100,4 +100,12 @@ describe('D-ERR-011: toBridgeNimiError structured field extraction in invoke.ts'
       'toBridgeNimiError must extract rawMessage field (D-ERR-011)',
     );
   });
+
+  test('D-ERR-011: invoke.ts no longer relies on env_http Chinese regex fallbacks', () => {
+    assert.doesNotMatch(
+      invokeSource,
+      /不支持的协议|当前环境不支持|请求载荷无效/,
+      'invoke.ts should prefer structured desktop bridge reason codes over env_http Chinese regex matching',
+    );
+  });
 });

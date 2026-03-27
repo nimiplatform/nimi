@@ -1,6 +1,7 @@
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
+import { toAuthUserRecord } from '@renderer/features/auth/auth-session-utils';
 import { safeErrorMessage } from './runtime-bootstrap-utils';
 
 function isExpectedUnauthorizedAutoLogin(error: unknown): boolean {
@@ -21,7 +22,7 @@ export async function bootstrapAuthSession(input: {
   try {
     const user = await dataSync.loadCurrentUser();
     useAppStore.getState().setAuthSession(
-      (user && typeof user === 'object' ? (user as Record<string, unknown>) : null),
+      toAuthUserRecord(user),
       envToken,
     );
     await Promise.allSettled([

@@ -59,19 +59,23 @@ function installRendererGlobals(): () => void {
 test('shell telemetry sanitizeLogDetails recursively redacts sensitive keys', () => {
   const details = sanitizeLogDetails({
     email: 'user@example.com',
+    phoneNumber: '+1-555-0100',
     accessToken: 'secret-token',
     sessionTraceId: 'trace-123',
     nested: {
       password: 'plaintext',
       items: [
-        { refreshToken: 'refresh-secret' },
+        { refreshToken: 'refresh-secret', shippingAddress: '1 Main St' },
       ],
     },
   });
+  assert.equal(details.email, '[REDACTED]');
+  assert.equal(details.phoneNumber, '[REDACTED]');
   assert.equal(details.accessToken, '[REDACTED]');
   assert.equal(details.sessionTraceId, 'trace-123');
   assert.equal((details.nested as { password?: string }).password, '[REDACTED]');
-  assert.equal(((details.nested as { items?: Array<{ refreshToken?: string }> }).items?.[0])?.refreshToken, '[REDACTED]');
+  assert.equal(((details.nested as { items?: Array<{ refreshToken?: string; shippingAddress?: string }> }).items?.[0])?.refreshToken, '[REDACTED]');
+  assert.equal(((details.nested as { items?: Array<{ refreshToken?: string; shippingAddress?: string }> }).items?.[0])?.shippingAddress, '[REDACTED]');
 });
 
 test('shell telemetry sanitizeLogDetails handles circular objects without raw leakage', () => {

@@ -1,5 +1,6 @@
 import { asNimiError, createNimiError, isNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode, type NimiError } from '@nimiplatform/sdk/types';
+import { invokeTauri } from '@runtime/tauri-api';
 import { i18n } from '@renderer/i18n';
 import { hasTauriInvoke } from './env';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from './logging';
@@ -37,6 +38,18 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
   LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_DOWNLOAD_SESSION_NOT_FOUND', defaultValue: 'Download session was not found. Refresh and try again.' },
   LOCAL_LIFECYCLE_WRITE_DENIED: { key: 'BridgeErrors.codes.LOCAL_LIFECYCLE_WRITE_DENIED', defaultValue: 'The current source is not allowed to perform local model lifecycle writes.' },
   RUNTIME_ROUTE_CAPABILITY_MISMATCH: { key: 'BridgeErrors.codes.RUNTIME_ROUTE_CAPABILITY_MISMATCH', defaultValue: 'The current route is bound to a model with incompatible capabilities. Switch to a matching model.' },
+  DESKTOP_HTTP_PAYLOAD_INVALID: { key: 'BridgeErrors.codes.DESKTOP_HTTP_PAYLOAD_INVALID', defaultValue: 'Request payload is invalid. Please try again.' },
+  DESKTOP_HTTP_METHOD_INVALID: { key: 'BridgeErrors.codes.DESKTOP_HTTP_METHOD_INVALID', defaultValue: 'Unsupported request method. Please review the request configuration.' },
+  DESKTOP_HTTP_URL_REQUIRED: { key: 'BridgeErrors.codes.DESKTOP_HTTP_URL_REQUIRED', defaultValue: 'Request URL is required. Please review the request configuration.' },
+  DESKTOP_HTTP_URL_SCHEME_INVALID: { key: 'BridgeErrors.codes.DESKTOP_HTTP_URL_SCHEME_INVALID', defaultValue: 'Invalid request URL. Please review the configuration.' },
+  DESKTOP_HTTP_URL_HOST_MISSING: { key: 'BridgeErrors.codes.DESKTOP_HTTP_URL_HOST_MISSING', defaultValue: 'Request URL is missing a host. Please review the configuration.' },
+  DESKTOP_HTTP_HEADER_RESTRICTED: { key: 'BridgeErrors.codes.DESKTOP_HTTP_HEADER_RESTRICTED', defaultValue: 'Restricted request headers cannot be overridden from the renderer.' },
+  DESKTOP_HTTP_FETCH_UNAVAILABLE: { key: 'BridgeErrors.codes.DESKTOP_HTTP_FETCH_UNAVAILABLE', defaultValue: 'This feature is not available in the current environment.' },
+  DESKTOP_OAUTH_TOKEN_EXCHANGE_INPUT_INVALID: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_TOKEN_EXCHANGE_INPUT_INVALID', defaultValue: 'OAuth token exchange requires tokenUrl, clientId, and code.' },
+  DESKTOP_OAUTH_TOKEN_EXCHANGE_UNAVAILABLE: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_TOKEN_EXCHANGE_UNAVAILABLE', defaultValue: 'OAuth token exchange is not available in the current environment.' },
+  DESKTOP_OAUTH_TOKEN_EXCHANGE_RESPONSE_INVALID: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_TOKEN_EXCHANGE_RESPONSE_INVALID', defaultValue: 'OAuth token response is invalid.' },
+  DESKTOP_OAUTH_REDIRECT_URI_REQUIRED: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_REDIRECT_URI_REQUIRED', defaultValue: 'OAuth redirect URI is required.' },
+  DESKTOP_OAUTH_LISTEN_UNAVAILABLE: { key: 'BridgeErrors.codes.DESKTOP_OAUTH_LISTEN_UNAVAILABLE', defaultValue: 'OAuth code listening requires the desktop runtime.' },
   LOCAL_AI_QWEN_GPU_REQUIRED: { key: 'BridgeErrors.codes.LOCAL_AI_QWEN_GPU_REQUIRED', defaultValue: 'Qwen TTS requires an available NVIDIA GPU environment.' },
   LOCAL_AI_QWEN_PYTHON_REQUIRED: { key: 'BridgeErrors.codes.LOCAL_AI_QWEN_PYTHON_REQUIRED', defaultValue: 'Qwen TTS requires Python 3.10+.' },
   LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED: { key: 'BridgeErrors.codes.LOCAL_AI_QWEN_PYTHON_VERSION_UNSUPPORTED', defaultValue: 'Qwen TTS requires Python 3.10+. The current version is unsupported.' },
@@ -95,9 +108,6 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
 
 const BRIDGE_ERROR_MAP: Array<{ pattern: RegExp; key: string; defaultValue: string }> = [
   { pattern: /桥接不可用|Tauri.*不可用/i, key: 'BridgeErrors.patterns.runtimeUnavailable', defaultValue: 'Desktop runtime is not ready. Please restart the app.' },
-  { pattern: /不支持的协议/i, key: 'BridgeErrors.patterns.invalidProtocol', defaultValue: 'Invalid request URL. Please review the configuration.' },
-  { pattern: /当前环境不支持/i, key: 'BridgeErrors.patterns.unsupportedEnvironment', defaultValue: 'This feature is not available in the current environment.' },
-  { pattern: /请求载荷无效/i, key: 'BridgeErrors.patterns.invalidPayload', defaultValue: 'Request payload is invalid. Please try again.' },
   { pattern: /HF 下载失败|hugging ?face|download failed/i, key: 'BridgeErrors.patterns.downloadFailed', defaultValue: 'Model download failed. Please check the network or repository address.' },
   { pattern: /LOCAL_AI_HF_DOWNLOAD_DISK_FULL|ENOSPC|disk full/i, key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_DISK_FULL', defaultValue: 'Insufficient disk space. Free up space and try the download again.' },
   { pattern: /LOCAL_AI_HF_DOWNLOAD_INTERRUPTED|interrupted/i, key: 'BridgeErrors.codes.LOCAL_AI_HF_DOWNLOAD_INTERRUPTED', defaultValue: 'Download was interrupted. Resume the task manually after restarting.' },
@@ -284,11 +294,10 @@ function summarizeInvokePayload(command: string, payload: unknown): JsonObject {
 type TauriInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
 
 function resolveTauriInvoke(): TauriInvokeFn {
-  const invokeFn = window.__TAURI__?.core?.invoke;
-  if (typeof invokeFn !== 'function') {
+  if (!hasTauriInvoke()) {
     throw toBridgeNimiError(new Error('RUNTIME_UNAVAILABLE'));
   }
-  return invokeFn.bind(window.__TAURI__?.core);
+  return invokeTauri;
 }
 
 function createSecureInvokeId(command: string): string {

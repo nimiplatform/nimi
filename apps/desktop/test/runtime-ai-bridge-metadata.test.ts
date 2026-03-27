@@ -9,14 +9,12 @@ type TauriInvokeCall = {
 test('runtime ai bridge metadata remains managed only for cloud requests', async () => {
   const calls: TauriInvokeCall[] = [];
   const globalRecord = globalThis as Record<string, unknown>;
-  const previousTauri = globalRecord.__TAURI__;
+  const previousTauri = globalRecord.__NIMI_TAURI_TEST__;
 
-  globalRecord.__TAURI__ = {
-    core: {
-      invoke: async (command: string, payload?: unknown) => {
-        calls.push({ command, payload });
-        return null;
-      },
+  globalRecord.__NIMI_TAURI_TEST__ = {
+    invoke: async (command: string, payload?: unknown) => {
+      calls.push({ command, payload });
+      return null;
     },
   };
 
@@ -66,9 +64,9 @@ test('runtime ai bridge metadata remains managed only for cloud requests', async
     );
   } finally {
     if (typeof previousTauri === 'undefined') {
-      delete globalRecord.__TAURI__;
+      delete globalRecord.__NIMI_TAURI_TEST__;
     } else {
-      globalRecord.__TAURI__ = previousTauri;
+      globalRecord.__NIMI_TAURI_TEST__ = previousTauri;
     }
   }
 });
