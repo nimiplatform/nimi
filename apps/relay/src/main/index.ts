@@ -187,6 +187,9 @@ app.whenReady().then(async () => {
         setAuthState('pending');
         return;
       }
+      const message = healthError instanceof Error ? healthError.message : String(healthError);
+      setAuthState('failed', message);
+      return;
     }
 
     try {

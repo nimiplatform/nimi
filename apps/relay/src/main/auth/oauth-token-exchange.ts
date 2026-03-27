@@ -59,7 +59,7 @@ export async function performOauthTokenExchange(
 
   const body = await response.text();
   if (!response.ok) {
-    throw new Error(`OAuth token exchange failed: HTTP ${response.status} ${body.slice(0, 200)}`);
+    throw new Error(`OAuth token exchange failed: HTTP ${response.status}`);
   }
 
   const data = JSON.parse(body) as Record<string, unknown>;

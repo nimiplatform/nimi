@@ -1,6 +1,6 @@
 // Relay turn composer — adapted from local-chat turn-composer.ts
 // Removed: mod SDK imports (logRendererEvent, describeLocalChatGenerateObjectFailure)
-// Adapted: local types, console logging for main process
+// Adapted: local types for relay main process
 
 import type {
   InteractionBeat,
@@ -327,16 +327,6 @@ export async function composeInteractionTurnPlan(input: {
         lastFailureFinishReason,
       });
       const temperature = attempt === 1 ? 0.5 : 0.3;
-      console.log('[relay:turn-composer] generateObject: calling...', {
-        turnMode: input.turnMode,
-        attempt,
-        promptChars: prompt.length + retryReminder.length,
-        sealedFirstBeatChars: input.sealedFirstBeatText.length,
-        recentBeatCount,
-        lastFailureFinishReason,
-        maxTokens,
-        temperature,
-      });
       const result = await input.aiClient.generateObject<ComposerPlanObject>({
         ...input.invokeInput,
         debugLabel: 'turn-composer',
@@ -345,13 +335,6 @@ export async function composeInteractionTurnPlan(input: {
         temperature,
       });
       const rawBeats = result.object.beats;
-      console.log('[relay:turn-composer] generateObject: success', {
-        beatCount: Array.isArray(rawBeats) ? rawBeats.length : 'non-array',
-        turnMode: input.turnMode,
-        traceId: result.traceId || null,
-        rawTextChars: String(result.text || '').length,
-        attempt,
-      });
       const plan = parsePlanObject({
         object: result.object,
         turnId: input.turnId,
@@ -361,31 +344,14 @@ export async function composeInteractionTurnPlan(input: {
         sealedFirstBeatText: input.sealedFirstBeatText,
       });
       if (plan.beats.length > 0) {
-        console.log('[relay:turn-composer] plan accepted:', plan.beats.length, 'beats', {
-          attempt,
-        });
         return plan;
       }
-      console.warn('[relay:turn-composer] generateObject: parsed but 0 valid tail beats', {
-        turnMode: input.turnMode,
-        attempt,
-      });
       break; // Parsed OK but no valid beats — retrying won't help
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       // Extract finishReason if it's embedded in the error
       const finishReasonMatch = errorMessage.match(/finishReason[=:]\s*(\w+)/);
       const finishReason = finishReasonMatch?.[1] || null;
-      console.error('[relay:turn-composer] generateObject: FAILED', {
-        error: errorMessage,
-        finishReason,
-        turnMode: input.turnMode,
-        promptChars: prompt.length + retryReminder.length,
-        sealedFirstBeatChars: input.sealedFirstBeatText.length,
-        recentBeatCount,
-        lastFailureFinishReason,
-        attempt,
-      });
       lastFailureFinishReason = finishReason;
       if (attempt >= TURN_COMPOSER_MAX_ATTEMPTS) break;
     }

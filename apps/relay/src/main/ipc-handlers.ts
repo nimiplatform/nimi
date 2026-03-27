@@ -47,6 +47,22 @@ function encodeArtifactBytes(bytes: Uint8Array | undefined): string | undefined 
   return Buffer.from(bytes).toString('base64');
 }
 
+function asPatchRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('SETTINGS_PATCH_INVALID');
+  }
+  return value as Record<string, unknown>;
+}
+
+function requireKnownSettingsPatchKeys(patch: Record<string, unknown>): void {
+  const allowedKeys = new Set(['product', 'inspect']);
+  for (const key of Object.keys(patch)) {
+    if (!allowedKeys.has(key)) {
+      throw new Error(`SETTINGS_PATCH_KEY_INVALID: ${key}`);
+    }
+  }
+}
+
 export function registerIpcHandlers(
   runtime: PlatformClient['runtime'],
   realm: PlatformClient['realm'],
@@ -134,15 +150,6 @@ export function registerIpcHandlers(
       if (!resolved.voiceId) {
         throw new Error('TTS voice not configured. Please select a Voice in Settings.');
       }
-      console.info('[relay:tts] synthesize-resolved', {
-        connectorId: resolved.connectorId,
-        requestedModel: resolved.requestedModel || null,
-        settingsModel: resolved.settingsModel || null,
-        modelResolved: resolved.model,
-        requestedVoice: resolved.requestedVoice || null,
-        settingsVoice: resolved.settingsVoice || null,
-        voiceResolved: resolved.voiceId,
-      });
       const result = await runtime.media.tts.synthesize({
         ...runtimeInput,
         model: resolved.model,
@@ -514,14 +521,18 @@ export function registerIpcHandlers(
     try {
       const { loadRelaySettings, saveRelaySettings } = await import('./settings/settings-store.js');
       const { normalizeLocalChatProductSettings, normalizeLocalChatInspectSettings } = await import('./settings/types.js');
+      const patchRecord = asPatchRecord(patch);
+      requireKnownSettingsPatchKeys(patchRecord);
       // Merge patch into existing settings instead of replacing,
       // so saving inspect doesn't reset product and vice versa.
       const existing = await loadRelaySettings();
-      if (patch.product && typeof patch.product === 'object') {
-        existing.product = normalizeLocalChatProductSettings({ ...existing.product, ...(patch.product as Record<string, unknown>) });
+      if (patchRecord.product !== undefined) {
+        const productPatch = asPatchRecord(patchRecord.product);
+        existing.product = normalizeLocalChatProductSettings({ ...existing.product, ...productPatch });
       }
-      if (patch.inspect && typeof patch.inspect === 'object') {
-        existing.inspect = normalizeLocalChatInspectSettings({ ...existing.inspect, ...(patch.inspect as Record<string, unknown>) });
+      if (patchRecord.inspect !== undefined) {
+        const inspectPatch = asPatchRecord(patchRecord.inspect);
+        existing.inspect = normalizeLocalChatInspectSettings({ ...existing.inspect, ...inspectPatch });
       }
       await saveRelaySettings(existing, { flush: true });
     } catch (error) {
