@@ -57,7 +57,6 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
   const realmBaseUrl = normalizeLoopbackHttpUrl(resolveRealmBaseUrlFallback(), 3002);
   const realmPort = extractPortFromHttpUrl(realmBaseUrl);
   const realtimeUrl = readEnv('NIMI_REALTIME_URL');
-  const accessToken = readEnv('NIMI_ACCESS_TOKEN');
   const jwksUrl = normalizeLoopbackHttpUrl(
     readEnv('NIMI_REALM_JWKS_URL') || deriveDefaultJwksUrl(realmBaseUrl),
     realmPort,
@@ -81,7 +80,7 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
     realm: {
       realmBaseUrl,
       realtimeUrl,
-      accessToken,
+      accessToken: '',
       jwksUrl,
       jwtIssuer,
       jwtAudience,
@@ -104,7 +103,6 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
 function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
   const realmBaseUrl = readEnv('NIMI_REALM_URL');
   const realtimeUrl = readEnv('NIMI_REALTIME_URL');
-  const accessToken = readEnv('NIMI_ACCESS_TOKEN');
   const nextRealmBaseUrl = normalizeLoopbackHttpUrl(realmBaseUrl || base.realm.realmBaseUrl, 3002);
   const realmPort = extractPortFromHttpUrl(nextRealmBaseUrl);
   const jwksUrl = readEnv('NIMI_REALM_JWKS_URL');
@@ -117,7 +115,7 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
       ...base.realm,
       realmBaseUrl: nextRealmBaseUrl,
       realtimeUrl: realtimeUrl || base.realm.realtimeUrl,
-      accessToken: accessToken || base.realm.accessToken,
+      accessToken: '',
       jwksUrl: normalizeLoopbackHttpUrl(
         jwksUrl || base.realm.jwksUrl || deriveDefaultJwksUrl(nextRealmBaseUrl),
         realmPort,

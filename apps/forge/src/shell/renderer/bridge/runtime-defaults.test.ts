@@ -117,10 +117,10 @@ describe('getRuntimeDefaults', () => {
         {},
         expect.any(Function),
       );
-      expect(defaults.realm.accessToken).toBe('tauri-token');
+      expect(defaults.realm.accessToken).toBe('');
     });
 
-    it('applies env overrides on top of Tauri result', async () => {
+    it('does not forward env or Tauri access tokens into renderer defaults', async () => {
       mockInvokeChecked.mockResolvedValue({
         realm: {
           realmBaseUrl: 'http://localhost:3002',
@@ -152,7 +152,7 @@ describe('getRuntimeDefaults', () => {
       const defaults = await getRuntimeDefaults();
 
       expect(defaults.realm.realmBaseUrl).toBe('https://prod.example.com');
-      expect(defaults.realm.accessToken).toBe('env-override-token');
+      expect(defaults.realm.accessToken).toBe('');
     });
   });
 });

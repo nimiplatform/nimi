@@ -1,4 +1,5 @@
 import { hasTauriInvoke } from './env.js';
+import { invokeTauri } from './tauri-api.js';
 
 export class BridgeError extends Error {
   constructor(
@@ -13,11 +14,10 @@ export class BridgeError extends Error {
 type TauriInvokeFn = (command: string, payload?: unknown) => Promise<unknown>;
 
 function resolveTauriInvoke(): TauriInvokeFn {
-  const invokeFn = window.__TAURI__?.core?.invoke;
-  if (typeof invokeFn !== 'function') {
+  if (!hasTauriInvoke()) {
     throw new BridgeError('Tauri invoke is not available', 'resolve');
   }
-  return invokeFn.bind(window.__TAURI__?.core);
+  return invokeTauri;
 }
 
 export async function invoke(command: string, payload: unknown = {}): Promise<unknown> {

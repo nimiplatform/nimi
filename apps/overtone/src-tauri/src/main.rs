@@ -3,6 +3,7 @@
 use serde::Serialize;
 
 mod desktop_paths;
+#[path = "../../../shared-tauri/oauth_commands.rs"]
 mod oauth_commands;
 mod runtime_bridge;
 

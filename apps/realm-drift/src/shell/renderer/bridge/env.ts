@@ -1,3 +1,5 @@
+import { hasTauriRuntime } from './tauri-api.js';
+
 export function hasTauriInvoke() {
-  return typeof window.__TAURI__?.core?.invoke === 'function';
+  return hasTauriRuntime();
 }

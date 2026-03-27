@@ -29,8 +29,7 @@ describe('invoke', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset window.__TAURI__ between tests
-    tauriWindow.__TAURI__ = undefined;
+    tauriWindow.__NIMI_TAURI_TEST__ = undefined;
   });
 
   it('throws BridgeError when hasTauriInvoke returns false', async () => {
@@ -42,12 +41,12 @@ describe('invoke', () => {
     });
   });
 
-  it('calls window.__TAURI__.core.invoke when available', async () => {
+  it('calls scoped tauri invoke when available', async () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockResolvedValue({ success: true });
 
-    tauriWindow.__TAURI__ = {
-      core: { invoke: mockTauriInvoke },
+    tauriWindow.__NIMI_TAURI_TEST__ = {
+      invoke: mockTauriInvoke,
     };
 
     const result = await invoke('get_data', { id: 42 });
@@ -60,8 +59,8 @@ describe('invoke', () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockRejectedValue(new Error('network timeout'));
 
-    tauriWindow.__TAURI__ = {
-      core: { invoke: mockTauriInvoke },
+    tauriWindow.__NIMI_TAURI_TEST__ = {
+      invoke: mockTauriInvoke,
     };
 
     await expect(invoke('fetch_user')).rejects.toSatisfy(
@@ -79,8 +78,8 @@ describe('invoke', () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockRejectedValue('string rejection');
 
-    tauriWindow.__TAURI__ = {
-      core: { invoke: mockTauriInvoke },
+    tauriWindow.__NIMI_TAURI_TEST__ = {
+      invoke: mockTauriInvoke,
     };
 
     await expect(invoke('some_cmd')).rejects.toSatisfy(
@@ -101,15 +100,15 @@ describe('invokeChecked', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tauriWindow.__TAURI__ = undefined;
+    tauriWindow.__NIMI_TAURI_TEST__ = undefined;
   });
 
   it('calls parseResult on the invoke result', async () => {
     mockHasTauriInvoke.mockReturnValue(true);
     mockTauriInvoke.mockResolvedValue({ value: 123 });
 
-    tauriWindow.__TAURI__ = {
-      core: { invoke: mockTauriInvoke },
+    tauriWindow.__NIMI_TAURI_TEST__ = {
+      invoke: mockTauriInvoke,
     };
 
     const parseResult = vi.fn((raw: unknown) => {

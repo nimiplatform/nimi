@@ -107,7 +107,7 @@ pub fn runtime_defaults() -> RuntimeDefaults {
         realm: RealmDefaults {
             realm_base_url: realm_base_url.clone(),
             realtime_url: env_value("NIMI_REALTIME_URL", ""),
-            access_token: env_value("NIMI_ACCESS_TOKEN", ""),
+            access_token: String::new(),
             jwks_url,
             jwt_issuer,
             jwt_audience: env_value("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime"),
