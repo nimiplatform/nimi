@@ -1,0 +1,33 @@
+evaluation_rubric:
+  result_shape:
+    required_fields:
+      - passed
+      - score
+      - checks
+      - summary
+      - failureReasons
+
+  hard_gates:
+    - key: fullBody
+      meaning: complete figure visible from head to toe
+    - key: fixedFocalLength
+      meaning: stable standard character lens language without strong perspective distortion
+    - key: subjectClarity
+      meaning: subject identity, silhouette, and major costume shape remain clearly readable
+
+  scored_checks:
+    - key: stablePose
+      meaning: pose reads as stable and usable for anchor-image purposes
+    - key: backgroundSubordinate
+      meaning: background does not dominate or compete with the character
+    - key: lowOcclusion
+      meaning: limbs, outfit, and silhouette are not excessively hidden or cropped
+
+  pass_rule:
+    requires_all_hard_gates: true
+    uses_score_threshold: true
+    default_posture: conservative
+
+  retry_behavior:
+    autoCorrectionHintsAllowed: true
+    userEditableCorrectionHints: false

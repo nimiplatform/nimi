@@ -1,0 +1,27 @@
+writeback_policy:
+  app_local_truth:
+    batchRecordsStayLocalUntilCommit: true
+    itemRecordsStayLocalUntilCommit: true
+    preCommitCandidatesWriteToRealm: false
+
+  commit_set:
+    include_states:
+      - auto_passed
+    exclude_states:
+      - pending
+      - generating
+      - auto_failed_retryable
+      - auto_failed_exhausted
+      - committed
+      - commit_failed
+
+  realm_target:
+    hostType: AGENT
+    bindingKind: PRESENTATION
+    objectType: RESOURCE
+    bindingPoint: AGENT_PORTRAIT
+
+  first_version_rules:
+    writeAgentAvatarByDefault: false
+    replaceExistingPortraitByDefault: true
+    requireSeparateReplaceMode: false

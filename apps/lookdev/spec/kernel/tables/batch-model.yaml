@@ -1,0 +1,69 @@
+batch_model:
+  batch:
+    states:
+      - running
+      - paused
+      - processing_complete
+      - commit_complete
+    required_fields:
+      - batchId
+      - status
+      - selectionSnapshot
+      - policySnapshot
+      - totalItems
+      - passedItems
+      - failedItems
+      - committedItems
+      - commitFailedItems
+      - createdAt
+      - updatedAt
+      - processingCompletedAt
+      - commitCompletedAt
+    selection_snapshot:
+      required_fields:
+        - selectionSource
+        - agentIds
+      selection_sources:
+        - by_world
+        - explicit_selection
+    policy_snapshot:
+      required_fields:
+        - generationPolicy
+        - autoEvalPolicy
+        - retryPolicy
+        - writebackPolicy
+        - maxConcurrency
+      defaults:
+        maxConcurrency: 1
+
+  item:
+    states:
+      - pending
+      - generating
+      - auto_passed
+      - auto_failed_retryable
+      - auto_failed_exhausted
+      - committed
+      - commit_failed
+    required_fields:
+      - itemId
+      - batchId
+      - agentId
+      - agentHandle
+      - agentDisplayName
+      - status
+      - attemptCount
+      - currentImage
+      - currentEvaluation
+      - lastErrorCode
+      - lastErrorMessage
+      - committedAt
+      - createdAt
+      - updatedAt
+
+  process_defaults:
+    maxAttemptsPerItem: 3
+    batchFrozenAfterCreate: true
+    allowItemAppendAfterCreate: false
+    allowPerItemPolicyOverride: false
+    allowBatchReopenAfterCommit: false
