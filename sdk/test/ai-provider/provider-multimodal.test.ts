@@ -22,7 +22,8 @@ test('toRuntimePrompt text-only prompt produces TEXT parts and correct content',
   assert.equal(msg.content, 'Hello world');
   assert.equal(msg.parts.length, 1);
   assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[0]!.text, 'Hello world');
+  assert.equal(msg.parts[0]!.content.oneofKind, 'text');
+  assert.equal(msg.parts[0]!.content.text, 'Hello world');
 });
 
 test('toRuntimePrompt file part with URL object maps to IMAGE_URL part', () => {
@@ -44,10 +45,12 @@ test('toRuntimePrompt file part with URL object maps to IMAGE_URL part', () => {
   // TEXT part + IMAGE_URL part
   assert.equal(msg.parts.length, 2);
   assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[0]!.text, 'Describe this');
+  assert.equal(msg.parts[0]!.content.oneofKind, 'text');
+  assert.equal(msg.parts[0]!.content.text, 'Describe this');
   assert.equal(msg.parts[1]!.type, ChatContentPartType.IMAGE_URL);
-  assert.equal(msg.parts[1]!.imageUrl?.url, 'https://example.com/img.png');
-  assert.equal(msg.parts[1]!.imageUrl?.detail, 'auto');
+  assert.equal(msg.parts[1]!.content.oneofKind, 'imageUrl');
+  assert.equal(msg.parts[1]!.content.imageUrl.url, 'https://example.com/img.png');
+  assert.equal(msg.parts[1]!.content.imageUrl.detail, 'auto');
 });
 
 test('toRuntimePrompt file part with http string maps to IMAGE_URL part', () => {
@@ -65,7 +68,8 @@ test('toRuntimePrompt file part with http string maps to IMAGE_URL part', () => 
   const msg = result.input[0]!;
   assert.equal(msg.parts.length, 1);
   assert.equal(msg.parts[0]!.type, ChatContentPartType.IMAGE_URL);
-  assert.equal(msg.parts[0]!.imageUrl?.url, 'https://example.com/img.jpg');
+  assert.equal(msg.parts[0]!.content.oneofKind, 'imageUrl');
+  assert.equal(msg.parts[0]!.content.imageUrl.url, 'https://example.com/img.jpg');
 });
 
 test('toRuntimePrompt file part with non-URL string fails closed for recognized media', () => {
@@ -99,7 +103,8 @@ test('toRuntimePrompt file part with video mediaType maps to VIDEO_URL part', ()
 
   assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.input[0]!.parts[1]!.type, ChatContentPartType.VIDEO_URL);
-  assert.equal(result.input[0]!.parts[1]!.videoUrl, 'https://example.com/demo.mp4');
+  assert.equal(result.input[0]!.parts[1]!.content.oneofKind, 'videoUrl');
+  assert.equal(result.input[0]!.parts[1]!.content.videoUrl, 'https://example.com/demo.mp4');
 });
 
 test('toRuntimePrompt file part with audio mediaType maps to AUDIO_URL part', () => {
@@ -118,7 +123,8 @@ test('toRuntimePrompt file part with audio mediaType maps to AUDIO_URL part', ()
 
   assert.equal(msg.parts.length, 2);
   assert.equal(msg.parts[1]!.type, ChatContentPartType.AUDIO_URL);
-  assert.equal(msg.parts[1]!.audioUrl, 'https://example.com/audio.mp3');
+  assert.equal(msg.parts[1]!.content.oneofKind, 'audioUrl');
+  assert.equal(msg.parts[1]!.content.audioUrl, 'https://example.com/audio.mp3');
 });
 
 test('toRuntimePrompt extracts text parts from system content arrays', () => {
@@ -194,9 +200,11 @@ test('toRuntimePrompt reasoning part maps to TEXT part', () => {
   // both map to TEXT parts
   assert.equal(msg.parts.length, 2);
   assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[0]!.text, 'thinking about this...');
+  assert.equal(msg.parts[0]!.content.oneofKind, 'text');
+  assert.equal(msg.parts[0]!.content.text, 'thinking about this...');
   assert.equal(msg.parts[1]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[1]!.text, 'The answer is 42');
+  assert.equal(msg.parts[1]!.content.oneofKind, 'text');
+  assert.equal(msg.parts[1]!.content.text, 'The answer is 42');
 });
 
 test('toRuntimePrompt mixed file and text with URL object produces correct parts', () => {
@@ -218,10 +226,13 @@ test('toRuntimePrompt mixed file and text with URL object produces correct parts
   const msg = result.input[0]!;
   assert.equal(msg.parts.length, 3);
   assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
+  assert.equal(msg.parts[0]!.content.oneofKind, 'text');
   assert.equal(msg.parts[1]!.type, ChatContentPartType.IMAGE_URL);
-  assert.equal(msg.parts[1]!.imageUrl?.url, 'https://example.com/a.png');
+  assert.equal(msg.parts[1]!.content.oneofKind, 'imageUrl');
+  assert.equal(msg.parts[1]!.content.imageUrl.url, 'https://example.com/a.png');
   assert.equal(msg.parts[2]!.type, ChatContentPartType.IMAGE_URL);
-  assert.equal(msg.parts[2]!.imageUrl?.url, 'https://example.com/b.jpg');
+  assert.equal(msg.parts[2]!.content.oneofKind, 'imageUrl');
+  assert.equal(msg.parts[2]!.content.imageUrl.url, 'https://example.com/b.jpg');
 });
 
 test('toRuntimePrompt artifact-backed file part maps to ARTIFACT_REF', () => {
@@ -236,8 +247,9 @@ test('toRuntimePrompt artifact-backed file part maps to ARTIFACT_REF', () => {
 
   assert.equal(result.hasNonSystemInput, true);
   assert.equal(result.input[0]!.parts[0]!.type, ChatContentPartType.ARTIFACT_REF);
-  assert.equal(result.input[0]!.parts[0]!.artifactRef?.artifactId, 'artifact-123');
-  assert.equal(result.input[0]!.parts[0]!.artifactRef?.mimeType, 'video/mp4');
+  assert.equal(result.input[0]!.parts[0]!.content.oneofKind, 'artifactRef');
+  assert.equal(result.input[0]!.parts[0]!.content.artifactRef.artifactId, 'artifact-123');
+  assert.equal(result.input[0]!.parts[0]!.content.artifactRef.mimeType, 'video/mp4');
 });
 
 test('toRuntimePrompt empty content message is skipped', () => {

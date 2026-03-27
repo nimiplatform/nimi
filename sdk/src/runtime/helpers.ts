@@ -20,6 +20,7 @@ import {
 import { RuntimeHealthStatus } from './generated/runtime/v1/audit';
 import { Struct } from './generated/google/protobuf/struct.js';
 import { asRecord, normalizeText, nowIso } from '../internal/utils.js';
+import { extractGenerateText as extractGenerateTextShared } from '../internal/scenario-output.js';
 import { RuntimeMethodIds, isRuntimeStreamMethod } from './method-ids.js';
 import type {
   NimiFinishReason,
@@ -97,6 +98,7 @@ function buildRuntimeMethodLookup(): Readonly<Record<string, RuntimeMethodLookup
   return Object.freeze(lookup);
 }
 export { asRecord, normalizeText, nowIso };
+export const extractGenerateText = extractGenerateTextShared;
 
 export function ensureText(value: unknown, fieldName: string): string {
   const normalized = normalizeText(value);
@@ -171,15 +173,6 @@ export function toTraceInfo(input: {
     modelResolved: normalizeText(input.modelResolved) || undefined,
     routeDecision: Number(input.routeDecision) === RoutePolicy.CLOUD ? 'cloud' : 'local',
   };
-}
-
-export function extractGenerateText(output: unknown): string {
-  const value = output as ScenarioOutput | undefined;
-  const variant = value?.output;
-  if (variant?.oneofKind === 'textGenerate') {
-    return normalizeText(variant.textGenerate.text);
-  }
-  return '';
 }
 
 export function toRuntimeMessages(input: string | TextMessage[], system?: string): {
@@ -282,24 +275,13 @@ function createUnsupportedTextChatPartError() {
   });
 }
 
-function createTextChatContentPart(text: string): {
-  type: ChatContentPartType;
-  text: string;
-  imageUrl?: { url: string; detail: string };
-  videoUrl: string;
-  audioUrl: string;
-  artifactRef?: {
-    artifactId: string;
-    localArtifactId: string;
-    mimeType: string;
-    displayName: string;
-  };
-} {
+function createTextChatContentPart(text: string): ChatContentPart {
   return {
     type: ChatContentPartType.TEXT,
-    text,
-    videoUrl: '',
-    audioUrl: '',
+    content: {
+      oneofKind: 'text',
+      text,
+    },
   };
 }
 
@@ -316,15 +298,14 @@ function createArtifactRefChatContentPart(part: Extract<TextMessageContentPart, 
   }
   return {
     type: ChatContentPartType.ARTIFACT_REF,
-    text: '',
-    imageUrl: undefined,
-    videoUrl: '',
-    audioUrl: '',
-    artifactRef: {
-      artifactId: artifactId || '',
-      localArtifactId: localArtifactId || '',
-      mimeType: normalizeText(part.mimeType),
-      displayName: normalizeText(part.displayName),
+    content: {
+      oneofKind: 'artifactRef',
+      artifactRef: {
+        artifactId: artifactId || '',
+        localArtifactId: localArtifactId || '',
+        mimeType: normalizeText(part.mimeType),
+        displayName: normalizeText(part.displayName),
+      },
     },
   };
 }
@@ -347,10 +328,10 @@ function contentPartsToProto(
         if (url) {
           result.push({
             type: ChatContentPartType.IMAGE_URL,
-            text: '',
-            imageUrl: { url, detail: part.detail || 'auto' },
-            videoUrl: '',
-            audioUrl: '',
+            content: {
+              oneofKind: 'imageUrl',
+              imageUrl: { url, detail: part.detail || 'auto' },
+            },
           });
         }
         break;
@@ -360,10 +341,10 @@ function contentPartsToProto(
         if (url) {
           result.push({
             type: ChatContentPartType.VIDEO_URL,
-            text: '',
-            imageUrl: undefined,
-            videoUrl: url,
-            audioUrl: '',
+            content: {
+              oneofKind: 'videoUrl',
+              videoUrl: url,
+            },
           });
         }
         break;
@@ -373,10 +354,10 @@ function contentPartsToProto(
         if (url) {
           result.push({
             type: ChatContentPartType.AUDIO_URL,
-            text: '',
-            imageUrl: undefined,
-            videoUrl: '',
-            audioUrl: url,
+            content: {
+              oneofKind: 'audioUrl',
+              audioUrl: url,
+            },
           });
         }
         break;

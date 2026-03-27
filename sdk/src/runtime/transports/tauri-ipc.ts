@@ -44,10 +44,42 @@ const DEFAULT_EVENT_NAMESPACE = 'runtime_bridge';
 
 function readGlobalTauriInvoke(): TauriInvoke | null {
   const value = globalThis as {
-    window?: { __TAURI__?: { core?: { invoke?: TauriInvoke } } };
+    __NIMI_TAURI_TEST__?: { invoke?: TauriInvoke };
+    __TAURI_INTERNALS__?: { invoke?: TauriInvoke };
+    __TAURI_IPC__?: { invoke?: TauriInvoke };
+    window?: {
+      __NIMI_TAURI_TEST__?: { invoke?: TauriInvoke };
+      __TAURI_INTERNALS__?: { invoke?: TauriInvoke };
+      __TAURI_IPC__?: { invoke?: TauriInvoke };
+      __TAURI__?: { core?: { invoke?: TauriInvoke } };
+    };
     __TAURI__?: { core?: { invoke?: TauriInvoke } };
   };
 
+  const fromWindowTestHook = value.window?.__NIMI_TAURI_TEST__?.invoke;
+  if (typeof fromWindowTestHook === 'function') {
+    return fromWindowTestHook.bind(value.window?.__NIMI_TAURI_TEST__);
+  }
+  const fromGlobalTestHook = value.__NIMI_TAURI_TEST__?.invoke;
+  if (typeof fromGlobalTestHook === 'function') {
+    return fromGlobalTestHook.bind(value.__NIMI_TAURI_TEST__);
+  }
+  const fromWindowInternals = value.window?.__TAURI_INTERNALS__?.invoke;
+  if (typeof fromWindowInternals === 'function') {
+    return fromWindowInternals.bind(value.window?.__TAURI_INTERNALS__);
+  }
+  const fromGlobalInternals = value.__TAURI_INTERNALS__?.invoke;
+  if (typeof fromGlobalInternals === 'function') {
+    return fromGlobalInternals.bind(value.__TAURI_INTERNALS__);
+  }
+  const fromWindowIpc = value.window?.__TAURI_IPC__?.invoke;
+  if (typeof fromWindowIpc === 'function') {
+    return fromWindowIpc.bind(value.window?.__TAURI_IPC__);
+  }
+  const fromGlobalIpc = value.__TAURI_IPC__?.invoke;
+  if (typeof fromGlobalIpc === 'function') {
+    return fromGlobalIpc.bind(value.__TAURI_IPC__);
+  }
   const fromWindow = value.window?.__TAURI__?.core?.invoke;
   if (typeof fromWindow === 'function') {
     return fromWindow.bind(value.window?.__TAURI__?.core);
@@ -61,10 +93,42 @@ function readGlobalTauriInvoke(): TauriInvoke | null {
 
 function readGlobalTauriListen(): TauriListen | null {
   const value = globalThis as {
-    window?: { __TAURI__?: { event?: { listen?: TauriListen } } };
+    __NIMI_TAURI_TEST__?: { listen?: TauriListen };
+    __TAURI_INTERNALS__?: { listen?: TauriListen };
+    __TAURI_IPC__?: { listen?: TauriListen };
+    window?: {
+      __NIMI_TAURI_TEST__?: { listen?: TauriListen };
+      __TAURI_INTERNALS__?: { listen?: TauriListen };
+      __TAURI_IPC__?: { listen?: TauriListen };
+      __TAURI__?: { event?: { listen?: TauriListen } };
+    };
     __TAURI__?: { event?: { listen?: TauriListen } };
   };
 
+  const fromWindowTestHook = value.window?.__NIMI_TAURI_TEST__?.listen;
+  if (typeof fromWindowTestHook === 'function') {
+    return fromWindowTestHook.bind(value.window?.__NIMI_TAURI_TEST__);
+  }
+  const fromGlobalTestHook = value.__NIMI_TAURI_TEST__?.listen;
+  if (typeof fromGlobalTestHook === 'function') {
+    return fromGlobalTestHook.bind(value.__NIMI_TAURI_TEST__);
+  }
+  const fromWindowInternals = value.window?.__TAURI_INTERNALS__?.listen;
+  if (typeof fromWindowInternals === 'function') {
+    return fromWindowInternals.bind(value.window?.__TAURI_INTERNALS__);
+  }
+  const fromGlobalInternals = value.__TAURI_INTERNALS__?.listen;
+  if (typeof fromGlobalInternals === 'function') {
+    return fromGlobalInternals.bind(value.__TAURI_INTERNALS__);
+  }
+  const fromWindowIpc = value.window?.__TAURI_IPC__?.listen;
+  if (typeof fromWindowIpc === 'function') {
+    return fromWindowIpc.bind(value.window?.__TAURI_IPC__);
+  }
+  const fromGlobalIpc = value.__TAURI_IPC__?.listen;
+  if (typeof fromGlobalIpc === 'function') {
+    return fromGlobalIpc.bind(value.__TAURI_IPC__);
+  }
   const fromWindow = value.window?.__TAURI__?.event?.listen;
   if (typeof fromWindow === 'function') {
     return fromWindow.bind(value.window?.__TAURI__?.event);

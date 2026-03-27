@@ -118,6 +118,31 @@ test('runtime-guards: checkRuntimeVersionCompatibility handles v-prefixed versio
   assert.equal(result.runtimeMajor, 0);
 });
 
+test('node-grpc transport rejects providerApiKey on non-loopback plaintext endpoints', async () => {
+  const transport = createNodeGrpcTransport({
+    type: 'node-grpc',
+    endpoint: 'http://203.0.113.10:50051',
+  });
+
+  await assert.rejects(
+    () => transport.invokeUnary({
+      methodId: '/runtime.v1.RuntimeService/Ping',
+      request: new Uint8Array(),
+      metadata: {
+        appId: 'nimi.sdk.test',
+        providerApiKey: 'secret',
+      },
+    }),
+    (error: unknown) => {
+      const nimaError = asNimiError(error, { source: 'sdk' });
+      assert.equal(nimaError.reasonCode, ReasonCode.SDK_TRANSPORT_INVALID);
+      return true;
+    },
+  );
+
+  await transport.destroy();
+});
+
 // ---------------------------------------------------------------------------
 // runtime-guards: assertRuntimeMethodAvailable branches
 // ---------------------------------------------------------------------------

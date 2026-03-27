@@ -30,6 +30,7 @@ import {
   toUsage,
 } from './helpers.js';
 import { resolveStreamUsage } from '../internal/utils.js';
+import { asRecord } from '../internal/utils.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 
 export async function runtimeGenerateText(
@@ -222,10 +223,15 @@ export async function runtimeStreamText(
         }
         case 'failed': {
           const failed = event.payload.failed;
+          const failedRecord = asRecord(failed as unknown);
+          const message = normalizeText(failedRecord.message)
+            || normalizeText(failedRecord.reasonDetail)
+            || normalizeText(failed.actionHint)
+            || 'runtime stream failed';
           yield {
             type: 'error' as const,
             error: createNimiError({
-              message: normalizeText(failed.actionHint) || 'runtime stream failed',
+              message,
               reasonCode: normalizeText(failed.reasonCode) || ReasonCode.AI_STREAM_BROKEN,
               actionHint: 'retry_or_switch_route',
               source: 'runtime',

@@ -144,6 +144,7 @@ test('Runtime.generate requires explicit provider-scoped models', async () => {
     await runtime.generate({
       provider: 'gemini',
       model: 'gemini-2.5-pro',
+      subjectUserId: 'user-001',
       prompt: 'explicit provider model',
     });
 

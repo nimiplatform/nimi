@@ -543,10 +543,12 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
     assert.equal(textGenerate?.input.length, 1);
     assert.equal(textGenerate?.input[0]?.content, 'describe image');
     assert.equal(textGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.IMAGE_URL);
-    assert.equal(textGenerate?.input[0]?.parts[0]?.imageUrl?.url, 'https://example.com/image.png');
-    assert.equal(textGenerate?.input[0]?.parts[0]?.imageUrl?.detail, 'high');
+    assert.equal(textGenerate?.input[0]?.parts[0]?.content.oneofKind, 'imageUrl');
+    assert.equal(textGenerate?.input[0]?.parts[0]?.content.imageUrl.url, 'https://example.com/image.png');
+    assert.equal(textGenerate?.input[0]?.parts[0]?.content.imageUrl.detail, 'high');
     assert.equal(textGenerate?.input[0]?.parts[1]?.type, ChatContentPartType.TEXT);
-    assert.equal(textGenerate?.input[0]?.parts[1]?.text, 'describe image');
+    assert.equal(textGenerate?.input[0]?.parts[1]?.content.oneofKind, 'text');
+    assert.equal(textGenerate?.input[0]?.parts[1]?.content.text, 'describe image');
 
     await runtime.ai.text.generate({
       model: 'cloud/model',
@@ -562,7 +564,8 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
     assert.equal(plainTextGenerate?.input[0]?.content, 'plain text path');
     assert.equal(plainTextGenerate?.input[0]?.parts.length, 1);
     assert.equal(plainTextGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.TEXT);
-    assert.equal(plainTextGenerate?.input[0]?.parts[0]?.text, 'plain text path');
+    assert.equal(plainTextGenerate?.input[0]?.parts[0]?.content.oneofKind, 'text');
+    assert.equal(plainTextGenerate?.input[0]?.parts[0]?.content.text, 'plain text path');
 
     await runtime.ai.text.generate({
       model: 'cloud/model',
@@ -582,7 +585,8 @@ test('Runtime text helpers dual-write text content and multimodal ChatMessage pa
       ? capturedTextRequests[2]?.spec?.spec.textGenerate
       : undefined;
     assert.equal(videoGenerate?.input[0]?.parts[0]?.type, ChatContentPartType.VIDEO_URL);
-    assert.equal(videoGenerate?.input[0]?.parts[0]?.videoUrl, 'https://example.com/clip.mp4');
+    assert.equal(videoGenerate?.input[0]?.parts[0]?.content.oneofKind, 'videoUrl');
+    assert.equal(videoGenerate?.input[0]?.parts[0]?.content.videoUrl, 'https://example.com/clip.mp4');
     assert.equal(videoGenerate?.input[0]?.parts[1]?.type, ChatContentPartType.TEXT);
 
     await runtime.ai.text.generate({

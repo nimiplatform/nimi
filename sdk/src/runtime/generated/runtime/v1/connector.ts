@@ -15,6 +15,7 @@ import { MessageType } from "@protobuf-ts/runtime";
 import { Struct } from "../../google/protobuf/struct";
 import { Ack } from "./common";
 import { FieldMask } from "../../google/protobuf/field_mask";
+import { Timestamp } from "../../google/protobuf/timestamp";
 /**
  * @generated from protobuf message nimi.runtime.v1.Connector
  */
@@ -60,13 +61,13 @@ export interface Connector {
      */
     hasCredential: boolean;
     /**
-     * @generated from protobuf field: int64 created_at = 11
+     * @generated from protobuf field: google.protobuf.Timestamp created_at = 11
      */
-    createdAt: string;
+    createdAt?: Timestamp;
     /**
-     * @generated from protobuf field: int64 updated_at = 12
+     * @generated from protobuf field: google.protobuf.Timestamp updated_at = 12
      */
-    updatedAt: string;
+    updatedAt?: Timestamp;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CreateConnectorRequest
@@ -1105,8 +1106,8 @@ class Connector$Type extends MessageType<Connector> {
             { no: 8, name: "status", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorStatus", ConnectorStatus, "CONNECTOR_STATUS_"] },
             { no: 9, name: "local_category", kind: "enum", T: () => ["nimi.runtime.v1.LocalConnectorCategory", LocalConnectorCategory, "LOCAL_CONNECTOR_CATEGORY_"] },
             { no: 10, name: "has_credential", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 11, name: "created_at", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 12, name: "updated_at", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
+            { no: 12, name: "updated_at", kind: "message", T: () => Timestamp }
         ]);
     }
     create(value?: PartialMessage<Connector>): Connector {
@@ -1121,8 +1122,6 @@ class Connector$Type extends MessageType<Connector> {
         message.status = 0;
         message.localCategory = 0;
         message.hasCredential = false;
-        message.createdAt = "0";
-        message.updatedAt = "0";
         if (value !== undefined)
             reflectionMergePartial<Connector>(this, message, value);
         return message;
@@ -1162,11 +1161,11 @@ class Connector$Type extends MessageType<Connector> {
                 case /* bool has_credential */ 10:
                     message.hasCredential = reader.bool();
                     break;
-                case /* int64 created_at */ 11:
-                    message.createdAt = reader.int64().toString();
+                case /* google.protobuf.Timestamp created_at */ 11:
+                    message.createdAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.createdAt);
                     break;
-                case /* int64 updated_at */ 12:
-                    message.updatedAt = reader.int64().toString();
+                case /* google.protobuf.Timestamp updated_at */ 12:
+                    message.updatedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.updatedAt);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1210,12 +1209,12 @@ class Connector$Type extends MessageType<Connector> {
         /* bool has_credential = 10; */
         if (message.hasCredential !== false)
             writer.tag(10, WireType.Varint).bool(message.hasCredential);
-        /* int64 created_at = 11; */
-        if (message.createdAt !== "0")
-            writer.tag(11, WireType.Varint).int64(message.createdAt);
-        /* int64 updated_at = 12; */
-        if (message.updatedAt !== "0")
-            writer.tag(12, WireType.Varint).int64(message.updatedAt);
+        /* google.protobuf.Timestamp created_at = 11; */
+        if (message.createdAt)
+            Timestamp.internalBinaryWrite(message.createdAt, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp updated_at = 12; */
+        if (message.updatedAt)
+            Timestamp.internalBinaryWrite(message.updatedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

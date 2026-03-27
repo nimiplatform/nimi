@@ -135,6 +135,7 @@ export class Runtime {
   #state: RuntimeConnectionState = {
     status: 'idle',
   };
+  #retryTransitionEpoch = 0;
   #runtimeVersion: string | null = null;
   #versionCompatibility: VersionCompatibilityStatus = {
     state: 'unknown',
@@ -476,6 +477,7 @@ export class Runtime {
   }
 
   async #invoke<T>(operation: () => Promise<T>): Promise<T> {
+    let retryEpoch: number | null = null;
     return invokeWithRuntimeRetry({
       operation,
       options: this.#options,
@@ -486,6 +488,9 @@ export class Runtime {
       }),
       onRecovered: (attempt) => {
         if (this.#state.status === 'closing' || this.#state.status === 'closed') {
+          return;
+        }
+        if (retryEpoch === null || retryEpoch !== this.#retryTransitionEpoch) {
           return;
         }
         if (this.#state.status !== 'ready') {
@@ -507,16 +512,20 @@ export class Runtime {
         if (this.#state.status === 'closing' || this.#state.status === 'closed') {
           return;
         }
+        retryEpoch = ++this.#retryTransitionEpoch;
         const at = nowIso();
         this.#client = null;
+        const wasReady = this.#state.status === 'ready';
         this.#state = {
           ...this.#state,
           status: 'idle',
         };
-        this.#eventBus.emit('runtime.disconnected', {
-          at,
-          reasonCode: normalized.reasonCode,
-        });
+        if (wasReady) {
+          this.#eventBus.emit('runtime.disconnected', {
+            at,
+            reasonCode: normalized.reasonCode,
+          });
+        }
         this.#emitTelemetry('runtime.disconnected', {
           at,
           reasonCode: normalized.reasonCode,

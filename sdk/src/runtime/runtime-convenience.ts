@@ -69,7 +69,6 @@ type RuntimeTextGenerateDelegate = {
   };
 };
 
-const DEFAULT_RUNTIME_CONVENIENCE_SUBJECT_USER_ID = 'local-user';
 const REMOTE_PROVIDER_SET = new Set<string>(REMOTE_PROVIDER_IDS);
 
 type ResolvedRuntimeTarget = {
@@ -166,9 +165,26 @@ function resolveRuntimeConvenienceTarget(input: RuntimeGenerateInput): ResolvedR
   };
 }
 
+function resolveRuntimeConvenienceSubjectUserId(
+  subjectUserId: string | undefined,
+  route: AiRoutePolicy,
+): string | undefined {
+  const normalized = normalize(subjectUserId);
+  if (normalized) {
+    return normalized;
+  }
+  if (route === 'local') {
+    return undefined;
+  }
+  throw createRuntimeConvenienceInputError(
+    'high-level Runtime.generate()/stream() requires subjectUserId for non-local routing. It no longer invents an implicit subject identity.',
+    'provide_subject_user_id',
+  );
+}
+
 function toGenerateInput(input: RuntimeGenerateInput): TextGenerateInput {
-  const subjectUserId = normalize(input.subjectUserId) || DEFAULT_RUNTIME_CONVENIENCE_SUBJECT_USER_ID;
   const target = resolveRuntimeConvenienceTarget(input);
+  const subjectUserId = resolveRuntimeConvenienceSubjectUserId(input.subjectUserId, target.route);
   return {
     model: target.model,
     input: input.prompt,

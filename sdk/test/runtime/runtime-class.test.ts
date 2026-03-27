@@ -237,6 +237,87 @@ test('Runtime auto mode retries RESOURCE_EXHAUSTED scheduler rejections', async 
   }
 });
 
+test('Runtime coalesces concurrent retry lifecycle transitions across overlapping invokes', async () => {
+  let generateCalls = 0;
+  let disconnectedEvents = 0;
+  let connectedEvents = 0;
+
+  installNodeGrpcBridge({
+    invokeUnary: async (_config, input) => {
+      if (input.methodId === RuntimeMethodIds.ai.executeScenario) {
+        generateCalls += 1;
+        if (generateCalls <= 2) {
+          throw {
+            reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+            actionHint: 'retry_or_check_runtime_daemon',
+            retryable: true,
+            message: `runtime daemon restarting ${generateCalls}`,
+          };
+        }
+
+        return ExecuteScenarioResponse.toBinary(
+          ExecuteScenarioResponse.create({
+            output: textGenerateOutput(`retry-ok-${generateCalls}`),
+            finishReason: FinishReason.STOP,
+            routeDecision: RoutePolicy.LOCAL,
+            modelResolved: 'local/qwen2.5',
+            traceId: `trace-runtime-concurrent-${generateCalls}`,
+          }),
+        );
+      }
+
+      throw new Error(`unexpected method: ${input.methodId}`);
+    },
+    openStream: async () => {
+      throw new Error('unexpected stream call');
+    },
+    closeStream: async () => {},
+  });
+
+  try {
+    const runtime = new Runtime({
+      appId: APP_ID,
+      transport: {
+        type: 'node-grpc',
+        endpoint: '127.0.0.1:46371',
+      },
+      retry: {
+        maxAttempts: 2,
+        backoffMs: 1,
+      },
+      subjectContext: {
+        subjectUserId: 'retry-user',
+      },
+    });
+
+    runtime.events.on('runtime.disconnected', () => {
+      disconnectedEvents += 1;
+    });
+    runtime.events.on('runtime.connected', () => {
+      connectedEvents += 1;
+    });
+
+    const [first, second] = await Promise.all([
+      runtime.ai.text.generate({
+        model: 'local/qwen2.5',
+        input: 'retry concurrently 1',
+      }),
+      runtime.ai.text.generate({
+        model: 'local/qwen2.5',
+        input: 'retry concurrently 2',
+      }),
+    ]);
+
+    assert.equal(first.text.startsWith('retry-ok-'), true);
+    assert.equal(second.text.startsWith('retry-ok-'), true);
+    assert.equal(generateCalls, 4);
+    assert.equal(disconnectedEvents, 1);
+    assert.equal(connectedEvents, 2);
+  } finally {
+    clearNodeGrpcBridge();
+  }
+});
+
 test('Runtime auto mode does not retry non-retryable runtime errors', async () => {
   let generateCalls = 0;
 

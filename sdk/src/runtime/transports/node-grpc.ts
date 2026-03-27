@@ -1,4 +1,4 @@
-import { asNimiError, createNimiError } from '../errors';
+import { asNimiError, createNimiError } from '../errors.js';
 import { asRecord, readString } from '../../internal/utils.js';
 import { ReasonCode } from '../../types/index.js';
 import type {
@@ -8,7 +8,7 @@ import type {
   RuntimeStreamCloseCall,
   RuntimeTransport,
   RuntimeUnaryCall,
-} from '../types';
+} from '../types.js';
 import type { RuntimeNodeGrpcTransportConfigInternal } from '../types-internal.js';
 import type {
   CallOptions,
@@ -58,12 +58,7 @@ async function loadGrpcModule(): Promise<GrpcModule> {
   if (grpcModulePromise) {
     return grpcModulePromise;
   }
-
-  const dynamicImport = new Function('specifier', 'return import(specifier)') as (
-    specifier: string,
-  ) => Promise<unknown>;
-
-  grpcModulePromise = dynamicImport('@grpc/grpc-js') as Promise<GrpcModule>;
+  grpcModulePromise = import('@grpc/grpc-js');
   return grpcModulePromise;
 }
 
@@ -91,6 +86,7 @@ function toChannelOptions(config: RuntimeNodeGrpcTransportConfig): ChannelOption
 
 function toGrpcMetadata(
   grpc: GrpcModule,
+  config: RuntimeNodeGrpcTransportConfig,
   metadata: RuntimeUnaryCall<RuntimeWireMessage>['metadata'],
   authorization?: string,
 ): Metadata {
@@ -133,7 +129,16 @@ function toGrpcMetadata(
   append('x-nimi-provider-type', metadata.providerType);
   append('x-nimi-client-id', metadata.clientId);
   append('x-nimi-provider-endpoint', metadata.providerEndpoint);
-  append('x-nimi-provider-api-key', metadata.providerApiKey);
+  const providerApiKey = String(metadata.providerApiKey || '').trim();
+  if (providerApiKey && !transportAllowsPlaintextProviderKey(config)) {
+    throw createNimiError({
+      message: 'providerApiKey requires TLS or a loopback-only node-grpc endpoint',
+      reasonCode: ReasonCode.SDK_TRANSPORT_INVALID,
+      actionHint: 'enable_tls_or_use_loopback_for_provider_api_key',
+      source: 'sdk',
+    });
+  }
+  append('x-nimi-provider-api-key', providerApiKey);
   append('authorization', authorization);
 
   const extra = metadata.extra || {};
@@ -149,6 +154,15 @@ function toGrpcMetadata(
   }
 
   return value;
+}
+
+function transportAllowsPlaintextProviderKey(config: RuntimeNodeGrpcTransportConfig): boolean {
+  if (config.tls?.enabled) {
+    return true;
+  }
+  const endpoint = normalizeEndpoint(config.endpoint);
+  const host = endpoint.split(':')[0]?.trim().toLowerCase() || '';
+  return host === '127.0.0.1' || host === 'localhost' || host === '[::1]';
 }
 
 function toCallOptions(timeoutMs?: number): CallOptions {
@@ -368,7 +382,7 @@ export function createNodeGrpcTransport(
         (value: RuntimeWireMessage) => Buffer.from(value),
         (value: Buffer) => Uint8Array.from(value),
         input.request,
-        toGrpcMetadata(runtime.grpc, input.metadata, input.authorization),
+        toGrpcMetadata(runtime.grpc, internalConfig, input.metadata, input.authorization),
         toCallOptions(input.timeoutMs),
         (error: ServiceError | null, response?: RuntimeWireMessage) => {
           if (error) {
@@ -432,7 +446,7 @@ export function createNodeGrpcTransport(
       (value: RuntimeWireMessage) => Buffer.from(value),
       (value: Buffer) => Uint8Array.from(value),
       input.request,
-      toGrpcMetadata(runtime.grpc, input.metadata, input.authorization),
+      toGrpcMetadata(runtime.grpc, internalConfig, input.metadata, input.authorization),
       toCallOptions(input.timeoutMs),
     );
 
@@ -542,6 +556,7 @@ export function createNodeGrpcTransport(
         return {
           next: async () => {
             if (pendingError) {
+              // Preserve iterator protocol: surface the terminal stream error once, then finish cleanly.
               const error = pendingError;
               pendingError = null;
               throw error;
@@ -598,6 +613,7 @@ export function createNodeGrpcTransport(
     if (runtime) {
       runtime.client.close();
     }
+    streamCounter = 0;
   };
 
   return {

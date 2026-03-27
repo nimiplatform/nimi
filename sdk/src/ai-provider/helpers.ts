@@ -13,8 +13,9 @@ import {
 import {
   Struct,
 } from '../runtime/generated/google/protobuf/struct.js';
-import { ChatContentPartType, type ScenarioOutput } from '../runtime/generated/runtime/v1/ai.js';
+import { ChatContentPartType, type ChatContentPart } from '../runtime/generated/runtime/v1/ai.js';
 import { ReasonCode, type AiRoutePolicy } from '../types/index.js';
+import { extractGenerateText as extractGenerateTextShared } from '../internal/scenario-output.js';
 import {
   ROUTE_POLICY_LOCAL,
   ROUTE_POLICY_CLOUD,
@@ -41,6 +42,8 @@ export {
   toSpeechTranscriptionFromScenarioOutput,
 } from './helpers-scenario.js';
 export { asRecord, normalizeText };
+
+export const extractGenerateText = extractGenerateTextShared;
 
 export function parseCount(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
@@ -131,19 +134,7 @@ export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
     role: string;
     content: string;
     name: string;
-    parts: Array<{
-      type: ChatContentPartType;
-      text: string;
-      imageUrl?: { url: string; detail: string };
-      videoUrl: string;
-      audioUrl: string;
-      artifactRef?: {
-        artifactId: string;
-        localArtifactId: string;
-        mimeType: string;
-        displayName: string;
-      };
-    }>;
+    parts: ChatContentPart[];
   }>;
 } {
   const system: string[] = [];
@@ -151,19 +142,7 @@ export function toRuntimePrompt(prompt: LanguageModelV3Prompt): {
     role: string;
     content: string;
     name: string;
-    parts: Array<{
-      type: ChatContentPartType;
-      text: string;
-      imageUrl?: { url: string; detail: string };
-      videoUrl: string;
-      audioUrl: string;
-      artifactRef?: {
-        artifactId: string;
-        localArtifactId: string;
-        mimeType: string;
-        displayName: string;
-      };
-    }>;
+    parts: ChatContentPart[];
   }> = [];
   let hasNonSystemInput = false;
 
@@ -233,24 +212,13 @@ function extractFileUrl(part: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
-function createTextChatContentPart(text: string): {
-  type: ChatContentPartType;
-  text: string;
-  imageUrl?: { url: string; detail: string };
-  videoUrl: string;
-  audioUrl: string;
-  artifactRef?: {
-    artifactId: string;
-    localArtifactId: string;
-    mimeType: string;
-    displayName: string;
-  };
-} {
+function createTextChatContentPart(text: string) {
   return {
     type: ChatContentPartType.TEXT,
-    text,
-    videoUrl: '',
-    audioUrl: '',
+    content: {
+      oneofKind: 'text' as const,
+      text,
+    },
   };
 }
 
@@ -267,47 +235,22 @@ function createArtifactRefPart(record: Record<string, unknown>) {
   }
   return {
     type: ChatContentPartType.ARTIFACT_REF,
-    text: '',
-    imageUrl: undefined,
-    videoUrl: '',
-    audioUrl: '',
-    artifactRef: {
-      artifactId: artifactId || '',
-      localArtifactId: localArtifactId || '',
-      mimeType: normalizeText(record.mediaType ?? record.mimeType ?? record.mime_type),
-      displayName: normalizeText(record.displayName ?? record.display_name),
+    content: {
+      oneofKind: 'artifactRef' as const,
+      artifactRef: {
+        artifactId: artifactId || '',
+        localArtifactId: localArtifactId || '',
+        mimeType: normalizeText(record.mediaType ?? record.mimeType ?? record.mime_type),
+        displayName: normalizeText(record.displayName ?? record.display_name),
+      },
     },
   };
 }
 
 function extractContentParts(
   content: unknown[],
-): Array<{
-  type: ChatContentPartType;
-  text: string;
-  imageUrl?: { url: string; detail: string };
-  videoUrl: string;
-  audioUrl: string;
-  artifactRef?: {
-    artifactId: string;
-    localArtifactId: string;
-    mimeType: string;
-    displayName: string;
-  };
-}> {
-  const result: Array<{
-    type: ChatContentPartType;
-    text: string;
-    imageUrl?: { url: string; detail: string };
-    videoUrl: string;
-    audioUrl: string;
-    artifactRef?: {
-      artifactId: string;
-      localArtifactId: string;
-      mimeType: string;
-      displayName: string;
-    };
-  }> = [];
+): ChatContentPart[] {
+  const result: ChatContentPart[] = [];
 
   for (const part of content) {
     const record = asRecord(part);
@@ -339,10 +282,10 @@ function extractContentParts(
         }
         result.push({
           type: ChatContentPartType.IMAGE_URL,
-          text: '',
-          imageUrl: { url, detail: 'auto' },
-          videoUrl: '',
-          audioUrl: '',
+          content: {
+            oneofKind: 'imageUrl',
+            imageUrl: { url, detail: 'auto' },
+          },
         });
       } else if (mediaType && mediaType.startsWith('video/')) {
         const url = extractFileUrl(record);
@@ -356,10 +299,10 @@ function extractContentParts(
         }
         result.push({
           type: ChatContentPartType.VIDEO_URL,
-          text: '',
-          imageUrl: undefined,
-          videoUrl: url,
-          audioUrl: '',
+          content: {
+            oneofKind: 'videoUrl',
+            videoUrl: url,
+          },
         });
       } else if (mediaType && mediaType.startsWith('audio/')) {
         const url = extractFileUrl(record);
@@ -373,10 +316,10 @@ function extractContentParts(
         }
         result.push({
           type: ChatContentPartType.AUDIO_URL,
-          text: '',
-          imageUrl: undefined,
-          videoUrl: '',
-          audioUrl: url,
+          content: {
+            oneofKind: 'audioUrl',
+            audioUrl: url,
+          },
         });
       } else if (mediaType) {
         throw createUnsupportedTextChatPartError();
@@ -385,17 +328,6 @@ function extractContentParts(
   }
 
   return result;
-}
-
-export function extractGenerateText(output: unknown): string {
-  const value = (output && typeof output === 'object')
-    ? output as ScenarioOutput
-    : undefined;
-  const variant = value?.output;
-  if (variant?.oneofKind === 'textGenerate') {
-    return normalizeText(variant.textGenerate.text);
-  }
-  return '';
 }
 
 export function toBase64(value: Uint8Array): string {

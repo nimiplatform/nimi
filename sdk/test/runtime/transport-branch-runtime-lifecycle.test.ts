@@ -348,6 +348,7 @@ test('runtime-convenience: generate with provider + model uses cloud route', asy
     prompt: 'test',
     provider: 'gemini',
     model: 'pro',
+    subjectUserId: 'cloud-user',
   });
   assert.equal(capturedModel, 'gemini/pro');
   assert.equal(capturedRoute, 'cloud');
@@ -467,10 +468,10 @@ test('runtime-convenience: toRuntimeGenerateResult handles missing trace fields'
 });
 
 // ---------------------------------------------------------------------------
-// runtime-convenience: subjectUserId defaults to 'local-user'
+// runtime-convenience: subjectUserId stays optional for local-only routing
 // ---------------------------------------------------------------------------
 
-test('runtime-convenience: generate uses default subjectUserId when not provided', async () => {
+test('runtime-convenience: generate leaves subjectUserId unset for local routing when omitted', async () => {
   let capturedSubject = '';
   const mockRuntime = {
     ai: {
@@ -490,7 +491,7 @@ test('runtime-convenience: generate uses default subjectUserId when not provided
   };
 
   await runtimeGenerateConvenience(mockRuntime as never, { prompt: 'test', model: 'llama3' });
-  assert.equal(capturedSubject, 'local-user');
+  assert.equal(capturedSubject, '');
 });
 
 test('runtime-convenience: generate uses explicit subjectUserId', async () => {
@@ -518,6 +519,35 @@ test('runtime-convenience: generate uses explicit subjectUserId', async () => {
     subjectUserId: 'custom-user',
   });
   assert.equal(capturedSubject, 'custom-user');
+});
+
+test('runtime-convenience: generate requires subjectUserId for cloud routing', async () => {
+  const mockRuntime = {
+    ai: {
+      text: {
+        generate: async () => ({
+          text: 'ok',
+          usage: {},
+          finishReason: 'stop',
+          trace: { traceId: '', routeDecision: 'cloud' },
+        }),
+        stream: async () => ({ stream: (async function*() {})() }),
+      },
+    },
+  };
+
+  await assert.rejects(
+    () => runtimeGenerateConvenience(mockRuntime as never, {
+      prompt: 'test',
+      provider: 'openai',
+      model: 'gpt-4.1-mini',
+    }),
+    (error: unknown) => {
+      const e = asNimiError(error, { source: 'sdk' });
+      return e.reasonCode === ReasonCode.ACTION_INPUT_INVALID
+        && e.actionHint === 'provide_subject_user_id';
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------

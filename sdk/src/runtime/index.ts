@@ -79,7 +79,11 @@ export type {
   RuntimeStreamChunk,
   RuntimeStreamInput,
 } from './runtime-convenience.js';
-export * from './runtime-realm-bridge.js';
+export {
+  fetchRealmGrant,
+  buildRuntimeAuthMetadata,
+  createRuntimeRealmBridgeHelpers,
+} from './runtime-realm-bridge.js';
 export {
   buildMusicIterationExtensions,
   buildLocalImageWorkflowExtensions,

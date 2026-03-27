@@ -12,7 +12,8 @@ test('toRuntimeMessages string input creates TEXT part for content', () => {
   assert.equal(result.input[0]!.content, 'hello');
   assert.equal(result.input[0]!.parts.length, 1);
   assert.equal(result.input[0]!.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(result.input[0]!.parts[0]!.text, 'hello');
+  assert.equal(result.input[0]!.parts[0]!.content.oneofKind, 'text');
+  assert.equal(result.input[0]!.parts[0]!.content.text, 'hello');
 });
 
 test('toRuntimeMessages TextMessage with string content creates TEXT part', () => {
@@ -24,7 +25,8 @@ test('toRuntimeMessages TextMessage with string content creates TEXT part', () =
   assert.equal(result.input[0]!.content, 'hi');
   assert.equal(result.input[0]!.parts.length, 1);
   assert.equal(result.input[0]!.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(result.input[0]!.parts[0]!.text, 'hi');
+  assert.equal(result.input[0]!.parts[0]!.content.oneofKind, 'text');
+  assert.equal(result.input[0]!.parts[0]!.content.text, 'hi');
 });
 
 test('toRuntimeMessages TextMessage with multimodal content builds parts and dual-writes text', () => {
@@ -48,12 +50,13 @@ test('toRuntimeMessages TextMessage with multimodal content builds parts and dua
   assert.equal(msg.parts.length, 2);
 
   assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[0]!.text, 'desc');
+  assert.equal(msg.parts[0]!.content.oneofKind, 'text');
+  assert.equal(msg.parts[0]!.content.text, 'desc');
 
   assert.equal(msg.parts[1]!.type, ChatContentPartType.IMAGE_URL);
-  assert.equal(msg.parts[1]!.text, '');
-  assert.equal(msg.parts[1]!.imageUrl?.url, 'https://example.com/img.png');
-  assert.equal(msg.parts[1]!.imageUrl?.detail, 'high');
+  assert.equal(msg.parts[1]!.content.oneofKind, 'imageUrl');
+  assert.equal(msg.parts[1]!.content.imageUrl.url, 'https://example.com/img.png');
+  assert.equal(msg.parts[1]!.content.imageUrl.detail, 'high');
 });
 
 test('toRuntimeMessages system message with multimodal content extracts text only', () => {
@@ -98,7 +101,8 @@ test('toRuntimeMessages skips empty/whitespace-only text parts in multimodal', (
   // parts should have TEXT + IMAGE_URL, whitespace text skipped
   assert.equal(msg.parts.length, 2);
   assert.equal(msg.parts[0]!.type, ChatContentPartType.TEXT);
-  assert.equal(msg.parts[0]!.text, 'describe this');
+  assert.equal(msg.parts[0]!.content.oneofKind, 'text');
+  assert.equal(msg.parts[0]!.content.text, 'describe this');
   assert.equal(msg.parts[1]!.type, ChatContentPartType.IMAGE_URL);
 });
 
@@ -136,11 +140,14 @@ test('toRuntimeMessages keeps video_url, audio_url and artifact_ref parts', () =
   assert.equal(result.input.length, 1);
   assert.equal(result.input[0]!.parts.length, 4);
   assert.equal(result.input[0]!.parts[1]!.type, ChatContentPartType.VIDEO_URL);
-  assert.equal(result.input[0]!.parts[1]!.videoUrl, 'https://example.com/video.mp4');
+  assert.equal(result.input[0]!.parts[1]!.content.oneofKind, 'videoUrl');
+  assert.equal(result.input[0]!.parts[1]!.content.videoUrl, 'https://example.com/video.mp4');
   assert.equal(result.input[0]!.parts[2]!.type, ChatContentPartType.AUDIO_URL);
-  assert.equal(result.input[0]!.parts[2]!.audioUrl, 'https://example.com/audio.mp3');
+  assert.equal(result.input[0]!.parts[2]!.content.oneofKind, 'audioUrl');
+  assert.equal(result.input[0]!.parts[2]!.content.audioUrl, 'https://example.com/audio.mp3');
   assert.equal(result.input[0]!.parts[3]!.type, ChatContentPartType.ARTIFACT_REF);
-  assert.equal(result.input[0]!.parts[3]!.artifactRef?.artifactId, 'artifact-1');
+  assert.equal(result.input[0]!.parts[3]!.content.oneofKind, 'artifactRef');
+  assert.equal(result.input[0]!.parts[3]!.content.artifactRef.artifactId, 'artifact-1');
 });
 
 test('toRuntimeMessages image_url defaults detail to auto', () => {
@@ -157,7 +164,8 @@ test('toRuntimeMessages image_url defaults detail to auto', () => {
   // IMAGE_URL is the second part (after TEXT)
   const part = result.input[0]!.parts[1]!;
   assert.equal(part.type, ChatContentPartType.IMAGE_URL);
-  assert.equal(part.imageUrl?.detail, 'auto');
+  assert.equal(part.content.oneofKind, 'imageUrl');
+  assert.equal(part.content.imageUrl.detail, 'auto');
 });
 
 test('toRuntimeMessages explicit system param merges with inline system messages', () => {

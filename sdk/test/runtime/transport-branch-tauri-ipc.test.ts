@@ -152,6 +152,39 @@ test('tauri-ipc: readGlobalTauriInvoke returns fromGlobal when window.__TAURI__ 
   }
 });
 
+test('tauri-ipc: readGlobalTauriInvoke returns from __NIMI_TAURI_TEST__ hook', async () => {
+  const g = globalThis as Record<string, unknown>;
+  const prevWindow = g.window;
+  const prevHook = g.__NIMI_TAURI_TEST__;
+
+  g.__NIMI_TAURI_TEST__ = {
+    invoke: async () => ({ responseBytesBase64: '' }),
+    listen: () => () => {},
+  };
+  delete g.window;
+
+  try {
+    const transport = createTauriIpcTransport({
+      type: 'tauri-ipc',
+    });
+    const result = await transport.invokeUnary({
+      methodId: 'test',
+      request: new Uint8Array(0),
+      metadata: {} as RuntimeUnaryCall['metadata'],
+    });
+    assert.ok(result instanceof Uint8Array);
+  } finally {
+    if (prevHook !== undefined) {
+      g.__NIMI_TAURI_TEST__ = prevHook;
+    } else {
+      delete g.__NIMI_TAURI_TEST__;
+    }
+    if (prevWindow !== undefined) {
+      g.window = prevWindow;
+    }
+  }
+});
+
 // ---------------------------------------------------------------------------
 // tauri-ipc: asObject branches
 // ---------------------------------------------------------------------------
@@ -1130,4 +1163,3 @@ test('tauri-ipc: iterator next returns queued items synchronously', async () => 
     restoreTauri();
   }
 });
-

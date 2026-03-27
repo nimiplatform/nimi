@@ -162,14 +162,16 @@ test('passthrough: local module methods are callable and forwarded', async () =>
 });
 
 // ---------------------------------------------------------------------------
-// connector (11 methods)
+// connector (15 methods)
 // ---------------------------------------------------------------------------
 test('passthrough: connector module methods are callable and forwarded', async () => {
   const { clients, guardCalls, invokeCalls } = createMockClients();
   const methods = [
     'createConnector', 'getConnector', 'listConnectors', 'updateConnector', 'deleteConnector',
     'testConnector', 'listConnectorModels', 'listProviderCatalog',
-    'listModelCatalogProviders', 'upsertModelCatalogProvider', 'deleteModelCatalogProvider',
+    'listModelCatalogProviders', 'listCatalogProviderModels', 'getCatalogModelDetail',
+    'upsertModelCatalogProvider', 'deleteModelCatalogProvider',
+    'upsertCatalogModelOverlay', 'deleteCatalogModelOverlay',
   ] as const;
 
   for (const m of methods) {
