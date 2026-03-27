@@ -6,6 +6,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -375,6 +376,34 @@ func TestParseKeySourceFromBody(t *testing.T) {
 	parsed := parseKeySource(ctx, "conn-from-body")
 	if parsed.ConnectorID != "conn-from-body" {
 		t.Errorf("expected connector_id=conn-from-body, got %s", parsed.ConnectorID)
+	}
+}
+
+func TestParseKeySourceUsesScrubbedCredentialMetadata(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{
+		"x-nimi-key-source":        "inline",
+		"x-nimi-provider-type":     "openai",
+		"x-nimi-provider-endpoint": "https://custom.endpoint.com",
+		"x-nimi-provider-api-key":  "sk-from-metadata",
+		"x-nimi-app-id":            "nimi.desktop",
+	}))
+	ctx = envelope.ScrubIncomingCredentialMetadata(ctx)
+
+	parsed := parseKeySource(ctx, "")
+	if parsed.KeySource != "inline" {
+		t.Fatalf("expected key_source=inline, got %s", parsed.KeySource)
+	}
+	if parsed.ProviderType != "openai" {
+		t.Fatalf("expected provider_type=openai, got %s", parsed.ProviderType)
+	}
+	if parsed.Endpoint != "https://custom.endpoint.com" {
+		t.Fatalf("expected endpoint=https://custom.endpoint.com, got %s", parsed.Endpoint)
+	}
+	if parsed.APIKey != "sk-from-metadata" {
+		t.Fatalf("expected api_key=sk-from-metadata, got %s", parsed.APIKey)
+	}
+	if parsed.AppID != "nimi.desktop" {
+		t.Fatalf("expected app_id=nimi.desktop, got %s", parsed.AppID)
 	}
 }
 

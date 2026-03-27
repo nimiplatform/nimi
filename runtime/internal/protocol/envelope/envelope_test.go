@@ -270,3 +270,29 @@ func TestParseCredentialMetadataFromContext(t *testing.T) {
 		t.Fatalf("credential metadata: type=%q endpoint=%q key=%q", credentialMeta.ProviderType, credentialMeta.Endpoint, credentialMeta.APIKey)
 	}
 }
+
+func TestScrubIncomingCredentialMetadataRemovesRawAPIKeyFromMetadata(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		"x-nimi-key-source", "INLINE",
+		"x-nimi-provider-type", "openai",
+		"x-nimi-provider-endpoint", "https://api.openai.com",
+		"x-nimi-provider-api-key", "test-api-key",
+	))
+
+	scrubbed := ScrubIncomingCredentialMetadata(ctx)
+	md, ok := metadata.FromIncomingContext(scrubbed)
+	if !ok {
+		t.Fatal("expected scrubbed incoming metadata")
+	}
+	if got := first(md, "x-nimi-provider-api-key"); got != "" {
+		t.Fatalf("provider api key should be removed from raw metadata, got %q", got)
+	}
+
+	credentialMeta, err := ParseCredentialMetadataFromContext(scrubbed)
+	if err != nil {
+		t.Fatalf("parse scrubbed credential metadata: %v", err)
+	}
+	if credentialMeta.APIKey != "test-api-key" {
+		t.Fatalf("expected scrubbed credential context to preserve api key, got %q", credentialMeta.APIKey)
+	}
+}

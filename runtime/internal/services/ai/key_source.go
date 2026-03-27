@@ -12,6 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 )
 
@@ -41,14 +42,28 @@ func parseKeySource(ctx context.Context, connectorID string) ParsedKeySource {
 	parsed := ParsedKeySource{
 		ConnectorID: strings.TrimSpace(connectorID),
 	}
+	if credentialMeta, err := envelope.ParseCredentialMetadataFromContext(ctx); err == nil {
+		parsed.KeySource = credentialMeta.Source
+		parsed.ProviderType = credentialMeta.ProviderType
+		parsed.Endpoint = credentialMeta.Endpoint
+		parsed.APIKey = credentialMeta.APIKey
+	}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return parsed
 	}
-	parsed.KeySource = strings.ToLower(firstMDValue(md, metadataKeySourceKey))
-	parsed.ProviderType = firstMDValue(md, metadataProviderTypeKey)
-	parsed.Endpoint = firstMDValue(md, metadataProviderEndpointKey)
-	parsed.APIKey = firstMDValue(md, metadataProviderAPIKeyKey)
+	if parsed.KeySource == "" {
+		parsed.KeySource = strings.ToLower(firstMDValue(md, metadataKeySourceKey))
+	}
+	if parsed.ProviderType == "" {
+		parsed.ProviderType = firstMDValue(md, metadataProviderTypeKey)
+	}
+	if parsed.Endpoint == "" {
+		parsed.Endpoint = firstMDValue(md, metadataProviderEndpointKey)
+	}
+	if parsed.APIKey == "" {
+		parsed.APIKey = firstMDValue(md, metadataProviderAPIKeyKey)
+	}
 	parsed.AppID = firstMDValue(md, metadataAppIDKey)
 	return parsed
 }

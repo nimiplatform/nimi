@@ -14,6 +14,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 )
 
 func inferRequestIdentity(req any) (string, string, string) {
@@ -108,14 +109,11 @@ func accessTokenIDFromMetadata(ctx context.Context) string {
 }
 
 func providerCredentialMetadata(ctx context.Context) (string, string, string) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
+	credentialMeta, err := envelope.ParseCredentialMetadataFromContext(ctx)
+	if err != nil {
 		return "", "", ""
 	}
-	source := strings.ToLower(firstMetadata(md, "x-nimi-key-source"))
-	endpoint := firstMetadata(md, "x-nimi-provider-endpoint")
-	apiKey := firstMetadata(md, "x-nimi-provider-api-key")
-	return source, endpoint, secretFingerprint(apiKey)
+	return credentialMeta.Source, credentialMeta.Endpoint, secretFingerprint(credentialMeta.APIKey)
 }
 
 func secretFingerprint(value string) string {

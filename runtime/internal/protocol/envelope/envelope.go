@@ -235,7 +235,12 @@ type CredentialMetadata struct {
 	APIKey       string
 }
 
+type credentialMetadataContextKey struct{}
+
 func ParseCredentialMetadataFromContext(ctx context.Context) (CredentialMetadata, error) {
+	if override, ok := ctx.Value(credentialMetadataContextKey{}).(CredentialMetadata); ok {
+		return override, nil
+	}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return CredentialMetadata{}, fmt.Errorf("parse credential metadata from context: %w", ErrEnvelopeMetadataMissing)
@@ -246,4 +251,25 @@ func ParseCredentialMetadataFromContext(ctx context.Context) (CredentialMetadata
 		Endpoint:     first(md, "x-nimi-provider-endpoint"),
 		APIKey:       first(md, "x-nimi-provider-api-key"),
 	}, nil
+}
+
+func ScrubIncomingCredentialMetadata(ctx context.Context) context.Context {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return ctx
+	}
+
+	credentialMeta := CredentialMetadata{
+		Source:       strings.ToLower(first(md, "x-nimi-key-source")),
+		ProviderType: first(md, "x-nimi-provider-type"),
+		Endpoint:     first(md, "x-nimi-provider-endpoint"),
+		APIKey:       first(md, "x-nimi-provider-api-key"),
+	}
+	if strings.TrimSpace(credentialMeta.APIKey) == "" {
+		return ctx
+	}
+
+	scrubbed := md.Copy()
+	delete(scrubbed, "x-nimi-provider-api-key")
+	return metadata.NewIncomingContext(context.WithValue(ctx, credentialMetadataContextKey{}, credentialMeta), scrubbed)
 }

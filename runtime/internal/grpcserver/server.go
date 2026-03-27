@@ -112,6 +112,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 			newUnaryProtocolInterceptor(idempotencyStore),
 			authn.NewUnaryInterceptor(authnValidator),
 			newUnaryAuthzInterceptor(grantSvc),
+			newUnaryCredentialScrubInterceptor(),
 			newUnaryAuditInterceptor(auditStore),
 		),
 		grpc.ChainStreamInterceptor(
@@ -120,6 +121,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 			newStreamProtocolInterceptor(),
 			authn.NewStreamInterceptor(authnValidator),
 			newStreamAuthzInterceptor(grantSvc),
+			newStreamCredentialScrubInterceptor(),
 			newStreamAuditInterceptor(auditStore),
 		),
 	)

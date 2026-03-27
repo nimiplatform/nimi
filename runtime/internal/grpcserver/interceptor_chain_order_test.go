@@ -11,7 +11,7 @@ import (
 
 func TestInterceptorChainOrderMatchesSpec(t *testing.T) {
 	// K-AUTH-007: authn must run before authz in the interceptor chain.
-	expected := []string{"version", "lifecycle", "protocol", "authn", "authz", "audit", "handler"}
+	expected := []string{"version", "lifecycle", "protocol", "authn", "authz", "credential_scrub", "audit", "handler"}
 	unaryOrder := make([]string, 0, len(expected))
 
 	recordUnaryChainExecution(&unaryOrder,
@@ -20,6 +20,7 @@ func TestInterceptorChainOrderMatchesSpec(t *testing.T) {
 		recordingUnaryInterceptor("protocol", &unaryOrder),
 		recordingUnaryInterceptor("authn", &unaryOrder),
 		recordingUnaryInterceptor("authz", &unaryOrder),
+		recordingUnaryInterceptor("credential_scrub", &unaryOrder),
 		recordingUnaryInterceptor("audit", &unaryOrder),
 	)
 	if !reflect.DeepEqual(unaryOrder, expected) {
@@ -33,6 +34,7 @@ func TestInterceptorChainOrderMatchesSpec(t *testing.T) {
 		recordingStreamInterceptor("protocol", &streamOrder),
 		recordingStreamInterceptor("authn", &streamOrder),
 		recordingStreamInterceptor("authz", &streamOrder),
+		recordingStreamInterceptor("credential_scrub", &streamOrder),
 		recordingStreamInterceptor("audit", &streamOrder),
 	)
 	if !reflect.DeepEqual(streamOrder, expected) {
