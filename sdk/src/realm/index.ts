@@ -13,6 +13,7 @@ export { AgentWakeStrategy } from './generated/models/AgentWakeStrategy.js';
 export { ApiKeyType } from './generated/models/ApiKeyType.js';
 export { AttachmentDisplayKind } from './generated/models/AttachmentDisplayKind.js';
 export { AttachmentTargetType } from './generated/models/AttachmentTargetType.js';
+export { CheckEmailEntryRoute } from './generated/models/CheckEmailEntryRoute.js';
 export { ContentRatingString } from './generated/models/ContentRatingString.js';
 export { DnaPrimaryType } from './generated/models/DnaPrimaryType.js';
 export { DnaSecondaryTrait } from './generated/models/DnaSecondaryTrait.js';

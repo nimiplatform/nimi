@@ -39,22 +39,22 @@ function createAuthUser(overrides: Partial<AuthUser>): AuthUser {
 
 test('email entry uses OTP registration for new email', () => {
   assert.equal(
-    resolveEmailEntryRoute({ available: true }),
+    resolveEmailEntryRoute({ available: true, entryRoute: 'register_with_otp' }),
     'register_with_otp',
   );
 });
 
 test('email entry uses OTP login for existing email without password', () => {
   assert.equal(
-    resolveEmailEntryRoute({ available: false }),
+    resolveEmailEntryRoute({ available: false, entryRoute: 'login_with_otp' }),
     'login_with_otp',
   );
 });
 
-test('email entry uses OTP login for existing email', () => {
+test('email entry uses password login for existing email with password', () => {
   assert.equal(
-    resolveEmailEntryRoute({ available: false }),
-    'login_with_otp',
+    resolveEmailEntryRoute({ available: false, entryRoute: 'login_with_password' }),
+    'login_with_password',
   );
 });
 

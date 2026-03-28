@@ -88,6 +88,7 @@ export type RealmGeneratedModelMap = {
   ChatUserRefPayloadDto: components['schemas']['ChatUserRefPayloadDto'];
   ChatViewDto: components['schemas']['ChatViewDto'];
   CheckEmailDto: components['schemas']['CheckEmailDto'];
+  CheckEmailEntryRoute: components['schemas']['CheckEmailEntryRoute'];
   CheckEmailResponseDto: components['schemas']['CheckEmailResponseDto'];
   ClassDefinitionDto: components['schemas']['ClassDefinitionDto'];
   CloneAssetDto: components['schemas']['CloneAssetDto'];

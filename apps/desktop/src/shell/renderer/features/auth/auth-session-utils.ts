@@ -17,6 +17,11 @@ const OAUTH_LOGIN_STATES = new Set<OAuthLoginResultDto['loginState']>([
   'needs_2fa',
   'blocked',
 ]);
+const CHECK_EMAIL_ENTRY_ROUTES = new Set<CheckEmailResponseDto['entryRoute']>([
+  'register_with_otp',
+  'login_with_otp',
+  'login_with_password',
+]);
 
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -31,12 +36,18 @@ export function toAuthUserRecord(value: unknown): Record<string, unknown> | null
 
 export function toCheckEmailResponseDto(value: unknown): CheckEmailResponseDto {
   const record = toRecord(value);
-  if (!record || typeof record.available !== 'boolean') {
+  if (
+    !record
+    || typeof record.available !== 'boolean'
+    || typeof record.entryRoute !== 'string'
+    || !CHECK_EMAIL_ENTRY_ROUTES.has(record.entryRoute as CheckEmailResponseDto['entryRoute'])
+  ) {
     throw new Error('Malformed check-email response');
   }
 
   return {
     available: record.available,
+    entryRoute: record.entryRoute as CheckEmailResponseDto['entryRoute'],
   };
 }
 

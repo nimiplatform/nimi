@@ -4156,9 +4156,16 @@ export type components = {
             /** @description Email address to check */
             email: string;
         };
+        /**
+         * @description Recommended auth entry route for this email address
+         * @enum {string}
+         */
+        CheckEmailEntryRoute: "register_with_otp" | "login_with_otp" | "login_with_password";
         CheckEmailResponseDto: {
             /** @description Whether the email is available (not registered) */
             available: boolean;
+            /** @description Recommended auth entry route for this email address */
+            entryRoute: components["schemas"]["CheckEmailEntryRoute"];
         };
         ClassDefinitionDto: {
             abilities?: string[];

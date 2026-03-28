@@ -9,10 +9,7 @@ export type EmailEntryRoute =
   | 'login_with_password';
 
 export function resolveEmailEntryRoute(result: CheckEmailResponseDto): EmailEntryRoute {
-  if (result.available) {
-    return 'register_with_otp';
-  }
-  return 'login_with_otp';
+  return result.entryRoute;
 }
 
 export function shouldPromptPasswordSetupAfterEmailOtp(
