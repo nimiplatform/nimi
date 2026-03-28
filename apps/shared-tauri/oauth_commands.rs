@@ -93,6 +93,9 @@ fn parse_oauth_redirect_uri(redirect_uri: &str) -> Result<(String, u16, String),
     let port = url
         .port_or_known_default()
         .ok_or_else(|| "OAuth redirect_uri missing port".to_string())?;
+    if url.query().is_some() || url.fragment().is_some() {
+        return Err("OAuth redirect_uri must not include query or fragment".to_string());
+    }
     let path = if url.path().trim().is_empty() {
         "/".to_string()
     } else {
@@ -101,7 +104,68 @@ fn parse_oauth_redirect_uri(redirect_uri: &str) -> Result<(String, u16, String),
     Ok((host, port, path))
 }
 
-fn read_request_target(stream: &mut std::net::TcpStream) -> Result<String, String> {
+fn normalize_oauth_callback_target(target: &str, expected_path: &str) -> Result<String, String> {
+    let normalized_target = target.trim();
+    if normalized_target.is_empty() {
+        return Err("OAuth callback missing request target".to_string());
+    }
+    if !normalized_target.starts_with('/') || normalized_target.starts_with("//") {
+        return Err("OAuth callback target must be an absolute path".to_string());
+    }
+    if normalized_target.contains('#') {
+        return Err("OAuth callback target must not include fragment".to_string());
+    }
+    let callback_url = format!("http://localhost{normalized_target}");
+    let parsed = Url::parse(callback_url.as_str()).map_err(|error| error.to_string())?;
+    if parsed.path() != expected_path {
+        return Err(format!(
+            "OAuth callback path mismatch: expected={expected_path} actual={}",
+            parsed.path()
+        ));
+    }
+    let mut normalized = parsed.path().to_string();
+    if let Some(query) = parsed.query() {
+        normalized.push('?');
+        normalized.push_str(query);
+    }
+    Ok(normalized)
+}
+
+#[derive(Debug)]
+struct ParsedOauthCallbackRequest {
+    target: String,
+    params: HashMap<String, String>,
+}
+
+fn parse_form_urlencoded_pairs(input: &str) -> HashMap<String, String> {
+    url::form_urlencoded::parse(input.as_bytes())
+        .map(|(key, value)| (key.to_string(), value.to_string()))
+        .collect::<HashMap<_, _>>()
+}
+
+fn parse_oauth_callback_http_request(request: &str) -> Result<ParsedOauthCallbackRequest, String> {
+    let (head, body) = request.split_once("\r\n\r\n").unwrap_or((request, ""));
+    let first_line = head
+        .lines()
+        .next()
+        .ok_or_else(|| "OAuth callback request format is invalid".to_string())?;
+    let mut parts = first_line.split_whitespace();
+    let method = parts.next().unwrap_or_default().to_ascii_uppercase();
+    let target = parts.next().unwrap_or_default().to_string();
+    if target.trim().is_empty() {
+        return Err("OAuth callback missing request target".to_string());
+    }
+    let params = match method.as_str() {
+        "GET" => HashMap::new(),
+        "POST" => parse_form_urlencoded_pairs(body),
+        _ => return Err(format!("OAuth callback only supports GET or POST, got {method}")),
+    };
+    Ok(ParsedOauthCallbackRequest { target, params })
+}
+
+fn read_oauth_callback_request(
+    stream: &mut std::net::TcpStream,
+) -> Result<ParsedOauthCallbackRequest, String> {
     let mut buffer = [0_u8; 8192];
     let bytes = stream
         .read(&mut buffer)
@@ -110,20 +174,7 @@ fn read_request_target(stream: &mut std::net::TcpStream) -> Result<String, Strin
         return Err("OAuth callback request body is empty".to_string());
     }
     let request = String::from_utf8_lossy(&buffer[..bytes]);
-    let first_line = request
-        .lines()
-        .next()
-        .ok_or_else(|| "OAuth callback request format is invalid".to_string())?;
-    let mut parts = first_line.split_whitespace();
-    let method = parts.next().unwrap_or_default().to_ascii_uppercase();
-    let target = parts.next().unwrap_or_default().to_string();
-    if method != "GET" {
-        return Err(format!("OAuth callback only supports GET, got {method}"));
-    }
-    if target.trim().is_empty() {
-        return Err("OAuth callback missing request target".to_string());
-    }
-    Ok(target)
+    parse_oauth_callback_http_request(request.as_ref())
 }
 
 fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
@@ -309,27 +360,31 @@ fn oauth_listen_for_code_blocking(
                     .set_nonblocking(false)
                     .map_err(|error| error.to_string())?;
                 let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(5)));
-                let target = read_request_target(&mut stream)?;
-                if !target.starts_with(expected_path.as_str()) {
-                    write_oauth_callback_page(&mut stream, false);
-                    continue;
-                }
+                let callback_request = read_oauth_callback_request(&mut stream)?;
+                let normalized_target = match normalize_oauth_callback_target(
+                    callback_request.target.as_str(),
+                    expected_path.as_str(),
+                ) {
+                    Ok(value) => value,
+                    Err(_) => {
+                        write_oauth_callback_page(&mut stream, false);
+                        continue;
+                    }
+                };
 
-                let callback_url = format!("http://localhost:{port}{target}");
+                let callback_url = format!("http://localhost:{port}{normalized_target}");
                 let parsed =
                     Url::parse(callback_url.as_str()).map_err(|error| error.to_string())?;
-                let code = parsed
+                let mut callback_params = parsed
                     .query_pairs()
-                    .find(|(key, _)| key == "code")
-                    .map(|(_, value)| value.to_string());
-                let state = parsed
-                    .query_pairs()
-                    .find(|(key, _)| key == "state")
-                    .map(|(_, value)| value.to_string());
-                let error = parsed
-                    .query_pairs()
-                    .find(|(key, _)| key == "error")
-                    .map(|(_, value)| value.to_string());
+                    .map(|(key, value)| (key.to_string(), value.to_string()))
+                    .collect::<HashMap<_, _>>();
+                for (key, value) in callback_request.params {
+                    callback_params.insert(key, value);
+                }
+                let code = callback_params.get("code").cloned();
+                let state = callback_params.get("state").cloned();
+                let error = callback_params.get("error").cloned();
 
                 write_oauth_callback_page(&mut stream, code.is_some() && error.is_none());
 
@@ -471,7 +526,10 @@ pub async fn oauth_listen_for_code(
 
 #[cfg(test)]
 mod tests {
-    use super::{redact_body_preview, redact_json_value};
+    use super::{
+        normalize_oauth_callback_target, parse_oauth_callback_http_request, redact_body_preview,
+        redact_json_value,
+    };
 
     #[test]
     fn redact_body_preview_masks_sensitive_json_keys() {
@@ -507,5 +565,30 @@ mod tests {
         assert!(rendered.contains("[REDACTED]"));
         assert!(!rendered.contains("top-secret"));
         assert!(!rendered.contains("cookie-value"));
+    }
+
+    #[test]
+    fn normalize_oauth_callback_target_requires_exact_callback_path() {
+        assert_eq!(
+            normalize_oauth_callback_target("/oauth/callback?code=abc&state=123", "/oauth/callback")
+                .unwrap(),
+            "/oauth/callback?code=abc&state=123"
+        );
+        assert!(normalize_oauth_callback_target("/oauth/callback/extra?code=abc", "/oauth/callback")
+            .is_err());
+        assert!(normalize_oauth_callback_target("//oauth/callback?code=abc", "/oauth/callback")
+            .is_err());
+    }
+
+    #[test]
+    fn parse_oauth_callback_http_request_accepts_post_form_body() {
+        let request = "POST /oauth/callback HTTP/1.1\r\nHost: 127.0.0.1:4100\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\ncode=token-123&state=abc";
+        let parsed = parse_oauth_callback_http_request(request).unwrap();
+        assert_eq!(parsed.target, "/oauth/callback");
+        assert_eq!(
+            parsed.params.get("code").map(String::as_str),
+            Some("token-123")
+        );
+        assert_eq!(parsed.params.get("state").map(String::as_str), Some("abc"));
     }
 }
