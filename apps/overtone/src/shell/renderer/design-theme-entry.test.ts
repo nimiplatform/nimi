@@ -9,17 +9,17 @@ const stylesSource = fs.readFileSync(path.join(testDir, 'styles.css'), 'utf8');
 
 describe('overtone design theme entry contract', () => {
   it('uses the shared Nimi theme provider with the overtone accent pack', () => {
-    expect(mainSource).toMatch(/@nimiplatform\/nimi-ui/);
+    expect(mainSource).toMatch(/@nimiplatform\/nimi-kit\/ui/);
     expect(mainSource).toMatch(/NimiThemeProvider/);
     expect(mainSource).toMatch(/accentPack="overtone-accent"/);
     expect(mainSource).toMatch(/defaultScheme="dark"/);
   });
 
   it('imports the shared foundation and overtone accent styles', () => {
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/styles\.css/);
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/themes\/light\.css/);
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/themes\/dark\.css/);
-    expect(stylesSource).toMatch(/@nimiplatform\/nimi-ui\/themes\/overtone-accent\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/styles\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/themes\/light\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/themes\/dark\.css/);
+    expect(stylesSource).toMatch(/@nimiplatform\/nimi-kit\/ui\/themes\/overtone-accent\.css/);
     expect(stylesSource).not.toMatch(/relay-dark\.css|overtone-studio\.css/);
   });
 

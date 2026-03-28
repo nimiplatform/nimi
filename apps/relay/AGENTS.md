@@ -48,7 +48,8 @@ The renderer is a thin consumer: it receives structured beat messages via IPC an
 
 - TypeScript: `pnpm --filter @nimiplatform/relay typecheck`
 - Build: `pnpm --filter @nimiplatform/relay build`
-- Transport tests (requires runtime daemon): `pnpm --filter @nimiplatform/relay test`
+- Default tests: `pnpm --filter @nimiplatform/relay test`
+- Transport tests (requires runtime daemon): `pnpm --filter @nimiplatform/relay test:transport`
 - Dev launch: `NIMI_REALM_URL=... NIMI_ACCESS_TOKEN=... pnpm --filter @nimiplatform/relay dev`
 
 ## Non-Goals

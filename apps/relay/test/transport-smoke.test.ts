@@ -1,6 +1,6 @@
 // RL-TRANS-001 ~ 005 — Transport Validation Smoke Tests
 // These tests require a running runtime daemon (pnpm runtime:serve)
-// Run: pnpm --filter @nimiplatform/relay test
+// Run: pnpm --filter @nimiplatform/relay test:transport
 
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -39,6 +39,7 @@ describe('RL-TRANS-002 — Streaming', () => {
   it('runtime.stream() yields text chunks and completes', async () => {
     const stream = await runtime.stream({
       prompt: 'Say hello in one word',
+      model: 'local/test-model',
     });
 
     const chunks: Array<{ type: string; text?: string }> = [];

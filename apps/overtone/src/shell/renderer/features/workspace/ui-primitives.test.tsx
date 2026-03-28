@@ -35,9 +35,9 @@ test('overtone thin wrappers render shared nimi primitive classes', () => {
     </div>,
   );
 
-  expect(html).toMatch(/nimi-action/);
-  expect(html).toMatch(/nimi-action--icon/);
-  expect(html).toMatch(/nimi-field/);
+  expect(html).toContain('inline-flex');
+  expect(html).toContain('aspect-square');
+  expect(html).toContain('min-h-[var(--nimi-sizing-field-md-height)]');
 });
 
 test('all exported Overtone ui compositions are registered and thin wrappers stay thin', () => {
