@@ -55,6 +55,7 @@
       }
     },
     "updater": {
+      "pubkey": "",
       "endpoints": [],
       "windows": {
         "installMode": "passive"

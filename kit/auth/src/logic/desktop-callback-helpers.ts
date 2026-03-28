@@ -9,6 +9,100 @@ import {
 } from '@nimiplatform/nimi-kit/core/oauth';
 import { AUTH_COPY } from './auth-copy.js';
 
+const DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID = 'nimi-desktop-callback-success-overlay';
+const DESKTOP_CALLBACK_SUCCESS_STYLE_ID = 'nimi-desktop-callback-success-style';
+const DESKTOP_CALLBACK_SUCCESS_CLOSE_DELAY_MS = 3000;
+
+function closeWindowSafely(): void {
+  if (typeof window !== 'undefined' && typeof window.close === 'function') {
+    window.close();
+  }
+}
+
+function showDesktopCallbackSuccessState(): void {
+  if (typeof document === 'undefined' || !document.body) {
+    closeWindowSafely();
+    return;
+  }
+
+  if (!document.getElementById(DESKTOP_CALLBACK_SUCCESS_STYLE_ID)) {
+    const style = document.createElement('style');
+    style.id = DESKTOP_CALLBACK_SUCCESS_STYLE_ID;
+    style.textContent = `
+      #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(248, 250, 252, 0.88);
+        backdrop-filter: blur(8px);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} .nimi_desktop_callback_card {
+        width: min(460px, calc(100vw - 48px));
+        padding: 32px 28px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16);
+        text-align: center;
+        color: #0f172a;
+      }
+      #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} .nimi_desktop_callback_badge {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 18px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: #ffffff;
+        font-size: 28px;
+        font-weight: 700;
+      }
+      #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} .nimi_desktop_callback_title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      #${DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID} .nimi_desktop_callback_message {
+        margin: 12px 0 0;
+        color: #475569;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+    `;
+    document.head?.appendChild(style);
+  }
+
+  document.getElementById(DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID)?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = DESKTOP_CALLBACK_SUCCESS_OVERLAY_ID;
+  overlay.setAttribute('role', 'status');
+  overlay.setAttribute('aria-live', 'polite');
+  overlay.innerHTML = `
+    <div class="nimi_desktop_callback_card">
+      <div class="nimi_desktop_callback_badge">✓</div>
+      <h1 class="nimi_desktop_callback_title">Authentication Complete!</h1>
+      <p class="nimi_desktop_callback_message">You have successfully signed in to Nimi. This window will close in a moment.</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
+    window.setTimeout(() => {
+      closeWindowSafely();
+    }, DESKTOP_CALLBACK_SUCCESS_CLOSE_DELAY_MS);
+    return;
+  }
+
+  closeWindowSafely();
+}
+
 export function readLocationQueryParams(): URLSearchParams {
   if (typeof window === 'undefined') {
     return new URLSearchParams();
@@ -72,11 +166,6 @@ export function submitDesktopCallbackResult(input: {
     throw new Error('Desktop callback URL must resolve to an allowed loopback address');
   }
 
-  const form = document.createElement('form');
-  form.method = 'POST';
-  form.action = normalizedCallbackUrl;
-  form.style.display = 'none';
-
   const fields = new Map<string, string>();
   const code = String(input.code || '').trim();
   if (code) {
@@ -91,6 +180,33 @@ export function submitDesktopCallbackResult(input: {
     fields.set('error', error);
   }
 
+  const encodedBody = new URLSearchParams(Array.from(fields.entries())).toString();
+  if (typeof window !== 'undefined' && typeof window.navigator?.sendBeacon === 'function') {
+    const accepted = window.navigator.sendBeacon(
+      normalizedCallbackUrl,
+      new Blob([encodedBody], {
+        type: 'application/x-www-form-urlencoded;charset=UTF-8',
+      }),
+    );
+    if (accepted) {
+      showDesktopCallbackSuccessState();
+      return;
+    }
+  }
+
+  const submissionTargetName = `nimiDesktopCallbackSink_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+  const iframe = document.createElement('iframe');
+  iframe.name = submissionTargetName;
+  iframe.style.display = 'none';
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.tabIndex = -1;
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = normalizedCallbackUrl;
+  form.target = submissionTargetName;
+  form.style.display = 'none';
+
   for (const [name, value] of fields) {
     const field = document.createElement('input');
     field.type = 'hidden';
@@ -99,8 +215,10 @@ export function submitDesktopCallbackResult(input: {
     form.appendChild(field);
   }
 
+  document.body.appendChild(iframe);
   document.body.appendChild(form);
   form.submit();
+  showDesktopCallbackSuccessState();
 }
 
 export function createDesktopCallbackState(): string {

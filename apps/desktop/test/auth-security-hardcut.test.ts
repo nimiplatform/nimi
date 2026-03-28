@@ -220,19 +220,149 @@ test('persistAuthSession stores explicit session expiry metadata without persist
   }
 });
 
-test('submitDesktopCallbackResult posts access token via form body instead of query string', () => {
-  const submitted: Array<{ method?: string; action?: string; fields: Record<string, string> }> = [];
+test('submitDesktopCallbackResult uses sendBeacon and closes the current window without top-level navigation', async () => {
+  const beaconCalls: Array<{ url: string; body: Blob }> = [];
+  let closeCount = 0;
+  const appendedBodyTags: string[] = [];
+  const appendedHeadTags: string[] = [];
   const restoreWindow = installWindowForTest({
+    close: () => {
+      closeCount += 1;
+    },
+    setTimeout: (callback: () => void) => {
+      callback();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    },
+    navigator: {
+      sendBeacon: (url: string, body: Blob) => {
+        beaconCalls.push({
+          url,
+          body,
+        });
+        return true;
+      },
+    },
     document: {
+      getElementById: () => null,
+      head: {
+        appendChild: (node: { __tag?: string }) => {
+          appendedHeadTags.push(String(node.__tag || 'unknown'));
+        },
+      },
       body: {
-        appendChild: () => undefined,
+        appendChild: (node: { __tag?: string }) => {
+          appendedBodyTags.push(String(node.__tag || 'unknown'));
+        },
       },
       createElement: (tag: string) => {
+        if (tag === 'style') {
+          return {
+            __tag: 'style',
+            id: '',
+            textContent: '',
+          };
+        }
+        if (tag === 'div') {
+          return {
+            __tag: 'div',
+            id: '',
+            innerHTML: '',
+            setAttribute: () => undefined,
+          };
+        }
+        return {
+          __tag: tag,
+        };
+      },
+    },
+  });
+  const previousDocument = (globalThis as typeof globalThis & { document?: unknown }).document;
+  Object.defineProperty(globalThis, 'document', {
+    value: (globalThis.window as typeof globalThis.window & { document: Document }).document,
+    configurable: true,
+  });
+  try {
+    submitDesktopCallbackResult({
+      request: {
+        callbackUrl: 'http://127.0.0.1:43123/oauth/callback',
+        state: 'desktop-state',
+      },
+      code: 'access-token-123',
+    });
+    assert.equal(beaconCalls.length, 1);
+    assert.equal(beaconCalls[0]?.url, 'http://127.0.0.1:43123/oauth/callback');
+    assert.equal(closeCount, 1);
+    assert.deepEqual(appendedHeadTags, ['style']);
+    assert.deepEqual(appendedBodyTags, ['div']);
+    const bodyText = beaconCalls[0] ? await beaconCalls[0].body.text() : '';
+    assert.match(bodyText, /code=access-token-123/);
+    assert.match(bodyText, /state=desktop-state/);
+  } finally {
+    Object.defineProperty(globalThis, 'document', {
+      value: previousDocument,
+      configurable: true,
+    });
+    restoreWindow();
+  }
+});
+
+test('submitDesktopCallbackResult falls back to hidden iframe form POST when beacon is unavailable', () => {
+  const submitted: Array<{ method?: string; action?: string; fields: Record<string, string> }> = [];
+  const appendedTags: string[] = [];
+  const appendedHeadTags: string[] = [];
+  let closeCount = 0;
+  const restoreWindow = installWindowForTest({
+    close: () => {
+      closeCount += 1;
+    },
+    setTimeout: (callback: () => void) => {
+      callback();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    },
+    document: {
+      getElementById: () => null,
+      head: {
+        appendChild: (node: { __tag?: string }) => {
+          appendedHeadTags.push(String(node.__tag || 'unknown'));
+        },
+      },
+      body: {
+        appendChild: (node: { __tag?: string }) => {
+          appendedTags.push(String(node.__tag || 'unknown'));
+        },
+      },
+      createElement: (tag: string) => {
+        if (tag === 'iframe') {
+          return {
+            __tag: 'iframe',
+            name: '',
+            tabIndex: 0,
+            style: { display: '' },
+            setAttribute: () => undefined,
+          };
+        }
+        if (tag === 'style') {
+          return {
+            __tag: 'style',
+            id: '',
+            textContent: '',
+          };
+        }
+        if (tag === 'div') {
+          return {
+            __tag: 'div',
+            id: '',
+            innerHTML: '',
+            setAttribute: () => undefined,
+          };
+        }
         if (tag === 'form') {
           const fields: Array<{ name: string; value: string }> = [];
           return {
+            __tag: 'form',
             method: '',
             action: '',
+            target: '',
             style: { display: '' },
             appendChild: (field: { name: string; value: string }) => {
               fields.push({ name: field.name, value: field.value });
@@ -247,6 +377,7 @@ test('submitDesktopCallbackResult posts access token via form body instead of qu
           };
         }
         return {
+          __tag: tag,
           type: '',
           name: '',
           value: '',
@@ -273,6 +404,9 @@ test('submitDesktopCallbackResult posts access token via form body instead of qu
     assert.equal(submitted[0]?.fields.code, 'access-token-123');
     assert.equal(submitted[0]?.fields.state, 'desktop-state');
     assert.equal(submitted[0]?.action?.includes('code='), false);
+    assert.deepEqual(appendedHeadTags, ['style']);
+    assert.deepEqual(appendedTags, ['iframe', 'form', 'div']);
+    assert.equal(closeCount, 1);
   } finally {
     Object.defineProperty(globalThis, 'document', {
       value: previousDocument,
