@@ -1,65 +1,19 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { readYamlWithFragments } from './lib/read-yaml-with-fragments.mjs';
-
-const cwd = process.cwd();
-const desktopRoot = path.join(cwd, 'spec/desktop');
-const sourceRoot = path.join(cwd, 'apps/desktop/src');
-
-const kernelFiles = [
-  'spec/desktop/kernel/index.md',
-  'spec/desktop/kernel/bootstrap-contract.md',
-  'spec/desktop/kernel/bridge-ipc-contract.md',
-  'spec/desktop/kernel/self-update-contract.md',
-  'spec/desktop/kernel/state-contract.md',
-  'spec/desktop/kernel/auth-session-contract.md',
-  'spec/desktop/kernel/data-sync-contract.md',
-  'spec/desktop/kernel/hook-capability-contract.md',
-  'spec/desktop/kernel/mod-governance-contract.md',
-  'spec/desktop/kernel/llm-adapter-contract.md',
-  'spec/desktop/kernel/menu-bar-shell-contract.md',
-  'spec/desktop/kernel/ui-shell-contract.md',
-  'spec/desktop/kernel/error-boundary-contract.md',
-  'spec/desktop/kernel/telemetry-contract.md',
-  'spec/desktop/kernel/network-contract.md',
-  'spec/desktop/kernel/security-contract.md',
-  'spec/desktop/kernel/streaming-consumption-contract.md',
-  'spec/desktop/kernel/codegen-contract.md',
-  'spec/desktop/kernel/offline-degradation-contract.md',
-  'spec/desktop/kernel/testing-gates-contract.md',
-  'spec/desktop/kernel/tables/bootstrap-phases.yaml',
-  'spec/desktop/kernel/tables/ipc-commands.yaml',
-  'spec/desktop/kernel/tables/app-tabs.yaml',
-  'spec/desktop/kernel/tables/store-slices.yaml',
-  'spec/desktop/kernel/tables/hook-subsystems.yaml',
-  'spec/desktop/kernel/tables/hook-capability-allowlists.yaml',
-  'spec/desktop/kernel/tables/ui-slots.yaml',
-  'spec/desktop/kernel/tables/turn-hook-points.yaml',
-  'spec/desktop/kernel/tables/mod-kernel-stages.yaml',
-  'spec/desktop/kernel/tables/mod-lifecycle-states.yaml',
-  'spec/desktop/kernel/tables/mod-access-modes.yaml',
-  'spec/desktop/kernel/tables/feature-flags.yaml',
-  'spec/desktop/kernel/tables/data-sync-flows.yaml',
-  'spec/desktop/kernel/tables/retry-status-codes.yaml',
-  'spec/desktop/kernel/tables/error-codes.yaml',
-  'spec/desktop/kernel/tables/log-areas.yaml',
-  'spec/desktop/kernel/tables/build-chunks.yaml',
-  'spec/desktop/kernel/tables/renderer-design-tokens.yaml',
-  'spec/desktop/kernel/tables/renderer-design-surfaces.yaml',
-  'spec/desktop/kernel/tables/renderer-design-sidebars.yaml',
-  'spec/desktop/kernel/tables/renderer-design-overlays.yaml',
-  'spec/desktop/kernel/tables/renderer-design-allowlists.yaml',
-  'spec/desktop/kernel/tables/desktop-testing-gates.yaml',
-  'spec/desktop/kernel/tables/desktop-feature-coverage.yaml',
-  'spec/desktop/kernel/tables/rule-evidence.yaml',
-  'spec/desktop/kernel/tables/codegen-import-allowlist.yaml',
-  'spec/desktop/kernel/tables/codegen-capability-tiers.yaml',
-  'spec/desktop/kernel/tables/codegen-static-scan-deny-patterns.yaml',
-  'spec/desktop/kernel/tables/codegen-acceptance-gates.yaml',
-];
-
-const domainFiles = listDomainMarkdownFiles('spec/desktop');
+import {
+  checkNoLocalRuleIds,
+  checkNoRuleDefinitionHeadings,
+  cwd,
+  desktopRoot,
+  domainFiles,
+  fileExists,
+  kernelFiles,
+  read,
+  readYaml,
+  sourceRoot,
+  walkSync,
+} from './lib/check-desktop-spec-kernel-consistency-shared.mjs';
 
 let failed = false;
 
@@ -67,30 +21,6 @@ function fail(msg) {
   failed = true;
   console.error(`ERROR: ${msg}`);
 }
-
-function read(rel) {
-  return fs.readFileSync(path.join(cwd, rel), 'utf8');
-}
-
-function readYaml(rel) {
-  return readYamlWithFragments(path.join(cwd, rel));
-}
-
-function fileExists(rel) {
-  return fs.existsSync(path.join(cwd, rel));
-}
-
-function listDomainMarkdownFiles(domainDirRel) {
-  const domainDir = path.join(cwd, domainDirRel);
-  if (!fs.existsSync(domainDir)) return [];
-  return fs.readdirSync(domainDir)
-    .filter((name) => name.endsWith('.md'))
-    .filter((name) => name !== 'index.md')
-    .map((name) => path.posix.join(domainDirRel, name))
-    .sort((a, b) => a.localeCompare(b));
-}
-
-// ── Check 1: File existence ──
 
 for (const rel of kernelFiles) {
   if (!fileExists(rel)) {
@@ -110,71 +40,41 @@ for (const rel of domainFiles) {
   if (!/\bD-[A-Z]+-\d{3}\b/.test(content)) {
     fail(`${rel} must reference at least one kernel Rule ID`);
   }
-  checkNoLocalRuleIds(content, rel);
-  checkNoRuleDefinitionHeadings(content, rel);
+  checkNoLocalRuleIds(content, rel, fail);
+  checkNoRuleDefinitionHeadings(content, rel, fail);
 }
 if (domainFiles.length === 0) {
   fail('desktop domain markdown files are empty');
 }
 
-// ── Check 2: source_rule format validation ──
-
 checkSourceRuleFormats();
-
-// ── Check 3: Rule ID uniqueness ──
 
 const kernelRuleDefinitions = collectKernelRuleDefinitions();
 
-// ── Check 4: UI slots vs source code ──
-
 checkUiSlotsConsistency();
-
-// ── Check 5: Turn hook points vs source code ──
 
 checkTurnHookPointsConsistency();
 
-// ── Check 6: Mod kernel stages vs source code ──
-
 checkModKernelStagesConsistency();
-
-// ── Check 7: Mod lifecycle states vs source code ──
 
 checkModLifecycleStatesConsistency();
 
-// ── Check 8: Mod access modes vs source code ──
-
 checkModAccessModesConsistency();
-
-// ── Check 9: App tabs vs navigation config ──
 
 checkAppTabsConsistency();
 
-// ── Check 10: Retry status codes vs source code ──
-
 checkRetryStatusCodesConsistency();
-
-// ── Check 11: Domain Section 0 imports covered in body ──
 
 checkDomainSection0ImportsCoveredInBody();
 
-// ── Check 12: source_rule referential integrity ──
-
 checkSourceRuleReferentialIntegrity();
-
-// ── Check 13: No kernel rule definitions in domain docs ──
 
 checkNoKernelRuleDefinitionsInDomainDocs();
 
-// ── Check 14: Rule ID references resolvable ──
-
 checkRuleIdReferencesResolvable();
-
-// ── Check 14b: Renderer design tables + domain anchors ──
 
 checkRendererDesignTables();
 checkDesignDomainAnchors();
-
-// ── Check 15: Cross-domain upstream rule references exist in Runtime/SDK spec ──
 
 checkCrossDomainRuleReferences(
   kernelFiles.filter((f) => f.endsWith('.md') && !f.includes('/generated/')),
@@ -194,27 +94,15 @@ checkCrossDomainRuleReferences(
   ],
 );
 
-// ── Check 16: D-ERR-007 critical ReasonCode coverage ──
-
 checkCriticalReasonCodeCoverage();
-
-// ── Check 17: D-STRM RPC coverage (streaming RPCs have consumption rules) ──
 
 checkStreamingRpcCoverage();
 
-// ── Check 18: No credentialRefId residual in source (D-LLM-003) ──
-
 checkNoCredentialRefIdResidual();
-
-// ── Check 19: No console.log/warn/error in source except telemetry fallback (D-TEL-003) ──
 
 checkNoConsoleLogInSource();
 
-// ── Check 20: No legacy store imports (D-STATE-001) ──
-
 checkNoLegacyStoreImports();
-
-// ── Check 21: Retry jitter presence (D-NET-002) ──
 
 checkRetryJitterPresence();
 
@@ -806,7 +694,7 @@ function checkRendererDesignTables() {
       continue;
     }
     const overlaySource = fs.readFileSync(overlayModulePath, 'utf8');
-    if (!/(?:components\/overlay\.js|\.\/overlay\.js|@nimiplatform\/nimi-ui)/.test(overlaySource)) {
+    if (!/(?:components\/overlay\.js|\.\/overlay\.js|@nimiplatform\/nimi-ui|@nimiplatform\/nimi-kit\/ui)/.test(overlaySource)) {
       fail(`${overlaysPath} overlay ${id} module must import shared overlay authority: ${module}`);
     }
     if (typeof item?.testid_required !== 'boolean') {
@@ -1477,39 +1365,4 @@ function checkIpcCommandsContractProseCoverage() {
   if (missing.length > 0) {
     fail(`${tablePath} commands not mentioned in ${contractPath}: ${missing.join(', ')}`);
   }
-}
-
-function checkNoLocalRuleIds(content, rel) {
-  const localRuleIdPattern = /\b(?<![KSDPRF]-)(?:[A-Z]{2,12}-){1,2}\d{3}[a-z]?\b/g;
-  const allowed = new Set(['HTTP-401', 'HTTP-403', 'HTTP-404', 'HTTP-429', 'HTTP-500', 'HTTP-501']);
-  for (const match of content.matchAll(localRuleIdPattern)) {
-    const token = match[0];
-    if (allowed.has(token)) continue;
-    fail(`${rel} must not define local rule ID token: ${token}`);
-  }
-}
-
-function checkNoRuleDefinitionHeadings(content, rel) {
-  const bannedHeadingPattern = /^##\s+.*(?:领域不变量|验收门(?:禁)?|变更规则|变更策略|Domain Invariants|Acceptance Gate|Acceptance Gates|Change Rules|Change Policy)\b/gmu;
-  let match;
-  while ((match = bannedHeadingPattern.exec(content)) !== null) {
-    fail(`${rel} contains rule-definition style heading not allowed for thin domain docs: ${match[0]}`);
-  }
-}
-
-function walkSync(dir, extensions) {
-  const results = [];
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist') {
-        continue;
-      }
-      results.push(...walkSync(fullPath, extensions));
-    } else if (extensions.some((ext) => entry.name.endsWith(ext))) {
-      results.push(fullPath);
-    }
-  }
-  return results;
 }
