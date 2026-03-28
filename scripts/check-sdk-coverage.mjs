@@ -35,6 +35,17 @@ const coverageChecks = [
 ];
 
 function runNodeTestCoverage(check) {
+  const buildResult = spawnSync('pnpm', ['--filter', '@nimiplatform/sdk', 'build'], {
+    cwd: repoRoot,
+    env: process.env,
+    stdio: 'inherit',
+  });
+  if (buildResult.status !== 0) {
+    throw new Error(
+      `[check-sdk-coverage] failed to build @nimiplatform/sdk before coverage with exit code ${String(buildResult.status ?? 'unknown')}`,
+    );
+  }
+
   const testFiles = globSync(check.tests, { cwd: sdkRoot, absolute: false })
     .map((file) => file.replace(/\\/g, '/'))
     .sort((a, b) => a.localeCompare(b));
