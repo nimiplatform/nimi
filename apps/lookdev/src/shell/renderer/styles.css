@@ -1,0 +1,98 @@
+@import "@nimiplatform/nimi-kit/ui/styles.css";
+@import "@nimiplatform/nimi-kit/ui/themes/light.css";
+@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
+@import "@nimiplatform/nimi-kit/ui/themes/overtone-accent.css";
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--nimi-font-sans);
+  background:
+    radial-gradient(circle at top left, rgba(112, 255, 205, 0.14), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 190, 92, 0.12), transparent 28%),
+    linear-gradient(180deg, #071018 0%, #0c1822 48%, #0f1317 100%);
+  color: var(--nimi-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+  --ld-accent: #75f0d5;
+  --ld-accent-strong: #2ce0bc;
+  --ld-gold: #ffcb78;
+  --ld-panel: color-mix(in srgb, var(--nimi-surface-panel) 86%, rgba(7, 17, 22, 0.9));
+  --ld-panel-border: color-mix(in srgb, var(--ld-accent) 20%, var(--nimi-border-subtle));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 calc(var(--nimi-focus-ring-offset) + 1px) rgba(5, 12, 18, 0.96),
+    0 0 0 calc(var(--nimi-focus-ring-offset) + var(--nimi-focus-ring-width) + 1px) color-mix(in srgb, var(--ld-accent) 78%, white);
+}
+
+.ld-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.ld-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ld-scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ld-accent) 25%, var(--nimi-scrollbar-thumb));
+  border-radius: 999px;
+}
+
+.ld-card {
+  background: var(--ld-panel);
+  border: 1px solid var(--ld-panel-border);
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 24px 64px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(24px) saturate(1.1);
+}
+
+.ld-grid-glow {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.ld-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid rgba(117, 240, 213, 0.28);
+  animation: ld-pulse 1.8s ease-out infinite;
+}
+
+@keyframes ld-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}

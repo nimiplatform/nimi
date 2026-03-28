@@ -1,0 +1,4 @@
+{
+  "bootstrap.loading": "正在准备 Lookdev…",
+  "bootstrap.error": "Lookdev 启动失败：{{message}}"
+}

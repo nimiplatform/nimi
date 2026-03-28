@@ -1,0 +1,109 @@
+import { getRuntimeDefaults } from '@renderer/bridge/runtime-defaults.js';
+import { getDaemonStatus } from '@renderer/bridge/runtime-daemon.js';
+import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { createPlatformClient } from '@nimiplatform/sdk';
+import { logRendererEvent } from '@nimiplatform/nimi-kit/telemetry';
+import { bootstrapAuthSession } from './lookdev-bootstrap-auth.js';
+
+function toLookdevAuthUser(user: Record<string, unknown> | null) {
+  if (!user) {
+    return null;
+  }
+  const id = String(user.id || '').trim();
+  if (!id) {
+    return null;
+  }
+  return {
+    id,
+    displayName: String(user.displayName || user.name || '').trim(),
+    email: user.email ? String(user.email) : undefined,
+    avatarUrl: user.avatarUrl ? String(user.avatarUrl) : undefined,
+  };
+}
+
+export async function runLookdevBootstrap(): Promise<void> {
+  const store = useAppStore.getState();
+
+  logRendererEvent({
+    level: 'info',
+    area: 'lookdev-bootstrap',
+    message: 'phase:bootstrap:start',
+  });
+
+  try {
+    // Step 1: Runtime Defaults (i18n is eagerly initialized at module load)
+    const runtimeDefaults = await getRuntimeDefaults();
+    store.setRuntimeDefaults(runtimeDefaults);
+
+    // Step 3: Platform Client
+    const { runtime, realm } = await createPlatformClient({
+      appId: 'nimi.lookdev',
+      realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
+      accessToken: runtimeDefaults.realm.accessToken,
+      accessTokenProvider: () => useAppStore.getState().auth.token ?? '',
+      runtimeTransport: {
+        type: 'tauri-ipc',
+        commandNamespace: 'runtime_bridge',
+        eventNamespace: 'runtime_bridge',
+      },
+      sessionStore: {
+        getAccessToken: () => useAppStore.getState().auth.token,
+        getRefreshToken: () => useAppStore.getState().auth.refreshToken,
+        getSubjectUserId: () => useAppStore.getState().auth.user?.id ?? '',
+        getCurrentUser: () => useAppStore.getState().auth.user,
+        setAuthSession: (user, accessToken, refreshToken) => {
+          const normalizedUser = toLookdevAuthUser(user as Record<string, unknown> | null);
+          if (!normalizedUser) {
+            return;
+          }
+          useAppStore.getState().setAuthSession(normalizedUser, accessToken, refreshToken || '');
+        },
+        clearAuthSession: () => {
+          useAppStore.getState().clearAuthSession();
+        },
+      },
+    });
+
+    // Step 4: Auth Session
+    await bootstrapAuthSession({
+      realm,
+      accessToken: runtimeDefaults.realm.accessToken,
+    });
+
+    // Step 5: Runtime SDK Readiness
+    try {
+      await runtime.ready();
+    } catch {
+      // Runtime readiness is non-blocking for Forge — creator features
+      // may work without local AI runtime available
+    }
+
+    // Step 6: Exit Handler (daemon status check)
+    try {
+      const daemonStatus = await getDaemonStatus();
+      if (daemonStatus.managed) {
+        // Register exit handler if daemon is managed
+        // Forge uses a lighter touch — just log the status
+      }
+    } catch {
+      // Non-blocking — daemon may not be running
+    }
+
+    // Step 7: Ready
+    store.setBootstrapReady(true);
+    logRendererEvent({
+      level: 'info',
+      area: 'lookdev-bootstrap',
+      message: 'phase:bootstrap:ready',
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    store.setBootstrapError(message);
+    logRendererEvent({
+      level: 'error',
+      area: 'lookdev-bootstrap',
+      message: 'action:bootstrap:error',
+      details: { error: message },
+    });
+  }
+}

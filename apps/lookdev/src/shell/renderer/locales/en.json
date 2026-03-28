@@ -1,0 +1,4 @@
+{
+  "bootstrap.loading": "Preparing Lookdev…",
+  "bootstrap.error": "Lookdev bootstrap failed: {{message}}"
+}
