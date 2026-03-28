@@ -4,7 +4,6 @@ import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import '@renderer/components/overlay.js';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';

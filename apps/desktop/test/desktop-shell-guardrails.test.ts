@@ -6,6 +6,7 @@ import test from 'node:test';
 import { isExpectedAnonymousSessionError, toAuthUserRecord } from '../src/shell/renderer/features/auth/auth-session-utils';
 import { openExternalUrl } from '../src/shell/renderer/bridge/runtime-bridge/ui';
 import { subscribeRuntimeModReloadResult } from '../src/shell/renderer/bridge/runtime-bridge/mod-local';
+import { ReasonCode } from '@nimiplatform/sdk/types';
 
 type WindowLike = {
   __NIMI_TAURI_TEST__?: {
@@ -37,7 +38,7 @@ test('auth session utils only coerce object user payloads and keep anonymous ses
   assert.equal(toAuthUserRecord(null), null);
   assert.equal(toAuthUserRecord(['user-1']), null);
 
-  assert.equal(isExpectedAnonymousSessionError({ reasonCode: 'AUTH_TOKEN_INVALID' }), true);
+  assert.equal(isExpectedAnonymousSessionError({ reasonCode: ReasonCode.AUTH_TOKEN_INVALID }), true);
   assert.equal(isExpectedAnonymousSessionError(new Error('HTTP_401 unauthorized')), true);
   assert.equal(isExpectedAnonymousSessionError(new Error('contract mismatch')), false);
 });

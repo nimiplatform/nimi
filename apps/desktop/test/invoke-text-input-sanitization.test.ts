@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { sanitizeScenarioTextInput } from '../src/runtime/llm-adapter/execution/invoke-text';
 
 test('sanitizeScenarioTextInput trims and normalizes supported prompt text', () => {
@@ -17,10 +18,10 @@ test('sanitizeScenarioTextInput trims and normalizes supported prompt text', () 
 test('sanitizeScenarioTextInput rejects empty or control-character prompt text', () => {
   assert.throws(
     () => sanitizeScenarioTextInput('   ', 'prompt'),
-    (error: Error & { reasonCode?: string }) => error.reasonCode === 'AI_INPUT_INVALID',
+    (error: Error & { reasonCode?: string }) => error.reasonCode === ReasonCode.AI_INPUT_INVALID,
   );
   assert.throws(
     () => sanitizeScenarioTextInput('hello\u0000world', 'prompt'),
-    (error: Error & { reasonCode?: string }) => error.reasonCode === 'AI_INPUT_INVALID',
+    (error: Error & { reasonCode?: string }) => error.reasonCode === ReasonCode.AI_INPUT_INVALID,
   );
 });

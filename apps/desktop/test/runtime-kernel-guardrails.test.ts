@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ReasonCode } from '@nimiplatform/sdk/types';
 import { DependencyResolver } from '../src/runtime/execution-kernel/dependency/dependency-resolver.js';
 import { RegistryGateway } from '../src/runtime/execution-kernel/discovery/registry-gateway.js';
 import { assertActionDescriptorFinalState } from '../src/runtime/hook/action-fabric/descriptor-validator.js';
@@ -95,6 +96,6 @@ test('registry gateway rejects empty discovery source refs', () => {
   const gateway = new RegistryGateway();
   assert.deepEqual(
     gateway.verifySource('sideload', '   '),
-    { ok: false, reasonCode: 'DISCOVERY_SOURCE_UNTRUSTED' },
+    { ok: false, reasonCode: ReasonCode.DISCOVERY_SOURCE_UNTRUSTED },
   );
 });

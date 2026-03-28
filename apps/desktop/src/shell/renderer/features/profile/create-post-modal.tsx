@@ -3,7 +3,6 @@ import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { dataSync } from '@runtime/data-sync';
 import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
-import '@renderer/components/overlay.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import {
   ACCEPTED_IMAGE_TYPES,
