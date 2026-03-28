@@ -175,6 +175,118 @@ func TestScenarioJobStoreVoiceFallbackPaths(t *testing.T) {
 	}
 }
 
+func TestScenarioJobStoreVoiceCancelAndMissingArtifactsPaths(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := scenarioJobContext("nimi.desktop")
+
+	_, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{})
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID {
+		t.Fatalf("expected envelope invalid for empty cancel job id, got=%v", reason)
+	}
+
+	_, err = svc.GetScenarioArtifacts(ctx, &runtimev1.GetScenarioArtifactsRequest{JobId: "missing-job"})
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND {
+		t.Fatalf("expected AI_MEDIA_JOB_NOT_FOUND for missing artifacts job, got=%v", reason)
+	}
+
+	voiceJob, _ := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen3-tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
+				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+					TargetModelId: "local/qwen3-tts",
+					Input: &runtimev1.VoiceT2VInput{
+						InstructionText: "steady narration voice",
+					},
+				},
+			},
+		},
+		TraceID:       "voice-trace-cancel",
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ModelResolved: "local/qwen3-tts",
+		Provider:      "local",
+	})
+	if voiceJob == nil {
+		t.Fatalf("submit voice design scenario job")
+	}
+
+	jobID := voiceJob.GetJobId()
+	cancelResp, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
+		JobId:  jobID,
+		Reason: "user-cancelled-voice",
+	})
+	if err != nil {
+		t.Fatalf("cancel voice scenario job: %v", err)
+	}
+	if cancelResp.GetJob().GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		t.Fatalf("expected canceled voice job, got=%v", cancelResp.GetJob().GetStatus())
+	}
+	if cancelResp.GetJob().GetReasonDetail() != "user-cancelled-voice" {
+		t.Fatalf("expected cancel reason detail to be preserved, got=%q", cancelResp.GetJob().GetReasonDetail())
+	}
+
+	artResp, err := svc.GetScenarioArtifacts(ctx, &runtimev1.GetScenarioArtifactsRequest{JobId: jobID})
+	if err != nil {
+		t.Fatalf("get voice scenario artifacts after cancel: %v", err)
+	}
+	if artResp.GetTraceId() == "" {
+		t.Fatalf("voice artifact response should keep trace id after cancel")
+	}
+	if artResp.GetArtifacts() == nil || len(artResp.GetArtifacts()) != 0 {
+		t.Fatalf("voice artifacts should remain an empty slice, got=%#v", artResp.GetArtifacts())
+	}
+
+	completedJob, _ := svc.voiceAssets.submit(&voiceWorkflowSubmitInput{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen3-tts",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+		},
+		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_DESIGN,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_VoiceDesign{
+				VoiceDesign: &runtimev1.VoiceDesignScenarioSpec{
+					TargetModelId: "local/qwen3-tts",
+					Input: &runtimev1.VoiceT2VInput{
+						InstructionText: "already completed voice",
+					},
+				},
+			},
+		},
+		TraceID:       "voice-trace-complete",
+		RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ModelResolved: "local/qwen3-tts",
+		Provider:      "local",
+	})
+	if completedJob == nil {
+		t.Fatalf("submit second voice design scenario job")
+	}
+	completedJobID := completedJob.GetJobId()
+	if ok := svc.voiceAssets.completeJob(completedJobID, "provider-job", "voice-ref", nil, nil); !ok {
+		t.Fatalf("expected voice completion path to succeed")
+	}
+
+	_, err = svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{
+		JobId:  completedJobID,
+		Reason: "late-cancel",
+	})
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected FailedPrecondition for completed voice cancel, got %v", err)
+	}
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE {
+		t.Fatalf("expected AI_MEDIA_JOB_NOT_CANCELLABLE for completed voice cancel, got=%v", reason)
+	}
+}
+
 func TestScenarioJobStoreSubmitModeAndUnsupportedType(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	ctx := context.Background()
