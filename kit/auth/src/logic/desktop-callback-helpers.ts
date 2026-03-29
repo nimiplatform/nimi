@@ -123,6 +123,28 @@ export function readLocationQueryParams(): URLSearchParams {
   return params;
 }
 
+export function hasDesktopCallbackRequestInLocation(
+  locationLike: Pick<Location, 'search' | 'hash'> | null | undefined = typeof window !== 'undefined'
+    ? window.location
+    : null,
+): boolean {
+  if (!locationLike) {
+    return false;
+  }
+
+  const params = new URLSearchParams(String(locationLike.search || ''));
+  const hash = String(locationLike.hash || '');
+  const queryStart = hash.indexOf('?');
+  if (queryStart >= 0) {
+    const hashParams = new URLSearchParams(hash.slice(queryStart + 1));
+    hashParams.forEach((value, key) => {
+      params.set(key, value);
+    });
+  }
+
+  return Boolean(String(params.get('desktop_callback') || '').trim());
+}
+
 export function resolveDesktopCallbackRequestFromLocation(): DesktopCallbackRequest | null {
   const params = readLocationQueryParams();
   const callbackUrl = normalizeLoopbackCallbackUrl(String(params.get('desktop_callback') || ''));

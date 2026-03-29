@@ -35,6 +35,10 @@ const webAuthMenuSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/auth/web-auth-menu.tsx'),
   'utf8',
 );
+const loginPageSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/auth/login-page.tsx'),
+  'utf8',
+);
 
 test('setAuthSession keeps existing refresh token when refreshToken is undefined', () => {
   let state: Record<string, unknown> = {
@@ -134,6 +138,11 @@ test('desktop callback auth flow upgrades main view after async session restore'
     authFlowSource,
     /if \(!desktopCallbackRequest \|\| !hasDesktopCallbackSession\) \{\s*return;\s*\}\s*\n\s*setView\(\(current\) => \(current === 'main' \? 'desktop_authorize' : current\)\);\s*\n\s*\}, \[desktopCallbackRequest, hasDesktopCallbackSession\]\);/s,
   );
+});
+
+test('login page detects desktop callback from shared hash-aware helper', () => {
+  assert.match(loginPageSource, /import \{ hasDesktopCallbackRequestInLocation \} from '@nimiplatform\/nimi-kit\/auth';/);
+  assert.match(loginPageSource, /const hasDesktopCallback = hasDesktopCallbackRequestInLocation\(\{\s*search: location\.search,\s*hash: typeof window !== 'undefined' \? window\.location\.hash : '',\s*\}\);/s);
 });
 
 test('desktop authorization preserves refresh token by leaving it undefined in auth store update', () => {

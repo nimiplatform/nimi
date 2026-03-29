@@ -84,6 +84,7 @@ export {
 
 export {
   readLocationQueryParams,
+  hasDesktopCallbackRequestInLocation,
   resolveDesktopCallbackRequestFromLocation,
   buildDesktopCallbackReturnUrl,
   submitDesktopCallbackResult,
