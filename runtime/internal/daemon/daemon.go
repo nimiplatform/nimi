@@ -400,6 +400,9 @@ func providerProbePaths(name string) []string {
 	if strings.EqualFold(strings.TrimSpace(name), "local-media") {
 		return []string{"/healthz", "/v1/catalog"}
 	}
+	if strings.EqualFold(strings.TrimSpace(name), "local") {
+		return []string{"/health", "/v1/models"}
+	}
 	return []string{"/healthz", "/v1/models"}
 }
 
@@ -557,15 +560,15 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		return
 	}
 	d.engineMgr = mgr
-	localAIConfigPath := resolveManagedLlamaModelsConfigPath()
-	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, localAIConfigPath)
+	managedLlamaConfigPath := resolveManagedLlamaModelsConfigPath()
+	mgr.SetLlamaPaths(d.cfg.LocalModelsPath, managedLlamaConfigPath)
 
 	// Inject engine manager into local service for gRPC access.
 	skipLlamaBootstrap := false
 	mediaHostSupport, _ := d.detectMediaHostSupport()
 	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
 	if svc := d.grpc.LocalService(); svc != nil {
-		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, localAIConfigPath, d.cfg.EngineLlamaEnabled)
+		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, d.cfg.EngineLlamaEnabled)
 		if d.cfg.EngineLlamaEnabled {
 			svc.SetManagedLlamaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
 		} else {

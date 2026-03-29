@@ -43,6 +43,8 @@ test('runtime ai bridge metadata remains managed only for cloud requests', async
     assert.equal(callOptions.metadata.keySource, 'managed');
     assert.equal(typeof callOptions.metadata.traceId, 'string');
     assert.ok(callOptions.metadata.traceId.length > 0);
+    assert.equal(typeof callOptions.idempotencyKey, 'string');
+    assert.ok(callOptions.idempotencyKey.length > 0);
 
     const streamOptions = await runtimeAiBridge.buildRuntimeStreamOptions({
       modId: 'mod.runtime.metadata',
@@ -57,6 +59,8 @@ test('runtime ai bridge metadata remains managed only for cloud requests', async
     assert.equal(streamOptions.metadata.keySource, 'managed');
     assert.equal(typeof streamOptions.metadata.traceId, 'string');
     assert.ok(streamOptions.metadata.traceId.length > 0);
+    assert.equal(typeof streamOptions.idempotencyKey, 'string');
+    assert.ok(streamOptions.idempotencyKey.length > 0);
 
     assert.equal(
       calls.some((call) => call.command.startsWith('credential')),

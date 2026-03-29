@@ -122,8 +122,8 @@ func TestResolveProbeEndpointAvoidsDuplicateV1(t *testing.T) {
 }
 
 func TestResolveProbeEndpointWithHealthPath(t *testing.T) {
-	got := resolveProbeEndpoint("http://127.0.0.1:1234/v1", "/healthz")
-	if got != "http://127.0.0.1:1234/v1/healthz" {
+	got := resolveProbeEndpoint("http://127.0.0.1:1234/v1", "/health")
+	if got != "http://127.0.0.1:1234/v1/health" {
 		t.Fatalf("unexpected health probe endpoint: %s", got)
 	}
 }
@@ -139,6 +139,13 @@ func TestProviderProbePathsUsesCanonicalMediaCatalog(t *testing.T) {
 	got := providerProbePaths("local-media")
 	if len(got) != 2 || got[0] != "/healthz" || got[1] != "/v1/catalog" {
 		t.Fatalf("unexpected media probe paths: %v", got)
+	}
+}
+
+func TestProviderProbePathsUsesLlamaCppHealthForLocal(t *testing.T) {
+	got := providerProbePaths("local")
+	if len(got) != 2 || got[0] != "/health" || got[1] != "/v1/models" {
+		t.Fatalf("unexpected local probe paths: %v", got)
 	}
 }
 

@@ -66,6 +66,58 @@ func TestExecuteScenarioTextGenerateSuccess(t *testing.T) {
 	}
 }
 
+func TestExecuteScenarioTextGenerateHydratesLocalEndpointFromActiveModel(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ready"},"finish_reason":"stop"}],"usage":{"prompt_tokens":2,"completion_tokens":1}}`))
+	}))
+	defer server.Close()
+
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalModelsResponse{{
+			Models: []*runtimev1.LocalModelRecord{{
+				ModelId:  "qwen3-4b-q4_k_m",
+				Engine:   "llama",
+				Status:   runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+				Endpoint: server.URL + "/v1",
+			}},
+		}},
+	}
+
+	resp, err := svc.ExecuteScenario(context.Background(), &runtimev1.ExecuteScenarioRequest{
+		Head: &runtimev1.ScenarioRequestHead{
+			AppId:         "nimi.desktop",
+			SubjectUserId: "user-001",
+			ModelId:       "local/qwen3-4b-q4_k_m",
+			RoutePolicy:   runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+			Fallback:      runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY,
+			TimeoutMs:     30_000,
+		},
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE,
+		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
+		Spec: &runtimev1.ScenarioSpec{
+			Spec: &runtimev1.ScenarioSpec_TextGenerate{
+				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
+					Input: []*runtimev1.ChatMessage{
+						{Role: "user", Content: "hello runtime"},
+					},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("execute scenario with hydrated local endpoint: %v", err)
+	}
+	if text := outputText(resp.GetOutput()); text != "ready" {
+		t.Fatalf("unexpected hydrated local output: %q", text)
+	}
+}
+
 func TestExecuteScenarioTextGenerateDoesNotSynthesizeSentinelUsage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/chat/completions" {

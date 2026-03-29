@@ -158,6 +158,7 @@ func New(cfg config.Config, state *health.State, logger *slog.Logger, version st
 	if err != nil {
 		return nil, fmt.Errorf("init local service: %w", err)
 	}
+	modelSvc.SetLocalModelLister(localSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
 	aiSvc.SetLocalModelLister(localSvc)
 	aiSvc.SetLocalImageProfileResolver(localSvc)

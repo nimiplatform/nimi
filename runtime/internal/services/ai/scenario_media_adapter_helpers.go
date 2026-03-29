@@ -245,6 +245,11 @@ func normalizeComparableModelID(value string) string {
 	comparable := strings.ToLower(strings.TrimSpace(value))
 	comparable = strings.TrimPrefix(comparable, "models/")
 	comparable = strings.TrimPrefix(comparable, "model/")
+	comparable = strings.TrimPrefix(comparable, "local/")
+	comparable = strings.TrimPrefix(comparable, "llama/")
+	comparable = strings.TrimPrefix(comparable, "media/")
+	comparable = strings.TrimPrefix(comparable, "speech/")
+	comparable = strings.TrimPrefix(comparable, "sidecar/")
 	return comparable
 }
 

@@ -366,6 +366,7 @@ export async function buildRuntimeCallOptions(input: {
   connectorId?: string;
   providerEndpoint?: string;
 }): Promise<{
+  idempotencyKey: string;
   timeoutMs: number;
   metadata: {
     traceId: string;
@@ -377,7 +378,9 @@ export async function buildRuntimeCallOptions(input: {
 }> {
   const caller = resolveCaller(input.modId);
   const traceId = createRuntimeTraceId();
+  const idempotencyKey = createRuntimeTraceId('runtime-idem');
   return {
+    idempotencyKey,
     timeoutMs: input.timeoutMs,
     metadata: {
       traceId,
@@ -399,6 +402,7 @@ export async function buildRuntimeStreamOptions(
     providerEndpoint?: string;
   },
 ): Promise<{
+  idempotencyKey: string;
   timeoutMs: number;
   signal?: AbortSignal;
   metadata: {
@@ -411,7 +415,9 @@ export async function buildRuntimeStreamOptions(
 }> {
   const caller = resolveCaller(input.modId);
   const traceId = createRuntimeTraceId();
+  const idempotencyKey = createRuntimeTraceId('runtime-idem');
   return {
+    idempotencyKey,
     timeoutMs: input.timeoutMs,
     signal: input.signal,
     metadata: {

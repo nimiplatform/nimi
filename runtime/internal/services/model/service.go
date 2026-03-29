@@ -22,6 +22,10 @@ import (
 
 type pullExecutor func(modelID string, complete func(runtimev1.ModelStatus))
 
+type localModelLister interface {
+	ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error)
+}
+
 const (
 	defaultPullCompletionDelay   = 10 * time.Millisecond
 	checkModelHealthProbeTimeout = 5 * time.Second
@@ -37,6 +41,7 @@ type Service struct {
 	registry        *modelregistry.Registry
 	persistencePath string
 	pullExecutor    pullExecutor
+	localModel      localModelLister
 }
 
 func New(logger *slog.Logger, registry ...*modelregistry.Registry) *Service {
@@ -70,6 +75,12 @@ func (s *Service) SetPullExecutor(executor pullExecutor) {
 		s.pullExecutor = executor
 		s.mu.Unlock()
 	}
+}
+
+func (s *Service) SetLocalModelLister(localSvc localModelLister) {
+	s.mu.Lock()
+	s.localModel = localSvc
+	s.mu.Unlock()
 }
 
 func (s *Service) ListModels(context.Context, *runtimev1.ListModelsRequest) (*runtimev1.ListModelsResponse, error) {
@@ -206,6 +217,18 @@ func (s *Service) CheckModelHealth(ctx context.Context, req *runtimev1.CheckMode
 		}, nil
 	}
 
+	if isLocalNativeModel(modelregistry.Entry{ModelID: modelID}) {
+		if healthy, resolved, ok := s.checkLocalModelHealthViaLocalService(ctx, modelID); ok {
+			if healthy {
+				return &runtimev1.CheckModelHealthResponse{
+					Healthy:    true,
+					ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+				}, nil
+			}
+			return resolved, nil
+		}
+	}
+
 	item, exists := s.registry.Get(modelID)
 	if !exists {
 		return &runtimev1.CheckModelHealthResponse{
@@ -248,6 +271,98 @@ func (s *Service) CheckModelHealth(ctx context.Context, req *runtimev1.CheckMode
 		Healthy:    true,
 		ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 	}, nil
+}
+
+func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, modelID string) (bool, *runtimev1.CheckModelHealthResponse, bool) {
+	s.mu.Lock()
+	localModel := s.localModel
+	s.mu.Unlock()
+	if localModel == nil {
+		return false, nil, false
+	}
+
+	models, err := s.listAllLocalModels(ctx, localModel)
+	if err != nil {
+		return false, nil, false
+	}
+	if len(models) == 0 {
+		return false, nil, false
+	}
+
+	normalizedModelID := strings.TrimSpace(modelID)
+	var selected *runtimev1.LocalModelRecord
+	for _, model := range models {
+		if model == nil || !strings.EqualFold(strings.TrimSpace(model.GetModelId()), normalizedModelID) {
+			continue
+		}
+		if selected == nil || localModelStatusPriority(model.GetStatus()) < localModelStatusPriority(selected.GetStatus()) {
+			selected = model
+		}
+	}
+	if selected == nil {
+		return false, nil, false
+	}
+
+	switch selected.GetStatus() {
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+		return true, nil, true
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+		return false, &runtimev1.CheckModelHealthResponse{
+			Healthy:    false,
+			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
+			ActionHint: "warm local model",
+		}, true
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+		return false, &runtimev1.CheckModelHealthResponse{
+			Healthy:    false,
+			ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
+			ActionHint: "inspect_local_runtime_model_health",
+		}, true
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED:
+		return false, &runtimev1.CheckModelHealthResponse{
+			Healthy:    false,
+			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
+			ActionHint: "pull model first",
+		}, true
+	default:
+		return false, nil, false
+	}
+}
+
+func (s *Service) listAllLocalModels(ctx context.Context, localModel localModelLister) ([]*runtimev1.LocalModelRecord, error) {
+	pageToken := ""
+	collected := make([]*runtimev1.LocalModelRecord, 0, 16)
+	for i := 0; i < 20; i++ {
+		resp, err := localModel.ListLocalModels(ctx, &runtimev1.ListLocalModelsRequest{
+			StatusFilter: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED,
+			PageSize:     100,
+			PageToken:    pageToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+		collected = append(collected, resp.GetModels()...)
+		pageToken = strings.TrimSpace(resp.GetNextPageToken())
+		if pageToken == "" {
+			break
+		}
+	}
+	return collected, nil
+}
+
+func localModelStatusPriority(status runtimev1.LocalModelStatus) int {
+	switch status {
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+		return 0
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+		return 1
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+		return 2
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED:
+		return 3
+	default:
+		return 4
+	}
 }
 
 func isLocalNativeModel(item modelregistry.Entry) bool {

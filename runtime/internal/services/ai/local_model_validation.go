@@ -74,10 +74,29 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 	if selected == nil {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
+	s.hydrateLocalProviderFromModel(selected)
 	if modelRequiresInvokeProfile(selected) {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 	}
 	return nil
+}
+
+func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalModelRecord) {
+	if s == nil || model == nil {
+		return
+	}
+	switch model.GetStatus() {
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED:
+	default:
+		return
+	}
+	providerID := strings.ToLower(strings.TrimSpace(model.GetEngine()))
+	endpoint := strings.TrimSpace(model.GetEndpoint())
+	if endpoint == "" || !localrouting.IsKnownProvider(providerID) {
+		return
+	}
+	s.SetLocalProviderEndpoint(providerID, endpoint, "")
 }
 
 func (s *Service) listAllLocalModels(ctx context.Context, statusFilter runtimev1.LocalModelStatus) ([]*runtimev1.LocalModelRecord, error) {
@@ -135,9 +154,10 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 	if explicitReason := unsupportedExplicitLocalEngineReason(selector); explicitReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return nil, explicitReason
 	}
+	expectedModelID := normalizeComparableModelID(selector.modelID)
 	candidates := make([]*runtimev1.LocalModelRecord, 0, len(models))
 	for _, model := range models {
-		if !strings.EqualFold(strings.TrimSpace(model.GetModelId()), selector.modelID) {
+		if normalizeComparableModelID(model.GetModelId()) != expectedModelID {
 			continue
 		}
 		candidates = append(candidates, model)
@@ -182,6 +202,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 	if explicitReason := unsupportedExplicitLocalEngineReason(selector); explicitReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return nil, explicitReason, ""
 	}
+	expectedModelID := normalizeComparableModelID(selector.modelID)
 	candidates := make([]*runtimev1.LocalModelRecord, 0, len(models))
 	for _, model := range models {
 		if model == nil {
@@ -190,7 +211,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 			continue
 		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetModelId()), selector.modelID) {
+		if normalizeComparableModelID(model.GetModelId()) != expectedModelID {
 			continue
 		}
 		candidates = append(candidates, model)

@@ -148,7 +148,7 @@ func TestStartSupervisedEnginesManagerInitFailureDegradesAndAudits(t *testing.T)
 		IdempotencyCapacity:  32,
 		EngineLlamaEnabled:   true,
 		EngineLlamaPort:      1234,
-		EngineLlamaVersion:   "3.12.1",
+		EngineLlamaVersion:   "b8575",
 	}
 	daemon, err := New(cfg, logger, "test")
 	if err != nil {
@@ -334,7 +334,7 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 		EngineLlamaEnabled:     true,
 		EngineLlamaAutoManaged: true,
 		EngineLlamaPort:        1234,
-		EngineLlamaVersion:     "3.12.1",
+		EngineLlamaVersion:     "b8575",
 	}
 	daemon, err := New(cfg, logger, "test")
 	if err != nil {
@@ -495,7 +495,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 		IdempotencyCapacity:  32,
 		EngineLlamaEnabled:   true,
 		EngineLlamaPort:      1234,
-		EngineLlamaVersion:   "3.12.1",
+		EngineLlamaVersion:   "b8575",
 	}
 	daemon, err := New(cfg, logger, "test")
 	if err != nil {

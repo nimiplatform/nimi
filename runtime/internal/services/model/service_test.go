@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -15,6 +16,35 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+type fakeLocalModelLister struct {
+	responses []*runtimev1.ListLocalModelsResponse
+	err       error
+}
+
+func (f *fakeLocalModelLister) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	if len(f.responses) == 0 {
+		return &runtimev1.ListLocalModelsResponse{}, nil
+	}
+	response := f.responses[0]
+	f.responses = f.responses[1:]
+	if response == nil {
+		return &runtimev1.ListLocalModelsResponse{}, nil
+	}
+	if req.GetStatusFilter() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED {
+		filtered := make([]*runtimev1.LocalModelRecord, 0, len(response.GetModels()))
+		for _, model := range response.GetModels() {
+			if model != nil && model.GetStatus() == req.GetStatusFilter() {
+				filtered = append(filtered, model)
+			}
+		}
+		return &runtimev1.ListLocalModelsResponse{Models: filtered, NextPageToken: response.GetNextPageToken()}, nil
+	}
+	return response, nil
+}
 
 func TestPullModelTransitionsThroughPullingState(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -168,6 +198,89 @@ func TestCheckModelHealthLocalLlamaRequiresWarmProof(t *testing.T) {
 	}
 	if got := resp.GetActionHint(); got != "warm local model" {
 		t.Fatalf("unexpected action hint: %q", got)
+	}
+}
+
+func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalModelsResponse{{
+			Models: []*runtimev1.LocalModelRecord{{
+				LocalModelId: "local-1",
+				ModelId:      "local/qwen3-4b-q4_k_m",
+				Engine:       "llama",
+				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			}},
+		}},
+	})
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "local/qwen3-4b-q4_k_m",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if !resp.GetHealthy() {
+		t.Fatalf("active local model from local service must be healthy: %+v", resp)
+	}
+}
+
+func TestCheckModelHealthLocalModelUsesLocalServiceInstalledState(t *testing.T) {
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	svc.SetLocalModelLister(&fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalModelsResponse{{
+			Models: []*runtimev1.LocalModelRecord{{
+				LocalModelId: "local-1",
+				ModelId:      "local/qwen3-4b-q4_k_m",
+				Engine:       "llama",
+				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+			}},
+		}},
+	})
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "local/qwen3-4b-q4_k_m",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("installed local model must not be healthy")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
+	}
+	if got := resp.GetActionHint(); got != "warm local model" {
+		t.Fatalf("unexpected action hint: %q", got)
+	}
+}
+
+func TestCheckModelHealthLocalModelFallsBackToRegistryOnLocalServiceError(t *testing.T) {
+	registry := modelregistry.New()
+	registry.Upsert(modelregistry.Entry{
+		ModelID:      "local/qwen3-4b-q4_k_m",
+		Version:      "latest",
+		Status:       runtimev1.ModelStatus_MODEL_STATUS_INSTALLED,
+		Capabilities: []string{"text.generate"},
+		Source:       "local",
+	})
+	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)), registry)
+	svc.SetLocalModelLister(&fakeLocalModelLister{err: errors.New("boom")})
+
+	resp, err := svc.CheckModelHealth(context.Background(), &runtimev1.CheckModelHealthRequest{
+		AppId:   "nimi.desktop",
+		ModelId: "local/qwen3-4b-q4_k_m",
+	})
+	if err != nil {
+		t.Fatalf("check model health: %v", err)
+	}
+	if resp.GetHealthy() {
+		t.Fatalf("local llama without local service result must still fail closed")
+	}
+	if resp.GetReasonCode() != runtimev1.ReasonCode_AI_MODEL_NOT_READY {
+		t.Fatalf("unexpected reason code: %v", resp.GetReasonCode())
 	}
 }
 

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -193,6 +195,34 @@ func TestValidateLocalModelRequest(t *testing.T) {
 		t.Fatalf("expected local model validation success, got %v", err)
 	}
 
+	loopbackServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer loopbackServer.Close()
+	svc = newTestService(logger, Config{EnforceEndpointSecurity: true})
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+		Models: []*runtimev1.LocalModelRecord{{
+			ModelId:  "qwen",
+			Engine:   "llama",
+			Status:   runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			Endpoint: loopbackServer.URL + "/v1",
+		}},
+	}}}
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
+		t.Fatalf("expected local model validation to hydrate active endpoint, got %v", err)
+	}
+	local, ok := svc.selector.local.(*localProvider)
+	if !ok || local == nil {
+		t.Fatalf("expected local provider after validation")
+	}
+	backend, resolved, explicit, available := local.pickAvailabilityBackend("qwen")
+	if backend == nil || !available {
+		t.Fatalf("expected hydrated llama backend, backend=%v available=%v", backend, available)
+	}
+	if resolved != "qwen" || explicit {
+		t.Fatalf("unexpected hydrated backend resolution: resolved=%q explicit=%v", resolved, explicit)
+	}
+
 	// Same modelId across engines should respect explicit engine selector.
 	dualEnginePage := &runtimev1.ListLocalModelsResponse{
 		Models: []*runtimev1.LocalModelRecord{
@@ -243,6 +273,18 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected case-insensitive local model validation success, got %v", err)
+	}
+
+	svc.localModel = &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+		Models: []*runtimev1.LocalModelRecord{{
+			ModelId:              "local/qwen3-4b-q4_k_m",
+			Engine:               "llama",
+			Status:               runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			LocalInvokeProfileId: "invoke",
+		}},
+	}}}
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen3-4b-q4_k_m", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
+		t.Fatalf("expected qualified local model id validation success, got %v", err)
 	}
 }
 
