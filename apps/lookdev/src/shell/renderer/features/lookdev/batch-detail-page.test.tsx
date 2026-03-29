@@ -4,6 +4,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BatchDetailPage from './batch-detail-page.js';
 import { useLookdevStore } from './lookdev-store.js';
+import { createDefaultWorldStylePack } from './types.js';
+
+const worldStylePack = createDefaultWorldStylePack('w1', 'Aurora Harbor');
 
 describe('BatchDetailPage', () => {
   beforeEach(() => {
@@ -17,7 +20,13 @@ describe('BatchDetailPage', () => {
         batchId: 'b1',
         name: 'Spring cast',
         status: 'processing_complete',
-        selectionSnapshot: { selectionSource: 'explicit_selection', agentIds: ['a1'] },
+        selectionSnapshot: {
+          selectionSource: 'explicit_selection',
+          agentIds: ['a1'],
+          captureSelectionAgentIds: ['a1'],
+          worldId: 'w1',
+        },
+        worldStylePackSnapshot: worldStylePack,
         policySnapshot: {
           generationPolicy: { aspectRatio: '2:3', style: 'anchor', negativePrompt: '', promptFrame: 'anchor' },
           autoEvalPolicy: { scoreThreshold: 78, conservative: true },
@@ -26,6 +35,7 @@ describe('BatchDetailPage', () => {
           maxConcurrency: 1,
         },
         totalItems: 1,
+        captureSelectedItems: 1,
         passedItems: 1,
         failedItems: 0,
         committedItems: 0,
@@ -44,6 +54,23 @@ describe('BatchDetailPage', () => {
           agentDisplayName: 'Iris',
           agentConcept: 'Anchor scout',
           agentDescription: 'steady silhouette',
+          importance: 'PRIMARY',
+          captureMode: 'capture',
+          portraitBrief: {
+            agentId: 'a1',
+            worldId: 'w1',
+            displayName: 'Iris',
+            visualRole: 'anchor scout',
+            silhouette: 'clean full-body scout silhouette',
+            outfit: 'weathered scout coat with practical layers',
+            hairstyle: 'wind-swept shoulder-length hair',
+            palettePrimary: 'deep teal',
+            artStyle: worldStylePack.artStyle,
+            mustKeepTraits: ['steady silhouette'],
+            forbiddenTraits: ['extreme close-up'],
+            sourceConfidence: 'derived_from_agent_truth',
+            updatedAt: '2026-03-28T00:00:00.000Z',
+          },
           worldId: 'w1',
           status: 'auto_passed',
           attemptCount: 1,

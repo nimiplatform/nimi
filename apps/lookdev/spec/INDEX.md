@@ -15,4 +15,4 @@ Primary cross-repo context:
 
 - `nimi-realm/spec/**` remains the canonical truth source for Realm object semantics.
 - `nimi/spec/platform/kernel/architecture-contract.md` defines app / runtime / realm boundaries.
-- `nimi-mods/runtime/agent-capture/spec/**` is the prototype ancestor for single-result role-image generation, not the final batch control-plane truth.
+- `nimi-mods/runtime/agent-capture/spec/**` provides the reusable portrait refinement prototype, while Lookdev remains the world-scoped batch control plane.

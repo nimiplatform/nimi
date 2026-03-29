@@ -29,7 +29,7 @@ export default function BatchListPage() {
             <div className="text-xs uppercase tracking-[0.28em] text-[var(--ld-gold)]">Lookdev queue</div>
             <h2 className="text-4xl font-semibold tracking-tight text-white">Portrait truth moves in batches, not drafts.</h2>
             <p className="max-w-2xl text-sm leading-7 text-white/72">
-              Create a frozen agent set, let the runtime generate and gate outputs, then explicitly commit passed portraits back into Realm truth.
+              Define one world style lane, freeze capture selection, let the runtime generate and gate outputs, then explicitly commit passed portraits back into Realm truth.
             </p>
           </div>
           <Link
@@ -90,6 +90,10 @@ export default function BatchListPage() {
               <div className="rounded-2xl bg-black/14 px-3 py-3">
                 <div className="text-[11px] uppercase tracking-[0.16em] text-white/38">Items</div>
                 <div className="mt-1 text-2xl font-semibold text-white">{batch.totalItems}</div>
+              </div>
+              <div className="rounded-2xl bg-black/14 px-3 py-3">
+                <div className="text-[11px] uppercase tracking-[0.16em] text-white/38">Capture</div>
+                <div className="mt-1 text-2xl font-semibold text-violet-100">{batch.captureSelectedItems}</div>
               </div>
               <div className="rounded-2xl bg-black/14 px-3 py-3">
                 <div className="text-[11px] uppercase tracking-[0.16em] text-white/38">Passed</div>

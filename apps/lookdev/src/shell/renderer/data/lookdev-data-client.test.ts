@@ -72,6 +72,7 @@ describe('lookdev data client', () => {
         concept: 'anchor agent',
         worldId: 'w1',
         avatarUrl: null,
+        importance: 'UNKNOWN',
         status: 'UNKNOWN',
       },
     ]);

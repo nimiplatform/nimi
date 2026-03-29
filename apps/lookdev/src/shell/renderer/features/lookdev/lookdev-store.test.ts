@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useLookdevStore } from './lookdev-store.js';
+import { createDefaultWorldStylePack } from './types.js';
 
 const mockRuntime = {
   media: {
@@ -85,10 +86,16 @@ describe('lookdev store', () => {
     }));
   });
 
+  const worldId = 'w1';
+  const worldStylePack = createDefaultWorldStylePack(worldId, 'Aurora Harbor');
+
   it('creates a batch and auto-passes an item through runtime generation + evaluation', async () => {
     const batchId = await useLookdevStore.getState().createBatch({
       name: 'Spring cast',
       selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: ['a1'],
       agents: [{
         id: 'a1',
         handle: 'iris',
@@ -100,6 +107,7 @@ describe('lookdev store', () => {
         worldId: 'w1',
         avatarUrl: null,
         currentPortrait: null,
+        importance: 'PRIMARY',
         status: 'READY',
       }],
     });
@@ -114,6 +122,9 @@ describe('lookdev store', () => {
     const batchId = await useLookdevStore.getState().createBatch({
       name: 'Commit batch',
       selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: ['a2'],
       agents: [{
         id: 'a2',
         handle: 'nora',
@@ -125,6 +136,7 @@ describe('lookdev store', () => {
         worldId: 'w1',
         avatarUrl: null,
         currentPortrait: null,
+        importance: 'PRIMARY',
         status: 'READY',
       }],
     });
@@ -180,6 +192,9 @@ describe('lookdev store', () => {
     const batchId = await useLookdevStore.getState().createBatch({
       name: 'Retry batch',
       selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: [],
       agents: [{
         id: 'a3',
         handle: 'lena',
@@ -191,6 +206,7 @@ describe('lookdev store', () => {
         worldId: 'w1',
         avatarUrl: null,
         currentPortrait: null,
+        importance: 'SECONDARY',
         status: 'READY',
       }],
     });
@@ -198,5 +214,72 @@ describe('lookdev store', () => {
     const batch = useLookdevStore.getState().batches.find((entry) => entry.batchId === batchId);
     expect(batch?.items[0]?.attemptCount).toBe(3);
     expect(batch?.items[0]?.status).toBe('auto_passed');
+  });
+
+  it('persists world style packs and compiled portrait briefs for later reuse', async () => {
+    await useLookdevStore.getState().createBatch({
+      name: 'Persistent lane',
+      selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: ['a4'],
+      agents: [{
+        id: 'a4',
+        handle: 'mira',
+        displayName: 'Mira',
+        concept: 'Harbor navigator',
+        description: null,
+        scenario: null,
+        greeting: null,
+        worldId: 'w1',
+        avatarUrl: null,
+        currentPortrait: null,
+        importance: 'PRIMARY',
+        status: 'READY',
+      }],
+    });
+
+    expect(useLookdevStore.getState().worldStylePacks.w1?.name).toBe(worldStylePack.name);
+    expect(useLookdevStore.getState().portraitBriefs['w1::a4']?.displayName).toBe('Mira');
+  });
+
+  it('fails closed when agents from multiple worlds are mixed into one batch', async () => {
+    await expect(useLookdevStore.getState().createBatch({
+      name: 'Broken lane',
+      selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: [],
+      agents: [
+        {
+          id: 'a5',
+          handle: 'rhea',
+          displayName: 'Rhea',
+          concept: 'First world',
+          description: null,
+          scenario: null,
+          greeting: null,
+          worldId: 'w1',
+          avatarUrl: null,
+          currentPortrait: null,
+          importance: 'PRIMARY',
+          status: 'READY',
+        },
+        {
+          id: 'a6',
+          handle: 'sora',
+          displayName: 'Sora',
+          concept: 'Second world',
+          description: null,
+          scenario: null,
+          greeting: null,
+          worldId: 'w2',
+          avatarUrl: null,
+          currentPortrait: null,
+          importance: 'SECONDARY',
+          status: 'READY',
+        },
+      ],
+    })).rejects.toThrow('LOOKDEV_BATCH_SINGLE_WORLD_REQUIRED');
   });
 });

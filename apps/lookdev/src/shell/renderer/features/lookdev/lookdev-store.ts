@@ -3,8 +3,8 @@ import { persist } from 'zustand/middleware';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { createLookdevImageUpload, finalizeLookdevResource, getAgentPortraitBinding, getLookdevAgent, upsertAgentPortraitBinding, type LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
-import { createDefaultPolicySnapshot, type LookdevBatch, type LookdevBatchStatus, type LookdevEvaluationResult, type LookdevImageArtifact, type LookdevItem, type LookdevItemStatus, type LookdevPolicySnapshot, type LookdevSelectionSource } from './types.js';
-import { buildEvaluationSystemPrompt, buildGenerationPrompt } from './prompting.js';
+import { createDefaultPolicySnapshot, createDefaultWorldStylePack, type LookdevBatch, type LookdevBatchStatus, type LookdevEvaluationResult, type LookdevImageArtifact, type LookdevItem, type LookdevItemStatus, type LookdevPolicySnapshot, type LookdevPortraitBrief, type LookdevSelectionSource, type LookdevWorldStylePack } from './types.js';
+import { buildEvaluationSystemPrompt, buildGenerationPrompt, compilePortraitBrief } from './prompting.js';
 import { deriveCorrectionHints, parseEvaluationJson, validateEvaluation } from './evaluation.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 
@@ -13,13 +13,19 @@ type CreateBatchInput = {
   selectionSource: LookdevSelectionSource;
   agents: LookdevAgentRecord[];
   worldId?: string;
+  worldStylePack: LookdevWorldStylePack;
+  captureSelectionAgentIds: string[];
   maxConcurrency?: number;
   scoreThreshold?: number;
 };
 
 type LookdevStoreState = {
   batches: LookdevBatch[];
+  worldStylePacks: Record<string, LookdevWorldStylePack>;
+  portraitBriefs: Record<string, LookdevPortraitBrief>;
   createBatch(input: CreateBatchInput): Promise<string>;
+  saveWorldStylePack(pack: LookdevWorldStylePack): void;
+  savePortraitBrief(brief: LookdevPortraitBrief): void;
   pauseBatch(batchId: string): void;
   resumeBatch(batchId: string): Promise<void>;
   resumeActiveBatches(): Promise<void>;
@@ -41,6 +47,10 @@ function createId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function portraitBriefKey(worldId: string | null | undefined, agentId: string): string {
+  return `${String(worldId || 'unscoped').trim() || 'unscoped'}::${agentId}`;
+}
+
 function cloneBatch(batch: LookdevBatch): LookdevBatch {
   return JSON.parse(JSON.stringify(batch)) as LookdevBatch;
 }
@@ -48,6 +58,7 @@ function cloneBatch(batch: LookdevBatch): LookdevBatch {
 function updateBatchCounts(batch: LookdevBatch): LookdevBatch {
   const next = cloneBatch(batch);
   next.totalItems = next.items.length;
+  next.captureSelectedItems = next.items.filter((item) => item.captureMode === 'capture').length;
   next.passedItems = next.items.filter((item) => item.status === 'auto_passed' || item.status === 'committed').length;
   next.failedItems = next.items.filter((item) => item.status === 'auto_failed_retryable' || item.status === 'auto_failed_exhausted' || item.status === 'commit_failed').length;
   next.committedItems = next.items.filter((item) => item.status === 'committed').length;
@@ -119,7 +130,11 @@ async function generateItem(runtime: Runtime, item: LookdevItem, policy: Lookdev
   if (!readiness.imageModelId || !readiness.imageConnectorId) {
     throw new Error('LOOKDEV_IMAGE_TARGET_MISSING');
   }
-  const prompt = buildGenerationPrompt(item, policy);
+  const batch = getBatch(item.batchId);
+  if (!batch) {
+    throw new Error('LOOKDEV_BATCH_NOT_FOUND');
+  }
+  const prompt = buildGenerationPrompt(item, policy, batch.worldStylePackSnapshot);
   const referenceImages = [
     item.referenceImageUrl,
     item.existingPortraitUrl,
@@ -340,8 +355,41 @@ export const useLookdevStore = create<LookdevStoreState>()(
   persist(
     (set, get) => ({
       batches: [],
+      worldStylePacks: {},
+      portraitBriefs: {},
+
+      saveWorldStylePack(pack) {
+        const timestamp = nowIso();
+        set((state) => ({
+          worldStylePacks: {
+            ...state.worldStylePacks,
+            [pack.worldId]: {
+              ...pack,
+              updatedAt: timestamp,
+              createdAt: state.worldStylePacks[pack.worldId]?.createdAt || pack.createdAt || timestamp,
+            },
+          },
+        }));
+      },
+
+      savePortraitBrief(brief) {
+        const key = portraitBriefKey(brief.worldId, brief.agentId);
+        const timestamp = nowIso();
+        set((state) => ({
+          portraitBriefs: {
+            ...state.portraitBriefs,
+            [key]: {
+              ...brief,
+              updatedAt: timestamp,
+            },
+          },
+        }));
+      },
 
       async createBatch(input) {
+        if (input.agents.length === 0) {
+          throw new Error('LOOKDEV_BATCH_AGENTS_REQUIRED');
+        }
         const batchId = createId('lookdev-batch');
         const createdAt = nowIso();
         const policy = createDefaultPolicySnapshot();
@@ -362,6 +410,38 @@ export const useLookdevStore = create<LookdevStoreState>()(
           };
         }));
 
+        const resolvedWorldId = input.worldId || detailedAgents[0]?.worldId || '';
+        const worldIds = [...new Set(detailedAgents.map((agent) => agent.worldId).filter(Boolean))];
+        if (worldIds.length !== 1 || !resolvedWorldId) {
+          throw new Error('LOOKDEV_BATCH_SINGLE_WORLD_REQUIRED');
+        }
+
+        const selectedAgentIds = new Set(detailedAgents.map((agent) => agent.id));
+        const captureSelectionAgentIds = [...new Set((input.captureSelectionAgentIds || []).filter((agentId) => selectedAgentIds.has(agentId)))];
+        const worldStylePack = {
+          ...(input.worldStylePack || createDefaultWorldStylePack(resolvedWorldId, resolvedWorldId || 'Selected world')),
+          worldId: resolvedWorldId,
+          updatedAt: createdAt,
+        };
+        get().saveWorldStylePack(worldStylePack);
+
+        const portraitBriefs = detailedAgents.map((agent) => {
+          const briefKey = portraitBriefKey(agent.worldId, agent.id);
+          const existingBrief = get().portraitBriefs[briefKey];
+          const nextBrief = existingBrief && existingBrief.worldId === agent.worldId
+            ? existingBrief
+            : compilePortraitBrief({
+                agentId: agent.id,
+                displayName: agent.displayName,
+                worldId: agent.worldId,
+                concept: agent.concept,
+                description: agent.description,
+                worldStylePack,
+              });
+          get().savePortraitBrief(nextBrief);
+          return nextBrief;
+        });
+
         const batch: LookdevBatch = {
           batchId,
           name: input.name.trim() || `Lookdev ${new Date().toLocaleDateString()}`,
@@ -369,10 +449,16 @@ export const useLookdevStore = create<LookdevStoreState>()(
           selectionSnapshot: {
             selectionSource: input.selectionSource,
             agentIds: detailedAgents.map((agent) => agent.id),
-            worldId: input.worldId,
+            captureSelectionAgentIds,
+            worldId: resolvedWorldId || undefined,
+          },
+          worldStylePackSnapshot: {
+            ...worldStylePack,
+            updatedAt: createdAt,
           },
           policySnapshot: policy,
           totalItems: detailedAgents.length,
+          captureSelectedItems: 0,
           passedItems: 0,
           failedItems: 0,
           committedItems: 0,
@@ -391,6 +477,18 @@ export const useLookdevStore = create<LookdevStoreState>()(
             agentDisplayName: agent.displayName,
             agentConcept: agent.concept,
             agentDescription: agent.description,
+            importance: agent.importance,
+            captureMode: captureSelectionAgentIds.includes(agent.id) ? 'capture' : 'batch_only',
+            portraitBrief: portraitBriefs.find((brief) => brief.agentId === agent.id && brief.worldId === agent.worldId)
+              || portraitBriefs.find((brief) => brief.agentId === agent.id)
+              || compilePortraitBrief({
+                agentId: agent.id,
+                displayName: agent.displayName,
+                worldId: agent.worldId,
+                concept: agent.concept,
+                description: agent.description,
+                worldStylePack,
+              }),
             worldId: agent.worldId,
             status: 'pending',
             attemptCount: 0,
@@ -530,8 +628,12 @@ export const useLookdevStore = create<LookdevStoreState>()(
       },
     }),
     {
-      name: 'lookdev-workspace-v1',
-      partialize: (state) => ({ batches: state.batches }),
+      name: 'lookdev-workspace-formal',
+      partialize: (state) => ({
+        batches: state.batches,
+        worldStylePacks: state.worldStylePacks,
+        portraitBriefs: state.portraitBriefs,
+      }),
     },
   ),
 );

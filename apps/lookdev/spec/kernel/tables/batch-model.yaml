@@ -1,4 +1,42 @@
 batch_model:
+  working_assets:
+    world_style_pack:
+      required_fields:
+        - worldId
+        - name
+        - visualEra
+        - artStyle
+        - paletteDirection
+        - materialDirection
+        - silhouetteDirection
+        - costumeDensity
+        - backgroundDirection
+        - promptFrame
+        - forbiddenElements
+        - createdAt
+        - updatedAt
+      persistence:
+        appLocalReusable: true
+        realmTruth: false
+    portrait_brief:
+      required_fields:
+        - agentId
+        - worldId
+        - displayName
+        - visualRole
+        - silhouette
+        - outfit
+        - hairstyle
+        - palettePrimary
+        - artStyle
+        - mustKeepTraits
+        - forbiddenTraits
+        - sourceConfidence
+        - updatedAt
+      persistence:
+        appLocalReusable: true
+        realmTruth: false
+
   batch:
     states:
       - running
@@ -9,8 +47,10 @@ batch_model:
       - batchId
       - status
       - selectionSnapshot
+      - worldStylePackSnapshot
       - policySnapshot
       - totalItems
+      - captureSelectedItems
       - passedItems
       - failedItems
       - committedItems
@@ -23,9 +63,12 @@ batch_model:
       required_fields:
         - selectionSource
         - agentIds
+        - captureSelectionAgentIds
       selection_sources:
         - by_world
         - explicit_selection
+      capture_selection_authority: operator
+      capture_selection_default: primary_agents
     policy_snapshot:
       required_fields:
         - generationPolicy
@@ -51,6 +94,9 @@ batch_model:
       - agentId
       - agentHandle
       - agentDisplayName
+      - importance
+      - captureMode
+      - portraitBrief
       - status
       - attemptCount
       - currentImage
@@ -67,3 +113,4 @@ batch_model:
     allowItemAppendAfterCreate: false
     allowPerItemPolicyOverride: false
     allowBatchReopenAfterCommit: false
+    captureSelectionDefault: primary_agents

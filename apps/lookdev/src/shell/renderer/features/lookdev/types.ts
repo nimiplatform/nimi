@@ -9,6 +9,9 @@ export type LookdevItemStatus =
   | 'committed'
   | 'commit_failed';
 
+export type LookdevCaptureMode = 'capture' | 'batch_only';
+export type LookdevAgentImportance = 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | 'UNKNOWN';
+
 export type LookdevCheckKey =
   | 'fullBody'
   | 'fixedFocalLength'
@@ -41,6 +44,38 @@ export type LookdevImageArtifact = {
   artifactId?: string;
   promptSnapshot: string;
   createdAt: string;
+};
+
+export type LookdevWorldStylePack = {
+  worldId: string;
+  name: string;
+  visualEra: string;
+  artStyle: string;
+  paletteDirection: string;
+  materialDirection: string;
+  silhouetteDirection: string;
+  costumeDensity: string;
+  backgroundDirection: string;
+  promptFrame: string;
+  forbiddenElements: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LookdevPortraitBrief = {
+  agentId: string;
+  worldId: string | null;
+  displayName: string;
+  visualRole: string;
+  silhouette: string;
+  outfit: string;
+  hairstyle: string;
+  palettePrimary: string;
+  artStyle: string;
+  mustKeepTraits: string[];
+  forbiddenTraits: string[];
+  sourceConfidence: 'derived_from_agent_truth' | 'world_style_fallback';
+  updatedAt: string;
 };
 
 export type LookdevGenerationPolicy = {
@@ -78,6 +113,7 @@ export type LookdevPolicySnapshot = {
 export type LookdevSelectionSnapshot = {
   selectionSource: LookdevSelectionSource;
   agentIds: string[];
+  captureSelectionAgentIds: string[];
   worldId?: string;
 };
 
@@ -89,6 +125,9 @@ export type LookdevItem = {
   agentDisplayName: string;
   agentConcept: string;
   agentDescription: string | null;
+  importance: LookdevAgentImportance;
+  captureMode: LookdevCaptureMode;
+  portraitBrief: LookdevPortraitBrief;
   worldId: string | null;
   status: LookdevItemStatus;
   attemptCount: number;
@@ -109,8 +148,10 @@ export type LookdevBatch = {
   name: string;
   status: LookdevBatchStatus;
   selectionSnapshot: LookdevSelectionSnapshot;
+  worldStylePackSnapshot: LookdevWorldStylePack;
   policySnapshot: LookdevPolicySnapshot;
   totalItems: number;
+  captureSelectedItems: number;
   passedItems: number;
   failedItems: number;
   committedItems: number;
@@ -147,5 +188,24 @@ export function createDefaultPolicySnapshot(): LookdevPolicySnapshot {
       writeAgentAvatarByDefault: false,
     },
     maxConcurrency: 1,
+  };
+}
+
+export function createDefaultWorldStylePack(worldId: string, worldName: string): LookdevWorldStylePack {
+  const now = new Date().toISOString();
+  return {
+    worldId,
+    name: `${worldName} portrait lane`,
+    visualEra: 'world-authored contemporary character lane',
+    artStyle: 'grounded anchor portrait illustration',
+    paletteDirection: 'restrained, world-consistent palette with one readable dominant color',
+    materialDirection: 'readable real-world materials, limited ornamental noise',
+    silhouetteDirection: 'clean full-body silhouette with stable costume read',
+    costumeDensity: 'moderate, role-first, not over-accessorized',
+    backgroundDirection: 'subdued and subordinate to character read',
+    promptFrame: 'full-body character anchor portrait, fixed focal length, stable eye-level camera, subdued background',
+    forbiddenElements: ['extreme close-up', 'dramatic action pose', 'busy cinematic background', 'fisheye distortion'],
+    createdAt: now,
+    updatedAt: now,
   };
 }

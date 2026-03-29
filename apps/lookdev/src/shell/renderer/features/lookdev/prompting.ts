@@ -1,12 +1,70 @@
-import type { LookdevItem, LookdevPolicySnapshot } from './types.js';
+import type { LookdevItem, LookdevPolicySnapshot, LookdevPortraitBrief, LookdevWorldStylePack } from './types.js';
 
-export function buildGenerationPrompt(item: LookdevItem, policy: LookdevPolicySnapshot): string {
+function firstSentence(value: string): string {
+  return value
+    .split(/[.!?。！？\n]/)
+    .map((entry) => entry.trim())
+    .find(Boolean) || value.trim();
+}
+
+function compactList(values: string[]): string {
+  return values.map((value) => value.trim()).filter(Boolean).join(', ');
+}
+
+export function compilePortraitBrief(input: {
+  agentId: string;
+  displayName: string;
+  worldId: string | null;
+  concept: string;
+  description: string | null;
+  worldStylePack: LookdevWorldStylePack;
+}): LookdevPortraitBrief {
+  const concept = input.concept.trim();
+  const description = String(input.description || '').trim();
+  const summary = firstSentence(description || concept || `${input.displayName} world character`);
+  const now = new Date().toISOString();
+  const mustKeepTraits = [concept, summary].filter(Boolean);
+
+  return {
+    agentId: input.agentId,
+    worldId: input.worldId,
+    displayName: input.displayName,
+    visualRole: concept || summary || input.displayName,
+    silhouette: input.worldStylePack.silhouetteDirection,
+    outfit: description ? firstSentence(description) : `${input.worldStylePack.costumeDensity} costume language aligned to world role`,
+    hairstyle: 'clear, readable hairstyle that supports stable silhouette recognition',
+    palettePrimary: input.worldStylePack.paletteDirection,
+    artStyle: input.worldStylePack.artStyle,
+    mustKeepTraits,
+    forbiddenTraits: [...input.worldStylePack.forbiddenElements],
+    sourceConfidence: concept && description ? 'derived_from_agent_truth' : 'world_style_fallback',
+    updatedAt: now,
+  };
+}
+
+export function buildGenerationPrompt(item: LookdevItem, policy: LookdevPolicySnapshot, worldStylePack: LookdevWorldStylePack): string {
+  const brief = item.portraitBrief;
   const parts = [
     'Create a portrait truth candidate for a persistent agent.',
     `Character: ${item.agentDisplayName}.`,
-    item.agentConcept ? `Core concept: ${item.agentConcept}.` : '',
-    item.agentDescription ? `Description: ${item.agentDescription}.` : '',
+    `Capture mode: ${item.captureMode}.`,
+    `World style lane: ${worldStylePack.name}.`,
+    `Visual era: ${worldStylePack.visualEra}.`,
+    `Art style: ${brief.artStyle}.`,
+    `Visual role: ${brief.visualRole}.`,
+    `Silhouette: ${brief.silhouette}.`,
+    `Outfit: ${brief.outfit}.`,
+    `Hairstyle: ${brief.hairstyle}.`,
+    `Palette direction: ${brief.palettePrimary}.`,
+    compactList(brief.mustKeepTraits) ? `Must keep traits: ${compactList(brief.mustKeepTraits)}.` : '',
+    compactList(brief.forbiddenTraits) ? `Forbidden traits: ${compactList(brief.forbiddenTraits)}.` : '',
+    `World material direction: ${worldStylePack.materialDirection}.`,
+    `World background direction: ${worldStylePack.backgroundDirection}.`,
+    `World prompt frame: ${worldStylePack.promptFrame}.`,
     policy.generationPolicy.promptFrame,
+    item.captureMode === 'capture'
+      ? 'This agent was explicitly selected by the operator for higher-fidelity capture refinement. Preserve identity anchors strictly.'
+      : 'This agent follows the default batch lane. Keep the result clean, stable, and production-ready.',
     'The output should feel production-ready for later character development rather than a dramatic marketing shot.',
   ];
   if (item.correctionHints.length > 0) {

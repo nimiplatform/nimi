@@ -1,5 +1,7 @@
 writeback_policy:
   app_local_truth:
+    worldStylePacksStayLocal: true
+    portraitBriefsStayLocal: true
     batchRecordsStayLocalUntilCommit: true
     itemRecordsStayLocalUntilCommit: true
     preCommitCandidatesWriteToRealm: false

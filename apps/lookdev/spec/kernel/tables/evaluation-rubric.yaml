@@ -31,3 +31,4 @@ evaluation_rubric:
   retry_behavior:
     autoCorrectionHintsAllowed: true
     userEditableCorrectionHints: false
+    captureSelectionAuthority: operator

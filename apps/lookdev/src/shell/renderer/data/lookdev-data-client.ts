@@ -45,6 +45,7 @@ export type LookdevAgentRecord = {
   worldId: string | null;
   avatarUrl: string | null;
   currentPortrait: LookdevPortraitBinding | null;
+  importance: 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | 'UNKNOWN';
   status: string;
 };
 
@@ -89,6 +90,7 @@ function normalizeCreatorAgentListItem(value: unknown): Omit<LookdevAgentRecord,
     concept: String(item.concept || agent.concept || '').trim(),
     worldId: toStringOrNull(agent.worldId),
     avatarUrl: toStringOrNull(item.avatarUrl ?? user.avatarUrl ?? agentProfile.avatarUrl),
+    importance: String(agentProfile.importance || agent.importance || 'UNKNOWN').trim().toUpperCase() as LookdevAgentRecord['importance'],
     status: String(item.status || agent.status || 'UNKNOWN').trim() || 'UNKNOWN',
   };
 }

@@ -6,13 +6,17 @@
 
 Lookdev uses `LookdevBatch` as its top-level control object.
 
-A batch is one frozen run over one selected set of Realm agents under one shared policy snapshot.
+A batch is one frozen run over one selected set of Realm agents under:
+
+- one shared world style pack snapshot
+- one shared capture-selection snapshot
+- one shared policy snapshot
 
 ## LD-BATCH-002 — Item as the Processing Unit
 
 Each selected Realm agent becomes exactly one `LookdevItem` inside the batch.
 
-`one realm agent = one item` is the base processing unit. Batch scale comes from many items, not from redefining the unit of truth.
+`one realm agent = one item` is the base processing unit. Each item carries a frozen portrait brief snapshot and one operator-owned capture mode.
 
 ## LD-BATCH-003 — Frozen Selection Snapshot
 
@@ -20,6 +24,7 @@ Batch target selection freezes at creation time.
 
 - the batch stores the final frozen `agentIds`
 - the batch also stores `selectionSource`
+- the batch also stores the final frozen `captureSelectionAgentIds`
 - new agents discovered later do not join the current batch
 - additional work must happen in a new batch
 
@@ -27,7 +32,7 @@ Batch target selection freezes at creation time.
 
 All items in one batch share the same policy snapshot.
 
-First-version Lookdev must not introduce per-item overrides for:
+Lookdev must not introduce per-item overrides for:
 
 - generation policy
 - evaluation policy
@@ -35,18 +40,20 @@ First-version Lookdev must not introduce per-item overrides for:
 - writeback policy
 - max concurrency
 
+Per-item capture mode is allowed because it is operator-owned intake routing, not a policy override.
+
 ## LD-BATCH-005 — Batch and Item State Models
 
 Authoritative batch and item states live in `tables/batch-model.yaml`.
 
-First-version batch states are:
+Formal batch states are:
 
 - `running`
 - `paused`
 - `processing_complete`
 - `commit_complete`
 
-First-version item states are:
+Formal item states are:
 
 - `pending`
 - `generating`
@@ -69,6 +76,7 @@ Each item owns one current result image at a time.
 Every batch must expose summary counts for:
 
 - total items
+- capture-selected items
 - passed items
 - failed items
 - committed items
@@ -76,7 +84,16 @@ Every batch must expose summary counts for:
 
 Every item must remain visible in app records regardless of whether it ultimately passed, failed, or committed.
 
-## LD-BATCH-008 — Closed Batch Rule
+## LD-BATCH-008 — Reusable Working Assets
+
+Lookdev persists reusable app-local working assets outside the batch itself:
+
+- `WorldStylePack`
+- `PortraitBrief`
+
+These assets may be reused across batches, but a batch always freezes its own snapshots at creation time.
+
+## LD-BATCH-009 — Closed Batch Rule
 
 Once a batch reaches `commit_complete`, it is closed.
 
@@ -84,7 +101,15 @@ Once a batch reaches `commit_complete`, it is closed.
 - they may not be rerun inside the closed batch
 - further processing requires a new batch
 
-## LD-BATCH-009 — Authoritative Field Lists
+## LD-BATCH-010 — Capture Selection Authority
+
+Capture selection is user-owned.
+
+- the operator chooses which agents enter capture
+- the default selection is `primary` agents
+- the app may prefill defaults from Realm importance, but it must not silently replace the operator's choice
+
+## LD-BATCH-011 — Authoritative Field Lists
 
 The authoritative batch and item field lists live in `tables/batch-model.yaml`.
 

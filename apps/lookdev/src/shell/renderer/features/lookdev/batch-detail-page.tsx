@@ -49,7 +49,10 @@ export default function BatchDetailPage() {
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">{batch.selectionSnapshot.selectionSource.replace('_', ' ')}</div>
               <h2 className="text-3xl font-semibold text-white">{batch.name}</h2>
               <p className="text-sm text-white/66">
-                {batch.totalItems} items · {batch.passedItems} passed · {batch.failedItems} failed · {batch.committedItems} committed
+                {batch.totalItems} items · {batch.captureSelectedItems} capture · {batch.passedItems} passed · {batch.failedItems} failed · {batch.committedItems} committed
+              </p>
+              <p className="text-xs uppercase tracking-[0.18em] text-white/38">
+                Style lane: {batch.worldStylePackSnapshot.name}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -122,6 +125,7 @@ export default function BatchDetailPage() {
                 <div className="flex items-center gap-4">
                   <div className="text-right text-xs text-white/46">
                     <div>{item.attemptCount} attempts</div>
+                    <div>{item.captureMode === 'capture' ? 'capture selected' : 'batch only'}</div>
                     {item.currentEvaluation ? <div>score {item.currentEvaluation.score}</div> : null}
                   </div>
                   <div className={`text-sm font-medium ${statusTone(item.status)}`}>{item.status.replace(/_/g, ' ')}</div>
@@ -139,6 +143,11 @@ export default function BatchDetailPage() {
               <div className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">Preview</div>
               <h3 className="mt-2 text-2xl font-semibold text-white">{selectedItem.agentDisplayName}</h3>
               <p className="mt-2 text-sm leading-6 text-white/62">{selectedItem.agentConcept || 'No concept text was provided by the current Realm agent record.'}</p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs uppercase tracking-[0.16em] text-white/46">
+                <span>{selectedItem.importance}</span>
+                <span>·</span>
+                <span>{selectedItem.captureMode === 'capture' ? 'Capture selected' : 'Batch only'}</span>
+              </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -161,6 +170,17 @@ export default function BatchDetailPage() {
                     No existing portrait binding
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/8 bg-black/16 px-5 py-5">
+              <div className="text-xs uppercase tracking-[0.16em] text-white/40">Portrait brief</div>
+              <div className="mt-4 space-y-2 text-sm text-white/68">
+                <div><span className="text-white/42">Role</span> · {selectedItem.portraitBrief.visualRole}</div>
+                <div><span className="text-white/42">Silhouette</span> · {selectedItem.portraitBrief.silhouette}</div>
+                <div><span className="text-white/42">Outfit</span> · {selectedItem.portraitBrief.outfit}</div>
+                <div><span className="text-white/42">Palette</span> · {selectedItem.portraitBrief.palettePrimary}</div>
+                <div><span className="text-white/42">Art style</span> · {selectedItem.portraitBrief.artStyle}</div>
               </div>
             </div>
 
