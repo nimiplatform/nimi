@@ -1,10 +1,15 @@
 package engine
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -28,8 +33,8 @@ func TestDefaultLlamaConfig(t *testing.T) {
 	if cfg.Port != 1234 {
 		t.Errorf("expected port 1234, got %d", cfg.Port)
 	}
-	if cfg.Version != "3.12.1" {
-		t.Errorf("expected version 3.12.1, got %s", cfg.Version)
+	if cfg.Version != "b8575" {
+		t.Errorf("expected version b8575, got %s", cfg.Version)
 	}
 	if cfg.HealthPath != "/v1/models" {
 		t.Errorf("expected health path /v1/models, got %s", cfg.HealthPath)
@@ -39,6 +44,108 @@ func TestDefaultLlamaConfig(t *testing.T) {
 	}
 	if cfg.StartupTimeout != 120*time.Second {
 		t.Errorf("expected startup timeout 120s, got %s", cfg.StartupTimeout)
+	}
+}
+
+func makeFakeArchiveAsset(t *testing.T, assetName string, binaryName string, binaryContents []byte) []byte {
+	t.Helper()
+
+	switch {
+	case strings.HasSuffix(assetName, ".tar.gz"), strings.HasSuffix(assetName, ".tgz"):
+		var buffer bytes.Buffer
+		gzipWriter := gzip.NewWriter(&buffer)
+		tarWriter := tar.NewWriter(gzipWriter)
+		header := &tar.Header{
+			Name: "bin/" + binaryName,
+			Mode: 0o755,
+			Size: int64(len(binaryContents)),
+		}
+		if err := tarWriter.WriteHeader(header); err != nil {
+			t.Fatalf("write tar header: %v", err)
+		}
+		if _, err := tarWriter.Write(binaryContents); err != nil {
+			t.Fatalf("write tar contents: %v", err)
+		}
+		if err := tarWriter.Close(); err != nil {
+			t.Fatalf("close tar writer: %v", err)
+		}
+		if err := gzipWriter.Close(); err != nil {
+			t.Fatalf("close gzip writer: %v", err)
+		}
+		return buffer.Bytes()
+	case strings.HasSuffix(assetName, ".zip"):
+		var buffer bytes.Buffer
+		zipWriter := zip.NewWriter(&buffer)
+		entry, err := zipWriter.Create("bin/" + binaryName)
+		if err != nil {
+			t.Fatalf("create zip entry: %v", err)
+		}
+		if _, err := entry.Write(binaryContents); err != nil {
+			t.Fatalf("write zip contents: %v", err)
+		}
+		if err := zipWriter.Close(); err != nil {
+			t.Fatalf("close zip writer: %v", err)
+		}
+		return buffer.Bytes()
+	default:
+		return binaryContents
+	}
+}
+
+func makeFakeArchiveAssetWithRuntimeFiles(t *testing.T, assetName string, binaryName string, binaryContents []byte) []byte {
+	t.Helper()
+
+	const archiveRoot = "llama-b8575"
+	const dylibName = "libmtmd.0.0.8575.dylib"
+	const dylibLink = "libmtmd.0.dylib"
+	dylibContents := []byte("fake-dylib")
+
+	switch {
+	case strings.HasSuffix(assetName, ".tar.gz"), strings.HasSuffix(assetName, ".tgz"):
+		var buffer bytes.Buffer
+		gzipWriter := gzip.NewWriter(&buffer)
+		tarWriter := tar.NewWriter(gzipWriter)
+
+		writeHeader := func(header *tar.Header, content []byte) {
+			t.Helper()
+			if err := tarWriter.WriteHeader(header); err != nil {
+				t.Fatalf("write tar header %s: %v", header.Name, err)
+			}
+			if len(content) == 0 {
+				return
+			}
+			if _, err := tarWriter.Write(content); err != nil {
+				t.Fatalf("write tar contents %s: %v", header.Name, err)
+			}
+		}
+
+		writeHeader(&tar.Header{
+			Name: archiveRoot + "/" + binaryName,
+			Mode: 0o755,
+			Size: int64(len(binaryContents)),
+		}, binaryContents)
+		writeHeader(&tar.Header{
+			Name: archiveRoot + "/" + dylibName,
+			Mode: 0o755,
+			Size: int64(len(dylibContents)),
+		}, dylibContents)
+		writeHeader(&tar.Header{
+			Name:     archiveRoot + "/" + dylibLink,
+			Mode:     0o777,
+			Typeflag: tar.TypeSymlink,
+			Linkname: dylibName,
+		}, nil)
+
+		if err := tarWriter.Close(); err != nil {
+			t.Fatalf("close tar writer: %v", err)
+		}
+		if err := gzipWriter.Close(); err != nil {
+			t.Fatalf("close gzip writer: %v", err)
+		}
+		return buffer.Bytes()
+	default:
+		t.Fatalf("runtime file archive helper only supports tar.gz assets, got %s", assetName)
+		return nil
 	}
 }
 
@@ -83,15 +190,15 @@ func TestRegistryCRUD(t *testing.T) {
 	}
 
 	// Get returns nil for missing entry.
-	if got := reg.Get(EngineLlama, "3.12.1"); got != nil {
+	if got := reg.Get(EngineLlama, "b8575"); got != nil {
 		t.Fatalf("expected nil for missing entry, got %+v", got)
 	}
 
 	// Put an entry.
 	entry := &RegistryEntry{
 		Engine:      EngineLlama,
-		Version:     "3.12.1",
-		BinaryPath:  "/tmp/local-ai",
+		Version:     "b8575",
+		BinaryPath:  "/tmp/llama-server",
 		SHA256:      "abc123",
 		Platform:    "darwin/arm64",
 		InstalledAt: "2026-01-01T00:00:00Z",
@@ -101,12 +208,12 @@ func TestRegistryCRUD(t *testing.T) {
 	}
 
 	// Get the entry.
-	got := reg.Get(EngineLlama, "3.12.1")
+	got := reg.Get(EngineLlama, "b8575")
 	if got == nil {
 		t.Fatal("expected entry, got nil")
 	}
-	if got.BinaryPath != "/tmp/local-ai" {
-		t.Errorf("expected binary path /tmp/local-ai, got %s", got.BinaryPath)
+	if got.BinaryPath != "/tmp/llama-server" {
+		t.Errorf("expected binary path /tmp/llama-server, got %s", got.BinaryPath)
 	}
 	if got.SHA256 != "abc123" {
 		t.Errorf("expected sha256 abc123, got %s", got.SHA256)
@@ -118,10 +225,10 @@ func TestRegistryCRUD(t *testing.T) {
 	}
 
 	// Remove the entry.
-	if err := reg.Remove(EngineLlama, "3.12.1"); err != nil {
+	if err := reg.Remove(EngineLlama, "b8575"); err != nil {
 		t.Fatalf("Remove: %v", err)
 	}
-	if got := reg.Get(EngineLlama, "3.12.1"); got != nil {
+	if got := reg.Get(EngineLlama, "b8575"); got != nil {
 		t.Errorf("expected nil after remove, got %+v", got)
 	}
 }
@@ -219,7 +326,23 @@ func TestRegistryAtomicWrite(t *testing.T) {
 // --- Download URL tests ---
 
 func TestLlamaDownloadURL(t *testing.T) {
-	url, err := llamaDownloadURL("3.12.1")
+	const version = "b8575"
+	assetName, err := llamaAssetName(version)
+	if err != nil && LlamaSupervisedPlatformSupported() {
+		t.Fatalf("llamaAssetName: %v", err)
+	}
+	releasePayload := fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, assetName, version, assetName, strings.Repeat("a", 64))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/"+version {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(releasePayload))
+	}))
+	defer server.Close()
+	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
+
+	url, err := llamaDownloadURL(version)
 	if !LlamaSupervisedPlatformSupported() {
 		if err == nil {
 			t.Fatalf("expected unsupported platform error on %s", PlatformString())
@@ -236,38 +359,35 @@ func TestLlamaDownloadURL(t *testing.T) {
 		t.Fatal("expected non-empty URL")
 	}
 
-	expectedPrefix := llamaReleaseBaseURL + "/v3.12.1/"
-	if len(url) < len(expectedPrefix) || url[:len(expectedPrefix)] != expectedPrefix {
-		t.Errorf("unexpected URL prefix: %s", url)
+	expectedURL := fmt.Sprintf("https://github.com/ggml-org/llama.cpp/releases/download/%s/%s", version, assetName)
+	if url != expectedURL {
+		t.Errorf("unexpected URL: got=%s want=%s", url, expectedURL)
 	}
 }
 
 func TestLlamaAssetName(t *testing.T) {
-	name, err := llamaAssetName("3.12.1")
-	if !LlamaSupervisedPlatformSupported() {
-		if err == nil {
-			t.Fatalf("expected unsupported platform error on %s", PlatformString())
-		}
-		if !strings.Contains(err.Error(), "unsupported platform: "+PlatformString()) {
-			t.Fatalf("unexpected unsupported platform error: %v", err)
-		}
-		return
-	}
-	if err != nil {
-		t.Fatalf("llamaAssetName: %v", err)
-	}
-	if name == "" {
-		t.Fatal("expected non-empty asset name")
+	tests := []struct {
+		goos   string
+		goarch string
+		want   string
+	}{
+		{goos: "darwin", goarch: "arm64", want: "llama-b8575-bin-macos-arm64.tar.gz"},
+		{goos: "darwin", goarch: "amd64", want: "llama-b8575-bin-macos-x64.tar.gz"},
+		{goos: "linux", goarch: "amd64", want: "llama-b8575-bin-ubuntu-x64.tar.gz"},
+		{goos: "windows", goarch: "amd64", want: "llama-b8575-bin-win-cpu-x64.zip"},
+		{goos: "windows", goarch: "arm64", want: "llama-b8575-bin-win-cpu-arm64.zip"},
 	}
 
-	if !strings.Contains(name, "v3.12.1") {
-		t.Fatalf("asset name must contain version, got %s", name)
-	}
-	if !strings.Contains(name, runtime.GOOS) {
-		t.Fatalf("asset name must contain GOOS=%s, got %s", runtime.GOOS, name)
-	}
-	if !strings.Contains(name, runtime.GOARCH) {
-		t.Fatalf("asset name must contain GOARCH=%s, got %s", runtime.GOARCH, name)
+	for _, tt := range tests {
+		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
+			got, err := llamaAssetNameFor("b8575", tt.goos, tt.goarch)
+			if err != nil {
+				t.Fatalf("llamaAssetNameFor: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("llamaAssetNameFor(%q,%q) = %q, want %q", tt.goos, tt.goarch, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -280,9 +400,9 @@ func TestLlamaSupervisedPlatformSupportedFor(t *testing.T) {
 		{goos: "darwin", goarch: "arm64", want: true},
 		{goos: "darwin", goarch: "amd64", want: true},
 		{goos: "linux", goarch: "amd64", want: true},
-		{goos: "linux", goarch: "arm64", want: true},
-		{goos: "windows", goarch: "amd64", want: false},
-		{goos: "windows", goarch: "arm64", want: false},
+		{goos: "linux", goarch: "arm64", want: false},
+		{goos: "windows", goarch: "amd64", want: true},
+		{goos: "windows", goarch: "arm64", want: true},
 	}
 
 	for _, tt := range tests {
@@ -368,18 +488,15 @@ func TestClassifyMediaHost(t *testing.T) {
 }
 
 func TestLlamaExpectedSHA256(t *testing.T) {
-	const version = "3.12.1"
-	const asset = "local-ai-v3.12.1-darwin-arm64"
+	const version = "b8575"
+	const asset = "llama-b8575-bin-macos-arm64.tar.gz"
 	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v3.12.1/"+llamaChecksumAssetName(version) {
+		if r.URL.Path != "/"+version {
 			http.NotFound(w, r)
 			return
 		}
-		_, _ = w.Write([]byte(strings.Join([]string{
-			"fc8483b895154d3c4e7149d6d480cb18837a3ae42a208f687a89db20802d78d1  " + strings.Replace(llamaChecksumAssetName(version), "-checksums.txt", "-source.tar.gz", 1),
-			expectedHash + "  " + asset,
-		}, "\n")))
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/%s/%s","digest":"sha256:%s"}]}`, version, asset, version, asset, expectedHash)))
 	}))
 	defer server.Close()
 
@@ -396,13 +513,13 @@ func TestLlamaExpectedSHA256(t *testing.T) {
 
 func TestLlamaExpectedSHA256MissingAsset(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00  local-ai-v3.12.1-darwin-arm64\n"))
+		_, _ = w.Write([]byte(`{"tag_name":"b8575","assets":[{"name":"llama-b8575-bin-macos-arm64.tar.gz","browser_download_url":"https://github.com/ggml-org/llama.cpp/releases/download/b8575/llama-b8575-bin-macos-arm64.tar.gz","digest":"sha256:aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00"}]}`))
 	}))
 	defer server.Close()
 
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
-	_, err := llamaExpectedSHA256("3.12.1", "local-ai-v3.12.1-linux-amd64")
+	_, err := llamaExpectedSHA256("b8575", "llama-b8575-bin-ubuntu-x64.tar.gz")
 	if err == nil {
 		t.Fatal("expected missing checksum error")
 	}
@@ -772,27 +889,30 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFails(t *testing.T) {
 		t.Skipf("unsupported platform: %s", PlatformString())
 	}
 
-	const version = "3.12.1"
+	const version = "b8575"
 	asset, err := llamaAssetName(version)
 	if err != nil {
 		t.Fatalf("llamaAssetName: %v", err)
 	}
 	fakeBinary := []byte("#!/bin/sh\necho hello\n")
-	sum := sha256.Sum256(fakeBinary)
+	fakeArchive := makeFakeArchiveAsset(t, asset, llamaBinaryName(), fakeBinary)
+	sum := sha256.Sum256(fakeArchive)
 	expectedHash := hex.EncodeToString(sum[:])
+	var serverURL string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/v3.12.1/" + asset:
+		case "/" + version:
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(fakeBinary)
-		case "/v3.12.1/" + llamaChecksumAssetName(version):
+			_, _ = w.Write([]byte(fmt.Sprintf(`{"tag_name":"%s","assets":[{"name":"%s","browser_download_url":"%s/%s/download","digest":"sha256:%s"}]}`, version, asset, serverURL, version, expectedHash)))
+		case "/" + version + "/download":
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(expectedHash + "  " + asset + "\n"))
+			_, _ = w.Write(fakeArchive)
 		default:
 			http.NotFound(w, r)
 		}
 	}))
 	defer server.Close()
+	serverURL = server.URL
 	t.Cleanup(setLlamaReleaseSourceForTest(server.URL, server.Client()))
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -812,6 +932,62 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFails(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "persist llama registry entry") {
 		t.Fatalf("unexpected ensureLlama error: %v", err)
+	}
+}
+
+func TestStageManagedBinaryPayloadPreservesRuntimeDependencies(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink preservation test requires unix-like symlink support")
+	}
+
+	const assetName = "llama-b8575-bin-macos-arm64.tar.gz"
+	const binaryName = "llama-server"
+
+	archivePath := filepath.Join(t.TempDir(), assetName)
+	archive := makeFakeArchiveAssetWithRuntimeFiles(t, assetName, binaryName, []byte("#!/bin/sh\necho hello\n"))
+	if err := os.WriteFile(archivePath, archive, 0o644); err != nil {
+		t.Fatalf("write archive: %v", err)
+	}
+
+	stagedDir := filepath.Join(t.TempDir(), "payload")
+	binaryPath, err := stageManagedBinaryPayload(archivePath, stagedDir, binaryName)
+	if err != nil {
+		t.Fatalf("stageManagedBinaryPayload: %v", err)
+	}
+	if binaryPath != filepath.Join(stagedDir, binaryName) {
+		t.Fatalf("unexpected staged binary path: %s", binaryPath)
+	}
+	if _, err := os.Stat(binaryPath); err != nil {
+		t.Fatalf("staged binary missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(stagedDir, "libmtmd.0.0.8575.dylib")); err != nil {
+		t.Fatalf("staged dylib missing: %v", err)
+	}
+	linkPath := filepath.Join(stagedDir, "libmtmd.0.dylib")
+	target, err := os.Readlink(linkPath)
+	if err != nil {
+		t.Fatalf("read staged dylib symlink: %v", err)
+	}
+	if target != "libmtmd.0.0.8575.dylib" {
+		t.Fatalf("unexpected staged symlink target: %s", target)
+	}
+
+	installDir := filepath.Join(t.TempDir(), "install")
+	if err := installManagedBinaryPayload(installDir, stagedDir); err != nil {
+		t.Fatalf("installManagedBinaryPayload: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(installDir, binaryName)); err != nil {
+		t.Fatalf("installed binary missing: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(installDir, "libmtmd.0.0.8575.dylib")); err != nil {
+		t.Fatalf("installed dylib missing: %v", err)
+	}
+	installedTarget, err := os.Readlink(filepath.Join(installDir, "libmtmd.0.dylib"))
+	if err != nil {
+		t.Fatalf("read installed dylib symlink: %v", err)
+	}
+	if installedTarget != "libmtmd.0.0.8575.dylib" {
+		t.Fatalf("unexpected installed symlink target: %s", installedTarget)
 	}
 }
 
@@ -1127,54 +1303,42 @@ func TestRestartJitterCap(t *testing.T) {
 // --- Command construction tests ---
 
 func TestLlamaCommandArgs(t *testing.T) {
-	cfg := EngineConfig{
-		Kind:       EngineLlama,
-		BinaryPath: "/usr/local/bin/llama",
-		Port:       5555,
+	configPath := filepath.Join(t.TempDir(), "llama-models.yaml")
+	if err := os.WriteFile(configPath, []byte(`
+- name: managed-qwen
+  backend: llama-cpp
+  parameters:
+    model: qwen/qwen3.gguf
+`), 0o644); err != nil {
+		t.Fatalf("write llama config: %v", err)
 	}
-	cmd := llamaCommand(cfg)
+
+	cfg := EngineConfig{
+		Kind:             EngineLlama,
+		BinaryPath:       "/usr/local/bin/llama-server",
+		Port:             5555,
+		ModelsPath:       "/data/models",
+		ModelsConfigPath: configPath,
+	}
+	cmd, err := llamaCommand(cfg)
+	if err != nil {
+		t.Fatalf("llamaCommand: %v", err)
+	}
 	args := strings.Join(cmd.Args[1:], " ")
 
-	for _, want := range []string{"run", "--address", ":5555", "--disable-web-ui", "--log-level", "info"} {
+	for _, want := range []string{"--host", "127.0.0.1", "--port", "5555", "--model", filepath.Join("/data/models", "qwen/qwen3.gguf"), "--alias", "managed-qwen"} {
 		if !strings.Contains(args, want) {
 			t.Errorf("expected args to contain %q, got: %s", want, args)
 		}
 	}
-	if strings.Contains(args, "--models-path") {
-		t.Error("expected no --models-path when ModelsPath is empty")
-	}
 	if strings.Contains(args, "--models-config-file") {
-		t.Error("expected no --models-config-file when ModelsConfigPath is empty")
+		t.Error("expected no --models-config-file for llama-server")
 	}
 	if strings.Contains(args, "--backends-path") {
-		t.Error("expected no --backends-path when BackendsPath is empty")
+		t.Error("expected no --backends-path for llama-server")
 	}
 	if strings.Contains(args, "--external-backends") {
-		t.Error("expected no --external-backends when ExternalBackends is empty")
-	}
-
-	// With ModelsPath.
-	cfg.ModelsPath = "/data/models"
-	cfg.ModelsConfigPath = "/data/runtime/llama-models.yaml"
-	cfg.BackendsPath = "/data/runtime/llama-backends"
-	cfg.ExternalBackends = []string{"llama-cpp", "whisper-ggml"}
-	cfg.ExternalGRPCBackends = []string{"stablediffusion-ggml:127.0.0.1:50052"}
-	cmd2 := llamaCommand(cfg)
-	args2 := strings.Join(cmd2.Args[1:], " ")
-	if !strings.Contains(args2, "--models-path") || !strings.Contains(args2, "/data/models") {
-		t.Errorf("expected --models-path /data/models, got: %s", args2)
-	}
-	if !strings.Contains(args2, "--models-config-file") || !strings.Contains(args2, "/data/runtime/llama-models.yaml") {
-		t.Errorf("expected --models-config-file /data/runtime/llama-models.yaml, got: %s", args2)
-	}
-	if !strings.Contains(args2, "--backends-path") || !strings.Contains(args2, "/data/runtime/llama-backends") {
-		t.Errorf("expected --backends-path /data/runtime/llama-backends, got: %s", args2)
-	}
-	if !strings.Contains(args2, "--external-backends") || !strings.Contains(args2, "llama-cpp,whisper-ggml") {
-		t.Errorf("expected --external-backends llama-cpp,whisper-ggml, got: %s", args2)
-	}
-	if !strings.Contains(args2, "--external-grpc-backends") || !strings.Contains(args2, "stablediffusion-ggml:127.0.0.1:50052") {
-		t.Errorf("expected --external-grpc-backends stablediffusion-ggml:127.0.0.1:50052, got: %s", args2)
+		t.Error("expected no --external-backends for llama-server")
 	}
 }
 
@@ -1271,8 +1435,8 @@ func TestResolveEngineConfigOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolveEngineConfig: %v", err)
 	}
-	if cfg.Version != "3.12.1" {
-		t.Errorf("expected default version 3.12.1, got %s", cfg.Version)
+	if cfg.Version != "b8575" {
+		t.Errorf("expected default version b8575, got %s", cfg.Version)
 	}
 	if cfg.Port != 1234 {
 		t.Errorf("expected default port 1234, got %d", cfg.Port)
@@ -1295,7 +1459,7 @@ func TestSupervisorInfoToDTOTimeFormat(t *testing.T) {
 	now := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
 	info := SupervisorInfo{
 		Kind:      EngineLlama,
-		Version:   "3.12.1",
+		Version:   "b8575",
 		Port:      1234,
 		Status:    StatusHealthy,
 		StartedAt: now,

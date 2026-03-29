@@ -54,19 +54,19 @@ func TestValidateEngineDownloadRedirect(t *testing.T) {
 		},
 		{
 			name:        "github release chain allowed",
-			sourceURL:   "https://github.com/mudler/LocalAI/releases/download/v1/file",
+			sourceURL:   "https://github.com/ggml-org/llama.cpp/releases/download/b8575/file",
 			redirectURL: "https://release-assets.githubusercontent.com/path/to/file",
 		},
 		{
 			name:        "foreign host rejected",
-			sourceURL:   "https://github.com/mudler/LocalAI/releases/download/v1/file",
+			sourceURL:   "https://github.com/ggml-org/llama.cpp/releases/download/b8575/file",
 			redirectURL: "https://evil.example/path/to/file",
 			wantErr:     true,
 		},
 		{
 			name:        "https downgrade rejected",
-			sourceURL:   "https://github.com/mudler/LocalAI/releases/download/v1/file",
-			redirectURL: "http://github.com/mudler/LocalAI/releases/download/v1/file",
+			sourceURL:   "https://github.com/ggml-org/llama.cpp/releases/download/b8575/file",
+			redirectURL: "http://github.com/ggml-org/llama.cpp/releases/download/b8575/file",
 			wantErr:     true,
 		},
 	}

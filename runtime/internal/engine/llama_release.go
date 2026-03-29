@@ -1,10 +1,8 @@
 package engine
 
 import (
-	"bufio"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -13,74 +11,111 @@ import (
 
 var llamaReleaseMu sync.RWMutex
 
-var llamaReleaseBaseURL = "https://github.com/mudler/LocalAI/releases/download"
+var llamaReleaseBaseURL = "https://api.github.com/repos/ggml-org/llama.cpp/releases/tags"
 
 var llamaReleaseHTTPClient = &http.Client{
 	Timeout: 60 * time.Second,
 }
 
-func llamaReleaseAssetURL(version string, assetName string) string {
+type githubReleasePayload struct {
+	TagName string               `json:"tag_name"`
+	Assets  []githubReleaseAsset `json:"assets"`
+}
+
+type githubReleaseAsset struct {
+	Name        string `json:"name"`
+	DownloadURL string `json:"browser_download_url"`
+	Digest      string `json:"digest"`
+}
+
+type managedBinaryReleaseAsset struct {
+	Name        string
+	DownloadURL string
+	SHA256      string
+}
+
+func llamaReleaseTagURL(version string) string {
 	trimmedBase := strings.TrimSuffix(strings.TrimSpace(currentLlamaReleaseBaseURL()), "/")
 	trimmedVersion := strings.TrimSpace(version)
-	trimmedAsset := strings.TrimSpace(assetName)
-	return fmt.Sprintf("%s/v%s/%s", trimmedBase, trimmedVersion, trimmedAsset)
+	return fmt.Sprintf("%s/%s", trimmedBase, trimmedVersion)
 }
 
-func llamaChecksumAssetName(version string) string {
-	return fmt.Sprintf("LocalAI-v%s-checksums.txt", strings.TrimSpace(version))
-}
+func llamaReleaseAsset(version string) (managedBinaryReleaseAsset, error) {
+	assetName, err := llamaAssetName(version)
+	if err != nil {
+		return managedBinaryReleaseAsset{}, err
+	}
 
-func llamaChecksumURL(version string) string {
-	return llamaReleaseAssetURL(version, llamaChecksumAssetName(version))
+	release, err := fetchGitHubReleaseByTag(llamaReleaseTagURL(version), currentLlamaReleaseHTTPClient())
+	if err != nil {
+		return managedBinaryReleaseAsset{}, err
+	}
+
+	for _, asset := range release.Assets {
+		if strings.TrimSpace(asset.Name) != assetName {
+			continue
+		}
+		sha256, err := normalizeGitHubAssetDigest(asset.Digest)
+		if err != nil {
+			return managedBinaryReleaseAsset{}, err
+		}
+		downloadURL := strings.TrimSpace(asset.DownloadURL)
+		if downloadURL == "" {
+			return managedBinaryReleaseAsset{}, fmt.Errorf("%w: missing browser_download_url for %s", ErrEngineBinaryDownloadFailed, assetName)
+		}
+		return managedBinaryReleaseAsset{
+			Name:        assetName,
+			DownloadURL: downloadURL,
+			SHA256:      sha256,
+		}, nil
+	}
+
+	return managedBinaryReleaseAsset{}, fmt.Errorf("%w: release asset %s not found for %s", ErrEngineBinaryDownloadFailed, assetName, strings.TrimSpace(version))
 }
 
 func llamaExpectedSHA256(version string, assetName string) (string, error) {
-	trimmedAsset := strings.TrimSpace(assetName)
-	if trimmedAsset == "" {
-		return "", fmt.Errorf("%w: llama asset is required", ErrEngineBinaryDownloadFailed)
-	}
-	checksumURL := llamaChecksumURL(version)
-	resp, err := newEngineDownloadHTTPClient(checksumURL, currentLlamaReleaseHTTPClient(), 60*time.Second).Get(checksumURL)
+	releaseAsset, err := llamaReleaseAsset(version)
 	if err != nil {
-		return "", fmt.Errorf("%w: fetch llama checksums: %v", ErrEngineBinaryDownloadFailed, err)
+		return "", err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: llama checksums HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, checksumURL)
+	if strings.TrimSpace(releaseAsset.Name) != strings.TrimSpace(assetName) {
+		return "", fmt.Errorf("%w: release asset mismatch for %s", ErrEngineBinaryDownloadFailed, strings.TrimSpace(assetName))
 	}
-	return parseLlamaChecksum(resp.Body, trimmedAsset)
+	return releaseAsset.SHA256, nil
 }
 
-func parseLlamaChecksum(r io.Reader, assetName string) (string, error) {
-	scanner := bufio.NewScanner(r)
-	scanner.Buffer(make([]byte, 0, 8*1024), 1024*1024)
-	needle := strings.TrimSpace(assetName)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		fields := strings.Fields(line)
-		if len(fields) < 2 {
-			continue
-		}
-		fileName := strings.TrimPrefix(strings.TrimSpace(fields[len(fields)-1]), "*")
-		if fileName != needle {
-			continue
-		}
-		hash := strings.ToLower(strings.TrimSpace(fields[0]))
-		if len(hash) != 64 {
-			return "", fmt.Errorf("%w: invalid checksum format for %s", ErrEngineBinaryDownloadFailed, needle)
-		}
-		if _, err := hex.DecodeString(hash); err != nil {
-			return "", fmt.Errorf("%w: invalid checksum hex for %s", ErrEngineBinaryDownloadFailed, needle)
-		}
-		return hash, nil
+func fetchGitHubReleaseByTag(tagURL string, client *http.Client) (githubReleasePayload, error) {
+	resp, err := doEngineDownloadRequest(tagURL, client, 60*time.Second)
+	if err != nil {
+		return githubReleasePayload{}, fmt.Errorf("%w: fetch release metadata: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	if err := scanner.Err(); err != nil {
-		return "", fmt.Errorf("%w: read checksums: %v", ErrEngineBinaryDownloadFailed, err)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return githubReleasePayload{}, fmt.Errorf("%w: release metadata HTTP %d from %s", ErrEngineBinaryDownloadFailed, resp.StatusCode, tagURL)
 	}
-	return "", fmt.Errorf("%w: checksum for %s not found", ErrEngineBinaryDownloadFailed, needle)
+
+	var payload githubReleasePayload
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return githubReleasePayload{}, fmt.Errorf("%w: decode release metadata: %v", ErrEngineBinaryDownloadFailed, err)
+	}
+	return payload, nil
+}
+
+func normalizeGitHubAssetDigest(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return "", fmt.Errorf("%w: release asset digest is required", ErrEngineBinaryDownloadFailed)
+	}
+	lower := strings.ToLower(trimmed)
+	if !strings.HasPrefix(lower, "sha256:") {
+		return "", fmt.Errorf("%w: unsupported release asset digest %q", ErrEngineBinaryDownloadFailed, trimmed)
+	}
+	hash := strings.TrimSpace(trimmed[len("sha256:"):])
+	if len(hash) != 64 {
+		return "", fmt.Errorf("%w: invalid release asset digest %q", ErrEngineBinaryDownloadFailed, trimmed)
+	}
+	return strings.ToLower(hash), nil
 }
 
 func currentLlamaReleaseBaseURL() string {

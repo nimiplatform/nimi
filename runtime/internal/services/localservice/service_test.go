@@ -3041,7 +3041,7 @@ type mockEngineManager struct {
 
 func (m *mockEngineManager) ListEngines() []EngineInfo {
 	return []EngineInfo{
-		{Engine: "llama", Version: "3.12.1", Status: "healthy", Port: 1234, Endpoint: "http://127.0.0.1:1234"},
+		{Engine: "llama", Version: "b8575", Status: "healthy", Port: 1234, Endpoint: "http://127.0.0.1:1234"},
 	}
 }
 
@@ -3067,7 +3067,7 @@ func (m *mockEngineManager) EngineStatus(engine string) (EngineInfo, error) {
 	}
 	return EngineInfo{
 		Engine:   engine,
-		Version:  "3.12.1",
+		Version:  "b8575",
 		Status:   "healthy",
 		Port:     1234,
 		Endpoint: "http://127.0.0.1:1234",
@@ -3120,8 +3120,8 @@ func TestEngineRPCEnsureEngineSuccess(t *testing.T) {
 	if desc.GetEngine() != "llama" {
 		t.Errorf("expected engine llama, got %s", desc.GetEngine())
 	}
-	if desc.GetVersion() != "3.12.1" {
-		t.Errorf("expected version 3.12.1, got %s", desc.GetVersion())
+	if desc.GetVersion() != "b8575" {
+		t.Errorf("expected version b8575, got %s", desc.GetVersion())
 	}
 }
 

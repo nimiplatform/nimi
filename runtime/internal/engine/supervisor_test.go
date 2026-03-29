@@ -37,7 +37,7 @@ func writeTestScript(t *testing.T, body string) string {
 
 func testSupervisorCfg(scriptPath string) EngineConfig {
 	return EngineConfig{
-		Kind:             EngineLlama,
+		Kind:             EngineMedia,
 		BinaryPath:       scriptPath,
 		Port:             mustAllocateTestPort(),
 		Version:          "test",

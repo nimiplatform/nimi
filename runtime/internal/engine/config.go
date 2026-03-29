@@ -165,7 +165,7 @@ func DefaultLlamaConfig() EngineConfig {
 	return EngineConfig{
 		Kind:             EngineLlama,
 		Port:             1234,
-		Version:          "3.12.1",
+		Version:          "b8575",
 		HealthMode:       HealthModeHTTP,
 		HealthPath:       "/v1/models",
 		StartupTimeout:   120 * time.Second,

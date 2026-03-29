@@ -112,7 +112,7 @@ type Config struct {
 	EngineLlamaAutoManaged bool
 
 	// EngineLlamaVersion is the managed llama engine version.
-	// Default: "3.12.1". (K-LENG-004)
+	// Default: "b8575". (K-LENG-004)
 	EngineLlamaVersion string
 
 	// EngineLlamaPort is the port for the supervised llama instance.

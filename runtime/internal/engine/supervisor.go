@@ -211,10 +211,17 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	s.cancel = cancel
 	s.mu.Unlock()
 
-	var cmd *exec.Cmd
+	var (
+		cmd *exec.Cmd
+		err error
+	)
 	switch s.cfg.Kind {
 	case EngineLlama:
-		cmd = llamaCommand(s.cfg)
+		cmd, err = llamaCommand(s.cfg)
+		if err != nil {
+			cancel()
+			return err
+		}
 	default:
 		if strings.TrimSpace(s.cfg.BinaryPath) == "" {
 			cancel()

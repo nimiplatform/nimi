@@ -10,7 +10,13 @@ import (
 )
 
 type llamaModelsConfigEntry struct {
-	Backend string `yaml:"backend"`
+	Name       string                     `yaml:"name"`
+	Backend    string                     `yaml:"backend"`
+	Parameters llamaModelsConfigParameter `yaml:"parameters"`
+}
+
+type llamaModelsConfigParameter struct {
+	Model string `yaml:"model"`
 }
 
 func normalizeLlamaExternalBackends(backends []string) []string {
@@ -35,6 +41,10 @@ func normalizeLlamaExternalBackends(backends []string) []string {
 		return nil
 	}
 	return normalized
+}
+
+func normalizeLlamaExternalGRPCBackends(backends []string) []string {
+	return normalizeLlamaExternalBackends(backends)
 }
 
 func detectLlamaExternalBackends(configPath string) []string {

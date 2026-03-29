@@ -121,7 +121,7 @@ func Load() (Config, error) {
 		AuthJWTJWKSURL:          readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_JWKS_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.JWKSURL }), ""),
 		AuthJWTRevocationURL:    readStringWithFileConfigFallback("NIMI_RUNTIME_AUTH_JWT_REVOCATION_URL", fileConfigJWTField(fileCfg, func(j *FileConfigJWT) string { return j.RevocationURL }), ""),
 		Providers:               resolvedProviders,
-		EngineLlamaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), "3.12.1"),
+		EngineLlamaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_LLAMA_VERSION", fileConfigEngineString(fileCfg, "llama", "version"), "b8575"),
 		EngineLlamaPort:         engineLlamaPort,
 		EngineMediaVersion:      readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_MEDIA_VERSION", fileConfigEngineString(fileCfg, "media", "version"), "0.1.0"),
 		EngineMediaPort:         engineMediaPort,

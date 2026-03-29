@@ -49,7 +49,7 @@ func (m *registrarTestEngineManager) EngineStatus(_ string) (EngineInfo, error) 
 	}
 	return EngineInfo{
 		Engine:   "llama",
-		Version:  "3.12.1",
+		Version:  "b8575",
 		Status:   "healthy",
 		Port:     1234,
 		Endpoint: "http://127.0.0.1:1234",
