@@ -40,6 +40,12 @@ function deriveDefaultJwksUrl(realmBaseUrl: string): string {
   return `${baseUrl}/api/auth/jwks`;
 }
 
+function deriveDefaultRevocationUrl(realmBaseUrl: string): string {
+  const normalizedBaseUrl = trimTrailingSlashes(realmBaseUrl);
+  const baseUrl = normalizedBaseUrl || 'http://localhost:3002';
+  return `${baseUrl}/api/auth/revocation`;
+}
+
 function readEnv(name: string): string {
   const importMetaEnv = (import.meta as { env?: Record<string, string> }).env;
   const processEnv =
@@ -85,6 +91,10 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
     readEnv('NIMI_REALM_JWKS_URL') || deriveDefaultJwksUrl(realmBaseUrl),
     realmPort,
   );
+  const revocationUrl = normalizeLoopbackHttpUrl(
+    readEnv('NIMI_REALM_REVOCATION_URL') || deriveDefaultRevocationUrl(realmBaseUrl),
+    realmPort,
+  );
   const jwtIssuer = normalizeLoopbackHttpUrl(
     readEnv('NIMI_REALM_JWT_ISSUER') || realmBaseUrl,
     realmPort,
@@ -106,6 +116,7 @@ function readRuntimeDefaultsFallback(): RuntimeDefaults {
       realtimeUrl,
       accessToken,
       jwksUrl,
+      revocationUrl,
       jwtIssuer,
       jwtAudience,
     },
@@ -131,6 +142,7 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
   const nextRealmBaseUrl = normalizeLoopbackHttpUrl(realmBaseUrl || base.realm.realmBaseUrl, 3002);
   const realmPort = extractPortFromHttpUrl(nextRealmBaseUrl);
   const jwksUrl = readEnv('NIMI_REALM_JWKS_URL');
+  const revocationUrl = readEnv('NIMI_REALM_REVOCATION_URL');
   const jwtIssuer = readEnv('NIMI_REALM_JWT_ISSUER');
   const jwtAudience = readEnv('NIMI_REALM_JWT_AUDIENCE');
 
@@ -143,6 +155,10 @@ function applyEnvOverrides(base: RuntimeDefaults): RuntimeDefaults {
       accessToken: accessToken || base.realm.accessToken,
       jwksUrl: normalizeLoopbackHttpUrl(
         jwksUrl || base.realm.jwksUrl || deriveDefaultJwksUrl(nextRealmBaseUrl),
+        realmPort,
+      ),
+      revocationUrl: normalizeLoopbackHttpUrl(
+        revocationUrl || base.realm.revocationUrl || deriveDefaultRevocationUrl(nextRealmBaseUrl),
         realmPort,
       ),
       jwtIssuer: normalizeLoopbackHttpUrl(

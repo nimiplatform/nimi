@@ -104,8 +104,22 @@ pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
     } else {
         format!("{}/api/auth/jwks", normalized_realm_base_url)
     };
+    let default_revocation_url = if normalized_realm_base_url.is_empty() {
+        "http://localhost:3002/api/auth/revocation".to_string()
+    } else {
+        format!("{}/api/auth/revocation", normalized_realm_base_url)
+    };
     let jwks_url = normalize_loopback_http_url(
         env_value("NIMI_REALM_JWKS_URL", default_jwks_url.as_str()).as_str(),
+        realm_default_port,
+        true,
+    );
+    let revocation_url = normalize_loopback_http_url(
+        env_value(
+            "NIMI_REALM_REVOCATION_URL",
+            default_revocation_url.as_str(),
+        )
+        .as_str(),
         realm_default_port,
         true,
     );
@@ -121,6 +135,7 @@ pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
             realtime_url: env_value("NIMI_REALTIME_URL", ""),
             access_token: env_value("NIMI_ACCESS_TOKEN", ""),
             jwks_url,
+            revocation_url,
             jwt_issuer,
             jwt_audience: env_value("NIMI_REALM_JWT_AUDIENCE", "nimi-runtime"),
         },

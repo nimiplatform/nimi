@@ -8,7 +8,7 @@ Desktop 应用启动序列契约。定义 renderer 进程从 `bootstrapRuntime()
 
 ## D-BOOT-001 — Runtime Defaults 加载
 
-启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）。
+启动序列的首个异步操作。通过 IPC 桥接调用 `runtime_defaults` 获取 `RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）和 `RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）。
 
 Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；legacy 路径 `.nimi/runtime/config.json` 已硬切移除，不得在 bootstrap 或 backend fallback 中回流。
 
@@ -23,8 +23,8 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 在 `D-BOOT-001` 之后、业务初始化之前，Desktop 必须将 Realm JWT 验签参数写入 Runtime 配置：
 
-- 写入目标：`auth.jwt.jwksUrl`、`auth.jwt.issuer`、`auth.jwt.audience`（K-DAEMON-009）。
-- 数据来源：`runtime_defaults.realm.{jwksUrl,jwtIssuer,jwtAudience}`。
+- 写入目标：`auth.jwt.jwksUrl`、`auth.jwt.revocationUrl`、`auth.jwt.issuer`、`auth.jwt.audience`（K-DAEMON-009）。
+- 数据来源：`runtime_defaults.realm.{jwksUrl,revocationUrl,jwtIssuer,jwtAudience}`。
 - 写入流程：`runtime_bridge_config_get` → 合并配置 → `runtime_bridge_config_set`。
 - 若 runtime 当前 unavailable（例如 bundled runtime staging 失败），必须跳过该步骤，不得阻断 app shell。
 

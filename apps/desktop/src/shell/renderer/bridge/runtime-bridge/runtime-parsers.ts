@@ -60,6 +60,11 @@ export function parseRuntimeDefaults(value: unknown): RuntimeDefaults {
         'realm.jwksUrl',
         'runtime_defaults',
       ),
+      revocationUrl: parseRequiredString(
+        realmRecord.revocationUrl,
+        'realm.revocationUrl',
+        'runtime_defaults',
+      ),
       jwtIssuer: parseRequiredString(
         realmRecord.jwtIssuer,
         'realm.jwtIssuer',

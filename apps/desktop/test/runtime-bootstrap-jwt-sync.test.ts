@@ -17,6 +17,7 @@ function createRealmDefaults(): RealmDefaults {
     realtimeUrl: 'http://localhost:3003',
     accessToken: 'token-1',
     jwksUrl: 'http://localhost:3002/api/auth/jwks',
+    revocationUrl: 'http://localhost:3002/api/auth/revocation',
     jwtIssuer: 'http://localhost:3002',
     jwtAudience: 'nimi-runtime',
   };
@@ -42,6 +43,7 @@ test('mergeRuntimeJwtConfig injects auth.jwt fields', () => {
   assert.equal(jwt.issuer, realmDefaults.jwtIssuer);
   assert.equal(jwt.audience, realmDefaults.jwtAudience);
   assert.equal(jwt.jwksUrl, realmDefaults.jwksUrl);
+  assert.equal(jwt.revocationUrl, realmDefaults.revocationUrl);
 });
 
 test('syncRuntimeJwtConfig restarts managed running daemon on CONFIG_RESTART_REQUIRED', async () => {
@@ -87,6 +89,7 @@ test('syncRuntimeJwtConfig restarts managed running daemon on CONFIG_RESTART_REQ
   assert.equal(jwt.jwksUrl, realmDefaults.jwksUrl);
   assert.equal(jwt.issuer, realmDefaults.jwtIssuer);
   assert.equal(jwt.audience, realmDefaults.jwtAudience);
+  assert.equal(jwt.revocationUrl, realmDefaults.revocationUrl);
 });
 
 test('syncRuntimeJwtConfig does not restart when daemon is managed but stopped', async () => {
@@ -176,6 +179,7 @@ test('syncRuntimeJwtConfig skips write when config already matches', async () =>
                 issuer: realmDefaults.jwtIssuer,
                 audience: realmDefaults.jwtAudience,
                 jwksUrl: realmDefaults.jwksUrl,
+                revocationUrl: realmDefaults.revocationUrl,
               },
             },
           },

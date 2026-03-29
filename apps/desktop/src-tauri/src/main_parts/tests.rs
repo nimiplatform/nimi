@@ -52,12 +52,17 @@ fn runtime_defaults_normalizes_loopback_realm_jwt_fields() {
         &[
             ("NIMI_REALM_URL", Some("http://localhost")),
             ("NIMI_REALM_JWKS_URL", None),
+            ("NIMI_REALM_REVOCATION_URL", None),
             ("NIMI_REALM_JWT_ISSUER", None),
         ],
         || {
             let defaults = runtime_defaults().expect("runtime defaults");
             assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
             assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+            assert_eq!(
+                defaults.realm.revocation_url,
+                "http://localhost:3002/api/auth/revocation"
+            );
             assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
         },
     );
@@ -69,11 +74,19 @@ fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
         &[
             ("NIMI_REALM_URL", Some("http://localhost")),
             ("NIMI_REALM_JWKS_URL", Some("http://localhost/api/auth/jwks")),
+            (
+                "NIMI_REALM_REVOCATION_URL",
+                Some("http://localhost/api/auth/revocation"),
+            ),
             ("NIMI_REALM_JWT_ISSUER", Some("http://localhost")),
         ],
         || {
             let defaults = runtime_defaults().expect("runtime defaults");
             assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+            assert_eq!(
+                defaults.realm.revocation_url,
+                "http://localhost:3002/api/auth/revocation"
+            );
             assert_eq!(defaults.realm.jwt_issuer, "http://localhost:3002");
         },
     );

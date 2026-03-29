@@ -9,7 +9,7 @@ Desktop Tauri IPC 桥接契约。定义 renderer 进程通过 `@tauri-apps/api/c
 ## D-IPC-001 — Runtime Defaults 命令
 
 `runtime_defaults` 命令返回 `RuntimeDefaults`，包含：
-- `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、jwtIssuer、jwtAudience）
+- `realm: RealmDefaults`（realmBaseUrl、realtimeUrl、accessToken、jwksUrl、revocationUrl、jwtIssuer、jwtAudience）
 - `runtime: RuntimeExecutionDefaults`（provider、model 与可透传的 runtime execution 字段）
 
 所有字段通过 `parseRuntimeDefaults` 防御性解析。

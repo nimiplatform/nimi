@@ -5,6 +5,7 @@ export type RealmDefaults = {
   realtimeUrl: string;
   accessToken: string;
   jwksUrl: string;
+  revocationUrl: string;
   jwtIssuer: string;
   jwtAudience: string;
 };

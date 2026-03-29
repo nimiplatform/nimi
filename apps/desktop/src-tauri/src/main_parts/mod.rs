@@ -48,6 +48,7 @@ pub(crate) struct RealmDefaults {
     pub(crate) realtime_url: String,
     pub(crate) access_token: String,
     pub(crate) jwks_url: String,
+    pub(crate) revocation_url: String,
     pub(crate) jwt_issuer: String,
     pub(crate) jwt_audience: String,
 }

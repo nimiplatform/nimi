@@ -34,14 +34,17 @@ export function mergeRuntimeJwtConfig(
   const nextIssuer = normalize(realmDefaults.jwtIssuer);
   const nextAudience = normalize(realmDefaults.jwtAudience);
   const nextJwksUrl = normalize(realmDefaults.jwksUrl);
+  const nextRevocationUrl = normalize(realmDefaults.revocationUrl);
 
   const currentIssuer = normalize(currentJwt.issuer);
   const currentAudience = normalize(currentJwt.audience);
   const currentJwksUrl = normalize(currentJwt.jwksUrl);
+  const currentRevocationUrl = normalize(currentJwt.revocationUrl);
 
   const changed = currentIssuer !== nextIssuer
     || currentAudience !== nextAudience
-    || currentJwksUrl !== nextJwksUrl;
+    || currentJwksUrl !== nextJwksUrl
+    || currentRevocationUrl !== nextRevocationUrl;
 
   if (!changed) {
     return {
@@ -60,6 +63,7 @@ export function mergeRuntimeJwtConfig(
           issuer: nextIssuer,
           audience: nextAudience,
           jwksUrl: nextJwksUrl,
+          revocationUrl: nextRevocationUrl,
         },
       },
     },
