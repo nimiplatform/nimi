@@ -6,8 +6,8 @@ mod desktop_release;
 mod desktop_updates;
 mod external_agent_gateway;
 mod local_runtime;
-mod menu_bar_shell;
 mod main_parts;
+mod menu_bar_shell;
 mod runtime_bridge;
 mod runtime_mod;
 #[cfg(test)]

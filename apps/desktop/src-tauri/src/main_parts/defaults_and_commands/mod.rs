@@ -80,7 +80,9 @@ fn allow_http_request_origin(origin: &str) -> bool {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();
-    let mut guard = limiter.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut guard = limiter
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     let history = guard
         .entry(origin.trim().to_string())
         .or_insert_with(VecDeque::new);
@@ -115,11 +117,7 @@ pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
         true,
     );
     let revocation_url = normalize_loopback_http_url(
-        env_value(
-            "NIMI_REALM_REVOCATION_URL",
-            default_revocation_url.as_str(),
-        )
-        .as_str(),
+        env_value("NIMI_REALM_REVOCATION_URL", default_revocation_url.as_str()).as_str(),
         realm_default_port,
         true,
     );
@@ -169,7 +167,9 @@ pub(crate) fn runtime_defaults() -> Result<RuntimeDefaults, String> {
 }
 
 #[tauri::command]
-pub(crate) async fn http_request(payload: HttpRequestPayload) -> Result<HttpResponsePayload, String> {
+pub(crate) async fn http_request(
+    payload: HttpRequestPayload,
+) -> Result<HttpResponsePayload, String> {
     let diag_session_id = payload
         .diagnostic_session_id
         .as_deref()
@@ -379,7 +379,9 @@ pub(crate) async fn http_request(payload: HttpRequestPayload) -> Result<HttpResp
 }
 
 #[tauri::command]
-pub(crate) fn open_external_url(payload: OpenExternalUrlPayload) -> Result<OpenExternalUrlResult, String> {
+pub(crate) fn open_external_url(
+    payload: OpenExternalUrlPayload,
+) -> Result<OpenExternalUrlResult, String> {
     let parsed = Url::parse(payload.url.as_str()).map_err(|error| error.to_string())?;
     validate_external_url(&parsed)?;
     webbrowser::open(parsed.as_str()).map_err(|error| error.to_string())?;
@@ -488,6 +490,6 @@ pub(crate) async fn oauth_listen_for_code(
     tauri::async_runtime::spawn_blocking(move || {
         super::env_http::oauth_listen_for_code_blocking(payload)
     })
-        .await
-        .map_err(|error| error.to_string())?
+    .await
+    .map_err(|error| error.to_string())?
 }

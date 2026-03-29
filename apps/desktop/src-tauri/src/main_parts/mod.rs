@@ -32,14 +32,12 @@ use env_http::{
     sanitize_headers, validate_external_url,
 };
 use session_logging::{
-    append_diag_log_entry, app_run_session_id, debug_boot_enabled, env_value, install_panic_hook,
+    app_run_session_id, append_diag_log_entry, debug_boot_enabled, env_value, install_panic_hook,
     log_boot_marker, now_ms, session_trace_id_from_details, should_echo_diag_log,
     should_echo_renderer_log, verbose_renderer_logs_enabled,
 };
 #[cfg(target_os = "macos")]
-use session_logging::{
-    apply_macos_traffic_light_position, schedule_macos_traffic_light_reapply,
-};
+use session_logging::{apply_macos_traffic_light_position, schedule_macos_traffic_light_reapply};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

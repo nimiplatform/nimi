@@ -171,7 +171,9 @@ pub(super) fn is_private_lan_http_origin(url: &Url) -> bool {
     }
 }
 
-pub(super) fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMap, String> {
+pub(super) fn sanitize_headers(
+    headers: Option<HashMap<String, String>>,
+) -> Result<HeaderMap, String> {
     let mut header_map = HeaderMap::new();
     if let Some(values) = headers {
         for (name, value) in values {

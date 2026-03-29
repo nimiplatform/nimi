@@ -58,7 +58,10 @@ fn runtime_defaults_normalizes_loopback_realm_jwt_fields() {
         || {
             let defaults = runtime_defaults().expect("runtime defaults");
             assert_eq!(defaults.realm.realm_base_url, "http://localhost:3002");
-            assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+            assert_eq!(
+                defaults.realm.jwks_url,
+                "http://localhost:3002/api/auth/jwks"
+            );
             assert_eq!(
                 defaults.realm.revocation_url,
                 "http://localhost:3002/api/auth/revocation"
@@ -73,7 +76,10 @@ fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
     with_env(
         &[
             ("NIMI_REALM_URL", Some("http://localhost")),
-            ("NIMI_REALM_JWKS_URL", Some("http://localhost/api/auth/jwks")),
+            (
+                "NIMI_REALM_JWKS_URL",
+                Some("http://localhost/api/auth/jwks"),
+            ),
             (
                 "NIMI_REALM_REVOCATION_URL",
                 Some("http://localhost/api/auth/revocation"),
@@ -82,7 +88,10 @@ fn runtime_defaults_normalizes_explicit_loopback_jwt_overrides() {
         ],
         || {
             let defaults = runtime_defaults().expect("runtime defaults");
-            assert_eq!(defaults.realm.jwks_url, "http://localhost:3002/api/auth/jwks");
+            assert_eq!(
+                defaults.realm.jwks_url,
+                "http://localhost:3002/api/auth/jwks"
+            );
             assert_eq!(
                 defaults.realm.revocation_url,
                 "http://localhost:3002/api/auth/revocation"
@@ -132,7 +141,10 @@ fn http_request_rate_limit_enforces_burst_and_prunes_old_entries() {
 fn runtime_config_deep_links_only_accept_known_pages() {
     assert_eq!(normalize_runtime_config_page_id(None), Some("overview"));
     assert_eq!(normalize_runtime_config_page_id(Some("")), Some("overview"));
-    assert_eq!(normalize_runtime_config_page_id(Some("runtime")), Some("runtime"));
+    assert_eq!(
+        normalize_runtime_config_page_id(Some("runtime")),
+        Some("runtime")
+    );
     assert_eq!(
         normalize_runtime_config_page_id(Some("data-management")),
         Some("data-management"),

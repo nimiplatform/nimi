@@ -319,9 +319,9 @@ fn handle_deep_link_url(app: &tauri::AppHandle, raw_url: &str) {
     if host != "runtime-config" {
         return;
     }
-    let Some(page_id) = normalize_runtime_config_page_id(
-        parsed.path_segments().and_then(|mut s| s.next()),
-    ) else {
+    let Some(page_id) =
+        normalize_runtime_config_page_id(parsed.path_segments().and_then(|mut s| s.next()))
+    else {
         return;
     };
 
