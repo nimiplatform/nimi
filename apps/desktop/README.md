@@ -69,8 +69,8 @@ Environment variables:
 
 Provider format examples:
 
-- `local:localai:openai_compat_adapter:qwen2.5-7b-instruct` -> Local route with explicit adapter/model
-- `local:nexa:openai_compat_adapter:qwen2.5-7b-instruct` -> Nexa namespace route
+- `local:llama:openai_compat_adapter:qwen2.5-7b-instruct` -> Local text route with explicit adapter/model
+- `local:media:openai_compat_adapter:flux.1-schnell` -> Local media route
 - `openai-compatible:gpt-4o-mini` -> generic OpenAI-compatible endpoint
 
 ## Scope

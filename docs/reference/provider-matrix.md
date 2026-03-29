@@ -25,11 +25,14 @@ This matrix documents advanced provider-qualified prefixes exposed by lower-leve
 
 ## Local Engines
 
-| Engine | SDK Prefix | Status | Text | Embed | Image | Video | TTS | STT | Notes |
+Legacy `localai/`, `nexa/`, and `nimi_media/` namespaces are removed from the public runtime contract.
+Canonical local routing uses the built-in engine families below.
+
+| Engine | Runtime Target | Status | Text | Embed | Image | Video | TTS | STT | Notes |
 |---|---|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| [LocalAI](https://localai.io) | `local/` | GA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Full local multimodal routing |
-| [Nexa](https://nexa.ai/) | `local/` | Beta | ✅ | ✅ | ✅ | - | ✅ | ✅ | Video intentionally blocked by `nexa.video.unsupported` (`AI_ROUTE_UNSUPPORTED`) |
-| Nimi Media | `nimi_media/` | GA | - | - | ✅ | ✅ | - | - | Nimi-managed diffusers engine for local image (FLUX) and video (Wan2.1) generation |
+| `llama` (`llama.cpp` / `llama-server`) | `llama` | GA | ✅ | ✅ | - | - | - | - | Supervised bootstrap downloads official `ggml-org/llama.cpp` release packs and runs `llama-server` |
+| `media` | `media` | GA | - | - | ✅ | ✅ | - | - | Nimi-managed local image/video generation engine |
+| `speech` | `speech` | GA | - | - | - | - | ✅ | ✅ | Nimi-managed local speech engine family |
 
 ## Cloud Providers
 

@@ -158,7 +158,7 @@ fields:
 
   - key: engines.llama.version
     type: string
-    default: "3.12.1"
+    default: "b8575"
     reload: restart
     description: llama 受管引擎版本
     source_rule: K-LENG-004

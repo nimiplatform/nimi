@@ -25,11 +25,14 @@ Nimi Runtime 通过统一 API 路由 AI 请求。
 
 ## 本地引擎
 
-| 引擎 | SDK 前缀 | 状态 | Text | Embed | Image | Video | TTS | STT | 备注 |
+旧的 `localai/`、`nexa/` 和 `nimi_media/` 命名空间已经从 public runtime contract 移除。
+当前本地路由只使用下面这些 canonical engine family。
+
+| 引擎 | Runtime Target | 状态 | Text | Embed | Image | Video | TTS | STT | 备注 |
 |---|---|---|:---:|:---:|:---:|:---:|:---:|:---:|---|
-| [LocalAI](https://localai.io) | `local/` | GA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | Full local multimodal routing |
-| [Nexa](https://nexa.ai/) | `local/` | Beta | ✅ | ✅ | ✅ | - | ✅ | ✅ | Video intentionally blocked by `nexa.video.unsupported` (`AI_ROUTE_UNSUPPORTED`) |
-| Nimi Media | `nimi_media/` | GA | - | - | ✅ | ✅ | - | - | Nimi 受管 diffusers 引擎，支持本地图像 (FLUX) 和视频 (Wan2.1) 生成 |
+| `llama` (`llama.cpp` / `llama-server`) | `llama` | GA | ✅ | ✅ | - | - | - | - | supervised bootstrap 下载官方 `ggml-org/llama.cpp` release pack，并运行 `llama-server` |
+| `media` | `media` | GA | - | - | ✅ | ✅ | - | - | Nimi 受管本地图像/视频生成引擎 |
+| `speech` | `speech` | GA | - | - | - | - | ✅ | ✅ | Nimi 受管本地语音引擎族 |
 
 ## 云端 Provider
 

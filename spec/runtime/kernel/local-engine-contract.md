@@ -47,6 +47,7 @@ Phase 1 本地执行引擎固定为：
 - 注册表：`~/.nimi/engines/registry.json`，必须原子写入。
 - stale pid 清理只能在 runtime 能证明该 pid 仍属于当前 supervised engine binary 时执行；缺少身份元数据或无法完成身份校验时，runtime 必须只清理跟踪文件，不得终止该进程。
 - supervised engine bootstrap 下载只允许 `https -> https` redirect；同 host redirect 允许，`github.com` release 资产仅允许跳到显式 GitHub release-chain host（`github.com`、`objects.githubusercontent.com`、`release-assets.githubusercontent.com`），其它 redirect 一律 fail-close。
+- `llama` supervised bootstrap 必须使用官方 `ggml-org/llama.cpp` release pack，并落地 `llama-server` 二进制。
 
 受管引擎职责：
 
@@ -139,7 +140,7 @@ Phase 1 本地执行引擎固定为：
 - `whisper-ggml`
 - `stablediffusion-ggml`
 
-runtime 不得把任意 backend 名称直接透传给 LocalAI CLI。
+runtime 不得把任意 backend 名称直接透传给受管 `llama` 引擎 CLI。
 
 ## K-LENG-008 配置来源优先级
 

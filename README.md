@@ -224,7 +224,7 @@ Representative routing planes:
 
 | Plane | Examples |
 |---|---|
-| `local/*` | LocalAI, Nexa, Nimi Media |
+| `local/*` | Canonical local engines (`llama`, `media`, `speech`) |
 | `cloud/*` | OpenAI, Gemini, Anthropic, DeepSeek, GLM, MiniMax, DashScope, Volcengine |
 
 For a deeper matrix, see [provider docs](docs/reference/provider-matrix.md).

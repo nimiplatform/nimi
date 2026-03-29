@@ -16,8 +16,8 @@ engines:
       - darwin/arm64
       - darwin/amd64
       - linux/amd64
-      - linux/arm64
       - windows/amd64
+      - windows/arm64
     health_path: "/v1/models"
     start_command: "llama-server --host 127.0.0.1 --port {port} --model {entry}"
     default_port: 1234
