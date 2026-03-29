@@ -65,6 +65,17 @@ test('toBridgeNimiError maps LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND reason code', ()
   );
 });
 
+test('toBridgeNimiError maps LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN reason code', () => {
+  const error = toBridgeNimiError(
+    new Error('LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: refusing symbolic link source: /tmp/model.gguf'),
+  );
+  assert.equal(error.reasonCode, 'LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN');
+  assert.equal(
+    String(error.details?.userMessage || ''),
+    'Symbolic links are not supported for import. Import the real model file path instead.',
+  );
+});
+
 test('toBridgeNimiError preserves structured payload fields and adds userMessage', () => {
   const error = toBridgeNimiError(JSON.stringify({
     reasonCode: ReasonCode.AI_PROVIDER_TIMEOUT,

@@ -26,10 +26,15 @@ const localModelCenterHelpersPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-local-model-center-helpers.tsx',
 );
+const localModelCenterImportActionsPath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-use-local-model-center-import-actions.ts',
+);
 
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
 const runtimeCommandPickersSource = readFileSync(runtimeCommandPickersPath, 'utf-8');
 const runtimeIndexSource = readFileSync(runtimeIndexPath, 'utf-8');
+const localModelCenterImportActionsSource = readFileSync(localModelCenterImportActionsPath, 'utf-8');
 const localModelCenterSource = [
   localModelCenterPath,
   localModelCenterRuntimeStatePath,
@@ -68,6 +73,13 @@ test('runtime state refreshes unified unregistered assets and auto-imports high-
   assert.match(localModelCenterSource, /refreshUnregisteredAssets/);
   assert.match(localModelCenterSource, /asset\.autoImportable/);
   assert.match(localModelCenterSource, /importActions\.importAssetFromPath\(asset\.path,\s*draft\)/);
+});
+
+test('unregistered model imports use orphan scaffold fast-path while picked files stay on direct import', () => {
+  assert.match(localModelCenterImportActionsSource, /localRuntime\.scaffoldOrphan\(\{/);
+  assert.match(localModelCenterImportActionsSource, /const imported = declaration\.assetClass === 'model'/);
+  assert.match(localModelCenterImportActionsSource, /const imported = await localRuntime\.importAssetFile\(\{/);
+  assert.match(localModelCenterImportActionsSource, /const filePath = await localRuntime\.pickModelFile\(\)/);
 });
 
 test('artifact kind helpers keep ae as a first-class companion asset', () => {

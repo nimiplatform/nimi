@@ -1,3 +1,27 @@
+fn symlink_target_display(source_path: &std::path::Path) -> Option<String> {
+    source_path
+        .canonicalize()
+        .ok()
+        .map(|target| target.display().to_string())
+        .or_else(|| {
+            std::fs::read_link(source_path)
+                .ok()
+                .map(|target| target.display().to_string())
+        })
+}
+
+fn symlink_forbidden_error(source_path: &std::path::Path) -> String {
+    let source = source_path.display().to_string();
+    match symlink_target_display(source_path) {
+        Some(target) => format!(
+            "LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: Symbolic links are not supported for import. Import the real file path instead. Link source: {source}. Link target: {target}"
+        ),
+        None => format!(
+            "LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: Symbolic links are not supported for import. Import the real file path instead. Link source: {source}"
+        ),
+    }
+}
+
 fn prepare_import_source_file(
     raw_path: &str,
 ) -> Result<(std::path::PathBuf, std::fs::File, u64), String> {
@@ -9,10 +33,7 @@ fn prepare_import_source_file(
         )
     })?;
     if metadata.file_type().is_symlink() {
-        return Err(format!(
-            "LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: refusing symbolic link source: {}",
-            raw_path
-        ));
+        return Err(symlink_forbidden_error(&source_path));
     }
     if !metadata.is_file() {
         return Err(format!(
@@ -161,6 +182,20 @@ mod commands_import_file_tests {
 
         let error = prepare_import_source_file(link_path.to_string_lossy().as_ref())
             .expect_err("symlink should be rejected");
+        assert!(error.contains("LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN"));
+        assert!(error.contains(real_path.to_string_lossy().as_ref()));
+    }
+
+    #[test]
+    fn prepare_import_source_file_rejects_symlinked_directories() {
+        let temp_dir = tempfile::tempdir().expect("tempdir");
+        let real_dir = temp_dir.path().join("models");
+        std::fs::create_dir_all(&real_dir).expect("create dir");
+        let link_path = temp_dir.path().join("models-link");
+        std::os::unix::fs::symlink(&real_dir, &link_path).expect("symlink");
+
+        let error = prepare_import_source_file(link_path.to_string_lossy().as_ref())
+            .expect_err("symlinked directory should be rejected");
         assert!(error.contains("LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN"));
     }
 }

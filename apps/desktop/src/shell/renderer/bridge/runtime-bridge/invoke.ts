@@ -23,6 +23,7 @@ const BRIDGE_ERROR_CODE_MAP: Record<string, { key: string; defaultValue: string 
   LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND', defaultValue: 'Model manifest file was not found. Please inspect the import path.' },
   LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED', defaultValue: 'Model manifest parsing failed. Please check the JSON format.' },
   LOCAL_AI_IMPORT_HASH_MISMATCH: { key: 'BridgeErrors.codes.LOCAL_AI_IMPORT_HASH_MISMATCH', defaultValue: 'Model file verification failed. Confirm the file is intact and try again.' },
+  LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN: { key: 'BridgeErrors.codes.LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN', defaultValue: 'Symbolic links are not supported for import. Import the real model file path instead.' },
   LOCAL_AI_ENDPOINT_NOT_LOOPBACK: { key: 'BridgeErrors.codes.LOCAL_AI_ENDPOINT_NOT_LOOPBACK', defaultValue: 'The local runtime endpoint only supports localhost, 127.0.0.1, or [::1].' },
   LOCAL_AI_ENDPOINT_INVALID: { key: 'BridgeErrors.codes.LOCAL_AI_ENDPOINT_INVALID', defaultValue: 'The local runtime endpoint format is invalid. Please check the address.' },
   LOCAL_AI_MODEL_NOT_FOUND: { key: 'BridgeErrors.codes.LOCAL_AI_MODEL_NOT_FOUND', defaultValue: 'No available model was found. Install and enable one first.' },

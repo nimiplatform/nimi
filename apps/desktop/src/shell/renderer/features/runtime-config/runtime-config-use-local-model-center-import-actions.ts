@@ -19,6 +19,16 @@ type UseLocalModelCenterImportActionsInput = {
   props: LocalModelCenterProps;
 };
 
+export function toAssetImportUserMessage(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error || 'Asset import failed');
+  const normalized = String(raw || '').trim();
+  if (!normalized) {
+    return 'Asset import failed';
+  }
+  const prefixed = normalized.match(/^[A-Z0-9_]+:\s*(.+)$/s);
+  return String(prefixed?.[1] || normalized).trim() || 'Asset import failed';
+}
+
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
   const [variantPickerItem, setVariantPickerItem] = useState<LocalRuntimeCatalogItemDescriptor | null>(null);
   const [variantList, setVariantList] = useState<GgufVariantDescriptor[]>([]);
@@ -45,7 +55,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       });
       return;
     }
-    setAssetImportError(message || 'Import failed');
+    setAssetImportError(toAssetImportUserMessage(message || 'Import failed'));
     void input.onRefreshUnregisteredAssets();
   }, [input]);
 
@@ -70,36 +80,76 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onProgressSettled: handleSettledDownload,
   });
 
+  const handleImportedAsset = useCallback(async (
+    assetPath: string,
+    imported: Awaited<ReturnType<typeof localRuntime.importAssetFile>> | {
+      assetClass: 'model';
+      accepted: Awaited<ReturnType<typeof localRuntime.scaffoldOrphan>>;
+    },
+  ) => {
+    if (imported.assetClass === 'model') {
+      setAssetImportSessionByPath((prev) => ({
+        ...prev,
+        [assetPath]: imported.accepted.installSessionId,
+      }));
+      const currentProgress = getLatestProgressEvent(imported.accepted.installSessionId);
+      if (currentProgress?.done) {
+        handleCompletedAssetImport(assetPath, currentProgress.success, currentProgress.message);
+      }
+      return;
+    }
+
+    await input.onRefreshArtifactSections();
+    await input.onRefreshUnregisteredAssets();
+  }, [getLatestProgressEvent, handleCompletedAssetImport, input]);
+
+  const importManagedModelAssetFromPath = useCallback(async (
+    assetPath: string,
+    declaration: LocalRuntimeAssetDeclaration,
+  ) => {
+    const modelType = declaration.modelType;
+    if (!modelType) {
+      throw new Error('modelType is required for main model import');
+    }
+    const capabilities = modelType === 'embedding'
+      ? ['embedding']
+      : modelType === 'image'
+        ? ['image']
+        : modelType === 'video'
+          ? ['video']
+          : modelType === 'tts'
+            ? ['tts']
+            : modelType === 'stt'
+              ? ['stt']
+              : modelType === 'music'
+                ? ['music']
+                : ['chat'];
+    const accepted = await localRuntime.scaffoldOrphan({
+      path: assetPath,
+      capabilities,
+      engine: declaration.engine,
+    });
+    return { assetClass: 'model' as const, accepted };
+  }, []);
+
   const importAssetFromPath = useCallback(async (assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
     setImportingAssetPath(assetPath);
     setAssetImportError('');
     try {
-      const imported = await localRuntime.importAssetFile({
-        filePath: assetPath,
-        declaration,
-      }, { caller: 'core' });
-      if (imported.assetClass === 'model') {
-        setAssetImportSessionByPath((prev) => ({
-          ...prev,
-          [assetPath]: imported.accepted.installSessionId,
-        }));
-        const currentProgress = getLatestProgressEvent(imported.accepted.installSessionId);
-        if (currentProgress?.done) {
-          handleCompletedAssetImport(assetPath, currentProgress.success, currentProgress.message);
-        }
-      } else {
-        await input.onRefreshArtifactSections();
-        await input.onRefreshUnregisteredAssets();
-      }
+      const imported = declaration.assetClass === 'model'
+        ? await importManagedModelAssetFromPath(assetPath, declaration)
+        : await localRuntime.importAssetFile({
+          filePath: assetPath,
+          declaration,
+        }, { caller: 'core' });
+      await handleImportedAsset(assetPath, imported);
     } catch (error: unknown) {
-      setAssetImportError(
-        error instanceof Error ? error.message : String(error || 'Asset import failed'),
-      );
+      setAssetImportError(toAssetImportUserMessage(error));
       throw error;
     } finally {
       setImportingAssetPath(null);
     }
-  }, [getLatestProgressEvent, handleCompletedAssetImport, input]);
+  }, [handleImportedAsset, importManagedModelAssetFromPath]);
 
   const importPickedAssetFile = useCallback(async (declaration: LocalRuntimeAssetDeclaration) => {
     setAssetImportError('');
@@ -107,8 +157,20 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     if (!filePath) {
       return;
     }
-    await importAssetFromPath(filePath, declaration);
-  }, [importAssetFromPath]);
+    setImportingAssetPath(filePath);
+    try {
+      const imported = await localRuntime.importAssetFile({
+        filePath,
+        declaration,
+      }, { caller: 'core' });
+      await handleImportedAsset(filePath, imported);
+    } catch (error: unknown) {
+      setAssetImportError(toAssetImportUserMessage(error));
+      throw error;
+    } finally {
+      setImportingAssetPath(null);
+    }
+  }, [handleImportedAsset]);
 
   const importPickedAssetManifest = useCallback(async () => {
     setAssetImportError('');

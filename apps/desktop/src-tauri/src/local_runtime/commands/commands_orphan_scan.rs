@@ -18,6 +18,19 @@ fn normalize_optional_capability(value: Option<&str>) -> Option<String> {
     Some(normalized)
 }
 
+fn reject_symlink_source(source_path: &std::path::Path) -> Result<(), String> {
+    let metadata = std::fs::symlink_metadata(source_path).map_err(|_| {
+        format!(
+            "LOCAL_AI_ORPHAN_SCAFFOLD_NOT_FOUND: file does not exist: {}",
+            source_path.display()
+        )
+    })?;
+    if metadata.file_type().is_symlink() {
+        return Err(symlink_forbidden_error(source_path));
+    }
+    Ok(())
+}
+
 fn default_orphan_engine(profile: &LocalAiDeviceProfile, capability: &str) -> &'static str {
     if matches!(capability, "image" | "video") {
         return "media";
@@ -620,6 +633,7 @@ pub fn runtime_local_models_scaffold_orphan(
     payload: LocalAiScaffoldOrphanPayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
     let source_path = std::path::PathBuf::from(&payload.path);
+    reject_symlink_source(&source_path)?;
     if !source_path.is_file() {
         return Err(format!(
             "LOCAL_AI_ORPHAN_SCAFFOLD_NOT_FOUND: file does not exist: {}",
@@ -698,4 +712,21 @@ pub fn runtime_local_models_scaffold_orphan(
     });
 
     Ok(accepted)
+}
+
+#[cfg(all(test, unix))]
+mod commands_orphan_scan_tests {
+    use super::*;
+
+    #[test]
+    fn reject_symlink_source_rejects_symlinked_files() {
+        let temp_dir = tempfile::tempdir().expect("tempdir");
+        let real_path = temp_dir.path().join("model.gguf");
+        std::fs::write(&real_path, b"weights").expect("write file");
+        let link_path = temp_dir.path().join("model-link.gguf");
+        std::os::unix::fs::symlink(&real_path, &link_path).expect("symlink");
+
+        let error = reject_symlink_source(&link_path).expect_err("symlink should be rejected");
+        assert!(error.contains("LOCAL_AI_FILE_IMPORT_SYMLINK_FORBIDDEN"));
+    }
 }
