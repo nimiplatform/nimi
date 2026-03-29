@@ -5,6 +5,7 @@ type CreateRendererFlowId = (typeof import('@renderer/infra/telemetry/renderer-l
 type LogRendererEvent = (typeof import('@renderer/infra/telemetry/renderer-log'))['logRendererEvent'];
 type UseAppStore = (typeof import('@renderer/app-shell/providers/app-store'))['useAppStore'];
 type ClearPersistedAccessToken = (typeof import('@nimiplatform/nimi-kit/auth'))['clearPersistedAccessToken'];
+type HasDesktopCallbackRequestInLocation = (typeof import('@nimiplatform/nimi-kit/auth'))['hasDesktopCallbackRequestInLocation'];
 type LoadPersistedAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['loadPersistedAuthSession'];
 type PersistAuthSession = (typeof import('@nimiplatform/nimi-kit/auth'))['persistAuthSession'];
 
@@ -16,8 +17,16 @@ type RuntimeBootstrapWebDeps = {
   logRendererEvent: LogRendererEvent;
   useAppStore: UseAppStore;
   clearPersistedAccessToken: ClearPersistedAccessToken;
+  hasDesktopCallbackRequestInLocation: HasDesktopCallbackRequestInLocation;
   loadPersistedAuthSession: LoadPersistedAuthSession;
   persistAuthSession: PersistAuthSession;
+};
+
+type AuthSessionSnapshot = {
+  status: string;
+  user: Record<string, unknown> | null;
+  token: string;
+  refreshToken: string;
 };
 
 let bootstrapPromise: Promise<void> | null = null;
@@ -54,6 +63,7 @@ async function loadRuntimeBootstrapWebDeps(): Promise<RuntimeBootstrapWebDeps> {
       logRendererEvent: telemetryModule.logRendererEvent,
       useAppStore: appStoreModule.useAppStore,
       clearPersistedAccessToken: authStorageModule.clearPersistedAccessToken,
+      hasDesktopCallbackRequestInLocation: authStorageModule.hasDesktopCallbackRequestInLocation,
       loadPersistedAuthSession: authStorageModule.loadPersistedAuthSession,
       persistAuthSession: authStorageModule.persistAuthSession,
     };
@@ -90,20 +100,121 @@ export function withTimeout<T>(task: Promise<T>, timeoutMs: number, label: strin
   });
 }
 
+function snapshotAuthSession(deps: RuntimeBootstrapWebDeps): AuthSessionSnapshot {
+  const auth = deps.useAppStore.getState().auth;
+  return {
+    status: String(auth.status || ''),
+    user: auth.user && typeof auth.user === 'object'
+      ? (auth.user as Record<string, unknown>)
+      : null,
+    token: String(auth.token || '').trim(),
+    refreshToken: String(auth.refreshToken || '').trim(),
+  };
+}
+
+function hasAuthenticatedSnapshot(snapshot: AuthSessionSnapshot): boolean {
+  return snapshot.status === 'authenticated' && Boolean(snapshot.token);
+}
+
+function applyAuthSessionSnapshot(
+  snapshot: AuthSessionSnapshot,
+  deps: RuntimeBootstrapWebDeps,
+): void {
+  if (hasAuthenticatedSnapshot(snapshot)) {
+    deps.dataSync.setToken(snapshot.token);
+    deps.dataSync.setRefreshToken(snapshot.refreshToken);
+    deps.useAppStore.getState().setAuthSession(
+      snapshot.user,
+      snapshot.token,
+      snapshot.refreshToken || undefined,
+    );
+    return;
+  }
+
+  deps.dataSync.setToken('');
+  deps.dataSync.setRefreshToken('');
+  deps.useAppStore.getState().clearAuthSession();
+}
+
+async function recoverDesktopCallbackAccessToken(
+  deps: RuntimeBootstrapWebDeps,
+): Promise<{ accessToken: string; refreshToken: string }> {
+  const result = await deps.dataSync.callApi(
+    (realm) => realm.services.AuthService.refreshToken(),
+    'Failed to restore web session for desktop authorization',
+  );
+  const record = result && typeof result === 'object'
+    ? (result as Record<string, unknown>)
+    : {};
+  const accessToken = String(record.accessToken || '').trim();
+  const refreshToken = String(record.refreshToken || '').trim();
+  if (!accessToken) {
+    throw new Error('desktop callback session refresh missing accessToken');
+  }
+  return {
+    accessToken,
+    refreshToken,
+  };
+}
+
 async function bootstrapAuthSession(input: {
   flowId: string;
   accessToken: string;
   refreshToken?: string;
+  preservePersistedAuthSession?: boolean;
+  authSessionSnapshot: AuthSessionSnapshot;
 }, deps: RuntimeBootstrapWebDeps): Promise<void> {
   const appStore = deps.useAppStore.getState();
-  const envToken = String(input.accessToken || '').trim();
-  const refreshToken = String(input.refreshToken || '').trim();
-  if (!envToken) {
-    deps.clearPersistedAccessToken();
-    deps.dataSync.setRefreshToken('');
-    appStore.clearAuthSession();
+  let resolvedToken = String(input.accessToken || '').trim();
+  let resolvedRefreshToken = String(input.refreshToken || '').trim();
+
+  if (!resolvedToken && input.preservePersistedAuthSession && hasAuthenticatedSnapshot(input.authSessionSnapshot)) {
+    resolvedToken = input.authSessionSnapshot.token;
+    resolvedRefreshToken = input.authSessionSnapshot.refreshToken;
+  }
+
+  if (!resolvedToken && input.preservePersistedAuthSession) {
+    try {
+      const refreshed = await recoverDesktopCallbackAccessToken(deps);
+      resolvedToken = refreshed.accessToken;
+      resolvedRefreshToken = refreshed.refreshToken;
+    } catch (error) {
+      deps.logRendererEvent({
+        level: 'info',
+        area: 'renderer-bootstrap',
+        message: 'phase:auto-login:session-refresh-skipped',
+        flowId: input.flowId,
+        details: {
+          error: safeErrorMessage(error),
+        },
+      });
+    }
+  }
+
+  if (!resolvedToken) {
+    if (!input.preservePersistedAuthSession) {
+      deps.clearPersistedAccessToken();
+      deps.dataSync.setToken('');
+      deps.dataSync.setRefreshToken('');
+      appStore.clearAuthSession();
+    } else {
+      applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
+    }
+    deps.logRendererEvent({
+      level: 'info',
+      area: 'renderer-bootstrap',
+      message: 'phase:auto-login:skipped',
+      flowId: input.flowId,
+      details: {
+        reason: 'missing_access_token',
+        preservePersistedAuthSession: Boolean(input.preservePersistedAuthSession),
+      },
+    });
     return;
   }
+
+  deps.dataSync.setToken(resolvedToken);
+  deps.dataSync.setRefreshToken(resolvedRefreshToken);
 
   try {
     const user = await deps.dataSync.loadCurrentUser();
@@ -112,12 +223,12 @@ async function bootstrapAuthSession(input: {
       : null;
     appStore.setAuthSession(
       normalizedUser,
-      envToken,
-      refreshToken || undefined,
+      resolvedToken,
+      resolvedRefreshToken || undefined,
     );
     deps.persistAuthSession({
-      accessToken: envToken,
-      refreshToken,
+      accessToken: resolvedToken,
+      refreshToken: resolvedRefreshToken,
       user: normalizedUser,
     });
     deps.logRendererEvent({
@@ -132,10 +243,14 @@ async function bootstrapAuthSession(input: {
   } catch (error) {
     const errorMessage = safeErrorMessage(error);
     const expectedUnauthorized = isExpectedUnauthorizedAutoLogin(error);
-    deps.clearPersistedAccessToken();
-    appStore.clearAuthSession();
-    deps.dataSync.setToken('');
-    deps.dataSync.setRefreshToken('');
+    if (!input.preservePersistedAuthSession) {
+      deps.clearPersistedAccessToken();
+      appStore.clearAuthSession();
+      deps.dataSync.setToken('');
+      deps.dataSync.setRefreshToken('');
+    } else {
+      applyAuthSessionSnapshot(input.authSessionSnapshot, deps);
+    }
     deps.logRendererEvent({
       level: expectedUnauthorized ? 'info' : 'warn',
       area: 'renderer-bootstrap',
@@ -157,11 +272,15 @@ export function bootstrapRuntime(): Promise<void> {
   }
 
   let deps: RuntimeBootstrapWebDeps | null = null;
+  let authSessionSnapshot: AuthSessionSnapshot | null = null;
+  let preservePersistedAuthSession = false;
   bootstrapPromise = (async () => {
     deps = await loadRuntimeBootstrapWebDeps();
     const flowId = deps.createRendererFlowId('renderer-bootstrap-web');
     const startedAt = performance.now();
     const appStore = deps.useAppStore.getState();
+    authSessionSnapshot = snapshotAuthSession(deps);
+    preservePersistedAuthSession = deps.hasDesktopCallbackRequestInLocation();
     appStore.setAuthBootstrapping();
     appStore.setBootstrapReady(false);
 
@@ -195,15 +314,21 @@ export function bootstrapRuntime(): Promise<void> {
           flowId,
           accessToken,
           refreshToken,
+          preservePersistedAuthSession,
+          authSessionSnapshot,
         }, deps),
         WEB_BOOTSTRAP_AUTH_TIMEOUT_MS,
         'web-bootstrap-auth',
       );
     } catch (error) {
-      deps.clearPersistedAccessToken();
-      deps.useAppStore.getState().clearAuthSession();
-      deps.dataSync.setToken('');
-      deps.dataSync.setRefreshToken('');
+      if (!preservePersistedAuthSession) {
+        deps.clearPersistedAccessToken();
+        deps.useAppStore.getState().clearAuthSession();
+        deps.dataSync.setToken('');
+        deps.dataSync.setRefreshToken('');
+      } else {
+        applyAuthSessionSnapshot(authSessionSnapshot, deps);
+      }
       deps.logRendererEvent({
         level: 'warn',
         area: 'renderer-bootstrap',
@@ -235,7 +360,11 @@ export function bootstrapRuntime(): Promise<void> {
     if (deps) {
       deps.useAppStore.getState().setBootstrapError(message);
       deps.useAppStore.getState().setBootstrapReady(false);
-      deps.useAppStore.getState().clearAuthSession();
+      if (!preservePersistedAuthSession) {
+        deps.useAppStore.getState().clearAuthSession();
+      } else if (authSessionSnapshot) {
+        applyAuthSessionSnapshot(authSessionSnapshot, deps);
+      }
       deps.logRendererEvent({
         level: 'error',
         area: 'renderer-bootstrap',
@@ -250,3 +379,5 @@ export function bootstrapRuntime(): Promise<void> {
 
   return bootstrapPromise;
 }
+
+export { bootstrapAuthSession as bootstrapAuthSessionForTest };
