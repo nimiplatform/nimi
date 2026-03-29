@@ -1,7 +1,7 @@
 use super::engine_pack::{ensure_llama_cpp_binary, resolve_existing_llama_cpp_binary};
-use super::types::{LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus};
+use super::types::{resolved_model_dir, LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
@@ -181,6 +181,71 @@ fn with_model_operation_lock<T>(
 struct LlamaCppProcessAdapter;
 
 impl LlamaCppProcessAdapter {
+    fn models_root_path() -> Result<PathBuf, String> {
+        let value = std::env::var("NIMI_LOCAL_AI_MODELS_DIR")
+            .ok()
+            .map(|item| item.trim().to_string())
+            .unwrap_or_default();
+        if value.is_empty() {
+            return Err(
+                "LOCAL_AI_LLAMA_MODELS_ROOT_MISSING: NIMI_LOCAL_AI_MODELS_DIR is not configured"
+                    .to_string(),
+            );
+        }
+        Ok(PathBuf::from(value))
+    }
+
+    fn model_entry_path(model: &LocalAiModelRecord) -> Result<PathBuf, String> {
+        let entry = model.entry.trim();
+        if entry.is_empty() {
+            return Err("LOCAL_AI_ENGINE_MODEL_ENTRY_REQUIRED: llama.cpp model entry is empty".to_string());
+        }
+        let entry_path = PathBuf::from(entry);
+        if entry_path.is_absolute() {
+            return Ok(entry_path);
+        }
+        let models_root = Self::models_root_path()?;
+        let model_dir = resolved_model_dir(models_root.as_path(), model.logical_model_id.as_str());
+        Ok(model_dir.join(entry_path))
+    }
+
+    fn parse_endpoint_bind(endpoint: &str) -> Result<(String, u16), String> {
+        let parsed = reqwest::Url::parse(endpoint.trim()).map_err(|error| {
+            format!("LOCAL_AI_ENGINE_ENDPOINT_INVALID: invalid llama.cpp endpoint: {error}")
+        })?;
+        let host = parsed.host_str().ok_or_else(|| {
+            "LOCAL_AI_ENGINE_ENDPOINT_INVALID: endpoint host is missing".to_string()
+        })?;
+        let port = parsed.port_or_known_default().ok_or_else(|| {
+            "LOCAL_AI_ENGINE_ENDPOINT_INVALID: endpoint port is missing".to_string()
+        })?;
+        Ok((host.to_string(), port))
+    }
+
+    fn start_args(model: &LocalAiModelRecord) -> Result<Vec<String>, String> {
+        let mut args = Self::parse_extra_args();
+        if !args.iter().any(|item| item == "--model") {
+            args.push("--model".to_string());
+            args.push(
+                Self::model_entry_path(model)?
+                    .to_string_lossy()
+                    .to_string(),
+            );
+        }
+        if !args.iter().any(|item| item == "--host") || !args.iter().any(|item| item == "--port") {
+            let (host, port) = Self::parse_endpoint_bind(model.endpoint.as_str())?;
+            if !args.iter().any(|item| item == "--host") {
+                args.push("--host".to_string());
+                args.push(host);
+            }
+            if !args.iter().any(|item| item == "--port") {
+                args.push("--port".to_string());
+                args.push(port.to_string());
+            }
+        }
+        Ok(args)
+    }
+
     fn resolve_binary_path() -> Result<String, String> {
         let override_path = std::env::var("NIMI_LLAMA_CPP_BIN")
             .ok()
@@ -350,12 +415,7 @@ impl LlamaCppProcessAdapter {
             if !Path::new(&binary).exists() {
                 return Err(format!("llama.cpp binary not found: {binary}"));
             }
-
-            let mut args = Self::parse_extra_args();
-            if !args.iter().any(|item| item == "--model") && !model.entry.trim().is_empty() {
-                args.push("--model".to_string());
-                args.push(model.entry.trim().to_string());
-            }
+            let args = Self::start_args(model)?;
 
             let child = Command::new(&binary)
                 .args(&args)
@@ -526,18 +586,25 @@ impl EngineAdapter for LlamaCppProcessAdapter {
                         status: LocalAiModelStatus::Unhealthy,
                     }
                 } else {
-                    let detail = match Self::resolve_existing_binary_path() {
-                        Ok(Some(binary)) => format!("llama.cpp ready (not started): {binary}"),
+                    match Self::resolve_existing_binary_path() {
+                        Ok(Some(binary)) => EngineHealthResult {
+                            healthy: true,
+                            detail: format!("llama.cpp ready (not started): {binary}"),
+                            status: LocalAiModelStatus::Installed,
+                        },
                         Ok(None) => {
-                            "llama.cpp engine pack missing; start required to bootstrap"
-                                .to_string()
+                            EngineHealthResult {
+                                healthy: true,
+                                detail: "llama.cpp engine pack missing; start required to bootstrap"
+                                    .to_string(),
+                                status: LocalAiModelStatus::Installed,
+                            }
                         }
-                        Err(error) => format!("llama.cpp start required: {error}"),
-                    };
-                    EngineHealthResult {
-                        healthy: true,
-                        detail,
-                        status: LocalAiModelStatus::Installed,
+                        Err(error) => EngineHealthResult {
+                            healthy: false,
+                            detail: error,
+                            status: LocalAiModelStatus::Unhealthy,
+                        },
                     }
                 }
             }
@@ -592,13 +659,16 @@ pub fn check_engine_health(model: &LocalAiModelRecord) -> LocalAiModelHealth {
 mod tests {
     use super::{
         check_engine_health, is_supervised_llama_engine, preflight_engine_install_with,
-        start_engine,
+        start_engine, LlamaCppProcessAdapter,
     };
     use crate::local_runtime::types::{
         LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
     };
     use std::collections::HashMap;
+    use std::fs;
     use std::net::TcpListener;
+    use std::path::PathBuf;
+    use std::sync::{Mutex, OnceLock};
 
     fn model_fixture(engine: &str, status: LocalAiModelStatus) -> LocalAiModelRecord {
         LocalAiModelRecord {
@@ -642,9 +712,38 @@ mod tests {
         format!("http://127.0.0.1:{port}/v1")
     }
 
+    fn temp_dir(label: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "nimi-engine-host-{label}-{}",
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        ));
+        fs::create_dir_all(&dir).expect("create temp engine host dir");
+        dir
+    }
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    fn bundle_manifest_fixture(runtime_files: &[&str]) -> String {
+        let binary_name = if cfg!(target_os = "windows") {
+            "llama-server.exe"
+        } else {
+            "llama-server"
+        };
+        let encoded = serde_json::json!({
+            "binary_name": binary_name,
+            "runtime_files": runtime_files,
+        });
+        serde_json::to_string_pretty(&encoded).expect("encode bundle manifest fixture")
+    }
+
     #[test]
     fn llama_cpp_without_binary_only_fails_on_start() {
+        let _guard = env_lock().lock().expect("lock env");
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+        std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
         let model = model_fixture("llama-cpp", LocalAiModelStatus::Installed);
         let started = start_engine(&model);
         assert!(!started.healthy);
@@ -672,7 +771,9 @@ mod tests {
 
     #[test]
     fn canonical_llama_without_running_process_stays_installed() {
+        let _guard = env_lock().lock().expect("lock env");
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+        std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
         let model = model_fixture("llama", LocalAiModelStatus::Installed);
         let health = check_engine_health(&model);
         assert_eq!(health.status, LocalAiModelStatus::Installed);
@@ -681,10 +782,82 @@ mod tests {
 
     #[test]
     fn canonical_llama_unhealthy_without_running_process_recovers_to_installed() {
+        let _guard = env_lock().lock().expect("lock env");
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+        std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
         let model = model_fixture("llama", LocalAiModelStatus::Unhealthy);
         let health = check_engine_health(&model);
         assert_eq!(health.status, LocalAiModelStatus::Installed);
+    }
+
+    #[test]
+    fn canonical_llama_with_invalid_bundle_is_unhealthy() {
+        let _guard = env_lock().lock().expect("lock env");
+        std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+        let runtime_root = temp_dir("invalid-bundle");
+        std::env::set_var("NIMI_LOCAL_AI_RUNTIME_ROOT", runtime_root.display().to_string());
+        let bundle_dir = runtime_root.join("engine-packs/llama-cpp").join(format!(
+            "{}-{}",
+            std::env::consts::OS,
+            std::env::consts::ARCH
+        ));
+        fs::create_dir_all(&bundle_dir).expect("create bundle dir");
+        let binary_name = if cfg!(target_os = "windows") {
+            "llama-server.exe"
+        } else {
+            "llama-server"
+        };
+        fs::write(bundle_dir.join(binary_name), b"#!/bin/sh\n")
+            .expect("write cached binary");
+        fs::write(
+            bundle_dir.join("bundle-manifest.json"),
+            bundle_manifest_fixture(&[binary_name, "libmtmd.0.dylib"]),
+        )
+        .expect("write invalid bundle manifest");
+
+        let model = model_fixture("llama", LocalAiModelStatus::Installed);
+        let health = check_engine_health(&model);
+        assert_eq!(health.status, LocalAiModelStatus::Unhealthy);
+        assert!(health.detail.contains("LOCAL_AI_ENGINE_PACK_BUNDLE_INVALID"));
+
+        let _ = fs::remove_dir_all(runtime_root);
+        std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
+    }
+
+    #[test]
+    fn canonical_llama_start_args_use_resolved_model_path_and_endpoint_bind() {
+        let _guard = env_lock().lock().expect("lock env");
+        let models_root = temp_dir("llama-models-root");
+        std::env::set_var("NIMI_LOCAL_AI_MODELS_DIR", models_root.display().to_string());
+        let model = model_fixture("llama", LocalAiModelStatus::Installed);
+
+        let args = LlamaCppProcessAdapter::start_args(&model).expect("build llama start args");
+        let expected_model_path = crate::local_runtime::types::resolved_model_dir(
+            models_root.as_path(),
+            model.logical_model_id.as_str(),
+        )
+        .join(model.entry.as_str())
+        .to_string_lossy()
+        .to_string();
+        let model_index = args
+            .iter()
+            .position(|item| item == "--model")
+            .expect("start args include --model");
+        let host_index = args
+            .iter()
+            .position(|item| item == "--host")
+            .expect("start args include --host");
+        let port_index = args
+            .iter()
+            .position(|item| item == "--port")
+            .expect("start args include --port");
+
+        assert_eq!(args.get(model_index + 1), Some(&expected_model_path));
+        assert_eq!(args.get(host_index + 1), Some(&"127.0.0.1".to_string()));
+        assert_eq!(args.get(port_index + 1), Some(&"1234".to_string()));
+
+        std::env::remove_var("NIMI_LOCAL_AI_MODELS_DIR");
+        let _ = fs::remove_dir_all(models_root);
     }
 
     #[test]

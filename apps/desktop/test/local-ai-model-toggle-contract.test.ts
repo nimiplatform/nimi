@@ -46,4 +46,6 @@ test('local model tauri lifecycle commands run on a background blocking task', (
   assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| start_model\(&app, &payload\.local_model_id\)\)/);
   assert.match(tauriCommandsSource, /pub async fn runtime_local_models_stop/);
   assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| stop_model\(&app, &payload\.local_model_id\)\)/);
+  assert.match(tauriCommandsSource, /pub async fn runtime_local_models_health/);
+  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| \{\s*health\(&app, local_model_id\.as_deref\(\)\)/);
 });

@@ -27,14 +27,18 @@ pub async fn runtime_local_models_stop(
 }
 
 #[tauri::command]
-pub fn runtime_local_models_health(
+pub async fn runtime_local_models_health(
     app: AppHandle,
     payload: Option<LocalAiModelsHealthPayload>,
 ) -> Result<LocalAiModelsHealthResult, String> {
     let local_model_id = payload
         .and_then(|item| item.local_model_id)
         .filter(|value| !value.trim().is_empty());
-    let output = health(&app, local_model_id.as_deref())?;
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        health(&app, local_model_id.as_deref())
+    })
+    .await
+    .map_err(|error| format!("LOCAL_AI_MODEL_HEALTH_TASK_FAILED: {error}"))??;
     Ok(LocalAiModelsHealthResult { models: output })
 }
 
