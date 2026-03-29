@@ -4,7 +4,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Emitter};
 
 use super::artifact_registry::{
@@ -66,22 +65,25 @@ use super::supervisor::{health, start_model, stop_model};
 use super::types::{
     artifact_dir, default_artifact_roles_for_capabilities, default_endpoint_for_engine,
     default_fallback_engines_for_engine, default_logical_model_id,
-    default_preferred_engine_for_capabilities, generate_ulid_string, normalize_local_engine,
-    now_iso_timestamp, resolved_model_dir, resolved_model_manifest_path, slugify_local_model_id,
-    CatalogVariantDescriptor, LocalAiArtifactKind, LocalAiArtifactRecord, LocalAiArtifactSource,
-    LocalAiArtifactStatus, LocalAiAssetClass, LocalAiAssetDeclaration, LocalAiAuditEvent,
+    default_preferred_engine_for_capabilities, generate_ulid_string,
+    infer_artifact_integrity_mode_from_source, infer_model_integrity_mode_from_source,
+    normalize_local_engine, now_iso_timestamp, resolved_model_dir,
+    resolved_model_manifest_path, slugify_local_model_id, CatalogVariantDescriptor,
+    LocalAiArtifactKind, LocalAiArtifactRecord, LocalAiArtifactSource, LocalAiArtifactStatus,
+    LocalAiAssetClass, LocalAiAssetDeclaration, LocalAiAuditEvent,
     LocalAiCatalogItemDescriptor, LocalAiDependencyApplyResult, LocalAiDependencyKind,
     LocalAiDependencyResolutionPlan, LocalAiDeviceProfile, LocalAiDownloadControlPayload,
     LocalAiDownloadProgressEvent, LocalAiDownloadSessionSummary, LocalAiDownloadState,
-    LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiModelHealth, LocalAiModelRecord,
-    LocalAiModelSource, LocalAiModelType, LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor,
-    LocalAiOrphanScanPreference, LocalAiProfileApplyResult, LocalAiProfileArtifactPlanEntry,
-    LocalAiProfileDescriptor, LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
+    LocalAiInstallPlanDescriptor, LocalAiInstallRequest, LocalAiIntegrityMode,
+    LocalAiModelHealth, LocalAiModelRecord, LocalAiModelSource, LocalAiModelType,
+    LocalAiModelsScanOrphansPayload, LocalAiNodeDescriptor, LocalAiOrphanScanPreference,
+    LocalAiProfileApplyResult, LocalAiProfileArtifactPlanEntry, LocalAiProfileDescriptor,
+    LocalAiProfileEntryDescriptor, LocalAiProfileResolutionPlan,
     LocalAiRecommendationFeedDescriptor, LocalAiRuntimeState, LocalAiServiceArtifactType,
     LocalAiServiceDescriptor, LocalAiServiceStatus, LocalAiSuggestionConfidence,
-    LocalAiSuggestionSource, LocalAiUnregisteredAssetDescriptor, LocalAiVerifiedArtifactDescriptor,
-    LocalAiVerifiedModelDescriptor, OrphanArtifactFile, OrphanModelFile,
-    LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
+    LocalAiSuggestionSource, LocalAiTransferSessionKind, LocalAiUnregisteredAssetDescriptor,
+    LocalAiVerifiedArtifactDescriptor, LocalAiVerifiedModelDescriptor, OrphanArtifactFile,
+    OrphanModelFile, LOCAL_AI_DOWNLOAD_PROGRESS_EVENT,
 };
 use super::verified_artifacts::{find_verified_artifact, verified_artifact_list};
 use super::verified_models::{find_verified_model, verified_model_list};

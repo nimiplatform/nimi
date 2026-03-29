@@ -49,15 +49,15 @@ Mod 执行在能力沙箱内（参考 `D-HOOK-008`、`D-MOD-005`）：
 
 ## D-SEC-006 — 模型完整性校验
 
-本地 AI 模型安装要求完整性验证：
+本地 AI 模型安装区分 verified 与 local-unverified 两类完整性语义：
 
-- `manifest.hashes` 非空。
-- 导入时执行 `LOCAL_AI_IMPORT_HASH_MISMATCH` 检查。
-- 空哈希模型无法启动（`LOCAL_AI_MODEL_HASHES_EMPTY`）。
+- verified 安装路径（catalog / verified / 带 expected hashes 的 manifest）要求 `manifest.hashes` 非空，并在导入时执行 `LOCAL_AI_IMPORT_HASH_MISMATCH` 检查。
+- 手工本地文件导入与 orphan scaffold 归类为 `local_unverified`，允许 `manifest.hashes` 为空；它表示用户确认信任的本地文件，而不是 provenance-verified 来源。
+- 只有 verified 模型会因空哈希在启动前被 `LOCAL_AI_MODEL_HASHES_EMPTY` 拦截；`local_unverified` 不受该门槛阻塞。
 
-**跨层引用**：Runtime K-LOCAL-009 在 `InstallLocalModel` 路径执行清单验证（格式校验、引擎类型校验）。Desktop D-SEC-006 的 hash 完整性检查是 UX 前端防线，与 Runtime 层清单验证互补。
+**跨层引用**：Runtime K-LOCAL-009 在 `InstallLocalModel` 路径执行清单验证（格式校验、引擎类型校验）。Desktop D-SEC-006 的 verified-hash 检查是 UX 前端防线，与 Runtime 层清单验证互补。
 
-**信任边界声明**：Desktop D-SEC-006 的 hash 校验是 UX 层防线，防止用户通过 Desktop UI 启动未经验证的模型。Runtime K-LOCAL-009 是格式/引擎校验的权威层，但 Phase 1 不做 hash 验证。通过 Runtime gRPC 直接安装的模型（绕过 Desktop UI）可能缺少 hash 信息——Desktop 启动该模型时会被 `LOCAL_AI_MODEL_HASHES_EMPTY` 拦截，此为设计意图（Desktop 作为 UX 守护层）。
+**信任边界声明**：Desktop D-SEC-006 的 hash 校验只覆盖 verified 来源，防止用户通过 Desktop UI 启动宣称已验证但缺乏完整性证明的模型。`local_unverified` 是用户显式确认的本地导入信任边界，Desktop 会保留“未进行来源验证”的 provenance 标识，但不会追加同步 SHA256 阻塞启动。Runtime K-LOCAL-009 仍然是格式/引擎校验的权威层。
 
 ## D-SEC-007 — External Agent Token 安全
 

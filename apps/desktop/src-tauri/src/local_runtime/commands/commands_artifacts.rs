@@ -122,6 +122,7 @@ fn install_verified_artifact_descriptor(
             "repo": descriptor.repo,
             "revision": descriptor.revision,
         },
+        "integrity_mode": "verified",
         "hashes": descriptor.hashes,
         "metadata": descriptor.metadata,
     });
@@ -156,6 +157,7 @@ fn install_verified_artifact_descriptor(
                 repo: descriptor.repo.clone(),
                 revision: descriptor.revision.clone(),
             },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
             hashes: descriptor.hashes.clone(),
             status: LocalAiArtifactStatus::Installed,
             installed_at: now.clone(),
@@ -299,6 +301,12 @@ pub fn runtime_local_artifacts_adopt(
                 repo: payload.source.repo.trim().to_string(),
                 revision: payload.source.revision.trim().to_string(),
             },
+            integrity_mode: payload.integrity_mode.or_else(|| {
+                Some(infer_artifact_integrity_mode_from_source(&LocalAiArtifactSource {
+                    repo: payload.source.repo.trim().to_string(),
+                    revision: payload.source.revision.trim().to_string(),
+                }))
+            }),
             hashes: payload.hashes,
             status: payload.status,
             installed_at: if payload.installed_at.trim().is_empty() {

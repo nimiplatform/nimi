@@ -8,7 +8,7 @@ use super::super::audit::{
 use super::super::store::load_state;
 use super::super::types::{
     now_iso_timestamp, LocalAiDownloadSessionRecord, LocalAiDownloadSessionSummary,
-    LocalAiDownloadState, LocalAiInstallRequest,
+    LocalAiDownloadState, LocalAiInstallRequest, LocalAiTransferSessionKind,
 };
 use super::shared::{
     append_audit_non_blocking, build_install_session_id, emit_progress_event, find_record,
@@ -95,6 +95,7 @@ pub fn enqueue_install(
         install_session_id: install_session_id.clone(),
         model_id: model_id.clone(),
         local_model_id: local_model_id.clone(),
+        session_kind: LocalAiTransferSessionKind::Download,
         request: install_request,
         install_metadata: install_metadata.clone(),
         phase: "download".to_string(),

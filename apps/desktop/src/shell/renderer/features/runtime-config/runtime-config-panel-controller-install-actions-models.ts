@@ -1,20 +1,23 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   localRuntime,
   type GoRuntimeSyncTarget,
+  type LocalRuntimeModelLifecycleOperation,
   syncModelInstallToGoRuntime,
   syncModelStartToGoRuntime,
   syncModelStopToGoRuntime,
   syncModelRemoveToGoRuntime,
   type LocalRuntimeInstallAcceptedResponse,
   type LocalRuntimeInstallPlanDescriptor,
+  type LocalRuntimeModelRecord,
 } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 
 export type PendingInstallEntry = {
   accepted: LocalRuntimeInstallAcceptedResponse;
@@ -30,6 +33,8 @@ export type RuntimeConfigModelManagementActions = {
   restartLocalModel: (localModelId: string) => Promise<void>;
   removeLocalModel: (localModelId: string) => Promise<void>;
   removeLocalArtifact: (localArtifactId: string) => Promise<void>;
+  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleErrorById: Record<string, string>;
 };
 
 export type UseRuntimeConfigModelManagementActionsInput = {
@@ -37,6 +42,7 @@ export type UseRuntimeConfigModelManagementActionsInput = {
   setPendingInstallVersion: Dispatch<SetStateAction<number>>;
   refreshLocalSnapshot: () => Promise<void>;
   setStatusBanner: SetRuntimeConfigBanner;
+  updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
 };
 
 function translateRuntimeLocalText(
@@ -53,6 +59,66 @@ function translateRuntimeLocalText(
   });
 }
 
+function toRuntimeConfigLocalModel(
+  model: LocalRuntimeModelRecord,
+): RuntimeConfigStateV11['local']['models'][number] {
+  return {
+    localModelId: model.localModelId,
+    engine: model.engine || 'llama',
+    model: model.modelId,
+    endpoint: model.endpoint || '',
+    capabilities: model.capabilities.filter(
+      (
+        capability,
+      ): capability is RuntimeConfigStateV11['local']['models'][number]['capabilities'][number] => (
+        capability === 'chat'
+        || capability === 'image'
+        || capability === 'video'
+        || capability === 'tts'
+        || capability === 'stt'
+        || capability === 'embedding'
+      ),
+    ),
+    status: model.status,
+    integrityMode: model.integrityMode,
+    installedAt: model.installedAt,
+    updatedAt: model.updatedAt,
+    recommendation: model.recommendation,
+  };
+}
+
+function timestampRank(value?: string): number {
+  const parsed = Date.parse(String(value || '').trim());
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function applyLocalModelSnapshotToState(
+  updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void,
+  model: LocalRuntimeModelRecord,
+): void {
+  updateState((prev) => {
+    const nextModel = toRuntimeConfigLocalModel(model);
+    const nextModels = prev.local.models
+      .filter((entry) => entry.localModelId !== model.localModelId)
+      .concat(model.status === 'removed' ? [] : [nextModel])
+      .sort((left, right) => {
+        const leftRank = timestampRank(left.installedAt) || timestampRank(left.updatedAt);
+        const rightRank = timestampRank(right.installedAt) || timestampRank(right.updatedAt);
+        if (leftRank !== rightRank) {
+          return rightRank - leftRank;
+        }
+        return String(right.localModelId || '').localeCompare(String(left.localModelId || ''));
+      });
+    return {
+      ...prev,
+      local: {
+        ...prev.local,
+        models: nextModels,
+      },
+    };
+  });
+}
+
 export function useRuntimeConfigModelManagementActions(
   input: UseRuntimeConfigModelManagementActionsInput,
 ): RuntimeConfigModelManagementActions {
@@ -61,7 +127,11 @@ export function useRuntimeConfigModelManagementActions(
     setPendingInstallVersion,
     refreshLocalSnapshot,
     setStatusBanner,
+    updateState,
   } = input;
+  const [localModelLifecycleById, setLocalModelLifecycleById] = useState<Record<string, LocalRuntimeModelLifecycleOperation>>({});
+  const [localModelLifecycleErrorById, setLocalModelLifecycleErrorById] = useState<Record<string, string>>({});
+  const lifecycleEpochRef = useRef<Record<string, number>>({});
 
   const assertRuntimeWriteAllowed = useCallback(() => {
     if (getOfflineCoordinator().getTier() !== 'L2') {
@@ -104,6 +174,79 @@ export function useRuntimeConfigModelManagementActions(
       });
     });
   }, []);
+
+  const nextLifecycleEpoch = useCallback((localModelId: string): number => {
+    const current = lifecycleEpochRef.current[localModelId] || 0;
+    const next = current + 1;
+    lifecycleEpochRef.current[localModelId] = next;
+    return next;
+  }, []);
+
+  const isCurrentLifecycleEpoch = useCallback((localModelId: string, epoch: number): boolean => (
+    lifecycleEpochRef.current[localModelId] === epoch
+  ), []);
+
+  const setLifecycleState = useCallback((
+    localModelId: string,
+    state: LocalRuntimeModelLifecycleOperation,
+    error = '',
+    epoch?: number,
+  ) => {
+    if (typeof epoch === 'number' && !isCurrentLifecycleEpoch(localModelId, epoch)) {
+      return;
+    }
+    setLocalModelLifecycleById((prev) => ({ ...prev, [localModelId]: state }));
+    setLocalModelLifecycleErrorById((prev) => ({ ...prev, [localModelId]: error }));
+  }, [isCurrentLifecycleEpoch]);
+
+  const queueLifecycleReconcile = useCallback((
+    input: {
+      localModelId: string;
+      epoch: number;
+      syncFailureEventType: string;
+      syncFailureTarget: GoRuntimeSyncTarget;
+      syncFailureBannerKey: string;
+      syncFailureBannerDefault: string;
+      runSync: () => Promise<void>;
+    },
+  ) => {
+    void (async () => {
+      try {
+        await input.runSync();
+        await refreshLocalSnapshot();
+        if (!isCurrentLifecycleEpoch(input.localModelId, input.epoch)) {
+          return;
+        }
+        setLifecycleState(input.localModelId, 'idle', '', input.epoch);
+      } catch (error) {
+        await recordGoRuntimeSyncFailure(
+          input.syncFailureEventType,
+          input.syncFailureTarget,
+          error,
+        );
+        await refreshLocalSnapshot().catch(() => undefined);
+        if (!isCurrentLifecycleEpoch(input.localModelId, input.epoch)) {
+          return;
+        }
+        const message = error instanceof Error ? error.message : String(error || '');
+        setLifecycleState(input.localModelId, 'error', message, input.epoch);
+        setStatusBanner({
+          kind: 'warning',
+          message: translateRuntimeLocalText(
+            input.syncFailureBannerKey,
+            input.syncFailureBannerDefault,
+            { message },
+          ),
+        });
+      }
+    })();
+  }, [
+    isCurrentLifecycleEpoch,
+    recordGoRuntimeSyncFailure,
+    refreshLocalSnapshot,
+    setLifecycleState,
+    setStatusBanner,
+  ]);
 
   const importLocalModel = useCallback(async () => {
     try {
@@ -218,6 +361,16 @@ export function useRuntimeConfigModelManagementActions(
 
   const startLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
+    const epoch = nextLifecycleEpoch(localModelId);
+    setLifecycleState(localModelId, 'starting', '', epoch);
+    setStatusBanner({
+      kind: 'info',
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.startModelPending',
+        'Starting local model: {{localModelId}}',
+        { localModelId },
+      ),
+    });
     const model = await localRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -227,43 +380,64 @@ export function useRuntimeConfigModelManagementActions(
           { message: error instanceof Error ? error.message : String(error || '') },
         ),
       });
+      setLifecycleState(
+        localModelId,
+        'error',
+        error instanceof Error ? error.message : String(error || ''),
+        epoch,
+      );
       throw error;
     });
-    try {
-      await syncModelStartToGoRuntime({
+    applyLocalModelSnapshotToState(updateState, model);
+    setLifecycleState(localModelId, 'syncing', '', epoch);
+    setStatusBanner({
+      kind: 'success',
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.modelStarted',
+        'Model started: {{localModelId}}',
+        { localModelId },
+      ),
+    });
+    queueLifecycleReconcile({
+      localModelId,
+      epoch,
+      syncFailureEventType: 'runtime_model_sync_failed_after_start',
+      syncFailureTarget: {
         modelId: model.modelId || localModelId,
         engine: model.engine,
         localModelId,
-      });
-      await refreshLocalSnapshot();
-      setStatusBanner({
-        kind: 'success',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelStarted',
-          'Model started: {{localModelId}}',
-          { localModelId },
-        ),
-      });
-    } catch (error) {
-      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_start', {
-        modelId: model.modelId || localModelId,
-        engine: model.engine,
-        localModelId,
-      }, error);
-      setStatusBanner({
-        kind: 'warning',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelStartedSyncFailed',
-          'Model started locally, but Go runtime sync failed: {{message}}',
-          { message: error instanceof Error ? error.message : String(error || '') },
-        ),
-      });
-      throw error;
-    }
-  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+      },
+      syncFailureBannerKey: 'runtimeConfig.local.modelStartedSyncFailed',
+      syncFailureBannerDefault: 'Model started locally, but Go runtime sync failed: {{message}}',
+      runSync: async () => {
+        await syncModelStartToGoRuntime({
+          modelId: model.modelId || localModelId,
+          engine: model.engine,
+          localModelId,
+        });
+      },
+    });
+  }, [
+    assertRuntimeWriteAllowed,
+    nextLifecycleEpoch,
+    queueLifecycleReconcile,
+    setLifecycleState,
+    setStatusBanner,
+    updateState,
+  ]);
 
   const stopLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
+    const epoch = nextLifecycleEpoch(localModelId);
+    setLifecycleState(localModelId, 'stopping', '', epoch);
+    setStatusBanner({
+      kind: 'info',
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.stopModelPending',
+        'Stopping local model: {{localModelId}}',
+        { localModelId },
+      ),
+    });
     const model = await localRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
@@ -273,43 +447,64 @@ export function useRuntimeConfigModelManagementActions(
           { message: error instanceof Error ? error.message : String(error || '') },
         ),
       });
+      setLifecycleState(
+        localModelId,
+        'error',
+        error instanceof Error ? error.message : String(error || ''),
+        epoch,
+      );
       throw error;
     });
-    try {
-      await syncModelStopToGoRuntime({
+    applyLocalModelSnapshotToState(updateState, model);
+    setLifecycleState(localModelId, 'syncing', '', epoch);
+    setStatusBanner({
+      kind: 'success',
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.modelStopped',
+        'Model stopped: {{localModelId}}',
+        { localModelId },
+      ),
+    });
+    queueLifecycleReconcile({
+      localModelId,
+      epoch,
+      syncFailureEventType: 'runtime_model_sync_failed_after_stop',
+      syncFailureTarget: {
         modelId: model.modelId || localModelId,
         engine: model.engine,
         localModelId,
-      });
-      await refreshLocalSnapshot();
-      setStatusBanner({
-        kind: 'success',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelStopped',
-          'Model stopped: {{localModelId}}',
-          { localModelId },
-        ),
-      });
-    } catch (error) {
-      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_stop', {
-        modelId: model.modelId || localModelId,
-        engine: model.engine,
-        localModelId,
-      }, error);
-      setStatusBanner({
-        kind: 'warning',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelStoppedSyncFailed',
-          'Model stopped locally, but Go runtime sync failed: {{message}}',
-          { message: error instanceof Error ? error.message : String(error || '') },
-        ),
-      });
-      throw error;
-    }
-  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+      },
+      syncFailureBannerKey: 'runtimeConfig.local.modelStoppedSyncFailed',
+      syncFailureBannerDefault: 'Model stopped locally, but Go runtime sync failed: {{message}}',
+      runSync: async () => {
+        await syncModelStopToGoRuntime({
+          modelId: model.modelId || localModelId,
+          engine: model.engine,
+          localModelId,
+        });
+      },
+    });
+  }, [
+    assertRuntimeWriteAllowed,
+    nextLifecycleEpoch,
+    queueLifecycleReconcile,
+    setLifecycleState,
+    setStatusBanner,
+    updateState,
+  ]);
 
   const restartLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
+    const epoch = nextLifecycleEpoch(localModelId);
+    setLifecycleState(localModelId, 'restarting', '', epoch);
+    setStatusBanner({
+      kind: 'info',
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.restartModelPending',
+        'Restarting local model: {{localModelId}}',
+        { localModelId },
+      ),
+    });
     let stoppedModel: Awaited<ReturnType<typeof localRuntime.stop>> | null = null;
     let resolvedModelId = localModelId;
     try {
@@ -323,25 +518,9 @@ export function useRuntimeConfigModelManagementActions(
         return null;
       });
       resolvedModelId = stoppedModel?.modelId || localModelId;
-      await syncModelStopToGoRuntime({
-        modelId: resolvedModelId,
-        engine: stoppedModel?.engine,
-        localModelId,
-      }).catch((syncErr) => {
-        emitRuntimeLog({
-          level: 'warn',
-          area: 'local-ai',
-          message: 'action:restartLocalModel:sync-stop-failed',
-          details: { localModelId, error: syncErr instanceof Error ? syncErr.message : String(syncErr) },
-        });
-      });
       const startedModel = await localRuntime.start(localModelId, { caller: 'core' });
-      await syncModelStartToGoRuntime({
-        modelId: startedModel.modelId || resolvedModelId,
-        engine: startedModel.engine,
-        localModelId,
-      });
-      await refreshLocalSnapshot();
+      applyLocalModelSnapshotToState(updateState, startedModel);
+      setLifecycleState(localModelId, 'syncing', '', epoch);
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
@@ -350,23 +529,67 @@ export function useRuntimeConfigModelManagementActions(
           { localModelId },
         ),
       });
-    } catch (error) {
-      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_restart', {
-        modelId: resolvedModelId,
-        engine: stoppedModel?.engine || '',
+      queueLifecycleReconcile({
         localModelId,
-      }, error);
+        epoch,
+        syncFailureEventType: 'runtime_model_sync_failed_after_restart',
+        syncFailureTarget: {
+          modelId: startedModel.modelId || resolvedModelId,
+          engine: startedModel.engine || stoppedModel?.engine || '',
+          localModelId,
+        },
+        syncFailureBannerKey: 'runtimeConfig.local.modelRestartedSyncFailed',
+        syncFailureBannerDefault: 'Model restarted locally, but Go runtime sync failed: {{message}}',
+        runSync: async () => {
+          if (stoppedModel) {
+            await syncModelStopToGoRuntime({
+              modelId: resolvedModelId,
+              engine: stoppedModel.engine,
+              localModelId,
+            }).catch((syncErr) => {
+              emitRuntimeLog({
+                level: 'warn',
+                area: 'local-ai',
+                message: 'action:restartLocalModel:sync-stop-failed',
+                details: { localModelId, error: syncErr instanceof Error ? syncErr.message : String(syncErr) },
+              });
+            });
+          }
+          await syncModelStartToGoRuntime({
+            modelId: startedModel.modelId || resolvedModelId,
+            engine: startedModel.engine,
+            localModelId,
+          });
+        },
+      });
+    } catch (error) {
+      if (stoppedModel) {
+        applyLocalModelSnapshotToState(updateState, stoppedModel);
+      }
+      setLifecycleState(
+        localModelId,
+        'error',
+        error instanceof Error ? error.message : String(error || ''),
+        epoch,
+      );
       setStatusBanner({
-        kind: 'warning',
+        kind: 'error',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelRestartedSyncFailed',
-          'Model restarted locally, but Go runtime sync failed: {{message}}',
+          'runtimeConfig.local.restartModelFailed',
+          'Restart model failed: {{message}}',
           { message: error instanceof Error ? error.message : String(error || '') },
         ),
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
+  }, [
+    assertRuntimeWriteAllowed,
+    nextLifecycleEpoch,
+    queueLifecycleReconcile,
+    setLifecycleState,
+    setStatusBanner,
+    updateState,
+  ]);
 
   const removeLocalModel = useCallback(async (localModelId: string) => {
     assertRuntimeWriteAllowed();
@@ -447,5 +670,7 @@ export function useRuntimeConfigModelManagementActions(
     restartLocalModel,
     removeLocalModel,
     removeLocalArtifact,
+    localModelLifecycleById,
+    localModelLifecycleErrorById,
   };
 }

@@ -7,8 +7,10 @@ import type {
 } from './types-profiles';
 
 export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeModelLifecycleOperation = 'idle' | 'starting' | 'stopping' | 'restarting' | 'syncing' | 'error';
 export type LocalRuntimeArtifactKind = 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
 export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeIntegrityMode = 'verified' | 'local_unverified';
 export type LocalRuntimeAssetClass = 'model' | 'artifact';
 export type LocalRuntimeModelType = 'chat' | 'embedding' | 'image' | 'video' | 'tts' | 'stt' | 'music';
 export type LocalRuntimeSuggestionSource = 'manifest' | 'folder' | 'download-metadata' | 'filename' | 'unknown';
@@ -26,6 +28,7 @@ export type LocalRuntimeModelRecord = {
     repo: string;
     revision: string;
   };
+  integrityMode: LocalRuntimeIntegrityMode;
   hashes: Record<string, string>;
   tags: string[];
   knownTotalSizeBytes?: number;
@@ -55,6 +58,7 @@ export type LocalRuntimeArtifactRecord = {
     repo: string;
     revision: string;
   };
+  integrityMode: LocalRuntimeIntegrityMode;
   hashes: Record<string, string>;
   status: LocalRuntimeArtifactStatus;
   installedAt: string;
@@ -573,11 +577,13 @@ export type LocalRuntimeSnapshot = {
 };
 
 export type LocalRuntimeDownloadState = 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
+export type LocalRuntimeTransferSessionKind = 'download' | 'import';
 
 export type LocalRuntimeDownloadProgressEvent = {
   installSessionId: string;
   modelId: string;
   localModelId?: string;
+  sessionKind: LocalRuntimeTransferSessionKind;
   phase: string;
   bytesReceived: number;
   bytesTotal?: number;
@@ -595,6 +601,7 @@ export type LocalRuntimeDownloadSessionSummary = {
   installSessionId: string;
   modelId: string;
   localModelId: string;
+  sessionKind: LocalRuntimeTransferSessionKind;
   phase: string;
   state: LocalRuntimeDownloadState;
   bytesReceived: number;

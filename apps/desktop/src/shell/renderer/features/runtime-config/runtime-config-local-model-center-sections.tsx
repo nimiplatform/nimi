@@ -38,6 +38,7 @@ import {
 export {
   ArtifactRequirementBadges,
   LocalModelCenterActiveDownloadsSection,
+  LocalModelCenterActiveImportsSection,
   LocalModelCenterArtifactTasksSection,
   LocalModelCenterQuickPicksSection,
   LocalModelCenterVerifiedArtifactsSection,

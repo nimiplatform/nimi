@@ -119,6 +119,7 @@ pub fn runtime_local_models_import_file(
             install_session_id: install_session_id.clone(),
             model_id: model_id.clone(),
             local_model_id: Some(local_model_id.clone()),
+            session_kind: LocalAiTransferSessionKind::Import,
             phase: "copy".to_string(),
             bytes_received: 0,
             bytes_total: Some(file_size),

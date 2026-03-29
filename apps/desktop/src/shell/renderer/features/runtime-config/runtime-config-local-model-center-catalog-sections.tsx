@@ -21,6 +21,7 @@ import {
   formatBytes,
   formatDownloadPhaseLabel,
   formatEta,
+  formatImportPhaseLabel,
   formatSpeed,
 } from './runtime-config-model-center-utils';
 
@@ -290,6 +291,89 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
   );
 }
 
+type ActiveImportsSectionProps = {
+  imports: LocalRuntimeDownloadProgressEvent[];
+};
+
+function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) {
+  if (props.imports.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
+        {i18n.t('runtimeConfig.localModelCenter.activeImports', {
+          count: props.imports.length,
+          defaultValue: 'Active Imports ({{count}})',
+        })}
+      </h3>
+      {props.imports.map((event) => {
+        const isRunning = event.state === 'running';
+        const isPaused = event.state === 'paused';
+        const isFailed = event.state === 'failed';
+        const phaseLabel = formatImportPhaseLabel(event.phase);
+        const progressMeta = event.phase === 'register'
+          || event.phase === 'manifest'
+          ? i18n.t('runtimeConfig.localModelCenter.finalizingImport', { defaultValue: 'Finalizing local import...' })
+          : event.speedBytesPerSec && event.speedBytesPerSec > 0
+            ? i18n.t('runtimeConfig.localModelCenter.importProgressWithEta', {
+              speed: formatSpeed(event.speedBytesPerSec),
+              eta: formatEta(event.etaSeconds),
+              defaultValue: '{{speed}} · ETA {{eta}}',
+            })
+            : i18n.t('runtimeConfig.localModelCenter.processingLocalImport', { defaultValue: 'Processing local import...' });
+
+        return (
+          <div key={event.installSessionId} className="rounded-2xl bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.035)] ring-1 ring-black/[0.04]">
+            <div className="mb-2 flex items-center gap-3">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'}`}>
+                <FolderOpenIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{event.modelId}</p>
+                <p className="text-xs text-[var(--nimi-text-muted)]">{phaseLabel}</p>
+                <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+                  {event.message || i18n.t('runtimeConfig.localModelCenter.localImportSession', { defaultValue: 'Importing local file into managed storage.' })}
+                </p>
+              </div>
+              <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
+                isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' :
+                isPaused ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' :
+                isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] text-[var(--nimi-status-info)]' :
+                'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]'
+              }`}>
+                {downloadStateLabel(event.state)}
+              </span>
+            </div>
+            {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
+              <div className="mb-2">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]">
+                  <div
+                    className={`h-full transition-all ${isFailed ? 'bg-[var(--nimi-status-danger)]' : 'bg-[var(--nimi-status-success)]'}`}
+                    style={{ width: `${Math.max(0, Math.min(100, Math.round((event.bytesReceived / event.bytesTotal) * 100)))}%` }}
+                  />
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] text-[var(--nimi-text-muted)]">
+                  <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
+                  {(isRunning || isPaused) ? <span>{progressMeta}</span> : null}
+                </div>
+              </div>
+            ) : (
+              <p className="mb-2 text-xs text-[var(--nimi-text-muted)]">
+                {i18n.t('runtimeConfig.localModelCenter.localImportProgress', {
+                  value: formatBytes(event.bytesReceived),
+                  defaultValue: '{{value}} processed locally',
+                })}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 type ArtifactTasksSectionProps = {
   tasks: ArtifactTaskEntry[];
   pendingTemplateIds: string[];
@@ -446,6 +530,7 @@ function LocalModelCenterQuickPicksSection(props: QuickPicksSectionProps) {
 export {
   ArtifactRequirementBadges,
   LocalModelCenterActiveDownloadsSection,
+  LocalModelCenterActiveImportsSection,
   LocalModelCenterArtifactTasksSection,
   LocalModelCenterQuickPicksSection,
   LocalModelCenterVerifiedArtifactsSection,

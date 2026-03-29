@@ -309,7 +309,8 @@ mod tests {
     use super::{load_state_from_path, save_state_to_path};
     use crate::local_runtime::types::{
         LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiInstallRequest,
-        LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiRuntimeState,
+        LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
+        LocalAiRuntimeState, LocalAiTransferSessionKind,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -341,6 +342,7 @@ mod tests {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
             hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc".to_string())]),
             tags: Vec::new(),
             known_total_size_bytes: Some(1_024),
@@ -368,6 +370,7 @@ mod tests {
             install_session_id: install_session_id.to_string(),
             model_id: "hf:test/model".to_string(),
             local_model_id: "hf:test-model".to_string(),
+            session_kind: LocalAiTransferSessionKind::Download,
             request: LocalAiInstallRequest {
                 model_id: "hf:test/model".to_string(),
                 repo: "test/model".to_string(),

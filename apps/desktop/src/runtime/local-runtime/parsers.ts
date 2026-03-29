@@ -78,6 +78,12 @@ export function normalizeStatus(value: unknown): LocalRuntimeModelStatus {
   return 'installed';
 }
 
+function inferIntegrityModeFromRepo(repo: string): 'verified' | 'local_unverified' {
+  return repo.trim().toLowerCase().startsWith('local-import/')
+    ? 'local_unverified'
+    : 'verified';
+}
+
 export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
   const record = asRecord(value);
   const source = asRecord(record.source);
@@ -104,6 +110,12 @@ export function parseModelRecord(value: unknown): LocalRuntimeModelRecord {
       repo: asString(source.repo),
       revision: asString(source.revision),
     },
+    integrityMode: (
+      asString(record.integrityMode) === 'local_unverified'
+      || asString(record.integrityMode) === 'verified'
+    )
+      ? (asString(record.integrityMode) as 'verified' | 'local_unverified')
+      : inferIntegrityModeFromRepo(asString(source.repo)),
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
     ),
@@ -231,6 +243,12 @@ export function parseArtifactRecord(value: unknown): LocalRuntimeArtifactRecord 
       repo: asString(source.repo),
       revision: asString(source.revision),
     },
+    integrityMode: (
+      asString(record.integrityMode) === 'local_unverified'
+      || asString(record.integrityMode) === 'verified'
+    )
+      ? (asString(record.integrityMode) as 'verified' | 'local_unverified')
+      : inferIntegrityModeFromRepo(asString(source.repo)),
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hash]) => [String(key), asString(hash)]),
     ),

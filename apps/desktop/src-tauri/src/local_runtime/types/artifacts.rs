@@ -2,6 +2,17 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use super::models::LocalAiIntegrityMode;
+
+pub fn infer_artifact_integrity_mode_from_source(
+    source: &LocalAiArtifactSource,
+) -> LocalAiIntegrityMode {
+    if source.repo.trim().to_ascii_lowercase().starts_with("local-import/") {
+        return LocalAiIntegrityMode::LocalUnverified;
+    }
+    LocalAiIntegrityMode::Verified
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum LocalAiArtifactKind {
@@ -42,6 +53,8 @@ pub struct ImportedArtifactManifest {
     pub files: Vec<String>,
     pub license: String,
     pub source: LocalAiArtifactSource,
+    #[serde(default)]
+    pub integrity_mode: Option<LocalAiIntegrityMode>,
     pub hashes: HashMap<String, String>,
     pub metadata: Option<serde_json::Value>,
 }
@@ -58,6 +71,8 @@ pub struct LocalAiArtifactRecord {
     pub files: Vec<String>,
     pub license: String,
     pub source: LocalAiArtifactSource,
+    #[serde(default)]
+    pub integrity_mode: Option<LocalAiIntegrityMode>,
     pub hashes: HashMap<String, String>,
     pub status: LocalAiArtifactStatus,
     pub installed_at: String,

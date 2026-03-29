@@ -663,6 +663,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
 
   return {
     activeDownloads: importActions.activeDownloads,
+    activeImports: importActions.activeImports,
     artifactBusy,
     artifactKindFilter,
     artifactOrphanError: '',

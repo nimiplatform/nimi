@@ -81,6 +81,21 @@ fn cache_binary_path() -> Result<PathBuf, String> {
     Ok(cache_dir.join(binary_name()))
 }
 
+pub fn resolve_existing_llama_cpp_binary() -> Result<Option<String>, String> {
+    if let Some(override_path) = env_override_binary_path() {
+        if Path::new(&override_path).exists() {
+            return Ok(Some(override_path));
+        }
+        return Ok(None);
+    }
+
+    let cached = cache_binary_path()?;
+    if cached.exists() {
+        return Ok(Some(cached.to_string_lossy().to_string()));
+    }
+    Ok(None)
+}
+
 fn normalize_non_empty(input: Option<&str>) -> Option<String> {
     let normalized = input.unwrap_or_default().trim();
     if normalized.is_empty() {

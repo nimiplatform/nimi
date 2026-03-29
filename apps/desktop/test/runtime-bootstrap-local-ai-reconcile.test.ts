@@ -16,6 +16,7 @@ test('reconcileLocalRuntimeBootstrapState reconciles desktop and go-runtime mode
       repo: 'repo',
       revision: 'main',
     },
+    integrityMode: 'verified' as const,
     hashes: {},
     endpoint: 'http://127.0.0.1:1234/v1',
     status: 'installed' as const,

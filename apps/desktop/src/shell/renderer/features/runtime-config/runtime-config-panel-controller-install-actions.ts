@@ -3,6 +3,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   findLocalRuntimeProfileById,
   localRuntime,
+  type LocalRuntimeModelLifecycleOperation,
   normalizeLocalRuntimeProfilesDeclaration,
   type GoRuntimeSyncTarget,
   type LocalRuntimeArtifactKind,
@@ -20,6 +21,7 @@ import { createOfflineError, getOfflineCoordinator } from '@runtime/offline';
 import { i18n } from '@renderer/i18n';
 import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-utils';
 import { asRecord } from './runtime-config-panel-controller-utils';
+import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
   useRuntimeConfigModelManagementActions,
   type PendingInstallEntry,
@@ -88,16 +90,19 @@ export type RuntimeConfigInstallActions = {
   restartLocalModel: (localModelId: string) => Promise<void>;
   removeLocalModel: (localModelId: string) => Promise<void>;
   removeLocalArtifact: (localArtifactId: string) => Promise<void>;
+  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleErrorById: Record<string, string>;
 };
 
 export type UseRuntimeConfigInstallActionsInput = {
   localManifestSummaries: ManifestSummary[];
   refreshLocalSnapshot: () => Promise<void>;
   setStatusBanner: SetRuntimeConfigBanner;
+  updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
 };
 
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
-  const { localManifestSummaries, refreshLocalSnapshot, setStatusBanner } = input;
+  const { localManifestSummaries, refreshLocalSnapshot, setStatusBanner, updateState } = input;
 
   const pendingInstallsRef = useRef(new Map<string, PendingInstallEntry>());
   const [pendingInstallVersion, setPendingInstallVersion] = useState(0);
@@ -216,6 +221,9 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
           repo: plan?.repo || '',
           revision: plan?.revision || '',
         },
+        integrityMode: String(plan?.repo || '').trim().toLowerCase().startsWith('local-import/')
+          ? 'local_unverified'
+          : 'verified',
         hashes: plan?.hashes || {},
         tags: [],
         knownTotalSizeBytes: undefined,
@@ -590,6 +598,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     setPendingInstallVersion,
     refreshLocalSnapshot,
     setStatusBanner,
+    updateState,
   });
 
   return {
@@ -611,5 +620,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     restartLocalModel: modelActions.restartLocalModel,
     removeLocalModel: modelActions.removeLocalModel,
     removeLocalArtifact: modelActions.removeLocalArtifact,
+    localModelLifecycleById: modelActions.localModelLifecycleById,
+    localModelLifecycleErrorById: modelActions.localModelLifecycleErrorById,
   };
 }

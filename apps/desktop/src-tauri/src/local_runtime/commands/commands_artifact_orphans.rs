@@ -230,7 +230,7 @@ fn scaffold_orphan_artifact_file(
     })?;
     let dest_file = target_dir.join(&file_name);
 
-    let file_size = std::fs::metadata(source_path)
+    let _file_size = std::fs::metadata(source_path)
         .map(|meta| meta.len())
         .unwrap_or(0);
     let in_place = source_is_already_in_target_dir(source_path, &target_dir)
@@ -248,33 +248,29 @@ fn scaffold_orphan_artifact_file(
         ));
     }
 
-    let hash = if in_place {
-        hash_existing_file_with_progress(&dest_file, |_| {})?
-    } else {
+    if !in_place {
         match std::fs::rename(source_path, &dest_file) {
-            Ok(_) => hash_existing_file_with_progress(&dest_file, |_| {})?,
+            Ok(_) => {}
             Err(_) => {
                 let source_file = std::fs::File::open(source_path).map_err(|error| {
                     format!(
                         "LOCAL_AI_ARTIFACT_ORPHAN_READ_FAILED: cannot open source file: {error}"
                     )
                 })?;
-                let copied_hash = copy_and_hash_file(source_file, &dest_file, file_size, |_| {})
-                    .map_err(|error| {
-                        format!(
-                            "LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED: cannot stage artifact file: {error}"
-                        )
-                    })?;
+                copy_file_with_progress(source_file, &dest_file, |_| {}).map_err(|error| {
+                    format!(
+                        "LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED: cannot stage artifact file: {error}"
+                    )
+                })?;
                 std::fs::remove_file(source_path).map_err(|error| {
                     let _ = std::fs::remove_file(&dest_file);
                     format!(
                         "LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED: cannot remove source file after copy: {error}"
                     )
                 })?;
-                copied_hash
             }
         }
-    };
+    }
 
     let artifact_engine = match normalized_kind.as_str() {
         "vae" | "ae" | "clip" | "controlnet" | "lora" => "media",
@@ -309,9 +305,8 @@ fn scaffold_orphan_artifact_file(
             "repo": artifact_id,
             "revision": "local"
         },
-        "hashes": {
-            file_name: hash,
-        },
+        "integrity_mode": "local_unverified",
+        "hashes": {},
     });
     let serialized = serde_json::to_string_pretty(&manifest).map_err(|error| {
         format!("LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED: {error}")
@@ -356,7 +351,8 @@ mod orphan_tests {
         registered_model_paths, scan_orphan_binary_candidates, scaffold_orphan_artifact_file,
     };
     use crate::local_runtime::types::{
-        LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiRuntimeState,
+        LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
+        LocalAiRuntimeState,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -375,6 +371,7 @@ mod orphan_tests {
                 repo: "hf://fixture/model".to_string(),
                 revision: "main".to_string(),
             },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
             hashes: HashMap::from([(entry.to_string(), "sha256:fixture".to_string())]),
             tags: Vec::new(),
             known_total_size_bytes: Some(1_024),
@@ -477,10 +474,8 @@ mod orphan_tests {
                 "revision": "local",
             })
         );
-        let hash = manifest["hashes"]["companion.safetensors"]
-            .as_str()
-            .unwrap_or_default();
-        assert!(hash.starts_with("sha256:"));
+        assert_eq!(manifest["integrity_mode"], "local_unverified");
+        assert_eq!(manifest["hashes"], serde_json::json!({}));
 
         let manifest_path = std::path::PathBuf::from(&result.manifest_path);
         let target_file = manifest_path

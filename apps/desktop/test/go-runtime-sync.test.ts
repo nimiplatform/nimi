@@ -178,6 +178,7 @@ test('toDesktopLocalModelRecord preserves structured runtime metadata', () => {
       repo: 'unsloth/z-image',
       revision: 'main',
     },
+    integrityMode: 'verified',
     hashes: {
       sha256: 'abc',
     },

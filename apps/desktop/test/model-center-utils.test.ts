@@ -302,6 +302,7 @@ describe('pruneProgressSessions', () => {
     event: {
       installSessionId: `session-${updatedAtMs}`,
       modelId: 'test-model',
+      sessionKind: 'download',
       phase: 'download' as const,
       state: done ? 'completed' : 'running',
       reasonCode: undefined,
@@ -379,6 +380,7 @@ describe('sortProgressSessions', () => {
     event: {
       installSessionId,
       modelId: installSessionId,
+      sessionKind: 'download',
       phase: 'download' as const,
       state,
       reasonCode: undefined,

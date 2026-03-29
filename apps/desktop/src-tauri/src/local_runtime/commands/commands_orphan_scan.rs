@@ -124,6 +124,7 @@ fn to_orphan_download_event(
         install_session_id: record.install_session_id.clone(),
         model_id: record.model_id.clone(),
         local_model_id: Some(record.local_model_id.clone()),
+        session_kind: record.session_kind.clone(),
         phase: record.phase.clone(),
         bytes_received: record.bytes_received,
         bytes_total: record.bytes_total,
@@ -166,33 +167,6 @@ fn persist_orphan_download_record_best_effort(
         eprintln!("LOCAL_AI_ORPHAN_SCAFFOLD_PROGRESS_SAVE_FAILED: {error}");
         emit_download_progress_event(app, to_orphan_download_event(record));
     }
-}
-
-fn hash_existing_file_with_progress<F>(
-    path: &std::path::Path,
-    mut on_progress: F,
-) -> Result<String, String>
-where
-    F: FnMut(u64),
-{
-    let mut reader = std::fs::File::open(path)
-        .map_err(|e| format!("LOCAL_AI_ORPHAN_SCAFFOLD_HASH_OPEN_FAILED: {e}"))?;
-    let mut hasher = Sha256::new();
-    let mut buffer = vec![0u8; 1024 * 1024];
-    let mut bytes_read = 0u64;
-    loop {
-        let n = reader
-            .read(&mut buffer)
-            .map_err(|e| format!("LOCAL_AI_ORPHAN_SCAFFOLD_HASH_READ_FAILED: {e}"))?;
-        if n == 0 {
-            break;
-        }
-        hasher.update(&buffer[..n]);
-        bytes_read += n as u64;
-        on_progress(bytes_read);
-    }
-    let digest = hasher.finalize();
-    Ok(format!("sha256:{digest:x}"))
 }
 
 fn finalize_orphan_scaffold_failure(
@@ -242,6 +216,7 @@ fn execute_orphan_scaffold_import(
                 install_session_id: install_session_id.to_string(),
                 model_id: model_id.to_string(),
                 local_model_id: local_model_id.to_string(),
+                session_kind: LocalAiTransferSessionKind::Import,
                 request: LocalAiInstallRequest {
                     model_id: model_id.to_string(),
                     repo: format!("local-import/{slug}"),
@@ -284,6 +259,7 @@ fn execute_orphan_scaffold_import(
         install_session_id: install_session_id.to_string(),
         model_id: model_id.to_string(),
         local_model_id: local_model_id.to_string(),
+        session_kind: LocalAiTransferSessionKind::Import,
         request: LocalAiInstallRequest {
             model_id: model_id.to_string(),
             repo: format!("local-import/{slug}"),
@@ -336,80 +312,20 @@ fn execute_orphan_scaffold_import(
         .unwrap_or(true);
     let mut copied_from_source = false;
 
-    let hash = if !needs_move {
-        record.phase = "verify".to_string();
-        record.bytes_received = 0;
+    if !needs_move {
+        record.phase = "move".to_string();
+        record.bytes_received = file_size;
         record.speed_bytes_per_sec = None;
-        record.eta_seconds = None;
-        record.message = Some("verifying imported file".to_string());
+        record.eta_seconds = Some(0.0);
+        record.message = Some("using existing managed file".to_string());
         persist_orphan_download_record_best_effort(app, &mut record);
-        let mut last_emit_ms = 0u64;
-        let verify_start = std::time::Instant::now();
-        match hash_existing_file_with_progress(&dest_file, |bytes_read| {
-            let elapsed = verify_start.elapsed();
-            let elapsed_ms = elapsed.as_millis() as u64;
-            if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_read < file_size {
-                return;
-            }
-            last_emit_ms = elapsed_ms;
-            record.bytes_received = bytes_read;
-            record.speed_bytes_per_sec = if elapsed.as_secs_f64() > 0.0 {
-                Some(bytes_read as f64 / elapsed.as_secs_f64())
-            } else {
-                None
-            };
-            record.eta_seconds = record.speed_bytes_per_sec.and_then(|speed| {
-                if speed > 0.0 {
-                    Some((file_size.saturating_sub(bytes_read)) as f64 / speed)
-                } else {
-                    None
-                }
-            });
-            persist_orphan_download_record_best_effort(app, &mut record);
-        }) {
-            Ok(hash) => hash,
-            Err(error) => {
-                finalize_orphan_scaffold_failure(app, &mut record, source_path, error);
-                return;
-            }
-        }
     } else if std::fs::rename(source_path, &dest_file).is_ok() {
-        record.phase = "verify".to_string();
-        record.bytes_received = 0;
+        record.phase = "move".to_string();
+        record.bytes_received = file_size;
         record.speed_bytes_per_sec = None;
-        record.eta_seconds = None;
-        record.message = Some("verifying moved file".to_string());
+        record.eta_seconds = Some(0.0);
+        record.message = Some("moving local file into managed storage".to_string());
         persist_orphan_download_record_best_effort(app, &mut record);
-        let mut last_emit_ms = 0u64;
-        let verify_start = std::time::Instant::now();
-        match hash_existing_file_with_progress(&dest_file, |bytes_read| {
-            let elapsed = verify_start.elapsed();
-            let elapsed_ms = elapsed.as_millis() as u64;
-            if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_read < file_size {
-                return;
-            }
-            last_emit_ms = elapsed_ms;
-            record.bytes_received = bytes_read;
-            record.speed_bytes_per_sec = if elapsed.as_secs_f64() > 0.0 {
-                Some(bytes_read as f64 / elapsed.as_secs_f64())
-            } else {
-                None
-            };
-            record.eta_seconds = record.speed_bytes_per_sec.and_then(|speed| {
-                if speed > 0.0 {
-                    Some((file_size.saturating_sub(bytes_read)) as f64 / speed)
-                } else {
-                    None
-                }
-            });
-            persist_orphan_download_record_best_effort(app, &mut record);
-        }) {
-            Ok(hash) => hash,
-            Err(error) => {
-                finalize_orphan_scaffold_failure(app, &mut record, source_path, error);
-                return;
-            }
-        }
     } else {
         copied_from_source = true;
         let mut last_emit_ms = 0u64;
@@ -428,7 +344,7 @@ fn execute_orphan_scaffold_import(
                 return;
             }
         };
-        match copy_and_hash_file(source_file, &dest_file, file_size, |bytes_copied| {
+        match copy_file_with_progress(source_file, &dest_file, |bytes_copied| {
             let elapsed = copy_start.elapsed();
             let elapsed_ms = elapsed.as_millis() as u64;
             if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_copied < file_size {
@@ -451,7 +367,7 @@ fn execute_orphan_scaffold_import(
             record.message = Some("copying orphan file".to_string());
             persist_orphan_download_record_best_effort(app, &mut record);
         }) {
-            Ok(hash) => hash,
+            Ok(()) => {}
             Err(error) => {
                 finalize_orphan_scaffold_failure(
                     app,
@@ -462,7 +378,7 @@ fn execute_orphan_scaffold_import(
                 return;
             }
         }
-    };
+    }
 
     record.phase = "manifest".to_string();
     record.bytes_received = file_size;
@@ -489,9 +405,8 @@ fn execute_orphan_scaffold_import(
             "repo": format!("local-import/{}", slug),
             "revision": "local"
         },
-        "hashes": {
-            file_name: hash
-        },
+        "integrity_mode": "local_unverified",
+        "hashes": {},
         "artifact_roles": artifact_roles,
         "preferred_engine": preferred_engine,
         "fallback_engines": fallback_engines,
@@ -524,7 +439,6 @@ fn execute_orphan_scaffold_import(
     record.message = Some("registering imported model".to_string());
     persist_orphan_download_record_best_effort(app, &mut record);
 
-    let hashes = std::collections::HashMap::from([(file_name.to_string(), hash.clone())]);
     let model_record = LocalAiModelRecord {
         local_model_id: local_model_id.to_string(),
         model_id: model_id.to_string(),
@@ -538,7 +452,8 @@ fn execute_orphan_scaffold_import(
             repo: format!("local-import/{}", slug),
             revision: "local".to_string(),
         },
-        hashes,
+        integrity_mode: Some(LocalAiIntegrityMode::LocalUnverified),
+        hashes: std::collections::HashMap::new(),
         tags: Vec::new(),
         known_total_size_bytes: Some(file_size),
         endpoint: endpoint.to_string(),
@@ -568,7 +483,7 @@ fn execute_orphan_scaffold_import(
     record.state = LocalAiDownloadState::Completed;
     record.retryable = false;
     record.reason_code = None;
-    record.phase = "verify".to_string();
+    record.phase = "register".to_string();
     record.bytes_received = file_size;
     record.speed_bytes_per_sec = None;
     record.eta_seconds = Some(0.0);
@@ -584,7 +499,7 @@ fn execute_orphan_scaffold_import(
             "source": "orphan-scaffold",
             "engine": engine,
             "capabilities": capabilities,
-            "hash": hash,
+            "integrityMode": "local_unverified",
         })),
     );
     append_app_audit_event_non_blocking(

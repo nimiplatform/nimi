@@ -1933,9 +1933,9 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_models_catalog_resolve_install_plan`：解析安装计划。
 - `runtime_local_recommendation_feed_get`：读取 capability-scoped recommendation feed；由 Desktop/Tauri 负责 model-index 拉取、本地缓存、设备适配计算与排序。
 - `runtime_local_models_install` / `runtime_local_models_install_verified` / `runtime_local_models_import`：创建安装会话并入队 / 导入模型。
-- `runtime_local_models_import_file`：导入模型文件（copy + hash + manifest 生成）。
+- `runtime_local_models_import_file`：导入模型文件（copy + manifest 生成 + register）；该路径属于 `local_unverified` intake，不执行同步整文件 hash 校验。
 - `runtime_local_models_adopt`：将 go-runtime 已存在的结构化 local model record 纳管到 Desktop/Tauri state，不触发下载或类型选择。
-- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：下载会话查询与控制。
+- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输会话查询与控制。payload 通过 `sessionKind` 区分网络下载（`download`）与本地文件导入（`import`）；pause/resume/cancel 仅对 `download` 语义开放。
 - `runtime_local_models_start` / `runtime_local_models_stop` / `runtime_local_models_remove`：模型生命周期管理。
 - `runtime_local_models_health`：模型健康检查。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
@@ -3043,15 +3043,15 @@ Mod 执行在能力沙箱内（参考 `D-HOOK-008`、`D-MOD-005`）：
 
 **D-SEC-006 — 模型完整性校验**
 
-本地 AI 模型安装要求完整性验证：
+本地 AI 模型安装区分 verified 与 local-unverified 两类完整性语义：
 
-- `manifest.hashes` 非空。
-- 导入时执行 `LOCAL_AI_IMPORT_HASH_MISMATCH` 检查。
-- 空哈希模型无法启动（`LOCAL_AI_MODEL_HASHES_EMPTY`）。
+- verified 安装路径（catalog / verified / 带 expected hashes 的 manifest）要求 `manifest.hashes` 非空，并在导入时执行 `LOCAL_AI_IMPORT_HASH_MISMATCH` 检查。
+- 手工本地文件导入与 orphan scaffold 归类为 `local_unverified`，允许 `manifest.hashes` 为空；它表示用户确认信任的本地文件，而不是 provenance-verified 来源。
+- 只有 verified 模型会因空哈希在启动前被 `LOCAL_AI_MODEL_HASHES_EMPTY` 拦截；`local_unverified` 不受该门槛阻塞。
 
-**跨层引用**：Runtime K-LOCAL-009 在 `InstallLocalModel` 路径执行清单验证（格式校验、引擎类型校验）。Desktop D-SEC-006 的 hash 完整性检查是 UX 前端防线，与 Runtime 层清单验证互补。
+**跨层引用**：Runtime K-LOCAL-009 在 `InstallLocalModel` 路径执行清单验证（格式校验、引擎类型校验）。Desktop D-SEC-006 的 verified-hash 检查是 UX 前端防线，与 Runtime 层清单验证互补。
 
-**信任边界声明**：Desktop D-SEC-006 的 hash 校验是 UX 层防线，防止用户通过 Desktop UI 启动未经验证的模型。Runtime K-LOCAL-009 是格式/引擎校验的权威层，但 Phase 1 不做 hash 验证。通过 Runtime gRPC 直接安装的模型（绕过 Desktop UI）可能缺少 hash 信息——Desktop 启动该模型时会被 `LOCAL_AI_MODEL_HASHES_EMPTY` 拦截，此为设计意图（Desktop 作为 UX 守护层）。
+**信任边界声明**：Desktop D-SEC-006 的 hash 校验只覆盖 verified 来源，防止用户通过 Desktop UI 启动宣称已验证但缺乏完整性证明的模型。`local_unverified` 是用户显式确认的本地导入信任边界，Desktop 会保留“未进行来源验证”的 provenance 标识，但不会追加同步 SHA256 阻塞启动。Runtime K-LOCAL-009 仍然是格式/引擎校验的权威层。
 
 **D-SEC-007 — External Agent Token 安全**
 

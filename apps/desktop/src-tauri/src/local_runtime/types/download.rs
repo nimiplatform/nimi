@@ -4,6 +4,17 @@ use super::catalog::LocalAiInstallRequest;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
+pub enum LocalAiTransferSessionKind {
+    Download,
+    Import,
+}
+
+fn default_transfer_session_kind() -> LocalAiTransferSessionKind {
+    LocalAiTransferSessionKind::Download
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
 pub enum LocalAiDownloadState {
     Queued,
     Running,
@@ -19,6 +30,8 @@ pub struct LocalAiDownloadProgressEvent {
     pub install_session_id: String,
     pub model_id: String,
     pub local_model_id: Option<String>,
+    #[serde(default = "default_transfer_session_kind")]
+    pub session_kind: LocalAiTransferSessionKind,
     pub phase: String,
     pub bytes_received: u64,
     pub bytes_total: Option<u64>,
@@ -38,6 +51,8 @@ pub struct LocalAiDownloadSessionRecord {
     pub install_session_id: String,
     pub model_id: String,
     pub local_model_id: String,
+    #[serde(default = "default_transfer_session_kind")]
+    pub session_kind: LocalAiTransferSessionKind,
     pub request: LocalAiInstallRequest,
     pub install_metadata: Option<serde_json::Value>,
     pub phase: String,
@@ -59,6 +74,8 @@ pub struct LocalAiDownloadSessionSummary {
     pub install_session_id: String,
     pub model_id: String,
     pub local_model_id: String,
+    #[serde(default = "default_transfer_session_kind")]
+    pub session_kind: LocalAiTransferSessionKind,
     pub phase: String,
     pub state: LocalAiDownloadState,
     pub bytes_received: u64,

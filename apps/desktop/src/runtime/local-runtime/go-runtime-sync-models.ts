@@ -34,6 +34,12 @@ function normalizeStringMap(value: unknown): Record<string, string> {
   );
 }
 
+function inferIntegrityModeFromRepo(repo: string): LocalRuntimeModelRecord['integrityMode'] {
+  return repo.trim().toLowerCase().startsWith('local-import/')
+    ? 'local_unverified'
+    : 'verified';
+}
+
 export function normalizeEngine(value: unknown): string {
   return String(value || '').trim().toLowerCase() || 'llama';
 }
@@ -174,6 +180,7 @@ export function toDesktopLocalModelRecord(model: GoRuntimeModelEntry): LocalRunt
       repo: model.source?.repo || '',
       revision: model.source?.revision || '',
     },
+    integrityMode: inferIntegrityModeFromRepo(model.source?.repo || ''),
     hashes: { ...(model.hashes || {}) },
     tags: [],
     knownTotalSizeBytes: undefined,

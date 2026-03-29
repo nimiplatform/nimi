@@ -70,6 +70,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const {
     activeDownloads,
+    activeImports,
     getLatestProgressEvent,
     onPauseDownload,
     onResumeDownload,
@@ -233,6 +234,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   return {
     activeDownloads,
+    activeImports,
     closeVariantPicker,
     importAssetFromPath,
     importPickedAssetFile,

@@ -223,9 +223,9 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 - `runtime_local_models_catalog_resolve_install_plan`：解析安装计划。
 - `runtime_local_recommendation_feed_get`：读取 capability-scoped recommendation feed；由 Desktop/Tauri 负责 model-index 拉取、本地缓存、设备适配计算与排序。
 - `runtime_local_models_install` / `runtime_local_models_install_verified` / `runtime_local_models_import`：创建安装会话并入队 / 导入模型。
-- `runtime_local_models_import_file`：导入模型文件（copy + hash + manifest 生成）。
+- `runtime_local_models_import_file`：导入模型文件（copy + manifest 生成 + register）；该路径属于 `local_unverified` intake，不执行同步整文件 hash 校验。
 - `runtime_local_models_adopt`：将 go-runtime 已存在的结构化 local model record 纳管到 Desktop/Tauri state，不触发下载或类型选择。
-- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：下载会话查询与控制。
+- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输会话查询与控制。payload 通过 `sessionKind` 区分网络下载（`download`）与本地文件导入（`import`）；pause/resume/cancel 仅对 `download` 语义开放。
 - `runtime_local_models_start` / `runtime_local_models_stop` / `runtime_local_models_remove`：模型生命周期管理。
 - `runtime_local_models_health`：模型健康检查。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。

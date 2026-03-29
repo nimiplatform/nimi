@@ -14,10 +14,11 @@ pub(crate) use manifest_checks::{
 };
 
 use super::types::{
-    generate_ulid_string, normalize_non_empty, now_iso_timestamp, slugify_local_model_id,
-    ImportedArtifactManifest, ImportedModelManifest, LocalAiArtifactKind, LocalAiArtifactRecord,
-    LocalAiArtifactSource, LocalAiArtifactStatus, LocalAiModelRecord, LocalAiModelSource,
-    LocalAiModelStatus,
+    generate_ulid_string, infer_artifact_integrity_mode_from_source,
+    infer_model_integrity_mode_from_source, normalize_non_empty, now_iso_timestamp,
+    slugify_local_model_id, ImportedArtifactManifest, ImportedModelManifest,
+    LocalAiArtifactKind, LocalAiArtifactRecord, LocalAiArtifactSource, LocalAiArtifactStatus,
+    LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
 };
 
 pub fn manifest_to_model_record(
@@ -67,6 +68,12 @@ pub fn manifest_to_model_record(
             repo: manifest.source.repo.trim().to_string(),
             revision: manifest.source.revision.trim().to_string(),
         },
+        integrity_mode: manifest.integrity_mode.or_else(|| {
+            Some(infer_model_integrity_mode_from_source(&LocalAiModelSource {
+                repo: manifest.source.repo.trim().to_string(),
+                revision: manifest.source.revision.trim().to_string(),
+            }))
+        }),
         hashes: manifest
             .hashes
             .iter()
@@ -115,6 +122,12 @@ pub fn manifest_to_artifact_record(
             repo: manifest.source.repo.trim().to_string(),
             revision: manifest.source.revision.trim().to_string(),
         },
+        integrity_mode: manifest.integrity_mode.or_else(|| {
+            Some(infer_artifact_integrity_mode_from_source(&LocalAiArtifactSource {
+                repo: manifest.source.repo.trim().to_string(),
+                revision: manifest.source.revision.trim().to_string(),
+            }))
+        }),
         hashes: manifest.hashes.clone(),
         status: LocalAiArtifactStatus::Installed,
         installed_at: now.clone(),
@@ -454,7 +467,7 @@ mod tests {
     #[test]
     fn manifest_to_model_record_generates_installed_status() {
         use crate::local_runtime::types::{
-            ImportedModelManifest, ImportedModelSource, LocalAiModelStatus,
+            ImportedModelManifest, ImportedModelSource, LocalAiIntegrityMode, LocalAiModelStatus,
         };
         use std::collections::HashMap;
 
@@ -471,6 +484,7 @@ mod tests {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
             hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc123".to_string())]),
             artifact_roles: vec!["llm".to_string(), "tokenizer".to_string()],
             preferred_engine: Some("llama".to_string()),

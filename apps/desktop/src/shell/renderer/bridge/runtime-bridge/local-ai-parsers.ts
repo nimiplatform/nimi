@@ -13,6 +13,16 @@ import type {
   LocalRuntimeVerifiedModelDescriptor,
 } from './local-ai-types.js';
 
+function inferIntegrityModeFromRepo(repo: string): LocalRuntimeModelRecord['integrityMode'] {
+  return repo.trim().toLowerCase().startsWith('local-import/')
+    ? 'local_unverified'
+    : 'verified';
+}
+
+function normalizeTransferSessionKind(value: unknown): LocalRuntimeDownloadProgressEvent['sessionKind'] {
+  return String(value || '').trim().toLowerCase() === 'import' ? 'import' : 'download';
+}
+
 export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelRecord {
   const record = assertRecord(value, 'local_runtime returned invalid model payload');
   const source = assertRecord(record.source, 'local_runtime model source is invalid');
@@ -46,6 +56,12 @@ export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelR
       repo: parseRequiredString(source.repo, 'source.repo', 'local_runtime model'),
       revision: parseRequiredString(source.revision, 'source.revision', 'local_runtime model'),
     },
+    integrityMode: (
+      String(record.integrityMode || '').trim() === 'local_unverified'
+      || String(record.integrityMode || '').trim() === 'verified'
+    )
+      ? String(record.integrityMode || '').trim() as LocalRuntimeModelRecord['integrityMode']
+      : inferIntegrityModeFromRepo(String(source.repo || '').trim()),
     hashes: Object.fromEntries(
       Object.entries(hashes).map(([key, hashValue]) => [String(key), String(hashValue || '').trim()]),
     ),
@@ -195,6 +211,7 @@ export function parseLocalRuntimeDownloadProgressEvent(value: unknown): LocalRun
     installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'local-ai://download-progress'),
     modelId: parseRequiredString(record.modelId, 'modelId', 'local-ai://download-progress'),
     localModelId: parseOptionalString(record.localModelId),
+    sessionKind: normalizeTransferSessionKind(record.sessionKind),
     phase: parseRequiredString(record.phase, 'phase', 'local-ai://download-progress'),
     bytesReceived: Number.isFinite(bytesReceived) && bytesReceived >= 0 ? bytesReceived : 0,
     bytesTotal: Number.isFinite(bytesTotalRaw) && bytesTotalRaw >= 0 ? bytesTotalRaw : undefined,

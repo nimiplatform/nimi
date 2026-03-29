@@ -103,6 +103,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     localManifestSummaries,
     refreshLocalSnapshot,
     setStatusBanner,
+    updateState: panelState.updateState,
   });
 
   const onVaultChanged = useCallback(() => {
@@ -194,6 +195,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,
     runtimeDaemonUpdatedAt: daemon.runtimeDaemonUpdatedAt,
+    localModelLifecycleById: installActions.localModelLifecycleById,
+    localModelLifecycleErrorById: installActions.localModelLifecycleErrorById,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
     setLocalModelQuery: panelState.setLocalModelQuery,
     setConnectorModelQuery: panelState.setConnectorModelQuery,

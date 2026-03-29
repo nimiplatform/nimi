@@ -7,19 +7,23 @@ pub fn runtime_local_models_remove(
 }
 
 #[tauri::command]
-pub fn runtime_local_models_start(
+pub async fn runtime_local_models_start(
     app: AppHandle,
     payload: LocalAiModelIdPayload,
 ) -> Result<LocalAiModelRecord, String> {
-    start_model(&app, &payload.local_model_id)
+    tauri::async_runtime::spawn_blocking(move || start_model(&app, &payload.local_model_id))
+        .await
+        .map_err(|error| format!("LOCAL_AI_MODEL_START_TASK_FAILED: {error}"))?
 }
 
 #[tauri::command]
-pub fn runtime_local_models_stop(
+pub async fn runtime_local_models_stop(
     app: AppHandle,
     payload: LocalAiModelIdPayload,
 ) -> Result<LocalAiModelRecord, String> {
-    stop_model(&app, &payload.local_model_id)
+    tauri::async_runtime::spawn_blocking(move || stop_model(&app, &payload.local_model_id))
+        .await
+        .map_err(|error| format!("LOCAL_AI_MODEL_STOP_TASK_FAILED: {error}"))?
 }
 
 #[tauri::command]

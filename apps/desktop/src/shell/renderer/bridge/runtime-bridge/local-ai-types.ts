@@ -3,6 +3,8 @@ import type { JsonObject } from './shared.js';
 export type LocalRuntimeModelStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
 export type LocalRuntimeArtifactKind = 'vae' | 'ae' | 'llm' | 'clip' | 'controlnet' | 'lora' | 'auxiliary';
 export type LocalRuntimeArtifactStatus = 'installed' | 'active' | 'unhealthy' | 'removed';
+export type LocalRuntimeIntegrityMode = 'verified' | 'local_unverified';
+export type LocalRuntimeTransferSessionKind = 'download' | 'import';
 
 export type LocalRuntimeModelRecord = {
   localModelId: string;
@@ -16,6 +18,7 @@ export type LocalRuntimeModelRecord = {
     repo: string;
     revision: string;
   };
+  integrityMode: LocalRuntimeIntegrityMode;
   hashes: Record<string, string>;
   tags: string[];
   knownTotalSizeBytes?: number;
@@ -39,6 +42,7 @@ export type LocalRuntimeArtifactRecord = {
     repo: string;
     revision: string;
   };
+  integrityMode: LocalRuntimeIntegrityMode;
   hashes: Record<string, string>;
   status: LocalRuntimeArtifactStatus;
   installedAt: string;
@@ -117,6 +121,7 @@ export type LocalRuntimeDownloadProgressEvent = {
   installSessionId: string;
   modelId: string;
   localModelId?: string;
+  sessionKind: LocalRuntimeTransferSessionKind;
   phase: string;
   bytesReceived: number;
   bytesTotal?: number;
@@ -134,6 +139,7 @@ export type LocalRuntimeDownloadSessionSummary = {
   installSessionId: string;
   modelId: string;
   localModelId: string;
+  sessionKind: LocalRuntimeTransferSessionKind;
   phase: string;
   state: 'queued' | 'running' | 'paused' | 'failed' | 'completed' | 'cancelled';
   bytesReceived: number;

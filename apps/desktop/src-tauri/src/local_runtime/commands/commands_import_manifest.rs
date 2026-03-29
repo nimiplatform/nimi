@@ -119,6 +119,12 @@ pub fn runtime_local_models_adopt(
             repo: payload.source.repo.trim().to_string(),
             revision: payload.source.revision.trim().to_string(),
         },
+        integrity_mode: payload.integrity_mode.or_else(|| {
+            Some(infer_model_integrity_mode_from_source(&LocalAiModelSource {
+                repo: payload.source.repo.trim().to_string(),
+                revision: payload.source.revision.trim().to_string(),
+            }))
+        }),
         hashes: payload.hashes,
         tags,
         known_total_size_bytes: payload.known_total_size_bytes.filter(|value| *value > 0),
@@ -176,19 +182,17 @@ pub fn runtime_local_pick_model_file(app: AppHandle) -> Result<Option<String>, S
     Ok(selected.map(|p| p.to_string_lossy().to_string()))
 }
 
-fn copy_and_hash_file<F>(
+fn copy_file_with_progress<F>(
     mut reader: std::fs::File,
     dest: &std::path::Path,
-    total_bytes: u64,
     mut on_progress: F,
-) -> Result<String, String>
+) -> Result<(), String>
 where
     F: FnMut(u64),
 {
     let mut writer = std::fs::File::create(dest).map_err(|e| {
         format!("LOCAL_AI_FILE_IMPORT_WRITE_FAILED: cannot create target file: {e}")
     })?;
-    let mut hasher = Sha256::new();
     let mut buffer = vec![0u8; 64 * 1024];
     let mut bytes_copied: u64 = 0;
     loop {
@@ -201,7 +205,6 @@ where
         writer.write_all(&buffer[..n]).map_err(|e| {
             format!("LOCAL_AI_FILE_IMPORT_WRITE_FAILED: write error at byte {bytes_copied}: {e}")
         })?;
-        hasher.update(&buffer[..n]);
         bytes_copied += n as u64;
         on_progress(bytes_copied);
     }
@@ -211,9 +214,7 @@ where
     writer
         .sync_all()
         .map_err(|e| format!("LOCAL_AI_FILE_IMPORT_SYNC_FAILED: {e}"))?;
-    let _ = total_bytes; // used by caller for progress ratio
-    let digest = hasher.finalize();
-    Ok(format!("sha256:{digest:x}"))
+    Ok(())
 }
 
 fn execute_file_import(
@@ -238,6 +239,7 @@ fn execute_file_import(
                     install_session_id: install_session_id.to_string(),
                     model_id: model_id.to_string(),
                     local_model_id: Some(local_model_id.to_string()),
+                    session_kind: LocalAiTransferSessionKind::Import,
                     phase: "copy".to_string(),
                     bytes_received: 0,
                     bytes_total: Some(file_size),
@@ -263,6 +265,7 @@ fn execute_file_import(
                 install_session_id: install_session_id.to_string(),
                 model_id: model_id.to_string(),
                 local_model_id: Some(local_model_id.to_string()),
+                session_kind: LocalAiTransferSessionKind::Import,
                 phase: "copy".to_string(),
                 bytes_received: 0,
                 bytes_total: Some(file_size),
@@ -283,7 +286,7 @@ fn execute_file_import(
     // Copy file with progress reporting (throttled to ~200ms intervals).
     let mut last_emit_ms: u64 = 0;
     let copy_start = std::time::Instant::now();
-    let hash_result = copy_and_hash_file(source_file, &dest_file, file_size, |bytes_copied| {
+    let copy_result = copy_file_with_progress(source_file, &dest_file, |bytes_copied| {
         let elapsed = copy_start.elapsed();
         let elapsed_ms = elapsed.as_millis() as u64;
         if elapsed_ms.saturating_sub(last_emit_ms) < 200 && bytes_copied < file_size {
@@ -308,6 +311,7 @@ fn execute_file_import(
                 install_session_id: install_session_id.to_string(),
                 model_id: model_id.to_string(),
                 local_model_id: Some(local_model_id.to_string()),
+                session_kind: LocalAiTransferSessionKind::Import,
                 phase: "copy".to_string(),
                 bytes_received: bytes_copied,
                 bytes_total: Some(file_size),
@@ -323,32 +327,30 @@ fn execute_file_import(
         );
     });
 
-    let hash = match hash_result {
-        Ok(hash) => hash,
-        Err(error) => {
-            let _ = std::fs::remove_dir_all(&dest_dir);
-            emit_download_progress_event(
-                app,
-                LocalAiDownloadProgressEvent {
-                    install_session_id: install_session_id.to_string(),
-                    model_id: model_id.to_string(),
-                    local_model_id: Some(local_model_id.to_string()),
-                    phase: "copy".to_string(),
-                    bytes_received: 0,
-                    bytes_total: Some(file_size),
-                    speed_bytes_per_sec: None,
-                    eta_seconds: None,
-                    message: Some(error),
-                    state: LocalAiDownloadState::Failed,
-                    reason_code: Some("LOCAL_AI_FILE_IMPORT_COPY_FAILED".to_string()),
-                    retryable: Some(false),
-                    done: true,
-                    success: false,
-                },
-            );
-            return;
-        }
-    };
+    if let Err(error) = copy_result {
+        let _ = std::fs::remove_dir_all(&dest_dir);
+        emit_download_progress_event(
+            app,
+            LocalAiDownloadProgressEvent {
+                install_session_id: install_session_id.to_string(),
+                model_id: model_id.to_string(),
+                local_model_id: Some(local_model_id.to_string()),
+                session_kind: LocalAiTransferSessionKind::Import,
+                phase: "copy".to_string(),
+                bytes_received: 0,
+                bytes_total: Some(file_size),
+                speed_bytes_per_sec: None,
+                eta_seconds: None,
+                message: Some(error),
+                state: LocalAiDownloadState::Failed,
+                reason_code: Some("LOCAL_AI_FILE_IMPORT_COPY_FAILED".to_string()),
+                retryable: Some(false),
+                done: true,
+                success: false,
+            },
+        );
+        return;
+    }
 
     // Write resolved manifest.json
     let normalized_engine = normalize_local_engine(engine, capabilities);
@@ -369,9 +371,8 @@ fn execute_file_import(
             "repo": format!("local-import/{}", slug),
             "revision": "local"
         },
-        "hashes": {
-            file_name: hash
-        },
+        "integrity_mode": "local_unverified",
+        "hashes": {},
         "artifact_roles": artifact_roles,
         "preferred_engine": preferred_engine,
         "fallback_engines": fallback_engines,
@@ -388,6 +389,7 @@ fn execute_file_import(
                     install_session_id: install_session_id.to_string(),
                     model_id: model_id.to_string(),
                     local_model_id: Some(local_model_id.to_string()),
+                    session_kind: LocalAiTransferSessionKind::Import,
                     phase: "manifest".to_string(),
                     bytes_received: file_size,
                     bytes_total: Some(file_size),
@@ -414,6 +416,7 @@ fn execute_file_import(
                 install_session_id: install_session_id.to_string(),
                 model_id: model_id.to_string(),
                 local_model_id: Some(local_model_id.to_string()),
+                session_kind: LocalAiTransferSessionKind::Import,
                 phase: "manifest".to_string(),
                 bytes_received: file_size,
                 bytes_total: Some(file_size),
@@ -433,7 +436,6 @@ fn execute_file_import(
     }
 
     // Register model via upsert
-    let hashes = std::collections::HashMap::from([(file_name.to_string(), hash.clone())]);
     let record = LocalAiModelRecord {
         local_model_id: local_model_id.to_string(),
         model_id: model_id.to_string(),
@@ -447,7 +449,8 @@ fn execute_file_import(
             repo: format!("local-import/{}", slug),
             revision: "local".to_string(),
         },
-        hashes,
+        integrity_mode: Some(LocalAiIntegrityMode::LocalUnverified),
+        hashes: std::collections::HashMap::new(),
         tags: Vec::new(),
         known_total_size_bytes: Some(file_size),
         endpoint: endpoint.to_string(),
@@ -469,7 +472,8 @@ fn execute_file_import(
                     install_session_id: install_session_id.to_string(),
                     model_id: saved.model_id.clone(),
                     local_model_id: Some(saved.local_model_id.clone()),
-                    phase: "verify".to_string(),
+                    session_kind: LocalAiTransferSessionKind::Import,
+                    phase: "register".to_string(),
                     bytes_received: file_size,
                     bytes_total: Some(file_size),
                     speed_bytes_per_sec: None,
@@ -491,7 +495,7 @@ fn execute_file_import(
                     "source": "local-file",
                     "engine": engine,
                     "capabilities": capabilities,
-                    "hash": hash,
+                    "integrityMode": "local_unverified",
                 })),
             );
             append_app_audit_event_non_blocking(
@@ -512,6 +516,7 @@ fn execute_file_import(
                     install_session_id: install_session_id.to_string(),
                     model_id: model_id.to_string(),
                     local_model_id: Some(local_model_id.to_string()),
+                    session_kind: LocalAiTransferSessionKind::Import,
                     phase: "upsert".to_string(),
                     bytes_received: file_size,
                     bytes_total: Some(file_size),

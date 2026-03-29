@@ -10,8 +10,8 @@ use super::engine_pack::ensure_llama_cpp_binary;
 use super::import_validator::normalize_and_validate_capabilities;
 use super::store::{load_state, runtime_models_dir, runtime_root_dir, save_state};
 use super::types::{
-    now_iso_timestamp, LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus,
-    LocalAiRuntimeState,
+    infer_model_integrity_mode_from_source, now_iso_timestamp, LocalAiIntegrityMode,
+    LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus, LocalAiRuntimeState,
 };
 
 fn find_model_index(models: &[LocalAiModelRecord], local_model_id: &str) -> Option<usize> {
@@ -29,8 +29,9 @@ fn should_mark_engine_crashed(
         && *checked_status == LocalAiModelStatus::Unhealthy
 }
 
-fn is_llama_cpp_engine(engine: &str) -> bool {
-    engine.trim().eq_ignore_ascii_case("llama-cpp")
+fn is_supervised_llama_engine(engine: &str) -> bool {
+    let normalized = engine.trim().to_ascii_lowercase();
+    normalized == "llama" || normalized == "llama-cpp"
 }
 
 fn extract_error_code(error: &str) -> &str {
@@ -40,11 +41,19 @@ fn extract_error_code(error: &str) -> &str {
         .unwrap_or("LOCAL_AI_MODEL_PREFLIGHT_FAILED")
 }
 
+fn resolved_model_integrity_mode(model: &LocalAiModelRecord) -> LocalAiIntegrityMode {
+    model
+        .integrity_mode
+        .unwrap_or_else(|| infer_model_integrity_mode_from_source(&model.source))
+}
+
 fn preflight_model_start(model: &LocalAiModelRecord) -> Result<(), String> {
     if model.status == LocalAiModelStatus::Removed {
         return Err("LOCAL_AI_MODEL_REMOVED: removed 模型禁止启动".to_string());
     }
-    if model.hashes.is_empty() {
+    if resolved_model_integrity_mode(model) == LocalAiIntegrityMode::Verified
+        && model.hashes.is_empty()
+    {
         return Err("LOCAL_AI_MODEL_HASHES_EMPTY: hashes 为空，模型未通过完整性校验".to_string());
     }
     let capabilities = normalize_and_validate_capabilities(&model.capabilities)?;
@@ -72,7 +81,7 @@ fn ensure_llama_engine_pack_with_audit(
     state: &mut LocalAiRuntimeState,
     model: &LocalAiModelRecord,
 ) -> Result<(), String> {
-    if !is_llama_cpp_engine(model.engine.as_str()) {
+    if !is_supervised_llama_engine(model.engine.as_str()) {
         return Ok(());
     }
 
@@ -242,7 +251,7 @@ pub fn health(
         let mut final_status = checked.status.clone();
         let mut final_detail = checked.detail.clone();
 
-        let is_llama_cpp = is_llama_cpp_engine(&model.engine);
+        let is_llama_cpp = is_supervised_llama_engine(&model.engine);
         let crashed = should_mark_engine_crashed(&previous_status, &checked.status);
 
         if crashed {
@@ -304,9 +313,9 @@ pub fn health(
 
 #[cfg(test)]
 mod tests {
-    use super::{is_llama_cpp_engine, preflight_model_start, should_mark_engine_crashed};
+    use super::{is_supervised_llama_engine, preflight_model_start, should_mark_engine_crashed};
     use crate::local_runtime::types::LocalAiModelStatus;
-    use crate::local_runtime::types::{LocalAiModelRecord, LocalAiModelSource};
+    use crate::local_runtime::types::{LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource};
     use std::collections::HashMap;
 
     fn model_fixture() -> LocalAiModelRecord {
@@ -323,6 +332,7 @@ mod tests {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
             hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc".to_string())]),
             tags: Vec::new(),
             known_total_size_bytes: Some(1_024),
@@ -357,9 +367,11 @@ mod tests {
 
     #[test]
     fn llama_engine_match_is_case_insensitive() {
-        assert!(is_llama_cpp_engine("llama-cpp"));
-        assert!(is_llama_cpp_engine("LLAMA-CPP"));
-        assert!(!is_llama_cpp_engine("speech"));
+        assert!(is_supervised_llama_engine("llama"));
+        assert!(is_supervised_llama_engine("LLAMA"));
+        assert!(is_supervised_llama_engine("llama-cpp"));
+        assert!(is_supervised_llama_engine("LLAMA-CPP"));
+        assert!(!is_supervised_llama_engine("speech"));
     }
 
     #[test]

@@ -25,7 +25,7 @@ fn reveal_path_in_os(path: &std::path::Path) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{copy_and_hash_file, extract_reason_code, run_install_preflight_with};
+    use super::{copy_file_with_progress, extract_reason_code, run_install_preflight_with};
     use crate::local_runtime::types::LocalAiInstallRequest;
 
     fn install_request_fixture(engine: Option<&str>) -> LocalAiInstallRequest {
@@ -72,54 +72,39 @@ mod tests {
         assert_eq!(reason, "LOCAL_AI_PROVIDER_TIMEOUT");
     }
 
-    // --- copy_and_hash_file tests ---
+    // --- copy_file_with_progress tests ---
 
     #[test]
-    fn copy_and_hash_file_copies_content_and_produces_correct_sha256() {
+    fn copy_file_with_progress_copies_content() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("source.gguf");
         let dst = tmp.path().join("dest.gguf");
         let content = b"hello world model data for sha256 test";
         std::fs::write(&src, content).expect("write source");
 
-        let hash = copy_and_hash_file(
-            std::fs::File::open(&src).expect("open source"),
-            &dst,
-            content.len() as u64,
-            |_| {},
-        )
+        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {})
             .expect("copy should succeed");
 
-        // Verify content was copied
         let copied = std::fs::read(&dst).expect("read dest");
         assert_eq!(copied, content);
-
-        // Verify SHA256 hash
-        use sha2::{Digest, Sha256};
-        let expected = format!("sha256:{:x}", Sha256::digest(content));
-        assert_eq!(hash, expected);
     }
 
     #[test]
-    fn copy_and_hash_file_handles_empty_file() {
+    fn copy_file_with_progress_handles_empty_file() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("empty.bin");
         let dst = tmp.path().join("empty_copy.bin");
         std::fs::write(&src, b"").expect("write empty source");
 
-        let hash = copy_and_hash_file(std::fs::File::open(&src).expect("open source"), &dst, 0, |_| {})
+        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {})
             .expect("copy should succeed for empty file");
 
         let copied = std::fs::read(&dst).expect("read dest");
         assert!(copied.is_empty());
-
-        use sha2::{Digest, Sha256};
-        let expected = format!("sha256:{:x}", Sha256::digest(b""));
-        assert_eq!(hash, expected);
     }
 
     #[test]
-    fn copy_and_hash_file_handles_large_content_across_multiple_chunks() {
+    fn copy_file_with_progress_handles_large_content_across_multiple_chunks() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("large.bin");
         let dst = tmp.path().join("large_copy.bin");
@@ -127,25 +112,16 @@ mod tests {
         let content = vec![0xABu8; 200 * 1024];
         std::fs::write(&src, &content).expect("write large source");
 
-        let hash = copy_and_hash_file(
-            std::fs::File::open(&src).expect("open source"),
-            &dst,
-            content.len() as u64,
-            |_| {},
-        )
+        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {})
             .expect("copy should succeed");
 
         let copied = std::fs::read(&dst).expect("read dest");
         assert_eq!(copied.len(), content.len());
         assert_eq!(copied, content);
-
-        use sha2::{Digest, Sha256};
-        let expected = format!("sha256:{:x}", Sha256::digest(&content));
-        assert_eq!(hash, expected);
     }
 
     #[test]
-    fn copy_and_hash_file_progress_callback_invoked() {
+    fn copy_file_with_progress_progress_callback_invoked() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("progress.bin");
         let dst = tmp.path().join("progress_copy.bin");
@@ -153,14 +129,9 @@ mod tests {
         std::fs::write(&src, &content).expect("write source");
 
         let mut progress_calls = Vec::new();
-        let hash = copy_and_hash_file(
-            std::fs::File::open(&src).expect("open source"),
-            &dst,
-            content.len() as u64,
-            |bytes_copied| {
-                progress_calls.push(bytes_copied);
-            },
-        )
+        copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |bytes_copied| {
+            progress_calls.push(bytes_copied);
+        })
         .expect("copy should succeed");
 
         // Should have at least 2 progress callbacks (2 chunks)
@@ -182,11 +153,10 @@ mod tests {
             content.len() as u64,
             "last progress should equal total bytes"
         );
-        assert!(hash.starts_with("sha256:"));
     }
 
     #[test]
-    fn copy_and_hash_file_fails_on_missing_source() {
+    fn copy_file_with_progress_fails_on_missing_source() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("nonexistent.gguf");
 
@@ -195,19 +165,14 @@ mod tests {
     }
 
     #[test]
-    fn copy_and_hash_file_fails_on_invalid_dest_path() {
+    fn copy_file_with_progress_fails_on_invalid_dest_path() {
         let tmp = tempfile::tempdir().expect("create temp dir");
         let src = tmp.path().join("source.bin");
         std::fs::write(&src, b"data").expect("write source");
         // Dest inside a non-existent directory
         let dst = tmp.path().join("no-such-dir").join("deep").join("dest.bin");
 
-        let result = copy_and_hash_file(
-            std::fs::File::open(&src).expect("open source"),
-            &dst,
-            4,
-            |_| {},
-        );
+        let result = copy_file_with_progress(std::fs::File::open(&src).expect("open source"), &dst, |_| {});
         let error = result.expect_err("should fail for invalid dest path");
         assert!(
             error.contains("LOCAL_AI_FILE_IMPORT_WRITE_FAILED"),

@@ -4,6 +4,20 @@ use serde::{Deserialize, Serialize};
 
 use super::recommendation::LocalAiRecommendationDescriptor;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum LocalAiIntegrityMode {
+    Verified,
+    LocalUnverified,
+}
+
+pub fn infer_model_integrity_mode_from_source(source: &LocalAiModelSource) -> LocalAiIntegrityMode {
+    if source.repo.trim().to_ascii_lowercase().starts_with("local-import/") {
+        return LocalAiIntegrityMode::LocalUnverified;
+    }
+    LocalAiIntegrityMode::Verified
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum LocalAiModelStatus {
@@ -34,6 +48,8 @@ pub struct LocalAiModelRecord {
     pub files: Vec<String>,
     pub license: String,
     pub source: LocalAiModelSource,
+    #[serde(default)]
+    pub integrity_mode: Option<LocalAiIntegrityMode>,
     pub hashes: HashMap<String, String>,
     #[serde(default)]
     pub tags: Vec<String>,

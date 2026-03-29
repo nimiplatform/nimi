@@ -45,8 +45,9 @@ function mergeLocalSnapshot(
           || capability === 'tts'
           || capability === 'stt'
           || capability === 'embedding'
-        )),
+      )),
       status: item.status,
+      integrityMode: item.integrityMode,
       recommendation: item.recommendation,
     }));
 

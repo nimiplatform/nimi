@@ -169,14 +169,29 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
 
   const activeDownloads = useMemo(
     () => sortProgressSessions(progressBySessionId)
-      .slice(0, PROGRESS_SESSION_LIMIT)
       .map((item) => item.event)
+      .filter((event) => event.sessionKind === 'download')
       .filter((event) => (
         event.state === 'queued'
         || event.state === 'running'
         || event.state === 'paused'
         || event.state === 'failed'
-      )),
+      ))
+      .slice(0, PROGRESS_SESSION_LIMIT),
+    [progressBySessionId],
+  );
+
+  const activeImports = useMemo(
+    () => sortProgressSessions(progressBySessionId)
+      .map((item) => item.event)
+      .filter((event) => event.sessionKind === 'import')
+      .filter((event) => (
+        event.state === 'queued'
+        || event.state === 'running'
+        || event.state === 'paused'
+        || event.state === 'failed'
+      ))
+      .slice(0, PROGRESS_SESSION_LIMIT),
     [progressBySessionId],
   );
 
@@ -186,6 +201,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
 
   return {
     activeDownloads,
+    activeImports,
     getLatestProgressEvent,
     onPauseDownload,
     onResumeDownload,

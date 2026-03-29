@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::models::LocalAiModelStatus;
+use super::models::{LocalAiIntegrityMode, LocalAiModelStatus};
 use super::recommendation::LocalAiRecommendationDescriptor;
 use super::services::LocalAiProviderHints;
 
@@ -26,6 +26,8 @@ pub struct ImportedModelManifest {
     pub files: Vec<String>,
     pub license: String,
     pub source: ImportedModelSource,
+    #[serde(default, alias = "integrity_mode")]
+    pub integrity_mode: Option<LocalAiIntegrityMode>,
     pub hashes: HashMap<String, String>,
     #[serde(default)]
     pub artifact_roles: Vec<String>,

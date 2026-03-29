@@ -8,6 +8,7 @@ import type {
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeInstallPayload,
   LocalRuntimeInstallPlanDescriptor,
+  LocalRuntimeModelLifecycleOperation,
   LocalRuntimeModelType,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileApplyResult,
@@ -64,6 +65,8 @@ export type LocalModelCenterProps = {
   ) => Promise<void>;
   onRetryInstall?: (plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
   installSessionMeta?: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
+  localModelLifecycleById?: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleErrorById?: Record<string, string>;
 };
 
 export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding', 'music'] as const;
@@ -82,6 +85,18 @@ export type ProgressSessionState = {
   createdAtMs: number;
   installSource?: 'catalog' | 'manual' | 'verified';
 };
+
+export function isLocalModelLifecycleBusy(
+  value: LocalRuntimeModelLifecycleOperation | undefined,
+): boolean {
+  return value === 'starting' || value === 'stopping' || value === 'restarting';
+}
+
+export function isLocalModelLifecycleVisible(
+  value: LocalRuntimeModelLifecycleOperation | undefined,
+): boolean {
+  return Boolean(value) && value !== 'idle' && value !== 'error';
+}
 
 export const PROGRESS_SESSION_LIMIT = 6;
 export const PROGRESS_RETENTION_MS = 15 * 60 * 1000;
@@ -109,6 +124,7 @@ export function toProgressEventFromSummary(
     installSessionId: summary.installSessionId,
     modelId: summary.modelId,
     localModelId: summary.localModelId || undefined,
+    sessionKind: summary.sessionKind,
     phase: summary.phase,
     bytesReceived: summary.bytesReceived,
     bytesTotal: summary.bytesTotal,
@@ -173,6 +189,15 @@ export function formatDownloadPhaseLabel(phase: string | undefined): string {
   if (normalized === 'verify') return 'Verifying';
   if (normalized === 'upsert') return 'Finalizing';
   if (normalized === 'download') return 'Downloading';
+  return normalized || 'Preparing';
+}
+
+export function formatImportPhaseLabel(phase: string | undefined): string {
+  const normalized = String(phase || '').trim().toLowerCase();
+  if (normalized === 'copy') return 'Copying';
+  if (normalized === 'move') return 'Moving';
+  if (normalized === 'manifest') return 'Writing manifest';
+  if (normalized === 'register' || normalized === 'upsert') return 'Registering';
   return normalized || 'Preparing';
 }
 

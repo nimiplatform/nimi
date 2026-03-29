@@ -56,6 +56,8 @@ export function LocalPage({ model, state }: LocalPageProps) {
         onDownloadComplete={model.onDownloadComplete}
         onRetryInstall={model.retryInstall}
         installSessionMeta={model.installSessionMeta}
+        localModelLifecycleById={model.localModelLifecycleById}
+        localModelLifecycleErrorById={model.localModelLifecycleErrorById}
       />
     </div>
   );

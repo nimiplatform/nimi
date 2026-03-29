@@ -14,6 +14,7 @@ import type {
   LocalRuntimeDownloadState,
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
+  LocalRuntimeTransferSessionKind,
   LocalRuntimeScaffoldArtifactResult,
   LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeModelHealth,
@@ -381,6 +382,10 @@ export function normalizeDownloadState(
   return 'running';
 }
 
+function normalizeTransferSessionKind(value: unknown): LocalRuntimeTransferSessionKind {
+  return asString(value).toLowerCase() === 'import' ? 'import' : 'download';
+}
+
 export function parseDownloadProgressEvent(value: unknown): LocalRuntimeDownloadProgressEvent {
   const record = asRecord(value);
   const bytesReceived = Number(record.bytesReceived);
@@ -394,6 +399,7 @@ export function parseDownloadProgressEvent(value: unknown): LocalRuntimeDownload
     installSessionId: asString(record.installSessionId),
     modelId: toCanonicalLocalId(record.modelId),
     localModelId: asString(record.localModelId) || undefined,
+    sessionKind: normalizeTransferSessionKind(record.sessionKind),
     phase: asString(record.phase) || 'download',
     bytesReceived: Number.isFinite(bytesReceived) && bytesReceived >= 0 ? bytesReceived : 0,
     bytesTotal: Number.isFinite(bytesTotalRaw) && bytesTotalRaw >= 0 ? bytesTotalRaw : undefined,
@@ -418,6 +424,7 @@ export function parseDownloadSessionSummary(value: unknown): LocalRuntimeDownloa
     installSessionId: asString(record.installSessionId),
     modelId: toCanonicalLocalId(record.modelId),
     localModelId: asString(record.localModelId),
+    sessionKind: normalizeTransferSessionKind(record.sessionKind),
     phase: asString(record.phase) || 'download',
     state: normalizeDownloadState(record.state),
     bytesReceived: Number.isFinite(bytesReceived) && bytesReceived >= 0 ? bytesReceived : 0,

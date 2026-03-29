@@ -1,4 +1,4 @@
-use super::engine_pack::ensure_llama_cpp_binary;
+use super::engine_pack::{ensure_llama_cpp_binary, resolve_existing_llama_cpp_binary};
 use super::types::{LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus};
 use std::collections::HashMap;
 use std::path::Path;
@@ -38,6 +38,10 @@ trait EngineAdapter {
 
 fn normalize_engine(value: &str) -> String {
     value.trim().to_ascii_lowercase()
+}
+
+fn is_supervised_llama_engine(value: &str) -> bool {
+    matches!(normalize_engine(value).as_str(), "llama" | "llama-cpp")
 }
 
 struct OpenAiCompatibleAdapter;
@@ -196,6 +200,10 @@ impl LlamaCppProcessAdapter {
         Ok(bootstrap.binary_path)
     }
 
+    fn resolve_existing_binary_path() -> Result<Option<String>, String> {
+        resolve_existing_llama_cpp_binary()
+    }
+
     fn parse_extra_args() -> Vec<String> {
         std::env::var("NIMI_LLAMA_CPP_ARGS")
             .ok()
@@ -273,6 +281,30 @@ impl LlamaCppProcessAdapter {
                 ));
             }
             thread::sleep(Duration::from_millis(LLAMA_CPP_HEALTH_POLL_INTERVAL_MS));
+        }
+    }
+
+    fn probe_endpoint(endpoint: &str) -> Result<(), String> {
+        let health_url = Self::health_probe_endpoint(endpoint).ok_or_else(|| {
+            "LOCAL_AI_ENGINE_ENDPOINT_INVALID: llama.cpp endpoint is empty".to_string()
+        })?;
+        let client = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(2))
+            .build()
+            .map_err(|error| {
+                format!(
+                    "LOCAL_AI_ENGINE_HTTP_CLIENT_FAILED: failed to create health client: {error}"
+                )
+            })?;
+        match client.get(&health_url).send() {
+            Ok(response) if response.status().is_success() => Ok(()),
+            Ok(response) => Err(format!(
+                "LOCAL_AI_ENGINE_ENDPOINT_UNREACHABLE: status={} endpoint={health_url}",
+                response.status().as_u16()
+            )),
+            Err(error) => Err(format!(
+                "LOCAL_AI_ENGINE_ENDPOINT_UNREACHABLE: endpoint={health_url} error={error}"
+            )),
         }
     }
 
@@ -413,10 +445,17 @@ impl EngineAdapter for LlamaCppProcessAdapter {
         }
 
         match Self::process_running(model) {
-            Ok(true) => EngineHealthResult {
-                healthy: true,
-                detail: format!("llama.cpp already running: {binary}"),
-                status: LocalAiModelStatus::Active,
+            Ok(true) => match Self::probe_endpoint(model.endpoint.as_str()) {
+                Ok(()) => EngineHealthResult {
+                    healthy: true,
+                    detail: format!("llama.cpp already running: {binary}"),
+                    status: LocalAiModelStatus::Active,
+                },
+                Err(error) => EngineHealthResult {
+                    healthy: false,
+                    detail: error,
+                    status: LocalAiModelStatus::Unhealthy,
+                },
             },
             Ok(false) => match Self::start_process(model) {
                 Ok(()) => EngineHealthResult {
@@ -459,29 +498,25 @@ impl EngineAdapter for LlamaCppProcessAdapter {
     }
 
     fn health(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
-        let binary = match Self::resolve_binary_path() {
-            Ok(value) => value,
-            Err(error) => {
-                return EngineHealthResult {
+        match Self::process_running(model) {
+            Ok(true) => match Self::probe_endpoint(model.endpoint.as_str()) {
+                Ok(()) => {
+                    let detail = match Self::resolve_existing_binary_path() {
+                        Ok(Some(binary)) => format!("llama.cpp running: {binary}"),
+                        Ok(None) => "llama.cpp running".to_string(),
+                        Err(error) => error,
+                    };
+                    EngineHealthResult {
+                        healthy: true,
+                        detail,
+                        status: LocalAiModelStatus::Active,
+                    }
+                }
+                Err(error) => EngineHealthResult {
                     healthy: false,
                     detail: error,
                     status: LocalAiModelStatus::Unhealthy,
-                }
-            }
-        };
-        if !Path::new(&binary).exists() {
-            return EngineHealthResult {
-                healthy: false,
-                detail: format!("llama.cpp binary not found: {binary}"),
-                status: LocalAiModelStatus::Unhealthy,
-            };
-        }
-
-        match Self::process_running(model) {
-            Ok(true) => EngineHealthResult {
-                healthy: true,
-                detail: format!("llama.cpp running: {binary}"),
-                status: LocalAiModelStatus::Active,
+                },
             },
             Ok(false) => {
                 if model.status == LocalAiModelStatus::Active {
@@ -491,9 +526,17 @@ impl EngineAdapter for LlamaCppProcessAdapter {
                         status: LocalAiModelStatus::Unhealthy,
                     }
                 } else {
+                    let detail = match Self::resolve_existing_binary_path() {
+                        Ok(Some(binary)) => format!("llama.cpp ready (not started): {binary}"),
+                        Ok(None) => {
+                            "llama.cpp engine pack missing; start required to bootstrap"
+                                .to_string()
+                        }
+                        Err(error) => format!("llama.cpp start required: {error}"),
+                    };
                     EngineHealthResult {
                         healthy: true,
-                        detail: "llama.cpp ready (not started)".to_string(),
+                        detail,
                         status: LocalAiModelStatus::Installed,
                     }
                 }
@@ -509,7 +552,7 @@ impl EngineAdapter for LlamaCppProcessAdapter {
 
 fn adapter_for(model: &LocalAiModelRecord) -> Box<dyn EngineAdapter + Send + Sync> {
     let engine = normalize_engine(&model.engine);
-    if engine == "llama-cpp" {
+    if is_supervised_llama_engine(engine.as_str()) {
         return Box::new(LlamaCppProcessAdapter);
     }
     if engine == "qwen-tts-python" {
@@ -547,8 +590,13 @@ pub fn check_engine_health(model: &LocalAiModelRecord) -> LocalAiModelHealth {
 
 #[cfg(test)]
 mod tests {
-    use super::{check_engine_health, preflight_engine_install_with, start_engine};
-    use crate::local_runtime::types::{LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus};
+    use super::{
+        check_engine_health, is_supervised_llama_engine, preflight_engine_install_with,
+        start_engine,
+    };
+    use crate::local_runtime::types::{
+        LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
+    };
     use std::collections::HashMap;
     use std::net::TcpListener;
 
@@ -566,6 +614,7 @@ mod tests {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
             hashes: HashMap::new(),
             tags: Vec::new(),
             known_total_size_bytes: Some(1_024),
@@ -594,7 +643,7 @@ mod tests {
     }
 
     #[test]
-    fn llama_cpp_without_binary_is_unhealthy() {
+    fn llama_cpp_without_binary_only_fails_on_start() {
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         let model = model_fixture("llama-cpp", LocalAiModelStatus::Installed);
         let started = start_engine(&model);
@@ -606,11 +655,45 @@ mod tests {
         );
 
         let health = check_engine_health(&model);
-        assert_eq!(health.status, LocalAiModelStatus::Unhealthy);
+        assert_eq!(health.status, LocalAiModelStatus::Installed);
         assert!(
-            health.detail.contains("LOCAL_AI_ENGINE_PACK")
+            health.detail.contains("start required")
                 || health.detail.to_ascii_lowercase().contains("llama.cpp")
         );
+    }
+
+    #[test]
+    fn canonical_llama_engine_uses_supervised_adapter() {
+        assert!(is_supervised_llama_engine("llama"));
+        assert!(is_supervised_llama_engine("LLAMA"));
+        assert!(is_supervised_llama_engine("llama-cpp"));
+        assert!(!is_supervised_llama_engine("speech"));
+    }
+
+    #[test]
+    fn canonical_llama_without_running_process_stays_installed() {
+        std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+        let model = model_fixture("llama", LocalAiModelStatus::Installed);
+        let health = check_engine_health(&model);
+        assert_eq!(health.status, LocalAiModelStatus::Installed);
+        assert!(health.detail.contains("start required") || health.detail.contains("not started"));
+    }
+
+    #[test]
+    fn canonical_llama_unhealthy_without_running_process_recovers_to_installed() {
+        std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+        let model = model_fixture("llama", LocalAiModelStatus::Unhealthy);
+        let health = check_engine_health(&model);
+        assert_eq!(health.status, LocalAiModelStatus::Installed);
+    }
+
+    #[test]
+    fn canonical_llama_active_without_running_process_is_unhealthy() {
+        std::env::remove_var("NIMI_LLAMA_CPP_BIN");
+        let model = model_fixture("llama", LocalAiModelStatus::Active);
+        let health = check_engine_health(&model);
+        assert_eq!(health.status, LocalAiModelStatus::Unhealthy);
+        assert!(health.detail.contains("exited unexpectedly"));
     }
 
     #[test]

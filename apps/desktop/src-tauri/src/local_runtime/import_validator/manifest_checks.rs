@@ -5,12 +5,42 @@ use sha2::{Digest, Sha256};
 
 use crate::local_runtime::types::{
     default_fallback_engines_for_engine, default_logical_model_id, normalize_local_engine,
+    infer_artifact_integrity_mode_from_source, infer_model_integrity_mode_from_source,
+    LocalAiArtifactSource, LocalAiIntegrityMode, LocalAiModelSource,
 };
 
 use super::{
     err, normalize_manifest_hash, ImportedArtifactManifest, ImportedModelManifest,
     LocalAiArtifactKind, ARTIFACT_MANIFEST_FILE_NAME, MODEL_MANIFEST_FILE_NAME,
 };
+
+fn resolved_manifest_integrity_mode(manifest: &ImportedModelManifest) -> LocalAiIntegrityMode {
+    manifest.integrity_mode.unwrap_or_else(|| {
+        infer_model_integrity_mode_from_source(&LocalAiModelSource {
+            repo: manifest.source.repo.clone(),
+            revision: manifest.source.revision.clone(),
+        })
+    })
+}
+
+fn manifest_hashes_required(manifest: &ImportedModelManifest) -> bool {
+    resolved_manifest_integrity_mode(manifest) == LocalAiIntegrityMode::Verified
+}
+
+fn resolved_artifact_manifest_integrity_mode(
+    manifest: &ImportedArtifactManifest,
+) -> LocalAiIntegrityMode {
+    manifest.integrity_mode.unwrap_or_else(|| {
+        infer_artifact_integrity_mode_from_source(&LocalAiArtifactSource {
+            repo: manifest.source.repo.clone(),
+            revision: manifest.source.revision.clone(),
+        })
+    })
+}
+
+fn artifact_manifest_hashes_required(manifest: &ImportedArtifactManifest) -> bool {
+    resolved_artifact_manifest_integrity_mode(manifest) == LocalAiIntegrityMode::Verified
+}
 
 fn ensure_resolved_manifest_location(
     canonical_manifest: &Path,
@@ -142,7 +172,7 @@ pub(super) fn assert_required_manifest_fields(
             "manifest.source.revision 不能为空",
         ));
     }
-    if manifest.hashes.is_empty() {
+    if manifest_hashes_required(manifest) && manifest.hashes.is_empty() {
         return Err(err(
             "LOCAL_AI_IMPORT_MANIFEST_HASHES_MISSING",
             "manifest.hashes 不能为空",
@@ -222,7 +252,7 @@ pub(super) fn assert_required_artifact_manifest_fields(
             "artifact manifest.source.revision 不能为空",
         ));
     }
-    if manifest.hashes.is_empty() {
+    if artifact_manifest_hashes_required(manifest) && manifest.hashes.is_empty() {
         return Err(err(
             "LOCAL_AI_IMPORT_ARTIFACT_HASHES_MISSING",
             "artifact manifest.hashes 不能为空",
@@ -235,6 +265,9 @@ fn assert_manifest_hashes(
     manifest: &ImportedModelManifest,
     manifest_path: &Path,
 ) -> Result<(), String> {
+    if !manifest_hashes_required(manifest) {
+        return Ok(());
+    }
     let base_dir = manifest_path.parent().ok_or_else(|| {
         err(
             "LOCAL_AI_IMPORT_MANIFEST_PARENT_MISSING",
@@ -436,6 +469,7 @@ pub(crate) fn parse_and_validate_artifact_manifest(
             repo: manifest.source.repo.clone(),
             revision: manifest.source.revision.clone(),
         },
+        integrity_mode: manifest.integrity_mode,
         hashes: manifest.hashes.clone(),
         artifact_roles: vec!["companion".to_string()],
         preferred_engine: Some(normalize_local_engine(

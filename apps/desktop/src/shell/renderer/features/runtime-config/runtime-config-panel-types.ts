@@ -9,6 +9,7 @@ import type {
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeInstallPayload,
   LocalRuntimeInstallPlanDescriptor,
+  LocalRuntimeModelLifecycleOperation,
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileResolutionPlan,
@@ -43,6 +44,8 @@ export type RuntimeConfigPanelControllerModel = {
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
   runtimeDaemonError: string;
   runtimeDaemonUpdatedAt: string | null;
+  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleErrorById: Record<string, string>;
   setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setLocalModelQuery: (value: string) => void;
   setConnectorModelQuery: (value: string) => void;

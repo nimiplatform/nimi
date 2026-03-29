@@ -5,6 +5,7 @@ import type {
   LocalRuntimeArtifactRecord,
   LocalRuntimeCatalogItemDescriptor,
   GgufVariantDescriptor,
+  LocalRuntimeModelLifecycleOperation,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeVerifiedArtifactDescriptor,
   LocalRuntimeVerifiedModelDescriptor,
@@ -19,6 +20,7 @@ import { LocalModelCenterCatalogCard } from './runtime-config-local-model-center
 import { LocalModelCenterImportControls } from './runtime-config-local-model-center-import-controls';
 import {
   LocalModelCenterActiveDownloadsSection,
+  LocalModelCenterActiveImportsSection,
   LocalModelCenterArtifactTasksSection,
   LocalModelCenterQuickPicksSection,
   LocalModelCenterUnregisteredAssetsSection,
@@ -69,6 +71,8 @@ type LocalModelCenterRuntimeViewProps = {
   localHealthy: boolean;
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
+  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
+  localModelLifecycleErrorById: Record<string, string>;
   onArtifactKindFilterChange: (value: 'all' | LocalRuntimeArtifactKind) => void;
   onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeArtifactKind) => void;
   onAssetClassChange: (assetClass: AssetClassOption) => void;
@@ -102,8 +106,8 @@ type LocalModelCenterRuntimeViewProps = {
   onScaffoldArtifactOrphan: (path: string) => void;
   onScaffoldOrphan: (path: string) => void;
   onSearchQueryChange: (value: string) => void;
-  onStartModel: (localModelId: string) => void;
-  onStopModel: (localModelId: string) => void;
+  onStartModel: (localModelId: string) => Promise<void>;
+  onStopModel: (localModelId: string) => Promise<void>;
   onToggleImportMenu: () => void;
   onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
   onImportUnregisteredAsset: (path: string) => void;
@@ -132,6 +136,7 @@ type LocalModelCenterRuntimeViewProps = {
   visibleArtifactTasks: ArtifactTaskEntry[];
   visibleVerifiedArtifacts: LocalRuntimeVerifiedArtifactDescriptor[];
   downloads: DownloadState['activeDownloads'];
+  imports: DownloadState['activeImports'];
   unregisteredAssets: LocalRuntimeUnregisteredAssetDescriptor[];
   onCancelDownload: DownloadState['onCancelDownload'];
   lastCheckedAt?: string | null;
@@ -185,6 +190,8 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           catalogCapability={props.catalogCapability}
           filteredInstalledModels={props.filteredInstalledModels}
           filteredInstalledArtifacts={props.filteredInstalledArtifacts}
+          localModelLifecycleById={props.localModelLifecycleById}
+          localModelLifecycleErrorById={props.localModelLifecycleErrorById}
           loadingCatalog={props.loadingCatalog}
           loadingInstalledArtifacts={props.loadingInstalledArtifacts}
           loadingVerifiedArtifacts={props.loadingVerifiedArtifacts}
@@ -250,6 +257,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onResume={props.onResumeDownload}
           onCancel={props.onCancelDownload}
         />
+        <LocalModelCenterActiveImportsSection imports={props.imports} />
         <LocalModelCenterArtifactTasksSection
           tasks={props.visibleArtifactTasks}
           pendingTemplateIds={props.artifactPendingTemplateIds}

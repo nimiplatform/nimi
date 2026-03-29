@@ -300,6 +300,7 @@ fn build_manifest_from_install_request(
             repo: request.repo.trim().to_string(),
             revision: normalize_non_empty(request.revision.as_deref().unwrap_or("main"), "main"),
         },
+        integrity_mode: Some(LocalAiIntegrityMode::Verified),
         hashes,
         artifact_roles,
         preferred_engine: Some(preferred_engine),

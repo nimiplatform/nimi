@@ -28,6 +28,7 @@ export type LocalModelOptionV11 = {
   endpoint: string;
   capabilities: CapabilityV11[];
   status: 'installed' | 'active' | 'unhealthy' | 'removed';
+  integrityMode?: 'verified' | 'local_unverified';
   hash?: string;
   installedAt?: string;
   updatedAt?: string;
@@ -301,6 +302,7 @@ export function normalizeLocalModelV11(raw: Partial<LocalModelOptionV11>): Local
     endpoint: normalizeEndpointV11(String(raw.endpoint || defaultEndpointForEngine(engine)), defaultEndpointForEngine(engine)),
     capabilities: capabilities.length > 0 ? capabilities : ['chat'],
     status: raw.status === 'active' || raw.status === 'unhealthy' || raw.status === 'removed' ? raw.status : 'installed',
+    integrityMode: raw.integrityMode === 'local_unverified' ? 'local_unverified' : 'verified',
     hash: String(raw.hash || '').trim() || undefined,
     installedAt: String(raw.installedAt || '').trim() || undefined,
     updatedAt: String(raw.updatedAt || '').trim() || undefined,

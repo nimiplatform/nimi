@@ -216,9 +216,9 @@ mod tests {
     };
     use crate::local_runtime::recommendation::build_catalog_recommendation;
     use crate::local_runtime::types::{
-        LocalAiDeviceProfile, LocalAiGpuProfile, LocalAiMemoryModel, LocalAiModelRecord,
-        LocalAiModelSource, LocalAiModelStatus, LocalAiNpuProfile, LocalAiPythonProfile,
-        LocalAiRuntimeState,
+        LocalAiDeviceProfile, LocalAiGpuProfile, LocalAiIntegrityMode, LocalAiMemoryModel,
+        LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus, LocalAiNpuProfile,
+        LocalAiPythonProfile, LocalAiRuntimeState,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -241,6 +241,7 @@ mod tests {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
+            integrity_mode: Some(LocalAiIntegrityMode::Verified),
             hashes: HashMap::from([("model.gguf".to_string(), "sha256:abc".to_string())]),
             tags: Vec::new(),
             known_total_size_bytes: Some(4_294_967_296),

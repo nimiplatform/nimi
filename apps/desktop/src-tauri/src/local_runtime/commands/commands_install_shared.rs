@@ -42,6 +42,7 @@ fn execute_hf_install_blocking(
                 install_session_id: install_session_id.clone(),
                 model_id: install_model_id.clone(),
                 local_model_id: Some(guessed_local_model_id.clone()),
+                session_kind: LocalAiTransferSessionKind::Download,
                 phase: "preflight".to_string(),
                 bytes_received: 0,
                 bytes_total: Some(0),
@@ -96,6 +97,7 @@ fn execute_hf_install_blocking(
             install_session_id: install_session_id.clone(),
             model_id: install_model_id.clone(),
             local_model_id: Some(guessed_local_model_id.clone()),
+            session_kind: LocalAiTransferSessionKind::Download,
             phase: latest_phase.clone(),
             bytes_received: latest_bytes_received,
             bytes_total: latest_bytes_total,
@@ -120,6 +122,7 @@ fn execute_hf_install_blocking(
                 install_session_id: install_session_id.clone(),
                 model_id: install_model_id.clone(),
                 local_model_id: Some(guessed_local_model_id.clone()),
+                session_kind: LocalAiTransferSessionKind::Download,
                 phase: progress.phase,
                 bytes_received: progress.bytes_received,
                 bytes_total: progress.bytes_total,
@@ -144,6 +147,7 @@ fn execute_hf_install_blocking(
                     install_session_id: install_session_id.clone(),
                     model_id: saved.model_id.clone(),
                     local_model_id: Some(saved.local_model_id.clone()),
+                    session_kind: LocalAiTransferSessionKind::Download,
                     phase: "verify".to_string(),
                     bytes_received: latest_bytes_received,
                     bytes_total: latest_bytes_total,
@@ -188,6 +192,7 @@ fn execute_hf_install_blocking(
                     install_session_id: install_session_id.clone(),
                     model_id: install_model_id.clone(),
                     local_model_id: Some(guessed_local_model_id.clone()),
+                    session_kind: LocalAiTransferSessionKind::Download,
                     phase: latest_phase.clone(),
                     bytes_received: latest_bytes_received,
                     bytes_total: latest_bytes_total,
@@ -217,4 +222,3 @@ fn execute_hf_install_blocking(
         }
     }
 }
-

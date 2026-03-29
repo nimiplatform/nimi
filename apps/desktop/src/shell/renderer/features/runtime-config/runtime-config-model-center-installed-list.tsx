@@ -297,6 +297,14 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                       <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.status', { defaultValue: 'Status' })}:</span> {model.status}</p>
                       <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.installed', { defaultValue: 'Installed' })}:</span> {model.installedAt || '-'}</p>
                     </div>
+                    <p>
+                      <span className="font-medium text-[var(--nimi-text-secondary)]">
+                        {t('runtimeConfig.local.sourceIntegrity', { defaultValue: 'Source' })}:
+                      </span>{' '}
+                      {model.integrityMode === 'local_unverified'
+                        ? t('runtimeConfig.local.sourceIntegrityLocalImport', { defaultValue: 'Local import (not provenance-verified)' })
+                        : t('runtimeConfig.local.sourceIntegrityVerified', { defaultValue: 'Verified source' })}
+                    </p>
                     {model.hash && <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.hash', { defaultValue: 'Hash' })}:</span> {model.hash}</p>}
                     {model.updatedAt && model.updatedAt !== model.installedAt && (
                       <p><span className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.local.updated', { defaultValue: 'Updated' })}:</span> {model.updatedAt}</p>
