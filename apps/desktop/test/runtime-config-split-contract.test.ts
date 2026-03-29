@@ -37,6 +37,7 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
       realtimeUrl: 'http://localhost:3003',
       accessToken: 'token-1',
       jwksUrl: 'http://localhost:3002/api/auth/jwks',
+      revocationUrl: 'http://localhost:3002/api/auth/revoke',
       jwtIssuer: 'http://localhost:3002',
       jwtAudience: 'nimi-runtime',
     },
@@ -58,6 +59,7 @@ test('parseRuntimeDefaults requires split realm/runtime payload', () => {
   assert.equal(parsed.realm.realtimeUrl, 'http://localhost:3003');
   assert.equal(parsed.realm.accessToken, 'token-1');
   assert.equal(parsed.realm.jwksUrl, 'http://localhost:3002/api/auth/jwks');
+  assert.equal(parsed.realm.revocationUrl, 'http://localhost:3002/api/auth/revoke');
   assert.equal(parsed.realm.jwtIssuer, 'http://localhost:3002');
   assert.equal(parsed.realm.jwtAudience, 'nimi-runtime');
   assert.equal(parsed.runtime.localProviderModel, 'local-model');
@@ -72,6 +74,7 @@ test('parseRuntimeDefaults allows empty local bindings', () => {
       realtimeUrl: '',
       accessToken: '',
       jwksUrl: 'http://localhost:3002/api/auth/jwks',
+      revocationUrl: 'http://localhost:3002/api/auth/revoke',
       jwtIssuer: 'http://localhost:3002',
       jwtAudience: 'nimi-runtime',
     },
