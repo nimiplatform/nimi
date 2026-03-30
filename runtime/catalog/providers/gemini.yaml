@@ -57,6 +57,23 @@ models:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-001
       retrieved_at: 2026-03-05
       note: Gemini embedding model card.
+  - model_id: gemini-embedding-2-preview
+    provider: gemini
+    model_type: embedding
+    updated_at: 2026-03-31
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: "0.20"
+      output: "0"
+      currency: USD
+      as_of: 2026-03-31
+      notes: Text input price for the multimodal embedding model. Supports text, image, video, audio, and PDF inputs. Flexible output dimensions from 128 to 3072. 8192 max input tokens. Per 1M text tokens.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2-preview
+      retrieved_at: 2026-03-31
+      note: Gemini Embedding 2 preview model card. First natively multimodal embedding model.
   - model_id: gemini-2.5-flash-image
     provider: gemini
     model_type: image
