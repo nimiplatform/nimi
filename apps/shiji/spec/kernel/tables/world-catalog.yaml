@@ -1,0 +1,58 @@
+# ShiJi — World Catalog
+# Authoritative whitelist for all worlds that may appear in ShiJi.
+
+field_contract:
+  worldId:
+    type: string
+    description: Canonical Realm world id
+  displayName:
+    type: string
+    description: ShiJi-facing display title
+  sortOrder:
+    type: integer
+    description: Stable catalog order for the unified timeline
+  startYear:
+    type: integer
+    description: Inclusive start year used for timeline positioning
+  endYear:
+    type: integer
+    description: Inclusive end year used for timeline positioning
+  eraLabel:
+    type: string
+    description: Human-readable era or date-range label
+  contentType:
+    type: enum
+    source: content-classification.yaml#content_types
+  truthMode:
+    type: enum
+    source: content-classification.yaml#truth_modes
+  gradeBand:
+    type: enum
+    values: [PRIMARY_UPPER, MIDDLE_SCHOOL, CROSS_STAGE]
+  status:
+    type: enum
+    values: [ACTIVE, PLANNED, RETIRED]
+  timelineMountMode:
+    type: enum
+    values: [PRIMARY]
+    description: v1 uses a single unified time river only
+  mapAvailability:
+    type: boolean
+    description: True only when a matching enabled map profile exists
+  primaryAgentIds:
+    type: string[]
+    description: Featured agents shown first in detail and session entry
+  relatedWorldIds:
+    type: string[]
+    description: Catalog-linked adjacent worlds for comparison or follow-on study
+
+constraints:
+  - Eligibility for ShiJi display is determined by this catalog, not by world tags
+  - Only rows with `status = ACTIVE` are eligible for stable UI display
+  - `sortOrder` must be unique
+  - `worldId` must be unique
+  - `contentType` / `truthMode` must match an allowed pair in `content-classification.yaml`
+  - Student-facing displays must use classification labels/badges from `content-classification.yaml`, not raw enum keys
+  - `mapAvailability = true` requires a matching enabled profile in `map-surface.yaml`
+
+entries: []

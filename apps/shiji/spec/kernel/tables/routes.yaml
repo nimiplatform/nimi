@@ -1,0 +1,75 @@
+# ShiJi — Route Table
+# Authoritative source for all application routes.
+# Referenced by: kernel contracts, feature-matrix.yaml
+
+routes:
+  # ── Explore (SJ-EXPL-*) ──────────────────────────────
+  - path: /
+    feature: explore-home
+    component: ExploreHomePage
+    lazy: true
+    description: 首页 — 时间长河视图，浏览时迹白名单 world
+
+  - path: /explore
+    feature: explore-home
+    component: ExploreHomePage
+    lazy: true
+    description: 时期浏览主入口（与首页同构，目录白名单驱动）
+
+  - path: /explore/:worldId
+    feature: explore-world-detail
+    component: WorldDetailPage
+    lazy: true
+    description: 时期详情 — 展示世界信息和可选历史人物
+
+  - path: /explore/:worldId/agent/:agentId
+    feature: explore-agent-detail
+    component: AgentDetailPage
+    lazy: true
+    description: 人物详情 — 人物简介、人格、关系、开始对话入口
+
+  - path: /explore/map
+    feature: explore-atlas
+    component: ExploreAtlasPage
+    lazy: true
+    description: 历史地图视图 — 具备地图 profile 的 world 时空联动浏览
+
+  # ── Session (SJ-DIAL-*) ──────────────────────────────
+  - path: /session/:sessionId
+    feature: dialogue-session
+    component: DialogueSessionPage
+    lazy: true
+    description: 沉浸式对话页 — 全屏叙事、选项面板、语音、配图
+
+  # ── Knowledge (SJ-KNOW-*) ────────────────────────────
+  - path: /knowledge
+    feature: knowledge-graph
+    component: KnowledgeGraphPage
+    lazy: true
+    description: 知识图谱 — 按朝代/领域分类的已学概念
+
+  - path: /knowledge/:worldId
+    feature: knowledge-world
+    component: KnowledgeWorldPage
+    lazy: true
+    description: 单个时期的知识详情
+
+  # ── Progress (SJ-PROG-*) ─────────────────────────────
+  - path: /progress
+    feature: progress-overview
+    component: ProgressOverviewPage
+    lazy: true
+    description: 学习进度 — 统计、章节时间线、探索覆盖
+
+  - path: /progress/achievements
+    feature: achievements
+    component: AchievementsPage
+    lazy: true
+    description: 成就勋章 — 探索/知识/对话/特殊成就
+
+  # ── Settings ──────────────────────────────────────────
+  - path: /settings
+    feature: settings
+    component: SettingsPage
+    lazy: true
+    description: 应用设置 — 模型选择、语音开关、学习提醒、家长模式

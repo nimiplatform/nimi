@@ -1,0 +1,47 @@
+# ShiJi — Content Classification
+# Authoritative source for contentType / truthMode enums and allowed pairings.
+
+content_types:
+  - key: history
+    display_label: 历史
+    description: Canonical historical learning content that forms the main curriculum spine
+
+  - key: literature
+    display_label: 名著
+    description: Traditional literary works used as contextual or interest-driven companion content
+
+  - key: mythology
+    display_label: 神话
+    description: Mythic and legendary materials used for cultural imagination and story learning
+
+truth_modes:
+  - key: factual
+    display_label: 史实
+    description: Treated as historical fact within the product's truth boundary
+
+  - key: dramatized
+    display_label: 演义
+    description: Treated as literary retelling or dramatized narrative, not canonical history
+
+  - key: legendary
+    display_label: 传说
+    description: Treated as mythic or legendary narrative, not canonical history
+
+allowed_pairs:
+  - contentType: history
+    truthMode: factual
+    ui_badge: 历史 / 史实
+
+  - contentType: literature
+    truthMode: dramatized
+    ui_badge: 名著 / 演义
+
+  - contentType: mythology
+    truthMode: legendary
+    ui_badge: 神话 / 传说
+
+constraints:
+  - Every ShiJi catalog entry must declare both `contentType` and `truthMode`
+  - Pairings outside `allowed_pairs` are invalid for ShiJi v1
+  - Mixed-type worlds are out of scope for ShiJi v1
+  - Explore, Dialogue, Knowledge, and Progress surfaces must render both labels together

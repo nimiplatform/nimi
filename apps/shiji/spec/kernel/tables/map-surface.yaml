@@ -1,0 +1,33 @@
+# ShiJi — Map Surface
+# Authoritative shape for Explore atlas world profiles.
+
+field_contract:
+  worldId:
+    type: string
+    description: Catalog world id
+  defaultViewport:
+    type: object
+    required_fields: [centerLat, centerLng, zoom]
+  mapTheme:
+    type: enum
+    values: [ancient, imperial, literary, mythic]
+  locationPins:
+    type: object[]
+    required_fields: [id, label, lat, lng, pinType]
+  routeSegments:
+    type: object[]
+    required_fields: [id, label, fromPinId, toPinId, routeType]
+  eventRefs:
+    type: object[]
+    required_fields: [eventId, label, anchorType]
+  enabled:
+    type: boolean
+    description: Stable map rendering is allowed only when true
+
+constraints:
+  - `enabled = true` requires the world to have `mapAvailability = true` in `world-catalog.yaml`
+  - Every `routeSegments.fromPinId` and `routeSegments.toPinId` must resolve to an existing `locationPins.id`
+  - Every `eventRefs.eventId` must resolve to a stable world event or story landmark id
+  - Missing required fields invalidate the profile and block stable map rendering
+
+profiles: []

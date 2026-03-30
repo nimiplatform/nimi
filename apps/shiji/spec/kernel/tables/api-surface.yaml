@@ -1,0 +1,214 @@
+# ShiJi — Consumed Realm API Surface
+# Authoritative source for all Realm API endpoints consumed by ShiJi.
+# ShiJi is a consumer-only app — it does not define new backend endpoints.
+# New backend needs must be proposed here with method, path, and shape sketch.
+
+endpoints:
+  # ── World Discovery ──────────────────────────────────
+  - method: GET
+    path: /api/world
+    status: existing
+    feature: explore-home
+    description: 列出所有 ACTIVE 状态的公开 World browse projection
+    response: WorldDetailDto[]
+    required_fields:
+      - id
+      - name
+      - tagline
+      - bannerUrl
+      - status
+    notes:
+      - ShiJi must intersect API results with `world-catalog.yaml`; this endpoint is not the browse whitelist
+
+  - method: GET
+    path: /api/world/by-id/{worldId}
+    status: existing
+    feature: explore-world-detail
+    description: 获取单个 World 详情
+    response: WorldDetailDto
+    required_fields:
+      - id
+      - name
+      - tagline
+      - description
+      - bannerUrl
+
+  - method: GET
+    path: /api/world/by-id/{worldId}/detail-with-agents
+    status: existing
+    feature: explore-world-detail
+    description: 获取 World 详情及推荐 Agent 列表
+    query: recommendedAgentLimit
+    response: WorldDetailWithAgentsDto
+    required_fields:
+      - id
+      - name
+      - tagline
+      - description
+      - bannerUrl
+      - recommendedAgents
+    nested_required_fields:
+      recommendedAgents:
+        - id
+        - name
+        - title
+        - summary
+        - avatarUrl
+
+  # ── Agent Discovery ──────────────────────────────────
+  - method: GET
+    path: /api/world/by-id/{worldId}/agents
+    status: existing
+    feature: explore-world-detail
+    description: 列出 World 中所有公开 Agent
+    response: WorldAgentSummaryDto[]
+    required_fields:
+      - id
+      - name
+      - title
+      - summary
+
+  - method: GET
+    path: /api/agent/accounts/{agentId}
+    status: existing
+    feature: explore-agent-detail
+    description: 获取 Agent 详情（DNA、头像、简介）
+    response: UserProfileDto
+    required_fields:
+      - id
+      - displayName
+      - summary
+      - avatarUrl
+      - identity.summary
+
+  # ── World Content (Dialogue Engine) ──────────────────
+  - method: GET
+    path: /api/world/by-id/{worldId}/rules
+    status: existing
+    feature: dialogue-session
+    description: 获取 World 规则（叙事治理）
+    response: WorldRuleDto[]
+    required_fields:
+      - id
+      - ruleKey
+      - title
+      - statement
+
+  - method: GET
+    path: /api/world/by-id/{worldId}/agent-rules
+    status: existing
+    feature: dialogue-session
+    description: 获取 World 中的 Agent 规则
+    response: AgentRuleDto[]
+    required_fields:
+      - id
+      - agentId
+      - ruleKey
+      - title
+      - statement
+
+  - method: GET
+    path: /api/world/by-id/{worldId}/lorebooks
+    status: existing
+    feature: dialogue-session
+    description: 获取 World Lorebook 条目（历史知识库）
+    response: WorldLorebookDto[]
+    required_fields:
+      - id
+      - title
+      - key
+      - content
+
+  - method: GET
+    path: /api/world/by-id/{worldId}/events
+    status: existing
+    feature: dialogue-session
+    description: 获取 World 事件（主干锁定历史事件）
+    response: CreatorWorldEventDto[]
+    required_fields:
+      - id
+      - title
+      - timelineSeq
+      - summary
+
+  - method: GET
+    path: /api/world/by-id/{worldId}/scenes
+    status: existing
+    feature: dialogue-session
+    description: 获取 World 场景列表
+    response: WorldSceneDto[]
+    required_fields:
+      - id
+      - title
+      - sceneType
+
+  # ── Agent Memory ─────────────────────────────────────
+  - method: GET
+    path: /api/agent/{agentId}/memory/recall
+    status: existing
+    feature: dialogue-session
+    description: 召回 Agent 与当前用户的 DYADIC 记忆
+    response: AgentMemoryEntryDto[]
+    required_fields:
+      - id
+      - content
+      - class
+      - createdAt
+
+  - method: POST
+    path: /api/agent/{agentId}/memory/write
+    status: existing
+    feature: dialogue-session
+    description: 写入 Agent DYADIC 记忆（跨会话连续性）
+    request: AgentMemoryWriteDto
+    required_fields:
+      - class
+      - content
+
+  # ── Bindings (Visual Assets) ─────────────────────────
+  - method: GET
+    path: /api/world/by-id/{worldId}/bindings
+    status: existing
+    feature: explore-world-detail
+    description: 获取 World 公开 Binding（图标、Banner、Agent 头像等）
+    response: PublicBindingListDto
+    required_fields:
+      - items
+    nested_required_fields:
+      items:
+        - id
+        - type
+        - assetUrl
+
+  # ── Explore Atlas ────────────────────────────────────
+  - method: GET
+    path: /api/world/by-id/{worldId}/map-profile
+    status: proposed
+    feature: explore-atlas
+    description: 获取 World 历史地图 profile（默认视口、地点锚点、路线、事件引用）
+    response: WorldMapProfileDto
+    notes:
+      - Proposed surfaces are backend requests captured by the spec and must not be treated as already implemented
+    required_fields:
+      - worldId
+      - defaultViewport
+      - mapTheme
+      - locationPins
+      - routeSegments
+      - eventRefs
+      - enabled
+
+  # ── Auth ─────────────────────────────────────────────
+  - method: POST
+    path: /api/auth/login
+    status: existing
+    feature: app-shell
+    description: 用户登录
+    response: AuthTokenDto
+
+  - method: POST
+    path: /api/auth/refresh
+    status: existing
+    feature: app-shell
+    description: Token 刷新
+    response: AuthTokenDto

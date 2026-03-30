@@ -1,0 +1,164 @@
+# ShiJi — Local Storage
+# Authoritative source for SQLite tables used by ShiJi learner data and session continuity.
+
+tables:
+  - name: sessions
+    purpose: Active and completed dialogue sessions per learner + world + agent
+    primary_key: id
+    logical_relationships:
+      - learnerId -> learner_profiles.id
+      - worldId -> world-catalog.yaml worldId
+      - agentId -> Realm agent id
+    required_columns:
+      - id
+      - learnerId
+      - learnerProfileVersion
+      - worldId
+      - agentId
+      - contentType
+      - truthMode
+      - sessionStatus
+      - chapterIndex
+      - sceneType
+      - rhythmCounter
+      - trunkEventIndex
+      - startedAt
+      - updatedAt
+    indexes:
+      - learnerId, updatedAt DESC
+      - learnerId, worldId, agentId, sessionStatus
+
+  - name: dialogue_turns
+    purpose: Full local dialogue transcript for continuity and review
+    primary_key: id
+    logical_relationships:
+      - sessionId -> sessions.id
+    required_columns:
+      - id
+      - sessionId
+      - seq
+      - role
+      - content
+      - sceneType
+      - createdAt
+    indexes:
+      - sessionId, seq
+      - sessionId, createdAt
+
+  - name: choices
+    purpose: Structured user selections extracted from assistant turns
+    primary_key: id
+    logical_relationships:
+      - sessionId -> sessions.id
+      - turnId -> dialogue_turns.id
+    required_columns:
+      - id
+      - sessionId
+      - turnId
+      - choiceKey
+      - choiceLabel
+      - selectedAt
+    indexes:
+      - sessionId, selectedAt
+      - turnId
+
+  - name: knowledge_entries
+    purpose: Learned concepts and their verification depth
+    primary_key: id
+    logical_relationships:
+      - learnerId -> learner_profiles.id
+      - worldId -> world-catalog.yaml worldId
+    required_columns:
+      - id
+      - learnerId
+      - worldId
+      - conceptKey
+      - domain
+      - depth
+      - contentType
+      - truthMode
+      - firstSeenAt
+      - updatedAt
+    indexes:
+      - learnerId, worldId, conceptKey
+      - learnerId, contentType, truthMode
+
+  - name: learner_profiles
+    purpose: Local learner identity, guardian-authored learning context, and report ownership
+    primary_key: id
+    required_columns:
+      - id
+      - authUserId
+      - displayName
+      - age
+      - gradeBand
+      - communicationStyle
+      - guardianGoals
+      - profileVersion
+      - isActive
+      - createdAt
+      - updatedAt
+    json_columns:
+      - strengthTags
+      - interestTags
+      - supportNotes
+      - guardianGuidance
+    indexes:
+      - authUserId
+      - authUserId, isActive
+
+  - name: learner_context_notes
+    purpose: Approved learner adaptation notes from guardian input or reviewed session observations
+    primary_key: id
+    logical_relationships:
+      - learnerId -> learner_profiles.id
+    required_columns:
+      - id
+      - learnerId
+      - sourceType
+      - noteType
+      - noteKey
+      - noteValue
+      - status
+      - createdAt
+      - updatedAt
+    indexes:
+      - learnerId, status, noteType
+      - learnerId, sourceType, updatedAt DESC
+
+  - name: chapter_progress
+    purpose: Chapter boundaries and summaries reached within a session
+    primary_key: id
+    logical_relationships:
+      - learnerId -> learner_profiles.id
+      - sessionId -> sessions.id
+      - worldId -> world-catalog.yaml worldId
+    required_columns:
+      - id
+      - learnerId
+      - sessionId
+      - worldId
+      - chapterIndex
+      - title
+      - summary
+      - verificationScore
+      - metacognitionCompleted
+      - startedAt
+      - completedAt
+    indexes:
+      - learnerId, worldId, chapterIndex
+      - sessionId, chapterIndex
+
+  - name: achievements
+    purpose: Unlocked exploration, knowledge, and dialogue achievements
+    primary_key: id
+    logical_relationships:
+      - learnerId -> learner_profiles.id
+    required_columns:
+      - id
+      - learnerId
+      - achievementKey
+      - unlockedAt
+    indexes:
+      - learnerId, achievementKey
+      - learnerId, unlockedAt DESC
