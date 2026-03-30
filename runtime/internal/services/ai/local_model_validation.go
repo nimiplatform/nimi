@@ -18,6 +18,7 @@ import (
 
 type localModelLister interface {
 	ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error)
+	WarmLocalModel(context.Context, *runtimev1.WarmLocalModelRequest) (*runtimev1.WarmLocalModelResponse, error)
 }
 
 type localImageProfileResolver interface {
@@ -73,6 +74,21 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 	}
 	if selected == nil {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if selected.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+		warmed, err := s.localModel.WarmLocalModel(ctx, &runtimev1.WarmLocalModelRequest{
+			LocalModelId: selected.GetLocalModelId(),
+		})
+		if err != nil {
+			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+				ActionHint: "inspect_local_runtime_model_health",
+				Message:    err.Error(),
+			})
+		}
+		selected.Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+		if warmed != nil && strings.TrimSpace(warmed.GetEndpoint()) != "" {
+			selected.Endpoint = strings.TrimSpace(warmed.GetEndpoint())
+		}
 	}
 	s.hydrateLocalProviderFromModel(selected)
 	if modelRequiresInvokeProfile(selected) {
@@ -225,7 +241,7 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 		if len(engineCandidates) == 0 {
 			return nil, runtimev1.ReasonCode_AI_MODEL_PROVIDER_MISMATCH, ""
 		}
-		if selected := firstActiveLocalModel(engineCandidates); selected != nil {
+		if selected := firstRunnableLocalModel(engineCandidates); selected != nil {
 			return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 		}
 		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(engineCandidates)
@@ -233,17 +249,36 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 
 	if selector.preferLocal {
 		for _, engine := range localPreferredEngines(selector.modal) {
-			if selected := firstActiveLocalModel(filterLocalModelsByEngine(candidates, engine)); selected != nil {
+			if selected := firstRunnableLocalModel(filterLocalModelsByEngine(candidates, engine)); selected != nil {
 				return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 			}
 		}
 		return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
 	}
 
-	if selected := firstActiveLocalModel(candidates); selected != nil {
+	if selected := firstRunnableLocalModel(candidates); selected != nil {
 		return selected, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED, ""
 	}
 	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
+}
+
+func firstRunnableLocalModel(models []*runtimev1.LocalModelRecord) *runtimev1.LocalModelRecord {
+	for _, candidate := range models {
+		if candidate == nil {
+			continue
+		}
+		switch candidate.GetStatus() {
+		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED:
+			return candidate
+		}
+	}
+	for _, candidate := range models {
+		if candidate != nil && candidate.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+			return candidate
+		}
+	}
+	return nil
 }
 
 func unsupportedExplicitLocalEngineReason(selector localModelSelector) runtimev1.ReasonCode {

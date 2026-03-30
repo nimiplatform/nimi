@@ -16,7 +16,11 @@ import {
 } from '../../src/runtime/generated/runtime/v1/ai';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import { RuntimeUnaryMethodCodecs } from '../../src/runtime/core/method-codecs';
-import { isRuntimeWriteMethod, RuntimeMethodIds } from '../../src/runtime/method-ids';
+import {
+  isRuntimeWriteMethod,
+  RuntimeMethodIds,
+  RuntimeStreamMethodIds,
+} from '../../src/runtime/method-ids';
 import {
   APP_ID,
   runtimeConfig,
@@ -33,6 +37,7 @@ test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async
   const localMethodEntries = Object.entries(RuntimeMethodIds.local) as Array<
     [keyof typeof RuntimeMethodIds.local, string]
   >;
+  const unaryLocalMethodEntries = localMethodEntries.filter(([, methodId]) => !RuntimeStreamMethodIds.includes(methodId));
 
   const nodeCalls: RuntimeUnaryCall<RuntimeWireMessage>[] = [];
   installNodeGrpcBridge({
@@ -89,7 +94,7 @@ test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async
       },
     });
 
-    for (const [methodName, methodId] of localMethodEntries) {
+    for (const [methodName, methodId] of unaryLocalMethodEntries) {
       const nodeInvoker = nodeClient.local[methodName] as (request: Record<string, unknown>) => Promise<unknown>;
       const tauriInvoker = tauriClient.local[methodName] as (request: Record<string, unknown>) => Promise<unknown>;
 
@@ -109,8 +114,8 @@ test('node-grpc and tauri-ipc cover runtime.local unary contract surface', async
       }
     }
 
-    assert.equal(nodeCalls.length, localMethodEntries.length);
-    assert.equal(tauriCalls.length, localMethodEntries.length);
+    assert.equal(nodeCalls.length, unaryLocalMethodEntries.length);
+    assert.equal(tauriCalls.length, unaryLocalMethodEntries.length);
   } finally {
     restoreTauri();
     clearNodeGrpcBridge();

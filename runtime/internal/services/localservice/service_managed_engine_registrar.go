@@ -73,10 +73,16 @@ func resolveGeneratedLlamaModelsConfigPath(configuredPath string) string {
 // settings used for runtime-generated llama config output.
 func (s *Service) SetManagedLlamaRegistrationConfig(modelsPath string, modelsConfigPath string, managed bool) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.localModelsPath = resolveLocalModelsPath(modelsPath)
 	s.managedLlamaModelsConfigPath = resolveGeneratedLlamaModelsConfigPath(modelsConfigPath)
 	s.managedLlamaEnabled = managed
+	configured := strings.TrimSpace(s.managedLlamaModelsConfigPath)
+	s.mu.Unlock()
+	if managed && configured != "" {
+		if err := s.SyncManagedLlamaAssets(context.Background()); err != nil {
+			s.logger.Warn("sync managed llama assets after config update failed", "error", err)
+		}
+	}
 }
 
 // SetManagedLlamaEndpoint records the managed llama endpoint exposed by the
@@ -323,6 +329,14 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
 			continue
 		}
+		if healedModel, _, err := s.healLegacyManagedLocalImportRecord(model.GetLocalModelId()); err != nil {
+			registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalModelId()), modelsPath, managed, imageBackendUp)
+			registration.Problem = managedLocalModelRecordFailureDetail(err)
+			registrations[model.GetLocalModelId()] = registration
+			continue
+		} else if healedModel != nil {
+			model = healedModel
+		}
 
 		registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalModelId()), modelsPath, managed, imageBackendUp)
 		registrations[model.GetLocalModelId()] = registration
@@ -414,19 +428,29 @@ func inspectManagedLlamaModelRegistration(
 			registration.Problem = "local media model missing engine_config"
 			return registration
 		}
-		relativeModelPath, resolveErr := resolveManagedEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
+		absoluteModelPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsPath, model)
 		if resolveErr == nil {
-			registration.RelativeModelPath = relativeModelPath
+			relativeModelPath, relErr := filepath.Rel(modelsPath, absoluteModelPath)
+			if relErr == nil {
+				registration.RelativeModelPath = filepath.ToSlash(relativeModelPath)
+			} else {
+				registration.Problem = relErr.Error()
+			}
 		}
 		return registration
 	}
 
-	relativeModelPath, resolveErr := resolveManagedEntryRelativePath(modelsPath, model.GetModelId(), model.GetSource().GetRepo(), model.GetEntry())
+	absoluteModelPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsPath, model)
 	if resolveErr != nil {
 		registration.Problem = resolveErr.Error()
 		return registration
 	}
-	registration.RelativeModelPath = relativeModelPath
+	relativeModelPath, relErr := filepath.Rel(modelsPath, absoluteModelPath)
+	if relErr != nil {
+		registration.Problem = relErr.Error()
+		return registration
+	}
+	registration.RelativeModelPath = filepath.ToSlash(relativeModelPath)
 	return registration
 }
 
@@ -537,6 +561,26 @@ func writeGeneratedLlamaConfigIfChanged(path string, rendered []byte) (bool, err
 func (s *Service) managedLlamaRegistrationForModel(model *runtimev1.LocalModelRecord) managedLlamaRegistration {
 	if model == nil {
 		return managedLlamaRegistration{}
+	}
+	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalModelId()); err != nil {
+		return managedLlamaRegistration{
+			LocalModelID: strings.TrimSpace(model.GetLocalModelId()),
+			ModelID:      strings.TrimSpace(model.GetModelId()),
+			Managed:      true,
+			Problem:      managedLocalModelRecordFailureDetail(err),
+		}
+	} else if healedModel != nil {
+		model = healedModel
+	}
+	if healedModel, _, err := s.healLegacyManagedLocalImportRecord(model.GetLocalModelId()); err != nil {
+		return managedLlamaRegistration{
+			LocalModelID: strings.TrimSpace(model.GetLocalModelId()),
+			ModelID:      strings.TrimSpace(model.GetModelId()),
+			Managed:      normalizeRuntimeMode(s.modelRuntimeMode(model.GetLocalModelId())) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+			Problem:      managedLocalModelRecordFailureDetail(err),
+		}
+	} else if healedModel != nil {
+		model = healedModel
 	}
 
 	localModelID := strings.TrimSpace(model.GetLocalModelId())

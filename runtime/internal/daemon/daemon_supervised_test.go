@@ -396,6 +396,116 @@ func TestStartSupervisedEnginesAutoManagedLlamaEntersLocalBootstrapBranch(t *tes
 	}
 }
 
+func TestStartSupervisedEnginesEnablesManagedLlamaControlPlaneWithoutStartupBootstrap(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	homeDir := t.TempDir()
+	setDaemonTestHome(t, homeDir)
+	if err := os.MkdirAll(filepath.Join(homeDir, ".nimi", "runtime"), 0o755); err != nil {
+		t.Fatalf("create test runtime dir: %v", err)
+	}
+
+	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
+	localModelsPath := filepath.Join(homeDir, ".nimi", "models")
+	if err := os.MkdirAll(filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m"), 0o755); err != nil {
+		t.Fatalf("create model dir: %v", err)
+	}
+	entryPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "Qwen3-4B-Q4_K_M.gguf")
+	if err := os.WriteFile(entryPath, []byte("GGUFtest"), 0o644); err != nil {
+		t.Fatalf("write model entry: %v", err)
+	}
+	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "manifest.json")
+	manifestRaw, err := json.Marshal(map[string]any{
+		"model_id":         "local-import/Qwen3-4B-Q4_K_M",
+		"logical_model_id": "nimi/local-import-qwen3-4b-q4-k-m",
+		"engine":           "llama",
+		"entry":            "Qwen3-4B-Q4_K_M.gguf",
+		"capabilities":     []string{"chat"},
+		"integrity_mode":   "local_unverified",
+	})
+	if err != nil {
+		t.Fatalf("marshal manifest: %v", err)
+	}
+	if err := os.WriteFile(manifestPath, manifestRaw, 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+	stateRaw, err := json.Marshal(map[string]any{
+		"schemaVersion": 1,
+		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+		"models": []map[string]any{{
+			"localModelId":      "01KMWJ7Z76YY5QA4QJ35M5ECXM",
+			"modelId":           "local/local-import/Qwen3-4B-Q4_K_M",
+			"capabilities":      []string{"chat"},
+			"engine":            "llama",
+			"entry":             "Qwen3-4B-Q4_K_M.gguf",
+			"sourceRepo":        "file://" + filepath.ToSlash(manifestPath),
+			"sourceRevision":    "local",
+			"endpoint":          "http://127.0.0.1:1234/v1",
+			"status":            1,
+			"installedAt":       time.Now().UTC().Format(time.RFC3339Nano),
+			"updatedAt":         time.Now().UTC().Format(time.RFC3339Nano),
+			"healthDetail":      "managed local model ready (not started)",
+			"engineRuntimeMode": 1,
+			"logicalModelId":    "nimi/local-import-qwen3-4b-q4-k-m",
+		}},
+		"artifacts": []map[string]any{},
+		"services":  []map[string]any{},
+		"transfers": []map[string]any{},
+		"audits":    []map[string]any{},
+	})
+	if err != nil {
+		t.Fatalf("marshal local state: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(localStatePath), 0o755); err != nil {
+		t.Fatalf("create local state dir: %v", err)
+	}
+	if err := os.WriteFile(localStatePath, stateRaw, 0o600); err != nil {
+		t.Fatalf("write local state: %v", err)
+	}
+
+	cfg := config.Config{
+		GRPCAddr:             "127.0.0.1:0",
+		HTTPAddr:             "127.0.0.1:0",
+		LocalStatePath:       localStatePath,
+		LocalModelsPath:      localModelsPath,
+		AuditRingBufferSize:  64,
+		UsageStatsBufferSize: 64,
+		IdempotencyCapacity:  32,
+		EngineLlamaEnabled:   false,
+		EngineLlamaPort:      1234,
+		EngineLlamaVersion:   "b8575",
+	}
+	daemon, err := New(cfg, logger, "test")
+	if err != nil {
+		t.Fatalf("create daemon: %v", err)
+	}
+	svc := daemon.grpc.LocalService()
+	if svc == nil {
+		t.Fatalf("expected local service")
+	}
+	t.Cleanup(func() { svc.Close() })
+	store := auditlog.New(64, 64)
+	daemon.auditStore = store
+	daemon.aiHealth = providerhealth.New()
+	daemon.newEngineManager = func(_ *slog.Logger, _ string, _ engine.StateChangeFunc) (*engine.Manager, error) {
+		return &engine.Manager{}, nil
+	}
+	calls := make([]engine.EngineKind, 0, 1)
+	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
+		calls = append(calls, kind)
+		return nil
+	}
+
+	daemon.startSupervisedEngines(context.Background())
+
+	if len(calls) != 0 {
+		t.Fatalf("expected no startup bootstrap call, got=%v", calls)
+	}
+	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
+	if _, err := os.Stat(configPath); err != nil {
+		t.Fatalf("expected managed llama config to be generated: %v", err)
+	}
+}
+
 func TestStartSupervisedEnginesSkipsBootstrapWhenNoManagedEnginesEnabled(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "http://127.0.0.1:2234/v1")

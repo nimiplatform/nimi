@@ -30,6 +30,16 @@ const (
 	RuntimeLocalService_InstallVerifiedArtifact_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedArtifact"
 	RuntimeLocalService_ImportLocalModel_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalModel"
 	RuntimeLocalService_ImportLocalArtifact_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalArtifact"
+	RuntimeLocalService_ImportLocalModelFile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalModelFile"
+	RuntimeLocalService_ImportLocalArtifactFile_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalArtifactFile"
+	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
+	RuntimeLocalService_ScaffoldOrphanModel_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanModel"
+	RuntimeLocalService_ScaffoldOrphanArtifact_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanArtifact"
+	RuntimeLocalService_ListLocalTransfers_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
+	RuntimeLocalService_PauseLocalTransfer_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
+	RuntimeLocalService_ResumeLocalTransfer_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
+	RuntimeLocalService_CancelLocalTransfer_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
+	RuntimeLocalService_WatchLocalTransfers_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
 	RuntimeLocalService_RemoveLocalModel_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalModel"
 	RuntimeLocalService_RemoveLocalArtifact_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalArtifact"
 	RuntimeLocalService_StartLocalModel_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/StartLocalModel"
@@ -71,6 +81,16 @@ type RuntimeLocalServiceClient interface {
 	InstallVerifiedArtifact(ctx context.Context, in *InstallVerifiedArtifactRequest, opts ...grpc.CallOption) (*InstallVerifiedArtifactResponse, error)
 	ImportLocalModel(ctx context.Context, in *ImportLocalModelRequest, opts ...grpc.CallOption) (*ImportLocalModelResponse, error)
 	ImportLocalArtifact(ctx context.Context, in *ImportLocalArtifactRequest, opts ...grpc.CallOption) (*ImportLocalArtifactResponse, error)
+	ImportLocalModelFile(ctx context.Context, in *ImportLocalModelFileRequest, opts ...grpc.CallOption) (*ImportLocalModelFileResponse, error)
+	ImportLocalArtifactFile(ctx context.Context, in *ImportLocalArtifactFileRequest, opts ...grpc.CallOption) (*ImportLocalArtifactFileResponse, error)
+	ScanUnregisteredAssets(ctx context.Context, in *ScanUnregisteredAssetsRequest, opts ...grpc.CallOption) (*ScanUnregisteredAssetsResponse, error)
+	ScaffoldOrphanModel(ctx context.Context, in *ScaffoldOrphanModelRequest, opts ...grpc.CallOption) (*ScaffoldOrphanModelResponse, error)
+	ScaffoldOrphanArtifact(ctx context.Context, in *ScaffoldOrphanArtifactRequest, opts ...grpc.CallOption) (*ScaffoldOrphanArtifactResponse, error)
+	ListLocalTransfers(ctx context.Context, in *ListLocalTransfersRequest, opts ...grpc.CallOption) (*ListLocalTransfersResponse, error)
+	PauseLocalTransfer(ctx context.Context, in *PauseLocalTransferRequest, opts ...grpc.CallOption) (*PauseLocalTransferResponse, error)
+	ResumeLocalTransfer(ctx context.Context, in *ResumeLocalTransferRequest, opts ...grpc.CallOption) (*ResumeLocalTransferResponse, error)
+	CancelLocalTransfer(ctx context.Context, in *CancelLocalTransferRequest, opts ...grpc.CallOption) (*CancelLocalTransferResponse, error)
+	WatchLocalTransfers(ctx context.Context, in *WatchLocalTransfersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalTransferProgressEvent], error)
 	RemoveLocalModel(ctx context.Context, in *RemoveLocalModelRequest, opts ...grpc.CallOption) (*RemoveLocalModelResponse, error)
 	RemoveLocalArtifact(ctx context.Context, in *RemoveLocalArtifactRequest, opts ...grpc.CallOption) (*RemoveLocalArtifactResponse, error)
 	StartLocalModel(ctx context.Context, in *StartLocalModelRequest, opts ...grpc.CallOption) (*StartLocalModelResponse, error)
@@ -215,6 +235,115 @@ func (c *runtimeLocalServiceClient) ImportLocalArtifact(ctx context.Context, in 
 	}
 	return out, nil
 }
+
+func (c *runtimeLocalServiceClient) ImportLocalModelFile(ctx context.Context, in *ImportLocalModelFileRequest, opts ...grpc.CallOption) (*ImportLocalModelFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportLocalModelFileResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalModelFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ImportLocalArtifactFile(ctx context.Context, in *ImportLocalArtifactFileRequest, opts ...grpc.CallOption) (*ImportLocalArtifactFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportLocalArtifactFileResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalArtifactFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ScanUnregisteredAssets(ctx context.Context, in *ScanUnregisteredAssetsRequest, opts ...grpc.CallOption) (*ScanUnregisteredAssetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScanUnregisteredAssetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ScanUnregisteredAssets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ScaffoldOrphanModel(ctx context.Context, in *ScaffoldOrphanModelRequest, opts ...grpc.CallOption) (*ScaffoldOrphanModelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScaffoldOrphanModelResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ScaffoldOrphanModel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ScaffoldOrphanArtifact(ctx context.Context, in *ScaffoldOrphanArtifactRequest, opts ...grpc.CallOption) (*ScaffoldOrphanArtifactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScaffoldOrphanArtifactResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ScaffoldOrphanArtifact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ListLocalTransfers(ctx context.Context, in *ListLocalTransfersRequest, opts ...grpc.CallOption) (*ListLocalTransfersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLocalTransfersResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ListLocalTransfers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) PauseLocalTransfer(ctx context.Context, in *PauseLocalTransferRequest, opts ...grpc.CallOption) (*PauseLocalTransferResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PauseLocalTransferResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_PauseLocalTransfer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ResumeLocalTransfer(ctx context.Context, in *ResumeLocalTransferRequest, opts ...grpc.CallOption) (*ResumeLocalTransferResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResumeLocalTransferResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ResumeLocalTransfer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) CancelLocalTransfer(ctx context.Context, in *CancelLocalTransferRequest, opts ...grpc.CallOption) (*CancelLocalTransferResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelLocalTransferResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_CancelLocalTransfer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) WatchLocalTransfers(ctx context.Context, in *WatchLocalTransfersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalTransferProgressEvent], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &RuntimeLocalService_ServiceDesc.Streams[0], RuntimeLocalService_WatchLocalTransfers_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchLocalTransfersRequest, LocalTransferProgressEvent]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeLocalService_WatchLocalTransfersClient = grpc.ServerStreamingClient[LocalTransferProgressEvent]
 
 func (c *runtimeLocalServiceClient) RemoveLocalModel(ctx context.Context, in *RemoveLocalModelRequest, opts ...grpc.CallOption) (*RemoveLocalModelResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -471,6 +600,16 @@ type RuntimeLocalServiceServer interface {
 	InstallVerifiedArtifact(context.Context, *InstallVerifiedArtifactRequest) (*InstallVerifiedArtifactResponse, error)
 	ImportLocalModel(context.Context, *ImportLocalModelRequest) (*ImportLocalModelResponse, error)
 	ImportLocalArtifact(context.Context, *ImportLocalArtifactRequest) (*ImportLocalArtifactResponse, error)
+	ImportLocalModelFile(context.Context, *ImportLocalModelFileRequest) (*ImportLocalModelFileResponse, error)
+	ImportLocalArtifactFile(context.Context, *ImportLocalArtifactFileRequest) (*ImportLocalArtifactFileResponse, error)
+	ScanUnregisteredAssets(context.Context, *ScanUnregisteredAssetsRequest) (*ScanUnregisteredAssetsResponse, error)
+	ScaffoldOrphanModel(context.Context, *ScaffoldOrphanModelRequest) (*ScaffoldOrphanModelResponse, error)
+	ScaffoldOrphanArtifact(context.Context, *ScaffoldOrphanArtifactRequest) (*ScaffoldOrphanArtifactResponse, error)
+	ListLocalTransfers(context.Context, *ListLocalTransfersRequest) (*ListLocalTransfersResponse, error)
+	PauseLocalTransfer(context.Context, *PauseLocalTransferRequest) (*PauseLocalTransferResponse, error)
+	ResumeLocalTransfer(context.Context, *ResumeLocalTransferRequest) (*ResumeLocalTransferResponse, error)
+	CancelLocalTransfer(context.Context, *CancelLocalTransferRequest) (*CancelLocalTransferResponse, error)
+	WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error
 	RemoveLocalModel(context.Context, *RemoveLocalModelRequest) (*RemoveLocalModelResponse, error)
 	RemoveLocalArtifact(context.Context, *RemoveLocalArtifactRequest) (*RemoveLocalArtifactResponse, error)
 	StartLocalModel(context.Context, *StartLocalModelRequest) (*StartLocalModelResponse, error)
@@ -537,6 +676,36 @@ func (UnimplementedRuntimeLocalServiceServer) ImportLocalModel(context.Context, 
 }
 func (UnimplementedRuntimeLocalServiceServer) ImportLocalArtifact(context.Context, *ImportLocalArtifactRequest) (*ImportLocalArtifactResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ImportLocalArtifact not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ImportLocalModelFile(context.Context, *ImportLocalModelFileRequest) (*ImportLocalModelFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportLocalModelFile not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ImportLocalArtifactFile(context.Context, *ImportLocalArtifactFileRequest) (*ImportLocalArtifactFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportLocalArtifactFile not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ScanUnregisteredAssets(context.Context, *ScanUnregisteredAssetsRequest) (*ScanUnregisteredAssetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ScanUnregisteredAssets not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ScaffoldOrphanModel(context.Context, *ScaffoldOrphanModelRequest) (*ScaffoldOrphanModelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ScaffoldOrphanModel not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ScaffoldOrphanArtifact(context.Context, *ScaffoldOrphanArtifactRequest) (*ScaffoldOrphanArtifactResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ScaffoldOrphanArtifact not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ListLocalTransfers(context.Context, *ListLocalTransfersRequest) (*ListLocalTransfersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalTransfers not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) PauseLocalTransfer(context.Context, *PauseLocalTransferRequest) (*PauseLocalTransferResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PauseLocalTransfer not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ResumeLocalTransfer(context.Context, *ResumeLocalTransferRequest) (*ResumeLocalTransferResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResumeLocalTransfer not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) CancelLocalTransfer(context.Context, *CancelLocalTransferRequest) (*CancelLocalTransferResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelLocalTransfer not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error {
+	return status.Error(codes.Unimplemented, "method WatchLocalTransfers not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) RemoveLocalModel(context.Context, *RemoveLocalModelRequest) (*RemoveLocalModelResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveLocalModel not implemented")
@@ -827,6 +996,179 @@ func _RuntimeLocalService_ImportLocalArtifact_Handler(srv interface{}, ctx conte
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _RuntimeLocalService_ImportLocalModelFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportLocalModelFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ImportLocalModelFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ImportLocalModelFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ImportLocalModelFile(ctx, req.(*ImportLocalModelFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ImportLocalArtifactFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportLocalArtifactFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ImportLocalArtifactFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ImportLocalArtifactFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ImportLocalArtifactFile(ctx, req.(*ImportLocalArtifactFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ScanUnregisteredAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScanUnregisteredAssetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ScanUnregisteredAssets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ScanUnregisteredAssets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ScanUnregisteredAssets(ctx, req.(*ScanUnregisteredAssetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ScaffoldOrphanModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScaffoldOrphanModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ScaffoldOrphanModel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanModel(ctx, req.(*ScaffoldOrphanModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ScaffoldOrphanArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScaffoldOrphanArtifactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanArtifact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ScaffoldOrphanArtifact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanArtifact(ctx, req.(*ScaffoldOrphanArtifactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ListLocalTransfers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalTransfersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ListLocalTransfers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ListLocalTransfers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ListLocalTransfers(ctx, req.(*ListLocalTransfersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_PauseLocalTransfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseLocalTransferRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).PauseLocalTransfer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_PauseLocalTransfer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).PauseLocalTransfer(ctx, req.(*PauseLocalTransferRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ResumeLocalTransfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeLocalTransferRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ResumeLocalTransfer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ResumeLocalTransfer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ResumeLocalTransfer(ctx, req.(*ResumeLocalTransferRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_CancelLocalTransfer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelLocalTransferRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).CancelLocalTransfer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_CancelLocalTransfer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).CancelLocalTransfer(ctx, req.(*CancelLocalTransferRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_WatchLocalTransfers_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchLocalTransfersRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(RuntimeLocalServiceServer).WatchLocalTransfers(m, &grpc.GenericServerStream[WatchLocalTransfersRequest, LocalTransferProgressEvent]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type RuntimeLocalService_WatchLocalTransfersServer = grpc.ServerStreamingServer[LocalTransferProgressEvent]
 
 func _RuntimeLocalService_RemoveLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RemoveLocalModelRequest)
@@ -1312,6 +1654,42 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeLocalService_ImportLocalArtifact_Handler,
 		},
 		{
+			MethodName: "ImportLocalModelFile",
+			Handler:    _RuntimeLocalService_ImportLocalModelFile_Handler,
+		},
+		{
+			MethodName: "ImportLocalArtifactFile",
+			Handler:    _RuntimeLocalService_ImportLocalArtifactFile_Handler,
+		},
+		{
+			MethodName: "ScanUnregisteredAssets",
+			Handler:    _RuntimeLocalService_ScanUnregisteredAssets_Handler,
+		},
+		{
+			MethodName: "ScaffoldOrphanModel",
+			Handler:    _RuntimeLocalService_ScaffoldOrphanModel_Handler,
+		},
+		{
+			MethodName: "ScaffoldOrphanArtifact",
+			Handler:    _RuntimeLocalService_ScaffoldOrphanArtifact_Handler,
+		},
+		{
+			MethodName: "ListLocalTransfers",
+			Handler:    _RuntimeLocalService_ListLocalTransfers_Handler,
+		},
+		{
+			MethodName: "PauseLocalTransfer",
+			Handler:    _RuntimeLocalService_PauseLocalTransfer_Handler,
+		},
+		{
+			MethodName: "ResumeLocalTransfer",
+			Handler:    _RuntimeLocalService_ResumeLocalTransfer_Handler,
+		},
+		{
+			MethodName: "CancelLocalTransfer",
+			Handler:    _RuntimeLocalService_CancelLocalTransfer_Handler,
+		},
+		{
 			MethodName: "RemoveLocalModel",
 			Handler:    _RuntimeLocalService_RemoveLocalModel_Handler,
 		},
@@ -1408,6 +1786,12 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeLocalService_GetEngineStatus_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchLocalTransfers",
+			Handler:       _RuntimeLocalService_WatchLocalTransfers_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "runtime/v1/local_runtime.proto",
 }

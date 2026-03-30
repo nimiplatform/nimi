@@ -539,7 +539,12 @@ func (d *Daemon) recordManagedLlamaBootstrapFailure(detail string) {
 }
 
 func (d *Daemon) startSupervisedEngines(ctx context.Context) {
-	if !d.cfg.EngineLlamaEnabled && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
+	svc := d.grpc.LocalService()
+	effectiveManagedLlama := d.cfg.EngineLlamaEnabled
+	if !effectiveManagedLlama && svc != nil && svc.HasManagedSupervisedLlamaModels() {
+		effectiveManagedLlama = true
+	}
+	if !effectiveManagedLlama && !d.cfg.EngineMediaEnabled && !d.cfg.EngineSpeechEnabled && !d.cfg.EngineSidecarEnabled {
 		return
 	}
 
@@ -567,9 +572,9 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	skipLlamaBootstrap := false
 	mediaHostSupport, _ := d.detectMediaHostSupport()
 	managedMediaLoopback := d.cfg.EngineMediaEnabled && mediaHostSupport == engine.MediaHostSupportSupportedSupervised
-	if svc := d.grpc.LocalService(); svc != nil {
-		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, d.cfg.EngineLlamaEnabled)
-		if d.cfg.EngineLlamaEnabled {
+	if svc != nil {
+		svc.SetManagedLlamaRegistrationConfig(d.cfg.LocalModelsPath, managedLlamaConfigPath, effectiveManagedLlama)
+		if effectiveManagedLlama {
 			svc.SetManagedLlamaEndpoint(fmt.Sprintf("http://127.0.0.1:%d/v1", d.cfg.EngineLlamaPort))
 		} else {
 			svc.SetManagedLlamaEndpoint("")

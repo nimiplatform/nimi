@@ -297,7 +297,7 @@ func (s *Service) installLocalModelRecord(
 	return record, nil
 }
 
-func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLocalModelRequest) (*runtimev1.InstallLocalModelResponse, error) {
+func (s *Service) InstallLocalModel(ctx context.Context, req *runtimev1.InstallLocalModelRequest) (*runtimev1.InstallLocalModelResponse, error) {
 	modelID := strings.TrimSpace(req.GetModelId())
 	if modelID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
@@ -305,7 +305,33 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 	capabilities := normalizeStringSlice(req.GetCapabilities())
 	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
 	endpoint := strings.TrimSpace(req.GetEndpoint())
-	if endpoint == "" {
+	binding := resolveInstallRuntimeBinding(engine, endpoint, collectDeviceProfile())
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		files := normalizeStringSlice(req.GetFiles())
+		entry := defaultString(strings.TrimSpace(req.GetEntry()), "")
+		if entry == "" && len(files) > 0 {
+			entry = files[0]
+		}
+		record, err := s.installManagedDownloadedModel(ctx, managedDownloadedModelSpec{
+			modelID:        modelID,
+			capabilities:   capabilities,
+			engine:         engine,
+			entry:          entry,
+			files:          files,
+			license:        defaultString(strings.TrimSpace(req.GetLicense()), "unknown"),
+			repo:           strings.TrimSpace(req.GetRepo()),
+			revision:       defaultString(strings.TrimSpace(req.GetRevision()), "main"),
+			hashes:         cloneStringMap(req.GetHashes()),
+			endpoint:       binding.endpoint,
+			mode:           binding.mode,
+			engineConfig:   req.GetEngineConfig(),
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.InstallLocalModelResponse{Model: record}, nil
+	}
+	if strings.TrimSpace(binding.endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 	record, err := s.installLocalModelRecord(
@@ -317,8 +343,8 @@ func (s *Service) InstallLocalModel(_ context.Context, req *runtimev1.InstallLoc
 		strings.TrimSpace(req.GetRepo()),
 		defaultString(strings.TrimSpace(req.GetRevision()), "main"),
 		req.GetHashes(),
-		endpoint,
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		binding.endpoint,
+		binding.mode,
 		"",
 		req.GetEngineConfig(),
 		nil,
@@ -358,6 +384,38 @@ func (s *Service) InstallVerifiedModel(ctx context.Context, req *runtimev1.Insta
 	)
 	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+	}
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		files := normalizeStringSlice(matched.GetFiles())
+		entry := defaultString(strings.TrimSpace(matched.GetEntry()), "")
+		if entry == "" && len(files) > 0 {
+			entry = files[0]
+		}
+		record, err := s.installManagedDownloadedModel(ctx, managedDownloadedModelSpec{
+			modelID:        matched.GetModelId(),
+			logicalModelID: strings.TrimSpace(matched.GetLogicalModelId()),
+			capabilities:   append([]string(nil), matched.GetCapabilities()...),
+			engine:         matched.GetEngine(),
+			entry:          entry,
+			files:          files,
+			license:        matched.GetLicense(),
+			repo:           matched.GetRepo(),
+			revision:       defaultString(matched.GetRevision(), "main"),
+			hashes:         cloneStringMap(matched.GetHashes()),
+			endpoint:       binding.endpoint,
+			mode:           binding.mode,
+			engineConfig:   matched.GetEngineConfig(),
+			projectionOverride: &modelregistry.NativeProjection{
+				LogicalModelID:  strings.TrimSpace(matched.GetLogicalModelId()),
+				ArtifactRoles:   append([]string(nil), matched.GetArtifactRoles()...),
+				PreferredEngine: strings.TrimSpace(matched.GetPreferredEngine()),
+				FallbackEngines: normalizePublicFallbackEngines(matched.GetFallbackEngines()),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.InstallVerifiedModelResponse{Model: record}, nil
 	}
 	record, err := s.installLocalModelRecord(
 		matched.GetModelId(),
@@ -419,7 +477,8 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	if endpoint == "" {
 		endpoint = manifestStringDefault(manifest, "endpoint")
 	}
-	if strings.TrimSpace(endpoint) == "" {
+	binding := resolveInstallRuntimeBinding(engine, endpoint, collectDeviceProfile())
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
 
@@ -466,6 +525,9 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 	if repo == "" {
 		repo = "file://" + manifestPath
 	}
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+		repo = "file://" + filepath.ToSlash(manifestPath)
+	}
 
 	record, err := s.installLocalModelRecord(
 		modelID,
@@ -476,8 +538,8 @@ func (s *Service) ImportLocalModel(_ context.Context, req *runtimev1.ImportLocal
 		repo,
 		revision,
 		hashes,
-		endpoint,
-		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT,
+		binding.endpoint,
+		binding.mode,
 		manifestStringDefault(manifest, "local_invoke_profile_id", "localInvokeProfileId"),
 		engineConfig,
 		&modelregistry.NativeProjection{

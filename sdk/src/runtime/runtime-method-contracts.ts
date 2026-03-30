@@ -60,6 +60,11 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.local.installVerifiedArtifact]: RuntimeClientMethodContract<'local', 'installVerifiedArtifact'>;
   [RuntimeMethodIds.local.importLocalModel]: RuntimeClientMethodContract<'local', 'importLocalModel'>;
   [RuntimeMethodIds.local.importLocalArtifact]: RuntimeClientMethodContract<'local', 'importLocalArtifact'>;
+  [RuntimeMethodIds.local.importLocalModelFile]: RuntimeClientMethodContract<'local', 'importLocalModelFile'>;
+  [RuntimeMethodIds.local.importLocalArtifactFile]: RuntimeClientMethodContract<'local', 'importLocalArtifactFile'>;
+  [RuntimeMethodIds.local.scanUnregisteredAssets]: RuntimeClientMethodContract<'local', 'scanUnregisteredAssets'>;
+  [RuntimeMethodIds.local.scaffoldOrphanModel]: RuntimeClientMethodContract<'local', 'scaffoldOrphanModel'>;
+  [RuntimeMethodIds.local.scaffoldOrphanArtifact]: RuntimeClientMethodContract<'local', 'scaffoldOrphanArtifact'>;
   [RuntimeMethodIds.local.removeLocalModel]: RuntimeClientMethodContract<'local', 'removeLocalModel'>;
   [RuntimeMethodIds.local.removeLocalArtifact]: RuntimeClientMethodContract<'local', 'removeLocalArtifact'>;
   [RuntimeMethodIds.local.startLocalModel]: RuntimeClientMethodContract<'local', 'startLocalModel'>;
@@ -107,6 +112,10 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.audit.listUsageStats]: RuntimeClientMethodContract<'audit', 'listUsageStats'>;
   [RuntimeMethodIds.audit.getRuntimeHealth]: RuntimeClientMethodContract<'audit', 'getRuntimeHealth'>;
   [RuntimeMethodIds.audit.listAIProviderHealth]: RuntimeClientMethodContract<'audit', 'listAIProviderHealth'>;
+  [RuntimeMethodIds.local.listLocalTransfers]: RuntimeClientMethodContract<'local', 'listLocalTransfers'>;
+  [RuntimeMethodIds.local.pauseLocalTransfer]: RuntimeClientMethodContract<'local', 'pauseLocalTransfer'>;
+  [RuntimeMethodIds.local.resumeLocalTransfer]: RuntimeClientMethodContract<'local', 'resumeLocalTransfer'>;
+  [RuntimeMethodIds.local.cancelLocalTransfer]: RuntimeClientMethodContract<'local', 'cancelLocalTransfer'>;
 };
 
 export type RuntimeStreamMethodContractMap = {
@@ -114,13 +123,25 @@ export type RuntimeStreamMethodContractMap = {
   [RuntimeMethodIds.ai.subscribeScenarioJobEvents]: RuntimeClientMethodContract<'ai', 'subscribeScenarioJobEvents'>;
   [RuntimeMethodIds.aiRealtime.readRealtimeEvents]: RuntimeClientMethodContract<'ai', 'readRealtimeEvents'>;
   [RuntimeMethodIds.workflow.subscribeEvents]: RuntimeClientMethodContract<'workflow', 'subscribeEvents'>;
+  [RuntimeMethodIds.local.watchLocalTransfers]: RuntimeClientMethodContract<'local', 'watchLocalTransfers'>;
   [RuntimeMethodIds.app.subscribeAppMessages]: RuntimeClientMethodContract<'app', 'subscribeAppMessages'>;
   [RuntimeMethodIds.audit.exportAuditEvents]: RuntimeClientMethodContract<'audit', 'exportAuditEvents'>;
   [RuntimeMethodIds.audit.subscribeAIProviderHealthEvents]: RuntimeClientMethodContract<'audit', 'subscribeAIProviderHealthEvents'>;
   [RuntimeMethodIds.audit.subscribeRuntimeHealthEvents]: RuntimeClientMethodContract<'audit', 'subscribeRuntimeHealthEvents'>;
 };
 
-export type RuntimeUnaryMethodId = keyof RuntimeUnaryMethodContractMap & string;
+type RuntimeExplicitUnaryMethodIds =
+  | typeof RuntimeMethodIds.local.importLocalModelFile
+  | typeof RuntimeMethodIds.local.importLocalArtifactFile
+  | typeof RuntimeMethodIds.local.scanUnregisteredAssets
+  | typeof RuntimeMethodIds.local.scaffoldOrphanModel
+  | typeof RuntimeMethodIds.local.scaffoldOrphanArtifact
+  | typeof RuntimeMethodIds.local.listLocalTransfers
+  | typeof RuntimeMethodIds.local.pauseLocalTransfer
+  | typeof RuntimeMethodIds.local.resumeLocalTransfer
+  | typeof RuntimeMethodIds.local.cancelLocalTransfer;
+
+export type RuntimeUnaryMethodId = (keyof RuntimeUnaryMethodContractMap | RuntimeExplicitUnaryMethodIds) & string;
 export type RuntimeStreamMethodId = keyof RuntimeStreamMethodContractMap & string;
 export type RuntimeMethodId = RuntimeUnaryMethodId | RuntimeStreamMethodId;
 export type RuntimeMethodContractMap = RuntimeUnaryMethodContractMap & RuntimeStreamMethodContractMap;

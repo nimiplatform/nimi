@@ -23,6 +23,7 @@ type localStateSnapshot struct {
 	Models        []localStateModelState    `json:"models"`
 	Artifacts     []localStateArtifactState `json:"artifacts"`
 	Services      []localStateServiceState  `json:"services"`
+	Transfers     []localStateTransferState `json:"transfers,omitempty"`
 	Audits        []localStateAuditState    `json:"audits"`
 }
 
@@ -105,6 +106,26 @@ type localStateAuditState struct {
 	SubjectUserID string         `json:"subjectUserId,omitempty"`
 }
 
+type localStateTransferState struct {
+	InstallSessionID string `json:"installSessionId"`
+	ModelID          string `json:"modelId"`
+	LocalModelID     string `json:"localModelId,omitempty"`
+	ArtifactID       string `json:"artifactId,omitempty"`
+	LocalArtifactID  string `json:"localArtifactId,omitempty"`
+	SessionKind      string `json:"sessionKind"`
+	Phase            string `json:"phase"`
+	State            string `json:"state"`
+	BytesReceived    int64  `json:"bytesReceived"`
+	BytesTotal       int64  `json:"bytesTotal,omitempty"`
+	SpeedBytesPerSec int64  `json:"speedBytesPerSec,omitempty"`
+	EtaSeconds       int64  `json:"etaSeconds,omitempty"`
+	Message          string `json:"message,omitempty"`
+	ReasonCode       string `json:"reasonCode,omitempty"`
+	Retryable        bool   `json:"retryable,omitempty"`
+	CreatedAt        string `json:"createdAt"`
+	UpdatedAt        string `json:"updatedAt"`
+}
+
 func resolveLocalStatePath(configuredPath string) string {
 	if value := strings.TrimSpace(configuredPath); value != "" {
 		return value
@@ -130,7 +151,6 @@ func (s *Service) restoreState() error {
 	}
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	healedSnapshot := false
 
 	modelRows := make([]*runtimev1.LocalModelRecord, 0, len(snapshot.Models))
@@ -257,9 +277,42 @@ func (s *Service) restoreState() error {
 			break
 		}
 	}
+	s.transfers = make(map[string]*runtimev1.LocalTransferSessionSummary, len(snapshot.Transfers))
+	s.transferControls = make(map[string]*localTransferControl)
+	for _, item := range snapshot.Transfers {
+		summary := &runtimev1.LocalTransferSessionSummary{
+			InstallSessionId: item.InstallSessionID,
+			ModelId:          item.ModelID,
+			LocalModelId:     item.LocalModelID,
+			ArtifactId:       item.ArtifactID,
+			LocalArtifactId:  item.LocalArtifactID,
+			SessionKind:      normalizeTransferKind(item.SessionKind),
+			Phase:            item.Phase,
+			State:            normalizeTransferState(item.State),
+			BytesReceived:    item.BytesReceived,
+			BytesTotal:       item.BytesTotal,
+			SpeedBytesPerSec: item.SpeedBytesPerSec,
+			EtaSeconds:       item.EtaSeconds,
+			Message:          item.Message,
+			ReasonCode:       item.ReasonCode,
+			Retryable:        item.Retryable,
+			CreatedAt:        item.CreatedAt,
+			UpdatedAt:        item.UpdatedAt,
+		}
+		if summary.GetInstallSessionId() == "" {
+			continue
+		}
+		s.transfers[summary.GetInstallSessionId()] = summary
+		if !isTerminalTransferState(summary.GetState()) && summary.GetSessionKind() == localTransferKindDownload {
+			s.transferControls[summary.GetInstallSessionId()] = newLocalTransferControl()
+		}
+	}
 	if healedSnapshot {
 		s.persistStateLocked()
 	}
+	s.mu.Unlock()
+
+	s.healLegacyManagedLocalImportRecords()
 	return nil
 }
 
@@ -275,6 +328,7 @@ func (s *Service) persistStateLocked() {
 		Models:        make([]localStateModelState, 0, len(s.models)),
 		Artifacts:     make([]localStateArtifactState, 0, len(s.artifacts)),
 		Services:      make([]localStateServiceState, 0, len(s.services)),
+		Transfers:     make([]localStateTransferState, 0, len(s.transfers)),
 		Audits:        make([]localStateAuditState, 0, len(s.audits)),
 	}
 
@@ -372,6 +426,37 @@ func (s *Service) persistStateLocked() {
 		})
 	}
 
+	transferIDs := make([]string, 0, len(s.transfers))
+	for id := range s.transfers {
+		transferIDs = append(transferIDs, id)
+	}
+	sort.Strings(transferIDs)
+	for _, id := range transferIDs {
+		transfer := s.transfers[id]
+		if transfer == nil {
+			continue
+		}
+		snapshot.Transfers = append(snapshot.Transfers, localStateTransferState{
+			InstallSessionID: transfer.GetInstallSessionId(),
+			ModelID:          transfer.GetModelId(),
+			LocalModelID:     transfer.GetLocalModelId(),
+			ArtifactID:       transfer.GetArtifactId(),
+			LocalArtifactID:  transfer.GetLocalArtifactId(),
+			SessionKind:      normalizeTransferKind(transfer.GetSessionKind()),
+			Phase:            transfer.GetPhase(),
+			State:            normalizeTransferState(transfer.GetState()),
+			BytesReceived:    transfer.GetBytesReceived(),
+			BytesTotal:       transfer.GetBytesTotal(),
+			SpeedBytesPerSec: transfer.GetSpeedBytesPerSec(),
+			EtaSeconds:       transfer.GetEtaSeconds(),
+			Message:          transfer.GetMessage(),
+			ReasonCode:       transfer.GetReasonCode(),
+			Retryable:        transfer.GetRetryable(),
+			CreatedAt:        transfer.GetCreatedAt(),
+			UpdatedAt:        transfer.GetUpdatedAt(),
+		})
+	}
+
 	for _, event := range s.audits {
 		if event == nil {
 			continue
@@ -408,6 +493,7 @@ func loadLocalStateSnapshot(path string) (localStateSnapshot, error) {
 		Models:    []localStateModelState{},
 		Artifacts: []localStateArtifactState{},
 		Services:  []localStateServiceState{},
+		Transfers: []localStateTransferState{},
 		Audits:    []localStateAuditState{},
 	}
 

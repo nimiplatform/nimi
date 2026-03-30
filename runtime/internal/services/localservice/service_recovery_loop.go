@@ -59,6 +59,12 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		if localModelID == "" || !s.shouldProbeModelNow(localModelID, now) {
 			continue
 		}
+		if isManagedSupervisedLlamaModel(localModel, model.mode) {
+			if _, err := s.checkManagedSupervisedLlamaHealth(ctx, localModel); err != nil {
+				s.logger.Debug("managed llama recovery health failed", "local_model_id", localModelID, "error", err)
+			}
+			continue
+		}
 		endpoint := s.effectiveLocalModelEndpoint(localModel)
 		bootstrapErr := s.bootstrapEngineIfManaged(ctx, localModel.GetEngine(), model.mode, endpoint)
 		probe := s.probeEndpoint(ctx, localModel.GetEngine(), endpoint)

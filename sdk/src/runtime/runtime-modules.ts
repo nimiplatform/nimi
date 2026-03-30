@@ -117,6 +117,15 @@ const LOCAL_METHODS = [
   'installVerifiedArtifact',
   'importLocalModel',
   'importLocalArtifact',
+  'importLocalModelFile',
+  'importLocalArtifactFile',
+  'scanUnregisteredAssets',
+  'scaffoldOrphanModel',
+  'scaffoldOrphanArtifact',
+  'listLocalTransfers',
+  'pauseLocalTransfer',
+  'resumeLocalTransfer',
+  'cancelLocalTransfer',
   'removeLocalModel',
   'removeLocalArtifact',
   'startLocalModel',
@@ -243,7 +252,14 @@ export function createCorePassthroughClients(input: {
 
   const model: RuntimeModelClient = createPassthroughModule('model', MODEL_METHODS, { guard, invokeWithClient });
 
-  const local: RuntimeLocalServiceClient = createPassthroughModule('local', LOCAL_METHODS, { guard, invokeWithClient });
+  const localBase = createPassthroughModule('local', LOCAL_METHODS, { guard, invokeWithClient });
+  const local: RuntimeLocalServiceClient = {
+    ...localBase,
+    watchLocalTransfers: async (request, optionsValue) => {
+      guard('local', 'watchLocalTransfers');
+      return invokeWithClient(async (client) => client.local.watchLocalTransfers(request, optionsValue));
+    },
+  };
 
   const connector: RuntimeConnectorClient = createPassthroughModule('connector', CONNECTOR_METHODS, { guard, invokeWithClient });
 

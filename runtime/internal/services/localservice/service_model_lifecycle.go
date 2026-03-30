@@ -29,10 +29,60 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 	if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
+	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(localModelID); err != nil {
+		detail := managedLocalModelRecordFailureDetail(err)
+		if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+			s.setModelHealthDetail(localModelID, detail)
+			return &runtimev1.StartLocalModelResponse{Model: s.modelByID(localModelID)}, nil
+		}
+		unhealthy, updateErr := s.transitionModelToUnhealthy(localModelID, detail)
+		if updateErr != nil {
+			return nil, updateErr
+		}
+		return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
+	} else if healedModel != nil {
+		current = healedModel
+	}
+	if healedModel, _, err := s.healLegacyManagedLocalImportRecord(localModelID); err != nil {
+		detail := managedLocalModelRecordFailureDetail(err)
+		if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+			s.setModelHealthDetail(localModelID, detail)
+			return &runtimev1.StartLocalModelResponse{Model: s.modelByID(localModelID)}, nil
+		}
+		unhealthy, updateErr := s.transitionModelToUnhealthy(localModelID, detail)
+		if updateErr != nil {
+			return nil, updateErr
+		}
+		return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
+	} else if healedModel != nil {
+		current = healedModel
+	}
 
 	profile := collectDeviceProfile()
 	warnings := startupCompatibilityWarnings(current.GetEngine(), profile)
 
+	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, current); err != nil {
+		failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
+		detail := appendWarnings(managedLocalModelBundleFailureDetail(err), warnings)
+		detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
+		unhealthy, updateErr := s.transitionModelToUnhealthy(localModelID, detail)
+		if updateErr != nil {
+			return nil, updateErr
+		}
+		return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
+	}
+	if refreshed := s.modelByID(localModelID); refreshed != nil {
+		current = refreshed
+	}
+	registration := s.managedLlamaRegistrationForModel(current)
+	if strings.TrimSpace(registration.Problem) != "" {
+		detail := appendWarnings(managedLocalModelRegistrationFailureDetail(registration.Problem), warnings)
+		unhealthy, err := s.transitionModelToUnhealthy(localModelID, detail)
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
+	}
 	if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
 		activated, err := s.updateModelStatus(
 			localModelID,
@@ -48,7 +98,6 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 	endpoint := s.effectiveLocalModelEndpoint(current)
 	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
 	probe := s.probeEndpoint(ctx, current.GetEngine(), endpoint)
-	registration := s.managedLlamaRegistrationForModel(current)
 	if modelProbeSucceeded(current, probe, registration) {
 		if s.shouldWarmLocalModelOnStart(current, endpoint, probe) {
 			warmTimeout := warmLocalModelTimeout(0)
@@ -59,7 +108,7 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 				failures, _ := s.modelRecoveryFailure(localModelID, time.Now().UTC())
 				detail := appendWarnings(warmExecutionFailureDetail(warmErr), warnings)
 				detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
-				unhealthy, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
+				unhealthy, err := s.transitionModelToUnhealthy(localModelID, detail)
 				if err != nil {
 					return nil, err
 				}
@@ -83,7 +132,7 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 		detail += "; probe_url=" + probe.probeURL
 	}
 	detail = fmt.Sprintf("%s; consecutive_failures=%d", detail, failures)
-	unhealthy, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
+	unhealthy, err := s.transitionModelToUnhealthy(localModelID, detail)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +182,17 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			continue
 		}
 		localModelID := strings.TrimSpace(model.GetLocalModelId())
+		if healedModel, _, err := s.healLegacyManagedLocalImportRecord(localModelID); err == nil && healedModel != nil {
+			model = healedModel
+		}
+		if isManagedSupervisedLlamaModel(model, s.modelRuntimeMode(localModelID)) {
+			health, err := s.checkManagedSupervisedLlamaHealth(ctx, model)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, health)
+			continue
+		}
 		switch model.GetStatus() {
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
 			endpoint := s.effectiveLocalModelEndpoint(model)
@@ -199,6 +259,143 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 		return result[i].GetLocalModelId() < result[j].GetLocalModelId()
 	})
 	return &runtimev1.CheckLocalModelHealthResponse{Models: result}, nil
+}
+
+func (s *Service) normalizeManagedSupervisedLlamaStatuses(ctx context.Context) {
+	s.mu.RLock()
+	models := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
+	for _, model := range s.models {
+		if model == nil {
+			continue
+		}
+		if !isManagedSupervisedLlamaModel(model, s.modelRuntimeModes[model.GetLocalModelId()]) {
+			continue
+		}
+		models = append(models, cloneLocalModel(model))
+	}
+	s.mu.RUnlock()
+
+	for _, model := range models {
+		if model == nil {
+			continue
+		}
+		switch model.GetStatus() {
+		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+			runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
+			runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+			if _, err := s.checkManagedSupervisedLlamaHealth(ctx, model); err != nil {
+				s.logger.Debug("normalize managed llama status failed", "local_model_id", model.GetLocalModelId(), "error", err)
+			}
+		}
+	}
+}
+
+func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *runtimev1.LocalModelRecord) (*runtimev1.LocalModelHealth, error) {
+	if model == nil {
+		return nil, nil
+	}
+	localModelID := strings.TrimSpace(model.GetLocalModelId())
+	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(localModelID); err != nil {
+		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalModelRecordFailureDetail(err))
+	} else if healedModel != nil {
+		model = healedModel
+	}
+	if healedModel, _, err := s.healLegacyManagedLocalImportRecord(localModelID); err != nil {
+		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalModelRecordFailureDetail(err))
+	} else if healedModel != nil {
+		model = healedModel
+	}
+	if _, _, err := s.ensureManagedLocalModelBundleReady(ctx, model); err != nil {
+		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalModelBundleFailureDetail(err))
+	}
+	if refreshed := s.modelByID(localModelID); refreshed != nil {
+		model = refreshed
+	}
+	registration := s.managedLlamaRegistrationForModel(model)
+	if strings.TrimSpace(registration.Problem) != "" {
+		return s.setManagedSupervisedLlamaUnhealthy(model, managedLocalModelRegistrationFailureDetail(registration.Problem))
+	}
+
+	endpoint := s.effectiveLocalModelEndpoint(model)
+	probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
+	readyDetail := managedLocalModelReadyDetail()
+	if modelProbeSucceeded(model, probe, registration) {
+		s.resetModelRecovery(localModelID)
+		if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE || strings.TrimSpace(model.GetHealthDetail()) != readyDetail {
+			active, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, readyDetail)
+			if err != nil {
+				return nil, err
+			}
+			model = active
+		}
+		return modelHealth(model), nil
+	}
+
+	if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		failures, interval := s.modelRecoveryFailure(localModelID, time.Now().UTC())
+		detail := modelProbeFailureDetail(model, probe, registration)
+		if strings.TrimSpace(probe.probeURL) != "" {
+			detail += "; probe_url=" + probe.probeURL
+		}
+		detail = fmt.Sprintf("%s; consecutive_failures=%d; next_probe_in=%s", detail, failures, interval.String())
+		transitioned, err := s.transitionModelToUnhealthy(localModelID, detail)
+		if err != nil {
+			return nil, err
+		}
+		return modelHealth(transitioned), nil
+	}
+
+	if !probe.responded {
+		s.resetModelRecovery(localModelID)
+		if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+			recovered, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, readyDetail)
+			if err != nil {
+				return nil, err
+			}
+			return modelHealth(recovered), nil
+		}
+		s.setModelHealthDetail(localModelID, readyDetail)
+		return modelHealth(s.modelByID(localModelID)), nil
+	}
+
+	detail := modelProbeFailureDetail(model, probe, registration)
+	if strings.TrimSpace(probe.probeURL) != "" {
+		detail += "; probe_url=" + probe.probeURL
+	}
+	return s.setManagedSupervisedLlamaUnhealthy(model, detail)
+}
+
+func (s *Service) setManagedSupervisedLlamaUnhealthy(model *runtimev1.LocalModelRecord, detail string) (*runtimev1.LocalModelHealth, error) {
+	if model == nil {
+		return nil, nil
+	}
+	localModelID := strings.TrimSpace(model.GetLocalModelId())
+	if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		s.setModelHealthDetail(localModelID, detail)
+		return modelHealth(s.modelByID(localModelID)), nil
+	}
+	transitioned, err := s.transitionModelToUnhealthy(localModelID, detail)
+	if err != nil {
+		return nil, err
+	}
+	return modelHealth(transitioned), nil
+}
+
+func (s *Service) transitionModelToUnhealthy(localModelID string, detail string) (*runtimev1.LocalModelRecord, error) {
+	current := s.modelByID(localModelID)
+	if current == nil {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		s.setModelHealthDetail(localModelID, detail)
+		return s.modelByID(localModelID), nil
+	}
+	if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+		if _, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+			return nil, err
+		}
+	}
+	return s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
 }
 
 func appendSanitizedBootstrapFailureDetail(detail string, err error) string {

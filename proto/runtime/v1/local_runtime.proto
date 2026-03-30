@@ -149,6 +149,148 @@ message ImportLocalArtifactResponse {
   LocalArtifactRecord artifact = 1;
 }
 
+message ImportLocalModelFileRequest {
+  string file_path = 1;
+  string model_name = 2;
+  repeated string capabilities = 3;
+  string engine = 4;
+  string endpoint = 5;
+}
+
+message ImportLocalModelFileResponse {
+  LocalModelRecord model = 1;
+}
+
+message ImportLocalArtifactFileRequest {
+  string file_path = 1;
+  LocalArtifactKind kind = 2;
+  string engine = 3;
+}
+
+message ImportLocalArtifactFileResponse {
+  LocalArtifactRecord artifact = 1;
+}
+
+message LocalUnregisteredAssetDeclaration {
+  string asset_class = 1;
+  string model_type = 2;
+  LocalArtifactKind artifact_kind = 3;
+  string engine = 4;
+}
+
+message LocalUnregisteredAssetDescriptor {
+  string filename = 1;
+  string path = 2;
+  int64 size_bytes = 3;
+  LocalUnregisteredAssetDeclaration declaration = 4;
+  string suggestion_source = 5;
+  string confidence = 6;
+  bool auto_importable = 7;
+  bool requires_manual_review = 8;
+  string folder_name = 9;
+}
+
+message ScanUnregisteredAssetsRequest {}
+
+message ScanUnregisteredAssetsResponse {
+  repeated LocalUnregisteredAssetDescriptor items = 1;
+}
+
+message ScaffoldOrphanModelRequest {
+  string path = 1;
+  repeated string capabilities = 2;
+  string engine = 3;
+  string endpoint = 4;
+}
+
+message ScaffoldOrphanModelResponse {
+  LocalModelRecord model = 1;
+}
+
+message ScaffoldOrphanArtifactRequest {
+  string path = 1;
+  LocalArtifactKind kind = 2;
+  string engine = 3;
+}
+
+message ScaffoldOrphanArtifactResponse {
+  LocalArtifactRecord artifact = 1;
+}
+
+message LocalTransferSessionSummary {
+  string install_session_id = 1;
+  string model_id = 2;
+  string local_model_id = 3;
+  string artifact_id = 4;
+  string local_artifact_id = 5;
+  string session_kind = 6;
+  string phase = 7;
+  string state = 8;
+  int64 bytes_received = 9;
+  int64 bytes_total = 10;
+  int64 speed_bytes_per_sec = 11;
+  int64 eta_seconds = 12;
+  string message = 13;
+  string reason_code = 14;
+  bool retryable = 15;
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+message LocalTransferProgressEvent {
+  string install_session_id = 1;
+  string model_id = 2;
+  string local_model_id = 3;
+  string artifact_id = 4;
+  string local_artifact_id = 5;
+  string session_kind = 6;
+  string phase = 7;
+  int64 bytes_received = 8;
+  int64 bytes_total = 9;
+  int64 speed_bytes_per_sec = 10;
+  int64 eta_seconds = 11;
+  string message = 12;
+  string state = 13;
+  string reason_code = 14;
+  bool retryable = 15;
+  bool done = 16;
+  bool success = 17;
+  string created_at = 18;
+  string updated_at = 19;
+}
+
+message ListLocalTransfersRequest {}
+
+message ListLocalTransfersResponse {
+  repeated LocalTransferSessionSummary transfers = 1;
+}
+
+message PauseLocalTransferRequest {
+  string install_session_id = 1;
+}
+
+message PauseLocalTransferResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message ResumeLocalTransferRequest {
+  string install_session_id = 1;
+}
+
+message ResumeLocalTransferResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message CancelLocalTransferRequest {
+  string install_session_id = 1;
+}
+
+message CancelLocalTransferResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message WatchLocalTransfersRequest {}
+
 message RemoveLocalModelRequest {
   string local_model_id = 1;
 }
@@ -359,6 +501,16 @@ service RuntimeLocalService {
   rpc InstallVerifiedArtifact(InstallVerifiedArtifactRequest) returns (InstallVerifiedArtifactResponse);
   rpc ImportLocalModel(ImportLocalModelRequest) returns (ImportLocalModelResponse);
   rpc ImportLocalArtifact(ImportLocalArtifactRequest) returns (ImportLocalArtifactResponse);
+  rpc ImportLocalModelFile(ImportLocalModelFileRequest) returns (ImportLocalModelFileResponse);
+  rpc ImportLocalArtifactFile(ImportLocalArtifactFileRequest) returns (ImportLocalArtifactFileResponse);
+  rpc ScanUnregisteredAssets(ScanUnregisteredAssetsRequest) returns (ScanUnregisteredAssetsResponse);
+  rpc ScaffoldOrphanModel(ScaffoldOrphanModelRequest) returns (ScaffoldOrphanModelResponse);
+  rpc ScaffoldOrphanArtifact(ScaffoldOrphanArtifactRequest) returns (ScaffoldOrphanArtifactResponse);
+  rpc ListLocalTransfers(ListLocalTransfersRequest) returns (ListLocalTransfersResponse);
+  rpc PauseLocalTransfer(PauseLocalTransferRequest) returns (PauseLocalTransferResponse);
+  rpc ResumeLocalTransfer(ResumeLocalTransferRequest) returns (ResumeLocalTransferResponse);
+  rpc CancelLocalTransfer(CancelLocalTransferRequest) returns (CancelLocalTransferResponse);
+  rpc WatchLocalTransfers(WatchLocalTransfersRequest) returns (stream LocalTransferProgressEvent);
   rpc RemoveLocalModel(RemoveLocalModelRequest) returns (RemoveLocalModelResponse);
   rpc RemoveLocalArtifact(RemoveLocalArtifactRequest) returns (RemoveLocalArtifactResponse);
   rpc StartLocalModel(StartLocalModelRequest) returns (StartLocalModelResponse);

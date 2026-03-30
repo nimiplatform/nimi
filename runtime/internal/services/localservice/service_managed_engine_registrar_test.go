@@ -119,7 +119,7 @@ func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T)
 	if entries[0].Backend != "llama-cpp" {
 		t.Fatalf("unexpected backend: %q", entries[0].Backend)
 	}
-	if entries[0].Parameters.Model != "local-test-chat/weights/model.gguf" {
+	if entries[0].Parameters.Model != "resolved/nimi/local-test-chat/weights/model.gguf" {
 		t.Fatalf("unexpected relative model path: %q", entries[0].Parameters.Model)
 	}
 	if mgr.startCalls != 0 || mgr.stopCalls != 0 {
@@ -199,37 +199,35 @@ func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T)
 
 	writeManagedLlamaManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
 	writeManagedLlamaManifest(t, modelsPath, "llama/conflict-model", "./weights/model-b.gguf", []string{"chat"})
+	firstManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("local/conflict-model"), "manifest.json")
+	secondManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("llama/conflict-model"), "manifest.json")
 	first := &runtimev1.LocalModelRecord{
-		LocalModelId: "local-conflict-a",
-		ModelId:      "local/conflict-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Entry:        "./weights/model-a.gguf",
-		License:      "apache-2.0",
-		Source: &runtimev1.LocalModelSource{
-			Repo:     "test/conflict-a",
-			Revision: "main",
-		},
-		Endpoint:    defaultLocalEndpoint,
-		Status:      runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt: nowISO(),
-		UpdatedAt:   nowISO(),
+		LocalModelId:    "local-conflict-a",
+		ModelId:         "local/conflict-model",
+		LogicalModelId:  "nimi/" + slugifyLocalModelID("local/conflict-model"),
+		Capabilities:    []string{"chat"},
+		Engine:          "llama",
+		Entry:           "./weights/model-a.gguf",
+		License:         "apache-2.0",
+		Source:          &runtimev1.LocalModelSource{Repo: "file://" + filepath.ToSlash(firstManifestPath), Revision: "local"},
+		Endpoint:        defaultLocalEndpoint,
+		Status:          runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		InstalledAt:     nowISO(),
+		UpdatedAt:       nowISO(),
 	}
 	second := &runtimev1.LocalModelRecord{
-		LocalModelId: "local-conflict-b",
-		ModelId:      "llama/conflict-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Entry:        "./weights/model-b.gguf",
-		License:      "apache-2.0",
-		Source: &runtimev1.LocalModelSource{
-			Repo:     "test/conflict-b",
-			Revision: "main",
-		},
-		Endpoint:    defaultLocalEndpoint,
-		Status:      runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt: nowISO(),
-		UpdatedAt:   nowISO(),
+		LocalModelId:    "local-conflict-b",
+		ModelId:         "llama/conflict-model",
+		LogicalModelId:  "nimi/" + slugifyLocalModelID("llama/conflict-model"),
+		Capabilities:    []string{"chat"},
+		Engine:          "llama",
+		Entry:           "./weights/model-b.gguf",
+		License:         "apache-2.0",
+		Source:          &runtimev1.LocalModelSource{Repo: "file://" + filepath.ToSlash(secondManifestPath), Revision: "local"},
+		Endpoint:        defaultLocalEndpoint,
+		Status:          runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		InstalledAt:     nowISO(),
+		UpdatedAt:       nowISO(),
 	}
 	svc.models[first.GetLocalModelId()] = first
 	svc.models[second.GetLocalModelId()] = second
@@ -361,7 +359,7 @@ func writeManagedLlamaManifest(t *testing.T, modelsPath string, modelID string, 
 		cleanEntry = "weights/model.gguf"
 	}
 
-	entryPath := filepath.Join(modelsPath, modelSlug, cleanEntry)
+	entryPath := filepath.Join(modelsPath, "resolved", "nimi", modelSlug, cleanEntry)
 	if err := os.MkdirAll(filepath.Dir(entryPath), 0o755); err != nil {
 		t.Fatalf("create manifest entry dir: %v", err)
 	}

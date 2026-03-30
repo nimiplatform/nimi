@@ -75,10 +75,23 @@ type Service struct {
 	hfDownloadBaseURL            string
 	artifactDownloadTimeout      time.Duration
 	artifactDownloadMaxBodyBytes int64
+	modelDownloadTimeout         time.Duration
+	modelDownloadMaxBodyBytes    int64
 	modelProbeState              map[string]*probeRecoveryState
 	serviceProbeState            map[string]*probeRecoveryState
+	transfers                    map[string]*runtimev1.LocalTransferSessionSummary
+	transferControls             map[string]*localTransferControl
+	transferSubscribers          map[uint64]chan *runtimev1.LocalTransferProgressEvent
+	transferSubscriberSeq        uint64
+	entryHashCache               map[string]entryHashCacheState
 	recoveryCancel               context.CancelFunc
 	recoveryDone                 chan struct{}
+}
+
+type entryHashCacheState struct {
+	size            int64
+	modTimeUnixNano int64
+	sha256          string
 }
 
 func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, localAuditCapacity int) (*Service, error) {
@@ -114,10 +127,19 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		hfDownloadBaseURL:            defaultHFDownloadBaseURL,
 		artifactDownloadTimeout:      localArtifactDownloadTimeout,
 		artifactDownloadMaxBodyBytes: localArtifactDownloadMaxBodyBytes,
+		modelDownloadTimeout:         localModelDownloadTimeout,
+		modelDownloadMaxBodyBytes:    localModelDownloadMaxBodyBytes,
 		modelProbeState:              make(map[string]*probeRecoveryState),
 		serviceProbeState:            make(map[string]*probeRecoveryState),
+		transfers:                    make(map[string]*runtimev1.LocalTransferSessionSummary),
+		transferControls:             make(map[string]*localTransferControl),
+		transferSubscribers:          make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
+		entryHashCache:               make(map[string]entryHashCacheState),
 	}
 	if err := svc.restoreState(); err != nil {
+		return nil, err
+	}
+	if err := svc.migrateDesktopLocalRuntimeState(); err != nil {
 		return nil, err
 	}
 	svc.startRecoveryLoop()

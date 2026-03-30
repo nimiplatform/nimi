@@ -82,6 +82,8 @@ import type {
   ApplyProfileResponse,
   AppendInferenceAuditRequest,
   AppendRuntimeAuditRequest,
+  CancelLocalTransferRequest,
+  CancelLocalTransferResponse,
   CheckLocalModelHealthRequest,
   CheckLocalModelHealthResponse,
   CheckLocalServiceHealthRequest,
@@ -90,8 +92,12 @@ import type {
   CollectDeviceProfileResponse,
   ImportLocalArtifactRequest,
   ImportLocalArtifactResponse,
+  ImportLocalArtifactFileRequest,
+  ImportLocalArtifactFileResponse,
   ImportLocalModelRequest,
   ImportLocalModelResponse,
+  ImportLocalModelFileRequest,
+  ImportLocalModelFileResponse,
   InstallLocalModelRequest,
   InstallLocalModelResponse,
   InstallLocalServiceRequest,
@@ -108,8 +114,13 @@ import type {
   ListLocalModelsResponse,
   ListLocalServicesRequest,
   ListLocalServicesResponse,
+  ListLocalTransfersRequest,
+  ListLocalTransfersResponse,
+  LocalTransferProgressEvent,
   ListNodeCatalogRequest,
   ListNodeCatalogResponse,
+  PauseLocalTransferRequest,
+  PauseLocalTransferResponse,
   ListVerifiedArtifactsRequest,
   ListVerifiedArtifactsResponse,
   ListVerifiedModelsRequest,
@@ -120,8 +131,16 @@ import type {
   RemoveLocalModelResponse,
   RemoveLocalServiceRequest,
   RemoveLocalServiceResponse,
+  ResumeLocalTransferRequest,
+  ResumeLocalTransferResponse,
   ResolveProfileRequest,
   ResolveProfileResponse,
+  ScanUnregisteredAssetsRequest,
+  ScanUnregisteredAssetsResponse,
+  ScaffoldOrphanArtifactRequest,
+  ScaffoldOrphanArtifactResponse,
+  ScaffoldOrphanModelRequest,
+  ScaffoldOrphanModelResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   SearchCatalogModelsRequest,
@@ -134,6 +153,7 @@ import type {
   StopLocalModelResponse,
   StopLocalServiceRequest,
   StopLocalServiceResponse,
+  WatchLocalTransfersRequest,
   WarmLocalModelRequest,
   WarmLocalModelResponse,
 } from './generated/runtime/v1/local_runtime';
@@ -295,6 +315,16 @@ export type RuntimeLocalServiceClient = {
   installVerifiedArtifact(request: InstallVerifiedArtifactRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedArtifactResponse>;
   importLocalModel(request: ImportLocalModelRequest, options?: RuntimeCallOptions): Promise<ImportLocalModelResponse>;
   importLocalArtifact(request: ImportLocalArtifactRequest, options?: RuntimeCallOptions): Promise<ImportLocalArtifactResponse>;
+  importLocalModelFile(request: ImportLocalModelFileRequest, options?: RuntimeCallOptions): Promise<ImportLocalModelFileResponse>;
+  importLocalArtifactFile(request: ImportLocalArtifactFileRequest, options?: RuntimeCallOptions): Promise<ImportLocalArtifactFileResponse>;
+  scanUnregisteredAssets(request: ScanUnregisteredAssetsRequest, options?: RuntimeCallOptions): Promise<ScanUnregisteredAssetsResponse>;
+  scaffoldOrphanModel(request: ScaffoldOrphanModelRequest, options?: RuntimeCallOptions): Promise<ScaffoldOrphanModelResponse>;
+  scaffoldOrphanArtifact(request: ScaffoldOrphanArtifactRequest, options?: RuntimeCallOptions): Promise<ScaffoldOrphanArtifactResponse>;
+  listLocalTransfers(request: ListLocalTransfersRequest, options?: RuntimeCallOptions): Promise<ListLocalTransfersResponse>;
+  pauseLocalTransfer(request: PauseLocalTransferRequest, options?: RuntimeCallOptions): Promise<PauseLocalTransferResponse>;
+  resumeLocalTransfer(request: ResumeLocalTransferRequest, options?: RuntimeCallOptions): Promise<ResumeLocalTransferResponse>;
+  cancelLocalTransfer(request: CancelLocalTransferRequest, options?: RuntimeCallOptions): Promise<CancelLocalTransferResponse>;
+  watchLocalTransfers(request: WatchLocalTransfersRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<LocalTransferProgressEvent>>;
   removeLocalModel(request: RemoveLocalModelRequest, options?: RuntimeCallOptions): Promise<RemoveLocalModelResponse>;
   removeLocalArtifact(request: RemoveLocalArtifactRequest, options?: RuntimeCallOptions): Promise<RemoveLocalArtifactResponse>;
   startLocalModel(request: StartLocalModelRequest, options?: RuntimeCallOptions): Promise<StartLocalModelResponse>;

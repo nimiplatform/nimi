@@ -185,6 +185,67 @@ test('tauri-ipc: readGlobalTauriInvoke returns from __NIMI_TAURI_TEST__ hook', a
   }
 });
 
+test('tauri-ipc: openStream uses __NIMI_TAURI_RUNTIME__ hook when legacy globals are absent', async () => {
+  const g = globalThis as Record<string, unknown>;
+  const prevWindow = g.window;
+  const prevHook = g.__NIMI_TAURI_RUNTIME__;
+  const prevTauri = g.__TAURI__;
+  const seenCommands: string[] = [];
+  let listenedEvent = '';
+
+  g.__NIMI_TAURI_RUNTIME__ = {
+    invoke: async (command: string) => {
+      seenCommands.push(command);
+      if (command === 'runtime_bridge_stream_open') {
+        return { streamId: 'runtime-hook-stream' };
+      }
+      if (command === 'runtime_bridge_stream_close') {
+        return undefined;
+      }
+      return { responseBytesBase64: '' };
+    },
+    listen: (eventName: string) => {
+      listenedEvent = eventName;
+      return () => {};
+    },
+  };
+  delete g.__TAURI__;
+  delete g.window;
+
+  try {
+    const transport = createTauriIpcTransport({
+      type: 'tauri-ipc',
+    });
+    const stream = await transport.openStream({
+      methodId: 'test',
+      request: new Uint8Array(0),
+      metadata: {} as RuntimeOpenStreamCall['metadata'],
+    });
+    const iterator = stream[Symbol.asyncIterator]();
+    if (iterator.return) {
+      await iterator.return();
+    }
+    assert.equal(listenedEvent, 'runtime_bridge:stream:runtime-hook-stream');
+    assert.deepEqual(seenCommands, ['runtime_bridge_stream_open', 'runtime_bridge_stream_close']);
+  } finally {
+    if (prevHook !== undefined) {
+      g.__NIMI_TAURI_RUNTIME__ = prevHook;
+    } else {
+      delete g.__NIMI_TAURI_RUNTIME__;
+    }
+    if (prevTauri !== undefined) {
+      g.__TAURI__ = prevTauri;
+    } else {
+      delete g.__TAURI__;
+    }
+    if (prevWindow !== undefined) {
+      g.window = prevWindow;
+    } else {
+      delete g.window;
+    }
+  }
+});
+
 // ---------------------------------------------------------------------------
 // tauri-ipc: asObject branches
 // ---------------------------------------------------------------------------

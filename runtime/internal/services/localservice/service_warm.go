@@ -34,6 +34,22 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
+	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalModelId()); err != nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    managedLocalModelRecordFailureDetail(err),
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	} else if healedModel != nil {
+		model = healedModel
+	}
+	if healedModel, _, err := s.healLegacyManagedLocalImportRecord(model.GetLocalModelId()); err != nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    managedLocalModelRecordFailureDetail(err),
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	} else if healedModel != nil {
+		model = healedModel
+	}
 	if !modelSupportsWarmup(model) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 	}
@@ -41,6 +57,31 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	timeout := warmLocalModelTimeout(req.GetTimeoutMs())
 	requestCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
+	if _, _, err := s.ensureManagedLocalModelBundleReady(requestCtx, model); err != nil {
+		detail := managedLocalModelBundleFailureDetail(err)
+		if recordErr := s.recordWarmProbeFailure(model, detail); recordErr != nil {
+			return nil, recordErr
+		}
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	}
+	if refreshed := s.modelByID(model.GetLocalModelId()); refreshed != nil {
+		model = refreshed
+	}
+	registration := s.managedLlamaRegistrationForModel(model)
+	if strings.TrimSpace(registration.Problem) != "" {
+		detail := managedLocalModelRegistrationFailureDetail(registration.Problem)
+		if recordErr := s.recordWarmProbeFailure(model, detail); recordErr != nil {
+			return nil, recordErr
+		}
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    detail,
+			ActionHint: "inspect_local_runtime_model_health",
+		})
+	}
 
 	endpoint := s.effectiveLocalModelEndpoint(model)
 	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), s.modelRuntimeMode(model.GetLocalModelId()), endpoint); err != nil {
@@ -50,7 +91,6 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 		})
 	}
 
-	registration := s.managedLlamaRegistrationForModel(model)
 	probe := s.waitForWarmProbe(requestCtx, model, registration, endpoint)
 	if !modelProbeSucceeded(model, probe, registration) {
 		detail := modelProbeFailureDetail(model, probe, registration)

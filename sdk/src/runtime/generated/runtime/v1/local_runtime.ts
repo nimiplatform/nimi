@@ -446,6 +446,425 @@ export interface ImportLocalArtifactResponse {
     artifact?: LocalArtifactRecord;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ImportLocalModelFileRequest
+ */
+export interface ImportLocalModelFileRequest {
+    /**
+     * @generated from protobuf field: string file_path = 1
+     */
+    filePath: string;
+    /**
+     * @generated from protobuf field: string model_name = 2
+     */
+    modelName: string;
+    /**
+     * @generated from protobuf field: repeated string capabilities = 3
+     */
+    capabilities: string[];
+    /**
+     * @generated from protobuf field: string engine = 4
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: string endpoint = 5
+     */
+    endpoint: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportLocalModelFileResponse
+ */
+export interface ImportLocalModelFileResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalModelRecord model = 1
+     */
+    model?: LocalModelRecord;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportLocalArtifactFileRequest
+ */
+export interface ImportLocalArtifactFileRequest {
+    /**
+     * @generated from protobuf field: string file_path = 1
+     */
+    filePath: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalArtifactKind kind = 2
+     */
+    kind: LocalArtifactKind;
+    /**
+     * @generated from protobuf field: string engine = 3
+     */
+    engine: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ImportLocalArtifactFileResponse
+ */
+export interface ImportLocalArtifactFileResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalArtifactRecord artifact = 1
+     */
+    artifact?: LocalArtifactRecord;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalUnregisteredAssetDeclaration
+ */
+export interface LocalUnregisteredAssetDeclaration {
+    /**
+     * @generated from protobuf field: string asset_class = 1
+     */
+    assetClass: string;
+    /**
+     * @generated from protobuf field: string model_type = 2
+     */
+    modelType: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalArtifactKind artifact_kind = 3
+     */
+    artifactKind: LocalArtifactKind;
+    /**
+     * @generated from protobuf field: string engine = 4
+     */
+    engine: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalUnregisteredAssetDescriptor
+ */
+export interface LocalUnregisteredAssetDescriptor {
+    /**
+     * @generated from protobuf field: string filename = 1
+     */
+    filename: string;
+    /**
+     * @generated from protobuf field: string path = 2
+     */
+    path: string;
+    /**
+     * @generated from protobuf field: int64 size_bytes = 3
+     */
+    sizeBytes: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalUnregisteredAssetDeclaration declaration = 4
+     */
+    declaration?: LocalUnregisteredAssetDeclaration;
+    /**
+     * @generated from protobuf field: string suggestion_source = 5
+     */
+    suggestionSource: string;
+    /**
+     * @generated from protobuf field: string confidence = 6
+     */
+    confidence: string;
+    /**
+     * @generated from protobuf field: bool auto_importable = 7
+     */
+    autoImportable: boolean;
+    /**
+     * @generated from protobuf field: bool requires_manual_review = 8
+     */
+    requiresManualReview: boolean;
+    /**
+     * @generated from protobuf field: string folder_name = 9
+     */
+    folderName: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ScanUnregisteredAssetsRequest
+ */
+export interface ScanUnregisteredAssetsRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ScanUnregisteredAssetsResponse
+ */
+export interface ScanUnregisteredAssetsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalUnregisteredAssetDescriptor items = 1
+     */
+    items: LocalUnregisteredAssetDescriptor[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ScaffoldOrphanModelRequest
+ */
+export interface ScaffoldOrphanModelRequest {
+    /**
+     * @generated from protobuf field: string path = 1
+     */
+    path: string;
+    /**
+     * @generated from protobuf field: repeated string capabilities = 2
+     */
+    capabilities: string[];
+    /**
+     * @generated from protobuf field: string engine = 3
+     */
+    engine: string;
+    /**
+     * @generated from protobuf field: string endpoint = 4
+     */
+    endpoint: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ScaffoldOrphanModelResponse
+ */
+export interface ScaffoldOrphanModelResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalModelRecord model = 1
+     */
+    model?: LocalModelRecord;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ScaffoldOrphanArtifactRequest
+ */
+export interface ScaffoldOrphanArtifactRequest {
+    /**
+     * @generated from protobuf field: string path = 1
+     */
+    path: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalArtifactKind kind = 2
+     */
+    kind: LocalArtifactKind;
+    /**
+     * @generated from protobuf field: string engine = 3
+     */
+    engine: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ScaffoldOrphanArtifactResponse
+ */
+export interface ScaffoldOrphanArtifactResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalArtifactRecord artifact = 1
+     */
+    artifact?: LocalArtifactRecord;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalTransferSessionSummary
+ */
+export interface LocalTransferSessionSummary {
+    /**
+     * @generated from protobuf field: string install_session_id = 1
+     */
+    installSessionId: string;
+    /**
+     * @generated from protobuf field: string model_id = 2
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: string local_model_id = 3
+     */
+    localModelId: string;
+    /**
+     * @generated from protobuf field: string artifact_id = 4
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: string local_artifact_id = 5
+     */
+    localArtifactId: string;
+    /**
+     * @generated from protobuf field: string session_kind = 6
+     */
+    sessionKind: string;
+    /**
+     * @generated from protobuf field: string phase = 7
+     */
+    phase: string;
+    /**
+     * @generated from protobuf field: string state = 8
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: int64 bytes_received = 9
+     */
+    bytesReceived: string;
+    /**
+     * @generated from protobuf field: int64 bytes_total = 10
+     */
+    bytesTotal: string;
+    /**
+     * @generated from protobuf field: int64 speed_bytes_per_sec = 11
+     */
+    speedBytesPerSec: string;
+    /**
+     * @generated from protobuf field: int64 eta_seconds = 12
+     */
+    etaSeconds: string;
+    /**
+     * @generated from protobuf field: string message = 13
+     */
+    message: string;
+    /**
+     * @generated from protobuf field: string reason_code = 14
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: bool retryable = 15
+     */
+    retryable: boolean;
+    /**
+     * @generated from protobuf field: string created_at = 16
+     */
+    createdAt: string;
+    /**
+     * @generated from protobuf field: string updated_at = 17
+     */
+    updatedAt: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalTransferProgressEvent
+ */
+export interface LocalTransferProgressEvent {
+    /**
+     * @generated from protobuf field: string install_session_id = 1
+     */
+    installSessionId: string;
+    /**
+     * @generated from protobuf field: string model_id = 2
+     */
+    modelId: string;
+    /**
+     * @generated from protobuf field: string local_model_id = 3
+     */
+    localModelId: string;
+    /**
+     * @generated from protobuf field: string artifact_id = 4
+     */
+    artifactId: string;
+    /**
+     * @generated from protobuf field: string local_artifact_id = 5
+     */
+    localArtifactId: string;
+    /**
+     * @generated from protobuf field: string session_kind = 6
+     */
+    sessionKind: string;
+    /**
+     * @generated from protobuf field: string phase = 7
+     */
+    phase: string;
+    /**
+     * @generated from protobuf field: int64 bytes_received = 8
+     */
+    bytesReceived: string;
+    /**
+     * @generated from protobuf field: int64 bytes_total = 9
+     */
+    bytesTotal: string;
+    /**
+     * @generated from protobuf field: int64 speed_bytes_per_sec = 10
+     */
+    speedBytesPerSec: string;
+    /**
+     * @generated from protobuf field: int64 eta_seconds = 11
+     */
+    etaSeconds: string;
+    /**
+     * @generated from protobuf field: string message = 12
+     */
+    message: string;
+    /**
+     * @generated from protobuf field: string state = 13
+     */
+    state: string;
+    /**
+     * @generated from protobuf field: string reason_code = 14
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: bool retryable = 15
+     */
+    retryable: boolean;
+    /**
+     * @generated from protobuf field: bool done = 16
+     */
+    done: boolean;
+    /**
+     * @generated from protobuf field: bool success = 17
+     */
+    success: boolean;
+    /**
+     * @generated from protobuf field: string created_at = 18
+     */
+    createdAt: string;
+    /**
+     * @generated from protobuf field: string updated_at = 19
+     */
+    updatedAt: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalTransfersRequest
+ */
+export interface ListLocalTransfersRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListLocalTransfersResponse
+ */
+export interface ListLocalTransfersResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalTransferSessionSummary transfers = 1
+     */
+    transfers: LocalTransferSessionSummary[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PauseLocalTransferRequest
+ */
+export interface PauseLocalTransferRequest {
+    /**
+     * @generated from protobuf field: string install_session_id = 1
+     */
+    installSessionId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PauseLocalTransferResponse
+ */
+export interface PauseLocalTransferResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferSessionSummary transfer = 1
+     */
+    transfer?: LocalTransferSessionSummary;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResumeLocalTransferRequest
+ */
+export interface ResumeLocalTransferRequest {
+    /**
+     * @generated from protobuf field: string install_session_id = 1
+     */
+    installSessionId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResumeLocalTransferResponse
+ */
+export interface ResumeLocalTransferResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferSessionSummary transfer = 1
+     */
+    transfer?: LocalTransferSessionSummary;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelLocalTransferRequest
+ */
+export interface CancelLocalTransferRequest {
+    /**
+     * @generated from protobuf field: string install_session_id = 1
+     */
+    installSessionId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelLocalTransferResponse
+ */
+export interface CancelLocalTransferResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalTransferSessionSummary transfer = 1
+     */
+    transfer?: LocalTransferSessionSummary;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.WatchLocalTransfersRequest
+ */
+export interface WatchLocalTransfersRequest {
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.RemoveLocalModelRequest
  */
 export interface RemoveLocalModelRequest {
@@ -2434,6 +2853,1500 @@ class ImportLocalArtifactResponse$Type extends MessageType<ImportLocalArtifactRe
  * @generated MessageType for protobuf message nimi.runtime.v1.ImportLocalArtifactResponse
  */
 export const ImportLocalArtifactResponse = new ImportLocalArtifactResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportLocalModelFileRequest$Type extends MessageType<ImportLocalModelFileRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ImportLocalModelFileRequest", [
+            { no: 1, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImportLocalModelFileRequest>): ImportLocalModelFileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filePath = "";
+        message.modelName = "";
+        message.capabilities = [];
+        message.engine = "";
+        message.endpoint = "";
+        if (value !== undefined)
+            reflectionMergePartial<ImportLocalModelFileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportLocalModelFileRequest): ImportLocalModelFileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string file_path */ 1:
+                    message.filePath = reader.string();
+                    break;
+                case /* string model_name */ 2:
+                    message.modelName = reader.string();
+                    break;
+                case /* repeated string capabilities */ 3:
+                    message.capabilities.push(reader.string());
+                    break;
+                case /* string engine */ 4:
+                    message.engine = reader.string();
+                    break;
+                case /* string endpoint */ 5:
+                    message.endpoint = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportLocalModelFileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string file_path = 1; */
+        if (message.filePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.filePath);
+        /* string model_name = 2; */
+        if (message.modelName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelName);
+        /* repeated string capabilities = 3; */
+        for (let i = 0; i < message.capabilities.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.capabilities[i]);
+        /* string engine = 4; */
+        if (message.engine !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.engine);
+        /* string endpoint = 5; */
+        if (message.endpoint !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.endpoint);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportLocalModelFileRequest
+ */
+export const ImportLocalModelFileRequest = new ImportLocalModelFileRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportLocalModelFileResponse$Type extends MessageType<ImportLocalModelFileResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ImportLocalModelFileResponse", [
+            { no: 1, name: "model", kind: "message", T: () => LocalModelRecord }
+        ]);
+    }
+    create(value?: PartialMessage<ImportLocalModelFileResponse>): ImportLocalModelFileResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ImportLocalModelFileResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportLocalModelFileResponse): ImportLocalModelFileResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalModelRecord model */ 1:
+                    message.model = LocalModelRecord.internalBinaryRead(reader, reader.uint32(), options, message.model);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportLocalModelFileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalModelRecord model = 1; */
+        if (message.model)
+            LocalModelRecord.internalBinaryWrite(message.model, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportLocalModelFileResponse
+ */
+export const ImportLocalModelFileResponse = new ImportLocalModelFileResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportLocalArtifactFileRequest$Type extends MessageType<ImportLocalArtifactFileRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ImportLocalArtifactFileRequest", [
+            { no: 1, name: "file_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalArtifactKind", LocalArtifactKind, "LOCAL_ARTIFACT_KIND_"] },
+            { no: 3, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImportLocalArtifactFileRequest>): ImportLocalArtifactFileRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filePath = "";
+        message.kind = 0;
+        message.engine = "";
+        if (value !== undefined)
+            reflectionMergePartial<ImportLocalArtifactFileRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportLocalArtifactFileRequest): ImportLocalArtifactFileRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string file_path */ 1:
+                    message.filePath = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalArtifactKind kind */ 2:
+                    message.kind = reader.int32();
+                    break;
+                case /* string engine */ 3:
+                    message.engine = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportLocalArtifactFileRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string file_path = 1; */
+        if (message.filePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.filePath);
+        /* nimi.runtime.v1.LocalArtifactKind kind = 2; */
+        if (message.kind !== 0)
+            writer.tag(2, WireType.Varint).int32(message.kind);
+        /* string engine = 3; */
+        if (message.engine !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.engine);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportLocalArtifactFileRequest
+ */
+export const ImportLocalArtifactFileRequest = new ImportLocalArtifactFileRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ImportLocalArtifactFileResponse$Type extends MessageType<ImportLocalArtifactFileResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ImportLocalArtifactFileResponse", [
+            { no: 1, name: "artifact", kind: "message", T: () => LocalArtifactRecord }
+        ]);
+    }
+    create(value?: PartialMessage<ImportLocalArtifactFileResponse>): ImportLocalArtifactFileResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ImportLocalArtifactFileResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImportLocalArtifactFileResponse): ImportLocalArtifactFileResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalArtifactRecord artifact */ 1:
+                    message.artifact = LocalArtifactRecord.internalBinaryRead(reader, reader.uint32(), options, message.artifact);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImportLocalArtifactFileResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalArtifactRecord artifact = 1; */
+        if (message.artifact)
+            LocalArtifactRecord.internalBinaryWrite(message.artifact, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImportLocalArtifactFileResponse
+ */
+export const ImportLocalArtifactFileResponse = new ImportLocalArtifactFileResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalUnregisteredAssetDeclaration$Type extends MessageType<LocalUnregisteredAssetDeclaration> {
+    constructor() {
+        super("nimi.runtime.v1.LocalUnregisteredAssetDeclaration", [
+            { no: 1, name: "asset_class", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "artifact_kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalArtifactKind", LocalArtifactKind, "LOCAL_ARTIFACT_KIND_"] },
+            { no: 4, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalUnregisteredAssetDeclaration>): LocalUnregisteredAssetDeclaration {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.assetClass = "";
+        message.modelType = "";
+        message.artifactKind = 0;
+        message.engine = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalUnregisteredAssetDeclaration>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalUnregisteredAssetDeclaration): LocalUnregisteredAssetDeclaration {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string asset_class */ 1:
+                    message.assetClass = reader.string();
+                    break;
+                case /* string model_type */ 2:
+                    message.modelType = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalArtifactKind artifact_kind */ 3:
+                    message.artifactKind = reader.int32();
+                    break;
+                case /* string engine */ 4:
+                    message.engine = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalUnregisteredAssetDeclaration, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string asset_class = 1; */
+        if (message.assetClass !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.assetClass);
+        /* string model_type = 2; */
+        if (message.modelType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelType);
+        /* nimi.runtime.v1.LocalArtifactKind artifact_kind = 3; */
+        if (message.artifactKind !== 0)
+            writer.tag(3, WireType.Varint).int32(message.artifactKind);
+        /* string engine = 4; */
+        if (message.engine !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.engine);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalUnregisteredAssetDeclaration
+ */
+export const LocalUnregisteredAssetDeclaration = new LocalUnregisteredAssetDeclaration$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalUnregisteredAssetDescriptor$Type extends MessageType<LocalUnregisteredAssetDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LocalUnregisteredAssetDescriptor", [
+            { no: 1, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 4, name: "declaration", kind: "message", T: () => LocalUnregisteredAssetDeclaration },
+            { no: 5, name: "suggestion_source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "confidence", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "auto_importable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "requires_manual_review", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "folder_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalUnregisteredAssetDescriptor>): LocalUnregisteredAssetDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.filename = "";
+        message.path = "";
+        message.sizeBytes = "0";
+        message.suggestionSource = "";
+        message.confidence = "";
+        message.autoImportable = false;
+        message.requiresManualReview = false;
+        message.folderName = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalUnregisteredAssetDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalUnregisteredAssetDescriptor): LocalUnregisteredAssetDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string filename */ 1:
+                    message.filename = reader.string();
+                    break;
+                case /* string path */ 2:
+                    message.path = reader.string();
+                    break;
+                case /* int64 size_bytes */ 3:
+                    message.sizeBytes = reader.int64().toString();
+                    break;
+                case /* nimi.runtime.v1.LocalUnregisteredAssetDeclaration declaration */ 4:
+                    message.declaration = LocalUnregisteredAssetDeclaration.internalBinaryRead(reader, reader.uint32(), options, message.declaration);
+                    break;
+                case /* string suggestion_source */ 5:
+                    message.suggestionSource = reader.string();
+                    break;
+                case /* string confidence */ 6:
+                    message.confidence = reader.string();
+                    break;
+                case /* bool auto_importable */ 7:
+                    message.autoImportable = reader.bool();
+                    break;
+                case /* bool requires_manual_review */ 8:
+                    message.requiresManualReview = reader.bool();
+                    break;
+                case /* string folder_name */ 9:
+                    message.folderName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalUnregisteredAssetDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string filename = 1; */
+        if (message.filename !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.filename);
+        /* string path = 2; */
+        if (message.path !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.path);
+        /* int64 size_bytes = 3; */
+        if (message.sizeBytes !== "0")
+            writer.tag(3, WireType.Varint).int64(message.sizeBytes);
+        /* nimi.runtime.v1.LocalUnregisteredAssetDeclaration declaration = 4; */
+        if (message.declaration)
+            LocalUnregisteredAssetDeclaration.internalBinaryWrite(message.declaration, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* string suggestion_source = 5; */
+        if (message.suggestionSource !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.suggestionSource);
+        /* string confidence = 6; */
+        if (message.confidence !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.confidence);
+        /* bool auto_importable = 7; */
+        if (message.autoImportable !== false)
+            writer.tag(7, WireType.Varint).bool(message.autoImportable);
+        /* bool requires_manual_review = 8; */
+        if (message.requiresManualReview !== false)
+            writer.tag(8, WireType.Varint).bool(message.requiresManualReview);
+        /* string folder_name = 9; */
+        if (message.folderName !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.folderName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalUnregisteredAssetDescriptor
+ */
+export const LocalUnregisteredAssetDescriptor = new LocalUnregisteredAssetDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScanUnregisteredAssetsRequest$Type extends MessageType<ScanUnregisteredAssetsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ScanUnregisteredAssetsRequest", []);
+    }
+    create(value?: PartialMessage<ScanUnregisteredAssetsRequest>): ScanUnregisteredAssetsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ScanUnregisteredAssetsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScanUnregisteredAssetsRequest): ScanUnregisteredAssetsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScanUnregisteredAssetsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScanUnregisteredAssetsRequest
+ */
+export const ScanUnregisteredAssetsRequest = new ScanUnregisteredAssetsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScanUnregisteredAssetsResponse$Type extends MessageType<ScanUnregisteredAssetsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ScanUnregisteredAssetsResponse", [
+            { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalUnregisteredAssetDescriptor }
+        ]);
+    }
+    create(value?: PartialMessage<ScanUnregisteredAssetsResponse>): ScanUnregisteredAssetsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.items = [];
+        if (value !== undefined)
+            reflectionMergePartial<ScanUnregisteredAssetsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScanUnregisteredAssetsResponse): ScanUnregisteredAssetsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalUnregisteredAssetDescriptor items */ 1:
+                    message.items.push(LocalUnregisteredAssetDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScanUnregisteredAssetsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalUnregisteredAssetDescriptor items = 1; */
+        for (let i = 0; i < message.items.length; i++)
+            LocalUnregisteredAssetDescriptor.internalBinaryWrite(message.items[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScanUnregisteredAssetsResponse
+ */
+export const ScanUnregisteredAssetsResponse = new ScanUnregisteredAssetsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScaffoldOrphanModelRequest$Type extends MessageType<ScaffoldOrphanModelRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ScaffoldOrphanModelRequest", [
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ScaffoldOrphanModelRequest>): ScaffoldOrphanModelRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.path = "";
+        message.capabilities = [];
+        message.engine = "";
+        message.endpoint = "";
+        if (value !== undefined)
+            reflectionMergePartial<ScaffoldOrphanModelRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScaffoldOrphanModelRequest): ScaffoldOrphanModelRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string path */ 1:
+                    message.path = reader.string();
+                    break;
+                case /* repeated string capabilities */ 2:
+                    message.capabilities.push(reader.string());
+                    break;
+                case /* string engine */ 3:
+                    message.engine = reader.string();
+                    break;
+                case /* string endpoint */ 4:
+                    message.endpoint = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScaffoldOrphanModelRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string path = 1; */
+        if (message.path !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.path);
+        /* repeated string capabilities = 2; */
+        for (let i = 0; i < message.capabilities.length; i++)
+            writer.tag(2, WireType.LengthDelimited).string(message.capabilities[i]);
+        /* string engine = 3; */
+        if (message.engine !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.engine);
+        /* string endpoint = 4; */
+        if (message.endpoint !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.endpoint);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScaffoldOrphanModelRequest
+ */
+export const ScaffoldOrphanModelRequest = new ScaffoldOrphanModelRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScaffoldOrphanModelResponse$Type extends MessageType<ScaffoldOrphanModelResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ScaffoldOrphanModelResponse", [
+            { no: 1, name: "model", kind: "message", T: () => LocalModelRecord }
+        ]);
+    }
+    create(value?: PartialMessage<ScaffoldOrphanModelResponse>): ScaffoldOrphanModelResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ScaffoldOrphanModelResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScaffoldOrphanModelResponse): ScaffoldOrphanModelResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalModelRecord model */ 1:
+                    message.model = LocalModelRecord.internalBinaryRead(reader, reader.uint32(), options, message.model);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScaffoldOrphanModelResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalModelRecord model = 1; */
+        if (message.model)
+            LocalModelRecord.internalBinaryWrite(message.model, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScaffoldOrphanModelResponse
+ */
+export const ScaffoldOrphanModelResponse = new ScaffoldOrphanModelResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScaffoldOrphanArtifactRequest$Type extends MessageType<ScaffoldOrphanArtifactRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ScaffoldOrphanArtifactRequest", [
+            { no: 1, name: "path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalArtifactKind", LocalArtifactKind, "LOCAL_ARTIFACT_KIND_"] },
+            { no: 3, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ScaffoldOrphanArtifactRequest>): ScaffoldOrphanArtifactRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.path = "";
+        message.kind = 0;
+        message.engine = "";
+        if (value !== undefined)
+            reflectionMergePartial<ScaffoldOrphanArtifactRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScaffoldOrphanArtifactRequest): ScaffoldOrphanArtifactRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string path */ 1:
+                    message.path = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalArtifactKind kind */ 2:
+                    message.kind = reader.int32();
+                    break;
+                case /* string engine */ 3:
+                    message.engine = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScaffoldOrphanArtifactRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string path = 1; */
+        if (message.path !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.path);
+        /* nimi.runtime.v1.LocalArtifactKind kind = 2; */
+        if (message.kind !== 0)
+            writer.tag(2, WireType.Varint).int32(message.kind);
+        /* string engine = 3; */
+        if (message.engine !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.engine);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScaffoldOrphanArtifactRequest
+ */
+export const ScaffoldOrphanArtifactRequest = new ScaffoldOrphanArtifactRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ScaffoldOrphanArtifactResponse$Type extends MessageType<ScaffoldOrphanArtifactResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ScaffoldOrphanArtifactResponse", [
+            { no: 1, name: "artifact", kind: "message", T: () => LocalArtifactRecord }
+        ]);
+    }
+    create(value?: PartialMessage<ScaffoldOrphanArtifactResponse>): ScaffoldOrphanArtifactResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ScaffoldOrphanArtifactResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ScaffoldOrphanArtifactResponse): ScaffoldOrphanArtifactResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalArtifactRecord artifact */ 1:
+                    message.artifact = LocalArtifactRecord.internalBinaryRead(reader, reader.uint32(), options, message.artifact);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ScaffoldOrphanArtifactResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalArtifactRecord artifact = 1; */
+        if (message.artifact)
+            LocalArtifactRecord.internalBinaryWrite(message.artifact, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ScaffoldOrphanArtifactResponse
+ */
+export const ScaffoldOrphanArtifactResponse = new ScaffoldOrphanArtifactResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalTransferSessionSummary$Type extends MessageType<LocalTransferSessionSummary> {
+    constructor() {
+        super("nimi.runtime.v1.LocalTransferSessionSummary", [
+            { no: 1, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "local_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "local_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "session_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "phase", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "bytes_received", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 10, name: "bytes_total", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 11, name: "speed_bytes_per_sec", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 12, name: "eta_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 13, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 16, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalTransferSessionSummary>): LocalTransferSessionSummary {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.installSessionId = "";
+        message.modelId = "";
+        message.localModelId = "";
+        message.artifactId = "";
+        message.localArtifactId = "";
+        message.sessionKind = "";
+        message.phase = "";
+        message.state = "";
+        message.bytesReceived = "0";
+        message.bytesTotal = "0";
+        message.speedBytesPerSec = "0";
+        message.etaSeconds = "0";
+        message.message = "";
+        message.reasonCode = "";
+        message.retryable = false;
+        message.createdAt = "";
+        message.updatedAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalTransferSessionSummary>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalTransferSessionSummary): LocalTransferSessionSummary {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string install_session_id */ 1:
+                    message.installSessionId = reader.string();
+                    break;
+                case /* string model_id */ 2:
+                    message.modelId = reader.string();
+                    break;
+                case /* string local_model_id */ 3:
+                    message.localModelId = reader.string();
+                    break;
+                case /* string artifact_id */ 4:
+                    message.artifactId = reader.string();
+                    break;
+                case /* string local_artifact_id */ 5:
+                    message.localArtifactId = reader.string();
+                    break;
+                case /* string session_kind */ 6:
+                    message.sessionKind = reader.string();
+                    break;
+                case /* string phase */ 7:
+                    message.phase = reader.string();
+                    break;
+                case /* string state */ 8:
+                    message.state = reader.string();
+                    break;
+                case /* int64 bytes_received */ 9:
+                    message.bytesReceived = reader.int64().toString();
+                    break;
+                case /* int64 bytes_total */ 10:
+                    message.bytesTotal = reader.int64().toString();
+                    break;
+                case /* int64 speed_bytes_per_sec */ 11:
+                    message.speedBytesPerSec = reader.int64().toString();
+                    break;
+                case /* int64 eta_seconds */ 12:
+                    message.etaSeconds = reader.int64().toString();
+                    break;
+                case /* string message */ 13:
+                    message.message = reader.string();
+                    break;
+                case /* string reason_code */ 14:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* bool retryable */ 15:
+                    message.retryable = reader.bool();
+                    break;
+                case /* string created_at */ 16:
+                    message.createdAt = reader.string();
+                    break;
+                case /* string updated_at */ 17:
+                    message.updatedAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalTransferSessionSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string install_session_id = 1; */
+        if (message.installSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.installSessionId);
+        /* string model_id = 2; */
+        if (message.modelId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelId);
+        /* string local_model_id = 3; */
+        if (message.localModelId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.localModelId);
+        /* string artifact_id = 4; */
+        if (message.artifactId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.artifactId);
+        /* string local_artifact_id = 5; */
+        if (message.localArtifactId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.localArtifactId);
+        /* string session_kind = 6; */
+        if (message.sessionKind !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.sessionKind);
+        /* string phase = 7; */
+        if (message.phase !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.phase);
+        /* string state = 8; */
+        if (message.state !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.state);
+        /* int64 bytes_received = 9; */
+        if (message.bytesReceived !== "0")
+            writer.tag(9, WireType.Varint).int64(message.bytesReceived);
+        /* int64 bytes_total = 10; */
+        if (message.bytesTotal !== "0")
+            writer.tag(10, WireType.Varint).int64(message.bytesTotal);
+        /* int64 speed_bytes_per_sec = 11; */
+        if (message.speedBytesPerSec !== "0")
+            writer.tag(11, WireType.Varint).int64(message.speedBytesPerSec);
+        /* int64 eta_seconds = 12; */
+        if (message.etaSeconds !== "0")
+            writer.tag(12, WireType.Varint).int64(message.etaSeconds);
+        /* string message = 13; */
+        if (message.message !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.message);
+        /* string reason_code = 14; */
+        if (message.reasonCode !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.reasonCode);
+        /* bool retryable = 15; */
+        if (message.retryable !== false)
+            writer.tag(15, WireType.Varint).bool(message.retryable);
+        /* string created_at = 16; */
+        if (message.createdAt !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.createdAt);
+        /* string updated_at = 17; */
+        if (message.updatedAt !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.updatedAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalTransferSessionSummary
+ */
+export const LocalTransferSessionSummary = new LocalTransferSessionSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalTransferProgressEvent$Type extends MessageType<LocalTransferProgressEvent> {
+    constructor() {
+        super("nimi.runtime.v1.LocalTransferProgressEvent", [
+            { no: 1, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "local_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "local_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "session_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "phase", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "bytes_received", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 9, name: "bytes_total", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 10, name: "speed_bytes_per_sec", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 11, name: "eta_seconds", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 12, name: "message", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "state", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "retryable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 16, name: "done", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 17, name: "success", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 18, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalTransferProgressEvent>): LocalTransferProgressEvent {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.installSessionId = "";
+        message.modelId = "";
+        message.localModelId = "";
+        message.artifactId = "";
+        message.localArtifactId = "";
+        message.sessionKind = "";
+        message.phase = "";
+        message.bytesReceived = "0";
+        message.bytesTotal = "0";
+        message.speedBytesPerSec = "0";
+        message.etaSeconds = "0";
+        message.message = "";
+        message.state = "";
+        message.reasonCode = "";
+        message.retryable = false;
+        message.done = false;
+        message.success = false;
+        message.createdAt = "";
+        message.updatedAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalTransferProgressEvent>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalTransferProgressEvent): LocalTransferProgressEvent {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string install_session_id */ 1:
+                    message.installSessionId = reader.string();
+                    break;
+                case /* string model_id */ 2:
+                    message.modelId = reader.string();
+                    break;
+                case /* string local_model_id */ 3:
+                    message.localModelId = reader.string();
+                    break;
+                case /* string artifact_id */ 4:
+                    message.artifactId = reader.string();
+                    break;
+                case /* string local_artifact_id */ 5:
+                    message.localArtifactId = reader.string();
+                    break;
+                case /* string session_kind */ 6:
+                    message.sessionKind = reader.string();
+                    break;
+                case /* string phase */ 7:
+                    message.phase = reader.string();
+                    break;
+                case /* int64 bytes_received */ 8:
+                    message.bytesReceived = reader.int64().toString();
+                    break;
+                case /* int64 bytes_total */ 9:
+                    message.bytesTotal = reader.int64().toString();
+                    break;
+                case /* int64 speed_bytes_per_sec */ 10:
+                    message.speedBytesPerSec = reader.int64().toString();
+                    break;
+                case /* int64 eta_seconds */ 11:
+                    message.etaSeconds = reader.int64().toString();
+                    break;
+                case /* string message */ 12:
+                    message.message = reader.string();
+                    break;
+                case /* string state */ 13:
+                    message.state = reader.string();
+                    break;
+                case /* string reason_code */ 14:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* bool retryable */ 15:
+                    message.retryable = reader.bool();
+                    break;
+                case /* bool done */ 16:
+                    message.done = reader.bool();
+                    break;
+                case /* bool success */ 17:
+                    message.success = reader.bool();
+                    break;
+                case /* string created_at */ 18:
+                    message.createdAt = reader.string();
+                    break;
+                case /* string updated_at */ 19:
+                    message.updatedAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalTransferProgressEvent, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string install_session_id = 1; */
+        if (message.installSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.installSessionId);
+        /* string model_id = 2; */
+        if (message.modelId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.modelId);
+        /* string local_model_id = 3; */
+        if (message.localModelId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.localModelId);
+        /* string artifact_id = 4; */
+        if (message.artifactId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.artifactId);
+        /* string local_artifact_id = 5; */
+        if (message.localArtifactId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.localArtifactId);
+        /* string session_kind = 6; */
+        if (message.sessionKind !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.sessionKind);
+        /* string phase = 7; */
+        if (message.phase !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.phase);
+        /* int64 bytes_received = 8; */
+        if (message.bytesReceived !== "0")
+            writer.tag(8, WireType.Varint).int64(message.bytesReceived);
+        /* int64 bytes_total = 9; */
+        if (message.bytesTotal !== "0")
+            writer.tag(9, WireType.Varint).int64(message.bytesTotal);
+        /* int64 speed_bytes_per_sec = 10; */
+        if (message.speedBytesPerSec !== "0")
+            writer.tag(10, WireType.Varint).int64(message.speedBytesPerSec);
+        /* int64 eta_seconds = 11; */
+        if (message.etaSeconds !== "0")
+            writer.tag(11, WireType.Varint).int64(message.etaSeconds);
+        /* string message = 12; */
+        if (message.message !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.message);
+        /* string state = 13; */
+        if (message.state !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.state);
+        /* string reason_code = 14; */
+        if (message.reasonCode !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.reasonCode);
+        /* bool retryable = 15; */
+        if (message.retryable !== false)
+            writer.tag(15, WireType.Varint).bool(message.retryable);
+        /* bool done = 16; */
+        if (message.done !== false)
+            writer.tag(16, WireType.Varint).bool(message.done);
+        /* bool success = 17; */
+        if (message.success !== false)
+            writer.tag(17, WireType.Varint).bool(message.success);
+        /* string created_at = 18; */
+        if (message.createdAt !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.createdAt);
+        /* string updated_at = 19; */
+        if (message.updatedAt !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.updatedAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalTransferProgressEvent
+ */
+export const LocalTransferProgressEvent = new LocalTransferProgressEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalTransfersRequest$Type extends MessageType<ListLocalTransfersRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalTransfersRequest", []);
+    }
+    create(value?: PartialMessage<ListLocalTransfersRequest>): ListLocalTransfersRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalTransfersRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalTransfersRequest): ListLocalTransfersRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalTransfersRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalTransfersRequest
+ */
+export const ListLocalTransfersRequest = new ListLocalTransfersRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListLocalTransfersResponse$Type extends MessageType<ListLocalTransfersResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListLocalTransfersResponse", [
+            { no: 1, name: "transfers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalTransferSessionSummary }
+        ]);
+    }
+    create(value?: PartialMessage<ListLocalTransfersResponse>): ListLocalTransfersResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.transfers = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListLocalTransfersResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListLocalTransfersResponse): ListLocalTransfersResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.LocalTransferSessionSummary transfers */ 1:
+                    message.transfers.push(LocalTransferSessionSummary.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListLocalTransfersResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.LocalTransferSessionSummary transfers = 1; */
+        for (let i = 0; i < message.transfers.length; i++)
+            LocalTransferSessionSummary.internalBinaryWrite(message.transfers[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalTransfersResponse
+ */
+export const ListLocalTransfersResponse = new ListLocalTransfersResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PauseLocalTransferRequest$Type extends MessageType<PauseLocalTransferRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PauseLocalTransferRequest", [
+            { no: 1, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PauseLocalTransferRequest>): PauseLocalTransferRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.installSessionId = "";
+        if (value !== undefined)
+            reflectionMergePartial<PauseLocalTransferRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PauseLocalTransferRequest): PauseLocalTransferRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string install_session_id */ 1:
+                    message.installSessionId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PauseLocalTransferRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string install_session_id = 1; */
+        if (message.installSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.installSessionId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PauseLocalTransferRequest
+ */
+export const PauseLocalTransferRequest = new PauseLocalTransferRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PauseLocalTransferResponse$Type extends MessageType<PauseLocalTransferResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PauseLocalTransferResponse", [
+            { no: 1, name: "transfer", kind: "message", T: () => LocalTransferSessionSummary }
+        ]);
+    }
+    create(value?: PartialMessage<PauseLocalTransferResponse>): PauseLocalTransferResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<PauseLocalTransferResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PauseLocalTransferResponse): PauseLocalTransferResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalTransferSessionSummary transfer */ 1:
+                    message.transfer = LocalTransferSessionSummary.internalBinaryRead(reader, reader.uint32(), options, message.transfer);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PauseLocalTransferResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalTransferSessionSummary transfer = 1; */
+        if (message.transfer)
+            LocalTransferSessionSummary.internalBinaryWrite(message.transfer, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PauseLocalTransferResponse
+ */
+export const PauseLocalTransferResponse = new PauseLocalTransferResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResumeLocalTransferRequest$Type extends MessageType<ResumeLocalTransferRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ResumeLocalTransferRequest", [
+            { no: 1, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResumeLocalTransferRequest>): ResumeLocalTransferRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.installSessionId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResumeLocalTransferRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResumeLocalTransferRequest): ResumeLocalTransferRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string install_session_id */ 1:
+                    message.installSessionId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResumeLocalTransferRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string install_session_id = 1; */
+        if (message.installSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.installSessionId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResumeLocalTransferRequest
+ */
+export const ResumeLocalTransferRequest = new ResumeLocalTransferRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResumeLocalTransferResponse$Type extends MessageType<ResumeLocalTransferResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ResumeLocalTransferResponse", [
+            { no: 1, name: "transfer", kind: "message", T: () => LocalTransferSessionSummary }
+        ]);
+    }
+    create(value?: PartialMessage<ResumeLocalTransferResponse>): ResumeLocalTransferResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ResumeLocalTransferResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResumeLocalTransferResponse): ResumeLocalTransferResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalTransferSessionSummary transfer */ 1:
+                    message.transfer = LocalTransferSessionSummary.internalBinaryRead(reader, reader.uint32(), options, message.transfer);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResumeLocalTransferResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalTransferSessionSummary transfer = 1; */
+        if (message.transfer)
+            LocalTransferSessionSummary.internalBinaryWrite(message.transfer, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResumeLocalTransferResponse
+ */
+export const ResumeLocalTransferResponse = new ResumeLocalTransferResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelLocalTransferRequest$Type extends MessageType<CancelLocalTransferRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CancelLocalTransferRequest", [
+            { no: 1, name: "install_session_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CancelLocalTransferRequest>): CancelLocalTransferRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.installSessionId = "";
+        if (value !== undefined)
+            reflectionMergePartial<CancelLocalTransferRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelLocalTransferRequest): CancelLocalTransferRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string install_session_id */ 1:
+                    message.installSessionId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelLocalTransferRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string install_session_id = 1; */
+        if (message.installSessionId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.installSessionId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelLocalTransferRequest
+ */
+export const CancelLocalTransferRequest = new CancelLocalTransferRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelLocalTransferResponse$Type extends MessageType<CancelLocalTransferResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CancelLocalTransferResponse", [
+            { no: 1, name: "transfer", kind: "message", T: () => LocalTransferSessionSummary }
+        ]);
+    }
+    create(value?: PartialMessage<CancelLocalTransferResponse>): CancelLocalTransferResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<CancelLocalTransferResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelLocalTransferResponse): CancelLocalTransferResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalTransferSessionSummary transfer */ 1:
+                    message.transfer = LocalTransferSessionSummary.internalBinaryRead(reader, reader.uint32(), options, message.transfer);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelLocalTransferResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalTransferSessionSummary transfer = 1; */
+        if (message.transfer)
+            LocalTransferSessionSummary.internalBinaryWrite(message.transfer, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelLocalTransferResponse
+ */
+export const CancelLocalTransferResponse = new CancelLocalTransferResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class WatchLocalTransfersRequest$Type extends MessageType<WatchLocalTransfersRequest> {
+    constructor() {
+        super("nimi.runtime.v1.WatchLocalTransfersRequest", []);
+    }
+    create(value?: PartialMessage<WatchLocalTransfersRequest>): WatchLocalTransfersRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<WatchLocalTransfersRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: WatchLocalTransfersRequest): WatchLocalTransfersRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: WatchLocalTransfersRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.WatchLocalTransfersRequest
+ */
+export const WatchLocalTransfersRequest = new WatchLocalTransfersRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class RemoveLocalModelRequest$Type extends MessageType<RemoveLocalModelRequest> {
     constructor() {
@@ -4547,6 +6460,16 @@ export const RuntimeLocalService = new ServiceType("nimi.runtime.v1.RuntimeLocal
     { name: "InstallVerifiedArtifact", options: {}, I: InstallVerifiedArtifactRequest, O: InstallVerifiedArtifactResponse },
     { name: "ImportLocalModel", options: {}, I: ImportLocalModelRequest, O: ImportLocalModelResponse },
     { name: "ImportLocalArtifact", options: {}, I: ImportLocalArtifactRequest, O: ImportLocalArtifactResponse },
+    { name: "ImportLocalModelFile", options: {}, I: ImportLocalModelFileRequest, O: ImportLocalModelFileResponse },
+    { name: "ImportLocalArtifactFile", options: {}, I: ImportLocalArtifactFileRequest, O: ImportLocalArtifactFileResponse },
+    { name: "ScanUnregisteredAssets", options: {}, I: ScanUnregisteredAssetsRequest, O: ScanUnregisteredAssetsResponse },
+    { name: "ScaffoldOrphanModel", options: {}, I: ScaffoldOrphanModelRequest, O: ScaffoldOrphanModelResponse },
+    { name: "ScaffoldOrphanArtifact", options: {}, I: ScaffoldOrphanArtifactRequest, O: ScaffoldOrphanArtifactResponse },
+    { name: "ListLocalTransfers", options: {}, I: ListLocalTransfersRequest, O: ListLocalTransfersResponse },
+    { name: "PauseLocalTransfer", options: {}, I: PauseLocalTransferRequest, O: PauseLocalTransferResponse },
+    { name: "ResumeLocalTransfer", options: {}, I: ResumeLocalTransferRequest, O: ResumeLocalTransferResponse },
+    { name: "CancelLocalTransfer", options: {}, I: CancelLocalTransferRequest, O: CancelLocalTransferResponse },
+    { name: "WatchLocalTransfers", serverStreaming: true, options: {}, I: WatchLocalTransfersRequest, O: LocalTransferProgressEvent },
     { name: "RemoveLocalModel", options: {}, I: RemoveLocalModelRequest, O: RemoveLocalModelResponse },
     { name: "RemoveLocalArtifact", options: {}, I: RemoveLocalArtifactRequest, O: RemoveLocalArtifactResponse },
     { name: "StartLocalModel", options: {}, I: StartLocalModelRequest, O: StartLocalModelResponse },

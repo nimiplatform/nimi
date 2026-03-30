@@ -11,10 +11,13 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (s *Service) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+func (s *Service) ListLocalModels(ctx context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
 	statusFilter := req.GetStatusFilter()
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
 	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
+
+	s.healLegacyManagedLocalImportRecords()
+	s.normalizeManagedSupervisedLlamaStatuses(ctx)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()

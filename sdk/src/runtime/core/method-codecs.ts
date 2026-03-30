@@ -84,6 +84,8 @@ import {
   ApplyProfileResponse,
   AppendInferenceAuditRequest,
   AppendRuntimeAuditRequest,
+  CancelLocalTransferRequest,
+  CancelLocalTransferResponse,
   CheckLocalModelHealthRequest,
   CheckLocalModelHealthResponse,
   CheckLocalServiceHealthRequest,
@@ -92,8 +94,12 @@ import {
   CollectDeviceProfileResponse,
   ImportLocalArtifactRequest,
   ImportLocalArtifactResponse,
+  ImportLocalArtifactFileRequest,
+  ImportLocalArtifactFileResponse,
   ImportLocalModelRequest,
   ImportLocalModelResponse,
+  ImportLocalModelFileRequest,
+  ImportLocalModelFileResponse,
   InstallLocalModelRequest,
   InstallLocalModelResponse,
   InstallLocalServiceRequest,
@@ -110,8 +116,13 @@ import {
   ListLocalModelsResponse,
   ListLocalServicesRequest,
   ListLocalServicesResponse,
+  ListLocalTransfersRequest,
+  ListLocalTransfersResponse,
+  LocalTransferProgressEvent,
   ListNodeCatalogRequest,
   ListNodeCatalogResponse,
+  PauseLocalTransferRequest,
+  PauseLocalTransferResponse,
   ListVerifiedArtifactsRequest,
   ListVerifiedArtifactsResponse,
   ListVerifiedModelsRequest,
@@ -122,8 +133,16 @@ import {
   RemoveLocalModelResponse,
   RemoveLocalServiceRequest,
   RemoveLocalServiceResponse,
+  ResumeLocalTransferRequest,
+  ResumeLocalTransferResponse,
   ResolveProfileRequest,
   ResolveProfileResponse,
+  ScanUnregisteredAssetsRequest,
+  ScanUnregisteredAssetsResponse,
+  ScaffoldOrphanArtifactRequest,
+  ScaffoldOrphanArtifactResponse,
+  ScaffoldOrphanModelRequest,
+  ScaffoldOrphanModelResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   SearchCatalogModelsRequest,
@@ -136,6 +155,7 @@ import {
   StopLocalModelResponse,
   StopLocalServiceRequest,
   StopLocalServiceResponse,
+  WatchLocalTransfersRequest,
   WarmLocalModelRequest,
   WarmLocalModelResponse,
 } from '../generated/runtime/v1/local_runtime';
@@ -421,6 +441,26 @@ export const RuntimeUnaryMethodCodecs: RuntimeUnaryMethodCodecMap = {
     requestType: ImportLocalArtifactRequest,
     responseType: ImportLocalArtifactResponse,
   },
+  [RuntimeMethodIds.local.importLocalModelFile]: {
+    requestType: ImportLocalModelFileRequest,
+    responseType: ImportLocalModelFileResponse,
+  },
+  [RuntimeMethodIds.local.importLocalArtifactFile]: {
+    requestType: ImportLocalArtifactFileRequest,
+    responseType: ImportLocalArtifactFileResponse,
+  },
+  [RuntimeMethodIds.local.scanUnregisteredAssets]: {
+    requestType: ScanUnregisteredAssetsRequest,
+    responseType: ScanUnregisteredAssetsResponse,
+  },
+  [RuntimeMethodIds.local.scaffoldOrphanModel]: {
+    requestType: ScaffoldOrphanModelRequest,
+    responseType: ScaffoldOrphanModelResponse,
+  },
+  [RuntimeMethodIds.local.scaffoldOrphanArtifact]: {
+    requestType: ScaffoldOrphanArtifactRequest,
+    responseType: ScaffoldOrphanArtifactResponse,
+  },
   [RuntimeMethodIds.local.removeLocalModel]: {
     requestType: RemoveLocalModelRequest,
     responseType: RemoveLocalModelResponse,
@@ -609,6 +649,22 @@ export const RuntimeUnaryMethodCodecs: RuntimeUnaryMethodCodecMap = {
     requestType: ListAIProviderHealthRequest,
     responseType: ListAIProviderHealthResponse,
   },
+  [RuntimeMethodIds.local.listLocalTransfers]: {
+    requestType: ListLocalTransfersRequest,
+    responseType: ListLocalTransfersResponse,
+  },
+  [RuntimeMethodIds.local.pauseLocalTransfer]: {
+    requestType: PauseLocalTransferRequest,
+    responseType: PauseLocalTransferResponse,
+  },
+  [RuntimeMethodIds.local.resumeLocalTransfer]: {
+    requestType: ResumeLocalTransferRequest,
+    responseType: ResumeLocalTransferResponse,
+  },
+  [RuntimeMethodIds.local.cancelLocalTransfer]: {
+    requestType: CancelLocalTransferRequest,
+    responseType: CancelLocalTransferResponse,
+  },
 };
 
 export const RuntimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
@@ -627,6 +683,10 @@ export const RuntimeStreamMethodCodecs: RuntimeStreamMethodCodecMap = {
   [RuntimeMethodIds.workflow.subscribeEvents]: {
     requestType: SubscribeWorkflowEventsRequest,
     eventType: WorkflowEvent,
+  },
+  [RuntimeMethodIds.local.watchLocalTransfers]: {
+    requestType: WatchLocalTransfersRequest,
+    eventType: LocalTransferProgressEvent,
   },
   [RuntimeMethodIds.app.subscribeAppMessages]: {
     requestType: SubscribeAppMessagesRequest,

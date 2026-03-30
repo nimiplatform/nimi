@@ -2,11 +2,9 @@ package localservice
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,7 +37,7 @@ func (s *Service) installVerifiedArtifactFromHuggingFace(
 		return nil, err
 	}
 
-	record, err := s.downloadVerifiedArtifact(ctx, descriptor)
+	record, transferID, err := s.downloadVerifiedArtifact(ctx, descriptor)
 	if err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message:    err.Error(),
@@ -52,8 +50,14 @@ func (s *Service) installVerifiedArtifactFromHuggingFace(
 		if artifactDir, dirErr := resolveVerifiedArtifactDir(resolveLocalModelsPath(s.localModelsPath), descriptor.GetArtifactId()); dirErr == nil {
 			_ = os.RemoveAll(artifactDir)
 		}
+		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
 	}
+	s.completeTransfer(transferID, "register", "artifact installed", func(summary *runtimev1.LocalTransferSessionSummary) {
+		summary.ArtifactId = stored.GetArtifactId()
+		summary.LocalArtifactId = stored.GetLocalArtifactId()
+		summary.ModelId = stored.GetArtifactId()
+	})
 	return stored, nil
 }
 
@@ -80,18 +84,18 @@ func (s *Service) ensureArtifactNotInstalled(
 func (s *Service) downloadVerifiedArtifact(
 	ctx context.Context,
 	descriptor *runtimev1.LocalVerifiedArtifactDescriptor,
-) (*runtimev1.LocalArtifactRecord, error) {
+) (*runtimev1.LocalArtifactRecord, string, error) {
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	artifactDir, err := resolveVerifiedArtifactDir(modelsRoot, descriptor.GetArtifactId())
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	stagingDir := artifactDir + "-staging-" + strings.ToLower(ulid.Make().String())
 	if err := os.RemoveAll(stagingDir); err != nil {
-		return nil, fmt.Errorf("cleanup artifact staging dir: %w", err)
+		return nil, "", fmt.Errorf("cleanup artifact staging dir: %w", err)
 	}
 	if err := os.MkdirAll(stagingDir, 0o755); err != nil {
-		return nil, fmt.Errorf("create artifact staging dir: %w", err)
+		return nil, "", fmt.Errorf("create artifact staging dir: %w", err)
 	}
 
 	success := false
@@ -106,41 +110,61 @@ func (s *Service) downloadVerifiedArtifact(
 		files = []string{strings.TrimSpace(descriptor.GetEntry())}
 	}
 	if len(files) == 0 {
-		return nil, fmt.Errorf("verified artifact %q has no install files", strings.TrimSpace(descriptor.GetTemplateId()))
+		return nil, "", fmt.Errorf("verified artifact %q has no install files", strings.TrimSpace(descriptor.GetTemplateId()))
 	}
 
 	actualHashes := make(map[string]string, len(files))
+	transfer := s.newLocalTransfer(localTransferKindDownload, localTransferMutation{
+		ModelID:    descriptor.GetArtifactId(),
+		ArtifactID: descriptor.GetArtifactId(),
+		Phase:      "download",
+		State:      localTransferStateRunning,
+		Message:    "downloading verified artifact bundle",
+		Retryable:  true,
+	})
+	transferID := transfer.GetInstallSessionId()
 	for _, file := range files {
 		relativeFile, err := normalizeArtifactRelativeFile(file)
 		if err != nil {
-			return nil, err
+			s.failTransfer(transferID, err.Error(), false)
+			return nil, transferID, err
 		}
 		targetPath := filepath.Join(stagingDir, filepath.FromSlash(relativeFile))
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-			return nil, fmt.Errorf("create artifact file dir %q: %w", relativeFile, err)
+			s.failTransfer(transferID, fmt.Sprintf("create artifact file dir %q: %v", relativeFile, err), false)
+			return nil, transferID, fmt.Errorf("create artifact file dir %q: %w", relativeFile, err)
 		}
-		fileHash, err := s.downloadVerifiedArtifactFile(ctx, descriptor, relativeFile, targetPath)
+		fileHash, err := s.downloadVerifiedArtifactFile(ctx, transferID, descriptor, relativeFile, targetPath)
 		if err != nil {
-			return nil, err
+			if errors.Is(err, errLocalTransferCancelled) {
+				s.cancelTransfer(transferID, "transfer cancelled")
+			} else {
+				s.failTransfer(transferID, err.Error(), true)
+			}
+			return nil, transferID, err
 		}
 		actualHashes[relativeFile] = "sha256:" + fileHash
 	}
 
 	manifestPath := filepath.Join(stagingDir, "artifact.manifest.json")
+	s.updateTransferProgress(transferID, "manifest", 0, 0, "writing artifact manifest")
 	if err := writeArtifactManifest(manifestPath, descriptor, actualHashes); err != nil {
-		return nil, err
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, transferID, err
 	}
 
 	if err := os.RemoveAll(artifactDir); err != nil {
-		return nil, fmt.Errorf("remove existing artifact dir: %w", err)
+		s.failTransfer(transferID, fmt.Sprintf("remove existing artifact dir: %v", err), false)
+		return nil, transferID, fmt.Errorf("remove existing artifact dir: %w", err)
 	}
 	if err := os.Rename(stagingDir, artifactDir); err != nil {
-		return nil, fmt.Errorf("commit artifact install: %w", err)
+		s.failTransfer(transferID, fmt.Sprintf("commit artifact install: %v", err), false)
+		return nil, transferID, fmt.Errorf("commit artifact install: %w", err)
 	}
 	success = true
 
 	now := nowISO()
-	return &runtimev1.LocalArtifactRecord{
+	record := &runtimev1.LocalArtifactRecord{
 		LocalArtifactId: ulid.Make().String(),
 		ArtifactId:      descriptor.GetArtifactId(),
 		Kind:            descriptor.GetKind(),
@@ -157,11 +181,14 @@ func (s *Service) downloadVerifiedArtifact(
 		InstalledAt: now,
 		UpdatedAt:   now,
 		Metadata:    cloneStruct(descriptor.GetMetadata()),
-	}, nil
+	}
+	s.updateTransferProgress(transferID, "register", 0, 0, "registering artifact")
+	return record, transferID, nil
 }
 
 func (s *Service) downloadVerifiedArtifactFile(
 	ctx context.Context,
+	sessionID string,
 	descriptor *runtimev1.LocalVerifiedArtifactDescriptor,
 	relativeFile string,
 	targetPath string,
@@ -191,43 +218,25 @@ func (s *Service) downloadVerifiedArtifactFile(
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("download artifact file %q status=%d", relativeFile, resp.StatusCode)
 	}
-
-	tempPath := targetPath + ".download"
-	if err := os.RemoveAll(tempPath); err != nil {
-		return "", fmt.Errorf("cleanup temp artifact file %q: %w", relativeFile, err)
-	}
-	file, err := os.OpenFile(tempPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
-	if err != nil {
-		return "", fmt.Errorf("create artifact temp file %q: %w", relativeFile, err)
-	}
-	hasher := sha256.New()
 	maxBodyBytes := s.artifactDownloadMaxBodyBytes
 	if maxBodyBytes <= 0 {
 		maxBodyBytes = localArtifactDownloadMaxBodyBytes
 	}
-	limitedBody := io.LimitReader(resp.Body, maxBodyBytes+1)
-	written, copyErr := io.Copy(io.MultiWriter(file, hasher), limitedBody)
-	closeErr := file.Close()
-	if copyErr != nil {
-		_ = os.Remove(tempPath)
-		return "", fmt.Errorf("write artifact file %q: %w", relativeFile, copyErr)
+	if resp.ContentLength > 0 {
+		_ = s.mutateLocalTransfer(sessionID, false, func(summary *runtimev1.LocalTransferSessionSummary) {
+			summary.Phase = "download"
+			summary.BytesReceived = 0
+			summary.BytesTotal = resp.ContentLength
+			summary.Message = "downloading " + relativeFile
+			summary.State = localTransferStateRunning
+		})
 	}
-	if written > maxBodyBytes {
-		_ = os.Remove(tempPath)
-		return "", fmt.Errorf("write artifact file %q: response body exceeds %d bytes", relativeFile, maxBodyBytes)
+	actualHash, _, err := s.downloadToFileWithTransfer(ctx, sessionID, "download", resp.Body, targetPath, maxBodyBytes)
+	if err != nil {
+		return "", fmt.Errorf("write artifact file %q: %w", relativeFile, err)
 	}
-	if closeErr != nil {
-		_ = os.Remove(tempPath)
-		return "", fmt.Errorf("close artifact file %q: %w", relativeFile, closeErr)
-	}
-	actualHash := hex.EncodeToString(hasher.Sum(nil))
 	if expectedHash := expectedArtifactSHA256(descriptor.GetHashes(), relativeFile); expectedHash != "" && !strings.EqualFold(expectedHash, actualHash) {
-		_ = os.Remove(tempPath)
 		return "", fmt.Errorf("artifact file %q hash mismatch: expected=%s actual=%s", relativeFile, expectedHash, actualHash)
-	}
-	if err := os.Rename(tempPath, targetPath); err != nil {
-		_ = os.Remove(tempPath)
-		return "", fmt.Errorf("commit artifact file %q: %w", relativeFile, err)
 	}
 	return actualHash, nil
 }

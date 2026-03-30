@@ -19,6 +19,8 @@ type fakeLocalModelLister struct {
 	responses []*runtimev1.ListLocalModelsResponse
 	err       error
 	calls     int
+	warmErr   error
+	warmCalls int
 }
 
 func (f *fakeLocalModelLister) ListLocalModels(_ context.Context, _ *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
@@ -31,6 +33,14 @@ func (f *fakeLocalModelLister) ListLocalModels(_ context.Context, _ *runtimev1.L
 	resp := f.responses[f.calls]
 	f.calls++
 	return resp, nil
+}
+
+func (f *fakeLocalModelLister) WarmLocalModel(_ context.Context, _ *runtimev1.WarmLocalModelRequest) (*runtimev1.WarmLocalModelResponse, error) {
+	f.warmCalls++
+	if f.warmErr != nil {
+		return nil, f.warmErr
+	}
+	return &runtimev1.WarmLocalModelResponse{}, nil
 }
 
 func TestParseLocalModelSelector(t *testing.T) {
@@ -285,6 +295,40 @@ func TestValidateLocalModelRequest(t *testing.T) {
 	}}}
 	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen3-4b-q4_k_m", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
 		t.Fatalf("expected qualified local model id validation success, got %v", err)
+	}
+
+	installedLister := &fakeLocalModelLister{responses: []*runtimev1.ListLocalModelsResponse{{
+		Models: []*runtimev1.LocalModelRecord{{
+			LocalModelId:         "local-installed",
+			ModelId:              "qwen-installed",
+			Engine:               "llama",
+			Status:               runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+			LocalInvokeProfileId: "invoke",
+		}},
+	}}}
+	svc.localModel = installedLister
+	if err := svc.validateLocalModelRequest(context.Background(), "local/qwen-installed", nil, runtimev1.Modal_MODAL_UNSPECIFIED); err != nil {
+		t.Fatalf("expected installed local model validation success via warm, got %v", err)
+	}
+	if installedLister.warmCalls != 1 {
+		t.Fatalf("expected installed model to trigger warm, got %d", installedLister.warmCalls)
+	}
+
+	svc.localModel = &fakeLocalModelLister{
+		responses: []*runtimev1.ListLocalModelsResponse{{
+			Models: []*runtimev1.LocalModelRecord{{
+				LocalModelId: "local-failed-warm",
+				ModelId:      "qwen-failed-warm",
+				Engine:       "llama",
+				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+			}},
+		}},
+		warmErr: errors.New("warm failed"),
+	}
+	err = svc.validateLocalModelRequest(context.Background(), "local/qwen-failed-warm", nil, runtimev1.Modal_MODAL_UNSPECIFIED)
+	reason, ok = grpcerr.ExtractReasonCode(err)
+	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE {
+		t.Fatalf("expected warm failure to map to local model unavailable, got=%v ok=%v", reason, ok)
 	}
 }
 
