@@ -1,3 +1,4 @@
+import { listRuntimeLocalModelsSnapshot } from '@runtime/local-runtime';
 import { inferRouteSourceFromEndpoint } from './inference-audit';
 import type { CheckLlmHealthInput, ProviderHealth } from './types';
 import { formatProviderError } from './utils';
@@ -31,6 +32,110 @@ function normalizeMediaRoot(endpoint: string): string {
   if (normalized.endsWith('/v1/models')) return normalized.slice(0, -'/v1/models'.length);
   if (normalized.endsWith('/v1')) return normalized.slice(0, -'/v1'.length);
   return normalized;
+}
+
+function normalizeModelRoot(model: string): string {
+  const normalized = String(model || '').trim();
+  if (!normalized) return '';
+  const lower = normalized.toLowerCase();
+  if (lower.startsWith('llama/')) return normalized.slice('llama/'.length).trim();
+  if (lower.startsWith('media/')) return normalized.slice('media/'.length).trim();
+  if (lower.startsWith('speech/')) return normalized.slice('speech/'.length).trim();
+  if (lower.startsWith('sidecar/')) return normalized.slice('sidecar/'.length).trim();
+  if (lower.startsWith('local/')) return normalized.slice('local/'.length).trim();
+  return normalized;
+}
+
+function normalizeLocalStatus(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function usesRuntimeAuthoritativeLocalTextHealth(engine: ReturnType<typeof normalizeLocalEngine>): boolean {
+  return engine === 'llama';
+}
+
+async function checkRuntimeAuthoritativeLocalTextHealth(
+  input: CheckLlmHealthInput,
+  provider: string,
+  endpoint: string,
+  model: string,
+): Promise<ProviderHealth> {
+  const hintedStatus = normalizeLocalStatus(input.goRuntimeStatus);
+  if (hintedStatus === 'degraded' || hintedStatus === 'unavailable' || hintedStatus === 'removed') {
+    return {
+      provider,
+      endpoint,
+      model,
+      status: 'unreachable',
+      detail: `runtime local route unavailable (${hintedStatus})`,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  const listModels = input.listRuntimeLocalModelsSnapshot || listRuntimeLocalModelsSnapshot;
+  const models = await listModels();
+  const targetLocalModelId = String(input.goRuntimeLocalModelId || input.localModelId || '').trim();
+  const targetModelRoot = normalizeModelRoot(model);
+  const targetEngine = normalizeLocalEngine(provider);
+
+  const candidates = models
+    .map((item) => ({
+      localModelId: String(item.localModelId || '').trim(),
+      modelId: String(item.modelId || '').trim(),
+      engine: normalizeLocalEngine(String(item.engine || '').trim()),
+      status: normalizeLocalStatus(item.status),
+      healthDetail: String(item.healthDetail || '').trim(),
+    }))
+    .filter((item) => item.status !== 'removed');
+
+  const candidate = (targetLocalModelId
+    ? candidates.find((item) => item.localModelId === targetLocalModelId)
+    : undefined)
+    || candidates.find((item) => normalizeModelRoot(item.modelId) === targetModelRoot && item.engine === targetEngine)
+    || candidates.find((item) => normalizeModelRoot(item.modelId) === targetModelRoot)
+    || null;
+
+  if (!candidate) {
+    return {
+      provider,
+      endpoint,
+      model,
+      status: 'unreachable',
+      detail: 'runtime local model unavailable',
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  if (candidate.status === 'unhealthy') {
+    return {
+      provider,
+      endpoint,
+      model,
+      status: 'unreachable',
+      detail: candidate.healthDetail || 'runtime local model unhealthy',
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  if (candidate.status !== 'active' && candidate.status !== 'installed' && candidate.status !== '') {
+    return {
+      provider,
+      endpoint,
+      model,
+      status: 'unreachable',
+      detail: `runtime local model unavailable (${candidate.status})`,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  return {
+    provider,
+    endpoint,
+    model,
+    status: 'healthy',
+    detail: '',
+    checkedAt: new Date().toISOString(),
+  };
 }
 
 async function probeOpenAiCompatibleEndpoint(
@@ -89,8 +194,11 @@ export async function checkLocalLlmHealth(input: CheckLlmHealthInput): Promise<P
   const provider = String(input.provider || '').trim();
   const engine = normalizeLocalEngine(provider);
 
-  if (endpoint && source === 'local') {
+  if ((endpoint && source === 'local') || (usesRuntimeAuthoritativeLocalTextHealth(engine) && !input.connectorId)) {
     try {
+      if (usesRuntimeAuthoritativeLocalTextHealth(engine)) {
+        return await checkRuntimeAuthoritativeLocalTextHealth(input, provider, endpoint, model);
+      }
       const localFetch = input.fetchImpl || fetch;
       const response = usesCanonicalCatalogProbe(engine)
         ? await probeMediaEndpoint(localFetch, endpoint)

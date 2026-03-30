@@ -27,6 +27,8 @@
 
 - Local Model Center 的模型、artifact、transfer UI 必须全部反映 runtime 真源，不得读取或修复 Desktop host-local state。
 - `Active Downloads` / `Active Imports` 必须来自 runtime transfer APIs，而不是 Tauri progress event。
+- route options / resolve / health check 对 chat/text local model 的 readiness 判断必须固定使用 runtime authoritative local model list/status；host snapshot 只能补充标题、endpoint、catalog 辅助字段，不得单独决定 sendability。
+- 当 host snapshot 与 runtime local state 出现 split-brain、degraded 或 missing authoritative record 时，Desktop 可以显示用户原先的本地选择，但必须 fail-close 为不可发送状态并附带诊断原因。
 - Desktop host 只提供原生壳能力：
   - file picker / manifest picker
   - reveal-in-folder / reveal-root
@@ -35,10 +37,10 @@
 
 ## Product Semantics
 
-- chat/text 本地模型以 runtime readiness 为准；稳定可选态是 `active`，而导入后的短暂 `installed` 仅作为后台验证尚未完成时的过渡容忍。首次真实 text 请求仍由 runtime warm。
+- chat/text 本地模型以 runtime readiness 为准；`active` 表示已通过 runtime 可执行校验，`installed` 表示仍可展示/选择但请求时必须由 runtime 先 warm。
 - media/image/video 本地 readiness 不在本域放宽，继续遵循 runtime kernel 的更严格规则。
 - Local Model Center 是状态展示，不再是手动启停控制台；Desktop 不提供本地模型行内 start/stop toggle。
-- `active` 表示模型已通过 runtime readiness 校验并可被选择，不要求常驻运行；`installed` 仅是短暂待验证态。
+- `active` 表示模型已通过 runtime readiness 校验并可被选择，不要求常驻运行；`installed` 不再等价于 ready，只表示 runtime 已登记且允许 warm-on-demand。
 
 ## Error Families
 

@@ -68,7 +68,9 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
             && (!String(effectiveBinding.localModelId || '').trim()
                 || !String(effectiveBinding.engine || '').trim()
                 || !String(effectiveBinding.adapter || '').trim()
-                || localGoRuntimeStatus === 'removed');
+                || localGoRuntimeStatus === 'removed'
+                || localGoRuntimeStatus === 'degraded'
+                || localGoRuntimeStatus === 'unavailable');
         const needsCloudHydration = effectiveBinding?.source === 'cloud'
             && (!String(effectiveBinding.connectorId || '').trim()
                 || !String(effectiveBinding.provider || '').trim());
@@ -181,6 +183,9 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         localProviderEndpoint: resolved.localProviderEndpoint || resolved.endpoint,
                         localProviderModel: resolved.model,
                         localOpenAiEndpoint: resolved.localOpenAiEndpoint || resolved.endpoint,
+                        localModelId: resolved.localModelId,
+                        goRuntimeLocalModelId: resolved.goRuntimeLocalModelId,
+                        goRuntimeStatus: resolved.goRuntimeStatus,
                         connectorId: resolved.connectorId,
                     });
                     return toRouteHealthResult(result, resolved.provider, resolved.source);

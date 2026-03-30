@@ -3,12 +3,19 @@ import test, { mock } from 'node:test';
 
 import { checkLocalLlmHealth } from '../src/runtime/llm-adapter/execution/health-check';
 
-test('local endpoint GET /models ok → status healthy', async () => {
+test('local llama health uses runtime authoritative active model state', async () => {
   const mockFetch = mock.fn(async () => new Response('{}', { status: 200 }));
   const result = await checkLocalLlmHealth({
     provider: 'llama',
     localProviderEndpoint: 'http://127.0.0.1:8080/v1',
     localProviderModel: 'llama3',
+    listRuntimeLocalModelsSnapshot: async () => ([{
+      localModelId: 'local-1',
+      modelId: 'llama3',
+      engine: 'llama',
+      status: 'active',
+      endpoint: 'http://127.0.0.1:8080/v1',
+    }]),
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   });
 
@@ -17,46 +24,66 @@ test('local endpoint GET /models ok → status healthy', async () => {
   assert.equal(result.model, 'llama3');
   assert.equal(result.provider, 'llama');
   assert.equal(result.detail, '');
-  assert.equal(mockFetch.mock.callCount(), 1);
-  const callArgs = mockFetch.mock.calls[0]!.arguments as unknown as [RequestInfo | URL, RequestInit?];
-  assert.ok(String(callArgs[0]).endsWith('/v1/models'));
+  assert.equal(mockFetch.mock.callCount(), 0);
 });
 
-test('local endpoint GET /models HTTP 503 → status degraded', async () => {
+test('local llama health returns unreachable when runtime authoritative model is unhealthy', async () => {
   const mockFetch = mock.fn(async () => new Response('Service Unavailable', { status: 503 }));
   const result = await checkLocalLlmHealth({
     provider: 'llama',
     localProviderEndpoint: 'http://127.0.0.1:8080/v1',
-    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-  });
-
-  assert.equal(result.status, 'degraded');
-  assert.equal(result.detail, 'HTTP 503');
-});
-
-test('local endpoint fetch throws → status unreachable', async () => {
-  const mockFetch = mock.fn(async () => { throw new Error('ECONNREFUSED'); });
-  const result = await checkLocalLlmHealth({
-    provider: 'llama',
-    localProviderEndpoint: 'http://127.0.0.1:8080/v1',
+    localProviderModel: 'llama3',
+    listRuntimeLocalModelsSnapshot: async () => ([{
+      localModelId: 'local-1',
+      modelId: 'llama3',
+      engine: 'llama',
+      status: 'unhealthy',
+      endpoint: 'http://127.0.0.1:8080/v1',
+      healthDetail: 'managed local model invoke failed',
+    }]),
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   });
 
   assert.equal(result.status, 'unreachable');
-  assert.ok(result.detail.includes('ECONNREFUSED'));
+  assert.equal(result.detail, 'managed local model invoke failed');
+  assert.equal(mockFetch.mock.callCount(), 0);
 });
 
-test('localOpenAiEndpoint used as fallback when localProviderEndpoint empty', async () => {
+test('local llama health returns unreachable when runtime authoritative model is missing', async () => {
+  const mockFetch = mock.fn(async () => { throw new Error('ECONNREFUSED'); });
+  const result = await checkLocalLlmHealth({
+    provider: 'llama',
+    localProviderEndpoint: 'http://127.0.0.1:8080/v1',
+    localProviderModel: 'llama3',
+    listRuntimeLocalModelsSnapshot: async () => ([]),
+    fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
+  });
+
+  assert.equal(result.status, 'unreachable');
+  assert.equal(result.detail, 'runtime local model unavailable');
+  assert.equal(mockFetch.mock.callCount(), 0);
+});
+
+test('localOpenAiEndpoint still populates endpoint for runtime authoritative llama health', async () => {
   const mockFetch = mock.fn(async () => new Response('{}', { status: 200 }));
   const result = await checkLocalLlmHealth({
     provider: 'llama',
     localProviderEndpoint: '',
     localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
+    localProviderModel: 'llama3',
+    listRuntimeLocalModelsSnapshot: async () => ([{
+      localModelId: 'local-1',
+      modelId: 'llama3',
+      engine: 'llama',
+      status: 'installed',
+      endpoint: 'http://127.0.0.1:1234/v1',
+    }]),
     fetchImpl: mockFetch as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
   });
 
   assert.equal(result.status, 'healthy');
   assert.equal(result.endpoint, 'http://127.0.0.1:1234/v1');
+  assert.equal(mockFetch.mock.callCount(), 0);
 });
 
 test('media health uses /healthz + /v1/catalog', async () => {

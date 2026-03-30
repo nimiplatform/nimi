@@ -148,3 +148,51 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
   assert.equal(degradedLog?.level, 'warn');
   assert.equal((degradedLog?.details as Record<string, unknown>)?.error, 'local runtime snapshot timed out after 3500ms');
 });
+
+test('loadRuntimeRouteOptions does not treat desktop snapshot-only local models as authoritative route truth', async () => {
+  useAppStore.setState({
+    runtimeFields: {
+      ...useAppStore.getState().runtimeFields,
+      provider: 'local',
+      localProviderModel: 'local/local-import/Qwen3-4B-Q4_K_M',
+      localProviderEndpoint: 'http://127.0.0.1:1234/v1',
+      localOpenAiEndpoint: 'http://127.0.0.1:1234/v1',
+      connectorId: '',
+    },
+  });
+
+  const options = await loadRuntimeRouteOptions({
+    capability: 'text.generate',
+    modId: 'world.nimi.local-chat',
+  }, {
+    sdkListConnectors: async () => ([]),
+    sdkListConnectorModelDescriptors: async () => ([]),
+    loadLocalRouteMetadata: async () => ({
+      snapshot: {
+        models: [{
+          localModelId: 'desktop-local-1',
+          engine: 'llama',
+          modelId: 'local/local-import/Qwen3-4B-Q4_K_M',
+          endpoint: 'http://127.0.0.1:1234/v1',
+          capabilities: ['chat', 'text.generate'],
+          status: 'active',
+        }],
+      },
+      nodeCatalog: [{
+        provider: 'llama',
+        adapter: 'llama_native_adapter',
+        providerHints: {
+          extra: {
+            local_default_rank: 0,
+          },
+        },
+      }] as never[],
+      runtimeLocalModels: [],
+    }),
+  });
+
+  assert.equal(options.local.models.length, 0);
+  assert.equal(options.selected.source, 'local');
+  assert.equal(options.selected.modelId, 'local-import/Qwen3-4B-Q4_K_M');
+  assert.equal(options.selected.goRuntimeStatus, 'unavailable');
+});

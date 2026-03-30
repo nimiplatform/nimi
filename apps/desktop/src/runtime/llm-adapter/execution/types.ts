@@ -16,8 +16,12 @@ export type CheckLlmHealthInput = {
   localProviderEndpoint?: string;
   localProviderModel?: string;
   localOpenAiEndpoint?: string;
+  localModelId?: string;
+  goRuntimeLocalModelId?: string;
+  goRuntimeStatus?: string;
   connectorId?: string;
   fetchImpl?: FetchImpl;
+  listRuntimeLocalModelsSnapshot?: () => Promise<Array<Record<string, unknown>>>;
 };
 
 export type ExecuteLocalKernelTurnInput = {

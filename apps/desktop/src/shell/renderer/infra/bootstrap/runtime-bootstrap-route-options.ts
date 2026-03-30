@@ -333,8 +333,31 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
         listRuntimeLocalModelsSnapshot,
         ...deps,
     };
-    const [snapshot, nodeCatalog, runtimeLocalModels] = await Promise.all([
-        resolvedDeps.pollLocalSnapshotWithTimeout(),
+    const snapshot = await resolvedDeps.pollLocalSnapshotWithTimeout().catch((error) => {
+        const normalized = asNimiError(error, {
+            reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
+            actionHint: 'check_runtime_daemon_health',
+            source: 'runtime',
+        });
+        emitRuntimeLog({
+            level: 'warn',
+            area: 'route-options',
+            message: 'action:poll-local-snapshot:degraded',
+            traceId: normalized.traceId,
+            details: {
+                capability,
+                reasonCode: normalized.reasonCode,
+                actionHint: normalized.actionHint,
+                retryable: normalized.retryable,
+                traceId: normalized.traceId,
+                error: normalized.message,
+            },
+        });
+        return {
+            models: [],
+        };
+    });
+    const [nodeCatalog, runtimeLocalModels] = await Promise.all([
         resolvedDeps.listNodesCatalog(localCapability ? { capability: localCapability } : undefined).catch((error) => rethrowLocalRouteMetadataError({
             error,
             action: 'list-nodes-catalog',
@@ -426,7 +449,7 @@ export function buildSelectedBinding(input: {
         if (matchedLocalModel) {
             return toLocalBinding(matchedLocalModel);
         }
-        if (localModels.length > 0) {
+        if (!String(preferredBinding.model || preferredBinding.modelId || '').trim() && localModels.length > 0) {
             return toLocalBinding(localModels[0]!);
         }
         if (input.capability === 'text.embed') {
@@ -434,15 +457,14 @@ export function buildSelectedBinding(input: {
                 ...preferredBinding,
                 model: '',
                 modelId: undefined,
+                goRuntimeStatus: localMetadataDegraded ? 'degraded' : 'unavailable',
             };
-        }
-        if (localMetadataDegraded) {
-            return preferredBinding;
         }
         return {
             ...preferredBinding,
             adapter: defaultLocalAdapter(runtimeFields.provider, input.capability),
             endpoint: String(runtimeFields.localProviderEndpoint || runtimeFields.localOpenAiEndpoint || '').trim() || undefined,
+            goRuntimeStatus: localMetadataDegraded ? 'degraded' : 'unavailable',
         };
     }
     const preferredBinding: RuntimeRouteBinding = {
@@ -533,11 +555,30 @@ export async function loadRuntimeRouteOptions(input: {
             });
         }
     }
-    const localModels: RuntimeRouteLocalOption[] = snapshot.models
+    const snapshotByLocalModelId = new Map(snapshot.models.map((item) => [String(item.localModelId || '').trim(), item]));
+    const snapshotByLookup = new Map(snapshot.models.map((item) => [syncLookup(item.modelId, item.engine), item]));
+    const localModels: RuntimeRouteLocalOption[] = runtimeLocalModels
         .filter((item) => item.status !== 'removed')
         .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
         .map((item) => {
-        const preferredRuntimeLocalModel = pickPreferredRuntimeLocalModel(runtimeLocalModels, item.modelId, item.engine);
+        const snapshotModel = snapshotByLocalModelId.get(String(item.localModelId || '').trim())
+            || snapshotByLookup.get(syncLookup(item.modelId, item.engine))
+            || null;
+        if (snapshotModel && String(snapshotModel.status || '').trim().toLowerCase() !== String(item.status || '').trim().toLowerCase()) {
+            emitRuntimeLog({
+                level: 'warn',
+                area: 'route-options',
+                message: 'action:local-route-status-mismatch',
+                details: {
+                    capability: input.capability,
+                    localModelId: item.localModelId,
+                    modelId: item.modelId,
+                    engine: item.engine,
+                    runtimeStatus: item.status,
+                    snapshotStatus: snapshotModel.status,
+                },
+            });
+        }
         return {
             localModelId: item.localModelId,
             label: item.modelId,
@@ -548,10 +589,10 @@ export async function loadRuntimeRouteOptions(input: {
             adapter: nodeByProvider.get(normalizeLocalEngine(item.engine))?.adapter
                 || defaultLocalAdapter(item.engine, input.capability),
             providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
-            endpoint: item.endpoint,
+            endpoint: String(item.endpoint || snapshotModel?.endpoint || '').trim() || undefined,
             status: item.status,
-            goRuntimeLocalModelId: preferredRuntimeLocalModel?.localModelId,
-            goRuntimeStatus: preferredRuntimeLocalModel?.status,
+            goRuntimeLocalModelId: String(item.localModelId || '').trim() || undefined,
+            goRuntimeStatus: String(item.status || '').trim() || undefined,
             capabilities: item.capabilities
                 .map((capability) => normalizeCapabilityToken(capability))
                 .filter((capability): capability is RuntimeCanonicalCapability => Boolean(capability)),

@@ -63,6 +63,8 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 - 配置 speech route resolver 和 missing data capability resolver。
 - 确保 core world data capabilities 与 host-only Agent LLM data capabilities（route / memory）已注册，供 mods 调用。
 - host-only Agent chat route capability 必须遵循 `D-LLM-002` fail-close 语义；host-only Agent memory capability 必须遵循 `D-DSYNC-011` cache-only + fail-close 语义。
+- local route bootstrap / hydration / health merge 时，RuntimeLocalService local model list/status 是唯一 readiness 真源；host-local snapshot 只能补充展示元数据。
+- 当 selected local model 与 runtime authoritative local record 缺失、degraded、或状态冲突时，Desktop 可以保留原选择用于显示，但必须把 binding 视为 unavailable/not-sendable，不得继续 fail-open 发送。
 
 ## D-BOOT-005 — Runtime Mods 注册
 

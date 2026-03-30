@@ -183,6 +183,7 @@ test('buildSelectedBinding preserves local selection when local metadata is degr
   assert.equal(selected.modelId, 'qwen2.5-7b-instruct');
   assert.equal(selected.provider, 'llama');
   assert.equal(selected.engine, 'llama');
+  assert.equal(selected.goRuntimeStatus, 'degraded');
 });
 
 test('buildSelectedBinding falls back to llama for text when runtime metadata is unavailable', () => {

@@ -129,7 +129,6 @@ function localWarmCacheKey(candidate: RuntimeLocalWarmCandidate): string {
   return [
     String(candidate.localModelId || '').trim(),
     String(candidate.endpoint || '').trim(),
-    String(candidate.updatedAt || '').trim(),
   ].join('|');
 }
 
@@ -151,7 +150,7 @@ function selectRuntimeLocalWarmCandidate(
       updatedAt: String(item.updatedAt || '').trim(),
       status: Number(item.status || 0),
     }))
-    .filter((item) => item.localModelId && item.modelId && item.status !== 4);
+    .filter((item) => item.localModelId && item.modelId && item.status !== 3 && item.status !== 4);
 
   if (targetLocalModelId) {
     const direct = candidates.find((item) => item.localModelId === targetLocalModelId) || null;
@@ -224,7 +223,12 @@ export async function ensureRuntimeLocalModelWarm(input: EnsureRuntimeLocalModel
   };
   const initialCandidate = selectRuntimeLocalWarmCandidate(selectionInput, await listAllRuntimeLocalModels());
   if (!initialCandidate) {
-    return;
+    throw createNimiError({
+      message: 'runtime local model unavailable',
+      reasonCode: ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE,
+      actionHint: 'inspect_local_runtime_model_health',
+      source: 'runtime',
+    });
   }
 
   const initialCacheKey = localWarmCacheKey(initialCandidate);
