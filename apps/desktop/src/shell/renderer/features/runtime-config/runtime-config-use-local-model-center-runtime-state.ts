@@ -36,6 +36,7 @@ import {
   type ArtifactTaskState,
 } from './runtime-config-local-model-center-helpers';
 import { toCanonicalLocalLookupKey } from '@runtime/local-runtime/local-id';
+import { logRendererEvent } from '@renderer/infra/telemetry/renderer-log';
 import { useLocalModelCenterImportActions } from './runtime-config-use-local-model-center-import-actions';
 
 type UseLocalModelCenterRuntimeStateInput = {
@@ -607,6 +608,20 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     await importActions.importAssetFromPath(assetPath, declaration);
   }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets]);
 
+  const scheduleAutoImportAttempt = useCallback((assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {
+    void importActions.importAssetFromPath(assetPath, declaration).catch((error) => {
+      logRendererEvent({
+        level: 'error',
+        area: 'runtime-config-local-model-center',
+        message: 'phase:auto-import:failed',
+        details: {
+          assetPath,
+          error: error instanceof Error ? error.message : String(error || 'unknown error'),
+        },
+      });
+    });
+  }, [importActions]);
+
   useEffect(() => {
     const currentPaths = new Set(unregisteredAssets.map((asset) => asset.path));
     for (const path of autoImportAttemptedPathsRef.current) {
@@ -626,9 +641,9 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         continue;
       }
       autoImportAttemptedPathsRef.current.add(asset.path);
-      void importActions.importAssetFromPath(asset.path, draft).catch(() => undefined);
+      scheduleAutoImportAttempt(asset.path, draft);
     }
-  }, [importActions, resolveUnregisteredAssetDraft, unregisteredAssets]);
+  }, [resolveUnregisteredAssetDraft, scheduleAutoImportAttempt, unregisteredAssets]);
 
   const installCatalogVariant = useCallback(async (
     item: LocalRuntimeCatalogItemDescriptor,

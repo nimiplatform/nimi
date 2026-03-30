@@ -127,6 +127,10 @@ pub enum ReasonCode {
     AiLocalHfRepoInvalid = 361,
     AiLocalHfSearchFailed = 362,
     AiLocalManifestSchemaInvalid = 363,
+    /// LOCAL_SERVICE family (364+)
+    AiLocalServiceUnavailable = 364,
+    AiLocalServiceAlreadyInstalled = 365,
+    AiLocalServiceInvalidTransition = 366,
     /// FINISH family (370+)
     AiFinishLength = 370,
     AiFinishContentFilter = 371,
@@ -253,6 +257,11 @@ impl ReasonCode {
             Self::AiLocalHfRepoInvalid => "AI_LOCAL_HF_REPO_INVALID",
             Self::AiLocalHfSearchFailed => "AI_LOCAL_HF_SEARCH_FAILED",
             Self::AiLocalManifestSchemaInvalid => "AI_LOCAL_MANIFEST_SCHEMA_INVALID",
+            Self::AiLocalServiceUnavailable => "AI_LOCAL_SERVICE_UNAVAILABLE",
+            Self::AiLocalServiceAlreadyInstalled => "AI_LOCAL_SERVICE_ALREADY_INSTALLED",
+            Self::AiLocalServiceInvalidTransition => {
+                "AI_LOCAL_SERVICE_INVALID_TRANSITION"
+            }
             Self::AiFinishLength => "AI_FINISH_LENGTH",
             Self::AiFinishContentFilter => "AI_FINISH_CONTENT_FILTER",
             Self::AiModelProviderMismatch => "AI_MODEL_PROVIDER_MISMATCH",
@@ -378,6 +387,13 @@ impl ReasonCode {
             "AI_LOCAL_HF_SEARCH_FAILED" => Some(Self::AiLocalHfSearchFailed),
             "AI_LOCAL_MANIFEST_SCHEMA_INVALID" => {
                 Some(Self::AiLocalManifestSchemaInvalid)
+            }
+            "AI_LOCAL_SERVICE_UNAVAILABLE" => Some(Self::AiLocalServiceUnavailable),
+            "AI_LOCAL_SERVICE_ALREADY_INSTALLED" => {
+                Some(Self::AiLocalServiceAlreadyInstalled)
+            }
+            "AI_LOCAL_SERVICE_INVALID_TRANSITION" => {
+                Some(Self::AiLocalServiceInvalidTransition)
             }
             "AI_FINISH_LENGTH" => Some(Self::AiFinishLength),
             "AI_FINISH_CONTENT_FILTER" => Some(Self::AiFinishContentFilter),
@@ -6087,6 +6103,8 @@ pub struct RemoveModelRequest {
 pub struct CheckModelHealthRequest {
     #[prost(string, tag = "1")]
     pub model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CheckModelHealthResponse {

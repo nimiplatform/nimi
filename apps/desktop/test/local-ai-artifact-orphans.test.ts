@@ -72,7 +72,10 @@ test('runtime state refreshes unified unregistered assets and auto-imports high-
   assert.match(localModelCenterSource, /scanUnregisteredAssets\(\)/);
   assert.match(localModelCenterSource, /refreshUnregisteredAssets/);
   assert.match(localModelCenterSource, /asset\.autoImportable/);
-  assert.match(localModelCenterSource, /importActions\.importAssetFromPath\(asset\.path,\s*draft\)/);
+  assert.match(localModelCenterSource, /scheduleAutoImportAttempt\(asset\.path,\s*draft\)/);
+  assert.match(localModelCenterImportActionsSource, /importActions\.importAssetFromPath|const importAssetFromPath = useCallback/);
+  assert.match(localModelCenterSource, /message: 'phase:auto-import:failed'/);
+  assert.doesNotMatch(localModelCenterSource, /\.catch\(\(\) => undefined\)/);
 });
 
 test('unregistered model imports use orphan scaffold fast-path while picked files stay on direct import', () => {

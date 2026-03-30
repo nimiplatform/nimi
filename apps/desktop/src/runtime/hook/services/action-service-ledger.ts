@@ -117,18 +117,21 @@ export async function resolveUncertainIdempotencyFailure(
     executionMode: HookActionResult['executionMode'];
   },
 ): Promise<HookActionResult | null> {
-  const records = await queryActionExecutionLedger({
+  let records: Awaited<ReturnType<typeof queryActionExecutionLedger>>;
+  try {
+    records = await queryActionExecutionLedger({
       actionId: input.actionId,
       principalId: input.principalId,
       phase: 'commit',
       status: 'failed',
       limit: 200,
-    }).catch(() => null);
-  if (!records) {
+    });
+  } catch {
     return normalizeResult({
       ok: false,
       reasonCode: ReasonCode.ACTION_RUNTIME_STORE_UNAVAILABLE,
       actionHint: 'retry-later',
+      warnings: ['ledger-query-failed'],
     }, input.executionId, input.traceId, input.executionMode);
   }
 
