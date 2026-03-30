@@ -2,7 +2,8 @@
  * AI Config Store
  *
  * Persists user's AI connector/model/route selections per capability.
- * Runtime connector data is fetched on demand (not persisted).
+ * Data fetching (local models, connectors) is handled by kit useRouteModelPickerData.
+ * This store only manages selection persistence and runtime health status.
  */
 
 import { create } from 'zustand';
@@ -21,22 +22,6 @@ export type ForgeAiSelection = {
   connectorId: string;   // '' = auto routing
   model: string;         // 'auto' = runtime decides
   route: ForgeAiRoute;   // 'auto' = no preference
-};
-
-/** Mirrors the subset of Connector fields we need for UI display. */
-export type ForgeConnectorSummary = {
-  connectorId: string;
-  provider: string;
-  label: string;
-  status: string;
-};
-
-/** Mirrors ConnectorModelDescriptor from the runtime generated types. */
-export type ForgeConnectorModel = {
-  modelId: string;
-  modelLabel: string;
-  available: boolean;
-  capabilities: string[];
 };
 
 // ---------------------------------------------------------------------------
@@ -91,18 +76,12 @@ export interface AiConfigStore {
   // Persisted
   selections: Record<ForgeAiCapability, ForgeAiSelection>;
 
-  // Runtime (not persisted)
+  // Runtime status
   runtimeStatus: 'unknown' | 'connected' | 'unavailable';
-  connectors: ForgeConnectorSummary[];
-  connectorModels: Record<string, ForgeConnectorModel[]>; // keyed by connectorId
-  loading: boolean;
   error: string | null;
 
   // Actions
   setSelection(capability: ForgeAiCapability, selection: Partial<ForgeAiSelection>): void;
-  fetchConnectors(): Promise<void>;
-  fetchConnectorModels(connectorId: string): Promise<void>;
-  testConnector(connectorId: string): Promise<{ success: boolean; error?: string }>;
   checkRuntimeStatus(): Promise<void>;
   resetToDefaults(): void;
 }
@@ -111,9 +90,6 @@ export const useAiConfigStore = create<AiConfigStore>((set, get) => ({
   selections: loadSelections(),
 
   runtimeStatus: 'unknown',
-  connectors: [],
-  connectorModels: {},
-  loading: false,
   error: null,
 
   setSelection(capability, partial) {
@@ -124,64 +100,6 @@ export const useAiConfigStore = create<AiConfigStore>((set, get) => ({
     };
     set({ selections: updated });
     saveSelections(updated);
-  },
-
-  async fetchConnectors() {
-    set({ loading: true, error: null });
-    try {
-      const { runtime } = getPlatformClient();
-      const response = await runtime.connector.listConnectors({
-        pageSize: 100,
-        pageToken: '',
-        kindFilter: 0,     // UNSPECIFIED — no filter
-        statusFilter: 0,   // UNSPECIFIED — no filter
-        providerFilter: '',
-      });
-      const connectors: ForgeConnectorSummary[] = response.connectors.map((c) => ({
-        connectorId: c.connectorId,
-        provider: c.provider,
-        label: c.label,
-        status: String(c.status),
-      }));
-      set({ connectors, loading: false });
-    } catch (err) {
-      set({ error: err instanceof Error ? err.message : 'Failed to fetch connectors', loading: false });
-    }
-  },
-
-  async fetchConnectorModels(connectorId) {
-    set({ loading: true, error: null });
-    try {
-      const { runtime } = getPlatformClient();
-      const response = await runtime.connector.listConnectorModels({
-        connectorId,
-        forceRefresh: false,
-        pageSize: 100,
-        pageToken: '',
-      });
-      const models: ForgeConnectorModel[] = response.models.map((m) => ({
-        modelId: m.modelId,
-        modelLabel: m.modelLabel,
-        available: m.available,
-        capabilities: [...m.capabilities],
-      }));
-      set((state) => ({
-        connectorModels: { ...state.connectorModels, [connectorId]: models },
-        loading: false,
-      }));
-    } catch (err) {
-      set({ error: err instanceof Error ? err.message : 'Failed to fetch models', loading: false });
-    }
-  },
-
-  async testConnector(connectorId) {
-    try {
-      const { runtime } = getPlatformClient();
-      await runtime.connector.testConnector({ connectorId });
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err instanceof Error ? err.message : 'Test failed' };
-    }
   },
 
   async checkRuntimeStatus() {

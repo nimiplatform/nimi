@@ -15,21 +15,30 @@ const source = readFileSync(path.join(
   'chat-route-panel.tsx',
 ), 'utf8');
 
-describe('RL-BOOT-005 — ChatRoutePanel hook ordering', () => {
-  it('uses the shared route model picker panel without local early-return branches', () => {
-    const useMemoIndex = source.indexOf('const modelPickerAdapter = useMemo(');
-    const useModelPickerIndex = source.indexOf('const modelPickerState = useModelPicker(');
-    const routePanelIndex = source.indexOf('<RouteModelPickerPanel');
-
-    assert.notEqual(useMemoIndex, -1, 'ChatRoutePanel must declare modelPickerAdapter');
-    assert.notEqual(useModelPickerIndex, -1, 'ChatRoutePanel must declare modelPickerState');
-    assert.notEqual(routePanelIndex, -1, 'ChatRoutePanel must render RouteModelPickerPanel');
-    assert.equal(source.includes('if (loading) {'), false, 'ChatRoutePanel should delegate loading rendering to RouteModelPickerPanel');
-    assert.equal(source.includes('if (!options) {'), false, 'ChatRoutePanel should delegate unavailable rendering to RouteModelPickerPanel');
+describe('RL-BOOT-005 — ChatRoutePanel uses kit data hook', () => {
+  it('delegates data fetching and state management to kit useRouteModelPickerData', () => {
+    assert.match(source, /useRouteModelPickerData/, 'ChatRoutePanel must use kit useRouteModelPickerData hook');
+    assert.match(source, /RouteModelPickerDataProvider/, 'ChatRoutePanel must use RouteModelPickerDataProvider interface');
   });
 
-  it('uses a stable empty model list fallback before route data is ready', () => {
-    assert.match(source, /const EMPTY_ROUTE_MODELS: readonly RelayRouteDisplayModel\[\] = \[\];/);
-    assert.match(source, /const availableModels = display\?\.availableModels \?\? EMPTY_ROUTE_MODELS;/);
+  it('hydrates the picker from persisted relay route state before mounting the data hook', () => {
+    assert.match(source, /useRelayRoute/, 'ChatRoutePanel must read persisted relay route state');
+    assert.match(source, /initialSelection = useMemo/, 'ChatRoutePanel must derive initial selection from route state');
+    assert.doesNotMatch(source, /initialSelection:\s*\{\s*source:\s*'local'\s*\}/, 'ChatRoutePanel must not hardcode local as the initial selection');
+  });
+
+  it('creates a bridge-based data provider for Electron IPC', () => {
+    assert.match(source, /createBridgeRouteDataProvider/, 'ChatRoutePanel must create a bridge data provider');
+    assert.match(source, /bridge\.local\.listModels/, 'Provider must call bridge.local.listModels');
+    assert.match(source, /bridge\.connector\.list/, 'Provider must call bridge.connector.list');
+    assert.match(source, /bridge\.connector\.listModels/, 'Provider must call bridge.connector.listModels');
+  });
+
+  it('persists selection to main process via bridge.route.setBinding', () => {
+    assert.match(source, /bridge\.route\.setBinding/, 'ChatRoutePanel must call bridge.route.setBinding on selection change');
+  });
+
+  it('does not contain inline loading or unavailable early-return branches from old pattern', () => {
+    assert.equal(source.includes('if (!options) {'), false, 'ChatRoutePanel should not check for options directly');
   });
 });

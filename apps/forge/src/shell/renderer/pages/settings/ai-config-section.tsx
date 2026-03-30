@@ -1,85 +1,89 @@
 /**
  * AI Configuration Section for Settings Page
  *
- * Displays available connectors/models and lets users select per capability.
+ * Uses kit useRouteModelPickerData + RouteModelPickerPanel per capability.
+ * All data fetching and state management is handled by the kit hook.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getPlatformClient } from '@nimiplatform/sdk';
+import {
+  createSdkRouteDataProvider,
+  useRouteModelPickerData,
+  type RouteModelPickerDataProvider,
+  type RouteModelPickerSelection,
+} from '@nimiplatform/nimi-kit/features/model-picker/headless';
+import { RouteModelPickerPanel } from '@nimiplatform/nimi-kit/features/model-picker/ui';
+import { Button, SettingsCard, SettingsSectionTitle, Surface } from '@nimiplatform/nimi-kit/ui';
 import {
   useAiConfigStore,
   type ForgeAiCapability,
-  type ForgeAiRoute,
-  type ForgeConnectorSummary,
-  type ForgeConnectorModel,
 } from '@renderer/state/ai-config-store.js';
 
-const CAPABILITIES: { key: ForgeAiCapability; label: string }[] = [
-  { key: 'text', label: 'Text Generation' },
-  { key: 'image', label: 'Image Generation' },
-  { key: 'music', label: 'Music Generation' },
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const CAPABILITIES: { key: ForgeAiCapability; labelKey: string; fallback: string; runtimeCapability: string }[] = [
+  { key: 'text', labelKey: 'settings.aiText', fallback: 'Chat Model', runtimeCapability: 'text.generate' },
+  { key: 'image', labelKey: 'settings.aiImage', fallback: 'Image Model', runtimeCapability: 'image.generate' },
+  { key: 'music', labelKey: 'settings.aiMusic', fallback: 'Music Model', runtimeCapability: 'audio.generate' },
 ];
 
-const ROUTES: { value: ForgeAiRoute; label: string }[] = [
-  { value: 'auto', label: 'Auto' },
-  { value: 'local', label: 'Local' },
-  { value: 'cloud', label: 'Cloud' },
-];
+// ---------------------------------------------------------------------------
+// AiConfigSection (top-level)
+// ---------------------------------------------------------------------------
 
 export function AiConfigSection() {
   const { t } = useTranslation();
-  const {
-    selections,
-    runtimeStatus,
-    connectors,
-    connectorModels,
-    loading,
-    error,
-    setSelection,
-    fetchConnectors,
-    fetchConnectorModels,
-    testConnector,
-    checkRuntimeStatus,
-    resetToDefaults,
-  } = useAiConfigStore();
+  const runtimeStatus = useAiConfigStore((s) => s.runtimeStatus);
+  const error = useAiConfigStore((s) => s.error);
+  const checkRuntimeStatus = useAiConfigStore((s) => s.checkRuntimeStatus);
+  const resetToDefaults = useAiConfigStore((s) => s.resetToDefaults);
+
+  // Create a single SDK data provider (stable across renders)
+  const providerRef = useRef<RouteModelPickerDataProvider | null>(null);
+  if (!providerRef.current) {
+    try {
+      providerRef.current = createSdkRouteDataProvider(getPlatformClient().runtime);
+    } catch {
+      // Runtime not ready yet — will be null
+    }
+  }
 
   useEffect(() => {
     void checkRuntimeStatus();
-    void fetchConnectors();
-  }, [checkRuntimeStatus, fetchConnectors]);
+  }, [checkRuntimeStatus]);
 
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-white uppercase tracking-wider">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-[color:var(--nimi-text-secondary)]">
           {t('settings.aiConfig', 'AI Configuration')}
         </h2>
-        <button
-          onClick={() => {
-            void checkRuntimeStatus();
-            void fetchConnectors();
-          }}
-          disabled={loading}
-          className="rounded px-2.5 py-1 text-xs font-medium text-neutral-400 hover:text-white bg-neutral-800 hover:bg-neutral-700 transition-colors disabled:opacity-50"
-        >
-          {loading ? t('settings.aiRefreshing', 'Refreshing...') : t('settings.aiRefresh', 'Refresh')}
-        </button>
       </div>
 
       {/* Runtime status */}
-      <div className="flex items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-2.5">
+      <Surface tone="card" elevation="base" className="flex items-center gap-2 px-4 py-2.5">
         <span
           className={`inline-block h-2 w-2 rounded-full ${
             runtimeStatus === 'connected'
-              ? 'bg-green-500'
+              ? 'bg-[var(--nimi-status-success)]'
               : runtimeStatus === 'unavailable'
-                ? 'bg-red-500'
-                : 'bg-neutral-500'
+                ? 'bg-[var(--nimi-status-danger)]'
+                : 'bg-[var(--nimi-text-muted)]'
           }`}
         />
-        <span className="text-sm text-neutral-400">
+        <span className="text-sm text-[color:var(--nimi-text-secondary)]">
           {t('settings.aiRuntime', 'Runtime')}:{' '}
-          <span className={runtimeStatus === 'connected' ? 'text-green-400' : runtimeStatus === 'unavailable' ? 'text-red-400' : 'text-neutral-500'}>
+          <span className={
+            runtimeStatus === 'connected'
+              ? 'text-[color:var(--nimi-status-success)]'
+              : runtimeStatus === 'unavailable'
+                ? 'text-[color:var(--nimi-status-danger)]'
+                : 'text-[color:var(--nimi-text-muted)]'
+          }>
             {runtimeStatus === 'connected'
               ? t('settings.aiConnected', 'Connected')
               : runtimeStatus === 'unavailable'
@@ -87,188 +91,109 @@ export function AiConfigSection() {
                 : t('settings.aiUnknown', 'Checking...')}
           </span>
         </span>
-      </div>
+      </Surface>
 
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
-          <p className="text-xs text-red-400">{error}</p>
-        </div>
+        <SettingsCard className="rounded-2xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] px-3 py-2 text-sm text-[var(--nimi-status-danger)]">
+          {error}
+        </SettingsCard>
       )}
 
-      {/* Capability cards */}
+      {/* Per-capability model panels */}
       {CAPABILITIES.map((cap) => (
-        <CapabilityCard
-          key={cap.key}
-          capability={cap.key}
-          label={t(`settings.ai${cap.key.charAt(0).toUpperCase()}${cap.key.slice(1)}`, cap.label)}
-          selection={selections[cap.key]}
-          connectors={connectors}
-          models={connectorModels[selections[cap.key].connectorId] ?? []}
-          disabled={runtimeStatus === 'unavailable'}
-          onChangeConnector={(connectorId) => {
-            setSelection(cap.key, { connectorId, model: 'auto' });
-            if (connectorId) {
-              void fetchConnectorModels(connectorId);
-            }
-          }}
-          onChangeModel={(model) => setSelection(cap.key, { model })}
-          onChangeRoute={(route) => setSelection(cap.key, { route })}
-          onTest={testConnector}
-        />
+        <SettingsCard key={cap.key} className="space-y-3 p-4">
+          <SettingsSectionTitle>{t(cap.labelKey, cap.fallback)}</SettingsSectionTitle>
+          {providerRef.current ? (
+            <ForgeCapabilityModelPanel
+              capability={cap.key}
+              runtimeCapability={cap.runtimeCapability}
+              provider={providerRef.current}
+              disabled={runtimeStatus === 'unavailable'}
+            />
+          ) : (
+            <p className="text-sm text-[color:var(--nimi-text-secondary)]">
+              {t('settings.aiRuntimeUnavailable', 'Runtime unavailable')}
+            </p>
+          )}
+        </SettingsCard>
       ))}
-
-      {/* Empty state */}
-      {connectors.length === 0 && !loading && runtimeStatus === 'connected' && (
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3">
-          <p className="text-xs text-neutral-500">
-            {t('settings.aiNoConnectors', 'No connectors found. Configure AI providers in the Desktop app or check runtime status.')}
-          </p>
-        </div>
-      )}
 
       {/* Reset */}
       <div className="pt-1">
-        <button
-          onClick={resetToDefaults}
-          className="rounded px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-white bg-neutral-800 hover:bg-neutral-700 transition-colors"
-        >
+        <Button tone="secondary" size="sm" onClick={resetToDefaults}>
           {t('settings.aiResetDefaults', 'Reset to Defaults')}
-        </button>
+        </Button>
       </div>
     </section>
   );
 }
 
 // ---------------------------------------------------------------------------
-// CapabilityCard
+// ForgeCapabilityModelPanel — delegates everything to kit hook
 // ---------------------------------------------------------------------------
 
-function CapabilityCard({
+function ForgeCapabilityModelPanel({
   capability,
-  label,
-  selection,
-  connectors,
-  models,
+  runtimeCapability,
+  provider,
   disabled,
-  onChangeConnector,
-  onChangeModel,
-  onChangeRoute,
-  onTest,
 }: {
   capability: ForgeAiCapability;
-  label: string;
-  selection: { connectorId: string; model: string; route: ForgeAiRoute };
-  connectors: ForgeConnectorSummary[];
-  models: ForgeConnectorModel[];
+  runtimeCapability: string;
+  provider: RouteModelPickerDataProvider;
   disabled: boolean;
-  onChangeConnector: (connectorId: string) => void;
-  onChangeModel: (model: string) => void;
-  onChangeRoute: (route: ForgeAiRoute) => void;
-  onTest: (connectorId: string) => Promise<{ success: boolean; error?: string }>;
 }) {
   const { t } = useTranslation();
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; error?: string } | null>(null);
+  const selection = useAiConfigStore((s) => s.selections[capability]);
+  const setSelection = useAiConfigStore((s) => s.setSelection);
 
-  async function handleTest() {
-    if (!selection.connectorId) return;
-    setTesting(true);
-    setTestResult(null);
-    const result = await onTest(selection.connectorId);
-    setTestResult(result);
-    setTesting(false);
+  // Derive initial source from persisted selection
+  const initialSource = selection.route === 'cloud' ? 'cloud' as const : 'local' as const;
+
+  const labels = useMemo(() => ({
+    source: t('settings.aiSource', 'Source'),
+    local: t('settings.aiLocal', 'Local'),
+    cloud: t('settings.aiCloud', 'Cloud'),
+    connector: t('settings.aiConnector', 'Connector'),
+    model: t('settings.aiModel', 'Model'),
+    active: t('settings.aiActive', 'Active'),
+    reset: t('settings.aiReset', 'Reset'),
+    loading: t('settings.aiLoading', 'Loading models...'),
+    unavailable: t('settings.aiUnavailable', 'Unavailable'),
+    localUnavailable: t('settings.aiLocalUnavailable', 'Local model discovery failed. Runtime may be unavailable.'),
+    noLocalModels: t('settings.aiNoLocalModels', 'No local models available for this capability. Install a model via Desktop.'),
+    selectConnector: t('settings.aiSelectConnector', 'Select a connector to see available models.'),
+    noCloudModels: t('settings.aiNoCloudModels', 'No models available for this connector.'),
+    savedRouteUnavailable: t('settings.aiSavedRouteUnavailable', 'Saved route is no longer available.'),
+  }), [t]);
+
+  const handleSelectionChange = useMemo(() => (next: RouteModelPickerSelection) => {
+    setSelection(capability, {
+      route: next.source === 'cloud' ? 'cloud' : 'local',
+      connectorId: next.connectorId,
+      model: next.model,
+    });
+  }, [capability, setSelection]);
+
+  const { panelProps } = useRouteModelPickerData({
+    provider,
+    capability: runtimeCapability,
+    initialSelection: {
+      source: initialSource,
+      connectorId: selection.connectorId,
+      model: selection.model === 'auto' ? '' : selection.model,
+    },
+    onSelectionChange: handleSelectionChange,
+    labels,
+  });
+
+  if (disabled) {
+    return (
+      <p className="text-sm text-[color:var(--nimi-text-secondary)]">
+        {t('settings.aiRuntimeUnavailable', 'Runtime unavailable')}
+      </p>
+    );
   }
 
-  // Clear test result when connector changes
-  useEffect(() => {
-    setTestResult(null);
-  }, [selection.connectorId]);
-
-  return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 px-4 py-3 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-white">{label}</p>
-        {testResult && (
-          <span className={`text-[10px] font-medium ${testResult.success ? 'text-green-400' : 'text-red-400'}`}>
-            {testResult.success ? t('settings.aiTestOk', 'OK') : testResult.error || t('settings.aiTestFail', 'Failed')}
-          </span>
-        )}
-      </div>
-
-      {/* Connector */}
-      <div className="flex items-center gap-2">
-        <label className="w-20 shrink-0 text-xs text-neutral-500">
-          {t('settings.aiConnector', 'Connector')}
-        </label>
-        <select
-          value={selection.connectorId}
-          onChange={(e) => onChangeConnector(e.target.value)}
-          disabled={disabled}
-          className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-xs text-white focus:border-neutral-500 focus:outline-none disabled:opacity-50"
-        >
-          <option value="">{t('settings.aiAuto', 'Auto (Runtime Default)')}</option>
-          {connectors.map((c) => (
-            <option key={c.connectorId} value={c.connectorId}>
-              {c.label || c.provider} ({c.provider})
-            </option>
-          ))}
-        </select>
-        {selection.connectorId && (
-          <button
-            onClick={() => void handleTest()}
-            disabled={testing || disabled}
-            title={t('settings.aiTestConnector', 'Test connector')}
-            className="shrink-0 rounded border border-neutral-700 bg-neutral-800 px-2 py-1.5 text-xs text-neutral-400 hover:text-white transition-colors disabled:opacity-50"
-          >
-            {testing ? '...' : t('settings.aiTest', 'Test')}
-          </button>
-        )}
-      </div>
-
-      {/* Model */}
-      <div className="flex items-center gap-2">
-        <label className="w-20 shrink-0 text-xs text-neutral-500">
-          {t('settings.aiModel', 'Model')}
-        </label>
-        <select
-          value={selection.model}
-          onChange={(e) => onChangeModel(e.target.value)}
-          disabled={disabled || !selection.connectorId}
-          className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-xs text-white focus:border-neutral-500 focus:outline-none disabled:opacity-50"
-        >
-          <option value="auto">{t('settings.aiAutoModel', 'Auto')}</option>
-          {models
-            .filter((m) => m.available)
-            .map((m) => (
-              <option key={m.modelId} value={m.modelId}>
-                {m.modelLabel || m.modelId}
-              </option>
-            ))}
-        </select>
-      </div>
-
-      {/* Route */}
-      <div className="flex items-center gap-2">
-        <label className="w-20 shrink-0 text-xs text-neutral-500">
-          {t('settings.aiRoute', 'Route')}
-        </label>
-        <div className="flex gap-1.5">
-          {ROUTES.map((r) => (
-            <button
-              key={r.value}
-              onClick={() => onChangeRoute(r.value)}
-              disabled={disabled}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                selection.route === r.value
-                  ? 'bg-white text-black'
-                  : 'bg-neutral-800 text-neutral-400 hover:text-white'
-              } disabled:opacity-50`}
-            >
-              {t(`settings.aiRoute${r.label}`, r.label)}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <RouteModelPickerPanel {...panelProps} />;
 }

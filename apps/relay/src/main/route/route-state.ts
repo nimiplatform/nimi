@@ -56,6 +56,7 @@ export type RouteState = {
 
 export function createRouteState(): RouteState {
   let binding: RelayRouteBinding | null = null;
+  let runtimeRef: PlatformClient['runtime'] | null = null;
   let options: RelayRouteOptions = {
     local: { models: [], status: 'unavailable', error: 'route options not initialized' },
     connectors: [],
@@ -84,18 +85,33 @@ export function createRouteState(): RouteState {
 
     async setBinding(newBinding: RelayRouteBinding) {
       binding = newBinding;
+
+      // If cached options are stale (e.g. local models empty because runtime
+      // wasn't available during init), refresh before resolving.
+      const needsLocalRefresh = newBinding.source === 'local' && options.local.models.length === 0;
+      const needsCloudRefresh = newBinding.source === 'cloud' && options.connectors.length === 0;
+      if ((needsLocalRefresh || needsCloudRefresh) && runtimeRef) {
+        try {
+          options = await loadRouteOptions(runtimeRef, binding);
+        } catch {
+          // Refresh failed — resolve with current (stale) options.
+        }
+      }
+
       resolved = resolveRelayRoute(binding, options);
       await persistBinding(binding);
       return resolved;
     },
 
     async refresh(runtime: PlatformClient['runtime']) {
+      runtimeRef = runtime;
       options = await loadRouteOptions(runtime, binding);
       resolved = resolveRelayRoute(binding, options);
       return { ...options, selected: binding };
     },
 
     async initialize(runtime: PlatformClient['runtime']) {
+      runtimeRef = runtime;
       binding = await loadPersistedBinding();
       options = await loadRouteOptions(runtime, binding);
       resolved = resolveRelayRoute(binding, options);

@@ -10,6 +10,8 @@ import { deriveMediaRouteDisplayState } from './media-route-state.js';
 
 type ConnectorOption = RelayMediaRouteOptionsResponse['connectors'][number];
 
+const DISABLED_VALUE = '__disabled__';
+
 interface MediaRouteSelectorProps {
   capability: string;
   connectorId: string;
@@ -57,13 +59,17 @@ export function MediaRouteSelector({
   const activeConnectorId = displayState.activeConnectorId;
   const selectedConnector = displayState.selectedConnector;
   const models = displayState.models;
-  const selectedConnectorValue = selectedConnector?.connectorId || undefined;
+  const selectedConnectorValue = selectedConnector?.connectorId || DISABLED_VALUE;
   const selectedModelValue = models.some((item) => item.modelId === displayState.displayModel)
     ? displayState.displayModel
     : undefined;
 
   const handleConnectorChange = useCallback(
     (newConnectorId: string) => {
+      if (newConnectorId === DISABLED_VALUE) {
+        onChange('', '');
+        return;
+      }
       const connector = connectors.find((c) => c.connectorId === newConnectorId);
       const firstModel = connector?.models[0]?.modelId ?? '';
       onChange(newConnectorId, firstModel);
@@ -83,11 +89,14 @@ export function MediaRouteSelector({
   );
 
   const connectorOptions = useMemo(
-    () => connectors.map((connector) => ({
-      value: connector.connectorId,
-      label: `${connector.label} (${connector.provider})`,
-    })),
-    [connectors],
+    () => [
+      { value: DISABLED_VALUE, label: `-- ${t('mediaRoute.disabled', 'Disabled')}` },
+      ...connectors.map((connector) => ({
+        value: connector.connectorId,
+        label: `${connector.label} (${connector.provider})`,
+      })),
+    ],
+    [connectors, t],
   );
   const modelOptions = useMemo(
     () => models.map((item) => ({

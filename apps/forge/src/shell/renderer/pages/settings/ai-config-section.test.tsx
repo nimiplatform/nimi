@@ -13,6 +13,13 @@ vi.stubGlobal('localStorage', {
   removeItem: (key: string) => storage.delete(key),
 });
 
+const listLocalModels = vi.fn().mockResolvedValue({
+  models: [
+    { localModelId: 'qwen3-4b', modelId: 'Qwen3-4B-Q4', capabilities: ['text.generate'], engine: 'llama', status: 2 },
+  ],
+  nextPageToken: '',
+});
+
 const listConnectors = vi.fn().mockResolvedValue({
   connectors: [
     { connectorId: 'c1', provider: 'openai', label: 'OpenAI', status: 1 },
@@ -25,10 +32,10 @@ const healthFn = vi.fn().mockResolvedValue({ status: 'healthy' });
 vi.mock('@nimiplatform/sdk', () => ({
   getPlatformClient: () => ({
     runtime: {
+      local: { listLocalModels },
       connector: {
         listConnectors,
         listConnectorModels: vi.fn().mockResolvedValue({ models: [], nextPageToken: '' }),
-        testConnector: vi.fn().mockResolvedValue({ ack: {} }),
       },
       health: healthFn,
     },
@@ -58,9 +65,6 @@ describe('AiConfigSection', () => {
         music: { connectorId: '', model: 'auto', route: 'auto' },
       },
       runtimeStatus: 'unknown',
-      connectors: [],
-      connectorModels: {},
-      loading: false,
       error: null,
     });
   });
@@ -77,11 +81,11 @@ describe('AiConfigSection', () => {
     });
   });
 
-  it('renders capability cards for text, image, and music', () => {
+  it('renders capability section titles for chat, image, and music', () => {
     renderSection();
-    expect(screen.getByText('Text Generation')).toBeTruthy();
-    expect(screen.getByText('Image Generation')).toBeTruthy();
-    expect(screen.getByText('Music Generation')).toBeTruthy();
+    expect(screen.getByText('Chat Model')).toBeTruthy();
+    expect(screen.getByText('Image Model')).toBeTruthy();
+    expect(screen.getByText('Music Model')).toBeTruthy();
   });
 
   it('shows unavailable when runtime health fails', async () => {
@@ -92,10 +96,20 @@ describe('AiConfigSection', () => {
     });
   });
 
-  it('fetches connectors on mount', async () => {
+  it('renders source toggle buttons for each capability', async () => {
     renderSection();
     await waitFor(() => {
-      expect(listConnectors).toHaveBeenCalled();
+      const localButtons = screen.getAllByText('Local');
+      const cloudButtons = screen.getAllByText('Cloud');
+      expect(localButtons.length).toBeGreaterThanOrEqual(3);
+      expect(cloudButtons.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  it('fetches local models via kit data provider', async () => {
+    renderSection();
+    await waitFor(() => {
+      expect(listLocalModels).toHaveBeenCalled();
     });
   });
 });

@@ -69,8 +69,9 @@ function resolveLocal(
     };
   }
 
-  // No local models — try cloud fallback
-  return resolveCloudFallback(options);
+  // No local models — fail closed. User explicitly chose local source;
+  // do not silently fallback to cloud (fallback hardcut).
+  return null;
 }
 
 function resolveCloud(
@@ -107,8 +108,9 @@ function resolveCloud(
     }
   }
 
-  // No cloud — try local fallback
-  return resolveLocalFallback(options);
+  // No cloud connectors — fail closed. User explicitly chose cloud source;
+  // do not silently fallback to local (fallback hardcut).
+  return null;
 }
 
 function resolveDefault(options: RelayRouteOptions): ResolvedRelayRoute | null {
@@ -123,18 +125,6 @@ function resolveDefault(options: RelayRouteOptions): ResolvedRelayRoute | null {
   }
 
   return resolveCloudFallback(options);
-}
-
-function resolveLocalFallback(options: RelayRouteOptions): ResolvedRelayRoute | null {
-  if (options.local.models.length > 0) {
-    const first = options.local.models[0]!;
-    return {
-      source: 'local',
-      model: `local/${first.modelId}`,
-      localModelId: first.localModelId,
-    };
-  }
-  return null;
 }
 
 function resolveCloudFallback(options: RelayRouteOptions): ResolvedRelayRoute | null {

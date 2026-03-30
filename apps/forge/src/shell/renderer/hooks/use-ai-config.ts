@@ -9,8 +9,8 @@ import { useAiConfigStore, type ForgeAiCapability } from '@renderer/state/ai-con
 
 export type ResolvedAiParams = {
   model: string;
-  connectorId?: string;
-  route?: NimiRoutePolicy;
+  connectorId: string;
+  route: NimiRoutePolicy | undefined;
 };
 
 /** Non-reactive — use outside React components (e.g. in createForgeAiClient). */
@@ -18,7 +18,7 @@ export function getResolvedAiParams(capability: ForgeAiCapability): ResolvedAiPa
   const selection = useAiConfigStore.getState().selections[capability];
   return {
     model: selection.model,
-    connectorId: selection.connectorId || undefined,
+    connectorId: selection.connectorId,
     route: selection.route === 'auto' ? undefined : selection.route,
   };
 }
@@ -28,7 +28,7 @@ export function useResolvedAiParams(capability: ForgeAiCapability): ResolvedAiPa
   const selection = useAiConfigStore((s) => s.selections[capability]);
   return {
     model: selection.model,
-    connectorId: selection.connectorId || undefined,
+    connectorId: selection.connectorId,
     route: selection.route === 'auto' ? undefined : selection.route,
   };
 }
