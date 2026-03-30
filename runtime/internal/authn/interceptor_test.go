@@ -68,7 +68,7 @@ func TestAuthenticateRejectsMalformedHeader(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Basic abc",
 	))
-	_, authErr := authenticate(ctx, v)
+	_, authErr := authenticate(ctx, v, "/runtime.v1.RuntimeAuditService/GetRuntimeHealth")
 	if authErr == nil {
 		t.Fatalf("expected auth error")
 	}
@@ -101,7 +101,7 @@ func TestAuthenticateProjectsIdentityForValidBearerToken(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Bearer "+token,
 	))
-	nextCtx, authErr := authenticate(ctx, v)
+	nextCtx, authErr := authenticate(ctx, v, "/runtime.v1.RuntimeAuditService/GetRuntimeHealth")
 	if authErr != nil {
 		t.Fatalf("authenticate failed: %v", authErr)
 	}
@@ -135,7 +135,7 @@ func TestAuthenticateMapsInvalidTokenToAuthTokenInvalid(t *testing.T) {
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Bearer "+tokenString,
 	))
-	_, authErr := authenticate(ctx, validator)
+	_, authErr := authenticate(ctx, validator, "/runtime.v1.RuntimeAuditService/GetRuntimeHealth")
 	if authErr == nil {
 		t.Fatalf("expected auth error")
 	}
@@ -166,12 +166,21 @@ func TestAuthenticateLogsValidationFailure(t *testing.T) {
 
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
 		"authorization", "Bearer test-token",
+		"x-nimi-caller-id", "app:nimi.desktop",
+		"x-nimi-app-id", "nimi.desktop",
+		"x-nimi-participant-id", "nimi.desktop",
 	))
-	_, authErr := authenticate(ctx, validator)
+	_, authErr := authenticate(ctx, validator, "/runtime.v1.RuntimeAuditService/GetRuntimeHealth")
 	if authErr == nil {
 		t.Fatal("expected auth error")
 	}
 	if !strings.Contains(logs.String(), "jwt validation failed") {
 		t.Fatalf("expected validation failure log, got=%q", logs.String())
+	}
+	if !strings.Contains(logs.String(), "method=/runtime.v1.RuntimeAuditService/GetRuntimeHealth") {
+		t.Fatalf("expected method in validation failure log, got=%q", logs.String())
+	}
+	if !strings.Contains(logs.String(), "caller_id=app:nimi.desktop") {
+		t.Fatalf("expected caller_id in validation failure log, got=%q", logs.String())
 	}
 }

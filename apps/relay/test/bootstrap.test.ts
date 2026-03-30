@@ -176,6 +176,20 @@ describe('RL-BOOT-001 — Main Process Initialization Sequence', () => {
     assert.ok(step5 > step4, 'step 5: authenticated IPC registered after platform init');
   });
 
+  it('index.ts uses initializeRouteState (not misleading OrThrow suffix)', () => {
+    const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
+    assert.ok(!source.includes('initializeRouteStateOrThrow'),
+      'must not use misleading OrThrow suffix — route init uses diagnostics, not exceptions');
+    assert.ok(source.includes('initializeRouteState'),
+      'must use initializeRouteState');
+  });
+
+  it('index.ts reads route diagnostics after initialization', () => {
+    const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
+    assert.ok(source.includes('getInitDiagnostics'),
+      'must read route diagnostics after init to surface failures');
+  });
+
   it('index.ts uses ReasonCode.AUTH_* constants instead of hard-coded auth strings', () => {
     const source = readFileSync(path.join(srcMain, 'index.ts'), 'utf-8');
     const authTokenInvalidLiteral = ['reason === ', `'${ReasonCode.AUTH_TOKEN_INVALID}'`].join('');

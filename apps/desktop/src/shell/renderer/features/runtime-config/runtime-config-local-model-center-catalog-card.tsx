@@ -368,7 +368,7 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                     model.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : model.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
                   }`}>
                     {model.status === 'installed'
-                      ? i18n.t('runtimeConfig.localModelCenter.validating', { defaultValue: 'validating' })
+                      ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
                       : model.status}
                   </span>
                   <button

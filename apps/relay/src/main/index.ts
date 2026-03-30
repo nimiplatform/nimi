@@ -54,9 +54,24 @@ export function getAuthState(): { state: AuthState; error: string | null } {
   return { state: currentAuthState, error: authError };
 }
 
-async function initializeRouteStateOrThrow(runtimeClient: PlatformClient['runtime']): Promise<RouteState> {
+async function initializeRouteState(runtimeClient: PlatformClient['runtime']): Promise<RouteState> {
   const nextRouteState = createRouteState();
   await nextRouteState.initialize(runtimeClient);
+
+  const diag = nextRouteState.getInitDiagnostics();
+  if (diag.resolvedNull && diag.bindingSource !== null) {
+    console.warn('[relay:boot] route resolution returned null', {
+      bindingSource: diag.bindingSource,
+      loadStatus: diag.loadStatus,
+      issueCount: diag.issueCount,
+    });
+  }
+  if (diag.loadStatus === 'failed') {
+    console.warn('[relay:boot] route options load failed', {
+      issueCount: diag.issueCount,
+    });
+  }
+
   registerRouteHandlers(runtimeClient, nextRouteState);
   return nextRouteState;
 }
@@ -116,7 +131,7 @@ export async function applyTokenAndInit(accessToken: string): Promise<void> {
       },
     }));
 
-    routeState = await initializeRouteStateOrThrow(runtime);
+    routeState = await initializeRouteState(runtime);
 
     registerIpcHandlers(runtime, realm, getWebContents, env, routeState);
     registerModelIpcHandlers(runtime);
@@ -200,7 +215,7 @@ app.whenReady().then(async () => {
     }
 
     try {
-      routeState = await initializeRouteStateOrThrow(runtime);
+      routeState = await initializeRouteState(runtime);
       initRealtimeRelay(env.NIMI_REALM_URL, token, getWebContents, {
         allowInsecureHttp: !app.isPackaged,
       });

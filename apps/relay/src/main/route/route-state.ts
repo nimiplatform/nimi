@@ -45,10 +45,18 @@ async function persistBinding(binding: RelayRouteBinding | null): Promise<void> 
   }
 }
 
+export type RouteInitDiagnostics = {
+  loadStatus: RelayRouteOptions['loadStatus'];
+  resolvedNull: boolean;
+  bindingSource: 'local' | 'cloud' | null;
+  issueCount: number;
+};
+
 export type RouteState = {
   getBinding(): RelayRouteBinding | null;
   getOptions(): RelayRouteOptions;
   getResolved(): ResolvedRelayRoute | null;
+  getInitDiagnostics(): RouteInitDiagnostics;
   setBinding(binding: RelayRouteBinding): Promise<ResolvedRelayRoute | null>;
   refresh(runtime: PlatformClient['runtime']): Promise<RelayRouteOptions>;
   initialize(runtime: PlatformClient['runtime']): Promise<void>;
@@ -81,6 +89,15 @@ export function createRouteState(): RouteState {
 
     getResolved() {
       return resolved;
+    },
+
+    getInitDiagnostics(): RouteInitDiagnostics {
+      return {
+        loadStatus: options.loadStatus,
+        resolvedNull: resolved === null,
+        bindingSource: binding?.source ?? null,
+        issueCount: options.issues.length,
+      };
     },
 
     async setBinding(newBinding: RelayRouteBinding) {

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadMediaRouteConnectors, loadRouteOptions } from '../src/main/route/route-options.js';
+import { loadMediaRouteConnectors, loadRouteOptions, normalizeCapability } from '../src/main/route/route-options.js';
 
 function createRuntimeStub(input: {
   localModels?: unknown[];
@@ -95,5 +95,84 @@ describe('route options hardcut', () => {
     assert.equal(result.connectors.length, 0);
     assert.equal(result.issues[0]?.scope, 'connectors');
     assert.match(result.issues[0]?.message ?? '', /connector registry unavailable/);
+  });
+});
+
+describe('capability normalization', () => {
+  it('normalizeCapability maps Go runtime aliases to canonical form', () => {
+    assert.equal(normalizeCapability('chat'), 'text.generate');
+    assert.equal(normalizeCapability('embedding'), 'text.embed');
+    assert.equal(normalizeCapability('embed'), 'text.embed');
+    assert.equal(normalizeCapability('image'), 'image.generate');
+    assert.equal(normalizeCapability('video'), 'video.generate');
+    assert.equal(normalizeCapability('music'), 'music.generate');
+    assert.equal(normalizeCapability('tts'), 'audio.synthesize');
+    assert.equal(normalizeCapability('speech'), 'audio.synthesize');
+    assert.equal(normalizeCapability('stt'), 'audio.transcribe');
+    assert.equal(normalizeCapability('transcription'), 'audio.transcribe');
+  });
+
+  it('normalizeCapability passes through already-canonical values', () => {
+    assert.equal(normalizeCapability('text.generate'), 'text.generate');
+    assert.equal(normalizeCapability('image.generate'), 'image.generate');
+    assert.equal(normalizeCapability('audio.synthesize'), 'audio.synthesize');
+  });
+
+  it('normalizeCapability passes through unknown values unchanged', () => {
+    assert.equal(normalizeCapability('unknown_cap'), 'unknown_cap');
+  });
+
+  it('normalizeCapability trims and lowercases input', () => {
+    assert.equal(normalizeCapability('  Chat '), 'text.generate');
+    assert.equal(normalizeCapability('EMBEDDING'), 'text.embed');
+  });
+
+  it('includes local models with raw "chat" capability from Go runtime', async () => {
+    const runtime = createRuntimeStub({
+      localModels: [{
+        localModelId: 'local-1',
+        modelId: 'qwen3',
+        engine: 'llama',
+        status: 2,
+        capabilities: ['chat'],
+      }],
+    });
+
+    const result = await loadRouteOptions(runtime as never, null);
+
+    assert.equal(result.local.models.length, 1);
+    assert.equal(result.local.models[0]?.localModelId, 'local-1');
+    assert.ok(result.local.models[0]?.capabilities.includes('text.generate'));
+    assert.ok(!result.local.models[0]?.capabilities.includes('chat'));
+  });
+
+  it('includes local models with canonical "text.generate" capability', async () => {
+    const runtime = createRuntimeStub({
+      localModels: [{
+        localModelId: 'local-1',
+        modelId: 'qwen3',
+        engine: 'llama',
+        status: 2,
+        capabilities: ['text.generate'],
+      }],
+    });
+
+    const result = await loadRouteOptions(runtime as never, null);
+    assert.equal(result.local.models.length, 1);
+  });
+
+  it('excludes models without any text.generate-equivalent capability', async () => {
+    const runtime = createRuntimeStub({
+      localModels: [{
+        localModelId: 'local-1',
+        modelId: 'embed-model',
+        engine: 'llama',
+        status: 2,
+        capabilities: ['embedding'],
+      }],
+    });
+
+    const result = await loadRouteOptions(runtime as never, null);
+    assert.equal(result.local.models.length, 0);
   });
 });

@@ -20,7 +20,7 @@ const bearerPrefix = "Bearer "
 // Anonymous requests (no header) pass through with nil identity. (K-AUTHN-001)
 func NewUnaryInterceptor(v *Validator) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		newCtx, err := authenticate(ctx, v)
+		newCtx, err := authenticate(ctx, v, info.FullMethod)
 		if err != nil {
 			return nil, err
 		}
@@ -33,7 +33,7 @@ func NewUnaryInterceptor(v *Validator) grpc.UnaryServerInterceptor {
 // Anonymous requests (no header) pass through with nil identity. (K-AUTHN-001)
 func NewStreamInterceptor(v *Validator) grpc.StreamServerInterceptor {
 	return func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		newCtx, err := authenticate(ss.Context(), v)
+		newCtx, err := authenticate(ss.Context(), v, info.FullMethod)
 		if err != nil {
 			return err
 		}
@@ -42,7 +42,7 @@ func NewStreamInterceptor(v *Validator) grpc.StreamServerInterceptor {
 }
 
 // authenticate extracts the bearer token from gRPC metadata and validates it.
-func authenticate(ctx context.Context, v *Validator) (context.Context, error) {
+func authenticate(ctx context.Context, v *Validator, method string) (context.Context, error) {
 	token, hasAuthHeader, malformed := extractBearerToken(ctx)
 	if malformed {
 		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
@@ -54,7 +54,20 @@ func authenticate(ctx context.Context, v *Validator) (context.Context, error) {
 
 	identity, err := v.ValidateContext(ctx, token)
 	if err != nil {
-		slog.Warn("jwt validation failed", "error", err)
+		fields := []any{
+			"error", err,
+			"method", strings.TrimSpace(method),
+		}
+		if caller, ok := metadataValue(ctx, "x-nimi-caller-id"); ok {
+			fields = append(fields, "caller_id", caller)
+		}
+		if appID, ok := metadataValue(ctx, "x-nimi-app-id"); ok {
+			fields = append(fields, "app_id", appID)
+		}
+		if participantID, ok := metadataValue(ctx, "x-nimi-participant-id"); ok {
+			fields = append(fields, "participant_id", participantID)
+		}
+		slog.Warn("jwt validation failed", fields...)
 		return ctx, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
 	if identity == nil {
@@ -90,6 +103,18 @@ func extractBearerToken(ctx context.Context) (string, bool, bool) {
 		return "", hasAuthHeader, true
 	}
 	return token, hasAuthHeader, false
+}
+
+func metadataValue(ctx context.Context, key string) (string, bool) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", false
+	}
+	value := strings.TrimSpace(strings.Join(md.Get(key), ","))
+	if value == "" {
+		return "", false
+	}
+	return value, true
 }
 
 // wrappedStream wraps a grpc.ServerStream with a modified context.

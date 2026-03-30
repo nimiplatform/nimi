@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.renderer.json",
     "test": "pnpm run test:unit",
     "test:transport": "tsx --test test/transport-smoke.test.ts",
-    "test:unit": "tsx --test test/bootstrap.test.ts test/ipc-handlers.test.ts test/stream-manager.test.ts test/preload.test.ts test/agent-core.test.ts test/input-transform.test.ts test/i18n.test.ts test/design-theme-entry.test.ts test/loopback-listener.test.ts test/chat-route-panel.test.ts test/model-config-source.test.ts test/media-route-state.test.ts test/relay-route-binding.test.ts test/features/agent-chat.test.ts test/features/tts.test.ts test/features/stt.test.ts test/features/live2d.test.ts test/features/video.test.ts test/features/agent-profile.test.ts test/features/animation-plugins.test.ts",
+    "test:unit": "tsx --test test/bootstrap.test.ts test/ipc-handlers.test.ts test/stream-manager.test.ts test/preload.test.ts test/agent-core.test.ts test/input-transform.test.ts test/i18n.test.ts test/design-theme-entry.test.ts test/loopback-listener.test.ts test/chat-route-panel.test.ts test/model-config-source.test.ts test/media-route-state.test.ts test/relay-route-binding.test.ts test/route-options.test.ts test/features/agent-chat.test.ts test/features/tts.test.ts test/features/stt.test.ts test/features/live2d.test.ts test/features/video.test.ts test/features/agent-profile.test.ts test/features/animation-plugins.test.ts",
     "test:interop": "tsx --test test/interop-smoke.test.ts",
     "test:all": "tsx --test test/*.test.ts test/features/*.test.ts"
   },

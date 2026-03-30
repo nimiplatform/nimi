@@ -29,6 +29,33 @@ const STATUS_RANK: Record<RelayLocalModelOption['status'], number> = {
   unspecified: 4,
 };
 
+/**
+ * Normalize raw capability strings from Go runtime to canonical form.
+ * Mirrors runtime/internal/localrouting/localrouting.go NormalizeCapability
+ * and desktop normalizeCapabilityToken in runtime-bootstrap-route-options.ts.
+ *
+ * The Go runtime's ListLocalModels gRPC returns capabilities in their stored
+ * form (e.g. "chat") without normalization. The relay must normalize on the
+ * TS side to match against canonical capability strings.
+ */
+const CAPABILITY_ALIAS: Record<string, string> = {
+  chat: 'text.generate',
+  embedding: 'text.embed',
+  embed: 'text.embed',
+  image: 'image.generate',
+  video: 'video.generate',
+  music: 'music.generate',
+  tts: 'audio.synthesize',
+  speech: 'audio.synthesize',
+  stt: 'audio.transcribe',
+  transcription: 'audio.transcribe',
+};
+
+export function normalizeCapability(raw: string): string {
+  const trimmed = raw.trim().toLowerCase();
+  return CAPABILITY_ALIAS[trimmed] ?? trimmed;
+}
+
 function mapStatus(raw: number): RelayLocalModelOption['status'] {
   return STATUS_MAP[raw as LocalModelStatus] ?? 'unspecified';
 }
@@ -99,13 +126,13 @@ async function loadLocalModels(runtime: PlatformClient['runtime']): Promise<Rela
   const response = await runtime.local.listLocalModels({} as Parameters<typeof runtime.local.listLocalModels>[0]);
   const models = response.models || [];
   return models
-    .filter((m) => m.capabilities.includes('text.generate'))
+    .filter((m) => m.capabilities.some((c) => normalizeCapability(c) === 'text.generate'))
     .map((m) => ({
       localModelId: m.localModelId,
       modelId: m.modelId,
       engine: m.engine || 'llama',
       status: mapStatus(m.status),
-      capabilities: m.capabilities,
+      capabilities: m.capabilities.map(normalizeCapability),
     }))
     .sort((a, b) => {
       const rankDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
@@ -228,7 +255,11 @@ export async function loadRouteOptions(
     local.status = 'unavailable';
     local.error = issue.message;
     issues.push(issue);
-    console.warn('[relay:route] local model load failed', { message: issue.message }, localModelsResult.reason);
+    const isAuthError = issue.message.includes('AUTH_') || issue.message.includes('UNAUTHENTICATED');
+    console.warn('[relay:route] local model load failed', {
+      message: issue.message,
+      hint: isAuthError ? 'JWT may be invalid — re-login or restart backend' : undefined,
+    }, localModelsResult.reason);
   }
 
   if (connectorsResult.status === 'fulfilled') {
