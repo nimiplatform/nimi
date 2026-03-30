@@ -87,7 +87,11 @@ machines:
     transitions:
       - from: INSTALLED
         to: ACTIVE
-        trigger: background_validation_or_maintenance_start
+        trigger: warm_or_minimal_execution_passed
+        source_rule: K-LOCAL-005
+      - from: INSTALLED
+        to: UNHEALTHY
+        trigger: warm_or_runtime_failure
         source_rule: K-LOCAL-005
       - from: ACTIVE
         to: UNHEALTHY

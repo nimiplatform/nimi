@@ -432,10 +432,10 @@ func TestCheckLocalModelHealthHealsLegacyUnhealthyRecordToInstalled(t *testing.T
 	if len(health.GetModels()) != 1 {
 		t.Fatalf("health models = %d", len(health.GetModels()))
 	}
-	if got := health.GetModels()[0].GetStatus(); got != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+	if got := health.GetModels()[0].GetStatus(); got != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
 		t.Fatalf("status = %s detail=%q", got, health.GetModels()[0].GetDetail())
 	}
-	if !strings.Contains(health.GetModels()[0].GetDetail(), "managed local model ready") {
+	if !strings.Contains(health.GetModels()[0].GetDetail(), "managed local model ready (not started)") {
 		t.Fatalf("detail = %q", health.GetModels()[0].GetDetail())
 	}
 	if _, err := os.Stat(configPath); err != nil {
@@ -443,7 +443,7 @@ func TestCheckLocalModelHealthHealsLegacyUnhealthyRecordToInstalled(t *testing.T
 	}
 }
 
-func TestListLocalModelsNormalizesManagedUnhealthyRecordToActive(t *testing.T) {
+func TestListLocalModelsNormalizesManagedUnhealthyRecordToInstalled(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 
@@ -479,15 +479,15 @@ func TestListLocalModelsNormalizesManagedUnhealthyRecordToActive(t *testing.T) {
 	if len(resp.GetModels()) != 1 {
 		t.Fatalf("models = %d", len(resp.GetModels()))
 	}
-	if got := resp.GetModels()[0].GetStatus(); got != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+	if got := resp.GetModels()[0].GetStatus(); got != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
 		t.Fatalf("status = %s detail=%q", got, resp.GetModels()[0].GetHealthDetail())
 	}
-	if detail := resp.GetModels()[0].GetHealthDetail(); !strings.Contains(detail, "managed local model ready") {
+	if detail := resp.GetModels()[0].GetHealthDetail(); !strings.Contains(detail, "managed local model ready (not started)") {
 		t.Fatalf("detail = %q", detail)
 	}
 }
 
-func TestListLocalModelsHealsManagedAttachedRuntimeModeToActive(t *testing.T) {
+func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 
@@ -523,7 +523,7 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToActive(t *testing.T) {
 	if len(resp.GetModels()) != 1 {
 		t.Fatalf("models = %d", len(resp.GetModels()))
 	}
-	if got := resp.GetModels()[0].GetStatus(); got != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+	if got := resp.GetModels()[0].GetStatus(); got != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
 		t.Fatalf("status = %s detail=%q", got, resp.GetModels()[0].GetHealthDetail())
 	}
 	if mode := svc.modelRuntimeMode(localModelID); mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {

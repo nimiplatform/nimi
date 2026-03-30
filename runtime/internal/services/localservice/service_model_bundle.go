@@ -250,6 +250,10 @@ func managedLocalModelReadyDetail() string {
 	return "managed local model ready"
 }
 
+func managedLocalModelReadyNotStartedDetail() string {
+	return "managed local model ready (not started)"
+}
+
 func isManagedSupervisedLlamaModel(model *runtimev1.LocalModelRecord, mode runtimev1.LocalEngineRuntimeMode) bool {
 	if model == nil {
 		return false

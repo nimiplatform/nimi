@@ -3317,15 +3317,16 @@ func TestLocalModelLifecycleTransitionsMatchSpec(t *testing.T) {
 
 	allStates := []runtimev1.LocalModelStatus{installed, active, unhealthy, removed}
 
-	// Spec: local_model_lifecycle — 8 valid transitions.
+	// Spec: local_model_lifecycle — 9 valid transitions.
 	tests := []struct {
 		name string
 		from runtimev1.LocalModelStatus
 		to   runtimev1.LocalModelStatus
 		want bool
 	}{
-		// Positive: all 8 spec transitions
+		// Positive: all 9 spec transitions
 		{"INSTALLED->ACTIVE (start_or_health_recovered)", installed, active, true},
+		{"INSTALLED->UNHEALTHY (warm_or_runtime_failure)", installed, unhealthy, true},
 		{"ACTIVE->UNHEALTHY (health_probe_failed)", active, unhealthy, true},
 		{"UNHEALTHY->ACTIVE (recovery_probe_passed)", unhealthy, active, true},
 		{"ACTIVE->REMOVED (remove_model)", active, removed, true},
@@ -3335,7 +3336,6 @@ func TestLocalModelLifecycleTransitionsMatchSpec(t *testing.T) {
 		{"INSTALLED->REMOVED (remove_model_from_installed)", installed, removed, true},
 
 		// Negative: invalid transitions
-		{"INSTALLED->UNHEALTHY (invalid)", installed, unhealthy, false},
 		{"INSTALLED->INSTALLED (self-loop)", installed, installed, false},
 		{"ACTIVE->ACTIVE (self-loop)", active, active, false},
 		{"UNHEALTHY->UNHEALTHY (self-loop)", unhealthy, unhealthy, false},
@@ -3353,7 +3353,7 @@ func TestLocalModelLifecycleTransitionsMatchSpec(t *testing.T) {
 		})
 	}
 
-	// Verify cardinality: 4 states, 8 valid transitions total.
+	// Verify cardinality: 4 states, 9 valid transitions total.
 	if len(allStates) != 4 {
 		t.Fatalf("expected 4 model states, got %d", len(allStates))
 	}
@@ -3365,8 +3365,8 @@ func TestLocalModelLifecycleTransitionsMatchSpec(t *testing.T) {
 			}
 		}
 	}
-	if validCount != 8 {
-		t.Errorf("expected exactly 8 valid model transitions, got %d", validCount)
+	if validCount != 9 {
+		t.Errorf("expected exactly 9 valid model transitions, got %d", validCount)
 	}
 }
 

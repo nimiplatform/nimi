@@ -117,6 +117,7 @@ Phase 1 本地执行引擎固定为：
 
 - `GET /v1/models` 成功仅说明进程可达。
 - 对 `text.generate` / `text.embed` 至少还需一次最小执行或等价 warmup 成功，才能视为 ready。
+- supervised `llama` 在首次最小执行 / warmup 失败时，必须保留失败阶段、退出码或 stderr 摘要等结构化细节；不得仅因 `/v1/models` 可达就把模型提升为 ready。
 - 对 `image.understand` / `audio.understand` 还必须验证 companion artifact（如 `mmproj`）完整。
 
 `media` / `media.diffusers` 健康探测：

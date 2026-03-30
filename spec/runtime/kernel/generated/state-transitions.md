@@ -47,7 +47,8 @@ States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `INSTALLED` | `ACTIVE` | `background_validation_or_maintenance_start` | `K-LOCAL-005` |
+| `INSTALLED` | `ACTIVE` | `warm_or_minimal_execution_passed` | `K-LOCAL-005` |
+| `INSTALLED` | `UNHEALTHY` | `warm_or_runtime_failure` | `K-LOCAL-005` |
 | `ACTIVE` | `UNHEALTHY` | `readiness_or_runtime_failure` | `K-LOCAL-005` |
 | `UNHEALTHY` | `ACTIVE` | `recovery_validation_passed` | `K-LOCAL-005` |
 | `ACTIVE` | `REMOVED` | `remove_model` | `K-LOCAL-005` |

@@ -36,9 +36,11 @@ type Supervisor struct {
 	healthProbeFailures int
 	cancel              context.CancelFunc
 	runEpoch            uint64
+	stderrTail          []string
 }
 
 const maxConsecutiveHealthProbeFailures = 3
+const supervisorStderrTailLines = 8
 
 type supervisedProcess struct {
 	cmd     *exec.Cmd
@@ -320,6 +322,7 @@ func (s *Supervisor) spawn(ctx context.Context, epoch uint64) error {
 	s.process = process
 	s.pid = cmd.Process.Pid
 	s.startedAt = time.Now()
+	s.stderrTail = nil
 	s.mu.Unlock()
 
 	go waitSupervisorProcess(process)
@@ -549,14 +552,15 @@ func (s *Supervisor) handleExitedProcess(ctx context.Context, process *supervise
 	if !s.isRunEpochActive(epoch) {
 		return
 	}
+	crashDetail := s.buildCrashDetail(process.waitErr)
 	s.logger.Warn("engine process exited unexpectedly",
 		"engine", s.cfg.Kind,
-		"error", process.waitErr,
+		"error", crashDetail,
 	)
-	s.handleCrash(ctx, process.waitErr, epoch)
+	s.handleCrash(ctx, crashDetail, epoch)
 }
 
-func (s *Supervisor) handleCrash(ctx context.Context, procErr error, epoch uint64) {
+func (s *Supervisor) handleCrash(ctx context.Context, crashDetail string, epoch uint64) {
 	if !s.isRunEpochActive(epoch) {
 		return
 	}
@@ -570,9 +574,9 @@ func (s *Supervisor) handleCrash(ctx context.Context, procErr error, epoch uint6
 	failures := s.consecutiveFailures
 	s.mu.Unlock()
 
-	crashDetail := "process exited"
-	if procErr != nil {
-		crashDetail = strings.TrimSpace(procErr.Error())
+	crashDetail = strings.TrimSpace(crashDetail)
+	if crashDetail == "" {
+		crashDetail = "process exited"
 	}
 	if failures >= s.cfg.MaxRestarts {
 		s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d", crashDetail, failures, s.cfg.MaxRestarts))
@@ -643,6 +647,9 @@ func (s *Supervisor) streamProcessLogs(reader io.ReadCloser, stream string, leve
 		if line == "" {
 			continue
 		}
+		if stream == "stderr" {
+			s.recordStderrTail(line)
+		}
 		s.logger.Log(context.Background(), level, "engine process output",
 			"engine", s.cfg.Kind,
 			"stream", stream,
@@ -662,4 +669,35 @@ func (s *Supervisor) isRunEpochActive(epoch uint64) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.runEpoch == epoch
+}
+
+func (s *Supervisor) recordStderrTail(line string) {
+	trimmed := strings.TrimSpace(line)
+	if trimmed == "" {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.stderrTail = append(s.stderrTail, trimmed)
+	if len(s.stderrTail) > supervisorStderrTailLines {
+		s.stderrTail = append([]string(nil), s.stderrTail[len(s.stderrTail)-supervisorStderrTailLines:]...)
+	}
+}
+
+func (s *Supervisor) buildCrashDetail(waitErr error) string {
+	stage := "runtime"
+	if s.Status() == StatusStarting {
+		stage = "startup"
+	}
+	parts := []string{fmt.Sprintf("stage=%s", stage)}
+	if waitErr != nil {
+		parts = append(parts, strings.TrimSpace(waitErr.Error()))
+	}
+	s.mu.RLock()
+	stderrTail := append([]string(nil), s.stderrTail...)
+	s.mu.RUnlock()
+	if len(stderrTail) > 0 {
+		parts = append(parts, "stderr_tail="+strings.Join(stderrTail, " | "))
+	}
+	return strings.TrimSpace(strings.Join(parts, "; "))
 }

@@ -83,18 +83,6 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 		}
 		return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
 	}
-	if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		activated, err := s.updateModelStatus(
-			localModelID,
-			runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
-			appendWarnings("model active", warnings),
-		)
-		if err != nil {
-			return nil, err
-		}
-		current = activated
-	}
-
 	endpoint := s.effectiveLocalModelEndpoint(current)
 	bootstrapErr := s.bootstrapEngineIfManaged(ctx, current.GetEngine(), s.modelRuntimeMode(localModelID), endpoint)
 	probe := s.probeEndpoint(ctx, current.GetEngine(), endpoint)
@@ -114,6 +102,17 @@ func (s *Service) StartLocalModel(ctx context.Context, req *runtimev1.StartLocal
 				}
 				return &runtimev1.StartLocalModelResponse{Model: unhealthy}, nil
 			}
+		}
+		if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+			activated, err := s.updateModelStatus(
+				localModelID,
+				runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+				appendWarnings("model active", warnings),
+			)
+			if err != nil {
+				return nil, err
+			}
+			current = activated
 		}
 		s.resetModelRecovery(localModelID)
 		latest := s.modelByID(localModelID)
@@ -319,16 +318,37 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 	endpoint := s.effectiveLocalModelEndpoint(model)
 	probe := s.probeEndpoint(ctx, model.GetEngine(), endpoint)
 	readyDetail := managedLocalModelReadyDetail()
+	notStartedDetail := managedLocalModelReadyNotStartedDetail()
 	if modelProbeSucceeded(model, probe, registration) {
 		s.resetModelRecovery(localModelID)
-		if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE || strings.TrimSpace(model.GetHealthDetail()) != readyDetail {
-			active, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, readyDetail)
-			if err != nil {
-				return nil, err
+		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+			if strings.TrimSpace(model.GetHealthDetail()) != readyDetail {
+				s.setModelHealthDetail(localModelID, readyDetail)
+				model = s.modelByID(localModelID)
 			}
-			model = active
+			return modelHealth(model), nil
 		}
-		return modelHealth(model), nil
+		installed, err := s.ensureModelInstalled(localModelID, notStartedDetail)
+		if err != nil {
+			return nil, err
+		}
+		return modelHealth(installed), nil
+	}
+
+	if !probe.responded {
+		s.resetModelRecovery(localModelID)
+		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+			if strings.TrimSpace(model.GetHealthDetail()) != notStartedDetail {
+				s.setModelHealthDetail(localModelID, notStartedDetail)
+				model = s.modelByID(localModelID)
+			}
+			return modelHealth(model), nil
+		}
+		installed, err := s.ensureModelInstalled(localModelID, notStartedDetail)
+		if err != nil {
+			return nil, err
+		}
+		return modelHealth(installed), nil
 	}
 
 	if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
@@ -343,19 +363,6 @@ func (s *Service) checkManagedSupervisedLlamaHealth(ctx context.Context, model *
 			return nil, err
 		}
 		return modelHealth(transitioned), nil
-	}
-
-	if !probe.responded {
-		s.resetModelRecovery(localModelID)
-		if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-			recovered, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, readyDetail)
-			if err != nil {
-				return nil, err
-			}
-			return modelHealth(recovered), nil
-		}
-		s.setModelHealthDetail(localModelID, readyDetail)
-		return modelHealth(s.modelByID(localModelID)), nil
 	}
 
 	detail := modelProbeFailureDetail(model, probe, registration)
@@ -390,12 +397,28 @@ func (s *Service) transitionModelToUnhealthy(localModelID string, detail string)
 		s.setModelHealthDetail(localModelID, detail)
 		return s.modelByID(localModelID), nil
 	}
-	if current.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
-		if _, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+	return s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
+}
+
+func (s *Service) ensureModelInstalled(localModelID string, detail string) (*runtimev1.LocalModelRecord, error) {
+	current := s.modelByID(localModelID)
+	if current == nil {
+		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	switch current.GetStatus() {
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+		s.setModelHealthDetail(localModelID, detail)
+		return s.modelByID(localModelID), nil
+	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+		installed, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED, detail)
+		if err != nil {
 			return nil, err
 		}
+		return installed, nil
+	default:
+		return current, nil
 	}
-	return s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
 }
 
 func appendSanitizedBootstrapFailureDetail(detail string, err error) string {

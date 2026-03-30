@@ -286,7 +286,9 @@ fallback 补充：
 - `UNHEALTHY` 与 `REMOVED` 的本地模型不得作为可选项暴露。
 - 当真实 text 请求命中 `INSTALLED` 的本地模型时，runtime 必须先执行 `WarmLocalModel`，预热成功后再继续请求。
 - `ACTIVE` 表示模型已通过 runtime readiness 校验，可直接被选择；它不要求模型常驻运行或常驻占用内存。
-- `INSTALLED` 仅作为导入/安装后的短暂过渡态保留；后台验证成功后必须自动收敛到 `ACTIVE`，失败则转 `UNHEALTHY`。
+- `INSTALLED` 表示模型已完成安装/导入与最小元数据登记，但尚未完成可执行级 readiness 验证；仅 `/v1/models` reachability 或等价进程探活成功，不足以把 chat/text 模型提升为 `ACTIVE`。
+- background validation 可以补充 bundle / endpoint / probe 信息，但只有最小 text 执行或等价 warm 成功后，chat/text 模型才允许从 `INSTALLED` 迁移到 `ACTIVE`。
+- `WarmLocalModel`、真实 text 请求、或等价 runtime 维护路径若在最小执行阶段失败，模型必须保留结构化失败原因并转为 `UNHEALTHY`，不得伪装为 `ACTIVE`。
 - 该放宽仅适用于 chat/text；`image.generate`、`video.generate`、`audio.synthesize`、`audio.transcribe` 等 media/speech 路径不继承本规则，除非对应 runtime contract 另行声明按需 warm 语义。
 
 ## K-LOCAL-021 SearchCatalogModels 结果排序

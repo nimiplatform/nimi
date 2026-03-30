@@ -106,8 +106,8 @@ func TestDesktopLocalRuntimeMigrationAdoptsManagedModelIntoRuntimeState(t *testi
 	if model.GetModelId() != "local/local-import/Qwen3-4B-Q4_K_M" {
 		t.Fatalf("unexpected model id: %s", model.GetModelId())
 	}
-	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected active status after migration normalization, got %s", model.GetStatus())
+	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+		t.Fatalf("expected installed status after migration normalization, got %s", model.GetStatus())
 	}
 	if mode := svc.modelRuntimeMode(model.GetLocalModelId()); mode != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("expected supervised runtime mode, got %s", mode)

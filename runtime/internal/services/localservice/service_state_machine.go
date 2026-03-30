@@ -14,6 +14,7 @@ import (
 var validModelTransitions = map[runtimev1.LocalModelStatus][]runtimev1.LocalModelStatus{
 	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED: {
 		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
 		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
 	},
 	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE: {

@@ -60,7 +60,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 
 	if _, _, err := s.ensureManagedLocalModelBundleReady(requestCtx, model); err != nil {
 		detail := managedLocalModelBundleFailureDetail(err)
-		if recordErr := s.recordWarmProbeFailure(model, detail); recordErr != nil {
+		if recordErr := s.recordWarmFailure(model, detail, false); recordErr != nil {
 			return nil, recordErr
 		}
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -74,7 +74,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	registration := s.managedLlamaRegistrationForModel(model)
 	if strings.TrimSpace(registration.Problem) != "" {
 		detail := managedLocalModelRegistrationFailureDetail(registration.Problem)
-		if recordErr := s.recordWarmProbeFailure(model, detail); recordErr != nil {
+		if recordErr := s.recordWarmFailure(model, detail, false); recordErr != nil {
 			return nil, recordErr
 		}
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -97,7 +97,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 		if requestCtx.Err() != nil {
 			detail = appendWarmWaitDetail(detail, requestCtx.Err())
 		}
-		if err := s.recordWarmProbeFailure(model, detail); err != nil {
+		if err := s.recordWarmFailure(model, detail, false); err != nil {
 			return nil, err
 		}
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -106,17 +106,20 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 		})
 	}
 
+	result, err := s.performWarmLocalModelExecution(requestCtx, model, endpoint, timeout)
+	if err != nil {
+		detail := warmExecutionFailureDetail(err)
+		if recordErr := s.recordWarmFailure(model, detail, true); recordErr != nil {
+			return nil, recordErr
+		}
+		return nil, err
+	}
 	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
 		activeModel, err := s.updateModelStatus(model.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active")
 		if err != nil {
 			return nil, err
 		}
 		model = activeModel
-	}
-
-	result, err := s.performWarmLocalModelExecution(requestCtx, model, endpoint, timeout)
-	if err != nil {
-		return nil, err
 	}
 	return s.newWarmLocalModelResponse(
 		model,
@@ -245,18 +248,17 @@ func (s *Service) waitForWarmProbe(
 	}
 }
 
-func (s *Service) recordWarmProbeFailure(model *runtimev1.LocalModelRecord, detail string) error {
+func (s *Service) recordWarmFailure(model *runtimev1.LocalModelRecord, detail string, transitionUnhealthy bool) error {
 	if model == nil {
 		return nil
 	}
-	switch model.GetStatus() {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
-		if _, err := s.updateModelStatus(model.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail); err != nil {
+	if transitionUnhealthy || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		if _, err := s.transitionModelToUnhealthy(model.GetLocalModelId(), detail); err != nil {
 			return err
 		}
-	default:
-		s.setModelHealthDetail(model.GetLocalModelId(), detail)
+		return nil
 	}
+	s.setModelHealthDetail(model.GetLocalModelId(), detail)
 	return nil
 }
 
@@ -279,7 +281,6 @@ func warmCacheKey(model *runtimev1.LocalModelRecord, endpoint string, modelResol
 	return strings.Join([]string{
 		strings.TrimSpace(model.GetLocalModelId()),
 		strings.TrimSpace(endpoint),
-		strings.TrimSpace(model.GetUpdatedAt()),
 		strings.TrimSpace(modelResolved),
 	}, "|")
 }
