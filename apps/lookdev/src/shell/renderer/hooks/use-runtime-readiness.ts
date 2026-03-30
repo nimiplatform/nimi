@@ -2,17 +2,26 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { getDaemonStatus, startDaemon } from '@renderer/bridge/runtime-daemon.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { useAppStore, type RuntimeTargetOption } from '@renderer/app-shell/providers/app-store.js';
+import { loadRuntimeTargetCatalog, pickDefaultRuntimeTargetOption } from '@renderer/features/lookdev/lookdev-route.js';
 
 type RuntimeProbeResult = {
   running: boolean;
   issues: string[];
   realmConfigured: boolean;
   realmAuthenticated: boolean;
+  textDefaultTargetKey?: string;
+  textConnectorId?: string;
+  textModelId?: string;
+  imageDefaultTargetKey?: string;
   imageConnectorId?: string;
   imageModelId?: string;
+  visionDefaultTargetKey?: string;
   visionConnectorId?: string;
   visionModelId?: string;
+  textTargets: RuntimeTargetOption[];
+  imageTargets: RuntimeTargetOption[];
+  visionTargets: RuntimeTargetOption[];
   error?: string;
 };
 
@@ -38,6 +47,9 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
         running: false,
         realmConfigured,
         realmAuthenticated,
+        textTargets: [],
+        imageTargets: [],
+        visionTargets: [],
         issues: [],
         error: error instanceof Error ? error.message : String(error),
       };
@@ -49,58 +61,68 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
       running: false,
       realmConfigured,
       realmAuthenticated,
+      textTargets: [],
+      imageTargets: [],
+      visionTargets: [],
       issues: [],
       error: daemon.lastError || 'Runtime daemon is unavailable.',
     };
   }
 
   const issues: string[] = [];
+  let textTargets: RuntimeTargetOption[] = [];
+  let imageTargets: RuntimeTargetOption[] = [];
+  let visionTargets: RuntimeTargetOption[] = [];
+  let textDefaultTargetKey = '';
+  let textConnectorId = '';
+  let textModelId = '';
+  let imageDefaultTargetKey = '';
   let imageConnectorId = '';
   let imageModelId = '';
+  let visionDefaultTargetKey = '';
   let visionConnectorId = '';
   let visionModelId = '';
 
   try {
     const runtime = getPlatformClient().runtime;
     await runtime.ready();
-    const connectors = await runtime.connector.listConnectors({
-      pageSize: 100,
-      pageToken: '',
-      kindFilter: 0,
-      statusFilter: 0,
-      providerFilter: '',
-    });
+    const [textCatalog, imageCatalog, visionCatalog] = await Promise.all([
+      loadRuntimeTargetCatalog(runtime, 'text.generate'),
+      loadRuntimeTargetCatalog(runtime, 'image.generate'),
+      loadRuntimeTargetCatalog(runtime, 'text.generate.vision'),
+    ]);
 
-    for (const connector of connectors.connectors) {
-      const models = await runtime.connector.listConnectorModels({
-        connectorId: connector.connectorId,
-        forceRefresh: false,
-        pageSize: 100,
-        pageToken: '',
-      }).catch(() => null);
-      if (!models) {
-        continue;
-      }
-      for (const model of models.models) {
-        if (!model.available) {
-          continue;
-        }
-        if (!imageModelId && model.capabilities.includes('image.generate')) {
-          imageConnectorId = connector.connectorId;
-          imageModelId = model.modelId;
-        }
-        if (!visionModelId && model.capabilities.includes('text.generate.vision')) {
-          visionConnectorId = connector.connectorId;
-          visionModelId = model.modelId;
-        }
-      }
-    }
+    textTargets = textCatalog.options;
+    imageTargets = imageCatalog.options;
+    visionTargets = visionCatalog.options;
+    issues.push(
+      ...textCatalog.issues.map((issue) => issue.message),
+      ...imageCatalog.issues.map((issue) => issue.message),
+      ...visionCatalog.issues.map((issue) => issue.message),
+    );
+
+    const defaultTextTarget = pickDefaultRuntimeTargetOption(textTargets);
+    const defaultImageTarget = pickDefaultRuntimeTargetOption(imageTargets);
+    const defaultVisionTarget = pickDefaultRuntimeTargetOption(visionTargets);
+
+    textDefaultTargetKey = defaultTextTarget?.key || '';
+    textConnectorId = defaultTextTarget?.connectorId || '';
+    textModelId = defaultTextTarget?.modelId || '';
+    imageDefaultTargetKey = defaultImageTarget?.key || '';
+    imageConnectorId = defaultImageTarget?.connectorId || '';
+    imageModelId = defaultImageTarget?.modelId || '';
+    visionDefaultTargetKey = defaultVisionTarget?.key || '';
+    visionConnectorId = defaultVisionTarget?.connectorId || '';
+    visionModelId = defaultVisionTarget?.modelId || '';
   } catch (error) {
     issues.push(error instanceof Error ? error.message : String(error));
   }
 
   if (!imageModelId) {
     issues.push('No image.generate target is currently available.');
+  }
+  if (!textModelId) {
+    issues.push('No text.generate target is currently available.');
   }
   if (!visionModelId) {
     issues.push('No text.generate.vision target is currently available.');
@@ -111,10 +133,18 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
     issues,
     realmConfigured,
     realmAuthenticated,
+    textDefaultTargetKey: textDefaultTargetKey || undefined,
+    textConnectorId: textConnectorId || undefined,
+    textModelId: textModelId || undefined,
+    imageDefaultTargetKey: imageDefaultTargetKey || undefined,
     imageConnectorId: imageConnectorId || undefined,
     imageModelId: imageModelId || undefined,
+    visionDefaultTargetKey: visionDefaultTargetKey || undefined,
     visionConnectorId: visionConnectorId || undefined,
     visionModelId: visionModelId || undefined,
+    textTargets,
+    imageTargets,
+    visionTargets,
   };
 }
 
@@ -139,10 +169,18 @@ export function useRuntimeReadiness() {
       setRuntimeProbe({
         realmConfigured: query.data.realmConfigured,
         realmAuthenticated: query.data.realmAuthenticated,
+        textDefaultTargetKey: query.data.textDefaultTargetKey,
+        textConnectorId: query.data.textConnectorId,
+        textModelId: query.data.textModelId,
+        imageDefaultTargetKey: query.data.imageDefaultTargetKey,
         imageConnectorId: query.data.imageConnectorId,
         imageModelId: query.data.imageModelId,
+        visionDefaultTargetKey: query.data.visionDefaultTargetKey,
         visionConnectorId: query.data.visionConnectorId,
         visionModelId: query.data.visionModelId,
+        textTargets: query.data.textTargets,
+        imageTargets: query.data.imageTargets,
+        visionTargets: query.data.visionTargets,
         issues: query.data.issues,
       });
       if (!query.data.running) {

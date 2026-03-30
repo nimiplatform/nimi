@@ -1,9 +1,38 @@
 batch_model:
   working_assets:
+    world_style_session:
+      required_fields:
+        - sessionId
+        - worldId
+        - worldName
+        - language
+        - status
+        - messages
+        - understanding
+        - openQuestions
+        - readinessReason
+        - summary
+        - operatorTurnCount
+        - lastTextTraceId
+        - createdAt
+        - updatedAt
+        - synthesizedAt
+      persistence:
+        appLocalReusable: true
+        realmTruth: false
+      statuses:
+        - collecting
+        - ready_to_synthesize
+        - synthesized
     world_style_pack:
       required_fields:
         - worldId
         - name
+        - language
+        - status
+        - seedSource
+        - sourceSessionId
+        - summary
         - visualEra
         - artStyle
         - paletteDirection
@@ -15,9 +44,18 @@ batch_model:
         - forbiddenElements
         - createdAt
         - updatedAt
+        - confirmedAt
       persistence:
         appLocalReusable: true
         realmTruth: false
+      statuses:
+        - draft
+        - confirmed
+      confirmation_gate:
+        required_after_world_style_session: true
+        required_before_portrait_brief_compile: true
+        required_before_capture_selection: true
+        required_before_batch_create: true
     portrait_brief:
       required_fields:
         - agentId
@@ -59,6 +97,8 @@ batch_model:
       - updatedAt
       - processingCompletedAt
       - commitCompletedAt
+      - selectedItemId
+      - auditTrail
     selection_snapshot:
       required_fields:
         - selectionSource
@@ -67,17 +107,38 @@ batch_model:
       selection_sources:
         - by_world
         - explicit_selection
+      by_world_intake_scope: controllable_worlds_only
       capture_selection_authority: operator
       capture_selection_default: primary_agents
+      style_pack_confirmation_required: true
     policy_snapshot:
       required_fields:
         - generationPolicy
         - autoEvalPolicy
         - retryPolicy
         - writebackPolicy
+        - generationTarget
+        - evaluationTarget
         - maxConcurrency
       defaults:
         maxConcurrency: 1
+    audit_trail:
+      event_scope:
+        - batch
+        - item
+      event_kinds:
+        - batch_created
+        - batch_paused
+        - batch_resumed
+        - processing_complete
+        - item_auto_passed
+        - item_gated_retryable
+        - item_gated_exhausted
+        - item_processing_failed
+        - rerun_queued
+        - item_committed
+        - item_commit_failed
+        - commit_complete
 
   item:
     states:

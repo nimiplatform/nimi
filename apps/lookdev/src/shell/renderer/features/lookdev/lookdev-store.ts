@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import type { Runtime } from '@nimiplatform/sdk/runtime';
 import { createLookdevImageUpload, finalizeLookdevResource, getAgentPortraitBinding, getLookdevAgent, upsertAgentPortraitBinding, type LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
-import { createDefaultPolicySnapshot, createDefaultWorldStylePack, type LookdevBatch, type LookdevBatchStatus, type LookdevEvaluationResult, type LookdevImageArtifact, type LookdevItem, type LookdevItemStatus, type LookdevPolicySnapshot, type LookdevPortraitBrief, type LookdevSelectionSource, type LookdevWorldStylePack } from './types.js';
-import { buildEvaluationSystemPrompt, buildGenerationPrompt, compilePortraitBrief } from './prompting.js';
-import { deriveCorrectionHints, parseEvaluationJson, validateEvaluation } from './evaluation.js';
-import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { createDefaultPolicySnapshot, type LookdevBatch, type LookdevBatchStatus, type LookdevEvaluationResult, type LookdevImageArtifact, type LookdevItem, type LookdevItemStatus, type LookdevPolicySnapshot, type LookdevPortraitBrief, type LookdevSelectionSource, type LookdevWorldStylePack, type LookdevWorldStyleSession } from './types.js';
+import { compilePortraitBrief } from './prompting.js';
+import { deriveCorrectionHints } from './evaluation.js';
+import { createAuditEvent, evaluateLookdevImage, generateLookdevItem } from './lookdev-processing.js';
 
 type CreateBatchInput = {
   name: string;
@@ -15,15 +14,19 @@ type CreateBatchInput = {
   worldId?: string;
   worldStylePack: LookdevWorldStylePack;
   captureSelectionAgentIds: string[];
+  generationTarget: LookdevPolicySnapshot['generationTarget'];
+  evaluationTarget: LookdevPolicySnapshot['evaluationTarget'];
   maxConcurrency?: number;
   scoreThreshold?: number;
 };
 
 type LookdevStoreState = {
   batches: LookdevBatch[];
+  worldStyleSessions: Record<string, LookdevWorldStyleSession>;
   worldStylePacks: Record<string, LookdevWorldStylePack>;
   portraitBriefs: Record<string, LookdevPortraitBrief>;
   createBatch(input: CreateBatchInput): Promise<string>;
+  saveWorldStyleSession(session: LookdevWorldStyleSession): void;
   saveWorldStylePack(pack: LookdevWorldStylePack): void;
   savePortraitBrief(brief: LookdevPortraitBrief): void;
   pauseBatch(batchId: string): void;
@@ -69,90 +72,6 @@ function updateBatchCounts(batch: LookdevBatch): LookdevBatch {
 
 function statusIsFailed(status: LookdevItemStatus): boolean {
   return status === 'auto_failed_retryable' || status === 'auto_failed_exhausted';
-}
-
-function normalizeArtifact(result: Awaited<ReturnType<Runtime['media']['image']['generate']>>, prompt: string): LookdevImageArtifact {
-  const artifact = result.artifacts[0];
-  if (!artifact) {
-    throw new Error('LOOKDEV_IMAGE_ARTIFACT_MISSING');
-  }
-  const artifactRecord = artifact as unknown as Record<string, unknown>;
-  let url = String(artifactRecord.url || artifact.uri || '').trim();
-  if (!url && artifact.bytes && artifact.bytes.length > 0) {
-    let binary = '';
-    for (const byte of artifact.bytes) {
-      binary += String.fromCharCode(byte);
-    }
-    const mimeType = String(artifact.mimeType || 'image/png').trim() || 'image/png';
-    url = `data:${mimeType};base64,${globalThis.btoa(binary)}`;
-  }
-  if (!url) {
-    throw new Error('LOOKDEV_IMAGE_URL_MISSING');
-  }
-  return {
-    url,
-    mimeType: String(artifact.mimeType || 'image/png').trim() || 'image/png',
-    width: artifact.width || undefined,
-    height: artifact.height || undefined,
-    traceId: String(result.trace?.traceId || '').trim() || undefined,
-    artifactId: String(artifact.artifactId || '').trim() || undefined,
-    promptSnapshot: prompt,
-    createdAt: nowIso(),
-  };
-}
-
-async function evaluateImage(runtime: Runtime, item: LookdevItem, image: LookdevImageArtifact, policy: LookdevPolicySnapshot): Promise<LookdevEvaluationResult> {
-  const readiness = useAppStore.getState().runtimeProbe;
-  if (!readiness.visionModelId || !readiness.visionConnectorId) {
-    throw new Error('LOOKDEV_VISION_TARGET_MISSING');
-  }
-  const response = await runtime.ai.text.generate({
-    model: readiness.visionModelId,
-    connectorId: readiness.visionConnectorId,
-    route: 'cloud',
-    system: buildEvaluationSystemPrompt(policy.autoEvalPolicy.scoreThreshold),
-    input: [{
-      role: 'user',
-      content: [
-        { type: 'text', text: `Evaluate ${item.agentDisplayName} portrait candidate.` },
-        { type: 'image_url', imageUrl: image.url, detail: 'high' },
-      ],
-    }],
-    temperature: 0,
-    maxTokens: 600,
-  });
-  const parsed = parseEvaluationJson(response.text);
-  return validateEvaluation(parsed, policy.autoEvalPolicy.scoreThreshold);
-}
-
-async function generateItem(runtime: Runtime, item: LookdevItem, policy: LookdevPolicySnapshot): Promise<LookdevImageArtifact> {
-  const readiness = useAppStore.getState().runtimeProbe;
-  if (!readiness.imageModelId || !readiness.imageConnectorId) {
-    throw new Error('LOOKDEV_IMAGE_TARGET_MISSING');
-  }
-  const batch = getBatch(item.batchId);
-  if (!batch) {
-    throw new Error('LOOKDEV_BATCH_NOT_FOUND');
-  }
-  const prompt = buildGenerationPrompt(item, policy, batch.worldStylePackSnapshot);
-  const referenceImages = [
-    item.referenceImageUrl,
-    item.existingPortraitUrl,
-  ].filter((value): value is string => Boolean(value));
-
-  const response = await runtime.media.image.generate({
-    model: readiness.imageModelId,
-    connectorId: readiness.imageConnectorId,
-    route: 'cloud',
-    prompt,
-    negativePrompt: policy.generationPolicy.negativePrompt,
-    aspectRatio: policy.generationPolicy.aspectRatio,
-    style: policy.generationPolicy.style,
-    n: 1,
-    referenceImages,
-    responseFormat: 'url',
-  });
-  return normalizeArtifact(response, prompt);
 }
 
 async function uploadResourceForItem(item: LookdevItem, batch: LookdevBatch): Promise<string> {
@@ -221,7 +140,12 @@ async function runBatchProcessing(batchId: string): Promise<void> {
           ...current,
           status: 'processing_complete',
           processingCompletedAt: current.processingCompletedAt || nowIso(),
-          auditTrail: [`${nowIso()} Processing complete`, ...current.auditTrail],
+          auditTrail: [createAuditEvent({
+            batchId,
+            kind: 'processing_complete',
+            scope: 'batch',
+            severity: 'success',
+          }), ...current.auditTrail],
         }));
         break;
       }
@@ -243,6 +167,8 @@ async function runBatchProcessing(batchId: string): Promise<void> {
         const maxAttempts = current.policySnapshot.retryPolicy.maxAttemptsPerPass;
 
         while (attempt < maxAttempts) {
+          let generatedImage: LookdevImageArtifact | null = null;
+          let evaluation: LookdevEvaluationResult | null = null;
           attempt += 1;
           mutateBatch(batchId, (batchState) => updateBatchCounts({
             ...batchState,
@@ -269,8 +195,15 @@ async function runBatchProcessing(batchId: string): Promise<void> {
             if (!processingItem) {
               return;
             }
-            const image = await generateItem(runtime, processingItem, processingBatch.policySnapshot);
-            const evaluation = await evaluateImage(runtime, processingItem, image, processingBatch.policySnapshot);
+            const image = await generateLookdevItem({
+              runtime,
+              item: processingItem,
+              policy: processingBatch.policySnapshot,
+              worldStylePackSnapshot: processingBatch.worldStylePackSnapshot,
+            });
+            generatedImage = image;
+            const nextEvaluation = await evaluateLookdevImage(runtime, processingItem, image, processingBatch.policySnapshot);
+            evaluation = nextEvaluation;
             correctionHints = evaluation.passed ? [] : deriveCorrectionHints(evaluation);
 
             if (evaluation.passed) {
@@ -285,13 +218,25 @@ async function runBatchProcessing(batchId: string): Promise<void> {
                       correctionHints: [],
                       updatedAt: nowIso(),
                     }
-                  : item),
-                auditTrail: [`${nowIso()} ${processingItem.agentDisplayName} auto-passed`, ...batchState.auditTrail],
+                : item),
+                auditTrail: [createAuditEvent({
+                  batchId,
+                  kind: 'item_auto_passed',
+                  scope: 'item',
+                  severity: 'success',
+                  itemId: candidate.itemId,
+                  agentId: candidate.agentId,
+                  agentDisplayName: processingItem.agentDisplayName,
+                }), ...batchState.auditTrail],
               }));
               return;
             }
 
             const nextStatus = attempt >= maxAttempts ? 'auto_failed_exhausted' : 'auto_failed_retryable';
+            const failureSummary = evaluation.failureReasons.join('; ') || evaluation.summary;
+            const auditPrefix = nextStatus === 'auto_failed_exhausted'
+              ? 'gate exhausted'
+              : 'gated for retry';
             mutateBatch(batchId, (batchState) => updateBatchCounts({
               ...batchState,
               items: batchState.items.map((item) => item.itemId === candidate.itemId
@@ -302,10 +247,20 @@ async function runBatchProcessing(batchId: string): Promise<void> {
                     currentEvaluation: evaluation,
                     correctionHints,
                     lastErrorCode: nextStatus === 'auto_failed_exhausted' ? 'LOOKDEV_AUTO_GATE_EXHAUSTED' : null,
-                    lastErrorMessage: evaluation.failureReasons.join('; ') || evaluation.summary,
+                    lastErrorMessage: failureSummary,
                     updatedAt: nowIso(),
                   }
                 : item),
+              auditTrail: [createAuditEvent({
+                batchId,
+                kind: nextStatus === 'auto_failed_exhausted' ? 'item_gated_exhausted' : 'item_gated_retryable',
+                scope: 'item',
+                severity: nextStatus === 'auto_failed_exhausted' ? 'error' : 'warning',
+                itemId: candidate.itemId,
+                agentId: candidate.agentId,
+                agentDisplayName: processingItem.agentDisplayName,
+                detail: failureSummary,
+              }), ...batchState.auditTrail],
             }));
             if (nextStatus === 'auto_failed_retryable') {
               const latest = getBatch(batchId);
@@ -318,19 +273,31 @@ async function runBatchProcessing(batchId: string): Promise<void> {
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             const exhausted = attempt >= maxAttempts;
+            const errorCode = message.startsWith('LOOKDEV_') ? message : 'LOOKDEV_PROCESSING_FAILED';
             mutateBatch(batchId, (batchState) => updateBatchCounts({
               ...batchState,
               items: batchState.items.map((item) => item.itemId === candidate.itemId
                 ? {
                     ...item,
                     status: exhausted ? 'auto_failed_exhausted' : 'auto_failed_retryable',
-                    lastErrorCode: 'LOOKDEV_PROCESSING_FAILED',
+                    currentImage: generatedImage,
+                    currentEvaluation: evaluation,
+                    lastErrorCode: errorCode,
                     lastErrorMessage: message,
                     correctionHints,
                     updatedAt: nowIso(),
                   }
                 : item),
-              auditTrail: [`${nowIso()} ${candidate.agentDisplayName} failed: ${message}`, ...batchState.auditTrail],
+              auditTrail: [createAuditEvent({
+                batchId,
+                kind: 'item_processing_failed',
+                scope: 'item',
+                severity: exhausted ? 'error' : 'warning',
+                itemId: candidate.itemId,
+                agentId: candidate.agentId,
+                agentDisplayName: candidate.agentDisplayName,
+                detail: message,
+              }), ...batchState.auditTrail],
             }));
             if (!exhausted) {
               const latest = getBatch(batchId);
@@ -355,8 +322,18 @@ export const useLookdevStore = create<LookdevStoreState>()(
   persist(
     (set, get) => ({
       batches: [],
+      worldStyleSessions: {},
       worldStylePacks: {},
       portraitBriefs: {},
+
+      saveWorldStyleSession(session) {
+        set((state) => ({
+          worldStyleSessions: {
+            ...state.worldStyleSessions,
+            [session.worldId]: session,
+          },
+        }));
+      },
 
       saveWorldStylePack(pack) {
         const timestamp = nowIso();
@@ -392,7 +369,10 @@ export const useLookdevStore = create<LookdevStoreState>()(
         }
         const batchId = createId('lookdev-batch');
         const createdAt = nowIso();
-        const policy = createDefaultPolicySnapshot();
+        const policy = createDefaultPolicySnapshot({
+          generationTarget: input.generationTarget,
+          evaluationTarget: input.evaluationTarget,
+        });
         policy.maxConcurrency = Math.max(1, Math.min(4, Number(input.maxConcurrency || 1)));
         if (Number.isFinite(Number(input.scoreThreshold))) {
           policy.autoEvalPolicy.scoreThreshold = Math.max(1, Math.min(100, Number(input.scoreThreshold)));
@@ -416,10 +396,14 @@ export const useLookdevStore = create<LookdevStoreState>()(
           throw new Error('LOOKDEV_BATCH_SINGLE_WORLD_REQUIRED');
         }
 
+        if (input.worldStylePack.status !== 'confirmed') {
+          throw new Error('LOOKDEV_STYLE_PACK_CONFIRMATION_REQUIRED');
+        }
+
         const selectedAgentIds = new Set(detailedAgents.map((agent) => agent.id));
         const captureSelectionAgentIds = [...new Set((input.captureSelectionAgentIds || []).filter((agentId) => selectedAgentIds.has(agentId)))];
         const worldStylePack = {
-          ...(input.worldStylePack || createDefaultWorldStylePack(resolvedWorldId, resolvedWorldId || 'Selected world')),
+          ...input.worldStylePack,
           worldId: resolvedWorldId,
           updatedAt: createdAt,
         };
@@ -468,7 +452,14 @@ export const useLookdevStore = create<LookdevStoreState>()(
           processingCompletedAt: null,
           commitCompletedAt: null,
           selectedItemId: null,
-          auditTrail: [`${createdAt} Batch created with ${detailedAgents.length} items`],
+          auditTrail: [createAuditEvent({
+            batchId,
+            kind: 'batch_created',
+            scope: 'batch',
+            severity: 'info',
+            count: detailedAgents.length,
+            occurredAt: createdAt,
+          })],
           items: detailedAgents.map((agent) => ({
             itemId: createId('lookdev-item'),
             batchId,
@@ -481,14 +472,9 @@ export const useLookdevStore = create<LookdevStoreState>()(
             captureMode: captureSelectionAgentIds.includes(agent.id) ? 'capture' : 'batch_only',
             portraitBrief: portraitBriefs.find((brief) => brief.agentId === agent.id && brief.worldId === agent.worldId)
               || portraitBriefs.find((brief) => brief.agentId === agent.id)
-              || compilePortraitBrief({
-                agentId: agent.id,
-                displayName: agent.displayName,
-                worldId: agent.worldId,
-                concept: agent.concept,
-                description: agent.description,
-                worldStylePack,
-              }),
+              || (() => {
+                throw new Error('LOOKDEV_PORTRAIT_BRIEF_MISSING');
+              })(),
             worldId: agent.worldId,
             status: 'pending',
             attemptCount: 0,
@@ -498,7 +484,10 @@ export const useLookdevStore = create<LookdevStoreState>()(
             lastErrorMessage: null,
             correctionHints: [],
             existingPortraitUrl: agent.currentPortrait?.url || null,
-            referenceImageUrl: agent.currentPortrait?.url || agent.avatarUrl || null,
+            // Only canonical portrait bindings are valid reference images for lookdev generation.
+            // Generic avatars may be placeholders or non-portable assets and must not be sent
+            // downstream as image-generation references.
+            referenceImageUrl: agent.currentPortrait?.url || null,
             committedAt: null,
             createdAt,
             updatedAt: createdAt,
@@ -512,20 +501,39 @@ export const useLookdevStore = create<LookdevStoreState>()(
       },
 
       pauseBatch(batchId) {
-        mutateBatch(batchId, (batch) => ({
-          ...batch,
-          status: 'paused',
-          auditTrail: [`${nowIso()} Batch paused`, ...batch.auditTrail],
-          updatedAt: nowIso(),
-        }));
+        mutateBatch(batchId, (batch) => {
+          if (batch.status !== 'running') {
+            return batch;
+          }
+          return {
+            ...batch,
+            status: 'paused',
+            auditTrail: [createAuditEvent({
+              batchId,
+              kind: 'batch_paused',
+              scope: 'batch',
+              severity: 'warning',
+            }), ...batch.auditTrail],
+            updatedAt: nowIso(),
+          };
+        });
       },
 
       async resumeBatch(batchId) {
+        const current = getBatch(batchId);
+        if (!current || current.status !== 'paused') {
+          return;
+        }
         mutateBatch(batchId, (batch) => ({
           ...batch,
           status: 'running',
           processingCompletedAt: null,
-          auditTrail: [`${nowIso()} Batch resumed`, ...batch.auditTrail],
+          auditTrail: [createAuditEvent({
+            batchId,
+            kind: 'batch_resumed',
+            scope: 'batch',
+            severity: 'info',
+          }), ...batch.auditTrail],
           updatedAt: nowIso(),
         }));
         await runBatchProcessing(batchId);
@@ -560,7 +568,13 @@ export const useLookdevStore = create<LookdevStoreState>()(
                   updatedAt: nowIso(),
                 }
               : item),
-            auditTrail: [`${nowIso()} Manual rerun queued for ${selected.size} items`, ...batch.auditTrail],
+            auditTrail: [createAuditEvent({
+              batchId,
+              kind: 'rerun_queued',
+              scope: 'batch',
+              severity: 'info',
+              count: selected.size,
+            }), ...batch.auditTrail],
           });
         });
         await runBatchProcessing(batchId);
@@ -594,6 +608,16 @@ export const useLookdevStore = create<LookdevStoreState>()(
                     updatedAt: nowIso(),
                   }
                 : entry),
+              auditTrail: [createAuditEvent({
+                batchId,
+                kind: 'item_committed',
+                scope: 'item',
+                severity: 'success',
+                itemId: item.itemId,
+                agentId: item.agentId,
+                agentDisplayName: item.agentDisplayName,
+                detail: batch.policySnapshot.writebackPolicy.bindingPoint,
+              }), ...state.auditTrail],
             }));
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -608,6 +632,16 @@ export const useLookdevStore = create<LookdevStoreState>()(
                     updatedAt: nowIso(),
                   }
                 : entry),
+              auditTrail: [createAuditEvent({
+                batchId,
+                kind: 'item_commit_failed',
+                scope: 'item',
+                severity: 'error',
+                itemId: item.itemId,
+                agentId: item.agentId,
+                agentDisplayName: item.agentDisplayName,
+                detail: message,
+              }), ...state.auditTrail],
             }));
           }
         }
@@ -615,7 +649,12 @@ export const useLookdevStore = create<LookdevStoreState>()(
           ...state,
           status: 'commit_complete' as LookdevBatchStatus,
           commitCompletedAt: nowIso(),
-          auditTrail: [`${nowIso()} Commit run complete`, ...state.auditTrail],
+          auditTrail: [createAuditEvent({
+            batchId,
+            kind: 'commit_complete',
+            scope: 'batch',
+            severity: 'success',
+          }), ...state.auditTrail],
         }));
       },
 
@@ -628,9 +667,10 @@ export const useLookdevStore = create<LookdevStoreState>()(
       },
     }),
     {
-      name: 'lookdev-workspace-formal',
+      name: 'lookdev-workspace-formal-v8',
       partialize: (state) => ({
         batches: state.batches,
+        worldStyleSessions: state.worldStyleSessions,
         worldStylePacks: state.worldStylePacks,
         portraitBriefs: state.portraitBriefs,
       }),

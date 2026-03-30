@@ -34,6 +34,8 @@ All items in one batch share the same policy snapshot.
 
 Lookdev must not introduce per-item overrides for:
 
+- generation target
+- evaluation target
 - generation policy
 - evaluation policy
 - retry policy
@@ -88,10 +90,24 @@ Every item must remain visible in app records regardless of whether it ultimatel
 
 Lookdev persists reusable app-local working assets outside the batch itself:
 
+- `WorldStyleSession`
 - `WorldStylePack`
 - `PortraitBrief`
 
 These assets may be reused across batches, but a batch always freezes its own snapshots at creation time.
+
+`WorldStyleSession` is the primary authoring surface for world style.
+
+- the operator first converges world style through natural-language conversation
+- the dialogue should be understanding-led and feeling-led rather than a scripted questionnaire
+- Lookdev may synthesize one structured draft from that session
+- the structured draft must not bypass operator confirmation
+
+`WorldStylePack` must distinguish draft state from confirmed state.
+
+- Lookdev may synthesize one draft candidate from `WorldStyleSession`
+- that synthesized draft is not yet authoritative for downstream brief compilation
+- only a confirmed style pack may unlock portrait-brief compilation, capture refinement, and batch creation
 
 ## LD-BATCH-009 — Closed Batch Rule
 
@@ -114,3 +130,49 @@ Capture selection is user-owned.
 The authoritative batch and item field lists live in `tables/batch-model.yaml`.
 
 The prose contracts must not redefine those field enumerations separately.
+
+## LD-BATCH-012 — Audit Trail Visibility
+
+Every batch must expose a readable audit trail to the operator.
+
+- audit events may stay lightweight structured records
+- the batch list must surface the latest visible audit event for quick operator triage
+- the operator must be able to inspect the current run narrative without reading logs
+- pause, resume, rerun, processing-complete, and commit-complete transitions must remain visible in app UI
+- item-level pass/fail/commit events must remain attributable to the affected agent
+
+## LD-BATCH-013 — Frozen Snapshot Visibility
+
+Every batch must expose its frozen selection and policy snapshots in app UI.
+
+- the operator must be able to inspect how the batch was selected
+- the operator must be able to inspect the frozen capture-selection count
+- the operator must be able to inspect the active generation target, evaluation target, score threshold, retry budget, max concurrency, and writeback binding
+- this visibility must stay separate from mutable app-local working assets such as reusable style packs and reusable portrait briefs
+
+## LD-BATCH-014 — World Intake Must Be Controllable
+
+The `by_world` intake lane must only expose worlds the current operator can actually control.
+
+- Lookdev must not default to broad public world discovery for batch creation
+- the world selector must resolve from typed control-scoped world services
+- a world that cannot yield a controllable cast for batch creation must fail-close instead of presenting a pseudo-ready empty selection
+
+## LD-BATCH-015 — Style Pack Confirmation Gate
+
+Lookdev must fail-close until one world style pack is explicitly confirmed.
+
+- a draft style pack may be edited and persisted inside Lookdev
+- editing a previously confirmed style pack returns it to draft state
+- capture selection must stay blocked while the active style pack is still draft
+- embedded capture must stay blocked while the active style pack is still draft
+- batch creation must reject any unconfirmed style pack
+
+## LD-BATCH-016 — Explicit Batch Target Selection
+
+Lookdev must freeze explicit batch-scoped execution targets at batch creation time.
+
+- the operator chooses one `image.generate` target for generation
+- the operator chooses one `text.generate.vision` target for evaluation
+- defaults may be suggested from runtime readiness, but the targets must remain inspectable and mutable before batch creation
+- the frozen target pair must remain visible in batch detail

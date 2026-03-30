@@ -18,14 +18,19 @@ Lookdev is the control plane for batch character portrait production.
 
 Its formal product responsibility is:
 
-1. define one reusable `WorldStylePack` for a world-level visual lane
-2. compile one reusable `PortraitBrief` per selected agent from Realm truth plus world style context
-3. let the operator choose which agents enter `Capture Selection`
-4. run focused capture refinement only for the operator-selected subset, defaulting to `primary` agents
-5. generate one current portrait result per batch item under one frozen shared policy
-6. auto-evaluate each result against a conservative anchor-portrait gate
-7. auto-retry failed items up to the retry budget
-8. explicitly commit the passed set into Realm portrait truth
+1. open one world-scoped `WorldStyleSession`
+2. converge that session through operator-authored natural-language replies
+3. use understanding-led dialogue rather than scripted questionnaire prompts
+4. synthesize one `WorldStylePack` draft from the session
+5. require explicit operator confirmation before that style pack may drive downstream work
+6. compile one reusable `PortraitBrief` per selected agent from Realm truth plus one confirmed world style pack
+7. let the operator choose which agents enter `Capture Selection`
+8. run focused capture refinement only for the operator-selected subset, defaulting to `primary` agents
+9. explicitly choose one batch-scope generation target and one batch-scope evaluation target from typed runtime availability
+10. generate one current portrait result per batch item under one frozen shared policy
+11. auto-evaluate each result against a conservative anchor-portrait gate
+12. auto-retry failed items up to the retry budget
+13. explicitly commit the passed set into Realm portrait truth
 
 ## 1. Core Boundary
 
@@ -50,6 +55,7 @@ Lookdev inherits visual capture direction from Agent-Capture, but not its produc
 Lookdev therefore adds batch governance above Agent-Capture-style refinement:
 
 - world-level style definition
+- feeling-led world-style understanding dialogue
 - per-agent brief compilation
 - user-owned capture selection
 - batch control
@@ -74,8 +80,9 @@ Lookdev is not a multi-candidate gacha selector by default. Each item owns one c
 
 ## 4. Product Truth Units
 
-Lookdev uses four app-local working objects:
+Lookdev uses five app-local working objects:
 
+- `WorldStyleSession`
 - `WorldStylePack`
 - `PortraitBrief`
 - `LookdevBatch`
@@ -88,12 +95,21 @@ The external formal writeback target remains the upstream Realm agent presentati
 The first formal app surfaces are:
 
 - batch list
+- batch list latest activity signal
 - create batch
-- world style pack definition
-- portrait brief compilation
+- intake readiness state
+- controllable world-only intake
+- world style session
+- world style pack draft synthesis
+- world style pack confirmation
+- explicit generation target selection
+- explicit evaluation target selection
+- portrait brief compilation from confirmed style pack only
 - capture selection
 - batch detail
+- frozen selection and policy snapshot visibility
 - item list and item preview
+- batch audit trail
 - pause / resume
 - rerun failed
 - commit batch

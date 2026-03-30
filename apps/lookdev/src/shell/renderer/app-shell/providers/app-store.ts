@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { RuntimeDefaults } from '@renderer/bridge/types.js';
+import type { LookdevRuntimeTargetOption } from '@renderer/features/lookdev/lookdev-route.js';
 
 export type AuthUser = {
   id: string;
@@ -11,13 +12,23 @@ export type AuthUser = {
 export type AuthStatus = 'bootstrapping' | 'authenticated' | 'unauthenticated';
 export type RuntimeStatus = 'checking' | 'ready' | 'degraded' | 'unavailable';
 
+export type RuntimeTargetOption = LookdevRuntimeTargetOption;
+
 export type RuntimeProbeState = {
   realmConfigured: boolean;
   realmAuthenticated: boolean;
+  textDefaultTargetKey?: string;
+  textConnectorId?: string;
+  textModelId?: string;
+  imageDefaultTargetKey?: string;
   imageConnectorId?: string;
   imageModelId?: string;
+  visionDefaultTargetKey?: string;
   visionConnectorId?: string;
   visionModelId?: string;
+  textTargets: RuntimeTargetOption[];
+  imageTargets: RuntimeTargetOption[];
+  visionTargets: RuntimeTargetOption[];
   issues: string[];
 };
 
@@ -47,10 +58,18 @@ export interface LookdevAppStore {
 const DEFAULT_RUNTIME_PROBE: RuntimeProbeState = {
   realmConfigured: false,
   realmAuthenticated: false,
+  textDefaultTargetKey: undefined,
+  textConnectorId: undefined,
+  textModelId: undefined,
+  imageDefaultTargetKey: undefined,
   imageConnectorId: undefined,
   imageModelId: undefined,
+  visionDefaultTargetKey: undefined,
   visionConnectorId: undefined,
   visionModelId: undefined,
+  textTargets: [],
+  imageTargets: [],
+  visionTargets: [],
   issues: [],
 };
 

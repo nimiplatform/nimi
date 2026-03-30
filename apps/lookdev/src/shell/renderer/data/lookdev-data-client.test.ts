@@ -2,21 +2,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getAgentPortraitBinding,
   listLookdevAgents,
+  listLookdevWorldAgents,
   listLookdevWorlds,
   upsertAgentPortraitBinding,
 } from './lookdev-data-client.js';
 
 const mockWorldsService = {
-  worldControllerListWorlds: vi.fn(),
+  worldControllerGetWorldAgents: vi.fn(),
 };
 
 const mockCreatorService = {
   creatorControllerListAgents: vi.fn(),
 };
 
+const mockAgentsService = {
+  getAgent: vi.fn(),
+};
+
 const mockWorldControlService = {
   worldControlControllerListWorldBindings: vi.fn(),
   worldControlControllerBatchUpsertWorldBindings: vi.fn(),
+  worldControlControllerListMyWorlds: vi.fn(),
 };
 
 vi.mock('@nimiplatform/sdk', () => ({
@@ -31,6 +37,7 @@ vi.mock('@nimiplatform/sdk', () => ({
       services: {
         WorldsService: mockWorldsService,
         CreatorService: mockCreatorService,
+        AgentsService: mockAgentsService,
         WorldControlService: mockWorldControlService,
       },
     },
@@ -43,12 +50,34 @@ describe('lookdev data client', () => {
   });
 
   it('normalizes worlds for batch creation', async () => {
-    mockWorldsService.worldControllerListWorlds.mockResolvedValue([
-      { id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE', agentCount: 7 },
-    ]);
+    mockWorldControlService.worldControlControllerListMyWorlds.mockResolvedValue({
+      items: [{ id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE', agentCount: 7 }],
+    });
 
     await expect(listLookdevWorlds()).resolves.toEqual([
       { id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE', agentCount: 7 },
+    ]);
+  });
+
+  it('keeps unknown world agent counts as null instead of coercing them to zero', async () => {
+    mockWorldControlService.worldControlControllerListMyWorlds.mockResolvedValue({
+      items: [{ id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE' }],
+    });
+    mockWorldsService.worldControllerGetWorldAgents.mockResolvedValue([{ id: 'a1' }, { id: 'a2' }]);
+
+    await expect(listLookdevWorlds()).resolves.toEqual([
+      { id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE', agentCount: 2 },
+    ]);
+  });
+
+  it('keeps unknown world agent counts null if cast enrichment fails', async () => {
+    mockWorldControlService.worldControlControllerListMyWorlds.mockResolvedValue({
+      items: [{ id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE' }],
+    });
+    mockWorldsService.worldControllerGetWorldAgents.mockRejectedValue(new Error('cast unavailable'));
+
+    await expect(listLookdevWorlds()).resolves.toEqual([
+      { id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE', agentCount: null },
     ]);
   });
 
@@ -72,6 +101,57 @@ describe('lookdev data client', () => {
         concept: 'anchor agent',
         worldId: 'w1',
         avatarUrl: null,
+        importance: 'UNKNOWN',
+        status: 'UNKNOWN',
+      },
+    ]);
+  });
+
+  it('falls back to agentProfile worldId when creator list item does not expose agent.worldId', async () => {
+    mockCreatorService.creatorControllerListAgents.mockResolvedValue([
+      {
+        id: 'a9',
+        handle: 'luo-ji',
+        displayName: '罗辑',
+        concept: 'strategist',
+        user: { agent: {} },
+        agentProfile: { worldId: 'three-body', importance: 'PRIMARY' },
+      },
+    ]);
+
+    await expect(listLookdevAgents()).resolves.toEqual([
+      {
+        id: 'a9',
+        handle: 'luo-ji',
+        displayName: '罗辑',
+        concept: 'strategist',
+        worldId: 'three-body',
+        avatarUrl: null,
+        importance: 'PRIMARY',
+        status: 'UNKNOWN',
+      },
+    ]);
+  });
+
+  it('lists world-scoped agents from the selected world cast, even when they are not creator-owned', async () => {
+    mockWorldsService.worldControllerGetWorldAgents.mockResolvedValue([
+      {
+        id: 'a20',
+        name: '章北海',
+        handle: 'zhang-beihai',
+        bio: '坚定的战略执行者',
+        avatarUrl: 'https://example.com/zhang.png',
+      },
+    ]);
+
+    await expect(listLookdevWorldAgents('three-body')).resolves.toEqual([
+      {
+        id: 'a20',
+        handle: 'zhang-beihai',
+        displayName: '章北海',
+        concept: '坚定的战略执行者',
+        worldId: 'three-body',
+        avatarUrl: 'https://example.com/zhang.png',
         importance: 'UNKNOWN',
         status: 'UNKNOWN',
       },

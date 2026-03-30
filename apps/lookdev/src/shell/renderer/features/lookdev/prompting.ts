@@ -21,9 +21,19 @@ export function compilePortraitBrief(input: {
 }): LookdevPortraitBrief {
   const concept = input.concept.trim();
   const description = String(input.description || '').trim();
-  const summary = firstSentence(description || concept || `${input.displayName} world character`);
+  const summary = firstSentence(
+    description
+    || concept
+    || (input.worldStylePack.language === 'zh' ? `${input.displayName} 的角色设定` : `${input.displayName} world character`),
+  );
   const now = new Date().toISOString();
   const mustKeepTraits = [concept, summary].filter(Boolean);
+  const defaultOutfit = input.worldStylePack.language === 'zh'
+    ? `${input.worldStylePack.costumeDensity}的服装表达`
+    : `${input.worldStylePack.costumeDensity} costume language aligned to world role`;
+  const defaultHairstyle = input.worldStylePack.language === 'zh'
+    ? '清晰、稳定、便于识别轮廓的发型'
+    : 'clear, readable hairstyle that supports stable silhouette recognition';
 
   return {
     agentId: input.agentId,
@@ -31,8 +41,8 @@ export function compilePortraitBrief(input: {
     displayName: input.displayName,
     visualRole: concept || summary || input.displayName,
     silhouette: input.worldStylePack.silhouetteDirection,
-    outfit: description ? firstSentence(description) : `${input.worldStylePack.costumeDensity} costume language aligned to world role`,
-    hairstyle: 'clear, readable hairstyle that supports stable silhouette recognition',
+    outfit: description ? firstSentence(description) : defaultOutfit,
+    hairstyle: defaultHairstyle,
     palettePrimary: input.worldStylePack.paletteDirection,
     artStyle: input.worldStylePack.artStyle,
     mustKeepTraits,

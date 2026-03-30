@@ -13,15 +13,16 @@ type CreateImageDirectUploadResult = {
 type FinalizeResourceInput = RealmServiceArgs<'ResourcesService', 'finalizeResource'>[1];
 type BatchUpsertBindingsInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerBatchUpsertWorldBindings'>[1];
 type CreatorListAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
-type CreatorGetAgentResult = RealmServiceResult<'CreatorService', 'creatorControllerGetAgent'>;
+type PublicGetAgentResult = RealmServiceResult<'AgentsService', 'getAgent'>;
 type ListWorldBindingsResult = RealmServiceResult<'WorldControlService', 'worldControlControllerListWorldBindings'>;
-type WorldListResult = RealmServiceResult<'WorldsService', 'worldControllerListWorlds'>;
+type MyWorldListResult = RealmServiceResult<'WorldControlService', 'worldControlControllerListMyWorlds'>;
+type WorldAgentsResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldAgents'>;
 
 export type LookdevWorldSummary = {
   id: string;
   name: string;
   status: string;
-  agentCount: number;
+  agentCount: number | null;
 };
 
 export type LookdevPortraitBinding = {
@@ -60,18 +61,30 @@ function toStringOrNull(value: unknown): string | null {
   return normalized ? normalized : null;
 }
 
-function normalizeWorlds(payload: WorldListResult): LookdevWorldSummary[] {
-  return Array.isArray(payload)
-    ? payload.map((item) => {
-      const record = asRecord(item);
-      return {
-        id: String(record.id || '').trim(),
-        name: String(record.name || 'Untitled World').trim(),
-        status: String(record.status || '').trim(),
-        agentCount: Number(record.agentCount || 0),
-      };
-    }).filter((item) => item.id)
-    : [];
+function extractAgentWorldId(item: LooseObject, user: LooseObject, agent: LooseObject, agentProfile: LooseObject): string | null {
+  const world = asRecord(item.world);
+  return toStringOrNull(
+    item.worldId
+    ?? user.worldId
+    ?? agent.worldId
+    ?? agentProfile.worldId
+    ?? world.id,
+  );
+}
+
+function normalizeWorlds(payload: MyWorldListResult): LookdevWorldSummary[] {
+  const items = Array.isArray(asRecord(payload).items) ? asRecord(payload).items as unknown[] : [];
+  return items.map((item) => {
+    const record = asRecord(item);
+    const rawAgentCount = record.agentCount ?? record.nativeAgentLimit;
+    const agentCount = Number(rawAgentCount);
+    return {
+      id: String(record.id || '').trim(),
+      name: String(record.name || 'Untitled World').trim(),
+      status: String(record.status || '').trim(),
+      agentCount: Number.isFinite(agentCount) && agentCount >= 0 ? agentCount : null,
+    };
+  }).filter((item) => item.id);
 }
 
 function normalizeCreatorAgentListItem(value: unknown): Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'> | null {
@@ -88,20 +101,38 @@ function normalizeCreatorAgentListItem(value: unknown): Omit<LookdevAgentRecord,
     handle: String(item.handle || user.handle || '').trim(),
     displayName: String(item.displayName || user.displayName || item.name || user.name || '').trim() || id,
     concept: String(item.concept || agent.concept || '').trim(),
-    worldId: toStringOrNull(agent.worldId),
+    worldId: extractAgentWorldId(item, user, agent, agentProfile),
     avatarUrl: toStringOrNull(item.avatarUrl ?? user.avatarUrl ?? agentProfile.avatarUrl),
     importance: String(agentProfile.importance || agent.importance || 'UNKNOWN').trim().toUpperCase() as LookdevAgentRecord['importance'],
     status: String(item.status || agent.status || 'UNKNOWN').trim() || 'UNKNOWN',
   };
 }
 
-function normalizeAgentDetail(value: CreatorGetAgentResult): Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'> {
+function normalizeAgentDetail(value: PublicGetAgentResult): Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'> {
   const item = asRecord(value);
   const user = asRecord(item.user);
   return {
     description: toStringOrNull(item.description ?? item.bio ?? user.bio),
     scenario: toStringOrNull(item.scenario),
     greeting: toStringOrNull(item.greeting),
+  };
+}
+
+function normalizeWorldAgentListItem(worldId: string, value: unknown): Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'> | null {
+  const item = asRecord(value);
+  const id = String(item.id || item.agentId || '').trim();
+  if (!id) {
+    return null;
+  }
+  return {
+    id,
+    handle: String(item.handle || '').trim(),
+    displayName: String(item.displayName || item.name || '').trim() || id,
+    concept: String(item.concept || item.bio || '').trim(),
+    worldId,
+    avatarUrl: toStringOrNull(item.avatarUrl),
+    importance: String(item.importance || 'UNKNOWN').trim().toUpperCase() as LookdevAgentRecord['importance'],
+    status: String(item.status || item.state || 'UNKNOWN').trim() || 'UNKNOWN',
   };
 }
 
@@ -126,8 +157,27 @@ function normalizePortraitBinding(payload: ListWorldBindingsResult): LookdevPort
 }
 
 export async function listLookdevWorlds(): Promise<LookdevWorldSummary[]> {
-  const payload: WorldListResult = await realm().services.WorldsService.worldControllerListWorlds('ACTIVE');
-  return normalizeWorlds(payload);
+  const payload: MyWorldListResult = await realm().services.WorldControlService.worldControlControllerListMyWorlds();
+  const worlds = normalizeWorlds(payload);
+  return await Promise.all(worlds.map(async (world) => {
+    if (typeof world.agentCount === 'number') {
+      return world;
+    }
+    try {
+      const cast = await realm().services.WorldsService.worldControllerGetWorldAgents(world.id);
+      const items = Array.isArray(cast)
+        ? cast
+        : Array.isArray(asRecord(cast).items)
+          ? asRecord(cast).items as unknown[]
+          : [];
+      return {
+        ...world,
+        agentCount: items.length,
+      };
+    } catch {
+      return world;
+    }
+  }));
 }
 
 export async function listLookdevAgents(): Promise<Array<Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'>>> {
@@ -142,8 +192,24 @@ export async function listLookdevAgents(): Promise<Array<Omit<LookdevAgentRecord
     .filter((item): item is NonNullable<ReturnType<typeof normalizeCreatorAgentListItem>> => item !== null);
 }
 
+export async function listLookdevWorldAgents(worldId: string): Promise<Array<Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'>>> {
+  const normalizedWorldId = String(worldId || '').trim();
+  if (!normalizedWorldId) {
+    throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
+  }
+  const payload: WorldAgentsResult = await realm().services.WorldsService.worldControllerGetWorldAgents(normalizedWorldId);
+  const items = Array.isArray(payload)
+    ? payload
+    : Array.isArray(asRecord(payload).items)
+      ? asRecord(payload).items as unknown[]
+      : [];
+  return items
+    .map((item) => normalizeWorldAgentListItem(normalizedWorldId, item))
+    .filter((item): item is NonNullable<ReturnType<typeof normalizeWorldAgentListItem>> => item !== null);
+}
+
 export async function getLookdevAgent(agentId: string): Promise<Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'>> {
-  const payload: CreatorGetAgentResult = await realm().services.CreatorService.creatorControllerGetAgent(agentId);
+  const payload: PublicGetAgentResult = await realm().services.AgentsService.getAgent(agentId);
   return normalizeAgentDetail(payload);
 }
 

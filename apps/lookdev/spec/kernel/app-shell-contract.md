@@ -13,7 +13,9 @@ The shell is world-style-and-batch centric.
 
 - the primary home surface is still the batch list
 - batch creation is a first-class flow
-- batch creation must include world style definition, portrait brief compilation, and capture selection
+- batch creation must include world style session, style-pack synthesis, portrait brief compilation, and capture selection
+- world style session must behave like understanding-led dialogue rather than a rigid multi-step questionnaire
+- batch creation must include explicit generation/evaluation target selection
 - batch detail remains the main operating surface after creation
 - item inspection lives inside batch detail rather than as a separate product line
 
@@ -42,6 +44,7 @@ When the operator creates a batch, the shell must present that batch as a frozen
 - style pack version freezes into batch snapshot
 - portrait brief snapshots freeze into batch items
 - batch policy freezes into policy snapshot
+- explicit generation/evaluation targets freeze into policy snapshot
 - later changes to global defaults do not retroactively mutate the batch
 
 ## LD-SHELL-005 — Formal Operational Controls
@@ -49,9 +52,12 @@ When the operator creates a batch, the shell must present that batch as a frozen
 The shell must expose the formal operating controls:
 
 - create batch
-- define or edit world style pack
+- run world style session
+- synthesize and confirm world style pack
 - compile portrait briefs
 - choose capture selection
+- choose one generation target
+- choose one evaluation target
 - pause batch
 - resume batch
 - rerun all failed items

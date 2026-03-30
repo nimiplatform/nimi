@@ -4,7 +4,7 @@ routes:
     purpose: list batches and show batch summary health
   - path: /batches/new
     surface: create-batch
-    purpose: define world style, compile portrait briefs, choose capture selection, and create a new frozen batch
+    purpose: run world style session, synthesize and confirm one style pack, compile portrait briefs, choose capture selection, and create a new frozen batch
   - path: /batches/:batchId
     surface: batch-detail
     purpose: inspect batch progress, item results, failed-item reruns, and commit actions
@@ -20,7 +20,9 @@ surface_map:
       - selection mode chooser
       - world-scoped selection
       - explicit agent selection
-      - world style pack editor
+      - world style session
+      - world style pack synthesis summary
+      - world style pack advanced editor
       - portrait brief compilation review
       - capture selection list
       - policy snapshot review

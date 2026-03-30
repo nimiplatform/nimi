@@ -1,10 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useRuntimeReadiness } from '@renderer/hooks/use-runtime-readiness.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useLookdevStore } from '@renderer/features/lookdev/lookdev-store.js';
+import { changeLocale, getCurrentLocale, getLocaleLabel, SUPPORTED_LOCALES, type SupportedLocale } from '@renderer/i18n/index.js';
 
 function RuntimeBadge() {
+  const { t } = useTranslation();
   const status = useAppStore((state) => state.runtimeStatus);
   const issues = useAppStore((state) => state.runtimeProbe.issues);
   const tone = status === 'ready'
@@ -17,15 +20,17 @@ function RuntimeBadge() {
 
   return (
     <div className={`rounded-full border px-3 py-1 text-xs ${tone}`}>
-      Runtime {status}
-      {issues.length > 0 ? ` · ${issues.length} issue${issues.length > 1 ? 's' : ''}` : ''}
+      {t('layout.runtimeStatus', { status: t(`layout.runtimeStatus${status.charAt(0).toUpperCase()}${status.slice(1)}`) })}
+      {issues.length > 0 ? ` · ${t('layout.runtimeIssues', { count: issues.length })}` : ''}
     </div>
   );
 }
 
 export function LookdevLayout() {
+  const { t } = useTranslation();
   const authUser = useAppStore((state) => state.auth.user);
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const currentLocale = getCurrentLocale();
   useRuntimeReadiness();
 
   useEffect(() => {
@@ -42,12 +47,12 @@ export function LookdevLayout() {
           <div className="space-y-8">
             <div className="space-y-3">
               <div className="inline-flex items-center rounded-full border border-[var(--ld-panel-border)] bg-white/6 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-[var(--ld-accent)]">
-                Batch Control Plane
+                {t('layout.eyebrow')}
               </div>
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-white">Lookdev</h1>
+                <h1 className="text-2xl font-semibold tracking-tight text-white">{t('common.appName')}</h1>
                 <p className="mt-2 text-sm leading-6 text-white/68">
-                  Generate, auto-evaluate, and commit agent portrait truth in controlled batches.
+                  {t('layout.description')}
                 </p>
               </div>
             </div>
@@ -64,7 +69,7 @@ export function LookdevLayout() {
                   }`
                 }
               >
-                Batch List
+                {t('layout.navBatchList')}
               </NavLink>
               <NavLink
                 to="/batches/new"
@@ -76,16 +81,35 @@ export function LookdevLayout() {
                   }`
                 }
               >
-                Create Batch
+                {t('layout.navCreateBatch')}
               </NavLink>
             </nav>
           </div>
 
           <div className="space-y-3">
+            <div className="rounded-2xl border border-white/8 bg-black/16 px-4 py-3">
+              <div className="text-xs uppercase tracking-[0.16em] text-white/42">{t('common.language')}</div>
+              <div className="mt-2 flex gap-2">
+                {SUPPORTED_LOCALES.map((locale) => (
+                  <button
+                    key={locale}
+                    type="button"
+                    onClick={() => void changeLocale(locale as SupportedLocale)}
+                    className={`rounded-xl px-3 py-2 text-xs transition ${
+                      currentLocale === locale
+                        ? 'bg-[color-mix(in_srgb,var(--ld-accent)_16%,transparent)] text-white'
+                        : 'bg-black/12 text-white/68 hover:bg-white/6 hover:text-white'
+                    }`}
+                  >
+                    {getLocaleLabel(locale)}
+                  </button>
+                ))}
+              </div>
+            </div>
             <RuntimeBadge />
             <div className="rounded-2xl border border-white/8 bg-black/16 px-4 py-3">
-              <div className="text-xs uppercase tracking-[0.16em] text-white/42">Operator</div>
-              <div className="mt-1 text-sm text-white">{authUser?.displayName || 'Unknown operator'}</div>
+              <div className="text-xs uppercase tracking-[0.16em] text-white/42">{t('layout.operator')}</div>
+              <div className="mt-1 text-sm text-white">{authUser?.displayName || t('common.unknownOperator')}</div>
               <div className="text-xs text-white/50">{authUser?.email || authUser?.id || ''}</div>
             </div>
           </div>

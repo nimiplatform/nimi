@@ -123,6 +123,15 @@ export default defineConfig(() => {
             if (normalizedId.includes('/three/') || normalizedId.includes('/simplex-noise/')) {
               return 'vendor-three';
             }
+            if (normalizedId.includes('/@grpc/grpc-js/') || normalizedId.includes('/@grpc/proto-loader/')) {
+              return 'vendor-grpc';
+            }
+            if (normalizedId.includes('/@protobufjs/') || normalizedId.includes('/protobufjs/')) {
+              return 'vendor-protobufjs';
+            }
+            if (normalizedId.includes('/@tauri-apps/')) {
+              return 'vendor-tauri';
+            }
             if (
               normalizedId.includes('/@nimiplatform/nimi-kit/auth/')
               || normalizedId.includes('/@nimiplatform/sdk/')
