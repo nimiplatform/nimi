@@ -222,6 +222,7 @@ export function DeveloperPage() {
     <PageShell
       title={t('DeveloperSettings.pageTitle')}
       description={t('DeveloperSettings.pageDescription')}
+      contentClassName="max-w-4xl"
     >
       <section>
         <SectionTitle>{t('DeveloperSettings.modeTitle')}</SectionTitle>

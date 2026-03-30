@@ -140,7 +140,7 @@ export function DataManagementPage() {
   };
 
   return (
-    <PageShell title={t('DataManagement.pageTitle')} description={t('DataManagement.pageDescription')}>
+    <PageShell title={t('DataManagement.pageTitle')} description={t('DataManagement.pageDescription')} contentClassName="max-w-4xl">
       {/* Storage Usage */}
       <section>
         <SectionTitle>{t('DataManagement.storageUsageTitle')}</SectionTitle>

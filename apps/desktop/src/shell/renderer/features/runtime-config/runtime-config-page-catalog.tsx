@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   RuntimeModelPickerPanel,
 } from '@nimiplatform/nimi-kit/features/model-picker/ui';
@@ -9,6 +8,7 @@ import {
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { Button, Card, Input, RuntimeSelect } from './runtime-config-primitives';
+import { RuntimePageShell } from './runtime-config-page-shell';
 import {
   sdkDeleteCatalogModelOverlay,
   sdkDeleteModelCatalogProvider,
@@ -28,8 +28,6 @@ import {
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
 type CatalogPageProps = { state: RuntimeConfigStateV11 };
-
-type CatalogCapabilityFilter = 'all' | 'text' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | 'music';
 
 type VoiceRow = {
   voiceId: string;
@@ -84,16 +82,6 @@ type CatalogFormState = {
 };
 
 const MODEL_CATALOG_UPDATED_EVENT = 'nimi:runtime:model-catalog-updated';
-const MODEL_CAPABILITY_OPTIONS: Array<{ value: CatalogCapabilityFilter; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'text', label: 'Text' },
-  { value: 'image', label: 'Image' },
-  { value: 'video', label: 'Video' },
-  { value: 'tts', label: 'TTS' },
-  { value: 'stt', label: 'STT' },
-  { value: 'embedding', label: 'Embedding' },
-  { value: 'music', label: 'Music' },
-];
 
 function emitModelCatalogUpdated(provider: string) {
   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function' || typeof CustomEvent !== 'function') return;
@@ -148,19 +136,6 @@ function splitCsv(value: string): string[] {
   return value.split(',').map((item) => item.trim()).filter(Boolean);
 }
 
-function capabilityMatchesFilter(capabilities: string[], filter: CatalogCapabilityFilter) {
-  if (filter === 'all') return true;
-  const items = new Set(capabilities.map((item) => item.toLowerCase()));
-  if (filter === 'text') return items.has('text.generate');
-  if (filter === 'image') return items.has('image.generate');
-  if (filter === 'video') return items.has('video.generate');
-  if (filter === 'tts') return items.has('audio.synthesize');
-  if (filter === 'stt') return items.has('audio.transcribe');
-  if (filter === 'embedding') return items.has('text.embed');
-  if (filter === 'music') return items.has('music.generate') || items.has('music.generate.iteration');
-  return true;
-}
-
 function sourceTone(source: RuntimeModelCatalogProvider['source'] | RuntimeCatalogModelSummary['source']) {
   if (source === 'overridden') return 'border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)] text-[var(--nimi-status-warning)]';
   if (source === 'custom') return 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]';
@@ -168,16 +143,11 @@ function sourceTone(source: RuntimeModelCatalogProvider['source'] | RuntimeCatal
 }
 
 export function CatalogPage({ state: _state }: CatalogPageProps) {
-  const { t } = useTranslation();
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
   const [providers, setProviders] = useState<RuntimeModelCatalogProvider[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState('');
   const [providerModels, setProviderModels] = useState<RuntimeCatalogProviderModelsResponse | null>(null);
-  const [providerSearch, setProviderSearch] = useState('');
-  const [providerCapabilityFilter, setProviderCapabilityFilter] = useState<CatalogCapabilityFilter>('all');
-  const [providerSourceFilter, setProviderSourceFilter] = useState<'all' | 'builtin' | 'custom' | 'overridden'>('all');
   const [overlayYamlDraft, setOverlayYamlDraft] = useState('');
-  const [loadingProviders, setLoadingProviders] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [savingOverlayYaml, setSavingOverlayYaml] = useState(false);
   const [savingModel, setSavingModel] = useState(false);
@@ -187,15 +157,12 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
   const [formState, setFormState] = useState<CatalogFormState>(createEmptyFormState(null));
 
   const loadProviders = useCallback(async () => {
-    setLoadingProviders(true);
     try {
       const rows = await sdkListModelCatalogProviders();
       setProviders(rows);
       setSelectedProviderId((current) => (current && rows.some((row) => row.provider === current) ? current : rows[0]?.provider || ''));
     } catch (error) {
       setStatusBanner({ kind: 'error', message: `Catalog load failed: ${error instanceof Error ? error.message : String(error || '')}` });
-    } finally {
-      setLoadingProviders(false);
     }
   }, [setStatusBanner]);
 
@@ -218,25 +185,6 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
   useEffect(() => { void loadProviders(); }, [loadProviders]);
   useEffect(() => { if (selectedProviderId) void loadProviderModels(selectedProviderId); }, [loadProviderModels, selectedProviderId]);
   useEffect(() => { if (showAddModel) setFormState(createEmptyFormState(selectedProvider)); }, [showAddModel, selectedProvider]);
-
-  const filteredProviders = useMemo(() => providers.filter((provider) => {
-    if (providerSourceFilter !== 'all' && provider.source !== providerSourceFilter) return false;
-    if (!capabilityMatchesFilter(provider.capabilities, providerCapabilityFilter)) return false;
-    const haystack = `${provider.provider} ${provider.defaultTextModel} ${provider.capabilities.join(' ')}`.toLowerCase();
-    return haystack.includes(providerSearch.trim().toLowerCase());
-  }), [providerCapabilityFilter, providerSearch, providerSourceFilter, providers]);
-
-  const overview = useMemo(() => {
-    let totalModels = 0;
-    let totalCustom = 0;
-    let latestOverlay = '';
-    for (const provider of providers) {
-      totalModels += provider.modelCount;
-      totalCustom += provider.customModelCount + provider.overriddenModelCount;
-      if (provider.overlayUpdatedAt && provider.overlayUpdatedAt > latestOverlay) latestOverlay = provider.overlayUpdatedAt;
-    }
-    return { providerCount: providers.length, totalModels, totalCustom, latestOverlay: latestOverlay || 'Never' };
-  }, [providers]);
 
   const onSaveOverlayYaml = useCallback(async () => {
     if (!selectedProvider) return;
@@ -345,112 +293,57 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
   }, [formState, loadProviderModels, loadProviders, selectedProvider, setStatusBanner]);
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-4">
-        <SummaryCard label={t('runtimeConfig.catalog.providers', { defaultValue: 'Providers' })} value={String(overview.providerCount)} />
-        <SummaryCard label={t('runtimeConfig.catalog.models', { defaultValue: 'Models' })} value={String(overview.totalModels)} />
-        <SummaryCard label={t('runtimeConfig.catalog.customModels', { defaultValue: 'Personal Custom Models' })} value={String(overview.totalCustom)} />
-        <SummaryCard label={t('runtimeConfig.catalog.overlayUpdatedAt', { defaultValue: 'Latest Overlay Update' })} value={overview.latestOverlay} />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-        <ProviderRail providers={filteredProviders} selectedProviderId={selectedProviderId} providerSearch={providerSearch} providerCapabilityFilter={providerCapabilityFilter} providerSourceFilter={providerSourceFilter} onSelectProvider={setSelectedProviderId} onProviderSearch={setProviderSearch} onCapabilityFilter={setProviderCapabilityFilter} onSourceFilter={setProviderSourceFilter} loading={loadingProviders} />
-        <div className="space-y-4">
-          <ProviderHeader provider={selectedProvider} loadingModels={loadingModels} onRefresh={() => selectedProviderId && void loadProviderModels(selectedProviderId)} onAddModel={() => setShowAddModel(true)} onToggleYaml={() => setShowYamlPanel((value) => !value)} />
-          <ModelSection providerId={selectedProviderId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
-          {showYamlPanel && selectedProvider && providerModels ? (
-            <YamlPanel provider={providerModels.provider} overlayYamlDraft={overlayYamlDraft} onChangeOverlayYaml={setOverlayYamlDraft} onSave={onSaveOverlayYaml} onDelete={onDeleteOverlayYaml} saving={savingOverlayYaml} />
-          ) : null}
+    <RuntimePageShell className="space-y-4">
+      {/* Top bar: provider selector + actions */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-56 shrink-0">
+            <RuntimeSelect
+              value={selectedProviderId}
+              onChange={(value) => setSelectedProviderId(value)}
+              options={providers.map((p) => ({ value: p.provider, label: `${p.provider} (${p.modelCount})` }))}
+              contentClassName="max-h-[360px]"
+            />
+          </div>
+          <ProviderCapabilities provider={selectedProvider} />
         </div>
+        {selectedProvider ? (
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => selectedProviderId && void loadProviderModels(selectedProviderId)} disabled={loadingModels}>{loadingModels ? '...' : 'Refresh'}</Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowYamlPanel((v) => !v)}>YAML</Button>
+            <Button size="sm" onClick={() => setShowAddModel(true)}>+ Add</Button>
+          </div>
+        ) : null}
       </div>
 
+      {/* Model picker (full width) */}
+      <ModelSection providerId={selectedProviderId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
+
+      {/* YAML panel */}
+      {showYamlPanel && selectedProvider && providerModels ? (
+        <YamlPanel provider={providerModels.provider} overlayYamlDraft={overlayYamlDraft} onChangeOverlayYaml={setOverlayYamlDraft} onSave={onSaveOverlayYaml} onDelete={onDeleteOverlayYaml} saving={savingOverlayYaml} />
+      ) : null}
+
+      {/* Add model dialog */}
       {showAddModel && selectedProvider ? (
         <AddModelDialog provider={selectedProvider} formState={formState} saving={savingModel} onChange={setFormState} onClose={() => setShowAddModel(false)} onSubmit={onSubmitModel} />
       ) : null}
+    </RuntimePageShell>
+  );
+}
+
+function ProviderCapabilities({ provider }: { provider: RuntimeModelCatalogProvider | null }) {
+  if (!provider || provider.capabilities.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sourceTone(provider.source)}`}>{provider.source}</span>
+      <span className="text-xs text-[var(--nimi-text-muted)]">{provider.modelCount} models</span>
+      {provider.capabilities.map((capability) => (
+        <span key={`${provider.provider}-${capability}`} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)] px-2 py-0.5 text-[11px] text-[var(--nimi-action-primary-bg)]">
+          {capability}
+        </span>
+      ))}
     </div>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <Card className="border border-transparent bg-gradient-to-br from-white via-[#f7fffb] to-[#eefaf5] p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-[var(--nimi-text-primary)]">{value}</p>
-    </Card>
-  );
-}
-
-function ProviderRail(props: {
-  providers: RuntimeModelCatalogProvider[];
-  selectedProviderId: string;
-  providerSearch: string;
-  providerCapabilityFilter: CatalogCapabilityFilter;
-  providerSourceFilter: 'all' | 'builtin' | 'custom' | 'overridden';
-  onSelectProvider: (provider: string) => void;
-  onProviderSearch: (value: string) => void;
-  onCapabilityFilter: (value: CatalogCapabilityFilter) => void;
-  onSourceFilter: (value: 'all' | 'builtin' | 'custom' | 'overridden') => void;
-  loading: boolean;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Card className="space-y-3 p-4">
-      <div className="space-y-3">
-        <Input label={t('runtimeConfig.catalogCenter.searchProviders', { defaultValue: 'Search Providers' })} value={props.providerSearch} onChange={props.onProviderSearch} placeholder={t('runtimeConfig.catalogCenter.searchProvidersPlaceholder', { defaultValue: 'provider, default model, capability' })} />
-        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-1">
-          <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{t('runtimeConfig.catalogCenter.capability', { defaultValue: 'Capability' })}</p>
-            <RuntimeSelect value={props.providerCapabilityFilter} onChange={(value) => props.onCapabilityFilter(value as CatalogCapabilityFilter)} options={MODEL_CAPABILITY_OPTIONS} />
-          </div>
-          <div>
-            <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--nimi-text-muted)]">{t('runtimeConfig.catalogCenter.source', { defaultValue: 'Source' })}</p>
-            <RuntimeSelect value={props.providerSourceFilter} onChange={(value) => props.onSourceFilter(value as 'all' | 'builtin' | 'custom' | 'overridden')} options={[{ value: 'all', label: t('runtimeConfig.catalogCenter.all', { defaultValue: 'All' }) }, { value: 'builtin', label: t('runtimeConfig.catalogCenter.builtin', { defaultValue: 'Builtin' }) }, { value: 'custom', label: t('runtimeConfig.catalogCenter.custom', { defaultValue: 'Custom' }) }, { value: 'overridden', label: t('runtimeConfig.catalogCenter.overridden', { defaultValue: 'Overridden' }) }]} />
-          </div>
-        </div>
-      </div>
-      <div className="space-y-2">
-        {props.loading ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.catalogCenter.loadingProviders', { defaultValue: 'Loading providers...' })}</p> : null}
-        {props.providers.map((provider) => (
-          <button key={provider.provider} type="button" onClick={() => props.onSelectProvider(provider.provider)} className={`w-full rounded-2xl border p-3 text-left transition-colors ${props.selectedProviderId === provider.provider ? 'border-[var(--nimi-field-focus)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/80' : 'border-[var(--nimi-border-subtle)] bg-white hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/30'}`}>
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{provider.provider}</p>
-              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${sourceTone(provider.source)}`}>{provider.source}</span>
-            </div>
-            <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{provider.defaultTextModel || 'No default text model'} · {provider.modelCount} models</p>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {provider.capabilities.slice(0, 4).map((capability) => <span key={`${provider.provider}-${capability}`} className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-2 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">{capability}</span>)}
-            </div>
-            <p className="mt-2 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{provider.requiresExplicitEndpoint ? 'Endpoint required' : provider.defaultEndpoint || 'Managed default endpoint'}</p>
-          </button>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-function ProviderHeader(props: { provider: RuntimeModelCatalogProvider | null; loadingModels: boolean; onRefresh: () => void; onAddModel: () => void; onToggleYaml: () => void }) {
-  if (!props.provider) return <Card className="p-6 text-sm text-[var(--nimi-text-muted)]">No provider selected.</Card>;
-  const provider = props.provider;
-  return (
-    <Card className="space-y-3 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{provider.provider}</h2>
-            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${sourceTone(provider.source)}`}>{provider.source}</span>
-          </div>
-          <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">{props.provider.runtimePlane || 'remote'} · {props.provider.executionModule || 'nimillm'} · {props.provider.modelCount} models · {props.provider.customModelCount + props.provider.overriddenModelCount} personal entries</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="secondary" size="sm" onClick={props.onRefresh} disabled={props.loadingModels}>{props.loadingModels ? 'Refreshing...' : 'Refresh'}</Button>
-          <Button variant="secondary" size="sm" onClick={props.onToggleYaml}>Advanced YAML</Button>
-          <Button size="sm" onClick={props.onAddModel}>Add Model</Button>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {provider.capabilities.map((capability) => <span key={`${provider.provider}-${capability}`} className="rounded-full border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)]/70 px-2.5 py-1 text-[11px] text-[var(--nimi-action-primary-bg)]">{capability}</span>)}
-      </div>
-    </Card>
   );
 }
 
@@ -462,9 +355,9 @@ function ModelSection(props: { providerId: string; onDeleteModel: (modelId: stri
   return (
     <RuntimeModelPickerPanel
       state={state}
-      className="rounded-3xl"
-      pickerClassName="space-y-3 p-4"
-      detailClassName="space-y-4 p-4"
+      className="rounded-3xl [&>div]:xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]"
+      pickerClassName="h-[600px] overflow-y-auto space-y-3 p-4 [&_.lg\:grid-cols-2]:!grid-cols-1 [&_label.min-h-11]:hidden [&>div>div.grid.gap-2]:!block [&_.mt-3.gap-1]:hidden [&_button>div>div>p.mt-1]:hidden [&_button>div.gap-3>span]:hidden [&_button>div.mt-2]:!mt-0 [&_button>div.items-start]:items-center [&_button]:flex [&_button]:items-center [&_button]:justify-between [&_button>div.mt-2]:!ml-auto [&_button>div.mt-2]:!flex-nowrap [&_div.rounded-2xl]:!p-0 [&_button.w-full]:!px-3 [&_button.w-full]:!py-2.5"
+      detailClassName="h-[600px] overflow-y-auto space-y-4 p-4"
       renderItemActions={(model) => (
         model.source === 'custom' || model.source === 'overridden' ? (
           <Button
@@ -495,14 +388,17 @@ function ModelSection(props: { providerId: string; onDeleteModel: (modelId: stri
 
 function YamlPanel(props: { provider: RuntimeModelCatalogProvider; overlayYamlDraft: string; onChangeOverlayYaml: (value: string) => void; onSave: () => void; onDelete: () => void; saving: boolean }) {
   return (
-    <Card className="space-y-4 p-4">
+    <Card className="space-y-3 p-4">
       <div className="flex items-center justify-between gap-3">
-        <div><p className="text-sm font-semibold text-[var(--nimi-text-primary)]">Advanced YAML</p><p className="text-xs text-[var(--nimi-text-muted)]">Editable overlay fragment on the left, effective merged YAML on the right.</p></div>
-        <div className="flex gap-2"><Button variant="secondary" size="sm" onClick={props.onDelete} disabled={props.saving || !props.provider.hasOverlay}>Remove Overlay</Button><Button size="sm" onClick={props.onSave} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save YAML'}</Button></div>
+        <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">YAML Overlay</p>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={props.onDelete} disabled={props.saving || !props.provider.hasOverlay}>Remove</Button>
+          <Button size="sm" onClick={props.onSave} disabled={props.saving}>{props.saving ? 'Saving...' : 'Save'}</Button>
+        </div>
       </div>
       <div className="grid gap-3 xl:grid-cols-2">
-        <textarea value={props.overlayYamlDraft} onChange={(event) => props.onChangeOverlayYaml(event.target.value)} spellCheck={false} className="min-h-[320px] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-mint-100" />
-        <textarea value={props.provider.effectiveYaml} readOnly spellCheck={false} className="min-h-[320px] rounded-2xl border border-[var(--nimi-border-subtle)] bg-[color:rgb(15_23_42)] p-3 font-mono text-xs text-[color:rgb(241_245_249)] opacity-95" />
+        <textarea value={props.overlayYamlDraft} onChange={(event) => props.onChangeOverlayYaml(event.target.value)} spellCheck={false} className="min-h-[320px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] p-3 font-mono text-xs text-[var(--nimi-text-primary)] outline-none focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]" />
+        <textarea value={props.provider.effectiveYaml} readOnly spellCheck={false} className="min-h-[320px] rounded-xl border border-[var(--nimi-border-subtle)] bg-[color:rgb(15_23_42)] p-3 font-mono text-xs text-[color:rgb(241_245_249)] opacity-95" />
       </div>
     </Card>
   );
@@ -516,8 +412,8 @@ function AddModelDialog(props: { provider: RuntimeModelCatalogProvider; formStat
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(15_23_42/0.35)] p-4">
       <ScrollArea
-        className="max-h-[92vh] w-full max-w-6xl rounded-[28px] bg-white shadow-[0_32px_120px_rgba(15,23,42,0.28)]"
-        viewportClassName="max-h-[92vh] rounded-[28px]"
+        className="max-h-[92vh] w-full max-w-3xl rounded-2xl bg-white shadow-[0_24px_80px_rgba(15,23,42,0.2)]"
+        viewportClassName="max-h-[92vh] rounded-2xl"
         contentClassName="p-5"
       >
         <div className="flex items-center justify-between gap-3">

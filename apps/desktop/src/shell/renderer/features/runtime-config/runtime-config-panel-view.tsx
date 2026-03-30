@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
-import { SidebarAffordanceBadge, SidebarAffordanceChevron, SidebarAffordanceStatusDot, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
+import { SidebarAffordanceChevron, SidebarHeader, SidebarItem, SidebarResizeHandle, SidebarSection, SidebarShell } from '@renderer/components/sidebar.js';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { RUNTIME_PAGE_META } from './runtime-config-meta-v11';
-import { RUNTIME_SIDEBAR_ITEMS, getRuntimeSidebarBadge } from './runtime-config-sidebar';
+import { RUNTIME_SIDEBAR_ITEMS } from './runtime-config-sidebar';
 import { StatusBadge, DaemonStatusBadge } from './runtime-config-primitives';
 import { OverviewPage } from './runtime-config-page-overview';
 import { RecommendPage } from './runtime-config-page-recommend';
@@ -47,18 +47,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   const daemonRunning = model.runtimeDaemonStatus?.running === true;
 
-  const installedModelCount = useMemo(
-    () => state?.local.models.filter((m) => m.status !== 'removed').length ?? 0,
-    [state],
-  );
-  const activeModelCount = useMemo(
-    () => state?.local.models.filter((m) => m.status === 'active').length ?? 0,
-    [state],
-  );
-  const healthyConnectorCount = useMemo(
-    () => state?.connectors.filter((c) => c.status === 'healthy').length ?? 0,
-    [state],
-  );
 
   useEffect(() => {
     const onMouseMove = (event: globalThis.MouseEvent) => {
@@ -96,8 +84,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
 
   if (!state) {
     return (
-      <div className="flex min-h-0 flex-1 bg-[var(--nimi-surface-canvas)]">
-        <aside className="flex w-[224px] shrink-0 flex-col bg-[var(--nimi-surface-canvas)] px-4 py-4">
+      <div className="flex min-h-0 flex-1 bg-white">
+        <aside className="flex w-[224px] shrink-0 flex-col bg-white px-4 py-4">
           <RuntimeSkeletonBlock className="h-9 w-32 rounded-xl" />
           <div className="mt-5 space-y-3">
             {Array.from({ length: 8 }).map((_, index) => (
@@ -105,7 +93,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             ))}
           </div>
         </aside>
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
           <div className="flex h-14 shrink-0 items-center justify-between px-6">
             <RuntimeSkeletonBlock className="h-8 w-40 rounded-xl" />
             <div className="flex items-center gap-2">
@@ -113,7 +101,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               <RuntimeSkeletonBlock className="h-7 w-20 rounded-full" />
             </div>
           </div>
-          <ScrollArea className="flex-1 bg-[var(--nimi-surface-canvas)]" viewportClassName="bg-[var(--nimi-surface-canvas)]" contentClassName="mx-auto max-w-5xl space-y-6 p-6">
+          <ScrollArea className="flex-1 bg-white" viewportClassName="bg-white" contentClassName="mx-auto max-w-5xl space-y-6 p-6">
             <RuntimeSkeletonBlock className="h-36 w-full" />
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <RuntimeSkeletonBlock className="h-48 w-full" />
@@ -138,7 +126,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
   }, {});
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1 bg-[var(--nimi-surface-canvas)]">
+    <div ref={containerRef} className="flex min-h-0 flex-1 bg-white">
       <SidebarShell
         width={sidebarWidth}
         data-testid={E2E_IDS.panel('runtime-sidebar')}
@@ -153,15 +141,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               >
                 {items.map((item) => {
                   const active = item.id === activePage;
-                  const badge = getRuntimeSidebarBadge(item, {
-                    activePage,
-                    installedModelCount,
-                    activeModelCount,
-                    connectorCount: state.connectors.length,
-                    healthyConnectorCount,
-                    modCount: model.runtimeProfileTargets.length,
-                    daemonRunning,
-                  });
                   return (
                     <SidebarItem
                       key={`sidebar-${item.id}`}
@@ -171,17 +150,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                       onClick={() => model.onChangePage(item.id)}
                       label={t(`runtimeConfig.sidebar.${item.id}`, { defaultValue: item.label })}
                       icon={<span className={active ? 'text-[var(--nimi-action-primary-bg)]' : 'text-[var(--nimi-text-muted)]'}>{item.icon}</span>}
-                      trailing={(
-                        <div className="ml-1 flex items-center gap-2">
-                          {item.id === 'runtime' ? (
-                            <SidebarAffordanceStatusDot color={daemonRunning ? 'var(--nimi-status-success)' : 'var(--nimi-status-danger)'} />
-                          ) : null}
-                          {badge ? (
-                            <SidebarAffordanceBadge>{badge}</SidebarAffordanceBadge>
-                          ) : null}
-                          {active ? <SidebarAffordanceChevron /> : null}
-                        </div>
-                      )}
+                      trailing={active ? <SidebarAffordanceChevron /> : undefined}
                     />
                   );
                 })}
@@ -195,8 +164,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
         />
       </SidebarShell>
 
-      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
-        <div className="flex h-14 shrink-0 items-center bg-[var(--nimi-surface-canvas)] px-6">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
+        <div className="flex h-14 shrink-0 items-center bg-white px-6">
           <div className="flex w-full items-center justify-between">
             <h2 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{pageMeta.name}</h2>
             <div className="flex items-center gap-2">
@@ -214,7 +183,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           </div>
         </div>
 
-        <ScrollArea className="flex-1 bg-[var(--nimi-surface-canvas)]" viewportClassName="bg-[var(--nimi-surface-canvas)]">
+        <ScrollArea className="flex-1 bg-white" viewportClassName="bg-white">
           {activePage === 'local' ? (
             <div data-testid={E2E_IDS.runtimePageRoot('local')}>
               <LocalPage model={model} state={state} />
@@ -232,7 +201,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
               <DeveloperPage />
             </div>
           ) : (
-            <div className="mx-auto max-w-5xl p-6 space-y-6">
+            <>
               {activePage === 'overview' && (
                 <div data-testid={E2E_IDS.runtimePageRoot('overview')}>
                   <OverviewPage model={model} state={state} />
@@ -263,7 +232,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                   <ModsPage model={model} state={state} />
                 </div>
               )}
-            </div>
+            </>
           )}
         </ScrollArea>
       </main>

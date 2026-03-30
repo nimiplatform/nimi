@@ -15,6 +15,7 @@ import { SectionTitle } from '@renderer/features/settings/settings-layout-compon
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
 import { Button, DaemonStatusBadge } from './runtime-config-primitives';
+import { RuntimePageShell } from './runtime-config-page-shell';
 import { useSystemResources } from './runtime-config-system-resources';
 import { useUsageEstimate } from './runtime-config-cost-estimator';
 
@@ -250,7 +251,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
     : 0;
 
   return (
-    <div className="space-y-8">
+    <RuntimePageShell>
       <section>
         <SectionTitle description={t('runtimeConfig.overview.snapshotDescription', { defaultValue: 'System summary and key runtime stats.' })}>
           {t('runtimeConfig.overview.snapshotTitle', { defaultValue: 'Overview Snapshot' })}
@@ -393,38 +394,6 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             {usageEstimate.error ? (
               <p className="mt-3 text-xs text-[var(--nimi-status-danger)]">{usageEstimate.error}</p>
             ) : null}
-            <div className="mt-4 space-y-1 border-t border-[var(--nimi-border-subtle)] pt-3">
-              {usageEstimate.breakdown.map((entry) => (
-                <div key={entry.label} className={cn('flex items-center justify-between gap-2 text-xs', TOKEN_TEXT_SECONDARY)}>
-                  <span className="min-w-0 flex-1 truncate">{entry.label}</span>
-                  <span className={cn('shrink-0 font-medium', TOKEN_TEXT_PRIMARY)}>
-                    {t('runtimeConfig.overview.requestsShort', {
-                      value: formatCount(entry.requests),
-                      defaultValue: '{{value}} req',
-                    })}
-                  </span>
-                  <span className="w-16 shrink-0 text-right font-medium text-[var(--nimi-text-muted)]">
-                    {formatCost(entry.estimatedCost, entry.costCurrency)}
-                  </span>
-                </div>
-              ))}
-              {usageEstimate.breakdown.length === 0 && !usageEstimate.loading ? (
-                <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.noUsageRecords', { defaultValue: 'No usage records in current window.' })}</p>
-              ) : null}
-              {usageEstimate.updatedAt ? (
-                <p className={cn('pt-1 text-xs', TOKEN_TEXT_MUTED)}>
-                  {t('runtimeConfig.overview.updatedAt', {
-                    value: formatLocaleDateTime(usageEstimate.updatedAt),
-                    defaultValue: 'Updated: {{value}}',
-                  })}
-                </p>
-              ) : null}
-              {usageEstimate.breakdown.length > 0 ? (
-                <p className="pt-1 text-[11px] text-[var(--nimi-text-muted)]">
-                  {t('runtimeConfig.overview.costDisclaimer', { defaultValue: 'Estimates based on catalog pricing; actual costs may vary.' })}
-                </p>
-              ) : null}
-            </div>
           </Surface>
         </div>
       </section>
@@ -574,6 +543,6 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
           />
         </div>
       </section>
-    </div>
+    </RuntimePageShell>
   );
 }

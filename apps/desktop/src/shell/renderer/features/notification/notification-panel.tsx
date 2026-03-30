@@ -557,57 +557,53 @@ export function NotificationPanel() {
 
   if (authStatus !== 'authenticated') {
     return (
-      <Surface data-testid={E2E_IDS.panel('notification')} tone="canvas" padding="none" className="flex min-h-0 flex-1 items-center justify-center rounded-none border-0 text-sm text-gray-500">
+      <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 items-center justify-center bg-white text-sm text-gray-500">
         {t('NotificationPanel.loginRequired')}
-      </Surface>
+      </div>
     );
   }
 
   return (
-    <Surface data-testid={E2E_IDS.panel('notification')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
-      <Surface tone="card" padding="none" className="flex h-16 shrink-0 items-center justify-between rounded-none border-x-0 border-t-0 px-6">
-        <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)] flex items-center gap-2`}>
-          {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
-          {unreadCount > 0 ? (
-            <span className="rounded-full bg-mint-500 px-2 py-0.5 text-xs font-semibold text-white">
-              {unreadCount}
-            </span>
-          ) : null}
-        </h1>
-        <Button
-          tone="ghost"
-          size="sm"
-          disabled={markingAllRead || unreadCount <= 0}
-          onClick={() => {
-            void markAllRead();
-          }}
-          className="text-mint-700"
-        >
-          {markingAllRead
-            ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
-            : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
-        </Button>
-      </Surface>
+    <div data-testid={E2E_IDS.panel('notification')} className="flex min-h-0 flex-1 flex-col bg-white">
+      <div className="mx-auto w-full max-w-4xl px-6">
+        <div className="flex h-14 shrink-0 items-center justify-between">
+          <h1 className="nimi-type-page-title text-[color:var(--nimi-text-primary)]">
+            {t('NotificationPanel.title', { defaultValue: 'Notifications' })}
+          </h1>
+          <Button
+            tone="ghost"
+            size="sm"
+            disabled={markingAllRead || unreadCount <= 0}
+            onClick={() => {
+              void markAllRead();
+            }}
+          >
+            {markingAllRead
+              ? t('NotificationPanel.markingAllRead', { defaultValue: 'Marking...' })
+              : t('NotificationPanel.markAllRead', { defaultValue: 'Mark All Read' })}
+          </Button>
+        </div>
 
-      <Surface tone="card" padding="none" className="flex items-center gap-2 rounded-none border-x-0 border-t-0 px-6 py-3">
+        <div className="flex items-center gap-2 pb-4">
         {FILTER_TABS.map((tab) => (
           <Button
             key={tab}
             onClick={() => setActiveFilter(tab)}
             tone={activeFilter === tab ? 'primary' : 'secondary'}
             size="sm"
-            className={activeFilter === tab ? 'shadow-sm' : ''}
           >
             {t(`NotificationPanel.filters.${tab}`, {
               defaultValue: tab,
             })}
           </Button>
         ))}
-      </Surface>
+        </div>
+      </div>
 
       <ScrollArea
-        className="min-h-0 flex-1"
-        contentClassName="mx-auto max-w-2xl space-y-3 px-6 py-4"
+        className="min-h-0 flex-1 bg-white"
+        viewportClassName="bg-white"
+        contentClassName="mx-auto max-w-4xl space-y-3 px-6 py-4"
       >
         {notificationsQuery.isPending && items.length === 0 ? (
           <Surface tone="card" elevation="base" className="rounded-2xl p-8 text-center text-sm text-gray-400">
@@ -788,6 +784,6 @@ export function NotificationPanel() {
           }}
         />
       ) : null}
-    </Surface>
+    </div>
   );
 }

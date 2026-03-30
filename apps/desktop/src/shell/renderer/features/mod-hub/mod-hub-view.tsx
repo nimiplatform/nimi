@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import { ModHubRow } from './mod-hub-row';
@@ -95,37 +95,9 @@ export function ModHubView(model: ModHubPageModel) {
   const searchBarRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const settingsRef = useRef<HTMLDivElement | null>(null);
-  const dockContentRef = useRef<HTMLDivElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [dockMaxHeight, setDockMaxHeight] = useState(0);
   const hasVisibleResults = model.managementSections.some((section) => section.mods.length > 0);
   const showDock = !model.isSearchFocused && !model.searchQuery.trim();
-
-  useLayoutEffect(() => {
-    if (!showDock) {
-      setDockMaxHeight(0);
-      return undefined;
-    }
-
-    const updateDockHeight = () => {
-      setDockMaxHeight(dockContentRef.current?.scrollHeight ?? 0);
-    };
-
-    updateDockHeight();
-
-    if (typeof ResizeObserver === 'undefined' || !dockContentRef.current) {
-      return undefined;
-    }
-
-    const observer = new ResizeObserver(() => {
-      updateDockHeight();
-    });
-    observer.observe(dockContentRef.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [showDock, model.dockMods.length]);
 
   useEffect(() => {
     if (!model.isSearchFocused) return undefined;
@@ -163,8 +135,8 @@ export function ModHubView(model: ModHubPageModel) {
 
   if (model.loading) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F5F5F7]">
-        <div className="z-10 shrink-0 bg-[#F5F5F7]/95 px-8 py-8 backdrop-blur-sm">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--nimi-sidebar-canvas)]">
+        <div className="z-10 shrink-0 bg-[var(--nimi-sidebar-canvas)]/95 px-8 py-8 backdrop-blur-sm">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6">
             <ModHubSkeletonBlock className="h-10 w-40 rounded-xl" />
             <div className="flex items-center gap-3">
@@ -225,8 +197,8 @@ export function ModHubView(model: ModHubPageModel) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#F5F5F7]">
-      <div className="z-10 shrink-0 bg-[#F5F5F7]/95 px-8 py-8 backdrop-blur-sm">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--nimi-sidebar-canvas)]">
+      <div className="z-10 shrink-0 bg-[var(--nimi-sidebar-canvas)]/95 px-8 py-8 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6">
           <h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('ModHub.title')}</h1>
           <div className="flex items-center gap-3">
@@ -280,12 +252,11 @@ export function ModHubView(model: ModHubPageModel) {
 
       <ScrollArea className="min-h-0 flex-1" contentClassName="mx-auto max-w-6xl space-y-12 px-8 pb-10">
           <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              showDock ? 'opacity-100' : 'opacity-0'
+            className={`transition-all duration-300 ease-in-out ${
+              showDock ? 'opacity-100' : 'pointer-events-none h-0 overflow-hidden opacity-0'
             }`}
-            style={{ maxHeight: showDock ? `${dockMaxHeight}px` : '0px' }}
           >
-            <div ref={dockContentRef}>
+            <div>
               {model.dockMods.length > 0 ? (
                 <section>
                   <div className="mb-6 px-2 text-sm font-medium uppercase tracking-[0.16em] text-gray-500">

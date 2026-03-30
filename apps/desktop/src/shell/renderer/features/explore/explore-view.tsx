@@ -104,7 +104,7 @@ export function ExploreView(props: ExploreViewProps) {
 
   if (props.loading) {
     return (
-      <Surface data-testid={E2E_IDS.panel('explore')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+      <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-sidebar-canvas)]">
         <div className="shrink-0 px-6 py-4">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
             <ExploreSkeletonBlock className="h-9 w-40 rounded-xl" />
@@ -149,12 +149,12 @@ export function ExploreView(props: ExploreViewProps) {
               </div>
             </section>
         </ScrollArea>
-      </Surface>
+      </div>
     );
   }
 
   return (
-    <Surface data-testid={E2E_IDS.panel('explore')} tone="canvas" padding="none" className="flex min-h-0 flex-1 flex-col rounded-none border-0">
+    <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-sidebar-canvas)]">
       <style>{`
         @keyframes top-agents-slide-forward {
           from { opacity: 0; transform: translateX(18px); }
@@ -397,6 +397,6 @@ export function ExploreView(props: ExploreViewProps) {
         aria-label={t('Explore.backToTop', { defaultValue: 'Back to top' })}
         title={t('Explore.backToTop', { defaultValue: 'Back to top' })}
       />
-    </Surface>
+    </div>
   );
 }

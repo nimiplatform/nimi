@@ -21,9 +21,6 @@ export function useRuntimeConfigSetupAutodiscoverEffect(input: SetupAutodiscover
     if (!PAGES_REQUIRING_DISCOVERY.has(input.activePage)) return;
 
     autoDiscoverTriggeredRef.current = true;
-    const timer = setTimeout(() => {
-      void input.discoverLocalModels();
-    }, 2_000);
-    return () => clearTimeout(timer);
+    void input.discoverLocalModels();
   }, [input.discoverLocalModels, input.hydrated, input.state, input.activePage]);
 }

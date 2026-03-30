@@ -35,14 +35,16 @@ export function Card({
 export function PageShell({
   children,
   footer,
+  contentClassName,
 }: {
   title: string;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
+  contentClassName?: string;
 }) {
   return (
-    <KitSettingsPageShell footer={footer}>
+    <KitSettingsPageShell footer={footer} contentClassName={contentClassName}>
       {children}
     </KitSettingsPageShell>
   );

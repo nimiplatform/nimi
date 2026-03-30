@@ -28,3 +28,12 @@ select,
 textarea {
   font: inherit;
 }
+
+/*
+ * Tailwind v4 preflight dropped cursor: pointer for buttons.
+ * Restore the expected interactive affordance globally.
+ */
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}

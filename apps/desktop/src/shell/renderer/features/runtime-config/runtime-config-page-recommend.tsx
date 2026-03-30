@@ -1,7 +1,9 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import {
   localRuntime,
+  type LocalRuntimeRecommendationFeedDescriptor,
   type LocalRuntimeRecommendationFeedItemDescriptor,
 } from '@runtime/local-runtime';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -32,6 +34,7 @@ import {
   TierSummaryBar,
 } from './runtime-config-page-recommend-sections';
 import { RecommendDetailPage } from './runtime-config-page-recommend-detail';
+import { RuntimePageShell } from './runtime-config-page-shell';
 
 type RecommendPageProps = {
   model: RuntimeConfigPanelControllerModel;
@@ -43,11 +46,27 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   const capability = normalizeRecommendPageCapability(state.activeCapability);
 
   // ---------------------------------------------------------------------------
-  // Feed state
+  // Feed state — long cache; hardware + model data rarely change
+  // staleTime 24h: model index updates once/day; hardware is static
+  // gcTime Infinity: never evict — manual refresh via "Refresh Hardware" button
+  // placeholderData: keepPreviousData so UI renders instantly on capability switch
   // ---------------------------------------------------------------------------
-  const [feed, setFeed] = useState<Awaited<ReturnType<typeof localRuntime.getRecommendationFeed>> | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const feedQuery = useQuery<LocalRuntimeRecommendationFeedDescriptor, Error>({
+    queryKey: ['recommendation-feed', capability],
+    queryFn: () => localRuntime.getRecommendationFeed({ capability, pageSize: 48 }),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev) => prev,
+  });
+  const feed = feedQuery.data ?? null;
+  const loading = feedQuery.isPending && !feedQuery.isPlaceholderData;
+  const error = feedQuery.isError
+    ? (feedQuery.error instanceof Error ? feedQuery.error.message : String(feedQuery.error || 'Failed to load recommendation feed.'))
+    : '';
+  const refreshFeed = useCallback(() => { void feedQuery.refetch(); }, [feedQuery]);
 
   // ---------------------------------------------------------------------------
   // Filter / sort state
@@ -60,27 +79,6 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // Detail view state (internal navigation)
   // ---------------------------------------------------------------------------
   const [selectedDetailItem, setSelectedDetailItem] = useState<LocalRuntimeRecommendationFeedItemDescriptor | null>(null);
-
-  // ---------------------------------------------------------------------------
-  // Feed refresh
-  // ---------------------------------------------------------------------------
-  const refreshFeed = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const nextFeed = await localRuntime.getRecommendationFeed({ capability, pageSize: 48 });
-      setFeed(nextFeed);
-    } catch (nextError) {
-      setFeed(null);
-      setError(nextError instanceof Error ? nextError.message : String(nextError || 'Failed to load recommendation feed.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [capability]);
-
-  useEffect(() => {
-    void refreshFeed();
-  }, [refreshFeed]);
 
   // ---------------------------------------------------------------------------
   // Derived data
@@ -150,7 +148,7 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
   // List view
   // ---------------------------------------------------------------------------
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-6">
+    <RuntimePageShell maxWidth="6xl" className="space-y-4">
       {/* Hero: Device Profile Bar */}
       {feed ? (
         <DeviceProfileBar
@@ -281,6 +279,6 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           />
         ))}
       </div>
-    </div>
+    </RuntimePageShell>
   );
 }

@@ -253,6 +253,21 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   };
   const sidebarWidthClass = 'w-[60px]';
   const titlebarLeftInsetClass = flags.enableTitlebarDrag ? 'pl-[92px]' : 'pl-3';
+
+  // Keep-alive: once the runtime tab is visited, keep the component mounted (display:none
+  // when inactive) so that subsequent visits are instant — no re-init, no re-hydration.
+  const runtimeActive = props.activeTab === 'runtime' && flags.enableRuntimeTab;
+  const runtimeEverMountedRef = useRef(false);
+  if (runtimeActive) runtimeEverMountedRef.current = true;
+  const runtimeEverMounted = runtimeEverMountedRef.current;
+
+  // Prefetch the runtime chunk as soon as the flag is enabled so the lazy import
+  // resolves from cache when the user first clicks the tab.
+  useEffect(() => {
+    if (flags.enableRuntimeTab) {
+      void import('@renderer/features/runtime-config/runtime-config-panel-view').catch(() => {});
+    }
+  }, [flags.enableRuntimeTab]);
   const activeModTab = props.activeTab.startsWith('mod:');
   const activeRouteExtension = useMemo(
     () => (activeModTab ? resolveRouteTabExtension(props.activeTab) : null),
@@ -530,6 +545,20 @@ export function MainLayoutView(props: MainLayoutViewProps) {
           <StatusBanner />
           <ScenarioJobStatusHost />
 
+          {/* Runtime panel — keep-alive: mounted once, then toggled via CSS.
+              Own Suspense so other lazy tabs never tear it down. */}
+          {runtimeEverMounted ? (
+            <Suspense fallback={<div className="flex min-h-0 flex-1" />}>
+              <div
+                data-testid={E2E_IDS.panel('runtime')}
+                className="flex min-h-0 flex-1 flex-col"
+                style={{ display: runtimeActive ? undefined : 'none' }}
+              >
+                <RuntimeConfigPanelBody />
+              </div>
+            </Suspense>
+          ) : null}
+
           <Suspense fallback={props.activeTab === 'world-detail' ? <WorldDetailRouteLoading /> : <div className="flex min-h-0 flex-1" />}>
             {props.activeTab === 'home' ? (
               <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">
@@ -552,12 +581,6 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             {props.activeTab === 'explore' ? (
               <div data-testid={E2E_IDS.panel('explore')} className="flex min-h-0 flex-1 flex-col">
                 <ExplorePanel />
-              </div>
-            ) : null}
-
-            {props.activeTab === 'runtime' && flags.enableRuntimeTab ? (
-              <div data-testid={E2E_IDS.panel('runtime')} className="flex min-h-0 flex-1 flex-col">
-                <RuntimeConfigPanelBody />
               </div>
             ) : null}
 

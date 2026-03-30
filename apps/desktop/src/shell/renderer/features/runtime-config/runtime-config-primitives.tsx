@@ -21,7 +21,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <Surface tone="card" elevation="base" padding="none" className={className}>
+    <Surface tone="card" elevation="base" padding="none" className={cn('rounded-2xl', className)}>
       {children}
     </Surface>
   );
@@ -60,7 +60,7 @@ export function Input({
   type = 'text',
   disabled,
 }: {
-  label: string;
+  label?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
@@ -69,7 +69,7 @@ export function Input({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label>
+      {label ? <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label> : null}
       <TextField
         type={type}
         value={value}
@@ -94,6 +94,7 @@ export function RuntimeSelect({
   disabled,
   size = 'md',
   className = '',
+  contentClassName,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -102,6 +103,7 @@ export function RuntimeSelect({
   disabled?: boolean;
   size?: 'sm' | 'md';
   className?: string;
+  contentClassName?: string;
 }) {
   const triggerClass = size === 'sm'
     ? 'min-h-8 rounded-md px-2 text-xs'
@@ -116,6 +118,7 @@ export function RuntimeSelect({
       disabled={disabled}
       className={className}
       selectClassName={triggerClass}
+      contentClassName={contentClassName}
     />
   );
 }

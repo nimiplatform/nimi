@@ -5,7 +5,8 @@ import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/ru
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import type { RuntimeConfigPanelControllerModel, RuntimeProfileTargetDescriptor } from './runtime-config-panel-types';
 import { ModelCenterProfileSection } from './runtime-config-model-center-profile-section';
-import { Button } from './runtime-config-primitives';
+import { Button, Card } from './runtime-config-primitives';
+import { RuntimePageShell } from './runtime-config-page-shell';
 import {
   normalizeSelectedProfileCapability,
   resolveProfileCapabilityOptions,
@@ -16,11 +17,6 @@ type ModsPageProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
 };
-
-// SurfaceCard component matching Overview page style
-function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04] ${className}`}>{children}</div>;
-}
 
 export function ModsPage({ model, state }: ModsPageProps) {
   const { t } = useTranslation();
@@ -111,7 +107,8 @@ export function ModsPage({ model, state }: ModsPageProps) {
 
   if (runtimeProfileTargets.length === 0) {
     return (
-      <SurfaceCard className="p-8 text-center">
+      <RuntimePageShell>
+      <Card className="p-8 text-center">
         <div className="mx-auto h-12 w-12 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] flex items-center justify-center mb-3">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
@@ -123,18 +120,19 @@ export function ModsPage({ model, state }: ModsPageProps) {
         <p className="text-xs text-[var(--nimi-text-muted)] mt-1">
           {t('runtimeConfig.mods.noAiModsDesc')}
         </p>
-      </SurfaceCard>
+      </Card>
+      </RuntimePageShell>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <RuntimePageShell>
       {/* Mod list */}
       <section>
         <SectionTitle description={t('runtimeConfig.mods.modsWithAiProfilesDesc', { defaultValue: 'Select a mod to configure its AI profiles.' })}>
           {t('runtimeConfig.mods.modsWithAiProfiles')}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Card className="mt-3 p-5">
           <div className="mb-4 text-xs text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.mods.registeredModsSummary', {
               defaultValue: '{{registered}} registered mods · {{configured}} with AI profiles',
@@ -159,7 +157,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
               );
             })}
           </div>
-        </SurfaceCard>
+        </Card>
       </section>
 
       {/* Selected mod detail */}
@@ -168,7 +166,7 @@ export function ModsPage({ model, state }: ModsPageProps) {
           <SectionTitle description={t('runtimeConfig.mods.selectedModDescription', { defaultValue: 'Configure the selected mod\'s recommended local AI profiles.' })}>
             {selectedTarget.modName}
           </SectionTitle>
-          <SurfaceCard className="mt-3 p-5 space-y-5">
+          <Card className="mt-3 p-5 space-y-5">
             {/* Capability status badges */}
             {selectedTarget.consumeCapabilities.length > 0 ? (
               <div className="space-y-2">
@@ -243,10 +241,10 @@ export function ModsPage({ model, state }: ModsPageProps) {
                 </div>
               </div>
             ) : null}
-          </SurfaceCard>
+          </Card>
         </section>
       ) : null}
-    </div>
+    </RuntimePageShell>
   );
 }
 

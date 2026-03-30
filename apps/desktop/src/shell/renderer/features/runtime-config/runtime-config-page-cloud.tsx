@@ -27,7 +27,9 @@ import {
 } from './runtime-config-connector-actions';
 import { formatRuntimeConfigErrorBanner } from './runtime-config-connector-error';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
-import { RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
+import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
+import { RuntimePageShell } from './runtime-config-page-shell';
+import { SectionTitle as SharedSectionTitle } from '@renderer/features/settings/settings-layout-components';
 
 // Icons
 function CloudIcon({ className = '' }: { className?: string }) {
@@ -126,39 +128,8 @@ type CloudPageProps = {
   state: RuntimeConfigStateV11;
 };
 
-// Layout Components
-function PageShell({
-  title,
-  description,
-  children,
-}: {
-  title?: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-6">
-      {title && (
-        <div className="flex h-14 shrink-0 items-center bg-white px-6">
-          <div className="flex items-end gap-3">
-            <h2 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{title}</h2>
-            {description && <p className="text-xs text-[var(--nimi-text-muted)] pb-[3px]">{description}</p>}
-          </div>
-        </div>
-      )}
-      {children}
-    </div>
-  );
-}
-
-function SectionTitle({ children, description }: { children: React.ReactNode; description?: string }) {
-  return (
-    <div>
-      <h3 className={`nimi-type-section-title text-[color:var(--nimi-text-primary)]`}>{children}</h3>
-      {description && <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">{description}</p>}
-    </div>
-  );
-}
+// Use shared SectionTitle from settings-layout-components (imported as SharedSectionTitle)
+const SectionTitle = SharedSectionTitle;
 
 function SettingRow({
   icon,
@@ -460,13 +431,13 @@ export function CloudPage({ model, state }: CloudPageProps) {
   };
 
   return (
-    <PageShell>
+    <RuntimePageShell>
       {/* Connectors List Section */}
       <section>
         <SectionTitle description={t('runtimeConfig.cloud.connectorsManagement', { defaultValue: 'Manage your cloud API connectors' })}>
           {t('runtimeConfig.cloud.connectors')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+        <PrimitiveCard className="mt-3 p-5">
           <SettingRow
             icon={<CloudIcon className="h-5 w-5" />}
             title={t('runtimeConfig.cloud.availableConnectors', { defaultValue: 'Available Connectors' })}
@@ -548,7 +519,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
               </div>
             )}
           </div>
-        </div>
+        </PrimitiveCard>
       </section>
 
       {/* Selected Connector Configuration */}
@@ -557,7 +528,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
           <SectionTitle description={t('runtimeConfig.cloud.configureSelectedConnector', { defaultValue: 'Configure the selected connector' })}>
             {t('runtimeConfig.cloud.connectorConfig')}
           </SectionTitle>
-          <div className="mt-3 space-y-4 rounded-2xl bg-white p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+          <PrimitiveCard className="mt-3 space-y-4 p-5">
             {/* Name and Vendor */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
@@ -700,10 +671,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 {renderModelChips(model.filteredConnectorModels, `connector-${selectedConnector.id}`)}
               </div>
             </div>
-          </div>
+          </PrimitiveCard>
         </section>
       ) : (
-        <div className="rounded-2xl bg-white p-8 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+        <PrimitiveCard className="p-8">
           <div className="flex flex-col items-center justify-center text-center">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 ring-1 ring-gray-200">
               <CloudIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
@@ -715,8 +686,8 @@ export function CloudPage({ model, state }: CloudPageProps) {
               {t('runtimeConfig.cloud.noConnectorSelectedHint', { defaultValue: 'Select a connector above or create a new one' })}
             </p>
           </div>
-        </div>
+        </PrimitiveCard>
       )}
-    </PageShell>
+    </RuntimePageShell>
   );
 }

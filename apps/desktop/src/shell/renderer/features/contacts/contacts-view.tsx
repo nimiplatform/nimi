@@ -102,8 +102,8 @@ function ContactsLoadingSkeleton() {
 }
 
 export function ContactsView(props: ContactsViewProps) {
-  const MIN_CONTACTS_SIDEBAR_WIDTH = 280;
-  const MAX_CONTACTS_SIDEBAR_WIDTH = 420;
+  const MIN_CONTACTS_SIDEBAR_WIDTH = 240;
+  const MAX_CONTACTS_SIDEBAR_WIDTH = 460;
   const { t } = useTranslation();
   const rememberedProfileId = useAppStore((state) => state.selectedProfileId);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
@@ -111,7 +111,7 @@ export function ContactsView(props: ContactsViewProps) {
   const setSelectedProfileId = useAppStore((state) => state.setSelectedProfileId);
   const containerRef = useRef<HTMLDivElement>(null);
   const resizingRef = useRef(false);
-  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [sidebarWidth, setSidebarWidth] = useState(280);
   const [blockingContact, setBlockingContact] = useState<ContactRecord | null>(null);
   const [unblockingContact, setUnblockingContact] = useState<ContactRecord | null>(null);
   const [selectedContact, setSelectedContact] = useState<ContactRecord | null>(null);

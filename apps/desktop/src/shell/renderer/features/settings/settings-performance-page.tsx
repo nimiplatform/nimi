@@ -151,6 +151,7 @@ export function PerformancePage() {
     <PageShell
       title={t('Performance.pageTitle')}
       description={t('Performance.pageDescription')}
+      contentClassName="max-w-4xl"
     >
       <section className="mt-8">
         <SectionTitle description={t('Performance.sectionRenderingDescription')}>

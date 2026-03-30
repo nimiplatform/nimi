@@ -461,9 +461,9 @@ function managementPriority(mod: ModHubMod): number {
       return 5;
     case 'update-available':
       return 4;
-    case 'enabled':
-      return 3;
     case 'disabled':
+      return 3;
+    case 'enabled':
       return 2;
     default:
       return 1;

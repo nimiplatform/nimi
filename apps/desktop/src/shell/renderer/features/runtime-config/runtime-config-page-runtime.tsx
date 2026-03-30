@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { RuntimeConfigStateV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { CAPABILITIES_V11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { desktopBridge } from '@renderer/bridge';
-import { Surface, Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
+import { Tooltip, cn } from '@nimiplatform/nimi-kit/ui';
 import { formatLocaleDateTime } from '@renderer/i18n';
 import { SectionTitle } from '@renderer/features/settings/settings-layout-components';
 import { RuntimeHealthSection } from './runtime-config-runtime-health-section.js';
@@ -14,7 +14,8 @@ import { useGlobalAuditData } from './runtime-config-use-global-audit-data.js';
 import { ExternalAgentAccessPanel } from './runtime-config-external-agent-access';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { describeRuntimeDaemonIssue } from './runtime-daemon-guidance';
-import { Button, DaemonStatusBadge, Input, StatusBadge } from './runtime-config-primitives';
+import { Button, Card, DaemonStatusBadge, Input, StatusBadge } from './runtime-config-primitives';
+import { RuntimePageShell } from './runtime-config-page-shell';
 
 // Icon Button Component
 function IconButton({
@@ -66,15 +67,6 @@ type RuntimePageProps = {
   model: RuntimeConfigPanelControllerModel;
   state: RuntimeConfigStateV11;
 };
-
-// SurfaceCard component matching Overview page style
-function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <Surface tone="card" className={cn('rounded-2xl', className)}>
-      {children}
-    </Surface>
-  );
-}
 
 export function RuntimePage({ model, state }: RuntimePageProps) {
   const { t } = useTranslation();
@@ -160,13 +152,13 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
   }, [sortedNodeMatrix]);
 
   return (
-    <div className="space-y-8">
+    <RuntimePageShell>
       {/* Endpoint */}
       <section>
         <SectionTitle description={t('runtimeConfig.runtime.localEndpointDescription', { defaultValue: 'Local runtime endpoint configuration.' })}>
           {t('runtimeConfig.runtime.localEndpoint', { defaultValue: 'Local Runtime Endpoint' })}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Card className="mt-3 p-5">
           <Input
             label={t('runtimeConfig.runtime.endpointUrl', { defaultValue: 'Endpoint URL' })}
             value={state.local.endpoint}
@@ -178,7 +170,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
             }}
             placeholder={t('runtimeConfig.runtime.endpointPlaceholder', { defaultValue: 'http://host:port[/base-path]' })}
           />
-        </SurfaceCard>
+        </Card>
       </section>
 
       {/* Daemon Lifecycle */}
@@ -186,7 +178,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         <SectionTitle description={t('runtimeConfig.runtime.daemonLifecycleDesc', { defaultValue: 'Manage the local AI runtime daemon process.' })}>
           {t('runtimeConfig.runtime.daemonLifecycle', { defaultValue: 'Daemon Lifecycle' })}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Card className="mt-3 p-5">
           <div className="flex items-center justify-between">
             <div className="text-sm text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.runtime.runtimeDaemonStatus', { defaultValue: 'Local AI runtime daemon status' })}
@@ -251,7 +243,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
               {t('runtimeConfig.overview.stop', { defaultValue: 'Stop' })}
             </Button>
           </div>
-        </SurfaceCard>
+        </Card>
       </section>
 
       {/* Runtime Health */}
@@ -300,7 +292,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         <SectionTitle description={t('runtimeConfig.runtime.capabilitySummaryDesc', { defaultValue: 'AI capability availability across local runtime and cloud API.' })}>
           {t('runtimeConfig.runtime.capabilitySummary', { defaultValue: 'Capability Summary' })}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Card className="mt-3 p-5">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {capabilitySummary.map((item) => {
               const sourceLabel = item.localAvailable
@@ -361,7 +353,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
               );
             })}
           </div>
-        </SurfaceCard>
+        </Card>
       </section>
 
       {/* Provider Diagnostics */}
@@ -369,7 +361,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         <SectionTitle description={t('runtimeConfig.runtime.providerStatusDesc', { defaultValue: 'Managed llama/media diagnostics.' })}>
           {t('runtimeConfig.runtime.providerStatus', { defaultValue: 'Provider Runtime Status' })}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Card className="mt-3 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.runtime.localRuntimeProviderStatus', { defaultValue: 'Local runtime provider status' })}
@@ -388,7 +380,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
               <p className="text-sm font-medium text-[var(--nimi-text-primary)]">{state.local.lastDetail || '-'}</p>
             </div>
           </div>
-        </SurfaceCard>
+        </Card>
       </section>
 
       {/* Node Matrix */}
@@ -396,7 +388,7 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
         <SectionTitle description={t('runtimeConfig.runtime.nodeMatrixDesc', { defaultValue: 'Detailed node capability availability matrix.' })}>
           {t('runtimeConfig.runtime.nodeMatrix', { defaultValue: 'Node Capability Matrix' })}
         </SectionTitle>
-        <SurfaceCard className="mt-3 p-5">
+        <Card className="mt-3 p-5">
           <button
             type="button"
             className="flex w-full items-center justify-between text-left mb-3"
@@ -464,11 +456,11 @@ export function RuntimePage({ model, state }: RuntimePageProps) {
               })}
             </div>
           )}
-        </SurfaceCard>
+        </Card>
       </section>
 
       {/* Local Debug */}
       <LocalDebugSection collapsed={!auditData.localDebugExpanded} onToggle={auditData.toggleLocalDebug} />
-    </div>
+    </RuntimePageShell>
   );
 }
