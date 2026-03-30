@@ -1,13 +1,13 @@
 import { buildMergedEnv } from '../../../../scripts/lib/live-env.mjs';
-import { withRuntimeDaemon } from '../../../../sdk/test/runtime/contract/helpers/runtime-daemon.ts';
 import { Runtime } from '../../../../sdk/src/runtime/index.ts';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import {
+  type AudioSegment,
   splitWaveIntoSegments,
   transcodeAudioToWavePcm16,
-  type AudioSegment,
 } from './bilibili-food-video-probe-audio.mts';
 
 export type ProbeArgs = {
@@ -98,19 +98,46 @@ type PlayUrlApiResponse = {
   };
 };
 
+type PlayerSubtitleTrack = {
+  lan?: string;
+  lan_doc?: string;
+  subtitle_url?: string;
+};
+
+type PlayerV2ApiResponse = {
+  code?: number;
+  message?: string;
+  data?: {
+    subtitle?: {
+      subtitles?: PlayerSubtitleTrack[];
+    };
+  };
+};
+
+type SubtitlePayload = {
+  body?: Array<{
+    content?: string;
+  }>;
+};
+
 const DEFAULT_PROFILE_PATH = path.resolve(process.cwd(), 'dev/config/dashscope-gold-path.env');
 const DEFAULT_ENV_FILE_PATH = path.resolve(process.cwd(), '.env');
 const DEFAULT_OUTPUT_ROOT = path.resolve(process.cwd(), '.tmp/bilibili-food-video-probe');
+const DEFAULT_TEXT_MODEL = 'qwen-plus-latest';
 const DEFAULT_SHORT_AUDIO_STT_MODEL = 'qwen3-asr-flash';
 const LONG_AUDIO_THRESHOLD_SEC = 300;
 const DEFAULT_SEGMENT_DURATION_SEC = 240;
 const DEFAULT_MAX_SEGMENTS = 3;
 const DEFAULT_APP_ID = 'nimi.video.food.probe';
 const DEFAULT_SUBJECT_USER_ID = 'video-food-probe';
+const DEFAULT_RUNTIME_GRPC_ADDR = '127.0.0.1:46371';
+const DEFAULT_DIRECT_AUDIO_BYTES_LIMIT = 6 * 1024 * 1024;
+const PLATFORM_SUBTITLE_MODEL = 'platform/bilibili-subtitle';
 const BILIBILI_PAGE_URL = 'https://www.bilibili.com/video/';
 const BILIBILI_VIEW_API = 'https://api.bilibili.com/x/web-interface/view';
 const BILIBILI_TAG_API = 'https://api.bilibili.com/x/tag/archive/tags';
 const BILIBILI_PLAYURL_API = 'https://api.bilibili.com/x/player/playurl';
+const BILIBILI_PLAYER_V2_API = 'https://api.bilibili.com/x/player/v2';
 const MCDN_HOST_PATTERN = /\.mcdn\.bilivideo\.cn/u;
 const DEFAULT_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36';
 const DEFAULT_REFERER = 'https://www.bilibili.com/';
@@ -184,7 +211,10 @@ function parseJsonResponse<T>(payload: string, label: string): T {
   try {
     return JSON.parse(payload) as T;
   } catch (error) {
-    throw new Error(`${label} returned invalid json: ${error instanceof Error ? error.message : String(error || 'unknown error')}`);
+    const detail = error instanceof Error ? error.message : String(error || 'unknown error');
+    throw new Error(`${label} returned invalid json: ${detail}`, {
+      cause: error,
+    });
   }
 }
 
@@ -436,6 +466,92 @@ async function fetchPlayUrl(bvid: string, cid: string): Promise<PlayUrlApiRespon
   return response;
 }
 
+async function fetchPlayerV2(bvid: string, cid: string): Promise<PlayerV2ApiResponse> {
+  const response = await fetchJson<PlayerV2ApiResponse>(
+    `${BILIBILI_PLAYER_V2_API}?bvid=${encodeURIComponent(bvid)}&cid=${encodeURIComponent(cid)}`,
+    { method: 'GET', headers: apiHeaders() },
+    'bilibili player v2 api',
+  );
+  if (Number(response?.code || 0) !== 0 || !response.data) {
+    throw new Error(`bilibili player v2 api returned code=${String(response?.code ?? '')}, message=${String(response?.message ?? '')}`);
+  }
+  return response;
+}
+
+function normalizeRemoteUrl(raw: string): string {
+  const normalized = String(raw || '').trim();
+  if (!normalized) {
+    return '';
+  }
+  if (normalized.startsWith('//')) {
+    return `https:${normalized}`;
+  }
+  try {
+    return new URL(normalized, DEFAULT_REFERER).toString();
+  } catch {
+    return normalized;
+  }
+}
+
+function chooseSubtitleTrack(tracks: PlayerSubtitleTrack[]): PlayerSubtitleTrack | null {
+  const ranked = [...tracks]
+    .map((track) => {
+      const lan = String(track.lan || '').trim().toLowerCase();
+      const doc = String(track.lan_doc || '').trim().toLowerCase();
+      let score = 0;
+      if (lan.startsWith('zh') || doc.includes('中文')) {
+        score += 10;
+      }
+      if (lan.includes('cn') || lan.includes('hans') || doc.includes('简体')) {
+        score += 10;
+      }
+      if (doc.includes('ai') || doc.includes('自动')) {
+        score += 1;
+      }
+      return {
+        track,
+        score,
+      };
+    })
+    .sort((left, right) => right.score - left.score);
+  for (const entry of ranked) {
+    if (String(entry.track.subtitle_url || '').trim()) {
+      return entry.track;
+    }
+  }
+  return null;
+}
+
+function buildTranscriptFromSubtitlePayload(payload: SubtitlePayload): string {
+  const rows = Array.isArray(payload.body) ? payload.body : [];
+  return rows
+    .map((row) => String(row.content || '').trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
+async function fetchSubtitleTranscript(metadata: VideoMetadata): Promise<string> {
+  const playerV2 = await fetchPlayerV2(metadata.bvid, metadata.cid);
+  const subtitles = Array.isArray(playerV2.data?.subtitle?.subtitles)
+    ? playerV2.data?.subtitle?.subtitles || []
+    : [];
+  const track = chooseSubtitleTrack(subtitles);
+  if (!track) {
+    return '';
+  }
+  const subtitleUrl = normalizeRemoteUrl(String(track.subtitle_url || ''));
+  if (!subtitleUrl) {
+    return '';
+  }
+  const payload = await fetchJson<SubtitlePayload>(
+    subtitleUrl,
+    { method: 'GET', headers: cdnHeaders() },
+    'bilibili subtitle payload',
+  );
+  return buildTranscriptFromSubtitlePayload(payload);
+}
+
 async function downloadAudioTrack(url: string): Promise<{ bytes: Uint8Array; mimeType: string }> {
   const response = await fetchBytes(url, {
     method: 'GET',
@@ -453,12 +569,14 @@ async function downloadAudioTrack(url: string): Promise<{ bytes: Uint8Array; mim
   return response;
 }
 
-function requireEnvValue(env: Record<string, string>, key: string): string {
-  const value = String(env[key] || '').trim();
-  if (!value) {
-    throw new Error(`missing required env: ${key}`);
+function inferAudioMimeType(url: string): string {
+  if (/\.m4s(?:\?|$)/u.test(url) || /\.m4a(?:\?|$)/u.test(url)) {
+    return 'audio/mp4';
   }
-  return value;
+  if (/\.mp3(?:\?|$)/u.test(url)) {
+    return 'audio/mpeg';
+  }
+  return '';
 }
 
 export function resolveSttModel(input: {
@@ -489,6 +607,20 @@ export function resolveSttModel(input: {
   return coerceCloudModelId(DEFAULT_SHORT_AUDIO_STT_MODEL);
 }
 
+export function resolveTextModel(input: {
+  mergedEnv: Record<string, string>;
+}): string {
+  const configured = String(
+    input.mergedEnv.NIMI_VIDEO_FOOD_MAP_TEXT_MODEL_ID
+    || input.mergedEnv.NIMI_LIVE_DASHSCOPE_MODEL_ID
+    || '',
+  ).trim();
+  if (configured) {
+    return coerceCloudModelId(configured);
+  }
+  return coerceCloudModelId(DEFAULT_TEXT_MODEL);
+}
+
 export function computeExtractionCoverage(durationSec: number): FoodProbeResult['extractionCoverage'] {
   const total = Number(durationSec || 0);
   const isLong = total > LONG_AUDIO_THRESHOLD_SEC;
@@ -506,81 +638,161 @@ export function computeExtractionCoverage(durationSec: number): FoodProbeResult[
   };
 }
 
-function buildRuntimeEnv(input: {
-  mergedEnv: Record<string, string>;
-}): Record<string, string> {
+function resolveRuntimeConfigPath(mergedEnv: Record<string, string>): string {
+  const explicit = String(mergedEnv.NIMI_RUNTIME_CONFIG_PATH || '').trim();
+  if (explicit) {
+    return explicit.startsWith('~/')
+      ? path.join(os.homedir(), explicit.slice(2))
+      : explicit;
+  }
+  return path.join(os.homedir(), '.nimi', 'config.json');
+}
+
+function readRuntimeConfigGrpcAddr(mergedEnv: Record<string, string>): string {
+  try {
+    const config = JSON.parse(readFileSync(resolveRuntimeConfigPath(mergedEnv), 'utf8')) as {
+      grpcAddr?: unknown;
+    };
+    const grpcAddr = String(config.grpcAddr || '').trim();
+    return grpcAddr || '';
+  } catch {
+    return '';
+  }
+}
+
+function resolveRuntimeGrpcAddr(mergedEnv: Record<string, string>): string {
+  return String(mergedEnv.NIMI_RUNTIME_GRPC_ADDR || '').trim()
+    || readRuntimeConfigGrpcAddr(mergedEnv)
+    || DEFAULT_RUNTIME_GRPC_ADDR;
+}
+
+function buildDirectAudioSegment(input: {
+  durationSec: number;
+  audioBytes: Uint8Array;
+  audioMimeType: string;
+}): AudioSegment {
+  const originalSize = input.audioBytes.byteLength;
+  const limitedBytes = originalSize > DEFAULT_DIRECT_AUDIO_BYTES_LIMIT
+    ? input.audioBytes.subarray(0, DEFAULT_DIRECT_AUDIO_BYTES_LIMIT)
+    : input.audioBytes;
+  const fullDurationSec = Math.max(0, Number(input.durationSec || 0));
+  const ratio = originalSize > 0 ? limitedBytes.byteLength / originalSize : 1;
+  const estimatedDurationSec = ratio >= 1
+    ? fullDurationSec
+    : Math.max(1, Math.floor(fullDurationSec * ratio));
   return {
-    NIMI_RUNTIME_CLOUD_DASHSCOPE_BASE_URL: String(
-      input.mergedEnv.NIMI_LIVE_DASHSCOPE_BASE_URL || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    ).trim(),
-    NIMI_RUNTIME_CLOUD_DASHSCOPE_API_KEY: requireEnvValue(input.mergedEnv, 'NIMI_LIVE_DASHSCOPE_API_KEY'),
+    index: 1,
+    startSec: 0,
+    endSec: Math.min(fullDurationSec, estimatedDurationSec),
+    bytes: limitedBytes,
+    mimeType: input.audioMimeType,
   };
 }
 
-async function transcribeAndExtract(input: {
-  metadata: VideoMetadata;
-  audioSourceUrl: string;
+export function buildTranscriptionSegments(input: {
+  shouldSegment: boolean;
+  durationSec: number;
   audioBytes: Uint8Array;
   audioMimeType: string;
-  mergedEnv: Record<string, string>;
-}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
-  const shouldSegment = Number(input.metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC;
-  const sttModel = resolveSttModel({
-    durationSec: shouldSegment ? DEFAULT_SEGMENT_DURATION_SEC : input.metadata.durationSec,
-    mergedEnv: input.mergedEnv,
-  });
-  const textModel = coerceCloudModelId(requireEnvValue(input.mergedEnv, 'NIMI_LIVE_DASHSCOPE_MODEL_ID'));
-  const runtimeEnv = buildRuntimeEnv({ mergedEnv: input.mergedEnv });
-  const segments = shouldSegment
-    ? splitWaveIntoSegments({
+}): AudioSegment[] {
+  if (!input.shouldSegment) {
+    return [buildDirectAudioSegment(input)];
+  }
+
+  try {
+    return splitWaveIntoSegments({
       wavBytes: transcodeAudioToWavePcm16({
         sourceBytes: input.audioBytes,
         sourceFileName: 'audio-source.m4s',
       }),
       segmentDurationSec: DEFAULT_SEGMENT_DURATION_SEC,
       maxSegments: DEFAULT_MAX_SEGMENTS,
-    })
-    : [{
-      index: 1,
-      startSec: 0,
-      endSec: Number(input.metadata.durationSec || 0),
-      bytes: input.audioBytes,
-      mimeType: input.audioMimeType,
-    }];
-  const processedDurationSec = Math.min(
-    Number(input.metadata.durationSec || 0),
-    Math.max(0, ...segments.map((segment) => Number(segment.endSec || 0))),
-  );
-  const extractionCoverage: FoodProbeResult['extractionCoverage'] = {
-    state: processedDurationSec < Number(input.metadata.durationSec || 0)
-      ? 'leading_segments_only'
-      : 'full',
-    processedSegmentCount: segments.length,
-    processedDurationSec,
+    });
+  } catch {
+    return [buildDirectAudioSegment(input)];
+  }
+}
+
+async function transcribeAndExtract(input: {
+  metadata: VideoMetadata;
+  audioSourceUrl: string;
+  mergedEnv: Record<string, string>;
+}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
+  const runtimeGrpcAddr = resolveRuntimeGrpcAddr(input.mergedEnv);
+  const textModel = resolveTextModel({
+    mergedEnv: input.mergedEnv,
+  });
+
+  const runtime = new Runtime({
+    appId: DEFAULT_APP_ID,
+    transport: {
+      type: 'node-grpc',
+      endpoint: runtimeGrpcAddr,
+    },
+    defaults: {
+      callerKind: 'desktop-core',
+      callerId: 'video-food-probe',
+    },
+    subjectContext: {
+      subjectUserId: DEFAULT_SUBJECT_USER_ID,
+    },
+  });
+
+  const subtitleTranscript = await fetchSubtitleTranscript(input.metadata).catch(() => '');
+  let selectedSttModel = PLATFORM_SUBTITLE_MODEL;
+  let extractionCoverage: FoodProbeResult['extractionCoverage'] = {
+    state: subtitleTranscript ? 'full' : 'leading_segments_only',
+    processedSegmentCount: subtitleTranscript ? 1 : 0,
+    processedDurationSec: subtitleTranscript ? Number(input.metadata.durationSec || 0) : 0,
     totalDurationSec: Number(input.metadata.durationSec || 0),
   };
+  let transcript = subtitleTranscript.trim();
 
-  let transcript = '';
-  let extractionRaw = '';
-  await withRuntimeDaemon({
-    appId: DEFAULT_APP_ID,
-    runtimeEnv,
-    run: async ({ endpoint }) => {
-      const runtime = new Runtime({
-        appId: DEFAULT_APP_ID,
-        transport: {
-          type: 'node-grpc',
-          endpoint,
+  if (!transcript) {
+    const sttModel = resolveSttModel({
+      durationSec: input.metadata.durationSec,
+      mergedEnv: input.mergedEnv,
+    });
+    selectedSttModel = sttModel;
+    try {
+      const transcribed = await runtime.media.stt.transcribe({
+        model: sttModel,
+        audio: {
+          kind: 'url',
+          url: input.audioSourceUrl,
         },
-        defaults: {
-          callerKind: 'desktop-core',
-          callerId: 'video-food-probe',
-        },
-        subjectContext: {
-          subjectUserId: DEFAULT_SUBJECT_USER_ID,
-        },
+        mimeType: inferAudioMimeType(input.audioSourceUrl) || undefined,
+        language: 'auto',
+        route: 'cloud',
+        timeoutMs: 240_000,
       });
-
+      transcript = String(transcribed.text || '').trim();
+      extractionCoverage = {
+        state: 'full',
+        processedSegmentCount: 1,
+        processedDurationSec: Number(input.metadata.durationSec || 0),
+        totalDurationSec: Number(input.metadata.durationSec || 0),
+      };
+    } catch {
+      const audioTrack = await downloadAudioTrack(input.audioSourceUrl);
+      const segments = buildTranscriptionSegments({
+        shouldSegment: Number(input.metadata.durationSec || 0) > LONG_AUDIO_THRESHOLD_SEC,
+        durationSec: input.metadata.durationSec,
+        audioBytes: audioTrack.bytes,
+        audioMimeType: audioTrack.mimeType,
+      });
+      const processedDurationSec = Math.min(
+        Number(input.metadata.durationSec || 0),
+        Math.max(0, ...segments.map((segment) => Number(segment.endSec || 0))),
+      );
+      extractionCoverage = {
+        state: processedDurationSec < Number(input.metadata.durationSec || 0)
+          ? 'leading_segments_only'
+          : 'full',
+        processedSegmentCount: segments.length,
+        processedDurationSec,
+        totalDurationSec: Number(input.metadata.durationSec || 0),
+      };
       const transcriptParts: string[] = [];
       for (const segment of segments) {
         const transcribed = await runtime.media.stt.transcribe({
@@ -603,31 +815,34 @@ async function transcribeAndExtract(input: {
         );
       }
       transcript = transcriptParts.join('\n\n').trim();
-      if (!transcript) {
-        throw new Error('runtime returned empty transcript');
-      }
+    }
+  }
 
-      const extracted = await runtime.ai.text.generate({
-        model: textModel,
-        input: buildFoodExtractionPrompt({
-          metadata: input.metadata,
-          transcript,
-        }),
-        route: 'cloud',
-        timeoutMs: 240_000,
-      });
-      extractionRaw = String(extracted.text || '').trim();
-    },
+  if (!transcript) {
+    throw new Error('runtime returned empty transcript');
+  }
+
+  const extracted = await runtime.ai.text.generate({
+    model: textModel,
+    input: buildFoodExtractionPrompt({
+      metadata: input.metadata,
+      transcript,
+    }),
+    route: 'cloud',
+    timeoutMs: 240_000,
   });
+  const extractionRaw = String(extracted.text || '').trim();
 
   return {
-    selectedSttModel: sttModel,
+    selectedSttModel,
     extractionCoverage,
     transcript,
     extractionRaw,
     extractionJson: extractJsonObject(extractionRaw),
   };
 }
+
+export { splitWaveIntoSegments };
 
 export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodProbeResult> {
   const bvid = extractBvid(args.url);
@@ -674,13 +889,10 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
     baseEnv: process.env,
     filePaths: [args.profilePath, args.envFilePath],
   }) as Record<string, string>;
-  const audioTrack = await downloadAudioTrack(audioSourceUrl);
 
   const result = await transcribeAndExtract({
     metadata,
     audioSourceUrl,
-    audioBytes: audioTrack.bytes,
-    audioMimeType: audioTrack.mimeType,
     mergedEnv,
   });
   const saved = saveProbeArtifacts({

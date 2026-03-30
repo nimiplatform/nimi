@@ -252,6 +252,7 @@ async function main() {
     [path.join(themesDir, 'forge-accent.css'), renderDesktopAccent('forge-accent', tokensDoc, themesDoc)],
     [path.join(themesDir, 'relay-accent.css'), renderRelayAccent(tokensDoc, themesDoc)],
     [path.join(themesDir, 'overtone-accent.css'), renderOvertoneAccent(tokensDoc, themesDoc)],
+    [path.join(themesDir, 'video-food-map-accent.css'), renderAccentTheme(tokensDoc, themesDoc, 'video-food-map-accent')],
   ]);
 
   if (checkMode) {

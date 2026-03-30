@@ -166,7 +166,9 @@ export function transcodeAudioToWavePcm16(input: {
     return new Uint8Array(readFileSync(outputPath));
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error || 'unknown error');
-    throw new Error(`failed to transcode bilibili audio to wav: ${detail}`);
+    throw new Error(`failed to transcode bilibili audio to wav: ${detail}`, {
+      cause: error,
+    });
   } finally {
     rmSync(tempDir, { recursive: true, force: true });
   }

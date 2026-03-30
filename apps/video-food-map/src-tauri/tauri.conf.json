@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Nimi Video Food Map",
+  "version": "0.1.0",
+  "identifier": "app.nimi.video-food-map",
+  "build": {
+    "beforeDevCommand": "pnpm --filter @nimiplatform/video-food-map run dev:renderer",
+    "beforeBuildCommand": "pnpm --filter @nimiplatform/video-food-map run build:renderer",
+    "devUrl": "http://127.0.0.1:1425",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Nimi Video Food Map",
+        "url": "/",
+        "width": 1480,
+        "height": 940,
+        "minWidth": 1180,
+        "minHeight": 780,
+        "decorations": true,
+        "resizable": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 14,
+          "y": 24
+        }
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https://tile.openstreetmap.org; media-src 'self' data: blob: file:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:*;"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ]
+  }
+}

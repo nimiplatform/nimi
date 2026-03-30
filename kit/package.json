@@ -13,6 +13,7 @@
     "./ui/themes/forge-accent.css": "./ui/src/themes/forge-accent.css",
     "./ui/themes/relay-accent.css": "./ui/src/themes/relay-accent.css",
     "./ui/themes/overtone-accent.css": "./ui/src/themes/overtone-accent.css",
+    "./ui/themes/video-food-map-accent.css": "./ui/src/themes/video-food-map-accent.css",
     "./auth": "./auth/src/index.ts",
     "./auth/styles.css": "./auth/src/styles.css",
     "./auth/native-oauth-result-page": "./auth/src/logic/native-oauth-result-page.ts",

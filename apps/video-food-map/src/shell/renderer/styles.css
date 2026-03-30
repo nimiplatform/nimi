@@ -1,0 +1,62 @@
+@import "@nimiplatform/nimi-kit/ui/styles.css";
+@import "@nimiplatform/nimi-kit/ui/themes/light.css";
+@import "@nimiplatform/nimi-kit/ui/themes/dark.css";
+@import "@nimiplatform/nimi-kit/ui/themes/video-food-map-accent.css";
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--nimi-font-sans);
+  color: var(--nimi-text-primary);
+  background:
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.20), transparent 28%),
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.16), transparent 24%),
+    linear-gradient(180deg, #fffaf5 0%, #fff2e2 44%, #fff7f1 100%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.dark body {
+  background:
+    radial-gradient(circle at top left, rgba(251, 146, 60, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.14), transparent 24%),
+    linear-gradient(180deg, #190f0b 0%, #23120d 44%, #1b100d 100%);
+}
+
+.vfm-hero {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nimi-surface-hero) 88%, rgba(255, 255, 255, 0.72)) 0%, color-mix(in srgb, var(--nimi-surface-panel) 92%, rgba(255, 255, 255, 0.80)) 100%);
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 18%, var(--nimi-border-subtle));
+  box-shadow:
+    0 22px 56px rgba(120, 53, 15, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.64);
+}
+
+.vfm-card-shell {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--nimi-surface-card) 88%, rgba(255, 255, 255, 0.76)) 0%, color-mix(in srgb, var(--nimi-surface-panel) 94%, rgba(255, 255, 255, 0.60)) 100%);
+}
+
+.vfm-map-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 96px 96px;
+  opacity: 0.3;
+  pointer-events: none;
+}

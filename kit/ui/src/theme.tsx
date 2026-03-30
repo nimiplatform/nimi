@@ -21,6 +21,7 @@ const ALL_ACCENT_CLASSES = [
   'nimi-theme-accent--forge-accent',
   'nimi-theme-accent--relay-accent',
   'nimi-theme-accent--overtone-accent',
+  'nimi-theme-accent--video-food-map-accent',
 ] as const;
 
 export function NimiThemeProvider({

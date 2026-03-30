@@ -73,3 +73,11 @@ components:
     shared_families: []
     shared_targets: []
     source_rule: P-DESIGN-019
+  - id: video-food-map.ui.map_surface
+    app: video-food-map
+    module: apps/video-food-map/src/shell/renderer/components/map-surface.tsx
+    component: MapSurface
+    classification: app_owned_composition
+    shared_families: []
+    shared_targets: []
+    source_rule: P-DESIGN-019

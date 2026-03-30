@@ -334,3 +334,18 @@ packs:
       sidebar.item_hover: "rgba(139,92,246,0.12)"
       field.focus: "#8b5cf6"
       focus.ring_color: "rgba(139,92,246,0.34)"
+  - theme_id: video-food-map-accent
+    pack_kind: accent
+    applies_to_apps:
+      - video-food-map
+    source_rule: P-DESIGN-002
+    values:
+      surface.active: "rgba(249,115,22,0.18)"
+      action.primary_bg: "#f97316"
+      action.primary_bg_hover: "#ea580c"
+      action.primary_text: "#ffffff"
+      action.ghost_hover: "rgba(249,115,22,0.14)"
+      sidebar.item_active: "rgba(249,115,22,0.18)"
+      sidebar.item_hover: "rgba(249,115,22,0.10)"
+      field.focus: "#f97316"
+      focus.ring_color: "rgba(249,115,22,0.28)"

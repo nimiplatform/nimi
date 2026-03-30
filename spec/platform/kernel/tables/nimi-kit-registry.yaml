@@ -17,6 +17,7 @@ modules:
       - ./ui/themes/forge-accent.css
       - ./ui/themes/relay-accent.css
       - ./ui/themes/overtone-accent.css
+      - ./ui/themes/video-food-map-accent.css
     headless_exports: []
     ui_exports:
       - ./ui
@@ -27,7 +28,8 @@ modules:
       - ./ui/themes/forge-accent.css
       - ./ui/themes/relay-accent.css
       - ./ui/themes/overtone-accent.css
-    planned_consumers: [desktop, forge, overtone, relay, web]
+      - ./ui/themes/video-food-map-accent.css
+    planned_consumers: [desktop, forge, overtone, relay, video-food-map, web]
     reuse_entrypoints:
       - ./ui
       - ./ui/styles.css

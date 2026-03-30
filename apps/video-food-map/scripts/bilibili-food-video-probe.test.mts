@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildTranscriptionSegments,
   extractBvid,
   resolveSttModel,
   computeExtractionCoverage,
@@ -97,4 +98,17 @@ test('splitWaveIntoSegments slices pcm wav by time window', () => {
   assert.equal(segments[1]?.endSec, 3);
   assert.equal(segments[0]?.mimeType, 'audio/wav');
   assert.equal(segments[1]?.mimeType, 'audio/wav');
+});
+
+test('buildTranscriptionSegments caps oversized direct audio fallback under grpc limit', () => {
+  const audioBytes = new Uint8Array((7 * 1024 * 1024) + 1024);
+  const segments = buildTranscriptionSegments({
+    shouldSegment: false,
+    durationSec: 120,
+    audioBytes,
+    audioMimeType: 'audio/mp4',
+  });
+  assert.equal(segments.length, 1);
+  assert.ok((segments[0]?.bytes.byteLength || 0) <= 6 * 1024 * 1024);
+  assert.ok((segments[0]?.endSec || 0) < 120);
 });

@@ -7,7 +7,8 @@ export const DESIGN_PACK_IDS = [
   "desktop-accent",
   "forge-accent",
   "relay-accent",
-  "overtone-accent"
+  "overtone-accent",
+  "video-food-map-accent"
 ] as const;
 export const FOUNDATION_SCHEME_IDS = [
   "nimi-light",
@@ -17,7 +18,8 @@ export const ACCENT_PACK_IDS = [
   "desktop-accent",
   "forge-accent",
   "relay-accent",
-  "overtone-accent"
+  "overtone-accent",
+  "video-food-map-accent"
 ] as const;
 export const TYPOGRAPHY_ROLE_IDS = [
   "page_title",
