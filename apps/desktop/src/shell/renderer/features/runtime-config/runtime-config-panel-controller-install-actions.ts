@@ -1,15 +1,11 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   findLocalRuntimeProfileById,
   localRuntime,
   type LocalRuntimeModelLifecycleOperation,
   normalizeLocalRuntimeProfilesDeclaration,
-  type GoRuntimeSyncTarget,
   type LocalRuntimeArtifactKind,
-  syncModelInstallToGoRuntime,
-  syncModelStartToGoRuntime,
-  reconcileModelsToGoRuntime,
   type LocalRuntimeCatalogItemDescriptor,
   type LocalRuntimeInstallPayload,
   type LocalRuntimeInstallPlanDescriptor,
@@ -24,7 +20,6 @@ import { asRecord } from './runtime-config-panel-controller-utils';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
   useRuntimeConfigModelManagementActions,
-  type PendingInstallEntry,
 } from './runtime-config-panel-controller-install-actions-models';
 
 type ManifestSummary = {
@@ -104,28 +99,6 @@ export type UseRuntimeConfigInstallActionsInput = {
 export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallActionsInput): RuntimeConfigInstallActions {
   const { localManifestSummaries, refreshLocalSnapshot, setStatusBanner, updateState } = input;
 
-  const pendingInstallsRef = useRef(new Map<string, PendingInstallEntry>());
-  const [pendingInstallVersion, setPendingInstallVersion] = useState(0);
-
-  const recordGoRuntimeSyncFailure = useCallback(async (
-    eventType: string,
-    target: GoRuntimeSyncTarget,
-    error: unknown,
-  ) => {
-    await localRuntime.appendAudit({
-      eventType,
-      modelId: String(target.modelId || '').trim(),
-      localModelId: String(target.localModelId || '').trim() || undefined,
-      source: 'local',
-      reasonCode: ReasonCode.GO_RUNTIME_SYNC_FAILED,
-      detail: error instanceof Error ? error.message : String(error || 'unknown sync error'),
-      payload: {
-        action: eventType,
-        engine: String(target.engine || '').trim() || undefined,
-      },
-    }).catch(() => null);
-  }, []);
-
   const assertRuntimeWriteAllowed = useCallback(() => {
     if (getOfflineCoordinator().getTier() !== 'L2') {
       return;
@@ -143,180 +116,56 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   }, []);
 
   const installSessionMeta = useMemo(() => {
-    const meta = new Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>();
-    for (const [sessionId, entry] of pendingInstallsRef.current) {
-      meta.set(sessionId, { plan: entry.plan, installSource: entry.installSource });
-    }
-    return meta;
-  }, [pendingInstallVersion]);
+    return new Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>();
+  }, []);
 
-  const onDownloadComplete = useCallback(async (installSessionId: string, success: boolean, message?: string, localModelId?: string, modelId?: string) => {
-    const session = pendingInstallsRef.current.get(installSessionId);
+  const onDownloadComplete = useCallback(async () => {
+    await refreshLocalSnapshot();
+  }, [refreshLocalSnapshot]);
 
-    if (!success) {
-      setStatusBanner({
-        kind: 'error',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.downloadFailed',
-          'Download failed: {{message}}',
-          { message: message || translateRuntimeLocalText('runtimeConfig.local.unknownError', 'Unknown error') },
-        ),
-      });
-      return;
-    }
-
-    if (session) {
-      pendingInstallsRef.current.delete(installSessionId);
-      setPendingInstallVersion((version) => version + 1);
-    }
-
-    const resolvedLocalModelId = String(session?.accepted.localModelId || localModelId || '').trim();
-    const resolvedModelId = String(session?.accepted.modelId || modelId || '').trim();
-    if (!resolvedLocalModelId || !resolvedModelId) {
-      await refreshLocalSnapshot();
-      setStatusBanner({
-        kind: 'success',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelDownloadCompleted',
-          'Model download completed',
-        ),
-      });
-      return;
-    }
-
-    const installSource = session?.installSource || 'resume';
-    const capabilities = session?.plan.capabilities || [];
-    try {
-      await localRuntime.start(resolvedLocalModelId, { caller: 'core' });
-      const healthRows = await localRuntime.health(resolvedLocalModelId);
-      const targetHealth = healthRows.find((item) => item.localModelId === resolvedLocalModelId)
-        || healthRows[0]
-        || null;
-      if (targetHealth?.status === 'unhealthy') {
-        throw new Error(targetHealth.detail || 'local runtime model unhealthy');
-      }
-    } catch (localError: unknown) {
-      setStatusBanner({
-        kind: 'error',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.postInstallFailed',
-          'Post-install failed: {{message}}',
-          { message: localError instanceof Error ? localError.message : String(localError || '') },
-        ),
-      });
-      return;
-    }
-
-    try {
-      const plan = session?.plan;
-      const synced = await syncModelInstallToGoRuntime({
-        localModelId: resolvedLocalModelId,
-        modelId: resolvedModelId,
-        capabilities: plan?.capabilities || capabilities,
-        engine: plan?.engine || '',
-        entry: plan?.entry || '',
-        files: plan?.files || (plan?.entry ? [plan.entry] : []),
-        license: plan?.license || '',
-        source: {
-          repo: plan?.repo || '',
-          revision: plan?.revision || '',
-        },
-        integrityMode: String(plan?.repo || '').trim().toLowerCase().startsWith('local-import/')
-          ? 'local_unverified'
-          : 'verified',
-        hashes: plan?.hashes || {},
-        tags: [],
-        knownTotalSizeBytes: undefined,
-        endpoint: plan?.endpoint || '',
-        status: 'active',
-        installedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-      await syncModelStartToGoRuntime({
-        modelId: resolvedModelId,
-        engine: plan?.engine || '',
-        localModelId: synced.localModelId,
-      });
-
-      await localRuntime.appendAudit({
-        eventType: 'runtime_model_ready_after_install',
-        modelId: resolvedModelId,
-        localModelId: resolvedLocalModelId,
-        payload: {
-          source: installSource,
-          capabilities,
-          localModelId: resolvedLocalModelId,
-        },
-      });
-      await refreshLocalSnapshot();
-      setStatusBanner({
-        kind: 'success',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.modelInstalledAndReady',
-          'Model installed and ready: {{modelId}}',
-          { modelId: resolvedModelId },
-        ),
-      });
-    } catch (postError: unknown) {
-      await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_download', {
-        modelId: resolvedModelId || installSessionId,
-        engine: session?.plan.engine || '',
-        localModelId: resolvedLocalModelId || undefined,
-      }, postError);
-      setStatusBanner({
-        kind: 'error',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.postInstallFailed',
-          'Post-install failed: {{message}}',
-          { message: postError instanceof Error ? postError.message : String(postError || '') },
-        ),
-      });
-    }
-  }, [recordGoRuntimeSyncFailure, refreshLocalSnapshot, setStatusBanner]);
-
-  const runInstallPlanLifecycle = useCallback((plan: LocalRuntimeInstallPlanDescriptor, installSource: 'catalog' | 'manual' | 'verified') => {
+  const runInstallPlanLifecycle = useCallback(async (
+    plan: LocalRuntimeInstallPlanDescriptor,
+    installSource: 'catalog' | 'manual' | 'verified',
+  ) => {
     assertRuntimeWriteAllowed();
-    localRuntime.install({
-      modelId: plan.modelId,
-      repo: plan.repo,
-      revision: plan.revision,
-      capabilities: plan.capabilities,
-      engine: plan.engine,
-      entry: plan.entry,
-      files: plan.files,
-      license: plan.license,
-      hashes: plan.hashes,
-      endpoint: plan.endpoint,
-    }, { caller: 'core' })
-      .then((accepted) => {
-        pendingInstallsRef.current.set(accepted.installSessionId, {
-          accepted,
-          plan,
-          installSource,
-        });
-        setPendingInstallVersion((version) => version + 1);
-      })
-      .catch((error: unknown) => {
-        setStatusBanner({
-          kind: 'error',
-          message: translateRuntimeLocalText(
-            'runtimeConfig.local.installLifecycleFailed',
-            'Install lifecycle failed: {{message}}',
-            { message: error instanceof Error ? error.message : String(error || '') },
-          ),
-        });
-      });
-  }, [assertRuntimeWriteAllowed, setStatusBanner]);
+    const installed = installSource === 'verified'
+      ? await localRuntime.installVerified({
+        templateId: String(plan.templateId || '').trim(),
+        endpoint: String(plan.endpoint || '').trim(),
+      }, { caller: 'core' })
+      : await localRuntime.install({
+        modelId: plan.modelId,
+        repo: plan.repo,
+        revision: plan.revision,
+        capabilities: plan.capabilities,
+        engine: plan.engine,
+        entry: plan.entry,
+        files: plan.files,
+        license: plan.license,
+        hashes: plan.hashes,
+        endpoint: plan.endpoint,
+      }, { caller: 'core' });
+    await refreshLocalSnapshot();
+    setStatusBanner({
+      kind: 'success',
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.modelInstalledAndReady',
+        'Model installed and ready: {{modelId}}',
+        { modelId: installed.modelId || plan.modelId },
+      ),
+    });
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const retryInstall = useCallback((plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => {
-    runInstallPlanLifecycle(plan, source);
-    setStatusBanner({
-      kind: 'info',
-      message: translateRuntimeLocalText(
-        'runtimeConfig.local.retryingInstall',
-        'Retrying install: {{modelId}}. Download progress will appear below.',
-        { modelId: plan.modelId },
-      ),
+    void runInstallPlanLifecycle(plan, source).catch((error: unknown) => {
+      setStatusBanner({
+        kind: 'error',
+        message: translateRuntimeLocalText(
+          'runtimeConfig.local.installLifecycleFailed',
+          'Install lifecycle failed: {{message}}',
+          { message: error instanceof Error ? error.message : String(error || '') },
+        ),
+      });
     });
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
@@ -365,24 +214,6 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       }
       const result = await localRuntime.applyProfile(plan, { caller: 'core' });
       await refreshLocalSnapshot();
-      try {
-        const fullModels = await localRuntime.list();
-        await reconcileModelsToGoRuntime(fullModels);
-      } catch (syncError) {
-        await recordGoRuntimeSyncFailure('runtime_model_sync_failed_after_dependency_apply', {
-          modelId: modId,
-          engine: 'llama',
-        }, syncError);
-        setStatusBanner({
-          kind: 'warning',
-          message: translateRuntimeLocalText(
-            'runtimeConfig.local.profileAppliedSyncFailed',
-            'Profile installed, but Go runtime sync failed: {{message}}',
-            { message: syncError instanceof Error ? syncError.message : String(syncError || '') },
-          ),
-        });
-        return result;
-      }
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
@@ -409,7 +240,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       });
       throw error;
     }
-  }, [assertRuntimeWriteAllowed, recordGoRuntimeSyncFailure, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
+  }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, resolveRuntimeProfile, setStatusBanner]);
 
   const installCatalogLocalModel = useCallback(async (
     item: LocalRuntimeCatalogItemDescriptor,
@@ -433,11 +264,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         capabilities: options?.capabilities,
         engine: options?.engine,
       });
-      runInstallPlanLifecycle(plan, 'catalog');
-      setStatusBanner({
-        kind: 'info',
-        message: `Catalog model install started: ${plan.modelId}. Download progress will appear below.`,
-      });
+      await runInstallPlanLifecycle(plan, 'catalog');
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -477,11 +304,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         hashes: payload.hashes && Object.keys(payload.hashes).length > 0 ? payload.hashes : resolved.hashes,
         endpoint: String(payload.endpoint || '').trim() || resolved.endpoint,
       };
-      runInstallPlanLifecycle(plan, 'manual');
-      setStatusBanner({
-        kind: 'info',
-        message: `Local model install started: ${plan.modelId}. Download progress will appear below.`,
-      });
+      await runInstallPlanLifecycle(plan, 'manual');
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -501,11 +324,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         source: 'verified',
         templateId: normalizedTemplateId,
       });
-      runInstallPlanLifecycle(plan, 'verified');
-      setStatusBanner({
-        kind: 'info',
-        message: `Verified model install started: ${plan.modelId}. Download progress will appear below.`,
-      });
+      await runInstallPlanLifecycle(plan, 'verified');
     } catch (error) {
       setStatusBanner({
         kind: 'error',
@@ -594,8 +413,6 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
   const modelActions = useRuntimeConfigModelManagementActions({
-    pendingInstallsRef,
-    setPendingInstallVersion,
     refreshLocalSnapshot,
     setStatusBanner,
     updateState,

@@ -34,6 +34,7 @@ import {
   listLocalRuntimeVerifiedModels,
   listLocalRuntimeAudits,
   listLocalRuntimeModels,
+  listRuntimeLocalModelsSnapshot,
   pickLocalRuntimeManifestPath,
   pickLocalRuntimeArtifactManifestPath,
   pickLocalRuntimeAssetManifestPath,
@@ -86,7 +87,6 @@ import type {
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeAssetFileImportResult,
   LocalRuntimeAssetManifestImportResult,
-  LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeImportPayload,
@@ -127,38 +127,13 @@ import {
   type LocalRuntimeCapability,
 } from './capability-query';
 import { startLocalRuntimePolling, type LocalRuntimePollingOptions } from './polling';
-import {
-  type GoRuntimeBootstrapResult,
-  type GoRuntimeModelEntry,
-  type GoRuntimeSyncAction,
-  type GoRuntimeSyncResult,
-  type GoRuntimeSyncTarget,
-  GoRuntimeSyncError,
-  listGoRuntimeModelsSnapshot,
-  reconcileDesktopAndGoRuntimeModels,
-  syncModelInstallToGoRuntime,
-  syncModelStartToGoRuntime,
-  syncModelStopToGoRuntime,
-  syncModelRemoveToGoRuntime,
-  reconcileModelsToGoRuntime,
-} from './go-runtime-sync';
 export {
   bridgeLocalRuntimeProfile,
   findLocalRuntimeProfileById,
   normalizeLocalRuntimeProfilesDeclaration,
   profileSupportsCapability,
 } from './profile-manifest';
-
-export {
-  GoRuntimeSyncError,
-  listGoRuntimeModelsSnapshot,
-  reconcileDesktopAndGoRuntimeModels,
-  syncModelInstallToGoRuntime,
-  syncModelStartToGoRuntime,
-  syncModelStopToGoRuntime,
-  syncModelRemoveToGoRuntime,
-  reconcileModelsToGoRuntime,
-};
+export { listRuntimeLocalModelsSnapshot };
 
 export type {
   LocalRuntimeArtifactKind,
@@ -195,7 +170,6 @@ export type {
   LocalRuntimeImportAssetFilePayload,
   LocalRuntimeAssetFileImportResult,
   LocalRuntimeAssetManifestImportResult,
-  LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeInstallPlanDescriptor,
   LocalRuntimeImportPayload,
@@ -225,11 +199,6 @@ export type {
   LocalRuntimeListArtifactsPayload,
   LocalRuntimeListVerifiedArtifactsPayload,
   LocalRuntimeVerifiedModelDescriptor,
-  GoRuntimeBootstrapResult,
-  GoRuntimeModelEntry,
-  GoRuntimeSyncAction,
-  GoRuntimeSyncResult,
-  GoRuntimeSyncTarget,
   OrphanArtifactFile,
   OrphanModelFile,
   LocalRuntimeScaffoldArtifactPayload,
@@ -277,7 +246,7 @@ export type LocalRuntimeFacade = {
   install: (
     payload: LocalRuntimeInstallPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeInstallAcceptedResponse>;
+  ) => Promise<LocalRuntimeModelRecord>;
   listVerified: () => Promise<LocalRuntimeVerifiedModelDescriptor[]>;
   listVerifiedArtifacts: (
     payload?: LocalRuntimeListVerifiedArtifactsPayload,
@@ -285,7 +254,7 @@ export type LocalRuntimeFacade = {
   installVerified: (
     payload: LocalRuntimeInstallVerifiedPayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeInstallAcceptedResponse>;
+  ) => Promise<LocalRuntimeModelRecord>;
   installVerifiedArtifact: (
     payload: LocalRuntimeInstallVerifiedArtifactPayload,
     options?: LocalRuntimeWriteOptions,
@@ -315,7 +284,7 @@ export type LocalRuntimeFacade = {
   importFile: (
     payload: LocalRuntimeImportFilePayload,
     options?: LocalRuntimeWriteOptions,
-  ) => Promise<LocalRuntimeInstallAcceptedResponse>;
+  ) => Promise<LocalRuntimeModelRecord>;
   remove: (
     localModelId: string,
     options?: LocalRuntimeWriteOptions,
@@ -346,7 +315,7 @@ export type LocalRuntimeFacade = {
   ) => Promise<() => void>;
   revealInFolder: (localModelId: string) => Promise<void>;
   scanOrphans: (payload?: LocalRuntimeScanOrphansPayload) => Promise<OrphanModelFile[]>;
-  scaffoldOrphan: (payload: LocalRuntimeScaffoldOrphanPayload) => Promise<LocalRuntimeInstallAcceptedResponse>;
+  scaffoldOrphan: (payload: LocalRuntimeScaffoldOrphanPayload) => Promise<LocalRuntimeModelRecord>;
   scanArtifactOrphans: () => Promise<OrphanArtifactFile[]>;
   scanUnregisteredAssets: () => Promise<LocalRuntimeUnregisteredAssetDescriptor[]>;
   importAssetFile: (

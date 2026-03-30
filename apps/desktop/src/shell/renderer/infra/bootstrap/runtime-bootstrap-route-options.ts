@@ -1,7 +1,7 @@
 import { asNimiError, createNimiError } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
-import { localRuntime, listGoRuntimeModelsSnapshot } from '@runtime/local-runtime';
+import { localRuntime, listRuntimeLocalModelsSnapshot } from '@runtime/local-runtime';
 import { emitRuntimeLog } from '@runtime/telemetry/logger';
 import { type RuntimeCanonicalCapability, type RuntimeRouteBinding, type RuntimeRouteConnectorOption, type RuntimeRouteLocalOption, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
 import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
@@ -159,7 +159,7 @@ function mergeCloudBindingProvider(binding: RuntimeRouteBinding, connectors: Run
 function modelSupportsCapability(capabilities: string[] | undefined, capability: RuntimeCanonicalCapability): boolean {
     return (capabilities || []).some((item) => normalizeCapabilityToken(item) === capability);
 }
-function rankGoRuntimeStatus(value: unknown): number {
+function rankRuntimeLocalStatus(value: unknown): number {
     const status = String(value || '').trim().toLowerCase();
     if (status === 'active')
         return 0;
@@ -191,7 +191,7 @@ function providerDefaultRank(providerHints: RuntimeRouteLocalOption['providerHin
     const numeric = Number((extra as Record<string, unknown>).local_default_rank);
     return Number.isFinite(numeric) ? numeric : Number.MAX_SAFE_INTEGER;
 }
-export function pickPreferredGoRuntimeModel(goRuntimeModels: Array<{
+export function pickPreferredRuntimeLocalModel(runtimeLocalModels: Array<{
     localModelId?: string;
     modelId?: string;
     engine?: string;
@@ -200,11 +200,11 @@ export function pickPreferredGoRuntimeModel(goRuntimeModels: Array<{
     localModelId?: string;
     status?: string;
 } | null {
-    const matches = goRuntimeModels
+    const matches = runtimeLocalModels
         .filter((goModel) => syncLookup(goModel.modelId || '', goModel.engine || '') === syncLookup(modelId, engine))
         .filter((goModel) => String(goModel.status || '').trim().toLowerCase() !== 'removed')
         .sort((left, right) => {
-        const rankDelta = rankGoRuntimeStatus(left.status) - rankGoRuntimeStatus(right.status);
+        const rankDelta = rankRuntimeLocalStatus(left.status) - rankRuntimeLocalStatus(right.status);
         if (rankDelta !== 0) {
             return rankDelta;
         }
@@ -294,16 +294,16 @@ async function pollLocalSnapshotWithTimeout(): Promise<{
 type LocalRouteMetadata = {
     snapshot: Awaited<ReturnType<typeof pollLocalSnapshotWithTimeout>>;
     nodeCatalog: Awaited<ReturnType<typeof localRuntime.listNodesCatalog>>;
-    goRuntimeModels: Awaited<ReturnType<typeof listGoRuntimeModelsSnapshot>>;
+    runtimeLocalModels: Awaited<ReturnType<typeof listRuntimeLocalModelsSnapshot>>;
 };
 type LocalRouteMetadataDeps = {
     pollLocalSnapshotWithTimeout: typeof pollLocalSnapshotWithTimeout;
     listNodesCatalog: typeof localRuntime.listNodesCatalog;
-    listGoRuntimeModelsSnapshot: typeof listGoRuntimeModelsSnapshot;
+    listRuntimeLocalModelsSnapshot: typeof listRuntimeLocalModelsSnapshot;
 };
 function rethrowLocalRouteMetadataError(input: {
     error: unknown;
-    action: 'list-nodes-catalog' | 'list-go-runtime-models';
+    action: 'list-nodes-catalog' | 'list-runtime-local-models';
 }): never {
     const normalized = asNimiError(input.error, {
         reasonCode: ReasonCode.RUNTIME_UNAVAILABLE,
@@ -330,24 +330,24 @@ export async function loadLocalRouteMetadata(capability: RuntimeCanonicalCapabil
     const resolvedDeps: LocalRouteMetadataDeps = {
         pollLocalSnapshotWithTimeout,
         listNodesCatalog: localRuntime.listNodesCatalog,
-        listGoRuntimeModelsSnapshot,
+        listRuntimeLocalModelsSnapshot,
         ...deps,
     };
-    const [snapshot, nodeCatalog, goRuntimeModels] = await Promise.all([
+    const [snapshot, nodeCatalog, runtimeLocalModels] = await Promise.all([
         resolvedDeps.pollLocalSnapshotWithTimeout(),
         resolvedDeps.listNodesCatalog(localCapability ? { capability: localCapability } : undefined).catch((error) => rethrowLocalRouteMetadataError({
             error,
             action: 'list-nodes-catalog',
         })),
-        resolvedDeps.listGoRuntimeModelsSnapshot().catch((error) => rethrowLocalRouteMetadataError({
+        resolvedDeps.listRuntimeLocalModelsSnapshot().catch((error) => rethrowLocalRouteMetadataError({
             error,
-            action: 'list-go-runtime-models',
+            action: 'list-runtime-local-models',
         })),
     ]);
     return {
         snapshot,
         nodeCatalog,
-        goRuntimeModels,
+        runtimeLocalModels,
     };
 }
 type LoadRuntimeRouteOptionsDeps = {
@@ -381,7 +381,7 @@ function buildLocalRouteMetadataFallback(error: unknown, capability: RuntimeCano
             models: [],
         },
         nodeCatalog: [],
-        goRuntimeModels: [],
+        runtimeLocalModels: [],
     };
 }
 function firstAvailableBinding(localModels: RuntimeRouteLocalOption[], connectors: RuntimeRouteConnectorOption[]): RuntimeRouteBinding | null {
@@ -506,7 +506,7 @@ export async function loadRuntimeRouteOptions(input: {
         });
     }
     let localMetadataDegraded = false;
-    const { snapshot, nodeCatalog, goRuntimeModels } = await resolvedDeps.loadLocalRouteMetadata(input.capability)
+    const { snapshot, nodeCatalog, runtimeLocalModels } = await resolvedDeps.loadLocalRouteMetadata(input.capability)
         .catch((error) => {
         localMetadataDegraded = true;
         return buildLocalRouteMetadataFallback(error, input.capability, input.modId);
@@ -537,7 +537,7 @@ export async function loadRuntimeRouteOptions(input: {
         .filter((item) => item.status !== 'removed')
         .filter((item) => modelSupportsCapability(item.capabilities, input.capability))
         .map((item) => {
-        const preferredGoRuntimeModel = pickPreferredGoRuntimeModel(goRuntimeModels, item.modelId, item.engine);
+        const preferredRuntimeLocalModel = pickPreferredRuntimeLocalModel(runtimeLocalModels, item.modelId, item.engine);
         return {
             localModelId: item.localModelId,
             label: item.modelId,
@@ -550,8 +550,8 @@ export async function loadRuntimeRouteOptions(input: {
             providerHints: nodeByProvider.get(normalizeLocalEngine(item.engine))?.providerHints,
             endpoint: item.endpoint,
             status: item.status,
-            goRuntimeLocalModelId: preferredGoRuntimeModel?.localModelId,
-            goRuntimeStatus: preferredGoRuntimeModel?.status,
+            goRuntimeLocalModelId: preferredRuntimeLocalModel?.localModelId,
+            goRuntimeStatus: preferredRuntimeLocalModel?.status,
             capabilities: item.capabilities
                 .map((capability) => normalizeCapabilityToken(capability))
                 .filter((capability): capability is RuntimeCanonicalCapability => Boolean(capability)),

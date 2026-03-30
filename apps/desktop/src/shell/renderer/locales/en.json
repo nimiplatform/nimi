@@ -2613,6 +2613,7 @@
       "installModels": "Install Models",
       "configureCloudApi": "Configure Cloud API",
       "checking": "Checking...",
+      "validating": "Validating...",
       "health": "Health",
       "refreshing": "Refreshing...",
       "refresh": "Refresh",

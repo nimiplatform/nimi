@@ -2613,6 +2613,7 @@
       "installModels": "安装模型",
       "configureCloudApi": "配置云 API",
       "checking": "检查中...",
+      "validating": "校验中...",
       "health": "健康检查",
       "refreshing": "刷新中...",
       "refresh": "刷新",

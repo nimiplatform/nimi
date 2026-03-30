@@ -71,7 +71,6 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
   const {
     activeDownloads,
     activeImports,
-    getLatestProgressEvent,
     onPauseDownload,
     onResumeDownload,
     onCancelDownload,
@@ -85,24 +84,18 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     assetPath: string,
     imported: Awaited<ReturnType<typeof localRuntime.importAssetFile>> | {
       assetClass: 'model';
-      accepted: Awaited<ReturnType<typeof localRuntime.scaffoldOrphan>>;
+      model: Awaited<ReturnType<typeof localRuntime.scaffoldOrphan>>;
     },
   ) => {
     if (imported.assetClass === 'model') {
-      setAssetImportSessionByPath((prev) => ({
-        ...prev,
-        [assetPath]: imported.accepted.installSessionId,
-      }));
-      const currentProgress = getLatestProgressEvent(imported.accepted.installSessionId);
-      if (currentProgress?.done) {
-        handleCompletedAssetImport(assetPath, currentProgress.success, currentProgress.message);
-      }
+      await input.props.onDiscover();
+      await input.onRefreshUnregisteredAssets();
       return;
     }
 
     await input.onRefreshArtifactSections();
     await input.onRefreshUnregisteredAssets();
-  }, [getLatestProgressEvent, handleCompletedAssetImport, input]);
+  }, [input]);
 
   const importManagedModelAssetFromPath = useCallback(async (
     assetPath: string,
@@ -130,7 +123,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       capabilities,
       engine: declaration.engine,
     });
-    return { assetClass: 'model' as const, accepted };
+    return { assetClass: 'model' as const, model: accepted };
   }, []);
 
   const importAssetFromPath = useCallback(async (assetPath: string, declaration: LocalRuntimeAssetDeclaration) => {

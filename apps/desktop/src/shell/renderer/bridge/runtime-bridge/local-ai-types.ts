@@ -51,12 +51,6 @@ export type LocalRuntimeArtifactRecord = {
   metadata?: JsonObject;
 };
 
-export type LocalRuntimeInstallAcceptedResponse = {
-  installSessionId: string;
-  modelId: string;
-  localModelId: string;
-};
-
 export type LocalRuntimeModelHealth = {
   localModelId: string;
   status: LocalRuntimeModelStatus;

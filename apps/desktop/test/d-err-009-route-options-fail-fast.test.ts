@@ -38,7 +38,7 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listNodesCatalog f
       listNodesCatalog: async () => {
         throw new Error('catalog offline');
       },
-      listGoRuntimeModelsSnapshot: async () => [],
+      listRuntimeLocalModelsSnapshot: async () => [],
     }),
     (error: unknown) => {
       const record = error as { reasonCode?: string; actionHint?: string };
@@ -55,7 +55,7 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listNodesCatalog f
   assert.equal((failedLog?.details as Record<string, unknown>)?.error, 'catalog offline');
 });
 
-test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listGoRuntimeModelsSnapshot fails', async () => {
+test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listRuntimeLocalModelsSnapshot fails', async () => {
   const logs: Array<Record<string, unknown>> = [];
   setRuntimeLogger((payload) => {
     logs.push(payload as Record<string, unknown>);
@@ -67,15 +67,15 @@ test('D-ERR-009: loadLocalRouteMetadata logs and rejects when listGoRuntimeModel
         models: [],
       }),
       listNodesCatalog: async () => [],
-      listGoRuntimeModelsSnapshot: async () => {
+      listRuntimeLocalModelsSnapshot: async () => {
         throw new Error('go runtime unavailable');
       },
     }),
     /go runtime unavailable/,
   );
 
-  const failedLog = logs.find((entry) => entry.message === 'action:list-go-runtime-models:failed');
-  assert.ok(failedLog, 'list-go-runtime-models failure must emit a warn log');
+  const failedLog = logs.find((entry) => entry.message === 'action:list-runtime-local-models:failed');
+  assert.ok(failedLog, 'list-runtime-local-models failure must emit a warn log');
   assert.equal((failedLog?.details as Record<string, unknown>)?.error, 'go runtime unavailable');
 });
 

@@ -102,7 +102,6 @@ export type {
   LocalRuntimeArtifactRecord,
   LocalRuntimeModelStatus,
   LocalRuntimeModelRecord,
-  LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeModelHealth,
   LocalRuntimeModelsHealthResult,
   LocalRuntimeInferenceAuditEventType,
@@ -133,7 +132,6 @@ export {
   parseLocalRuntimeAuditEvent,
   parseLocalRuntimeAuditEventList,
   parseLocalRuntimePickManifestResult,
-  parseLocalRuntimeDownloadProgressEvent,
 } from './local-ai-parsers.js';
 
 export type {

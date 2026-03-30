@@ -48,9 +48,6 @@ export type LocalModelCenterProps = {
   onImportArtifact: () => Promise<void>;
   onScaffoldArtifactOrphan: (path: string, kind: LocalRuntimeArtifactKind) => Promise<void>;
   onImportFile: (capabilities: string[], engine?: string) => Promise<void>;
-  onStart: (localModelId: string) => Promise<void>;
-  onStop: (localModelId: string) => Promise<void>;
-  onRestart: (localModelId: string) => Promise<void>;
   onRemove: (localModelId: string) => Promise<void>;
   onRemoveArtifact: (localArtifactId: string) => Promise<void>;
   onSetLocalModelQuery: (value: string) => void;
@@ -65,8 +62,6 @@ export type LocalModelCenterProps = {
   ) => Promise<void>;
   onRetryInstall?: (plan: LocalRuntimeInstallPlanDescriptor, source: 'catalog' | 'manual' | 'verified') => void;
   installSessionMeta?: Map<string, { plan: LocalRuntimeInstallPlanDescriptor; installSource: string }>;
-  localModelLifecycleById?: Record<string, LocalRuntimeModelLifecycleOperation>;
-  localModelLifecycleErrorById?: Record<string, string>;
 };
 
 export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embedding', 'music'] as const;

@@ -1,7 +1,6 @@
-import { localRuntime, listGoRuntimeModelsSnapshot, reconcileModelsToGoRuntime, type LocalRuntimeModelRecord, } from '@runtime/local-runtime';
+import { localRuntime, type LocalRuntimeModelRecord, } from '@runtime/local-runtime';
 import { useAppStore } from '@renderer/app-shell/providers/app-store';
 import { createResolveRuntimeBinding } from './runtime-bootstrap-route-resolvers';
-import { pickPreferredGoRuntimeModel } from './runtime-bootstrap-route-options';
 import { createNimiError } from '@nimiplatform/sdk/runtime';
 import { type ModRuntimeResolvedBinding, type RuntimeCanonicalCapability, type RuntimeLlmHealthResult, type RuntimeRouteBinding, type RuntimeRouteOptionsSnapshot } from "@nimiplatform/sdk/mod";
 import { normalizeLocalEngine, normalizeLocalModelRoot } from './runtime-bootstrap-utils';
@@ -149,25 +148,17 @@ export async function ensureResolvedLocalModelAvailable(resolved: ModRuntimeReso
         return resolved;
     }
     const desktopModels = await localRuntime.list();
-    const desktopModel = pickDesktopLocalModel(desktopModels, resolved);
-    if (!desktopModel) {
+  const desktopModel = pickDesktopLocalModel(desktopModels, resolved);
+  if (!desktopModel) {
         return resolved;
-    }
-    const goRuntimeStatus = String(resolved.goRuntimeStatus || '').trim().toLowerCase();
-    const needsRepair = !String(resolved.goRuntimeLocalModelId || '').trim() || goRuntimeStatus === 'removed';
-    if (!needsRepair) {
-        return resolved;
-    }
-    await reconcileModelsToGoRuntime([desktopModel]);
-    const goRuntimeModels = await listGoRuntimeModelsSnapshot();
-    const repaired = pickPreferredGoRuntimeModel(goRuntimeModels, desktopModel.modelId, desktopModel.engine);
+  }
     return {
         ...resolved,
         localModelId: String(resolved.localModelId || desktopModel.localModelId || '').trim() || undefined,
         endpoint: String(resolved.endpoint || desktopModel.endpoint || '').trim() || undefined,
         localProviderEndpoint: String(resolved.localProviderEndpoint || desktopModel.endpoint || resolved.endpoint || '').trim() || undefined,
-        goRuntimeLocalModelId: String(repaired?.localModelId || '').trim() || undefined,
-        goRuntimeStatus: String(repaired?.status || '').trim() || undefined,
+        goRuntimeLocalModelId: String(resolved.goRuntimeLocalModelId || desktopModel.localModelId || '').trim() || undefined,
+        goRuntimeStatus: String(resolved.goRuntimeStatus || desktopModel.status || '').trim() || undefined,
     };
 }
 export function toRouteHealthResult(result: RuntimeLlmHealthResult, provider: string, source: 'local' | 'cloud'): RuntimeLlmHealthResult & {

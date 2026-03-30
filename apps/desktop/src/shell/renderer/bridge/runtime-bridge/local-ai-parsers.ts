@@ -6,7 +6,6 @@ import {
 } from './shared.js';
 import type {
   LocalRuntimeAuditEvent,
-  LocalRuntimeDownloadProgressEvent,
   LocalRuntimeModelRecord,
   LocalRuntimeModelStatus,
   LocalRuntimeModelsHealthResult,
@@ -17,10 +16,6 @@ function inferIntegrityModeFromRepo(repo: string): LocalRuntimeModelRecord['inte
   return repo.trim().toLowerCase().startsWith('local-import/')
     ? 'local_unverified'
     : 'verified';
-}
-
-function normalizeTransferSessionKind(value: unknown): LocalRuntimeDownloadProgressEvent['sessionKind'] {
-  return String(value || '').trim().toLowerCase() === 'import' ? 'import' : 'download';
 }
 
 export function parseLocalRuntimeModelRecord(value: unknown): LocalRuntimeModelRecord {
@@ -186,42 +181,4 @@ export function parseLocalRuntimePickManifestResult(value: unknown): string | nu
   }
   const normalized = String(value || '').trim();
   return normalized || null;
-}
-
-export function parseLocalRuntimeDownloadProgressEvent(value: unknown): LocalRuntimeDownloadProgressEvent {
-  const record = assertRecord(value, 'local-ai://download-progress returned invalid payload');
-  const bytesReceived = Number(record.bytesReceived);
-  const bytesTotalRaw = Number(record.bytesTotal);
-  const speedRaw = Number(record.speedBytesPerSec);
-  const etaRaw = Number(record.etaSeconds);
-  const done = Boolean(record.done);
-  const success = Boolean(record.success);
-  const stateRaw = parseOptionalString(record.state)?.toLowerCase();
-  const state = (
-    stateRaw === 'queued'
-    || stateRaw === 'running'
-    || stateRaw === 'paused'
-    || stateRaw === 'failed'
-    || stateRaw === 'completed'
-    || stateRaw === 'cancelled'
-  )
-    ? stateRaw
-    : (done ? (success ? 'completed' : 'failed') : 'running');
-  return {
-    installSessionId: parseRequiredString(record.installSessionId, 'installSessionId', 'local-ai://download-progress'),
-    modelId: parseRequiredString(record.modelId, 'modelId', 'local-ai://download-progress'),
-    localModelId: parseOptionalString(record.localModelId),
-    sessionKind: normalizeTransferSessionKind(record.sessionKind),
-    phase: parseRequiredString(record.phase, 'phase', 'local-ai://download-progress'),
-    bytesReceived: Number.isFinite(bytesReceived) && bytesReceived >= 0 ? bytesReceived : 0,
-    bytesTotal: Number.isFinite(bytesTotalRaw) && bytesTotalRaw >= 0 ? bytesTotalRaw : undefined,
-    speedBytesPerSec: Number.isFinite(speedRaw) && speedRaw >= 0 ? speedRaw : undefined,
-    etaSeconds: Number.isFinite(etaRaw) && etaRaw >= 0 ? etaRaw : undefined,
-    message: parseOptionalString(record.message),
-    state,
-    reasonCode: parseOptionalString(record.reasonCode),
-    retryable: typeof record.retryable === 'boolean' ? Boolean(record.retryable) : undefined,
-    done,
-    success,
-  };
 }

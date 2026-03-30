@@ -6,12 +6,12 @@ import {
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-host-capabilities-routing.js';
 import {
   buildSelectedBinding,
-  pickPreferredGoRuntimeModel,
+  pickPreferredRuntimeLocalModel,
   setLocalRoutePlatformForTests,
 } from '../src/shell/renderer/infra/bootstrap/runtime-bootstrap-route-options';
 
-test('pickPreferredGoRuntimeModel ignores removed entries and prefers active state', () => {
-  const selected = pickPreferredGoRuntimeModel([
+test('pickPreferredRuntimeLocalModel ignores removed entries and prefers active state', () => {
+  const selected = pickPreferredRuntimeLocalModel([
     {
       localModelId: 'go-removed',
       modelId: 'local-import/z_image_turbo-Q4_K',

@@ -161,8 +161,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       localHealthy={localHealthy}
       assetImportError={runtimeState.assetImportError}
       assetImportSessionByPath={runtimeState.assetImportSessionByPath}
-      localModelLifecycleById={props.localModelLifecycleById || {}}
-      localModelLifecycleErrorById={props.localModelLifecycleErrorById || {}}
       onArtifactKindFilterChange={runtimeState.setArtifactKindFilter}
       onArtifactOrphanKindChange={() => {}}
       onCancelDownload={runtimeState.onCancelDownload}
@@ -221,16 +219,6 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       onScaffoldArtifactOrphan={() => {}}
       onScaffoldOrphan={() => {}}
       onSearchQueryChange={runtimeState.setSearchQuery}
-      onStartModel={async (localModelId) => {
-        if (props.onStart) {
-          await props.onStart(localModelId);
-        }
-      }}
-      onStopModel={async (localModelId) => {
-        if (props.onStop) {
-          await props.onStop(localModelId);
-        }
-      }}
       onToggleImportMenu={() => runtimeState.setShowImportMenu((prev) => !prev)}
       onToggleVariantPicker={runtimeState.toggleVariantPicker}
       onImportUnregisteredAsset={(path) => { void runtimeState.importUnregisteredAsset(path); }}

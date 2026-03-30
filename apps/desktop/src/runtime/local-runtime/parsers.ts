@@ -54,7 +54,6 @@ export {
   parseDownloadProgressEvent,
   parseDownloadSessionSummary,
   parseGgufVariantDescriptor,
-  parseInstallAcceptedResponse,
   parseModelHealth,
   parseOrphanArtifactFile,
   parseOrphanModelFile,

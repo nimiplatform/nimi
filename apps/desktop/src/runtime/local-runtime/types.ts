@@ -619,12 +619,6 @@ export type LocalRuntimeDownloadControlPayload = {
   installSessionId: string;
 };
 
-export type LocalRuntimeInstallAcceptedResponse = {
-  installSessionId: string;
-  modelId: string;
-  localModelId: string;
-};
-
 export type OrphanModelFile = {
   filename: string;
   path: string;
@@ -695,7 +689,7 @@ export type LocalRuntimeImportAssetFilePayload = {
 export type LocalRuntimeAssetFileImportResult =
   | {
     assetClass: 'model';
-    accepted: LocalRuntimeInstallAcceptedResponse;
+    model: LocalRuntimeModelRecord;
   }
   | {
     assetClass: 'artifact';

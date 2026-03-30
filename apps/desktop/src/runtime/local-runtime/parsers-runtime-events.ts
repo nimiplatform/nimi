@@ -16,7 +16,6 @@ import type {
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeTransferSessionKind,
   LocalRuntimeScaffoldArtifactResult,
-  LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeModelHealth,
   LocalRuntimeModelType,
   LocalRuntimeUnregisteredAssetDescriptor,
@@ -436,15 +435,6 @@ export function parseDownloadSessionSummary(value: unknown): LocalRuntimeDownloa
     retryable: Boolean(record.retryable),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
-  };
-}
-
-export function parseInstallAcceptedResponse(value: unknown): LocalRuntimeInstallAcceptedResponse {
-  const record = asRecord(value);
-  return {
-    installSessionId: asString(record.installSessionId),
-    modelId: toCanonicalLocalId(record.modelId),
-    localModelId: asString(record.localModelId),
   };
 }
 

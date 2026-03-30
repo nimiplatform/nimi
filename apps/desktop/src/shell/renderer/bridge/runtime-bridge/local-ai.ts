@@ -8,7 +8,6 @@ import type {
   LocalRuntimeInferenceAuditPayload,
   LocalRuntimeImportArtifactPayload,
   LocalRuntimeImportPayload,
-  LocalRuntimeInstallAcceptedResponse,
   LocalRuntimeInstallVerifiedArtifactPayload,
   LocalRuntimeInstallPayload,
   LocalRuntimeInstallVerifiedPayload,
@@ -61,14 +60,14 @@ export async function pickLocalRuntimeArtifactManifestPath(): Promise<string | n
 export async function installLocalRuntimeModel(
   payload: LocalRuntimeInstallPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeInstallAcceptedResponse> {
+): Promise<LocalRuntimeModelRecord> {
   return localRuntime.install(payload, options);
 }
 
 export async function installLocalRuntimeVerifiedModel(
   payload: LocalRuntimeInstallVerifiedPayload,
   options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeInstallAcceptedResponse> {
+): Promise<LocalRuntimeModelRecord> {
   return localRuntime.installVerified(payload, options);
 }
 

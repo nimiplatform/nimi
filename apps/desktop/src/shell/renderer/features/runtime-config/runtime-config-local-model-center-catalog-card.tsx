@@ -3,7 +3,6 @@ import type {
   LocalRuntimeArtifactKind,
   LocalRuntimeArtifactRecord,
   LocalRuntimeCatalogItemDescriptor,
-  LocalRuntimeModelLifecycleOperation,
   LocalRuntimeVerifiedArtifactDescriptor,
   LocalRuntimeVerifiedModelDescriptor,
   OrphanArtifactFile,
@@ -19,8 +18,6 @@ import {
   type CapabilityOption,
   type InstallEngineOption,
   formatBytes,
-  isLocalModelLifecycleBusy,
-  isLocalModelLifecycleVisible,
   normalizeInstallEngine,
 } from './runtime-config-model-center-utils';
 import {
@@ -41,7 +38,6 @@ import {
   RefreshIcon,
   SearchIcon,
   StarIcon,
-  Toggle,
   TrashIcon,
 } from './runtime-config-local-model-center-helpers';
 import { ArtifactRequirementBadges } from './runtime-config-local-model-center-sections';
@@ -51,8 +47,6 @@ type CatalogCardProps = {
   catalogCapability: 'all' | CapabilityOption;
   filteredInstalledModels: LocalModelOptionV11[];
   filteredInstalledArtifacts: LocalRuntimeArtifactRecord[];
-  localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>;
-  localModelLifecycleErrorById: Record<string, string>;
   loadingCatalog: boolean;
   loadingInstalledArtifacts: boolean;
   loadingVerifiedArtifacts: boolean;
@@ -82,8 +76,6 @@ type CatalogCardProps = {
   isArtifactPending: (templateId: string) => boolean;
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
-  onStartModel: (localModelId: string) => Promise<void>;
-  onStopModel: (localModelId: string) => Promise<void>;
   onRemoveModel: (localModelId: string) => void;
   onArtifactKindFilterChange: (value: 'all' | LocalRuntimeArtifactKind) => void;
   onRefreshArtifacts: () => void;
@@ -103,22 +95,6 @@ type CatalogCardProps = {
   onLoadMoreCatalog: () => void;
   installing: boolean;
 };
-
-function localModelLifecycleLabel(value: LocalRuntimeModelLifecycleOperation | undefined): string {
-  if (value === 'starting') {
-    return i18n.t('runtimeConfig.localModelCenter.starting', { defaultValue: 'Starting' });
-  }
-  if (value === 'stopping') {
-    return i18n.t('runtimeConfig.localModelCenter.stopping', { defaultValue: 'Stopping' });
-  }
-  if (value === 'restarting') {
-    return i18n.t('runtimeConfig.localModelCenter.restarting', { defaultValue: 'Restarting' });
-  }
-  if (value === 'syncing') {
-    return i18n.t('runtimeConfig.localModelCenter.syncing', { defaultValue: 'Syncing' });
-  }
-  return i18n.t('runtimeConfig.localModelCenter.working', { defaultValue: 'Working' });
-}
 
 function VerifiedModelSearchRow(props: {
   item: LocalRuntimeVerifiedModelDescriptor;
@@ -361,10 +337,6 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
         {props.filteredInstalledModels.length > 0 ? (
           <div className="divide-y divide-gray-200/80">
             {props.filteredInstalledModels.map((model) => {
-              const lifecycle = props.localModelLifecycleById[model.localModelId];
-              const lifecycleError = props.localModelLifecycleErrorById[model.localModelId];
-              const toggleBusy = isLocalModelLifecycleBusy(lifecycle);
-              const actionLocked = isLocalModelLifecycleVisible(lifecycle);
               return (
               <div key={model.localModelId} className="px-4 py-3 transition-colors hover:bg-white">
                 <div className="flex items-center gap-3">
@@ -392,32 +364,15 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {isLocalModelLifecycleVisible(lifecycle) ? (
-                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-status-info)_18%,transparent)] px-2 py-0.5 text-[10px] text-[var(--nimi-status-info)]">
-                      {localModelLifecycleLabel(lifecycle)}
-                    </span>
-                  ) : null}
                   <span className={`rounded px-2 py-0.5 text-[10px] ${
                     model.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : model.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
                   }`}>
-                    {model.status}
+                    {model.status === 'installed'
+                      ? i18n.t('runtimeConfig.localModelCenter.validating', { defaultValue: 'validating' })
+                      : model.status}
                   </span>
-                  <Toggle
-                    checked={model.status === 'active'}
-                    disabled={toggleBusy}
-                    onChange={() => {
-                      void (async () => {
-                        if (model.status === 'active') {
-                          await props.onStopModel(model.localModelId);
-                          return;
-                        }
-                        await props.onStartModel(model.localModelId);
-                      })();
-                    }}
-                  />
                   <button
                     type="button"
-                    disabled={actionLocked}
                     onClick={() => props.onRemoveModel(model.localModelId)}
                     className="rounded-lg p-1.5 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] hover:text-[var(--nimi-status-danger)]"
                     title={i18n.t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
@@ -426,11 +381,6 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </button>
                 </div>
               </div>
-                {lifecycleError ? (
-                  <p className="mt-2 rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-2 text-xs text-[var(--nimi-status-danger)]">
-                    {lifecycleError}
-                  </p>
-                ) : null}
               </div>
             );})}
           </div>

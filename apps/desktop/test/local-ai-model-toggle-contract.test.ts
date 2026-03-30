@@ -11,6 +11,10 @@ const controllerPath = path.resolve(
   process.cwd(),
   'src/shell/renderer/features/runtime-config/runtime-config-panel-controller-install-actions-models.ts',
 );
+const localPagePath = path.resolve(
+  process.cwd(),
+  'src/shell/renderer/features/runtime-config/runtime-config-page-local.tsx',
+);
 const tauriCommandsPath = path.resolve(
   process.cwd(),
   'src-tauri/src/local_runtime/commands/commands_models_audit.rs',
@@ -18,18 +22,25 @@ const tauriCommandsPath = path.resolve(
 
 const catalogCardSource = readFileSync(catalogCardPath, 'utf-8');
 const controllerSource = readFileSync(controllerPath, 'utf-8');
+const localPageSource = readFileSync(localPagePath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
 
-test('local model center toggle consumes controller lifecycle state and does not own local busy state', () => {
-  assert.doesNotMatch(catalogCardSource, /const \[busyByModelId, setBusyByModelId\] = useState/);
-  assert.match(catalogCardSource, /localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>/);
-  assert.match(catalogCardSource, /const lifecycle = props\.localModelLifecycleById\[model\.localModelId\]/);
-  assert.match(catalogCardSource, /await props\.onStartModel\(model\.localModelId\)/);
-  assert.match(catalogCardSource, /await props\.onStopModel\(model\.localModelId\)/);
-  assert.match(catalogCardSource, /disabled=\{toggleBusy\}/);
+test('local model center installed list is status-only and no longer renders a lifecycle toggle', () => {
+  assert.doesNotMatch(catalogCardSource, /<Toggle/);
+  assert.doesNotMatch(catalogCardSource, /onStartModel:/);
+  assert.doesNotMatch(catalogCardSource, /onStopModel:/);
+  assert.doesNotMatch(catalogCardSource, /localModelLifecycleById:/);
+  assert.match(catalogCardSource, /model\.status === 'installed'/);
+  assert.match(catalogCardSource, /validating/);
 });
 
-test('local model lifecycle controller tracks lifecycle state before local tauri completion and backgrounds sync', () => {
+test('desktop local page no longer wires start\\/stop\\/restart product actions into local model center', () => {
+  assert.doesNotMatch(localPageSource, /onStart=\{model\.startLocalModel\}/);
+  assert.doesNotMatch(localPageSource, /onStop=\{model\.stopLocalModel\}/);
+  assert.doesNotMatch(localPageSource, /onRestart=\{model\.restartLocalModel\}/);
+});
+
+test('runtime local lifecycle controller remains available only as non-product maintenance surface', () => {
   assert.match(controllerSource, /localModelLifecycleById: Record<string, LocalRuntimeModelLifecycleOperation>/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'starting', '', epoch\)/);
   assert.match(controllerSource, /setLifecycleState\(localModelId, 'stopping', '', epoch\)/);

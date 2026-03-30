@@ -40,9 +40,6 @@ export function LocalPage({ model, state }: LocalPageProps) {
         onImportArtifact={model.importLocalArtifact}
         onScaffoldArtifactOrphan={model.scaffoldLocalArtifactOrphan}
         onImportFile={model.importLocalModelFile}
-        onStart={model.startLocalModel}
-        onStop={model.stopLocalModel}
-        onRestart={model.restartLocalModel}
         onRemove={model.removeLocalModel}
         onRemoveArtifact={model.removeLocalArtifact}
         onSetLocalModelQuery={model.setLocalModelQuery}
@@ -56,8 +53,6 @@ export function LocalPage({ model, state }: LocalPageProps) {
         onDownloadComplete={model.onDownloadComplete}
         onRetryInstall={model.retryInstall}
         installSessionMeta={model.installSessionMeta}
-        localModelLifecycleById={model.localModelLifecycleById}
-        localModelLifecycleErrorById={model.localModelLifecycleErrorById}
       />
     </div>
   );

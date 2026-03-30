@@ -4,7 +4,7 @@ import type { StatusBanner } from '@renderer/app-shell/providers/app-store';
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { getOfflineCacheManager } from '@runtime/offline';
 import { discoverLocalModelsFromEndpoint } from './runtime-config-connector-discovery';
-import { localRuntime, reconcileModelsToGoRuntime } from '@runtime/local-runtime';
+import { localRuntime } from '@runtime/local-runtime';
 
 export async function runDiscoverLocalModelsCommand(input: {
   state: RuntimeConfigStateV11;
@@ -38,14 +38,12 @@ export async function runDiscoverLocalModelsCommand(input: {
       : 'Local Runtime model list is up to date',
   });
 
-  // Reconcile Tauri model state → Go runtime in background (non-blocking)
+  // Discovery no longer reconciles a second Desktop-local model registry into runtime.
+  // Runtime is already the SSOT; only cache the discovered endpoint metadata locally.
   void (async () => {
     try {
       const cacheManager = await getOfflineCacheManager();
-      await Promise.all([
-        cacheManager.syncModelManifests(rawModels),
-        reconcileModelsToGoRuntime(rawModels),
-      ]);
+      await cacheManager.syncModelManifests(rawModels);
     } catch (error) {
       await localRuntime.appendAudit({
         eventType: 'runtime_model_sync_failed_during_discovery',
@@ -59,7 +57,7 @@ export async function runDiscoverLocalModelsCommand(input: {
       }).catch(() => null);
       input.setStatusBanner({
         kind: 'warning',
-        message: `Go runtime reconciliation failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: `Local model discovery cache refresh failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
     }
   })();
