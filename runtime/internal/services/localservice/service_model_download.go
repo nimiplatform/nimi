@@ -14,7 +14,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/modelregistry"
-	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -70,12 +69,9 @@ func (s *Service) installManagedDownloadedModel(
 		logicalModelID = filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
 	}
 	modelDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
-	stagingDir := modelDir + "-staging-" + strings.ToLower(ulid.Make().String())
-	if err := os.RemoveAll(stagingDir); err != nil {
-		return nil, fmt.Errorf("cleanup model staging dir: %w", err)
-	}
-	if err := os.MkdirAll(stagingDir, 0o755); err != nil {
-		return nil, fmt.Errorf("create model staging dir: %w", err)
+	stagingDir, err := prepareManagedModelBundleStageDir(modelDir, "staging")
+	if err != nil {
+		return nil, err
 	}
 
 	success := false
@@ -138,13 +134,27 @@ func (s *Service) installManagedDownloadedModel(
 		return nil, err
 	}
 
-	if err := os.RemoveAll(modelDir); err != nil {
-		s.failTransfer(transferID, fmt.Sprintf("remove existing model dir: %v", err), false)
-		return nil, fmt.Errorf("remove existing model dir: %w", err)
-	}
-	if err := os.Rename(stagingDir, modelDir); err != nil {
-		s.failTransfer(transferID, fmt.Sprintf("commit model install: %v", err), false)
-		return nil, fmt.Errorf("commit model install: %w", err)
+	activation, err := activateManagedModelBundle(modelDir, stagingDir)
+	if err != nil {
+		quarantinePath, quarantineErr := s.quarantineManagedModelBundle(
+			modelsRoot,
+			logicalModelID,
+			stagingDir,
+			"managed_model_download_install",
+			fmt.Sprintf("activate bundle: %v", err),
+			modelID,
+			"",
+		)
+		if quarantineErr != nil {
+			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v; quarantine=%v", err, quarantineErr), false)
+			return nil, fmt.Errorf("activate managed model bundle: %v; quarantine=%w", err, quarantineErr)
+		}
+		if strings.TrimSpace(quarantinePath) != "" {
+			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v; quarantine=%s", err, quarantinePath), false)
+		} else {
+			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v", err), false)
+		}
+		return nil, fmt.Errorf("activate managed model bundle: %w", err)
 	}
 	success = true
 
@@ -167,9 +177,26 @@ func (s *Service) installManagedDownloadedModel(
 		"model installed",
 	)
 	if err != nil {
-		_ = os.RemoveAll(modelDir)
+		if quarantinePath, rollbackErr := activation.Rollback(
+			s,
+			modelsRoot,
+			logicalModelID,
+			"managed_model_download_install",
+			err.Error(),
+			modelID,
+			"",
+		); rollbackErr != nil {
+			s.failTransfer(transferID, fmt.Sprintf("%s; rollback=%v", err.Error(), rollbackErr), false)
+			return nil, err
+		} else if strings.TrimSpace(quarantinePath) != "" {
+			s.failTransfer(transferID, fmt.Sprintf("%s; quarantine=%s", err.Error(), quarantinePath), false)
+			return nil, err
+		}
 		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
+	}
+	if commitErr := activation.Commit(); commitErr != nil {
+		s.logger.Warn("cleanup managed bundle backup failed after download install", "logical_model_id", logicalModelID, "error", commitErr)
 	}
 	s.completeTransfer(transferID, "register", "model installed", func(summary *runtimev1.LocalTransferSessionSummary) {
 		summary.LocalModelId = record.GetLocalModelId()

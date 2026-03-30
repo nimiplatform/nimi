@@ -122,6 +122,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       path: assetPath,
       capabilities,
       engine: declaration.engine,
+      endpoint: defaultImportEndpointForAssetDeclaration(declaration),
     });
     return { assetClass: 'model' as const, model: accepted };
   }, []);
@@ -156,6 +157,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       const imported = await localRuntime.importAssetFile({
         filePath,
         declaration,
+        endpoint: defaultImportEndpointForAssetDeclaration(declaration),
       }, { caller: 'core' });
       await handleImportedAsset(filePath, imported);
     } catch (error: unknown) {
@@ -245,4 +247,35 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     variantList,
     variantPickerItem,
   };
+}
+
+function defaultImportEndpointForAssetDeclaration(declaration: LocalRuntimeAssetDeclaration): string {
+  const engine = resolveAssetDeclarationEngine(declaration);
+  switch (engine) {
+    case 'media':
+      return 'http://127.0.0.1:8321/v1';
+    case 'speech':
+      return 'http://127.0.0.1:8330/v1';
+    default:
+      return '';
+  }
+}
+
+function resolveAssetDeclarationEngine(declaration: LocalRuntimeAssetDeclaration): string {
+  const explicitEngine = String(declaration.engine || '').trim().toLowerCase();
+  if (explicitEngine) {
+    return explicitEngine;
+  }
+  switch (declaration.modelType) {
+    case 'image':
+    case 'video':
+      return 'media';
+    case 'tts':
+    case 'stt':
+      return 'speech';
+    case 'music':
+      return 'sidecar';
+    default:
+      return 'llama';
+  }
 }

@@ -476,11 +476,21 @@ func (s *Service) healLegacyManagedLocalImportRecord(localModelID string) (*runt
 			return current, false, fmt.Errorf("no managed bundle manifest matched model_id=%q entry=%q", current.GetModelId(), current.GetEntry())
 		}
 		destDir := runtimeManagedResolvedModelDir(runtimeModelsRoot, desktopCandidate.logicalModelID)
-		if err := os.RemoveAll(destDir); err != nil {
-			return current, false, fmt.Errorf("clear runtime managed bundle: %w", err)
+		stageDir, err := prepareManagedModelBundleStageDir(destDir, "heal")
+		if err != nil {
+			return current, false, err
 		}
-		if err := copyDirRecursive(desktopCandidate.sourceDir, destDir); err != nil {
+		if err := copyDirRecursive(desktopCandidate.sourceDir, stageDir); err != nil {
+			_, _ = s.quarantineManagedModelBundle(runtimeModelsRoot, desktopCandidate.logicalModelID, stageDir, "managed_model_heal", fmt.Sprintf("copy desktop candidate: %v", err), desktopCandidate.modelID, localModelID)
 			return current, false, fmt.Errorf("copy desktop managed bundle into runtime root: %w", err)
+		}
+		activation, err := activateManagedModelBundle(destDir, stageDir)
+		if err != nil {
+			_, _ = s.quarantineManagedModelBundle(runtimeModelsRoot, desktopCandidate.logicalModelID, stageDir, "managed_model_heal", fmt.Sprintf("activate desktop candidate: %v", err), desktopCandidate.modelID, localModelID)
+			return current, false, fmt.Errorf("activate healed managed bundle: %w", err)
+		}
+		if commitErr := activation.Commit(); commitErr != nil {
+			s.logger.Warn("cleanup managed bundle backup failed after heal", "logical_model_id", desktopCandidate.logicalModelID, "error", commitErr)
 		}
 		candidate = managedModelManifestCandidate{
 			manifestPath:   filepath.Join(destDir, "manifest.json"),
@@ -671,11 +681,21 @@ func (s *Service) repairManagedLocalModelBundleFromDesktop(model *runtimev1.Loca
 
 	modelsRoot := s.resolvedLocalModelsPath()
 	destDir := filepath.Join(modelsRoot, "resolved", filepath.FromSlash(logicalModelID))
-	if err := os.RemoveAll(destDir); err != nil {
-		return false, fmt.Errorf("clear invalid runtime managed bundle: %w", err)
+	stageDir, err := prepareManagedModelBundleStageDir(destDir, "repair")
+	if err != nil {
+		return false, err
 	}
-	if err := copyDirRecursive(srcDir, destDir); err != nil {
+	if err := copyDirRecursive(srcDir, stageDir); err != nil {
+		_, _ = s.quarantineManagedModelBundle(modelsRoot, logicalModelID, stageDir, "managed_model_repair", fmt.Sprintf("copy desktop bundle: %v", err), model.GetModelId(), model.GetLocalModelId())
 		return false, fmt.Errorf("repair runtime managed bundle from desktop: %w", err)
+	}
+	activation, err := activateManagedModelBundle(destDir, stageDir)
+	if err != nil {
+		_, _ = s.quarantineManagedModelBundle(modelsRoot, logicalModelID, stageDir, "managed_model_repair", fmt.Sprintf("activate repaired bundle: %v", err), model.GetModelId(), model.GetLocalModelId())
+		return false, fmt.Errorf("activate repaired runtime managed bundle: %w", err)
+	}
+	if commitErr := activation.Commit(); commitErr != nil {
+		s.logger.Warn("cleanup managed bundle backup failed after repair", "logical_model_id", logicalModelID, "error", commitErr)
 	}
 	destManifestPath := filepath.Join(destDir, "manifest.json")
 	s.rewriteManagedLocalModelSourceRepo(model.GetLocalModelId(), destManifestPath)

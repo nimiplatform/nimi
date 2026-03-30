@@ -188,23 +188,29 @@ func (s *Service) importLocalModelFile(
 	logicalModelID := filepath.ToSlash(filepath.Join("nimi", slugifyLocalModelID(modelID)))
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
 	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
-	destFileName := filepath.Base(sourcePath)
-	destFilePath := filepath.Join(destDir, destFileName)
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		s.failTransfer(transferID, fmt.Sprintf("create runtime managed model directory: %v", err), false)
+	binding := resolveInstallRuntimeBinding(engine, strings.TrimSpace(req.GetEndpoint()), collectDeviceProfile())
+	if normalizeRuntimeMode(binding.mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(binding.endpoint) == "" {
+		err := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, err
+	}
+	stageDir, err := prepareManagedModelBundleStageDir(destDir, "import")
+	if err != nil {
+		s.failTransfer(transferID, err.Error(), false)
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
-			Message: fmt.Sprintf("create runtime managed model directory: %v", err),
+			Message: err.Error(),
 		})
 	}
-	if err := maybeMoveOrCopyFile(sourcePath, destFilePath, removeSource); err != nil {
+	destFileName := filepath.Base(sourcePath)
+	stageFilePath := filepath.Join(stageDir, destFileName)
+	if err := maybeMoveOrCopyFile(sourcePath, stageFilePath, removeSource); err != nil {
 		s.failTransfer(transferID, fmt.Sprintf("stage managed model file: %v", err), false)
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message: fmt.Sprintf("stage managed model file: %v", err),
 		})
 	}
 	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local model staged")
-	binding := resolveInstallRuntimeBinding(engine, strings.TrimSpace(req.GetEndpoint()), collectDeviceProfile())
-	manifestPath := runtimeManagedResolvedModelManifestPath(modelsRoot, logicalModelID)
+	manifestPath := filepath.Join(stageDir, "manifest.json")
 	manifest := map[string]any{
 		"schemaVersion":    "1.0.0",
 		"model_id":         modelID,
@@ -227,25 +233,78 @@ func (s *Service) importLocalModelFile(
 	s.updateTransferProgress(transferID, "manifest", 1, 1, "writing runtime manifest")
 	payload, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
+		if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", fmt.Sprintf("serialize manifest: %v", err), modelID); rollbackErr != nil {
+			s.failTransfer(transferID, fmt.Sprintf("serialize runtime managed model manifest: %v; rollback=%v", err, rollbackErr), false)
+			return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+				Message: fmt.Sprintf("serialize runtime managed model manifest: %v", err),
+			})
+		}
 		s.failTransfer(transferID, fmt.Sprintf("serialize runtime managed model manifest: %v", err), false)
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message: fmt.Sprintf("serialize runtime managed model manifest: %v", err),
 		})
 	}
 	if err := os.WriteFile(manifestPath, payload, 0o644); err != nil {
+		if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", fmt.Sprintf("write manifest: %v", err), modelID); rollbackErr != nil {
+			s.failTransfer(transferID, fmt.Sprintf("write runtime managed model manifest: %v; rollback=%v", err, rollbackErr), false)
+			return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+				Message: fmt.Sprintf("write runtime managed model manifest: %v", err),
+			})
+		}
 		s.failTransfer(transferID, fmt.Sprintf("write runtime managed model manifest: %v", err), false)
 		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
 			Message: fmt.Sprintf("write runtime managed model manifest: %v", err),
 		})
 	}
+	activation, err := activateManagedModelBundle(destDir, stageDir)
+	if err != nil {
+		if _, rollbackErr := s.rollbackManagedModelStageBeforeActivation(modelsRoot, logicalModelID, sourcePath, stageFilePath, stageDir, removeSource, "local_model_import", fmt.Sprintf("activate bundle: %v", err), modelID); rollbackErr != nil {
+			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v; rollback=%v", err, rollbackErr), false)
+			return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+				Message: fmt.Sprintf("activate managed model bundle: %v", err),
+			})
+		}
+		s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v", err), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+			Message: fmt.Sprintf("activate managed model bundle: %v", err),
+		})
+	}
+	manifestPath = runtimeManagedResolvedModelManifestPath(modelsRoot, logicalModelID)
 	s.updateTransferProgress(transferID, "register", 1, 1, "registering local model")
 	imported, err := s.ImportLocalModel(ctx, &runtimev1.ImportLocalModelRequest{
 		ManifestPath: manifestPath,
 		Endpoint:     binding.endpoint,
 	})
 	if err != nil {
+		restoreErr := error(nil)
+		if removeSource {
+			restorePath := filepath.Join(destDir, destFileName)
+			if _, statErr := os.Stat(restorePath); statErr == nil {
+				restoreErr = maybeMoveOrCopyFile(restorePath, sourcePath, false)
+			} else if statErr != nil && !os.IsNotExist(statErr) {
+				restoreErr = statErr
+			}
+		}
+		if quarantinePath, rollbackErr := activation.Rollback(s, modelsRoot, logicalModelID, "local_model_import", err.Error(), modelID, ""); rollbackErr != nil {
+			s.failTransfer(transferID, fmt.Sprintf("%s; restore_source=%v; rollback=%v", err.Error(), restoreErr, rollbackErr), false)
+			return nil, err
+		} else if strings.TrimSpace(quarantinePath) != "" {
+			if restoreErr != nil {
+				s.failTransfer(transferID, fmt.Sprintf("%s; restore_source=%v; quarantine=%s", err.Error(), restoreErr, quarantinePath), false)
+				return nil, err
+			}
+			s.failTransfer(transferID, fmt.Sprintf("%s; quarantine=%s", err.Error(), quarantinePath), false)
+			return nil, err
+		}
+		if restoreErr != nil {
+			s.failTransfer(transferID, fmt.Sprintf("%s; restore_source=%v", err.Error(), restoreErr), false)
+			return nil, err
+		}
 		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
+	}
+	if commitErr := activation.Commit(); commitErr != nil {
+		s.logger.Warn("cleanup managed bundle backup failed after import", "logical_model_id", logicalModelID, "error", commitErr)
 	}
 	s.completeTransfer(transferID, "register", "local model imported", func(summary *runtimev1.LocalTransferSessionSummary) {
 		summary.LocalModelId = imported.GetModel().GetLocalModelId()

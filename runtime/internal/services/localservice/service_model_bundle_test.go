@@ -530,3 +530,113 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T)
 		t.Fatalf("runtime mode = %s", mode.String())
 	}
 }
+
+func TestRepairManagedLocalModelBundleFromDesktopPreservesExistingBundleOnStageFailure(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
+	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		t.Fatalf("mkdir runtime bundle dir: %v", err)
+	}
+	oldEntryPath := filepath.Join(destDir, "Qwen3-4B-Q4_K_M.gguf")
+	if err := os.WriteFile(oldEntryPath, []byte("old-runtime-bundle"), 0o644); err != nil {
+		t.Fatalf("write old runtime bundle: %v", err)
+	}
+
+	srcDir := filepath.Join(homeDir, ".nimi", "data", "models", "resolved", filepath.FromSlash(logicalModelID))
+	if err := os.MkdirAll(srcDir, 0o755); err != nil {
+		t.Fatalf("mkdir desktop bundle dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "Qwen3-4B-Q4_K_M.gguf"), validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write desktop entry: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "manifest.json"), []byte(`{"model_id":"local/local-import/Qwen3-4B-Q4_K_M","logical_model_id":"nimi/local-import-qwen3-4b-q4-k-m","engine":"llama","entry":"Qwen3-4B-Q4_K_M.gguf","capabilities":["chat"]}`), 0o644); err != nil {
+		t.Fatalf("write desktop manifest: %v", err)
+	}
+	extraPath := filepath.Join(srcDir, "extra.bin")
+	if err := os.WriteFile(extraPath, []byte("blocked"), 0o000); err != nil {
+		t.Fatalf("write unreadable extra file: %v", err)
+	}
+
+	model := &runtimev1.LocalModelRecord{
+		LocalModelId:   "local_model_qwen",
+		ModelId:        "local/local-import/Qwen3-4B-Q4_K_M",
+		Engine:         "llama",
+		Entry:          "Qwen3-4B-Q4_K_M.gguf",
+		LogicalModelId: logicalModelID,
+	}
+	_, err := svc.repairManagedLocalModelBundleFromDesktop(model)
+	if err == nil {
+		t.Fatal("expected repair to fail when staging desktop bundle")
+	}
+	currentBytes, readErr := os.ReadFile(oldEntryPath)
+	if readErr != nil {
+		t.Fatalf("read preserved runtime bundle: %v", readErr)
+	}
+	if string(currentBytes) != "old-runtime-bundle" {
+		t.Fatalf("runtime bundle should remain untouched, got=%q", string(currentBytes))
+	}
+}
+
+func TestHealLegacyManagedLocalImportRecordPreservesExistingRuntimeDirOnStageFailure(t *testing.T) {
+	homeDir := t.TempDir()
+	t.Setenv("HOME", homeDir)
+
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
+	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		t.Fatalf("mkdir runtime dir: %v", err)
+	}
+	oldEntryPath := filepath.Join(destDir, "Qwen3-4B_Q4_K_M.gguf")
+	if err := os.WriteFile(oldEntryPath, []byte("old-runtime-dir"), 0o644); err != nil {
+		t.Fatalf("write old runtime file: %v", err)
+	}
+
+	srcDir := filepath.Join(homeDir, ".nimi", "data", "models", "resolved", filepath.FromSlash(logicalModelID))
+	if err := os.MkdirAll(srcDir, 0o755); err != nil {
+		t.Fatalf("mkdir desktop dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "Qwen3-4B_Q4_K_M.gguf"), validTestGGUF(), 0o644); err != nil {
+		t.Fatalf("write desktop entry: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "manifest.json"), []byte(`{"model_id":"local/local-import/Qwen3-4B_Q4_K_M","logical_model_id":"nimi/local-import-qwen3-4b-q4-k-m","engine":"llama","entry":"Qwen3-4B_Q4_K_M.gguf","capabilities":["chat"],"integrity_mode":"local_unverified"}`), 0o644); err != nil {
+		t.Fatalf("write desktop manifest: %v", err)
+	}
+	extraPath := filepath.Join(srcDir, "extra.bin")
+	if err := os.WriteFile(extraPath, []byte("blocked"), 0o000); err != nil {
+		t.Fatalf("write unreadable extra file: %v", err)
+	}
+
+	localModelID := "legacy_local_model"
+	svc.mu.Lock()
+	svc.models[localModelID] = &runtimev1.LocalModelRecord{
+		LocalModelId:   localModelID,
+		ModelId:        "local/local-import/Qwen3-4B_Q4_K_M",
+		Capabilities:   []string{"chat"},
+		Engine:         "llama",
+		Entry:          "Qwen3-4B_Q4_K_M.gguf",
+		Source:         &runtimev1.LocalModelSource{Repo: "local-import/local-import-qwen3-4b-q4-k-m", Revision: "local"},
+		LogicalModelId: "local/local-import/Qwen3-4B_Q4_K_M",
+	}
+	svc.setModelRuntimeModeLocked(localModelID, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.persistStateLocked()
+	svc.mu.Unlock()
+
+	_, _, err := svc.healLegacyManagedLocalImportRecord(localModelID)
+	if err == nil {
+		t.Fatal("expected heal to fail when staging desktop candidate")
+	}
+	currentBytes, readErr := os.ReadFile(oldEntryPath)
+	if readErr != nil {
+		t.Fatalf("read preserved runtime dir file: %v", readErr)
+	}
+	if string(currentBytes) != "old-runtime-dir" {
+		t.Fatalf("runtime dir contents should remain untouched, got=%q", string(currentBytes))
+	}
+}
