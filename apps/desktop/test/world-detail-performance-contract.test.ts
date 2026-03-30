@@ -92,6 +92,8 @@ test('explore shares the world list cache key and does not refetch agents when w
 });
 
 test('auth preload warms lightweight contacts instead of the full social snapshot', () => {
-  assert.match(authStateWatcherSource, /void dataSync\.loadContacts\(\)\.catch\(\(\) => \{\}\);/);
+  assert.match(authStateWatcherSource, /void dataSync\.loadContacts\(\)\.catch\(\(error\) => \{/);
+  assert.match(authStateWatcherSource, /message: 'phase:auth-contacts-prewarm:failed'/);
   assert.doesNotMatch(authStateWatcherSource, /void dataSync\.loadSocialSnapshot\(\)\.catch\(\(\) => \{\}\);/);
+  assert.doesNotMatch(authStateWatcherSource, /void dataSync\.loadContacts\(\)\.catch\(\(\) => \{\}\);/);
 });

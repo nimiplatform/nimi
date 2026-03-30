@@ -276,6 +276,61 @@ test('Realm refresh failure calls onRefreshFailed and throws original 401 error'
   }
 });
 
+test('Realm refresh failure preserves unreadable error-body diagnostics', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (input: RequestInfo | URL): Promise<Response> => {
+    const url = resolveFetchUrl(input);
+
+    if (url.endsWith('/api/auth/refresh')) {
+      const response = new Response('', {
+        status: 401,
+        statusText: 'Unauthorized',
+        headers: { 'content-type': 'application/json' },
+      });
+      Object.defineProperty(response, 'text', {
+        value: async () => {
+          throw new Error('stream locked');
+        },
+      });
+      return response;
+    }
+
+    return new Response(JSON.stringify({
+      message: 'access token expired',
+      reasonCode: ReasonCode.APP_TOKEN_EXPIRED,
+    }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }) as typeof globalThis.fetch;
+
+  try {
+    const realm = new Realm({
+      baseUrl: 'https://realm-refresh-unreadable.nimi.xyz',
+      auth: {
+        accessToken: 'expired-token',
+        refreshToken: 'expired-refresh-token',
+      },
+    });
+
+    let thrown: unknown = null;
+    try {
+      await realm.unsafeRaw.request({ method: 'GET', path: '/api/protected' });
+    } catch (error) {
+      thrown = error;
+    }
+
+    assert.ok(thrown);
+    const nimiError = asNimiError(thrown, { source: 'realm' });
+    assert.equal(nimiError.code, ReasonCode.AUTH_DENIED);
+    assert.equal(nimiError.details?.responseBodyReadable, false);
+    assert.equal(nimiError.details?.responseBodyReadError, 'stream locked');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('Realm 403 does not trigger refresh', async () => {
   const originalFetch = globalThis.fetch;
   let refreshCalled = false;

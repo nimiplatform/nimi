@@ -272,3 +272,34 @@ test('node-grpc: closeStream with empty streamId returns silently (no bridge)', 
     clearNodeGrpcBridge();
   }
 });
+
+test('node-grpc: destroy closes an initialized runtime client without relying on catch-null cleanup', async () => {
+  setNodeGrpcBridge(null);
+  const grpc = await import('@grpc/grpc-js');
+  const originalClose = grpc.Client.prototype.close;
+  let closeCalls = 0;
+
+  grpc.Client.prototype.close = function closePatched(this: InstanceType<typeof grpc.Client>) {
+    closeCalls += 1;
+    return originalClose.call(this);
+  };
+
+  try {
+    const transport = createNodeGrpcTransport({ type: 'node-grpc', endpoint: '127.0.0.1:1' });
+
+    await assert.rejects(
+      () => transport.invokeUnary({
+        methodId: '/runtime.v1.Runtime/Ping',
+        request: new Uint8Array(0),
+        metadata: {} as RuntimeUnaryCall['metadata'],
+        timeoutMs: 50,
+      }),
+    );
+
+    await assert.doesNotReject(() => transport.destroy());
+    assert.equal(closeCalls, 1);
+  } finally {
+    grpc.Client.prototype.close = originalClose;
+    clearNodeGrpcBridge();
+  }
+});

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './infra/query-client.js';
-import { bootstrap, syncAuthenticatedRendererState } from './infra/bootstrap.js';
+import { bootstrap } from './infra/bootstrap.js';
 import { MainLayout } from './app-shell/layout/main-layout.js';
 import { ChatPage } from './features/chat/chat-page.js';
 import { useSettingsStore } from './app-shell/providers/settings-store.js';
@@ -16,7 +16,6 @@ import { AuthLoginPage } from './features/auth/auth-login-page.js';
 export function App() {
   const { t } = useTranslation();
   const authState = useAppStore((s) => s.authState);
-  const [ready, setReady] = useState(false);
   const [authSessionReady, setAuthSessionReady] = useState(false);
 
   useEffect(() => {
@@ -38,14 +37,9 @@ export function App() {
     }
   }, []);
 
-  useEffect(() => {
-    bootstrap().then(() => {
-      setReady(true);
-      // Load product settings after bootstrap
-      useSettingsStore.getState().load();
-    });
-  }, []);
-
+  // Bootstrap + settings load only after authentication — IPC handlers for
+  // health, config, settings, etc. are registered in the main process only
+  // after successful auth (RL-BOOT-005).
   useEffect(() => {
     if (authState !== 'authenticated') {
       setAuthSessionReady(false);
@@ -55,9 +49,14 @@ export function App() {
     let cancelled = false;
     setAuthSessionReady(false);
 
-    syncAuthenticatedRendererState()
+    bootstrap()
+      .then(() => {
+        if (!cancelled) {
+          return useSettingsStore.getState().load();
+        }
+      })
       .catch(() => {
-        // Renderer should still render even if post-auth sync partially fails.
+        // Bootstrap/settings failure is non-fatal — store surfaces the error.
       })
       .finally(() => {
         if (!cancelled) {
@@ -74,7 +73,7 @@ export function App() {
     return <AuthLoginPage />;
   }
 
-  if (!ready || !authSessionReady) {
+  if (!authSessionReady) {
     return (
       <div className="flex items-center justify-center h-screen bg-bg-base text-text-primary">
         <div className="text-center">

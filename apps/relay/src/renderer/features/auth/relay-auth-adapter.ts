@@ -59,7 +59,7 @@ export function createRelayAuthAdapter(): AuthPlatformAdapter {
     loadCurrentUser: async () => {
       return await bridge.auth.currentUser({
         accessToken: currentAccessToken || undefined,
-      }).catch(() => null);
+      });
     },
 
     applyToken: async (accessToken) => {

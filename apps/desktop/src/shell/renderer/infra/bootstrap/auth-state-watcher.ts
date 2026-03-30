@@ -40,7 +40,16 @@ export function startAuthStateWatcher() {
       }
       // 首次登录时只预热好友图谱，避免把 creator agents 大列表塞进启动竞争路径。
       if (prev.status !== 'authenticated') {
-        void dataSync.loadContacts().catch(() => {});
+        void dataSync.loadContacts().catch((error) => {
+          logRendererEvent({
+            level: 'error',
+            area: 'auth-state-watcher',
+            message: 'phase:auth-contacts-prewarm:failed',
+            details: {
+              error: error instanceof Error ? error.message : String(error || 'unknown error'),
+            },
+          });
+        });
       }
     } else if (auth.status === 'anonymous' && prev.status !== 'anonymous') {
       dataSync.setToken('');

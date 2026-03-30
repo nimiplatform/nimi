@@ -9,6 +9,7 @@ import path from 'node:path';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { parseEnv } from '../src/main/env.js';
 import { useAppStore, type Agent } from '../src/renderer/app-shell/providers/app-store.js';
+import { createRelayAuthAdapter } from '../src/renderer/features/auth/relay-auth-adapter.js';
 import type { NimiRelayBridge } from '../src/renderer/bridge/electron-bridge.js';
 import { syncAuthenticatedRendererState } from '../src/renderer/infra/bootstrap.js';
 
@@ -502,5 +503,40 @@ describe('RL-CORE-003 — Agent Resolution at Bootstrap', () => {
     assert.equal(result.agentId, 'existing-agent');
     assert.equal(useAppStore.getState().currentAgent?.id, 'existing-agent');
     assert.equal(useAppStore.getState().currentAgent?.name, 'Existing Agent');
+  });
+
+  it('relay auth adapter surfaces current-user bridge failures instead of returning null', async () => {
+    const previousWindow = globalThis.window;
+    Object.defineProperty(globalThis, 'window', {
+      value: {
+        nimiRelay: {
+          auth: {
+            currentUser: async () => {
+              throw new Error('current user failed');
+            },
+          },
+          oauth: {
+            listenForCode: async () => ({ callbackUrl: 'http://127.0.0.1/callback' }),
+            tokenExchange: async () => ({ accessToken: 'token' }),
+            openExternalUrl: async () => ({ opened: true }),
+            focusMainWindow: async () => undefined,
+          },
+        },
+      },
+      configurable: true,
+    });
+
+    try {
+      const adapter = createRelayAuthAdapter();
+      await assert.rejects(
+        () => adapter.loadCurrentUser(),
+        /current user failed/,
+      );
+    } finally {
+      Object.defineProperty(globalThis, 'window', {
+        value: previousWindow,
+        configurable: true,
+      });
+    }
   });
 });

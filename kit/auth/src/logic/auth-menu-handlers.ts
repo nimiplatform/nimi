@@ -305,7 +305,7 @@ export async function handleSetPasswordAfterOtp(
   try {
     await adapter.updatePassword(password);
 
-    const latestUser = await adapter.loadCurrentUser().catch(() => null);
+    const latestUser = await adapter.loadCurrentUser();
     const latestUserRecord = latestUser && typeof latestUser === 'object'
       ? (latestUser as AuthTokensDto['user'])
       : null;

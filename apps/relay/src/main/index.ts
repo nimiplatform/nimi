@@ -144,10 +144,17 @@ app.whenReady().then(async () => {
   // Step 1: Parse environment variables (RL-BOOT-003)
   env = parseEnv();
 
-  // Step 2: Register auth + desktop interop IPC handlers early (before window needs them)
+  // Step 2: Register auth + desktop interop + config IPC handlers early (before window needs them)
   const { registerAuthIpcHandlers } = await import('./ipc-handlers.js');
   registerAuthIpcHandlers(env, () => mainWindow);
   registerDesktopInteropHandlers();
+
+  // relay:config only reads env — no runtime/realm needed, safe to register pre-auth
+  const { safeHandle } = await import('./ipc-utils.js');
+  safeHandle('relay:config', () => ({
+    agentId: env.NIMI_AGENT_ID ?? null,
+    worldId: env.NIMI_WORLD_ID ?? null,
+  }));
 
   // Step 3: Create window immediately so user sees UI
   createWindow();

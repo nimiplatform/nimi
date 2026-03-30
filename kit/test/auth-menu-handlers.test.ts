@@ -6,6 +6,7 @@ import type { AuthMenuSetters, DesktopCallbackContext } from '../auth/src/logic/
 import { AUTH_COPY } from '../auth/src/logic/auth-copy.js';
 import {
   handleEmailLogin,
+  handleSetPasswordAfterOtp,
 } from '../auth/src/logic/auth-menu-handlers.js';
 import {
   handleConfirmDesktopAuthorization,
@@ -31,9 +32,11 @@ function createSetters() {
   const state: {
     loginError: string | null;
     view: string | null;
+    authSessionCalls: number;
   } = {
     loginError: null,
     view: null,
+    authSessionCalls: 0,
   };
   const setters: AuthMenuSetters = {
     setView: (view) => {
@@ -50,7 +53,9 @@ function createSetters() {
     setTwoFactorCode: () => undefined,
     setTwoFactorReturnView: () => undefined,
     setStatusBanner: () => undefined,
-    setAuthSession: () => undefined,
+    setAuthSession: () => {
+      state.authSessionCalls += 1;
+    },
   };
   return { state, setters };
 }
@@ -148,5 +153,32 @@ describe('auth menu handlers', () => {
 
     expect(state.loginError).toBe(AUTH_COPY.desktopPermissionDenied);
     expect(state.view).toBe('main');
+  });
+
+  it('fails closed when password setup cannot reload the latest user', async () => {
+    const { state, setters } = createSetters();
+    const adapter = createAdapter({
+      updatePassword: async () => undefined,
+      loadCurrentUser: async () => {
+        throw new Error('current user reload failed');
+      },
+    });
+
+    await handleSetPasswordAfterOtp(
+      createEvent(),
+      'secret123',
+      'secret123',
+      {
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        user: { id: 'user-1' },
+      } as never,
+      setters,
+      createDesktopContext(),
+      adapter,
+    );
+
+    expect(state.loginError).toBe(AUTH_COPY.setPasswordFailed);
+    expect(state.authSessionCalls).toBe(0);
   });
 });

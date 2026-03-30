@@ -606,12 +606,13 @@ export function createNodeGrpcTransport(
   const destroyInternal = async (): Promise<void> => {
     const streamIds = Array.from(openStreams.keys());
     await Promise.allSettled(streamIds.map((streamId) => closeStreamInternal({ streamId })));
-    const runtime = runtimePromise
-      ? await runtimePromise.catch(() => null)
-      : null;
+    const pendingRuntime = runtimePromise;
     runtimePromise = null;
-    if (runtime) {
-      runtime.client.close();
+    if (pendingRuntime) {
+      const [runtimeResult] = await Promise.allSettled([pendingRuntime]);
+      if (runtimeResult?.status === 'fulfilled') {
+        runtimeResult.value.client.close();
+      }
     }
     streamCounter = 0;
   };

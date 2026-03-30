@@ -2,7 +2,7 @@ import createClient from 'openapi-fetch';
 import { createEventBus } from '../internal/event-bus.js';
 import type { JsonObject } from '../internal/utils.js';
 import { ReasonCode } from '../types/index.js';
-import { createNimiError } from '../runtime/errors.js';
+import { asNimiError, createNimiError } from '../runtime/errors.js';
 import type { NimiError } from '../types/index.js';
 import type { paths } from './generated/schema.js';
 import {
@@ -80,6 +80,25 @@ function resolvePositiveTimeoutMs(value: unknown, fallback: number): number {
     });
   }
   return timeoutMs;
+}
+
+async function readErrorResponseBodyWithDiagnostics(
+  response: Response,
+): Promise<{ body: JsonObject; details: JsonObject }> {
+  try {
+    return {
+      body: readErrorBody(await response.text()),
+      details: {},
+    };
+  } catch (error) {
+    return {
+      body: {},
+      details: {
+        responseBodyReadable: false,
+        responseBodyReadError: error instanceof Error ? error.message : String(error || 'unknown error'),
+      },
+    };
+  }
 }
 
 type RealmHttpMethod = (typeof REALM_HTTP_METHODS)[number];
@@ -336,6 +355,7 @@ export class Realm {
     let externalAbortTriggered = false;
     let refreshAttempted = false;
     let retryAttempt = 0;
+    let refreshFailure: NimiError | null = null;
 
     try {
       if (timeoutController) {
@@ -425,6 +445,7 @@ export class Realm {
                   try {
                     this.#options.auth?.onRefreshFailed?.(refreshError);
                   } catch { /* observer callback must not break error flow */ }
+                  refreshFailure = asNimiError(refreshError, { source: 'realm' });
                 }
               }
 
@@ -445,7 +466,14 @@ export class Realm {
                 traceId: mapped.traceId || undefined,
                 retryable: mapped.retryable,
                 source: 'realm',
-                details: mapped.details,
+                details: refreshFailure?.details
+                  ? {
+                      ...mapped.details,
+                      refreshFailureReasonCode: refreshFailure.reasonCode,
+                      refreshFailureMessage: refreshFailure.message,
+                      ...refreshFailure.details,
+                    }
+                  : mapped.details,
               });
             }
 
@@ -560,9 +588,7 @@ export class Realm {
     });
 
     if (!response.ok) {
-      const body = readErrorBody(
-        await response.text().catch(() => ''),
-      );
+      const { body, details: readDetails } = await readErrorResponseBodyWithDiagnostics(response);
       const mapped = extractResponseReasonCode(body, response);
       throw createNimiError({
         message: mapped.message || 'token refresh failed',
@@ -571,7 +597,10 @@ export class Realm {
         actionHint: mapped.actionHint,
         traceId: mapped.traceId || undefined,
         source: 'realm',
-        details: mapped.details,
+        details: {
+          ...mapped.details,
+          ...readDetails,
+        },
       });
     }
 
