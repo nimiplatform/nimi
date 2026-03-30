@@ -1,7 +1,7 @@
 # Nimi Platform 技术规范
 
 > 本文档由 `scripts/generate-spec-human-doc.mjs` 自动生成，是 `spec/` 目录的人类可读版本。
-> 生成时间: 2026-03-29
+> 生成时间: 2026-03-30
 >
 > 权威规则定义位于 spec/ 原始文件中。如需修改，请编辑原始文件后重新生成。
 
@@ -133,7 +133,9 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 
 **K-RPC-004 — RuntimeLocalService 方法集合**
 
-`RuntimeLocalService` 方法按三层分级：
+`RuntimeLocalService` 是本地模型控制面的唯一稳定 RPC 面。local model / artifact 的清单、状态、health、audit、import/install/download、orphan adopt/scaffold 与 transfer/progress 必须全部由该服务持有；desktop 不得再拥有并回写第二套本地模型真源。
+
+`RuntimeLocalService` 方法按四层分级：
 
 **Tier 1 — 核心生命周期：**
 
@@ -144,47 +146,57 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 5. `InstallVerifiedArtifact`
 6. `ImportLocalModel`
 7. `ImportLocalArtifact`
-8. `RemoveLocalModel`
-9. `RemoveLocalArtifact`
-10. `StartLocalModel`
-11. `StopLocalModel`
-12. `CheckLocalModelHealth`
-13. `WarmLocalModel`
+8. `ImportLocalModelFile`
+9. `ImportLocalArtifactFile`
+10. `RemoveLocalModel`
+11. `RemoveLocalArtifact`
+12. `StartLocalModel`
+13. `StopLocalModel`
+14. `CheckLocalModelHealth`
+15. `WarmLocalModel`
 
-**Tier 2 — 目录、伴随资产与计划：**
+**Tier 2 — 目录、伴随资产、intake 与 transfer：**
 
-14. `ListVerifiedModels`
-15. `ListVerifiedArtifacts`
-16. `SearchCatalogModels`
-17. `ResolveModelInstallPlan`
-18. `CollectDeviceProfile`
+16. `ListVerifiedModels`
+17. `ListVerifiedArtifacts`
+18. `SearchCatalogModels`
+19. `ResolveModelInstallPlan`
+20. `CollectDeviceProfile`
+21. `ScanUnregisteredAssets`
+22. `ScaffoldOrphanModel`
+23. `ScaffoldOrphanArtifact`
+24. `ListLocalTransfers`
+25. `PauseLocalTransfer`
+26. `ResumeLocalTransfer`
+27. `CancelLocalTransfer`
+28. `WatchLocalTransfers`
 
 **Tier 3 — 服务/节点/依赖/审计：**
 
-19. `ListLocalServices`
-20. `InstallLocalService`
-21. `StartLocalService`
-22. `StopLocalService`
-23. `CheckLocalServiceHealth`
-24. `RemoveLocalService`
-25. `ListNodeCatalog`
-26. `ResolveProfile`
-27. `ApplyProfile`
-28. `ListLocalAudits`
-29. _(reserved for stable RPC numbering)_
-30. _(reserved for stable RPC numbering)_
-31. `AppendInferenceAudit`
-32. `AppendRuntimeAudit`
+29. `ListLocalServices`
+30. `InstallLocalService`
+31. `StartLocalService`
+32. `StopLocalService`
+33. `CheckLocalServiceHealth`
+34. `RemoveLocalService`
+35. `ListNodeCatalog`
+36. `ResolveProfile`
+37. `ApplyProfile`
+38. `ListLocalAudits`
+39. _(reserved for stable RPC numbering)_
+40. _(reserved for stable RPC numbering)_
+41. `AppendInferenceAudit`
+42. `AppendRuntimeAudit`
 
 **Tier 4 — 引擎进程管理（K-LENG-004）：**
 
-33. `ListEngines`
-34. `EnsureEngine`
-35. `StartEngine`
-36. `StopEngine`
-37. `GetEngineStatus`
+43. `ListEngines`
+44. `EnsureEngine`
+45. `StartEngine`
+46. `StopEngine`
+47. `GetEngineStatus`
 
-`WarmLocalModel` 的语义限定为“就绪/预热”读路径：允许解析已安装 local model / local service、触发一次最小执行以加载模型，但不得改变安装态、配置态或 desktop 独占的生命周期写权限（`K-LOCAL-028`）。
+`WarmLocalModel` 的语义限定为 runtime-owned 的“就绪/预热”路径：允许解析已安装 local model / local service，并在首次真实请求前触发最小执行以加载模型。对于 chat/text，本地模型在 `status in {installed, active}` 时可被选择，runtime 在首次真实 text 请求前负责 warm，不得要求 desktop 先行维持第二套 start/stop 真源。
 
 ---
 
@@ -1928,47 +1940,33 @@ Mod 本地持久化与审计命令集（`runtime_mod::commands`）：
 
 Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`），命令集统一使用 `runtime_local_*` 前缀（`local_runtime::commands`）：
 
-- `runtime_local_models_list` / `runtime_local_models_verified_list`：列出本地/验证模型。
-- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants`：目录搜索与变体列举。
-- `runtime_local_models_catalog_resolve_install_plan`：解析安装计划。
-- `runtime_local_recommendation_feed_get`：读取 capability-scoped recommendation feed；由 Desktop/Tauri 负责 model-index 拉取、本地缓存、设备适配计算与排序。
-- `runtime_local_models_install` / `runtime_local_models_install_verified` / `runtime_local_models_import`：创建安装会话并入队 / 导入模型。
-- `runtime_local_models_import_file`：导入模型文件（copy + manifest 生成 + register）；该路径属于 `local_unverified` intake，不执行同步整文件 hash 校验。
-- `runtime_local_models_adopt`：将 go-runtime 已存在的结构化 local model record 纳管到 Desktop/Tauri state，不触发下载或类型选择。
-- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输会话查询与控制。payload 通过 `sessionKind` 区分网络下载（`download`）与本地文件导入（`import`）；pause/resume/cancel 仅对 `download` 语义开放。
-- `runtime_local_models_start` / `runtime_local_models_stop` / `runtime_local_models_remove`：模型生命周期管理。
-- `runtime_local_models_health`：模型健康检查。
+- 以下命令仍可存在于 Tauri allowlist，但若 shipped product path 覆盖同等能力，必须视为 host helper 而非本地模型真源：`runtime_local_models_list`、`runtime_local_artifacts_list`、`runtime_local_artifacts_verified_list`、`runtime_local_models_verified_list`、`runtime_local_services_list`、`runtime_local_services_install`、`runtime_local_services_start`、`runtime_local_services_stop`、`runtime_local_services_health`、`runtime_local_services_remove`、`runtime_local_nodes_catalog_list`。
+- 以下命令仍可存在于 Tauri allowlist，但 install/import/remove/start/stop/health 的权威执行面必须是 `RuntimeLocalService`：`runtime_local_models_install`、`runtime_local_models_install_verified`、`runtime_local_artifacts_install_verified`、`runtime_local_models_import`、`runtime_local_artifacts_import`、`runtime_local_models_import_file`、`runtime_local_models_remove`、`runtime_local_artifacts_remove`、`runtime_local_models_start`、`runtime_local_models_stop`、`runtime_local_models_health`。
+- 以下命令仍可存在于 Tauri allowlist，但 unregistered asset / orphan / transfer product语义不得再以 host-local state 为准：`runtime_local_downloads_list`、`runtime_local_downloads_pause`、`runtime_local_downloads_resume`、`runtime_local_downloads_cancel`、`runtime_local_models_scan_orphans`、`runtime_local_models_scaffold_orphan`、`runtime_local_artifacts_scan_orphans`、`runtime_local_artifacts_scaffold_orphan`。
+
+- `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
+- `runtime_local_recommendation_feed_get`：host-local recommendation helper；可提供 capability-scoped feed，但 install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
+- `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：Desktop host profile helper；不得回写本地模型状态真源。
+- `runtime_local_models_adopt` / `runtime_local_artifacts_adopt`：host-side adopt helper；不得形成 Desktop/Tauri state 的独立纳管结果，产品语义必须以 runtime 返回记录为准。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
 - `runtime_local_models_reveal_root_folder`：在系统文件管理器中打开 runtime models 根目录。
-- `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：保留底层 main-model orphan detect/scaffold surface；统一 desktop intake UI 默认应优先使用 `runtime_local_assets_scan_unregistered`，但 specialized main-model flow 仍可复用该命令面。
-- `runtime_local_artifacts_list` / `runtime_local_artifacts_verified_list`：列出已安装 / verified companion artifacts。
-- `runtime_local_artifacts_install_verified` / `runtime_local_artifacts_import` / `runtime_local_artifacts_remove`：companion artifact 安装、导入、移除。
-- `runtime_local_artifacts_scan_orphans`：保留底层 companion orphan detect surface；统一 desktop intake UI 默认应优先使用 `runtime_local_assets_scan_unregistered`。
-- `runtime_local_artifacts_scaffold_orphan`：将 companion file scaffold 为 canonical `artifact.manifest.json`，随后再经 `runtime_local_artifacts_import` 纳管。
-- `runtime_local_artifacts_adopt`：将 go-runtime 已存在的结构化 companion artifact record 纳管到 Desktop/Tauri state，不触发下载或导入。
-- `runtime_local_assets_scan_unregistered`：扫描 `~/.nimi/models/` 根目录与一级子目录下未被 state 纳管的裸文件，返回统一 asset declaration suggestion、confidence 与 review state。
+- `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<logical-model-id>/manifest.json` 或 `artifacts/<artifact-id>/artifact.manifest.json`。
-- `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：推理与运行时审计。
+- `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：host helper 命令保留仅为 tooling / bridge 对接；产品审计真相仍由 runtime 持有。
 - `runtime_local_pick_manifest_path`：选取 `~/.nimi/models/**/resolved/**/manifest.json` 或兼容的当前 resolved manifest 路径。
 - `runtime_local_pick_artifact_manifest_path`：选取 `~/.nimi/models/**/artifact.manifest.json`。
 - `runtime_local_pick_model_file`：选取任意待导入的主模型文件。
-- `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：本地服务管理。
-- `runtime_local_nodes_catalog_list`：列出活跃服务的能力节点。
-- `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile-centric mod install flow 的一等 Tauri 命令，负责解析并执行 `manifest.ai.profiles` 中的 runtime entries。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
-- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants` / `runtime_local_models_catalog_resolve_install_plan` 返回面允许附带统一 `recommendation` payload。
+- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_resolve_install_plan` 若仍存在于 host helper 面，返回 payload 不得取代 runtime catalog/install-plan 真源。
 - recommendation page 允许新增只读的 `runtime_local_recommendation_feed_get` surface，用于 capability-scoped candidate feed；install 仍必须复用现有 `resolve_install_plan` / install-plan payload，不得新增私有安装协议。
 - `runtime_local_device_profile_collect` 返回的设备画像必须包含 `total_ram_bytes`、`available_ram_bytes`，以及 GPU `total_vram_bytes?`、`available_vram_bytes?`、`memory_model`。
-- `local-runtime://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
-companion artifact 补充：
+产品约束：
 
-- artifact list / verified list / install / import / remove 是一等 `runtime_local_artifacts_*` Tauri commands，数据真相由 Desktop/Tauri local runtime state 维护。
-- companion acquisition 支持 verified artifact install、`artifact.manifest.json` import，以及统一 local asset intake 下的 artifact review/scaffold；不得要求用户手写 manifest。
-- `runtime_local_artifacts_scaffold_orphan` 固定生成 canonical local artifact manifest，随后再经 `runtime_local_artifacts_import` 纳管。
-- verified companion install 的失败恢复通过 desktop `Artifact Tasks` 行内 `Retry` 完成；artifact task 不是 download session。
-- `runtime_local_pick_asset_manifest_path` 是 runtime models root 下唯一允许暴露给统一 import menu 的 manifest picker；内部仍必须区分 model manifest 与 artifact manifest 的校验与导入路径。
-- Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。
+- local model / artifact 的 list、verified list、install、import、remove、health/readiness、orphan scaffold、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
+- `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Tauri `runtime_local_downloads_*` 或 `local-runtime://download-progress` 为真源。
+- Tauri `runtime_local_*` 命令若仍存在于 shipped app，只能作为 shell-native/helper IPC；不得暴露或暗示 Desktop/Tauri local runtime state 是本地模型真源。
+- Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。
 - 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型，以及 verified/catalog/manual-download 已携带显式 declaration 的 intake 来源。
 - 用户直接 copy 到 `~/.nimi/models` 的裸文件必须统一进入 `runtime_local_assets_scan_unregistered` intake：
   - 根目录或未知目录文件不得静默纳管；
@@ -3049,9 +3047,9 @@ Mod 执行在能力沙箱内（参考 `D-HOOK-008`、`D-MOD-005`）：
 - 手工本地文件导入与 orphan scaffold 归类为 `local_unverified`，允许 `manifest.hashes` 为空；它表示用户确认信任的本地文件，而不是 provenance-verified 来源。
 - 只有 verified 模型会因空哈希在启动前被 `LOCAL_AI_MODEL_HASHES_EMPTY` 拦截；`local_unverified` 不受该门槛阻塞。
 
-**跨层引用**：Runtime K-LOCAL-009 在 `InstallLocalModel` 路径执行清单验证（格式校验、引擎类型校验）。Desktop D-SEC-006 的 verified-hash 检查是 UX 前端防线，与 Runtime 层清单验证互补。
+**跨层引用**：Runtime `K-RPC-004` / `K-LOCAL-009` / `K-LOCAL-028` 是本地模型 import/install/transfer/lifecycle 的权威控制面。Desktop D-SEC-006 只定义前端 UX 安全边界，不得把 host-local 状态当成安装成功、下载完成或可启动的真相源。
 
-**信任边界声明**：Desktop D-SEC-006 的 hash 校验只覆盖 verified 来源，防止用户通过 Desktop UI 启动宣称已验证但缺乏完整性证明的模型。`local_unverified` 是用户显式确认的本地导入信任边界，Desktop 会保留“未进行来源验证”的 provenance 标识，但不会追加同步 SHA256 阻塞启动。Runtime K-LOCAL-009 仍然是格式/引擎校验的权威层。
+**信任边界声明**：Desktop D-SEC-006 的 hash 校验只覆盖 verified 来源，防止用户通过 Desktop UI 启动宣称已验证但缺乏完整性证明的模型。`local_unverified` 是用户显式确认的本地导入信任边界，Desktop 会保留“未进行来源验证”的 provenance 标识，但不会追加同步 SHA256 阻塞启动。Runtime 仍然是格式/引擎校验、transfer 失败语义与健康判定的权威层。
 
 **D-SEC-007 — External Agent Token 安全**
 
@@ -3317,6 +3315,8 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | InstallVerifiedArtifact | unary |
 | ImportLocalModel | unary |
 | ImportLocalArtifact | unary |
+| ImportLocalModelFile | unary |
+| ImportLocalArtifactFile | unary |
 | RemoveLocalModel | unary |
 | RemoveLocalArtifact | unary |
 | StartLocalModel | unary |
@@ -3326,6 +3326,14 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | SearchCatalogModels | unary |
 | ResolveModelInstallPlan | unary |
 | CollectDeviceProfile | unary |
+| ScanUnregisteredAssets | unary |
+| ScaffoldOrphanModel | unary |
+| ScaffoldOrphanArtifact | unary |
+| ListLocalTransfers | unary |
+| PauseLocalTransfer | unary |
+| ResumeLocalTransfer | unary |
+| CancelLocalTransfer | unary |
+| WatchLocalTransfers | server_stream |
 | ListLocalServices | unary |
 | InstallLocalService | unary |
 | StartLocalService | unary |
@@ -3698,13 +3706,13 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 
 | 从 | 到 | 触发条件 |
 |---|---|---|
-| INSTALLED | ACTIVE | start_or_health_recovered |
-| ACTIVE | UNHEALTHY | health_probe_failed |
-| UNHEALTHY | ACTIVE | recovery_probe_passed |
+| INSTALLED | ACTIVE | background_validation_or_maintenance_start |
+| ACTIVE | UNHEALTHY | readiness_or_runtime_failure |
+| UNHEALTHY | ACTIVE | recovery_validation_passed |
 | ACTIVE | REMOVED | remove_model |
 | UNHEALTHY | REMOVED | force_remove_model |
-| ACTIVE | INSTALLED | stop_model |
-| UNHEALTHY | INSTALLED | stop_model_from_unhealthy |
+| ACTIVE | INSTALLED | maintenance_stop |
+| UNHEALTHY | INSTALLED | maintenance_stop_from_unhealthy |
 | INSTALLED | REMOVED | remove_model_from_installed |
 
 **local_service_lifecycle**
@@ -4066,54 +4074,54 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | runtime_bridge_restart | Restart runtime daemon |
 | runtime_bridge_config_get | Get runtime bridge configuration |
 | runtime_bridge_config_set | Set runtime bridge configuration |
-| runtime_local_models_list | List local AI models |
-| runtime_local_audits_list | List local AI inference audits |
+| runtime_local_models_list | Host helper surface for local AI model listing; shipped product paths must treat RuntimeLocalService as the model truth source |
+| runtime_local_audits_list | Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative |
 | runtime_local_pick_manifest_path | Pick a local AI resolved manifest.json path under the runtime models root via native file dialog |
 | runtime_local_pick_artifact_manifest_path | Pick a local AI artifact manifest file path under the runtime models root via native file dialog |
-| runtime_local_artifacts_list | List local AI companion artifacts tracked by the Tauri local runtime state |
-| runtime_local_artifacts_verified_list | List verified companion artifacts available for managed install |
-| runtime_local_models_verified_list | List verified local AI models |
-| runtime_local_models_catalog_search | Search local AI model catalog (verified + Hugging Face) |
-| runtime_local_models_catalog_list_variants | List model variants for a catalog item (quantization levels, formats) |
-| runtime_local_models_catalog_resolve_install_plan | Resolve install plan for a selected catalog item |
+| runtime_local_artifacts_list | Host helper surface for companion artifact listing; shipped product paths must treat RuntimeLocalService as the artifact truth source |
+| runtime_local_artifacts_verified_list | Host helper surface for verified companion artifact metadata; install truth remains RuntimeLocalService |
+| runtime_local_models_verified_list | Host helper surface for verified local AI model metadata; install truth remains RuntimeLocalService |
+| runtime_local_models_catalog_search | Host catalog helper; catalog/install-plan truth must remain runtime-owned |
+| runtime_local_models_catalog_list_variants | Host catalog helper for model variants; not a local model state truth source |
+| runtime_local_models_catalog_resolve_install_plan | Host install-plan helper; product install-plan truth must remain runtime-owned |
 | runtime_local_profiles_resolve | Resolve a mod-declared local AI profile into an executable runtime plan |
 | runtime_local_device_profile_collect | Collect local device profile (CPU/GPU/NPU/disk/ports) |
-| runtime_local_recommendation_feed_get | Read capability-scoped recommendation feed with model-index cache and local fit ranking |
-| runtime_local_profiles_apply | Apply a resolved local AI profile after host confirmation |
-| runtime_local_services_list | List local runtime managed services |
-| runtime_local_services_install | Install local runtime managed service |
-| runtime_local_services_start | Start local runtime managed service |
-| runtime_local_services_stop | Stop local runtime managed service |
-| runtime_local_services_health | Health check local runtime managed services |
-| runtime_local_services_remove | Remove local runtime managed service |
-| runtime_local_nodes_catalog_list | List local capability nodes from active services |
-| runtime_local_models_install | Install a local AI model |
-| runtime_local_models_install_verified | Install a verified local AI model |
-| runtime_local_artifacts_install_verified | Install a verified local AI companion artifact |
-| runtime_local_downloads_list | List local AI model download sessions |
-| runtime_local_downloads_pause | Pause a local AI model download session |
-| runtime_local_downloads_resume | Resume a paused/failed local AI model download session |
-| runtime_local_downloads_cancel | Cancel a local AI model download session |
-| runtime_local_models_import | Import a local AI model from structured record |
-| runtime_local_artifacts_import | Import a local AI companion artifact from artifact.manifest.json |
-| runtime_local_models_adopt | Adopt a go-runtime discovered local AI model into desktop state without download |
-| runtime_local_artifacts_adopt | Adopt a go-runtime discovered local AI companion artifact into desktop state without import |
+| runtime_local_recommendation_feed_get | Read capability-scoped host recommendation feed; helper-only and not a local model truth source |
+| runtime_local_profiles_apply | Apply a resolved local AI profile after host confirmation without creating Desktop-owned local model truth |
+| runtime_local_services_list | Host helper surface for local service listing; shipped product paths must treat RuntimeLocalService as the service truth source |
+| runtime_local_services_install | Host service install helper; shipped product install truth must come from RuntimeLocalService |
+| runtime_local_services_start | Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService |
+| runtime_local_services_stop | Host service stop helper; shipped product lifecycle truth must come from RuntimeLocalService |
+| runtime_local_services_health | Host service health helper; shipped product health truth must come from RuntimeLocalService |
+| runtime_local_services_remove | Host service removal helper; shipped product removal truth must come from RuntimeLocalService |
+| runtime_local_nodes_catalog_list | Host node-catalog helper; node availability truth remains runtime-owned |
+| runtime_local_models_install | Host model install helper; shipped product install truth must come from RuntimeLocalService |
+| runtime_local_models_install_verified | Host verified model install helper; shipped product install truth must come from RuntimeLocalService |
+| runtime_local_artifacts_install_verified | Host verified artifact install helper; shipped product install truth must come from RuntimeLocalService |
+| runtime_local_downloads_list | Legacy host-local download session helper; product transfer UI must use RuntimeLocalService transfer sessions instead |
+| runtime_local_downloads_pause | Legacy host-local download pause helper; not authoritative for shipped transfer state |
+| runtime_local_downloads_resume | Legacy host-local download resume helper; not authoritative for shipped transfer state |
+| runtime_local_downloads_cancel | Legacy host-local download cancel helper; not authoritative for shipped transfer state |
+| runtime_local_models_import | Host bridge helper for manifest-based model import; product import truth remains RuntimeLocalService |
+| runtime_local_artifacts_import | Host bridge helper for artifact manifest import; product import truth remains RuntimeLocalService |
+| runtime_local_models_adopt | Host adopt helper; must not create or imply a second Desktop model state |
+| runtime_local_artifacts_adopt | Host adopt helper; must not create or imply a second Desktop artifact state |
 | runtime_local_pick_model_file | Pick a local model file for import via native file dialog |
-| runtime_local_models_import_file | Import a model file with copy, hash, and manifest generation |
-| runtime_local_models_remove | Remove a local AI model |
-| runtime_local_artifacts_remove | Remove a local AI companion artifact |
-| runtime_local_models_start | Start a local AI model |
-| runtime_local_models_stop | Stop a local AI model |
-| runtime_local_models_health | Health check for local AI models |
+| runtime_local_models_import_file | Host file-pick import helper; product file import semantics and transfer truth are runtime-owned |
+| runtime_local_models_remove | Host model removal helper; shipped product removal truth must come from RuntimeLocalService |
+| runtime_local_artifacts_remove | Host artifact removal helper; shipped product removal truth must come from RuntimeLocalService |
+| runtime_local_models_start | Host start helper retained in allowlist; shipped lifecycle truth must come from RuntimeLocalService |
+| runtime_local_models_stop | Host stop helper retained in allowlist; shipped lifecycle truth must come from RuntimeLocalService |
+| runtime_local_models_health | Host health helper retained in allowlist; shipped health truth must come from RuntimeLocalService |
 | runtime_local_append_inference_audit | Append a local AI inference audit record |
 | runtime_local_append_runtime_audit | Append local runtime audit event |
 | runtime_local_models_reveal_in_folder | Reveal installed model files in system file manager |
 | runtime_local_models_reveal_root_folder | Reveal the runtime models root folder in the system file manager |
-| runtime_local_models_scan_orphans | Scan for orphan model files not tracked by runtime state |
-| runtime_local_models_scaffold_orphan | Scaffold an orphan model file into a tracked model with user-selected capability |
-| runtime_local_artifacts_scan_orphans | Scan for orphan companion files not managed by resolved manifest.json or artifact.manifest.json |
-| runtime_local_artifacts_scaffold_orphan | Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and canonical local engine |
-| runtime_local_assets_scan_unregistered | Scan root-level and typed-folder local assets that are not yet registered in runtime state |
+| runtime_local_models_scan_orphans | Specialized host helper for orphan model scan; product unregistered-asset review should prefer runtime unified scan |
+| runtime_local_models_scaffold_orphan | Specialized host helper for orphan model scaffold; product scaffold truth must remain runtime-owned |
+| runtime_local_artifacts_scan_orphans | Specialized host helper for orphan artifact scan; product unregistered-asset review should prefer runtime unified scan |
+| runtime_local_artifacts_scaffold_orphan | Specialized host helper for orphan artifact scaffold; product scaffold truth must remain runtime-owned |
+| runtime_local_assets_scan_unregistered | Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source |
 | runtime_local_pick_asset_manifest_path | Pick either a resolved model manifest or managed artifact manifest under the runtime models root |
 
 ### 12.13 Desktop — App Tabs

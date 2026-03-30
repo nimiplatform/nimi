@@ -94,6 +94,10 @@ services:
         type: unary
       - name: ImportLocalArtifact
         type: unary
+      - name: ImportLocalModelFile
+        type: unary
+      - name: ImportLocalArtifactFile
+        type: unary
       - name: RemoveLocalModel
         type: unary
       - name: RemoveLocalArtifact
@@ -112,6 +116,22 @@ services:
         type: unary
       - name: CollectDeviceProfile
         type: unary
+      - name: ScanUnregisteredAssets
+        type: unary
+      - name: ScaffoldOrphanModel
+        type: unary
+      - name: ScaffoldOrphanArtifact
+        type: unary
+      - name: ListLocalTransfers
+        type: unary
+      - name: PauseLocalTransfer
+        type: unary
+      - name: ResumeLocalTransfer
+        type: unary
+      - name: CancelLocalTransfer
+        type: unary
+      - name: WatchLocalTransfers
+        type: server_stream
       - name: ListLocalServices
         type: unary
       - name: InstallLocalService

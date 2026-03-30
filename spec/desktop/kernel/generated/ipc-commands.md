@@ -80,52 +80,52 @@
 | `runtime_bridge_restart` | `runtime-daemon` | Restart runtime daemon | `D-IPC-002` |
 | `runtime_bridge_config_get` | `runtime-daemon` | Get runtime bridge configuration | `D-IPC-003` |
 | `runtime_bridge_config_set` | `runtime-daemon` | Set runtime bridge configuration | `D-IPC-003` |
-| `runtime_local_models_list` | `local-runtime` | List local AI models | `D-IPC-011` |
-| `runtime_local_audits_list` | `local-runtime` | List local AI inference audits | `D-IPC-011` |
+| `runtime_local_models_list` | `local-runtime` | Host helper surface for local AI model listing; shipped product paths must treat RuntimeLocalService as the model truth source | `D-IPC-011` |
+| `runtime_local_audits_list` | `local-runtime` | Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative | `D-IPC-011` |
 | `runtime_local_pick_manifest_path` | `local-runtime` | Pick a local AI resolved manifest.json path under the runtime models root via native file dialog | `D-IPC-011` |
 | `runtime_local_pick_artifact_manifest_path` | `local-runtime` | Pick a local AI artifact manifest file path under the runtime models root via native file dialog | `D-IPC-011` |
-| `runtime_local_artifacts_list` | `local-runtime` | List local AI companion artifacts tracked by the Tauri local runtime state | `D-IPC-011` |
-| `runtime_local_artifacts_verified_list` | `local-runtime` | List verified companion artifacts available for managed install | `D-IPC-011` |
-| `runtime_local_models_verified_list` | `local-runtime` | List verified local AI models | `D-IPC-011` |
-| `runtime_local_models_catalog_search` | `local-runtime` | Search local AI model catalog (verified + Hugging Face) | `D-IPC-011` |
-| `runtime_local_models_catalog_list_variants` | `local-runtime` | List model variants for a catalog item (quantization levels, formats) | `D-IPC-011` |
-| `runtime_local_models_catalog_resolve_install_plan` | `local-runtime` | Resolve install plan for a selected catalog item | `D-IPC-011` |
+| `runtime_local_artifacts_list` | `local-runtime` | Host helper surface for companion artifact listing; shipped product paths must treat RuntimeLocalService as the artifact truth source | `D-IPC-011` |
+| `runtime_local_artifacts_verified_list` | `local-runtime` | Host helper surface for verified companion artifact metadata; install truth remains RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_models_verified_list` | `local-runtime` | Host helper surface for verified local AI model metadata; install truth remains RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_models_catalog_search` | `local-runtime` | Host catalog helper; catalog/install-plan truth must remain runtime-owned | `D-IPC-011` |
+| `runtime_local_models_catalog_list_variants` | `local-runtime` | Host catalog helper for model variants; not a local model state truth source | `D-IPC-011` |
+| `runtime_local_models_catalog_resolve_install_plan` | `local-runtime` | Host install-plan helper; product install-plan truth must remain runtime-owned | `D-IPC-011` |
 | `runtime_local_profiles_resolve` | `local-runtime` | Resolve a mod-declared local AI profile into an executable runtime plan | `D-IPC-011` |
 | `runtime_local_device_profile_collect` | `local-runtime` | Collect local device profile (CPU/GPU/NPU/disk/ports) | `D-IPC-011` |
-| `runtime_local_recommendation_feed_get` | `local-runtime` | Read capability-scoped recommendation feed with model-index cache and local fit ranking | `D-IPC-011` |
-| `runtime_local_profiles_apply` | `local-runtime` | Apply a resolved local AI profile after host confirmation | `D-IPC-011` |
-| `runtime_local_services_list` | `local-runtime` | List local runtime managed services | `D-IPC-011` |
-| `runtime_local_services_install` | `local-runtime` | Install local runtime managed service | `D-IPC-011` |
-| `runtime_local_services_start` | `local-runtime` | Start local runtime managed service | `D-IPC-011` |
-| `runtime_local_services_stop` | `local-runtime` | Stop local runtime managed service | `D-IPC-011` |
-| `runtime_local_services_health` | `local-runtime` | Health check local runtime managed services | `D-IPC-011` |
-| `runtime_local_services_remove` | `local-runtime` | Remove local runtime managed service | `D-IPC-011` |
-| `runtime_local_nodes_catalog_list` | `local-runtime` | List local capability nodes from active services | `D-IPC-011` |
-| `runtime_local_models_install` | `local-runtime` | Install a local AI model | `D-IPC-011` |
-| `runtime_local_models_install_verified` | `local-runtime` | Install a verified local AI model | `D-IPC-011` |
-| `runtime_local_artifacts_install_verified` | `local-runtime` | Install a verified local AI companion artifact | `D-IPC-011` |
-| `runtime_local_downloads_list` | `local-runtime` | List local AI model download sessions | `D-IPC-011` |
-| `runtime_local_downloads_pause` | `local-runtime` | Pause a local AI model download session | `D-IPC-011` |
-| `runtime_local_downloads_resume` | `local-runtime` | Resume a paused/failed local AI model download session | `D-IPC-011` |
-| `runtime_local_downloads_cancel` | `local-runtime` | Cancel a local AI model download session | `D-IPC-011` |
-| `runtime_local_models_import` | `local-runtime` | Import a local AI model from structured record | `D-IPC-011` |
-| `runtime_local_artifacts_import` | `local-runtime` | Import a local AI companion artifact from artifact.manifest.json | `D-IPC-011` |
-| `runtime_local_models_adopt` | `local-runtime` | Adopt a go-runtime discovered local AI model into desktop state without download | `D-IPC-011` |
-| `runtime_local_artifacts_adopt` | `local-runtime` | Adopt a go-runtime discovered local AI companion artifact into desktop state without import | `D-IPC-011` |
+| `runtime_local_recommendation_feed_get` | `local-runtime` | Read capability-scoped host recommendation feed; helper-only and not a local model truth source | `D-IPC-011` |
+| `runtime_local_profiles_apply` | `local-runtime` | Apply a resolved local AI profile after host confirmation without creating Desktop-owned local model truth | `D-IPC-011` |
+| `runtime_local_services_list` | `local-runtime` | Host helper surface for local service listing; shipped product paths must treat RuntimeLocalService as the service truth source | `D-IPC-011` |
+| `runtime_local_services_install` | `local-runtime` | Host service install helper; shipped product install truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_services_start` | `local-runtime` | Host service start helper; shipped product lifecycle truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_services_stop` | `local-runtime` | Host service stop helper; shipped product lifecycle truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_services_health` | `local-runtime` | Host service health helper; shipped product health truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_services_remove` | `local-runtime` | Host service removal helper; shipped product removal truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_nodes_catalog_list` | `local-runtime` | Host node-catalog helper; node availability truth remains runtime-owned | `D-IPC-011` |
+| `runtime_local_models_install` | `local-runtime` | Host model install helper; shipped product install truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_models_install_verified` | `local-runtime` | Host verified model install helper; shipped product install truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_artifacts_install_verified` | `local-runtime` | Host verified artifact install helper; shipped product install truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_downloads_list` | `local-runtime` | Legacy host-local download session helper; product transfer UI must use RuntimeLocalService transfer sessions instead | `D-IPC-011` |
+| `runtime_local_downloads_pause` | `local-runtime` | Legacy host-local download pause helper; not authoritative for shipped transfer state | `D-IPC-011` |
+| `runtime_local_downloads_resume` | `local-runtime` | Legacy host-local download resume helper; not authoritative for shipped transfer state | `D-IPC-011` |
+| `runtime_local_downloads_cancel` | `local-runtime` | Legacy host-local download cancel helper; not authoritative for shipped transfer state | `D-IPC-011` |
+| `runtime_local_models_import` | `local-runtime` | Host bridge helper for manifest-based model import; product import truth remains RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_artifacts_import` | `local-runtime` | Host bridge helper for artifact manifest import; product import truth remains RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_models_adopt` | `local-runtime` | Host adopt helper; must not create or imply a second Desktop model state | `D-IPC-011` |
+| `runtime_local_artifacts_adopt` | `local-runtime` | Host adopt helper; must not create or imply a second Desktop artifact state | `D-IPC-011` |
 | `runtime_local_pick_model_file` | `local-runtime` | Pick a local model file for import via native file dialog | `D-IPC-011` |
-| `runtime_local_models_import_file` | `local-runtime` | Import a model file with copy, hash, and manifest generation | `D-IPC-011` |
-| `runtime_local_models_remove` | `local-runtime` | Remove a local AI model | `D-IPC-011` |
-| `runtime_local_artifacts_remove` | `local-runtime` | Remove a local AI companion artifact | `D-IPC-011` |
-| `runtime_local_models_start` | `local-runtime` | Start a local AI model | `D-IPC-011` |
-| `runtime_local_models_stop` | `local-runtime` | Stop a local AI model | `D-IPC-011` |
-| `runtime_local_models_health` | `local-runtime` | Health check for local AI models | `D-IPC-011` |
+| `runtime_local_models_import_file` | `local-runtime` | Host file-pick import helper; product file import semantics and transfer truth are runtime-owned | `D-IPC-011` |
+| `runtime_local_models_remove` | `local-runtime` | Host model removal helper; shipped product removal truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_artifacts_remove` | `local-runtime` | Host artifact removal helper; shipped product removal truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_models_start` | `local-runtime` | Host start helper retained in allowlist; shipped lifecycle truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_models_stop` | `local-runtime` | Host stop helper retained in allowlist; shipped lifecycle truth must come from RuntimeLocalService | `D-IPC-011` |
+| `runtime_local_models_health` | `local-runtime` | Host health helper retained in allowlist; shipped health truth must come from RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_append_inference_audit` | `local-runtime` | Append a local AI inference audit record | `D-IPC-011` |
 | `runtime_local_append_runtime_audit` | `local-runtime` | Append local runtime audit event | `D-IPC-011` |
 | `runtime_local_models_reveal_in_folder` | `local-runtime` | Reveal installed model files in system file manager | `D-IPC-011` |
 | `runtime_local_models_reveal_root_folder` | `local-runtime` | Reveal the runtime models root folder in the system file manager | `D-IPC-011` |
-| `runtime_local_models_scan_orphans` | `local-runtime` | Scan for orphan model files not tracked by runtime state | `D-IPC-011` |
-| `runtime_local_models_scaffold_orphan` | `local-runtime` | Scaffold an orphan model file into a tracked model with user-selected capability | `D-IPC-011` |
-| `runtime_local_artifacts_scan_orphans` | `local-runtime` | Scan for orphan companion files not managed by resolved manifest.json or artifact.manifest.json | `D-IPC-011` |
-| `runtime_local_artifacts_scaffold_orphan` | `local-runtime` | Scaffold an orphan companion file into artifact.manifest.json with user-selected kind and canonical local engine | `D-IPC-011` |
-| `runtime_local_assets_scan_unregistered` | `local-runtime` | Scan root-level and typed-folder local assets that are not yet registered in runtime state | `D-IPC-011` |
+| `runtime_local_models_scan_orphans` | `local-runtime` | Specialized host helper for orphan model scan; product unregistered-asset review should prefer runtime unified scan | `D-IPC-011` |
+| `runtime_local_models_scaffold_orphan` | `local-runtime` | Specialized host helper for orphan model scaffold; product scaffold truth must remain runtime-owned | `D-IPC-011` |
+| `runtime_local_artifacts_scan_orphans` | `local-runtime` | Specialized host helper for orphan artifact scan; product unregistered-asset review should prefer runtime unified scan | `D-IPC-011` |
+| `runtime_local_artifacts_scaffold_orphan` | `local-runtime` | Specialized host helper for orphan artifact scaffold; product scaffold truth must remain runtime-owned | `D-IPC-011` |
+| `runtime_local_assets_scan_unregistered` | `local-runtime` | Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source | `D-IPC-011` |
 | `runtime_local_pick_asset_manifest_path` | `local-runtime` | Pick either a resolved model manifest or managed artifact manifest under the runtime models root | `D-IPC-011` |

@@ -47,13 +47,13 @@ States: `INSTALLED`, `ACTIVE`, `UNHEALTHY`, `REMOVED`
 
 | From | To | Trigger | Source |
 |---|---|---|---|
-| `INSTALLED` | `ACTIVE` | `start_or_health_recovered` | `K-LOCAL-005` |
-| `ACTIVE` | `UNHEALTHY` | `health_probe_failed` | `K-LOCAL-005` |
-| `UNHEALTHY` | `ACTIVE` | `recovery_probe_passed` | `K-LOCAL-005` |
+| `INSTALLED` | `ACTIVE` | `background_validation_or_maintenance_start` | `K-LOCAL-005` |
+| `ACTIVE` | `UNHEALTHY` | `readiness_or_runtime_failure` | `K-LOCAL-005` |
+| `UNHEALTHY` | `ACTIVE` | `recovery_validation_passed` | `K-LOCAL-005` |
 | `ACTIVE` | `REMOVED` | `remove_model` | `K-LOCAL-005` |
 | `UNHEALTHY` | `REMOVED` | `force_remove_model` | `K-LOCAL-005` |
-| `ACTIVE` | `INSTALLED` | `stop_model` | `K-LOCAL-005` |
-| `UNHEALTHY` | `INSTALLED` | `stop_model_from_unhealthy` | `K-LOCAL-005` |
+| `ACTIVE` | `INSTALLED` | `maintenance_stop` | `K-LOCAL-005` |
+| `UNHEALTHY` | `INSTALLED` | `maintenance_stop_from_unhealthy` | `K-LOCAL-005` |
 | `INSTALLED` | `REMOVED` | `remove_model_from_installed` | `K-LOCAL-005` |
 
 ## local_service_lifecycle

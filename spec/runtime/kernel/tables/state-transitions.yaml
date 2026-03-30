@@ -87,15 +87,15 @@ machines:
     transitions:
       - from: INSTALLED
         to: ACTIVE
-        trigger: start_or_health_recovered
+        trigger: background_validation_or_maintenance_start
         source_rule: K-LOCAL-005
       - from: ACTIVE
         to: UNHEALTHY
-        trigger: health_probe_failed
+        trigger: readiness_or_runtime_failure
         source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: ACTIVE
-        trigger: recovery_probe_passed
+        trigger: recovery_validation_passed
         source_rule: K-LOCAL-005
       - from: ACTIVE
         to: REMOVED
@@ -107,11 +107,11 @@ machines:
         source_rule: K-LOCAL-005
       - from: ACTIVE
         to: INSTALLED
-        trigger: stop_model
+        trigger: maintenance_stop
         source_rule: K-LOCAL-005
       - from: UNHEALTHY
         to: INSTALLED
-        trigger: stop_model_from_unhealthy
+        trigger: maintenance_stop_from_unhealthy
         source_rule: K-LOCAL-005
       - from: INSTALLED
         to: REMOVED

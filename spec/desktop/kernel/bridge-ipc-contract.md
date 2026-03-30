@@ -170,6 +170,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 
 **SDK gRPC 路径**（D-BOOT-004 → SDK Runtime client）：
 - 应用层 Runtime 能力：AI 推理（ExecuteScenario、StreamScenario）、Connector 管理（CreateConnector、ListConnectors 等）、Auth/Grant（RegisterApp、OpenSession 等）、场景任务（SubmitScenarioJob 等）
+- 本地模型控制面：`RuntimeLocalService` 负责 local model / artifact 的 list、import/install、health/readiness、orphan scaffold/adopt、audit、transfer session 与 progress watch；`StartLocalModel` / `StopLocalModel` 保留为 runtime 维护能力，不是 Desktop 产品主路径
 - Phase 1 健康监控（GetRuntimeHealth、ListAIProviderHealth、SubscribeRuntimeHealthEvents、SubscribeAIProviderHealthEvents）— 见 S-TRANSPORT-007 Mode D Phase 1 投影
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
 
@@ -182,21 +183,22 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 **IPC 桥路径**（Tauri backend → daemon）：
 - 平台层 Runtime 管理：daemon 生命周期（D-IPC-002: start/stop/restart/status）
 - 配置管理（D-IPC-003: config_get/config_set + hot-reload 提示）
-- 本地 AI 模型资产管理（D-IPC-011: install/start/stop/remove/import/audit）
 - HTTP 代理（D-IPC-004: proxy fetch）
 - OAuth 流（D-IPC-006: token exchange）
 - Mod 清单管理（D-IPC-007: list/read local manifests）
 - Mod 图标资源读取（D-IPC-007: read local asset）
 - External Agent 管理（D-IPC-008: token/action/gateway）
+- shell-native / host helper 能力（D-IPC-011：picker、reveal、notification、以及仍未下沉到 runtime 的 host-local helper）
 
 **分界原则**：
 - SDK 路径承载**应用逻辑 RPC**——调用语义与平台无关，独立 SDK 消费者可复用。
-- IPC 桥路径承载**平台管理操作**——依赖 Tauri backend 进程管理能力，与 Desktop 生命周期耦合。
+- SDK 路径同时承载 local model 控制面真源；desktop 不得以 Tauri host state 取代 `RuntimeLocalService`。
+- IPC 桥路径承载**平台管理操作与原生壳能力**——依赖 Tauri backend 进程管理/文件选择/系统集成能力，与 Desktop 生命周期耦合。
 - 独立 SDK 消费者（无 Tauri 环境）需通过 `nimi` CLI 或外部工具完成 IPC 桥路径的等效操作（如 `nimi daemon start`、`nimi config set`、`nimi local install`）。
 
 补充约束：
 
-- companion artifact（`vae` / `ae` / `llm` / `clip` / `controlnet` / `lora` / `auxiliary`）列表、verified catalog、安装、导入、移除与 intake/scaffold 管理统一落在 Tauri `runtime_local_artifacts_*` 或 `runtime_local_assets_*` command surface；不得再经 runtime SDK `RuntimeLocalService` 绕行第二条执行路径。
+- companion artifact（`vae` / `ae` / `llm` / `clip` / `controlnet` / `lora` / `auxiliary`）列表、verified catalog、安装、导入、移除、intake/scaffold、transfer/progress 与 lifecycle 全部以 `RuntimeLocalService` 为真源；Tauri 命令若仍存在，只能作为 host helper，不得构成第二条产品执行路径。
 - local image workflow 的 `engineConfig`、`components`、`profile_overrides` 必须沿 `desktop -> sdk/runtime -> runtime` 原样透传；Desktop 不得改写为绝对路径。
 
 cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 legacy adapter factory、直接 `listModels()` 或 `healthCheck()` 调用以绕开 Runtime。
@@ -218,47 +220,33 @@ cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 leg
 
 Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`），命令集统一使用 `runtime_local_*` 前缀（`local_runtime::commands`）：
 
-- `runtime_local_models_list` / `runtime_local_models_verified_list`：列出本地/验证模型。
-- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants`：目录搜索与变体列举。
-- `runtime_local_models_catalog_resolve_install_plan`：解析安装计划。
-- `runtime_local_recommendation_feed_get`：读取 capability-scoped recommendation feed；由 Desktop/Tauri 负责 model-index 拉取、本地缓存、设备适配计算与排序。
-- `runtime_local_models_install` / `runtime_local_models_install_verified` / `runtime_local_models_import`：创建安装会话并入队 / 导入模型。
-- `runtime_local_models_import_file`：导入模型文件（copy + manifest 生成 + register）；该路径属于 `local_unverified` intake，不执行同步整文件 hash 校验。
-- `runtime_local_models_adopt`：将 go-runtime 已存在的结构化 local model record 纳管到 Desktop/Tauri state，不触发下载或类型选择。
-- `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输会话查询与控制。payload 通过 `sessionKind` 区分网络下载（`download`）与本地文件导入（`import`）；pause/resume/cancel 仅对 `download` 语义开放。
-- `runtime_local_models_start` / `runtime_local_models_stop` / `runtime_local_models_remove`：模型生命周期管理。
-- `runtime_local_models_health`：模型健康检查。
+- 以下命令仍可存在于 Tauri allowlist，但若 shipped product path 覆盖同等能力，必须视为 host helper 而非本地模型真源：`runtime_local_models_list`、`runtime_local_artifacts_list`、`runtime_local_artifacts_verified_list`、`runtime_local_models_verified_list`、`runtime_local_services_list`、`runtime_local_services_install`、`runtime_local_services_start`、`runtime_local_services_stop`、`runtime_local_services_health`、`runtime_local_services_remove`、`runtime_local_nodes_catalog_list`。
+- 以下命令仍可存在于 Tauri allowlist，但 install/import/remove/start/stop/health 的权威执行面必须是 `RuntimeLocalService`：`runtime_local_models_install`、`runtime_local_models_install_verified`、`runtime_local_artifacts_install_verified`、`runtime_local_models_import`、`runtime_local_artifacts_import`、`runtime_local_models_import_file`、`runtime_local_models_remove`、`runtime_local_artifacts_remove`、`runtime_local_models_start`、`runtime_local_models_stop`、`runtime_local_models_health`。
+- 以下命令仍可存在于 Tauri allowlist，但 unregistered asset / orphan / transfer product语义不得再以 host-local state 为准：`runtime_local_downloads_list`、`runtime_local_downloads_pause`、`runtime_local_downloads_resume`、`runtime_local_downloads_cancel`、`runtime_local_models_scan_orphans`、`runtime_local_models_scaffold_orphan`、`runtime_local_artifacts_scan_orphans`、`runtime_local_artifacts_scaffold_orphan`。
+
+- `runtime_local_models_catalog_list_variants`：host-local catalog helper；不得被视为模型清单、安装状态或 transfer 真源。
+- `runtime_local_recommendation_feed_get`：host-local recommendation helper；可提供 capability-scoped feed，但 install/import/download/lifecycle 真源仍是 `RuntimeLocalService`。
+- `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：Desktop host profile helper；不得回写本地模型状态真源。
+- `runtime_local_models_adopt` / `runtime_local_artifacts_adopt`：host-side adopt helper；不得形成 Desktop/Tauri state 的独立纳管结果，产品语义必须以 runtime 返回记录为准。
 - `runtime_local_models_reveal_in_folder`：在系统文件管理器中打开模型目录。
 - `runtime_local_models_reveal_root_folder`：在系统文件管理器中打开 runtime models 根目录。
-- `runtime_local_models_scan_orphans` / `runtime_local_models_scaffold_orphan`：保留底层 main-model orphan detect/scaffold surface；统一 desktop intake UI 默认应优先使用 `runtime_local_assets_scan_unregistered`，但 specialized main-model flow 仍可复用该命令面。
-- `runtime_local_artifacts_list` / `runtime_local_artifacts_verified_list`：列出已安装 / verified companion artifacts。
-- `runtime_local_artifacts_install_verified` / `runtime_local_artifacts_import` / `runtime_local_artifacts_remove`：companion artifact 安装、导入、移除。
-- `runtime_local_artifacts_scan_orphans`：保留底层 companion orphan detect surface；统一 desktop intake UI 默认应优先使用 `runtime_local_assets_scan_unregistered`。
-- `runtime_local_artifacts_scaffold_orphan`：将 companion file scaffold 为 canonical `artifact.manifest.json`，随后再经 `runtime_local_artifacts_import` 纳管。
-- `runtime_local_artifacts_adopt`：将 go-runtime 已存在的结构化 companion artifact record 纳管到 Desktop/Tauri state，不触发下载或导入。
-- `runtime_local_assets_scan_unregistered`：扫描 `~/.nimi/models/` 根目录与一级子目录下未被 state 纳管的裸文件，返回统一 asset declaration suggestion、confidence 与 review state。
+- `runtime_local_assets_scan_unregistered`：host-local intake helper。若产品路径已通过 runtime `ScanUnregisteredAssets` 获得同等结果，则前者不得再被当作权威扫描源。
 - `runtime_local_pick_asset_manifest_path`：统一选取 `resolved/<logical-model-id>/manifest.json` 或 `artifacts/<artifact-id>/artifact.manifest.json`。
-- `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：推理与运行时审计。
+- `runtime_local_audits_list` / `runtime_local_append_inference_audit` / `runtime_local_append_runtime_audit`：host helper 命令保留仅为 tooling / bridge 对接；产品审计真相仍由 runtime 持有。
 - `runtime_local_pick_manifest_path`：选取 `~/.nimi/models/**/resolved/**/manifest.json` 或兼容的当前 resolved manifest 路径。
 - `runtime_local_pick_artifact_manifest_path`：选取 `~/.nimi/models/**/artifact.manifest.json`。
 - `runtime_local_pick_model_file`：选取任意待导入的主模型文件。
-- `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：本地服务管理。
-- `runtime_local_nodes_catalog_list`：列出活跃服务的能力节点。
-- `runtime_local_profiles_resolve` / `runtime_local_profiles_apply`：profile-centric mod install flow 的一等 Tauri 命令，负责解析并执行 `manifest.ai.profiles` 中的 runtime entries。
 - `runtime_local_device_profile_collect`：设备能力采集（CPU/GPU/NPU/disk/ports）。
-- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_list_variants` / `runtime_local_models_catalog_resolve_install_plan` 返回面允许附带统一 `recommendation` payload。
+- `runtime_local_models_catalog_search` / `runtime_local_models_catalog_resolve_install_plan` 若仍存在于 host helper 面，返回 payload 不得取代 runtime catalog/install-plan 真源。
 - recommendation page 允许新增只读的 `runtime_local_recommendation_feed_get` surface，用于 capability-scoped candidate feed；install 仍必须复用现有 `resolve_install_plan` / install-plan payload，不得新增私有安装协议。
 - `runtime_local_device_profile_collect` 返回的设备画像必须包含 `total_ram_bytes`、`available_ram_bytes`，以及 GPU `total_vram_bytes?`、`available_vram_bytes?`、`memory_model`。
-- `local-runtime://download-progress`：下载进度事件通道，事件字段包含 `state`（`queued|running|paused|failed|completed|cancelled`）、`reasonCode?`、`retryable?`。
 
-companion artifact 补充：
+产品约束：
 
-- artifact list / verified list / install / import / remove 是一等 `runtime_local_artifacts_*` Tauri commands，数据真相由 Desktop/Tauri local runtime state 维护。
-- companion acquisition 支持 verified artifact install、`artifact.manifest.json` import，以及统一 local asset intake 下的 artifact review/scaffold；不得要求用户手写 manifest。
-- `runtime_local_artifacts_scaffold_orphan` 固定生成 canonical local artifact manifest，随后再经 `runtime_local_artifacts_import` 纳管。
-- verified companion install 的失败恢复通过 desktop `Artifact Tasks` 行内 `Retry` 完成；artifact task 不是 download session。
-- `runtime_local_pick_asset_manifest_path` 是 runtime models root 下唯一允许暴露给统一 import menu 的 manifest picker；内部仍必须区分 model manifest 与 artifact manifest 的校验与导入路径。
-- Desktop 启动时必须先执行 Desktop/Tauri 已知模型 -> go-runtime 的 reconcile，再将 go-runtime-only 模型通过 `runtime_local_models_adopt` 自动纳管到 Tauri state。
+- local model / artifact 的 list、verified list、install、import、remove、health/readiness、orphan scaffold、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
+- `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Tauri `runtime_local_downloads_*` 或 `local-runtime://download-progress` 为真源。
+- Tauri `runtime_local_*` 命令若仍存在于 shipped app，只能作为 shell-native/helper IPC；不得暴露或暗示 Desktop/Tauri local runtime state 是本地模型真源。
+- Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。
 - 自动纳管只适用于 go-runtime 已有结构化 local model record 的模型，以及 verified/catalog/manual-download 已携带显式 declaration 的 intake 来源。
 - 用户直接 copy 到 `~/.nimi/models` 的裸文件必须统一进入 `runtime_local_assets_scan_unregistered` intake：
   - 根目录或未知目录文件不得静默纳管；

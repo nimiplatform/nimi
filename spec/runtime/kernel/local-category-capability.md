@@ -46,7 +46,13 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 `local_model_lifecycle` 与 `local_service_lifecycle` 的状态与迁移来源由 `tables/state-transitions.yaml` 固定：
 
 - 状态集合：`INSTALLED` `ACTIVE` `UNHEALTHY` `REMOVED`
-- 迁移触发：`start/spawn`、`stop`、`health_probe_failed`、`recovery`、`remove`
+- 对 `local_model_lifecycle`，语义固定为“可用性状态”而不是“用户手动运行态”：
+  - `INSTALLED`：导入/安装后的短暂待验证态，不应作为长期产品展示目标
+  - `ACTIVE`：runtime 已验证 bundle/registration/host 前置条件满足，可被路由选择；不要求进程常驻
+  - `UNHEALTHY`：bundle、registration、warm/start 或真实运行探测失败，当前不可选
+  - `REMOVED`：已移除
+- 对 `local_service_lifecycle`，仍表示底层执行实例的运行/探测状态；它不等价于 Local Model Center 的用户可见 readiness badge。
+- `local_model_lifecycle` 的典型迁移触发为 `install/register`、`background_validation`、`warm_or_runtime_failure`、`maintenance_stop`、`remove`；细粒度迁移表仍以 `tables/state-transitions.yaml` 为准。
 
 任何 local 生命周期文档必须引用本 Rule ID，不得使用章节号样式来源（例如 `local-model_5.1`）。
 
@@ -81,7 +87,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 - runtime 内部必须同时持久化 model 的 `engine_runtime_mode`，用于区分显式 `ATTACHED_ENDPOINT` 与自动选择的 `SUPERVISED` 生命周期语义；该内部状态当前不要求经现有 RPC 直接暴露。
 - 生成唯一 `local_model_id`（ULID 格式）。
 - 初始状态为 `INSTALLED`（`K-LOCAL-005` 状态机锚点）。
-- Desktop execution-plane 可在注册后触发模型获取流程（`K-LOCAL-023`/`K-LOCAL-024`）。Phase 1 模型获取由 desktop 独占执行（`K-LOCAL-028`），runtime 不主动发起下载。
+- runtime 既是注册真源，也是本地模型获取、导入、orphan scaffold/adopt、transfer/progress 与生命周期的唯一执行面；desktop 仅负责 shell-native/helper 能力。
 - 重复安装同一 `model_id` + `engine` 组合时返回 `ALREADY_EXISTS` + `AI_LOCAL_MODEL_ALREADY_INSTALLED`。
 
 ## K-LOCAL-010 Verified 模型目录结构
@@ -271,6 +277,17 @@ fallback 补充：
 - 若 `media` 与其内部 `media.diffusers` fallback 都不可执行，runtime 必须 fail-close，不得伪装 ready 或静默退回 cloud/provider alias。
 
 未知前缀（如 `ollama/`）视为无前缀，按 `model_id` 全文精确匹配（不剥除前缀）。
+
+## K-LOCAL-020a Chat/Text 本地模型可选性
+
+本地 chat/text 模型的选择与预热语义固定为：
+
+- `status in {INSTALLED, ACTIVE}` 的本地 chat/text 模型可被 route 选择与 UI 展示。
+- `UNHEALTHY` 与 `REMOVED` 的本地模型不得作为可选项暴露。
+- 当真实 text 请求命中 `INSTALLED` 的本地模型时，runtime 必须先执行 `WarmLocalModel`，预热成功后再继续请求。
+- `ACTIVE` 表示模型已通过 runtime readiness 校验，可直接被选择；它不要求模型常驻运行或常驻占用内存。
+- `INSTALLED` 仅作为导入/安装后的短暂过渡态保留；后台验证成功后必须自动收敛到 `ACTIVE`，失败则转 `UNHEALTHY`。
+- 该放宽仅适用于 chat/text；`image.generate`、`video.generate`、`audio.synthesize`、`audio.transcribe` 等 media/speech 路径不继承本规则，除非对应 runtime contract 另行声明按需 warm 语义。
 
 ## K-LOCAL-021 SearchCatalogModels 结果排序
 
@@ -470,11 +487,12 @@ hashes:                        # 必填，所有文件须有对应 hash
 - 不锁定单一格式：新架构模型可能仅有 SafeTensors 版本。
 - Entry 选择优先级（llama 引擎）：`.gguf` → `model.safetensors` → 任意 `.safetensors`。
 
-## K-LOCAL-028 Desktop 获取所有权
+## K-LOCAL-028 Runtime 获取与执行所有权
 
-- Phase 1: 所有模型生命周期**写操作**（搜索、下载、安装、删除）由 desktop execution-plane 独占。
-- Runtime 仅消费已安装模型的元数据，不主动发起下载。
-- 未来可扩展为 CLI / Web 获取路径，但当前版本 desktop 是唯一获取执行面。
+- local model / artifact 的搜索、下载、安装、导入、orphan scaffold/adopt、health/readiness、audit 与 transfer/progress 全部由 runtime 执行并持久化。
+- desktop 不得再持有并回写第二套本地模型状态，不得通过 host-local state 推断安装成功、下载完成或模型可启动。
+- desktop / web / mods 对本地模型的产品访问必须经 `RuntimeLocalService` typed surface；desktop host 仅保留 picker、reveal、notification 与等价 shell-native/helper 能力。
+- future CLI / Web 路径扩展时必须继续复用 runtime 作为统一本地模型控制面，不得复制第二套执行面。
 
 ## K-LOCAL-029 LocalAuditEvent 扩展字段契约
 
@@ -493,8 +511,11 @@ hashes:                        # 必填，所有文件须有对应 hash
 以下 RPC 的分页边界遵循统一规则（与 `K-PAGE-005` 对齐）：
 
 - `ListLocalModels`
+- `ListLocalArtifacts`
 - `ListVerifiedModels`
+- `ListVerifiedArtifacts`
 - `SearchCatalogModels`
+- `ListLocalTransfers`
 - `ListLocalServices`
 - `ListNodeCatalog`
 - `ListLocalAudits`

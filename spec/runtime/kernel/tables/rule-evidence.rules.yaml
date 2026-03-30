@@ -647,6 +647,9 @@
 - rule_id: K-LOCAL-020
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]
+- rule_id: K-LOCAL-020a
+  status: covered
+  evidence_refs: [runtime_kernel_consistency, runtime_go_test]
 - rule_id: K-LOCAL-021
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_go_test]

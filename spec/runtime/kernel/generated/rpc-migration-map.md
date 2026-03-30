@@ -63,6 +63,8 @@
 | `RuntimeLocalService` | `InstallVerifiedArtifact` | `RuntimeLocalService` | `InstallVerifiedArtifact` | `aligned` |
 | `RuntimeLocalService` | `ImportLocalModel` | `RuntimeLocalService` | `ImportLocalModel` | `aligned` |
 | `RuntimeLocalService` | `ImportLocalArtifact` | `RuntimeLocalService` | `ImportLocalArtifact` | `aligned` |
+| `RuntimeLocalService` | `ImportLocalModelFile` | `RuntimeLocalService` | `ImportLocalModelFile` | `aligned` |
+| `RuntimeLocalService` | `ImportLocalArtifactFile` | `RuntimeLocalService` | `ImportLocalArtifactFile` | `aligned` |
 | `RuntimeLocalService` | `RemoveLocalModel` | `RuntimeLocalService` | `RemoveLocalModel` | `aligned` |
 | `RuntimeLocalService` | `RemoveLocalArtifact` | `RuntimeLocalService` | `RemoveLocalArtifact` | `aligned` |
 | `RuntimeLocalService` | `StartLocalModel` | `RuntimeLocalService` | `StartLocalModel` | `aligned` |
@@ -72,6 +74,14 @@
 | `RuntimeLocalService` | `SearchCatalogModels` | `RuntimeLocalService` | `SearchCatalogModels` | `aligned` |
 | `RuntimeLocalService` | `ResolveModelInstallPlan` | `RuntimeLocalService` | `ResolveModelInstallPlan` | `aligned` |
 | `RuntimeLocalService` | `CollectDeviceProfile` | `RuntimeLocalService` | `CollectDeviceProfile` | `aligned` |
+| `RuntimeLocalService` | `ScanUnregisteredAssets` | `RuntimeLocalService` | `ScanUnregisteredAssets` | `aligned` |
+| `RuntimeLocalService` | `ScaffoldOrphanModel` | `RuntimeLocalService` | `ScaffoldOrphanModel` | `aligned` |
+| `RuntimeLocalService` | `ScaffoldOrphanArtifact` | `RuntimeLocalService` | `ScaffoldOrphanArtifact` | `aligned` |
+| `RuntimeLocalService` | `ListLocalTransfers` | `RuntimeLocalService` | `ListLocalTransfers` | `aligned` |
+| `RuntimeLocalService` | `PauseLocalTransfer` | `RuntimeLocalService` | `PauseLocalTransfer` | `aligned` |
+| `RuntimeLocalService` | `ResumeLocalTransfer` | `RuntimeLocalService` | `ResumeLocalTransfer` | `aligned` |
+| `RuntimeLocalService` | `CancelLocalTransfer` | `RuntimeLocalService` | `CancelLocalTransfer` | `aligned` |
+| `RuntimeLocalService` | `WatchLocalTransfers` | `RuntimeLocalService` | `WatchLocalTransfers` | `aligned` |
 | `RuntimeLocalService` | `ListLocalServices` | `RuntimeLocalService` | `ListLocalServices` | `aligned` |
 | `RuntimeLocalService` | `InstallLocalService` | `RuntimeLocalService` | `InstallLocalService` | `aligned` |
 | `RuntimeLocalService` | `StartLocalService` | `RuntimeLocalService` | `StartLocalService` | `aligned` |

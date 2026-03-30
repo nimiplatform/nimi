@@ -70,6 +70,8 @@ Source: `K-RPC-004`
 | `InstallVerifiedArtifact` | `unary` |
 | `ImportLocalModel` | `unary` |
 | `ImportLocalArtifact` | `unary` |
+| `ImportLocalModelFile` | `unary` |
+| `ImportLocalArtifactFile` | `unary` |
 | `RemoveLocalModel` | `unary` |
 | `RemoveLocalArtifact` | `unary` |
 | `StartLocalModel` | `unary` |
@@ -79,6 +81,14 @@ Source: `K-RPC-004`
 | `SearchCatalogModels` | `unary` |
 | `ResolveModelInstallPlan` | `unary` |
 | `CollectDeviceProfile` | `unary` |
+| `ScanUnregisteredAssets` | `unary` |
+| `ScaffoldOrphanModel` | `unary` |
+| `ScaffoldOrphanArtifact` | `unary` |
+| `ListLocalTransfers` | `unary` |
+| `PauseLocalTransfer` | `unary` |
+| `ResumeLocalTransfer` | `unary` |
+| `CancelLocalTransfer` | `unary` |
+| `WatchLocalTransfers` | `server_stream` |
 | `ListLocalServices` | `unary` |
 | `InstallLocalService` | `unary` |
 | `StartLocalService` | `unary` |

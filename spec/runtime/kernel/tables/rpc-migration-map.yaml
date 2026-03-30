@@ -262,6 +262,16 @@ method_mappings:
     proto_method: ImportLocalArtifact
     mapping_status: aligned
   - design_service: RuntimeLocalService
+    design_method: ImportLocalModelFile
+    proto_service: RuntimeLocalService
+    proto_method: ImportLocalModelFile
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: ImportLocalArtifactFile
+    proto_service: RuntimeLocalService
+    proto_method: ImportLocalArtifactFile
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
     design_method: RemoveLocalModel
     proto_service: RuntimeLocalService
     proto_method: RemoveLocalModel
@@ -305,6 +315,46 @@ method_mappings:
     design_method: CollectDeviceProfile
     proto_service: RuntimeLocalService
     proto_method: CollectDeviceProfile
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: ScanUnregisteredAssets
+    proto_service: RuntimeLocalService
+    proto_method: ScanUnregisteredAssets
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: ScaffoldOrphanModel
+    proto_service: RuntimeLocalService
+    proto_method: ScaffoldOrphanModel
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: ScaffoldOrphanArtifact
+    proto_service: RuntimeLocalService
+    proto_method: ScaffoldOrphanArtifact
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: ListLocalTransfers
+    proto_service: RuntimeLocalService
+    proto_method: ListLocalTransfers
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: PauseLocalTransfer
+    proto_service: RuntimeLocalService
+    proto_method: PauseLocalTransfer
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: ResumeLocalTransfer
+    proto_service: RuntimeLocalService
+    proto_method: ResumeLocalTransfer
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: CancelLocalTransfer
+    proto_service: RuntimeLocalService
+    proto_method: CancelLocalTransfer
+    mapping_status: aligned
+  - design_service: RuntimeLocalService
+    design_method: WatchLocalTransfers
+    proto_service: RuntimeLocalService
+    proto_method: WatchLocalTransfers
     mapping_status: aligned
   - design_service: RuntimeLocalService
     design_method: ListLocalServices

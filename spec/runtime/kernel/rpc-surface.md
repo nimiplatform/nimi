@@ -86,7 +86,9 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 
 ## K-RPC-004 RuntimeLocalService 方法集合
 
-`RuntimeLocalService` 方法按三层分级：
+`RuntimeLocalService` 是本地模型控制面的唯一稳定 RPC 面。local model / artifact 的清单、状态、health、audit、import/install/download、orphan adopt/scaffold 与 transfer/progress 必须全部由该服务持有；desktop 不得再拥有并回写第二套本地模型真源。
+
+`RuntimeLocalService` 方法按四层分级：
 
 **Tier 1 — 核心生命周期：**
 
@@ -97,47 +99,57 @@ ConnectorService 当前与 proto `RuntimeConnectorService` 对齐（见 `tables/
 5. `InstallVerifiedArtifact`
 6. `ImportLocalModel`
 7. `ImportLocalArtifact`
-8. `RemoveLocalModel`
-9. `RemoveLocalArtifact`
-10. `StartLocalModel`
-11. `StopLocalModel`
-12. `CheckLocalModelHealth`
-13. `WarmLocalModel`
+8. `ImportLocalModelFile`
+9. `ImportLocalArtifactFile`
+10. `RemoveLocalModel`
+11. `RemoveLocalArtifact`
+12. `StartLocalModel`
+13. `StopLocalModel`
+14. `CheckLocalModelHealth`
+15. `WarmLocalModel`
 
-**Tier 2 — 目录、伴随资产与计划：**
+**Tier 2 — 目录、伴随资产、intake 与 transfer：**
 
-14. `ListVerifiedModels`
-15. `ListVerifiedArtifacts`
-16. `SearchCatalogModels`
-17. `ResolveModelInstallPlan`
-18. `CollectDeviceProfile`
+16. `ListVerifiedModels`
+17. `ListVerifiedArtifacts`
+18. `SearchCatalogModels`
+19. `ResolveModelInstallPlan`
+20. `CollectDeviceProfile`
+21. `ScanUnregisteredAssets`
+22. `ScaffoldOrphanModel`
+23. `ScaffoldOrphanArtifact`
+24. `ListLocalTransfers`
+25. `PauseLocalTransfer`
+26. `ResumeLocalTransfer`
+27. `CancelLocalTransfer`
+28. `WatchLocalTransfers`
 
 **Tier 3 — 服务/节点/依赖/审计：**
 
-19. `ListLocalServices`
-20. `InstallLocalService`
-21. `StartLocalService`
-22. `StopLocalService`
-23. `CheckLocalServiceHealth`
-24. `RemoveLocalService`
-25. `ListNodeCatalog`
-26. `ResolveProfile`
-27. `ApplyProfile`
-28. `ListLocalAudits`
-29. _(reserved for stable RPC numbering)_
-30. _(reserved for stable RPC numbering)_
-31. `AppendInferenceAudit`
-32. `AppendRuntimeAudit`
+29. `ListLocalServices`
+30. `InstallLocalService`
+31. `StartLocalService`
+32. `StopLocalService`
+33. `CheckLocalServiceHealth`
+34. `RemoveLocalService`
+35. `ListNodeCatalog`
+36. `ResolveProfile`
+37. `ApplyProfile`
+38. `ListLocalAudits`
+39. _(reserved for stable RPC numbering)_
+40. _(reserved for stable RPC numbering)_
+41. `AppendInferenceAudit`
+42. `AppendRuntimeAudit`
 
 **Tier 4 — 引擎进程管理（K-LENG-004）：**
 
-33. `ListEngines`
-34. `EnsureEngine`
-35. `StartEngine`
-36. `StopEngine`
-37. `GetEngineStatus`
+43. `ListEngines`
+44. `EnsureEngine`
+45. `StartEngine`
+46. `StopEngine`
+47. `GetEngineStatus`
 
-`WarmLocalModel` 的语义限定为“就绪/预热”读路径：允许解析已安装 local model / local service、触发一次最小执行以加载模型，但不得改变安装态、配置态或 desktop 独占的生命周期写权限（`K-LOCAL-028`）。
+`WarmLocalModel` 的语义限定为 runtime-owned 的“就绪/预热”路径：允许解析已安装 local model / local service，并在首次真实请求前触发最小执行以加载模型。对于 chat/text，本地模型在 `status in {installed, active}` 时可被选择，runtime 在首次真实 text 请求前负责 warm，不得要求 desktop 先行维持第二套 start/stop 真源。
 
 ## K-RPC-005 Design 名称与 Proto 名称映射
 
