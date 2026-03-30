@@ -238,6 +238,7 @@ export function MessageTimeline() {
             ? t('ChatTimeline.collapseUserProfile')
             : t('ChatTimeline.viewUserProfile')}
           titleClassName=""
+          className="bg-white"
         />
 
         {/* Messages */}
@@ -341,6 +342,7 @@ export function MessageTimeline() {
         <ChatComposerResizeHandle
           ariaLabel={t('ChatTimeline.resizeInputArea')}
           onMouseDown={startComposerResize}
+          className="bg-white"
         />
 
         <ChatComposerShell height={composerHeight}>

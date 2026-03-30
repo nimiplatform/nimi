@@ -204,7 +204,7 @@ function ChatLayout() {
 
   return (
     <div ref={containerRef} className="flex min-h-0 flex-1">
-      <div className="relative shrink-0 bg-[var(--nimi-sidebar-canvas)]" style={{ width: `${chatListWidth}px` }}>
+      <div className="relative shrink-0 bg-white" style={{ width: `${chatListWidth}px` }}>
         <ChatList />
         <div
           role="separator"
@@ -474,7 +474,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         {hidePrimaryRail ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
-            className={`flex h-full shrink-0 flex-col bg-[var(--nimi-sidebar-canvas)] border-r border-r-[var(--nimi-sidebar-border)] transition-[width] duration-200 ${sidebarWidthClass}`}
+            className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}
           >
             <div className="flex h-14 shrink-0 items-center justify-center">
               <SidebarTooltipButton

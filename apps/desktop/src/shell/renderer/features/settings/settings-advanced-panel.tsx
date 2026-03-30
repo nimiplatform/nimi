@@ -532,7 +532,7 @@ export function WalletPage() {
       {/* Spark Recharge Section */}
       <section className="mt-8">
         <SectionTitle>{t('Wallet.sectionRecharge')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
               <p className="text-sm font-medium text-gray-900">{t('Wallet.rechargeTitle')}</p>
@@ -577,7 +577,7 @@ export function WalletPage() {
       {/* Withdrawal Section */}
       <section className="mt-8">
         <SectionTitle>{t('Wallet.sectionWithdrawal')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           {/* Status Badge */}
           <div className="flex items-center gap-3 mb-4">
             <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${canWithdraw ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
@@ -637,7 +637,7 @@ export function WalletPage() {
       {/* Recent Transactions */}
       <section className="mt-8">
         <SectionTitle>{t('Wallet.sectionRecentTransactions')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           {timeline.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
@@ -646,7 +646,7 @@ export function WalletPage() {
               <p className="text-sm text-gray-500">{t('Wallet.noTransactions')}</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-100">
               {timeline.map((tx) => {
                 const amountValue = parseNumber(tx.amount);
                 const positive = amountValue >= 0;
@@ -684,7 +684,7 @@ export function WalletPage() {
       {/* Withdrawal History */}
       <section className="mt-8">
         <SectionTitle>{t('Wallet.sectionWithdrawalHistory')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           {withdrawalItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
@@ -693,7 +693,7 @@ export function WalletPage() {
               <p className="text-sm text-gray-500">{t('Wallet.noWithdrawals')}</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-100">
               {withdrawalItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors">
                   <div className="flex items-center gap-3">

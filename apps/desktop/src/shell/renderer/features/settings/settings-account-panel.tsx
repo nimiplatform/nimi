@@ -371,7 +371,7 @@ export function ProfilePage() {
       title={t('Profile.pageTitle')}
       description={t('Profile.pageDescription')}
     >
-      <section className="sticky top-0 z-10 -mx-6 bg-[#F8F9FB] px-6 pb-4 pt-2">
+      <section className="sticky top-0 z-10 -mx-6 bg-white px-6 pb-4 pt-2">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-mint-400 to-mint-600 p-6 text-white shadow-lg">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
           <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
@@ -419,7 +419,7 @@ export function ProfilePage() {
       {/* Basic Information */}
       <section className="mt-8">
         <SectionTitle>{t('Profile.sectionBasicInfo')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-5">
             {/* Display Name */}
             <div>
@@ -453,7 +453,7 @@ export function ProfilePage() {
                   type="text"
                   value={userHandle}
                   readOnly
-                  className="w-full rounded-xl border border-gray-100 bg-gray-100 py-3 pl-11 pr-4 text-sm text-gray-500 cursor-not-allowed"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-100 py-3 pl-11 pr-4 text-sm text-gray-500 cursor-not-allowed"
                 />
               </div>
               <p className="mt-1.5 text-xs text-gray-400">{t('Profile.usernameHelper')}</p>
@@ -472,7 +472,7 @@ export function ProfilePage() {
                   type="email"
                   value={email}
                   readOnly
-                  className="w-full rounded-xl border border-gray-100 bg-gray-100 py-3 pl-11 pr-4 text-sm text-gray-500 cursor-not-allowed"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-100 py-3 pl-11 pr-4 text-sm text-gray-500 cursor-not-allowed"
                 />
               </div>
               <p className="mt-1.5 text-xs text-gray-400">{t('Profile.emailHelper')}</p>
@@ -506,7 +506,7 @@ export function ProfilePage() {
         <SectionTitle description={t('Profile.connectedAccountsDescription')}>
           {t('Profile.sectionConnectedAccounts')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           {/* Email */}
           <div className="flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors">
             <div className="flex items-center gap-4">
@@ -530,7 +530,7 @@ export function ProfilePage() {
             const actionLabel = connected ? 'Disconnect' : t('Common.connect');
             return (
               <div key={row.provider}>
-                <div className="h-px bg-gray-50 mx-5" />
+                <div className="h-px bg-gray-100 mx-5" />
                 <div className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-gray-50/50">
                   <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-700">

@@ -86,7 +86,7 @@ export function SettingsPanelBody() {
   };
 
   return (
-    <div ref={containerRef} className="flex min-h-0 flex-1" data-testid="panel:settings">
+    <div ref={containerRef} className="flex min-h-0 flex-1 bg-white" data-testid="panel:settings">
       <SidebarShell width={sidebarWidth} data-testid="panel:settings-sidebar">
         <SidebarHeader title={<h1 className={`nimi-type-page-title text-[color:var(--nimi-text-primary)]`}>{t('Navigation.settings')}</h1>} className="px-6" />
         <ScrollArea className="flex-1" contentClassName="space-y-5 px-3 pb-3 pt-2">
@@ -123,7 +123,7 @@ export function SettingsPanelBody() {
         />
       </SidebarShell>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-white">
         {renderSettingsPage(selectedId)}
       </div>
     </div>

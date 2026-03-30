@@ -249,7 +249,7 @@ export function NotificationsPage() {
         <SectionTitle description={t('Notifications.sectionActivityDescription')}>
           {t('Notifications.sectionActivity')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <SettingRow
             icon={<MailIcon className="h-5 w-5" />}
             title={t('Notifications.directMessages')}
@@ -257,7 +257,7 @@ export function NotificationsPage() {
             checked={form.directMessages}
             onChange={(value) => setForm((previous) => ({ ...previous, directMessages: value }))}
           />
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="h-px bg-gray-100 mx-5" />
           <SettingRow
             icon={<UserPlusIcon className="h-5 w-5" />}
             title={t('Notifications.friendRequests')}
@@ -265,7 +265,7 @@ export function NotificationsPage() {
             checked={form.friendRequests}
             onChange={(value) => setForm((previous) => ({ ...previous, friendRequests: value }))}
           />
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="h-px bg-gray-100 mx-5" />
           <SettingRow
             icon={<AtSignIcon className="h-5 w-5" />}
             title={t('Notifications.mentions')}
@@ -273,7 +273,7 @@ export function NotificationsPage() {
             checked={form.mentions}
             onChange={(value) => setForm((previous) => ({ ...previous, mentions: value }))}
           />
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="h-px bg-gray-100 mx-5" />
           <SettingRow
             icon={<HeartIcon className="h-5 w-5" />}
             title={t('Notifications.likes')}
@@ -289,7 +289,7 @@ export function NotificationsPage() {
         <SectionTitle description={t('Notifications.sectionGiftsDescription')}>
           {t('Notifications.sectionGifts')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <SettingRow
             icon={<GiftIcon className="h-5 w-5" />}
             title={t('Notifications.giftReceived')}
@@ -297,7 +297,7 @@ export function NotificationsPage() {
             checked={form.giftReceived}
             onChange={(value) => setForm((previous) => ({ ...previous, giftReceived: value }))}
           />
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="h-px bg-gray-100 mx-5" />
           <SettingRow
             icon={<AlertCircleIcon className="h-5 w-5" />}
             title={t('Notifications.giftActionRequired')}
@@ -313,7 +313,7 @@ export function NotificationsPage() {
         <SectionTitle description={t('Notifications.sectionChannelsDescription')}>
           {t('Notifications.sectionChannels')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <SettingRow
             icon={<BellIcon className="h-5 w-5" />}
             title={t('Notifications.inApp')}
@@ -321,7 +321,7 @@ export function NotificationsPage() {
             checked={form.inApp}
             onChange={(value) => setForm((previous) => ({ ...previous, inApp: value }))}
           />
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="h-px bg-gray-100 mx-5" />
           <SettingRow
             icon={<MonitorIcon className="h-5 w-5" />}
             title={t('Notifications.push')}
@@ -329,7 +329,7 @@ export function NotificationsPage() {
             checked={form.push}
             onChange={(value) => setForm((previous) => ({ ...previous, push: value }))}
           />
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="h-px bg-gray-100 mx-5" />
           <SettingRow
             icon={<MailIcon className="h-5 w-5" />}
             title={t('Notifications.emailChannel')}

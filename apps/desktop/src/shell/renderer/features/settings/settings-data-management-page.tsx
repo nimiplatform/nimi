@@ -144,8 +144,8 @@ export function DataManagementPage() {
       {/* Storage Usage */}
       <section>
         <SectionTitle>{t('DataManagement.storageUsageTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="divide-y divide-gray-50">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="divide-y divide-gray-100">
             <div className="flex items-center justify-between py-3">
               <span className="text-sm text-gray-600">{t('DataManagement.storageChats')}</span>
               <span className="text-sm font-medium text-gray-900">{formatBytes(storage.queryCacheBytes)}</span>
@@ -185,7 +185,7 @@ export function DataManagementPage() {
         <SectionTitle description={t('DataManagement.clearCacheDescription')}>
           {t('DataManagement.clearCacheTitle')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-600">{t('DataManagement.clearCacheBody')}</p>
           <button
             type="button"
@@ -230,7 +230,7 @@ export function DataManagementPage() {
       {/* Session */}
       <section className="mt-8">
         <SectionTitle>{t('DataManagement.sessionTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-600">{t('DataManagement.sessionBody')}</p>
           <button
             type="button"

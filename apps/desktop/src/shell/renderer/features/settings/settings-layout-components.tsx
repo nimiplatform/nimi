@@ -121,7 +121,7 @@ export function SaveFooter({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex shrink-0 items-center justify-end gap-3 border-t border-gray-200 bg-white px-6 py-4">
+    <div className="flex shrink-0 items-center justify-end gap-3 bg-white px-6 py-4">
       {showCancel ? (
         <Button variant="secondary" onClick={onCancel}>
           {t('Common.cancel')}

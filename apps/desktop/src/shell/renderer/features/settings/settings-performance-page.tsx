@@ -156,7 +156,7 @@ export function PerformancePage() {
         <SectionTitle description={t('Performance.sectionRenderingDescription')}>
           {t('Performance.sectionRendering')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <SettingRow
             icon={<GpuIcon className="h-5 w-5" />}
             title={t('Performance.hardwareAcceleration')}
@@ -164,7 +164,7 @@ export function PerformancePage() {
             checked={preferences.hardwareAcceleration}
             onChange={(value) => setPreferences((previous) => ({ ...previous, hardwareAcceleration: value }))}
           />
-          <div className="h-px bg-gray-50 mx-5" />
+          <div className="h-px bg-gray-100 mx-5" />
           <SettingRow
             icon={<AnimationIcon className="h-5 w-5" />}
             title={t('Performance.reduceAnimations')}
@@ -179,7 +179,7 @@ export function PerformancePage() {
         <SectionTitle description={t('Performance.sectionUpdatesDescription')}>
           {t('Performance.sectionUpdates')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <SettingRow
             icon={<DownloadIcon className="h-5 w-5" />}
             title={t('Performance.autoUpdate')}
@@ -188,7 +188,7 @@ export function PerformancePage() {
             onChange={(value) => setPreferences((previous) => ({ ...previous, autoUpdate: value }))}
           />
         </div>
-        <div className="mt-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -266,7 +266,7 @@ export function PerformancePage() {
         <SectionTitle description={t('Performance.sectionDeveloperDescription')}>
           {t('Performance.sectionDeveloper')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <SettingRow
             icon={<CodeIcon className="h-5 w-5" />}
             title={t('Performance.developerMode')}
@@ -279,8 +279,8 @@ export function PerformancePage() {
 
       <section className="mt-8">
         <SectionTitle>{t('Performance.sectionRuntimeInfo')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-          <div className="divide-y divide-gray-50">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="divide-y divide-gray-100">
             <InfoCard icon={<ServerIcon className="h-5 w-5" />} label={t('Performance.provider')} value={runtimeFields.provider || t('Performance.notConfigured')} />
             <InfoCard icon={<CpuIcon className="h-5 w-5" />} label={t('Performance.model')} value={runtimeFields.localProviderModel || '-'} />
             <InfoCard icon={<TargetIcon className="h-5 w-5" />} label={t('Performance.mode')} value={runtimeFields.mode} />
@@ -291,7 +291,7 @@ export function PerformancePage() {
 
       <section className="mt-8">
         <SectionTitle>{t('Performance.sectionCreatorEligibility')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${isEligible ? 'bg-mint-100 text-mint-600' : 'bg-gray-100 text-gray-500'}`}>

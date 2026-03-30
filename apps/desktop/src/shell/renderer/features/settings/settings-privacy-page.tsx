@@ -270,7 +270,7 @@ export function PrivacyPage() {
         <SectionTitle description={t('PrivacySettings.visibilitySectionDescription')}>
           {t('PrivacySettings.visibilitySectionTitle')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           {/* Visibility Mode Master Control */}
           <div className="mb-6 rounded-xl bg-gradient-to-r from-mint-50 to-mint-100/50 p-4">
             <div className="flex items-center justify-between">
@@ -316,7 +316,7 @@ export function PrivacyPage() {
               options={visibilitySelectOptions}
               helper={t('PrivacySettings.profileVisibilityHelper')}
             />
-            <div className="h-px bg-gray-50" />
+            <div className="h-px bg-gray-100" />
             <SegmentedControl
               label={t('PrivacySettings.friendRequestVisibilityLabel')}
               value={form.friendRequestVisibility}
@@ -327,7 +327,7 @@ export function PrivacyPage() {
               options={visibilitySelectOptions}
               helper={t('PrivacySettings.friendRequestVisibilityHelper')}
             />
-            <div className="h-px bg-gray-50" />
+            <div className="h-px bg-gray-100" />
             <SegmentedControl
               label={t('PrivacySettings.socialVisibilityLabel')}
               value={form.socialVisibility}
@@ -338,7 +338,7 @@ export function PrivacyPage() {
               options={visibilitySelectOptions}
               helper={t('PrivacySettings.socialVisibilityHelper')}
             />
-            <div className="h-px bg-gray-50" />
+            <div className="h-px bg-gray-100" />
             <SegmentedControl
               label={t('PrivacySettings.onlineStatusVisibilityLabel')}
               value={form.onlineStatusVisibility}
@@ -358,7 +358,7 @@ export function PrivacyPage() {
         <SectionTitle description={t('PrivacySettings.messagingSectionDescription')}>
           {t('PrivacySettings.messagingSectionTitle')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-5">
             <SegmentedControl
               label={t('PrivacySettings.defaultPostVisibilityLabel')}
@@ -370,7 +370,7 @@ export function PrivacyPage() {
               options={visibilitySelectOptions}
               helper={t('PrivacySettings.defaultPostVisibilityHelper')}
             />
-            <div className="h-px bg-gray-50" />
+            <div className="h-px bg-gray-100" />
             <SegmentedControl
               label={t('PrivacySettings.directMessageVisibilityLabel')}
               value={form.dmVisibility}

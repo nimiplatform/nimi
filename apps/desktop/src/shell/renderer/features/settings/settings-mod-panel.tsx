@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { showModTabLimitBanner } from '@renderer/mod-ui/host/mod-tab-limit-banner';
+import { resolveModTabId } from '@renderer/mod-ui/lifecycle/sync-runtime-extensions.js';
 import { Button, PageShell, SectionTitle, StatusBadge } from './settings-layout-components.js';
 import { loadStoredSettingsModId, persistStoredSettingsModId } from './settings-storage.js';
 
@@ -59,15 +60,6 @@ function CodeIcon({ className = '' }: { className?: string }) {
     <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="16 18 22 12 16 6" />
       <polyline points="8 6 2 12 8 18" />
-    </svg>
-  );
-}
-
-function BracesIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 3H7a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2 2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1" />
-      <path d="M16 3h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2 2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-1" />
     </svg>
   );
 }
@@ -211,7 +203,7 @@ export function ModSettingsPage() {
 
   const handleOpenModWorkspace = () => {
     if (!selectedMod) return;
-    const result = openModWorkspaceTab(`mod:${selectedMod.id}`, selectedMod.name, selectedMod.id);
+    const result = openModWorkspaceTab(resolveModTabId(selectedMod.id), selectedMod.name, selectedMod.id);
     if (result === 'rejected-limit') {
       showModTabLimitBanner({
         setStatusBanner,
@@ -245,80 +237,62 @@ export function ModSettingsPage() {
 
       {runtimeMods.length === 0 ? (
         <section className="mt-8">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
             <p className="text-sm text-gray-700">{t('ModSettings.noModsTitle')}</p>
             <p className="mt-1 text-xs text-gray-500">{t('ModSettings.noModsDescription')}</p>
           </div>
         </section>
       ) : (
-        <>
-          <section className="mt-8">
-            <SectionTitle description={t('ModSettings.installedDescription')}>
-              {t('ModSettings.installedTitle')}
-            </SectionTitle>
-            <div className="mt-3 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-              {runtimeMods.map((mod, index) => (
-                <div key={mod.id}>
-                  <SettingLikeRow
-                    icon={<PuzzleIcon className="h-5 w-5" />}
-                    title={mod.name}
-                    description={mod.description}
-                    active={mod.id === selectedModId}
-                    onClick={() => setSelectedModId(mod.id)}
-                    trailing={(
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-gray-400">{mod.version}</span>
-                        {!mod.isInstalled ? (
-                          <StatusBadge status="warning" text={t('ModSettings.statusNotInstalled')} />
-                        ) : mod.isEnabled ? (
-                          <StatusBadge status="success" text={t('ModSettings.statusEnabled')} />
-                        ) : (
-                          <StatusBadge status="info" text={t('ModSettings.statusDisabled')} />
-                        )}
-                      </div>
-                    )}
-                  />
-                  {index < runtimeMods.length - 1 ? <div className="mx-5 h-px bg-gray-50" /> : null}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {selectedMod ? (
-            <>
-              <section className="mt-8">
-                <SectionTitle description={t('ModSettings.rawJsonDescription')}>
-                  {t('ModSettings.rawJsonTitle')}
-                </SectionTitle>
-                <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <div className="mb-4 flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-500">
-                      <BracesIcon className="h-5 w-5" />
+        <section className="mt-8">
+          <SectionTitle description={t('ModSettings.installedDescription')}>
+            {t('ModSettings.installedTitle')}
+          </SectionTitle>
+          <div className="mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            {runtimeMods.map((mod, index) => (
+              <div key={mod.id}>
+                <SettingLikeRow
+                  icon={<PuzzleIcon className="h-5 w-5" />}
+                  title={mod.name}
+                  description={mod.description}
+                  active={mod.id === selectedModId}
+                  onClick={() => setSelectedModId(mod.id === selectedModId ? '' : mod.id)}
+                  trailing={(
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-gray-400">{mod.version}</span>
+                      {!mod.isInstalled ? (
+                        <StatusBadge status="warning" text={t('ModSettings.statusNotInstalled')} />
+                      ) : mod.isEnabled ? (
+                        <StatusBadge status="success" text={t('ModSettings.statusEnabled')} />
+                      ) : (
+                        <StatusBadge status="info" text={t('ModSettings.statusDisabled')} />
+                      )}
                     </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-gray-900">{selectedMod.name}</p>
-                      <p className="text-xs text-gray-500">{selectedMod.id}</p>
+                  )}
+                />
+                {/* Inline JSON editor — expands below selected row */}
+                {mod.id === selectedModId && (
+                  <div className="border-t border-gray-200 bg-gray-50/50 px-5 py-4">
+                    <textarea
+                      value={jsonDraft}
+                      onChange={(event) => setJsonDraft(event.target.value)}
+                      className="h-48 w-full resize-y rounded-xl border border-gray-200 bg-white p-4 font-mono text-xs text-gray-900 outline-none transition-colors focus:border-mint-300"
+                      spellCheck={false}
+                    />
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Button variant="primary" size="sm" onClick={handleSaveJson}>{t('ModSettings.saveJson')}</Button>
+                      <Button variant="secondary" size="sm" onClick={handleResetJson}>{t('ModSettings.resetJson')}</Button>
+                      <Button variant="ghost" size="sm" onClick={handleOpenModWorkspace}>
+                        <CodeIcon className="h-4 w-4" />
+                        {t('ModSettings.openMod')}
+                      </Button>
                     </div>
                   </div>
-                  <textarea
-                    value={jsonDraft}
-                    onChange={(event) => setJsonDraft(event.target.value)}
-                    className="h-64 w-full resize-y rounded-2xl border border-gray-200 bg-gray-50 p-4 font-mono text-xs text-gray-900 outline-none transition-colors focus:border-mint-300"
-                    spellCheck={false}
-                  />
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <Button variant="primary" size="sm" onClick={handleSaveJson}>{t('ModSettings.saveJson')}</Button>
-                    <Button variant="secondary" size="sm" onClick={handleResetJson}>{t('ModSettings.resetJson')}</Button>
-                    <Button variant="ghost" size="sm" onClick={handleOpenModWorkspace}>
-                      <CodeIcon className="h-4 w-4" />
-                      {t('ModSettings.openMod')}
-                    </Button>
-                  </div>
-                </div>
-              </section>
-            </>
-          ) : null}
-        </>
+                )}
+                {index < runtimeMods.length - 1 ? <div className="mx-5 h-px bg-gray-100" /> : null}
+              </div>
+            ))}
+          </div>
+        </section>
       )}
     </PageShell>
   );

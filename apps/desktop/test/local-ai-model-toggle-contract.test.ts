@@ -31,7 +31,7 @@ test('local model center installed list is status-only and no longer renders a l
   assert.doesNotMatch(catalogCardSource, /onStopModel:/);
   assert.doesNotMatch(catalogCardSource, /localModelLifecycleById:/);
   assert.match(catalogCardSource, /model\.status === 'installed'/);
-  assert.match(catalogCardSource, /validating/);
+  assert.match(catalogCardSource, /runtimeConfig\.localModelCenter\.installed/);
 });
 
 test('desktop local page no longer wires start\\/stop\\/restart product actions into local model center', () => {

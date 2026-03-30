@@ -170,7 +170,7 @@ export function SecurityPage() {
       {/* Change Password */}
       <section>
         <SectionTitle>{t('SecuritySettings.changePasswordTitle')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-4">
             <PasswordField
               label={t('SecuritySettings.currentPasswordLabel')}
@@ -216,7 +216,7 @@ export function SecurityPage() {
         <SectionTitle description={t('SecuritySettings.twoFactorDescription')}>
           {t('SecuritySettings.twoFactorTitle')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <SettingRow
             icon={<ShieldIcon className="h-5 w-5" />}
             title={t('SecuritySettings.enable2faLabel')}
@@ -237,7 +237,7 @@ export function SecurityPage() {
           </div>
         )}
         {twoFactor && !initialTwoFactorEnabled ? (
-          <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-medium text-gray-700">{t('SecuritySettings.newTwoFactorSetup')}</p>
             {twoFactorSecret || twoFactorUri ? (
               <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
@@ -302,7 +302,7 @@ export function SecurityPage() {
           </div>
         ) : null}
         {!twoFactor && initialTwoFactorEnabled ? (
-          <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
             <label className="mb-2 block text-xs font-medium text-gray-700">
               {t('SecuritySettings.disableTwoFactorCodeLabel')}
             </label>
@@ -324,7 +324,7 @@ export function SecurityPage() {
         <SectionTitle description={t('SecuritySettings.activeSessionsDescription')}>
           {t('SecuritySettings.activeSessionsTitle')}
         </SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 text-gray-600">

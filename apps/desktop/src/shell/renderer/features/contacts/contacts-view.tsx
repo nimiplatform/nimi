@@ -367,7 +367,6 @@ export function ContactsView(props: ContactsViewProps) {
   }, [profileQuery.data, selectedContact]);
 
   // Profile 加载和错误状态
-  const profileLoading = profileQuery.isPending && !!selectedContact;
   const profileError = profileQuery.isError && !!selectedContact;
 
   if (props.loading) {
@@ -383,7 +382,7 @@ export function ContactsView(props: ContactsViewProps) {
   }
 
   return (
-    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full bg-[var(--nimi-surface-canvas)] text-[var(--nimi-text-primary)]">
+    <div ref={containerRef} data-testid={E2E_IDS.panel('contacts')} className="flex h-full bg-white text-[var(--nimi-text-primary)]">
       {/* 左侧联系人列表 */}
       <SidebarShell
         width={sidebarWidth}

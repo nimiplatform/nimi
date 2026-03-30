@@ -100,7 +100,7 @@ function SettingsDropdown({
         </svg>
       </div>
       {isOpen ? (
-        <div className="absolute z-50 mt-1 w-full rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
           {options.map((option) => (
             <button
               key={option.value}
@@ -182,7 +182,7 @@ export function LanguageRegionPage() {
     >
       <section>
         <SectionTitle>{t('LanguageRegion.sectionDisplayLanguage')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
@@ -203,7 +203,7 @@ export function LanguageRegionPage() {
 
       <section className="mt-8">
         <SectionTitle>{t('LanguageRegion.sectionRegionSettings')}</SectionTitle>
-        <div className="mt-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="space-y-5">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
