@@ -1,8 +1,9 @@
 // MediaRouteSelector — explicit connector + model selector for media capabilities
 // Reused for image, TTS, STT, and video route selection in settings drawer
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SelectField } from '@nimiplatform/nimi-kit/ui';
 import { getBridge } from '../../bridge/electron-bridge.js';
 import type { RelayMediaRouteOptionsResponse } from '../../../shared/ipc-contract.js';
 import { deriveMediaRouteDisplayState } from './media-route-state.js';
@@ -28,8 +29,6 @@ export function MediaRouteSelector({
   const [connectors, setConnectors] = useState<ConnectorOption[]>([]);
   const [loadStatus, setLoadStatus] = useState<RelayMediaRouteOptionsResponse['loadStatus']>('ready');
   const [loading, setLoading] = useState(true);
-  const [modelDraft, setModelDraft] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,8 +57,10 @@ export function MediaRouteSelector({
   const activeConnectorId = displayState.activeConnectorId;
   const selectedConnector = displayState.selectedConnector;
   const models = displayState.models;
-  const displayValue = isEditing ? modelDraft : displayState.displayModel;
-  const datalistId = `media-route-${capability.replace(/\./g, '-')}`;
+  const selectedConnectorValue = selectedConnector?.connectorId || undefined;
+  const selectedModelValue = models.some((item) => item.modelId === displayState.displayModel)
+    ? displayState.displayModel
+    : undefined;
 
   const handleConnectorChange = useCallback(
     (newConnectorId: string) => {
@@ -81,9 +82,24 @@ export function MediaRouteSelector({
     [displayState.activeConnectorId, onChange],
   );
 
+  const connectorOptions = useMemo(
+    () => connectors.map((connector) => ({
+      value: connector.connectorId,
+      label: `${connector.label} (${connector.provider})`,
+    })),
+    [connectors],
+  );
+  const modelOptions = useMemo(
+    () => models.map((item) => ({
+      value: item.modelId,
+      label: item.modelLabel || item.modelId,
+    })),
+    [models],
+  );
+
   if (loading) {
     return (
-      <div className="text-[12px] text-text-secondary">
+      <div className="text-sm text-[color:var(--nimi-text-secondary)]">
         {t('mediaRoute.loading', 'Loading...')}
       </div>
     );
@@ -91,7 +107,7 @@ export function MediaRouteSelector({
 
   if (connectors.length === 0) {
     return (
-      <div className="text-[12px] text-text-secondary">
+      <div className="text-sm text-[color:var(--nimi-text-secondary)]">
         {loadStatus === 'failed'
           ? t('mediaRoute.connectorsUnavailable', 'Connector discovery failed for {{label}}', { label })
           : t('mediaRoute.noConnectors', 'No connectors available for {{label}}', { label })}
@@ -100,77 +116,45 @@ export function MediaRouteSelector({
   }
 
   return (
-    <div className="space-y-2">
-      {/* Connector selector */}
-      <select
-        value={activeConnectorId}
-        onChange={(e) => handleConnectorChange(e.target.value)}
-        className="w-full bg-bg-elevated border border-border-subtle rounded-xl px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-accent"
-      >
-        <option value="">{t('mediaRoute.selectConnector', 'Select connector...')}</option>
-        {connectors.map((c) => (
-          <option key={c.connectorId} value={c.connectorId}>
-            {c.label} ({c.provider})
-          </option>
-        ))}
-      </select>
+    <div className="space-y-3">
+      <label className="flex min-h-11 flex-col gap-1">
+        <FieldLabel>{t('mediaRoute.connector', 'Connector')}</FieldLabel>
+        <SelectField
+          value={selectedConnectorValue}
+          onValueChange={handleConnectorChange}
+          options={connectorOptions}
+          placeholder={t('mediaRoute.selectConnector', 'Select connector...')}
+          selectClassName="font-normal"
+        />
+      </label>
 
       {(displayState.invalidConnector || displayState.invalidModel) && (
-        <div className="text-[11px] text-warning">
+        <InlineNotice tone="warning">
           {t('mediaRoute.invalidRoute', 'Saved route is no longer available. Select a connector and model again.')}
-        </div>
+        </InlineNotice>
       )}
 
       {loadStatus !== 'ready' && (
-        <div className="text-[11px] text-warning">
+        <InlineNotice tone={loadStatus === 'failed' ? 'danger' : 'warning'}>
           {loadStatus === 'failed'
             ? t('mediaRoute.discoveryFailed', 'Connector discovery failed. Runtime or connector state is unavailable.')
             : t('mediaRoute.discoveryDegraded', 'Connector discovery is degraded. Some connector models could not be loaded.')}
-        </div>
+        </InlineNotice>
       )}
 
-      {/* Model input with datalist */}
       {selectedConnector && models.length > 0 ? (
-        <>
-          <input
-            list={datalistId}
-            value={displayValue}
-            onFocus={() => {
-              setIsEditing(true);
-              setModelDraft(displayState.displayModel);
-            }}
-            onChange={(e) => setModelDraft(e.target.value)}
-            onBlur={() => {
-              if (isEditing && modelDraft !== displayState.displayModel) {
-                void handleModelChange(modelDraft);
-              }
-              setIsEditing(false);
-              setModelDraft('');
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && modelDraft !== displayState.displayModel) {
-                void handleModelChange(modelDraft);
-                setIsEditing(false);
-                setModelDraft('');
-              }
-              if (e.key === 'Escape') {
-                setIsEditing(false);
-                setModelDraft('');
-              }
-            }}
+        <label className="flex min-h-11 flex-col gap-1">
+          <FieldLabel>{t('mediaRoute.model', 'Model')}</FieldLabel>
+          <SelectField
+            value={selectedModelValue}
+            onValueChange={handleModelChange}
+            options={modelOptions}
             placeholder={t('mediaRoute.selectModel', 'Select model...')}
-            className="w-full bg-bg-elevated border border-border-subtle rounded-xl px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-accent"
+            selectClassName="font-normal"
           />
-          <datalist id={datalistId}>
-            {models.map((m) => (
-              <option key={m.modelId} value={m.modelId}>
-                {m.modelLabel || m.modelId}
-              </option>
-            ))}
-          </datalist>
-        </>
+        </label>
       ) : (
-        <div className="text-[12px] text-text-secondary">
+        <div className="text-sm text-[color:var(--nimi-text-secondary)]">
           {selectedConnector?.modelsStatus === 'unavailable'
             ? t('mediaRoute.modelsUnavailable', 'Selected connector models are unavailable for {{label}}.', { label })
             : t('mediaRoute.unconfigured', 'Select a connector to configure {{label}}.', { label })}
@@ -179,10 +163,32 @@ export function MediaRouteSelector({
 
       {/* Active indicator */}
       {activeConnectorId && displayState.displayModel && (
-        <div className="text-[12px] text-text-secondary truncate">
-          {t('mediaRoute.active', 'Active')}: <span className="text-text-primary">{displayState.displayModel}</span>
+        <div className="truncate text-sm text-[color:var(--nimi-text-secondary)]">
+          {t('mediaRoute.active', 'Active')}: <span className="text-[color:var(--nimi-text-primary)]">{displayState.displayModel}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
+      {children}
+    </p>
+  );
+}
+
+function InlineNotice({ children, tone }: { children: ReactNode; tone: 'warning' | 'danger' }) {
+  return (
+    <div
+      className={`rounded-2xl border px-3 py-2 text-sm ${
+        tone === 'danger'
+          ? 'border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]'
+          : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]'
+      }`}
+    >
+      {children}
     </div>
   );
 }

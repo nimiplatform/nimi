@@ -21,4 +21,19 @@ describe('media-route-selector source regressions', () => {
       'selector should not include auto-commit-on-mount behavior',
     );
   });
+
+  it('uses controlled shared select fields instead of freeform datalist inputs', () => {
+    assert.ok(
+      mediaRouteSelectorSource.includes('SelectField'),
+      'selector should use the shared SelectField primitive',
+    );
+    assert.ok(
+      !mediaRouteSelectorSource.includes('<datalist'),
+      'selector should not render datalist freeform input',
+    );
+    assert.ok(
+      !mediaRouteSelectorSource.includes('<input'),
+      'selector should not allow freeform model typing',
+    );
+  });
 });

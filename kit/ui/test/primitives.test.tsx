@@ -4,6 +4,9 @@ import {
   Button,
   NimiThemeProvider,
   SearchField,
+  SettingsCard,
+  SettingsPageShell,
+  SettingsSectionTitle,
   SidebarItem,
   SidebarShell,
   StatusBadge,
@@ -27,6 +30,10 @@ test('surface, button, field, and status primitives render', () => {
   const html = renderToStaticMarkup(
     <div>
       <Surface tone="card">card</Surface>
+      <SettingsCard>settings-card</SettingsCard>
+      <SettingsPageShell contentClassName="px-2 py-2">
+        <SettingsSectionTitle description="Shared settings section">Preferences</SettingsSectionTitle>
+      </SettingsPageShell>
       <Button tone="primary">save</Button>
       <SearchField placeholder="Search" />
       <StatusBadge tone="success">ready</StatusBadge>
@@ -34,6 +41,9 @@ test('surface, button, field, and status primitives render', () => {
   );
 
   expect(html).toMatch(/card/);
+  expect(html).toMatch(/settings-card/);
+  expect(html).toMatch(/Preferences/);
+  expect(html).toMatch(/Shared settings section/);
   expect(html).toMatch(/save/);
   expect(html).toMatch(/Search/);
   expect(html).toMatch(/ready/);

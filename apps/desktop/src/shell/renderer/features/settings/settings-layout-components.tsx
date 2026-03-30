@@ -2,9 +2,10 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Button as KitButton,
-  ScrollArea,
+  SettingsCard as KitSettingsCard,
+  SettingsPageShell as KitSettingsPageShell,
+  SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
-  Surface,
 } from '@nimiplatform/nimi-kit/ui';
 
 /* ------------------------------------------------------------------ */
@@ -21,9 +22,9 @@ export function Card({
   style?: CSSProperties;
 }) {
   return (
-    <Surface tone="card" padding="none" className={className} style={style}>
+    <KitSettingsCard className={className} style={style}>
       {children}
-    </Surface>
+    </KitSettingsCard>
   );
 }
 
@@ -41,14 +42,9 @@ export function PageShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <ScrollArea className="flex-1 bg-[#F8F9FB]" viewportClassName="bg-[#F8F9FB]">
-        <div className="mx-auto max-w-2xl px-6 py-6" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {children}
-        </div>
-      </ScrollArea>
-      {footer}
-    </div>
+    <KitSettingsPageShell footer={footer}>
+      {children}
+    </KitSettingsPageShell>
   );
 }
 
@@ -57,12 +53,7 @@ export function PageShell({
 /* ------------------------------------------------------------------ */
 
 export function SectionTitle({ children, description }: { children: ReactNode; description?: string }) {
-  return (
-    <div>
-      <h3 className="text-sm font-semibold text-gray-900">{children}</h3>
-      {description && <p className="mt-0.5 text-xs text-gray-500">{description}</p>}
-    </div>
-  );
+  return <KitSettingsSectionTitle description={description}>{children}</KitSettingsSectionTitle>;
 }
 
 /* ------------------------------------------------------------------ */

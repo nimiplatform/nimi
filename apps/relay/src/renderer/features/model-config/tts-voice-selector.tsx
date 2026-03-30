@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SelectField } from '@nimiplatform/nimi-kit/ui';
 import { getBridge } from '../../bridge/electron-bridge.js';
 
 interface VoiceOption {
@@ -67,7 +68,7 @@ export function TtsVoiceSelector({
 
   if (loading) {
     return (
-      <div className="text-[12px] text-text-secondary">
+      <div className="text-sm text-[color:var(--nimi-text-secondary)]">
         {t('ttsVoice.loading', 'Loading voices...')}
       </div>
     );
@@ -76,19 +77,20 @@ export function TtsVoiceSelector({
   if (voices.length === 0) return null;
 
   return (
-    <select
-      value={voiceId}
-      onChange={(e) => handleChange(e.target.value)}
-      className="w-full bg-bg-elevated border border-border-subtle rounded-xl px-3 py-1.5 text-[12px] text-text-primary focus:outline-none focus:border-accent"
-    >
-      {!voiceId && (
-        <option value="">{t('ttsVoice.select', 'Select a voice...')}</option>
-      )}
-      {voices.map((v) => (
-        <option key={v.voiceId} value={v.voiceId}>
-          {v.name}
-        </option>
-      ))}
-    </select>
+    <label className="flex min-h-11 flex-col gap-1">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
+        {t('ttsVoice.label', 'Voice')}
+      </p>
+      <SelectField
+        value={voiceId || undefined}
+        onValueChange={handleChange}
+        options={voices.map((voice) => ({
+          value: voice.voiceId,
+          label: voice.name,
+        }))}
+        placeholder={t('ttsVoice.select', 'Select a voice...')}
+        selectClassName="font-normal"
+      />
+    </label>
   );
 }

@@ -1,8 +1,15 @@
 // RL-PIPE-006 — Product settings — renders inside DetailPanel
 // Media/voice autonomy, visual comfort, proactive toggle
 
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  SelectField,
+  SettingsCard,
+  SettingsPageShell,
+  SettingsSectionTitle,
+  Toggle,
+} from '@nimiplatform/nimi-kit/ui';
 import { useSettingsStore, type MediaAutonomy, type VoiceAutonomy, type VisualComfortLevel } from '../../../app-shell/providers/settings-store.js';
 import { ChatRoutePanel } from '../../model-config/chat-route-panel.js';
 import { MediaRouteSelector } from '../../model-config/media-route-selector.js';
@@ -34,20 +41,22 @@ export function SettingsDrawer() {
   );
 
   return (
-    <div className="space-y-6">
+    <SettingsPageShell
+      scrollClassName="bg-transparent"
+      viewportClassName="bg-transparent"
+      contentClassName="space-y-4 px-4 py-4"
+    >
       {saveError && (
-        <div className="rounded-xl border border-error/40 bg-error/10 px-3 py-2 text-[12px] text-error">
+        <InlineNotice tone="danger">
           {t('settings.saveFailed', 'Failed to save settings.')}: {saveError}
-        </div>
+        </InlineNotice>
       )}
 
-      {/* Model Selection */}
-      <SettingGroup label={t('route.title', 'Model')}>
+      <SettingSection title={t('route.title', 'Model')}>
         <ChatRoutePanel />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Image Model */}
-      <SettingGroup label={t('settings.imageModel', 'Image Model')}>
+      <SettingSection title={t('settings.imageModel', 'Image Model')}>
         <MediaRouteSelector
           capability="image.generate"
           connectorId={inspect.imageConnectorId}
@@ -55,10 +64,9 @@ export function SettingsDrawer() {
           onChange={onImageRouteChange}
           label={t('settings.imageModel', 'Image Model')}
         />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Voice Model (TTS) */}
-      <SettingGroup label={t('settings.ttsModel', 'Voice Model (TTS)')}>
+      <SettingSection title={t('settings.ttsModel', 'Voice Model (TTS)')}>
         <MediaRouteSelector
           capability="audio.synthesize"
           connectorId={inspect.ttsConnectorId}
@@ -72,10 +80,9 @@ export function SettingsDrawer() {
           voiceId={inspect.ttsVoiceId}
           onChange={onTtsVoiceChange}
         />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Speech Recognition (STT) */}
-      <SettingGroup label={t('settings.sttModel', 'Speech Recognition (STT)')}>
+      <SettingSection title={t('settings.sttModel', 'Speech Recognition (STT)')}>
         <MediaRouteSelector
           capability="audio.transcribe"
           connectorId={inspect.sttConnectorId}
@@ -83,11 +90,10 @@ export function SettingsDrawer() {
           onChange={onSttRouteChange}
           label={t('settings.sttModel', 'Speech Recognition (STT)')}
         />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Media Autonomy */}
-      <SettingGroup label={t('settings.mediaAutonomy', 'Media Autonomy')}>
-        <TriSelect
+      <SettingSection title={t('settings.mediaAutonomy', 'Media Autonomy')}>
+        <EnumSelect
           value={product.mediaAutonomy}
           options={[
             { value: 'off', label: t('settings.off', 'Off') },
@@ -96,11 +102,10 @@ export function SettingsDrawer() {
           ]}
           onChange={setMediaAutonomy}
         />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Voice Autonomy */}
-      <SettingGroup label={t('settings.voiceAutonomy', 'Voice Autonomy')}>
-        <TriSelect
+      <SettingSection title={t('settings.voiceAutonomy', 'Voice Autonomy')}>
+        <EnumSelect
           value={product.voiceAutonomy}
           options={[
             { value: 'off', label: t('settings.off', 'Off') },
@@ -109,11 +114,10 @@ export function SettingsDrawer() {
           ]}
           onChange={setVoiceAutonomy}
         />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Visual Comfort */}
-      <SettingGroup label={t('settings.visualComfort', 'Visual Comfort')}>
-        <TriSelect
+      <SettingSection title={t('settings.visualComfort', 'Visual Comfort')}>
+        <EnumSelect
           value={product.visualComfortLevel}
           options={[
             { value: 'text-only', label: t('settings.textOnly', 'Text Only') },
@@ -122,37 +126,37 @@ export function SettingsDrawer() {
           ]}
           onChange={setVisualComfort}
         />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Proactive Contact */}
-      <SettingGroup label={t('settings.proactiveContact', 'Proactive Contact')}>
-        <Toggle
+      <SettingSection title={t('settings.proactiveContact', 'Proactive Contact')}>
+        <BooleanSetting
+          label={t('settings.proactiveContact', 'Proactive Contact')}
           checked={product.allowProactiveContact}
           onChange={(v) => updateProduct({ allowProactiveContact: v })}
         />
-      </SettingGroup>
+      </SettingSection>
 
-      {/* Auto-play Voice */}
-      <SettingGroup label={t('settings.autoPlayVoice', 'Auto-play Voice')}>
-        <Toggle
+      <SettingSection title={t('settings.autoPlayVoice', 'Auto-play Voice')}>
+        <BooleanSetting
+          label={t('settings.autoPlayVoice', 'Auto-play Voice')}
           checked={product.autoPlayVoiceReplies}
           onChange={(v) => updateProduct({ autoPlayVoiceReplies: v })}
         />
-      </SettingGroup>
-    </div>
+      </SettingSection>
+    </SettingsPageShell>
   );
 }
 
-function SettingGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function SettingSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div>
-      <label className="text-[11px] text-text-secondary uppercase tracking-wider mb-2 block font-medium">{label}</label>
+    <SettingsCard className="space-y-3 p-4">
+      <SettingsSectionTitle>{title}</SettingsSectionTitle>
       {children}
-    </div>
+    </SettingsCard>
   );
 }
 
-function TriSelect<T extends string>({
+function EnumSelect<T extends string>({
   value,
   options,
   onChange,
@@ -162,37 +166,42 @@ function TriSelect<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex rounded-xl overflow-hidden border border-border-subtle">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`flex-1 py-2 text-[12px] font-medium transition-colors duration-150 ${
-            value === opt.value
-              ? 'bg-accent text-white'
-              : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
-          }`}
-        >
-          {opt.label}
-        </button>
-      ))}
+    <SelectField
+      value={value}
+      onValueChange={(nextValue) => onChange(nextValue as T)}
+      options={options}
+      selectClassName="font-normal"
+    />
+  );
+}
+
+function BooleanSetting({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <p className="text-sm text-[color:var(--nimi-text-primary)]">{label}</p>
+      <Toggle checked={checked} onChange={onChange} />
     </div>
   );
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function InlineNotice({ children, tone }: { children: ReactNode; tone: 'danger' | 'warning' }) {
   return (
-    <button
-      onClick={() => onChange(!checked)}
-      className={`relative w-10 h-5 rounded-full transition-colors duration-150 ${
-        checked ? 'bg-accent' : 'bg-bg-elevated border border-border-subtle'
+    <SettingsCard
+      className={`rounded-2xl border px-3 py-2 text-sm ${
+        tone === 'danger'
+          ? 'border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]'
+          : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]'
       }`}
     >
-      <span
-        className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-150 ${
-          checked ? 'translate-x-5' : ''
-        }`}
-      />
-    </button>
+      {children}
+    </SettingsCard>
   );
 }

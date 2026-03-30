@@ -14,3 +14,4 @@ export * from './components/avatar.js';
 export * from './components/badge.js';
 export * from './components/sidebar.js';
 export * from './components/confirm-dialog.js';
+export * from './components/settings-shell.js';

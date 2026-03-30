@@ -4,3 +4,12 @@ export { ModelPickerDetail } from './components/model-picker-detail.js';
 export type { ModelPickerDetailProps } from './components/model-picker-detail.js';
 export { RuntimeModelPickerPanel } from './components/runtime-model-picker-panel.js';
 export type { RuntimeModelPickerPanelProps } from './components/runtime-model-picker-panel.js';
+export {
+  RouteModelPickerPanel,
+} from './components/route-model-picker-panel.js';
+export type {
+  RouteModelPickerBanner,
+  RouteModelPickerPanelProps,
+  RouteModelPickerSource,
+  RouteModelPickerSourceOption,
+} from './components/route-model-picker-panel.js';

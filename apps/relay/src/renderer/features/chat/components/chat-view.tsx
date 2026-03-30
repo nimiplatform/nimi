@@ -32,7 +32,7 @@ export function ChatView({ messages, sendPhase }: ChatViewProps) {
           const isFirst = i === 0;
 
           return (
-            <div key={msg.id} className={`${isFirst ? '' : gap} animate-message-appear`}>
+            <div key={msg.id} className={isFirst ? '' : gap}>
               {msg.role === 'user' ? (
                 <UserMessage message={msg} />
               ) : (
@@ -97,7 +97,7 @@ function AssistantMessage({ message, showHeader }: { message: ChatMessage; showH
               <MarkdownRenderer content={message.content} />
               {/* Streaming cursor */}
               <span
-                className="inline-block w-[2px] bg-accent ml-0.5 align-text-bottom animate-cursor-blink"
+                className="ml-0.5 inline-block h-[20px] w-[2px] animate-pulse bg-accent align-text-bottom"
                 style={{ height: '20px' }}
               />
             </div>

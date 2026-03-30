@@ -4,6 +4,7 @@ import {
   SelectField,
   StatusBadge,
   Surface,
+  cn,
 } from '@nimiplatform/nimi-kit/ui';
 import type { UseModelPickerResult } from '../hooks/use-model-picker.js';
 import { modelPickerBadgeTone } from './badge-tone.js';
@@ -36,45 +37,60 @@ export function ModelPicker<TModel>({
   renderItemActions,
 }: ModelPickerProps<TModel>) {
   const sections = state.groupedModels.filter((group) => group.models.length > 0);
+  const hasCapabilityFilter = state.capabilityOptions.length > 0;
+  const hasSourceFilter = state.sourceOptions.length > 0;
 
   return (
     <div className={className}>
-      <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px_180px]">
+      <div
+        className={cn(
+          'grid gap-2',
+          hasCapabilityFilter && hasSourceFilter
+            ? 'md:grid-cols-[minmax(0,1fr)_180px_180px]'
+            : hasCapabilityFilter || hasSourceFilter
+              ? 'md:grid-cols-[minmax(0,1fr)_180px]'
+              : undefined,
+        )}
+      >
         <SearchField
           value={state.searchQuery}
           onChange={(event) => state.setSearchQuery(event.target.value)}
           placeholder="Search models"
         />
-        <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
-          <span>Capability</span>
-          <SelectField
-            value={state.capabilityFilter}
-            onValueChange={state.setCapabilityFilter}
-            options={[
-              { value: 'all', label: 'All' },
-              ...state.capabilityOptions.map((capability) => ({
-                value: capability,
-                label: capability,
-              })),
-            ]}
-            selectClassName="font-normal"
-          />
-        </label>
-        <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
-          <span>Source</span>
-          <SelectField
-            value={state.sourceFilter}
-            onValueChange={state.setSourceFilter}
-            options={[
-              { value: 'all', label: 'All' },
-              ...state.sourceOptions.map((source) => ({
-                value: source,
-                label: source,
-              })),
-            ]}
-            selectClassName="font-normal"
-          />
-        </label>
+        {hasCapabilityFilter ? (
+          <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
+            <span>Capability</span>
+            <SelectField
+              value={state.capabilityFilter}
+              onValueChange={state.setCapabilityFilter}
+              options={[
+                { value: 'all', label: 'All' },
+                ...state.capabilityOptions.map((capability) => ({
+                  value: capability,
+                  label: capability,
+                })),
+              ]}
+              selectClassName="font-normal"
+            />
+          </label>
+        ) : null}
+        {hasSourceFilter ? (
+          <label className="flex min-h-11 flex-col gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
+            <span>Source</span>
+            <SelectField
+              value={state.sourceFilter}
+              onValueChange={state.setSourceFilter}
+              options={[
+                { value: 'all', label: 'All' },
+                ...state.sourceOptions.map((source) => ({
+                  value: source,
+                  label: source,
+                })),
+              ]}
+              selectClassName="font-normal"
+            />
+          </label>
+        ) : null}
       </div>
 
       {state.isLoading ? (
@@ -128,7 +144,7 @@ function ModelPickerItemCard<TModel>({
   renderItemActions,
 }: ModelPickerItemCardProps<TModel>) {
   const id = state.adapter.getId(model);
-  const source = state.adapter.getSource?.(model) || 'builtin';
+  const source = state.adapter.getSource?.(model)?.trim();
   const capabilities = state.adapter.getCapabilities?.(model) || [];
   const badges = state.adapter.getBadges?.(model) || [];
   const description = state.adapter.getDescription?.(model);
@@ -150,7 +166,7 @@ function ModelPickerItemCard<TModel>({
             <p className="text-sm font-semibold text-[color:var(--nimi-text-primary)]">{state.adapter.getTitle(model)}</p>
             {description ? <p className="mt-1 text-xs text-[color:var(--nimi-text-secondary)]">{description}</p> : null}
           </div>
-          <StatusBadge tone={sourceTone(source)}>{source}</StatusBadge>
+          {source ? <StatusBadge tone={sourceTone(source)}>{source}</StatusBadge> : null}
         </div>
         {capabilities.length > 0 ? (
           <div className="mt-3 flex flex-wrap gap-1">
