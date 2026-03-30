@@ -37,8 +37,8 @@ export function SettingsPageShell({
   return (
     <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
       <ScrollArea
-        className={cn('flex-1 bg-[#F8F9FB]', scrollClassName)}
-        viewportClassName={cn('bg-[#F8F9FB]', viewportClassName)}
+        className={cn('flex-1 bg-white', scrollClassName)}
+        viewportClassName={cn('bg-white', viewportClassName)}
       >
         <div className={cn('mx-auto flex max-w-2xl flex-col gap-6 px-6 py-6', contentClassName)}>
           {children}

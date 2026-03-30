@@ -1,5 +1,5 @@
-// MediaRouteSelector — explicit connector + model selector for media capabilities
-// Reused for image, TTS, STT, and video route selection in settings drawer
+// MediaRouteSelector — connector + model selector for media capabilities
+// Compact layout for settings sidebar
 
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +56,6 @@ export function MediaRouteSelector({
   }, [capability, connectorId]);
 
   const displayState = deriveMediaRouteDisplayState(connectors, connectorId, model);
-  const activeConnectorId = displayState.activeConnectorId;
   const selectedConnector = displayState.selectedConnector;
   const models = displayState.models;
   const selectedConnectorValue = selectedConnector?.connectorId || DISABLED_VALUE;
@@ -80,9 +79,7 @@ export function MediaRouteSelector({
   const handleModelChange = useCallback(
     (newModel: string) => {
       const normalizedConnectorId = displayState.activeConnectorId;
-      if (!normalizedConnectorId) {
-        return;
-      }
+      if (!normalizedConnectorId) return;
       onChange(normalizedConnectorId, newModel);
     },
     [displayState.activeConnectorId, onChange],
@@ -90,10 +87,10 @@ export function MediaRouteSelector({
 
   const connectorOptions = useMemo(
     () => [
-      { value: DISABLED_VALUE, label: `-- ${t('mediaRoute.disabled', 'Disabled')}` },
+      { value: DISABLED_VALUE, label: t('mediaRoute.disabled', 'Disabled') },
       ...connectors.map((connector) => ({
         value: connector.connectorId,
-        label: `${connector.label} (${connector.provider})`,
+        label: connector.label,
       })),
     ],
     [connectors, t],
@@ -107,97 +104,39 @@ export function MediaRouteSelector({
   );
 
   if (loading) {
-    return (
-      <div className="text-sm text-[color:var(--nimi-text-secondary)]">
-        {t('mediaRoute.loading', 'Loading...')}
-      </div>
-    );
+    return <p className="text-[13px] text-[color:var(--nimi-text-muted)]">{t('mediaRoute.loading', 'Loading...')}</p>;
   }
 
   if (connectors.length === 0) {
     return (
-      <div className="text-sm text-[color:var(--nimi-text-secondary)]">
-        {loadStatus === 'failed'
-          ? t('mediaRoute.connectorsUnavailable', 'Connector discovery failed for {{label}}', { label })
-          : t('mediaRoute.noConnectors', 'No connectors available for {{label}}', { label })}
-      </div>
+      <p className="text-[13px] text-[color:var(--nimi-text-muted)]">
+        {t('mediaRoute.noConnectors', 'No connectors available.')}
+      </p>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <label className="flex min-h-11 flex-col gap-1">
-        <FieldLabel>{t('mediaRoute.connector', 'Connector')}</FieldLabel>
-        <SelectField
-          value={selectedConnectorValue}
-          onValueChange={handleConnectorChange}
-          options={connectorOptions}
-          placeholder={t('mediaRoute.selectConnector', 'Select connector...')}
-          selectClassName="font-normal"
-        />
-      </label>
-
-      {(displayState.invalidConnector || displayState.invalidModel) && (
-        <InlineNotice tone="warning">
-          {t('mediaRoute.invalidRoute', 'Saved route is no longer available. Select a connector and model again.')}
-        </InlineNotice>
-      )}
-
-      {loadStatus !== 'ready' && (
-        <InlineNotice tone={loadStatus === 'failed' ? 'danger' : 'warning'}>
-          {loadStatus === 'failed'
-            ? t('mediaRoute.discoveryFailed', 'Connector discovery failed. Runtime or connector state is unavailable.')
-            : t('mediaRoute.discoveryDegraded', 'Connector discovery is degraded. Some connector models could not be loaded.')}
-        </InlineNotice>
-      )}
+    <div className="space-y-2.5">
+      <SelectField
+        value={selectedConnectorValue}
+        onValueChange={handleConnectorChange}
+        options={connectorOptions}
+        selectClassName="font-normal"
+      />
 
       {selectedConnector && models.length > 0 ? (
-        <label className="flex min-h-11 flex-col gap-1">
-          <FieldLabel>{t('mediaRoute.model', 'Model')}</FieldLabel>
-          <SelectField
-            value={selectedModelValue}
-            onValueChange={handleModelChange}
-            options={modelOptions}
-            placeholder={t('mediaRoute.selectModel', 'Select model...')}
-            selectClassName="font-normal"
-          />
-        </label>
-      ) : (
-        <div className="text-sm text-[color:var(--nimi-text-secondary)]">
-          {selectedConnector?.modelsStatus === 'unavailable'
-            ? t('mediaRoute.modelsUnavailable', 'Selected connector models are unavailable for {{label}}.', { label })
-            : t('mediaRoute.unconfigured', 'Select a connector to configure {{label}}.', { label })}
-        </div>
-      )}
-
-      {/* Active indicator */}
-      {activeConnectorId && displayState.displayModel && (
-        <div className="truncate text-sm text-[color:var(--nimi-text-secondary)]">
-          {t('mediaRoute.active', 'Active')}: <span className="text-[color:var(--nimi-text-primary)]">{displayState.displayModel}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function FieldLabel({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--nimi-text-muted)]">
-      {children}
-    </p>
-  );
-}
-
-function InlineNotice({ children, tone }: { children: ReactNode; tone: 'warning' | 'danger' }) {
-  return (
-    <div
-      className={`rounded-2xl border px-3 py-2 text-sm ${
-        tone === 'danger'
-          ? 'border-[color-mix(in_srgb,var(--nimi-status-danger)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-danger)]'
-          : 'border-[color-mix(in_srgb,var(--nimi-status-warning)_30%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,var(--nimi-surface-card))] text-[var(--nimi-status-warning)]'
-      }`}
-    >
-      {children}
+        <SelectField
+          value={selectedModelValue}
+          onValueChange={handleModelChange}
+          options={modelOptions}
+          placeholder={t('mediaRoute.selectModel', 'Select model...')}
+          selectClassName="font-normal"
+        />
+      ) : !selectedConnector ? (
+        <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
+          {t('mediaRoute.unconfigured', 'Select a connector to configure {{label}}.', { label })}
+        </p>
+      ) : null}
     </div>
   );
 }

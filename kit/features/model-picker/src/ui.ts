@@ -13,3 +13,5 @@ export type {
   RouteModelPickerSource,
   RouteModelPickerSourceOption,
 } from './components/route-model-picker-panel.js';
+export { CompactRouteModelPicker } from './components/compact-route-model-picker.js';
+export type { CompactRouteModelPickerProps } from './components/compact-route-model-picker.js';

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Mic, MicOff, Volume2 } from 'lucide-react';
 import { useSpeechTranscribe } from '../hooks/use-speech-transcribe.js';
 import { useSpeechPlayback, resolveSpeakVoiceId } from '../hooks/use-speech-playback.js';
 import { useListVoices, type Voice } from '../hooks/use-list-voices.js';
@@ -55,62 +56,37 @@ export function VoiceControls({ onTranscript, lastAssistantText }: VoiceControls
     clearError();
   }, [clearError, inspect.ttsConnectorId, inspect.ttsModel, inspect.ttsVoiceId]);
 
-  const statusMessage = selectedVoiceMissing
-    ? t('voice.selectPrompt', 'Select a voice for the current TTS model before using Speak.')
-    : !hasVoiceCatalog
-      ? t('voice.ttsRouteRequired', 'Select a TTS connector and model in Settings before using Speak.')
-    : selectedVoiceInvalid
-      ? t('voice.invalidSelection', 'Current voice is not available for this TTS model. Please reselect a voice in Settings.')
-      : playbackError || voicesError;
+  const speakDisabled = !canSpeak || isPlaying || !hasVoiceCatalog || selectedVoiceMissing || selectedVoiceInvalid;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-0.5">
+      {/* Mic button */}
       <button
+        type="button"
         onClick={isRecording ? stopRecording : startRecording}
         disabled={!canTranscribe}
-        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors duration-150 ${
+        title={isRecording ? t('voice.stop') : t('voice.mic')}
+        className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
           isRecording
-            ? 'bg-error text-white hover:bg-error/80'
-            : 'bg-bg-elevated text-text-secondary hover:text-text-primary'
-        } disabled:opacity-50`}
+            ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_15%,transparent)] text-[var(--nimi-status-danger)]'
+            : 'text-[color:var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[color:var(--nimi-text-primary)]'
+        } disabled:opacity-40 disabled:cursor-not-allowed`}
       >
-        {isRecording ? t('voice.stop') : t('voice.mic')}
+        {isRecording ? <MicOff size={16} /> : <Mic size={16} />}
       </button>
 
-      {/* RL-FEAT-003: Voice selector */}
-      {voices.length > 0 && (
-        <select
-          value={selectedVoiceId ?? ''}
-          onChange={(e) => updateInspect({ ttsVoiceId: e.target.value })}
-          disabled={voicesLoading}
-          className="px-2 py-1 rounded-lg text-[11px] bg-bg-elevated text-text-secondary border border-border-subtle outline-none focus:border-accent disabled:opacity-50"
-        >
-          {!selectedVoiceId && (
-            <option value="">{t('voice.select', 'Select a voice...')}</option>
-          )}
-          {voices.map((v) => (
-            <option key={v.voiceId} value={v.voiceId}>
-              {v.name || v.voiceId}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {lastAssistantText && (
+      {/* Speak button */}
+      {lastAssistantText ? (
         <button
+          type="button"
           onClick={() => synthesize(lastAssistantText, selectedVoiceId)}
-          disabled={!canSpeak || isPlaying || !hasVoiceCatalog || selectedVoiceMissing || selectedVoiceInvalid}
-          className="px-2.5 py-1 rounded-lg text-[11px] font-medium bg-bg-elevated text-text-secondary hover:text-text-primary transition-colors duration-150 disabled:opacity-50"
+          disabled={speakDisabled}
+          title={isPlaying ? t('voice.playing') : t('voice.speak')}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[color:var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[color:var(--nimi-text-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {isPlaying ? t('voice.playing') : t('voice.speak')}
+          <Volume2 size={16} />
         </button>
-      )}
-
-      {statusMessage && (
-        <span className="text-[10px] text-warning max-w-[200px] truncate" title={statusMessage}>
-          {statusMessage}
-        </span>
-      )}
+      ) : null}
     </div>
   );
 }

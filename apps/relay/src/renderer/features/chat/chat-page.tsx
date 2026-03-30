@@ -1,30 +1,46 @@
-// Chat page — Beat-first AI chat + Video generation
-// RL-PIPE-001 + RL-FEAT-003/004 voice + RL-FEAT-006 (Video)
+// Chat page — Beat-first AI chat
+// RL-PIPE-001 + RL-FEAT-003/004 voice
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Trash2, ChevronDown } from 'lucide-react';
+import { ChevronDown, Settings, Check } from 'lucide-react';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  ScrollArea,
+} from '@nimiplatform/nimi-kit/ui';
+import {
+  ChatComposerResizeHandle,
+  ChatComposerShell,
+} from '@nimiplatform/nimi-kit/features/chat/ui';
 import { usePipelineChat } from './hooks/use-pipeline-chat.js';
-import { useVideoGenerate } from '../video/hooks/use-video-generate.js';
 import { ChatView } from './components/chat-view.js';
 import { MessageInput } from './components/message-input.js';
 import { EmptyState } from './components/empty-state.js';
 import { VoiceControls } from '../voice/components/voice-controls.js';
-import { VideoPlayer } from '../video/components/video-player.js';
-import { useAppStore } from '../../app-shell/providers/app-store.js';
+import { useAppStore, type Agent } from '../../app-shell/providers/app-store.js';
 import { getBridge } from '../../bridge/electron-bridge.js';
-
-type ChatMode = 'ai' | 'video';
+import { useAgentProfile } from '../agent/hooks/use-agent-profile.js';
+import { createBridgeRouteDataProvider } from '../model-config/bridge-route-provider.js';
+import { useRelayRoute } from '../model-config/use-relay-route.js';
+import {
+  useRouteModelPickerData,
+  type RouteModelPickerDataProvider,
+  type RouteModelPickerSelection,
+} from '@nimiplatform/nimi-kit/features/model-picker/headless';
+import { CompactRouteModelPicker } from '@nimiplatform/nimi-kit/features/model-picker/ui';
 
 export function ChatPage() {
   const { t } = useTranslation();
   const currentAgent = useAppStore((s) => s.currentAgent);
   const runtimeAvailable = useAppStore((s) => s.runtimeAvailable);
-  const [mode, setMode] = useState<ChatMode>('ai');
-  const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
+  const setDetailMode = useAppStore((s) => s.setDetailMode);
+  const [composerHeight, setComposerHeight] = useState(160);
+  const composerResizingRef = useRef(false);
+  const chatLayoutRef = useRef<HTMLDivElement>(null);
 
   const ai = usePipelineChat();
-  const video = useVideoGenerate();
 
   const lastAssistantText = ai.messages
     .filter((m) => m.role === 'assistant' && m.kind !== 'streaming' && m.content)
@@ -33,6 +49,32 @@ export function ChatPage() {
   const handleTranscript = useCallback((text: string) => {
     if (text.trim()) ai.sendMessage(text.trim());
   }, [ai.sendMessage]);
+
+  // Composer resize handlers (matching desktop pattern)
+  const startComposerResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    composerResizingRef.current = true;
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!composerResizingRef.current || !chatLayoutRef.current) return;
+      const rect = chatLayoutRef.current.getBoundingClientRect();
+      const nextHeight = Math.min(340, Math.max(120, rect.bottom - ev.clientY));
+      setComposerHeight(nextHeight);
+    };
+
+    const onMouseUp = () => {
+      composerResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
 
   const handleRetryRuntime = useCallback(async () => {
     try {
@@ -45,76 +87,23 @@ export function ChatPage() {
   }, []);
 
   // RL-CORE-001: No agent selected
+  // No agent — show inline agent picker (fallback if bootstrap auto-select failed)
   if (!currentAgent) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-[17px] font-medium mb-2 text-text-primary">{t('agent.noAgentSelected')}</p>
-          <p className="text-[13px] text-text-secondary">{t('agent.selectFromSidebar')}</p>
-        </div>
-      </div>
-    );
+    return <NoAgentFallback />;
   }
 
-  const modeLabels: Record<ChatMode, string> = {
-    ai: t('chat.aiChat'),
-    video: t('video.tab'),
-  };
-
   return (
-    <div className="flex flex-col h-full">
-      {/* Thin header — agent name + mode selector + actions */}
-      <div className="flex items-center justify-between px-6 py-2.5 border-b border-border-subtle">
-        <span className="text-[13px] font-medium text-text-primary">{currentAgent.name}</span>
-        <div className="flex items-center gap-2">
-          {/* Mode dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-150"
-            >
-              {modeLabels[mode]}
-              <ChevronDown size={13} />
-            </button>
-            {modeDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setModeDropdownOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 bg-bg-elevated border border-border-subtle rounded-xl shadow-md overflow-hidden z-50 min-w-[120px]">
-                  {(['ai', 'video'] as ChatMode[]).map((m) => {
-                    const disabled =
-                      (m === 'ai' && !runtimeAvailable) ||
-                      (m === 'video' && !runtimeAvailable);
-                    return (
-                      <button
-                        key={m}
-                        onClick={() => { setMode(m); setModeDropdownOpen(false); }}
-                        disabled={disabled}
-                        className={`w-full text-left px-3 py-2 text-[12px] transition-colors duration-150 ${
-                          mode === m
-                            ? 'text-accent bg-bg-surface'
-                            : disabled
-                              ? 'text-text-placeholder cursor-not-allowed'
-                              : 'text-text-secondary hover:text-text-primary hover:bg-bg-surface'
-                        }`}
-                      >
-                        {modeLabels[m]}
-                      </button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Clear history */}
-          <button
-            onClick={ai.clearHistory}
-            className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-150"
-            title={t('chat.clearHistory', 'Clear history')}
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
+    <div ref={chatLayoutRef} className="flex flex-col h-full">
+      {/* Header — agent avatar+name (dropdown) + settings */}
+      <div className="flex items-center justify-between px-5 py-2.5">
+        <AgentSwitcher agent={currentAgent} />
+        <button
+          onClick={() => setDetailMode('settings')}
+          className="flex h-8 w-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+          title={t('settings.title', 'Settings')}
+        >
+          <Settings size={17} />
+        </button>
       </div>
 
       {/* Status banner */}
@@ -129,65 +118,338 @@ export function ChatPage() {
         </div>
       )}
 
-      {/* AI Chat mode */}
-      {mode === 'ai' && (
+      {/* Chat content */}
+      {!runtimeAvailable ? (
+        <RuntimeUnavailable onRetry={handleRetryRuntime} feature={t('chat.aiChat')} />
+      ) : (
         <>
-          {!runtimeAvailable ? (
-            <RuntimeUnavailable onRetry={handleRetryRuntime} feature={t('chat.aiChat')} />
+          {ai.messages.length === 0 ? (
+            <EmptyState
+              agentName={currentAgent.name}
+              onQuickAction={(prompt) => ai.sendMessage(prompt)}
+            />
           ) : (
-            <>
-              {ai.messages.length === 0 ? (
-                <EmptyState
-                  agentName={currentAgent.name}
-                  onQuickAction={(prompt) => ai.sendMessage(prompt)}
+            <ChatView messages={ai.messages} sendPhase={ai.sendPhase} />
+          )}
+          <ChatComposerResizeHandle onMouseDown={startComposerResize} />
+          <ChatComposerShell height={composerHeight}>
+            <MessageInput
+              onSend={ai.sendMessage}
+              disabled={!ai.canChat || ai.isSending}
+              placeholder={t('chat.messageAgent', { name: currentAgent.name })}
+              isSending={ai.isSending}
+              sendPhase={ai.sendPhase}
+              onCancelTurn={() => ai.cancelTurn()}
+              modelPickerSlot={<ChatModelPicker />}
+              toolbar={
+                <VoiceControls
+                  onTranscript={handleTranscript}
+                  lastAssistantText={lastAssistantText}
                 />
-              ) : (
-                <ChatView messages={ai.messages} sendPhase={ai.sendPhase} />
-              )}
-              {/* Phase + stop */}
-              {(ai.isSending || ai.sendPhase !== 'idle') && (
-                <div className="flex items-center gap-2 px-6 py-1">
-                  {ai.isSending && (
-                    <button
-                      onClick={() => ai.cancelTurn()}
-                      className="text-[11px] text-text-secondary hover:text-text-primary transition-colors"
-                    >
-                      {t('chat.stopGenerating')}
-                    </button>
-                  )}
-                  {ai.sendPhase !== 'idle' && (
-                    <span className="text-[10px] text-text-placeholder">
-                      {ai.sendPhase.replace(/-/g, ' ')}
-                    </span>
+              }
+            />
+          </ChatComposerShell>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// AgentSwitcher — avatar + name dropdown to switch agents
+// ---------------------------------------------------------------------------
+
+function AgentSwitcher({ agent }: { agent: Agent }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const { fetchAgentList, selectAgent } = useAgentProfile();
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    fetchAgentList()
+      .then(setAgents)
+      .catch(() => setAgents([]))
+      .finally(() => setLoading(false));
+  }, [open, fetchAgentList]);
+
+  const handleSelect = (a: Agent) => {
+    selectAgent(a);
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_5%,transparent)]">
+          <AgentAvatar agent={agent} size={28} />
+          <span className="text-[14px] font-medium text-[color:var(--nimi-text-primary)]">{agent.name}</span>
+          <ChevronDown size={14} className="text-[color:var(--nimi-text-muted)]" />
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent align="start" side="bottom" sideOffset={4} className="w-[280px] p-0">
+        <div className="px-3 py-2.5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
+            {t('agent.switchAgent')}
+          </span>
+        </div>
+        <div className="border-t border-[color:var(--nimi-border-subtle)]">
+          <ScrollArea viewportClassName="max-h-[300px] py-1">
+            {loading ? (
+              <p className="px-3 py-4 text-center text-[13px] text-[color:var(--nimi-text-muted)]">
+                {t('agent.loadingAgents')}
+              </p>
+            ) : agents.length === 0 ? (
+              <p className="px-3 py-4 text-center text-[13px] text-[color:var(--nimi-text-muted)]">
+                {t('agent.noAgentsAvailable')}
+              </p>
+            ) : (
+              agents.map((a) => {
+                const selected = agent.id === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => handleSelect(a)}
+                    className={`flex w-full items-center gap-3 px-3 py-2 text-left transition-colors duration-[var(--nimi-motion-fast)] ${
+                      selected
+                        ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_8%,transparent)]'
+                        : 'hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)]'
+                    }`}
+                  >
+                    <AgentAvatar agent={a} size={32} />
+                    <div className="min-w-0 flex-1">
+                      <p className={`truncate text-[13px] ${selected ? 'font-semibold' : 'font-medium'} text-[color:var(--nimi-text-primary)]`}>
+                        {a.name}
+                      </p>
+                      {a.handle && (
+                        <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]">@{a.handle}</p>
+                      )}
+                    </div>
+                    {selected ? (
+                      <Check size={16} className="shrink-0 text-[var(--nimi-action-primary-bg)]" />
+                    ) : null}
+                  </button>
+                );
+              })
+            )}
+          </ScrollArea>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function AgentAvatar({ agent, size }: { agent: Agent; size: number }) {
+  if (agent.avatarUrl) {
+    return (
+      <img
+        src={agent.avatarUrl}
+        alt={agent.name}
+        className="shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <div
+      className="flex shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_15%,transparent)] font-semibold text-[var(--nimi-action-primary-bg)]"
+      style={{ width: size, height: size, fontSize: size * 0.38 }}
+    >
+      {agent.name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ChatModelPicker — inline compact model picker using kit component
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracts a clean display name from a model ID.
+ * "local/local-import/Qwen3-4B-Q4_K_M" -> "Qwen3-4B-Q4_K_M"
+ */
+function formatModelDisplayName(raw: string): string {
+  const parts = raw.split('/');
+  return parts.length > 1 ? parts[parts.length - 1]! : raw;
+}
+
+function ChatModelPicker() {
+  const { t } = useTranslation();
+  const {
+    binding,
+    snapshot,
+    display,
+    options,
+    loading: routeLoading,
+  } = useRelayRoute();
+
+  const provider = useMemo<RouteModelPickerDataProvider>(() => createBridgeRouteDataProvider(), []);
+
+  const initialSelection = useMemo<RouteModelPickerSelection>(() => {
+    const source = display?.source ?? binding?.source ?? 'local';
+    if (source === 'cloud') {
+      return {
+        source,
+        connectorId: display?.connectorId ?? binding?.connectorId ?? snapshot?.connectorId ?? '',
+        model: display?.model ?? binding?.model ?? '',
+      };
+    }
+
+    const selectedLocalModelId = snapshot?.localModelId
+      ?? binding?.localModelId
+      ?? options?.local.models.find((item) => (
+        item.modelId === display?.model || item.localModelId === display?.model
+      ))?.localModelId
+      ?? '';
+
+    return {
+      source,
+      connectorId: '',
+      model: selectedLocalModelId,
+    };
+  }, [binding, display, options?.local.models, snapshot]);
+
+  const handleSelectionChange = useCallback((selection: RouteModelPickerSelection) => {
+    const bridge = getBridge();
+    if (selection.source === 'local') {
+      void bridge.route.setBinding({
+        source: 'local',
+        model: selection.model || undefined,
+        localModelId: selection.model || undefined,
+      });
+      return;
+    }
+    void bridge.route.setBinding({
+      source: 'cloud',
+      connectorId: selection.connectorId || undefined,
+      model: selection.model || undefined,
+    });
+  }, []);
+
+  const labels = useMemo(() => ({
+    source: t('route.source', 'Source'),
+    local: t('route.local', 'Local'),
+    cloud: t('route.cloud', 'Cloud'),
+    connector: t('route.connector', 'Connector'),
+    model: t('route.model', 'Model'),
+    active: t('route.active', 'Active'),
+    reset: t('route.reset', 'Reset'),
+    loading: t('route.loading', 'Loading models...'),
+    unavailable: t('route.unavailable', 'Route options unavailable'),
+    localUnavailable: t('route.localLoadFailed', 'Local model discovery failed. Runtime may be unavailable.'),
+    noLocalModels: t('route.noLocalModels', 'No local models available. Install a model via Desktop.'),
+    selectConnector: t('route.selectConnector', 'Select a connector to see available models.'),
+    noCloudModels: t('route.noCloudModels', 'No models available for this connector.'),
+    savedRouteUnavailable: t('route.fallbackWarning', 'Saved route is no longer available.'),
+  }), [t]);
+
+  const {
+    selection,
+    connectors,
+    loading,
+    pickerState,
+    changeSource,
+    changeConnector,
+  } = useRouteModelPickerData({
+    provider,
+    capability: 'text.generate',
+    initialSelection,
+    onSelectionChange: handleSelectionChange,
+    labels,
+  });
+
+  if (routeLoading || loading) {
+    return null;
+  }
+
+  const hasConnectors = connectors.length > 0;
+  const connectorOptions = connectors.map((c) => ({
+    value: c.connectorId,
+    label: `${c.label} (${c.provider})`,
+  }));
+
+  // Format the selected model name for the trigger
+  const selectedTitle = pickerState.selectedModel
+    ? formatModelDisplayName(pickerState.adapter.getTitle(pickerState.selectedModel))
+    : undefined;
+
+  return (
+    <CompactRouteModelPicker
+      state={pickerState}
+      triggerLabel={selectedTitle}
+      sourceValue={selection.source}
+      sourceOptions={[
+        { value: 'local' as const, label: labels.local },
+        { value: 'cloud' as const, label: labels.cloud, disabled: !hasConnectors },
+      ]}
+      onSourceChange={changeSource}
+      showConnector={selection.source === 'cloud' && hasConnectors}
+      connectorValue={selection.connectorId}
+      connectorOptions={connectorOptions}
+      onConnectorChange={changeConnector}
+      loading={loading}
+      loadingMessage={labels.loading}
+      emptyMessage={selection.source === 'local' ? labels.noLocalModels : labels.noCloudModels}
+      side="top"
+      align="start"
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// NoAgentFallback — inline agent list when bootstrap auto-select failed
+// ---------------------------------------------------------------------------
+
+function NoAgentFallback() {
+  const { t } = useTranslation();
+  const { fetchAgentList, selectAgent } = useAgentProfile();
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAgentList()
+      .then(setAgents)
+      .catch(() => setAgents([]))
+      .finally(() => setLoading(false));
+  }, [fetchAgentList]);
+
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="w-[320px]">
+        <h2 className="mb-1 text-center text-[17px] font-semibold text-text-primary">
+          {t('agent.noAgentSelected')}
+        </h2>
+        <p className="mb-5 text-center text-[13px] text-text-secondary">
+          {t('agent.selectToStart', 'Select an agent to start chatting')}
+        </p>
+
+        {loading ? (
+          <p className="text-center text-[13px] text-text-secondary">{t('agent.loadingAgents')}</p>
+        ) : agents.length === 0 ? (
+          <p className="text-center text-[13px] text-text-secondary">{t('agent.noAgentsAvailable')}</p>
+        ) : (
+          <div className="space-y-0.5 rounded-xl border border-[color:var(--nimi-border-subtle)] bg-[color:var(--nimi-surface-overlay)] p-1">
+            {agents.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => selectAgent(a)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_4%,transparent)]"
+              >
+                <AgentAvatar agent={a} size={32} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-[color:var(--nimi-text-primary)]">{a.name}</p>
+                  {a.handle && (
+                    <p className="truncate text-[11px] text-[color:var(--nimi-text-muted)]">@{a.handle}</p>
                   )}
                 </div>
-              )}
-              <MessageInput
-                onSend={ai.sendMessage}
-                disabled={!ai.canChat || ai.isSending}
-                placeholder={t('chat.messageAgent', { name: currentAgent.name })}
-                toolbar={
-                  <VoiceControls
-                    onTranscript={handleTranscript}
-                    lastAssistantText={lastAssistantText}
-                  />
-                }
-              />
-            </>
-          )}
-        </>
-      )}
-
-      {/* RL-FEAT-006: Video Generation mode */}
-      {mode === 'video' && (
-        <>
-          {!runtimeAvailable ? (
-            <RuntimeUnavailable onRetry={handleRetryRuntime} feature={t('video.tab')} />
-          ) : (
-            <VideoPanel video={video} agentName={currentAgent.name} />
-          )}
-        </>
-      )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -206,84 +468,6 @@ function RuntimeUnavailable({ onRetry, feature }: { onRetry: () => void; feature
         >
           {t('degradation.retryConnection')}
         </button>
-      </div>
-    </div>
-  );
-}
-
-// RL-FEAT-006: Video generation panel
-function VideoPanel({
-  video,
-  agentName,
-}: {
-  video: ReturnType<typeof useVideoGenerate>;
-  agentName: string;
-}) {
-  const { t } = useTranslation();
-  const [prompt, setPrompt] = useState('');
-
-  const handleSubmit = () => {
-    const trimmed = prompt.trim();
-    if (!trimmed || !video.canGenerate) return;
-    video.generate(trimmed);
-    setPrompt('');
-  };
-
-  const videoUrl = video.result?.artifacts
-    ?.map((artifact) => artifact.uri || undefined)
-    .find(Boolean);
-
-  return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[720px] mx-auto px-6 py-6 space-y-4">
-          {video.status === 'idle' && (
-            <div className="text-center text-text-secondary mt-8">
-              <p className="text-[13px]">{t('video.enterPrompt', { name: agentName })}</p>
-            </div>
-          )}
-          {video.status === 'submitting' && (
-            <div className="text-center text-text-secondary mt-8">
-              <p className="text-[13px]">{t('video.submitting')}</p>
-            </div>
-          )}
-          {video.status === 'processing' && (
-            <div className="text-center text-text-secondary mt-8">
-              <div className="inline-block w-6 h-6 border-2 border-text-secondary border-t-accent rounded-full animate-spin mb-3" />
-              <p className="text-[13px]">{t('video.processing')}</p>
-              <button onClick={video.cancel} className="mt-3 text-[11px] text-text-secondary hover:text-text-primary">
-                {t('video.cancel')}
-              </button>
-            </div>
-          )}
-          {video.status === 'completed' && <VideoPlayer url={videoUrl} />}
-          {video.status === 'error' && (
-            <div className="text-center text-error mt-8">
-              <p className="text-[13px]">{t('video.failed')}</p>
-              {video.errorMessage && <p className="text-[11px] mt-1 opacity-70">{video.errorMessage}</p>}
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="px-6 pb-4 pt-2">
-        <div className="flex gap-2 rounded-2xl border border-border-subtle bg-bg-surface p-3 focus-within:border-accent focus-within:shadow-glow transition-all duration-150">
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            disabled={video.status === 'submitting' || video.status === 'processing'}
-            placeholder={t('video.describeVideo')}
-            className="flex-1 bg-transparent text-text-primary placeholder:text-text-placeholder outline-none text-[14px]"
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!prompt.trim() || !video.canGenerate || video.status === 'submitting' || video.status === 'processing'}
-            className="px-4 py-2 bg-accent text-white rounded-xl text-[13px] font-medium hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
-          >
-            {t('video.generate')}
-          </button>
-        </div>
       </div>
     </div>
   );

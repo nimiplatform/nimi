@@ -75,14 +75,13 @@ async function resolveConfiguredAgent(
   for (let attempt = 0; attempt < CONFIG_RETRY_ATTEMPTS; attempt += 1) {
     try {
       const config = await bridge.config();
-      if (!config.agentId) {
-        store.setAgent(null);
-        return null;
+      if (config.agentId) {
+        const agent = await fetchAgentProfile(config.agentId, bridge);
+        store.setAgent(agent);
+        return config.agentId;
       }
-
-      const agent = await fetchAgentProfile(config.agentId, bridge);
-      store.setAgent(agent);
-      return config.agentId;
+      store.setAgent(null);
+      return null;
     } catch (err) {
       console.warn(`[relay:bootstrap] resolveConfiguredAgent attempt ${attempt + 1}/${CONFIG_RETRY_ATTEMPTS} failed`, err);
       const currentAgentId = useAppStore.getState().currentAgent?.id ?? null;

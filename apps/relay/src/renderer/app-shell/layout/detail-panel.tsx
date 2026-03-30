@@ -1,5 +1,5 @@
-// Detail panel — right-side panel for settings, Live2D buddy, etc.
-// Per design.md §4: fixed-width side panel shell
+// Detail panel — right-side settings panel
+// Slides in from the right with subtle shadow separation
 
 import { X } from 'lucide-react';
 
@@ -14,19 +14,21 @@ export function DetailPanel({ open, onClose, title, children }: DetailPanelProps
   if (!open) return null;
 
   return (
-    <aside className="flex min-h-0 w-80 flex-shrink-0 flex-col border-l border-border-subtle bg-bg-surface">
-      <div className="flex shrink-0 items-center justify-between border-b border-border-subtle px-4 py-3">
+    <aside className="flex min-h-0 w-[360px] flex-shrink-0 flex-col overflow-hidden bg-[color:var(--nimi-surface-panel)] shadow-[-4px_0_16px_rgba(0,0,0,0.06)]">
+      {/* Header */}
+      <div className="flex shrink-0 items-center justify-between px-5 py-3.5">
         {title && (
-          <span className="text-[13px] font-medium text-text-primary">{title}</span>
+          <span className="text-[14px] font-semibold text-[color:var(--nimi-text-primary)]">{title}</span>
         )}
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors duration-150 ml-auto"
+          className="ml-auto flex h-7 w-7 items-center justify-center rounded-full text-[color:var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] hover:text-[color:var(--nimi-text-primary)]"
         >
-          <X size={16} />
+          <X size={15} />
         </button>
       </div>
-      <div className="min-h-0 flex-1">
+      {/* Content */}
+      <div className="flex min-h-0 flex-1 flex-col">
         {children}
       </div>
     </aside>

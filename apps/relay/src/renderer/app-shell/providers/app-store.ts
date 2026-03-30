@@ -26,6 +26,8 @@ export interface UserProfile {
   handle?: string;
 }
 
+export type DetailMode = 'none' | 'settings';
+
 export interface AppState {
   /** RL-CORE-001: The single global agent context */
   currentAgent: Agent | null;
@@ -39,6 +41,8 @@ export interface AppState {
   authError: string | null;
   /** Current authenticated user profile */
   currentUser: UserProfile | null;
+  /** Right panel state */
+  detailMode: DetailMode;
 
   /** RL-CORE-002: Set agent — resets all active sessions */
   setAgent: (agent: Agent | null) => void;
@@ -46,6 +50,7 @@ export interface AppState {
   setRealtimeConnected: (connected: boolean) => void;
   setAuthState: (state: AuthState, error?: string | null) => void;
   setCurrentUser: (user: UserProfile | null) => void;
+  setDetailMode: (mode: DetailMode) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -55,6 +60,7 @@ export const useAppStore = create<AppState>((set) => ({
   authState: 'pending',
   authError: null,
   currentUser: null,
+  detailMode: 'none',
 
   setAgent: (agent) => set({
     currentAgent: agent,
@@ -66,4 +72,5 @@ export const useAppStore = create<AppState>((set) => ({
   setRealtimeConnected: (connected) => set({ realtimeConnected: connected }),
   setAuthState: (state, error) => set({ authState: state, authError: error ?? null }),
   setCurrentUser: (user) => set({ currentUser: user }),
+  setDetailMode: (mode) => set({ detailMode: mode }),
 }));

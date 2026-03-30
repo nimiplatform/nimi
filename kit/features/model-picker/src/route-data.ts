@@ -330,7 +330,7 @@ export function useRouteModelPickerData({
       return filtered.map((m) => ({
         id: m.localModelId,
         label: m.modelId,
-        description: m.localModelId !== m.modelId ? m.localModelId : undefined,
+        description: m.engine && m.engine !== 'unknown' ? m.engine : undefined,
       }));
     }
     const models = connectorModelsMap[connectorId] ?? [];

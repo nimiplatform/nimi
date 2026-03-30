@@ -14,6 +14,15 @@ const source = readFileSync(path.join(
   'model-config',
   'chat-route-panel.tsx',
 ), 'utf8');
+const providerSource = readFileSync(path.join(
+  testDir,
+  '..',
+  'src',
+  'renderer',
+  'features',
+  'model-config',
+  'bridge-route-provider.ts',
+), 'utf8');
 
 describe('RL-BOOT-005 — ChatRoutePanel uses kit data hook', () => {
   it('delegates data fetching and state management to kit useRouteModelPickerData', () => {
@@ -29,9 +38,9 @@ describe('RL-BOOT-005 — ChatRoutePanel uses kit data hook', () => {
 
   it('creates a bridge-based data provider for Electron IPC', () => {
     assert.match(source, /createBridgeRouteDataProvider/, 'ChatRoutePanel must create a bridge data provider');
-    assert.match(source, /bridge\.local\.listModels/, 'Provider must call bridge.local.listModels');
-    assert.match(source, /bridge\.connector\.list/, 'Provider must call bridge.connector.list');
-    assert.match(source, /bridge\.connector\.listModels/, 'Provider must call bridge.connector.listModels');
+    assert.match(providerSource, /bridge\.local\.listModels/, 'Provider must call bridge.local.listModels');
+    assert.match(providerSource, /bridge\.connector\.list/, 'Provider must call bridge.connector.list');
+    assert.match(providerSource, /bridge\.connector\.listModels/, 'Provider must call bridge.connector.listModels');
   });
 
   it('persists selection to main process via bridge.route.setBinding', () => {

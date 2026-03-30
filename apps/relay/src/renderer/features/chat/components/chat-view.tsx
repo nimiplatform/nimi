@@ -1,9 +1,8 @@
 // RL-PIPE-005 — Beat-aware chat transcript view
-// Per design.md §5: user bubbles right-aligned, AI messages left-aligned with markdown
+// User bubbles right-aligned with accent background, AI messages left-aligned with markdown
 
 import { useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Bot } from 'lucide-react';
+import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type { ChatMessage } from '../../../app-shell/providers/chat-store.js';
 import type { TurnSendPhase } from '../../../app-shell/providers/chat-store.js';
 import { MarkdownRenderer } from './markdown-renderer.js';
@@ -15,60 +14,56 @@ interface ChatViewProps {
 }
 
 export function ChatView({ messages, sendPhase }: ChatViewProps) {
-  const { t } = useTranslation();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    viewportRef.current?.scrollTo({ top: viewportRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto">
-      <div className="max-w-[720px] mx-auto px-6 py-6">
+    <ScrollArea className="flex-1" viewportRef={viewportRef}>
+      <div className="mx-auto max-w-[720px] px-6 py-6">
         {messages.map((msg, i) => {
           const prevMsg = i > 0 ? messages[i - 1] : null;
           const sameRole = prevMsg?.role === msg.role;
-          const gap = sameRole ? 'mt-2' : 'mt-6';
-          const isFirst = i === 0;
+          const gap = sameRole ? 'mt-2' : 'mt-5';
 
           return (
-            <div key={msg.id} className={isFirst ? '' : gap}>
+            <div key={msg.id} className={i === 0 ? '' : gap}>
               {msg.role === 'user' ? (
                 <UserMessage message={msg} />
               ) : (
-                <AssistantMessage message={msg} showHeader={!sameRole} />
+                <AssistantMessage message={msg} />
               )}
             </div>
           );
         })}
 
-        {/* Awaiting first beat indicator */}
+        {/* Awaiting first beat — typing indicator */}
         {sendPhase === 'awaiting-first-beat' && (
-          <div className="mt-6 flex items-start gap-3">
-            <div className="w-7 h-7 rounded-full bg-bg-elevated flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Bot size={14} className="text-text-secondary" />
-            </div>
-            <div className="flex gap-1.5 pt-2">
-              <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="mt-5">
+            <div className="inline-flex items-center gap-1.5 rounded-2xl rounded-tl-md bg-[color:var(--nimi-surface-card)] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-[color:var(--nimi-text-muted)]" style={{ animationDelay: '0ms' }} />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-[color:var(--nimi-text-muted)]" style={{ animationDelay: '150ms' }} />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-[color:var(--nimi-text-muted)]" style={{ animationDelay: '300ms' }} />
             </div>
           </div>
         )}
       </div>
-    </div>
+    </ScrollArea>
   );
 }
+
+// ---------------------------------------------------------------------------
+// User message — right-aligned accent bubble
+// ---------------------------------------------------------------------------
 
 function UserMessage({ message }: { message: ChatMessage }) {
   return (
     <div className="flex justify-end">
-      <div
-        className="max-w-[85%] bg-bg-user-msg rounded-[18px] px-5 py-4"
-        style={{ fontSize: '15px', lineHeight: '1.7' }}
-      >
+      <div className="max-w-[75%] rounded-2xl rounded-br-md bg-[var(--nimi-action-primary-bg)] px-4 py-3 text-[15px] leading-relaxed text-[var(--nimi-action-primary-text)] shadow-[0_1px_3px_rgba(0,0,0,0.1)]">
         {message.content && (
-          <p className="whitespace-pre-wrap text-text-primary">{message.content}</p>
+          <p className="whitespace-pre-wrap">{message.content}</p>
         )}
         {renderMedia(message)}
       </div>
@@ -76,57 +71,38 @@ function UserMessage({ message }: { message: ChatMessage }) {
   );
 }
 
-function AssistantMessage({ message, showHeader }: { message: ChatMessage; showHeader: boolean }) {
+// ---------------------------------------------------------------------------
+// Assistant message — left-aligned with avatar + card background
+// ---------------------------------------------------------------------------
+
+function AssistantMessage({ message }: { message: ChatMessage }) {
   return (
     <div className="group">
-      {/* Header — model icon + name */}
-      {showHeader && (
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-7 h-7 rounded-full bg-bg-elevated flex items-center justify-center flex-shrink-0">
-            <Bot size={14} className="text-text-secondary" />
-          </div>
-          <span className="text-[13px] font-medium text-text-secondary">AI</span>
+      {/* Content bubble */}
+      <div className="min-w-0 max-w-[85%]">
+        <div className="rounded-2xl rounded-tl-md bg-[color:var(--nimi-surface-card)] px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          {message.content && (
+            message.kind === 'streaming' ? (
+              <div className="text-[15px] leading-relaxed text-[color:var(--nimi-text-primary)]">
+                <MarkdownRenderer content={message.content} />
+                <span className="ml-0.5 inline-block h-[18px] w-[2px] animate-pulse bg-[var(--nimi-action-primary-bg)] align-text-bottom" />
+              </div>
+            ) : (
+              <div className="text-[15px] leading-relaxed text-[color:var(--nimi-text-primary)]">
+                <MarkdownRenderer content={message.content} />
+              </div>
+            )
+          )}
+
+          {renderMedia(message)}
+
+          {/* Voice indicator */}
+          {message.kind === 'voice' && (
+            <p className="mt-1 text-[12px] text-[color:var(--nimi-text-muted)]">Voice message</p>
+          )}
         </div>
-      )}
 
-      {/* Content */}
-      <div className="pl-9">
-        {message.content && (
-          message.kind === 'streaming' ? (
-            <div style={{ fontSize: '15px', lineHeight: '1.7' }}>
-              <MarkdownRenderer content={message.content} />
-              {/* Streaming cursor */}
-              <span
-                className="ml-0.5 inline-block h-[20px] w-[2px] animate-pulse bg-accent align-text-bottom"
-                style={{ height: '20px' }}
-              />
-            </div>
-          ) : (
-            <MarkdownRenderer content={message.content} />
-          )
-        )}
-
-        {renderMedia(message)}
-
-        {/* Voice indicator */}
-        {message.kind === 'voice' && (
-          <div className="flex items-center gap-2 mt-1 text-text-secondary">
-            <span className="text-[12px]">Voice message</span>
-          </div>
-        )}
-
-        {/* Beat metadata (debug) */}
-        {message.meta?.beatIndex !== undefined && message.meta.beatCount !== undefined && (
-          <div className="mt-1.5 text-[10px] text-text-placeholder flex gap-2">
-            <span>{`beat ${Number(message.meta.beatIndex) + 1}/${String(message.meta.beatCount)}`}</span>
-            {typeof message.meta.turnMode === 'string' && <span>{message.meta.turnMode}</span>}
-            {typeof message.meta.beatModality === 'string' && message.meta.beatModality !== 'text' && (
-              <span>{message.meta.beatModality}</span>
-            )}
-          </div>
-        )}
-
-        {/* Action bar — visible on hover */}
+        {/* Action bar — hover reveal */}
         {message.kind !== 'streaming' && message.content && (
           <MessageActionBar content={message.content} />
         )}
@@ -135,6 +111,10 @@ function AssistantMessage({ message, showHeader }: { message: ChatMessage; showH
   );
 }
 
+// ---------------------------------------------------------------------------
+// Media rendering
+// ---------------------------------------------------------------------------
+
 function renderMedia(message: ChatMessage) {
   return (
     <>
@@ -142,7 +122,7 @@ function renderMedia(message: ChatMessage) {
         <img
           src={message.media.uri}
           alt=""
-          className="rounded-xl mt-3 max-w-full"
+          className="mt-2 max-w-full rounded-xl"
           style={{ maxHeight: 300 }}
         />
       )}
@@ -150,13 +130,13 @@ function renderMedia(message: ChatMessage) {
         <video
           src={message.media.uri}
           controls
-          className="rounded-xl mt-3 max-w-full"
+          className="mt-2 max-w-full rounded-xl"
           style={{ maxHeight: 300 }}
         />
       )}
       {(message.kind === 'image-pending' || message.kind === 'video-pending') && (
-        <div className="flex items-center gap-2 mt-3 text-[12px] text-text-secondary">
-          <span className="w-3 h-3 border-2 border-text-secondary border-t-transparent rounded-full animate-spin" />
+        <div className="mt-2 flex items-center gap-2 text-[12px] text-[color:var(--nimi-text-muted)]">
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-[color:var(--nimi-text-muted)] border-t-transparent" />
           <span>{message.kind === 'image-pending' ? 'Generating image...' : 'Generating video...'}</span>
         </div>
       )}

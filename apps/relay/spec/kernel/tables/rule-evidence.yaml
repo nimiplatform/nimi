@@ -34,7 +34,7 @@ rules:
     status: verified
     evidence_path: apps/relay/src/renderer/features/chat/chat-page.tsx
     test: apps/relay/test/bootstrap.test.ts
-    note: RuntimeUnavailable component with retry button, stub fallback, feature gating. Health handler throws on error (BUG-1 fix) ensuring runtimeAvailable correctly reflects degradation
+    note: RuntimeUnavailable component with retry button, explicit no-agent prompt, and feature gating. Health handler throws on error (BUG-1 fix) ensuring runtimeAvailable correctly reflects degradation
 
   # IPC Bridge
   - id: RL-IPC-001
@@ -177,7 +177,7 @@ rules:
     status: verified
     evidence_path: apps/relay/src/renderer/infra/bootstrap.ts
     test: apps/relay/test/agent-core.test.ts
-    note: Fetches full agent profile from Realm when NIMI_AGENT_ID set, falls back to stub
+    note: Fetches full agent profile from Realm when NIMI_AGENT_ID is set; otherwise leaves currentAgent null until the user selects one
 
   - id: RL-CORE-004
     contract: kernel/agent-core-contract.md
@@ -190,9 +190,9 @@ rules:
   - id: RL-FEAT-001
     contract: kernel/feature-contract.md
     status: verified
-    evidence_path: apps/relay/src/renderer/features/chat/hooks/use-agent-chat.ts
+    evidence_path: apps/relay/src/renderer/features/chat/hooks/use-pipeline-chat.ts
     test: apps/relay/test/features/agent-chat.test.ts
-    note: AI chat with streaming, cancel, voice integration — contract compliance verified
+    note: Pipeline-backed chat bridge with history reload, cancel, and composer voice integration — contract compliance verified
 
   - id: RL-FEAT-002
     contract: kernel/feature-contract.md
@@ -227,11 +227,11 @@ rules:
   - id: RL-FEAT-006
     contract: kernel/feature-contract.md
     status: verified
-    evidence_path: apps/relay/src/renderer/features/video/hooks/use-video-generate.ts
+    evidence_path: apps/relay/src/main/chat-pipeline/relay-ai-client.ts
     test: apps/relay/test/features/video.test.ts
     note: >
-      Video tab — prompt input, generate, status display, VideoPlayer.
-      Async job subscription via stream protocol. Agent change cancels in-flight jobs.
+      Pipeline video generation remains wired through runtime.media.video with route-aware model selection.
+      Async job state and completion logic stay covered by the extracted video feature tests.
 
   - id: RL-FEAT-007
     contract: kernel/feature-contract.md
