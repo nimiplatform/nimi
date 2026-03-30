@@ -3,19 +3,12 @@ import { desktopBridge } from '@renderer/bridge';
 import type { SystemResourceSnapshot as BridgeSystemResourceSnapshot } from '@renderer/bridge';
 
 export type SystemResourceSnapshot = BridgeSystemResourceSnapshot;
-
-function fallbackSnapshot(source: string): SystemResourceSnapshot {
-  return {
-    cpuPercent: 0,
-    memoryUsedBytes: 0,
-    memoryTotalBytes: 0,
-    diskUsedBytes: 0,
-    diskTotalBytes: 0,
-    temperatureCelsius: undefined,
-    capturedAtMs: Date.now(),
-    source,
-  };
-}
+export type SystemResourceStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'stale';
+export type SystemResourceState = {
+  status: SystemResourceStatus;
+  snapshot: SystemResourceSnapshot | null;
+  errorMessage: string | null;
+};
 
 function normalizeSnapshot(raw: SystemResourceSnapshot): SystemResourceSnapshot {
   return {
@@ -32,26 +25,46 @@ function normalizeSnapshot(raw: SystemResourceSnapshot): SystemResourceSnapshot 
   };
 }
 
-export function useSystemResources(pollIntervalMs = 5000): SystemResourceSnapshot {
-  const [snapshot, setSnapshot] = useState<SystemResourceSnapshot>(() => fallbackSnapshot('initial'));
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+  return 'SYSTEM_RESOURCES_UNAVAILABLE';
+}
+
+export function useSystemResources(pollIntervalMs = 5000): SystemResourceState {
+  const [state, setState] = useState<SystemResourceState>({
+    status: 'idle',
+    snapshot: null,
+    errorMessage: null,
+  });
 
   useEffect(() => {
     let canceled = false;
     const load = async () => {
+      setState((prev) => (
+        prev.snapshot
+          ? prev
+          : { status: 'loading', snapshot: null, errorMessage: null }
+      ));
       try {
         const payload = await desktopBridge.getSystemResourceSnapshot();
         if (canceled) {
           return;
         }
-        setSnapshot(normalizeSnapshot(payload));
-      } catch {
+        setState({
+          status: 'ready',
+          snapshot: normalizeSnapshot(payload),
+          errorMessage: null,
+        });
+      } catch (error) {
         if (canceled) {
           return;
         }
-        setSnapshot((prev: SystemResourceSnapshot) => ({
-          ...prev,
-          capturedAtMs: Date.now(),
-          source: `${prev.source}:stale`,
+        setState((prev) => ({
+          status: prev.snapshot ? 'stale' : 'unavailable',
+          snapshot: prev.snapshot,
+          errorMessage: toErrorMessage(error),
         }));
       }
     };
@@ -67,5 +80,5 @@ export function useSystemResources(pollIntervalMs = 5000): SystemResourceSnapsho
     };
   }, [pollIntervalMs]);
 
-  return snapshot;
+  return state;
 }

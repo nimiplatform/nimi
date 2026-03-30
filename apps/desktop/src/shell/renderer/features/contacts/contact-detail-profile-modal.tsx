@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { dataSync } from '@runtime/data-sync';
@@ -8,6 +8,10 @@ import { SendGiftModal } from '@renderer/features/economy/send-gift-modal.js';
 import { toProfileData, type ProfileData, type ProfileSource } from '@renderer/features/profile/profile-model';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ContactDetailView } from './contact-detail-view.js';
+import {
+  ContactDetailErrorState,
+  ContactDetailLoadingState,
+} from './contact-detail-view-content-shell.js';
 
 export type ContactDetailProfileSeed = {
   id: string;
@@ -47,45 +51,6 @@ type ContactDetailProfileModalProps = {
 
 const INTERNAL_OPEN_CHAT_ERROR_CODE = 'CONTACTS_OPEN_CHAT_FAILED';
 
-function toSeedProfileData(seed: ContactDetailProfileSeed | null): ProfileData | null {
-  if (!seed?.id) {
-    return null;
-  }
-  const profileSource: ProfileSource = {
-    id: seed.id,
-    displayName: seed.displayName,
-    handle: seed.handle,
-    avatarUrl: seed.avatarUrl,
-    bio: seed.bio,
-    isAgent: seed.isAgent,
-    isOnline: seed.isOnline,
-    createdAt: seed.createdAt,
-    tags: seed.tags || [],
-    city: seed.city,
-    countryCode: seed.countryCode,
-    gender: seed.gender,
-    worldName: seed.worldName,
-    worldBannerUrl: seed.worldBannerUrl,
-    giftStats: seed.giftStats || {},
-    stats: {
-      friendsCount: seed.friendsCount ?? 0,
-      postsCount: seed.postsCount ?? 0,
-      likesCount: seed.likesCount ?? 0,
-    },
-    agent: seed.isAgent ? {
-      state: seed.agentState,
-      category: seed.agentCategory,
-      origin: seed.agentOrigin,
-      tier: seed.agentTier,
-      wakeStrategy: seed.agentWakeStrategy,
-      ownershipType: seed.agentOwnershipType,
-      worldId: seed.agentWorldId,
-      ownerWorldId: seed.agentOwnerWorldId,
-    } : undefined,
-  };
-  return toProfileData(profileSource);
-}
-
 export function ContactDetailProfileModal(props: ContactDetailProfileModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -106,11 +71,6 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     };
   }, [props.open, setProfileDetailOverlayOpen]);
 
-  const fallbackProfile = useMemo(
-    () => toSeedProfileData(props.profileSeed),
-    [props.profileSeed],
-  );
-
   const toChatErrorMessage = useCallback((error: unknown): string => {
     if (error instanceof Error) {
       const next = error.message.trim();
@@ -127,20 +87,16 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
       if (!props.profileId) {
         return null;
       }
-      try {
-        const result = props.profileSeed?.isAgent
-          ? await dataSync.loadAgentDetails(props.profileId)
-          : await dataSync.loadUserProfile(props.profileId);
-        return toProfileData(result as ProfileSource);
-      } catch {
-        return fallbackProfile;
-      }
+      const result = props.profileSeed?.isAgent
+        ? await dataSync.loadAgentDetails(props.profileId)
+        : await dataSync.loadUserProfile(props.profileId);
+      return toProfileData(result as ProfileSource);
     },
     enabled: props.open && Boolean(props.profileId),
     retry: 1,
   });
 
-  const profile = profileQuery.data || fallbackProfile;
+  const profile: ProfileData | null = profileQuery.data ?? null;
 
   const handleMessage = useCallback(async () => {
     if (!profile) {
@@ -247,7 +203,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
     }
   }, [profile, props, queryClient, setStatusBanner, t]);
 
-  if (!props.open || !profile) {
+  if (!props.open) {
     return null;
   }
 
@@ -263,45 +219,61 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
         contentClassName="h-full p-0"
       >
         <div className="h-full min-h-0 flex-1 overflow-hidden">
-          <ContactDetailView
-            profile={profile}
-            loading={profileQuery.isPending && !fallbackProfile}
-            error={Boolean(profileQuery.isError && !fallbackProfile)}
-            onClose={props.onClose}
-            onMessage={() => {
-              void handleMessage();
-            }}
-            onSendGift={() => setGiftModalOpen(true)}
-            onBlock={() => {
-              void handleBlock();
-            }}
-            onRemove={profile.isFriend ? () => {
-              void handleRemove();
-            } : undefined}
-            showMessageButton={!profile.isAgent}
-          />
+          {profile ? (
+            <ContactDetailView
+              profile={profile}
+              loading={false}
+              error={false}
+              onClose={props.onClose}
+              onMessage={() => {
+                void handleMessage();
+              }}
+              onSendGift={() => setGiftModalOpen(true)}
+              onBlock={() => {
+                void handleBlock();
+              }}
+              onRemove={profile.isFriend ? () => {
+                void handleRemove();
+              } : undefined}
+              showMessageButton={!profile.isAgent}
+            />
+          ) : profileQuery.isError ? (
+            <div className="flex h-full items-center justify-center bg-white">
+              <ContactDetailErrorState
+                backLabel={t('Common.back')}
+                label={t('ProfileView.error')}
+                onClose={props.onClose}
+              />
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center bg-white">
+              <ContactDetailLoadingState label={t('ProfileView.loading')} />
+            </div>
+          )}
         </div>
       </OverlayShell>
 
-      <SendGiftModal
-        open={giftModalOpen}
-        receiverId={profile.id}
-        receiverName={profile.displayName}
-        receiverHandle={profile.handle}
-        receiverIsAgent={profile.isAgent === true}
-        receiverAvatarUrl={profile.avatarUrl}
-        onClose={() => setGiftModalOpen(false)}
-        onSent={() => {
-          setStatusBanner({
-            kind: 'success',
-            message: t('Contacts.giftSentTo', {
-              name: profile.displayName || profile.handle || t('Contacts.human', { defaultValue: 'Human' }).toLowerCase(),
-              defaultValue: 'Gift sent to {{name}}',
-            }),
-          });
-          setGiftModalOpen(false);
-        }}
-      />
+      {profile ? (
+        <SendGiftModal
+          open={giftModalOpen}
+          receiverId={profile.id}
+          receiverName={profile.displayName}
+          receiverHandle={profile.handle}
+          receiverIsAgent={profile.isAgent === true}
+          receiverAvatarUrl={profile.avatarUrl}
+          onClose={() => setGiftModalOpen(false)}
+          onSent={() => {
+            setStatusBanner({
+              kind: 'success',
+              message: t('Contacts.giftSentTo', {
+                name: profile.displayName || profile.handle || t('Contacts.human', { defaultValue: 'Human' }).toLowerCase(),
+                defaultValue: 'Gift sent to {{name}}',
+              }),
+            });
+            setGiftModalOpen(false);
+          }}
+        />
+      ) : null}
     </>
   );
 }

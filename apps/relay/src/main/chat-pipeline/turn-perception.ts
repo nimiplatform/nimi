@@ -24,17 +24,33 @@ type TurnPerceptionObject = {
   turnMode?: LocalChatTurnMode | string;
 };
 
-export type TurnPerceptionResult = {
-  turnMode: LocalChatTurnMode;
-  emotionalState: {
-    detected: string;
-    cause: string;
-    suggestedApproach: string;
-  } | null;
-  relevantMemoryIds: string[];
-  conversationDirective: string | null;
-  intimacyCeiling: 'friendly' | 'warm' | 'intimate';
+type TurnPerceptionEmotionalState = {
+  detected: string;
+  cause: string;
+  suggestedApproach: string;
 };
+
+type TurnPerceptionIntimacyCeiling = 'friendly' | 'warm' | 'intimate';
+
+export type TurnPerceptionResult =
+  | {
+      status: 'resolved';
+      turnMode: LocalChatTurnMode;
+      emotionalState: TurnPerceptionEmotionalState | null;
+      relevantMemoryIds: string[];
+      conversationDirective: string | null;
+      intimacyCeiling: TurnPerceptionIntimacyCeiling;
+      failureReason: null;
+    }
+  | {
+      status: 'failed';
+      turnMode: null;
+      emotionalState: null;
+      relevantMemoryIds: [];
+      conversationDirective: null;
+      intimacyCeiling: TurnPerceptionIntimacyCeiling;
+      failureReason: string;
+    };
 
 function getPerceptionPromptTemplate(locale: PromptLocale): string {
   return pt(locale, 'perception.template');
@@ -42,8 +58,8 @@ function getPerceptionPromptTemplate(locale: PromptLocale): string {
 
 function parseIntimacyCeiling(
   value: unknown,
-  fallback: 'friendly' | 'warm' | 'intimate',
-): TurnPerceptionResult['intimacyCeiling'] {
+  fallback: TurnPerceptionIntimacyCeiling,
+): TurnPerceptionIntimacyCeiling {
   const str = String(value || '').trim().toLowerCase();
   if (str === 'friendly' || str === 'warm' || str === 'intimate') return str;
   return fallback;
@@ -60,14 +76,22 @@ function parsePerceptionResult(
     typeof object.conversationDirective === 'string'
       ? object.conversationDirective.trim() || null
       : null;
-  const defaultCeiling: TurnPerceptionResult['intimacyCeiling'] =
+  const defaultCeiling: TurnPerceptionIntimacyCeiling =
     currentRelationship === 'intimate'
       ? 'intimate'
       : currentRelationship === 'warm'
         ? 'warm'
         : 'friendly';
   const intimacyCeiling = parseIntimacyCeiling(object.intimacyCeiling, defaultCeiling);
-  return { turnMode, emotionalState, relevantMemoryIds, conversationDirective, intimacyCeiling };
+  return {
+    status: 'resolved',
+    turnMode,
+    emotionalState,
+    relevantMemoryIds,
+    conversationDirective,
+    intimacyCeiling,
+    failureReason: null,
+  };
 }
 
 function parseTurnMode(value: unknown): LocalChatTurnMode {
@@ -84,7 +108,7 @@ function parseTurnMode(value: unknown): LocalChatTurnMode {
   return valid.includes(str as LocalChatTurnMode) ? (str as LocalChatTurnMode) : 'information';
 }
 
-function parseEmotionalState(value: unknown): TurnPerceptionResult['emotionalState'] {
+function parseEmotionalState(value: unknown): TurnPerceptionEmotionalState | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const record = value as TurnPerceptionObject['emotionalState'];
   const detected = String(record?.detected || '').trim();
@@ -124,11 +148,10 @@ export async function perceiveTurn(input: {
   memorySlots: RelationMemorySlot[];
   recentTurns?: Array<{ role: string; text: string }>;
   proactive?: boolean;
-  regexFallbackTurnMode?: LocalChatTurnMode;
   promptLocale?: PromptLocale;
 }): Promise<TurnPerceptionResult> {
   const currentRelationship = input.snapshot?.relationshipState || 'new';
-  const defaultCeiling: TurnPerceptionResult['intimacyCeiling'] =
+  const defaultCeiling: TurnPerceptionIntimacyCeiling =
     currentRelationship === 'intimate'
       ? 'intimate'
       : currentRelationship === 'warm'
@@ -142,11 +165,13 @@ export async function perceiveTurn(input: {
   });
   if (hardcoded) {
     return {
+      status: 'resolved',
       turnMode: hardcoded,
       emotionalState: null,
       relevantMemoryIds: [],
       conversationDirective: null,
       intimacyCeiling: defaultCeiling,
+      failureReason: null,
     };
   }
 
@@ -192,17 +217,18 @@ export async function perceiveTurn(input: {
     });
     return parsed;
   } catch (err) {
+    const failureReason = err instanceof Error ? err.message : String(err);
     console.error('[relay:turn-perception] generateObject: FAILED', {
-      error: err instanceof Error ? err.message : String(err),
-      fallback: input.regexFallbackTurnMode || 'information',
+      error: failureReason,
     });
-    // Fallback: use regex-based turnMode instead of hardcoded 'information'
     return {
-      turnMode: input.regexFallbackTurnMode || 'information',
+      status: 'failed',
+      turnMode: null,
       emotionalState: null,
       relevantMemoryIds: [],
       conversationDirective: null,
       intimacyCeiling: defaultCeiling,
+      failureReason,
     };
   }
 }

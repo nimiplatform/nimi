@@ -29,6 +29,26 @@ func shouldExecuteExternalAsync(node *runtimev1.WorkflowNode) bool {
 	}
 }
 
+func normalizeScenarioRequestHead(head *runtimev1.ScenarioRequestHead, labels map[string]string) {
+	if head == nil {
+		return
+	}
+	if head.GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
+		head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
+		labels["workflow_route_policy_source"] = "default-local"
+	} else {
+		labels["workflow_route_policy_source"] = "explicit"
+	}
+	if head.GetFallback() == runtimev1.FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED {
+		head.Fallback = runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
+		labels["workflow_fallback_policy_source"] = "default-deny"
+	} else {
+		labels["workflow_fallback_policy_source"] = "explicit"
+	}
+	labels["workflow_route_policy"] = head.GetRoutePolicy().String()
+	labels["workflow_fallback_policy"] = head.GetFallback().String()
+}
+
 func (s *Service) executeNodeExternalAsync(
 	ctx context.Context,
 	record *taskRecord,
@@ -306,12 +326,7 @@ func buildSubmitScenarioJobRequest(
 	if strings.TrimSpace(req.GetHead().GetModelId()) == "" {
 		return nil, fmt.Errorf("model id is empty for external async node")
 	}
-	if req.GetHead().GetRoutePolicy() == runtimev1.RoutePolicy_ROUTE_POLICY_UNSPECIFIED {
-		req.Head.RoutePolicy = runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL
-	}
-	if req.GetHead().GetFallback() == runtimev1.FallbackPolicy_FALLBACK_POLICY_UNSPECIFIED {
-		req.Head.Fallback = runtimev1.FallbackPolicy_FALLBACK_POLICY_DENY
-	}
+	normalizeScenarioRequestHead(req.GetHead(), req.Labels)
 	return req, nil
 }
 

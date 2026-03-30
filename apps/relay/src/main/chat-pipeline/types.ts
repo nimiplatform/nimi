@@ -607,6 +607,8 @@ export type LocalChatContextPacket = {
   };
   pacingPlan: LocalChatReplyPacingPlan;
   perceptionOverlay?: {
+    status: 'resolved' | 'failed';
+    failureReason: string;
     refinedTurnMode: LocalChatTurnMode;
     emotionalState: string;
     emotionalCause: string;

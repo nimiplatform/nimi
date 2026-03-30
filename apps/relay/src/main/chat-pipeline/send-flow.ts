@@ -5,7 +5,12 @@
 // Adapted: MainProcessChatContext instead of React state, callback pattern
 // Adapted: waitForNextPaint → setTimeout(0), createUlid instead of createRendererFlowId
 
-import type { ChatMessage, RelayChatTurnSendInput, MediaExecutionDecision } from './types.js';
+import type {
+  ChatMessage,
+  LocalChatTurnMode,
+  RelayChatTurnSendInput,
+  MediaExecutionDecision,
+} from './types.js';
 import { buildErrorTurnPayload } from './error-handler.js';
 import { buildFirstBeatRequestInput, buildFullTurnRequestInput } from './request-builder.js';
 import {
@@ -62,6 +67,8 @@ import {
   upsertTransientFirstBeatMessage,
 } from './send-flow-helpers.js';
 import { createUserMessage, ensureWorkingSession } from './send-flow-session.js';
+
+const PERCEPTION_FAILURE_TURN_MODE: LocalChatTurnMode = 'information';
 
 export async function runLocalChatTurnSend(input: {
   context: RelayChatTurnSendInput;
@@ -192,6 +199,8 @@ export async function runLocalChatTurnSend(input: {
     });
     let turnMode = fastPerception.turnMode;
     firstBeatPrepared.contextPacket.perceptionOverlay = {
+      status: 'resolved',
+      failureReason: '',
       refinedTurnMode: fastPerception.turnMode,
       emotionalState: fastPerception.emotionalState?.detected || '',
       emotionalCause: fastPerception.emotionalState?.cause || '',
@@ -250,7 +259,6 @@ export async function runLocalChatTurnSend(input: {
           snapshot: prepared.contextPacket.interactionSnapshot || null,
           memorySlots: prepared.contextPacket.relationMemorySlots || [],
           recentTurns: recentTurnsForPerception,
-          regexFallbackTurnMode: regexTurnMode,
           promptLocale,
         });
         return { ok: true as const, perception, prepared };
@@ -352,21 +360,29 @@ export async function runLocalChatTurnSend(input: {
     const prepared = perceptionState.prepared;
     ensureNotAborted(input.abortSignal);
 
-    turnMode = perception.turnMode;
-    if (perception.relevantMemoryIds.length > 0 && prepared.contextPacket.relationMemorySlots) {
+    turnMode = perception.status === 'resolved'
+      ? perception.turnMode
+      : PERCEPTION_FAILURE_TURN_MODE;
+    if (perception.status === 'resolved' && perception.relevantMemoryIds.length > 0 && prepared.contextPacket.relationMemorySlots) {
       const relevantSet = new Set(perception.relevantMemoryIds);
       prepared.contextPacket.relationMemorySlots = prepared.contextPacket.relationMemorySlots
         .filter((slot) => relevantSet.has(slot.id));
     }
-    const activeDirective = perception.conversationDirective
-      || fastPerception.conversationDirective
-      || prepared.contextPacket.interactionSnapshot?.conversationDirective
-      || null;
+    const activeDirective = perception.status === 'resolved'
+      ? (
+        perception.conversationDirective
+        || fastPerception.conversationDirective
+        || prepared.contextPacket.interactionSnapshot?.conversationDirective
+        || null
+      )
+      : null;
     prepared.contextPacket.perceptionOverlay = {
+      status: perception.status,
+      failureReason: perception.failureReason || '',
       refinedTurnMode: turnMode,
-      emotionalState: perception.emotionalState?.detected || '',
-      emotionalCause: perception.emotionalState?.cause || '',
-      suggestedApproach: perception.emotionalState?.suggestedApproach || '',
+      emotionalState: perception.status === 'resolved' ? (perception.emotionalState?.detected || '') : '',
+      emotionalCause: perception.status === 'resolved' ? (perception.emotionalState?.cause || '') : '',
+      suggestedApproach: perception.status === 'resolved' ? (perception.emotionalState?.suggestedApproach || '') : '',
       directive: activeDirective || '',
       intimacyCeiling: perception.intimacyCeiling,
     };
@@ -377,8 +393,8 @@ export async function runLocalChatTurnSend(input: {
       interactionProfile: prepared.contextPacket.target.interactionProfile,
       allowMultiReply: resolvedExperiencePolicy.deliveryPolicy.allowMultiReply,
       turnMode,
-      emotionalHint: perception.emotionalState?.detected,
-      suggestedApproach: perception.emotionalState?.suggestedApproach,
+      emotionalHint: perception.status === 'resolved' ? perception.emotionalState?.detected : undefined,
+      suggestedApproach: perception.status === 'resolved' ? perception.emotionalState?.suggestedApproach : undefined,
       momentum: prepared.contextPacket.interactionSnapshot?.conversationMomentum,
     });
     const recompiledResult = compileLocalChatPrompt({
@@ -400,7 +416,7 @@ export async function runLocalChatTurnSend(input: {
       turnId,
       turnMode,
       deliveryStyle: resolvedExperiencePolicy.deliveryPolicy.style,
-      emotionalState: perception.emotionalState?.detected || '',
+      emotionalState: perception.status === 'resolved' ? (perception.emotionalState?.detected || '') : '',
       directive: activeDirective || '',
       intimacyCeiling: perception.intimacyCeiling,
       recentBeatTexts: [...recentBeatTexts, firstBeatMessage.content],

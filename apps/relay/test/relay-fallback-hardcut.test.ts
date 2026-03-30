@@ -31,6 +31,15 @@ describe('relay fallback hardcut regressions', () => {
     assert.ok(!source.includes("const sendFlowModule = await import('./chat-pipeline/send-flow.js').catch(() => null);"));
   });
 
+  it('relay text and perception flows do not retain legacy route or regex fallback branches', () => {
+    const aiClientSource = readRelaySource('main', 'chat-pipeline', 'relay-ai-client.ts');
+    const perceptionSource = readRelaySource('main', 'chat-pipeline', 'turn-perception.ts');
+    assert.ok(!aiClientSource.includes('Fallback to legacy resolution'));
+    assert.ok(!aiClientSource.includes('resolveModelAndRoute(undefined, inputModel)'));
+    assert.ok(!perceptionSource.includes('regexFallbackTurnMode'));
+    assert.ok(!perceptionSource.includes("turnMode: input.regexFallbackTurnMode || 'information'"));
+  });
+
   it('agent pickers do not expose manual agent-id fallback when realm is unreachable', () => {
     const selectorSource = readRelaySource('renderer', 'features', 'agent', 'components', 'agent-selector.tsx');
     const popoverSource = readRelaySource('renderer', 'features', 'agent', 'components', 'agent-picker-popover.tsx');

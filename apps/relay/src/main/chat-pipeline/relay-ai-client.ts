@@ -5,7 +5,6 @@
 import type { PlatformClient } from '@nimiplatform/sdk';
 import type { NimiRoutePolicy } from '@nimiplatform/sdk/runtime';
 import { parseJsonObject } from './json-repair.js';
-import { resolveModelAndRoute } from '../input-transform.js';
 import type {
   ChatRouteSnapshot,
   LocalChatGenerateImageInput,
@@ -29,15 +28,14 @@ function normalize(value: string | undefined | null): string {
 
 function resolveTextTarget(
   resolvedRoute: ResolvedRelayRoute | null,
-  inputModel: string | undefined,
 ): { model: string; route: NimiRoutePolicy; connectorId?: string } {
-  // If we have a resolved route from route state, use it
-  if (resolvedRoute) {
-    const route: NimiRoutePolicy = resolvedRoute.source === 'cloud' ? 'cloud' : 'local';
-    return { model: resolvedRoute.model, route, connectorId: resolvedRoute.connectorId };
+  if (!resolvedRoute) {
+    throw new Error(
+      'RELAY_TEXT_ROUTE_REQUIRED: relay text generation requires an authoritative resolved route.',
+    );
   }
-  // Fallback to legacy resolution
-  return resolveModelAndRoute(undefined, inputModel);
+  const route: NimiRoutePolicy = resolvedRoute.source === 'cloud' ? 'cloud' : 'local';
+  return { model: resolvedRoute.model, route, connectorId: resolvedRoute.connectorId };
 }
 
 export type MediaRoutes = {
@@ -58,7 +56,7 @@ export function createRelayAiClient(
     async generateText(
       input: LocalChatGenerateTextInput,
     ): Promise<LocalChatGenerateTextResult> {
-      const target = resolveTextTarget(route, input.model);
+      const target = resolveTextTarget(route);
       const response = await runtime.ai.text.generate({
         model: target.model,
         input: input.prompt,
@@ -80,7 +78,7 @@ export function createRelayAiClient(
     async generateObject<T = unknown>(
       input: LocalChatGenerateObjectInput,
     ): Promise<LocalChatGenerateObjectResult<T>> {
-      const target = resolveTextTarget(route, input.model);
+      const target = resolveTextTarget(route);
       const response = await runtime.ai.text.generate({
         model: target.model,
         input: input.prompt,
@@ -100,7 +98,7 @@ export function createRelayAiClient(
     async *streamText(
       input: LocalChatGenerateTextInput,
     ): AsyncIterable<LocalChatStreamTextDelta> {
-      const target = resolveTextTarget(route, input.model);
+      const target = resolveTextTarget(route);
       const response = await runtime.ai.text.stream({
         model: target.model,
         input: input.prompt,

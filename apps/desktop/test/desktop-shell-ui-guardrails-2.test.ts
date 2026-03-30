@@ -19,6 +19,7 @@ const notificationRejectDialogSource = readSource('../src/shell/renderer/feature
 const postCardSource = readSource('../src/shell/renderer/features/home/post-card.tsx');
 const contactDetailTabsSource = readSource('../src/shell/renderer/features/contacts/contact-detail-view-tabs.tsx');
 const contactDetailProfileModalSource = readSource('../src/shell/renderer/features/contacts/contact-detail-profile-modal.tsx');
+const runtimeConfigSystemResourcesSource = readSource('../src/shell/renderer/features/runtime-config/runtime-config-system-resources.ts');
 const profilePostFeedSource = readSource('../src/shell/renderer/features/profile/post-feed-with-media-preview.tsx');
 const profilePostsTabSource = readSource('../src/shell/renderer/features/profile/posts-tab.tsx');
 const profilePanelSource = readSource('../src/shell/renderer/features/profile/profile-panel.tsx');
@@ -76,8 +77,17 @@ test('add contact modal localizes footer action labels instead of hardcoding Eng
 test('contacts view no longer relies on a non-null assertion for selected profiles and keeps comments accurate', () => {
   assert.doesNotMatch(contactsViewSource, /selectedProfile!/);
   assert.match(contactsViewSource, /selectedContact && selectedProfile/);
+  assert.doesNotMatch(contactsViewSource, /return toProfileData\(fallbackProfile\)/);
+  assert.doesNotMatch(contactDetailProfileModalSource, /toSeedProfileData/);
+  assert.doesNotMatch(contactDetailProfileModalSource, /profileQuery\.data \|\| fallbackProfile/);
   assert.doesNotMatch(contactsViewSource, /跟踪已接受的好友请求/);
   assert.match(contactsViewSource, /处理联系人侧栏拖拽缩放/);
+});
+
+test('runtime config system resources use explicit availability state instead of fake snapshots', () => {
+  assert.match(runtimeConfigSystemResourcesSource, /SystemResourceStatus = 'idle' \| 'loading' \| 'ready' \| 'unavailable' \| 'stale'/);
+  assert.doesNotMatch(runtimeConfigSystemResourcesSource, /fallbackSnapshot/);
+  assert.match(runtimeConfigSystemResourcesSource, /status: prev\.snapshot \? 'stale' : 'unavailable'/);
 });
 
 test('contacts friend requests view does not carry an unused React default import', () => {

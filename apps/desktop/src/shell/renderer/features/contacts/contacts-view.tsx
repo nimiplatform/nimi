@@ -9,7 +9,7 @@ import { Tooltip } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ContactRecord, ContactRequestRecord, TabFilter } from './contacts-model';
 import { toProfileData } from '@renderer/features/profile/profile-model';
-import type { ProfileData, ProfileSource } from '@renderer/features/profile/profile-model';
+import type { ProfileData } from '@renderer/features/profile/profile-model';
 import { SendGiftModal } from '@renderer/features/economy/send-gift-modal';
 import nimiLogo from '@renderer/assets/logo-gray.png';
 import type { ContactsViewProps, BlockedUserInfo } from './contacts-view-types.js';
@@ -17,6 +17,10 @@ import { FriendRequestDetail, FriendRequestsList } from './contacts-friend-reque
 import { BlockConfirmDialog, UnblockConfirmDialog } from './contacts-blocked-users.js';
 import { ContactsSearchResults, ContactsCategoryAccordion } from './contacts-category-list.js';
 import { ContactDetailView } from './contact-detail-view.js';
+import {
+  ContactDetailErrorState,
+  ContactDetailLoadingState,
+} from './contact-detail-view-content-shell.js';
 
 function SkeletonBlock(props: { className: string }) {
   return <div className={`animate-pulse rounded-full bg-slate-200/75 ${props.className}`} />;
@@ -345,70 +349,22 @@ export function ContactsView(props: ContactsViewProps) {
     queryKey: ['contact-profile', selectedContact?.id],
     queryFn: async () => {
       if (!selectedContact) return null;
-      try {
-        const result = selectedContact.isAgent
-          ? await dataSync.loadAgentDetails(selectedContact.id)
-          : await dataSync.loadUserProfile(selectedContact.id);
-        return toProfileData(result);
-      } catch (_error) {
-        // 如果 API 失败，使用联系人数据构建基础 Profile
-        const fallbackProfile: ProfileSource = {
-          id: selectedContact.id,
-          displayName: selectedContact.displayName,
-          handle: selectedContact.handle,
-          avatarUrl: selectedContact.avatarUrl,
-          bio: selectedContact.bio,
-          isAgent: selectedContact.isAgent,
-          createdAt: selectedContact.friendsSince,
-          isFriend: true,
-          tags: selectedContact.tags || [],
-          languages: [],
-          city: selectedContact.location || null,
-          countryCode: null,
-          gender: selectedContact.gender || null,
-          worldName: selectedContact.worldName || null,
-          worldBannerUrl: selectedContact.worldBannerUrl || null,
-        };
-        return toProfileData(fallbackProfile);
-      }
+      const result = selectedContact.isAgent
+        ? await dataSync.loadAgentDetails(selectedContact.id)
+        : await dataSync.loadUserProfile(selectedContact.id);
+      return toProfileData(result);
     },
     enabled: !!selectedContact,
     retry: 1,
   });
 
-  // 将 ContactRecord 转换为 ProfileData 用于共享详情页
   const selectedProfile: ProfileData | null = useMemo(() => {
-    if (!selectedContact) return null;
-
-    // 如果有查询结果，使用查询结果
-    if (profileQuery.data) {
-      // selectedContact 必然是好友，API 若未返回 isFriend 则在此修正
-      if (!profileQuery.data.isFriend) {
-        return { ...profileQuery.data, isFriend: true };
-      }
-      return profileQuery.data;
+    if (!selectedContact || !profileQuery.data) return null;
+    if (!profileQuery.data.isFriend) {
+      return { ...profileQuery.data, isFriend: true };
     }
-
-    // 否则使用基础数据构建
-    const fallbackProfile: ProfileSource = {
-      id: selectedContact.id,
-      displayName: selectedContact.displayName,
-      handle: selectedContact.handle,
-      avatarUrl: selectedContact.avatarUrl,
-      bio: selectedContact.bio,
-      isAgent: selectedContact.isAgent,
-      createdAt: selectedContact.friendsSince,
-      isFriend: true,
-      tags: selectedContact.tags || [],
-      languages: [],
-      city: selectedContact.location || null,
-      countryCode: null,
-      gender: selectedContact.gender || null,
-      worldName: selectedContact.worldName || null,
-      worldBannerUrl: selectedContact.worldBannerUrl || null,
-    };
-    return toProfileData(fallbackProfile);
-  }, [selectedContact, profileQuery.data]);
+    return profileQuery.data;
+  }, [profileQuery.data, selectedContact]);
 
   // Profile 加载和错误状态
   const profileLoading = profileQuery.isPending && !!selectedContact;
@@ -548,8 +504,8 @@ export function ContactsView(props: ContactsViewProps) {
         ) : selectedContact && selectedProfile ? (
           <ContactDetailView
             profile={selectedProfile}
-            loading={profileLoading}
-            error={profileError}
+            loading={false}
+            error={false}
             onClose={() => {
               setSelectedContact(null);
               setSelectedProfileId(null);
@@ -584,11 +540,21 @@ export function ContactsView(props: ContactsViewProps) {
             } : undefined}
             showMessageButton={!selectedProfile?.isAgent}
           />
+        ) : selectedContact && profileError ? (
+          <div className="flex h-full items-center justify-center bg-white">
+            <ContactDetailErrorState
+              backLabel={t('Common.back')}
+              label={t('ProfileView.error')}
+              onClose={() => {
+                setSelectedContact(null);
+                setSelectedProfileId(null);
+                setSelectedProfileIsAgent(null);
+              }}
+            />
+          </div>
         ) : selectedContact ? (
           <div className="flex h-full items-center justify-center bg-white">
-            <p className="text-sm text-gray-500">
-              {t('ProfileView.loading', { defaultValue: 'Loading profile...' })}
-            </p>
+            <ContactDetailLoadingState label={t('ProfileView.loading', { defaultValue: 'Loading profile...' })} />
           </div>
         ) : (
           // 空状态 - 显示 Nimi Logo

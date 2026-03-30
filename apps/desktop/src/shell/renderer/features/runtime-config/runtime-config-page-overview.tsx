@@ -114,6 +114,32 @@ function formatCount(value: number): string {
   return formatLocaleNumber(Math.round(value));
 }
 
+function ResourceStateMessage(props: {
+  tone: RuntimeTone;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className={cn('rounded-xl border px-3 py-2 text-xs', TONE_STYLES[props.tone].surface)}>
+      <p className={cn('font-semibold', TOKEN_TEXT_PRIMARY)}>{props.title}</p>
+      <p className={cn('mt-1', TONE_STYLES[props.tone].subtleText)}>{props.body}</p>
+    </div>
+  );
+}
+
+function ResourceLoadingSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={`resource-skeleton-${index}`} className="space-y-2">
+          <div className="h-3 w-24 animate-pulse rounded bg-slate-200/70" />
+          <div className="h-2.5 w-full animate-pulse rounded-full bg-slate-200/70" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function formatCost(value: number | null, currency: string): string {
   if (value === null) return 'N/A';
   if (currency === 'none') return '$0.00';
@@ -215,11 +241,12 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
     status: model.runtimeDaemonStatus,
     runtimeDaemonError: model.runtimeDaemonError,
   });
-  const memoryPercent = sysResources.memoryTotalBytes > 0
-    ? (sysResources.memoryUsedBytes / sysResources.memoryTotalBytes) * 100
+  const resourceSnapshot = sysResources.snapshot;
+  const memoryPercent = resourceSnapshot && resourceSnapshot.memoryTotalBytes > 0
+    ? (resourceSnapshot.memoryUsedBytes / resourceSnapshot.memoryTotalBytes) * 100
     : 0;
-  const diskPercent = sysResources.diskTotalBytes > 0
-    ? (sysResources.diskUsedBytes / sysResources.diskTotalBytes) * 100
+  const diskPercent = resourceSnapshot && resourceSnapshot.diskTotalBytes > 0
+    ? (resourceSnapshot.diskUsedBytes / resourceSnapshot.diskTotalBytes) * 100
     : 0;
 
   return (
@@ -265,48 +292,65 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
               <p className={cn('text-sm font-semibold', TOKEN_TEXT_PRIMARY)}>{t('runtimeConfig.overview.systemResources', { defaultValue: 'System Resources' })}</p>
               <p className={cn('text-xs', TOKEN_TEXT_MUTED)}>{t('runtimeConfig.overview.systemResourcesDescription', { defaultValue: 'Live snapshot from desktop runtime' })}</p>
             </div>
-            <div className="space-y-3">
-              <div>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.cpu', { defaultValue: 'CPU' })}</span>
-                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>{sysResources.cpuPercent.toFixed(0)}%</span>
+            {sysResources.status === 'idle' || sysResources.status === 'loading' ? (
+              <ResourceLoadingSkeleton />
+            ) : resourceSnapshot ? (
+              <div className="space-y-3">
+                {sysResources.status === 'stale' ? (
+                  <ResourceStateMessage
+                    tone="warning"
+                    title={t('runtimeConfig.overview.systemResourcesStale', { defaultValue: 'Showing last successful snapshot' })}
+                    body={sysResources.errorMessage || t('runtimeConfig.overview.systemResourcesStaleDescription', { defaultValue: 'A refresh failed, so these values may be outdated.' })}
+                  />
+                ) : null}
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.cpu', { defaultValue: 'CPU' })}</span>
+                    <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>{resourceSnapshot.cpuPercent.toFixed(0)}%</span>
+                  </div>
+                  <ProgressBar percent={resourceSnapshot.cpuPercent} tone="info" />
                 </div>
-                <ProgressBar percent={sysResources.cpuPercent} tone="info" />
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.memory', { defaultValue: 'Memory' })}</span>
+                    <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
+                      {formatBytes(resourceSnapshot.memoryUsedBytes)} / {formatBytes(resourceSnapshot.memoryTotalBytes)}
+                    </span>
+                  </div>
+                  <ProgressBar percent={memoryPercent} tone="action" />
+                </div>
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.disk', { defaultValue: 'Disk' })}</span>
+                    <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
+                      {formatBytes(resourceSnapshot.diskUsedBytes)} / {formatBytes(resourceSnapshot.diskTotalBytes)}
+                    </span>
+                  </div>
+                  <ProgressBar percent={diskPercent} tone="warning" />
+                </div>
+                {typeof resourceSnapshot.temperatureCelsius === 'number' ? (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.temperature', { defaultValue: 'Temperature' })}</span>
+                    <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
+                      {t('runtimeConfig.overview.temperatureValue', { value: resourceSnapshot.temperatureCelsius.toFixed(0), defaultValue: '{{value}} C' })}
+                    </span>
+                  </div>
+                ) : null}
+                <p className={cn('pt-1 text-xs', TOKEN_TEXT_MUTED)}>
+                  {t('runtimeConfig.overview.systemResourceMeta', {
+                    source: resourceSnapshot.source,
+                    capturedAt: formatLocaleDateTime(new Date(resourceSnapshot.capturedAtMs).toISOString()),
+                    defaultValue: 'Source: {{source}} | Captured: {{capturedAt}}',
+                  })}
+                </p>
               </div>
-              <div>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.memory', { defaultValue: 'Memory' })}</span>
-                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
-                    {formatBytes(sysResources.memoryUsedBytes)} / {formatBytes(sysResources.memoryTotalBytes)}
-                  </span>
-                </div>
-                <ProgressBar percent={memoryPercent} tone="action" />
-              </div>
-              <div>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.disk', { defaultValue: 'Disk' })}</span>
-                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
-                    {formatBytes(sysResources.diskUsedBytes)} / {formatBytes(sysResources.diskTotalBytes)}
-                  </span>
-                </div>
-                <ProgressBar percent={diskPercent} tone="warning" />
-              </div>
-              {typeof sysResources.temperatureCelsius === 'number' ? (
-                <div className="flex items-center justify-between text-xs">
-                  <span className={TOKEN_TEXT_SECONDARY}>{t('runtimeConfig.overview.temperature', { defaultValue: 'Temperature' })}</span>
-                  <span className={cn('font-medium', TOKEN_TEXT_PRIMARY)}>
-                    {t('runtimeConfig.overview.temperatureValue', { value: sysResources.temperatureCelsius.toFixed(0), defaultValue: '{{value}} C' })}
-                  </span>
-                </div>
-              ) : null}
-              <p className={cn('pt-1 text-xs', TOKEN_TEXT_MUTED)}>
-                {t('runtimeConfig.overview.systemResourceMeta', {
-                  source: sysResources.source,
-                  capturedAt: formatLocaleDateTime(new Date(sysResources.capturedAtMs).toISOString()),
-                  defaultValue: 'Source: {{source}} | Captured: {{capturedAt}}',
-                })}
-              </p>
-            </div>
+            ) : (
+              <ResourceStateMessage
+                tone="warning"
+                title={t('runtimeConfig.overview.systemResourcesUnavailable', { defaultValue: 'System resources unavailable' })}
+                body={sysResources.errorMessage || t('runtimeConfig.overview.systemResourcesUnavailableDescription', { defaultValue: 'The desktop runtime could not provide a live system snapshot.' })}
+              />
+            )}
           </Surface>
 
           <Surface tone="card" className={cn(TOKEN_PANEL_CARD, 'p-5')}>
