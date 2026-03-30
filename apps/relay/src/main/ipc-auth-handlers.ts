@@ -199,7 +199,7 @@ export function registerAuthIpcHandlers(
       callbackUrl: payload.redirectUri,
       code: result.code || undefined,
       state: result.state || undefined,
-      error: undefined,
+      error: result.error || undefined,
     };
   });
 
