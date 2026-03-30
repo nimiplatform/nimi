@@ -23,6 +23,10 @@ const worldDetailSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail.tsx'),
   'utf8',
 );
+const worldDetailTemplateSource = fs.readFileSync(
+  path.join(import.meta.dirname, '../src/shell/renderer/features/world/world-detail-template.tsx'),
+  'utf8',
+);
 const explorePanelSource = fs.readFileSync(
   path.join(import.meta.dirname, '../src/shell/renderer/features/explore/explore-panel.tsx'),
   'utf8',
@@ -72,6 +76,12 @@ test('world detail only treats the primary query as a page-level error and defer
   assert.match(worldDetailSource, /message: 'detail:primary-ready'/);
   assert.match(worldDetailSource, /message: 'detail:history-semantic-settled'/);
   assert.match(worldDetailSource, /message: 'detail:assets-audits-settled'/);
+});
+
+test('world detail error state keeps a back escape hatch', () => {
+  assert.match(worldDetailTemplateSource, /function WorldDetailErrorState\(\{ onBack \}: \{ onBack\?: \(\) => void \}\)/);
+  assert.match(worldDetailTemplateSource, /onClick=\{onBack\}/);
+  assert.match(worldDetailTemplateSource, /return <WorldDetailErrorState onBack=\{props\.onBack\} \/>;/);
 });
 
 test('explore shares the world list cache key and does not refetch agents when world metadata changes', () => {

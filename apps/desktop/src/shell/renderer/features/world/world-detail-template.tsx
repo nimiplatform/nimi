@@ -70,10 +70,22 @@ function WorldDetailLoadingState() {
   );
 }
 
-function WorldDetailErrorState() {
+function WorldDetailErrorState({ onBack }: { onBack?: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0f0c]">
+    <div className="relative flex min-h-screen items-center justify-center bg-[#0a0f0c] px-6">
+      {onBack ? (
+        <button
+          type="button"
+          onClick={onBack}
+          className="absolute left-6 top-6 flex h-10 w-10 items-center justify-center rounded-full border border-[#4ECCA3]/20 bg-black/45 text-[#4ECCA3] backdrop-blur-md transition-all hover:border-[#4ECCA3]/40 hover:bg-black/65"
+          aria-label={t('WorldDetail.xianxia.v2.hero.back')}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+        </button>
+      ) : null}
       <span className="text-sm text-red-400">{t('WorldDetail.error')}</span>
     </div>
   );
@@ -565,7 +577,7 @@ export function NarrativeWorldDetailPage(props: WorldDetailPageProps) {
     return <WorldDetailLoadingState />;
   }
   if (props.error || !props.world) {
-    return <WorldDetailErrorState />;
+    return <WorldDetailErrorState onBack={props.onBack} />;
   }
   return (
     <WorldDetailPageBody
@@ -580,7 +592,7 @@ export function OasisWorldDetailPage(props: WorldDetailPageProps) {
     return <WorldDetailLoadingState />;
   }
   if (props.error || !props.world) {
-    return <WorldDetailErrorState />;
+    return <WorldDetailErrorState onBack={props.onBack} />;
   }
   return (
     <WorldDetailPageBody
