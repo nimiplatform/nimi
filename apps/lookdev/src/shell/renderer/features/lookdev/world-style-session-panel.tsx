@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LookdevWorldStylePack, LookdevWorldStyleSession } from './types.js';
 
@@ -24,6 +25,7 @@ type WorldStyleSessionPanelProps = {
 
 export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
   const { t } = useTranslation();
+  const messageContainerRef = useRef<HTMLDivElement | null>(null);
   const {
     worldName,
     styleSession,
@@ -45,6 +47,18 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
     onUpdateWorldStylePack,
   } = props;
 
+  useEffect(() => {
+    const container = messageContainerRef.current;
+    if (!container || !styleSession) {
+      return;
+    }
+    if (typeof container.scrollTo === 'function') {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      return;
+    }
+    container.scrollTop = container.scrollHeight;
+  }, [styleSession?.sessionId, styleSession?.messages.length]);
+
   return (
     <div className="grid gap-4 rounded-3xl border border-white/8 bg-black/14 px-5 py-5">
       <div className="space-y-1">
@@ -64,7 +78,10 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
 
       {styleSession ? (
         <>
-          <div className="max-h-[320px] space-y-3 overflow-auto rounded-3xl border border-white/8 bg-black/12 px-4 py-4 ld-scroll">
+          <div
+            ref={messageContainerRef}
+            className="max-h-[320px] space-y-3 overflow-auto rounded-3xl border border-white/8 bg-black/12 px-4 py-4 ld-scroll"
+          >
             {styleSession.messages.map((message) => (
               <div
                 key={message.messageId}

@@ -34,12 +34,13 @@ export async function runLookdevBootstrap(): Promise<void> {
     // Step 1: Runtime Defaults (i18n is eagerly initialized at module load)
     const runtimeDefaults = await getRuntimeDefaults();
     store.setRuntimeDefaults(runtimeDefaults);
+    const initialAccessToken = runtimeDefaults.realm.accessToken || '';
 
     // Step 3: Platform Client
     const { runtime, realm } = await createPlatformClient({
       appId: 'nimi.lookdev',
       realmBaseUrl: runtimeDefaults.realm.realmBaseUrl,
-      accessToken: runtimeDefaults.realm.accessToken,
+      accessToken: initialAccessToken,
       accessTokenProvider: () => useAppStore.getState().auth.token ?? '',
       runtimeTransport: {
         type: 'tauri-ipc',
@@ -67,7 +68,7 @@ export async function runLookdevBootstrap(): Promise<void> {
     // Step 4: Auth Session
     await bootstrapAuthSession({
       realm,
-      accessToken: runtimeDefaults.realm.accessToken,
+      accessToken: initialAccessToken,
     });
 
     // Step 5: Runtime SDK Readiness

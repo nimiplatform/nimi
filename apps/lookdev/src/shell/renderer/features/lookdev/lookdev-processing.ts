@@ -3,6 +3,17 @@ import { buildEvaluationSystemPrompt, buildGenerationPrompt } from './prompting.
 import { parseEvaluationJson, validateEvaluation } from './evaluation.js';
 import type { LookdevAuditEvent, LookdevAuditEventKind, LookdevAuditEventScope, LookdevAuditEventSeverity, LookdevEvaluationResult, LookdevImageArtifact, LookdevItem, LookdevPolicySnapshot, LookdevWorldStylePack } from './types.js';
 
+type EvaluationAttempt = {
+  maxTokens: number;
+  systemSuffix: string;
+};
+
+const EVALUATION_ATTEMPTS: EvaluationAttempt[] = [
+  { maxTokens: 1200, systemSuffix: 'Return compact JSON only, with no markdown fences.' },
+  { maxTokens: 1800, systemSuffix: 'Return valid JSON only. Do not add prose, comments, or trailing commas.' },
+  { maxTokens: 2600, systemSuffix: 'Return a single complete JSON object only. Ensure all strings, arrays, and objects are fully closed.' },
+];
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -95,30 +106,38 @@ export async function evaluateLookdevImage(runtime: Runtime, item: LookdevItem, 
   if (!artifactId) {
     throw new Error('LOOKDEV_EVALUATION_ARTIFACT_REQUIRED');
   }
-  const response = await runtime.ai.text.generate({
-    model: policy.evaluationTarget.modelId,
-    ...(resolveTargetConnectorId(policy.evaluationTarget)
-      ? { connectorId: resolveTargetConnectorId(policy.evaluationTarget) }
-      : {}),
-    route: resolveTargetRoute(policy.evaluationTarget),
-    system: buildEvaluationSystemPrompt(policy.autoEvalPolicy.scoreThreshold),
-    input: [{
-      role: 'user',
-      content: [
-        { type: 'text', text: `Evaluate ${item.agentDisplayName} portrait candidate.` },
-        {
-          type: 'artifact_ref',
-          artifactId,
-          mimeType: String(image.mimeType || 'image/png').trim() || 'image/png',
-          displayName: `${item.agentDisplayName} candidate`,
-        },
-      ],
-    }],
-    temperature: 0,
-    maxTokens: 600,
-  });
-  const parsed = parseEvaluationJson(response.text);
-  return validateEvaluation(parsed, policy.autoEvalPolicy.scoreThreshold);
+  let lastError: Error | null = null;
+  for (const attempt of EVALUATION_ATTEMPTS) {
+    const response = await runtime.ai.text.generate({
+      model: policy.evaluationTarget.modelId,
+      ...(resolveTargetConnectorId(policy.evaluationTarget)
+        ? { connectorId: resolveTargetConnectorId(policy.evaluationTarget) }
+        : {}),
+      route: resolveTargetRoute(policy.evaluationTarget),
+      system: `${buildEvaluationSystemPrompt(policy.autoEvalPolicy.scoreThreshold)} ${attempt.systemSuffix}`.trim(),
+      input: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: `Evaluate ${item.agentDisplayName} portrait candidate.` },
+          {
+            type: 'artifact_ref',
+            artifactId,
+            mimeType: String(image.mimeType || 'image/png').trim() || 'image/png',
+            displayName: `${item.agentDisplayName} candidate`,
+          },
+        ],
+      }],
+      temperature: 0,
+      maxTokens: attempt.maxTokens,
+    });
+    if (String(response.finishReason || '').trim() === 'length') {
+      lastError = new Error('LOOKDEV_EVALUATION_RESPONSE_TRUNCATED');
+      continue;
+    }
+    const parsed = parseEvaluationJson(response.text);
+    return validateEvaluation(parsed, policy.autoEvalPolicy.scoreThreshold);
+  }
+  throw lastError || new Error('LOOKDEV_EVALUATION_INVALID');
 }
 
 function targetUsesNativeGeminiRequest(target: LookdevPolicySnapshot['generationTarget']): boolean {

@@ -149,18 +149,26 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
 }
 
 export function useRuntimeReadiness() {
+  const bootstrapReady = useAppStore((state) => state.bootstrapReady);
+  const authStatus = useAppStore((state) => state.auth.status);
+  const authUserId = useAppStore((state) => state.auth.user?.id || '');
   const setRuntimeStatus = useAppStore((state) => state.setRuntimeStatus);
   const setRuntimeProbe = useAppStore((state) => state.setRuntimeProbe);
 
   const query = useQuery({
-    queryKey: ['lookdev', 'runtime-ready'],
+    queryKey: ['lookdev', 'runtime-ready', bootstrapReady, authStatus, authUserId],
     queryFn: ensureRuntimeReady,
+    enabled: bootstrapReady,
     retry: 2,
     retryDelay: 1_000,
     staleTime: 60_000,
   });
 
   useEffect(() => {
+    if (!bootstrapReady) {
+      setRuntimeStatus('checking');
+      return;
+    }
     if (query.isLoading) {
       setRuntimeStatus('checking');
       return;
@@ -195,7 +203,7 @@ export function useRuntimeReadiness() {
     if (query.error) {
       setRuntimeStatus('unavailable', query.error instanceof Error ? query.error.message : String(query.error));
     }
-  }, [query.data, query.error, query.isLoading, setRuntimeProbe, setRuntimeStatus]);
+  }, [bootstrapReady, query.data, query.error, query.isLoading, setRuntimeProbe, setRuntimeStatus]);
 
   return query;
 }

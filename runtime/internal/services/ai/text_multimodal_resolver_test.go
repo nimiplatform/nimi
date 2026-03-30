@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
 	"io"
 	"log/slog"
 	"os"
@@ -111,7 +112,7 @@ func TestValidateResolvedTextGenerateInput(t *testing.T) {
 		{
 			name: "assistant_text_part",
 			input: []*runtimev1.ChatMessage{{
-				Role: "assistant",
+				Role:  "assistant",
 				Parts: []*runtimev1.ChatContentPart{textPart("renderable")},
 			}},
 			wantErr: false,
@@ -278,6 +279,49 @@ func TestResolveTextGenerateArtifactPartClassifiesMedia(t *testing.T) {
 		if part.GetType() != tt.wantType {
 			t.Fatalf("%s: part type = %v, want %v", tt.name, part.GetType(), tt.wantType)
 		}
+	}
+}
+
+func TestResolveTextGenerateArtifactPartInlinesImageForRemoteRoute(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := newTestService(logger)
+	head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"}
+
+	svc.scenarioJobs.create(&runtimev1.ScenarioJob{
+		JobId:   "job-text-inline-image",
+		TraceId: "trace-text-inline-image",
+		Head:    head,
+		Artifacts: []*runtimev1.ScenarioArtifact{{
+			ArtifactId: "image-bytes",
+			MimeType:   "image/png",
+			Bytes:      []byte("png-bytes"),
+		}},
+		CreatedAt: timestamppb.Now(),
+		UpdatedAt: timestamppb.Now(),
+	}, func() {})
+
+	part, cleanup, err := svc.resolveTextGenerateArtifactPart(
+		context.Background(),
+		head,
+		"gemini/gemini-2.5-flash",
+		nil,
+		nil,
+		&runtimev1.ChatContentArtifactRef{ArtifactId: "image-bytes"},
+	)
+	if err != nil {
+		t.Fatalf("resolveTextGenerateArtifactPart(remote image) error = %v", err)
+	}
+	if cleanup == nil {
+		t.Fatal("expected cleanup for temp artifact backing file")
+	}
+	defer cleanup()
+	if part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL {
+		t.Fatalf("resolved part type = %v", part.GetType())
+	}
+	got := strings.TrimSpace(part.GetImageUrl().GetUrl())
+	wantPrefix := "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("png-bytes"))
+	if got != wantPrefix {
+		t.Fatalf("resolved image url = %q, want %q", got, wantPrefix)
 	}
 }
 
@@ -453,8 +497,8 @@ func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T
 			Input: []*runtimev1.ChatMessage{{
 				Role: "user",
 				Parts: []*runtimev1.ChatContentPart{artifactRefPart(&runtimev1.ChatContentArtifactRef{
-						ArtifactId: "artifact-audio",
-					})},
+					ArtifactId: "artifact-audio",
+				})},
 			}},
 		},
 	)

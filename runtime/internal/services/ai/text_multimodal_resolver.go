@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -160,11 +162,22 @@ func (s *Service) resolveTextGenerateArtifactPart(
 
 	switch partType {
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
+		imageURL := resolvedPath
+		if !isLlamaTextGenerateRoute(modelResolved, remoteTarget, selected) {
+			inlineURL, err := inlineRemoteTextGenerateImageURL(resolvedPath, mimeType)
+			if err != nil {
+				if cleanup != nil {
+					cleanup()
+				}
+				return nil, nil, err
+			}
+			imageURL = inlineURL
+		}
 		return &runtimev1.ChatContentPart{
 			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
 			Content: &runtimev1.ChatContentPart_ImageUrl{
 				ImageUrl: &runtimev1.ChatContentImageURL{
-					Url:    resolvedPath,
+					Url:    imageURL,
 					Detail: "auto",
 				},
 			},
@@ -331,6 +344,51 @@ func writeTextGenerateArtifactTempFile(mimeType string, payload []byte) (string,
 	return file.Name(), func() {
 		_ = os.Remove(file.Name())
 	}, nil
+}
+
+func inlineRemoteTextGenerateImageURL(location string, mimeType string) (string, error) {
+	value := strings.TrimSpace(location)
+	if value == "" {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	lower := strings.ToLower(value)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") || strings.HasPrefix(lower, "data:") {
+		return value, nil
+	}
+	pathValue := value
+	if strings.HasPrefix(lower, "file://") {
+		parsed, err := url.Parse(value)
+		if err != nil {
+			return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		pathValue = parsed.Path
+	}
+	if !looksLikeTextGenerateLocalFilesystemPath(pathValue) {
+		return value, nil
+	}
+	payload, err := os.ReadFile(pathValue)
+	if err != nil {
+		return value, nil
+	}
+	if len(payload) == 0 {
+		return value, nil
+	}
+	resolvedMIME := firstNonEmpty(strings.TrimSpace(mimeType), inferMimeTypeFromLocation(pathValue), strings.TrimSpace(http.DetectContentType(payload)))
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(resolvedMIME)), "image/") {
+		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return "data:" + resolvedMIME + ";base64," + base64.StdEncoding.EncodeToString(payload), nil
+}
+
+func looksLikeTextGenerateLocalFilesystemPath(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return false
+	}
+	if strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "\\") {
+		return true
+	}
+	return len(trimmed) >= 3 && trimmed[1] == ':' && (trimmed[2] == '\\' || trimmed[2] == '/')
 }
 
 func extensionForMimeType(mimeType string) string {

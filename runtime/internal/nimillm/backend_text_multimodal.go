@@ -416,7 +416,7 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if strings.HasPrefix(strings.ToLower(value), "data:") {
-		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		return decodeInlineDataURL(value)
 	}
 	if isRemoteHTTPURL(value) {
 		if err := endpointsec.ValidateEndpoint(ctx, value, b != nil && b.allowLoopbackEndpoint); err != nil {
@@ -454,6 +454,30 @@ func (b *Backend) readInlineMediaBytes(ctx context.Context, location string) ([]
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+}
+
+func decodeInlineDataURL(value string) ([]byte, string, error) {
+	commaIndex := strings.Index(value, ",")
+	if commaIndex <= 5 {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	header := strings.TrimSpace(value[:commaIndex])
+	payload := strings.TrimSpace(value[commaIndex+1:])
+	if !strings.HasSuffix(strings.ToLower(header), ";base64") {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	mimeType := strings.TrimPrefix(strings.Split(header, ";")[0], "data:")
+	decoded, err := base64.StdEncoding.DecodeString(payload)
+	if err != nil || len(decoded) == 0 {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if len(decoded) > maxInlineOpenAIMediaBytes {
+		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	if strings.TrimSpace(mimeType) == "" {
+		mimeType = strings.TrimSpace(http.DetectContentType(decoded))
+	}
+	return decoded, mimeType, nil
 }
 
 func looksLikeLocalFilesystemPath(value string) bool {

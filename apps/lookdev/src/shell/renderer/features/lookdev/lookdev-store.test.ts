@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
+import { evaluateLookdevImage } from './lookdev-processing.js';
 import { useLookdevStore } from './lookdev-store.js';
 import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAuditEvent, type LookdevBatch, type LookdevItem } from './types.js';
 import { createWorldStyleSession } from './world-style-session.js';
@@ -164,6 +165,7 @@ describe('lookdev store', () => {
         summary: 'Good anchor portrait.',
         failureReasons: [],
       }),
+      finishReason: 'stop',
     });
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -312,6 +314,103 @@ describe('lookdev store', () => {
         }),
       ],
     }));
+  });
+
+  it('retries evaluation when the first vision response is truncated', async () => {
+    mockRuntime.ai.text.generate
+      .mockResolvedValueOnce({
+        text: '{"passed":true,"score":88,"checks":[{"key":"fullBody"',
+        finishReason: 'length',
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify({
+          passed: true,
+          score: 91,
+          checks: [
+            { key: 'fullBody', passed: true },
+            { key: 'fixedFocalLength', passed: true },
+            { key: 'subjectClarity', passed: true },
+            { key: 'stablePose', passed: true },
+            { key: 'backgroundSubordinate', passed: true },
+            { key: 'lowOcclusion', passed: true },
+          ],
+          summary: 'Recovered after retry.',
+          failureReasons: [],
+        }),
+        finishReason: 'stop',
+      });
+
+    const batchId = await useLookdevStore.getState().createBatch({
+      name: 'Retry eval batch',
+      selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: ['a1'],
+      generationTarget,
+      evaluationTarget,
+      agents: [{
+        id: 'a1',
+        handle: 'iris',
+        displayName: 'Iris',
+        concept: 'Wind scout',
+        description: null,
+        scenario: null,
+        greeting: null,
+        worldId: 'w1',
+        avatarUrl: null,
+        currentPortrait: null,
+        importance: 'PRIMARY',
+        status: 'READY',
+      }],
+    });
+
+    const batch = useLookdevStore.getState().batches.find((item) => item.batchId === batchId);
+    expect(batch?.items[0]?.status).toBe('auto_passed');
+    expect(batch?.items[0]?.currentEvaluation?.score).toBe(91);
+    expect(mockRuntime.ai.text.generate).toHaveBeenCalledTimes(2);
+    expect(mockRuntime.ai.text.generate).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      maxTokens: 1200,
+    }));
+    expect(mockRuntime.ai.text.generate).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      maxTokens: 1800,
+    }));
+  });
+
+  it('fails closed on evaluation JSON contract errors instead of retrying', async () => {
+    mockRuntime.ai.text.generate.mockResolvedValueOnce({
+      text: JSON.stringify({
+        passed: true,
+        score: 91,
+        checks: [
+          { key: 'fullBody', passed: true },
+          { key: 'fixedFocalLength', passed: true },
+          { key: 'subjectClarity', passed: true },
+          { key: 'stablePose', passed: true },
+          { key: 'backgroundSubordinate', passed: true },
+          { key: 'lowOcclusion', passed: true },
+        ],
+        failureReasons: [],
+      }),
+      finishReason: 'stop',
+    });
+
+    await expect(evaluateLookdevImage(
+      mockRuntime as never,
+      makeItem(),
+      {
+        url: 'data:image/png;base64,AAAA',
+        mimeType: 'image/png',
+        artifactId: 'artifact-1',
+        promptSnapshot: 'full-body character anchor portrait',
+        createdAt: new Date().toISOString(),
+      },
+      createDefaultPolicySnapshot({
+        generationTarget,
+        evaluationTarget,
+      }),
+    )).rejects.toThrow('LOOKDEV_EVAL_SUMMARY_REQUIRED');
+
+    expect(mockRuntime.ai.text.generate).toHaveBeenCalledTimes(1);
   });
 
   it('clamps score threshold and max concurrency into supported bounds', async () => {

@@ -18,6 +18,14 @@ type SessionAgentContext = {
 
 type LookdevStyleDialogueTarget = LookdevRuntimeTargetOption;
 
+type WorldStyleStructuredAttempt = {
+  maxTokens: number;
+  temperature: number;
+  recentMessageLimit: number;
+  recentMessageMaxChars: number;
+  castAgentLimit: number;
+};
+
 type WorldStyleDialogueEnvelope = {
   assistantReply: string;
   readiness: LookdevWorldStyleSession['status'];
@@ -203,14 +211,18 @@ function parseWorldStylePackEnvelope(raw: string, language: LookdevLanguage): Wo
   };
 }
 
-function summarizeCast(language: LookdevLanguage, agents: SessionAgentContext[]): string {
+function summarizeCast(
+  language: LookdevLanguage,
+  agents: SessionAgentContext[],
+  maxAgents = 6,
+): string {
   if (agents.length === 0) {
     return language === 'zh'
       ? '当前 world 还没有可供整理的人物样本。'
       : 'No agent samples are currently available for this world.';
   }
   return agents
-    .slice(0, 6)
+    .slice(0, maxAgents)
     .map((agent) => {
       const concept = normalizeText(agent.concept);
       if (language === 'zh') {
@@ -221,13 +233,23 @@ function summarizeCast(language: LookdevLanguage, agents: SessionAgentContext[])
     .join(language === 'zh' ? '；' : '; ');
 }
 
-function summarizeRecentMessages(session: LookdevWorldStyleSession, latestUserMessage?: string): string {
-  const recent = session.messages.slice(-8).map((message) => ({
+function summarizeRecentMessages(input: {
+  session: LookdevWorldStyleSession;
+  latestUserMessage?: string;
+  maxMessages?: number;
+  maxCharsPerMessage?: number;
+}): string {
+  const maxMessages = input.maxMessages ?? 8;
+  const maxCharsPerMessage = input.maxCharsPerMessage ?? 220;
+  const recent = input.session.messages.slice(-maxMessages).map((message) => ({
     role: message.role,
-    text: normalizeText(message.text),
+    text: takeSnippet(normalizeText(message.text), '', maxCharsPerMessage),
   })).filter((message) => message.text);
-  if (latestUserMessage) {
-    recent.push({ role: 'operator', text: normalizeText(latestUserMessage) });
+  if (input.latestUserMessage) {
+    recent.push({
+      role: 'operator',
+      text: takeSnippet(normalizeText(input.latestUserMessage), '', maxCharsPerMessage),
+    });
   }
   return recent
     .map((message) => `${message.role === 'assistant' ? 'assistant' : 'operator'}: ${message.text}`)
@@ -267,6 +289,9 @@ function buildDialoguePrompt(input: {
   session: LookdevWorldStyleSession;
   agents: SessionAgentContext[];
   latestUserMessage: string;
+  recentMessageLimit?: number;
+  recentMessageMaxChars?: number;
+  castAgentLimit?: number;
 }): string {
   const { session, agents, latestUserMessage } = input;
   const understanding = WORLD_STYLE_FOCUS_KEYS
@@ -276,10 +301,15 @@ function buildDialoguePrompt(input: {
     `worldName: ${session.worldName}`,
     `language: ${session.language}`,
     `operatorTurnCount: ${session.operatorTurnCount + 1}`,
-    `castSummary:\n${summarizeCast(session.language, agents)}`,
+    `castSummary:\n${summarizeCast(session.language, agents, input.castAgentLimit ?? 6)}`,
     `currentUnderstanding:\n${understanding}`,
     `currentSummary:\n${normalizeText(session.summary) || 'not set yet'}`,
-    `recentConversation:\n${summarizeRecentMessages(session, latestUserMessage)}`,
+    `recentConversation:\n${summarizeRecentMessages({
+      session,
+      latestUserMessage,
+      maxMessages: input.recentMessageLimit,
+      maxCharsPerMessage: input.recentMessageMaxChars,
+    })}`,
     `latestOperatorMessage:\n${normalizeText(latestUserMessage)}`,
   ];
   return sections.join('\n\n');
@@ -312,6 +342,9 @@ function buildSynthesisPrompt(input: {
   session: LookdevWorldStyleSession;
   agents: SessionAgentContext[];
   existingPack?: LookdevWorldStylePack | null;
+  recentMessageLimit?: number;
+  recentMessageMaxChars?: number;
+  castAgentLimit?: number;
 }): string {
   const { session, agents, existingPack } = input;
   const understanding = WORLD_STYLE_FOCUS_KEYS
@@ -320,10 +353,14 @@ function buildSynthesisPrompt(input: {
   return [
     `worldName: ${session.worldName}`,
     `language: ${session.language}`,
-    `castSummary:\n${summarizeCast(session.language, agents)}`,
+    `castSummary:\n${summarizeCast(session.language, agents, input.castAgentLimit ?? 6)}`,
     `conversationSummary:\n${normalizeText(session.summary) || 'not set yet'}`,
     `currentUnderstanding:\n${understanding}`,
-    `recentConversation:\n${summarizeRecentMessages(session)}`,
+    `recentConversation:\n${summarizeRecentMessages({
+      session,
+      maxMessages: input.recentMessageLimit,
+      maxCharsPerMessage: input.recentMessageMaxChars,
+    })}`,
     existingPack
       ? `existingDraftHint:\nname=${existingPack.name}\nvisualEra=${existingPack.visualEra}\npaletteDirection=${existingPack.paletteDirection}`
       : '',
@@ -367,6 +404,60 @@ async function generateTextWithTarget(input: {
     traceId: String(response.trace?.traceId || '').trim() || undefined,
   };
 }
+
+function normalizeErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || 'UNKNOWN_ERROR');
+}
+
+function shouldRetryWorldStyleStructuredAttempt(error: unknown): boolean {
+  return normalizeErrorMessage(error) === 'LOOKDEV_STYLE_DIALOGUE_TRUNCATED';
+}
+
+async function generateStructuredWorldStyleObject<T>(input: {
+  runtime: Runtime;
+  target: LookdevStyleDialogueTarget;
+  system: string;
+  attempts: WorldStyleStructuredAttempt[];
+  buildPrompt: (attempt: WorldStyleStructuredAttempt) => string;
+  parse: (raw: string) => T;
+}): Promise<{ parsed: T; traceId?: string }> {
+  let lastError: unknown = null;
+  for (const attempt of input.attempts) {
+    try {
+      const response = await generateTextWithTarget({
+        runtime: input.runtime,
+        target: input.target,
+        system: input.system,
+        prompt: input.buildPrompt(attempt),
+        maxTokens: attempt.maxTokens,
+        temperature: attempt.temperature,
+      });
+      return {
+        parsed: input.parse(response.text),
+        traceId: response.traceId,
+      };
+    } catch (error) {
+      if (!shouldRetryWorldStyleStructuredAttempt(error)) {
+        throw error instanceof Error ? error : new Error(normalizeErrorMessage(error));
+      }
+      lastError = error;
+    }
+  }
+  const message = normalizeErrorMessage(lastError);
+  throw lastError instanceof Error ? lastError : new Error(message);
+}
+
+const WORLD_STYLE_DIALOGUE_ATTEMPTS: WorldStyleStructuredAttempt[] = [
+  { temperature: 0.2, maxTokens: 1600, recentMessageLimit: 8, recentMessageMaxChars: 220, castAgentLimit: 6 },
+  { temperature: 0.1, maxTokens: 2400, recentMessageLimit: 6, recentMessageMaxChars: 180, castAgentLimit: 5 },
+  { temperature: 0, maxTokens: 3200, recentMessageLimit: 4, recentMessageMaxChars: 140, castAgentLimit: 4 },
+];
+
+const WORLD_STYLE_SYNTHESIS_ATTEMPTS: WorldStyleStructuredAttempt[] = [
+  { temperature: 0.1, maxTokens: 2200, recentMessageLimit: 8, recentMessageMaxChars: 220, castAgentLimit: 6 },
+  { temperature: 0.05, maxTokens: 3000, recentMessageLimit: 6, recentMessageMaxChars: 180, castAgentLimit: 5 },
+  { temperature: 0, maxTokens: 3800, recentMessageLimit: 4, recentMessageMaxChars: 140, castAgentLimit: 4 },
+];
 
 export function createWorldStyleSession(
   worldId: string,
@@ -415,19 +506,22 @@ export async function appendWorldStyleSessionAnswer(input: {
     throw new Error('LOOKDEV_STYLE_SESSION_REPLY_REQUIRED');
   }
   const target = ensureDialogueTarget(input.target);
-  const response = await generateTextWithTarget({
+  const response = await generateStructuredWorldStyleObject({
     runtime: input.runtime,
     target,
     system: buildDialogueSystem(input.session.language),
-    prompt: buildDialoguePrompt({
+    attempts: WORLD_STYLE_DIALOGUE_ATTEMPTS,
+    buildPrompt: (attempt) => buildDialoguePrompt({
       session: input.session,
       agents: input.agents,
       latestUserMessage: normalizedAnswer,
+      recentMessageLimit: attempt.recentMessageLimit,
+      recentMessageMaxChars: attempt.recentMessageMaxChars,
+      castAgentLimit: attempt.castAgentLimit,
     }),
-    maxTokens: 1200,
-    temperature: 0.2,
+    parse: (raw) => parseWorldStyleDialogueEnvelope(raw, input.session),
   });
-  const envelope = parseWorldStyleDialogueEnvelope(response.text, input.session);
+  const envelope = response.parsed;
   return {
     ...input.session,
     status: envelope.readiness,
@@ -457,19 +551,22 @@ export async function synthesizeWorldStylePackFromSession(input: {
     throw new Error('LOOKDEV_STYLE_SYNTHESIS_INPUT_REQUIRED');
   }
   const target = ensureDialogueTarget(input.target);
-  const response = await generateTextWithTarget({
+  const response = await generateStructuredWorldStyleObject({
     runtime: input.runtime,
     target,
     system: buildSynthesisSystem(input.session.language),
-    prompt: buildSynthesisPrompt({
+    attempts: WORLD_STYLE_SYNTHESIS_ATTEMPTS,
+    buildPrompt: (attempt) => buildSynthesisPrompt({
       session: input.session,
       agents: input.agents,
       existingPack: input.existingPack,
+      recentMessageLimit: attempt.recentMessageLimit,
+      recentMessageMaxChars: attempt.recentMessageMaxChars,
+      castAgentLimit: attempt.castAgentLimit,
     }),
-    maxTokens: 1800,
-    temperature: 0.1,
+    parse: (raw) => parseWorldStylePackEnvelope(raw, input.session.language),
   });
-  const envelope = parseWorldStylePackEnvelope(response.text, input.session.language);
+  const envelope = response.parsed;
   const now = nowIso();
   return {
     worldId: input.session.worldId,
