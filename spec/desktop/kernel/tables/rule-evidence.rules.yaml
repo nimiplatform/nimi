@@ -42,6 +42,12 @@
     - desktop_kernel_consistency
     - desktop_rust_test_gate
   note: "External Agent revocation & audit; Rust backend test coverage"
+- rule_id: D-AUTH-013
+  status: covered
+  evidence_refs:
+    - desktop_kernel_consistency
+    - desktop_test_gate
+  note: "Email entry route typed decision; anonymous checkEmail call via S-REALM-038"
 - rule_id: D-BOOT-001
   status: covered
   evidence_refs:

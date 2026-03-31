@@ -40,6 +40,6 @@
 | `defaultLocalTextModel` | `string` | `—` | `hot` | 默认本地文本模型 ID 覆盖 | `K-CFG-013` |
 | `defaultCloudProvider` | `string` | `—` | `hot` | 默认云端 provider | `K-CFG-013` |
 | `logLevel` | `string` | `info` | `hot` | 日志级别（debug/info/warn/error） | `K-CFG-017` |
-| `localModelsPath` | `string` | `~/.nimi/models` | `restart` | 本地模型存储路径 | `K-LOCAL-016` |
+| `localModelsPath` | `string` | `~/.nimi/data/models` | `restart` | 本地模型存储路径 | `K-LOCAL-016` |
 | `modelCatalogCustomDir` | `string` | `~/.nimi/runtime/model-catalog/providers` | `restart` | 本地自定义 provider 目录路径 | `K-MCAT-005` |
 | `allowLoopbackProviderEndpoint` | `bool` | `false` | `restart` | 是否允许 loopback 地址的 HTTP provider endpoint | `K-SEC-002` |
