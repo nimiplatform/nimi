@@ -42,10 +42,24 @@ pub struct ProbeSavedFiles {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ProbeCommentClue {
+    pub comment_id: String,
+    pub author_name: String,
+    pub message: String,
+    pub like_count: i64,
+    pub published_at: String,
+    pub matched_venue_names: Vec<String>,
+    pub address_hint: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProbeResult {
     pub metadata: ProbeMetadata,
     pub audio_source_url: String,
     pub selected_stt_model: String,
+    pub raw_comment_count: i64,
+    pub comment_clues: Vec<ProbeCommentClue>,
     pub extraction_coverage: ProbeExtractionCoverage,
     pub transcript: String,
     pub extraction_raw: String,
@@ -128,7 +142,8 @@ fn best_command_path() -> Result<PathBuf, String> {
 fn spawn_probe_command(url: &str) -> Result<String, String> {
     let repo_root = repo_root()?;
     let command_path = best_command_path()?;
-    let script_path = repo_root.join("apps/video-food-map/scripts/run-bilibili-food-video-probe.mts");
+    let script_path =
+        repo_root.join("apps/video-food-map/scripts/run-bilibili-food-video-probe.mts");
     let grpc_addr = crate::runtime_daemon::ensure_running()?;
     let output = Command::new(&command_path)
         .arg(script_path.as_os_str())
@@ -225,11 +240,7 @@ pub fn geocode_address(query: &str) -> GeocodeOutcome {
 
     let response = client
         .get("https://nominatim.openstreetmap.org/search")
-        .query(&[
-            ("format", "jsonv2"),
-            ("limit", "1"),
-            ("q", normalized),
-        ])
+        .query(&[("format", "jsonv2"), ("limit", "1"), ("q", normalized)])
         .send();
 
     let rows = match response.and_then(|result| result.error_for_status()) {

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -19,6 +19,19 @@ export type AudioSegment = {
   bytes: Uint8Array;
   mimeType: string;
 };
+
+function resolveFfmpegBinary(): string {
+  const absoluteCandidates = [
+    '/opt/homebrew/bin/ffmpeg',
+    '/usr/local/bin/ffmpeg',
+  ];
+  for (const candidate of absoluteCandidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return 'ffmpeg';
+}
 
 function parseWavePcm16(bytes: Uint8Array): WavePcm16 {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -152,7 +165,7 @@ export function transcodeAudioToWavePcm16(input: {
   const outputPath = path.join(tempDir, 'audio.wav');
   try {
     writeFileSync(inputPath, input.sourceBytes);
-    execFileSync('ffmpeg', [
+    execFileSync(resolveFfmpegBinary(), [
       '-i', inputPath,
       '-ar', '16000',
       '-ac', '1',

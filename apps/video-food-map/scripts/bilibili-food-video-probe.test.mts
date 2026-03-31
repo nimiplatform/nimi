@@ -6,6 +6,8 @@ import {
   extractBvid,
   resolveSttModel,
   computeExtractionCoverage,
+  filterCommentCluesForExtraction,
+  mergeCommentCluesIntoExtraction,
   splitWaveIntoSegments,
 } from './lib/bilibili-food-video-probe.mts';
 
@@ -111,4 +113,92 @@ test('buildTranscriptionSegments caps oversized direct audio fallback under grpc
   assert.equal(segments.length, 1);
   assert.ok((segments[0]?.bytes.byteLength || 0) <= 6 * 1024 * 1024);
   assert.ok((segments[0]?.endSec || 0) < 120);
+});
+
+test('filterCommentCluesForExtraction keeps venue and address hints from public comments', () => {
+  const clues = filterCommentCluesForExtraction({
+    extractionJson: {
+      venues: [
+        {
+          venue_name: '炭火小馆',
+        },
+      ],
+    },
+    comments: [
+      {
+        rpid: 1,
+        like: 88,
+        ctime: 1_712_345_678,
+        member: { uname: '路人甲' },
+        content: { message: '炭火小馆就在体育西路123号，下午去不用排太久。' },
+      },
+      {
+        rpid: 2,
+        like: 1,
+        ctime: 1_712_345_600,
+        member: { uname: '路人乙' },
+        content: { message: '这个视频拍得不错。' },
+      },
+    ],
+  });
+  assert.equal(clues.length, 1);
+  assert.equal(clues[0]?.authorName, '路人甲');
+  assert.deepEqual(clues[0]?.matchedVenueNames, ['炭火小馆']);
+  assert.equal(clues[0]?.addressHint, '体育西路123号');
+});
+
+test('mergeCommentCluesIntoExtraction fills a missing address when comments agree', () => {
+  const merged = mergeCommentCluesIntoExtraction({
+    extractionJson: {
+      video_summary: '在吃烤鸡翅',
+      venues: [
+        {
+          venue_name: '炭火小馆',
+          address_text: '',
+          recommended_dishes: ['烤鸡翅'],
+          evidence: ['鸡翅很好吃'],
+          needs_review: false,
+        },
+      ],
+      uncertain_points: [],
+    },
+    commentClues: [
+      {
+        commentId: 'c1',
+        authorName: '路人甲',
+        message: '炭火小馆就在体育西路123号。',
+        likeCount: 50,
+        publishedAt: '2026-03-31T12:00:00.000Z',
+        matchedVenueNames: ['炭火小馆'],
+        addressHint: '体育西路123号',
+      },
+    ],
+  });
+  const venue = Array.isArray(merged?.venues) ? merged?.venues[0] as Record<string, unknown> : null;
+  assert.equal(venue?.address_text, '体育西路123号');
+  assert.ok(Array.isArray(venue?.evidence));
+  assert.ok((venue?.evidence as unknown[]).some((entry) => String(entry).includes('评论补充')));
+});
+
+test('filterCommentCluesForExtraction keeps comment-only venue names for cross-check', () => {
+  const clues = filterCommentCluesForExtraction({
+    extractionJson: {
+      venues: [
+        {
+          venue_name: '',
+        },
+      ],
+    },
+    comments: [
+      {
+        rpid: 3,
+        like: 4,
+        ctime: 1_712_345_800,
+        member: { uname: '吃咩啊啊' },
+        content: { message: '本期：文联文兴小食店 荔蜜园餐厅 我做了地图，能查具体地址。' },
+      },
+    ],
+  });
+  assert.equal(clues.length, 1);
+  assert.deepEqual(clues[0]?.matchedVenueNames, ['文联文兴小食店', '荔蜜园餐厅']);
 });

@@ -5,6 +5,8 @@ mod desktop_paths;
 mod probe;
 mod runtime_daemon;
 
+use std::thread;
+
 fn explain_import_error(error: &str) -> String {
     let normalized = error.trim();
     if normalized.contains("AI_PROVIDER_UNAVAILABLE")
@@ -14,7 +16,17 @@ fn explain_import_error(error: &str) -> String {
         return "本地 runtime 还没配好云端解析能力。请先在 runtime 里配置可用的云 connector 和密钥，再回来导入。".to_string();
     }
     if normalized.contains("AI_MODEL_NOT_FOUND") || normalized.contains("model not found") {
-        return "本地 runtime 里没找到可用的转写或提取模型，请检查 runtime 的模型配置。".to_string();
+        return "本地 runtime 里没找到可用的转写或提取模型，请检查 runtime 的模型配置。"
+            .to_string();
+    }
+    if normalized.contains("provider rejected request parameters")
+        || normalized.contains("AI_MEDIA_OPTION_UNSUPPORTED")
+    {
+        return "音频已经送到云端了，但这次音频格式或参数没被接受。现在先保留这条记录，后面可以继续重试。".to_string();
+    }
+    if normalized.contains("fetch failed") {
+        return "视频音频拉取失败了。这通常是网络波动或视频源暂时不可用，过一会儿可以重试。"
+            .to_string();
     }
     if normalized.contains("本地 runtime 启动失败")
         || normalized.contains("本地 runtime 没能在预期时间内启动完成")
@@ -41,14 +53,24 @@ fn video_food_map_import_video(url: String) -> Result<db::ImportRecord, String> 
     }
 
     let bvid_hint = probe::extract_bvid_hint(&trimmed);
-    match probe::run_probe(&trimmed) {
-        Ok(result) => db::import_video(&trimmed, &bvid_hint, &result),
-        Err(error) => {
-            let friendly = explain_import_error(&error);
-            let _ = db::mark_import_failed(&trimmed, &bvid_hint, &friendly);
-            Err(friendly)
+    let queued = db::queue_import(&trimmed, &bvid_hint)?;
+    let import_id = queued.id.clone();
+    thread::spawn(move || {
+        let _ = db::set_import_stage(&import_id, "resolving");
+        match probe::run_probe(&trimmed) {
+            Ok(result) => {
+                let _ = db::set_import_stage(&import_id, "geocoding");
+                if let Err(error) = db::complete_import_by_id(&import_id, &trimmed, &result) {
+                    let _ = db::mark_import_failed_by_id(&import_id, &error);
+                }
+            }
+            Err(error) => {
+                let friendly = explain_import_error(&error);
+                let _ = db::mark_import_failed_by_id(&import_id, &friendly);
+            }
         }
-    }
+    });
+    Ok(queued)
 }
 
 fn main() {
@@ -74,8 +96,17 @@ mod tests {
 
     #[test]
     fn explains_invalid_bilibili_url() {
-        let message = explain_import_error("unable to extract BVID from input: https://example.com/video/123");
+        let message = explain_import_error(
+            "unable to extract BVID from input: https://example.com/video/123",
+        );
         assert!(message.contains("Bilibili"));
         assert!(message.contains("BV"));
+    }
+
+    #[test]
+    fn explains_provider_parameter_rejection() {
+        let message = explain_import_error("stderr=provider rejected request parameters");
+        assert!(message.contains("音频"));
+        assert!(message.contains("云端"));
     }
 }
