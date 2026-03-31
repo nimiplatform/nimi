@@ -2120,7 +2120,7 @@
       "updated": "更新时间",
       "reveal": "显示位置",
       "remove": "移除",
-      "confirmRemove": "移除“{{name}}”？此操作无法撤销。",
+      "confirmRemove": "移除 {{name}}？本地模型文件将被永久删除。",
       "confirm": "确认",
       "downloadFailed": "下载失败：{{message}}",
       "modelDownloadCompleted": "模型下载已完成",
@@ -2723,7 +2723,10 @@
       "highConfidence": "高置信度",
       "reviewNeeded": "需要确认",
       "mainModel": "主模型",
-      "companionAsset": "配套资产"
+      "companionAsset": "配套资产",
+      "confirmRemoveModel": "移除「{{name}}」？本地模型文件将被永久删除。",
+      "confirmRemoveArtifact": "移除「{{name}}」？资产文件将被永久删除。",
+      "confirm": "确认"
     }
   },
   "Layout": {

@@ -293,6 +293,7 @@ function LocalModelCenterActiveDownloadsSection(props: ActiveDownloadsSectionPro
 
 type ActiveImportsSectionProps = {
   imports: LocalRuntimeDownloadProgressEvent[];
+  onDismiss: (installSessionId: string) => void;
 };
 
 function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) {
@@ -345,6 +346,15 @@ function LocalModelCenterActiveImportsSection(props: ActiveImportsSectionProps) 
               }`}>
                 {downloadStateLabel(event.state)}
               </span>
+              {isFailed ? (
+                <button
+                  type="button"
+                  className="ml-1 rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-text-muted)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] hover:text-[var(--nimi-text-secondary)]"
+                  onClick={() => props.onDismiss(event.installSessionId)}
+                >
+                  {'\u00d7'}
+                </button>
+              ) : null}
             </div>
             {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
               <div className="mb-2">

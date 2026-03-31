@@ -174,6 +174,10 @@ pub fn start() -> Result<RuntimeBridgeDaemonStatus, String> {
     if let Some(current_dir) = spec.current_dir {
         command.current_dir(current_dir);
     }
+    if let Ok(data_dir) = crate::desktop_paths::resolve_nimi_data_dir() {
+        let models_dir = data_dir.join("models");
+        command.env("NIMI_RUNTIME_LOCAL_MODELS_PATH", models_dir.to_string_lossy().to_string());
+    }
     let log_path = debug_log_path();
     if let Some(ref path) = log_path {
         let log_file = std::fs::OpenOptions::new()

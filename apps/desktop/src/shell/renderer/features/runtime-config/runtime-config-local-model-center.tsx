@@ -248,6 +248,7 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       visibleVerifiedArtifacts={runtimeState.visibleVerifiedArtifacts}
       downloads={runtimeState.activeDownloads}
       imports={runtimeState.activeImports}
+      onDismissSession={runtimeState.onDismissSession}
       unregisteredAssets={runtimeState.unregisteredAssets}
     />
   );

@@ -208,7 +208,42 @@ func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocal
 	if syncErr := s.SyncManagedLlamaAssets(context.Background()); syncErr != nil {
 		s.logger.Warn("sync llama assets after remove failed", "local_model_id", localModelID, "error", syncErr)
 	}
+	s.cleanupRemovedModelBundle(current)
 	return &runtimev1.RemoveLocalModelResponse{Model: model}, nil
+}
+
+func (s *Service) cleanupRemovedModelBundle(model *runtimev1.LocalModelRecord) {
+	if model == nil {
+		return
+	}
+	modelsRoot := s.resolvedLocalModelsPath()
+	if strings.TrimSpace(modelsRoot) == "" {
+		return
+	}
+	logicalModelID := strings.Trim(strings.TrimSpace(model.GetLogicalModelId()), "/")
+	if logicalModelID == "" {
+		return
+	}
+	bundleDir := filepath.Join(modelsRoot, "resolved", filepath.FromSlash(logicalModelID))
+	info, err := os.Stat(bundleDir)
+	if err != nil || !info.IsDir() {
+		return
+	}
+	rootAbs, err := filepath.Abs(modelsRoot)
+	if err != nil {
+		return
+	}
+	bundleAbs, err := filepath.Abs(bundleDir)
+	if err != nil {
+		return
+	}
+	if !strings.HasPrefix(bundleAbs, rootAbs+string(filepath.Separator)) {
+		s.logger.Warn("skip model bundle cleanup: path escapes models root", "bundle", bundleAbs, "root", rootAbs)
+		return
+	}
+	if err := os.RemoveAll(bundleDir); err != nil {
+		s.logger.Warn("cleanup removed model bundle failed", "path", bundleDir, "error", err)
+	}
 }
 
 func (s *Service) CollectDeviceProfile(_ context.Context, req *runtimev1.CollectDeviceProfileRequest) (*runtimev1.CollectDeviceProfileResponse, error) {

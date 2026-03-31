@@ -55,7 +55,7 @@ func resolveLocalModelsPath(configuredPath string) string {
 	if err != nil || strings.TrimSpace(home) == "" {
 		return ""
 	}
-	return filepath.Join(home, ".nimi", "models")
+	return filepath.Join(home, ".nimi", "data", "models")
 }
 
 func resolveGeneratedLlamaModelsConfigPath(configuredPath string) string {

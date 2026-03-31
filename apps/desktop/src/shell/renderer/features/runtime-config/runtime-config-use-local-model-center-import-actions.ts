@@ -74,6 +74,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onPauseDownload,
     onResumeDownload,
     onCancelDownload,
+    onDismissSession,
   } = useLocalModelCenterDownloads({
     isModMode: input.isModMode,
     onDownloadComplete: input.props.onDownloadComplete,
@@ -240,6 +241,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     installCatalogVariant,
     loadingVariants,
     onCancelDownload,
+    onDismissSession,
     onPauseDownload,
     onResumeDownload,
     toggleVariantPicker,

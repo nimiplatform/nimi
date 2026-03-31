@@ -91,7 +91,11 @@ func defaultLlamaPaths() (string, string, error) {
 	if err != nil {
 		return "", "", fmt.Errorf("resolve home directory: %w", err)
 	}
-	return filepath.Join(home, ".nimi", "models"), filepath.Join(home, ".nimi", "runtime", "llama-models.yaml"), nil
+	modelsRoot := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH"))
+	if modelsRoot == "" {
+		modelsRoot = filepath.Join(home, ".nimi", "data", "models")
+	}
+	return modelsRoot, filepath.Join(home, ".nimi", "runtime", "llama-models.yaml"), nil
 }
 
 func defaultLlamaBackendsPath() (string, error) {

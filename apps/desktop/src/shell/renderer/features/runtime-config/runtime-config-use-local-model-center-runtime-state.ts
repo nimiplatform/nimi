@@ -516,6 +516,10 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     setArtifactBusy(true);
     try {
       await props.onRemoveArtifact(localArtifactId);
+    } catch {
+      // Error is already surfaced as a status banner by the panel controller.
+    }
+    try {
       await refreshArtifactSections();
       await refreshUnregisteredAssets();
     } finally {
@@ -714,6 +718,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     loadingVerifiedArtifacts,
     loadingVerifiedModels,
     onCancelDownload: importActions.onCancelDownload,
+    onDismissSession: importActions.onDismissSession,
     onPauseDownload: importActions.onPauseDownload,
     onResumeDownload: importActions.onResumeDownload,
     orphanCapabilities: {},

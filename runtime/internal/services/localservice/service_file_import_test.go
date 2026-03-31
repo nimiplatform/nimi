@@ -242,7 +242,7 @@ func TestScaffoldOrphanModelMovesSourceIntoRuntimeManagedStorage(t *testing.T) {
 	}
 }
 
-func TestScanUnregisteredAssetsIncludesLegacyDesktopModelsRoot(t *testing.T) {
+func TestScanUnregisteredAssetsFindsModelsInDefaultRoot(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 	legacyModelsDir := filepath.Join(homeDir, ".nimi", "data", "models")

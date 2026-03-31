@@ -253,7 +253,7 @@ func resolveVerifiedArtifactDir(modelsRoot string, artifactID string) (string, e
 	if err := os.MkdirAll(rootAbs, 0o755); err != nil {
 		return "", fmt.Errorf("create local models root: %w", err)
 	}
-	return filepath.Join(rootAbs, slugifyLocalModelID(artifactID)), nil
+	return filepath.Join(rootAbs, "artifacts", slugifyLocalModelID(artifactID)), nil
 }
 
 func normalizeArtifactRelativeFile(value string) (string, error) {

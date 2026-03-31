@@ -2120,7 +2120,7 @@
       "updated": "Updated",
       "reveal": "Reveal",
       "remove": "Remove",
-      "confirmRemove": "Remove \"{{name}}\"? This cannot be undone.",
+      "confirmRemove": "Remove \"{{name}}\"? Local model files will be permanently deleted.",
       "confirm": "Confirm",
       "downloadFailed": "Download failed: {{message}}",
       "modelDownloadCompleted": "Model download completed",
@@ -2723,7 +2723,10 @@
       "highConfidence": "High confidence",
       "reviewNeeded": "Review needed",
       "mainModel": "Main model",
-      "companionAsset": "Companion asset"
+      "companionAsset": "Companion asset",
+      "confirmRemoveModel": "Remove \"{{name}}\"? Local model files will be permanently deleted.",
+      "confirmRemoveArtifact": "Remove \"{{name}}\"? Artifact files will be permanently deleted.",
+      "confirm": "Confirm"
     }
   },
   "Layout": {

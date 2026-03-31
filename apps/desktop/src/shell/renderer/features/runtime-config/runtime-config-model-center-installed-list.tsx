@@ -403,7 +403,7 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
                   <div className="mt-3 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-3">
                     <p className="flex-1 text-sm text-[var(--nimi-status-danger)]">
                       {t('runtimeConfig.local.confirmRemove', {
-                        defaultValue: 'Remove "{{name}}"? This cannot be undone.',
+                        defaultValue: 'Remove "{{name}}"? Local model files will be permanently deleted.',
                         name: model.model,
                       })}
                     </p>

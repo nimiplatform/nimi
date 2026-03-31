@@ -132,7 +132,7 @@ func TestStartLocalModelRepairsCorruptedRuntimeManagedBundleFromDesktop(t *testi
 			models:    []string{"local-import/Qwen3-4B-Q4_K_M"},
 		}
 	})
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
 
@@ -233,7 +233,7 @@ func TestStartLocalModelInvalidManagedBundleTransitionsUnhealthy(t *testing.T) {
 			models:    []string{"local-import/Qwen3-4B-Q4_K_M"},
 		}
 	})
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
 
@@ -291,7 +291,7 @@ func TestRestoreStateHealsLegacyManagedLocalImportRecord(t *testing.T) {
 	entry := "Qwen3-4B-Q4_K_M.gguf"
 	writeLegacyRuntimeLocalStateForTest(t, statePath, localModelID, modelID, entry, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY)
 
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, "nimi/local-import-qwen3-4b-q4-k-m", modelID, entry)
 
 	svc := newTestServiceWithProbe(t, nil)
@@ -326,7 +326,7 @@ func TestRestoreStateHealsLegacyManagedLocalImportRecordWithNormalizedManifestMo
 	entry := "Qwen3-4B-Q4_K_M.gguf"
 	writeLegacyRuntimeLocalStateForTest(t, statePath, localModelID, recordModelID, entry, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY)
 
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, "nimi/local-import-qwen3-4b-q4-k-m", manifestModelID, entry)
 
 	svc := newTestServiceWithProbe(t, nil)
@@ -374,7 +374,7 @@ func TestStartLocalModelHealsLegacyRecordFromDesktopBundle(t *testing.T) {
 			models:    []string{"local-import/Qwen3-4B-Q4_K_M"},
 		}
 	}
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	configPath := filepath.Join(homeDir, ".nimi", "runtime", "llama-models.yaml")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, configPath, true)
 
@@ -404,7 +404,7 @@ func TestCheckLocalModelHealthHealsLegacyUnhealthyRecordToInstalled(t *testing.T
 	entry := "Qwen3-4B-Q4_K_M.gguf"
 	writeLegacyRuntimeLocalStateForTest(t, statePath, localModelID, modelID, entry, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY)
 
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	writeManagedGGUFBundleForTest(t, modelsRoot, "nimi/local-import-qwen3-4b-q4-k-m", modelID, entry)
 
 	svc, err := New(newTestService(t).logger, nil, statePath, 0)
@@ -452,7 +452,7 @@ func TestListLocalModelsNormalizesManagedUnhealthyRecordToInstalled(t *testing.T
 	modelID := "local/local-import/Qwen3-4B-Q4_K_M"
 	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
 	entry := "Qwen3-4B-Q4_K_M.gguf"
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, logicalModelID, "local-import/Qwen3-4B-Q4_K_M", entry)
 	writeManagedRuntimeLocalStateForTest(t, statePath, localModelID, modelID, logicalModelID, manifestPath, entry, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
 
@@ -496,7 +496,7 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T)
 	modelID := "local/local-import/Qwen3-4B-Q4_K_M"
 	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
 	entry := "Qwen3-4B-Q4_K_M.gguf"
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
+	modelsRoot := filepath.Join(homeDir, ".nimi", "data", "models")
 	manifestPath := writeManagedGGUFBundleForTest(t, modelsRoot, logicalModelID, "local-import/Qwen3-4B-Q4_K_M", entry)
 	writeManagedRuntimeLocalStateForTest(t, statePath, localModelID, modelID, logicalModelID, manifestPath, entry, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT)
 
@@ -531,36 +531,12 @@ func TestListLocalModelsHealsManagedAttachedRuntimeModeToInstalled(t *testing.T)
 	}
 }
 
-func TestRepairManagedLocalModelBundleFromDesktopPreservesExistingBundleOnStageFailure(t *testing.T) {
+func TestRepairManagedLocalModelBundleFromDesktopSkipsWhenPathsMatch(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 
 	svc := newTestService(t)
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
 	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
-	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		t.Fatalf("mkdir runtime bundle dir: %v", err)
-	}
-	oldEntryPath := filepath.Join(destDir, "Qwen3-4B-Q4_K_M.gguf")
-	if err := os.WriteFile(oldEntryPath, []byte("old-runtime-bundle"), 0o644); err != nil {
-		t.Fatalf("write old runtime bundle: %v", err)
-	}
-
-	srcDir := filepath.Join(homeDir, ".nimi", "data", "models", "resolved", filepath.FromSlash(logicalModelID))
-	if err := os.MkdirAll(srcDir, 0o755); err != nil {
-		t.Fatalf("mkdir desktop bundle dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(srcDir, "Qwen3-4B-Q4_K_M.gguf"), validTestGGUF(), 0o644); err != nil {
-		t.Fatalf("write desktop entry: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(srcDir, "manifest.json"), []byte(`{"model_id":"local/local-import/Qwen3-4B-Q4_K_M","logical_model_id":"nimi/local-import-qwen3-4b-q4-k-m","engine":"llama","entry":"Qwen3-4B-Q4_K_M.gguf","capabilities":["chat"]}`), 0o644); err != nil {
-		t.Fatalf("write desktop manifest: %v", err)
-	}
-	extraPath := filepath.Join(srcDir, "extra.bin")
-	if err := os.WriteFile(extraPath, []byte("blocked"), 0o000); err != nil {
-		t.Fatalf("write unreadable extra file: %v", err)
-	}
 
 	model := &runtimev1.LocalModelRecord{
 		LocalModelId:   "local_model_qwen",
@@ -569,49 +545,20 @@ func TestRepairManagedLocalModelBundleFromDesktopPreservesExistingBundleOnStageF
 		Entry:          "Qwen3-4B-Q4_K_M.gguf",
 		LogicalModelId: logicalModelID,
 	}
-	_, err := svc.repairManagedLocalModelBundleFromDesktop(model)
-	if err == nil {
-		t.Fatal("expected repair to fail when staging desktop bundle")
+	repaired, err := svc.repairManagedLocalModelBundleFromDesktop(model)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	currentBytes, readErr := os.ReadFile(oldEntryPath)
-	if readErr != nil {
-		t.Fatalf("read preserved runtime bundle: %v", readErr)
-	}
-	if string(currentBytes) != "old-runtime-bundle" {
-		t.Fatalf("runtime bundle should remain untouched, got=%q", string(currentBytes))
+	if repaired {
+		t.Fatal("expected no-op when desktop and runtime models roots match")
 	}
 }
 
-func TestHealLegacyManagedLocalImportRecordPreservesExistingRuntimeDirOnStageFailure(t *testing.T) {
+func TestHealLegacyManagedLocalImportRecordSkipsDesktopFallbackWhenPathsMatch(t *testing.T) {
 	homeDir := t.TempDir()
 	t.Setenv("HOME", homeDir)
 
 	svc := newTestService(t)
-	modelsRoot := filepath.Join(homeDir, ".nimi", "models")
-	logicalModelID := "nimi/local-import-qwen3-4b-q4-k-m"
-	destDir := runtimeManagedResolvedModelDir(modelsRoot, logicalModelID)
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		t.Fatalf("mkdir runtime dir: %v", err)
-	}
-	oldEntryPath := filepath.Join(destDir, "Qwen3-4B_Q4_K_M.gguf")
-	if err := os.WriteFile(oldEntryPath, []byte("old-runtime-dir"), 0o644); err != nil {
-		t.Fatalf("write old runtime file: %v", err)
-	}
-
-	srcDir := filepath.Join(homeDir, ".nimi", "data", "models", "resolved", filepath.FromSlash(logicalModelID))
-	if err := os.MkdirAll(srcDir, 0o755); err != nil {
-		t.Fatalf("mkdir desktop dir: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(srcDir, "Qwen3-4B_Q4_K_M.gguf"), validTestGGUF(), 0o644); err != nil {
-		t.Fatalf("write desktop entry: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(srcDir, "manifest.json"), []byte(`{"model_id":"local/local-import/Qwen3-4B_Q4_K_M","logical_model_id":"nimi/local-import-qwen3-4b-q4-k-m","engine":"llama","entry":"Qwen3-4B_Q4_K_M.gguf","capabilities":["chat"],"integrity_mode":"local_unverified"}`), 0o644); err != nil {
-		t.Fatalf("write desktop manifest: %v", err)
-	}
-	extraPath := filepath.Join(srcDir, "extra.bin")
-	if err := os.WriteFile(extraPath, []byte("blocked"), 0o000); err != nil {
-		t.Fatalf("write unreadable extra file: %v", err)
-	}
 
 	localModelID := "legacy_local_model"
 	svc.mu.Lock()
@@ -630,13 +577,6 @@ func TestHealLegacyManagedLocalImportRecordPreservesExistingRuntimeDirOnStageFai
 
 	_, _, err := svc.healLegacyManagedLocalImportRecord(localModelID)
 	if err == nil {
-		t.Fatal("expected heal to fail when staging desktop candidate")
-	}
-	currentBytes, readErr := os.ReadFile(oldEntryPath)
-	if readErr != nil {
-		t.Fatalf("read preserved runtime dir file: %v", readErr)
-	}
-	if string(currentBytes) != "old-runtime-dir" {
-		t.Fatalf("runtime dir contents should remain untouched, got=%q", string(currentBytes))
+		t.Fatal("expected heal to fail when no managed bundle exists and desktop fallback is skipped")
 	}
 }
