@@ -1,0 +1,30 @@
+version: 1
+surfaces:
+  - id: brand_header
+    order: 1
+    prominence: supporting
+    role: "Product naming and promise."
+  - id: seed_input
+    order: 2
+    prominence: primary_support
+    role: "Quiet front-door intake for one image or one phrase."
+  - id: threshold_stage
+    order: 3
+    prominence: protagonist
+    role: "Dominant story-opening stage in both empty and generated states."
+  - id: play_timeline
+    order: 4
+    prominence: secondary
+    role: "Short continuation context after the story opening appears."
+  - id: local_library
+    order: 5
+    prominence: secondary
+    role: "Local shelf for saved story openings."
+  - id: sample_triggers
+    order: 6
+    prominence: tertiary
+    role: "Optional lightweight prompts only; never the home-screen hero."
+  - id: explanatory_copy
+    order: 7
+    prominence: tertiary
+    role: "Minimal support copy only; must not dominate the page."
