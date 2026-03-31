@@ -20,7 +20,15 @@ export type { CharacterVisualAnchor, MediaContextSnapshot } from './media-contex
 export { planMediaTurn } from './media-planner.js';
 export type { MediaPlannerDecision, MediaPlannerResult, MediaPlannerTrigger } from './media-planner.js';
 
-export { isMediaRouteReady, resolveMediaRouteConfig, resolveMediaRouteFromOptions, preflightResolveMediaRoute, buildMediaSettingsRevision } from './media-route.js';
+export {
+  isMediaRouteReady,
+  resolveMediaRouteConfig,
+  resolveMediaRouteFromOptions,
+  preflightResolveMediaRoute,
+  buildMediaSettingsRevision,
+  resolveConfiguredImageGenerateTarget,
+  resolveConfiguredImageWorkflowExtensions,
+} from './media-route.js';
 
 export { decideMediaExecution } from './media-decision-policy.js';
 export type { DecideMediaExecutionInput } from './media-decision-policy.js';

@@ -164,6 +164,52 @@ describe('normalizeLocalChatInspectSettings', () => {
     assert.equal(result.ttsConnectorId, 'conn-1');
     assert.equal(result.ttsModel, 'model-1');
   });
+
+  it('normalizes local image workflow fields without inferring missing values', () => {
+    const result = normalizeLocalChatInspectSettings({
+      imageRouteSource: 'local',
+      imageLocalModelId: '  local-image-1  ',
+      imageModel: '  flux-local-dev  ',
+      imageWorkflowComponents: [
+        { slot: '  vae_path  ', localArtifactId: '  artifact-vae-1  ' },
+        { slot: '', localArtifactId: 'artifact-empty-slot' },
+        { slot: 'clip_path', localArtifactId: '' },
+      ],
+      imageProfileOverrides: {
+        scheduler: 'ddim',
+      },
+    });
+
+    assert.equal(result.imageRouteSource, 'local');
+    assert.equal(result.imageLocalModelId, 'local-image-1');
+    assert.equal(result.imageModel, 'flux-local-dev');
+    assert.deepEqual(result.imageWorkflowComponents, [
+      { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
+    ]);
+    assert.deepEqual(result.imageProfileOverrides, { scheduler: 'ddim' });
+  });
+
+  it('drops invalid local image workflow objects and empty profile overrides', () => {
+    const result = normalizeLocalChatInspectSettings({
+      imageWorkflowComponents: [
+        null,
+        { slot: 'vae_path' },
+        { localArtifactId: 'artifact-vae-1' },
+      ],
+      imageProfileOverrides: {},
+    });
+
+    assert.deepEqual(result.imageWorkflowComponents, []);
+    assert.equal(result.imageProfileOverrides, null);
+  });
+
+  it('accepts renderer alias ttsVoiceId for voiceName', () => {
+    const result = normalizeLocalChatInspectSettings({
+      ttsVoiceId: '  nova  ',
+    });
+
+    assert.equal(result.voiceName, 'nova');
+  });
 });
 
 // ─── mergeLocalChatSettings ─────────────────────────────────────────────
@@ -216,6 +262,26 @@ describe('mergeLocalChatSettings', () => {
 
     assert.equal(merged.voiceName, 'shimmer');
     assert.equal(merged.ttsRouteSource, 'cloud');
+  });
+
+  it('preserves local image workflow settings in merged defaults', () => {
+    const merged = mergeLocalChatSettings({
+      product: { ...DEFAULT_LOCAL_CHAT_PRODUCT_SETTINGS },
+      inspect: {
+        ...DEFAULT_LOCAL_CHAT_INSPECT_SETTINGS,
+        imageRouteSource: 'local',
+        imageLocalModelId: 'local-image-1',
+        imageModel: 'flux-local-dev',
+        imageWorkflowComponents: [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }],
+        imageProfileOverrides: { scheduler: 'ddim' },
+      },
+    });
+
+    assert.equal(merged.imageRouteSource, 'local');
+    assert.equal(merged.imageLocalModelId, 'local-image-1');
+    assert.equal(merged.imageModel, 'flux-local-dev');
+    assert.deepEqual(merged.imageWorkflowComponents, [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }]);
+    assert.deepEqual(merged.imageProfileOverrides, { scheduler: 'ddim' });
   });
 });
 

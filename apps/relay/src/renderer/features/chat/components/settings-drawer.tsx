@@ -1,7 +1,7 @@
 // RL-PIPE-006 — Product settings — renders inside DetailPanel
 // Media/voice autonomy, visual comfort, proactive toggle
 
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollArea,
@@ -14,12 +14,20 @@ import {
   type RouteModelPickerSelection,
 } from '@nimiplatform/nimi-kit/features/model-picker/headless';
 import { CompactRouteModelPicker } from '@nimiplatform/nimi-kit/features/model-picker/ui';
-import { useSettingsStore, type MediaAutonomy, type VoiceAutonomy, type VisualComfortLevel } from '../../../app-shell/providers/settings-store.js';
+import {
+  useSettingsStore,
+  type ImageWorkflowComponent,
+  type MediaAutonomy,
+  type VoiceAutonomy,
+  type VisualComfortLevel,
+} from '../../../app-shell/providers/settings-store.js';
+import type { NimiRelayBridge } from '../../../bridge/electron-bridge.js';
 import { createBridgeRouteDataProvider } from '../../model-config/bridge-route-provider.js';
 import { useRelayRoute } from '../../model-config/use-relay-route.js';
 import { getBridge } from '../../../bridge/electron-bridge.js';
 import { MediaRouteSelector } from '../../model-config/media-route-selector.js';
 import { TtsVoiceSelector } from '../../model-config/tts-voice-selector.js';
+import type { RelayMediaRouteOptionsResponse } from '../../../../shared/ipc-contract.js';
 
 // ---------------------------------------------------------------------------
 // Model name formatting
@@ -29,6 +37,19 @@ function formatModelDisplayName(raw: string): string {
   const parts = raw.split('/');
   return parts.length > 1 ? parts[parts.length - 1]! : raw;
 }
+
+const IMAGE_WORKFLOW_SLOT_PRESETS = ['vae_path', 'llm_path', 'clip_path', 'controlnet_path', 'lora_path'] as const;
+const IMAGE_ARTIFACT_KIND_LABEL: Record<number, string> = {
+  1: 'VAE',
+  2: 'LLM',
+  3: 'CLIP',
+  4: 'ControlNet',
+  5: 'LoRA',
+  6: 'Auxiliary',
+};
+
+type LocalArtifactRecord = Awaited<ReturnType<NimiRelayBridge['local']['listArtifacts']>>['artifacts'][number];
+type LocalImageModelOption = RelayMediaRouteOptionsResponse['local']['models'][number];
 
 // ---------------------------------------------------------------------------
 // SettingsDrawer
@@ -42,10 +63,6 @@ export function SettingsDrawer() {
   const setVoiceAutonomy = useCallback((v: VoiceAutonomy) => updateProduct({ voiceAutonomy: v }), [updateProduct]);
   const setVisualComfort = useCallback((v: VisualComfortLevel) => updateProduct({ visualComfortLevel: v }), [updateProduct]);
 
-  const onImageRouteChange = useCallback(
-    (connectorId: string, model: string) => updateInspect({ imageConnectorId: connectorId, imageModel: model }),
-    [updateInspect],
-  );
   const onTtsRouteChange = useCallback(
     (connectorId: string, model: string) => updateInspect({ ttsConnectorId: connectorId, ttsModel: model, ttsVoiceId: '' }),
     [updateInspect],
@@ -75,13 +92,7 @@ export function SettingsDrawer() {
 
         {/* Media models */}
         <SettingSection title={t('settings.imageModel', 'Image Model')}>
-          <MediaRouteSelector
-            capability="image.generate"
-            connectorId={inspect.imageConnectorId}
-            model={inspect.imageModel}
-            onChange={onImageRouteChange}
-            label={t('settings.imageModel', 'Image Model')}
-          />
+          <ImageModelSettings />
         </SettingSection>
 
         <SettingSection title={t('settings.ttsModel', 'Voice Model (TTS)')}>
@@ -353,4 +364,261 @@ function InlineNotice({ children, tone }: { children: ReactNode; tone: 'danger' 
       {children}
     </div>
   );
+}
+
+function ImageModelSettings() {
+  const { t } = useTranslation();
+  const { inspect, updateInspect } = useSettingsStore();
+  const [routeOptions, setRouteOptions] = useState<RelayMediaRouteOptionsResponse | null>(null);
+  const [artifacts, setArtifacts] = useState<LocalArtifactRecord[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [profileOverridesText, setProfileOverridesText] = useState(() => JSON.stringify(inspect.imageProfileOverrides ?? {}, null, 2));
+  const [profileOverridesError, setProfileOverridesError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setProfileOverridesText(JSON.stringify(inspect.imageProfileOverrides ?? {}, null, 2));
+  }, [inspect.imageProfileOverrides]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([
+      getBridge().mediaRoute.getOptions({ capability: 'image.generate' }),
+      getBridge().local.listArtifacts({
+        statusFilter: 0,
+        kindFilter: 0,
+        engineFilter: '',
+        pageSize: 0,
+        pageToken: '',
+      }),
+    ]).then(([mediaOptions, artifactResponse]) => {
+      if (cancelled) return;
+      setRouteOptions(mediaOptions);
+      const nextArtifacts = Array.isArray(artifactResponse.artifacts)
+        ? artifactResponse.artifacts.filter((artifact) => Number(artifact.status ?? 0) !== 4)
+        : [];
+      setArtifacts(nextArtifacts);
+      setLoadError(null);
+    }).catch((error) => {
+      if (cancelled) return;
+      setRouteOptions(null);
+      setArtifacts([]);
+      setLoadError(error instanceof Error ? error.message : 'Failed to load local image settings');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedSource = inspect.imageRouteSource === 'local'
+    ? 'local'
+    : inspect.imageRouteSource === 'cloud'
+      ? 'cloud'
+      : inspect.imageLocalModelId
+        ? 'local'
+        : 'cloud';
+  const localModels: LocalImageModelOption[] = routeOptions?.local.models ?? [];
+
+  const handleImageSourceChange = useCallback((value: string) => {
+    if (value !== 'local' && value !== 'cloud') {
+      return;
+    }
+    void updateInspect({ imageRouteSource: value });
+  }, [updateInspect]);
+
+  const handleLocalModelChange = useCallback((localModelId: string) => {
+    const selected = localModels.find((model: LocalImageModelOption) => model.localModelId === localModelId);
+    void updateInspect({
+      imageRouteSource: 'local',
+      imageLocalModelId: localModelId,
+      imageModel: selected?.modelId ?? '',
+    });
+  }, [localModels, updateInspect]);
+
+  const handleCloudRouteChange = useCallback((connectorId: string, model: string) => {
+    void updateInspect({
+      imageRouteSource: 'cloud',
+      imageConnectorId: connectorId,
+      imageModel: model,
+    });
+  }, [updateInspect]);
+
+  const handleWorkflowComponentChange = useCallback((index: number, patch: Partial<ImageWorkflowComponent>) => {
+    const next = inspect.imageWorkflowComponents.map((component, currentIndex) => (
+      currentIndex === index
+        ? {
+            slot: (patch.slot ?? component.slot).trim(),
+            localArtifactId: (patch.localArtifactId ?? component.localArtifactId).trim(),
+          }
+        : component
+    ));
+    void updateInspect({ imageWorkflowComponents: next });
+  }, [inspect.imageWorkflowComponents, updateInspect]);
+
+  const handleAddWorkflowComponent = useCallback(() => {
+    void updateInspect({
+      imageWorkflowComponents: [
+        ...inspect.imageWorkflowComponents,
+        { slot: '', localArtifactId: '' },
+      ],
+    });
+  }, [inspect.imageWorkflowComponents, updateInspect]);
+
+  const handleRemoveWorkflowComponent = useCallback((index: number) => {
+    void updateInspect({
+      imageWorkflowComponents: inspect.imageWorkflowComponents.filter((_, currentIndex) => currentIndex !== index),
+    });
+  }, [inspect.imageWorkflowComponents, updateInspect]);
+
+  const handleProfileOverridesBlur = useCallback(() => {
+    const trimmed = profileOverridesText.trim();
+    if (!trimmed || trimmed === '{}') {
+      setProfileOverridesError(null);
+      void updateInspect({ imageProfileOverrides: null });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Profile overrides must be a JSON object.');
+      }
+      setProfileOverridesError(null);
+      void updateInspect({ imageProfileOverrides: parsed as Record<string, unknown> });
+    } catch (error) {
+      setProfileOverridesError(error instanceof Error ? error.message : 'Invalid JSON');
+    }
+  }, [profileOverridesText, updateInspect]);
+
+  return (
+    <div className="space-y-3">
+      <SelectField
+        value={selectedSource}
+        onValueChange={handleImageSourceChange}
+        options={[
+          { value: 'local', label: t('settings.localImageRoute', 'Local') },
+          { value: 'cloud', label: t('settings.cloudImageRoute', 'Cloud') },
+        ]}
+        selectClassName="font-normal"
+      />
+
+      {loadError ? (
+        <InlineNotice tone="warning">
+          {loadError}
+        </InlineNotice>
+      ) : null}
+
+      {selectedSource === 'local' ? (
+        <div className="space-y-3">
+          <SelectField
+            value={inspect.imageLocalModelId || undefined}
+            onValueChange={handleLocalModelChange}
+            options={localModels.map((model: LocalImageModelOption) => ({
+              value: model.localModelId,
+              label: `${formatModelDisplayName(model.modelId)} (${model.engine})`,
+            }))}
+            placeholder={t('settings.selectLocalImageModel', 'Select local image model...')}
+            selectClassName="font-normal"
+          />
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
+                {t('settings.imageWorkflow', 'Workflow Components')}
+              </p>
+              <button
+                type="button"
+                onClick={handleAddWorkflowComponent}
+                className="rounded-md border border-[color:var(--nimi-border-subtle)] px-2 py-1 text-[12px] text-[color:var(--nimi-text-secondary)] transition-colors hover:border-[color:var(--nimi-text-muted)] hover:text-[color:var(--nimi-text-primary)]"
+              >
+                {t('settings.addComponent', 'Add')}
+              </button>
+            </div>
+
+            {inspect.imageWorkflowComponents.length === 0 ? (
+              <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
+                {t('settings.imageWorkflowHint', 'Select companion artifacts explicitly. Local image generation fails closed without them.')}
+              </p>
+            ) : null}
+
+            {inspect.imageWorkflowComponents.map((component, index) => (
+              <div key={`${component.slot}:${component.localArtifactId}:${index}`} className="rounded-xl border border-[color:var(--nimi-border-subtle)] p-3">
+                <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
+                  <input
+                    value={component.slot}
+                    onChange={(event) => handleWorkflowComponentChange(index, { slot: event.target.value })}
+                    list={`image-workflow-slot-${index}`}
+                    placeholder={t('settings.imageWorkflowSlot', 'slot')}
+                    className="h-10 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-transparent px-3 text-[13px] text-[color:var(--nimi-text-primary)] outline-none transition-colors focus:border-[color:var(--nimi-action-primary-bg)]"
+                  />
+                  <datalist id={`image-workflow-slot-${index}`}>
+                    {IMAGE_WORKFLOW_SLOT_PRESETS.map((slot) => <option key={slot} value={slot} />)}
+                  </datalist>
+                  <SelectField
+                    value={component.localArtifactId || undefined}
+                    onValueChange={(value) => handleWorkflowComponentChange(index, { localArtifactId: value })}
+                    options={artifacts.map((artifact) => ({
+                      value: String(artifact.localArtifactId || ''),
+                      label: formatArtifactOptionLabel(artifact),
+                    })).filter((option) => option.value)}
+                    placeholder={t('settings.selectArtifact', 'Select artifact...')}
+                    selectClassName="font-normal"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveWorkflowComponent(index)}
+                    className="rounded-lg border border-[color:var(--nimi-border-subtle)] px-3 py-2 text-[12px] text-[color:var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-status-danger)] hover:text-[var(--nimi-status-danger)]"
+                  >
+                    {t('settings.removeComponent', 'Remove')}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
+              {t('settings.profileOverrides', 'Profile Overrides')}
+            </p>
+            <textarea
+              value={profileOverridesText}
+              onChange={(event) => setProfileOverridesText(event.target.value)}
+              onBlur={handleProfileOverridesBlur}
+              rows={6}
+              spellCheck={false}
+              className="w-full resize-y rounded-xl border border-[color:var(--nimi-border-subtle)] bg-transparent px-3 py-2 text-[12px] leading-relaxed text-[color:var(--nimi-text-primary)] outline-none transition-colors focus:border-[color:var(--nimi-action-primary-bg)]"
+            />
+            {profileOverridesError ? (
+              <InlineNotice tone="warning">
+                {profileOverridesError}
+              </InlineNotice>
+            ) : (
+              <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
+                {t('settings.profileOverridesHint', 'Optional JSON object merged into the local image workflow profile.')}
+              </p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <MediaRouteSelector
+          capability="image.generate"
+          connectorId={inspect.imageConnectorId}
+          model={inspect.imageModel}
+          onChange={handleCloudRouteChange}
+          label={t('settings.imageModel', 'Image Model')}
+        />
+      )}
+    </div>
+  );
+}
+
+function formatArtifactOptionLabel(artifact: LocalArtifactRecord): string {
+  const artifactId = String(artifact.artifactId || artifact.localArtifactId || '').trim();
+  const kind = IMAGE_ARTIFACT_KIND_LABEL[Number(artifact.kind ?? 0)] || `Kind ${String(artifact.kind ?? '')}`;
+  const engine = String(artifact.engine || '').trim();
+  if (artifactId && engine) {
+    return `${artifactId} (${kind}, ${engine})`;
+  }
+  if (artifactId) {
+    return `${artifactId} (${kind})`;
+  }
+  return kind;
 }

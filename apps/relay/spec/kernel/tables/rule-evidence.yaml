@@ -239,3 +239,24 @@ rules:
     evidence_path: apps/relay/src/renderer/features/agent/hooks/use-agent-profile.ts
     test: apps/relay/test/features/agent-profile.test.ts
     note: Realm fetch agent list with full field mapping (voice_model, voice_id, live2d_model_url — BUG-2 fix), agent card UI, switch agent resets all sessions — zustand tests
+
+  - id: RL-FEAT-008
+    contract: kernel/feature-contract.md
+    status: verified
+    evidence_path: apps/relay/src/renderer/features/chat/components/settings-drawer.tsx
+    test: apps/relay/test/model-config-source.test.ts
+    note: Relay settings drawer now exposes explicit local/cloud image routing, installed local artifact selection, and local workflow profile overrides without synthetic fallback
+
+  - id: RL-PIPE-006
+    contract: kernel/pipeline-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/media/media-route.ts
+    test: apps/relay/test/media-route.test.ts
+    note: Image modality orchestration preserves explicit local route selection, requires local model + workflow components, and fails closed instead of coercing to cloud
+
+  - id: RL-IPC-011
+    contract: kernel/ipc-bridge-contract.md
+    status: verified
+    evidence_path: apps/relay/src/main/model-handlers.ts
+    test: apps/relay/test/ipc-handlers.test.ts
+    note: Local runtime bridge now exposes read-only relay:local:artifacts:list for installed local image workflow companions alongside existing local model operations

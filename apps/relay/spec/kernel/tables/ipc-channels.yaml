@@ -244,6 +244,103 @@ channels:
     description: Auth state change push (state + error)
     source_rule: RL-BOOT-005
 
+  - channel: relay:auth:logout
+    type: unary
+    module: auth
+    description: Logout and clear session
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:apply-token
+    type: unary
+    module: auth
+    description: Apply externally obtained token
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:check-email
+    type: unary
+    module: auth
+    description: Check email entry route (register/otp/password)
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:password-login
+    type: unary
+    module: auth
+    description: Password-based login
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:oauth-login
+    type: unary
+    module: auth
+    description: Realm SDK OAuth login passthrough
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:email-otp-request
+    type: unary
+    module: auth
+    description: Request email OTP code
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:email-otp-verify
+    type: unary
+    module: auth
+    description: Verify email OTP and login
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:2fa-verify
+    type: unary
+    module: auth
+    description: Two-factor authentication verify
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:wallet-challenge
+    type: unary
+    module: auth
+    description: Request wallet login challenge
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:wallet-login
+    type: unary
+    module: auth
+    description: Wallet signature login
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:update-password
+    type: unary
+    module: auth
+    description: Update user password
+    source_rule: RL-BOOT-005
+
+  - channel: relay:auth:current-user
+    type: unary
+    module: auth
+    description: Query current authenticated user
+    source_rule: RL-BOOT-005
+
+  # OAuth loopback (RL-BOOT-006)
+  - channel: relay:oauth:listen-for-code
+    type: unary
+    module: auth
+    description: Start loopback HTTP listener for OAuth authorization code callback
+    source_rule: RL-BOOT-006
+
+  - channel: relay:oauth:open-external-url
+    type: unary
+    module: auth
+    description: Open authorization URL in system browser
+    source_rule: RL-BOOT-006
+
+  - channel: relay:oauth:focus-main-window
+    type: unary
+    module: auth
+    description: Restore and focus main window after OAuth callback
+    source_rule: RL-BOOT-006
+
+  - channel: relay:oauth:token-exchange
+    type: unary
+    module: auth
+    description: Exchange authorization code for tokens with PKCE support
+    source_rule: RL-BOOT-006
+
   # Model service (RL-IPC-010)
   - channel: relay:model:list
     type: unary
@@ -274,6 +371,12 @@ channels:
     type: unary
     module: local
     sdk_method: runtime.local.listLocalModels
+    source_rule: RL-IPC-011
+
+  - channel: relay:local:artifacts:list
+    type: unary
+    module: local
+    sdk_method: runtime.local.listLocalArtifacts
     source_rule: RL-IPC-011
 
   - channel: relay:local:models:verified

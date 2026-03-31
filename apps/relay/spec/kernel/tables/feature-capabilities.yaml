@@ -69,7 +69,7 @@ features:
     requires_realm: false
     requires_agent: false
     sdk_module: runtime.model + runtime.local + runtime.connector
-    note: Lightweight model status and management; full UI lives in Desktop (RL-INTOP-004)
+    note: Lightweight route/model/artifact status and management, including local image workflow companion selection; full UI lives in Desktop (RL-INTOP-004)
     source_rule: RL-FEAT-008
 
   # Pipeline capabilities (RL-PIPE-*)
