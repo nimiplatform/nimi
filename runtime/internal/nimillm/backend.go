@@ -18,7 +18,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-const defaultHTTPTimeout = 30 * time.Second
+const defaultHTTPTimeout = 5 * time.Minute
 const maxInlineOpenAIMediaBytes = 32 << 20
 
 // Backend is an OpenAI-compatible HTTP backend for AI inference.

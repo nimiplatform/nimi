@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	defaultAIHTTPTimeout = 30 * time.Second
+	defaultAIHTTPTimeout = 5 * time.Minute
 )
 
 // provider is a type alias for nimillm.Provider.

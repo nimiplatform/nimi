@@ -25,7 +25,7 @@ const (
 	// minStreamChunkBytes is the minimum buffered bytes before flushing a
 	// streaming text delta to the client. (K-STREAM-006)
 	minStreamChunkBytes         = 32
-	defaultGenerateTimeout      = 30 * time.Second
+	defaultGenerateTimeout      = 120 * time.Second
 	defaultStreamFirstTimeout   = 10 * time.Second
 	defaultStreamTotalTimeout   = 120 * time.Second
 	defaultEmbedTimeout         = 20 * time.Second
@@ -61,6 +61,9 @@ type Service struct {
 // New creates a Service with all dependencies.
 func New(logger *slog.Logger, registry *modelregistry.Registry, aiHealth *providerhealth.Tracker, auditStore *auditlog.Store, connStore *connector.ConnectorStore, daemonCfg config.Config) (*Service, error) {
 	effectiveCfg := loadConfigFromEnv()
+	if daemonCfg.AIHTTPTimeoutSeconds > 0 {
+		effectiveCfg.AIHTTPTimeout = time.Duration(daemonCfg.AIHTTPTimeoutSeconds) * time.Second
+	}
 	effectiveCfg.EnforceEndpointSecurity = true
 	effectiveCfg.AllowLoopbackEndpoint = daemonCfg.AllowLoopbackProviderEndpoint
 	effectiveCfg.DefaultLocalTextModel = strings.TrimSpace(daemonCfg.DefaultLocalTextModel)

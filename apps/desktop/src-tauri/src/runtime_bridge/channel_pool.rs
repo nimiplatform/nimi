@@ -69,8 +69,7 @@ pub async fn shared_channel(grpc_addr: &str) -> Result<Channel, String> {
                 error.to_string().as_str(),
             )
         })?
-        .connect_timeout(Duration::from_secs(2))
-        .timeout(Duration::from_secs(30))
+        .connect_timeout(Duration::from_secs(5))
         .tcp_nodelay(true);
     let channel = endpoint.connect().await.map_err(|error| {
         bridge_error("RUNTIME_BRIDGE_CONNECT_FAILED", error.to_string().as_str())

@@ -1,7 +1,7 @@
 version: 1
 timeouts:
   - operation: ExecuteScenario_text_generate
-    default_ms: 30000
+    default_ms: 120000
     overridable: true
     source_rule: K-DAEMON-008
   - operation: StreamScenario_first_packet
