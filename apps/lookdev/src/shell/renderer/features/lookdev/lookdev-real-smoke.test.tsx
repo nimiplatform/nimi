@@ -10,12 +10,68 @@ import CreateBatchPage from './create-batch-page.js';
 import BatchListPage from './batch-list-page.js';
 import BatchDetailPage from './batch-detail-page.js';
 import { compilePortraitBrief } from './prompting.js';
-import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAgentImportance, type LookdevBatch, type LookdevItem, type LookdevPortraitBrief, type LookdevWorldStylePack } from './types.js';
+import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAgentImportance, type LookdevBatch, type LookdevCaptureState, type LookdevItem, type LookdevPortraitBrief, type LookdevWorldStylePack } from './types.js';
 
-const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents } = vi.hoisted(() => ({
+vi.mock('@nimiplatform/nimi-kit/ui', async () => {
+  const actual = await vi.importActual<typeof import('@nimiplatform/nimi-kit/ui')>('@nimiplatform/nimi-kit/ui');
+  return {
+    ...actual,
+    SelectField: ({ options, value, placeholder, onValueChange, onChange, id, ...rest }: import('@nimiplatform/nimi-kit/ui').SelectFieldProps) => (
+      <select
+        id={id}
+        aria-label={rest['aria-label']}
+        value={value ?? ''}
+        onChange={(event) => {
+          onValueChange?.(event.target.value);
+          onChange?.({
+            target: { value: event.target.value },
+            currentTarget: { value: event.target.value },
+          });
+        }}
+      >
+        {placeholder ? <option value="">{placeholder}</option> : null}
+        {options.map((option) => (
+          <option key={option.value} value={option.value} disabled={option.disabled}>
+            {typeof option.label === 'string' ? option.label : String(option.value)}
+          </option>
+        ))}
+      </select>
+    ),
+  };
+});
+
+const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdevAgent, getLookdevAgentTruthBundle, getAgentPortraitBinding } = vi.hoisted(() => ({
   listLookdevWorlds: vi.fn(),
   listLookdevAgents: vi.fn(),
   listLookdevWorldAgents: vi.fn(),
+  getLookdevAgent: vi.fn(async () => ({
+    description: 'Anchor scout with a steady dockside silhouette.',
+    scenario: null,
+    greeting: null,
+  })),
+  getLookdevAgentTruthBundle: vi.fn(async () => ({
+    description: 'Anchor scout with a steady dockside silhouette.',
+    scenario: null,
+    greeting: null,
+    wakeStrategy: 'PASSIVE',
+    dna: {
+      identity: { role: 'Harbor scout', worldview: null, species: null, summary: null },
+      biological: { gender: null, visualAge: null, ethnicity: null, heightCm: null, weightKg: null },
+      appearance: { artStyle: null, hair: null, eyes: null, skin: null, fashionStyle: null, signatureItems: [] },
+      personality: { summary: null, mbti: null, interests: [], goals: [], relationshipMode: null, emotionBaseline: null },
+      communication: { summary: null, responseLength: null, formality: null, sentiment: null },
+    },
+    behavioralRules: [],
+    soulPrime: null,
+    ruleTruth: {
+      identity: { statement: null, structured: null },
+      biological: { statement: null, structured: null },
+      appearance: { statement: null, structured: null },
+      personality: { statement: null, structured: null },
+      communication: { statement: null, structured: null },
+    },
+  })),
+  getAgentPortraitBinding: vi.fn(async () => null),
 }));
 
 vi.mock('@renderer/data/lookdev-data-client.js', async () => {
@@ -25,6 +81,9 @@ vi.mock('@renderer/data/lookdev-data-client.js', async () => {
     listLookdevWorlds,
     listLookdevAgents,
     listLookdevWorldAgents,
+    getLookdevAgent,
+    getLookdevAgentTruthBundle,
+    getAgentPortraitBinding,
   };
 });
 
@@ -41,6 +100,33 @@ vi.mock('@nimiplatform/sdk', () => ({
     runtime: mockRuntime,
   }),
 }));
+
+beforeAll(() => {
+  if (!HTMLElement.prototype.hasPointerCapture) {
+    Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', {
+      configurable: true,
+      value: () => false,
+    });
+  }
+  if (!HTMLElement.prototype.setPointerCapture) {
+    Object.defineProperty(HTMLElement.prototype, 'setPointerCapture', {
+      configurable: true,
+      value: () => undefined,
+    });
+  }
+  if (!HTMLElement.prototype.releasePointerCapture) {
+    Object.defineProperty(HTMLElement.prototype, 'releasePointerCapture', {
+      configurable: true,
+      value: () => undefined,
+    });
+  }
+  if (!HTMLElement.prototype.scrollIntoView) {
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: () => undefined,
+    });
+  }
+});
 
 type RealWorld = {
   id: string;
@@ -176,6 +262,24 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+async function selectFieldOption(user: ReturnType<typeof userEvent.setup>, label: string, optionName: string | RegExp) {
+  const select = screen.getByLabelText(label) as HTMLSelectElement;
+  let option: HTMLOptionElement | undefined;
+  await waitFor(() => {
+    option = Array.from(select.options).find((entry) => {
+      if (optionName instanceof RegExp) {
+        return optionName.test(entry.textContent || '');
+      }
+      return (entry.textContent || '').trim() === optionName;
+    });
+    expect(option).toBeDefined();
+  });
+  if (!option) {
+    throw new Error(`Missing option for ${label}: ${String(optionName)}`);
+  }
+  await user.selectOptions(select, option.value);
+}
+
 function renderWithProviders(element: React.ReactNode, initialEntries: string[] = ['/']) {
   const client = new QueryClient({
     defaultOptions: {
@@ -294,52 +398,93 @@ async function completeWorldStyleSession(
 function makeRealDataBatch(): LookdevBatch {
   const worldStylePack = createConfirmedWorldStylePack(realFixture.activeWorld.id, realFixture.activeWorld.name, 'zh');
   const agents = realFixture.cast.slice(0, 2);
-  const items: LookdevItem[] = agents.map((agent, index) => ({
-    itemId: `real-item-${index + 1}`,
-    batchId: 'real-batch',
-    agentId: agent.id,
-    agentHandle: agent.handle,
-    agentDisplayName: agent.displayName,
-    agentConcept: agent.concept,
-    agentDescription: null,
-    importance: agent.importance,
-    captureMode: index === 0 ? 'capture' : 'batch_only',
-    portraitBrief: compilePortraitBrief({
+  const items: LookdevItem[] = agents.map((agent, index) => {
+    const captureStateSnapshot: LookdevCaptureState = {
       agentId: agent.id,
-      displayName: agent.displayName,
       worldId: agent.worldId,
-      concept: agent.concept,
-      description: null,
-      worldStylePack,
-    }),
-    worldId: agent.worldId,
-    status: index === 0 ? 'auto_passed' : 'auto_failed_retryable',
-    attemptCount: 1,
-    currentImage: null,
-    currentEvaluation: index === 0
-      ? {
-        passed: true,
-        score: 87,
-        checks: [{ key: 'fullBody', passed: true, kind: 'hard_gate' }],
-        summary: 'Real cast anchor passed.',
-        failureReasons: [],
-      }
-      : {
-        passed: false,
-        score: 61,
-        checks: [{ key: 'fullBody', passed: false, kind: 'hard_gate' }],
-        summary: 'Needs rerun.',
-        failureReasons: ['Keep full-body framing stable.'],
+      displayName: agent.displayName,
+      sourceConfidence: 'derived_from_agent_truth',
+      captureMode: index === 0 ? 'capture' : 'batch_only',
+      synthesisMode: index === 0 ? 'interactive' : 'silent',
+      seedSignature: `real-${agent.id}`,
+      currentBrief: `${agent.displayName} stays readable in the ${worldStylePack.name} lane.`,
+      sourceSummary: 'Derived from fixture Realm truth and the current world style lane.',
+      feelingAnchor: {
+        coreVibe: 'grounded clarity',
+        tonePhrases: ['readable silhouette'],
+        avoidVibe: ['cinematic noise'],
       },
-    lastErrorCode: index === 0 ? null : 'REAL_SMOKE_RERUN',
-    lastErrorMessage: index === 0 ? null : 'Keep full-body framing stable.',
-    correctionHints: [],
-    existingPortraitUrl: null,
-    referenceImageUrl: null,
-    committedAt: null,
-    createdAt: '2026-03-29T00:00:00.000Z',
-    updatedAt: '2026-03-29T00:00:00.000Z',
-  }));
+      workingMemory: {
+        effectiveIntentSummary: 'Keep the role world-aligned and production-ready.',
+        preserveFocus: [agent.concept],
+        adjustFocus: [],
+        negativeConstraints: ['extreme close-up'],
+      },
+      visualIntent: {
+        visualRole: agent.concept || agent.displayName,
+        silhouette: worldStylePack.silhouetteDirection,
+        outfit: 'role-aligned costume silhouette',
+        hairstyle: 'clean readable hairstyle',
+        palettePrimary: worldStylePack.paletteDirection,
+        artStyle: worldStylePack.artStyle,
+        mustKeepTraits: [agent.concept].filter(Boolean),
+        forbiddenTraits: [...worldStylePack.forbiddenElements],
+        detailBudget: index === 0 ? 'hero' : 'standard',
+        backgroundWeight: 'supporting',
+      },
+      messages: [],
+      lastTextTraceId: 'real-capture-trace',
+      createdAt: '2026-03-29T00:00:00.000Z',
+      updatedAt: '2026-03-29T00:00:00.000Z',
+    };
+    return {
+      itemId: `real-item-${index + 1}`,
+      batchId: 'real-batch',
+      agentId: agent.id,
+      agentHandle: agent.handle,
+      agentDisplayName: agent.displayName,
+      agentConcept: agent.concept,
+      agentDescription: null,
+      importance: agent.importance,
+      captureMode: index === 0 ? 'capture' : 'batch_only',
+      captureStateSnapshot,
+      portraitBrief: compilePortraitBrief({
+        agentId: agent.id,
+        displayName: agent.displayName,
+        worldId: agent.worldId,
+        concept: agent.concept,
+        description: null,
+        worldStylePack,
+      }),
+      worldId: agent.worldId,
+      status: index === 0 ? 'auto_passed' : 'auto_failed_retryable',
+      attemptCount: 1,
+      currentImage: null,
+      currentEvaluation: index === 0
+        ? {
+          passed: true,
+          score: 87,
+          checks: [{ key: 'fullBody', passed: true, kind: 'hard_gate' }],
+          summary: 'Real cast anchor passed.',
+          failureReasons: [],
+        }
+        : {
+          passed: false,
+          score: 61,
+          checks: [{ key: 'fullBody', passed: false, kind: 'hard_gate' }],
+          summary: 'Needs rerun.',
+          failureReasons: ['Keep full-body framing stable.'],
+        },
+      lastErrorCode: index === 0 ? null : 'REAL_SMOKE_RERUN',
+      lastErrorMessage: index === 0 ? null : 'Keep full-body framing stable.',
+      correctionHints: [],
+      existingPortraitUrl: null,
+      referenceImageUrl: null,
+      committedAt: null,
+      createdAt: '2026-03-29T00:00:00.000Z',
+      updatedAt: '2026-03-29T00:00:00.000Z',
+    };
+  });
 
   return {
     batchId: 'real-batch',
@@ -483,8 +628,8 @@ maybeDescribe('Lookdev real-data smoke', () => {
     );
 
     await user.type(screen.getByLabelText('Batch name'), 'Real smoke batch');
-    await screen.findByRole('option', { name: new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i') });
-    await user.selectOptions(screen.getByLabelText('World'), realFixture.activeWorld.id);
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i'));
 
     expect(await screen.findByText('World Style Session')).toBeInTheDocument();
     expect(screen.getByText(`Frozen selection preview: ${realFixture.cast.length} agents from ${realFixture.activeWorld.name}.`)).toBeInTheDocument();
@@ -546,8 +691,8 @@ maybeDescribe('Lookdev real-data smoke', () => {
       ['/batches/new'],
     );
 
-    await screen.findByRole('option', { name: new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i') });
-    await user.selectOptions(screen.getByLabelText('World'), realFixture.activeWorld.id);
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', new RegExp(escapeRegExp(realFixture.activeWorld.name), 'i'));
 
     expect(await screen.findByText('World 风格会话')).toBeInTheDocument();
     await completeWorldStyleSession(user, {

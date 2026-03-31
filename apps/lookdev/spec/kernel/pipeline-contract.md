@@ -16,18 +16,31 @@ The operator must first converge one `WorldStyleSession` and synthesize one `Wor
 - raw structured fields are secondary advanced-edit surfaces
 - the synthesized pack remains draft until explicitly confirmed
 
-## LD-PIPE-003 — Compile Portrait Briefs Before Batch Freeze
+## LD-PIPE-003 — Synthesize Capture State Before Brief Materialization
 
-After world style is defined, Lookdev compiles one `PortraitBrief` per selected agent.
+After world style is defined, Lookdev synthesizes one app-local `CaptureState` per selected agent.
 
-Compilation uses:
+Capture-state synthesis uses:
 
-- Realm agent truth
+- creator-scoped Realm agent detail
+- AgentRule-anchored agent truth
 - world context
 - current world style pack
 - existing portrait or reference context when available
 
-## LD-PIPE-004 — Operator-Owned Capture Selection
+The synthesis result must be state-driven rather than a direct concatenation of raw source fields.
+
+Lookdev may use richer truth to strengthen role interpretation, but that richer truth still feeds `CaptureState` first. It must not bypass `CaptureState` and become a direct generation payload.
+
+## LD-PIPE-004 — Materialize Portrait Briefs From Capture State
+
+After capture state is available, Lookdev materializes one `PortraitBrief` per selected agent.
+
+- the brief is a downstream working artifact, not the primary understanding object
+- silent-lane items may materialize their brief immediately after silent capture-state synthesis
+- interactive-lane items may rematerialize their brief after each accepted refinement turn
+
+## LD-PIPE-005 — Operator-Owned Capture Selection
 
 After brief compilation, the operator chooses which agents enter capture.
 
@@ -35,13 +48,17 @@ After brief compilation, the operator chooses which agents enter capture.
 - the operator may add or remove agents from capture
 - the app must not let AI silently overrule the final selection
 
-## LD-PIPE-005 — Capture Runs Before Batch Processing
+## LD-PIPE-006 — Dual Capture Lanes Before Batch Processing
 
-Capture-selected items are refined before the main batch processing phase.
+All selected agents must pass through one of two capture lanes before the main batch processing phase.
 
-Capture refinement remains inside Lookdev's mainline flow even when it reuses Agent-Capture logic.
+- `capture-selected` items use the interactive capture lane
+- non-capture-selected items use the silent capture lane
+- both lanes must follow the same state-driven capture method family
+- interactive capture remains inside Lookdev's mainline flow even when it borrows Agent-Capture-style refinement ideas
+- silent capture remains a structured AI synthesis step, not a raw-field passthrough
 
-## LD-PIPE-006 — Freeze Batch, Then Process
+## LD-PIPE-007 — Freeze Batch, Then Process
 
 Only after world style, portrait briefs, and capture selection settle does Lookdev create one frozen batch.
 
@@ -50,29 +67,30 @@ The frozen batch contains:
 - final selected `agentIds`
 - final selected `captureSelectionAgentIds`
 - one world style pack snapshot
+- one capture-state snapshot per item
 - one portrait brief snapshot per item
 - one shared policy snapshot
 
-## LD-PIPE-007 — Default Serial Execution
+## LD-PIPE-008 — Default Serial Execution
 
 Lookdev supports batch-level concurrency, but the default is `1`.
 
 The pipeline therefore defaults to serial processing unless the operator explicitly raises `maxConcurrency`.
 
-## LD-PIPE-008 — Single Current Result Generation
+## LD-PIPE-009 — Single Current Result Generation
 
 For each item, one generation attempt produces one current result.
 
 Lookdev does not default to generating multiple candidates per item. The operator may inspect the current result, but the pipeline remains one-item-one-current-result.
 
-## LD-PIPE-009 — Conservative Auto Gate Before Commit
+## LD-PIPE-010 — Conservative Auto Gate Before Commit
 
 Every generated result must pass through the auto-evaluation gate before it can enter the batch commit set.
 
 - `auto_passed` items become commit-eligible
 - failing items stay out of the commit set
 
-## LD-PIPE-010 — Automatic Retry Budget
+## LD-PIPE-011 — Automatic Retry Budget
 
 Each item gets at most three total attempts:
 
@@ -81,13 +99,13 @@ Each item gets at most three total attempts:
 
 If all attempts are exhausted without passing the gate, the item becomes `auto_failed_exhausted`.
 
-## LD-PIPE-011 — Internal Correction Hints
+## LD-PIPE-012 — Internal Correction Hints
 
 When an item fails auto-evaluation, the system may derive internal correction hints from the failure reasons and apply them on the next retry.
 
 This behavior remains part of batch policy execution and must not appear as a user-editable per-item override.
 
-## LD-PIPE-012 — Manual Failed-Item Rerun
+## LD-PIPE-013 — Manual Failed-Item Rerun
 
 After automatic processing completes, the operator may manually rerun:
 
@@ -96,7 +114,7 @@ After automatic processing completes, the operator may manually rerun:
 
 Manual rerun stays inside the same batch policy and must not change batch scope or per-item configuration.
 
-## LD-PIPE-013 — Pause and Resume
+## LD-PIPE-014 — Pause and Resume
 
 The pipeline must support batch-level pause and resume.
 
@@ -104,13 +122,13 @@ The pipeline must support batch-level pause and resume.
 - resume continues remaining pending or rerunnable work
 - item-level pause is not required
 
-## LD-PIPE-014 — Processing Complete Before Commit
+## LD-PIPE-015 — Processing Complete Before Commit
 
 A batch reaches `processing_complete` when all items have settled into a processing terminal state for that phase.
 
 At that point, the operator may inspect results, rerun failed items, or trigger batch commit.
 
-## LD-PIPE-015 — Explicit Batch Commit
+## LD-PIPE-016 — Explicit Batch Commit
 
 Realm writeback is a separate explicit stage.
 

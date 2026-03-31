@@ -1,3 +1,4 @@
+import { Button, SelectField, TextField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 
 type CreateBatchPolicyPanelProps = {
@@ -35,68 +36,75 @@ export function CreateBatchPolicyPanel(props: CreateBatchPolicyPanelProps) {
     onMaxConcurrencyChange,
     onCreate,
   } = props;
+  const imageTargetOptions: SelectFieldOption[] = imageTargets.map((target) => ({ value: target.key, label: target.label }));
+  const visionTargetOptions: SelectFieldOption[] = visionTargets.map((target) => ({ value: target.key, label: target.label }));
 
   return (
     <section className="ld-card px-7 py-7">
       <div className="space-y-2">
         <div className="text-xs uppercase tracking-[0.2em] text-[var(--ld-gold)]">{t('createBatch.policyEyebrow')}</div>
         <h3 className="text-2xl font-semibold text-white">{t('createBatch.policyTitle')}</h3>
+        <div className="text-sm leading-6 text-white/58">{t('createBatch.policyTargetMap')}</div>
       </div>
 
       <div className="mt-8 grid gap-5">
         <div className="grid gap-2">
           <label htmlFor="lookdev-generation-target" className="text-sm text-white/74">{t('createBatch.generationTarget')}</label>
-          <select
+          <div className="text-sm leading-6 text-white/48">{t('createBatch.generationTargetDescription')}</div>
+          <SelectField
             id="lookdev-generation-target"
             value={generationTargetKey}
-            onChange={(event) => onGenerationTargetChange(event.target.value)}
-            className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
-          >
-            <option value="">{t('createBatch.selectGenerationTarget')}</option>
-            {imageTargets.map((target) => (
-              <option key={target.key} value={target.key}>{target.label}</option>
-            ))}
-          </select>
+            options={imageTargetOptions}
+            placeholder={t('createBatch.selectGenerationTarget')}
+            onValueChange={onGenerationTargetChange}
+            aria-label={t('createBatch.generationTarget')}
+            className="rounded-2xl border-white/10 bg-black/12 text-white"
+            contentClassName="bg-[rgb(11_18_32)]"
+          />
         </div>
 
         <div className="grid gap-2">
           <label htmlFor="lookdev-evaluation-target" className="text-sm text-white/74">{t('createBatch.evaluationTarget')}</label>
-          <select
+          <div className="text-sm leading-6 text-white/48">{t('createBatch.evaluationTargetDescription')}</div>
+          <SelectField
             id="lookdev-evaluation-target"
             value={evaluationTargetKey}
-            onChange={(event) => onEvaluationTargetChange(event.target.value)}
-            className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
-          >
-            <option value="">{t('createBatch.selectEvaluationTarget')}</option>
-            {visionTargets.map((target) => (
-              <option key={target.key} value={target.key}>{target.label}</option>
-            ))}
-          </select>
+            options={visionTargetOptions}
+            placeholder={t('createBatch.selectEvaluationTarget')}
+            onValueChange={onEvaluationTargetChange}
+            aria-label={t('createBatch.evaluationTarget')}
+            className="rounded-2xl border-white/10 bg-black/12 text-white"
+            contentClassName="bg-[rgb(11_18_32)]"
+          />
         </div>
 
         <div className="grid gap-2">
           <label htmlFor="lookdev-score-threshold" className="text-sm text-white/74">{t('createBatch.scoreThreshold')}</label>
-          <input
+          <TextField
             id="lookdev-score-threshold"
             value={scoreThreshold}
             onChange={(event) => onScoreThresholdChange(event.target.value)}
             type="number"
             min="1"
             max="100"
-            className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+            aria-label={t('createBatch.scoreThreshold')}
+            className="rounded-2xl border-white/10 bg-black/12 text-white"
+            inputClassName="text-sm"
           />
         </div>
 
         <div className="grid gap-2">
           <label htmlFor="lookdev-max-concurrency" className="text-sm text-white/74">{t('createBatch.maxConcurrency')}</label>
-          <input
+          <TextField
             id="lookdev-max-concurrency"
             value={maxConcurrency}
             onChange={(event) => onMaxConcurrencyChange(event.target.value)}
             type="number"
             min="1"
             max="4"
-            className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+            aria-label={t('createBatch.maxConcurrency')}
+            className="rounded-2xl border-white/10 bg-black/12 text-white"
+            inputClassName="text-sm"
           />
         </div>
 
@@ -108,14 +116,16 @@ export function CreateBatchPolicyPanel(props: CreateBatchPolicyPanelProps) {
 
         {error ? <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
 
-        <button
-          type="button"
+        <Button
           onClick={onCreate}
           disabled={disabled}
-          className="rounded-2xl bg-[var(--ld-accent)] px-5 py-3 text-sm font-medium text-slate-950 transition hover:bg-[var(--ld-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+          tone="primary"
+          size="lg"
+          className="rounded-2xl text-sm"
+          fullWidth
         >
           {saving ? t('createBatch.creatingButton') : t('createBatch.createButton')}
-        </button>
+        </Button>
       </div>
     </section>
   );

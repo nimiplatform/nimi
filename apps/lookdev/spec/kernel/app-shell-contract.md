@@ -14,9 +14,11 @@ The shell is world-style-and-batch centric.
 - the primary home surface is still the batch list
 - batch creation is a first-class flow
 - batch creation must include world style session, style-pack synthesis, portrait brief compilation, and capture selection
+- batch creation must include silent capture-state synthesis for every selected agent and focused interactive capture for the selected subset
 - world style session must behave like understanding-led dialogue rather than a rigid multi-step questionnaire
 - batch creation must include explicit generation/evaluation target selection
 - batch detail remains the main operating surface after creation
+- once a batch record is created, the shell should navigate into batch detail immediately while processing continues in the background
 - item inspection lives inside batch detail rather than as a separate product line
 
 Authoritative route and surface mapping lives in `tables/routes.yaml`.
@@ -26,6 +28,7 @@ Authoritative route and surface mapping lives in `tables/routes.yaml`.
 The app shell must present Lookdev's own working state directly.
 
 - world style pack records
+- capture state records
 - portrait brief records
 - batch summaries
 - item progress
@@ -55,6 +58,8 @@ The shell must expose the formal operating controls:
 - run world style session
 - synthesize and confirm world style pack
 - compile portrait briefs
+- synthesize silent capture states
+- refine interactive capture states
 - choose capture selection
 - choose one generation target
 - choose one evaluation target

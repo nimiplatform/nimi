@@ -1,3 +1,4 @@
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -47,14 +48,15 @@ export default function BatchListPage() {
 
       <section className="flex flex-wrap gap-2">
         {(['all', 'running', 'paused', 'processing_complete', 'commit_complete'] as const).map((value) => (
-          <button
+          <Button
             key={value}
-            type="button"
             onClick={() => setFilter(value)}
-            className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.16em] ${filter === value ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/10 text-white/60 hover:bg-white/6 hover:text-white'}`}
+            tone="secondary"
+            size="sm"
+            className={`rounded-full px-3 py-1.5 text-xs uppercase tracking-[0.16em] ${filter === value ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/10 bg-transparent text-white/60 hover:bg-white/6 hover:text-white'}`}
           >
             {t(`batchStatus.${value}`, { defaultValue: value.replace('_', ' ') })}
-          </button>
+          </Button>
         ))}
       </section>
 

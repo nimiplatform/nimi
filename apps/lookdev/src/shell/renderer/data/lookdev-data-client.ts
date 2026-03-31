@@ -13,7 +13,8 @@ type CreateImageDirectUploadResult = {
 type FinalizeResourceInput = RealmServiceArgs<'ResourcesService', 'finalizeResource'>[1];
 type BatchUpsertBindingsInput = RealmServiceArgs<'WorldControlService', 'worldControlControllerBatchUpsertWorldBindings'>[1];
 type CreatorListAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
-type PublicGetAgentResult = RealmServiceResult<'AgentsService', 'getAgent'>;
+type CreatorGetAgentResult = RealmServiceResult<'CreatorService', 'creatorControllerGetAgent'>;
+type AgentRulesListResult = RealmServiceResult<'AgentRulesService', 'agentRulesControllerListRules'>;
 type ListWorldBindingsResult = RealmServiceResult<'WorldControlService', 'worldControlControllerListWorldBindings'>;
 type MyWorldListResult = RealmServiceResult<'WorldControlService', 'worldControlControllerListMyWorlds'>;
 type WorldAgentsResult = RealmServiceResult<'WorldsService', 'worldControllerGetWorldAgents'>;
@@ -50,7 +51,95 @@ export type LookdevAgentRecord = {
   status: string;
 };
 
+export type LookdevAgentTruthIdentity = {
+  role: string | null;
+  worldview: string | null;
+  species: string | null;
+  summary: string | null;
+};
+
+export type LookdevAgentTruthBiological = {
+  gender: string | null;
+  visualAge: string | null;
+  ethnicity: string | null;
+  heightCm: number | null;
+  weightKg: number | null;
+};
+
+export type LookdevAgentTruthAppearance = {
+  artStyle: string | null;
+  hair: string | null;
+  eyes: string | null;
+  skin: string | null;
+  fashionStyle: string | null;
+  signatureItems: string[];
+};
+
+export type LookdevAgentTruthPersonality = {
+  summary: string | null;
+  mbti: string | null;
+  interests: string[];
+  goals: string[];
+  relationshipMode: string | null;
+  emotionBaseline: string | null;
+};
+
+export type LookdevAgentTruthCommunication = {
+  summary: string | null;
+  responseLength: string | null;
+  formality: string | null;
+  sentiment: string | null;
+};
+
+export type LookdevAgentRuleTruthSection<T> = {
+  statement: string | null;
+  structured: T | null;
+};
+
+export type LookdevAgentSoulPrime = {
+  text: string;
+  backstory: string | null;
+  coreValues: string | null;
+  personalityDescription: string | null;
+  guidelines: string | null;
+  catchphrase: string | null;
+};
+
+export type LookdevAgentTruthBundle = {
+  description: string | null;
+  scenario: string | null;
+  greeting: string | null;
+  wakeStrategy: 'PASSIVE' | 'PROACTIVE';
+  dna: {
+    identity: LookdevAgentTruthIdentity;
+    biological: LookdevAgentTruthBiological;
+    appearance: LookdevAgentTruthAppearance;
+    personality: LookdevAgentTruthPersonality;
+    communication: LookdevAgentTruthCommunication;
+  };
+  behavioralRules: string[];
+  soulPrime: LookdevAgentSoulPrime | null;
+  ruleTruth: {
+    identity: LookdevAgentRuleTruthSection<LookdevAgentTruthIdentity>;
+    biological: LookdevAgentRuleTruthSection<LookdevAgentTruthBiological>;
+    appearance: LookdevAgentRuleTruthSection<LookdevAgentTruthAppearance>;
+    personality: LookdevAgentRuleTruthSection<LookdevAgentTruthPersonality>;
+    communication: LookdevAgentRuleTruthSection<LookdevAgentTruthCommunication>;
+  };
+};
+
 type LooseObject = Record<string, unknown>;
+type CreatorAgentDetailProjection = Pick<LookdevAgentTruthBundle, 'description' | 'scenario' | 'greeting' | 'wakeStrategy'> & {
+  dna: LookdevAgentTruthBundle['dna'];
+  behavioralRules: string[];
+};
+type NormalizedRuleRecord = {
+  ruleKey: string;
+  statement: string | null;
+  structured: LooseObject;
+};
+
+const SOUL_PRIME_RULE_KEY = 'identity:soul_prime:core';
 
 function asRecord(value: unknown): LooseObject {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as LooseObject : {};
@@ -59,6 +148,211 @@ function asRecord(value: unknown): LooseObject {
 function toStringOrNull(value: unknown): string | null {
   const normalized = String(value || '').trim();
   return normalized ? normalized : null;
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : null;
+}
+
+function toStringList(value: unknown, maxItems = 12): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const normalized: string[] = [];
+  for (const item of value) {
+    const entry = toStringOrNull(item);
+    if (!entry || normalized.includes(entry)) {
+      continue;
+    }
+    normalized.push(entry);
+    if (normalized.length >= maxItems) {
+      break;
+    }
+  }
+  return normalized;
+}
+
+function pickString(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    if (value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function pickStringList(...values: string[][]): string[] {
+  for (const value of values) {
+    if (value.length > 0) {
+      return value;
+    }
+  }
+  return [];
+}
+
+function normalizeIdentityTruth(value: unknown): LookdevAgentTruthIdentity {
+  const record = asRecord(value);
+  return {
+    role: toStringOrNull(record.role),
+    worldview: toStringOrNull(record.worldview),
+    species: toStringOrNull(record.species),
+    summary: toStringOrNull(record.summary),
+  };
+}
+
+function normalizeBiologicalTruth(value: unknown): LookdevAgentTruthBiological {
+  const record = asRecord(value);
+  return {
+    gender: toStringOrNull(record.gender),
+    visualAge: toStringOrNull(record.visualAge),
+    ethnicity: toStringOrNull(record.ethnicity),
+    heightCm: toNumberOrNull(record.heightCm),
+    weightKg: toNumberOrNull(record.weightKg),
+  };
+}
+
+function normalizeAppearanceTruth(value: unknown): LookdevAgentTruthAppearance {
+  const record = asRecord(value);
+  return {
+    artStyle: toStringOrNull(record.artStyle),
+    hair: toStringOrNull(record.hair),
+    eyes: toStringOrNull(record.eyes),
+    skin: toStringOrNull(record.skin),
+    fashionStyle: toStringOrNull(record.fashionStyle),
+    signatureItems: toStringList(record.signatureItems, 8),
+  };
+}
+
+function normalizePersonalityTruth(value: unknown): LookdevAgentTruthPersonality {
+  const record = asRecord(value);
+  return {
+    summary: toStringOrNull(record.summary),
+    mbti: toStringOrNull(record.mbti),
+    interests: toStringList(record.interests, 8),
+    goals: toStringList(record.goals, 8),
+    relationshipMode: toStringOrNull(record.relationshipMode),
+    emotionBaseline: toStringOrNull(record.emotionBaseline),
+  };
+}
+
+function normalizeCommunicationTruth(value: unknown): LookdevAgentTruthCommunication {
+  const record = asRecord(value);
+  return {
+    summary: toStringOrNull(record.summary),
+    responseLength: toStringOrNull(record.responseLength),
+    formality: toStringOrNull(record.formality),
+    sentiment: toStringOrNull(record.sentiment),
+  };
+}
+
+function normalizeRulesPayload(value: unknown): string[] {
+  const rules = asRecord(value);
+  const lines = toStringList(rules.lines, 16);
+  if (lines.length > 0) {
+    return lines;
+  }
+  const text = toStringOrNull(rules.text);
+  return text ? text.split(/\n+/u).map((line) => line.trim()).filter(Boolean) : [];
+}
+
+function mergeIdentityTruth(
+  primary: LookdevAgentTruthIdentity,
+  secondary: LookdevAgentTruthIdentity | null,
+): LookdevAgentTruthIdentity {
+  return {
+    role: pickString(primary.role, secondary?.role),
+    worldview: pickString(primary.worldview, secondary?.worldview),
+    species: pickString(primary.species, secondary?.species),
+    summary: pickString(primary.summary, secondary?.summary),
+  };
+}
+
+function mergeBiologicalTruth(
+  primary: LookdevAgentTruthBiological,
+  secondary: LookdevAgentTruthBiological | null,
+): LookdevAgentTruthBiological {
+  return {
+    gender: pickString(primary.gender, secondary?.gender),
+    visualAge: pickString(primary.visualAge, secondary?.visualAge),
+    ethnicity: pickString(primary.ethnicity, secondary?.ethnicity),
+    heightCm: primary.heightCm ?? secondary?.heightCm ?? null,
+    weightKg: primary.weightKg ?? secondary?.weightKg ?? null,
+  };
+}
+
+function mergeAppearanceTruth(
+  primary: LookdevAgentTruthAppearance,
+  secondary: LookdevAgentTruthAppearance | null,
+): LookdevAgentTruthAppearance {
+  return {
+    artStyle: pickString(primary.artStyle, secondary?.artStyle),
+    hair: pickString(primary.hair, secondary?.hair),
+    eyes: pickString(primary.eyes, secondary?.eyes),
+    skin: pickString(primary.skin, secondary?.skin),
+    fashionStyle: pickString(primary.fashionStyle, secondary?.fashionStyle),
+    signatureItems: pickStringList(primary.signatureItems, secondary?.signatureItems || []),
+  };
+}
+
+function mergePersonalityTruth(
+  primary: LookdevAgentTruthPersonality,
+  secondary: LookdevAgentTruthPersonality | null,
+): LookdevAgentTruthPersonality {
+  return {
+    summary: pickString(primary.summary, secondary?.summary),
+    mbti: pickString(primary.mbti, secondary?.mbti),
+    interests: pickStringList(primary.interests, secondary?.interests || []),
+    goals: pickStringList(primary.goals, secondary?.goals || []),
+    relationshipMode: pickString(primary.relationshipMode, secondary?.relationshipMode),
+    emotionBaseline: pickString(primary.emotionBaseline, secondary?.emotionBaseline),
+  };
+}
+
+function mergeCommunicationTruth(
+  primary: LookdevAgentTruthCommunication,
+  secondary: LookdevAgentTruthCommunication | null,
+): LookdevAgentTruthCommunication {
+  return {
+    summary: pickString(primary.summary, secondary?.summary),
+    responseLength: pickString(primary.responseLength, secondary?.responseLength),
+    formality: pickString(primary.formality, secondary?.formality),
+    sentiment: pickString(primary.sentiment, secondary?.sentiment),
+  };
+}
+
+function normalizeSoulPrime(value: NormalizedRuleRecord | null): LookdevAgentSoulPrime | null {
+  if (!value) {
+    return null;
+  }
+  return {
+    text: value.statement || '',
+    backstory: toStringOrNull(value.structured.backstory),
+    coreValues: toStringOrNull(value.structured.coreValues),
+    personalityDescription: toStringOrNull(value.structured.personalityDescription),
+    guidelines: toStringOrNull(value.structured.guidelines),
+    catchphrase: toStringOrNull(value.structured.catchphrase),
+  };
+}
+
+function normalizeRuleRecord(value: unknown): NormalizedRuleRecord | null {
+  const record = asRecord(value);
+  const ruleKey = String(record.ruleKey || '').trim();
+  if (!ruleKey) {
+    return null;
+  }
+  return {
+    ruleKey,
+    statement: toStringOrNull(record.statement),
+    structured: asRecord(record.structured),
+  };
+}
+
+function findRuleTruth(
+  rules: NormalizedRuleRecord[],
+  ruleKey: string,
+): NormalizedRuleRecord | null {
+  return rules.find((rule) => rule.ruleKey === ruleKey) || null;
 }
 
 function extractAgentWorldId(item: LooseObject, user: LooseObject, agent: LooseObject, agentProfile: LooseObject): string | null {
@@ -108,13 +402,39 @@ function normalizeCreatorAgentListItem(value: unknown): Omit<LookdevAgentRecord,
   };
 }
 
-function normalizeAgentDetail(value: PublicGetAgentResult): Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'> {
+function normalizeAgentDetail(value: CreatorGetAgentResult): Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'> {
   const item = asRecord(value);
   const user = asRecord(item.user);
   return {
     description: toStringOrNull(item.description ?? item.bio ?? user.bio),
     scenario: toStringOrNull(item.scenario),
     greeting: toStringOrNull(item.greeting),
+  };
+}
+
+function normalizeCreatorAgentDetail(value: CreatorGetAgentResult): CreatorAgentDetailProjection {
+  const item = asRecord(value);
+  const user = asRecord(item.user);
+  const agent = asRecord(user.agent);
+  const agentProfile = asRecord(item.agentProfile);
+  const dna = asRecord(item.dna);
+  const profileDna = asRecord(agentProfile.dna);
+  const resolvedDna = Object.keys(dna).length > 0 ? dna : profileDna;
+  return {
+    description: toStringOrNull(item.description ?? item.bio ?? user.bio),
+    scenario: toStringOrNull(item.scenario),
+    greeting: toStringOrNull(item.greeting),
+    wakeStrategy: String(item.wakeStrategy || agent.wakeStrategy || 'PASSIVE') === 'PROACTIVE'
+      ? 'PROACTIVE'
+      : 'PASSIVE',
+    dna: {
+      identity: normalizeIdentityTruth(resolvedDna.identity),
+      biological: normalizeBiologicalTruth(resolvedDna.biological),
+      appearance: normalizeAppearanceTruth(resolvedDna.appearance),
+      personality: normalizePersonalityTruth(resolvedDna.personality),
+      communication: normalizeCommunicationTruth(resolvedDna.communication),
+    },
+    behavioralRules: normalizeRulesPayload(item.rules),
   };
 }
 
@@ -142,14 +462,15 @@ function normalizePortraitBinding(payload: ListWorldBindingsResult): LookdevPort
   const resource = asRecord(record.resource);
   const resourceId = String(record.objectId || resource.id || '').trim();
   const url = String(resource.url || '').trim();
-  if (!resourceId || !url) {
+  const mimeType = String(resource.mimeType || '').trim();
+  if (!resourceId || !url || !mimeType) {
     return null;
   }
   return {
     bindingId: String(record.id || '').trim(),
     resourceId,
     url,
-    mimeType: String(resource.mimeType || 'image/png').trim() || 'image/png',
+    mimeType,
     width: Number(resource.width || 0) || undefined,
     height: Number(resource.height || 0) || undefined,
     createdAt: String(record.createdAt || '').trim(),
@@ -209,8 +530,59 @@ export async function listLookdevWorldAgents(worldId: string): Promise<Array<Omi
 }
 
 export async function getLookdevAgent(agentId: string): Promise<Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'>> {
-  const payload: PublicGetAgentResult = await realm().services.AgentsService.getAgent(agentId);
+  const payload: CreatorGetAgentResult = await realm().services.CreatorService.creatorControllerGetAgent(agentId);
   return normalizeAgentDetail(payload);
+}
+
+export async function getLookdevAgentTruthBundle(worldId: string, agentId: string): Promise<LookdevAgentTruthBundle> {
+  const [detailPayload, rulesPayload] = await Promise.all([
+    realm().services.CreatorService.creatorControllerGetAgent(agentId),
+    realm().services.AgentRulesService.agentRulesControllerListRules(worldId, agentId, 'DNA', 'ACTIVE'),
+  ]);
+  const detail = normalizeCreatorAgentDetail(detailPayload as CreatorGetAgentResult);
+  const ruleItems = Array.isArray(rulesPayload)
+    ? rulesPayload
+    : Array.isArray(asRecord(rulesPayload).items)
+      ? asRecord(rulesPayload).items as unknown[]
+      : [];
+  const rules = ruleItems
+    .map(normalizeRuleRecord)
+    .filter((rule): rule is NormalizedRuleRecord => rule !== null);
+  const identityRule = findRuleTruth(rules, 'dna:identity:core');
+  const biologicalRule = findRuleTruth(rules, 'dna:biological:traits');
+  const appearanceRule = findRuleTruth(rules, 'dna:appearance:visual');
+  const personalityRule = findRuleTruth(rules, 'dna:personality:traits');
+  const communicationRule = findRuleTruth(rules, 'dna:communication:style');
+  const soulPrimeRule = findRuleTruth(rules, SOUL_PRIME_RULE_KEY);
+
+  const identityStructured = identityRule ? normalizeIdentityTruth(identityRule.structured) : null;
+  const biologicalStructured = biologicalRule ? normalizeBiologicalTruth(biologicalRule.structured) : null;
+  const appearanceStructured = appearanceRule ? normalizeAppearanceTruth(appearanceRule.structured) : null;
+  const personalityStructured = personalityRule ? normalizePersonalityTruth(personalityRule.structured) : null;
+  const communicationStructured = communicationRule ? normalizeCommunicationTruth(communicationRule.structured) : null;
+
+  return {
+    description: detail.description,
+    scenario: detail.scenario,
+    greeting: detail.greeting,
+    wakeStrategy: detail.wakeStrategy,
+    dna: {
+      identity: mergeIdentityTruth(detail.dna.identity, identityStructured),
+      biological: mergeBiologicalTruth(detail.dna.biological, biologicalStructured),
+      appearance: mergeAppearanceTruth(detail.dna.appearance, appearanceStructured),
+      personality: mergePersonalityTruth(detail.dna.personality, personalityStructured),
+      communication: mergeCommunicationTruth(detail.dna.communication, communicationStructured),
+    },
+    behavioralRules: detail.behavioralRules,
+    soulPrime: normalizeSoulPrime(soulPrimeRule),
+    ruleTruth: {
+      identity: { statement: identityRule?.statement || null, structured: identityStructured },
+      biological: { statement: biologicalRule?.statement || null, structured: biologicalStructured },
+      appearance: { statement: appearanceRule?.statement || null, structured: appearanceStructured },
+      personality: { statement: personalityRule?.statement || null, structured: personalityStructured },
+      communication: { statement: communicationRule?.statement || null, structured: communicationStructured },
+    },
+  };
 }
 
 export async function getAgentPortraitBinding(worldId: string, agentId: string): Promise<LookdevPortraitBinding | null> {

@@ -57,6 +57,10 @@ function normalizeArtifact(result: Awaited<ReturnType<Runtime['media']['image'][
   if (!artifact) {
     throw new Error('LOOKDEV_IMAGE_ARTIFACT_MISSING');
   }
+  const mimeType = String(artifact.mimeType || '').trim();
+  if (!mimeType) {
+    throw new Error('LOOKDEV_IMAGE_MIME_TYPE_REQUIRED');
+  }
   const artifactRecord = artifact as unknown as Record<string, unknown>;
   let url = String(artifactRecord.url || artifact.uri || '').trim();
   if (!url && artifact.bytes && artifact.bytes.length > 0) {
@@ -64,7 +68,6 @@ function normalizeArtifact(result: Awaited<ReturnType<Runtime['media']['image'][
     for (const byte of artifact.bytes) {
       binary += String.fromCharCode(byte);
     }
-    const mimeType = String(artifact.mimeType || 'image/png').trim() || 'image/png';
     url = `data:${mimeType};base64,${globalThis.btoa(binary)}`;
   }
   if (!url) {
@@ -72,7 +75,7 @@ function normalizeArtifact(result: Awaited<ReturnType<Runtime['media']['image'][
   }
   return {
     url,
-    mimeType: String(artifact.mimeType || 'image/png').trim() || 'image/png',
+    mimeType,
     width: artifact.width || undefined,
     height: artifact.height || undefined,
     traceId: String(result.trace?.traceId || '').trim() || undefined,
@@ -106,6 +109,10 @@ export async function evaluateLookdevImage(runtime: Runtime, item: LookdevItem, 
   if (!artifactId) {
     throw new Error('LOOKDEV_EVALUATION_ARTIFACT_REQUIRED');
   }
+  const imageMimeType = String(image.mimeType || '').trim();
+  if (!imageMimeType) {
+    throw new Error('LOOKDEV_IMAGE_MIME_TYPE_REQUIRED');
+  }
   let lastError: Error | null = null;
   for (const attempt of EVALUATION_ATTEMPTS) {
     const response = await runtime.ai.text.generate({
@@ -122,7 +129,7 @@ export async function evaluateLookdevImage(runtime: Runtime, item: LookdevItem, 
           {
             type: 'artifact_ref',
             artifactId,
-            mimeType: String(image.mimeType || 'image/png').trim() || 'image/png',
+            mimeType: imageMimeType,
             displayName: `${item.agentDisplayName} candidate`,
           },
         ],
@@ -138,40 +145,6 @@ export async function evaluateLookdevImage(runtime: Runtime, item: LookdevItem, 
     return validateEvaluation(parsed, policy.autoEvalPolicy.scoreThreshold);
   }
   throw lastError || new Error('LOOKDEV_EVALUATION_INVALID');
-}
-
-function targetUsesNativeGeminiRequest(target: LookdevPolicySnapshot['generationTarget']): boolean {
-  const provider = String(target.provider || '').trim().toLowerCase();
-  const connectorId = String(target.connectorId || '').trim().toLowerCase();
-  const endpoint = String(target.endpoint || '').trim().toLowerCase();
-  const endpointIsOpenAI = endpoint.endsWith('/openai');
-  if (endpointIsOpenAI) {
-    return false;
-  }
-  return provider === 'gemini'
-    || provider.startsWith('google:gemini')
-    || connectorId === 'sys-cloud-gemini';
-}
-
-function targetSupportsRichImageParameters(target: LookdevPolicySnapshot['generationTarget']): boolean {
-  const provider = String(target.provider || '').trim().toLowerCase();
-  const endpoint = String(target.endpoint || '').trim().toLowerCase();
-  if (!provider) {
-    return false;
-  }
-  if (endpoint.endsWith('/openai')) {
-    return true;
-  }
-  return provider === 'openai'
-    || provider === 'stability'
-    || provider === 'ideogram'
-    || provider === 'flux'
-    || provider === 'kling'
-    || provider === 'glm'
-    || provider === 'dashscope'
-    || provider === 'kimi'
-    || provider === 'minimax'
-    || provider === 'volcengine';
 }
 
 function isCanonicalPortraitReferenceUrl(item: LookdevItem, value: string | null | undefined): value is string {
@@ -205,32 +178,24 @@ export async function generateLookdevItem(input: {
     item.existingPortraitUrl,
   ].filter((value): value is string => isCanonicalPortraitReferenceUrl(item, value));
 
-  const baseRequest: ImageGenerateInput = {
+  const request: ImageGenerateInput = {
     model: policy.generationTarget.modelId,
     ...(resolveTargetConnectorId(policy.generationTarget)
       ? { connectorId: resolveTargetConnectorId(policy.generationTarget) }
       : {}),
     route: resolveTargetRoute(policy.generationTarget),
     prompt,
+    ...(policy.generationPolicy.aspectRatio ? { aspectRatio: policy.generationPolicy.aspectRatio } : {}),
+    ...(referenceImages.length > 0 ? { referenceImages } : {}),
+    ...(String(policy.generationPolicy.negativePrompt || '').trim()
+      ? { negativePrompt: String(policy.generationPolicy.negativePrompt || '').trim() }
+      : {}),
+    ...(String(policy.generationPolicy.style || '').trim()
+      ? { style: String(policy.generationPolicy.style || '').trim() }
+      : {}),
+    n: 1,
+    responseFormat: 'url',
   };
-
-  const request: ImageGenerateInput = targetUsesNativeGeminiRequest(policy.generationTarget)
-    ? {
-        ...baseRequest,
-        ...(policy.generationPolicy.aspectRatio ? { aspectRatio: policy.generationPolicy.aspectRatio } : {}),
-        ...(referenceImages.length > 0 ? { referenceImages } : {}),
-      }
-    : targetSupportsRichImageParameters(policy.generationTarget)
-      ? {
-          ...baseRequest,
-          ...(policy.generationPolicy.aspectRatio ? { aspectRatio: policy.generationPolicy.aspectRatio } : {}),
-          ...(referenceImages.length > 0 ? { referenceImages } : {}),
-          negativePrompt: policy.generationPolicy.negativePrompt,
-          style: policy.generationPolicy.style,
-          n: 1,
-          responseFormat: 'url' as const,
-        }
-      : baseRequest;
 
   const response = await runtime.media.image.generate(request);
   return normalizeArtifact(response, prompt);

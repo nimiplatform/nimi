@@ -16,7 +16,7 @@ A batch is one frozen run over one selected set of Realm agents under:
 
 Each selected Realm agent becomes exactly one `LookdevItem` inside the batch.
 
-`one realm agent = one item` is the base processing unit. Each item carries a frozen portrait brief snapshot and one operator-owned capture mode.
+`one realm agent = one item` is the base processing unit. Each item carries a frozen capture-state snapshot, a frozen portrait brief snapshot, and one operator-owned capture mode.
 
 ## LD-BATCH-003 — Frozen Selection Snapshot
 
@@ -92,9 +92,19 @@ Lookdev persists reusable app-local working assets outside the batch itself:
 
 - `WorldStyleSession`
 - `WorldStylePack`
+- `CaptureState`
 - `PortraitBrief`
 
 These assets may be reused across batches, but a batch always freezes its own snapshots at creation time.
+
+`CaptureState` is the app-local single-agent synthesis layer that sits between Realm truth and portrait generation.
+
+- every selected agent must first receive one `CaptureState`
+- `CaptureState` must follow a state-driven capture method inspired by Agent-Capture rather than direct field concatenation
+- `CaptureState` may run in `silent` mode or `interactive` mode
+- silent capture is the default for non-capture-selected agents
+- interactive capture is the default refinement lane for capture-selected agents
+- `PortraitBrief` is materialized from the current `CaptureState`, not directly from raw Realm fields alone
 
 `WorldStyleSession` is the primary authoring surface for world style.
 
@@ -148,7 +158,8 @@ Every batch must expose its frozen selection and policy snapshots in app UI.
 - the operator must be able to inspect how the batch was selected
 - the operator must be able to inspect the frozen capture-selection count
 - the operator must be able to inspect the active generation target, evaluation target, score threshold, retry budget, max concurrency, and writeback binding
-- this visibility must stay separate from mutable app-local working assets such as reusable style packs and reusable portrait briefs
+- the operator must be able to inspect whether an item snapshot came from the silent or interactive capture lane
+- this visibility must stay separate from mutable app-local working assets such as reusable style packs, reusable capture states, and reusable portrait briefs
 
 ## LD-BATCH-014 — World Intake Must Be Controllable
 
@@ -176,3 +187,21 @@ Lookdev must freeze explicit batch-scoped execution targets at batch creation ti
 - the operator chooses one `text.generate.vision` target for evaluation
 - defaults may be suggested from runtime readiness, but the targets must remain inspectable and mutable before batch creation
 - the frozen target pair must remain visible in batch detail
+
+## LD-BATCH-017 — Capture Snapshot Freezes Before Batch Create
+
+Lookdev must freeze one capture-state snapshot per item before batch creation.
+
+- later app-local capture edits must not retroactively mutate an existing batch item
+- silent-lane items and interactive-lane items both obey the same frozen-snapshot rule
+- batch generation must consume the frozen item snapshot rather than mutable authoring state
+
+## LD-BATCH-018 — Batch Creation Must Not Wait for Processing Completion
+
+Once a valid `LookdevBatch` record is created, the shell must be able to enter batch detail immediately.
+
+- batch creation freezes selection, capture, style-pack, and policy snapshots first
+- the app may start processing immediately after creation
+- processing continues asynchronously after the batch record exists
+- shell navigation must not be blocked on `processing_complete`
+- batch detail must remain the in-flight operating surface while images are still pending, generating, gated, retrying, or passing

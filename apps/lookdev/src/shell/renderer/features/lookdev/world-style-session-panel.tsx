@@ -1,9 +1,11 @@
+import { Button, SelectField, TextField, TextareaField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LookdevWorldStylePack, LookdevWorldStyleSession } from './types.js';
 
 type WorldStyleSessionPanelProps = {
   worldName: string;
+  worldSelected: boolean;
   styleSession: LookdevWorldStyleSession | null;
   styleSessionInput: string;
   worldStylePack: LookdevWorldStylePack | null;
@@ -11,10 +13,13 @@ type WorldStyleSessionPanelProps = {
   styleSessionCanSynthesize: boolean;
   styleSessionBusy: boolean;
   styleSessionError: string | null;
+  styleSessionTargetKey: string;
   styleSessionTargetLabel: string;
   styleSessionTargetReady: boolean;
+  styleSessionTargetOptions: Array<{ key: string; label: string }>;
   showAdvancedStyleEditor: boolean;
   onStyleSessionInputChange(value: string): void;
+  onStyleSessionTargetChange(value: string): void;
   onStyleSessionReply(): void;
   onRestartStyleSession(): void;
   onSynthesizeStylePack(): void;
@@ -28,6 +33,7 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
   const messageContainerRef = useRef<HTMLDivElement | null>(null);
   const {
     worldName,
+    worldSelected,
     styleSession,
     styleSessionInput,
     worldStylePack,
@@ -35,10 +41,13 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
     styleSessionCanSynthesize,
     styleSessionBusy,
     styleSessionError,
+    styleSessionTargetKey,
     styleSessionTargetLabel,
     styleSessionTargetReady,
+    styleSessionTargetOptions,
     showAdvancedStyleEditor,
     onStyleSessionInputChange,
+    onStyleSessionTargetChange,
     onStyleSessionReply,
     onRestartStyleSession,
     onSynthesizeStylePack,
@@ -46,6 +55,10 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
     onToggleAdvancedStyleEditor,
     onUpdateWorldStylePack,
   } = props;
+  const styleSessionTargetFieldOptions: SelectFieldOption[] = styleSessionTargetOptions.map((option) => ({
+    value: option.key,
+    label: option.label,
+  }));
 
   useEffect(() => {
     const container = messageContainerRef.current;
@@ -68,13 +81,31 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
 
       <div className={`rounded-2xl border px-4 py-3 text-sm ${styleSessionTargetReady ? 'border-white/8 bg-black/12 text-white/70' : 'border-amber-300/20 bg-amber-300/10 text-amber-50'}`}>
         <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.worldStyleSessionTarget')}</div>
-        <div className="mt-1 font-medium">{styleSessionTargetLabel}</div>
+        {styleSessionTargetReady ? (
+          <SelectField
+            aria-label={t('createBatch.worldStyleSessionTarget')}
+            value={styleSessionTargetKey}
+            options={styleSessionTargetFieldOptions}
+            onValueChange={onStyleSessionTargetChange}
+            disabled={styleSessionBusy}
+            className="mt-2 rounded-2xl border-white/10 bg-black/12 text-white disabled:cursor-not-allowed"
+            contentClassName="bg-[rgb(11_18_32)]"
+          />
+        ) : (
+          <div className="mt-1 font-medium">{styleSessionTargetLabel}</div>
+        )}
         <div className="mt-1 text-sm/6">
           {styleSessionTargetReady
             ? t('createBatch.worldStyleSessionTargetReady')
             : t('createBatch.worldStyleSessionTargetMissing')}
         </div>
       </div>
+
+      {!worldSelected ? (
+        <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3 text-sm text-white/66">
+          {t('createBatch.worldStyleSessionPendingWorld')}
+        </div>
+      ) : null}
 
       {styleSession ? (
         <>
@@ -126,14 +157,15 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
               <div className="text-xs text-white/42">{t('createBatch.worldStyleSessionTrace', { traceId: styleSession.lastTextTraceId })}</div>
             ) : null}
             <label htmlFor="lookdev-style-session-input" className="text-sm text-white/74">{t('createBatch.worldStyleSessionInputLabel')}</label>
-            <textarea
+            <TextareaField
               id="lookdev-style-session-input"
               value={styleSessionInput}
               onChange={(event) => onStyleSessionInputChange(event.target.value)}
               placeholder={t('createBatch.worldStyleSessionInputPlaceholder')}
               rows={4}
               disabled={styleSessionBusy || !styleSessionTargetReady}
-              className="min-h-[112px] rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label={t('createBatch.worldStyleSessionInputLabel')}
+              className="min-h-[112px] rounded-2xl border-white/10 bg-black/12 text-white disabled:cursor-not-allowed"
             />
             {styleSessionError ? (
               <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
@@ -141,30 +173,30 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
               </div>
             ) : null}
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
+              <Button
                 onClick={onStyleSessionReply}
                 disabled={!styleSessionInput.trim() || styleSessionBusy || !styleSessionTargetReady}
-                className="rounded-2xl bg-[var(--ld-accent)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:bg-[var(--ld-accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                tone="primary"
+                className="rounded-2xl text-sm"
               >
                 {styleSessionBusy ? t('createBatch.worldStyleSessionReplyBusy') : t('createBatch.worldStyleSessionReply')}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={onSynthesizeStylePack}
                 disabled={!styleSessionCanSynthesize || styleSessionBusy || !styleSessionTargetReady}
-                className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-sm text-white/78 transition hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-60"
+                tone="secondary"
+                className="rounded-2xl border-white/10 bg-black/12 text-sm text-white/78"
               >
                 {styleSessionBusy ? t('createBatch.worldStyleSessionSynthesizeBusy') : t('createBatch.worldStyleSessionSynthesize')}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={onRestartStyleSession}
                 disabled={styleSessionBusy}
-                className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-sm text-white/78 disabled:cursor-not-allowed disabled:opacity-60"
+                tone="secondary"
+                className="rounded-2xl border-white/10 bg-black/12 text-sm text-white/78"
               >
                 {t('createBatch.worldStyleSessionRestart')}
-              </button>
+              </Button>
             </div>
           </div>
         </>
@@ -200,29 +232,29 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
 
           <div className="flex flex-wrap gap-3">
             {!stylePackConfirmed ? (
-              <button
-                type="button"
+              <Button
                 onClick={onConfirmWorldStylePack}
-                className="rounded-2xl bg-[var(--ld-accent)] px-4 py-3 text-sm font-medium text-slate-950 transition hover:bg-[var(--ld-accent-strong)]"
+                tone="primary"
+                className="rounded-2xl text-sm"
               >
                 {t('createBatch.confirmStylePack')}
-              </button>
+              </Button>
             ) : null}
-            <button
-              type="button"
+            <Button
               onClick={onToggleAdvancedStyleEditor}
-              className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-sm text-white/78"
+              tone="secondary"
+              className="rounded-2xl border-white/10 bg-black/12 text-sm text-white/78"
             >
               {showAdvancedStyleEditor ? t('createBatch.hideAdvancedStyleEditor') : t('createBatch.showAdvancedStyleEditor')}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={onRestartStyleSession}
               disabled={styleSessionBusy}
-              className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-sm text-white/78 disabled:cursor-not-allowed disabled:opacity-60"
+              tone="secondary"
+              className="rounded-2xl border-white/10 bg-black/12 text-sm text-white/78"
             >
               {t('createBatch.worldStyleSessionRestart')}
-            </button>
+            </Button>
           </div>
 
           {showAdvancedStyleEditor ? (
@@ -233,49 +265,59 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
               </div>
               <div className="grid gap-2">
                 <label htmlFor="lookdev-style-pack-name" className="text-sm text-white/74">{t('createBatch.stylePackName')}</label>
-                <input
+                <TextField
                   id="lookdev-style-pack-name"
                   value={worldStylePack.name}
                   onChange={(event) => onUpdateWorldStylePack({ name: event.target.value })}
-                  className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                  aria-label={t('createBatch.stylePackName')}
+                  className="rounded-2xl border-white/10 bg-black/12 text-white"
+                  inputClassName="text-sm"
                 />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="grid gap-2">
                   <label htmlFor="lookdev-style-pack-visual-era" className="text-sm text-white/74">{t('createBatch.visualEra')}</label>
-                  <input
+                  <TextField
                     id="lookdev-style-pack-visual-era"
                     value={worldStylePack.visualEra}
                     onChange={(event) => onUpdateWorldStylePack({ visualEra: event.target.value })}
-                    className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                    aria-label={t('createBatch.visualEra')}
+                    className="rounded-2xl border-white/10 bg-black/12 text-white"
+                    inputClassName="text-sm"
                   />
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor="lookdev-style-pack-art-style" className="text-sm text-white/74">{t('createBatch.artStyle')}</label>
-                  <input
+                  <TextField
                     id="lookdev-style-pack-art-style"
                     value={worldStylePack.artStyle}
                     onChange={(event) => onUpdateWorldStylePack({ artStyle: event.target.value })}
-                    className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                    aria-label={t('createBatch.artStyle')}
+                    className="rounded-2xl border-white/10 bg-black/12 text-white"
+                    inputClassName="text-sm"
                   />
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor="lookdev-style-pack-palette-direction" className="text-sm text-white/74">{t('createBatch.paletteDirection')}</label>
-                  <input
+                  <TextField
                     id="lookdev-style-pack-palette-direction"
                     value={worldStylePack.paletteDirection}
                     onChange={(event) => onUpdateWorldStylePack({ paletteDirection: event.target.value })}
-                    className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                    aria-label={t('createBatch.paletteDirection')}
+                    className="rounded-2xl border-white/10 bg-black/12 text-white"
+                    inputClassName="text-sm"
                   />
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor="lookdev-style-pack-silhouette-direction" className="text-sm text-white/74">{t('createBatch.silhouetteDirection')}</label>
-                  <input
+                  <TextField
                     id="lookdev-style-pack-silhouette-direction"
                     value={worldStylePack.silhouetteDirection}
                     onChange={(event) => onUpdateWorldStylePack({ silhouetteDirection: event.target.value })}
-                    className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                    aria-label={t('createBatch.silhouetteDirection')}
+                    className="rounded-2xl border-white/10 bg-black/12 text-white"
+                    inputClassName="text-sm"
                   />
                 </div>
               </div>

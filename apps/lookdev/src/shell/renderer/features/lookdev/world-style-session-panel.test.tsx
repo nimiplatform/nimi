@@ -55,6 +55,7 @@ describe('WorldStyleSessionPanel', () => {
       <I18nextProvider i18n={i18n}>
         <WorldStyleSessionPanel
           worldName="凡人修仙界"
+          worldSelected
           styleSession={makeSession(1)}
           styleSessionInput=""
           worldStylePack={noopPack}
@@ -62,10 +63,15 @@ describe('WorldStyleSessionPanel', () => {
           styleSessionCanSynthesize={false}
           styleSessionBusy={false}
           styleSessionError={null}
+          styleSessionTargetKey="text.generate::cloud::api-connector::gemini-2.5-flash::"
           styleSessionTargetLabel="API Connector / gemini-2.5-flash"
           styleSessionTargetReady
+          styleSessionTargetOptions={[
+            { key: 'text.generate::cloud::api-connector::gemini-2.5-flash::', label: 'API Connector / gemini-2.5-flash' },
+          ]}
           showAdvancedStyleEditor={false}
           onStyleSessionInputChange={() => {}}
+          onStyleSessionTargetChange={() => {}}
           onStyleSessionReply={() => {}}
           onRestartStyleSession={() => {}}
           onSynthesizeStylePack={() => {}}
@@ -80,6 +86,7 @@ describe('WorldStyleSessionPanel', () => {
       <I18nextProvider i18n={i18n}>
         <WorldStyleSessionPanel
           worldName="凡人修仙界"
+          worldSelected
           styleSession={makeSession(3)}
           styleSessionInput=""
           worldStylePack={noopPack}
@@ -87,10 +94,15 @@ describe('WorldStyleSessionPanel', () => {
           styleSessionCanSynthesize={false}
           styleSessionBusy={false}
           styleSessionError={null}
+          styleSessionTargetKey="text.generate::cloud::api-connector::gemini-2.5-flash::"
           styleSessionTargetLabel="API Connector / gemini-2.5-flash"
           styleSessionTargetReady
+          styleSessionTargetOptions={[
+            { key: 'text.generate::cloud::api-connector::gemini-2.5-flash::', label: 'API Connector / gemini-2.5-flash' },
+          ]}
           showAdvancedStyleEditor={false}
           onStyleSessionInputChange={() => {}}
+          onStyleSessionTargetChange={() => {}}
           onStyleSessionReply={() => {}}
           onRestartStyleSession={() => {}}
           onSynthesizeStylePack={() => {}}

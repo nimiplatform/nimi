@@ -1,3 +1,4 @@
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 import type { LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 
@@ -27,18 +28,19 @@ export function CaptureSelectionPanel(props: CaptureSelectionPanelProps) {
           {selectedAgents.map((agent) => {
             const selected = captureSelectionAgentIds.includes(agent.id);
             return (
-              <button
+              <Button
                 key={agent.id}
-                type="button"
                 onClick={() => onToggleCaptureSelection(agent.id)}
-                className={`flex w-full items-start justify-between rounded-2xl border px-4 py-3 text-left ${selected ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/8 bg-black/12 text-white/72'}`}
+                tone="secondary"
+                className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left ${selected ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/8 bg-black/12 text-white/72'}`}
+                fullWidth
               >
                 <div>
                   <div className="font-medium text-white">{agent.displayName}</div>
                   <div className="mt-1 text-xs text-white/52">{t(`importance.${agent.importance}`, { defaultValue: agent.importance })} · {agent.handle || agent.id}</div>
                 </div>
                 <span className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">{selected ? t('createBatch.captureLabel') : t('createBatch.batchOnlyLabel')}</span>
-              </button>
+              </Button>
             );
           })}
           {selectedAgents.length === 0 ? (

@@ -1,9 +1,10 @@
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useLookdevStore } from './lookdev-store.js';
 import { getAuditEventDetail, getAuditEventScopeLabel, getAuditEventSeverityLabel, getAuditEventSeverityTone, getAuditEventTitle } from './audit-presentation.js';
-import type { LookdevPolicySnapshot } from './types.js';
+import type { LookdevCaptureState, LookdevPolicySnapshot } from './types.js';
 
 function statusTone(status: string): string {
   switch (status) {
@@ -29,6 +30,23 @@ function hasExecutionTargets(policySnapshot: LookdevPolicySnapshot | null | unde
     && typeof policySnapshot.generationTarget.modelId === 'string'
     && typeof policySnapshot.evaluationTarget.modelId === 'string',
   );
+}
+
+function hasCaptureStateSnapshot(value: unknown): value is LookdevCaptureState {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const snapshot = value as Record<string, unknown>;
+  if (snapshot.synthesisMode !== 'interactive' && snapshot.synthesisMode !== 'silent') {
+    return false;
+  }
+  if (typeof snapshot.currentBrief !== 'string') {
+    return false;
+  }
+  const feelingAnchor = snapshot.feelingAnchor;
+  return typeof feelingAnchor === 'object'
+    && feelingAnchor !== null
+    && typeof (feelingAnchor as Record<string, unknown>).coreVibe === 'string';
 }
 
 function formatExecutionTarget(
@@ -80,6 +98,19 @@ export default function BatchDetailPage() {
     );
   }
 
+  if (!selectedItem || !hasCaptureStateSnapshot(selectedItem.captureStateSnapshot)) {
+    return (
+      <div className="ld-card px-8 py-12 text-center">
+        <div className="mx-auto max-w-xl space-y-3">
+          <div className="text-lg font-medium text-white">{t('batchDetail.invalidSnapshotTitle')}</div>
+          <p className="text-sm leading-6 text-white/66">
+            {t('batchDetail.invalidSnapshotDescription')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const policySnapshot = batch.policySnapshot;
 
   return (
@@ -105,50 +136,50 @@ export default function BatchDetailPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {batch.status === 'running' ? (
-                <button
-                  type="button"
+                <Button
                   onClick={() => pauseBatch(batch.batchId)}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-white hover:bg-white/6"
+                  tone="secondary"
+                  className="rounded-2xl border-white/10 text-sm text-white hover:bg-white/6"
                 >
                   {t('batchDetail.pause')}
-                </button>
+                </Button>
               ) : batch.status === 'paused' ? (
-                <button
-                  type="button"
+                <Button
                   onClick={() => void resumeBatch(batch.batchId)}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-white hover:bg-white/6"
+                  tone="secondary"
+                  className="rounded-2xl border-white/10 text-sm text-white hover:bg-white/6"
                 >
                   {t('batchDetail.resume')}
-                </button>
+                </Button>
               ) : null}
               {batch.status !== 'commit_complete' ? (
-                <button
-                  type="button"
+                <Button
                   onClick={() => void rerunFailed(batch.batchId, selectedItem ? [selectedItem.itemId] : undefined)}
                   disabled={batch.status !== 'processing_complete' || !selectedItem || (selectedItem.status !== 'auto_failed_retryable' && selectedItem.status !== 'auto_failed_exhausted')}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-white hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-50"
+                  tone="secondary"
+                  className="rounded-2xl border-white/10 text-sm text-white hover:bg-white/6"
                 >
                   {t('batchDetail.rerunSelected')}
-                </button>
+                </Button>
               ) : null}
               {batch.status !== 'commit_complete' ? (
-                <button
-                  type="button"
+                <Button
                   onClick={() => void rerunFailed(batch.batchId)}
                   disabled={batch.status !== 'processing_complete' || batch.failedItems === 0}
-                  className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-white hover:bg-white/6"
+                  tone="secondary"
+                  className="rounded-2xl border-white/10 text-sm text-white hover:bg-white/6"
                 >
                   {t('batchDetail.rerunFailed')}
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
+              <Button
                 onClick={() => void commitBatch(batch.batchId)}
                 disabled={batch.status !== 'processing_complete' || batch.passedItems === 0}
-                className="rounded-2xl bg-[var(--ld-accent)] px-4 py-2 text-sm font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                tone="primary"
+                className="rounded-2xl text-sm"
               >
                 {t('batchDetail.commitBatch')}
-              </button>
+              </Button>
             </div>
           </div>
         </section>
@@ -160,11 +191,12 @@ export default function BatchDetailPage() {
           </div>
           <div className="space-y-2">
             {batch.items.map((item) => (
-              <button
+              <Button
                 key={item.itemId}
-                type="button"
                 onClick={() => selectItem(batch.batchId, item.itemId)}
-                className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left ${batch.selectedItemId === item.itemId ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)]' : 'border-white/8 bg-black/12 hover:bg-white/6'}`}
+                tone="secondary"
+                className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left ${batch.selectedItemId === item.itemId ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)]' : 'border-white/8 bg-black/12 hover:bg-white/6'}`}
+                fullWidth
               >
                 <div className="min-w-0">
                   <div className="truncate font-medium text-white">{item.agentDisplayName}</div>
@@ -178,7 +210,7 @@ export default function BatchDetailPage() {
                   </div>
                   <div className={`text-sm font-medium ${statusTone(item.status)}`}>{t(`itemStatus.${item.status}`, { defaultValue: item.status.replace(/_/g, ' ') })}</div>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         </section>
@@ -195,6 +227,10 @@ export default function BatchDetailPage() {
                 <span>{t(`importance.${selectedItem.importance}`, { defaultValue: selectedItem.importance })}</span>
                 <span>·</span>
                 <span>{t(`captureMode.${selectedItem.captureMode}`, { defaultValue: selectedItem.captureMode })}</span>
+                <span>·</span>
+                <span>{t(`createBatch.captureLane${selectedItem.captureStateSnapshot.synthesisMode === 'interactive' ? 'Interactive' : 'Silent'}`, {
+                  defaultValue: selectedItem.captureStateSnapshot.synthesisMode,
+                })}</span>
               </div>
             </div>
 
@@ -244,6 +280,15 @@ export default function BatchDetailPage() {
                     <div><span className="text-white/42">{t('batchDetail.writebackBinding')}</span> · {policySnapshot.writebackPolicy.bindingPoint}</div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-white/8 bg-black/16 px-5 py-5">
+              <div className="text-xs uppercase tracking-[0.16em] text-white/40">{t('createBatch.captureStateStatus', { defaultValue: 'Capture state' })}</div>
+              <div className="mt-4 space-y-2 text-sm text-white/68">
+                <div><span className="text-white/42">{t('createBatch.captureStateCurrentBrief', { defaultValue: 'Current brief' })}</span> · {selectedItem.captureStateSnapshot.currentBrief}</div>
+                <div><span className="text-white/42">{t('createBatch.captureFeelingAnchor', { defaultValue: 'Feeling anchor' })}</span> · {selectedItem.captureStateSnapshot.feelingAnchor.coreVibe}</div>
+                <div><span className="text-white/42">{t('createBatch.captureStateStatus', { defaultValue: 'Capture state' })}</span> · {selectedItem.captureStateSnapshot.synthesisMode}</div>
               </div>
             </div>
 

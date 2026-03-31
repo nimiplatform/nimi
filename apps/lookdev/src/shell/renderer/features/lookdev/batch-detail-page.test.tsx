@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeLocale, initI18n } from '@renderer/i18n/index.js';
 import BatchDetailPage from './batch-detail-page.js';
 import { useLookdevStore } from './lookdev-store.js';
-import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAuditEvent, type LookdevBatch, type LookdevItem } from './types.js';
+import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAuditEvent, type LookdevBatch, type LookdevCaptureState, type LookdevItem } from './types.js';
 
 const worldStylePack = createConfirmedWorldStylePack('w1', 'Aurora Harbor', 'en');
 const generationTarget = {
@@ -44,6 +44,44 @@ function makeAuditEvent(overrides: Partial<LookdevAuditEvent> = {}): LookdevAudi
 }
 
 function makeItem(overrides: Partial<LookdevItem> = {}): LookdevItem {
+  const captureStateSnapshot: LookdevCaptureState = {
+    agentId: 'a1',
+    worldId: 'w1',
+    displayName: 'Iris',
+    sourceConfidence: 'derived_from_agent_truth',
+    captureMode: 'capture',
+    synthesisMode: 'interactive',
+    seedSignature: 'seed-a1',
+    currentBrief: 'A poised anchor scout with a steady silhouette.',
+    sourceSummary: 'Derived from Realm truth and the Aurora Harbor lane.',
+    feelingAnchor: {
+      coreVibe: 'poised vigilance',
+      tonePhrases: ['steady', 'salt-worn'],
+      avoidVibe: ['overly theatrical'],
+    },
+    workingMemory: {
+      effectiveIntentSummary: 'Keep the scout readable and world-anchored.',
+      preserveFocus: ['steady silhouette'],
+      adjustFocus: ['coat layering'],
+      negativeConstraints: ['extreme close-up'],
+    },
+    visualIntent: {
+      visualRole: 'anchor scout',
+      silhouette: 'clean full-body scout silhouette',
+      outfit: 'weathered scout coat with practical layers',
+      hairstyle: 'wind-swept shoulder-length hair',
+      palettePrimary: 'deep teal',
+      artStyle: worldStylePack.artStyle,
+      mustKeepTraits: ['steady silhouette'],
+      forbiddenTraits: ['extreme close-up'],
+      detailBudget: 'hero',
+      backgroundWeight: 'supporting',
+    },
+    messages: [],
+    lastTextTraceId: 'trace-a1',
+    createdAt: '2026-03-28T00:00:00.000Z',
+    updatedAt: '2026-03-28T00:00:00.000Z',
+  };
   return {
     itemId: 'i1',
     batchId: 'b1',
@@ -54,6 +92,7 @@ function makeItem(overrides: Partial<LookdevItem> = {}): LookdevItem {
     agentDescription: 'steady silhouette',
     importance: 'PRIMARY',
     captureMode: 'capture',
+    captureStateSnapshot,
     portraitBrief: {
       agentId: 'a1',
       worldId: 'w1',
@@ -228,8 +267,8 @@ describe('BatchDetailPage', () => {
     expect(snapshots.getByText((_, element) => element?.textContent === 'World id · w1')).toBeInTheDocument();
     expect(snapshots.getByText((_, element) => element?.textContent === 'Selected agents · 3')).toBeInTheDocument();
     expect(snapshots.getByText((_, element) => element?.textContent === 'Capture agents · 2')).toBeInTheDocument();
-    expect(snapshots.getByText((_, element) => element?.textContent === 'Generation target · Image Connector / Image Model')).toBeInTheDocument();
-    expect(snapshots.getByText((_, element) => element?.textContent === 'Evaluation target · Vision Connector / Vision Model')).toBeInTheDocument();
+    expect(snapshots.getByText((_, element) => element?.textContent === 'Image route · Image Connector / Image Model')).toBeInTheDocument();
+    expect(snapshots.getByText((_, element) => element?.textContent === 'Evaluation route · Vision Connector / Vision Model')).toBeInTheDocument();
     expect(snapshots.getByText((_, element) => element?.textContent === 'Score threshold · 84')).toBeInTheDocument();
     expect(snapshots.getByText((_, element) => element?.textContent === 'Max concurrency · 2')).toBeInTheDocument();
     expect(snapshots.getByText((_, element) => element?.textContent === 'Retry budget · 4')).toBeInTheDocument();
@@ -246,6 +285,24 @@ describe('BatchDetailPage', () => {
           writebackPolicy: createDefaultPolicySnapshot().writebackPolicy,
           maxConcurrency: 1,
         } as unknown as LookdevBatch['policySnapshot'],
+      })],
+    });
+
+    renderDetailPage();
+
+    expect(screen.getByText('Invalid batch snapshot')).toBeInTheDocument();
+    expect(screen.getByText('This batch was created against an outdated local schema. Recreate the batch from the current Lookdev flow.')).toBeInTheDocument();
+  });
+
+  it('fails closed when rendering a legacy item snapshot without capture-state data', () => {
+    useLookdevStore.setState({
+      batches: [makeBatch({
+        items: [
+          {
+            ...makeItem(),
+            captureStateSnapshot: undefined as unknown as LookdevItem['captureStateSnapshot'],
+          },
+        ],
       })],
     });
 

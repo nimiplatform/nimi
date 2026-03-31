@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@nimiplatform/nimi-kit/ui';
 import { useRuntimeReadiness } from '@renderer/hooks/use-runtime-readiness.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { useLookdevStore } from '@renderer/features/lookdev/lookdev-store.js';
@@ -91,18 +92,19 @@ export function LookdevLayout() {
               <div className="text-xs uppercase tracking-[0.16em] text-white/42">{t('common.language')}</div>
               <div className="mt-2 flex gap-2">
                 {SUPPORTED_LOCALES.map((locale) => (
-                  <button
+                  <Button
                     key={locale}
-                    type="button"
                     onClick={() => void changeLocale(locale as SupportedLocale)}
+                    tone="secondary"
+                    size="sm"
                     className={`rounded-xl px-3 py-2 text-xs transition ${
                       currentLocale === locale
-                        ? 'bg-[color-mix(in_srgb,var(--ld-accent)_16%,transparent)] text-white'
-                        : 'bg-black/12 text-white/68 hover:bg-white/6 hover:text-white'
+                        ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_16%,transparent)] text-white'
+                        : 'border-transparent bg-black/12 text-white/68 hover:bg-white/6 hover:text-white'
                     }`}
                   >
                     {getLocaleLabel(locale)}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

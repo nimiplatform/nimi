@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { evaluateLookdevImage } from './lookdev-processing.js';
+import { evaluateLookdevImage, generateLookdevItem } from './lookdev-processing.js';
 import { useLookdevStore } from './lookdev-store.js';
-import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAuditEvent, type LookdevBatch, type LookdevItem } from './types.js';
+import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAuditEvent, type LookdevBatch, type LookdevCaptureState, type LookdevItem } from './types.js';
 import { createWorldStyleSession } from './world-style-session.js';
 
 const generationTarget = {
@@ -182,6 +182,93 @@ describe('lookdev store', () => {
   const worldId = 'w1';
   const worldStylePack = createConfirmedWorldStylePack(worldId, 'Aurora Harbor', 'en');
 
+  function makeCaptureState(overrides: Partial<LookdevCaptureState> = {}): LookdevCaptureState {
+    return {
+      agentId: 'a1',
+      worldId: 'w1',
+      displayName: 'Iris',
+      sourceConfidence: 'derived_from_agent_truth',
+      captureMode: 'capture',
+      synthesisMode: 'interactive',
+      seedSignature: 'seed-a1',
+      currentBrief: 'A steady harbor scout with a readable silhouette.',
+      sourceSummary: 'Derived from Realm truth and the Aurora Harbor lane.',
+      feelingAnchor: {
+        coreVibe: 'steady vigilance',
+        tonePhrases: ['salt-worn', 'clean'],
+        avoidVibe: ['dramatic chaos'],
+      },
+      workingMemory: {
+        effectiveIntentSummary: 'Keep the role readable and production-ready.',
+        preserveFocus: ['clean silhouette'],
+        adjustFocus: ['coat layering'],
+        negativeConstraints: ['extreme close-up'],
+      },
+      visualIntent: {
+        visualRole: 'Wind scout',
+        silhouette: 'clean silhouette',
+        outfit: 'long coat',
+        hairstyle: 'shoulder-length hair',
+        palettePrimary: 'teal',
+        artStyle: worldStylePack.artStyle,
+        mustKeepTraits: ['Long coat'],
+        forbiddenTraits: ['extreme close-up'],
+        detailBudget: 'hero',
+        backgroundWeight: 'supporting',
+      },
+      messages: [],
+      lastTextTraceId: 'trace-capture',
+      createdAt: '2026-03-28T00:00:00.000Z',
+      updatedAt: '2026-03-28T00:00:00.000Z',
+      ...overrides,
+    };
+  }
+
+  async function createBatchWithCaptureStates(
+    input: Parameters<ReturnType<typeof useLookdevStore.getState>['createBatch']>[0],
+    options?: { waitForCompletion?: boolean },
+  ) {
+    for (const agent of input.agents) {
+      useLookdevStore.getState().saveCaptureState(makeCaptureState({
+        agentId: agent.id,
+        worldId: agent.worldId,
+        displayName: agent.displayName,
+        captureMode: input.captureSelectionAgentIds.includes(agent.id) ? 'capture' : 'batch_only',
+        synthesisMode: input.captureSelectionAgentIds.includes(agent.id) ? 'interactive' : 'silent',
+        seedSignature: `${agent.worldId || 'unscoped'}::${agent.id}::${input.captureSelectionAgentIds.includes(agent.id) ? 'capture' : 'batch_only'}`,
+        currentBrief: `${agent.displayName} stays readable inside the ${worldStylePack.name} lane.`,
+        visualIntent: {
+          visualRole: agent.concept || agent.displayName,
+          silhouette: 'clean silhouette',
+          outfit: agent.description || 'long coat',
+          hairstyle: 'shoulder-length hair',
+          palettePrimary: 'teal',
+          artStyle: worldStylePack.artStyle,
+          mustKeepTraits: [agent.concept || agent.displayName].filter(Boolean),
+          forbiddenTraits: ['extreme close-up'],
+          detailBudget: input.captureSelectionAgentIds.includes(agent.id) ? 'hero' : 'standard',
+          backgroundWeight: agent.importance === 'BACKGROUND' ? 'minimal' : 'supporting',
+        },
+      }));
+    }
+    const batchId = await useLookdevStore.getState().createBatch(input);
+    if (options?.waitForCompletion !== false) {
+      await waitForBatchStatus(batchId, 'processing_complete');
+    }
+    return batchId;
+  }
+
+  async function waitForBatchStatus(batchId: string, status: LookdevBatch['status']) {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const batch = useLookdevStore.getState().batches.find((entry) => entry.batchId === batchId);
+      if (batch?.status === status) {
+        return batch;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    throw new Error(`Timed out waiting for batch ${batchId} to reach ${status}`);
+  }
+
   function makeItem(overrides: Partial<LookdevItem> = {}): LookdevItem {
     return {
       itemId: 'i1',
@@ -193,6 +280,7 @@ describe('lookdev store', () => {
       agentDescription: 'Long coat, measured posture.',
       importance: 'PRIMARY',
       captureMode: 'capture',
+      captureStateSnapshot: makeCaptureState(),
       portraitBrief: {
         agentId: 'a1',
         worldId: 'w1',
@@ -267,7 +355,7 @@ describe('lookdev store', () => {
   }
 
   it('creates a batch and auto-passes an item through runtime generation + evaluation', async () => {
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Spring cast',
       selectionSource: 'explicit_selection',
       worldId,
@@ -316,6 +404,64 @@ describe('lookdev store', () => {
     }));
   });
 
+  it('returns the batch id as soon as the batch exists and keeps processing in the background', async () => {
+    type DeferredImageGenerationResult = {
+      artifacts: Array<{ uri: string; mimeType: string; artifactId: string }>;
+      trace: { traceId: string };
+    };
+    const deferredImageGeneration: { resolve: null | ((value: DeferredImageGenerationResult) => void) } = {
+      resolve: null,
+    };
+    mockRuntime.media.image.generate.mockImplementationOnce(async () => await new Promise((resolve) => {
+      deferredImageGeneration.resolve = resolve as (value: DeferredImageGenerationResult) => void;
+    }));
+
+    const batchId = await createBatchWithCaptureStates({
+      name: 'Immediate navigation batch',
+      selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: ['a12'],
+      generationTarget,
+      evaluationTarget,
+      agents: [{
+        id: 'a12',
+        handle: 'orin',
+        displayName: 'Orin',
+        concept: 'Systems watcher',
+        description: null,
+        scenario: null,
+        greeting: null,
+        worldId: 'w1',
+        avatarUrl: null,
+        currentPortrait: null,
+        importance: 'PRIMARY',
+        status: 'READY',
+      }],
+    }, { waitForCompletion: false });
+
+    const runningBatch = useLookdevStore.getState().batches.find((entry) => entry.batchId === batchId);
+    expect(runningBatch).toBeDefined();
+    expect(runningBatch?.status).toBe('running');
+    expect(runningBatch?.processingCompletedAt).toBeNull();
+    expect(['pending', 'generating']).toContain(runningBatch?.items[0]?.status);
+
+    if (!deferredImageGeneration.resolve) {
+      throw new Error('resolveImageGeneration was not assigned');
+    }
+    deferredImageGeneration.resolve({
+      artifacts: [{
+        uri: 'https://images.example.com/portrait.png',
+        mimeType: 'image/png',
+        artifactId: 'artifact-1',
+      }],
+      trace: { traceId: 'trace-1' },
+    });
+
+    const settledBatch = await waitForBatchStatus(batchId, 'processing_complete');
+    expect(settledBatch.items[0]?.status).toBe('auto_passed');
+  });
+
   it('retries evaluation when the first vision response is truncated', async () => {
     mockRuntime.ai.text.generate
       .mockResolvedValueOnce({
@@ -340,7 +486,7 @@ describe('lookdev store', () => {
         finishReason: 'stop',
       });
 
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Retry eval batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -414,7 +560,7 @@ describe('lookdev store', () => {
   });
 
   it('clamps score threshold and max concurrency into supported bounds', async () => {
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Clamped batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -446,8 +592,8 @@ describe('lookdev store', () => {
     expect(batch?.policySnapshot.generationPolicy.aspectRatio).toBe('3:4');
   });
 
-  it('uses a Gemini-safe image generation request shape', async () => {
-    await useLookdevStore.getState().createBatch({
+  it('uses the same typed image generation request shape for native Gemini connectors', async () => {
+    await createBatchWithCaptureStates({
       name: 'Gemini batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -475,24 +621,17 @@ describe('lookdev store', () => {
       model: 'gemini-3.1-flash-image-preview',
       connectorId: 'sys-cloud-gemini',
       route: 'cloud',
+      prompt: expect.any(String),
       aspectRatio: '3:4',
-    }));
-    expect(mockRuntime.media.image.generate).not.toHaveBeenCalledWith(expect.objectContaining({
-      negativePrompt: expect.anything(),
-    }));
-    expect(mockRuntime.media.image.generate).not.toHaveBeenCalledWith(expect.objectContaining({
-      style: expect.anything(),
-    }));
-    expect(mockRuntime.media.image.generate).not.toHaveBeenCalledWith(expect.objectContaining({
-      responseFormat: expect.anything(),
-    }));
-    expect(mockRuntime.media.image.generate).not.toHaveBeenCalledWith(expect.objectContaining({
-      n: expect.anything(),
+      negativePrompt: expect.any(String),
+      style: 'anchor-portrait',
+      n: 1,
+      responseFormat: 'url',
     }));
   });
 
-  it('uses the rich image request shape for openai-compatible Gemini connectors on /openai endpoints', async () => {
-    await useLookdevStore.getState().createBatch({
+  it('uses the same typed image generation request shape for openai-compatible Gemini connectors on /openai endpoints', async () => {
+    await createBatchWithCaptureStates({
       name: 'OpenAI-compatible Gemini batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -538,7 +677,7 @@ describe('lookdev store', () => {
       trace: { traceId: 'trace-1' },
     });
 
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Artifact ref required batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -568,10 +707,10 @@ describe('lookdev store', () => {
     expect(mockRuntime.ai.text.generate).not.toHaveBeenCalled();
   });
 
-  it('falls back to null when current portrait binding lookup fails', async () => {
+  it('fails closed when current portrait binding lookup fails', async () => {
     getAgentPortraitBinding.mockRejectedValueOnce(new Error('binding unavailable'));
 
-    const batchId = await useLookdevStore.getState().createBatch({
+    await expect(createBatchWithCaptureStates({
       name: 'Binding fallback batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -593,17 +732,13 @@ describe('lookdev store', () => {
         importance: 'PRIMARY',
         status: 'READY',
       }],
-    });
-
-    const batch = useLookdevStore.getState().batches.find((item) => item.batchId === batchId);
-    expect(batch?.items[0]?.existingPortraitUrl).toBeNull();
-    expect(batch?.items[0]?.referenceImageUrl).toBeNull();
+    })).rejects.toThrow('binding unavailable');
   });
 
   it('preserves the generated image when evaluation fails after generation', async () => {
     mockRuntime.ai.text.generate.mockRejectedValue(new Error('provider rejected request parameters'));
 
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Evaluation failure keeps artifact',
       selectionSource: 'explicit_selection',
       worldId,
@@ -635,7 +770,7 @@ describe('lookdev store', () => {
   });
 
   it('does not treat generic avatar urls as lookdev generation references', async () => {
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Avatar is not a reference batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -667,7 +802,7 @@ describe('lookdev store', () => {
   });
 
   it('commits passed items to Realm portrait binding', async () => {
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Commit batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -745,7 +880,7 @@ describe('lookdev store', () => {
         }),
       });
 
-    const batchId = await useLookdevStore.getState().createBatch({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Retry batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -789,7 +924,7 @@ describe('lookdev store', () => {
   });
 
   it('persists world style packs and compiled portrait briefs for later reuse', async () => {
-    await useLookdevStore.getState().createBatch({
+    await createBatchWithCaptureStates({
       name: 'Persistent lane',
       selectionSource: 'explicit_selection',
       worldId,
@@ -818,7 +953,7 @@ describe('lookdev store', () => {
   });
 
   it('fails closed when agents from multiple worlds are mixed into one batch', async () => {
-    await expect(useLookdevStore.getState().createBatch({
+    await expect(createBatchWithCaptureStates({
       name: 'Broken lane',
       selectionSource: 'explicit_selection',
       worldId,
@@ -1102,11 +1237,73 @@ describe('lookdev store', () => {
     const session = createWorldStyleSession('w1', 'Aurora Harbor', 'en', [
       { displayName: 'Iris', concept: 'Anchor scout', importance: 'PRIMARY' },
     ]);
+    useLookdevStore.getState().saveCaptureState(makeCaptureState());
 
     useLookdevStore.getState().saveWorldStyleSession(session);
 
     const persisted = localStorage.getItem('lookdev-workspace-formal-v8');
     expect(persisted).toContain('"worldStyleSessions"');
+    expect(persisted).toContain('"captureStates"');
     expect(persisted).toContain('"Aurora Harbor"');
+  });
+
+  it('drops legacy persisted batches that do not carry capture-state snapshots', async () => {
+    useLookdevStore.setState({
+      batches: [],
+      worldStyleSessions: {},
+      worldStylePacks: {},
+      portraitBriefs: {},
+    });
+
+    localStorage.setItem('lookdev-workspace-formal-v8', JSON.stringify({
+      state: {
+        batches: [
+          makeBatch({
+            batchId: 'legacy-batch',
+            name: 'test',
+            items: [
+              {
+                ...makeItem(),
+                itemId: 'legacy-item',
+                captureStateSnapshot: undefined as unknown as LookdevItem['captureStateSnapshot'],
+              },
+            ],
+          }),
+          makeBatch({
+            batchId: 'current-batch',
+            name: 'test2',
+          }),
+        ],
+        worldStyleSessions: {},
+        worldStylePacks: {},
+        captureStates: {},
+        portraitBriefs: {},
+      },
+      version: 1,
+    }));
+
+    await useLookdevStore.persist.rehydrate();
+
+    expect(useLookdevStore.getState().batches.map((batch) => batch.name)).toEqual(['test2']);
+  });
+
+  it('fails closed when generated artifacts omit mimeType', async () => {
+    mockRuntime.media.image.generate.mockResolvedValueOnce({
+      artifacts: [{
+        uri: 'https://images.example.com/portrait.png',
+        artifactId: 'artifact-missing-mime',
+      }],
+      trace: { traceId: 'trace-missing-mime' },
+    });
+
+    await expect(generateLookdevItem({
+      runtime: mockRuntime as never,
+      item: makeItem(),
+      policy: createDefaultPolicySnapshot({
+        generationTarget,
+        evaluationTarget,
+      }),
+      worldStylePackSnapshot: worldStylePack,
+    })).rejects.toThrow('LOOKDEV_IMAGE_MIME_TYPE_REQUIRED');
   });
 });
