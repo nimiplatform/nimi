@@ -92,15 +92,16 @@ export function usePipelineChat() {
     if (!currentAgent || !runtimeAvailable) return;
     if (!text.trim()) return;
 
-    try {
-      await getBridge().chat.send({
-        agentId: currentAgent.id,
-        text: text.trim(),
-      });
-    } catch (err) {
+    // Fire-and-forget: the IPC handler awaits the full AI turn, but the
+    // renderer should clear the input immediately.  Progress is pushed
+    // back via relay:chat:turn:phase / relay:chat:messages events.
+    getBridge().chat.send({
+      agentId: currentAgent.id,
+      text: text.trim(),
+    }).catch((err) => {
       console.error('[relay:chat] sendMessage failed', err);
       setStatusBanner({ kind: 'error', message: err instanceof Error ? err.message : String(err) });
-    }
+    });
   }, [currentAgent, runtimeAvailable, setStatusBanner]);
 
   const cancelTurn = useCallback(async (turnTxnId?: string) => {
