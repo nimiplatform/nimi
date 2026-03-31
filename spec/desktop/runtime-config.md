@@ -32,6 +32,7 @@ Runtime 字段映射（`RuntimeFieldMap`）：
 - `runtimeModelType`：模型能力类型（chat/image/video/tts/stt/embedding）
 - `localProviderEndpoint` / `localProviderModel` / `localOpenAiEndpoint`：本地引擎绑定
 - `connectorId`：connector 引用（K-KEYSRC-001 managed 路径）
+- `scope`：connector 所有权范围（`'user'` / `'machine-global'` / `'runtime-system'`）；non-user scope 意味着 `isSystemOwned = true`；authenticated 用户创建默认 `'user'`，anonymous 创建默认 `'machine-global'`
 - `targetType` / `targetAccountId` / `agentId` / `worldId`：可透传的执行上下文字段；Desktop core 不预置 Agent chat 目标
 - `mode`：对话模式（STORY / SCENE_TURN）
 

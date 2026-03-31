@@ -134,6 +134,7 @@ type LocalModelCenterRuntimeViewProps = {
   imports: DownloadState['activeImports'];
   unregisteredAssets: LocalRuntimeUnregisteredAssetDescriptor[];
   onCancelDownload: DownloadState['onCancelDownload'];
+  onDismissSession: (installSessionId: string) => void;
   lastCheckedAt?: string | null;
 };
 
@@ -248,7 +249,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onResume={props.onResumeDownload}
           onCancel={props.onCancelDownload}
         />
-        <LocalModelCenterActiveImportsSection imports={props.imports} />
+        <LocalModelCenterActiveImportsSection imports={props.imports} onDismiss={props.onDismissSession} />
         <LocalModelCenterArtifactTasksSection
           tasks={props.visibleArtifactTasks}
           pendingTemplateIds={props.artifactPendingTemplateIds}

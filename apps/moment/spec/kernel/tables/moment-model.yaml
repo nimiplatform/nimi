@@ -1,0 +1,53 @@
+version: 1
+owned_objects:
+  - id: moment_threshold
+    ownership: app_local
+    canonical_status: non_canonical
+    description: "The structured threshold object that carries one story opening on the main stage."
+    required_fields:
+      - id
+      - source_mode
+      - title
+      - opening
+      - story_hook
+      - presence
+      - mystery
+      - initial_user_relation
+      - tone
+      - actions
+      - created_at
+    optional_fields:
+      - source_preview_image
+      - palette
+      - saved_at
+  - id: moment_session
+    ownership: app_local
+    canonical_status: non_canonical
+    description: "Short continuation state for a single story opening."
+    required_fields:
+      - threshold_id
+      - timeline
+      - beat_index
+      - relation_state
+      - play_state
+      - sealed
+    optional_fields:
+      - sealed_at
+  - id: saved_moment
+    ownership: app_local
+    canonical_status: non_canonical
+    description: "Shelf entry preserving one story opening and its local continuation."
+    required_fields:
+      - id
+      - threshold
+      - timeline
+      - saved_at
+input_modes:
+  - image
+  - phrase
+action_shape:
+  min_actions: 3
+  max_actions: 3
+play_window:
+  min_beats: 2
+  max_beats: 4

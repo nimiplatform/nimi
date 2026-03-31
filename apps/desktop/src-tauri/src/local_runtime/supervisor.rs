@@ -74,6 +74,10 @@ fn configure_engine_environment(app: &AppHandle) -> Result<(), String> {
         "NIMI_LOCAL_AI_MODELS_DIR",
         models_root.to_string_lossy().to_string(),
     );
+    std::env::set_var(
+        "NIMI_RUNTIME_LOCAL_MODELS_PATH",
+        models_root.to_string_lossy().to_string(),
+    );
     Ok(())
 }
 

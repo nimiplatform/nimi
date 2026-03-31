@@ -285,20 +285,29 @@ async function resolveAuthorityMediaRoute(input: {
   const routeSource = routeConfig.routeSource === 'auto'
     ? input.routeSourceHint
     : routeConfig.routeSource;
-  if (routeSource !== 'cloud') {
+  const binding = routeConfig.routeBinding;
+  if (!binding) {
     return null;
   }
   const model = String(routeConfig.model || '').trim();
   if (!model) {
     return null;
   }
-  const connectorId = String(routeConfig.routeBinding?.connectorId || '').trim();
+  const connectorId = String(binding.connectorId || '').trim();
+  const localModelId = String(binding.localModelId || '').trim();
+  if (binding.source === 'local' && !localModelId) {
+    return null;
+  }
+  if (binding.source === 'cloud' && !connectorId) {
+    return null;
+  }
   return {
-    routeSource,
+    routeSource: binding.source,
     resolvedRoute: {
-      source: routeSource,
+      source: binding.source,
       ...(connectorId ? { connectorId } : {}),
-      model,
+      ...(localModelId ? { localModelId } : {}),
+      model: binding.source === 'local' ? `local/${model}` : model,
       resolvedBy: 'selected',
       resolvedAt: new Date().toISOString(),
       settingsRevision: buildMediaSettingsRevision({ kind: input.kind, settings: input.defaultSettings }),

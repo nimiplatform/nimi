@@ -42,11 +42,28 @@
 | `relay:chat:selected-session` | event (main→renderer) | stream | — | RL-PIPE-002 |
 | `relay:auth:status` | unary | auth | — | RL-BOOT-005 |
 | `relay:auth:status` | event (main→renderer) | stream | — | RL-BOOT-005 |
+| `relay:auth:logout` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:apply-token` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:check-email` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:password-login` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:oauth-login` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:email-otp-request` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:email-otp-verify` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:2fa-verify` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:wallet-challenge` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:wallet-login` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:update-password` | unary | auth | — | RL-BOOT-005 |
+| `relay:auth:current-user` | unary | auth | — | RL-BOOT-005 |
+| `relay:oauth:listen-for-code` | unary | auth | — | RL-BOOT-006 |
+| `relay:oauth:open-external-url` | unary | auth | — | RL-BOOT-006 |
+| `relay:oauth:focus-main-window` | unary | auth | — | RL-BOOT-006 |
+| `relay:oauth:token-exchange` | unary | auth | — | RL-BOOT-006 |
 | `relay:model:list` | unary | model | `runtime.model.list` | RL-IPC-010 |
 | `relay:model:pull` | unary | model | `runtime.model.pull` | RL-IPC-010 |
 | `relay:model:remove` | unary | model | `runtime.model.remove` | RL-IPC-010 |
 | `relay:model:health` | unary | model | `runtime.model.checkHealth` | RL-IPC-010 |
 | `relay:local:models:list` | unary | local | `runtime.local.listLocalModels` | RL-IPC-011 |
+| `relay:local:artifacts:list` | unary | local | `runtime.local.listLocalArtifacts` | RL-IPC-011 |
 | `relay:local:models:verified` | unary | local | `runtime.local.listVerifiedModels` | RL-IPC-011 |
 | `relay:local:models:catalog-search` | unary | local | `runtime.local.searchCatalogModels` | RL-IPC-011 |
 | `relay:local:models:install-plan` | unary | local | `runtime.local.resolveModelInstallPlan` | RL-IPC-011 |

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
@@ -562,6 +562,29 @@ function WorldRecommendedAgentsCard({
   );
 }
 
+// React error boundary for WebGL canvas components. Catches context-loss crashes
+// (getContextAttributes() → null) that originate from EffectComposer.addPass() inside
+// @react-three/postprocessing's useLayoutEffect. In React 18, useLayoutEffect errors
+// are re-thrown and caught by the nearest error boundary, so this prevents a
+// full-renderer crash when a WebGL context is lost.
+type CanvasCrashBoundaryProps = { children: ReactNode; fallback: ReactNode };
+type CanvasCrashBoundaryState = { crashed: boolean };
+
+class CanvasCrashBoundary extends Component<CanvasCrashBoundaryProps, CanvasCrashBoundaryState> {
+  constructor(props: CanvasCrashBoundaryProps) {
+    super(props);
+    this.state = { crashed: false };
+  }
+
+  static getDerivedStateFromError(): CanvasCrashBoundaryState {
+    return { crashed: true };
+  }
+
+  override render() {
+    return this.state.crashed ? this.props.fallback : this.props.children;
+  }
+}
+
 export function WorldDashboardSection({
   world,
 }: {
@@ -584,16 +607,47 @@ export function WorldDashboardSection({
               data-testid="world-detail-score-matrix-card"
               className="h-full overflow-hidden rounded-[22px] border border-[#4ECCA3]/15 bg-[#0f1612]/82 backdrop-blur-sm"
             >
-              <WorldScoringMatrix
-                data={{
-                  scoreA: world.scoreA,
-                  scoreC: world.scoreC,
-                  scoreQ: world.scoreQ,
-                  scoreE: world.scoreE,
-                  scoreEwma: world.scoreEwma,
-                }}
-                className="min-h-[620px]"
-              />
+              <CanvasCrashBoundary
+                fallback={
+                  <div className="flex min-h-[620px] flex-col gap-4 p-6">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-[#4ECCA3]">
+                      {t('WorldDetail.section.scores', { defaultValue: 'World Scoring Matrix' })}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {([
+                        { label: t('WorldDetail.activity', { defaultValue: 'Activity' }), value: world.scoreA },
+                        { label: t('WorldDetail.consensus', { defaultValue: 'Consensus' }), value: world.scoreC },
+                        { label: t('WorldDetail.quality', { defaultValue: 'Quality' }), value: world.scoreQ },
+                        { label: t('WorldDetail.engagement', { defaultValue: 'Engagement' }), value: world.scoreE },
+                      ] as Array<{ label: string; value: number }>).map(({ label, value }) => (
+                        <div key={label} className="rounded-xl border border-[#4ECCA3]/18 bg-[#0a1210]/60 p-4 text-center">
+                          <div className="text-2xl font-bold text-[#4ECCA3]">{(value ?? 0).toFixed(0)}</div>
+                          <div className="mt-1 text-[10px] uppercase tracking-widest text-[#86f0ca]/60">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-auto rounded-xl border border-[#4ECCA3]/10 bg-[#0a1210]/40 p-4">
+                      <div className="text-[10px] uppercase tracking-widest text-[#4ECCA3]/70">
+                        {t('WorldDetail.comprehensiveIndex', { defaultValue: 'Comprehensive Index' })}
+                      </div>
+                      <div className="mt-1 text-2xl font-bold text-[#4ECCA3]">
+                        {(world.scoreEwma ?? 0).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                }
+              >
+                <WorldScoringMatrix
+                  data={{
+                    scoreA: world.scoreA,
+                    scoreC: world.scoreC,
+                    scoreQ: world.scoreQ,
+                    scoreE: world.scoreE,
+                    scoreEwma: world.scoreEwma,
+                  }}
+                  className="min-h-[620px]"
+                />
+              </CanvasCrashBoundary>
             </section>
           </div>
 
@@ -606,7 +660,20 @@ export function WorldDashboardSection({
                 dataTestId="world-detail-time-flow-card"
               >
                 <div className="flex h-full min-h-[220px] items-center justify-center">
-                  <TimeFlowDynamics ratio={world.flowRatio || 1} className="h-[200px] w-full" />
+                  <CanvasCrashBoundary
+                    fallback={
+                      <div className="flex h-[200px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-[#4ECCA3]/15 bg-[#0f1612]/40">
+                        <span className="font-mono text-4xl font-black text-[#4ECCA3]">
+                          {(world.flowRatio || 1).toFixed(1)}x
+                        </span>
+                        <span className="text-xs uppercase tracking-widest text-[#86f0ca]/50">
+                          {t('WorldDetail.xianxia.v2.visuals.timeFlowTitle')}
+                        </span>
+                      </div>
+                    }
+                  >
+                    <TimeFlowDynamics ratio={world.flowRatio || 1} className="h-[200px] w-full" />
+                  </CanvasCrashBoundary>
                 </div>
               </SectionShell>
               {hasChronology ? <WorldChronologyCard world={world} /> : null}

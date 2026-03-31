@@ -25,6 +25,7 @@ import type { RouteState } from './route/route-state.js';
 import type { RelayInvokeMap } from '../shared/ipc-contract.js';
 import type { TurnDeliveryScheduleHandle } from './chat-pipeline/session-persist.js';
 import { resolveRelayTtsConfig } from './tts-config.js';
+import { mergeLocalChatSettings } from './settings/settings-store.js';
 export { registerAuthIpcHandlers } from './ipc-auth-handlers.js';
 
 type ListCreatorAgentsResult = RealmServiceResult<'CreatorService', 'creatorControllerListAgents'>;
@@ -198,13 +199,15 @@ export function registerIpcHandlers(
   safeHandle('relay:media:image:generate', async (_event, input: Omit<ImageGenerateInput, 'signal'>) => {
     try {
       const { loadRelaySettings } = await import('./settings/settings-store.js');
+      const { resolveConfiguredImageGenerateTarget } = await import('./media/media-route.js');
       const settings = await loadRelaySettings();
-      const imgConnector = settings.inspect.imageConnectorId;
-      const imgModel = settings.inspect.imageModel;
+      const resolved = resolveConfiguredImageGenerateTarget(mergeLocalChatSettings(settings));
       return await runtime.media.image.generate({
         ...input,
-        model: input.model || imgModel || 'auto',
-        ...(imgConnector ? { route: 'cloud' as const, connectorId: imgConnector } : {}),
+        model: input.model || resolved.model,
+        route: resolved.routeSource,
+        ...(resolved.connectorId ? { connectorId: resolved.connectorId } : {}),
+        ...(resolved.extensions ? { extensions: resolved.extensions } : {}),
       });
     } catch (error) {
       throw toIpcError(error);
@@ -335,11 +338,25 @@ export function registerIpcHandlers(
 
       // Load inspect settings for media routes
       const { loadRelaySettings } = await import('./settings/settings-store.js');
+      const {
+        resolveConfiguredImageGenerateTarget,
+      } = await import('./media/media-route.js');
       const chatSettings = await loadRelaySettings();
+      const mergedSettings = {
+        ...chatSettings.product,
+        ...chatSettings.inspect,
+        enableVoice: chatSettings.product.voiceConversationMode === 'on' || chatSettings.product.voiceAutonomy !== 'off',
+        deliveryStyle: 'natural' as const,
+        relationshipBoundaryPreset: 'balanced' as const,
+      };
       const mediaRoutes = {
-        image: chatSettings.inspect.imageConnectorId
-          ? { connectorId: chatSettings.inspect.imageConnectorId, model: chatSettings.inspect.imageModel }
-          : undefined,
+        image: (() => {
+          try {
+            return resolveConfiguredImageGenerateTarget(mergedSettings);
+          } catch {
+            return undefined;
+          }
+        })(),
         video: chatSettings.inspect.videoConnectorId
           ? { connectorId: chatSettings.inspect.videoConnectorId, model: chatSettings.inspect.videoModel }
           : undefined,

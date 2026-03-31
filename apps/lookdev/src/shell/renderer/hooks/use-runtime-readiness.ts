@@ -26,6 +26,7 @@ type RuntimeProbeResult = {
 };
 
 async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
+  const runtimeDefaults = useAppStore.getState().runtimeDefaults;
   let realmConfigured = false;
   let realmAuthenticated = false;
 
@@ -101,9 +102,15 @@ async function ensureRuntimeReady(): Promise<RuntimeProbeResult> {
       ...visionCatalog.issues.map((issue) => issue.message),
     );
 
-    const defaultTextTarget = pickDefaultRuntimeTargetOption(textTargets);
-    const defaultImageTarget = pickDefaultRuntimeTargetOption(imageTargets);
-    const defaultVisionTarget = pickDefaultRuntimeTargetOption(visionTargets);
+    const targetPreference = {
+      connectorId: runtimeDefaults?.runtime.connectorId,
+      provider: runtimeDefaults?.runtime.provider,
+      modelId: undefined,
+      localModelId: runtimeDefaults?.runtime.localProviderModel,
+    };
+    const defaultTextTarget = pickDefaultRuntimeTargetOption(textTargets, targetPreference);
+    const defaultImageTarget = pickDefaultRuntimeTargetOption(imageTargets, targetPreference);
+    const defaultVisionTarget = pickDefaultRuntimeTargetOption(visionTargets, targetPreference);
 
     textDefaultTargetKey = defaultTextTarget?.key || '';
     textConnectorId = defaultTextTarget?.connectorId || '';

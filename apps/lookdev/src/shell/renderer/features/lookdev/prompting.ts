@@ -54,12 +54,23 @@ export function compilePortraitBrief(input: {
 
 export function buildGenerationPrompt(item: LookdevItem, policy: LookdevPolicySnapshot, worldStylePack: LookdevWorldStylePack): string {
   const brief = item.portraitBrief;
+  const captureState = item.captureStateSnapshot;
   const parts = [
     'Create a portrait truth candidate for a persistent agent.',
     `Character: ${item.agentDisplayName}.`,
     `Capture mode: ${item.captureMode}.`,
+    `Capture synthesis mode: ${captureState.synthesisMode}.`,
     `World style lane: ${worldStylePack.name}.`,
     `Visual era: ${worldStylePack.visualEra}.`,
+    `Current brief: ${captureState.currentBrief}.`,
+    `Source summary: ${captureState.sourceSummary}.`,
+    `Feeling anchor: ${captureState.feelingAnchor.coreVibe}.`,
+    compactList(captureState.feelingAnchor.tonePhrases) ? `Stable feeling phrases: ${compactList(captureState.feelingAnchor.tonePhrases)}.` : '',
+    compactList(captureState.feelingAnchor.avoidVibe) ? `Avoid vibe: ${compactList(captureState.feelingAnchor.avoidVibe)}.` : '',
+    `Effective intent: ${captureState.workingMemory.effectiveIntentSummary}.`,
+    compactList(captureState.workingMemory.preserveFocus) ? `Preserve focus: ${compactList(captureState.workingMemory.preserveFocus)}.` : '',
+    compactList(captureState.workingMemory.adjustFocus) ? `Adjust focus: ${compactList(captureState.workingMemory.adjustFocus)}.` : '',
+    compactList(captureState.workingMemory.negativeConstraints) ? `Negative constraints: ${compactList(captureState.workingMemory.negativeConstraints)}.` : '',
     `Art style: ${brief.artStyle}.`,
     `Visual role: ${brief.visualRole}.`,
     `Silhouette: ${brief.silhouette}.`,
@@ -68,6 +79,8 @@ export function buildGenerationPrompt(item: LookdevItem, policy: LookdevPolicySn
     `Palette direction: ${brief.palettePrimary}.`,
     compactList(brief.mustKeepTraits) ? `Must keep traits: ${compactList(brief.mustKeepTraits)}.` : '',
     compactList(brief.forbiddenTraits) ? `Forbidden traits: ${compactList(brief.forbiddenTraits)}.` : '',
+    `Detail budget: ${captureState.visualIntent.detailBudget}.`,
+    `Background weight: ${captureState.visualIntent.backgroundWeight}.`,
     `World material direction: ${worldStylePack.materialDirection}.`,
     `World background direction: ${worldStylePack.backgroundDirection}.`,
     `World prompt frame: ${worldStylePack.promptFrame}.`,

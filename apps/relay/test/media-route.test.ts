@@ -6,6 +6,8 @@ import {
   resolveMediaRouteConfig,
   isMediaRouteReady,
   buildMediaSettingsRevision,
+  resolveConfiguredImageWorkflowExtensions,
+  resolveConfiguredImageGenerateTarget,
 } from '../src/main/media/media-route.js';
 import type { LocalChatDefaultSettings } from '../src/main/settings/types.js';
 import { DEFAULT_LOCAL_CHAT_DEFAULT_SETTINGS } from '../src/main/settings/types.js';
@@ -47,11 +49,43 @@ describe('resolveMediaRouteConfig', () => {
     assert.equal(result.routeBinding, undefined);
   });
 
-  it('local route falls back to cloud in relay', () => {
-    const settings = createSettings({ imageRouteSource: 'local', imageConnectorId: 'conn-1' });
+  it('local image route resolves to a local binding without cloud fallback', () => {
+    const settings = createSettings({
+      imageRouteSource: 'local',
+      imageLocalModelId: 'local-image-1',
+      imageModel: 'flux-local-dev',
+    });
     const result = resolveMediaRouteConfig({ kind: 'image', settings });
     assert.equal(result.routeSource, 'local');
+    assert.equal(result.routeBinding?.source, 'local');
+    assert.equal(result.routeBinding?.localModelId, 'local-image-1');
+    assert.equal(result.routeBinding?.connectorId, '');
+    assert.equal(result.routeBinding?.model, 'flux-local-dev');
+  });
+
+  it('auto image route prefers configured cloud binding before local binding', () => {
+    const settings = createSettings({
+      imageRouteSource: 'auto',
+      imageConnectorId: 'conn-1',
+      imageModel: 'cloud-image-1',
+      imageLocalModelId: 'local-image-1',
+    });
+    const result = resolveMediaRouteConfig({ kind: 'image', settings });
+    assert.equal(result.routeSource, 'auto');
     assert.equal(result.routeBinding?.source, 'cloud');
+    assert.equal(result.routeBinding?.connectorId, 'conn-1');
+  });
+
+  it('auto image route resolves to local when only local config exists', () => {
+    const settings = createSettings({
+      imageRouteSource: 'auto',
+      imageLocalModelId: 'local-image-1',
+      imageModel: 'flux-local-dev',
+    });
+    const result = resolveMediaRouteConfig({ kind: 'image', settings });
+    assert.equal(result.routeSource, 'auto');
+    assert.equal(result.routeBinding?.source, 'local');
+    assert.equal(result.routeBinding?.localModelId, 'local-image-1');
   });
 
   it('unknown route source normalizes to auto', () => {
@@ -75,8 +109,8 @@ describe('isMediaRouteReady', () => {
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), false);
   });
 
-  it('auto route ready when connectorId or model exists', () => {
-    const settings = createSettings({ imageRouteSource: 'auto', imageModel: 'flux-v2' });
+  it('auto route is ready when connectorId exists', () => {
+    const settings = createSettings({ imageRouteSource: 'auto', imageConnectorId: 'conn-1', imageModel: 'flux-v2' });
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), true);
   });
 
@@ -85,13 +119,17 @@ describe('isMediaRouteReady', () => {
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), false);
   });
 
-  it('local route is ready when relay can resolve a cloud binding from connector config', () => {
-    const settings = createSettings({ imageRouteSource: 'local', imageConnectorId: 'conn-1' });
+  it('local route is ready when imageLocalModelId exists', () => {
+    const settings = createSettings({
+      imageRouteSource: 'local',
+      imageLocalModelId: 'local-image-1',
+      imageModel: 'flux-local-dev',
+    });
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), true);
   });
 
-  it('local route is not ready when no connector or model is configured', () => {
-    const settings = createSettings({ imageRouteSource: 'local' });
+  it('local route is not ready when imageLocalModelId is missing', () => {
+    const settings = createSettings({ imageRouteSource: 'local', imageModel: 'flux-local-dev' });
     assert.equal(isMediaRouteReady({ kind: 'image', settings }), false);
   });
 
@@ -146,5 +184,102 @@ describe('buildMediaSettingsRevision', () => {
     const a = buildMediaSettingsRevision({ kind: 'image', settings });
     const b = buildMediaSettingsRevision({ kind: 'video', settings });
     assert.notEqual(a, b);
+  });
+
+  it('different local model selections produce different hashes', () => {
+    const settingsA = createSettings({ imageRouteSource: 'local', imageLocalModelId: 'local-image-1', imageModel: 'flux-local-dev' });
+    const settingsB = createSettings({ imageRouteSource: 'local', imageLocalModelId: 'local-image-2', imageModel: 'flux-local-dev' });
+    const a = buildMediaSettingsRevision({ kind: 'image', settings: settingsA });
+    const b = buildMediaSettingsRevision({ kind: 'image', settings: settingsB });
+    assert.notEqual(a, b);
+  });
+});
+
+describe('resolveConfiguredImageWorkflowExtensions', () => {
+  it('returns undefined when no workflow config is present', () => {
+    const settings = createSettings();
+    assert.equal(resolveConfiguredImageWorkflowExtensions(settings), undefined);
+  });
+
+  it('includes explicit workflow components and profile overrides', () => {
+    const settings = createSettings({
+      imageWorkflowComponents: [
+        { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
+        { slot: 'llm_path', localArtifactId: 'artifact-llm-1' },
+      ],
+      imageProfileOverrides: { scheduler: 'ddim' },
+    });
+
+    const extensions = resolveConfiguredImageWorkflowExtensions(settings);
+    assert.deepEqual(extensions, {
+      components: [
+        { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
+        { slot: 'llm_path', localArtifactId: 'artifact-llm-1' },
+      ],
+      profile_overrides: { scheduler: 'ddim' },
+    });
+  });
+});
+
+describe('resolveConfiguredImageGenerateTarget', () => {
+  it('returns local route target with local-prefixed model and workflow extensions', () => {
+    const settings = createSettings({
+      imageRouteSource: 'local',
+      imageLocalModelId: 'local-image-1',
+      imageModel: 'flux-local-dev',
+      imageWorkflowComponents: [
+        { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
+      ],
+    });
+
+    const result = resolveConfiguredImageGenerateTarget(settings);
+    assert.deepEqual(result, {
+      routeSource: 'local',
+      model: 'local/flux-local-dev',
+      localModelId: 'local-image-1',
+      extensions: {
+        components: [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }],
+      },
+    });
+  });
+
+  it('fails closed when local image route lacks an explicit local model selection', () => {
+    const settings = createSettings({
+      imageRouteSource: 'local',
+      imageWorkflowComponents: [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }],
+    });
+
+    assert.throws(
+      () => resolveConfiguredImageGenerateTarget(settings),
+      /Image route is not configured|Local image model is required/,
+    );
+  });
+
+  it('fails closed when local image route lacks workflow components', () => {
+    const settings = createSettings({
+      imageRouteSource: 'local',
+      imageLocalModelId: 'local-image-1',
+      imageModel: 'flux-local-dev',
+    });
+
+    assert.throws(
+      () => resolveConfiguredImageGenerateTarget(settings),
+      /requires explicit companion artifact selections via components\[\]/,
+    );
+  });
+
+  it('returns cloud route target unchanged for cloud settings', () => {
+    const settings = createSettings({
+      imageRouteSource: 'cloud',
+      imageConnectorId: 'conn-1',
+      imageModel: 'gpt-image-1',
+    });
+
+    const result = resolveConfiguredImageGenerateTarget(settings);
+    assert.deepEqual(result, {
+      routeSource: 'cloud',
+      connectorId: 'conn-1',
+      model: 'gpt-image-1',
+    });
   });
 });

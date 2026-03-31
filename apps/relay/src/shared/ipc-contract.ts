@@ -56,6 +56,8 @@ type ModelHealthResponse = RuntimeMethodOutput<Runtime['model']['checkHealth']>;
 
 type LocalListModelsInput = RuntimeMethodInput<Runtime['local']['listLocalModels']>;
 type LocalListModelsResponse = RuntimeMethodOutput<Runtime['local']['listLocalModels']>;
+type LocalListArtifactsInput = RuntimeMethodInput<Runtime['local']['listLocalArtifacts']>;
+type LocalListArtifactsResponse = RuntimeMethodOutput<Runtime['local']['listLocalArtifacts']>;
 type LocalListVerifiedModelsInput = RuntimeMethodInput<Runtime['local']['listVerifiedModels']>;
 type LocalListVerifiedModelsResponse = RuntimeMethodOutput<Runtime['local']['listVerifiedModels']>;
 type LocalSearchCatalogInput = RuntimeMethodInput<Runtime['local']['searchCatalogModels']>;
@@ -263,6 +265,7 @@ export type RelayMediaRouteOptionsRequest = {
 };
 
 export type RelayMediaRouteOptionsResponse = {
+  local: RelayRouteOptions['local'];
   connectors: RelayRouteOptions['connectors'];
   loadStatus: RelayRouteOptions['loadStatus'];
   issues: RelayRouteOptions['issues'];
@@ -428,6 +431,10 @@ export type RelayInvokeMap = {
   'relay:local:models:list': {
     request: LocalListModelsInput | undefined;
     response: LocalListModelsResponse;
+  };
+  'relay:local:artifacts:list': {
+    request: LocalListArtifactsInput | undefined;
+    response: LocalListArtifactsResponse;
   };
   'relay:local:models:verified': {
     request: LocalListVerifiedModelsInput | undefined;
@@ -715,6 +722,7 @@ export interface NimiRelayBridge {
   };
   local: {
     listModels: (...args: RelayInvokeArgs<'relay:local:models:list'>) => Promise<RelayInvokeResponse<'relay:local:models:list'>>;
+    listArtifacts: (...args: RelayInvokeArgs<'relay:local:artifacts:list'>) => Promise<RelayInvokeResponse<'relay:local:artifacts:list'>>;
     listVerifiedModels: (...args: RelayInvokeArgs<'relay:local:models:verified'>) => Promise<RelayInvokeResponse<'relay:local:models:verified'>>;
     searchCatalog: (...args: RelayInvokeArgs<'relay:local:models:catalog-search'>) => Promise<RelayInvokeResponse<'relay:local:models:catalog-search'>>;
     resolveInstallPlan: (...args: RelayInvokeArgs<'relay:local:models:install-plan'>) => Promise<RelayInvokeResponse<'relay:local:models:install-plan'>>;

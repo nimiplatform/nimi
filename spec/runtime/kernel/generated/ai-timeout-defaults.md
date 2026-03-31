@@ -4,7 +4,7 @@
 > Source: `spec/runtime/kernel/tables/ai-timeout-defaults.yaml`
 | Operation | Default (ms) | Overridable | Source |
 |---|---:|---|---|
-| `ExecuteScenario_text_generate` | 30000 | `true` | `K-DAEMON-008` |
+| `ExecuteScenario_text_generate` | 120000 | `true` | `K-DAEMON-008` |
 | `StreamScenario_first_packet` | 10000 | `false` | `K-DAEMON-008` |
 | `StreamScenario_total` | 120000 | `true` | `K-DAEMON-008` |
 | `ExecuteScenario_text_embed` | 20000 | `true` | `K-DAEMON-008` |

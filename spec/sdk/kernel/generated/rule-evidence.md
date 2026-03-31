@@ -81,6 +81,7 @@
 | `S-REALM-035` | `na` | — |
 | `S-REALM-036` | `na` | — |
 | `S-REALM-037` | `na` | — |
+| `S-REALM-038` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |
 | `S-RUNTIME-010` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-RUNTIME-011` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency`, `sdk_lint_gate` |
 | `S-RUNTIME-012` | `covered` | `sdk_behavioral_test`, `sdk_kernel_consistency` |

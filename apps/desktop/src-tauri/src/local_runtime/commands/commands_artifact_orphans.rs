@@ -51,7 +51,7 @@ fn is_managed_models_subdir(path: &std::path::Path) -> bool {
 fn is_reserved_models_root_child(path: &std::path::Path) -> bool {
     matches!(
         path.file_name().and_then(|value| value.to_str()),
-        Some("resolved" | "artifacts")
+        Some("resolved" | "artifacts" | "quarantine")
     )
 }
 
@@ -436,6 +436,34 @@ mod orphan_tests {
             .map(|item| item.filename.as_str())
             .collect::<Vec<_>>();
         assert_eq!(filenames, vec!["loose.safetensors", "raw.bin"]);
+    }
+
+    #[test]
+    fn scan_orphan_binary_candidates_skips_quarantine_directory() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let models_root = tmp.path();
+        let loose = models_root.join("loose.gguf");
+        fs::write(&loose, b"loose").expect("write loose");
+
+        let quarantine_dir = models_root.join("quarantine").join("models").join("failed-bundle");
+        fs::create_dir_all(&quarantine_dir).expect("create quarantine dir");
+        fs::write(quarantine_dir.join("orphan.gguf"), b"quarantined")
+            .expect("write quarantined model");
+
+        let state = LocalAiRuntimeState::default();
+        let registered_paths = registered_model_paths(models_root, &state);
+        let scanned = scan_orphan_binary_candidates(
+            models_root,
+            &registered_paths,
+            "LOCAL_AI_TEST_ORPHAN_SCAN_FAILED",
+        )
+        .expect("scan candidates");
+
+        let filenames = scanned
+            .iter()
+            .map(|item| item.filename.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(filenames, vec!["loose.gguf"]);
     }
 
     #[test]

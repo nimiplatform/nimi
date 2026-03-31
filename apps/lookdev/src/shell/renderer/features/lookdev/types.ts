@@ -18,6 +18,7 @@ export type LookdevItemStatus =
   | 'commit_failed';
 
 export type LookdevCaptureMode = 'capture' | 'batch_only';
+export type LookdevCaptureSynthesisMode = 'silent' | 'interactive';
 export type LookdevAgentImportance = 'PRIMARY' | 'SECONDARY' | 'BACKGROUND' | 'UNKNOWN';
 export type LookdevAuditEventScope = 'batch' | 'item';
 export type LookdevAuditEventSeverity = 'info' | 'success' | 'warning' | 'error';
@@ -67,6 +68,58 @@ export type LookdevImageArtifact = {
   artifactId?: string;
   promptSnapshot: string;
   createdAt: string;
+};
+
+export type LookdevCaptureFeelingAnchor = {
+  coreVibe: string;
+  tonePhrases: string[];
+  avoidVibe: string[];
+};
+
+export type LookdevCaptureWorkingMemory = {
+  effectiveIntentSummary: string;
+  preserveFocus: string[];
+  adjustFocus: string[];
+  negativeConstraints: string[];
+};
+
+export type LookdevCaptureVisualIntent = {
+  visualRole: string;
+  silhouette: string;
+  outfit: string;
+  hairstyle: string;
+  palettePrimary: string;
+  artStyle: string;
+  mustKeepTraits: string[];
+  forbiddenTraits: string[];
+  detailBudget: 'lean' | 'standard' | 'hero';
+  backgroundWeight: 'minimal' | 'supporting' | 'requested';
+};
+
+export type LookdevCaptureStateMessage = {
+  messageId: string;
+  role: 'assistant' | 'operator';
+  text: string;
+  createdAt: string;
+};
+
+export type LookdevCaptureState = {
+  agentId: string;
+  worldId: string | null;
+  displayName: string;
+  sourceConfidence: 'derived_from_agent_truth' | 'world_style_fallback';
+  captureMode: LookdevCaptureMode;
+  synthesisMode: LookdevCaptureSynthesisMode;
+  seedSignature: string;
+  currentBrief: string;
+  feelingAnchor: LookdevCaptureFeelingAnchor;
+  workingMemory: LookdevCaptureWorkingMemory;
+  visualIntent: LookdevCaptureVisualIntent;
+  messages: LookdevCaptureStateMessage[];
+  sourceSummary: string;
+  lastTextTraceId: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type LookdevWorldStyleSessionMessage = {
@@ -201,6 +254,7 @@ export type LookdevItem = {
   agentDescription: string | null;
   importance: LookdevAgentImportance;
   captureMode: LookdevCaptureMode;
+  captureStateSnapshot: LookdevCaptureState;
   portraitBrief: LookdevPortraitBrief;
   worldId: string | null;
   status: LookdevItemStatus;

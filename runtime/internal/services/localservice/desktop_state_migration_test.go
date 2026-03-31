@@ -113,7 +113,7 @@ func TestDesktopLocalRuntimeMigrationAdoptsManagedModelIntoRuntimeState(t *testi
 		t.Fatalf("expected supervised runtime mode, got %s", mode)
 	}
 
-	newManifestPath := filepath.Join(homeDir, ".nimi", "models", "resolved", "nimi", "local-import-qwen", "manifest.json")
+	newManifestPath := filepath.Join(homeDir, ".nimi", "data", "models", "resolved", "nimi", "local-import-qwen", "manifest.json")
 	if _, err := os.Stat(newManifestPath); err != nil {
 		t.Fatalf("expected migrated manifest under runtime models root: %v", err)
 	}

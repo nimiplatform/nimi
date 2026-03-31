@@ -64,3 +64,18 @@ Relay may expose typed auth-status bootstrap channels for the Electron shell:
 1. auth bootstrap state must remain a typed bridge concern, not an ad hoc renderer fetch
 2. unary status read and renderer push events must use the `relay:auth:*` namespace only
 3. auth status transport is bootstrap/session state, not a realm media or chat capability
+
+## RL-BOOT-006 — OAuth Loopback Security Contract
+
+OAuth 授权码流使用本地 HTTP loopback listener，必须满足以下安全约束：
+
+1. redirect URI 只接受 loopback 地址（`127.0.0.1` 或 `localhost`），拒绝其他主机名
+2. redirect URI 不得包含 query 参数或 hash fragment
+3. redirect URI 必须指定显式端口（正整数）
+4. callback target path 必须严格匹配预注册路径，不得以 `//` 开头或包含 fragment
+5. token exchange endpoint 必须为 HTTPS（loopback HTTP 除外，遵循 RFC 8252）
+6. token exchange 使用 `application/x-www-form-urlencoded` 编码
+7. PKCE `code_verifier` 在提供时必须传递，不得静默丢弃
+8. token exchange 响应必须包含 `access_token`，缺失时 fail-close
+9. loopback listener 必须设置超时，超时后 reject
+10. response header 必须设置 `Cache-Control: no-store` 防止 token 泄露

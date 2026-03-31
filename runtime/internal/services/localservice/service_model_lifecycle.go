@@ -192,6 +192,19 @@ func (s *Service) CheckLocalModelHealth(ctx context.Context, req *runtimev1.Chec
 			result = append(result, health)
 			continue
 		}
+		if modelsRoot := s.resolvedLocalModelsPath(); strings.TrimSpace(modelsRoot) != "" {
+			if entryPath, resolveErr := resolveManagedModelEntryAbsolutePath(modelsRoot, model); resolveErr == nil {
+				if validateErr := validateManagedModelEntryFile(entryPath); validateErr != nil {
+					detail := fmt.Sprintf("managed local model entry invalid: %v", validateErr)
+					transitioned, updateErr := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, detail)
+					if updateErr != nil {
+						return nil, updateErr
+					}
+					result = append(result, modelHealth(transitioned))
+					continue
+				}
+			}
+		}
 		switch model.GetStatus() {
 		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
 			endpoint := s.effectiveLocalModelEndpoint(model)

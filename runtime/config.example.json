@@ -4,7 +4,7 @@
   "httpAddr": "127.0.0.1:46372",
   "shutdownTimeoutSeconds": 10,
   "localStatePath": "~/.nimi/runtime/local-state.json",
-  "localModelsPath": "~/.nimi/models",
+  "localModelsPath": "~/.nimi/data/models",
   "aiHealthIntervalSeconds": 8,
   "aiHttpTimeoutSeconds": 30,
   "globalConcurrencyLimit": 8,

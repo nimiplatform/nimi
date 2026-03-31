@@ -56,6 +56,26 @@ batch_model:
         required_before_portrait_brief_compile: true
         required_before_capture_selection: true
         required_before_batch_create: true
+    capture_state:
+      required_fields:
+        - agentId
+        - worldId
+        - displayName
+        - sourceConfidence
+        - captureMode
+        - synthesisMode
+        - currentBrief
+        - feelingAnchor
+        - workingMemory
+        - visualIntent
+        - messages
+        - sourceSummary
+        - lastTextTraceId
+        - createdAt
+        - updatedAt
+      persistence:
+        appLocalReusable: true
+        realmTruth: false
     portrait_brief:
       required_fields:
         - agentId
@@ -157,6 +177,7 @@ batch_model:
       - agentDisplayName
       - importance
       - captureMode
+      - captureStateSnapshot
       - portraitBrief
       - status
       - attemptCount
@@ -175,3 +196,4 @@ batch_model:
     allowPerItemPolicyOverride: false
     allowBatchReopenAfterCommit: false
     captureSelectionDefault: primary_agents
+    nonCaptureSelectionSynthesisMode: silent

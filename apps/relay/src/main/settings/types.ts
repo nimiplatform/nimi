@@ -1,6 +1,8 @@
 // Relay settings types — adapted from local-chat default-settings-store.ts
 // Removed: mod SDK dependencies (readRuntimeModSettings, writeRuntimeModSettings)
 
+import type { JsonObject } from '../../shared/json.js';
+
 export type LocalChatTtsVoice = string;
 export type LocalChatDeliveryStyle = 'natural' | 'compact';
 export type LocalChatMediaAutonomy = 'off' | 'explicit-only' | 'natural';
@@ -19,6 +21,11 @@ export const LOCAL_CHAT_TTS_VOICE_OPTIONS = [
 ] as const;
 
 export type LocalChatBooleanSettingKey = 'allowProactiveContact' | 'autoPlayVoiceReplies';
+
+export type LocalImageWorkflowComponent = {
+  slot: string;
+  localArtifactId: string;
+};
 
 export type LocalChatProductSettings = {
   mediaAutonomy: LocalChatMediaAutonomy;
@@ -42,6 +49,9 @@ export type LocalChatInspectSettings = {
   imageRouteSource: 'auto' | 'local' | 'cloud';
   imageConnectorId: string;
   imageModel: string;
+  imageLocalModelId: string;
+  imageWorkflowComponents: LocalImageWorkflowComponent[];
+  imageProfileOverrides: JsonObject | null;
   videoRouteSource: 'auto' | 'local' | 'cloud';
   videoConnectorId: string;
   videoModel: string;
@@ -80,6 +90,9 @@ export const DEFAULT_LOCAL_CHAT_INSPECT_SETTINGS: LocalChatInspectSettings = {
   imageRouteSource: 'auto',
   imageConnectorId: '',
   imageModel: '',
+  imageLocalModelId: '',
+  imageWorkflowComponents: [],
+  imageProfileOverrides: null,
   videoRouteSource: 'auto',
   videoConnectorId: '',
   videoModel: '',
@@ -170,6 +183,9 @@ export function normalizeLocalChatInspectSettings(value: unknown): LocalChatInsp
   const sttModel = String(record.sttModel || '').trim();
   const imageConnectorId = String(record.imageConnectorId || '').trim();
   const imageModel = String(record.imageModel || '').trim();
+  const imageLocalModelId = String(record.imageLocalModelId || '').trim();
+  const imageWorkflowComponents = normalizeImageWorkflowComponents(record.imageWorkflowComponents);
+  const imageProfileOverrides = normalizeImageProfileOverrides(record.imageProfileOverrides);
   const videoConnectorId = String(record.videoConnectorId || '').trim();
   const videoModel = String(record.videoModel || '').trim();
   return {
@@ -185,6 +201,9 @@ export function normalizeLocalChatInspectSettings(value: unknown): LocalChatInsp
     imageRouteSource,
     imageConnectorId,
     imageModel,
+    imageLocalModelId,
+    imageWorkflowComponents,
+    imageProfileOverrides,
     videoRouteSource,
     videoConnectorId,
     videoModel,
@@ -212,4 +231,34 @@ export function mergeLocalChatSettings(settings: LocalChatSettings): LocalChatDe
     ...settings.inspect,
     enableVoice: resolveLocalChatVoiceEnabled(settings.product),
   };
+}
+
+function normalizeImageWorkflowComponents(value: unknown): LocalImageWorkflowComponent[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        return null;
+      }
+      const record = item as Record<string, unknown>;
+      const slot = String(record.slot || '').trim();
+      const localArtifactId = String(record.localArtifactId || '').trim();
+      if (!slot || !localArtifactId) {
+        return null;
+      }
+      return { slot, localArtifactId };
+    })
+    .filter((item): item is LocalImageWorkflowComponent => item !== null);
+}
+
+function normalizeImageProfileOverrides(value: unknown): JsonObject | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+  if (Object.keys(value).length === 0) {
+    return null;
+  }
+  return value as JsonObject;
 }

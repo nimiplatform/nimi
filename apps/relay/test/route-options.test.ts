@@ -91,10 +91,32 @@ describe('route options hardcut', () => {
 
     const result = await loadMediaRouteConnectors(runtime as never, 'image.generate');
 
-    assert.equal(result.loadStatus, 'failed');
+    assert.equal(result.loadStatus, 'degraded');
     assert.equal(result.connectors.length, 0);
     assert.equal(result.issues[0]?.scope, 'connectors');
     assert.match(result.issues[0]?.message ?? '', /connector registry unavailable/);
+  });
+
+  it('media route options include local image models for image.generate capability', async () => {
+    const runtime = createRuntimeStub({
+      localModels: [{
+        localModelId: 'local-image-1',
+        modelId: 'flux-local-dev',
+        engine: 'comfyui',
+        status: 2,
+        capabilities: ['image.generate'],
+      }],
+      connectors: [],
+    });
+
+    const result = await loadMediaRouteConnectors(runtime as never, 'image.generate');
+
+    assert.equal(result.loadStatus, 'ready');
+    assert.equal(result.local.status, 'ready');
+    assert.equal(result.local.models.length, 1);
+    assert.equal(result.local.models[0]?.localModelId, 'local-image-1');
+    assert.equal(result.local.models[0]?.modelId, 'flux-local-dev');
+    assert.deepEqual(result.connectors, []);
   });
 });
 

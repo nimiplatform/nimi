@@ -3,11 +3,14 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::desktop_paths;
-use crate::probe::{build_geocode_query, geocode_address, path_display, GeocodeOutcome, ProbeResult};
+use crate::probe::{
+    build_geocode_query, geocode_address, path_display, GeocodeOutcome, ProbeCommentClue,
+    ProbeResult,
+};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,10 +68,24 @@ pub struct ImportRecord {
     pub selected_stt_model: String,
     pub extraction_coverage: Option<Value>,
     pub output_dir: String,
+    pub public_comment_count: i64,
+    pub comment_clues: Vec<CommentClueRecord>,
     pub error_message: String,
     pub created_at: String,
     pub updated_at: String,
     pub venues: Vec<VenueRecord>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommentClueRecord {
+    pub comment_id: String,
+    pub author_name: String,
+    pub message: String,
+    pub like_count: i64,
+    pub published_at: String,
+    pub matched_venue_names: Vec<String>,
+    pub address_hint: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -113,6 +130,8 @@ struct ImportRow {
     selected_stt_model: String,
     extraction_coverage_json: String,
     output_dir: String,
+    public_comment_count: i64,
+    comment_clues_json: String,
     error_message: String,
     created_at: String,
     updated_at: String,
@@ -141,8 +160,12 @@ fn generate_id(prefix: &str) -> String {
 
 fn app_data_dir() -> Result<PathBuf, String> {
     let root = desktop_paths::resolve_nimi_data_dir()?.join("video-food-map");
-    fs::create_dir_all(&root)
-        .map_err(|error| format!("failed to create video-food-map data dir ({}): {error}", root.display()))?;
+    fs::create_dir_all(&root).map_err(|error| {
+        format!(
+            "failed to create video-food-map data dir ({}): {error}",
+            root.display()
+        )
+    })?;
     Ok(root)
 }
 
@@ -164,6 +187,49 @@ fn parse_json_value(raw: &str) -> Option<Value> {
         return None;
     }
     serde_json::from_str::<Value>(trimmed).ok()
+}
+
+fn parse_comment_clues(raw: &str) -> Vec<CommentClueRecord> {
+    serde_json::from_str::<Vec<CommentClueRecord>>(raw).unwrap_or_default()
+}
+
+fn table_has_column(
+    conn: &Connection,
+    table_name: &str,
+    column_name: &str,
+) -> Result<bool, String> {
+    let mut statement = conn
+        .prepare(&format!("PRAGMA table_info({table_name})"))
+        .map_err(|error| format!("failed to inspect sqlite schema for {table_name}: {error}"))?;
+    let rows = statement
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(|error| format!("failed to query sqlite schema for {table_name}: {error}"))?;
+    for row in rows {
+        let current = row.map_err(|error| {
+            format!("failed to read sqlite schema row for {table_name}: {error}")
+        })?;
+        if current == column_name {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn ensure_column(
+    conn: &Connection,
+    table_name: &str,
+    column_name: &str,
+    definition: &str,
+) -> Result<(), String> {
+    if table_has_column(conn, table_name, column_name)? {
+        return Ok(());
+    }
+    conn.execute(
+        &format!("ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}"),
+        [],
+    )
+    .map_err(|error| format!("failed to add column {table_name}.{column_name}: {error}"))?;
+    Ok(())
 }
 
 fn ensure_schema(conn: &Connection) -> Result<(), String> {
@@ -192,6 +258,8 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
           selected_stt_model TEXT NOT NULL DEFAULT '',
           extraction_coverage_json TEXT NOT NULL DEFAULT '',
           output_dir TEXT NOT NULL DEFAULT '',
+          public_comment_count INTEGER NOT NULL DEFAULT 0,
+          comment_clues_json TEXT NOT NULL DEFAULT '[]',
           error_message TEXT NOT NULL DEFAULT '',
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
@@ -226,13 +294,30 @@ fn ensure_schema(conn: &Connection) -> Result<(), String> {
         CREATE INDEX IF NOT EXISTS idx_venues_import_id ON venues(import_id);
         ",
     )
-    .map_err(|error| format!("failed to initialize sqlite schema: {error}"))
+    .map_err(|error| format!("failed to initialize sqlite schema: {error}"))?;
+    ensure_column(
+        conn,
+        "imports",
+        "public_comment_count",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    ensure_column(
+        conn,
+        "imports",
+        "comment_clues_json",
+        "TEXT NOT NULL DEFAULT '[]'",
+    )?;
+    Ok(())
 }
 
 fn open_db() -> Result<Connection, String> {
     let path = db_path()?;
-    let conn = Connection::open(&path)
-        .map_err(|error| format!("failed to open sqlite db ({}): {error}", path_display(&path)))?;
+    let conn = Connection::open(&path).map_err(|error| {
+        format!(
+            "failed to open sqlite db ({}): {error}",
+            path_display(&path)
+        )
+    })?;
     ensure_schema(&conn)?;
     Ok(conn)
 }
@@ -258,6 +343,8 @@ fn row_to_import(row: &rusqlite::Row<'_>) -> Result<ImportRow, rusqlite::Error> 
         selected_stt_model: row.get("selected_stt_model")?,
         extraction_coverage_json: row.get("extraction_coverage_json")?,
         output_dir: row.get("output_dir")?,
+        public_comment_count: row.get("public_comment_count")?,
+        comment_clues_json: row.get("comment_clues_json")?,
         error_message: row.get("error_message")?,
         created_at: row.get("created_at")?,
         updated_at: row.get("updated_at")?,
@@ -301,7 +388,9 @@ fn load_venues_for_import(conn: &Connection, import_id: &str) -> Result<Vec<Venu
                 import_id: row.get("import_id")?,
                 venue_name: row.get("venue_name")?,
                 address_text: row.get("address_text")?,
-                recommended_dishes: parse_string_array(&row.get::<_, String>("recommended_dishes_json")?),
+                recommended_dishes: parse_string_array(
+                    &row.get::<_, String>("recommended_dishes_json")?,
+                ),
                 cuisine_tags: parse_string_array(&row.get::<_, String>("cuisine_tags_json")?),
                 flavor_tags: parse_string_array(&row.get::<_, String>("flavor_tags_json")?),
                 evidence: parse_string_array(&row.get::<_, String>("evidence_json")?),
@@ -344,6 +433,8 @@ fn hydrate_import(conn: &Connection, row: ImportRow) -> Result<ImportRecord, Str
         selected_stt_model: row.selected_stt_model,
         extraction_coverage: parse_json_value(&row.extraction_coverage_json),
         output_dir: row.output_dir,
+        public_comment_count: row.public_comment_count,
+        comment_clues: parse_comment_clues(&row.comment_clues_json),
         error_message: row.error_message,
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -360,7 +451,11 @@ fn load_import_row(conn: &Connection, import_id: &str) -> Result<ImportRow, Stri
     .map_err(|error| format!("failed to load import {import_id}: {error}"))
 }
 
-fn ensure_import_row(conn: &Connection, source_url: &str, bvid_hint: &str) -> Result<String, String> {
+fn ensure_import_row(
+    conn: &Connection,
+    source_url: &str,
+    bvid_hint: &str,
+) -> Result<String, String> {
     let existing_id = if !bvid_hint.trim().is_empty() {
         conn.query_row(
             "SELECT id FROM imports WHERE bvid = ?1 LIMIT 1",
@@ -399,6 +494,20 @@ fn ensure_import_row(conn: &Connection, source_url: &str, bvid_hint: &str) -> Re
     )
     .map_err(|error| format!("failed to insert import row: {error}"))?;
     Ok(id)
+}
+
+fn update_import_status_by_id(
+    conn: &Connection,
+    import_id: &str,
+    status: &str,
+    error_message: &str,
+) -> Result<(), String> {
+    conn.execute(
+        "UPDATE imports SET status = ?1, error_message = ?2, updated_at = ?3 WHERE id = ?4",
+        params![status, error_message, now_iso(), import_id],
+    )
+    .map_err(|error| format!("failed to update import status: {error}"))?;
+    Ok(())
 }
 
 fn read_string_field(value: Option<&Value>, key: &str) -> String {
@@ -489,8 +598,68 @@ fn read_video_summary(extraction_json: Option<&Value>) -> String {
         .unwrap_or_default()
 }
 
+fn to_comment_clue_records(items: &[ProbeCommentClue]) -> Vec<CommentClueRecord> {
+    items
+        .iter()
+        .map(|item| CommentClueRecord {
+            comment_id: item.comment_id.clone(),
+            author_name: item.author_name.clone(),
+            message: item.message.clone(),
+            like_count: item.like_count,
+            published_at: item.published_at.clone(),
+            matched_venue_names: item.matched_venue_names.clone(),
+            address_hint: item.address_hint.clone(),
+        })
+        .collect()
+}
+
+fn address_is_specific(address_text: &str) -> bool {
+    let normalized = address_text.trim();
+    if normalized.is_empty() {
+        return false;
+    }
+
+    let has_digit = normalized.chars().any(|char| char.is_ascii_digit());
+    let detailed_markers = [
+        "号", "路", "街", "巷", "弄", "大道", "道", "楼", "层", "栋", "室", "城", "广场",
+    ];
+    let vague_markers = [
+        "附近",
+        "旁边",
+        "周边",
+        "对面",
+        "里面",
+        "门口",
+        "地铁",
+        "公交",
+        "商圈",
+        "一带",
+        "附近的",
+    ];
+
+    if vague_markers
+        .iter()
+        .any(|marker| normalized.contains(marker))
+    {
+        return false;
+    }
+
+    if has_digit {
+        return true;
+    }
+
+    detailed_markers
+        .iter()
+        .any(|marker| normalized.contains(marker))
+}
+
 fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome) -> String {
-    if geocode.status == "resolved" {
+    if geocode.status == "resolved"
+        && !input.needs_review
+        && input.confidence.trim() != "low"
+        && !input.venue_name.trim().is_empty()
+        && address_is_specific(&input.address_text)
+    {
         return "map_ready".to_string();
     }
     if input.needs_review || input.venue_name.trim().is_empty() {
@@ -506,22 +675,30 @@ fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome) -> String 
 }
 
 fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> Result<(), String> {
-    conn.execute("DELETE FROM venues WHERE import_id = ?1", params![import_id])
-        .map_err(|error| format!("failed to clear existing venues: {error}"))?;
+    conn.execute(
+        "DELETE FROM venues WHERE import_id = ?1",
+        params![import_id],
+    )
+    .map_err(|error| format!("failed to clear existing venues: {error}"))?;
 
     for (index, venue) in venues.iter().enumerate() {
         let geocode_query = build_geocode_query(&venue.venue_name, &venue.address_text);
-        let geocode = if venue.address_text.trim().is_empty() {
-            GeocodeOutcome {
-                provider: "nominatim".to_string(),
-                status: "skipped".to_string(),
-                query: String::new(),
-                latitude: None,
-                longitude: None,
-            }
-        } else {
-            geocode_address(&geocode_query)
-        };
+        let geocode =
+            if venue.address_text.trim().is_empty() || !address_is_specific(&venue.address_text) {
+                GeocodeOutcome {
+                    provider: "nominatim".to_string(),
+                    status: "skipped".to_string(),
+                    query: if address_is_specific(&venue.address_text) {
+                        String::new()
+                    } else {
+                        geocode_query.clone()
+                    },
+                    latitude: None,
+                    longitude: None,
+                }
+            } else {
+                geocode_address(&geocode_query)
+            };
         let review_state = resolve_review_state(venue, &geocode);
         let now = now_iso();
         conn.execute(
@@ -578,9 +755,12 @@ fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> 
     Ok(())
 }
 
-pub fn import_video(url: &str, bvid_hint: &str, probe: &ProbeResult) -> Result<ImportRecord, String> {
+pub fn complete_import_by_id(
+    import_id: &str,
+    url: &str,
+    probe: &ProbeResult,
+) -> Result<ImportRecord, String> {
     let conn = open_db()?;
-    let import_id = ensure_import_row(&conn, url, bvid_hint)?;
     let updated_at = now_iso();
     conn.execute(
         "
@@ -604,9 +784,11 @@ pub fn import_video(url: &str, bvid_hint: &str, probe: &ProbeResult) -> Result<I
           selected_stt_model = ?15,
           extraction_coverage_json = ?16,
           output_dir = ?17,
+          public_comment_count = ?18,
+          comment_clues_json = ?19,
           error_message = '',
-          updated_at = ?18
-        WHERE id = ?19
+          updated_at = ?20
+        WHERE id = ?21
         ",
         params![
             url,
@@ -626,25 +808,42 @@ pub fn import_video(url: &str, bvid_hint: &str, probe: &ProbeResult) -> Result<I
             probe.selected_stt_model,
             serde_json::to_string(&probe.extraction_coverage).unwrap_or_default(),
             probe.output_dir,
+            probe.raw_comment_count,
+            to_json(&to_comment_clue_records(&probe.comment_clues)),
             updated_at,
             import_id,
         ],
     )
     .map_err(|error| format!("failed to update successful import row: {error}"))?;
 
-    replace_venues(&conn, &import_id, &parse_venue_inputs(probe.extraction_json.as_ref()))?;
+    replace_venues(
+        &conn,
+        &import_id,
+        &parse_venue_inputs(probe.extraction_json.as_ref()),
+    )?;
     hydrate_import(&conn, load_import_row(&conn, &import_id)?)
 }
 
-pub fn mark_import_failed(url: &str, bvid_hint: &str, error_message: &str) -> Result<ImportRecord, String> {
+pub fn queue_import(url: &str, bvid_hint: &str) -> Result<ImportRecord, String> {
     let conn = open_db()?;
     let import_id = ensure_import_row(&conn, url, bvid_hint)?;
-    conn.execute(
-        "UPDATE imports SET status = 'failed', error_message = ?1, updated_at = ?2 WHERE id = ?3",
-        params![error_message, now_iso(), import_id],
-    )
-    .map_err(|error| format!("failed to mark import failed: {error}"))?;
+    update_import_status_by_id(&conn, &import_id, "queued", "")?;
     hydrate_import(&conn, load_import_row(&conn, &import_id)?)
+}
+
+pub fn set_import_stage(import_id: &str, status: &str) -> Result<ImportRecord, String> {
+    let conn = open_db()?;
+    update_import_status_by_id(&conn, import_id, status, "")?;
+    hydrate_import(&conn, load_import_row(&conn, import_id)?)
+}
+
+pub fn mark_import_failed_by_id(
+    import_id: &str,
+    error_message: &str,
+) -> Result<ImportRecord, String> {
+    let conn = open_db()?;
+    update_import_status_by_id(&conn, import_id, "failed", error_message)?;
+    hydrate_import(&conn, load_import_row(&conn, import_id)?)
 }
 
 pub fn load_snapshot() -> Result<Snapshot, String> {
@@ -693,8 +892,14 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
 
     let stats = SnapshotStats {
         import_count: imports.len(),
-        succeeded_count: imports.iter().filter(|record| record.status == "succeeded").count(),
-        failed_count: imports.iter().filter(|record| record.status == "failed").count(),
+        succeeded_count: imports
+            .iter()
+            .filter(|record| record.status == "succeeded")
+            .count(),
+        failed_count: imports
+            .iter()
+            .filter(|record| record.status == "failed")
+            .count(),
         venue_count,
         mapped_venue_count,
         review_venue_count,
@@ -705,4 +910,49 @@ pub fn load_snapshot() -> Result<Snapshot, String> {
         map_points,
         stats,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{address_is_specific, resolve_review_state, VenueInput};
+    use crate::probe::GeocodeOutcome;
+
+    fn sample_input(address_text: &str) -> VenueInput {
+        VenueInput {
+            venue_name: "炭火小馆".to_string(),
+            address_text: address_text.to_string(),
+            recommended_dishes: vec!["烤鸡翅".to_string()],
+            cuisine_tags: vec![],
+            flavor_tags: vec![],
+            evidence: vec!["这家鸡翅不错".to_string()],
+            confidence: "high".to_string(),
+            recommendation_polarity: "positive".to_string(),
+            needs_review: false,
+        }
+    }
+
+    #[test]
+    fn vague_business_area_is_not_specific_enough_for_map_promotion() {
+        assert!(!address_is_specific("天河城商圈附近"));
+    }
+
+    #[test]
+    fn street_address_is_specific_enough_for_map_promotion() {
+        assert!(address_is_specific("广州市天河区体育西路123号"));
+    }
+
+    #[test]
+    fn resolved_geocode_stays_in_review_when_address_is_vague() {
+        let geocode = GeocodeOutcome {
+            provider: "nominatim".to_string(),
+            status: "resolved".to_string(),
+            query: "炭火小馆 天河城商圈".to_string(),
+            latitude: Some(23.0),
+            longitude: Some(113.0),
+        };
+        assert_eq!(
+            resolve_review_state(&sample_input("天河城商圈"), &geocode),
+            "search_only"
+        );
+    }
 }

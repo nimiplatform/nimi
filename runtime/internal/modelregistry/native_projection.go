@@ -145,6 +145,9 @@ func resolvedBundleManifestPath(modelID string) (string, error) {
 }
 
 func resolvedBundlesRoot() string {
+	if override := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_PATH")); override != "" {
+		return filepath.Join(override, "resolved")
+	}
 	if override := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_LOCAL_MODELS_ROOT")); override != "" {
 		return filepath.Join(override, "resolved")
 	}
@@ -152,7 +155,7 @@ func resolvedBundlesRoot() string {
 	if err != nil || strings.TrimSpace(home) == "" {
 		return ""
 	}
-	return filepath.Join(home, ".nimi", "models", "resolved")
+	return filepath.Join(home, ".nimi", "data", "models", "resolved")
 }
 
 func resolvedBundleManifestCandidates(resolvedRoot string, modelID string) []string {

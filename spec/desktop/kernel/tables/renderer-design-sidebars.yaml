@@ -34,6 +34,11 @@ sidebars:
     has_search: false
     has_primary_action: false
     has_sections: true
+    section_names:
+      - Core
+      - Connectors
+      - Operations
+      - System
     has_resize_handle: true
     testid_required: true
     source_rule: D-SHELL-023

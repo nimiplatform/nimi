@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type {
   GgufVariantDescriptor,
   LocalRuntimeArtifactKind,
@@ -280,6 +281,9 @@ function CatalogVariantPicker(props: {
 }
 
 export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
+  const [confirmRemoveModelId, setConfirmRemoveModelId] = useState('');
+  const [confirmRemoveArtifactId, setConfirmRemoveArtifactId] = useState('');
+
   return (
     <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
       <div className="border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-4 py-4">
@@ -373,14 +377,42 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </span>
                   <button
                     type="button"
-                    onClick={() => props.onRemoveModel(model.localModelId)}
-                    className="rounded-lg p-1.5 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] hover:text-[var(--nimi-status-danger)]"
+                    onClick={() => setConfirmRemoveModelId(model.localModelId)}
+                    disabled={confirmRemoveModelId === model.localModelId}
+                    className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
                     title={i18n.t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
                 </div>
               </div>
+              {confirmRemoveModelId === model.localModelId ? (
+                <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
+                  <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
+                    {i18n.t('runtimeConfig.localModelCenter.confirmRemoveModel', {
+                      defaultValue: 'Remove "{{name}}"? Local model files will be permanently deleted.',
+                      name: model.model,
+                    })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmRemoveModelId('');
+                      props.onRemoveModel(model.localModelId);
+                    }}
+                    className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)]"
+                  >
+                    {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemoveModelId('')}
+                    className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+                  >
+                    {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+                  </button>
+                </div>
+              ) : null}
               </div>
             );})}
           </div>
@@ -463,14 +495,42 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
                   </span>
                   <button
                     type="button"
-                    onClick={() => props.onRemoveArtifact(artifact.localArtifactId)}
-                    disabled={props.artifactBusy}
-                    className="rounded-lg p-1.5 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] hover:text-[var(--nimi-status-danger)] disabled:opacity-50"
+                    onClick={() => setConfirmRemoveArtifactId(artifact.localArtifactId)}
+                    disabled={props.artifactBusy || confirmRemoveArtifactId === artifact.localArtifactId}
+                    className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
                     title={i18n.t('runtimeConfig.localModelCenter.removeArtifact', { defaultValue: 'Remove artifact' })}
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
                 </div>
+                {confirmRemoveArtifactId === artifact.localArtifactId ? (
+                  <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
+                    <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
+                      {i18n.t('runtimeConfig.localModelCenter.confirmRemoveArtifact', {
+                        defaultValue: 'Remove "{{name}}"? Artifact files will be permanently deleted.',
+                        name: artifact.artifactId,
+                      })}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmRemoveArtifactId('');
+                        props.onRemoveArtifact(artifact.localArtifactId);
+                      }}
+                      disabled={props.artifactBusy}
+                      className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
+                    >
+                      {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmRemoveArtifactId('')}
+                      className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+                    >
+                      {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>

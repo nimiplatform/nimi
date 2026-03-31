@@ -39,7 +39,13 @@ function resolveTextTarget(
 }
 
 export type MediaRoutes = {
-  image?: { connectorId?: string; model?: string };
+  image?: {
+    routeSource: 'local' | 'cloud';
+    connectorId?: string;
+    model?: string;
+    localModelId?: string;
+    extensions?: Record<string, unknown>;
+  };
   video?: { connectorId?: string; model?: string };
   tts?: { connectorId?: string; model?: string };
 };
@@ -149,7 +155,9 @@ export function createRelayAiClient(
         style: input.style,
         n: input.n,
         subjectUserId: DEFAULT_SUBJECT_USER_ID,
-        ...(imageRoute?.connectorId ? { route: 'cloud' as const, connectorId: imageRoute.connectorId } : {}),
+        route: imageRoute?.routeSource === 'local' ? 'local' : 'cloud',
+        ...(imageRoute?.connectorId ? { connectorId: imageRoute.connectorId } : {}),
+        ...(imageRoute?.extensions ? { extensions: imageRoute.extensions } : {}),
       });
       const traceId = normalize(response.trace?.traceId);
       const artifacts = (response.artifacts || []).map((artifact) => ({

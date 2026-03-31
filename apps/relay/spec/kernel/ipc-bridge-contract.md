@@ -109,6 +109,11 @@ Video job management uses the shared `runtime.media.jobs` module.
 `job:subscribe` follows the generic stream protocol (RL-IPC-003);
 `job:cancel` aborts the subscription stream.
 
+Image generation stays typed and fail-closed:
+- Relay resolves the configured image route before dispatching `relay:media:image:generate`
+- Local image routes call `runtime.media.image.generate` with `route: 'local'` and explicit workflow `extensions`
+- Relay must not silently recover local image route failures by switching to a cloud connector
+
 ## RL-IPC-008 — Typed Realm Data IPC
 
 Relay does not expose a generic Realm REST passthrough.
@@ -157,6 +162,7 @@ All calls are SDK passthrough with `normalizeError` wrapping.
 | Channel | Type | SDK Method |
 |---------|------|------------|
 | `relay:local:models:list` | unary | `runtime.local.listLocalModels` |
+| `relay:local:artifacts:list` | unary | `runtime.local.listLocalArtifacts` |
 | `relay:local:models:verified` | unary | `runtime.local.listVerifiedModels` |
 | `relay:local:models:catalog-search` | unary | `runtime.local.searchCatalogModels` |
 | `relay:local:models:install-plan` | unary | `runtime.local.resolveModelInstallPlan` |
@@ -173,6 +179,7 @@ All calls are SDK passthrough with `normalizeError` wrapping.
 | `relay:local:catalog:nodes` | unary | `runtime.local.listNodeCatalog` |
 
 Local runtime operations are not agent-scoped.
+`relay:local:artifacts:list` is read-only and exposes installed local artifacts for explicit local image workflow companion selection.
 
 ## RL-IPC-012 — Connector IPC
 

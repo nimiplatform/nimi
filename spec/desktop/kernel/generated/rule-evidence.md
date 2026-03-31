@@ -42,6 +42,7 @@
 | `D-AUTH-010` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
 | `D-AUTH-011` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
 | `D-AUTH-012` | `covered` | `desktop_kernel_consistency`, `desktop_rust_test_gate` |
+| `D-AUTH-013` | `covered` | `desktop_kernel_consistency`, `desktop_test_gate` |
 | `D-BOOT-001` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate`, `desktop_e2e_smoke_gate`, `desktop_runtime_config_path_gate` |
 | `D-BOOT-002` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |
 | `D-BOOT-003` | `covered` | `desktop_kernel_consistency`, `desktop_lint_gate`, `desktop_test_gate` |

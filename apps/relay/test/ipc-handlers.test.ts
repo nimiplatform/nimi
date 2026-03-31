@@ -438,6 +438,38 @@ describe('RL-IPC-007 — Media IPC channel registration', () => {
       assert.ok(channels.includes(ch), `must register ${ch}`);
     }
   });
+
+  it('direct image generation resolves configured local route targets instead of reading cloud settings only', () => {
+    const source = readFileSync(path.join(srcMain, 'ipc-handlers.ts'), 'utf-8');
+    assert.ok(
+      source.includes('resolveConfiguredImageGenerateTarget'),
+      'image IPC should resolve typed image route targets before dispatch',
+    );
+    assert.ok(
+      source.includes('mergeLocalChatSettings(settings)'),
+      'image IPC should merge persisted product/inspect settings through the canonical settings merger',
+    );
+    assert.ok(
+      source.includes('route: resolved.routeSource'),
+      'image IPC should forward the resolved route source to runtime.media.image.generate',
+    );
+    assert.ok(
+      source.includes("...(resolved.extensions ? { extensions: resolved.extensions } : {})"),
+      'image IPC should forward local workflow extensions when present',
+    );
+  });
+});
+
+describe('RL-IPC-011 — Local runtime IPC channel registration', () => {
+  it('registers relay:local:artifacts:list as a read-only runtime passthrough', () => {
+    const source = readFileSync(path.join(srcMain, 'model-handlers.ts'), 'utf-8');
+    const channels = extractIpcHandleChannels(source);
+    assert.ok(channels.includes('relay:local:artifacts:list'), 'must register relay:local:artifacts:list');
+    assert.ok(
+      source.includes('runtime.local.listLocalArtifacts'),
+      'relay:local:artifacts:list should call runtime.local.listLocalArtifacts',
+    );
+  });
 });
 
 // ─── RL-IPC-008 — Typed Realm Data Bridge ────────────────────────────────

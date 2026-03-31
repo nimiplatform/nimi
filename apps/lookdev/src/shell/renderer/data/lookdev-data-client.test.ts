@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getAgentPortraitBinding,
+  getLookdevAgent,
+  getLookdevAgentTruthBundle,
   listLookdevAgents,
   listLookdevWorldAgents,
   listLookdevWorlds,
@@ -13,10 +15,11 @@ const mockWorldsService = {
 
 const mockCreatorService = {
   creatorControllerListAgents: vi.fn(),
+  creatorControllerGetAgent: vi.fn(),
 };
 
-const mockAgentsService = {
-  getAgent: vi.fn(),
+const mockAgentRulesService = {
+  agentRulesControllerListRules: vi.fn(),
 };
 
 const mockWorldControlService = {
@@ -37,7 +40,7 @@ vi.mock('@nimiplatform/sdk', () => ({
       services: {
         WorldsService: mockWorldsService,
         CreatorService: mockCreatorService,
-        AgentsService: mockAgentsService,
+        AgentRulesService: mockAgentRulesService,
         WorldControlService: mockWorldControlService,
       },
     },
@@ -186,6 +189,25 @@ describe('lookdev data client', () => {
     });
   });
 
+  it('fails closed on portrait bindings without mimeType', async () => {
+    mockWorldControlService.worldControlControllerListWorldBindings.mockResolvedValue({
+      items: [{
+        id: 'binding-1',
+        objectId: 'resource-1',
+        createdAt: '2026-03-28T00:00:00.000Z',
+        resource: {
+          id: 'resource-1',
+          url: 'https://example.com/p1.png',
+          width: 1024,
+          height: 1536,
+        },
+      }],
+      worldId: 'w1',
+    });
+
+    await expect(getAgentPortraitBinding('w1', 'a1')).resolves.toBeNull();
+  });
+
   it('upserts AGENT_PORTRAIT bindings through typed world control service', async () => {
     mockWorldControlService.worldControlControllerBatchUpsertWorldBindings.mockResolvedValue({});
 
@@ -209,5 +231,127 @@ describe('lookdev data client', () => {
         priority: 0,
       }],
     });
+  });
+
+  it('reads creator-scoped agent detail for lookdev agent hydration', async () => {
+    mockCreatorService.creatorControllerGetAgent.mockResolvedValue({
+      id: 'a1',
+      description: 'Station core observer',
+      scenario: 'Monitors the reactor spine.',
+      greeting: 'All systems nominal.',
+    });
+
+    await expect(getLookdevAgent('a1')).resolves.toEqual({
+      description: 'Station core observer',
+      scenario: 'Monitors the reactor spine.',
+      greeting: 'All systems nominal.',
+    });
+    expect(mockCreatorService.creatorControllerGetAgent).toHaveBeenCalledWith('a1');
+  });
+
+  it('hydrates a truth bundle from creator detail plus AgentRule DNA truth', async () => {
+    mockCreatorService.creatorControllerGetAgent.mockResolvedValue({
+      id: 'a1',
+      description: 'Station core observer',
+      scenario: 'Monitors the reactor spine.',
+      greeting: 'All systems nominal.',
+      wakeStrategy: 'PROACTIVE',
+      dna: {
+        identity: {
+          role: 'Systems observer',
+          worldview: 'Order sustains survival',
+          species: 'Synthetic humanoid',
+          summary: 'A calm systems sentinel.',
+        },
+        biological: {
+          gender: 'androgynous',
+          visualAge: 'ageless adult',
+          ethnicity: 'n/a',
+          heightCm: 188,
+          weightKg: 82,
+        },
+        appearance: {
+          artStyle: 'clean industrial realism',
+          hair: 'smooth plated cranial shell',
+          eyes: 'cool cyan optics',
+          skin: 'porcelain alloy skin',
+          fashionStyle: 'modular station uniform',
+          signatureItems: ['reactor keyline collar'],
+        },
+        personality: {
+          summary: 'Measured and precise',
+          mbti: 'INTJ',
+          interests: ['systems', 'oversight'],
+          goals: ['maintain station order'],
+          relationshipMode: 'distant',
+          emotionBaseline: 'cool',
+        },
+        communication: {
+          summary: 'Short and exact',
+          responseLength: 'short',
+          formality: 'formal',
+          sentiment: 'neutral',
+        },
+      },
+      rules: {
+        format: 'rule-lines-v1',
+        lines: ['Never dramatize failures.', 'Keep operator guidance concise.'],
+        text: 'Never dramatize failures.\nKeep operator guidance concise.',
+      },
+    });
+    mockAgentRulesService.agentRulesControllerListRules.mockResolvedValue([
+      {
+        ruleKey: 'dna:appearance:visual',
+        statement: 'Keep a clean modular station silhouette with restrained cyan accents.',
+        structured: {
+          artStyle: 'clean industrial realism',
+          hair: 'smooth plated cranial shell',
+          eyes: 'cool cyan optics',
+          skin: 'porcelain alloy skin',
+          fashionStyle: 'modular station uniform',
+          signatureItems: ['reactor keyline collar'],
+        },
+      },
+      {
+        ruleKey: 'identity:soul_prime:core',
+        statement: 'Backstory: Built to watch over the station core.\n\nCore Values: Order before ego.',
+        structured: {
+          backstory: 'Built to watch over the station core.',
+          coreValues: 'Order before ego.',
+          personalityDescription: 'Calm and surgical under pressure.',
+          guidelines: 'Never waste motion or words.',
+          catchphrase: 'Order holds.',
+        },
+      },
+    ]);
+
+    await expect(getLookdevAgentTruthBundle('w1', 'a1')).resolves.toEqual(expect.objectContaining({
+      description: 'Station core observer',
+      scenario: 'Monitors the reactor spine.',
+      greeting: 'All systems nominal.',
+      wakeStrategy: 'PROACTIVE',
+      behavioralRules: ['Never dramatize failures.', 'Keep operator guidance concise.'],
+      dna: expect.objectContaining({
+        identity: expect.objectContaining({
+          role: 'Systems observer',
+          species: 'Synthetic humanoid',
+        }),
+        appearance: expect.objectContaining({
+          hair: 'smooth plated cranial shell',
+          fashionStyle: 'modular station uniform',
+          signatureItems: ['reactor keyline collar'],
+        }),
+      }),
+      soulPrime: expect.objectContaining({
+        coreValues: 'Order before ego.',
+        catchphrase: 'Order holds.',
+      }),
+      ruleTruth: expect.objectContaining({
+        appearance: expect.objectContaining({
+          statement: 'Keep a clean modular station silhouette with restrained cyan accents.',
+        }),
+      }),
+    }));
+    expect(mockAgentRulesService.agentRulesControllerListRules).toHaveBeenCalledWith('w1', 'a1', 'DNA', 'ACTIVE');
   });
 });

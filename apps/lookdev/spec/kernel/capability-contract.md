@@ -8,6 +8,9 @@ Lookdev consumes runtime capabilities through typed SDK runtime surfaces.
 
 Mainline generation and evaluation paths must not depend on ad hoc provider payloads or raw provider-specific request assembly.
 
+- Lookdev sends one typed generation request shape for a given product intent
+- provider-specific request adaptation belongs to runtime route resolution and runtime/provider adapter layers
+
 ## LD-CAP-002 — Typed Realm Mainline
 
 Lookdev commits portrait truth through typed app-facing Realm surfaces or an explicitly approved typed adapter.
@@ -20,6 +23,7 @@ Lookdev owns app-managed storage for:
 
 - world style session records
 - world style pack records
+- capture-state records
 - portrait brief records
 - batch records
 - item records
@@ -33,7 +37,7 @@ This storage is app-local working state, not Realm truth.
 
 Lookdev needs at least:
 
-- structured text generation or equivalent typed reasoning capability for world-style-session synthesis and portrait-brief compilation
+- structured text generation or equivalent typed reasoning capability for world-style-session synthesis, capture-state synthesis, and portrait-brief materialization
 - image generation capability for portrait production
 - multimodal text/vision understanding capability for auto-evaluation
 
@@ -48,19 +52,28 @@ Lookdev must expose explicit batch-scoped target selection for:
 
 The app may prefill sensible defaults from runtime availability, but it must not silently hide target choice behind an opaque "first available" provider path.
 
-## LD-CAP-006 — Shared Capture Logic Reuse
+## LD-CAP-006 — Lookdev-Owned Capture Harness
+
+Lookdev must own its app-local capture harness.
+
+- the harness may borrow Agent-Capture's state-driven method
+- the harness must remain implemented on the Lookdev side rather than requiring a product switch into Agent-Capture
+- the harness must support both silent and interactive capture lanes
+- silent capture must still produce structured capture-state output before portrait generation
+
+## LD-CAP-007 — Shared Capture Logic Reuse
 
 Lookdev may reuse Agent-Capture portrait refinement logic for capture-selected items.
 
 That reuse must happen through shared typed logic or an explicitly approved shared adapter layer. Lookdev must remain the top-level app shell and must not require the operator to switch products during its mainline flow.
 
-## LD-CAP-007 — No Silent Contract Rescue
+## LD-CAP-008 — No Silent Contract Rescue
 
 If generation output, evaluation output, or writeback payloads are malformed, mistyped, or structurally invalid, Lookdev must fail closed.
 
 It must not fabricate pseudo-success item states to keep a batch moving.
 
-## LD-CAP-008 — Realm Boundary Preservation
+## LD-CAP-009 — Realm Boundary Preservation
 
 Lookdev must preserve the architecture split:
 
@@ -69,3 +82,11 @@ Lookdev must preserve the architecture split:
 - Lookdev remains a first-party app control plane
 
 The app must not smuggle runtime working artifacts into Realm without explicit commit semantics.
+
+## LD-CAP-010 — Truth Intake Strengthens Capture, Not Generation
+
+Lookdev may read creator-scoped detail and `AgentRule`-anchored truth to improve role understanding.
+
+- richer Realm truth is allowed to strengthen capture-state synthesis
+- richer Realm truth must not skip the capture harness and become a direct image-generation payload
+- the frozen batch still generates from `CaptureState`-materialized `PortraitBrief` plus shared batch policy

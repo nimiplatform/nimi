@@ -52,6 +52,14 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
     }
   });
 
+  safeHandle('relay:local:artifacts:list', async (_e, input) => {
+    try {
+      return await runtime.local.listLocalArtifacts(input ?? {});
+    } catch (error) {
+      throw toIpcError(error);
+    }
+  });
+
   safeHandle('relay:local:models:verified', async (_e, input) => {
     try {
       return await runtime.local.listVerifiedModels(input ?? {});

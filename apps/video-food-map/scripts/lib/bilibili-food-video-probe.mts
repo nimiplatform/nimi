@@ -34,6 +34,8 @@ export type FoodProbeResult = {
   metadata: VideoMetadata;
   audioSourceUrl: string;
   selectedSttModel: string;
+  rawCommentCount: number;
+  commentClues: CommentClue[];
   extractionCoverage: {
     state: 'full' | 'leading_segments_only';
     processedSegmentCount: number;
@@ -120,6 +122,45 @@ type SubtitlePayload = {
   }>;
 };
 
+export type CommentClue = {
+  commentId: string;
+  authorName: string;
+  message: string;
+  likeCount: number;
+  publishedAt: string;
+  matchedVenueNames: string[];
+  addressHint: string;
+};
+
+type ReplyApiMember = {
+  uname?: string;
+};
+
+type ReplyApiContent = {
+  message?: string;
+};
+
+export type ReplyApiItem = {
+  rpid?: number | string;
+  like?: number;
+  ctime?: number;
+  member?: ReplyApiMember;
+  content?: ReplyApiContent;
+  replies?: ReplyApiItem[];
+};
+
+type ReplyApiResponse = {
+  code?: number;
+  message?: string;
+  data?: {
+    replies?: ReplyApiItem[];
+    top?: ReplyApiItem | null;
+    upper?: {
+      top?: ReplyApiItem | null;
+    };
+  };
+};
+
 const DEFAULT_PROFILE_PATH = path.resolve(process.cwd(), 'dev/config/dashscope-gold-path.env');
 const DEFAULT_ENV_FILE_PATH = path.resolve(process.cwd(), '.env');
 const DEFAULT_OUTPUT_ROOT = path.resolve(process.cwd(), '.tmp/bilibili-food-video-probe');
@@ -138,9 +179,11 @@ const BILIBILI_VIEW_API = 'https://api.bilibili.com/x/web-interface/view';
 const BILIBILI_TAG_API = 'https://api.bilibili.com/x/tag/archive/tags';
 const BILIBILI_PLAYURL_API = 'https://api.bilibili.com/x/player/playurl';
 const BILIBILI_PLAYER_V2_API = 'https://api.bilibili.com/x/player/v2';
+const BILIBILI_REPLY_API = 'https://api.bilibili.com/x/v2/reply/main';
 const MCDN_HOST_PATTERN = /\.mcdn\.bilivideo\.cn/u;
 const DEFAULT_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36';
 const DEFAULT_REFERER = 'https://www.bilibili.com/';
+const DEFAULT_MAX_COMMENT_CROSSCHECK = 10;
 
 function readArg(flag: string, argv: string[] = process.argv): string {
   const index = argv.indexOf(flag);
@@ -185,6 +228,14 @@ function apiHeaders(): HeadersInit {
     'accept': 'application/json',
     'referer': DEFAULT_REFERER,
     'user-agent': DEFAULT_UA,
+  };
+}
+
+function replyApiHeaders(): HeadersInit {
+  return {
+    'accept': 'application/json',
+    'referer': DEFAULT_REFERER,
+    'user-agent': 'Mozilla/5.0',
   };
 }
 
@@ -334,6 +385,304 @@ function extractJsonObject(text: string): Record<string, unknown> | null {
   return null;
 }
 
+function normalizeForCompare(value: string): string {
+  return String(value || '').trim().toLowerCase().replace(/\s+/gu, '');
+}
+
+function formatPublishedAt(timestampSec: number): string {
+  if (!Number.isFinite(timestampSec) || timestampSec <= 0) {
+    return '';
+  }
+  return new Date(timestampSec * 1000).toISOString();
+}
+
+function isSpecificAddressText(addressText: string): boolean {
+  const normalized = String(addressText || '').trim();
+  if (!normalized) {
+    return false;
+  }
+  const vagueMarkers = ['附近', '旁边', '周边', '对面', '里面', '门口', '地铁', '公交', '商圈', '一带', '附近的'];
+  if (vagueMarkers.some((marker) => normalized.includes(marker))) {
+    return false;
+  }
+  if (/\d/u.test(normalized)) {
+    return true;
+  }
+  return ['号', '路', '街', '巷', '弄', '大道', '道', '楼', '层', '栋', '室', '城', '广场']
+    .some((marker) => normalized.includes(marker));
+}
+
+function isPreciseCommentAddressText(addressText: string): boolean {
+  const normalized = String(addressText || '').trim();
+  if (!normalized) {
+    return false;
+  }
+  if (['附近', '隔壁', '周街', '周边', '旁边', '对面', '里面', '门口'].some((marker) => normalized.includes(marker))) {
+    return false;
+  }
+  if (/(?:路|街|巷|弄|大道|道).*(?:\d|号|楼|层|栋|室)/u.test(normalized)) {
+    return true;
+  }
+  if (/(?:市|区|县|镇|乡|村).*(?:路|街|巷|弄|大道|道|\d|号)/u.test(normalized)) {
+    return true;
+  }
+  if (/(?:广场|商城|中心|商场).*(?:\d+楼|\d+层|[AB]\d)/u.test(normalized)) {
+    return true;
+  }
+  return false;
+}
+
+function extractAddressHintFromComment(message: string): string {
+  const normalized = String(message || '').replace(/\s+/gu, ' ').trim();
+  if (!normalized) {
+    return '';
+  }
+  const patterns = [
+    /(?:地址(?:是|在)?|就在|在)\s*([\u4e00-\u9fa5A-Za-z0-9\-]{2,32}(?:路|街|巷|弄|道|大道)[\u4e00-\u9fa5A-Za-z0-9\-]{0,20}(?:号|楼|层|栋|室)?)/u,
+    /((?:[\u4e00-\u9fa5]{1,12}(?:省|市|区|县)){0,3}[\u4e00-\u9fa5A-Za-z0-9]{1,24}(?:路|街|巷|弄|道|大道)[\u4e00-\u9fa5A-Za-z0-9\-]{0,20}(?:号|楼|层|栋|室)?)/u,
+    /((?:[\u4e00-\u9fa5]{1,16}(?:广场|商城|天地|中心|城|mall|MALL))(?:[\u4e00-\u9fa5A-Za-z0-9\-]{0,12}(?:[A-Z]?[0-9]+楼|[0-9]+层|[0-9]+楼|[AB]\d))?)/u,
+  ];
+  for (const pattern of patterns) {
+    const matched = normalized.match(pattern)?.[1] || '';
+    if (matched && isPreciseCommentAddressText(matched)) {
+      return matched.trim();
+    }
+  }
+  return '';
+}
+
+function flattenReplies(items: ReplyApiItem[], bucket: ReplyApiItem[] = []): ReplyApiItem[] {
+  for (const item of items) {
+    bucket.push(item);
+    if (Array.isArray(item.replies) && item.replies.length > 0) {
+      flattenReplies(item.replies, bucket);
+    }
+  }
+  return bucket;
+}
+
+function readVenueNameCandidates(extractionJson: Record<string, unknown> | null): string[] {
+  const venues = Array.isArray(extractionJson?.venues) ? extractionJson.venues : [];
+  return venues
+    .map((entry) => (entry && typeof entry === 'object' && !Array.isArray(entry) ? String((entry as Record<string, unknown>).venue_name || '').trim() : ''))
+    .filter(Boolean);
+}
+
+function extractVenueNameHintsFromComment(message: string): string[] {
+  const normalized = String(message || '').replace(/\s+/gu, ' ').trim();
+  if (!normalized) {
+    return [];
+  }
+  const pattern = /([\u4e00-\u9fa5A-Za-z0-9]{2,24}(?:小食店|餐厅|农庄|酒店|酒楼|饭店|面馆|粉店|茶餐厅|烧腊店|烧鹅店|烧烤店|甜品店|咖啡店|大排档|食店|食府|茶档|排档))/gu;
+  const matches = [...normalized.matchAll(pattern)]
+    .map((entry) => String(entry[1] || '').trim())
+    .filter(Boolean);
+  return [...new Set(matches)];
+}
+
+function hasCrossCheckCue(message: string): boolean {
+  const normalized = String(message || '').trim();
+  if (!normalized) {
+    return false;
+  }
+  const markers = ['本期', '店名', '地址', '具体地址', '导航', '到店', '地图', '就在', '斜对面', '楼下', '附近'];
+  return markers.some((marker) => normalized.includes(marker));
+}
+
+function buildCommentClue(input: {
+  comment: ReplyApiItem;
+  knownVenueNames: string[];
+}): CommentClue | null {
+  const message = String(input.comment.content?.message || '').replace(/\s+/gu, ' ').trim();
+  if (!message) {
+    return null;
+  }
+  const normalizedMessage = normalizeForCompare(message);
+  const matchedKnownVenueNames = input.knownVenueNames.filter((venueName) =>
+    normalizedMessage.includes(normalizeForCompare(venueName)),
+  );
+  const extractedVenueHints = extractVenueNameHintsFromComment(message);
+  const matchedVenueNames = [...new Set([...matchedKnownVenueNames, ...extractedVenueHints])];
+  const addressHint = extractAddressHintFromComment(message);
+  const shouldKeep = matchedVenueNames.length > 0 || Boolean(addressHint) || hasCrossCheckCue(message);
+  if (!shouldKeep) {
+    return null;
+  }
+  return {
+    commentId: String(input.comment.rpid || '').trim(),
+    authorName: String(input.comment.member?.uname || '').trim(),
+    message,
+    likeCount: Number(input.comment.like || 0),
+    publishedAt: formatPublishedAt(Number(input.comment.ctime || 0)),
+    matchedVenueNames,
+    addressHint,
+  };
+}
+
+export function filterCommentCluesForExtraction(input: {
+  extractionJson: Record<string, unknown> | null;
+  comments: ReplyApiItem[];
+}): CommentClue[] {
+  const clues = input.comments
+    .map((comment) => buildCommentClue({
+      comment,
+      knownVenueNames: readVenueNameCandidates(input.extractionJson),
+    }))
+    .filter((item): item is CommentClue => Boolean(item));
+
+  const deduped = new Map<string, CommentClue>();
+  for (const clue of clues) {
+    const key = normalizeForCompare(`${clue.matchedVenueNames.join('|')}|${clue.addressHint}|${clue.message}`);
+    if (!deduped.has(key)) {
+      deduped.set(key, clue);
+    }
+  }
+
+  return [...deduped.values()]
+    .sort((left, right) => {
+      const leftScore = (left.matchedVenueNames.length * 10) + (left.addressHint ? 6 : 0) + Math.min(left.likeCount, 20);
+      const rightScore = (right.matchedVenueNames.length * 10) + (right.addressHint ? 6 : 0) + Math.min(right.likeCount, 20);
+      if (rightScore !== leftScore) {
+        return rightScore - leftScore;
+      }
+      if (right.likeCount !== left.likeCount) {
+        return right.likeCount - left.likeCount;
+      }
+      return String(right.publishedAt).localeCompare(String(left.publishedAt));
+    })
+    .slice(0, DEFAULT_MAX_COMMENT_CROSSCHECK);
+}
+
+export function mergeCommentCluesIntoExtraction(input: {
+  extractionJson: Record<string, unknown> | null;
+  commentClues: CommentClue[];
+}): Record<string, unknown> | null {
+  if (!input.extractionJson) {
+    return input.commentClues.length > 0
+      ? {
+        video_summary: '',
+        venues: [],
+        uncertain_points: [],
+        comment_clues: input.commentClues,
+      }
+      : null;
+  }
+
+  const cloned = JSON.parse(JSON.stringify(input.extractionJson)) as Record<string, unknown>;
+  const venues = Array.isArray(cloned.venues) ? cloned.venues : [];
+  const uncertainPoints = Array.isArray(cloned.uncertain_points)
+    ? [...cloned.uncertain_points].map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+
+  for (const entry of venues) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      continue;
+    }
+    const venue = entry as Record<string, unknown>;
+    const venueName = String(venue.venue_name || '').trim();
+    const addressText = String(venue.address_text || '').trim();
+    if (!venueName) {
+      continue;
+    }
+
+    const matchedClues = input.commentClues.filter((clue) =>
+      clue.matchedVenueNames.some((name) => normalizeForCompare(name) === normalizeForCompare(venueName))
+      && clue.addressHint,
+    );
+    const distinctHints = [...new Set(matchedClues.map((clue) => clue.addressHint.trim()).filter(Boolean))];
+    if (distinctHints.length === 1 && !isSpecificAddressText(addressText)) {
+      venue.address_text = distinctHints[0]!;
+      const evidence = Array.isArray(venue.evidence) ? [...venue.evidence] : [];
+      const quoted = matchedClues[0]?.message ? `评论补充：${matchedClues[0].message}` : '';
+      if (quoted && !evidence.includes(quoted)) {
+        evidence.push(quoted);
+      }
+      venue.evidence = evidence;
+    } else if (distinctHints.length > 1) {
+      uncertainPoints.push(`评论区对“${venueName}”给出了多个不同地址线索，暂时保留待确认。`);
+      venue.needs_review = true;
+    }
+  }
+
+  cloned.uncertain_points = [...new Set(uncertainPoints)];
+  cloned.comment_clues = input.commentClues;
+  return cloned;
+}
+
+async function normalizeExtractionJsonToSimplified(input: {
+  runtime: Runtime;
+  textModel: string;
+  extractionJson: Record<string, unknown> | null;
+}): Promise<Record<string, unknown> | null> {
+  if (!input.extractionJson) {
+    return null;
+  }
+
+  const normalized = await input.runtime.ai.text.generate({
+    model: input.textModel,
+    input: [
+      '把下面这个 JSON 里的中文内容统一改成简体中文。',
+      '不要改键名、结构、英文值、数字、布尔值或数组层级。',
+      '如果原文已经是简体，保持不变。',
+      '只输出 JSON，不要输出解释。',
+      '',
+      JSON.stringify(input.extractionJson, null, 2),
+    ].join('\n'),
+    route: 'cloud',
+    timeoutMs: 240_000,
+  });
+  return extractJsonObject(String(normalized.text || '').trim()) || input.extractionJson;
+}
+
+function buildCommentCrossCheckPrompt(input: {
+  metadata: VideoMetadata;
+  transcript: string;
+  extractionJson: Record<string, unknown> | null;
+  commentClues: CommentClue[];
+}): string {
+  const metadataBlock = [
+    `标题：${input.metadata.title}`,
+    `作者：${input.metadata.ownerName}`,
+    `简介：${input.metadata.description || '-'}`,
+    `标签：${input.metadata.tags.join('、') || '-'}`,
+  ].join('\n');
+  const commentBlock = input.commentClues.map((clue, index) => [
+    `评论${index + 1}：`,
+    `评论ID：${clue.commentId || '-'}`,
+    `作者：${clue.authorName || '-'}`,
+    `点赞：${clue.likeCount}`,
+    `可能店名：${clue.matchedVenueNames.join('、') || '-'}`,
+    `可能地址：${clue.addressHint || '-'}`,
+    `内容：${clue.message}`,
+  ].join('\n')).join('\n\n');
+
+  return [
+    '你是一个严格的信息核对助手，现在要用公开视频评论去补充第一轮视频提取结果。',
+    '目标：结合视频转写、第一轮提取结果、评论线索，重新输出最终 JSON。',
+    '允许评论补店名、地址和证据，但必须和视频内容互相对得上。',
+    '如果评论只是一条孤证，或者和视频内容冲突，不要直接当成确认事实。',
+    '如果评论提供了新店名，但菜品、地点或行程能和视频内容对应上，可以补进 venue_name。',
+    '如果评论提供了更具体地址，而视频原来只有模糊区域，可以补进 address_text。',
+    '如果评论之间互相冲突，或者和视频内容冲突，要保留 needs_review=true，并把冲突写进 uncertain_points。',
+    'evidence 里可以加入“评论补充：...”这样的句子，保留原始线索。',
+    '输出必须是 JSON 对象，不要输出任何解释。',
+    '所有中文字段一律使用简体中文输出。',
+    '保持 JSON 结构不变：video_summary / venues / uncertain_points。',
+    '',
+    '视频元信息：',
+    metadataBlock,
+    '',
+    '第一轮提取结果：',
+    JSON.stringify(input.extractionJson || {}, null, 2),
+    '',
+    '转写内容：',
+    input.transcript,
+    '',
+    '评论线索：',
+    commentBlock || '无',
+  ].join('\n');
+}
+
 function ensureOutputDir(bvid: string): string {
   const outputDir = path.join(DEFAULT_OUTPUT_ROOT, bvid);
   mkdirSync(outputDir, { recursive: true });
@@ -387,6 +736,7 @@ function buildFoodExtractionPrompt(input: {
     '你是一个严格的信息提取助手，只能根据给定内容提取，不允许猜测。',
     '任务：从一条美食视频的转写里提取被明确推荐的店和菜。',
     '输出必须是 JSON 对象，不要输出任何额外解释。',
+    '所有中文字段一律使用简体中文输出。',
     'JSON 结构：',
     '{',
     '  "video_summary": "一句话总结这条视频主要在吃什么",',
@@ -410,6 +760,7 @@ function buildFoodExtractionPrompt(input: {
     '2. 店名、地址、菜系、口味拿不准时可以留空，但不要编造。',
     '3. 只要店名、推荐菜、证据三者缺一，就把 needs_review 设为 true。',
     '4. 如果同一视频提到多家店，必须拆成多个 venue 对象。',
+    '5. 输出里的中文不要使用繁体字。',
     '',
     '视频元信息：',
     metadataBlock,
@@ -454,6 +805,10 @@ async function resolveVideoMetadata(bvid: string): Promise<VideoMetadata> {
   };
 }
 
+export async function resolveVideoMetadataByUrl(url: string): Promise<VideoMetadata> {
+  return resolveVideoMetadata(extractBvid(url));
+}
+
 async function fetchPlayUrl(bvid: string, cid: string): Promise<PlayUrlApiResponse> {
   const response = await fetchJson<PlayUrlApiResponse>(
     `${BILIBILI_PLAYURL_API}?bvid=${encodeURIComponent(bvid)}&cid=${encodeURIComponent(cid)}&fnval=16&fourk=1`,
@@ -476,6 +831,25 @@ async function fetchPlayerV2(bvid: string, cid: string): Promise<PlayerV2ApiResp
     throw new Error(`bilibili player v2 api returned code=${String(response?.code ?? '')}, message=${String(response?.message ?? '')}`);
   }
   return response;
+}
+
+export async function fetchPublicComments(aid: string): Promise<ReplyApiItem[]> {
+  if (!String(aid || '').trim()) {
+    return [];
+  }
+  const response = await fetchJson<ReplyApiResponse>(
+    `${BILIBILI_REPLY_API}?oid=${encodeURIComponent(aid)}&type=1&mode=3&ps=20`,
+    { method: 'GET', headers: replyApiHeaders() },
+    'bilibili reply api',
+  );
+  if (Number(response?.code || 0) !== 0 || !response.data) {
+    return [];
+  }
+  const rootReplies = Array.isArray(response.data.replies) ? response.data.replies : [];
+  const upperTop = response.data.upper?.top ? [response.data.upper.top] : [];
+  const top = response.data.top ? [response.data.top] : [];
+  return flattenReplies([...upperTop, ...top, ...rootReplies])
+    .filter((item) => String(item.content?.message || '').trim().length > 0);
 }
 
 function normalizeRemoteUrl(raw: string): string {
@@ -671,12 +1045,25 @@ function buildDirectAudioSegment(input: {
   audioBytes: Uint8Array;
   audioMimeType: string;
 }): AudioSegment {
-  const originalSize = input.audioBytes.byteLength;
-  const limitedBytes = originalSize > DEFAULT_DIRECT_AUDIO_BYTES_LIMIT
-    ? input.audioBytes.subarray(0, DEFAULT_DIRECT_AUDIO_BYTES_LIMIT)
-    : input.audioBytes;
+  let preparedBytes = input.audioBytes;
+  let preparedMimeType = input.audioMimeType;
+  try {
+    preparedBytes = transcodeAudioToWavePcm16({
+      sourceBytes: input.audioBytes,
+      sourceFileName: 'audio-source.m4s',
+    });
+    preparedMimeType = 'audio/wav';
+  } catch {
+    preparedBytes = input.audioBytes;
+    preparedMimeType = input.audioMimeType;
+  }
+
+  const preparedSize = preparedBytes.byteLength;
+  const limitedBytes = preparedSize > DEFAULT_DIRECT_AUDIO_BYTES_LIMIT
+    ? preparedBytes.subarray(0, DEFAULT_DIRECT_AUDIO_BYTES_LIMIT)
+    : preparedBytes;
   const fullDurationSec = Math.max(0, Number(input.durationSec || 0));
-  const ratio = originalSize > 0 ? limitedBytes.byteLength / originalSize : 1;
+  const ratio = preparedSize > 0 ? limitedBytes.byteLength / preparedSize : 1;
   const estimatedDurationSec = ratio >= 1
     ? fullDurationSec
     : Math.max(1, Math.floor(fullDurationSec * ratio));
@@ -685,7 +1072,7 @@ function buildDirectAudioSegment(input: {
     startSec: 0,
     endSec: Math.min(fullDurationSec, estimatedDurationSec),
     bytes: limitedBytes,
-    mimeType: input.audioMimeType,
+    mimeType: preparedMimeType,
   };
 }
 
@@ -717,7 +1104,7 @@ async function transcribeAndExtract(input: {
   metadata: VideoMetadata;
   audioSourceUrl: string;
   mergedEnv: Record<string, string>;
-}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
+}): Promise<Pick<FoodProbeResult, 'selectedSttModel' | 'rawCommentCount' | 'commentClues' | 'extractionCoverage' | 'transcript' | 'extractionRaw' | 'extractionJson'>> {
   const runtimeGrpcAddr = resolveRuntimeGrpcAddr(input.mergedEnv);
   const textModel = resolveTextModel({
     mergedEnv: input.mergedEnv,
@@ -832,13 +1219,52 @@ async function transcribeAndExtract(input: {
     timeoutMs: 240_000,
   });
   const extractionRaw = String(extracted.text || '').trim();
+  const parsedExtractionJson = extractJsonObject(extractionRaw);
+  const baseExtractionJson = await normalizeExtractionJsonToSimplified({
+    runtime,
+    textModel,
+    extractionJson: parsedExtractionJson,
+  });
+  const rawComments = await fetchPublicComments(input.metadata.aid).catch(() => []);
+  const crossCheckComments = filterCommentCluesForExtraction({
+    extractionJson: baseExtractionJson,
+    comments: rawComments,
+  });
+  const commentEnhancedJson = crossCheckComments.length > 0
+    ? await runtime.ai.text.generate({
+      model: textModel,
+      input: buildCommentCrossCheckPrompt({
+        metadata: input.metadata,
+        transcript,
+        extractionJson: baseExtractionJson,
+        commentClues: crossCheckComments,
+      }),
+      route: 'cloud',
+      timeoutMs: 240_000,
+    }).then((response) => extractJsonObject(String(response.text || '').trim()))
+    : baseExtractionJson;
+  const normalizedCommentEnhancedJson = await normalizeExtractionJsonToSimplified({
+    runtime,
+    textModel,
+    extractionJson: commentEnhancedJson || baseExtractionJson,
+  });
+  const commentClues = filterCommentCluesForExtraction({
+    extractionJson: normalizedCommentEnhancedJson,
+    comments: rawComments,
+  });
+  const extractionJson = mergeCommentCluesIntoExtraction({
+    extractionJson: normalizedCommentEnhancedJson,
+    commentClues,
+  });
 
   return {
     selectedSttModel,
+    rawCommentCount: rawComments.length,
+    commentClues,
     extractionCoverage,
     transcript,
     extractionRaw,
-    extractionJson: extractJsonObject(extractionRaw),
+    extractionJson,
   };
 }
 
@@ -871,6 +1297,8 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
       metadata,
       audioSourceUrl,
       selectedSttModel,
+      rawCommentCount: 0,
+      commentClues: [],
       extractionCoverage,
       transcript: '',
       extractionRaw: '',
@@ -905,12 +1333,14 @@ export async function runBilibiliFoodVideoProbe(args: ProbeArgs): Promise<FoodPr
   });
 
   return {
-    metadata,
-    audioSourceUrl,
-    selectedSttModel: result.selectedSttModel,
-    extractionCoverage: result.extractionCoverage,
-    transcript: result.transcript,
-    extractionRaw: result.extractionRaw,
+      metadata,
+      audioSourceUrl,
+      selectedSttModel: result.selectedSttModel,
+      rawCommentCount: result.rawCommentCount,
+      commentClues: result.commentClues,
+      extractionCoverage: result.extractionCoverage,
+      transcript: result.transcript,
+      extractionRaw: result.extractionRaw,
     extractionJson: result.extractionJson,
     outputDir: saved.outputDir,
     savedFiles: {

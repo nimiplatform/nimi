@@ -29,7 +29,11 @@ pub fn resolve_nimi_dir() -> Result<PathBuf, String> {
 
 pub fn resolve_nimi_data_dir() -> Result<PathBuf, String> {
     let path = normalize_absolute_path(&resolve_nimi_dir()?.join(NIMI_DATA_DIR_NAME));
-    fs::create_dir_all(&path)
-        .map_err(|error| format!("failed to create nimi_data_dir ({}): {error}", path.display()))?;
+    fs::create_dir_all(&path).map_err(|error| {
+        format!(
+            "failed to create nimi_data_dir ({}): {error}",
+            path.display()
+        )
+    })?;
     Ok(path)
 }

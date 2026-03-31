@@ -14,7 +14,7 @@ import {
 } from '@nimiplatform/nimi-kit/ui';
 import { importVideo, loadSnapshot } from '@renderer/data/api.js';
 import { filterImports, filterMapPoints, type ReviewFilter } from '@renderer/data/filter.js';
-import type { ImportRecord } from '@renderer/data/types.js';
+import type { ImportRecord, VideoFoodMapSnapshot } from '@renderer/data/types.js';
 import { MapSurface } from '@renderer/components/map-surface.js';
 
 const queryClient = new QueryClient();
@@ -34,11 +34,66 @@ function formatImportTime(value: string): string {
   });
 }
 
+function formatCommentTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function resolveImportTone(record: ImportRecord) {
+  if (record.status === 'queued' || record.status === 'resolving' || record.status === 'geocoding' || record.status === 'running') {
+    return 'warning' as const;
+  }
   if (record.status === 'failed') return 'danger' as const;
   if (record.venues.some((venue) => venue.reviewState === 'review')) return 'warning' as const;
   if (record.venues.some((venue) => venue.reviewState === 'map_ready')) return 'success' as const;
   return 'info' as const;
+}
+
+function isImportActive(status: ImportRecord['status']) {
+  return status === 'queued' || status === 'resolving' || status === 'geocoding' || status === 'running';
+}
+
+function resolveImportStatusLabel(record: ImportRecord) {
+  switch (record.status) {
+    case 'queued':
+      return '排队中';
+    case 'resolving':
+    case 'running':
+      return '解析中';
+    case 'geocoding':
+      return '定位中';
+    case 'failed':
+      return '失败';
+    default:
+      return record.venues.some((venue) => venue.reviewState === 'map_ready') ? '已上图' : '待确认';
+  }
+}
+
+function resolveImportProgressText(record: ImportRecord | null) {
+  if (!record) {
+    return '';
+  }
+  switch (record.status) {
+    case 'queued':
+      return '已收到导入请求，正在排队开始处理。';
+    case 'resolving':
+    case 'running':
+      return '正在拉取视频信息、字幕或音频，并做初步整理。长视频会更久一些。';
+    case 'geocoding':
+      return '文字结果已经出来了，正在谨慎处理地点信息。';
+    case 'failed':
+      return record.errorMessage || '这次导入失败了。';
+    default:
+      return '';
+  }
 }
 
 function resolveReviewTone(reviewState: ReviewFilter) {
@@ -87,6 +142,10 @@ function AppBody() {
   const snapshotQuery = useQuery({
     queryKey: ['video-food-map', 'snapshot'],
     queryFn: loadSnapshot,
+    refetchInterval: (query) => {
+      const data = query.state.data as VideoFoodMapSnapshot | undefined;
+      return data?.imports.some((record) => isImportActive(record.status)) ? 1500 : false;
+    },
   });
   const [videoUrl, setVideoUrl] = useState('');
   const [surface, setSurface] = useState<SurfaceId>('discovery');
@@ -108,6 +167,7 @@ function AppBody() {
   });
 
   const snapshot = snapshotQuery.data;
+  const activeImport = snapshot?.imports.find((record) => isImportActive(record.status)) || null;
   const filteredImports = useMemo(
     () => filterImports(snapshot?.imports || [], searchText, reviewFilter),
     [reviewFilter, searchText, snapshot?.imports],
@@ -131,6 +191,18 @@ function AppBody() {
 
   const selectedImport = filteredImports.find((record) => record.id === selectedImportId) || filteredImports[0] || null;
   const selectedVenue = selectedImport?.venues.find((venue) => venue.id === selectedVenueId) || selectedImport?.venues[0] || null;
+  const visibleCommentClues = useMemo(() => {
+    if (!selectedImport) {
+      return [];
+    }
+    if (!selectedVenue?.venueName) {
+      return selectedImport.commentClues;
+    }
+    const matched = selectedImport.commentClues.filter((clue) =>
+      clue.matchedVenueNames.some((name) => name === selectedVenue.venueName),
+    );
+    return matched.length > 0 ? matched : selectedImport.commentClues;
+  }, [selectedImport, selectedVenue]);
   const allowedImportIds = new Set(filteredImports.map((record) => record.id));
   const mapPoints = filterMapPoints(snapshot?.mapPoints || [], allowedImportIds);
   const reviewItems = filteredImports.flatMap((record) =>
@@ -181,11 +253,18 @@ function AppBody() {
               onClick={() => importMutation.mutate(videoUrl.trim())}
               disabled={!videoUrl.trim() || importMutation.isPending}
             >
-              {importMutation.isPending ? '正在解析...' : '导入并解析'}
+              {importMutation.isPending ? '开始导入中...' : '导入并解析'}
             </Button>
           </div>
           <SurfaceSwitcher current={surface} onChange={setSurface} />
         </div>
+        {activeImport ? (
+          <div className="rounded-2xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_8%,white)] px-4 py-3 text-sm text-[var(--nimi-text-secondary)]">
+            <span className="font-medium text-[var(--nimi-text-primary)]">{resolveImportStatusLabel(activeImport)}</span>
+            {' · '}
+            {resolveImportProgressText(activeImport)}
+          </div>
+        ) : null}
         {importMutation.isError ? (
           <div className="text-sm text-[var(--nimi-status-danger)]">
             {importMutation.error instanceof Error ? importMutation.error.message : '导入失败'}
@@ -244,7 +323,7 @@ function AppBody() {
                 label={
                   <div className="flex items-center gap-2">
                     <span className="truncate">{record.title || record.sourceUrl}</span>
-                    <StatusBadge tone={resolveImportTone(record)}>{record.status === 'failed' ? '失败' : record.venues.some((venue) => venue.reviewState === 'map_ready') ? '已上图' : '待确认'}</StatusBadge>
+                    <StatusBadge tone={resolveImportTone(record)}>{resolveImportStatusLabel(record)}</StatusBadge>
                   </div>
                 }
                 description={`${record.creatorName || '未知作者'} · ${record.venues.length} 家候选 · ${formatImportTime(record.createdAt)}`}
@@ -264,7 +343,13 @@ function AppBody() {
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <StatusBadge tone={resolveImportTone(selectedImport)}>
-                            {selectedImport.status === 'failed' ? '解析失败' : selectedImport.extractionCoverage?.state === 'leading_segments_only' ? '部分覆盖' : '完整覆盖'}
+                            {selectedImport.status === 'failed'
+                              ? '解析失败'
+                              : isImportActive(selectedImport.status)
+                                ? resolveImportStatusLabel(selectedImport)
+                                : selectedImport.extractionCoverage?.state === 'leading_segments_only'
+                                  ? '部分覆盖'
+                                  : '完整覆盖'}
                           </StatusBadge>
                           <StatusBadge tone="info">{selectedImport.creatorName || '未知作者'}</StatusBadge>
                           {selectedImport.tags.slice(0, 3).map((tag) => <StatusBadge key={tag} tone="neutral">{tag}</StatusBadge>)}
@@ -281,7 +366,7 @@ function AppBody() {
                         </Surface>
                         <Surface tone="card" elevation="base" className="p-4">
                           <div className="text-xs text-[var(--nimi-text-muted)]">解析模型</div>
-                          <div className="mt-2 text-sm text-[var(--nimi-text-primary)]">{selectedImport.selectedSttModel || '按脚本默认值'}</div>
+                          <div className="mt-2 text-sm text-[var(--nimi-text-primary)]">{selectedImport.selectedSttModel || (isImportActive(selectedImport.status) ? '正在准备中' : '按脚本默认值')}</div>
                         </Surface>
                       </div>
                     </div>
@@ -297,8 +382,23 @@ function AppBody() {
                           <div className="mt-1 text-lg font-semibold text-[var(--nimi-text-primary)]">{selectedImport.venues.filter((venue) => venue.reviewState === 'map_ready').length}</div>
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <div className="text-xs text-[var(--nimi-text-muted)]">公开评论</div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--nimi-text-primary)]">{selectedImport.publicCommentCount}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-[var(--nimi-text-muted)]">筛出评论</div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--nimi-text-primary)]">{selectedImport.commentClues.length}</div>
+                        </div>
+                      </div>
                       <div className="text-xs text-[var(--nimi-text-muted)]">处理时间</div>
                       <div className="text-sm text-[var(--nimi-text-primary)]">{formatImportTime(selectedImport.updatedAt)}</div>
+                      {isImportActive(selectedImport.status) ? (
+                        <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-warning)_10%,transparent)] p-3 text-sm text-[var(--nimi-text-secondary)]">
+                          {resolveImportProgressText(selectedImport)}
+                        </div>
+                      ) : null}
                       {selectedImport.errorMessage ? (
                         <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-status-danger)_10%,transparent)] p-3 text-sm text-[var(--nimi-status-danger)]">
                           {selectedImport.errorMessage}
@@ -347,6 +447,42 @@ function AppBody() {
                       </Surface>
 
                       <Surface tone="panel" elevation="base" className="p-5">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                          <h3 className="text-lg font-semibold text-[var(--nimi-text-primary)]">筛出的评论线索</h3>
+                          <StatusBadge tone="info">{visibleCommentClues.length} 条</StatusBadge>
+                        </div>
+                        {visibleCommentClues.length === 0 ? (
+                          <div className="text-sm text-[var(--nimi-text-secondary)]">
+                            {selectedImport.publicCommentCount > 0
+                              ? `这次拿到了 ${selectedImport.publicCommentCount} 条公开评论，但里面没有足够稳的店名或地址线索，所以先不拿来补结果。`
+                              : '这次没有拿到可用的公开评论。'}
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {visibleCommentClues.map((clue) => (
+                              <Surface key={clue.commentId} tone="card" elevation="base" className="space-y-3 p-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <StatusBadge tone="neutral">{clue.authorName || '匿名评论'}</StatusBadge>
+                                  {clue.matchedVenueNames.map((name) => (
+                                    <StatusBadge key={`${clue.commentId}-${name}`} tone="info">{name}</StatusBadge>
+                                  ))}
+                                  {clue.addressHint ? (
+                                    <StatusBadge tone="warning">带地址线索</StatusBadge>
+                                  ) : null}
+                                </div>
+                                <div className="text-sm leading-6 text-[var(--nimi-text-primary)]">{clue.message}</div>
+                                <div className="flex flex-wrap gap-4 text-xs text-[var(--nimi-text-muted)]">
+                                  <span>{formatCommentTime(clue.publishedAt) || '时间未知'}</span>
+                                  <span>{`点赞 ${clue.likeCount}`}</span>
+                                  {clue.addressHint ? <span>{`提到地址：${clue.addressHint}`}</span> : null}
+                                </div>
+                              </Surface>
+                            ))}
+                          </div>
+                        )}
+                      </Surface>
+
+                      <Surface tone="panel" elevation="base" className="p-5">
                         <div className="mb-3 text-lg font-semibold text-[var(--nimi-text-primary)]">转写文本</div>
                         <div className="max-h-[360px] overflow-auto whitespace-pre-wrap text-sm leading-6 text-[var(--nimi-text-secondary)]">
                           {selectedImport.transcript || '当前没有转写文本。'}
@@ -388,6 +524,12 @@ function AppBody() {
                               <div className="mt-2 text-sm text-[var(--nimi-text-primary)]">{selectedVenue.confidence || '未标记'}</div>
                             </Surface>
                           </div>
+                          <Surface tone="card" elevation="base" className="p-3">
+                            <div className="text-xs text-[var(--nimi-text-muted)]">相关评论</div>
+                            <div className="mt-2 text-sm text-[var(--nimi-text-primary)]">
+                              {selectedImport.commentClues.filter((clue) => clue.matchedVenueNames.includes(selectedVenue.venueName)).length} 条
+                            </div>
+                          </Surface>
                           {selectedVenue.geocodeQuery ? (
                             <div className="rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,white)] p-3 text-xs leading-5 text-[var(--nimi-text-muted)]">
                               定位查询词：{selectedVenue.geocodeQuery}

@@ -1,24 +1,70 @@
+import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import type { LookdevPortraitBrief } from './types.js';
+import type { LookdevCaptureState } from './types.js';
 
 type EmbeddedCapturePanelProps = {
   stylePackConfirmed: boolean;
-  capturePortraitBriefs: LookdevPortraitBrief[];
-  activePortraitBrief: LookdevPortraitBrief | null;
+  captureSynthesisBusy: boolean;
+  captureSynthesisError: string | null;
+  captureStates: LookdevCaptureState[];
+  activeCaptureState: LookdevCaptureState | null;
   activePortraitBriefFieldPrefix: string;
+  interactiveCaptureInput: string;
+  interactiveCaptureBusy: boolean;
+  interactiveCaptureError: string | null;
   onSelectBriefAgent(agentId: string): void;
-  onUpdatePortraitBrief(patch: Partial<LookdevPortraitBrief>): void;
+  onInteractiveCaptureInputChange(value: string): void;
+  onRunInteractiveCaptureRefine(): void;
+  onUpdateCaptureVisualIntent(patch: Partial<LookdevCaptureState['visualIntent']>): void;
 };
+
+function LanePill(input: { mode: LookdevCaptureState['synthesisMode']; captureMode: LookdevCaptureState['captureMode'] }) {
+  const { t } = useTranslation();
+  const tone = input.captureMode === 'capture'
+    ? 'bg-[color-mix(in_srgb,var(--ld-accent)_18%,transparent)] text-white'
+    : 'bg-black/18 text-white/68';
+  return (
+    <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] uppercase tracking-[0.16em] ${tone}`}>
+      {input.mode === 'interactive'
+        ? t('createBatch.captureLaneInteractive', { defaultValue: 'interactive' })
+        : t('createBatch.captureLaneSilent', { defaultValue: 'silent' })}
+    </span>
+  );
+}
+
+function SummaryList(input: { label: string; values: string[]; emptyLabel: string }) {
+  return (
+    <div className="grid min-w-0 gap-2 rounded-2xl border border-white/8 bg-black/14 px-4 py-4">
+      <div className="text-[11px] uppercase tracking-[0.16em] text-white/40">{input.label}</div>
+      {input.values.length > 0 ? (
+        <div className="flex flex-wrap gap-2 text-xs text-white/72">
+          {input.values.map((value) => (
+            <span key={value} className="rounded-full border border-white/10 px-3 py-1">{value}</span>
+          ))}
+        </div>
+      ) : (
+        <div className="text-sm text-white/44">{input.emptyLabel}</div>
+      )}
+    </div>
+  );
+}
 
 export function EmbeddedCapturePanel(props: EmbeddedCapturePanelProps) {
   const { t } = useTranslation();
   const {
     stylePackConfirmed,
-    capturePortraitBriefs,
-    activePortraitBrief,
+    captureSynthesisBusy,
+    captureSynthesisError,
+    captureStates,
+    activeCaptureState,
     activePortraitBriefFieldPrefix,
+    interactiveCaptureInput,
+    interactiveCaptureBusy,
+    interactiveCaptureError,
     onSelectBriefAgent,
-    onUpdatePortraitBrief,
+    onInteractiveCaptureInputChange,
+    onRunInteractiveCaptureRefine,
+    onUpdateCaptureVisualIntent,
   } = props;
 
   return (
@@ -32,103 +78,200 @@ export function EmbeddedCapturePanel(props: EmbeddedCapturePanelProps) {
           {t('createBatch.embeddedCaptureBlocked')}
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="max-h-[280px] min-w-0 space-y-2 overflow-auto pr-1 ld-scroll">
-            {capturePortraitBriefs.map((brief) => {
-              const selected = brief.agentId === activePortraitBrief?.agentId;
-              return (
-                <button
-                  key={brief.agentId}
-                  type="button"
-                  onClick={() => onSelectBriefAgent(brief.agentId)}
-                  className={`flex w-full items-start justify-between rounded-2xl border px-4 py-3 text-left ${selected ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/8 bg-black/12 text-white/72'}`}
-                >
-                  <div>
-                    <div className="font-medium text-white">{brief.displayName}</div>
-                    <div className="mt-1 text-xs text-white/52">{brief.visualRole}</div>
-                  </div>
-                  <span className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">{selected ? t('createBatch.embeddedCaptureEditing') : t('createBatch.embeddedCaptureReview')}</span>
-                </button>
-              );
-            })}
-            {capturePortraitBriefs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-white/40">
-                {t('createBatch.embeddedCaptureEmpty')}
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
+          <div className="min-w-0 space-y-3">
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${captureSynthesisBusy ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/8 bg-black/12 text-white/66'}`}>
+              <div className="text-[11px] uppercase tracking-[0.16em] text-[var(--ld-gold)]">
+                {t('createBatch.captureStateStatus', { defaultValue: 'Capture state' })}
+              </div>
+              <div className="mt-1">
+                {captureSynthesisBusy
+                  ? t('createBatch.captureStateBusy', { defaultValue: 'Synthesizing silent capture states for the current cast.' })
+                  : t('createBatch.captureStateReady', { defaultValue: 'Every selected agent keeps an app-local capture state before batch freeze.' })}
+              </div>
+            </div>
+            {captureSynthesisError ? (
+              <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                {captureSynthesisError}
               </div>
             ) : null}
+            <div className="max-h-[420px] min-w-0 space-y-2 overflow-auto pr-1 ld-scroll">
+              {captureStates.map((state) => {
+                const selected = state.agentId === activeCaptureState?.agentId;
+                return (
+                  <Button
+                    key={state.agentId}
+                    onClick={() => onSelectBriefAgent(state.agentId)}
+                    tone="secondary"
+                    className={`grid w-full gap-2 rounded-2xl px-4 py-3 text-left ${selected ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/8 bg-black/12 text-white/72'}`}
+                    fullWidth
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="truncate font-medium text-white">{state.displayName}</div>
+                        <div className="mt-1 truncate text-xs text-white/48">{state.currentBrief}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <LanePill mode={state.synthesisMode} captureMode={state.captureMode} />
+                        <span className="text-[11px] uppercase tracking-[0.16em] text-[var(--ld-gold)]">
+                          {selected
+                            ? t('createBatch.embeddedCaptureEditing')
+                            : t('createBatch.embeddedCaptureReview')}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-white/54">{state.workingMemory.effectiveIntentSummary}</div>
+                  </Button>
+                );
+              })}
+              {captureStates.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-white/40">
+                  {t('createBatch.embeddedCaptureEmpty')}
+                </div>
+              ) : null}
+            </div>
           </div>
 
-          {activePortraitBrief ? (
-            <div className="grid min-w-0 gap-3">
-              <div className="grid min-w-0 gap-2">
-                <label htmlFor={`${activePortraitBriefFieldPrefix}-visual-role`} className="text-sm text-white/74">{t('createBatch.visualRole')}</label>
-                <input
+          {activeCaptureState ? (
+            <div className="grid min-w-0 gap-4 overflow-hidden">
+              <div className="rounded-3xl border border-white/8 bg-black/12 px-4 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="text-xs uppercase tracking-[0.16em] text-[var(--ld-gold)]">
+                      {t('createBatch.captureStateCurrentBrief', { defaultValue: 'Current brief' })}
+                    </div>
+                    <div className="text-sm leading-6 text-white/80">{activeCaptureState.currentBrief}</div>
+                    <div className="text-xs text-white/48">{activeCaptureState.sourceSummary}</div>
+                  </div>
+                  <LanePill mode={activeCaptureState.synthesisMode} captureMode={activeCaptureState.captureMode} />
+                </div>
+              </div>
+
+              <div className="grid gap-4 2xl:grid-cols-2">
+                <SummaryList
+                  label={t('createBatch.captureFeelingAnchor', { defaultValue: 'Feeling anchor' })}
+                  values={[activeCaptureState.feelingAnchor.coreVibe, ...activeCaptureState.feelingAnchor.tonePhrases].filter(Boolean)}
+                  emptyLabel={t('createBatch.captureFeelingAnchorEmpty', { defaultValue: 'No stable feeling anchor yet.' })}
+                />
+                <SummaryList
+                  label={t('createBatch.captureAvoidVibe', { defaultValue: 'Avoid vibe' })}
+                  values={activeCaptureState.feelingAnchor.avoidVibe}
+                  emptyLabel={t('createBatch.captureAvoidVibeEmpty', { defaultValue: 'No avoid-vibe cues yet.' })}
+                />
+                <SummaryList
+                  label={t('createBatch.capturePreserveFocus', { defaultValue: 'Preserve focus' })}
+                  values={activeCaptureState.workingMemory.preserveFocus}
+                  emptyLabel={t('createBatch.capturePreserveFocusEmpty', { defaultValue: 'No preserve-focus items yet.' })}
+                />
+                <SummaryList
+                  label={t('createBatch.captureAdjustFocus', { defaultValue: 'Adjust focus' })}
+                  values={activeCaptureState.workingMemory.adjustFocus}
+                  emptyLabel={t('createBatch.captureAdjustFocusEmpty', { defaultValue: 'No active adjustment focus yet.' })}
+                />
+              </div>
+
+              <div className="grid gap-3 rounded-3xl border border-white/8 bg-black/12 px-4 py-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-[var(--ld-gold)]">
+                  {t('createBatch.captureVisualIntent', { defaultValue: 'Visual intent' })}
+                </div>
+                <TextField
                   id={`${activePortraitBriefFieldPrefix}-visual-role`}
-                  value={activePortraitBrief.visualRole}
-                  onChange={(event) => onUpdatePortraitBrief({ visualRole: event.target.value })}
-                  className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                  value={activeCaptureState.visualIntent.visualRole}
+                  onChange={(event) => onUpdateCaptureVisualIntent({ visualRole: event.target.value })}
+                  aria-label={t('createBatch.visualRole')}
                 />
-              </div>
-              <div className="grid min-w-0 gap-2">
-                <label htmlFor={`${activePortraitBriefFieldPrefix}-silhouette`} className="text-sm text-white/74">{t('createBatch.silhouette')}</label>
-                <input
+                <TextField
                   id={`${activePortraitBriefFieldPrefix}-silhouette`}
-                  value={activePortraitBrief.silhouette}
-                  onChange={(event) => onUpdatePortraitBrief({ silhouette: event.target.value })}
-                  className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                  value={activeCaptureState.visualIntent.silhouette}
+                  onChange={(event) => onUpdateCaptureVisualIntent({ silhouette: event.target.value })}
+                  aria-label={t('createBatch.silhouette')}
                 />
-              </div>
-              <div className="grid min-w-0 gap-2">
-                <label htmlFor={`${activePortraitBriefFieldPrefix}-outfit`} className="text-sm text-white/74">{t('createBatch.outfit')}</label>
-                <input
+                <TextField
                   id={`${activePortraitBriefFieldPrefix}-outfit`}
-                  value={activePortraitBrief.outfit}
-                  onChange={(event) => onUpdatePortraitBrief({ outfit: event.target.value })}
-                  className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                  value={activeCaptureState.visualIntent.outfit}
+                  onChange={(event) => onUpdateCaptureVisualIntent({ outfit: event.target.value })}
+                  aria-label={t('createBatch.outfit')}
                 />
-              </div>
-              <div className="grid min-w-0 gap-2 2xl:grid-cols-2">
-                <div className="grid min-w-0 gap-2">
-                  <label htmlFor={`${activePortraitBriefFieldPrefix}-hairstyle`} className="text-sm text-white/74">{t('createBatch.hairstyle')}</label>
-                  <input
+                <div className="grid gap-3 md:grid-cols-2">
+                  <TextField
                     id={`${activePortraitBriefFieldPrefix}-hairstyle`}
-                    value={activePortraitBrief.hairstyle}
-                    onChange={(event) => onUpdatePortraitBrief({ hairstyle: event.target.value })}
-                    className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                    value={activeCaptureState.visualIntent.hairstyle}
+                    onChange={(event) => onUpdateCaptureVisualIntent({ hairstyle: event.target.value })}
+                    aria-label={t('createBatch.hairstyle')}
                   />
-                </div>
-                <div className="grid min-w-0 gap-2">
-                  <label htmlFor={`${activePortraitBriefFieldPrefix}-palette`} className="text-sm text-white/74">{t('createBatch.palette')}</label>
-                  <input
+                  <TextField
                     id={`${activePortraitBriefFieldPrefix}-palette`}
-                    value={activePortraitBrief.palettePrimary}
-                    onChange={(event) => onUpdatePortraitBrief({ palettePrimary: event.target.value })}
-                    className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                    value={activeCaptureState.visualIntent.palettePrimary}
+                    onChange={(event) => onUpdateCaptureVisualIntent({ palettePrimary: event.target.value })}
+                    aria-label={t('createBatch.palette')}
                   />
                 </div>
-              </div>
-              <div className="grid min-w-0 gap-2">
-                <label htmlFor={`${activePortraitBriefFieldPrefix}-must-keep-traits`} className="text-sm text-white/74">{t('createBatch.mustKeepTraits')}</label>
-                <input
+                <TextField
                   id={`${activePortraitBriefFieldPrefix}-must-keep-traits`}
-                  value={activePortraitBrief.mustKeepTraits.join(', ')}
-                  onChange={(event) => onUpdatePortraitBrief({
+                  value={activeCaptureState.visualIntent.mustKeepTraits.join(', ')}
+                  onChange={(event) => onUpdateCaptureVisualIntent({
                     mustKeepTraits: event.target.value.split(',').map((value) => value.trim()).filter(Boolean),
                   })}
-                  className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                  aria-label={t('createBatch.mustKeepTraits')}
                 />
-              </div>
-              <div className="grid min-w-0 gap-2">
-                <label htmlFor={`${activePortraitBriefFieldPrefix}-forbidden-traits`} className="text-sm text-white/74">{t('createBatch.forbiddenTraits')}</label>
-                <input
+                <TextField
                   id={`${activePortraitBriefFieldPrefix}-forbidden-traits`}
-                  value={activePortraitBrief.forbiddenTraits.join(', ')}
-                  onChange={(event) => onUpdatePortraitBrief({
+                  value={activeCaptureState.visualIntent.forbiddenTraits.join(', ')}
+                  onChange={(event) => onUpdateCaptureVisualIntent({
                     forbiddenTraits: event.target.value.split(',').map((value) => value.trim()).filter(Boolean),
                   })}
-                  className="w-full min-w-0 rounded-2xl border border-white/10 bg-black/12 px-4 py-3 text-white outline-none"
+                  aria-label={t('createBatch.forbiddenTraits')}
                 />
               </div>
+
+              {activeCaptureState.captureMode === 'capture' ? (
+                <div className="grid gap-3 rounded-3xl border border-white/8 bg-black/12 px-4 py-4">
+                  <div className="text-xs uppercase tracking-[0.16em] text-[var(--ld-gold)]">
+                    {t('createBatch.captureRefineLane', { defaultValue: 'Interactive capture lane' })}
+                  </div>
+                  <div className="max-h-[180px] space-y-2 overflow-auto rounded-2xl border border-white/8 bg-black/14 px-4 py-4 ld-scroll">
+                    {activeCaptureState.messages.map((message) => (
+                      <div key={message.messageId} className={`rounded-2xl px-4 py-3 text-sm leading-6 ${message.role === 'assistant' ? 'border border-white/8 bg-white/5 text-white/76' : 'ml-auto max-w-[90%] border border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_16%,transparent)] text-white'}`}>
+                        <div className="mb-1 text-[11px] uppercase tracking-[0.16em] text-[var(--ld-gold)]">
+                          {message.role === 'assistant'
+                            ? t('createBatch.worldStyleSessionAssistant')
+                            : t('createBatch.worldStyleSessionOperator')}
+                        </div>
+                        <div>{message.text}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <TextareaField
+                    value={interactiveCaptureInput}
+                    onChange={(event) => onInteractiveCaptureInputChange(event.target.value)}
+                    placeholder={t('createBatch.captureRefinePlaceholder', { defaultValue: 'Describe what to preserve, what to push, and where this role should move next.' })}
+                    disabled={interactiveCaptureBusy}
+                    textareaClassName="min-h-[108px] text-sm text-white"
+                  />
+                  {interactiveCaptureError ? (
+                    <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+                      {interactiveCaptureError}
+                    </div>
+                  ) : null}
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      tone="primary"
+                      onClick={onRunInteractiveCaptureRefine}
+                      disabled={!interactiveCaptureInput.trim() || interactiveCaptureBusy}
+                    >
+                      {interactiveCaptureBusy
+                        ? t('createBatch.captureRefineBusy', { defaultValue: 'Refining...' })
+                        : t('createBatch.captureRefineRun', { defaultValue: 'Refine capture' })}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-4 text-sm text-white/62">
+                  {t('createBatch.captureSilentLaneDescription', {
+                    defaultValue: 'This agent stays on the silent capture lane. Lookdev still synthesizes a role-aware capture state, but it does not open a detailed operator conversation by default.',
+                  })}
+                </div>
+              )}
             </div>
           ) : null}
         </div>

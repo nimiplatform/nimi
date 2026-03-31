@@ -324,12 +324,40 @@ func (s *Service) resolveManagedArtifactEntryPath(artifact *runtimev1.LocalArtif
 	if artifact == nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	return resolveManagedEntryRelativePath(
-		s.resolvedLocalModelsPath(),
-		artifact.GetArtifactId(),
-		artifact.GetSource().GetRepo(),
-		artifact.GetEntry(),
-	)
+	modelsRoot := s.resolvedLocalModelsPath()
+	repo := strings.TrimSpace(artifact.GetSource().GetRepo())
+	if strings.HasPrefix(repo, "file://") {
+		return resolveManagedEntryRelativePath(modelsRoot, artifact.GetArtifactId(), repo, artifact.GetEntry())
+	}
+	root := strings.TrimSpace(modelsRoot)
+	if root == "" {
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	rootAbs, err := filepath.Abs(root)
+	if err != nil {
+		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	cleanEntry := filepath.Clean(strings.TrimSpace(artifact.GetEntry()))
+	if cleanEntry == "." || cleanEntry == "" || filepath.IsAbs(cleanEntry) || cleanEntry == ".." ||
+		strings.HasPrefix(cleanEntry, ".."+string(filepath.Separator)) {
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	absPath := filepath.Join(rootAbs, "artifacts", slugifyLocalModelID(artifact.GetArtifactId()), cleanEntry)
+	absPath, err = filepath.Abs(absPath)
+	if err != nil {
+		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	if !strings.HasPrefix(absPath, rootAbs+string(filepath.Separator)) && absPath != rootAbs {
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	if _, statErr := os.Stat(absPath); statErr != nil {
+		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	}
+	relPath, err := filepath.Rel(rootAbs, absPath)
+	if err != nil {
+		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+	}
+	return filepath.ToSlash(relPath), nil
 }
 
 func (s *Service) resolvedLocalModelsPath() string {

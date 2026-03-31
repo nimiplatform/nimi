@@ -1,0 +1,8 @@
+version: 1
+routes:
+  - id: home
+    path: /
+    title: Moment
+    purpose: "Seed input, story-opening stage, short continuation loop, and local shelf."
+    is_default: true
+    shell_priority: primary

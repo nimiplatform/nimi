@@ -37,7 +37,7 @@ export type ImportRecord = {
   description: string;
   tags: string[];
   durationSec: number;
-  status: 'succeeded' | 'failed' | 'running';
+  status: 'queued' | 'resolving' | 'geocoding' | 'succeeded' | 'failed' | 'running';
   transcript: string;
   extractionRaw: string;
   videoSummary: string;
@@ -46,10 +46,22 @@ export type ImportRecord = {
   selectedSttModel: string;
   extractionCoverage: ExtractionCoverage | null;
   outputDir: string;
+  publicCommentCount: number;
+  commentClues: CommentClue[];
   errorMessage: string;
   createdAt: string;
   updatedAt: string;
   venues: VenueRecord[];
+};
+
+export type CommentClue = {
+  commentId: string;
+  authorName: string;
+  message: string;
+  likeCount: number;
+  publishedAt: string;
+  matchedVenueNames: string[];
+  addressHint: string;
 };
 
 export type MapPoint = {
@@ -156,7 +168,13 @@ function parseImportRecord(value: unknown): ImportRecord {
     description: asString(record.description),
     tags: asStringArray(record.tags),
     durationSec: asNumber(record.durationSec),
-    status: status === 'failed' || status === 'running' ? status : 'succeeded',
+    status: (
+      status === 'queued'
+      || status === 'resolving'
+      || status === 'geocoding'
+      || status === 'failed'
+      || status === 'running'
+    ) ? status : 'succeeded',
     transcript: String(record.transcript || ''),
     extractionRaw: String(record.extractionRaw || ''),
     videoSummary: asString(record.videoSummary),
@@ -165,10 +183,25 @@ function parseImportRecord(value: unknown): ImportRecord {
     selectedSttModel: asString(record.selectedSttModel),
     extractionCoverage: asCoverage(record.extractionCoverage),
     outputDir: asString(record.outputDir),
+    publicCommentCount: asNumber(record.publicCommentCount),
+    commentClues: Array.isArray(record.commentClues) ? record.commentClues.map(parseCommentClue) : [],
     errorMessage: asString(record.errorMessage),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
     venues: Array.isArray(record.venues) ? record.venues.map(parseVenueRecord) : [],
+  };
+}
+
+function parseCommentClue(value: unknown): CommentClue {
+  const record = asRecord(value, 'commentClue');
+  return {
+    commentId: asString(record.commentId),
+    authorName: asString(record.authorName),
+    message: asString(record.message),
+    likeCount: asNumber(record.likeCount),
+    publishedAt: asString(record.publishedAt),
+    matchedVenueNames: asStringArray(record.matchedVenueNames),
+    addressHint: asString(record.addressHint),
   };
 }
 

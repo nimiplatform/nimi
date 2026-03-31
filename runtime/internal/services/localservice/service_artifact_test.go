@@ -23,7 +23,7 @@ func TestLocalImportLocalArtifactAndList(t *testing.T) {
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
-	artifactDir := filepath.Join(modelsRoot, "local-z-image-ae")
+	artifactDir := filepath.Join(modelsRoot, "artifacts", "local-z-image-ae")
 	if err := os.MkdirAll(filepath.Join(artifactDir, "vae"), 0o755); err != nil {
 		t.Fatalf("mkdir artifact dir: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestInstallVerifiedArtifactDownloadsFilesAndWritesManifest(t *testing.T) {
 		t.Fatalf("unexpected artifact id: %q", resp.GetArtifact().GetArtifactId())
 	}
 
-	artifactDir := filepath.Join(modelsRoot, slugifyLocalModelID("local/z_image_ae"))
+	artifactDir := filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID("local/z_image_ae"))
 	artifactPath := filepath.Join(artifactDir, "vae", "diffusion_pytorch_model.safetensors")
 	raw, err := os.ReadFile(artifactPath)
 	if err != nil {
@@ -223,7 +223,7 @@ func TestInstallVerifiedArtifactHashMismatchRollsBack(t *testing.T) {
 		t.Fatalf("expected hash mismatch error")
 	}
 
-	artifactDir := filepath.Join(modelsRoot, slugifyLocalModelID("local/z_image_ae"))
+	artifactDir := filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID("local/z_image_ae"))
 	if _, err := os.Stat(artifactDir); !os.IsNotExist(err) {
 		t.Fatalf("artifact dir should be absent after rollback, stat err=%v", err)
 	}

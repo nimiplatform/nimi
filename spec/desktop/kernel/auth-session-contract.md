@@ -139,6 +139,14 @@ Desktop 对 ExternalPrincipal 的 UI 投影固定在 Runtime Config 的 External
 - **审计事件来源**: 审计记录源自 runtime audit store，过滤条件 `stage = "audit"` + `event_type = "hook.action.commit"`。
 - **审计保留策略**: 受 runtime audit ring buffer 配置 (`cfg.AuditRingBufferSize`) 约束；external agent audit 无独立保留策略。
 
+## D-AUTH-013 — Email Entry Route Typed Decision
+
+anonymous 状态下 desktop 可调用 `Realm.AuthService.checkEmail` 获取类型化登录路由（S-REALM-038）。
+
+- 返回 `CheckEmailEntryRoute` 三值判定：`register_with_otp`、`login_with_otp`、`login_with_password`。
+- Desktop 根据判定结果路由到对应的注册/OTP/密码登录表单。
+- 此调用不需要 accessToken，属于 S-REALM-038 允许的公开决策端点。
+
 ## Fact Sources
 
 - `tables/bootstrap-phases.yaml` — Auth session 阶段

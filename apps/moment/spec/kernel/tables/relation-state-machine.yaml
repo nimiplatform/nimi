@@ -1,0 +1,41 @@
+version: 1
+relation_states:
+  - id: distant_witness
+    description: "The user remains outside the event and observes from afar."
+  - id: near_witness
+    description: "The user draws closer but is still not explicitly part of the event."
+  - id: noticed
+    description: "The scene or a presence has begun to register the user."
+  - id: addressed
+    description: "The story now speaks or reacts directly toward the user."
+  - id: involved
+    description: "The user is now materially inside the unfolding event."
+transitions:
+  - from: distant_witness
+    to: distant_witness
+  - from: distant_witness
+    to: near_witness
+  - from: distant_witness
+    to: noticed
+  - from: near_witness
+    to: near_witness
+  - from: near_witness
+    to: noticed
+  - from: near_witness
+    to: addressed
+  - from: noticed
+    to: noticed
+  - from: noticed
+    to: addressed
+  - from: noticed
+    to: involved
+  - from: addressed
+    to: addressed
+  - from: addressed
+    to: involved
+  - from: involved
+    to: involved
+rules:
+  - "No transition is required to occur; remaining outside the story is valid."
+  - "Promotion into deeper involvement must feel earned by scene logic and user action."
+  - "The product does not ask the user to preselect a relation mode before play."

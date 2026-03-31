@@ -113,8 +113,7 @@ fn wait_until_running(addr: &str) -> bool {
 }
 
 fn runtime_binary() -> String {
-    read_non_empty_env("NIMI_RUNTIME_BINARY")
-        .unwrap_or_else(|| DEFAULT_RUNTIME_BINARY.to_string())
+    read_non_empty_env("NIMI_RUNTIME_BINARY").unwrap_or_else(|| DEFAULT_RUNTIME_BINARY.to_string())
 }
 
 fn runtime_dev_root_dir() -> Option<PathBuf> {
@@ -169,7 +168,11 @@ fn runtime_command_spec() -> Result<RuntimeCommandSpec, String> {
             .ok_or_else(|| "本地 runtime 启动失败：仓库里的 runtime 目录不存在。".to_string())?;
         return Ok(RuntimeCommandSpec {
             program: "go".to_string(),
-            args: vec!["run".to_string(), "./cmd/nimi".to_string(), "serve".to_string()],
+            args: vec![
+                "run".to_string(),
+                "./cmd/nimi".to_string(),
+                "serve".to_string(),
+            ],
             current_dir: Some(runtime_dir),
         });
     }

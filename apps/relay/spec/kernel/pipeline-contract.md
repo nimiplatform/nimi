@@ -72,6 +72,10 @@ Image/video/voice generation must follow one beat-level orchestration policy:
 5. automatic media still passes explicit gate, cooldown, route readiness, dependency readiness, derived relationship boundary, and NSFW policy
 6. text beat success must not be blocked by media failure
 7. explicit visual beats carry `mediaRequest` planner input; Relay must keep that planner envelope separate from persisted artifact records
+8. local image execution must preserve local route selection through main-process resolution; Relay must not coerce `local` image routes into cloud bindings
+9. local image execution must fail closed when `imageLocalModelId` is missing or when managed workflow `components[]` are absent
+10. Relay must not auto-select the first available local image model, synthesize workflow companions, or silently fall back to cloud image generation
+11. local image workflow companions are explicit settings state, not inferred metadata; installed local artifacts may be listed, but installation remains outside Relay
 
 ## RL-PIPE-007 — Proactive Heartbeat Pipeline
 

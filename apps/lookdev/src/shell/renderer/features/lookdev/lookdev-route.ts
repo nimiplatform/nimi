@@ -33,6 +33,14 @@ export type LookdevRouteCatalog = {
   issues: LookdevRouteLoadIssue[];
 };
 
+export type LookdevRuntimeTargetPreference = {
+  connectorId?: string;
+  provider?: string;
+  modelId?: string;
+  localModelId?: string;
+  source?: LookdevRouteSource;
+};
+
 const LOAD_TIMEOUT_MS = 3_500;
 
 const LOCAL_STATUS_MAP: Record<number, number> = {
@@ -262,9 +270,72 @@ async function loadCloudOptions(
 
 export function pickDefaultRuntimeTargetOption(
   options: LookdevRuntimeTargetOption[],
+  preference?: LookdevRuntimeTargetPreference,
 ): LookdevRuntimeTargetOption | null {
   if (options.length === 0) {
     return null;
+  }
+  const normalizedConnectorId = normalizeText(preference?.connectorId);
+  const normalizedProvider = normalizeText(preference?.provider);
+  const normalizedModelId = normalizeText(preference?.modelId);
+  const normalizedLocalModelId = normalizeText(preference?.localModelId);
+  const normalizedSource = normalizeText(preference?.source);
+
+  const exactConfiguredCloudTarget = options.find((option) =>
+    option.source === 'cloud'
+    && normalizedConnectorId
+    && option.connectorId === normalizedConnectorId
+    && normalizedModelId
+    && option.modelId === normalizedModelId);
+  if (exactConfiguredCloudTarget) {
+    return exactConfiguredCloudTarget;
+  }
+
+  const configuredConnectorTarget = options.find((option) =>
+    option.source === 'cloud'
+    && normalizedConnectorId
+    && option.connectorId === normalizedConnectorId);
+  if (configuredConnectorTarget) {
+    return configuredConnectorTarget;
+  }
+
+  const exactConfiguredProviderTarget = options.find((option) =>
+    option.source === 'cloud'
+    && normalizedProvider
+    && option.provider === normalizedProvider
+    && normalizedModelId
+    && option.modelId === normalizedModelId);
+  if (exactConfiguredProviderTarget) {
+    return exactConfiguredProviderTarget;
+  }
+
+  const configuredProviderTarget = options.find((option) =>
+    option.source === 'cloud'
+    && normalizedProvider
+    && option.provider === normalizedProvider);
+  if (configuredProviderTarget) {
+    return configuredProviderTarget;
+  }
+
+  const configuredLocalTarget = options.find((option) =>
+    option.source === 'local'
+    && normalizedLocalModelId
+    && (option.localModelId === normalizedLocalModelId || option.modelId === normalizeLocalModelId(normalizedLocalModelId)));
+  if (configuredLocalTarget) {
+    return configuredLocalTarget;
+  }
+
+  if (normalizedSource === 'cloud') {
+    const firstCloudTarget = options.find((option) => option.source === 'cloud');
+    if (firstCloudTarget) {
+      return firstCloudTarget;
+    }
+  }
+  if (normalizedSource === 'local') {
+    const firstLocalTarget = options.find((option) => option.source === 'local');
+    if (firstLocalTarget) {
+      return firstLocalTarget;
+    }
   }
   return options.find((option) => option.source === 'local') || options[0] || null;
 }

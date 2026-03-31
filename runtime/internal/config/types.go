@@ -7,7 +7,7 @@ const (
 	defaultGRPCAddr                  = "127.0.0.1:46371"
 	defaultHTTPAddr                  = "127.0.0.1:46372"
 	defaultLocalStateRelPath         = ".nimi/runtime/local-state.json"
-	defaultLocalModelsRelPath        = ".nimi/models"
+	defaultLocalModelsRelPath        = ".nimi/data/models"
 	defaultModelCatalogCustomRelPath = ".nimi/runtime/model-catalog/providers"
 	defaultRuntimeConfigRelPath      = ".nimi/config.json"
 	defaultCloudGeminiBaseURL        = "https://generativelanguage.googleapis.com/v1beta/openai"

@@ -30,7 +30,7 @@
 
 ## Verification Commands
 - Repo-wide guardrails: `pnpm check:agents-freshness`, `pnpm check:ai-context-budget`, `pnpm check:ai-structure-budget`, `pnpm check:no-legacy-imports`, `pnpm check:no-absolute-user-paths`, `pnpm check:no-app-realm-rest-bypass`.
-- Spec gates: run the affected spec consistency command and the matching docs drift command.
+- Spec gates: run the affected spec consistency command and the matching docs drift command. For any change under `spec/**/kernel/**` or `spec/**/kernel/tables/**`, also run `pnpm check:spec-human-doc-drift`; if it fails, run `pnpm generate:spec-human-doc` and commit the regenerated `spec/generated/nimi-spec.md` in the same change.
 - Runtime chain order:
   - `runtime`: `go build ./...`, `go vet ./...`, `go test ./...`, `go run ./cmd/runtime-compliance --gate`
   - `sdk`: `pnpm --filter @nimiplatform/sdk test`, `pnpm check:sdk-coverage`, `pnpm check:sdk-consumer-smoke`

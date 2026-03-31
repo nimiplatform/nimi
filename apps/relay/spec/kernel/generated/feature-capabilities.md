@@ -10,7 +10,7 @@
 | live2d | Live2D Character | no | no | yes | no | no | — (renderer) | RL-FEAT-005 |  |
 | video | Video Generation | yes | no | yes | no | yes | `runtime.media.video + runtime.media.jobs` | RL-FEAT-006 | Job status via media.jobs.subscribe/get, not video.status (which does not exist) |
 | agent-profile | Agent Profile & Selection | no | yes | **no** | no | no | `realm` | RL-FEAT-007 |  |
-| model-config | Model Configuration | yes | no | **no** | no | no | `runtime.model + runtime.local + runtime.connector` | RL-FEAT-008 | Lightweight model status and management; full UI lives in Desktop (RL-INTOP-004) |
+| model-config | Model Configuration | yes | no | **no** | no | no | `runtime.model + runtime.local + runtime.connector` | RL-FEAT-008 | Lightweight route/model/artifact status and management, including local image workflow companion selection; full UI lives in Desktop (RL-INTOP-004) |
 | chat-pipeline | Beat-First Chat Pipeline | yes | no | yes | no | no | `runtime.ai` | RL-PIPE-001 | Full turn pipeline — first-beat reactor, turn composer, delivery director |
 | session-store | Session Persistence | no | no | yes | no | no | — (renderer) | RL-PIPE-002 | Conversation ledger persisted to Electron userData via RelayChatStorage |
 | interaction-state | Interaction State Tracking | no | no | yes | no | no | — (renderer) | RL-PIPE-008 | Emotional temperature, relationship state, commitments, open loops |

@@ -1,0 +1,52 @@
+version: 1
+features:
+  - id: front_door_home
+    phase: P0
+    priority: required
+    dependency_posture: app_local
+    summary: "Single-screen front door with quiet seed intake and dominant threshold stage."
+  - id: image_seed
+    phase: P0
+    priority: required
+    dependency_posture: app_local
+    summary: "Single-image threshold generation input."
+  - id: phrase_seed
+    phase: P0
+    priority: required
+    dependency_posture: app_local
+    summary: "Single-phrase threshold generation input."
+  - id: threshold_generation
+    phase: P0
+    priority: required
+    dependency_posture: app_local
+    summary: "Return one story-opening threshold rather than summary prose."
+  - id: short_play_loop
+    phase: P0
+    priority: required
+    dependency_posture: app_local
+    summary: "2 to 4 continuation beats with distinct actions, freeform input, and graceful sealing before long-chat drift."
+  - id: local_shelf
+    phase: P0
+    priority: required
+    dependency_posture: app_local
+    summary: "Local-first shelf for saved story openings."
+  - id: sample_triggers
+    phase: P1
+    priority: optional_support
+    dependency_posture: app_local
+    summary: "Lightweight triggers that do not take over the primary stage."
+  - id: upstream_seed_hooks
+    phase: P1
+    priority: future
+    dependency_posture: explicit_integration
+    summary: "Optional upstream seed sources from neighboring products."
+  - id: deeper_play_handoff
+    phase: P1
+    priority: future
+    dependency_posture: explicit_integration
+    summary: "Optional handoff to deeper continuation surfaces."
+  - id: creator_handoff
+    phase: P2
+    priority: future
+    dependency_posture: explicit_integration
+    summary: "Explicit downstream creator handoff for high-value story openings."

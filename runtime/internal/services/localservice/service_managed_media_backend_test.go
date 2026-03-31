@@ -53,7 +53,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
 	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
 	svc.mu.Unlock()
 
-	vaePath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_ae"), "vae", "diffusion_pytorch_model.safetensors")
+	vaePath := filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID("z_image_ae"), "vae", "diffusion_pytorch_model.safetensors")
 	if err := os.MkdirAll(filepath.Dir(vaePath), 0o755); err != nil {
 		t.Fatalf("mkdir vae dir: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
 		t.Fatalf("install vae artifact: %v", err)
 	}
 
-	llmPath := filepath.Join(modelsRoot, slugifyLocalModelID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
+	llmPath := filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(llmPath), 0o755); err != nil {
 		t.Fatalf("mkdir llm dir: %v", err)
 	}
@@ -120,10 +120,10 @@ func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
 		t.Fatalf("unexpected model parameter: %q", got)
 	}
 	options := valueAsStringSlice(profile["options"])
-	if !containsString(options, "llm_path:qwen3-4b-companion/Qwen3-4B-Q4_K_M.gguf") {
+	if !containsString(options, "llm_path:artifacts/qwen3-4b-companion/Qwen3-4B-Q4_K_M.gguf") {
 		t.Fatalf("expected llm_path option, got=%v", options)
 	}
-	if !containsString(options, "vae_path:z-image-ae/vae/diffusion_pytorch_model.safetensors") {
+	if !containsString(options, "vae_path:artifacts/z-image-ae/vae/diffusion_pytorch_model.safetensors") {
 		t.Fatalf("expected vae_path option, got=%v", options)
 	}
 	if containsString(options, "vae_path:old.safetensors") {

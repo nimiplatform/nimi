@@ -467,6 +467,9 @@ func (s *Service) healLegacyManagedLocalImportRecord(localModelID string) (*runt
 	candidate, ok := matchManagedModelManifestCandidate(current, runtimeCandidates)
 	if !ok {
 		desktopModelsRoot := resolveDesktopLocalRuntimeModelsPath()
+		if strings.TrimSpace(desktopModelsRoot) == "" || filepath.Clean(desktopModelsRoot) == filepath.Clean(runtimeModelsRoot) {
+			return current, false, fmt.Errorf("no managed bundle manifest matched model_id=%q entry=%q", current.GetModelId(), current.GetEntry())
+		}
 		desktopCandidates, desktopErr := scanManagedModelManifestCandidates(desktopModelsRoot)
 		if desktopErr != nil {
 			return current, false, fmt.Errorf("scan desktop managed manifests: %w", desktopErr)
@@ -669,6 +672,10 @@ func (s *Service) repairManagedLocalModelBundleFromDesktop(model *runtimev1.Loca
 	if strings.TrimSpace(desktopModelsRoot) == "" {
 		return false, fmt.Errorf("desktop local models root is unavailable")
 	}
+	modelsRoot := s.resolvedLocalModelsPath()
+	if filepath.Clean(desktopModelsRoot) == filepath.Clean(modelsRoot) {
+		return false, nil
+	}
 	srcDir := filepath.Join(desktopModelsRoot, "resolved", filepath.FromSlash(logicalModelID))
 	srcManifestPath := filepath.Join(srcDir, "manifest.json")
 	if _, err := os.Stat(srcManifestPath); err != nil {
@@ -679,7 +686,6 @@ func (s *Service) repairManagedLocalModelBundleFromDesktop(model *runtimev1.Loca
 		return false, fmt.Errorf("legacy desktop managed bundle invalid: %w", err)
 	}
 
-	modelsRoot := s.resolvedLocalModelsPath()
 	destDir := filepath.Join(modelsRoot, "resolved", filepath.FromSlash(logicalModelID))
 	stageDir, err := prepareManagedModelBundleStageDir(destDir, "repair")
 	if err != nil {

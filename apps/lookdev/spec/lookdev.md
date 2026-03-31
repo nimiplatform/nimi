@@ -23,23 +23,31 @@ Its formal product responsibility is:
 3. use understanding-led dialogue rather than scripted questionnaire prompts
 4. synthesize one `WorldStylePack` draft from the session
 5. require explicit operator confirmation before that style pack may drive downstream work
-6. compile one reusable `PortraitBrief` per selected agent from Realm truth plus one confirmed world style pack
-7. let the operator choose which agents enter `Capture Selection`
-8. run focused capture refinement only for the operator-selected subset, defaulting to `primary` agents
-9. explicitly choose one batch-scope generation target and one batch-scope evaluation target from typed runtime availability
-10. generate one current portrait result per batch item under one frozen shared policy
-11. auto-evaluate each result against a conservative anchor-portrait gate
-12. auto-retry failed items up to the retry budget
-13. explicitly commit the passed set into Realm portrait truth
+6. synthesize one app-local `CaptureState` per selected agent from creator-scoped Realm detail plus AgentRule-anchored truth and one confirmed world style pack
+7. materialize one reusable `PortraitBrief` per selected agent from that capture state
+8. let the operator choose which agents enter `Capture Selection`
+9. run focused interactive capture refinement only for the operator-selected subset, defaulting to `primary` agents
+10. keep non-capture-selected agents on a silent capture lane that still uses state-driven portrait synthesis rather than direct field concatenation
+11. explicitly choose one batch-scope generation target and one batch-scope evaluation target from typed runtime availability
+12. generate one current portrait result per batch item under one frozen shared policy
+13. auto-evaluate each result against a conservative anchor-portrait gate
+14. auto-retry failed items up to the retry budget
+15. explicitly commit the passed set into Realm portrait truth
 
 ## 1. Core Boundary
 
 Lookdev adopts a strict split between app-local working state and Realm truth.
 
-- `WorldStylePack`, `PortraitBrief`, `LookdevBatch`, and `LookdevItem` are Lookdev-managed working objects
+- `WorldStylePack`, `CaptureState`, `PortraitBrief`, `LookdevBatch`, and `LookdevItem` are Lookdev-managed working objects
 - these working objects may persist inside Lookdev and be reused across batches
 - they are not Realm formal truth
 - Realm receives only the explicitly committed formal portrait result
+
+Realm truth intake for capture-state synthesis should prefer creator-scoped detail plus `AgentRule` truth over public browse-style projections.
+
+- richer truth may strengthen role understanding, feeling anchors, and visual intent
+- richer truth must still be mediated through `CaptureState`
+- Lookdev must not bypass `CaptureState` and send raw Realm truth directly into batch image generation
 
 Lookdev must not treat style packs, compiled briefs, generated images, or evaluation records as if they were already shared truth.
 
@@ -49,14 +57,15 @@ Lookdev inherits visual capture direction from Agent-Capture, but not its produc
 
 - Agent-Capture remains a single-character exploratory drafting tool
 - Lookdev remains the batch control plane
-- Lookdev may reuse Agent-Capture's visual refinement logic for the selected capture subset
+- Lookdev may reuse Agent-Capture's state-driven visual refinement method for both silent and interactive capture lanes
 - the operator stays inside Lookdev; Lookdev does not require the user to switch products during its mainline flow
 
 Lookdev therefore adds batch governance above Agent-Capture-style refinement:
 
 - world-level style definition
 - feeling-led world-style understanding dialogue
-- per-agent brief compilation
+- per-agent capture-state synthesis
+- per-agent brief materialization
 - user-owned capture selection
 - batch control
 - item tracking
@@ -84,6 +93,7 @@ Lookdev uses five app-local working objects:
 
 - `WorldStyleSession`
 - `WorldStylePack`
+- `CaptureState`
 - `PortraitBrief`
 - `LookdevBatch`
 - `LookdevItem`
@@ -102,9 +112,11 @@ The first formal app surfaces are:
 - world style session
 - world style pack draft synthesis
 - world style pack confirmation
+- silent capture-state synthesis
+- focused interactive capture refinement
 - explicit generation target selection
 - explicit evaluation target selection
-- portrait brief compilation from confirmed style pack only
+- portrait brief materialization from capture state
 - capture selection
 - batch detail
 - frozen selection and policy snapshot visibility

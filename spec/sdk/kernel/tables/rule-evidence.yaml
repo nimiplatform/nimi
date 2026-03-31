@@ -320,6 +320,10 @@ rules:
   - rule_id: S-REALM-037
     status: na
     na_reason: "Event name ownership; SDK does not maintain authoritative event enum"
+  - rule_id: S-REALM-038
+    status: covered
+    evidence_refs: [sdk_behavioral_test, sdk_kernel_consistency]
+    note: "Unauthenticated decision routing; checkEmail/requestEmailOtp/verifyEmailOtp/passwordLogin allowed without token"
 
   # --- Runtime Contract (S-RUNTIME) ---
   - rule_id: S-RUNTIME-010

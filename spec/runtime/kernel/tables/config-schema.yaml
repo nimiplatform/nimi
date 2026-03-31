@@ -256,7 +256,7 @@ fields:
 
   - key: localModelsPath
     type: string
-    default: "~/.nimi/models"
+    default: "~/.nimi/data/models"
     reload: restart
     description: 本地模型存储路径
     source_rule: K-LOCAL-016

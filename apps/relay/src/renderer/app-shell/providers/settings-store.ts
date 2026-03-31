@@ -3,6 +3,12 @@
 
 import { create } from 'zustand';
 import { getBridge } from '../../bridge/electron-bridge.js';
+import type { JsonObject } from '../../../shared/json.js';
+
+export type ImageWorkflowComponent = {
+  slot: string;
+  localArtifactId: string;
+};
 
 export type MediaAutonomy = 'off' | 'explicit-only' | 'natural';
 export type VoiceAutonomy = 'off' | 'explicit-only' | 'natural';
@@ -18,8 +24,12 @@ export interface ProductSettings {
 }
 
 export interface InspectSettings {
+  imageRouteSource: 'auto' | 'local' | 'cloud';
   imageConnectorId: string;
   imageModel: string;
+  imageLocalModelId: string;
+  imageWorkflowComponents: ImageWorkflowComponent[];
+  imageProfileOverrides: JsonObject | null;
   videoConnectorId: string;
   videoModel: string;
   ttsConnectorId: string;
@@ -39,8 +49,12 @@ const DEFAULT_PRODUCT_SETTINGS: ProductSettings = {
 };
 
 const DEFAULT_INSPECT_SETTINGS: InspectSettings = {
+  imageRouteSource: 'auto',
   imageConnectorId: '',
   imageModel: '',
+  imageLocalModelId: '',
+  imageWorkflowComponents: [],
+  imageProfileOverrides: null,
   videoConnectorId: '',
   videoModel: '',
   ttsConnectorId: '',
@@ -132,15 +146,38 @@ function pickInspectFields(value: unknown): Partial<InspectSettings> {
   if (!value || typeof value !== 'object') return {};
   const r = value as Record<string, unknown>;
   const result: Partial<InspectSettings> = {};
+  const imageRouteSource = typeof r.imageRouteSource === 'string' ? r.imageRouteSource.trim() : '';
+  if (imageRouteSource === 'auto' || imageRouteSource === 'local' || imageRouteSource === 'cloud') {
+    result.imageRouteSource = imageRouteSource;
+  }
   for (const key of [
-    'imageConnectorId', 'imageModel',
+    'imageConnectorId', 'imageModel', 'imageLocalModelId',
     'videoConnectorId', 'videoModel',
     'ttsConnectorId', 'ttsModel', 'ttsVoiceId',
     'sttConnectorId', 'sttModel',
   ] as const) {
     if (typeof r[key] === 'string') {
-      result[key] = r[key] as string;
+      result[key] = r[key].trim() as InspectSettings[typeof key];
     }
+  }
+  if (Array.isArray(r.imageWorkflowComponents)) {
+    result.imageWorkflowComponents = r.imageWorkflowComponents
+      .map((item) => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          return null;
+        }
+        const record = item as Record<string, unknown>;
+        const slot = typeof record.slot === 'string' ? record.slot.trim() : '';
+        const localArtifactId = typeof record.localArtifactId === 'string' ? record.localArtifactId.trim() : '';
+        if (!slot || !localArtifactId) {
+          return null;
+        }
+        return { slot, localArtifactId };
+      })
+      .filter((item): item is ImageWorkflowComponent => item !== null);
+  }
+  if (r.imageProfileOverrides && typeof r.imageProfileOverrides === 'object' && !Array.isArray(r.imageProfileOverrides)) {
+    result.imageProfileOverrides = r.imageProfileOverrides as JsonObject;
   }
   // Map voiceName (main process canonical field) → ttsVoiceId (renderer field)
   if (!result.ttsVoiceId && typeof r.voiceName === 'string' && r.voiceName) {

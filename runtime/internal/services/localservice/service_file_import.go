@@ -61,7 +61,7 @@ func runtimeManagedResolvedModelManifestPath(modelsRoot string, logicalModelID s
 }
 
 func runtimeManagedArtifactDir(modelsRoot string, artifactID string) string {
-	return filepath.Join(modelsRoot, slugifyLocalModelID(artifactID))
+	return filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID(artifactID))
 }
 
 func runtimeManagedArtifactManifestPath(modelsRoot string, artifactID string) string {
@@ -424,33 +424,31 @@ func (s *Service) importLocalArtifactFile(
 }
 
 func (s *Service) ScanUnregisteredAssets(_ context.Context, _ *runtimev1.ScanUnregisteredAssetsRequest) (*runtimev1.ScanUnregisteredAssetsResponse, error) {
-	roots := []string{
-		resolveDesktopLocalRuntimeModelsPath(),
-		resolveLocalModelsPath(s.localModelsPath),
+	root := strings.TrimSpace(resolveLocalModelsPath(s.localModelsPath))
+	if root == "" {
+		return &runtimev1.ScanUnregisteredAssetsResponse{Items: make([]*runtimev1.LocalUnregisteredAssetDescriptor, 0)}, nil
+	}
+	info, err := os.Stat(root)
+	if err != nil || !info.IsDir() {
+		return &runtimev1.ScanUnregisteredAssetsResponse{Items: make([]*runtimev1.LocalUnregisteredAssetDescriptor, 0)}, nil
 	}
 	items := make([]*runtimev1.LocalUnregisteredAssetDescriptor, 0)
 	seen := map[string]struct{}{}
-	for _, root := range roots {
-		root = strings.TrimSpace(root)
-		if root == "" {
-			continue
+	_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
 		}
-		info, err := os.Stat(root)
-		if err != nil || !info.IsDir() {
-			continue
+		cleanPath := filepath.Clean(path)
+		if d.IsDir() {
+			name := strings.ToLower(strings.TrimSpace(d.Name()))
+			if name == "resolved" || name == "artifacts" || name == "quarantine" || strings.HasSuffix(cleanPath, string(filepath.Separator)+"resolved") {
+				return filepath.SkipDir
+			}
+			if _, statErr := os.Stat(filepath.Join(cleanPath, "artifact.manifest.json")); statErr == nil {
+				return filepath.SkipDir
+			}
+			return nil
 		}
-		_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return nil
-			}
-			cleanPath := filepath.Clean(path)
-			if d.IsDir() {
-				name := strings.ToLower(strings.TrimSpace(d.Name()))
-				if name == "resolved" || strings.HasSuffix(cleanPath, string(filepath.Separator)+"resolved") {
-					return filepath.SkipDir
-				}
-				return nil
-			}
 			if !isKnownModelFile(cleanPath) {
 				return nil
 			}
@@ -480,6 +478,5 @@ func (s *Service) ScanUnregisteredAssets(_ context.Context, _ *runtimev1.ScanUnr
 			})
 			return nil
 		})
-	}
 	return &runtimev1.ScanUnregisteredAssetsResponse{Items: items}, nil
 }

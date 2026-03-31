@@ -36,6 +36,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     () => getCachedProgressSessions(),
   );
   const progressBySessionIdRef = useRef<Record<string, ProgressSessionState>>(getCachedProgressSessions());
+  const dismissedSessionIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     progressBySessionIdRef.current = progressBySessionId;
@@ -58,6 +59,9 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
           const next = pruneProgressSessions(prev, nowMs);
           const merged: Record<string, ProgressSessionState> = { ...next };
           for (const session of sessions) {
+            if (dismissedSessionIdsRef.current.has(session.installSessionId)) {
+              continue;
+            }
             const previous = next[session.installSessionId];
             merged[session.installSessionId] = {
               event: toProgressEventFromSummary(session),
@@ -79,6 +83,9 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
 
     void localRuntime.subscribeDownloadProgress((event) => {
       if (disposed) {
+        return;
+      }
+      if (dismissedSessionIdsRef.current.has(event.installSessionId)) {
         return;
       }
       const nowMs = Date.now();
@@ -167,6 +174,18 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     );
   }, [mergeSessionSummary]);
 
+  const onDismissSession = useCallback((installSessionId: string) => {
+    dismissedSessionIdsRef.current.add(installSessionId);
+    setProgressBySessionId((prev) => {
+      const next = { ...prev };
+      delete next[installSessionId];
+      cacheProgressSessions(next);
+      return next;
+    });
+    progressBySessionIdRef.current = { ...progressBySessionIdRef.current };
+    delete progressBySessionIdRef.current[installSessionId];
+  }, []);
+
   const activeDownloads = useMemo(
     () => sortProgressSessions(progressBySessionId)
       .map((item) => item.event)
@@ -206,5 +225,6 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
     onPauseDownload,
     onResumeDownload,
     onCancelDownload,
+    onDismissSession,
   };
 }

@@ -405,7 +405,7 @@ func TestStartSupervisedEnginesEnablesManagedLlamaControlPlaneWithoutStartupBoot
 	}
 
 	localStatePath := filepath.Join(homeDir, ".nimi", "runtime", "local-state.json")
-	localModelsPath := filepath.Join(homeDir, ".nimi", "models")
+	localModelsPath := filepath.Join(homeDir, ".nimi", "data", "models")
 	if err := os.MkdirAll(filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m"), 0o755); err != nil {
 		t.Fatalf("create model dir: %v", err)
 	}
