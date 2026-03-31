@@ -153,7 +153,6 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
   const [savingModel, setSavingModel] = useState(false);
   const [deletingModelId, setDeletingModelId] = useState('');
   const [showAddModel, setShowAddModel] = useState(false);
-  const [showYamlPanel, setShowYamlPanel] = useState(false);
   const [formState, setFormState] = useState<CatalogFormState>(createEmptyFormState(null));
 
   const loadProviders = useCallback(async () => {
@@ -310,7 +309,6 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
         {selectedProvider ? (
           <div className="flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => selectedProviderId && void loadProviderModels(selectedProviderId)} disabled={loadingModels}>{loadingModels ? '...' : 'Refresh'}</Button>
-            <Button variant="secondary" size="sm" onClick={() => setShowYamlPanel((v) => !v)}>YAML</Button>
             <Button size="sm" onClick={() => setShowAddModel(true)}>+ Add</Button>
           </div>
         ) : null}
@@ -320,7 +318,7 @@ export function CatalogPage({ state: _state }: CatalogPageProps) {
       <ModelSection providerId={selectedProviderId} onDeleteModel={onDeleteModel} deletingModelId={deletingModelId} />
 
       {/* YAML panel */}
-      {showYamlPanel && selectedProvider && providerModels ? (
+      {selectedProvider && providerModels ? (
         <YamlPanel provider={providerModels.provider} overlayYamlDraft={overlayYamlDraft} onChangeOverlayYaml={setOverlayYamlDraft} onSave={onSaveOverlayYaml} onDelete={onDeleteOverlayYaml} saving={savingOverlayYaml} />
       ) : null}
 

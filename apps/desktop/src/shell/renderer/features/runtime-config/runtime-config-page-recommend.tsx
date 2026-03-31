@@ -171,9 +171,15 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       {/* Tier Summary Bar */}
       {allItems.length > 0 ? (
         <TierSummaryBar counts={tierCounts} activeGrades={filters.grades} onToggleGrade={toggleGrade} />
+      ) : loading ? (
+        <div className="flex items-center gap-2">
+          {['S', 'A', 'B', 'C', 'D'].map((label) => (
+            <div key={label} className="h-9 w-16 animate-pulse rounded-lg bg-[var(--nimi-surface-card)]" />
+          ))}
+        </div>
       ) : null}
 
-      {/* Filter Bar */}
+      {/* Filter Bar — always visible so the page feels instant */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Search */}
         <div className="relative min-w-0 flex-1">
@@ -225,9 +231,11 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         />
 
         {/* Result count */}
-        <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
-          {sortedItems.length}/{allItems.length}
-        </span>
+        {!loading ? (
+          <span className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
+            {sortedItems.length}/{allItems.length}
+          </span>
+        ) : null}
       </div>
 
       {/* Stale notice */}
@@ -256,8 +264,8 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
         </Card>
       ) : null}
 
-      {/* Column headers */}
-      {sortedItems.length > 0 ? (
+      {/* Column headers — show during loading too so the page feels populated */}
+      {sortedItems.length > 0 || loading ? (
         <div className="flex items-center gap-3 px-4 text-[10px] font-medium uppercase tracking-wider text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">
           <span className="min-w-0 flex-1">{t('runtimeConfig.recommend.colModel', { defaultValue: 'Model' })}</span>
           <span className="hidden w-20 shrink-0 text-center md:block">{t('runtimeConfig.recommend.colLicense', { defaultValue: 'License' })}</span>
@@ -270,6 +278,21 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
 
       {/* Model rows */}
       <div className="space-y-2">
+        {loading && sortedItems.length === 0 ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex animate-pulse items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)]/50 bg-white/95 px-4 py-3">
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-4 w-48 rounded bg-[var(--nimi-surface-card)]" />
+                <div className="h-3 w-32 rounded bg-[var(--nimi-surface-card)]" />
+              </div>
+              <div className="hidden w-20 md:block"><div className="mx-auto h-3 w-14 rounded bg-[var(--nimi-surface-card)]" /></div>
+              <div className="hidden w-16 md:block"><div className="ml-auto h-3 w-10 rounded bg-[var(--nimi-surface-card)]" /></div>
+              <div className="hidden w-20 md:block"><div className="mx-auto h-3 w-12 rounded bg-[var(--nimi-surface-card)]" /></div>
+              <div className="w-28"><div className="ml-auto h-6 w-16 rounded-full bg-[var(--nimi-surface-card)]" /></div>
+              <div className="w-4" />
+            </div>
+          ))
+        ) : null}
         {sortedItems.map((item) => (
           <ModelRow
             key={item.itemId}
