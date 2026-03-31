@@ -109,6 +109,8 @@ import {
   deletePost,
   finalizeResource,
   likePost,
+  loadLikedPosts,
+  loadPostById,
   loadPostFeed,
   unlikePost,
   updatePostVisibility,
@@ -325,6 +327,10 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       cursor?: string;
     }) =>
       loadPostFeed(input.callApiTask, input.emitFacadeError, payload),
+    loadLikedPosts: async (profileId: string, limit = 20, cursor?: string) =>
+      loadLikedPosts(input.callApiTask, input.emitFacadeError, profileId, limit, cursor),
+    loadPostById: async (postId: string) =>
+      loadPostById(input.callApiTask, input.emitFacadeError, postId),
     createPost: async (payload: CreatePostDto) =>
       createPost(input.callApiTask, input.emitFacadeError, payload),
     createImageDirectUpload: async () =>

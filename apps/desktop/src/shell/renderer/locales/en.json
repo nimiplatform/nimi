@@ -399,10 +399,13 @@
     "blockUser": "Block User",
     "blocking": "Blocking...",
     "displayNameRequired": "Display name is required",
+    "blockedPostsHidden": "Posts from this user are hidden because you blocked them.",
+    "blockedMediaHidden": "Media from this user is hidden because you blocked them.",
     "loadPostsFailed": "Failed to load posts",
     "loadLikedPostsFailed": "Failed to load liked posts",
     "loadMediaFailed": "Failed to load media",
     "loadSavedPostsFailed": "Failed to load saved posts",
+    "noMediaYet": "No media yet",
     "noProfileDataAvailable": "No profile data available",
     "Collections": {
       "selfOnly": "Saved posts are only visible on your own profile."
@@ -659,6 +662,7 @@
     "block": "Block",
     "blockUser": "Block User",
     "blockUserMessage": "Are you sure you want to block {{name}}? You won't see their posts anymore.",
+    "blockUserSuccess": "Blocked {{name}}. You won't see their posts anymore.",
     "blockUserFailed": "Failed to block user",
     "blocking": "Blocking...",
     "caughtUp": "You're all caught up!",
@@ -1166,10 +1170,10 @@
     "openChatFailed": "Failed to open chat",
     "giftSentTo": "Gift sent to {{name}}",
     "blockConfirmMessagePrefix": "Are you sure you want to block",
-    "blockConfirmMessageSuffix": "They will be moved to your Blocked list and won't be able to contact you.",
+    "blockConfirmMessageSuffix": "They will be moved to your Blocked list, you won't see their posts anymore, and they won't be able to contact you.",
     "restoreConfirmMessagePrefix": "Restore",
     "restoreConfirmMessageSuffix": "to their previous category?",
-    "blockUserSuccess": "Blocked {{name}}",
+    "blockUserSuccess": "Blocked {{name}}. Their posts are now hidden.",
     "removeFriendSuccess": "Removed {{name}} from friends"
   },
   "GiftBubble": {

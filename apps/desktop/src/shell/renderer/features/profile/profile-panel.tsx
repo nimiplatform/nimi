@@ -126,6 +126,7 @@ export function ProfilePanel() {
   const addFriendBlocked = Boolean(
     profile?.isAgent && agentLimitQuery.data && !agentLimitQuery.data.canAdd,
   );
+  const isBlockedProfile = Boolean(!isOwnProfile && profile && dataSync.isBlockedUser(profile.id));
   const addFriendHint = profile?.isAgent && agentLimitQuery.data
     ? (
       agentLimitQuery.data.reason
@@ -337,29 +338,30 @@ export function ProfilePanel() {
       <ContactDetailView
         profile={profile}
         isOwnProfile={isOwnProfile}
+        isBlockedProfile={isBlockedProfile}
         loading={loading}
         error={error}
         onClose={navigateBack}
         onMessage={() => {
           void onMessage();
         }}
-        onAddFriend={!isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
+        onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
           void onAddFriend();
         } : undefined}
         canAddFriend={!addFriendBlocked}
         addFriendHint={addFriendHint}
         onSendGift={() => setGiftModalOpen(true)}
-        onBlock={!isOwnProfile ? () => {
+        onBlock={!isOwnProfile && !isBlockedProfile ? () => {
           void onBlockProfile();
         } : undefined}
-        onRemove={!isOwnProfile && profile.isFriend ? () => {
+        onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => {
           void onRemoveProfile();
         } : undefined}
-        showMessageButton={!isOwnProfile && !profile.isAgent}
+        showMessageButton={!isOwnProfile && !profile.isAgent && !isBlockedProfile}
         onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
       />
       <SendGiftModal
-        open={giftModalOpen && !isOwnProfile}
+        open={giftModalOpen && !isOwnProfile && !isBlockedProfile}
         receiverId={profile?.id || ''}
         receiverName={profile?.displayName || profile?.handle || 'User'}
         receiverHandle={profile?.handle}

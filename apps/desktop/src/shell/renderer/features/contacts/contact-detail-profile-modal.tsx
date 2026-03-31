@@ -97,12 +97,13 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
   });
 
   const profile: ProfileData | null = profileQuery.data ?? null;
+  const isBlockedProfile = Boolean(profile && dataSync.isBlockedUser(profile.id));
 
   const handleMessage = useCallback(async () => {
     if (!profile) {
       return;
     }
-    if (profile.isAgent) {
+    if (profile.isAgent || isBlockedProfile) {
       return;
     }
 
@@ -130,6 +131,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
       });
     }
   }, [
+    isBlockedProfile,
     profile,
     props,
     queryClient,
@@ -222,6 +224,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
           {profile ? (
             <ContactDetailView
               profile={profile}
+              isBlockedProfile={isBlockedProfile}
               loading={false}
               error={false}
               onClose={props.onClose}
@@ -229,13 +232,13 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
                 void handleMessage();
               }}
               onSendGift={() => setGiftModalOpen(true)}
-              onBlock={() => {
+              onBlock={!isBlockedProfile ? () => {
                 void handleBlock();
-              }}
-              onRemove={profile.isFriend ? () => {
+              } : undefined}
+              onRemove={!isBlockedProfile && profile.isFriend ? () => {
                 void handleRemove();
               } : undefined}
-              showMessageButton={!profile.isAgent}
+              showMessageButton={!profile.isAgent && !isBlockedProfile}
             />
           ) : profileQuery.isError ? (
             <div className="flex h-full items-center justify-center bg-white">
@@ -255,7 +258,7 @@ export function ContactDetailProfileModal(props: ContactDetailProfileModalProps)
 
       {profile ? (
         <SendGiftModal
-          open={giftModalOpen}
+          open={giftModalOpen && !isBlockedProfile}
           receiverId={profile.id}
           receiverName={profile.displayName}
           receiverHandle={profile.handle}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { i18n } from '@renderer/i18n';
-import { dataSync } from '@runtime/data-sync';
+import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -99,7 +99,7 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
       const results = await Promise.all(
         pageIds.map(async (postId) => {
           try {
-            const post = await dataSync.callApi((realm) => realm.services.PostsService.getPost(postId));
+            const post = await dataSync.loadPostById(postId);
             return post as PostDto;
           } catch {
             return null;
@@ -168,6 +168,21 @@ export function CollectionsTab({ canManageSavedPosts = true, layout = 'grid' }: 
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener(SAVED_POSTS_UPDATED_EVENT, handleSavedPostsUpdated);
     };
+  }, [fetchSavedPosts]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleBlockedUsersUpdated = () => {
+      setPosts([]);
+      setOffset(0);
+      setHasMore(true);
+      setLoadError(null);
+      void fetchSavedPosts(0);
+    };
+    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
   }, [fetchSavedPosts]);
 
   useEffect(() => {

@@ -97,9 +97,10 @@ export function ContactDetailViewContent(input: {
   const headline = profile.bio || (profile.isAgent
     ? t('Profile.agentNoSummary', { defaultValue: 'This contact has no public profile summary yet.' })
     : t('Profile.noDescription', { defaultValue: 'No profile summary has been added yet.' }));
-  const showGiftButton = !input.isOwnProfile;
-  const showAddFriendButton = !input.isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend);
-  const showMessageButton = input.showMessageButton !== false;
+  const contentRestricted = input.isBlockedProfile === true && !input.isOwnProfile;
+  const showGiftButton = !input.isOwnProfile && !contentRestricted;
+  const showAddFriendButton = !contentRestricted && !input.isOwnProfile && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend);
+  const showMessageButton = input.showMessageButton !== false && !contentRestricted;
 
   useEffect(() => {
     const syncLayoutMode = () => {
@@ -476,6 +477,7 @@ export function ContactDetailViewContent(input: {
 
                         <ContactDetailTabs
                           activeTab={activeTab}
+                          isBlockedProfile={input.isBlockedProfile}
                           isOwnProfile={input.isOwnProfile}
                           onSetActiveTab={setActiveTab}
                           profileId={profile.id}

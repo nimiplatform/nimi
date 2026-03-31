@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
+import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -11,6 +11,7 @@ const PAGE_SIZE = 15;
 type PostsTabProps = {
   profileId: string;
   layout?: 'grid' | 'masonry';
+  blockedContent?: boolean;
 };
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -38,7 +39,7 @@ function PostSkeleton() {
   );
 }
 
-export function PostsTab({ profileId, layout = 'grid' }: PostsTabProps) {
+export function PostsTab({ profileId, layout = 'grid', blockedContent = false }: PostsTabProps) {
   const { t } = useTranslation();
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -50,6 +51,15 @@ export function PostsTab({ profileId, layout = 'grid' }: PostsTabProps) {
 
   const fetchPosts = useCallback(
     async (cursorArg: string | null) => {
+      if (blockedContent) {
+        setPosts([]);
+        setCursor(null);
+        setHasMore(false);
+        setLoadError(null);
+        setLoadingInitial(false);
+        setLoadingMore(false);
+        return;
+      }
       if (cursorArg && (loadingMore || !hasMore)) return;
       try {
         setLoadError(null);
@@ -89,7 +99,7 @@ export function PostsTab({ profileId, layout = 'grid' }: PostsTabProps) {
         }
       }
     },
-    [hasMore, loadingMore, profileId],
+    [blockedContent, hasMore, loadingMore, profileId, t],
   );
 
   useEffect(() => {
@@ -97,8 +107,33 @@ export function PostsTab({ profileId, layout = 'grid' }: PostsTabProps) {
     setCursor(null);
     setHasMore(true);
     setLoadError(null);
+    if (blockedContent) {
+      setLoadingInitial(false);
+      setLoadingMore(false);
+      return;
+    }
     void fetchPosts(null);
-  }, [profileId]);
+  }, [blockedContent, fetchPosts, profileId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleBlockedUsersUpdated = () => {
+      setPosts([]);
+      setCursor(null);
+      setHasMore(true);
+      setLoadError(null);
+      if (blockedContent) {
+        setLoadingInitial(false);
+        setLoadingMore(false);
+        return;
+      }
+      void fetchPosts(null);
+    };
+    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+  }, [blockedContent, fetchPosts]);
 
   useEffect(() => {
     if (!hasMore) return;
@@ -149,7 +184,9 @@ export function PostsTab({ profileId, layout = 'grid' }: PostsTabProps) {
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
         </svg>
-        {t('PostsTab.noPosts')}
+        {blockedContent
+          ? t('Profile.blockedPostsHidden', { defaultValue: 'Posts from this user are hidden because you blocked them.' })
+          : t('PostsTab.noPosts')}
       </div>
     );
   }

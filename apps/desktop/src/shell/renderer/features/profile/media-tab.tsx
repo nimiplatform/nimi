@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
-import { dataSync } from '@runtime/data-sync';
+import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
 import { useTranslation } from 'react-i18next';
 import {
   normalizeMediaType,
@@ -16,6 +16,7 @@ const MIN_INITIAL_ITEMS = 9;
 type MediaTabProps = {
   profileId: string;
   onMediaClick: (post: PostDto, mediaIndex: number) => void;
+  blockedContent?: boolean;
 };
 
 function toErrorMessage(error: unknown, fallback: string): string {
@@ -36,7 +37,7 @@ function MediaSkeleton() {
   );
 }
 
-export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
+export function MediaTab({ profileId, onMediaClick, blockedContent = false }: MediaTabProps) {
   const { t } = useTranslation();
   const [mediaPosts, setMediaPosts] = useState<PostDto[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -48,6 +49,15 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
 
   const fetchMedia = useCallback(
     async (cursorArg: string | null, isAutoFetch = false) => {
+      if (blockedContent) {
+        setMediaPosts([]);
+        setCursor(null);
+        setHasMore(false);
+        setLoadError(null);
+        setLoadingInitial(false);
+        setLoadingMore(false);
+        return;
+      }
       if (cursorArg && !isAutoFetch && (loadingMore || !hasMore)) return;
       try {
         if (!isAutoFetch) {
@@ -97,7 +107,7 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
         }
       }
     },
-    [hasMore, loadingMore, profileId, t],
+    [blockedContent, hasMore, loadingMore, profileId, t],
   );
 
   useEffect(() => {
@@ -105,8 +115,33 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
     setCursor(null);
     setHasMore(true);
     setLoadError(null);
-    fetchMedia(null);
-  }, [profileId]);
+    if (blockedContent) {
+      setLoadingInitial(false);
+      setLoadingMore(false);
+      return;
+    }
+    void fetchMedia(null);
+  }, [blockedContent, fetchMedia, profileId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleBlockedUsersUpdated = () => {
+      setMediaPosts([]);
+      setCursor(null);
+      setHasMore(true);
+      setLoadError(null);
+      if (blockedContent) {
+        setLoadingInitial(false);
+        setLoadingMore(false);
+        return;
+      }
+      void fetchMedia(null);
+    };
+    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+  }, [blockedContent, fetchMedia]);
 
   useEffect(() => {
     if (!hasMore) return;
@@ -178,7 +213,9 @@ export function MediaTab({ profileId, onMediaClick }: MediaTabProps) {
           <circle cx="8.5" cy="8.5" r="1.5" />
           <polyline points="21 15 16 10 5 21" />
         </svg>
-        No media yet
+        {blockedContent
+          ? t('Profile.blockedMediaHidden', { defaultValue: 'Media from this user is hidden because you blocked them.' })
+          : t('Profile.noMediaYet', { defaultValue: 'No media yet' })}
       </div>
     );
   }

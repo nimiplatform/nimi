@@ -151,8 +151,8 @@ test('profile post feeds keep a stable two-column breakpoint instead of a late p
 });
 
 test('contact detail feed tabs use stable grid layout instead of masonry in profile detail surfaces', () => {
-  assert.match(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="grid" \/>/);
-  assert.doesNotMatch(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="masonry" \/>/);
+  assert.match(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="grid" blockedContent=\{isBlockedProfile\} \/>/);
+  assert.doesNotMatch(contactDetailTabsSource, /<PostsTab profileId=\{profileId\} layout="masonry"( blockedContent=\{isBlockedProfile\})? \/>/);
   assert.match(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} canManageSavedPosts=\{isOwnProfile\} layout="grid" \/>/);
   assert.doesNotMatch(contactDetailTabsSource, /<CollectionsTab profileId=\{profileId\} canManageSavedPosts=\{isOwnProfile\} layout="masonry" \/>/);
   assert.match(contactDetailTabsSource, /<LikesTab profileId=\{profileId\} layout="grid" \/>/);

@@ -75,14 +75,14 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <div className="flex h-14 shrink-0 items-center border-b border-[var(--nimi-border-subtle)] bg-white px-6">
+    <div className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+      <div className="flex h-14 shrink-0 items-center border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-6">
         <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
           {i18n.t('runtimeConfig.localModelCenter.localModels', { defaultValue: 'Local Models' })}
         </h2>
       </div>
     <ScrollArea className="flex-1" contentClassName="space-y-6 p-6">
-          <div className="space-y-4 rounded-2xl bg-white p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
+          <div className="space-y-4 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-6">
             <div>
               <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                 {selectedProfileTarget?.modName
@@ -140,7 +140,7 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
                 })}
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_34%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
+                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_34%,transparent)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
                   {i18n.t('runtimeConfig.localModelCenter.installModels', { defaultValue: 'Install Models' })}
                 </button>
                 <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
@@ -171,32 +171,40 @@ type ToolbarProps = {
 
 export function LocalModelCenterToolbar(props: ToolbarProps) {
   const healthTooltip = formatLastCheckedAgo(props.lastCheckedAt);
+  const ghostBtnClass = 'flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] disabled:opacity-50 transition-colors';
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex-1" />
+    <div className="flex items-center justify-between rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-2.5">
       <div className="flex items-center gap-2">
+        <HeartPulseIcon className={`h-3.5 w-3.5 ${props.localHealthy ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-muted)]'}`} />
+        <span className={`text-xs font-medium ${props.localHealthy ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-muted)]'}`}>
+          {props.localHealthy
+            ? i18n.t('runtimeConfig.localModelCenter.healthy', { defaultValue: 'Healthy' })
+            : i18n.t('runtimeConfig.localModelCenter.notChecked', { defaultValue: 'Not checked' })}
+        </span>
+        {healthTooltip ? (
+          <span className="text-[11px] text-[var(--nimi-text-muted)]">{healthTooltip}</span>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={props.onHealthCheck}
           disabled={props.checkingHealth}
           title={healthTooltip}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50 ${
-            props.localHealthy
-              ? 'border-[color-mix(in_srgb,var(--nimi-status-success)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-success)_12%,transparent)] text-[var(--nimi-status-success)] hover:bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)]'
-              : 'border-[var(--nimi-border-subtle)] text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]'
-          }`}
+          className={ghostBtnClass}
         >
           <HeartPulseIcon className="h-4 w-4" />
           {props.checkingHealth
             ? i18n.t('runtimeConfig.localModelCenter.checking', { defaultValue: 'Checking...' })
             : i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}
         </button>
+        <div className="h-5 w-px bg-[var(--nimi-border-subtle)]" />
         <button
           type="button"
           onClick={props.onRefresh}
           disabled={props.discovering}
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
+          className={ghostBtnClass}
         >
           <RefreshIcon className="h-4 w-4" />
           {props.discovering
@@ -206,7 +214,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
         <button
           type="button"
           onClick={props.onOpenModelsFolder}
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+          className={ghostBtnClass}
         >
           <FolderOpenIcon className="h-4 w-4" />
           {i18n.t('runtimeConfig.localModelCenter.openModelsFolder', { defaultValue: 'Open Folder' })}
@@ -215,14 +223,14 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
           <button
             type="button"
             onClick={props.onToggleImportMenu}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+            className={ghostBtnClass}
           >
-            <FolderOpenIcon className="h-4 w-4" />
+            <DownloadIcon className="h-4 w-4" />
             {i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
           </button>
           {props.showImportMenu ? (
-            <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-[var(--nimi-border-subtle)] bg-white shadow-lg">
-              <button type="button" onClick={props.onOpenImportFile} className="w-full rounded-t-lg px-3 py-2.5 text-left text-xs hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">
+            <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-floating)]">
+              <button type="button" onClick={props.onOpenImportFile} className="w-full px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
                 <div className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.localModelCenter.importAssetFile', { defaultValue: 'Import Asset File' })}
                 </div>
@@ -232,7 +240,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
                   })}
                 </div>
               </button>
-              <button type="button" onClick={props.onImportManifest} className="w-full rounded-b-lg border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-3 py-2.5 text-left text-xs hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]">
+              <button type="button" onClick={props.onImportManifest} className="w-full border-t border-[var(--nimi-border-subtle)] px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
                 <div className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.localModelCenter.importRuntimeManifest', { defaultValue: 'Import Runtime Manifest' })}
                 </div>
@@ -271,10 +279,12 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
   }
 
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FolderOpenIcon className="h-4 w-4 text-[var(--nimi-action-primary-bg)]" />
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-raised)]">
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]">
+            <FolderOpenIcon className="h-3.5 w-3.5 text-[var(--nimi-action-primary-bg)]" />
+          </div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {i18n.t('runtimeConfig.localModelCenter.importLocalAssetFile', { defaultValue: 'Import Local Asset File' })}
           </h3>
@@ -371,36 +381,45 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
   }
 
   return (
-    <div className="rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
-      <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,var(--nimi-border-subtle)_72%,transparent)] px-4 py-4">
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {i18n.t('runtimeConfig.localModelCenter.unregisteredAssets', {
-              count: props.assets.length,
-              defaultValue: 'Unregistered Assets ({{count}})',
-            })}
-          </h3>
-          <p className="text-xs text-[var(--nimi-text-muted)]">
-            {i18n.t('runtimeConfig.localModelCenter.unregisteredAssetsDescription', {
-              defaultValue: 'Typed folders import automatically. Unknown files stay here until you confirm the type.',
-            })}
-          </p>
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
+      <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)]">
+            <FolderOpenIcon className="h-4 w-4 text-[var(--nimi-status-warning)]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
+              {i18n.t('runtimeConfig.localModelCenter.unregisteredAssetsTitle', {
+                defaultValue: 'Unregistered Assets',
+              })}
+            </h3>
+            <p className="text-xs text-[var(--nimi-text-muted)]">
+              {i18n.t('runtimeConfig.localModelCenter.unregisteredAssetsDescription', {
+                defaultValue: 'Typed folders import automatically. Unknown files stay here until you confirm the type.',
+              })}
+            </p>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={props.onRefresh}
-          className="flex items-center gap-1.5 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
-        >
-          <RefreshIcon className="h-3 w-3" />
-          {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-status-warning)]">
+            {props.assets.length}
+          </span>
+          <button
+            type="button"
+            onClick={props.onRefresh}
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)]"
+          >
+            <RefreshIcon className="h-3 w-3" />
+            {i18n.t('runtimeConfig.localModelCenter.refresh', { defaultValue: 'Refresh' })}
+          </button>
+        </div>
       </div>
       {props.assetImportError ? (
-        <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2 text-xs text-[var(--nimi-status-danger)]">
+        <div className="mx-4 mt-4 rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_8%,transparent)] px-4 py-2.5 text-xs text-[var(--nimi-status-danger)]">
           {props.assetImportError}
         </div>
       ) : null}
-      <div className="divide-y divide-gray-100">
+      <div className="space-y-3 p-4">
         {props.assets.map((asset) => {
           const draft = props.resolveDraft(asset);
           const importing = props.importingAssetPath === asset.path || Boolean(props.assetImportSessionByPath[asset.path]);
@@ -409,8 +428,8 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
             ? Boolean(draft.modelType)
             : Boolean(draft.artifactKind) && (!requiresEngine || Boolean(String(draft.engine || '').trim()));
           const confidenceClass = asset.confidence === 'high'
-            ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
-            : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]';
+            ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] text-[var(--nimi-status-success)]'
+            : 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)] text-[var(--nimi-status-warning)]';
           const sourceLabel = asset.suggestionSource === 'folder'
             ? i18n.t('runtimeConfig.localModelCenter.sourceFolder', { defaultValue: 'Folder' })
             : asset.suggestionSource === 'filename'
@@ -420,80 +439,82 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                 : i18n.t('runtimeConfig.localModelCenter.sourceUnknown', { defaultValue: 'Unknown' });
 
           return (
-            <div key={asset.path} className="px-4 py-4">
+            <div key={asset.path} className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
                   <FolderOpenIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{asset.filename}</p>
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${confidenceClass}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${confidenceClass}`}>
                       {asset.confidence === 'high'
                         ? i18n.t('runtimeConfig.localModelCenter.highConfidence', { defaultValue: 'High confidence' })
                         : i18n.t('runtimeConfig.localModelCenter.reviewNeeded', { defaultValue: 'Review needed' })}
                     </span>
-                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
-                      {sourceLabel}
-                    </span>
+                  </div>
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-[var(--nimi-text-muted)]">
+                    <span>{formatBytes(asset.sizeBytes)}</span>
+                    <span className="text-[var(--nimi-border-subtle)]">&middot;</span>
+                    <span>{sourceLabel}</span>
                     {asset.folderName ? (
-                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
-                        {asset.folderName}
-                      </span>
+                      <>
+                        <span className="text-[var(--nimi-border-subtle)]">&middot;</span>
+                        <span>{asset.folderName}</span>
+                      </>
                     ) : null}
-                  </div>
-                  <p className="mt-1 truncate text-xs text-[var(--nimi-text-muted)]">{asset.path}</p>
-                  <p className="mt-1 text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{formatBytes(asset.sizeBytes)}</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <RuntimeSelect
-                      value={draft.assetClass}
-                      onChange={(value) => props.onAssetClassChange(asset.path, (value || 'model') as AssetClassOption)}
-                      className="w-36"
-                      options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
-                        value: assetClass,
-                        label: assetClass === 'model'
-                          ? i18n.t('runtimeConfig.localModelCenter.mainModel', { defaultValue: 'Main model' })
-                          : i18n.t('runtimeConfig.localModelCenter.companionAsset', { defaultValue: 'Companion asset' }),
-                      }))}
-                    />
-                    {draft.assetClass === 'model' ? (
-                      <RuntimeSelect
-                        value={draft.modelType || 'chat'}
-                        onChange={(value) => props.onModelTypeChange(asset.path, (value || 'chat') as ModelTypeOption)}
-                        className="w-36"
-                        options={MODEL_TYPE_OPTIONS.map((modelType) => ({ value: modelType, label: modelType }))}
-                      />
-                    ) : (
-                      <RuntimeSelect
-                        value={draft.artifactKind || 'vae'}
-                        onChange={(value) => props.onArtifactKindChange(asset.path, (value || 'vae') as LocalRuntimeArtifactKind)}
-                        className="w-36"
-                        options={ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) }))}
-                      />
-                    )}
-                    {requiresEngine ? (
-                      <RuntimeSelect
-                        value={String(draft.engine || '')}
-                        onChange={(value) => props.onAuxiliaryEngineChange(asset.path, (value || '') as AssetEngineOption | '')}
-                        className="w-36"
-                        placeholder={i18n.t('runtimeConfig.localModelCenter.selectEngine', { defaultValue: 'Select engine' })}
-                        options={ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
-                      />
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => props.onImport(asset.path)}
-                      disabled={!canImport || importing}
-                      className="flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
-                    >
-                      <DownloadIcon className="h-3.5 w-3.5" />
-                      {importing
-                        ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
-                        : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
-                    </button>
-                  </div>
+                  </p>
                 </div>
               </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_50%,transparent)] pt-3">
+                <RuntimeSelect
+                  value={draft.assetClass}
+                  onChange={(value) => props.onAssetClassChange(asset.path, (value || 'model') as AssetClassOption)}
+                  className="w-36"
+                  options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
+                    value: assetClass,
+                    label: assetClass === 'model'
+                      ? i18n.t('runtimeConfig.localModelCenter.mainModel', { defaultValue: 'Main model' })
+                      : i18n.t('runtimeConfig.localModelCenter.companionAsset', { defaultValue: 'Companion asset' }),
+                  }))}
+                />
+                {draft.assetClass === 'model' ? (
+                  <RuntimeSelect
+                    value={draft.modelType || 'chat'}
+                    onChange={(value) => props.onModelTypeChange(asset.path, (value || 'chat') as ModelTypeOption)}
+                    className="w-36"
+                    options={MODEL_TYPE_OPTIONS.map((modelType) => ({ value: modelType, label: modelType }))}
+                  />
+                ) : (
+                  <RuntimeSelect
+                    value={draft.artifactKind || 'vae'}
+                    onChange={(value) => props.onArtifactKindChange(asset.path, (value || 'vae') as LocalRuntimeArtifactKind)}
+                    className="w-36"
+                    options={ARTIFACT_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatArtifactKindLabel(kind) }))}
+                  />
+                )}
+                {requiresEngine ? (
+                  <RuntimeSelect
+                    value={String(draft.engine || '')}
+                    onChange={(value) => props.onAuxiliaryEngineChange(asset.path, (value || '') as AssetEngineOption | '')}
+                    className="w-36"
+                    placeholder={i18n.t('runtimeConfig.localModelCenter.selectEngine', { defaultValue: 'Select engine' })}
+                    options={ASSET_ENGINE_OPTIONS.map((engine) => ({ value: engine, label: engine }))}
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => props.onImport(asset.path)}
+                  disabled={!canImport || importing}
+                  className="ml-auto flex items-center gap-1.5 rounded-lg bg-[var(--nimi-action-primary-bg)] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--nimi-action-primary-bg-hover)] disabled:opacity-50"
+                >
+                  <DownloadIcon className="h-3.5 w-3.5" />
+                  {importing
+                    ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
+                    : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
+                </button>
+              </div>
+              <p className="mt-2 truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_60%,transparent)]">{asset.path}</p>
             </div>
           );
         })}

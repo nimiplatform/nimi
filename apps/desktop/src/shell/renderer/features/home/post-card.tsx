@@ -216,7 +216,10 @@ export function PostCard(input: PostCardProps) {
       });
       setStatusBanner({
         kind: 'success',
-        message: `Blocked ${post.author.displayName || post.author.handle}`,
+        message: i18n.t('Home.blockUserSuccess', {
+          name: post.author.displayName || post.author.handle || i18n.t('Common.unknown', { defaultValue: 'Unknown' }),
+          defaultValue: "Blocked {{name}}. You won't see their posts anymore.",
+        }),
       });
       onBlock?.();
     } catch (error) {

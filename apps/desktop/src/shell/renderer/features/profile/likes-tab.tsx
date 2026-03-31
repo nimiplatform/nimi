@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
+import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
 import { PostFeedWithMediaPreview } from './post-feed-with-media-preview.js';
 
 type PostDto = RealmModel<'PostDto'>;
@@ -58,7 +58,7 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
         } else {
           setLoadingInitial(true);
         }
-        const data = await dataSync.callApi((realm) => realm.services.PostsService.listLikedPosts(undefined, PAGE_SIZE, cursorArg ?? undefined, profileId));
+        const data = await dataSync.loadLikedPosts(profileId, PAGE_SIZE, cursorArg ?? undefined);
         const newItems = Array.isArray(data?.items) ? (data.items as PostDto[]) : [];
         const nextCursor = data?.page?.nextCursor ?? null;
 
@@ -94,7 +94,22 @@ export function LikesTab({ profileId, layout = 'grid' }: LikesTabProps) {
     setHasMore(true);
     setLoadError(null);
     void fetchLiked(null);
-  }, [profileId]);
+  }, [fetchLiked, profileId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleBlockedUsersUpdated = () => {
+      setLikedPosts([]);
+      setCursor(null);
+      setHasMore(true);
+      setLoadError(null);
+      void fetchLiked(null);
+    };
+    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+  }, [fetchLiked]);
 
   useEffect(() => {
     if (!hasMore) return;

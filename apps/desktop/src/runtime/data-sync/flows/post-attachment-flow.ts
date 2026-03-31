@@ -4,10 +4,16 @@ import {
   getOfflineCoordinator,
   isRealmOfflineError,
 } from '@runtime/offline';
+import {
+  filterBlockedPosts,
+  isBlockedUser,
+  isPostHiddenByBlockedAuthor,
+} from '../blocked-content';
 import { queueSocialMutation } from '../offline-social-outbox';
 
 type CreateReportDto = RealmModel<'CreateReportDto'>;
 type CreatePostDto = RealmModel<'CreatePostDto'>;
+type FeedPageMetaDto = RealmModel<'FeedPageMetaDto'>;
 type FeedResponseDto = RealmModel<'FeedResponseDto'>;
 type FinalizeResourceDto = RealmModel<'FinalizeResourceDto'>;
 type ResourceDetailDto = RealmModel<'ResourceDetailDto'>;
@@ -30,6 +36,29 @@ export type LoadPostFeedInput = {
   cursor?: string;
 };
 
+function buildEmptyFeedResponse(input: {
+  cursor?: string;
+  limit?: number;
+}): FeedResponseDto {
+  const page: FeedPageMetaDto = {
+    cursor: input.cursor ?? null,
+    limit: input.limit,
+    nextCursor: null,
+  };
+
+  return {
+    items: [],
+    page,
+  };
+}
+
+function filterFeedResponse(response: FeedResponseDto): FeedResponseDto {
+  return {
+    ...response,
+    items: filterBlockedPosts(Array.isArray(response.items) ? response.items : []),
+  };
+}
+
 export async function loadPostFeed(
   callApi: DataSyncApiCaller,
   emitDataSyncError: DataSyncErrorEmitter,
@@ -42,8 +71,13 @@ export async function loadPostFeed(
     limit: typeof input.limit === 'number' ? input.limit : undefined,
     cursor: typeof input.cursor === 'string' ? input.cursor : undefined,
   };
+
+  if (normalized.authorId && isBlockedUser(normalized.authorId)) {
+    return buildEmptyFeedResponse(normalized);
+  }
+
   try {
-    return await callApi(
+    const response = await callApi(
       (realm) => realm.services.PostsService.getHomeFeed(
         normalized.visibility,
         normalized.worldId,
@@ -51,10 +85,58 @@ export async function loadPostFeed(
         normalized.limit,
         normalized.cursor,
       ),
-      '加载帖子失败',
+      'Failed to load posts',
     );
+    return filterFeedResponse(response);
   } catch (error) {
     emitDataSyncError('load-post-feed', error, normalized);
+    throw error;
+  }
+}
+
+export async function loadLikedPosts(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  profileId: string,
+  limit = 20,
+  cursor?: string,
+): Promise<FeedResponseDto> {
+  const normalizedProfileId = String(profileId || '').trim();
+
+  try {
+    const response = await callApi(
+      (realm) => realm.services.PostsService.listLikedPosts(undefined, limit, cursor, normalizedProfileId),
+      'Failed to load liked posts',
+    );
+    return filterFeedResponse(response);
+  } catch (error) {
+    emitDataSyncError('load-liked-posts', error, {
+      profileId: normalizedProfileId,
+      limit,
+      cursor,
+    });
+    throw error;
+  }
+}
+
+export async function loadPostById(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  postId: string,
+): Promise<PostDto> {
+  const normalizedPostId = String(postId || '').trim();
+
+  try {
+    const post = await callApi(
+      (realm) => realm.services.PostsService.getPost(normalizedPostId),
+      'Failed to load post',
+    );
+    if (isPostHiddenByBlockedAuthor(post)) {
+      throw new Error('This post is unavailable because you blocked the author.');
+    }
+    return post;
+  } catch (error) {
+    emitDataSyncError('load-post-by-id', error, { postId: normalizedPostId });
     throw error;
   }
 }
@@ -67,7 +149,7 @@ export async function createPost(
   try {
     return await callApi(
       (realm) => realm.services.PostsService.createPost(payload),
-      '发布帖子失败',
+      'Failed to create post',
     );
   } catch (error) {
     emitDataSyncError('create-post', error, {
@@ -85,7 +167,7 @@ export async function createImageDirectUpload(
   try {
     return await callApi(
       (realm) => realm.services.ResourcesService.createImageDirectUpload(),
-      '创建图片上传失败',
+      'Failed to create image upload',
     );
   } catch (error) {
     emitDataSyncError('create-image-direct-upload', error);
@@ -100,7 +182,7 @@ export async function createVideoDirectUpload(
   try {
     return await callApi(
       (realm) => realm.services.ResourcesService.createVideoDirectUpload(),
-      '创建视频上传失败',
+      'Failed to create video upload',
     );
   } catch (error) {
     emitDataSyncError('create-video-direct-upload', error);
@@ -117,7 +199,7 @@ export async function finalizeResource(
   try {
     return await callApi(
       (realm) => realm.services.ResourcesService.finalizeResource(resourceId, payload),
-      '完成媒体资源上传失败',
+      'Failed to finalize resource',
     );
   } catch (error) {
     emitDataSyncError('finalize-resource', error, { resourceId });
@@ -133,7 +215,7 @@ export async function deletePost(
   try {
     await callApi(
       (realm) => realm.services.PostsService.deletePost(postId),
-      '删除帖子失败',
+      'Failed to delete post',
     );
   } catch (error) {
     emitDataSyncError('delete-post', error, { postId });
@@ -150,7 +232,7 @@ export async function updatePostVisibility(
   try {
     return await callApi(
       (realm) => realm.services.PostsService.updatePost(postId, { visibility }),
-      '更新帖子可见性失败',
+      'Failed to update post visibility',
     );
   } catch (error) {
     emitDataSyncError('update-post-visibility', error, {
@@ -169,7 +251,7 @@ export async function likePost(
   try {
     await callApi(
       (realm) => realm.services.PostsService.likePost(postId),
-      '点赞失败',
+      'Failed to like post',
     );
   } catch (error) {
     if (isRealmOfflineError(error)) {
@@ -193,7 +275,7 @@ export async function unlikePost(
   try {
     await callApi(
       (realm) => realm.services.PostsService.unlikePost(postId),
-      '取消点赞失败',
+      'Failed to unlike post',
     );
   } catch (error) {
     if (isRealmOfflineError(error)) {
@@ -217,7 +299,7 @@ export async function createReport(
   try {
     return await callApi(
       (realm) => realm.services.GovernanceService.reportControllerCreateReport(payload),
-      '举报失败',
+      'Failed to create report',
     );
   } catch (error) {
     emitDataSyncError('create-report', error, {

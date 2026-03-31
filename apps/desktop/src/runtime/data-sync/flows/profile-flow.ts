@@ -16,6 +16,7 @@ import {
   type SocialContactSnapshot,
 } from './profile-flow-social';
 import { queueSocialMutation } from '../offline-social-outbox';
+import { dispatchBlockedUsersUpdated } from '../blocked-content';
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
 
@@ -246,6 +247,7 @@ export async function blockUser(
   }
 
   await reloadContacts();
+  dispatchBlockedUsersUpdated();
   return { id: contactId };
 }
 
@@ -300,5 +302,6 @@ export async function unblockUser(
   }
 
   await reloadContacts();
+  dispatchBlockedUsersUpdated();
   return { id: contactId };
 }

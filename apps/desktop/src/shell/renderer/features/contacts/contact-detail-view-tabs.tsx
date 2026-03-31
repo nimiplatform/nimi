@@ -38,6 +38,7 @@ function getContactDetailTabLabel(t: ReturnType<typeof useTranslation>['t'], tab
 
 function renderTabPanel(
   activeTab: ProfileTab,
+  isBlockedProfile: boolean,
   isOwnProfile: boolean,
   profileId: string,
   tab: ProfileTab,
@@ -50,7 +51,7 @@ function renderTabPanel(
   let content: ReactNode;
   switch (tab) {
     case 'Posts':
-      content = <PostsTab profileId={profileId} layout="grid" />;
+      content = <PostsTab profileId={profileId} layout="grid" blockedContent={isBlockedProfile} />;
       break;
     case 'Collections':
       content = <CollectionsTab profileId={profileId} canManageSavedPosts={isOwnProfile} layout="grid" />;
@@ -76,6 +77,7 @@ function renderTabPanel(
 
 type ContactDetailTabsProps = {
   activeTab: ProfileTab;
+  isBlockedProfile?: boolean;
   isOwnProfile?: boolean;
   onSetActiveTab: (tab: ProfileTab) => void;
   profileId: string;
@@ -128,7 +130,7 @@ export function ContactDetailTabs(props: ContactDetailTabsProps) {
       </div>
       <div className="px-5 py-5">
         {CONTACT_DETAIL_TABS.map((tab) => (
-          renderTabPanel(props.activeTab, Boolean(props.isOwnProfile), props.profileId, tab, props.visitedTabs)
+          renderTabPanel(props.activeTab, Boolean(props.isBlockedProfile), Boolean(props.isOwnProfile), props.profileId, tab, props.visitedTabs)
         ))}
       </div>
     </>

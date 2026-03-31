@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { IconButton, ScrollArea, Surface } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import { dataSync } from '@runtime/data-sync';
+import { BLOCKED_USERS_UPDATED_EVENT, dataSync } from '@runtime/data-sync';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import { ContactDetailProfileModal } from '@renderer/features/contacts/contact-detail-profile-modal.js';
 import { CreatePostModal } from '../profile/create-post-modal.js';
@@ -110,6 +110,17 @@ export function HomeView(props: HomeViewProps) {
     createPostRequestRef.current = nextKey;
     setCreatePostOpen(true);
   }, [props.createPostRequestKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleBlockedUsersUpdated = () => {
+      setRefreshKey((current) => current + 1);
+    };
+    window.addEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+    return () => window.removeEventListener(BLOCKED_USERS_UPDATED_EVENT, handleBlockedUsersUpdated);
+  }, []);
 
   return (
     <div data-testid={E2E_IDS.panel('home')} className="flex min-h-0 flex-1 flex-col">

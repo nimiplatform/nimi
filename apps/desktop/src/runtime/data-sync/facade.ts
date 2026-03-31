@@ -17,6 +17,7 @@ import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './ap
 import type { PasswordAuthDebug } from './auth';
 import { readDataSyncHotState, writeDataSyncHotState } from './facade-hot-state';
 import { DataSyncPollingManager } from './polling-manager';
+import { isBlockedUser } from './blocked-content';
 import type { CreatorEligibility } from './flows/settings-flow';
 import type {
   TransitDetailDto,
@@ -285,6 +286,7 @@ export class DataSync {
   searchUser(identifierInput: string) { return this.actions.searchUser(identifierInput); }
 
   isFriend(userId: string): boolean { return this.authCallbacks?.isFriend(userId) ?? false; }
+  isBlockedUser(userId: string): boolean { return isBlockedUser(userId); }
 
   async removeFriend(userId: string) { await this.actions.removeFriend(userId); }
   requestOrAcceptFriend(userId: string, message?: string) { return this.actions.requestOrAcceptFriend(userId, message); }
@@ -340,6 +342,10 @@ export class DataSync {
     limit?: number;
     cursor?: string;
   }) { return this.actions.loadPostFeed(payload); }
+  loadLikedPosts(profileId: string, limit = 20, cursor?: string) {
+    return this.actions.loadLikedPosts(profileId, limit, cursor);
+  }
+  loadPostById(postId: string) { return this.actions.loadPostById(postId); }
   createPost(payload: CreatePostDto) { return this.actions.createPost(payload); }
   createImageDirectUpload() { return this.actions.createImageDirectUpload(); }
   createVideoDirectUpload() { return this.actions.createVideoDirectUpload(); }

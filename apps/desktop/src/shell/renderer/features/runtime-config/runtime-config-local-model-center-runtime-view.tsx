@@ -139,8 +139,8 @@ type LocalModelCenterRuntimeViewProps = {
 
 export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewProps) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-white">
-      <ScrollArea className="flex-1" contentClassName="mx-auto max-w-4xl space-y-6 p-6">
+    <div className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
+      <ScrollArea className="flex-1" contentClassName="mx-auto max-w-4xl space-y-8 p-6">
         <LocalModelCenterImportControls
           checkingHealth={props.checkingHealth}
           localHealthy={props.localHealthy}

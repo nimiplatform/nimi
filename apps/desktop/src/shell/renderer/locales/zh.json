@@ -399,10 +399,13 @@
     "blockUser": "屏蔽用户",
     "blocking": "屏蔽中...",
     "displayNameRequired": "显示名称不能为空",
+    "blockedPostsHidden": "由于你已屏蔽该用户，对方的帖子已被隐藏。",
+    "blockedMediaHidden": "由于你已屏蔽该用户，对方的媒体内容已被隐藏。",
     "loadPostsFailed": "加载帖子失败",
     "loadLikedPostsFailed": "加载点赞帖子失败",
     "loadMediaFailed": "加载媒体内容失败",
     "loadSavedPostsFailed": "加载收藏帖子失败",
+    "noMediaYet": "还没有媒体内容",
     "noProfileDataAvailable": "没有可用的资料数据",
     "Collections": {
       "selfOnly": "收藏的帖子仅在你自己的资料页可见。"
@@ -659,6 +662,7 @@
     "block": "屏蔽",
     "blockUser": "屏蔽用户",
     "blockUserMessage": "确定要屏蔽 {{name}} 吗？你将不再看到对方的帖子。",
+    "blockUserSuccess": "已屏蔽 {{name}}，你将不再看到对方的帖子。",
     "blockUserFailed": "屏蔽用户失败",
     "blocking": "屏蔽中...",
     "caughtUp": "你已经看完全部内容了！",
@@ -1166,10 +1170,10 @@
     "openChatFailed": "打开聊天失败",
     "giftSentTo": "已向 {{name}} 送出礼物",
     "blockConfirmMessagePrefix": "确定要屏蔽",
-    "blockConfirmMessageSuffix": "吗？对方会被移入你的黑名单，并且无法再联系你。",
+    "blockConfirmMessageSuffix": "吗？对方会被移入你的黑名单、其帖子将对你隐藏，并且无法再联系你。",
     "restoreConfirmMessagePrefix": "将",
     "restoreConfirmMessageSuffix": "恢复到之前的分类？",
-    "blockUserSuccess": "已屏蔽 {{name}}",
+    "blockUserSuccess": "已屏蔽 {{name}}，其帖子已对你隐藏。",
     "removeFriendSuccess": "已将 {{name}} 移出好友列表"
   },
   "GiftBubble": {
