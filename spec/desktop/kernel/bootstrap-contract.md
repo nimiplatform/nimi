@@ -86,6 +86,7 @@ Desktop 只允许使用 canonical runtime 配置路径 `.nimi/config.json`；leg
 
 - 成功时设置 `auth.status = 'authenticated'`。
 - 失败时设置 `auth.status = 'anonymous'`。
+- `auth.status = 'anonymous'` 时，desktop shell 仍进入主壳并默认落到 `AI Runtime`；外层主导航隐藏，右上角提供显式 `Login` 入口，登录页可返回当前 Runtime 子页。
 
 ## D-BOOT-008 — Bootstrap 完成 / 错误处理
 

@@ -32,10 +32,7 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 
-	ownerID, err := requireSubjectUserID(ctx)
-	if err != nil {
-		return nil, err
-	}
+	ownerID, hasOwner := subjectUserIDFromContext(ctx)
 
 	endpoint := strings.TrimSpace(req.GetEndpoint())
 	if endpoint == "" {
@@ -47,12 +44,17 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 
 	rec := ConnectorRecord{
 		Kind:      runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
-		OwnerType: runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER,
-		OwnerID:   ownerID,
 		Provider:  provider,
 		Endpoint:  endpoint,
 		Label:     strings.TrimSpace(req.GetLabel()),
 		Status:    runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}
+	if hasOwner {
+		rec.OwnerType = runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER
+		rec.OwnerID = ownerID
+	} else {
+		rec.OwnerType = runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM
+		rec.OwnerID = "machine"
 	}
 	if rec.Label == "" {
 		rec.Label = defaultManagedConnectorLabel(provider)
@@ -201,10 +203,6 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
-	ownerID, err := requireSubjectUserID(ctx)
-	if err != nil {
-		return nil, err
-	}
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("update_connector.load", err)
@@ -212,12 +210,21 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 	if !found {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
 	}
-	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && rec.OwnerID != ownerID {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
-	}
 	if rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
-		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
+		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
+		rec.OwnerID == "system" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
+	}
+	if !(rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
+		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
+		rec.OwnerID == "machine") {
+		ownerID, ownerErr := requireSubjectUserID(ctx)
+		if ownerErr != nil {
+			return nil, ownerErr
+		}
+		if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED && rec.OwnerID != ownerID {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+		}
 	}
 
 	updatePaths := req.GetUpdateMask().GetPaths()
@@ -320,11 +327,6 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
-	ownerID, err := requireSubjectUserID(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	rec, found, err := s.store.Get(connectorID)
 	if err != nil {
 		return nil, s.internalProviderError("delete_connector.load", err)
@@ -336,11 +338,19 @@ func (s *Service) DeleteConnector(ctx context.Context, req *runtimev1.DeleteConn
 	}
 
 	if rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_LOCAL_MODEL ||
-		rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
+		(rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM && rec.OwnerID == "system") {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_IMMUTABLE)
 	}
-	if rec.OwnerID != ownerID {
-		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+	if !(rec.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM &&
+		rec.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
+		rec.OwnerID == "machine") {
+		ownerID, ownerErr := requireSubjectUserID(ctx)
+		if ownerErr != nil {
+			return nil, ownerErr
+		}
+		if rec.OwnerID != ownerID {
+			return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_CONNECTOR_NOT_FOUND)
+		}
 	}
 
 	if err := s.store.Delete(connectorID); err != nil {

@@ -119,6 +119,7 @@ test('D-ERR-009: loadRuntimeRouteOptions degrades gracefully when local metadata
         endpoint: 'https://api.openai.com/v1',
         hasCredential: true,
         isSystemOwned: false,
+        scope: 'user',
         models: ['gpt-4.1-mini'],
         status: 'healthy',
         lastCheckedAt: null,

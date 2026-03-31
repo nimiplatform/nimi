@@ -223,21 +223,23 @@ function ChatLayout() {
 
 type MainLayoutViewProps = {
   activeTab: AppTab;
+  authStatus: 'bootstrapping' | 'anonymous' | 'authenticated';
   displayName: string;
   userAvatarUrl: string | null;
   userEmail?: string | null;
   context: UiExtensionContext;
   onNav: (tabId: string) => void;
   onLogout: () => void;
+  onLogin: () => void;
   onTitlebarMouseDown: (event: MouseEvent<HTMLDivElement>) => void;
 };
 
 export function MainLayoutView(props: MainLayoutViewProps) {
   const { t } = useTranslation();
   const flags = getShellFeatureFlags();
-  const authStatus = useAppStore((state) => state.auth.status);
   const selectedProfileId = useAppStore((state) => state.selectedProfileId);
   const profileDetailOverlayOpen = useAppStore((state) => state.profileDetailOverlayOpen);
+  const isAnonymousShell = props.authStatus !== 'authenticated';
   const coreNavItems = getCoreNavItems();
   const quickNavItems = getQuickNavItems();
   const primaryCoreNavItems = coreNavItems.filter((item) => item.id !== 'settings' && item.id !== 'home');
@@ -286,7 +288,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       const { dataSync } = await import('@runtime/data-sync');
       return dataSync.loadCurrencyBalances() as Promise<Record<string, unknown>>;
     },
-    enabled: authStatus === 'authenticated',
+    enabled: props.authStatus === 'authenticated',
     staleTime: 30_000,
     refetchInterval: 60_000,
   });
@@ -296,7 +298,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
       const { dataSync } = await import('@runtime/data-sync');
       return dataSync.loadNotificationUnreadCount();
     },
-    enabled: authStatus === 'authenticated',
+    enabled: props.authStatus === 'authenticated',
     staleTime: 15_000,
     refetchInterval: 30_000,
   });
@@ -470,6 +472,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   return (
     <div data-testid={E2E_IDS.mainShell} className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--nimi-app-background)]">
       <MainLayoutTopBar
+        authStatus={props.authStatus}
         enableModWorkspaceTabs={flags.enableModWorkspaceTabs}
         titlebarLeftInsetClass={titlebarLeftInsetClass}
         sparkBalance={sparkBalance}
@@ -482,11 +485,12 @@ export function MainLayoutView(props: MainLayoutViewProps) {
         onOpenWallet={openWalletFromTitlebar}
         onOpenNotifications={openNotificationsFromTitlebar}
         onToggleSettingsMenu={toggleSettingsMenuFromTitlebar}
+        onLogin={props.onLogin}
         onMouseDown={props.onTitlebarMouseDown}
       />
 
       <div className="flex min-h-0 flex-1">
-        {hidePrimaryRail ? null : (
+        {hidePrimaryRail || isAnonymousShell ? null : (
           <aside
             data-testid={E2E_IDS.shellSidebarRail}
             className={`flex h-full shrink-0 flex-col bg-white transition-[width] duration-200 ${sidebarWidthClass}`}

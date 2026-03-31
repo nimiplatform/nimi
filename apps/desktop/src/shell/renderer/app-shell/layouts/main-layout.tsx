@@ -1,4 +1,5 @@
 import { useEffect, type MouseEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { desktopBridge } from '@renderer/bridge';
 import { useAppStore, type AppTab } from '@renderer/app-shell/providers/app-store';
 import { useUiExtensionContext } from '@renderer/mod-ui/host/slot-context';
@@ -14,10 +15,12 @@ let tabSwitchPending: { fromTab: string; toTab: string; startMs: number } | null
 
 export function MainLayout() {
   const flags = getShellFeatureFlags();
+  const navigate = useNavigate();
   const activeTab = useAppStore((state) => state.activeTab);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
   const setStatusBanner = useAppStore((state) => state.setStatusBanner);
+  const authStatus = useAppStore((state) => state.auth.status);
   const user = useAppStore((state) => state.auth.user);
   const context = useUiExtensionContext({
     sidebarCollapsed: true,
@@ -29,6 +32,10 @@ export function MainLayout() {
   const userEmail = typeof user?.email === 'string' ? user.email : null;
 
   useEffect(() => {
+    if (flags.mode === 'desktop' && authStatus !== 'authenticated' && activeTab !== 'runtime') {
+      setActiveTab('runtime');
+      return;
+    }
     if (!flags.enableRuntimeTab && activeTab === 'runtime') {
       setActiveTab('chat');
       return;
@@ -40,7 +47,7 @@ export function MainLayout() {
     if (!flags.enableModUi && activeTab.startsWith('mod:')) {
       setActiveTab('chat');
     }
-  }, [activeTab, flags, setActiveTab]);
+  }, [activeTab, authStatus, flags, setActiveTab]);
 
   useEffect(() => {
     if (!tabSwitchPending || tabSwitchPending.toTab !== activeTab) return;
@@ -87,6 +94,7 @@ export function MainLayout() {
   return (
     <MainLayoutView
       activeTab={activeTab}
+      authStatus={authStatus}
       displayName={displayName}
       userAvatarUrl={userAvatarUrl}
       userEmail={userEmail}
@@ -94,6 +102,12 @@ export function MainLayout() {
       onNav={onNav}
       onLogout={() => {
         void onLogout();
+      }}
+      onLogin={() => {
+        setActiveTab('runtime');
+        void navigate('/login', {
+          state: { returnToRuntime: true },
+        });
       }}
       onTitlebarMouseDown={onTitlebarMouseDown}
     />

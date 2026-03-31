@@ -4,6 +4,7 @@ import { ReasonCode } from '@nimiplatform/sdk/types';
 import {
   getVendorLabelV11,
   type ApiConnector,
+  type ApiConnectorScopeV11,
   type ApiVendor,
 } from '@renderer/features/runtime-config/runtime-config-state-types';
 
@@ -32,6 +33,7 @@ type RuntimeConnectorLike = {
   label: string;
   hasCredential: boolean;
   ownerType: number;
+  ownerId?: string;
   kind: number;
   status: number;
 };
@@ -115,6 +117,7 @@ export function sdkConnectorToApiConnector(
     label: string;
     hasCredential: boolean;
     ownerType: number;
+    ownerId?: string;
     kind: number;
     status: number;
   },
@@ -123,14 +126,19 @@ export function sdkConnectorToApiConnector(
 ): ApiConnector {
   const vendor = providerToVendor(connector.provider);
   const defaultEndpoint = resolveProviderEndpoint(connector.provider, providerCatalog);
+  const normalizedOwnerId = String(connector.ownerId || '').trim().toLowerCase();
+  const scope: ApiConnectorScopeV11 = connector.ownerType === CONNECTOR_OWNER_TYPE_SYSTEM
+    ? (normalizedOwnerId === 'machine' ? 'machine-global' : 'runtime-system')
+    : 'user';
   return {
     id: connector.connectorId,
     label: connector.label || `${getVendorLabelV11(vendor)} Connector`,
     vendor,
     provider: connector.provider,
     endpoint: connector.endpoint || defaultEndpoint,
+    scope,
     hasCredential: connector.hasCredential,
-    isSystemOwned: connector.ownerType === CONNECTOR_OWNER_TYPE_SYSTEM,
+    isSystemOwned: scope !== 'user',
     models: models && models.length > 0 ? models : [],
     status: 'idle',
     lastCheckedAt: null,

@@ -47,7 +47,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
     desktopReleaseInfo: null,
     desktopReleaseError: null,
     desktopUpdateState: null,
-    activeTab: 'explore',
+    activeTab: 'runtime',
     previousTab: null,
     selectedChatId: null,
     selectedProfileId: null,
@@ -123,7 +123,7 @@ export function createUiSlice(set: AppStoreSet): UiSlice {
         }
 
         return {
-          activeTab: state.previousTab || 'chat',
+          activeTab: state.previousTab || 'runtime',
           previousTab: null,
           selectedProfileId: state.previousTab === 'contacts' || state.previousTab === 'home' || state.previousTab === 'explore'
             ? state.selectedProfileId

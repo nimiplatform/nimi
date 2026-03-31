@@ -30,6 +30,7 @@ import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 import { Card as PrimitiveCard, RuntimeSelect, StatusBadge, renderModelChips } from './runtime-config-primitives';
 import { RuntimePageShell } from './runtime-config-page-shell';
 import { SectionTitle as SharedSectionTitle } from '@renderer/features/settings/settings-layout-components';
+import { E2E_IDS } from '@renderer/testability/e2e-ids';
 
 // Icons
 function CloudIcon({ className = '' }: { className?: string }) {
@@ -243,6 +244,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const { t } = useTranslation();
   const { selectedConnector, orderedConnectors, updateState } = model;
   const setStatusBanner = useAppStore((s) => s.setStatusBanner);
+  const authStatus = useAppStore((s) => s.auth.status);
 
   const [tokenDraft, setTokenDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
@@ -250,7 +252,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
 
   const selectedConnectorId = selectedConnector?.id || '';
-  const isSystemOwned = selectedConnector?.isSystemOwned || false;
+  const connectorScope = selectedConnector?.scope || 'user';
+  const isRuntimeSystem = connectorScope === 'runtime-system';
+  const isMachineGlobal = connectorScope === 'machine-global';
+  const isSystemOwned = isRuntimeSystem;
   const isDraft = selectedConnector?.isDraft || false;
 
   useEffect(() => {
@@ -290,6 +295,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
       vendor,
       provider,
       endpoint,
+      scope: authStatus === 'authenticated' ? 'user' as const : 'machine-global' as const,
       hasCredential: false,
       isSystemOwned: false,
       models: [],
@@ -299,25 +305,25 @@ export function CloudPage({ model, state }: CloudPageProps) {
       isDraft: true,
     };
     updateState((prev) => addConnectorToState(prev, draft));
-  }, [state.connectors.length, updateState]);
+  }, [authStatus, state.connectors.length, updateState]);
 
   const onRemoveSelectedConnector = useCallback(async () => {
     if (!selectedConnectorId) return;
-    if (selectedConnector?.isSystemOwned) return;
+    if (isRuntimeSystem) return;
     if (selectedConnector?.isDraft) {
       updateState((prev) => removeSelectedConnector(prev, selectedConnectorId));
       return;
     }
     await sdkDeleteConnector(selectedConnectorId);
     await refreshConnectorsFromSdk();
-  }, [selectedConnectorId, selectedConnector, updateState, refreshConnectorsFromSdk]);
+  }, [isRuntimeSystem, selectedConnectorId, selectedConnector, updateState, refreshConnectorsFromSdk]);
 
   const onSelectConnector = useCallback((connectorId: string) => {
     updateState((prev) => ({ ...prev, selectedConnectorId: connectorId }));
   }, [updateState]);
 
   const onRenameSelectedConnector = useCallback((label: string) => {
-    if (selectedConnector?.isSystemOwned) return;
+    if (isRuntimeSystem) return;
     const previousLabel = String(selectedConnector?.label || '');
     updateState((prev) => updateConnectorField(prev, selectedConnectorId, { label }));
     if (selectedConnectorId && !selectedConnector?.isDraft) {
@@ -329,10 +335,10 @@ export function CloudPage({ model, state }: CloudPageProps) {
         }
       })();
     }
-  }, [selectedConnector, selectedConnectorId, updateState, reportError]);
+  }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
 
   const onChangeConnectorEndpoint = useCallback((endpoint: string) => {
-    if (!selectedConnector || selectedConnector.isSystemOwned) return;
+    if (!selectedConnector || isRuntimeSystem) return;
     const previousConnector = selectedConnector;
     updateState((prev) => {
       const currentVendor = prev.connectors.find((c) => c.id === selectedConnectorId)?.vendor;
@@ -361,7 +367,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
         }
       })();
     }
-  }, [selectedConnector, selectedConnectorId, updateState, reportError]);
+  }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState, reportError]);
 
   const onChangeConnectorToken = useCallback(async (secret: string) => {
     if (!selectedConnectorId || !selectedConnector) return;
@@ -390,7 +396,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
   }, [selectedConnectorId, selectedConnector, updateState, model]);
 
   const onChangeConnectorVendor = useCallback(async (vendor: string) => {
-    if (!selectedConnector || selectedConnector.isSystemOwned) return;
+    if (!selectedConnector || isRuntimeSystem) return;
     const previousConnector = selectedConnector;
     const normalizedVendor = vendor as typeof selectedConnector.vendor;
     const provider = vendorToProvider(normalizedVendor);
@@ -411,7 +417,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
         throw error;
       }
     }
-  }, [selectedConnector, selectedConnectorId, updateState]);
+  }, [isRuntimeSystem, selectedConnector, selectedConnectorId, updateState]);
 
   const saveTokenToVault = async () => {
     if (!selectedConnectorId) return;
@@ -502,9 +508,19 @@ export function CloudPage({ model, state }: CloudPageProps) {
                           isHealthy ? 'bg-[var(--nimi-status-success)]' : connector.status === 'unreachable' || connector.status === 'degraded' || connector.status === 'unsupported' ? 'bg-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-text-muted)_35%,transparent)]'
                         }`} />
                         <p className="font-semibold text-[var(--nimi-text-primary)]">{connector.label}</p>
-                        {connector.isSystemOwned ? (
-                          <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[9px] text-[var(--nimi-text-muted)]">
-                            {t('runtimeConfig.cloud.system', { defaultValue: 'system' })}
+                        {connector.scope === 'runtime-system' ? (
+                          <span
+                            data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
+                            className="rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[9px] text-[var(--nimi-text-muted)]"
+                          >
+                            {t('runtimeConfig.cloud.runtimeSystem', { defaultValue: 'runtime managed' })}
+                          </span>
+                        ) : connector.scope === 'machine-global' ? (
+                          <span
+                            data-testid={E2E_IDS.runtimeConnectorScopeBadge(connector.id)}
+                            className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-action-primary-bg)]"
+                          >
+                            {t('runtimeConfig.cloud.machineGlobal', { defaultValue: 'machine global' })}
                           </span>
                         ) : connector.isDraft ? (
                           <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] px-1.5 py-0.5 text-[9px] text-[var(--nimi-status-warning)]">
@@ -536,7 +552,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 value={selectedConnector.label}
                 onChange={onRenameSelectedConnector}
                 placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
-                disabled={isSystemOwned}
+                disabled={isRuntimeSystem}
                 icon={<ServerIcon />}
               />
               <div>
@@ -546,7 +562,7 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 <RuntimeSelect
                   value={selectedConnector.vendor}
                   onChange={(nextVendor) => { void onChangeConnectorVendor(nextVendor).catch((err) => reportError('Switch vendor failed', err)); }}
-                  disabled={isSystemOwned}
+                  disabled={isRuntimeSystem}
                   className="w-full"
                   options={VENDOR_ORDER_V11.map((vendor) => ({
                     value: vendor,
@@ -563,9 +579,9 @@ export function CloudPage({ model, state }: CloudPageProps) {
                 value={selectedConnector.endpoint}
                 onChange={onChangeConnectorEndpoint}
                 placeholder={DEFAULT_OPENAI_ENDPOINT_V11}
-                disabled={isSystemOwned}
+                disabled={isRuntimeSystem}
               />
-              {isSystemOwned ? (
+              {isRuntimeSystem ? (
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
                     {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
@@ -636,6 +652,11 @@ export function CloudPage({ model, state }: CloudPageProps) {
             {/* Info Messages */}
             <div className="space-y-2">
               <p className="text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">ID: {selectedConnector.id}</p>
+              {isMachineGlobal ? (
+                <p className="text-xs text-[var(--nimi-action-primary-bg)]">
+                  {t('runtimeConfig.cloud.managedMachineGlobal', { defaultValue: 'Shared across accounts on this machine' })}
+                </p>
+              ) : null}
               {selectedConnector.hasCredential && (
                 <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
                   <CheckIcon className="h-3.5 w-3.5" />

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -201,7 +202,7 @@ func TestListConnectorsAnonymousOnlySeesLocal(t *testing.T) {
 }
 
 func TestConnectorOwnerTypeMapping(t *testing.T) {
-	// K-AUTH-003: REMOTE_MANAGED maps to REALM_USER, LOCAL_MODEL maps to SYSTEM.
+	// K-AUTH-003: authenticated REMOTE_MANAGED maps to REALM_USER, anonymous machine-global and LOCAL_MODEL map to SYSTEM.
 	svc := newTestService(t)
 
 	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
@@ -216,6 +217,20 @@ func TestConnectorOwnerTypeMapping(t *testing.T) {
 	}
 	if created.GetConnector().GetOwnerType() != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
 		t.Fatalf("expected remote connector owner type REALM_USER, got %v", created.GetConnector().GetOwnerType())
+	}
+
+	anonymousCreated, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
+		Provider: "gemini",
+		ApiKey:   "machine-key",
+	})
+	if err != nil {
+		t.Fatalf("CreateConnector anonymous: %v", err)
+	}
+	if anonymousCreated.GetConnector().GetOwnerType() != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM {
+		t.Fatalf("expected anonymous remote connector owner type SYSTEM, got %v", anonymousCreated.GetConnector().GetOwnerType())
+	}
+	if anonymousCreated.GetConnector().GetOwnerId() != "machine" {
+		t.Fatalf("expected anonymous remote connector owner_id=machine, got %q", anonymousCreated.GetConnector().GetOwnerId())
 	}
 
 	if err := EnsureLocalConnectors(svc.store); err != nil {
@@ -308,18 +323,33 @@ func TestUpdateConnector(t *testing.T) {
 }
 
 func TestConnectorManagementRequiresAuth(t *testing.T) {
-	// K-AUTH-004: create/update/delete require a valid JWT identity.
+	// K-AUTH-004: user-owned connectors still require auth; machine-global connectors remain manageable without JWT.
 	svc := newTestService(t)
 
-	_, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
+	createdAnonymous, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
 		Provider: "openai",
 		ApiKey:   "key",
 	})
-	if err == nil {
-		t.Fatal("expected unauthenticated create to fail")
+	if err != nil {
+		t.Fatalf("expected anonymous create to succeed, got %v", err)
 	}
-	if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
-		t.Fatalf("expected create unauthenticated, got %v", st.Code())
+	if createdAnonymous.GetConnector().GetOwnerId() != "machine" {
+		t.Fatalf("expected anonymous create to produce owner_id=machine, got %q", createdAnonymous.GetConnector().GetOwnerId())
+	}
+
+	_, err = svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
+		ConnectorId: createdAnonymous.GetConnector().GetConnectorId(),
+		Label:       proto.String("machine-global"),
+	})
+	if err != nil {
+		t.Fatalf("expected anonymous update of machine-global connector to succeed, got %v", err)
+	}
+
+	_, err = svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
+		ConnectorId: createdAnonymous.GetConnector().GetConnectorId(),
+	})
+	if err != nil {
+		t.Fatalf("expected anonymous delete of machine-global connector to succeed, got %v", err)
 	}
 
 	created, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
@@ -350,6 +380,89 @@ func TestConnectorManagementRequiresAuth(t *testing.T) {
 	}
 	if st, _ := status.FromError(err); st.Code() != codes.Unauthenticated {
 		t.Fatalf("expected delete unauthenticated, got %v", st.Code())
+	}
+}
+
+func TestAuthenticatedCallerSeesMachineGlobalAndOwnedConnectors(t *testing.T) {
+	svc := newTestService(t)
+	if err := EnsureLocalConnectors(svc.store); err != nil {
+		t.Fatalf("EnsureLocalConnectors: %v", err)
+	}
+
+	if _, err := svc.CreateConnector(context.Background(), &runtimev1.CreateConnectorRequest{
+		Provider: "openai",
+		ApiKey:   "machine-key",
+	}); err != nil {
+		t.Fatalf("CreateConnector anonymous: %v", err)
+	}
+	if _, err := svc.CreateConnector(userContext("user-1"), &runtimev1.CreateConnectorRequest{
+		Provider: "gemini",
+		ApiKey:   "user-key",
+	}); err != nil {
+		t.Fatalf("CreateConnector user-1: %v", err)
+	}
+	if _, err := svc.CreateConnector(userContext("user-2"), &runtimev1.CreateConnectorRequest{
+		Provider: "deepseek",
+		ApiKey:   "other-user-key",
+	}); err != nil {
+		t.Fatalf("CreateConnector user-2: %v", err)
+	}
+
+	resp, err := svc.ListConnectors(userContext("user-1"), &runtimev1.ListConnectorsRequest{})
+	if err != nil {
+		t.Fatalf("ListConnectors: %v", err)
+	}
+
+	remoteOwnerIDs := make([]string, 0, len(resp.GetConnectors()))
+	for _, connector := range resp.GetConnectors() {
+		if connector.GetKind() == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
+			remoteOwnerIDs = append(remoteOwnerIDs, connector.GetOwnerId())
+		}
+	}
+	sort.Strings(remoteOwnerIDs)
+	expected := []string{"machine", "user-1"}
+	if len(remoteOwnerIDs) != len(expected) {
+		t.Fatalf("expected remote owner ids %v, got %v", expected, remoteOwnerIDs)
+	}
+	for index, value := range expected {
+		if index >= len(remoteOwnerIDs) || remoteOwnerIDs[index] != value {
+			t.Fatalf("expected remote owner ids %v, got %v", expected, remoteOwnerIDs)
+		}
+	}
+}
+
+func TestSystemManagedRemoteConnectorsRemainImmutable(t *testing.T) {
+	svc := newTestService(t)
+	if _, err := svc.store.Create(ConnectorRecord{
+		ConnectorID: "sys-openai",
+		Kind:        runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
+		OwnerType:   runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM,
+		OwnerID:     "system",
+		Provider:    "openai",
+		Status:      runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE,
+	}, "system-key"); err != nil {
+		t.Fatalf("create system connector: %v", err)
+	}
+
+	_, err := svc.UpdateConnector(context.Background(), &runtimev1.UpdateConnectorRequest{
+		ConnectorId: "sys-openai",
+		Label:       proto.String("renamed"),
+	})
+	if err == nil {
+		t.Fatal("expected immutable error for system-managed connector update")
+	}
+	if st, _ := status.FromError(err); st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
+	}
+
+	_, err = svc.DeleteConnector(context.Background(), &runtimev1.DeleteConnectorRequest{
+		ConnectorId: "sys-openai",
+	})
+	if err == nil {
+		t.Fatal("expected immutable error for system-managed connector delete")
+	}
+	if st, _ := status.FromError(err); st.Code() != codes.InvalidArgument {
+		t.Fatalf("expected InvalidArgument, got %v", st.Code())
 	}
 }
 

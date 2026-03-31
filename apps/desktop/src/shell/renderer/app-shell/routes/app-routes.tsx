@@ -210,6 +210,7 @@ export function AppRoutes() {
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const bootstrapError = useAppStore((state) => state.bootstrapError);
   const authStatus = useAppStore((state) => state.auth.status);
+  const isDesktopShell = flags.mode === 'desktop';
 
   if (flags.mode !== 'web' && !bootstrapReady && !bootstrapError) {
     return <LoadingScreen />;
@@ -221,7 +222,25 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      {authStatus === 'authenticated' ? (
+      {isDesktopShell ? (
+        <>
+          <Route path="/" element={(
+            <Suspense fallback={<LoadingScreen />}>
+              <MainLayout />
+            </Suspense>
+          )}
+          />
+          <Route
+            path="/login"
+            element={(
+              <Suspense fallback={<LoadingScreen />}>
+                <LoginPage />
+              </Suspense>
+            )}
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </>
+      ) : authStatus === 'authenticated' ? (
         <>
           <Route path="/" element={(
             <Suspense fallback={<LoadingScreen />}>

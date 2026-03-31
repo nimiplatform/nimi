@@ -139,6 +139,7 @@ test('sdkConnectorToApiConnector maps SDK connector shape to ApiConnector', () =
   assert.equal(result.vendor, 'openrouter');
   assert.equal(result.provider, 'openrouter');
   assert.equal(result.endpoint, 'https://openrouter.ai/api/v1');
+  assert.equal(result.scope, 'user');
   assert.equal(result.hasCredential, true);
   assert.equal(result.isSystemOwned, false);
   assert.equal(result.status, 'idle');
@@ -153,13 +154,33 @@ test('sdkConnectorToApiConnector marks system-owned connectors', () => {
     label: 'Gemini System',
     hasCredential: true,
     ownerType: 1,
+    ownerId: 'system',
     kind: 2,
     status: 1,
   };
 
   const result = sdkConnectorToApiConnector(sdkConnector, PROVIDER_CATALOG);
   assert.equal(result.isSystemOwned, true);
+  assert.equal(result.scope, 'runtime-system');
   assert.equal(result.vendor, 'gemini');
+});
+
+test('sdkConnectorToApiConnector marks machine-global connectors separately from runtime-managed ones', () => {
+  const sdkConnector = {
+    connectorId: 'conn-machine-1',
+    provider: 'openrouter',
+    endpoint: 'https://openrouter.ai/api/v1',
+    label: 'Machine OpenRouter',
+    hasCredential: true,
+    ownerType: 1,
+    ownerId: 'machine',
+    kind: 2,
+    status: 1,
+  };
+
+  const result = sdkConnectorToApiConnector(sdkConnector, PROVIDER_CATALOG);
+  assert.equal(result.isSystemOwned, true);
+  assert.equal(result.scope, 'machine-global');
 });
 
 test('sdkConnectorToApiConnector uses provided models over catalog defaults', () => {

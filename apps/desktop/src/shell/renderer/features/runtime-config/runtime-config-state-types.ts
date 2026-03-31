@@ -10,6 +10,7 @@ export type RuntimePageIdV11 = 'overview' | 'recommend' | 'local' | 'cloud' | 'c
 export type RuntimeSetupPageIdV11 = RuntimePageIdV11;
 export type UiModeV11 = 'simple' | 'advanced';
 export type ProviderStatusV11 = 'idle' | 'healthy' | 'unreachable' | 'unsupported' | 'degraded';
+export type ApiConnectorScopeV11 = 'user' | 'machine-global' | 'runtime-system';
 export type ApiVendor =
   | 'openrouter'
   | 'gpt'
@@ -85,6 +86,7 @@ export type ApiConnector = {
   vendor: ApiVendor;
   provider: string;
   endpoint: string;
+  scope: ApiConnectorScopeV11;
   hasCredential: boolean;
   isSystemOwned: boolean;
   models: string[];
@@ -210,6 +212,11 @@ export function normalizeStatusV11(value: unknown): ProviderStatusV11 {
   return 'idle';
 }
 
+export function normalizeConnectorScopeV11(value: unknown): ApiConnectorScopeV11 {
+  if (value === 'machine-global' || value === 'runtime-system') return value;
+  return 'user';
+}
+
 export function statusTextV11(status: ProviderStatusV11): string {
   if (status === 'healthy') return 'Healthy';
   if (status === 'degraded') return 'Degraded';
@@ -250,6 +257,7 @@ export function createConnectorV11(vendor: ApiVendor = 'openrouter', label?: str
     vendor,
     provider: '',
     endpoint: defaultEndpoint,
+    scope: 'user',
     hasCredential: false,
     isSystemOwned: false,
     models: [],
@@ -267,14 +275,16 @@ export function normalizeConnectorModelsV11(vendor: ApiVendor, rawModels: unknow
 export function normalizeConnectorV11(raw: Partial<ApiConnector>): ApiConnector {
   const vendor = normalizeVendorV11(raw.vendor);
   const defaultEndpoint = vendor === 'openrouter' ? DEFAULT_OPENROUTER_ENDPOINT_V11 : DEFAULT_OPENAI_ENDPOINT_V11;
+  const scope = normalizeConnectorScopeV11(raw.scope);
   return {
     id: String(raw.id || randomIdV11('connector')),
     label: String(raw.label || `${getVendorLabelV11(vendor)} Connector`),
     vendor,
     provider: String(raw.provider || ''),
     endpoint: normalizeEndpointV11(String(raw.endpoint || defaultEndpoint), defaultEndpoint),
+    scope,
     hasCredential: Boolean(raw.hasCredential),
-    isSystemOwned: Boolean(raw.isSystemOwned),
+    isSystemOwned: scope !== 'user' || Boolean(raw.isSystemOwned),
     models: normalizeConnectorModelsV11(vendor, raw.models),
     status: normalizeStatusV11(raw.status),
     lastCheckedAt: raw.lastCheckedAt || null,

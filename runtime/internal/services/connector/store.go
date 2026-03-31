@@ -23,6 +23,16 @@ const (
 
 var errConnectorLimitExceeded = errors.New("connector limit exceeded")
 
+func countsTowardManagedConnectorLimit(record ConnectorRecord) bool {
+	if record.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED {
+		return false
+	}
+	if record.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
+		return true
+	}
+	return record.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_SYSTEM && record.OwnerID == "machine"
+}
+
 // ConnectorRecord is the persistent representation of a connector.
 type ConnectorRecord struct {
 	ConnectorID   string                           `json:"connector_id"`
@@ -153,13 +163,10 @@ func (s *ConnectorStore) createLocked(record ConnectorRecord, apiKey string, max
 		}
 	}
 	if maxManagedPerOwner > 0 &&
-		record.Kind == runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED &&
-		record.OwnerType == runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER {
+		countsTowardManagedConnectorLimit(record) {
 		managedCount := 0
 		for _, r := range records {
-			if r.DeletePending ||
-				r.Kind != runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED ||
-				r.OwnerType != runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER ||
+			if r.DeletePending || !countsTowardManagedConnectorLimit(r) ||
 				r.OwnerID != record.OwnerID {
 				continue
 			}
