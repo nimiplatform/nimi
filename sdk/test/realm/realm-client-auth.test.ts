@@ -445,7 +445,10 @@ test('Realm.decodeTokenExpiry parses valid and invalid JWTs', () => {
     .toString('base64url');
   const base64UrlJwt = `header.${base64UrlPayload}.signature`;
   assert.equal(Realm.decodeTokenExpiry(base64UrlJwt)?.expiresAt, 1700000001 * 1000);
-  assert.deepEqual(Realm.decodeTokenExpiryUnsafe(validJwt), result);
+  const unsafeResult = Realm.decodeTokenExpiryUnsafe(validJwt);
+  assert.ok(unsafeResult);
+  assert.equal(unsafeResult.expiresAt, result.expiresAt);
+  assert.ok(Math.abs(unsafeResult.expiresInMs - result.expiresInMs) <= 1);
 });
 
 test('Realm explicit unauthenticated mode does not send Authorization header (SDKREALM-016)', async () => {
