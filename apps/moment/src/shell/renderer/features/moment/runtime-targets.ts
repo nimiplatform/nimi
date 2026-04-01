@@ -179,17 +179,17 @@ async function loadLocalOptions(
   capability: MomentRouteCapability,
 ): Promise<MomentRuntimeTargetOption[]> {
   const response = await withTimeout(
-    runtime.local.listLocalModels({} as Parameters<typeof runtime.local.listLocalModels>[0]),
+    runtime.local.listLocalServices({} as Parameters<typeof runtime.local.listLocalServices>[0]),
     `moment-local-models:${capability}`,
   );
 
-  return (response.models || [])
-    .filter((model) => model.capabilities.includes(capability))
-    .map((model) => createLocalTargetOption({
+  return (response.services || [])
+    .filter((service) => service.capabilities.includes(capability))
+    .map((service) => createLocalTargetOption({
       capability,
-      modelId: normalizeText(model.modelId || model.localModelId),
-      localModelId: normalizeText(model.localModelId) || undefined,
-      engine: normalizeText(model.engine) || undefined,
+      modelId: normalizeText(service.localModelId || service.serviceId),
+      localModelId: normalizeText(service.localModelId) || undefined,
+      engine: normalizeText(service.engine) || undefined,
     }))
     .filter((option) => Boolean(option.modelId));
 }

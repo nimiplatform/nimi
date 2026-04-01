@@ -10,8 +10,6 @@ owned_objects:
       - title
       - opening
       - story_hook
-      - presence
-      - mystery
       - initial_user_relation
       - tone
       - actions

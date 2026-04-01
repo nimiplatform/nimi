@@ -53,7 +53,8 @@ The product must not lose the source scene, collapse into generic chat, or drift
 
 Each continuation beat must help the user see further into what may be happening inside the scene.
 
-The loop must not simply restate mystery or stall in abstract atmosphere.
+The loop must not simply restate the same uncertainty or stall in abstract atmosphere.
+It should make the possible story feel slightly more tangible without collapsing it into full explanation too early.
 
 ## MM-PLAY-008: Relation Changes Must Feel Earned
 

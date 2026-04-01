@@ -19,8 +19,6 @@ export type MomentSeed = {
 export type MomentStoryOpening = {
   title: string;
   opening: string;
-  presence: string;
-  mystery: string;
   sceneSummary: string;
   actions: [string, string, string];
   relationState: MomentRelationState;

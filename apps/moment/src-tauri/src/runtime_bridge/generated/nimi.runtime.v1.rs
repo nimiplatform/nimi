@@ -131,9 +131,14 @@ pub enum ReasonCode {
     AiLocalServiceUnavailable = 364,
     AiLocalServiceAlreadyInstalled = 365,
     AiLocalServiceInvalidTransition = 366,
+    AiLocalAssetAlreadyInstalled = 367,
+    AiLocalAssetSlotMissing = 368,
+    AiLocalAssetSlotForbidden = 369,
     /// FINISH family (370+)
     AiFinishLength = 370,
     AiFinishContentFilter = 371,
+    AiLocalProfileSlotConflict = 376,
+    AiLocalProfileOverrideForbidden = 377,
     /// MODEL_ROUTE family (380+)
     AiModelProviderMismatch = 380,
     /// PROVIDER family (390+)
@@ -262,8 +267,15 @@ impl ReasonCode {
             Self::AiLocalServiceInvalidTransition => {
                 "AI_LOCAL_SERVICE_INVALID_TRANSITION"
             }
+            Self::AiLocalAssetAlreadyInstalled => "AI_LOCAL_ASSET_ALREADY_INSTALLED",
+            Self::AiLocalAssetSlotMissing => "AI_LOCAL_ASSET_SLOT_MISSING",
+            Self::AiLocalAssetSlotForbidden => "AI_LOCAL_ASSET_SLOT_FORBIDDEN",
             Self::AiFinishLength => "AI_FINISH_LENGTH",
             Self::AiFinishContentFilter => "AI_FINISH_CONTENT_FILTER",
+            Self::AiLocalProfileSlotConflict => "AI_LOCAL_PROFILE_SLOT_CONFLICT",
+            Self::AiLocalProfileOverrideForbidden => {
+                "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN"
+            }
             Self::AiModelProviderMismatch => "AI_MODEL_PROVIDER_MISMATCH",
             Self::AiProviderEndpointForbidden => "AI_PROVIDER_ENDPOINT_FORBIDDEN",
             Self::AiProviderAuthFailed => "AI_PROVIDER_AUTH_FAILED",
@@ -395,8 +407,17 @@ impl ReasonCode {
             "AI_LOCAL_SERVICE_INVALID_TRANSITION" => {
                 Some(Self::AiLocalServiceInvalidTransition)
             }
+            "AI_LOCAL_ASSET_ALREADY_INSTALLED" => {
+                Some(Self::AiLocalAssetAlreadyInstalled)
+            }
+            "AI_LOCAL_ASSET_SLOT_MISSING" => Some(Self::AiLocalAssetSlotMissing),
+            "AI_LOCAL_ASSET_SLOT_FORBIDDEN" => Some(Self::AiLocalAssetSlotForbidden),
             "AI_FINISH_LENGTH" => Some(Self::AiFinishLength),
             "AI_FINISH_CONTENT_FILTER" => Some(Self::AiFinishContentFilter),
+            "AI_LOCAL_PROFILE_SLOT_CONFLICT" => Some(Self::AiLocalProfileSlotConflict),
+            "AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN" => {
+                Some(Self::AiLocalProfileOverrideForbidden)
+            }
             "AI_MODEL_PROVIDER_MISMATCH" => Some(Self::AiModelProviderMismatch),
             "AI_PROVIDER_ENDPOINT_FORBIDDEN" => Some(Self::AiProviderEndpointForbidden),
             "AI_PROVIDER_AUTH_FAILED" => Some(Self::AiProviderAuthFailed),
@@ -4890,14 +4911,7 @@ pub mod runtime_workflow_service_client {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalModelSource {
-    #[prost(string, tag = "1")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub revision: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalArtifactSource {
+pub struct LocalAssetSource {
     #[prost(string, tag = "1")]
     pub repo: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -4915,75 +4929,12 @@ pub struct LocalHostRequirements {
     pub required_backends: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalModelRecord {
+pub struct LocalAssetRecord {
     #[prost(string, tag = "1")]
-    pub local_model_id: ::prost::alloc::string::String,
+    pub local_asset_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "3")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "4")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub license: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "7")]
-    pub source: ::core::option::Option<LocalModelSource>,
-    #[prost(map = "string, string", tag = "8")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(string, tag = "9")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalModelStatus", tag = "10")]
-    pub status: i32,
-    #[prost(string, tag = "11")]
-    pub installed_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub updated_at: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub health_detail: ::prost::alloc::string::String,
-    #[prost(string, tag = "14")]
-    pub local_invoke_profile_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "15")]
-    pub engine_config: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "16")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "17")]
-    pub family: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "18")]
-    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "19")]
-    pub preferred_engine: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "20")]
-    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(enumeration = "LocalBundleState", tag = "21")]
-    pub bundle_state: i32,
-    #[prost(enumeration = "LocalWarmState", tag = "22")]
-    pub warm_state: i32,
-    #[prost(message, optional, tag = "23")]
-    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalModelHealth {
-    #[prost(string, tag = "1")]
-    pub local_model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalModelStatus", tag = "2")]
-    pub status: i32,
-    #[prost(string, tag = "3")]
-    pub detail: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub endpoint: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalArtifactRecord {
-    #[prost(string, tag = "1")]
-    pub local_artifact_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub artifact_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalArtifactKind", tag = "3")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "3")]
     pub kind: i32,
     #[prost(string, tag = "4")]
     pub engine: ::prost::alloc::string::String,
@@ -4994,13 +4945,13 @@ pub struct LocalArtifactRecord {
     #[prost(string, tag = "7")]
     pub license: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "8")]
-    pub source: ::core::option::Option<LocalArtifactSource>,
+    pub source: ::core::option::Option<LocalAssetSource>,
     #[prost(map = "string, string", tag = "9")]
     pub hashes: ::std::collections::HashMap<
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,
-    #[prost(enumeration = "LocalArtifactStatus", tag = "10")]
+    #[prost(enumeration = "LocalAssetStatus", tag = "10")]
     pub status: i32,
     #[prost(string, tag = "11")]
     pub installed_at: ::prost::alloc::string::String,
@@ -5008,61 +4959,48 @@ pub struct LocalArtifactRecord {
     pub updated_at: ::prost::alloc::string::String,
     #[prost(string, tag = "13")]
     pub health_detail: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "14")]
+    /// Runnable-only fields
+    #[prost(string, repeated, tag = "20")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "21")]
+    pub logical_model_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "22")]
+    pub family: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "23")]
+    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "24")]
+    pub preferred_engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "25")]
+    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "LocalBundleState", tag = "26")]
+    pub bundle_state: i32,
+    #[prost(enumeration = "LocalWarmState", tag = "27")]
+    pub warm_state: i32,
+    #[prost(message, optional, tag = "28")]
+    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
+    #[prost(string, tag = "29")]
+    pub local_invoke_profile_id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "30")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "31")]
+    pub endpoint: ::prost::alloc::string::String,
+    /// Passive-only fields
+    #[prost(message, optional, tag = "40")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalVerifiedModelDescriptor {
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAssetHealth {
     #[prost(string, tag = "1")]
-    pub template_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub title: ::prost::alloc::string::String,
+    pub local_asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetStatus", tag = "2")]
+    pub status: i32,
     #[prost(string, tag = "3")]
-    pub description: ::prost::alloc::string::String,
+    pub detail: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
-    pub install_kind: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub revision: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "8")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "9")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "11")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "12")]
-    pub license: ::prost::alloc::string::String,
-    #[prost(map = "string, string", tag = "13")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(string, tag = "14")]
     pub endpoint: ::prost::alloc::string::String,
-    #[prost(int32, tag = "15")]
-    pub file_count: i32,
-    #[prost(int64, tag = "16")]
-    pub total_size_bytes: i64,
-    #[prost(string, repeated, tag = "17")]
-    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(message, optional, tag = "18")]
-    pub engine_config: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, tag = "19")]
-    pub logical_model_id: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "20")]
-    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "21")]
-    pub preferred_engine: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "22")]
-    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalVerifiedArtifactDescriptor {
+pub struct LocalVerifiedAssetDescriptor {
     #[prost(string, tag = "1")]
     pub template_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
@@ -5070,8 +5008,8 @@ pub struct LocalVerifiedArtifactDescriptor {
     #[prost(string, tag = "3")]
     pub description: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
-    pub artifact_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalArtifactKind", tag = "5")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "5")]
     pub kind: i32,
     #[prost(string, tag = "6")]
     pub engine: ::prost::alloc::string::String,
@@ -5098,6 +5036,25 @@ pub struct LocalVerifiedArtifactDescriptor {
     pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "16")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
+    /// Runnable-only fields
+    #[prost(string, tag = "20")]
+    pub install_kind: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub logical_model_id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "22")]
+    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "23")]
+    pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "24")]
+    pub preferred_engine: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "25")]
+    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "26")]
+    pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "27")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "28")]
+    pub host_requirements: ::core::option::Option<LocalHostRequirements>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalProviderHintsLlama {
@@ -5491,7 +5448,7 @@ pub struct LocalExecutionApplyResult {
     #[prost(message, repeated, tag = "3")]
     pub entries: ::prost::alloc::vec::Vec<LocalExecutionEntryDescriptor>,
     #[prost(message, repeated, tag = "4")]
-    pub installed_models: ::prost::alloc::vec::Vec<LocalModelRecord>,
+    pub installed_assets: ::prost::alloc::vec::Vec<LocalAssetRecord>,
     #[prost(message, repeated, tag = "5")]
     pub services: ::prost::alloc::vec::Vec<LocalServiceDescriptor>,
     #[prost(string, repeated, tag = "6")]
@@ -5534,8 +5491,6 @@ pub struct LocalProfileEntryDescriptor {
     pub required: ::core::option::Option<bool>,
     #[prost(bool, optional, tag = "7")]
     pub preferred: ::core::option::Option<bool>,
-    #[prost(string, tag = "8")]
-    pub model_id: ::prost::alloc::string::String,
     #[prost(string, tag = "9")]
     pub repo: ::prost::alloc::string::String,
     #[prost(string, tag = "10")]
@@ -5544,16 +5499,19 @@ pub struct LocalProfileEntryDescriptor {
     pub node_id: ::prost::alloc::string::String,
     #[prost(string, tag = "12")]
     pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub artifact_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalArtifactKind", tag = "14")]
-    pub artifact_kind: i32,
     #[prost(string, tag = "15")]
     pub template_id: ::prost::alloc::string::String,
     #[prost(string, tag = "16")]
     pub revision: ::prost::alloc::string::String,
     #[prost(string, repeated, tag = "17")]
     pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Unified asset fields
+    #[prost(string, tag = "20")]
+    pub asset_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAssetKind", tag = "21")]
+    pub asset_kind: i32,
+    #[prost(string, tag = "22")]
+    pub engine_slot: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalProfileDescriptor {
@@ -5573,11 +5531,11 @@ pub struct LocalProfileDescriptor {
     pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalProfileArtifactPlanEntry {
-    #[prost(message, optional, tag = "1")]
-    pub entry: ::core::option::Option<LocalProfileEntryDescriptor>,
-    #[prost(bool, tag = "2")]
-    pub installed: bool,
+pub struct ProfileEntryOverride {
+    #[prost(string, tag = "1")]
+    pub entry_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub local_asset_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalProfileResolutionPlan {
@@ -5599,8 +5557,6 @@ pub struct LocalProfileResolutionPlan {
     pub requirements: ::core::option::Option<LocalProfileRequirementDescriptor>,
     #[prost(message, optional, tag = "9")]
     pub execution_plan: ::core::option::Option<LocalExecutionPlan>,
-    #[prost(message, repeated, tag = "10")]
-    pub artifact_entries: ::prost::alloc::vec::Vec<LocalProfileArtifactPlanEntry>,
     #[prost(string, repeated, tag = "11")]
     pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "12")]
@@ -5617,7 +5573,7 @@ pub struct LocalProfileApplyResult {
     #[prost(message, optional, tag = "4")]
     pub execution_result: ::core::option::Option<LocalExecutionApplyResult>,
     #[prost(message, repeated, tag = "5")]
-    pub installed_artifacts: ::prost::alloc::vec::Vec<LocalArtifactRecord>,
+    pub installed_assets: ::prost::alloc::vec::Vec<LocalAssetRecord>,
     #[prost(string, repeated, tag = "6")]
     pub warnings: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "7")]
@@ -5698,113 +5654,120 @@ pub struct LocalAuditTimeRange {
     #[prost(string, tag = "2")]
     pub to: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalUnregisteredAssetDeclaration {
+    #[prost(enumeration = "LocalAssetKind", tag = "3")]
+    pub asset_kind: i32,
+    #[prost(string, tag = "4")]
+    pub engine: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalUnregisteredAssetDescriptor {
+    #[prost(string, tag = "1")]
+    pub filename: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub path: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub size_bytes: i64,
+    #[prost(message, optional, tag = "4")]
+    pub declaration: ::core::option::Option<LocalUnregisteredAssetDeclaration>,
+    #[prost(string, tag = "5")]
+    pub suggestion_source: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub confidence: ::prost::alloc::string::String,
+    #[prost(bool, tag = "7")]
+    pub auto_importable: bool,
+    #[prost(bool, tag = "8")]
+    pub requires_manual_review: bool,
+    #[prost(string, tag = "9")]
+    pub folder_name: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum LocalModelStatus {
+pub enum LocalAssetKind {
     Unspecified = 0,
-    Installed = 1,
-    Active = 2,
-    Unhealthy = 3,
-    Removed = 4,
+    /// Runnable kinds
+    Chat = 1,
+    Image = 2,
+    Video = 3,
+    Tts = 4,
+    Stt = 5,
+    /// Passive kinds
+    Vae = 10,
+    Clip = 11,
+    Lora = 12,
+    Controlnet = 13,
+    Auxiliary = 14,
 }
-impl LocalModelStatus {
+impl LocalAssetKind {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "LOCAL_MODEL_STATUS_UNSPECIFIED",
-            Self::Installed => "LOCAL_MODEL_STATUS_INSTALLED",
-            Self::Active => "LOCAL_MODEL_STATUS_ACTIVE",
-            Self::Unhealthy => "LOCAL_MODEL_STATUS_UNHEALTHY",
-            Self::Removed => "LOCAL_MODEL_STATUS_REMOVED",
+            Self::Unspecified => "LOCAL_ASSET_KIND_UNSPECIFIED",
+            Self::Chat => "LOCAL_ASSET_KIND_CHAT",
+            Self::Image => "LOCAL_ASSET_KIND_IMAGE",
+            Self::Video => "LOCAL_ASSET_KIND_VIDEO",
+            Self::Tts => "LOCAL_ASSET_KIND_TTS",
+            Self::Stt => "LOCAL_ASSET_KIND_STT",
+            Self::Vae => "LOCAL_ASSET_KIND_VAE",
+            Self::Clip => "LOCAL_ASSET_KIND_CLIP",
+            Self::Lora => "LOCAL_ASSET_KIND_LORA",
+            Self::Controlnet => "LOCAL_ASSET_KIND_CONTROLNET",
+            Self::Auxiliary => "LOCAL_ASSET_KIND_AUXILIARY",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "LOCAL_MODEL_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_MODEL_STATUS_INSTALLED" => Some(Self::Installed),
-            "LOCAL_MODEL_STATUS_ACTIVE" => Some(Self::Active),
-            "LOCAL_MODEL_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
-            "LOCAL_MODEL_STATUS_REMOVED" => Some(Self::Removed),
+            "LOCAL_ASSET_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ASSET_KIND_CHAT" => Some(Self::Chat),
+            "LOCAL_ASSET_KIND_IMAGE" => Some(Self::Image),
+            "LOCAL_ASSET_KIND_VIDEO" => Some(Self::Video),
+            "LOCAL_ASSET_KIND_TTS" => Some(Self::Tts),
+            "LOCAL_ASSET_KIND_STT" => Some(Self::Stt),
+            "LOCAL_ASSET_KIND_VAE" => Some(Self::Vae),
+            "LOCAL_ASSET_KIND_CLIP" => Some(Self::Clip),
+            "LOCAL_ASSET_KIND_LORA" => Some(Self::Lora),
+            "LOCAL_ASSET_KIND_CONTROLNET" => Some(Self::Controlnet),
+            "LOCAL_ASSET_KIND_AUXILIARY" => Some(Self::Auxiliary),
             _ => None,
         }
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum LocalArtifactKind {
-    Unspecified = 0,
-    Vae = 1,
-    Llm = 2,
-    Clip = 3,
-    Controlnet = 4,
-    Lora = 5,
-    Auxiliary = 6,
-}
-impl LocalArtifactKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_ARTIFACT_KIND_UNSPECIFIED",
-            Self::Vae => "LOCAL_ARTIFACT_KIND_VAE",
-            Self::Llm => "LOCAL_ARTIFACT_KIND_LLM",
-            Self::Clip => "LOCAL_ARTIFACT_KIND_CLIP",
-            Self::Controlnet => "LOCAL_ARTIFACT_KIND_CONTROLNET",
-            Self::Lora => "LOCAL_ARTIFACT_KIND_LORA",
-            Self::Auxiliary => "LOCAL_ARTIFACT_KIND_AUXILIARY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_ARTIFACT_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_ARTIFACT_KIND_VAE" => Some(Self::Vae),
-            "LOCAL_ARTIFACT_KIND_LLM" => Some(Self::Llm),
-            "LOCAL_ARTIFACT_KIND_CLIP" => Some(Self::Clip),
-            "LOCAL_ARTIFACT_KIND_CONTROLNET" => Some(Self::Controlnet),
-            "LOCAL_ARTIFACT_KIND_LORA" => Some(Self::Lora),
-            "LOCAL_ARTIFACT_KIND_AUXILIARY" => Some(Self::Auxiliary),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalArtifactStatus {
+pub enum LocalAssetStatus {
     Unspecified = 0,
     Installed = 1,
     Active = 2,
     Unhealthy = 3,
     Removed = 4,
 }
-impl LocalArtifactStatus {
+impl LocalAssetStatus {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "LOCAL_ARTIFACT_STATUS_UNSPECIFIED",
-            Self::Installed => "LOCAL_ARTIFACT_STATUS_INSTALLED",
-            Self::Active => "LOCAL_ARTIFACT_STATUS_ACTIVE",
-            Self::Unhealthy => "LOCAL_ARTIFACT_STATUS_UNHEALTHY",
-            Self::Removed => "LOCAL_ARTIFACT_STATUS_REMOVED",
+            Self::Unspecified => "LOCAL_ASSET_STATUS_UNSPECIFIED",
+            Self::Installed => "LOCAL_ASSET_STATUS_INSTALLED",
+            Self::Active => "LOCAL_ASSET_STATUS_ACTIVE",
+            Self::Unhealthy => "LOCAL_ASSET_STATUS_UNHEALTHY",
+            Self::Removed => "LOCAL_ASSET_STATUS_REMOVED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "LOCAL_ARTIFACT_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_ARTIFACT_STATUS_INSTALLED" => Some(Self::Installed),
-            "LOCAL_ARTIFACT_STATUS_ACTIVE" => Some(Self::Active),
-            "LOCAL_ARTIFACT_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
-            "LOCAL_ARTIFACT_STATUS_REMOVED" => Some(Self::Removed),
+            "LOCAL_ASSET_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_ASSET_STATUS_INSTALLED" => Some(Self::Installed),
+            "LOCAL_ASSET_STATUS_ACTIVE" => Some(Self::Active),
+            "LOCAL_ASSET_STATUS_UNHEALTHY" => Some(Self::Unhealthy),
+            "LOCAL_ASSET_STATUS_REMOVED" => Some(Self::Removed),
             _ => None,
         }
     }
@@ -5982,10 +5945,9 @@ impl LocalExecutionEntryKind {
 #[repr(i32)]
 pub enum LocalProfileEntryKind {
     Unspecified = 0,
-    Model = 1,
-    Artifact = 2,
     Service = 3,
     Node = 4,
+    Asset = 5,
 }
 impl LocalProfileEntryKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -5995,20 +5957,18 @@ impl LocalProfileEntryKind {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED",
-            Self::Model => "LOCAL_PROFILE_ENTRY_KIND_MODEL",
-            Self::Artifact => "LOCAL_PROFILE_ENTRY_KIND_ARTIFACT",
             Self::Service => "LOCAL_PROFILE_ENTRY_KIND_SERVICE",
             Self::Node => "LOCAL_PROFILE_ENTRY_KIND_NODE",
+            Self::Asset => "LOCAL_PROFILE_ENTRY_KIND_ASSET",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_PROFILE_ENTRY_KIND_MODEL" => Some(Self::Model),
-            "LOCAL_PROFILE_ENTRY_KIND_ARTIFACT" => Some(Self::Artifact),
             "LOCAL_PROFILE_ENTRY_KIND_SERVICE" => Some(Self::Service),
             "LOCAL_PROFILE_ENTRY_KIND_NODE" => Some(Self::Node),
+            "LOCAL_PROFILE_ENTRY_KIND_ASSET" => Some(Self::Asset),
             _ => None,
         }
     }

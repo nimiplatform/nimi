@@ -33,12 +33,12 @@ Moment returns one story opening, structured as one threshold:
 
 - a title
 - a charged opening
-- a presence
-- a mystery
 - three ways in
 
 The product does not sell a full story or a fully authored world.
 It sells the first caught moment where a scene starts to reveal that a story is already happening inside it.
+That opening may be quiet or subtle, but it must still give the imagination enough shape to approach it.
+It must not collapse into either pure atmosphere or over-explained story summary.
 
 ## 1A. Term Alignment
 

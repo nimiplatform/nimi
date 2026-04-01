@@ -119,7 +119,7 @@ export default function MomentPlayPage() {
 
         <div className="moment-play-reset">
           <Button
-            tone="ghost"
+            tone="primary"
             size="lg"
             onClick={handleRestartMoment}
             className="moment-restart-action"
@@ -130,23 +130,23 @@ export default function MomentPlayPage() {
       </div>
 
       <div className="moment-play-copy">
-        <div className="moment-opening-eyebrow">{t('moment.openingEyebrow')}</div>
-        <h1 className="moment-opening-title">{activeSession.opening.title}</h1>
-        <p className="moment-opening-body">{activeSession.opening.opening}</p>
-
-        <div className="moment-opening-meta">
-          <div><strong>{t('moment.metaPresence')}:</strong> {activeSession.opening.presence}</div>
-          <div><strong>{t('moment.metaMystery')}:</strong> {activeSession.opening.mystery}</div>
+        <div className="moment-opening-section">
+          <div className="moment-opening-eyebrow">{t('moment.openingEyebrow')}</div>
+          <h1 className="moment-opening-title">{activeSession.opening.title}</h1>
+          <p className="moment-opening-body">{activeSession.opening.opening}</p>
         </div>
 
         {activeSession.turns.length > 0 ? (
-          <div className="moment-history">
-            {activeSession.turns.map((turn) => (
-              <div key={`${turn.traceId || turn.storyBeat.slice(0, 12)}-${turn.userLine.slice(0, 8)}`} className="moment-history-entry">
-                <div className="moment-history-user">{turn.userLine}</div>
-                <div className="moment-history-story">{turn.storyBeat}</div>
-              </div>
-            ))}
+          <div className="moment-history-section">
+            <div className="moment-history-title">{t('moment.historyTitle')}</div>
+            <div className="moment-history">
+              {activeSession.turns.map((turn) => (
+                <div key={`${turn.traceId || turn.storyBeat.slice(0, 12)}-${turn.userLine.slice(0, 8)}`} className="moment-history-entry">
+                  <div className="moment-history-user">{turn.userLine}</div>
+                  <div className="moment-history-story">{turn.storyBeat}</div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
 

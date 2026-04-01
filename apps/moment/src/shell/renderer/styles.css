@@ -200,6 +200,7 @@ body {
 
 .moment-play-card {
   grid-template-columns: 0.92fr 1.08fr;
+  grid-template-rows: auto auto;
   gap: clamp(22px, 2.5vw, 34px);
   padding: clamp(24px, 2.6vw, 34px);
 }
@@ -214,6 +215,12 @@ body {
 .moment-play-visual {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+}
+
+.moment-play-visual,
+.moment-play-copy {
+  grid-row: 1;
 }
 
 .moment-start-copy h1 {
@@ -347,18 +354,30 @@ body {
   line-height: 1.5;
 }
 
-.moment-primary-action {
+.moment-primary-action,
+.moment-restart-action {
   min-width: 196px;
   border-radius: 999px;
+  border-color: var(--moment-gold) !important;
+  background: var(--moment-gold) !important;
+  color: #17110c !important;
+}
+
+.moment-primary-action:hover:not(:disabled),
+.moment-restart-action:hover:not(:disabled) {
+  border-color: #f7d79d !important;
+  background: #f7d79d !important;
 }
 
 .moment-play-reset {
   margin-top: 22px;
 }
 
-.moment-restart-action {
-  min-width: 196px;
-  border-radius: 999px;
+.moment-primary-action:disabled,
+.moment-restart-action:disabled {
+  border-color: rgba(243, 207, 145, 0.45) !important;
+  background: rgba(243, 207, 145, 0.45) !important;
+  color: rgba(23, 17, 12, 0.72) !important;
 }
 
 .moment-inline-error {
@@ -378,6 +397,7 @@ body {
 
 .moment-scene-frame-play {
   min-height: 380px;
+  flex: 1;
 }
 
 .moment-scene-placeholder,
@@ -463,17 +483,31 @@ body {
   line-height: 1.65;
 }
 
-.moment-opening-meta {
-  margin-top: 16px;
-  display: grid;
-  gap: 8px;
-  color: rgba(247, 238, 226, 0.78);
-  font-size: 14px;
-  line-height: 1.6;
+.moment-play-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.moment-opening-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.moment-history-section {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .moment-actions {
-  margin-top: 18px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .moment-sealed-note {
@@ -514,7 +548,6 @@ body {
 }
 
 .moment-history {
-  margin-top: 16px;
   display: grid;
   gap: 10px;
 }
@@ -540,7 +573,8 @@ body {
 
 .moment-play-composer {
   grid-column: 1 / -1;
-  margin-top: 16px;
+  grid-row: 2;
+  margin-top: 0;
   padding: 18px 20px;
   border-radius: 22px;
   background: rgba(17, 24, 36, 0.92);
@@ -641,7 +675,9 @@ body {
   .moment-hero-card,
   .moment-play-card {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     gap: 32px;
+    height: auto;
   }
 
   .moment-example-title,
@@ -657,6 +693,16 @@ body {
   .moment-runtime-note {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .moment-play-visual,
+  .moment-play-copy,
+  .moment-play-composer {
+    grid-row: auto;
+  }
+
+  .moment-history-section {
+    padding: 14px 16px;
   }
 }
 

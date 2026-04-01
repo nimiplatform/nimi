@@ -22,9 +22,53 @@ At minimum, the story opening must present:
 
 - title
 - opening
-- presence
-- mystery
 - three actions
+
+The opening itself must carry the story doorway in natural language.
+The core product shape must not depend on rigid labeled sub-slots such as separate "presence" and "mystery" blocks in the primary UX.
+
+## MM-GEN-013: Imaginative Pull With Enough Shape
+
+Before stylistic flourish, generation must create imaginative pull.
+
+At minimum, the generated opening must let the user feel:
+
+- that a possible story has become faintly visible
+- that something human may already be underway here
+- that there is some angle from which the user could drift closer
+
+These may remain quiet, subtle, or emotionally restrained.
+They must still give the imagination enough concrete shape to hold onto.
+They must not disappear into pure mood writing, disconnected poetic imagery, or opaque stream-of-consciousness.
+
+## MM-GEN-014: Natural-Language Entrance, Not Hidden Template
+
+Moment may internally reason about scene carrier, unresolved situation, emotional lane, or entry stance, but the primary opening must read as natural language rather than a filled template.
+
+The product should avoid openings that feel like:
+
+- a list of labeled slots
+- a writer's worksheet
+- a decomposed atmosphere card
+- separate mini-ideas that never fuse into one lived moment
+
+Good openings may still be lyrical.
+They must remain graspable as one coherent human situation.
+
+## MM-GEN-015: Leave Space Without Losing Readability
+
+Moment should leave room for wonder, aftertaste, and user imagination.
+
+It should not:
+
+- explain the whole story too early
+- resolve the scene into a hard answer
+- flatten the moment into synopsis
+
+It also should not:
+
+- become so impressionistic that the user cannot tell what kind of possible story is being glimpsed
+- replace human situation with free-floating atmosphere
 
 ## MM-GEN-003: Scene Must Suggest An Unfolding Story
 
