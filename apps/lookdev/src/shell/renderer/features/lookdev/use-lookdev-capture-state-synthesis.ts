@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Runtime } from '@nimiplatform/sdk/runtime';
-import { getAgentPortraitBinding, getLookdevAgentTruthBundle, type LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
+import { getAgentPortraitBinding, getLookdevAgentAuthoringContext, type LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 import type { RuntimeTargetOption } from '@renderer/app-shell/providers/app-store.js';
 import { createCaptureStateKey, materializePortraitBriefFromCaptureState, synthesizeSilentCaptureState } from './capture-harness.js';
 import type { LookdevCaptureState, LookdevLanguage, LookdevPortraitBrief, LookdevWorldStylePack } from './types.js';
@@ -77,6 +77,7 @@ export function useLookdevCaptureStateSynthesis(input: UseLookdevCaptureStateSyn
   useEffect(() => {
     let cancelled = false;
     if (!stylePackConfirmed || !worldStylePack || !styleDialogueTarget || selectedAgents.length === 0) {
+      setCaptureSynthesisBusy(false);
       return () => {
         cancelled = true;
       };
@@ -93,6 +94,7 @@ export function useLookdevCaptureStateSynthesis(input: UseLookdevCaptureStateSyn
       return !existingState || existingState.seedSignature !== expectedSignature;
     });
     if (pendingAgents.length === 0) {
+      setCaptureSynthesisBusy(false);
       setCaptureSynthesisError(null);
       return () => {
         cancelled = true;
@@ -106,9 +108,9 @@ export function useLookdevCaptureStateSynthesis(input: UseLookdevCaptureStateSyn
           if (!agent.worldId) {
             throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
           }
-          const [detail, portraitBinding] = await Promise.all([
-            getLookdevAgentTruthBundle(agent.worldId, agent.id),
-            getAgentPortraitBinding(agent.worldId, agent.id),
+          const [authoringContext, portraitBinding] = await Promise.all([
+            getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null),
+            getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null),
           ]);
           const nextState = await synthesizeSilentCaptureState({
             runtime,
@@ -118,8 +120,8 @@ export function useLookdevCaptureStateSynthesis(input: UseLookdevCaptureStateSyn
               id: agent.id,
               displayName: agent.displayName,
               concept: agent.concept,
-              description: detail.description,
-              truthBundle: detail,
+              description: authoringContext?.detail?.description || null,
+              truthBundle: authoringContext?.truthBundle || null,
               worldId: agent.worldId,
               importance: agent.importance,
               existingPortraitUrl: portraitBinding?.url || null,

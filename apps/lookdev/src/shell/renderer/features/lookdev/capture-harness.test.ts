@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { synthesizeSilentCaptureState } from './capture-harness.js';
+import { buildCaptureSeedSignature, synthesizeSilentCaptureState } from './capture-harness.js';
 
 const mockRuntime = {
   ai: {
@@ -221,5 +221,23 @@ describe('capture-harness', () => {
     expect(state.visualIntent.outfit).toContain('modular station uniform');
     expect(state.visualIntent.mustKeepTraits).toContain('reactor keyline collar');
     expect(state.sourceConfidence).toBe('derived_from_agent_truth');
+  });
+
+  it('treats locale changes as a distinct capture-state seed even when the style fields match', () => {
+    const englishSignature = buildCaptureSeedSignature({
+      agent,
+      worldStylePack,
+      captureMode: 'capture',
+    });
+    const chineseSignature = buildCaptureSeedSignature({
+      agent,
+      worldStylePack: {
+        ...worldStylePack,
+        language: 'zh',
+      },
+      captureMode: 'capture',
+    });
+
+    expect(chineseSignature).not.toBe(englishSignature);
   });
 });

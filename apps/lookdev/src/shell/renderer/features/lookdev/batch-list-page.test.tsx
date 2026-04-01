@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeLocale, initI18n } from '@renderer/i18n/index.js';
 import BatchListPage from './batch-list-page.js';
 import { useLookdevStore } from './lookdev-store.js';
@@ -76,7 +76,7 @@ describe('BatchListPage', () => {
   beforeEach(async () => {
     await initI18n();
     await changeLocale('en');
-    useLookdevStore.setState({ batches: [] });
+    useLookdevStore.setState({ batches: [], deleteBatch: vi.fn() });
   });
 
   it('renders no-batch empty state', () => {
@@ -154,5 +154,56 @@ describe('BatchListPage', () => {
     expect(screen.getByText('Latest activity')).toBeInTheDocument();
     expect(screen.getByText('Iris committed to AGENT_PORTRAIT')).toBeInTheDocument();
     expect(screen.getByText('2026-03-28T00:02:00.000Z · 1 audit events')).toBeInTheDocument();
+  });
+
+  it('opens a delete confirmation dialog for removable batches', async () => {
+    const deleteBatch = vi.fn();
+    useLookdevStore.setState({
+      deleteBatch,
+      batches: [
+        makeBatch({
+          batchId: 'b1',
+          name: 'Spring cast',
+          status: 'processing_complete',
+        }),
+      ],
+    });
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <BatchListPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(screen.getByText('Delete local batch record')).toBeInTheDocument();
+    expect(screen.getByText('Remove "Spring cast" from Lookdev\'s local batch history.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Delete batch' }));
+
+    expect(deleteBatch).toHaveBeenCalledWith('b1');
+  });
+
+  it('disables delete for running batches', () => {
+    useLookdevStore.setState({
+      deleteBatch: vi.fn(),
+      batches: [
+        makeBatch({
+          batchId: 'b1',
+          name: 'Running cast',
+          status: 'running',
+        }),
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <BatchListPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
   });
 });

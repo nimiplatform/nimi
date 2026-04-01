@@ -8,8 +8,8 @@ export function portraitBriefKey(worldId: string | null | undefined, agentId: st
   return `${String(worldId || 'unscoped').trim() || 'unscoped'}::${agentId}`;
 }
 
-export function formatWorldOptionLabel(name: string, agentCount: number | null): string {
-  return typeof agentCount === 'number' ? `${name} · ${agentCount} agents` : name;
+export function formatWorldOptionLabel(name: string, agentCount: number | null, agentCountLabel?: string): string {
+  return typeof agentCount === 'number' ? `${name} · ${agentCountLabel || `${agentCount} agents`}` : name;
 }
 
 export function stripTargetKey(target: RuntimeTargetOption): Omit<RuntimeTargetOption, 'key'> {

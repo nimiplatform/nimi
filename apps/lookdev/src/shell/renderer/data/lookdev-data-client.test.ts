@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getAgentPortraitBinding,
   getLookdevAgent,
+  getLookdevAgentAuthoringContext,
   getLookdevAgentTruthBundle,
   listLookdevAgents,
   listLookdevWorldAgents,
@@ -353,5 +354,42 @@ describe('lookdev data client', () => {
       }),
     }));
     expect(mockAgentRulesService.agentRulesControllerListRules).toHaveBeenCalledWith('w1', 'a1', 'DNA', 'ACTIVE');
+  });
+
+  it('preserves creator detail in authoring context when rule truth is unavailable', async () => {
+    mockCreatorService.creatorControllerGetAgent.mockResolvedValue({
+      id: 'a1',
+      description: 'Station receptionist with calm posture.',
+      scenario: 'Greets arrivals at the main hall.',
+      greeting: 'Welcome to Oasis.',
+      wakeStrategy: 'PASSIVE',
+      dna: {
+        identity: {
+          role: 'Receptionist',
+          summary: 'First point of contact for visitors.',
+        },
+      },
+    });
+    mockAgentRulesService.agentRulesControllerListRules.mockRejectedValue(new Error('rules unavailable'));
+
+    await expect(getLookdevAgentAuthoringContext('w1', 'a1')).resolves.toEqual({
+      detail: {
+        description: 'Station receptionist with calm posture.',
+        scenario: 'Greets arrivals at the main hall.',
+        greeting: 'Welcome to Oasis.',
+      },
+      truthBundle: expect.objectContaining({
+        description: 'Station receptionist with calm posture.',
+        scenario: 'Greets arrivals at the main hall.',
+        greeting: 'Welcome to Oasis.',
+        dna: expect.objectContaining({
+          identity: expect.objectContaining({
+            role: 'Receptionist',
+            summary: 'First point of contact for visitors.',
+          }),
+        }),
+      }),
+      fullTruthReadable: false,
+    });
   });
 });

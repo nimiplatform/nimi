@@ -1,4 +1,4 @@
-import { Button, SelectField, TextField, TextareaField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
+import { Button, TextField, TextareaField } from '@nimiplatform/nimi-kit/ui';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LookdevWorldStylePack, LookdevWorldStyleSession } from './types.js';
@@ -6,6 +6,7 @@ import type { LookdevWorldStylePack, LookdevWorldStyleSession } from './types.js
 type WorldStyleSessionPanelProps = {
   worldName: string;
   worldSelected: boolean;
+  blockedMessage?: string | null;
   styleSession: LookdevWorldStyleSession | null;
   styleSessionInput: string;
   worldStylePack: LookdevWorldStylePack | null;
@@ -13,13 +14,10 @@ type WorldStyleSessionPanelProps = {
   styleSessionCanSynthesize: boolean;
   styleSessionBusy: boolean;
   styleSessionError: string | null;
-  styleSessionTargetKey: string;
-  styleSessionTargetLabel: string;
   styleSessionTargetReady: boolean;
-  styleSessionTargetOptions: Array<{ key: string; label: string }>;
   showAdvancedStyleEditor: boolean;
   onStyleSessionInputChange(value: string): void;
-  onStyleSessionTargetChange(value: string): void;
+  onOpenRouteSettings(): void;
   onStyleSessionReply(): void;
   onRestartStyleSession(): void;
   onSynthesizeStylePack(): void;
@@ -34,6 +32,7 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
   const {
     worldName,
     worldSelected,
+    blockedMessage,
     styleSession,
     styleSessionInput,
     worldStylePack,
@@ -41,13 +40,10 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
     styleSessionCanSynthesize,
     styleSessionBusy,
     styleSessionError,
-    styleSessionTargetKey,
-    styleSessionTargetLabel,
     styleSessionTargetReady,
-    styleSessionTargetOptions,
     showAdvancedStyleEditor,
     onStyleSessionInputChange,
-    onStyleSessionTargetChange,
+    onOpenRouteSettings,
     onStyleSessionReply,
     onRestartStyleSession,
     onSynthesizeStylePack,
@@ -55,11 +51,6 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
     onToggleAdvancedStyleEditor,
     onUpdateWorldStylePack,
   } = props;
-  const styleSessionTargetFieldOptions: SelectFieldOption[] = styleSessionTargetOptions.map((option) => ({
-    value: option.key,
-    label: option.label,
-  }));
-
   useEffect(() => {
     const container = messageContainerRef.current;
     if (!container || !styleSession) {
@@ -79,35 +70,35 @@ export function WorldStyleSessionPanel(props: WorldStyleSessionPanelProps) {
         <div className="text-sm text-white/62">{t('createBatch.worldStyleSessionDescription', { worldName })}</div>
       </div>
 
-      <div className={`rounded-2xl border px-4 py-3 text-sm ${styleSessionTargetReady ? 'border-white/8 bg-black/12 text-white/70' : 'border-amber-300/20 bg-amber-300/10 text-amber-50'}`}>
-        <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.worldStyleSessionTarget')}</div>
-        {styleSessionTargetReady ? (
-          <SelectField
-            aria-label={t('createBatch.worldStyleSessionTarget')}
-            value={styleSessionTargetKey}
-            options={styleSessionTargetFieldOptions}
-            onValueChange={onStyleSessionTargetChange}
-            disabled={styleSessionBusy}
-            className="mt-2 rounded-2xl border-white/10 bg-black/12 text-white disabled:cursor-not-allowed"
-            contentClassName="bg-[rgb(11_18_32)]"
-          />
-        ) : (
-          <div className="mt-1 font-medium">{styleSessionTargetLabel}</div>
-        )}
-        <div className="mt-1 text-sm/6">
-          {styleSessionTargetReady
-            ? t('createBatch.worldStyleSessionTargetReady')
-            : t('createBatch.worldStyleSessionTargetMissing')}
-        </div>
-      </div>
-
       {!worldSelected ? (
         <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3 text-sm text-white/66">
           {t('createBatch.worldStyleSessionPendingWorld')}
         </div>
       ) : null}
 
-      {styleSession ? (
+      {worldSelected && !styleSessionTargetReady ? (
+        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+          <div>{t('createBatch.worldStyleSessionTargetMissing')}</div>
+          <div className="mt-3">
+            <Button
+              onClick={onOpenRouteSettings}
+              tone="secondary"
+              size="sm"
+              className="rounded-2xl border-amber-200/20 bg-black/12 text-xs text-amber-50"
+            >
+              {t('layout.shellSettings')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {blockedMessage ? (
+        <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+          {blockedMessage}
+        </div>
+      ) : null}
+
+      {styleSession && !blockedMessage ? (
         <>
           <div
             ref={messageContainerRef}

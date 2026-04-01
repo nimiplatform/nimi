@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { Button, SelectField, TextField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
-import { getAgentPortraitBinding, getLookdevAgentTruthBundle, listLookdevAgents, listLookdevWorldAgents, listLookdevWorlds } from '@renderer/data/lookdev-data-client.js';
+import { getAgentPortraitBinding, getLookdevAgentAuthoringContext, listLookdevAgents, listLookdevWorldAgents, listLookdevWorlds } from '@renderer/data/lookdev-data-client.js';
 import type { LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 import { useAppStore, type RuntimeTargetOption } from '@renderer/app-shell/providers/app-store.js';
+import { useLookdevRouteSettings } from '@renderer/hooks/use-lookdev-route-settings.js';
 import { useLookdevStore } from './lookdev-store.js';
 import {
   confirmWorldStylePack,
@@ -17,8 +18,10 @@ import {
   type LookdevWorldStyleSession,
 } from './types.js';
 import {
+  createCaptureStateKey,
   materializePortraitBriefFromCaptureState,
   runInteractiveCaptureTurn,
+  synthesizeSilentCaptureState,
 } from './capture-harness.js';
 import {
   appendWorldStyleSessionAnswer,
@@ -36,12 +39,24 @@ import {
   formatTargetOptionLabel,
   formatWorldOptionLabel,
   isCurrentWorldStylePack,
-  pickConfiguredRuntimeTargetKey,
   stripTargetKey,
   toErrorMessage,
   withLookdevBatchAgentFields,
 } from './create-batch-page-helpers.js';
 import { useLookdevCaptureStateSynthesis } from './use-lookdev-capture-state-synthesis.js';
+
+type AgentTruthDiagnosticsState = {
+  fullTruthReadable: boolean;
+};
+
+const EMPTY_AGENT_TRUTH_DIAGNOSTICS: Record<string, AgentTruthDiagnosticsState> = {};
+
+function summarizeAgentNames(agents: Array<Pick<LookdevAgentRecord, 'displayName'>>): string {
+  if (agents.length <= 3) {
+    return agents.map((agent) => agent.displayName).join(', ');
+  }
+  return `${agents.slice(0, 3).map((agent) => agent.displayName).join(', ')} +${agents.length - 3}`;
+}
 
 export default function CreateBatchPage() {
   const { t, i18n } = useTranslation();
@@ -55,8 +70,8 @@ export default function CreateBatchPage() {
   const saveWorldStylePack = useLookdevStore((state) => state.saveWorldStylePack);
   const saveCaptureState = useLookdevStore((state) => state.saveCaptureState);
   const savePortraitBrief = useLookdevStore((state) => state.savePortraitBrief);
-  const runtimeDefaults = useAppStore((state) => state.runtimeDefaults);
   const runtimeProbe = useAppStore((state) => state.runtimeProbe);
+  const setRouteSettingsOpen = useAppStore((state) => state.setRouteSettingsOpen);
   const [selectionSource, setSelectionSource] = useState<LookdevSelectionSource>('by_world');
   const [worldId, setWorldId] = useState('');
   const [name, setName] = useState('');
@@ -71,17 +86,20 @@ export default function CreateBatchPage() {
   const [worldStylePack, setWorldStylePack] = useState<LookdevWorldStylePack | null>(null);
   const [showAdvancedStyleEditor, setShowAdvancedStyleEditor] = useState(false);
   const [selectedBriefAgentId, setSelectedBriefAgentId] = useState<string | null>(null);
-  const [styleDialogueTargetKey, setStyleDialogueTargetKey] = useState('');
-  const [generationTargetKey, setGenerationTargetKey] = useState('');
-  const [evaluationTargetKey, setEvaluationTargetKey] = useState('');
-  const [interactiveCaptureInput, setInteractiveCaptureInput] = useState('');
+  const [interactiveCaptureDrafts, setInteractiveCaptureDrafts] = useState<Record<string, string>>({});
   const [interactiveCaptureBusy, setInteractiveCaptureBusy] = useState(false);
+  const [interactiveCaptureResetBusy, setInteractiveCaptureResetBusy] = useState(false);
   const [interactiveCaptureError, setInteractiveCaptureError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previousSelectedAgentIdsRef = useRef<string[]>([]);
   const currentLanguage = normalizeLookdevLanguage(i18n.resolvedLanguage || i18n.language);
   const runtime = getPlatformClient().runtime;
+  const {
+    generationTargetKey,
+    evaluationTargetKey,
+    dialogueTarget: styleDialogueTarget,
+  } = useLookdevRouteSettings();
 
   const worldsQuery = useQuery({
     queryKey: ['lookdev', 'worlds'],
@@ -113,26 +131,53 @@ export default function CreateBatchPage() {
     () => worldAgentsQuery.data || [],
     [worldAgentsQuery.data],
   );
-  const worldSelectionUnavailable = selectionSource === 'by_world'
-    && Boolean(worldId)
-    && !intakeLoading
-    && !intakeError
-    && worldAgents.length === 0;
 
   const explicitSelectedAgents = useMemo(
     () => selectableAgents.filter((agent) => selectedAgentIds.includes(agent.id)),
     [selectableAgents, selectedAgentIds],
   );
 
-  const selectedAgents = selectionSource === 'by_world' ? worldAgents : explicitSelectedAgents;
-  const textTargets = runtimeProbe.textTargets;
-  const imageTargets = runtimeProbe.imageTargets;
-  const visionTargets = runtimeProbe.visionTargets;
-  const selectedWorldIds = [...new Set(selectedAgents.map((agent) => agent.worldId).filter(Boolean))];
-  const hasMixedWorldSelection = selectionSource === 'explicit_selection' && selectedWorldIds.length > 1;
+  const rawSelectedAgents = selectionSource === 'by_world' ? worldAgents : explicitSelectedAgents;
+  const rawSelectedWorldIds = [...new Set(rawSelectedAgents.map((agent) => agent.worldId).filter(Boolean))];
+  const hasMixedWorldSelection = selectionSource === 'explicit_selection' && rawSelectedWorldIds.length > 1;
   const resolvedWorldId = selectionSource === 'by_world'
     ? worldId
-    : (selectedWorldIds.length === 1 ? (selectedWorldIds[0] || '') : '');
+    : (rawSelectedWorldIds.length === 1 ? (rawSelectedWorldIds[0] || '') : '');
+  const agentTruthDiagnosticsQuery = useQuery({
+    queryKey: ['lookdev', 'selected-agent-truth-diagnostics', resolvedWorldId, rawSelectedAgents.map((agent) => `${agent.worldId || 'unscoped'}::${agent.id}`)],
+    enabled: Boolean(resolvedWorldId) && rawSelectedAgents.length > 0 && !hasMixedWorldSelection,
+    queryFn: async () => {
+      const entries = await Promise.all(rawSelectedAgents.map(async (agent) => {
+        if (!agent.worldId || agent.worldId !== resolvedWorldId) {
+          return [agent.id, { fullTruthReadable: false }] as const;
+        }
+        const context = await getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null);
+        return [agent.id, { fullTruthReadable: Boolean(context?.fullTruthReadable) }] as const;
+      }));
+      return Object.fromEntries(entries) as Record<string, AgentTruthDiagnosticsState>;
+    },
+  });
+  const agentTruthDiagnostics = agentTruthDiagnosticsQuery.data || EMPTY_AGENT_TRUTH_DIAGNOSTICS;
+  const agentTruthDiagnosticsPending = Boolean(resolvedWorldId)
+    && rawSelectedAgents.length > 0
+    && !hasMixedWorldSelection
+    && (agentTruthDiagnosticsQuery.isLoading || agentTruthDiagnosticsQuery.isFetching);
+  const selectedAgents = rawSelectedAgents;
+  const limitedTruthAgents = useMemo(
+    () => rawSelectedAgents.filter((agent) => agentTruthDiagnostics[agent.id]?.fullTruthReadable === false),
+    [agentTruthDiagnostics, rawSelectedAgents],
+  );
+  const batchEligibleAgentIds = useMemo(
+    () => new Set(selectedAgents.map((agent) => agent.id)),
+    [selectedAgents],
+  );
+  const imageTargets = runtimeProbe.imageTargets;
+  const visionTargets = runtimeProbe.visionTargets;
+  const worldSelectionUnavailable = selectionSource === 'by_world'
+    && Boolean(worldId)
+    && !intakeLoading
+    && !intakeError
+    && rawSelectedAgents.length === 0;
   const resolvedWorldName = useMemo(
     () => worldsQuery.data?.find((world) => world.id === resolvedWorldId)?.name || t('createBatch.worldStyleSessionPendingWorldName'),
     [resolvedWorldId, t, worldsQuery.data],
@@ -145,9 +190,18 @@ export default function CreateBatchPage() {
     })),
     [selectedAgents],
   );
+  const worldStyleWorkspaceInvalid = !resolvedWorldId
+    || hasMixedWorldSelection
+    || worldSelectionUnavailable
+    || (!intakeLoading && !intakeError && rawSelectedAgents.length === 0);
+  const worldStyleSessionBlockedMessage = hasMixedWorldSelection
+    ? t('createBatch.multiWorldWarning')
+    : worldSelectionUnavailable
+      ? t('createBatch.worldCastUnavailable', { worldName: resolvedWorldName })
+      : null;
 
   useEffect(() => {
-    if (!resolvedWorldId) {
+    if (worldStyleWorkspaceInvalid) {
       setStyleSession(null);
       setWorldStylePack(null);
       setShowAdvancedStyleEditor(false);
@@ -159,11 +213,13 @@ export default function CreateBatchPage() {
     const storedPack = isCurrentWorldStylePack(storedWorldStylePacks[resolvedWorldId])
       ? storedWorldStylePacks[resolvedWorldId]
       : null;
+    const compatibleStoredSession = storedSession?.language === currentLanguage ? storedSession : null;
+    const compatibleStoredPack = storedPack?.language === currentLanguage ? storedPack : null;
     setStyleSession((current) => {
-      if (current && current.worldId === resolvedWorldId) {
+      if (current && current.worldId === resolvedWorldId && current.language === currentLanguage) {
         return current;
       }
-      return storedSession || createWorldStyleSession(
+      return compatibleStoredSession || createWorldStyleSession(
         resolvedWorldId,
         resolvedWorldName,
         currentLanguage,
@@ -171,62 +227,15 @@ export default function CreateBatchPage() {
       );
     });
     setWorldStylePack((current) => {
-      if (current && current.worldId === resolvedWorldId) {
+      if (current && current.worldId === resolvedWorldId && current.language === currentLanguage) {
         return current;
       }
-      return storedPack || null;
+      return compatibleStoredPack || null;
     });
-    setShowAdvancedStyleEditor(Boolean(storedPack));
+    setShowAdvancedStyleEditor(Boolean(compatibleStoredPack));
     setStyleSessionInput('');
     setStyleSessionError(null);
-  }, [currentLanguage, resolvedWorldId, resolvedWorldName, storedWorldStylePacks, storedWorldStyleSessions, styleAgents]);
-
-  useEffect(() => {
-    const hasCurrentDialogueTarget = textTargets.some((target) => target.key === styleDialogueTargetKey);
-    if (!hasCurrentDialogueTarget) {
-      setStyleDialogueTargetKey(pickConfiguredRuntimeTargetKey({
-        targets: textTargets,
-        defaultTargetKey: runtimeProbe.textDefaultTargetKey,
-        runtimeConnectorId: runtimeDefaults?.runtime.connectorId || runtimeProbe.textConnectorId,
-        runtimeProvider: runtimeDefaults?.runtime.provider,
-        localModelId: runtimeDefaults?.runtime.localProviderModel,
-      }));
-    }
-  }, [
-    runtimeDefaults?.runtime.connectorId,
-    runtimeDefaults?.runtime.localProviderModel,
-    runtimeDefaults?.runtime.provider,
-    runtimeProbe.textConnectorId,
-    runtimeProbe.textDefaultTargetKey,
-    styleDialogueTargetKey,
-    textTargets,
-  ]);
-
-  useEffect(() => {
-    const hasCurrentGenerationTarget = imageTargets.some((target) => target.key === generationTargetKey);
-    if (!hasCurrentGenerationTarget) {
-      setGenerationTargetKey(runtimeProbe.imageDefaultTargetKey || imageTargets[0]?.key || '');
-    }
-  }, [generationTargetKey, imageTargets, runtimeProbe.imageDefaultTargetKey]);
-
-  useEffect(() => {
-    const hasCurrentEvaluationTarget = visionTargets.some((target) => target.key === evaluationTargetKey);
-    if (!hasCurrentEvaluationTarget) {
-      setEvaluationTargetKey(runtimeProbe.visionDefaultTargetKey || visionTargets[0]?.key || '');
-    }
-  }, [evaluationTargetKey, runtimeProbe.visionDefaultTargetKey, visionTargets]);
-
-  const styleDialogueTarget = useMemo(
-    () => textTargets.find((target) => target.key === styleDialogueTargetKey) || null,
-    [styleDialogueTargetKey, textTargets],
-  );
-  const styleDialogueTargetOptions = useMemo(
-    () => textTargets.map((target) => ({
-      key: target.key,
-      label: formatTargetOptionLabel(target, t('createBatch.localRuntimeLabel', { defaultValue: 'Local Runtime' })),
-    })),
-    [t, textTargets],
-  );
+  }, [currentLanguage, resolvedWorldId, resolvedWorldName, storedWorldStylePacks, storedWorldStyleSessions, styleAgents, worldStyleWorkspaceInvalid]);
 
   const stylePackConfirmed = worldStylePack?.status === 'confirmed';
   const styleSessionCanSynthesize = canSynthesizeWorldStyleSession(styleSession);
@@ -245,6 +254,9 @@ export default function CreateBatchPage() {
           next.push(agentId);
         }
       });
+      if (current.length === next.length && current.every((agentId, index) => agentId === next[index])) {
+        return current;
+      }
       return next;
     });
     previousSelectedAgentIdsRef.current = selectedAgents.map((agent) => agent.id);
@@ -287,6 +299,8 @@ export default function CreateBatchPage() {
     [captureStates, selectedBriefAgentId],
   );
   const activePortraitBriefFieldPrefix = activeCaptureState ? `lookdev-brief-${activeCaptureState.agentId}` : 'lookdev-brief';
+  const activeCaptureDraftKey = activeCaptureState ? createCaptureStateKey(activeCaptureState.worldId, activeCaptureState.agentId) : null;
+  const interactiveCaptureInput = activeCaptureDraftKey ? (interactiveCaptureDrafts[activeCaptureDraftKey] || '') : '';
 
   const generationTarget = useMemo(
     () => {
@@ -306,11 +320,70 @@ export default function CreateBatchPage() {
     () => [
       ...((worldsQuery.data || []).map((world) => ({
         value: world.id,
-        label: formatWorldOptionLabel(world.name, world.agentCount),
+        label: formatWorldOptionLabel(
+          world.name,
+          world.agentCount,
+          typeof world.agentCount === 'number'
+            ? t('createBatch.worldOptionCount', { count: world.agentCount, defaultValue: `${world.agentCount} agents` })
+            : undefined,
+        ),
       }))),
     ],
     [t, worldsQuery.data],
   );
+  const captureSelectedCount = captureSelectionAgentIds.filter((agentId) => batchEligibleAgentIds.has(agentId)).length;
+  const dialogueRouteSummary = styleDialogueTarget
+    ? describeWorldStyleTarget(currentLanguage, styleDialogueTarget)
+    : t('common.none');
+  const generationRouteSummary = generationTarget
+    ? formatTargetOptionLabel({ ...generationTarget, key: generationTargetKey } as RuntimeTargetOption, t('createBatch.localRuntimeLabel', { defaultValue: 'Local Runtime' }))
+    : t('common.none');
+  const evaluationRouteSummary = evaluationTarget
+    ? formatTargetOptionLabel({ ...evaluationTarget, key: evaluationTargetKey } as RuntimeTargetOption, t('createBatch.localRuntimeLabel', { defaultValue: 'Local Runtime' }))
+    : t('common.none');
+  const batchWorldSummary = resolvedWorldId ? resolvedWorldName : t('common.none');
+  const batchReady = !intakeLoading
+    && !intakeError
+    && !worldSelectionUnavailable
+    && !hasMixedWorldSelection
+    && Boolean(resolvedWorldId)
+    && Boolean(stylePackConfirmed)
+    && captureStatesReady
+    && !captureSynthesisBusy
+    && !interactiveCaptureResetBusy
+    && Boolean(generationTarget)
+    && Boolean(evaluationTarget);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+    setError(null);
+  }, [
+    agentTruthDiagnosticsPending,
+    captureSelectionAgentIds,
+    captureSynthesisBusy,
+    captureStatesReady,
+    evaluationTargetKey,
+    generationTargetKey,
+    hasMixedWorldSelection,
+    intakeError,
+    intakeLoading,
+    interactiveCaptureResetBusy,
+    maxConcurrency,
+    name,
+    resolvedWorldId,
+    scoreThreshold,
+    selectedAgentIds,
+    selectionSource,
+    stylePackConfirmed,
+    worldId,
+    worldSelectionUnavailable,
+  ]);
+
+  useEffect(() => {
+    setInteractiveCaptureError(null);
+  }, [activeCaptureDraftKey]);
 
   function updateWorldStylePack(patch: Partial<LookdevWorldStylePack>) {
     if (!worldStylePack) {
@@ -440,6 +513,11 @@ export default function CreateBatchPage() {
     if (!activeCaptureState || !worldStylePack) {
       return;
     }
+    const draftKey = activeCaptureDraftKey;
+    const userMessage = interactiveCaptureInput.trim();
+    if (!userMessage) {
+      return;
+    }
     const agent = selectedAgents.find((entry) => entry.id === activeCaptureState.agentId);
     if (!agent) {
       return;
@@ -450,9 +528,9 @@ export default function CreateBatchPage() {
       if (!agent.worldId) {
         throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
       }
-      const [detail, portraitBinding] = await Promise.all([
-        getLookdevAgentTruthBundle(agent.worldId, agent.id),
-        getAgentPortraitBinding(agent.worldId, agent.id),
+      const [authoringContext, portraitBinding] = await Promise.all([
+        getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null),
+        getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null),
       ]);
       const nextState = await runInteractiveCaptureTurn({
         runtime,
@@ -462,23 +540,87 @@ export default function CreateBatchPage() {
           id: agent.id,
           displayName: agent.displayName,
           concept: agent.concept,
-          description: detail.description,
-          truthBundle: detail,
+          description: authoringContext?.detail?.description || null,
+          truthBundle: authoringContext?.truthBundle || null,
           worldId: agent.worldId,
           importance: agent.importance,
           existingPortraitUrl: portraitBinding?.url || null,
         },
         worldStylePack,
         state: activeCaptureState,
-        userMessage: interactiveCaptureInput,
+        userMessage,
       });
       saveCaptureState(nextState);
       savePortraitBrief(materializePortraitBriefFromCaptureState(nextState));
-      setInteractiveCaptureInput('');
+      if (draftKey) {
+        setInteractiveCaptureDrafts((current) => {
+          if (!Object.prototype.hasOwnProperty.call(current, draftKey)) {
+            return current;
+          }
+          const next = { ...current };
+          delete next[draftKey];
+          return next;
+        });
+      }
     } catch (captureError) {
       setInteractiveCaptureError(captureError instanceof Error ? captureError.message : String(captureError));
     } finally {
       setInteractiveCaptureBusy(false);
+    }
+  }
+
+  async function handleResetInteractiveCapture() {
+    if (!activeCaptureState || !worldStylePack) {
+      return;
+    }
+    const draftKey = activeCaptureDraftKey;
+    const agent = selectedAgents.find((entry) => entry.id === activeCaptureState.agentId);
+    if (!agent) {
+      return;
+    }
+    setInteractiveCaptureResetBusy(true);
+    setInteractiveCaptureError(null);
+    try {
+      if (!agent.worldId) {
+        throw new Error('LOOKDEV_WORLD_ID_REQUIRED');
+      }
+      const [authoringContext, portraitBinding] = await Promise.all([
+        getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null),
+        getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null),
+      ]);
+      const nextState = await synthesizeSilentCaptureState({
+        runtime,
+        target: styleDialogueTarget,
+        language: currentLanguage,
+        agent: {
+          id: agent.id,
+          displayName: agent.displayName,
+          concept: agent.concept,
+          description: authoringContext?.detail?.description || null,
+          truthBundle: authoringContext?.truthBundle || null,
+          worldId: agent.worldId,
+          importance: agent.importance,
+          existingPortraitUrl: portraitBinding?.url || null,
+        },
+        worldStylePack,
+        captureMode: 'capture',
+      });
+      saveCaptureState(nextState);
+      savePortraitBrief(materializePortraitBriefFromCaptureState(nextState));
+      if (draftKey) {
+        setInteractiveCaptureDrafts((current) => {
+          if (!Object.prototype.hasOwnProperty.call(current, draftKey)) {
+            return current;
+          }
+          const next = { ...current };
+          delete next[draftKey];
+          return next;
+        });
+      }
+    } catch (captureError) {
+      setInteractiveCaptureError(captureError instanceof Error ? captureError.message : String(captureError));
+    } finally {
+      setInteractiveCaptureResetBusy(false);
     }
   }
 
@@ -507,10 +649,10 @@ export default function CreateBatchPage() {
       if (worldSelectionUnavailable) {
         throw new Error(t('createBatch.errorWorldCastUnavailable', { worldName: resolvedWorldName }));
       }
-      if (selectedAgents.length === 0) {
+      if (rawSelectedAgents.length === 0) {
         throw new Error(t('createBatch.errorAgentsRequired'));
       }
-      if (selectedWorldIds.length > 1) {
+      if (rawSelectedWorldIds.length > 1) {
         throw new Error(t('createBatch.errorSingleWorldRequired'));
       }
       if (!resolvedWorldId || !worldStylePack) {
@@ -520,6 +662,9 @@ export default function CreateBatchPage() {
         throw new Error(t('createBatch.errorStylePackConfirmationRequired'));
       }
       if (captureSynthesisBusy) {
+        throw new Error(t('createBatch.errorCaptureStatePending', { defaultValue: 'Capture-state synthesis is still running.' }));
+      }
+      if (interactiveCaptureResetBusy) {
         throw new Error(t('createBatch.errorCaptureStatePending', { defaultValue: 'Capture-state synthesis is still running.' }));
       }
       if (!captureStatesReady) {
@@ -558,141 +703,202 @@ export default function CreateBatchPage() {
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-      <section className="ld-card px-7 py-7">
-        <div className="space-y-2">
-          <div className="text-xs uppercase tracking-[0.2em] text-[var(--ld-gold)]">{t('createBatch.eyebrow')}</div>
-          <h2 className="text-3xl font-semibold text-white">{t('createBatch.title')}</h2>
-        </div>
-
-        <div className="mt-8 grid gap-6">
-          <div className="grid gap-2">
-            <label htmlFor="lookdev-batch-name" className="text-sm text-white/74">{t('createBatch.batchName')}</label>
-            <TextField
-              id="lookdev-batch-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder={t('createBatch.batchNamePlaceholder')}
-              aria-label={t('createBatch.batchName')}
-              className="rounded-2xl border-white/10 bg-black/12 text-white"
-              inputClassName="text-sm"
-            />
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <Button
-              onClick={() => setSelectionSource('by_world')}
-              tone="secondary"
-              className={`rounded-3xl px-4 py-4 text-left ${selectionSource === 'by_world' ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/10 bg-black/12 text-white/72'}`}
-              fullWidth
-            >
-              <div className="text-sm font-medium">{t('createBatch.selectionByWorldTitle')}</div>
-              <div className="mt-1 text-xs leading-5 text-white/56">{t('createBatch.selectionByWorldDescription')}</div>
-            </Button>
-            <Button
-              onClick={() => setSelectionSource('explicit_selection')}
-              tone="secondary"
-              className={`rounded-3xl px-4 py-4 text-left ${selectionSource === 'explicit_selection' ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/10 bg-black/12 text-white/72'}`}
-              fullWidth
-            >
-              <div className="text-sm font-medium">{t('createBatch.selectionExplicitTitle')}</div>
-              <div className="mt-1 text-xs leading-5 text-white/56">{t('createBatch.selectionExplicitDescription')}</div>
-            </Button>
-          </div>
-
-          {intakeLoading ? (
-            <div className="rounded-2xl border border-white/8 bg-black/14 px-4 py-4 text-sm text-white/64">
-              {t('createBatch.intakeLoading')}
+    <div className="grid gap-5 pb-6 2xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="space-y-5">
+        <section className="ld-card px-7 py-7">
+          <div className="flex flex-col gap-6">
+            <div className="space-y-2">
+              <div className="text-xs uppercase tracking-[0.2em] text-[var(--ld-gold)]">{t('createBatch.eyebrow')}</div>
+              <h2 className="text-3xl font-semibold text-white">{t('createBatch.title')}</h2>
+              <p className="max-w-3xl text-sm leading-7 text-white/66">{t('createBatch.subtitle')}</p>
             </div>
-          ) : null}
 
-          {intakeError ? (
-            <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-4 text-sm text-rose-100">
-              {t('createBatch.intakeUnavailable')}
-            </div>
-          ) : null}
-
-          {selectionSource === 'by_world' ? (
-            <div className="grid gap-2">
-              <label htmlFor="lookdev-world-select" className="text-sm text-white/74">{t('createBatch.world')}</label>
-              <SelectField
-                id="lookdev-world-select"
-                value={worldId}
-                options={worldFieldOptions}
-                placeholder={t('createBatch.selectWorld')}
-                onValueChange={setWorldId}
-                aria-label={t('createBatch.world')}
-                className="rounded-2xl border-white/10 bg-black/12 text-white"
-                contentClassName="bg-[rgb(11_18_32)]"
-              />
-              {worldId ? (
-                <div className={`rounded-2xl border px-4 py-3 text-sm ${worldSelectionUnavailable ? 'border-amber-300/20 bg-amber-300/10 text-amber-50' : 'border-white/8 bg-black/14 text-white/66'}`}>
-                  {t('createBatch.frozenSelectionPreview', { count: worldAgents.length, worldName: resolvedWorldName })}
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+              <div className="grid gap-6">
+                <div className="grid gap-2">
+                  <label htmlFor="lookdev-batch-name" className="text-sm text-white/74">{t('createBatch.batchName')}</label>
+                  <TextField
+                    id="lookdev-batch-name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder={t('createBatch.batchNamePlaceholder')}
+                    aria-label={t('createBatch.batchName')}
+                    className="rounded-2xl border-white/10 bg-black/12 text-white"
+                    inputClassName="text-sm"
+                  />
                 </div>
-              ) : null}
-              {worldSelectionUnavailable ? (
-                <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-                  {t('createBatch.worldCastUnavailable', { worldName: resolvedWorldName })}
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Button
+                    onClick={() => setSelectionSource('by_world')}
+                    tone="secondary"
+                    className={`rounded-3xl px-4 py-4 text-left ${selectionSource === 'by_world' ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/10 bg-black/12 text-white/72'}`}
+                    fullWidth
+                  >
+                    <div className="text-sm font-medium">{t('createBatch.selectionByWorldTitle')}</div>
+                    <div className="mt-1 text-xs leading-5 text-white/56">{t('createBatch.selectionByWorldDescription')}</div>
+                  </Button>
+                  <Button
+                    onClick={() => setSelectionSource('explicit_selection')}
+                    tone="secondary"
+                    className={`rounded-3xl px-4 py-4 text-left ${selectionSource === 'explicit_selection' ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/10 bg-black/12 text-white/72'}`}
+                    fullWidth
+                  >
+                    <div className="text-sm font-medium">{t('createBatch.selectionExplicitTitle')}</div>
+                    <div className="mt-1 text-xs leading-5 text-white/56">{t('createBatch.selectionExplicitDescription')}</div>
+                  </Button>
                 </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              <label className="text-sm text-white/74">{t('createBatch.agents')}</label>
-              <div className="max-h-[320px] space-y-2 overflow-auto pr-1 ld-scroll">
-                {selectableAgents.map((agent) => {
-                  const selected = selectedAgentIds.includes(agent.id);
-                  return (
-                    <Button
-                      key={agent.id}
-                      onClick={() => toggleExplicitSelection(agent.id)}
-                      tone="secondary"
-                      className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left ${selected ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/8 bg-black/12 text-white/72'}`}
-                      fullWidth
-                    >
-                      <div>
-                        <div className="font-medium text-white">{agent.displayName}</div>
-                        <div className="mt-1 text-xs text-white/52">{agent.handle || agent.id} · {agent.worldId} · {t(`importance.${agent.importance}`, { defaultValue: agent.importance })}</div>
-                        {agent.concept ? <div className="mt-2 text-xs leading-5 text-white/58">{agent.concept}</div> : null}
+
+                {selectionSource === 'by_world' ? (
+                  <div className="grid gap-2">
+                    <label htmlFor="lookdev-world-select" className="text-sm text-white/74">{t('createBatch.world')}</label>
+                    <SelectField
+                      id="lookdev-world-select"
+                      value={worldId}
+                      options={worldFieldOptions}
+                      placeholder={t('createBatch.selectWorld')}
+                      onValueChange={setWorldId}
+                      aria-label={t('createBatch.world')}
+                      className="rounded-2xl border-white/10 bg-black/12 text-white"
+                      contentClassName="bg-[rgb(11_18_32)]"
+                    />
+                    {worldId ? (
+                      <div className={`rounded-2xl border px-4 py-3 text-sm ${worldSelectionUnavailable ? 'border-amber-300/20 bg-amber-300/10 text-amber-50' : 'border-white/8 bg-black/14 text-white/66'}`}>
+                        {t('createBatch.frozenSelectionPreview', { count: selectedAgents.length, worldName: resolvedWorldName })}
                       </div>
-                      <span className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">{selected ? t('createBatch.inBatchLabel') : t('createBatch.selectLabel')}</span>
-                    </Button>
-                  );
-                })}
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    <label className="text-sm text-white/74">{t('createBatch.agents')}</label>
+                    <div className="max-h-[320px] space-y-2 overflow-auto pr-1 ld-scroll">
+                      {selectableAgents.map((agent) => {
+                        const selected = batchEligibleAgentIds.has(agent.id);
+                        const selectedRaw = selectedAgentIds.includes(agent.id);
+                        const limitedTruth = agentTruthDiagnostics[agent.id]?.fullTruthReadable === false;
+                        const checking = selectedRaw && agentTruthDiagnosticsPending && !Object.prototype.hasOwnProperty.call(agentTruthDiagnostics, agent.id);
+                        return (
+                          <Button
+                            key={agent.id}
+                            onClick={() => toggleExplicitSelection(agent.id)}
+                            tone="secondary"
+                            className={`flex w-full items-start justify-between rounded-2xl px-4 py-3 text-left ${selected && limitedTruth ? 'border-amber-300/20 bg-amber-300/10 text-amber-50' : selected ? 'border-[var(--ld-accent)] bg-[color-mix(in_srgb,var(--ld-accent)_14%,transparent)] text-white' : 'border-white/8 bg-black/12 text-white/72'}`}
+                            fullWidth
+                          >
+                            <div>
+                              <div className="font-medium text-white">{agent.displayName}</div>
+                              <div className="mt-1 text-xs text-white/52">{agent.handle || agent.id} · {agent.worldId} · {t(`importance.${agent.importance}`, { defaultValue: agent.importance })}</div>
+                              {agent.concept ? <div className="mt-2 text-xs leading-5 text-white/58">{agent.concept}</div> : null}
+                            </div>
+                            <span className="text-xs uppercase tracking-[0.18em] text-[var(--ld-gold)]">
+                              {checking
+                                  ? t('createBatch.checkingLabel')
+                                  : limitedTruth
+                                    ? t('createBatch.limitedTruthLabel')
+                                    : selected
+                                      ? t('createBatch.inBatchLabel')
+                                      : t('createBatch.selectLabel')}
+                            </span>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-              {selectedWorldIds.length > 1 ? (
-                <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
-                  {t('createBatch.multiWorldWarning')}
+
+              <div className="grid gap-3 content-start">
+                <div className="rounded-3xl border border-white/8 bg-black/14 px-5 py-5">
+                  <div className="text-xs uppercase tracking-[0.16em] text-[var(--ld-gold)]">{t('createBatch.intakeSummaryEyebrow')}</div>
+                  <div className="mt-2 text-sm leading-6 text-white/64">{t('createBatch.intakeSummaryDescription')}</div>
+                  <div className="mt-4 grid gap-3">
+                    <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3 text-sm text-white/70">
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.reviewWorld')}</div>
+                      <div className="mt-1 text-base text-white">{batchWorldSummary}</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3 text-sm text-white/70">
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.reviewAgents')}</div>
+                      <div className="mt-1 text-base text-white">{selectedAgents.length}</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3 text-sm text-white/70">
+                      <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.reviewLimitedTruthAgents')}</div>
+                      <div className="mt-1 text-base text-white">{limitedTruthAgents.length}</div>
+                    </div>
+                  </div>
                 </div>
-              ) : null}
+
+                {intakeLoading ? (
+                  <div className="rounded-2xl border border-white/8 bg-black/14 px-4 py-4 text-sm text-white/64">
+                    {t('createBatch.intakeLoading')}
+                  </div>
+                ) : null}
+
+                {intakeError ? (
+                  <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-4 text-sm text-rose-100">
+                    {t('createBatch.intakeUnavailable')}
+                  </div>
+                ) : null}
+
+                {agentTruthDiagnosticsPending ? (
+                  <div className="rounded-2xl border border-white/8 bg-black/14 px-4 py-3 text-sm text-white/66">
+                    {t('createBatch.truthDiagnosticsLoading')}
+                  </div>
+                ) : null}
+
+                {!agentTruthDiagnosticsPending && limitedTruthAgents.length > 0 ? (
+                  <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+                    {selectionSource === 'by_world'
+                      ? t('createBatch.truthLimitedByWorld', {
+                        count: limitedTruthAgents.length,
+                        agents: summarizeAgentNames(limitedTruthAgents),
+                      })
+                      : t('createBatch.truthLimitedExplicit', {
+                        count: limitedTruthAgents.length,
+                        agents: summarizeAgentNames(limitedTruthAgents),
+                      })}
+                  </div>
+                ) : null}
+
+                {worldSelectionUnavailable ? (
+                  <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+                    {t('createBatch.worldCastUnavailable', { worldName: resolvedWorldName })}
+                  </div>
+                ) : null}
+
+                {rawSelectedWorldIds.length > 1 ? (
+                  <div className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
+                    {t('createBatch.multiWorldWarning')}
+                  </div>
+                ) : null}
+              </div>
             </div>
-          )}
+          </div>
+        </section>
 
-          <WorldStyleSessionPanel
-            worldName={resolvedWorldName}
-            worldSelected={Boolean(resolvedWorldId)}
-            styleSession={styleSession}
-            styleSessionInput={styleSessionInput}
-            worldStylePack={worldStylePack}
-            stylePackConfirmed={stylePackConfirmed}
-            styleSessionCanSynthesize={styleSessionCanSynthesize}
-            styleSessionBusy={styleSessionBusy}
-            styleSessionError={styleSessionError}
-            styleSessionTargetKey={styleDialogueTargetKey}
-            styleSessionTargetLabel={describeWorldStyleTarget(currentLanguage, styleDialogueTarget)}
-            styleSessionTargetReady={Boolean(styleDialogueTarget)}
-            styleSessionTargetOptions={styleDialogueTargetOptions}
-            showAdvancedStyleEditor={showAdvancedStyleEditor}
-            onStyleSessionInputChange={setStyleSessionInput}
-            onStyleSessionTargetChange={setStyleDialogueTargetKey}
-            onStyleSessionReply={() => void handleStyleSessionReply()}
-            onRestartStyleSession={handleRestartStyleSession}
-            onSynthesizeStylePack={() => void handleSynthesizeStylePack()}
-            onConfirmWorldStylePack={handleConfirmWorldStylePack}
-            onToggleAdvancedStyleEditor={() => setShowAdvancedStyleEditor((current) => !current)}
-            onUpdateWorldStylePack={updateWorldStylePack}
-          />
+        <WorldStyleSessionPanel
+          worldName={resolvedWorldName}
+          worldSelected={Boolean(resolvedWorldId)}
+          blockedMessage={worldStyleSessionBlockedMessage}
+          styleSession={styleSession}
+          styleSessionInput={styleSessionInput}
+          worldStylePack={worldStylePack}
+          stylePackConfirmed={stylePackConfirmed}
+          styleSessionCanSynthesize={styleSessionCanSynthesize}
+          styleSessionBusy={styleSessionBusy}
+          styleSessionError={styleSessionError}
+          styleSessionTargetReady={Boolean(styleDialogueTarget)}
+          showAdvancedStyleEditor={showAdvancedStyleEditor}
+          onStyleSessionInputChange={setStyleSessionInput}
+          onOpenRouteSettings={() => setRouteSettingsOpen(true)}
+          onStyleSessionReply={() => void handleStyleSessionReply()}
+          onRestartStyleSession={handleRestartStyleSession}
+          onSynthesizeStylePack={() => void handleSynthesizeStylePack()}
+          onConfirmWorldStylePack={handleConfirmWorldStylePack}
+          onToggleAdvancedStyleEditor={() => setShowAdvancedStyleEditor((current) => !current)}
+          onUpdateWorldStylePack={updateWorldStylePack}
+        />
 
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
           <CaptureSelectionPanel
             stylePackConfirmed={stylePackConfirmed}
             selectedAgents={selectedAgents}
@@ -710,36 +916,105 @@ export default function CreateBatchPage() {
             onSelectBriefAgent={setSelectedBriefAgentId}
             interactiveCaptureInput={interactiveCaptureInput}
             interactiveCaptureBusy={interactiveCaptureBusy}
+            interactiveCaptureResetBusy={interactiveCaptureResetBusy}
             interactiveCaptureError={interactiveCaptureError}
-            onInteractiveCaptureInputChange={setInteractiveCaptureInput}
+            onInteractiveCaptureInputChange={(value) => {
+              if (!activeCaptureDraftKey) {
+                return;
+              }
+              setInteractiveCaptureError(null);
+              setInteractiveCaptureDrafts((current) => ({
+                ...current,
+                [activeCaptureDraftKey]: value,
+              }));
+            }}
             onRunInteractiveCaptureRefine={() => void handleInteractiveCaptureRefine()}
+            onResetInteractiveCapture={() => void handleResetInteractiveCapture()}
             onUpdateCaptureVisualIntent={updateCaptureVisualIntent}
           />
         </div>
-      </section>
+      </div>
 
-      <CreateBatchPolicyPanel
-        imageTargets={imageTargets.map((target) => ({
-          key: target.key,
-          label: formatTargetOptionLabel(target, t('createBatch.localRuntimeLabel', { defaultValue: 'Local Runtime' })),
-        }))}
-        visionTargets={visionTargets.map((target) => ({
-          key: target.key,
-          label: formatTargetOptionLabel(target, t('createBatch.localRuntimeLabel', { defaultValue: 'Local Runtime' })),
-        }))}
-        generationTargetKey={generationTargetKey}
-        evaluationTargetKey={evaluationTargetKey}
-        scoreThreshold={scoreThreshold}
-        maxConcurrency={maxConcurrency}
-        saving={saving}
-        error={error}
-        disabled={saving || intakeLoading || Boolean(intakeError) || !stylePackConfirmed || !captureStatesReady || captureSynthesisBusy || worldSelectionUnavailable || hasMixedWorldSelection || !generationTarget || !evaluationTarget}
-        onGenerationTargetChange={setGenerationTargetKey}
-        onEvaluationTargetChange={setEvaluationTargetKey}
-        onScoreThresholdChange={setScoreThreshold}
-        onMaxConcurrencyChange={setMaxConcurrency}
-        onCreate={() => void handleCreate()}
-      />
+      <div className="space-y-5 self-start 2xl:sticky 2xl:top-5">
+        <section className="ld-card px-6 py-6">
+          <div className="space-y-2">
+            <div className="text-xs uppercase tracking-[0.2em] text-[var(--ld-gold)]">{t('createBatch.reviewEyebrow')}</div>
+            <h3 className="text-2xl font-semibold text-white">{t('createBatch.reviewTitle')}</h3>
+            <p className="text-sm leading-6 text-white/60">{t('createBatch.reviewDescription')}</p>
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.batchName')}</div>
+              <div className="mt-1 text-sm text-white">{name.trim() || t('createBatch.batchNamePlaceholder')}</div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.reviewWorld')}</div>
+              <div className="mt-1 text-sm text-white">{batchWorldSummary}</div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-1">
+              <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3">
+                <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.reviewAgents')}</div>
+                <div className="mt-1 text-2xl font-semibold text-white">{selectedAgents.length}</div>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3">
+                <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.reviewCapture')}</div>
+                <div className="mt-1 text-2xl font-semibold text-white">{captureSelectedCount}</div>
+              </div>
+            </div>
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${limitedTruthAgents.length > 0 ? 'border-amber-300/20 bg-amber-300/10 text-amber-50' : 'border-white/8 bg-black/12 text-white/66'}`}>
+              <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.reviewLimitedTruthAgents')}</div>
+              <div className="mt-1">
+                {limitedTruthAgents.length > 0
+                  ? t('createBatch.reviewLimitedTruthAgentsHint', { count: limitedTruthAgents.length, agents: summarizeAgentNames(limitedTruthAgents) })
+                  : t('createBatch.reviewLimitedTruthAgentsNone')}
+              </div>
+            </div>
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${stylePackConfirmed ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-50' : 'border-amber-300/20 bg-amber-300/10 text-amber-50'}`}>
+              <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.reviewStylePack')}</div>
+              <div className="mt-1">{stylePackConfirmed ? t('createBatch.reviewStylePackReady') : t('createBatch.reviewStylePackPending')}</div>
+            </div>
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${captureStatesReady && !captureSynthesisBusy && !interactiveCaptureResetBusy ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-50' : 'border-white/8 bg-black/12 text-white/66'}`}>
+              <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.reviewCaptureState')}</div>
+              <div className="mt-1">
+                {captureSynthesisBusy || interactiveCaptureResetBusy
+                  ? t('createBatch.reviewCaptureStateBusy')
+                  : captureStatesReady
+                    ? t('createBatch.reviewCaptureStateReady')
+                    : t('createBatch.reviewCaptureStatePending')}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/12 px-4 py-3 text-sm text-white/70">
+              <div className="text-[11px] uppercase tracking-[0.16em] text-white/42">{t('createBatch.reviewDialogueTarget')}</div>
+              <div className="mt-1 text-white">{dialogueRouteSummary}</div>
+            </div>
+            <div className={`rounded-2xl border px-4 py-3 text-sm ${batchReady ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-50' : 'border-white/8 bg-black/12 text-white/66'}`}>
+              <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.reviewReadiness')}</div>
+              <div className="mt-1">
+                {batchReady ? t('createBatch.reviewReady') : t('createBatch.reviewPending')}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <CreateBatchPolicyPanel
+          dialogueRouteLabel={dialogueRouteSummary}
+          generationRouteLabel={generationRouteSummary}
+          evaluationRouteLabel={evaluationRouteSummary}
+          dialogueRouteReady={Boolean(styleDialogueTarget)}
+          generationRouteReady={Boolean(generationTarget)}
+          evaluationRouteReady={Boolean(evaluationTarget)}
+          scoreThreshold={scoreThreshold}
+          maxConcurrency={maxConcurrency}
+          saving={saving}
+          error={error}
+          disabled={saving || intakeLoading || Boolean(intakeError) || !stylePackConfirmed || !captureStatesReady || captureSynthesisBusy || interactiveCaptureResetBusy || worldSelectionUnavailable || hasMixedWorldSelection || !generationTarget || !evaluationTarget}
+          onOpenRouteSettings={() => setRouteSettingsOpen(true)}
+          onScoreThresholdChange={setScoreThreshold}
+          onMaxConcurrencyChange={setMaxConcurrency}
+          onCreate={() => void handleCreate()}
+        />
+      </div>
     </div>
   );
 }

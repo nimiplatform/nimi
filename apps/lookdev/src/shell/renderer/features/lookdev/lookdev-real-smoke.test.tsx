@@ -40,16 +40,16 @@ vi.mock('@nimiplatform/nimi-kit/ui', async () => {
   };
 });
 
-const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdevAgent, getLookdevAgentTruthBundle, getAgentPortraitBinding } = vi.hoisted(() => ({
+const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdevAgent, getLookdevAgentTruthBundle, getLookdevAgentAuthoringContext, getAgentPortraitBinding } = vi.hoisted(() => ({
   listLookdevWorlds: vi.fn(),
   listLookdevAgents: vi.fn(),
   listLookdevWorldAgents: vi.fn(),
-  getLookdevAgent: vi.fn(async () => ({
+  getLookdevAgent: vi.fn(async (_agentId: string) => ({
     description: 'Anchor scout with a steady dockside silhouette.',
     scenario: null,
     greeting: null,
   })),
-  getLookdevAgentTruthBundle: vi.fn(async () => ({
+  getLookdevAgentTruthBundle: vi.fn(async (_worldId: string, _agentId: string) => ({
     description: 'Anchor scout with a steady dockside silhouette.',
     scenario: null,
     greeting: null,
@@ -71,6 +71,27 @@ const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdev
       communication: { statement: null, structured: null },
     },
   })),
+  getLookdevAgentAuthoringContext: vi.fn(async (worldId: string, agentId: string) => {
+    try {
+      const truthBundle = await getLookdevAgentTruthBundle(worldId, agentId);
+      return {
+        detail: {
+          description: truthBundle.description,
+          scenario: truthBundle.scenario,
+          greeting: truthBundle.greeting,
+        },
+        truthBundle,
+        fullTruthReadable: true,
+      };
+    } catch {
+      const detail = await getLookdevAgent(agentId).catch(() => null);
+      return {
+        detail,
+        truthBundle: null,
+        fullTruthReadable: false,
+      };
+    }
+  }),
   getAgentPortraitBinding: vi.fn(async () => null),
 }));
 
@@ -83,6 +104,7 @@ vi.mock('@renderer/data/lookdev-data-client.js', async () => {
     listLookdevWorldAgents,
     getLookdevAgent,
     getLookdevAgentTruthBundle,
+    getLookdevAgentAuthoringContext,
     getAgentPortraitBinding,
   };
 });

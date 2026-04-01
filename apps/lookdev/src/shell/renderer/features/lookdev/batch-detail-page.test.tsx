@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -184,6 +184,7 @@ describe('BatchDetailPage', () => {
       resumeBatch: vi.fn(async () => {}),
       rerunFailed: vi.fn(async () => {}),
       commitBatch: vi.fn(async () => {}),
+      deleteBatch: vi.fn(),
       selectItem: vi.fn(),
       batches: [],
     });
@@ -208,6 +209,48 @@ describe('BatchDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Commit Batch' }));
 
     expect(useLookdevStore.getState().commitBatch).toHaveBeenCalledWith('b1');
+  });
+
+  it('deletes a closed batch from detail after confirmation and returns to the list', async () => {
+    const deleteBatch = vi.fn(() => {
+      useLookdevStore.setState({ batches: [] });
+    });
+    useLookdevStore.setState({
+      deleteBatch,
+      batches: [makeBatch({ items: [makeItem()] })],
+    });
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/batches/b1']}>
+        <Routes>
+          <Route path="/" element={<div>batch list page</div>} />
+          <Route path="/batches/:batchId" element={<BatchDetailPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Delete batch' }));
+
+    expect(screen.getByText('Delete local batch record')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Delete batch' }));
+
+    expect(deleteBatch).toHaveBeenCalledWith('b1');
+    await waitFor(() => {
+      expect(screen.getByText('batch list page')).toBeInTheDocument();
+    });
+  });
+
+  it('disables delete while a batch is still running', () => {
+    useLookdevStore.setState({
+      batches: [makeBatch({
+        status: 'running',
+      })],
+    });
+
+    renderDetailPage();
+
+    expect(screen.getByRole('button', { name: 'Delete batch' })).toBeDisabled();
   });
 
   it('shows resume only while paused and rerun-failed only when failed items exist', async () => {

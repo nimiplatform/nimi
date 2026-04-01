@@ -2,6 +2,7 @@ import type { LookdevCheckKey, LookdevEvaluationCheck, LookdevEvaluationResult }
 
 const HARD_GATES = new Set<LookdevCheckKey>(['fullBody', 'fixedFocalLength', 'subjectClarity']);
 const SCORED_CHECKS = new Set<LookdevCheckKey>(['stablePose', 'backgroundSubordinate', 'lowOcclusion']);
+const REQUIRED_CHECKS = [...HARD_GATES, ...SCORED_CHECKS];
 
 function normalizeBoolean(value: unknown): boolean {
   return value === true;
@@ -12,7 +13,8 @@ function normalizeChecks(value: unknown): LookdevEvaluationCheck[] {
     throw new Error('LOOKDEV_EVAL_CHECKS_INVALID');
   }
 
-  return value.map((entry) => {
+  const seen = new Set<LookdevCheckKey>();
+  const checks = value.map((entry) => {
     const record = entry && typeof entry === 'object' && !Array.isArray(entry)
       ? entry as Record<string, unknown>
       : null;
@@ -20,13 +22,23 @@ function normalizeChecks(value: unknown): LookdevEvaluationCheck[] {
     if (!HARD_GATES.has(key) && !SCORED_CHECKS.has(key)) {
       throw new Error('LOOKDEV_EVAL_CHECK_KEY_INVALID');
     }
+    if (seen.has(key)) {
+      throw new Error('LOOKDEV_EVAL_CHECK_DUPLICATE');
+    }
+    seen.add(key);
     return {
       key,
       passed: normalizeBoolean(record?.passed),
-      kind: HARD_GATES.has(key) ? 'hard_gate' : 'scored',
+      kind: HARD_GATES.has(key) ? 'hard_gate' as const : 'scored' as const,
       note: String(record?.note || '').trim() || undefined,
     };
   });
+  for (const key of REQUIRED_CHECKS) {
+    if (!seen.has(key)) {
+      throw new Error('LOOKDEV_EVAL_CHECKS_INCOMPLETE');
+    }
+  }
+  return checks;
 }
 
 export function parseEvaluationJson(raw: string): LookdevEvaluationResult {

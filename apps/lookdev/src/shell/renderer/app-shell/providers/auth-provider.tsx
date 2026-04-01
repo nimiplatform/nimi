@@ -4,10 +4,12 @@ import { useAppStore } from './app-store.js';
 import { runLookdevBootstrap } from '@renderer/infra/bootstrap/lookdev-bootstrap.js';
 import { getPlatformClient } from '@nimiplatform/sdk';
 import { LookdevLoginPage } from '@renderer/features/auth/lookdev-login-page.js';
+import { useLookdevStore } from '@renderer/features/lookdev/lookdev-store.js';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const authStatus = useAppStore((s) => s.auth.status);
+  const authUserId = useAppStore((s) => s.auth.user?.id || '');
   const bootstrapReady = useAppStore((s) => s.bootstrapReady);
   const bootstrapError = useAppStore((s) => s.bootstrapError);
 
@@ -19,12 +21,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (authStatus !== 'unauthenticated') {
       return;
     }
+    useLookdevStore.getState().clearHydratedWorkspace();
     try {
       getPlatformClient().realm.clearAuth();
     } catch {
       // Platform client may not be ready yet
     }
   }, [authStatus]);
+
+  useEffect(() => {
+    if (!bootstrapReady || authStatus !== 'authenticated' || !authUserId) {
+      return;
+    }
+    useLookdevStore.getState().hydrateForUser(authUserId);
+    void useLookdevStore.getState().resumeActiveBatches();
+  }, [authStatus, authUserId, bootstrapReady]);
 
   if (bootstrapError) {
     return (

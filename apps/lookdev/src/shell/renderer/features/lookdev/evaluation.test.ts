@@ -39,6 +39,38 @@ describe('lookdev evaluation helpers', () => {
     expect(validated.passed).toBe(false);
   });
 
+  it('fails closed when required evaluation checks are missing', () => {
+    expect(() => parseEvaluationJson(JSON.stringify({
+      passed: true,
+      score: 95,
+      checks: [
+        { key: 'fullBody', passed: true },
+        { key: 'fixedFocalLength', passed: true },
+        { key: 'subjectClarity', passed: true },
+      ],
+      summary: 'Looks good.',
+      failureReasons: [],
+    }))).toThrow('LOOKDEV_EVAL_CHECKS_INCOMPLETE');
+  });
+
+  it('fails closed when evaluation checks contain duplicates', () => {
+    expect(() => parseEvaluationJson(JSON.stringify({
+      passed: true,
+      score: 95,
+      checks: [
+        { key: 'fullBody', passed: true },
+        { key: 'fullBody', passed: true },
+        { key: 'fixedFocalLength', passed: true },
+        { key: 'subjectClarity', passed: true },
+        { key: 'stablePose', passed: true },
+        { key: 'backgroundSubordinate', passed: true },
+        { key: 'lowOcclusion', passed: true },
+      ],
+      summary: 'Looks good.',
+      failureReasons: [],
+    }))).toThrow('LOOKDEV_EVAL_CHECK_DUPLICATE');
+  });
+
   it('derives correction hints from failed checks and reasons', () => {
     const hints = deriveCorrectionHints({
       passed: false,

@@ -12,7 +12,10 @@ routes:
 surface_map:
   batch-list:
     includes:
+      - compact top shell navigation
+      - shell settings entry
       - batch summary cards
+      - queue overview metrics
       - batch status filter
       - create batch entry
   create-batch:
@@ -20,6 +23,7 @@ surface_map:
       - selection mode chooser
       - world-scoped selection
       - explicit agent selection
+      - intake summary and batch naming
       - world style session
       - world style pack synthesis summary
       - world style pack advanced editor
@@ -27,12 +31,14 @@ surface_map:
       - focused capture refinement workspace
       - portrait brief materialization review
       - capture selection list
+      - sticky batch review rail
       - policy snapshot review
   batch-detail:
     includes:
       - batch summary header
-      - item list
-      - item preview
+      - item queue pane
+      - item preview comparison pane
+      - evaluation and audit diagnostics pane
       - pause resume controls
       - rerun failed controls
       - commit batch control

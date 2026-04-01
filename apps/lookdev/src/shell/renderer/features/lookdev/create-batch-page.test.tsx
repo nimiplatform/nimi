@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
 import { changeLocale, initI18n } from '@renderer/i18n/index.js';
 import CreateBatchPage from './create-batch-page.js';
@@ -38,7 +38,7 @@ vi.mock('@nimiplatform/nimi-kit/ui', async () => {
   };
 });
 
-const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdevAgent, getLookdevAgentTruthBundle, getAgentPortraitBinding } = vi.hoisted(() => ({
+const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdevAgent, getLookdevAgentTruthBundle, getLookdevAgentAuthoringContext, getAgentPortraitBinding } = vi.hoisted(() => ({
   listLookdevWorlds: vi.fn(),
   listLookdevAgents: vi.fn(),
   listLookdevWorldAgents: vi.fn(),
@@ -69,6 +69,27 @@ const { listLookdevWorlds, listLookdevAgents, listLookdevWorldAgents, getLookdev
       communication: { statement: null, structured: null },
     },
   })),
+  getLookdevAgentAuthoringContext: vi.fn(async (worldId: string, agentId: string) => {
+    try {
+      const truthBundle = await getLookdevAgentTruthBundle(worldId, agentId);
+      return {
+        detail: {
+          description: truthBundle.description,
+          scenario: truthBundle.scenario,
+          greeting: truthBundle.greeting,
+        },
+        truthBundle,
+        fullTruthReadable: true,
+      };
+    } catch {
+      const detail = await getLookdevAgent(agentId).catch(() => null);
+      return {
+        detail,
+        truthBundle: null,
+        fullTruthReadable: false,
+      };
+    }
+  }),
   getAgentPortraitBinding: vi.fn(async () => null),
 }));
 
@@ -81,6 +102,7 @@ vi.mock('@renderer/data/lookdev-data-client.js', async () => {
     listLookdevWorldAgents,
     getLookdevAgent,
     getLookdevAgentTruthBundle,
+    getLookdevAgentAuthoringContext,
     getAgentPortraitBinding,
   };
 });
@@ -130,6 +152,8 @@ function portraitBriefKey(worldId: string | null | undefined, agentId: string): 
   return `${String(worldId || 'unscoped').trim() || 'unscoped'}::${agentId}`;
 }
 
+const queryClients: QueryClient[] = [];
+
 function seedWorkingState() {
   const saveWorldStylePack = vi.fn((pack: LookdevWorldStylePack) => {
     useLookdevStore.setState((state) => ({
@@ -171,6 +195,7 @@ function renderCreatePage() {
       },
     },
   });
+  queryClients.push(client);
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={['/batches/new']}>
@@ -182,6 +207,15 @@ function renderCreatePage() {
     </QueryClientProvider>,
   );
 }
+
+afterEach(() => {
+  cleanup();
+  while (queryClients.length > 0) {
+    const client = queryClients.pop();
+    client?.clear();
+    client?.unmount();
+  }
+});
 
 const generationTarget = {
   key: 'image.generate::cloud::image-connector::image-model::',
@@ -392,6 +426,31 @@ function buildCapturePayload(input: string, language: 'en' | 'zh') {
   };
 }
 
+function buildDefaultTruthBundle(worldId: string, agentId: string) {
+  return {
+    description: agentId === 'a2' ? 'Clockwork guide with patient posture.' : 'Anchor scout with a steady dockside silhouette.',
+    scenario: `Scenario for ${worldId}/${agentId}`,
+    greeting: null,
+    wakeStrategy: 'PASSIVE',
+    dna: {
+      identity: { role: 'Dock agent', worldview: null, species: null, summary: null },
+      biological: { gender: null, visualAge: null, ethnicity: null, heightCm: null, weightKg: null },
+      appearance: { artStyle: null, hair: null, eyes: null, skin: null, fashionStyle: null, signatureItems: [] },
+      personality: { summary: null, mbti: null, interests: [], goals: [], relationshipMode: null, emotionBaseline: null },
+      communication: { summary: null, responseLength: null, formality: null, sentiment: null },
+    },
+    behavioralRules: [],
+    soulPrime: null,
+    ruleTruth: {
+      identity: { statement: null, structured: null },
+      biological: { statement: null, structured: null },
+      appearance: { statement: null, structured: null },
+      personality: { statement: null, structured: null },
+      communication: { statement: null, structured: null },
+    },
+  };
+}
+
 function makeStoredCaptureState(overrides: Partial<LookdevCaptureState> = {}): LookdevCaptureState {
   return {
     agentId: 'a1',
@@ -499,6 +558,12 @@ describe('CreateBatchPage', () => {
         visionTargets: [evaluationTarget],
         issues: [],
       },
+      routeSettingsOpen: false,
+      routeSettings: {
+        dialogueTargetKey: '',
+        generationTargetKey: '',
+        evaluationTargetKey: '',
+      },
     });
     listLookdevWorlds.mockResolvedValue([
       { id: 'w1', name: 'Aurora Harbor', status: 'ACTIVE', agentCount: 2 },
@@ -523,6 +588,12 @@ describe('CreateBatchPage', () => {
       }
       return [];
     });
+    getLookdevAgent.mockImplementation(async (agentId: string) => ({
+      description: agentId === 'a2' ? 'Clockwork guide with patient posture.' : 'Anchor scout with a steady dockside silhouette.',
+      scenario: null,
+      greeting: null,
+    }));
+    getLookdevAgentTruthBundle.mockImplementation(async (worldId: string, agentId: string) => buildDefaultTruthBundle(worldId, agentId));
     getAgentPortraitBinding.mockResolvedValue(null);
   });
 
@@ -575,16 +646,82 @@ describe('CreateBatchPage', () => {
     }));
   }, 30000);
 
-  it('shows the dialogue route before a world is selected', async () => {
+  it('keeps world-scoped agents in the batch when truth falls back to a limited lane', async () => {
+    const { createBatch } = seedWorkingState();
+    const user = userEvent.setup();
+    getLookdevAgentTruthBundle.mockImplementation(async (worldId: string, agentId: string) => {
+      if (agentId === 'a2') {
+        throw new Error('LOOKDEV_AGENT_TRUTH_UNREADABLE');
+      }
+      return {
+        description: 'Anchor scout with a steady dockside silhouette.',
+        scenario: `Scenario for ${worldId}/${agentId}`,
+        greeting: null,
+        wakeStrategy: 'PASSIVE',
+        dna: {
+          identity: { role: 'Dock agent', worldview: null, species: null, summary: null },
+          biological: { gender: null, visualAge: null, ethnicity: null, heightCm: null, weightKg: null },
+          appearance: { artStyle: null, hair: null, eyes: null, skin: null, fashionStyle: null, signatureItems: [] },
+          personality: { summary: null, mbti: null, interests: [], goals: [], relationshipMode: null, emotionBaseline: null },
+          communication: { summary: null, responseLength: null, formality: null, sentiment: null },
+        },
+        behavioralRules: [],
+        soulPrime: null,
+        ruleTruth: {
+          identity: { statement: null, structured: null },
+          biological: { statement: null, structured: null },
+          appearance: { statement: null, structured: null },
+          personality: { statement: null, structured: null },
+          communication: { statement: null, structured: null },
+        },
+      };
+    });
+
+    renderCreatePage();
+
+    await user.type(screen.getByLabelText('Batch name'), 'Filtered cast batch');
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+
+    expect(await screen.findByText("1 agents in this world batch only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Nora.")).toBeInTheDocument();
+
+    await completeWorldStyleSession(user);
+    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
+
+    await waitFor(() => {
+      expect(createBatch).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
+      agents: [expect.objectContaining({ id: 'a1' }), expect.objectContaining({ id: 'a2' })],
+      captureSelectionAgentIds: ['a1'],
+    }));
+  }, 30000);
+
+  it('keeps the world-style lane focused on authoring before a world is selected', async () => {
     seedWorkingState();
     renderCreatePage();
 
     expect(await screen.findByText('World Style Session')).toBeInTheDocument();
-    expect(screen.getByLabelText('Dialogue route')).toBeInTheDocument();
-    expect(screen.getByText('Pick a world first and this lane\'s style conversation will expand below. You can confirm the dialogue route here ahead of time.')).toBeInTheDocument();
+    expect(screen.getByText('Pick a world first and this lane\'s style conversation will expand below.')).toBeInTheDocument();
+    expect(screen.queryByText('World Style Session reads the current dialogue route from Route Settings. The route there controls which connector + model understand the conversation and synthesize the style-pack draft.')).not.toBeInTheDocument();
   });
 
-  it('lets the operator switch the world style dialogue target explicitly', async () => {
+  it('localizes world option counts with the current shell locale', async () => {
+    seedWorkingState();
+    await act(async () => {
+      await changeLocale('zh');
+    });
+    renderCreatePage();
+
+    expect(await screen.findByRole('option', { name: 'Aurora Harbor · 2 个角色' })).toBeInTheDocument();
+  });
+
+  it('uses the current shell dialogue route for world-style authoring', async () => {
     seedWorkingState();
     useAppStore.setState((state) => ({
       runtimeProbe: {
@@ -635,28 +772,61 @@ describe('CreateBatchPage', () => {
         },
       },
     }));
+    useAppStore.getState().setDialogueTargetKey(alternateDialogueTarget.key);
     const user = userEvent.setup();
     renderCreatePage();
 
     await screen.findByLabelText('World');
     await selectFieldOption(user, 'World', /Aurora Harbor/i);
 
-    const dialogueTargetSelect = screen.getByLabelText('Dialogue route');
-    expect(dialogueTargetSelect).toHaveTextContent(formatRuntimeTargetLabel(alternateDialogueTarget));
-
-    await selectFieldOption(user, 'Dialogue route', formatRuntimeTargetLabel(dialogueTarget));
+    expect(screen.getAllByText(formatRuntimeTargetLabel(alternateDialogueTarget)).length).toBeGreaterThan(0);
     await user.type(screen.getByLabelText('Current reply'), 'Keep the lane grounded, stable, and readable.');
     await user.click(screen.getByRole('button', { name: 'Send reply' }));
 
     await waitFor(() => {
       expect(mockRuntime.ai.text.generate).toHaveBeenCalledWith(expect.objectContaining({
-        model: dialogueTarget.modelId,
-        connectorId: dialogueTarget.connectorId,
+        model: alternateDialogueTarget.modelId,
+        connectorId: alternateDialogueTarget.connectorId,
       }));
     });
   });
 
-  it('reuses stored world style packs and portrait briefs', async () => {
+  it('rekeys the world-style workspace when the shell locale changes', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+    await user.type(screen.getByLabelText('Current reply'), 'Keep the lane grounded and readable.');
+    await user.click(screen.getByRole('button', { name: 'Send reply' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('I have the lane now. We can synthesize a draft style pack immediately, and you can still keep tightening any taboo or differentiation cue afterward.')).toBeInTheDocument();
+    });
+
+    mockRuntime.ai.text.generate.mockClear();
+    await act(async () => {
+      await changeLocale('zh');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('当前回答')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('I have the lane now. We can synthesize a draft style pack immediately, and you can still keep tightening any taboo or differentiation cue afterward.')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('当前回答'), '请把这条世界风格 lane 继续收紧一点。');
+    await user.click(screen.getByRole('button', { name: '发送回答' }));
+
+    await waitFor(() => {
+      expect(mockRuntime.ai.text.generate).toHaveBeenCalledWith(expect.objectContaining({
+        input: expect.stringContaining('language: zh'),
+      }));
+      expect(screen.getByText('我已经抓到这条 world lane 了。现在可以直接整理风格包草案；如果你还想继续收紧禁区或角色差异，也可以继续聊。')).toBeInTheDocument();
+    });
+  });
+
+  it('reuses stored world style packs without mutating them on load', async () => {
     const { saveWorldStylePack } = seedWorkingState();
     const storedPack = {
       ...createConfirmedWorldStylePack('w1', 'Aurora Harbor', 'en'),
@@ -715,7 +885,6 @@ describe('CreateBatchPage', () => {
     expect(await screen.findByDisplayValue('Stored Aurora lane')).toBeInTheDocument();
     expect(screen.getByDisplayValue('deep teal and brass')).toBeInTheDocument();
     expect(screen.getByText('Confirmed style pack')).toBeInTheDocument();
-    expect(screen.getByLabelText('Visual role')).toHaveValue('Anchor scout');
     expect(saveWorldStylePack).not.toHaveBeenCalled();
   });
 
@@ -783,9 +952,6 @@ describe('CreateBatchPage', () => {
 
     fireEvent.change(screen.getByLabelText('Auto-eval score threshold'), { target: { value: '84' } });
     fireEvent.change(screen.getByLabelText('Max concurrency'), { target: { value: '2' } });
-    await selectFieldOption(user, 'Image route', formatRuntimeTargetLabel(generationTarget));
-    await selectFieldOption(user, 'Evaluation route', formatRuntimeTargetLabel(evaluationTarget));
-
     await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
 
     await waitFor(() => {
@@ -851,9 +1017,25 @@ describe('CreateBatchPage', () => {
     await screen.findByLabelText('World');
     await selectFieldOption(user, 'World', /Aurora Harbor/i);
 
-    expect(await screen.findByText('Lookdev could not resolve a controllable cast for Aurora Harbor. Pick a world you can operate on or refresh runtime and try again.')).toBeInTheDocument();
+    expect((await screen.findAllByText('Lookdev could not resolve a controllable cast for Aurora Harbor. Pick a world you can operate on or refresh runtime and try again.')).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Send reply' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
     expect(createBatch).not.toHaveBeenCalled();
+  });
+
+  it('keeps world-style authoring available when a selected world only has limited truth', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    getLookdevAgentTruthBundle.mockRejectedValue(new Error('LOOKDEV_AGENT_TRUTH_UNREADABLE'));
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+
+    expect(await screen.findByText("2 agents in this world batch only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Iris, Nora.")).toBeInTheDocument();
+    expect(screen.queryByText('Lookdev could not resolve a controllable cast for Aurora Harbor. Pick a world you can operate on or refresh runtime and try again.')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send reply' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Synthesize style pack draft' })).toBeInTheDocument();
   });
 
   it('blocks world-style authoring when explicit selection spans multiple worlds', async () => {
@@ -866,10 +1048,68 @@ describe('CreateBatchPage', () => {
     await user.click(screen.getByRole('button', { name: /Iris/i }));
     await user.click(screen.getByRole('button', { name: /Sora/i }));
 
-    expect(await screen.findByText('Selected agents currently span multiple worlds. Narrow to one world before creating a batch.')).toBeInTheDocument();
+    expect((await screen.findAllByText('Selected agents currently span multiple worlds. Narrow to one world before creating a batch.')).length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Send reply' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
   });
+
+  it('keeps explicitly selected agents in the batch when truth falls back to a limited lane', async () => {
+    const { createBatch } = seedWorkingState();
+    const user = userEvent.setup();
+    getLookdevAgentTruthBundle.mockImplementation(async (worldId: string, agentId: string) => {
+      if (agentId === 'a2') {
+        throw new Error('LOOKDEV_AGENT_TRUTH_UNREADABLE');
+      }
+      return {
+        description: 'Anchor scout with a steady dockside silhouette.',
+        scenario: `Scenario for ${worldId}/${agentId}`,
+        greeting: null,
+        wakeStrategy: 'PASSIVE',
+        dna: {
+          identity: { role: 'Dock agent', worldview: null, species: null, summary: null },
+          biological: { gender: null, visualAge: null, ethnicity: null, heightCm: null, weightKg: null },
+          appearance: { artStyle: null, hair: null, eyes: null, skin: null, fashionStyle: null, signatureItems: [] },
+          personality: { summary: null, mbti: null, interests: [], goals: [], relationshipMode: null, emotionBaseline: null },
+          communication: { summary: null, responseLength: null, formality: null, sentiment: null },
+        },
+        behavioralRules: [],
+        soulPrime: null,
+        ruleTruth: {
+          identity: { statement: null, structured: null },
+          biological: { statement: null, structured: null },
+          appearance: { statement: null, structured: null },
+          personality: { statement: null, structured: null },
+          communication: { statement: null, structured: null },
+        },
+      };
+    });
+
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await user.click(screen.getByRole('button', { name: /Explicit agent selection/i }));
+    await user.click(screen.getByRole('button', { name: /Iris.*Select/i }));
+    await user.click(screen.getByRole('button', { name: /Nora.*Select/i }));
+
+    expect(await screen.findByText("1 selected agents only have limited portrait truth available. Lookdev will still use each agent's available fields together with the current world style lane: Nora.")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Nora.*Limited truth/i })).toBeInTheDocument();
+
+    await completeWorldStyleSession(user);
+    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeEnabled();
+    });
+    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
+
+    await waitFor(() => {
+      expect(createBatch).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createBatch).toHaveBeenCalledWith(expect.objectContaining({
+      agents: [expect.objectContaining({ id: 'a1' }), expect.objectContaining({ id: 'a2' })],
+      captureSelectionAgentIds: ['a1'],
+    }));
+  }, 30000);
 
   it('shows intake loading state and disables batch creation until intake resolves', () => {
     seedWorkingState();
@@ -933,6 +1173,125 @@ describe('CreateBatchPage', () => {
     }));
   }, 30000);
 
+  it('keeps interactive capture drafts isolated per agent', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+    await completeWorldStyleSession(user);
+    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
+    await user.click(screen.getByRole('button', { name: /Nora.*Batch only/i }));
+    await user.click(screen.getByRole('button', { name: /Nora.*Review/i }));
+
+    const refineField = await screen.findByPlaceholderText('Describe what to preserve, what to push, and where this role should move next.');
+    await user.type(refineField, 'Keep Nora measured and orderly.');
+
+    await user.click(screen.getByRole('button', { name: /Iris.*Review/i }));
+    const irisRefineField = await screen.findByPlaceholderText('Describe what to preserve, what to push, and where this role should move next.');
+    expect(irisRefineField).toHaveValue('');
+
+    await user.type(irisRefineField, 'Keep Iris grounded and watchful.');
+    await user.click(screen.getByRole('button', { name: /Nora.*Review/i }));
+
+    expect(await screen.findByPlaceholderText('Describe what to preserve, what to push, and where this role should move next.')).toHaveValue('Keep Nora measured and orderly.');
+  }, 15000);
+
+  it('clears interactive capture errors when the operator edits the current draft', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+    await completeWorldStyleSession(user);
+    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
+
+    mockRuntime.ai.text.generate.mockRejectedValueOnce(new Error('LOOKDEV_CAPTURE_REFINE_FAILED'));
+    const refineField = await screen.findByPlaceholderText('Describe what to preserve, what to push, and where this role should move next.');
+    await user.type(refineField, 'Push Iris a little closer to duty-first restraint.');
+    await user.click(screen.getByRole('button', { name: 'Refine capture' }));
+
+    expect(await screen.findByText('LOOKDEV_CAPTURE_REFINE_FAILED')).toBeInTheDocument();
+
+    await user.type(refineField, ' More restraint.');
+
+    await waitFor(() => {
+      expect(screen.queryByText('LOOKDEV_CAPTURE_REFINE_FAILED')).not.toBeInTheDocument();
+    });
+  }, 15000);
+
+  it('resets interactive capture back to the initial synthesized state for the active agent', async () => {
+    seedWorkingState();
+    const user = userEvent.setup();
+    mockRuntime.ai.text.generate.mockImplementation(async (input: { system?: string; prompt?: string; input?: string }) => {
+      const language = String(input.prompt || input.input || '').includes('language: zh') ? 'zh' : 'en';
+      const system = String(input.system || '');
+      const prompt = String(input.prompt || input.input || '');
+      if (system.includes('interactive capture refinement') || system.includes('重点角色执行 interactive capture refinement')) {
+        const base = buildCapturePayload(prompt, language);
+        return {
+          text: JSON.stringify({
+            ...base,
+            assistantReply: 'Push the face structure closer to a human attendant while keeping the lane clean.',
+            currentBrief: 'Anchor attendant leans more human in face structure while staying lane-clean.',
+            visualIntent: {
+              ...base.visualIntent,
+              visualRole: 'Anchor attendant',
+              hairstyle: 'soft human-like cranial contour',
+            },
+          }),
+          finishReason: 'stop',
+          trace: { traceId: 'mock-refine-trace' },
+        };
+      }
+      if (
+        system.includes('silent single-agent capture state')
+        || system.includes('静默版单角色 capture state')
+      ) {
+        return {
+          text: JSON.stringify(buildCapturePayload(prompt, language)),
+          finishReason: 'stop',
+          trace: { traceId: 'mock-silent-trace' },
+        };
+      }
+      const payload = system.includes('structured world style pack draft')
+        || system.includes('结构化的 world style pack 草案')
+        ? buildSynthesisPayload(language)
+        : buildDialoguePayload(language);
+      return {
+        text: JSON.stringify(payload),
+        finishReason: 'stop',
+        trace: { traceId: 'mock-style-trace' },
+      };
+    });
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+    await completeWorldStyleSession(user);
+    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
+
+    const refineField = await screen.findByPlaceholderText('Describe what to preserve, what to push, and where this role should move next.');
+    await user.type(refineField, 'Make Iris feel a little more human in the face.');
+    await user.click(screen.getByRole('button', { name: 'Refine capture' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Visual role')).toHaveValue('Anchor attendant');
+    });
+    expect(screen.getByText('Push the face structure closer to a human attendant while keeping the lane clean.')).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText('Describe what to preserve, what to push, and where this role should move next.'), ' Unsubmitted note.');
+    await user.click(screen.getByRole('button', { name: 'Reset capture' }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Visual role')).toHaveValue('Anchor scout');
+    });
+    expect(screen.queryByText('Push the face structure closer to a human attendant while keeping the lane clean.')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Describe what to preserve, what to push, and where this role should move next.')).toHaveValue('');
+  }, 15000);
+
   it('keeps a manually removed primary agent out of capture when selection changes later', async () => {
     seedWorkingState();
     const user = userEvent.setup();
@@ -945,14 +1304,12 @@ describe('CreateBatchPage', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
     await user.click(screen.getByRole('button', { name: /Iris.*Capture/i }));
 
-    expect(await screen.findByText('This agent stays on the silent capture lane. Lookdev still synthesizes a role-aware capture state, but it does not open a detailed operator conversation by default.')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Iris.*Batch only/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Nora.*Select/i }));
 
-    expect(screen.getByText('This agent stays on the silent capture lane. Lookdev still synthesizes a role-aware capture state, but it does not open a detailed operator conversation by default.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Visual role')).toHaveValue('Anchor scout');
-    expect(screen.queryByRole('button', { name: /Iris.*Capture/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Iris.*Batch only/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Iris.*Capture/i })).not.toBeInTheDocument();
   }, 15000);
 
   it('blocks explicit selection batches that span multiple worlds', async () => {
@@ -965,7 +1322,7 @@ describe('CreateBatchPage', () => {
     await user.click(screen.getByRole('button', { name: /Iris.*In batch|Iris.*Select/i }));
     await user.click(screen.getByRole('button', { name: /Sora.*In batch|Sora.*Select/i }));
 
-    expect(await screen.findByText('Selected agents currently span multiple worlds. Narrow to one world before creating a batch.')).toBeInTheDocument();
+    expect((await screen.findAllByText('Selected agents currently span multiple worlds. Narrow to one world before creating a batch.')).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Create and start processing' })).toBeDisabled();
     expect(createBatch).not.toHaveBeenCalled();
   }, 15000);
@@ -1017,7 +1374,7 @@ describe('CreateBatchPage', () => {
     await screen.findByLabelText('World');
     await selectFieldOption(user, 'World', /Aurora Harbor/i);
 
-    expect(await screen.findByText('No text.generate target is currently available')).toBeInTheDocument();
+    expect(await screen.findByText('World Style Session needs an available dialogue route from Route Settings before it can run.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Send reply' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Synthesize style pack draft' })).toBeDisabled();
   });
@@ -1040,5 +1397,26 @@ describe('CreateBatchPage', () => {
     expect(screen.queryByText('Confirmed style pack')).not.toBeInTheDocument();
     expect(screen.getByText('Draft style pack')).toBeInTheDocument();
     expect(screen.getByText('Confirm the world style pack first. Capture selection only opens after the style lane is explicitly confirmed.')).toBeInTheDocument();
+  }, 15000);
+
+  it('clears stale create errors after the operator fixes the blocking input', async () => {
+    const { createBatch } = seedWorkingState();
+    const user = userEvent.setup();
+    createBatch.mockRejectedValueOnce(new Error('LOOKDEV_CREATE_FAILED'));
+    renderCreatePage();
+
+    await screen.findByLabelText('World');
+    await selectFieldOption(user, 'World', /Aurora Harbor/i);
+    await completeWorldStyleSession(user);
+    await user.click(screen.getByRole('button', { name: 'Confirm style pack' }));
+    await user.click(screen.getByRole('button', { name: 'Create and start processing' }));
+
+    expect(await screen.findByText('LOOKDEV_CREATE_FAILED')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Max concurrency'), { target: { value: '2' } });
+
+    await waitFor(() => {
+      expect(screen.queryByText('LOOKDEV_CREATE_FAILED')).not.toBeInTheDocument();
+    });
   }, 15000);
 });

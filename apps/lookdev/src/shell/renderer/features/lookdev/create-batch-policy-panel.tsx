@@ -1,18 +1,19 @@
-import { Button, SelectField, TextField, type SelectFieldOption } from '@nimiplatform/nimi-kit/ui';
+import { Button, TextField } from '@nimiplatform/nimi-kit/ui';
 import { useTranslation } from 'react-i18next';
 
 type CreateBatchPolicyPanelProps = {
-  imageTargets: Array<{ key: string; label: string }>;
-  visionTargets: Array<{ key: string; label: string }>;
-  generationTargetKey: string;
-  evaluationTargetKey: string;
+  dialogueRouteLabel: string;
+  generationRouteLabel: string;
+  evaluationRouteLabel: string;
+  dialogueRouteReady: boolean;
+  generationRouteReady: boolean;
+  evaluationRouteReady: boolean;
   scoreThreshold: string;
   maxConcurrency: string;
   saving: boolean;
   disabled: boolean;
   error: string | null;
-  onGenerationTargetChange(value: string): void;
-  onEvaluationTargetChange(value: string): void;
+  onOpenRouteSettings(): void;
   onScoreThresholdChange(value: string): void;
   onMaxConcurrencyChange(value: string): void;
   onCreate(): void;
@@ -21,23 +22,22 @@ type CreateBatchPolicyPanelProps = {
 export function CreateBatchPolicyPanel(props: CreateBatchPolicyPanelProps) {
   const { t } = useTranslation();
   const {
-    imageTargets,
-    visionTargets,
-    generationTargetKey,
-    evaluationTargetKey,
+    dialogueRouteLabel,
+    generationRouteLabel,
+    evaluationRouteLabel,
+    dialogueRouteReady,
+    generationRouteReady,
+    evaluationRouteReady,
     scoreThreshold,
     maxConcurrency,
     saving,
     disabled,
     error,
-    onGenerationTargetChange,
-    onEvaluationTargetChange,
+    onOpenRouteSettings,
     onScoreThresholdChange,
     onMaxConcurrencyChange,
     onCreate,
   } = props;
-  const imageTargetOptions: SelectFieldOption[] = imageTargets.map((target) => ({ value: target.key, label: target.label }));
-  const visionTargetOptions: SelectFieldOption[] = visionTargets.map((target) => ({ value: target.key, label: target.label }));
 
   return (
     <section className="ld-card px-7 py-7">
@@ -48,34 +48,26 @@ export function CreateBatchPolicyPanel(props: CreateBatchPolicyPanelProps) {
       </div>
 
       <div className="mt-8 grid gap-5">
-        <div className="grid gap-2">
-          <label htmlFor="lookdev-generation-target" className="text-sm text-white/74">{t('createBatch.generationTarget')}</label>
-          <div className="text-sm leading-6 text-white/48">{t('createBatch.generationTargetDescription')}</div>
-          <SelectField
-            id="lookdev-generation-target"
-            value={generationTargetKey}
-            options={imageTargetOptions}
-            placeholder={t('createBatch.selectGenerationTarget')}
-            onValueChange={onGenerationTargetChange}
-            aria-label={t('createBatch.generationTarget')}
-            className="rounded-2xl border-white/10 bg-black/12 text-white"
-            contentClassName="bg-[rgb(11_18_32)]"
-          />
-        </div>
-
-        <div className="grid gap-2">
-          <label htmlFor="lookdev-evaluation-target" className="text-sm text-white/74">{t('createBatch.evaluationTarget')}</label>
-          <div className="text-sm leading-6 text-white/48">{t('createBatch.evaluationTargetDescription')}</div>
-          <SelectField
-            id="lookdev-evaluation-target"
-            value={evaluationTargetKey}
-            options={visionTargetOptions}
-            placeholder={t('createBatch.selectEvaluationTarget')}
-            onValueChange={onEvaluationTargetChange}
-            aria-label={t('createBatch.evaluationTarget')}
-            className="rounded-2xl border-white/10 bg-black/12 text-white"
-            contentClassName="bg-[rgb(11_18_32)]"
-          />
+        <div className="grid gap-3">
+          <div className={`rounded-2xl border px-4 py-3 text-sm ${dialogueRouteReady ? 'border-white/8 bg-black/12 text-white/72' : 'border-amber-300/20 bg-amber-300/10 text-amber-50'}`}>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.reviewDialogueTarget')}</div>
+            <div className="mt-1 text-white">{dialogueRouteLabel}</div>
+          </div>
+          <div className={`rounded-2xl border px-4 py-3 text-sm ${generationRouteReady ? 'border-white/8 bg-black/12 text-white/72' : 'border-amber-300/20 bg-amber-300/10 text-amber-50'}`}>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.generationTarget')}</div>
+            <div className="mt-1 text-white">{generationRouteLabel}</div>
+          </div>
+          <div className={`rounded-2xl border px-4 py-3 text-sm ${evaluationRouteReady ? 'border-white/8 bg-black/12 text-white/72' : 'border-amber-300/20 bg-amber-300/10 text-amber-50'}`}>
+            <div className="text-[11px] uppercase tracking-[0.16em] text-current/70">{t('createBatch.evaluationTarget')}</div>
+            <div className="mt-1 text-white">{evaluationRouteLabel}</div>
+          </div>
+          <Button
+            onClick={onOpenRouteSettings}
+            tone="secondary"
+            className="rounded-2xl border-white/10 bg-black/12 text-sm text-white/78"
+          >
+            {t('layout.shellSettings')}
+          </Button>
         </div>
 
         <div className="grid gap-2">

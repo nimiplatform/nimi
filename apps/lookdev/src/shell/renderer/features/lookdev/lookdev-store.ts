@@ -1,11 +1,16 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { getPlatformClient } from '@nimiplatform/sdk';
-import { createLookdevImageUpload, finalizeLookdevResource, getAgentPortraitBinding, getLookdevAgent, upsertAgentPortraitBinding, type LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
+import { createLookdevImageUpload, finalizeLookdevResource, getAgentPortraitBinding, getLookdevAgentAuthoringContext, upsertAgentPortraitBinding, type LookdevAgentRecord } from '@renderer/data/lookdev-data-client.js';
 import { createDefaultPolicySnapshot, type LookdevBatch, type LookdevBatchStatus, type LookdevCaptureState, type LookdevEvaluationResult, type LookdevImageArtifact, type LookdevItem, type LookdevItemStatus, type LookdevPolicySnapshot, type LookdevPortraitBrief, type LookdevSelectionSource, type LookdevWorldStylePack, type LookdevWorldStyleSession } from './types.js';
 import { createCaptureStateKey, materializePortraitBriefFromCaptureState } from './capture-harness.js';
 import { deriveCorrectionHints } from './evaluation.js';
 import { createAuditEvent, evaluateLookdevImage, generateLookdevItem } from './lookdev-processing.js';
+import {
+  createEmptyLookdevWorkspace,
+  loadLookdevWorkspaceForUser,
+  persistLookdevWorkspaceForUser,
+  type PersistedLookdevWorkspace,
+} from './lookdev-workspace-storage.js';
 
 type CreateBatchInput = {
   name: string;
@@ -20,25 +25,21 @@ type CreateBatchInput = {
   scoreThreshold?: number;
 };
 
-type PersistedLookdevWorkspace = {
-  batches: LookdevBatch[];
-  worldStyleSessions: Record<string, LookdevWorldStyleSession>;
-  worldStylePacks: Record<string, LookdevWorldStylePack>;
-  captureStates: Record<string, LookdevCaptureState>;
-  portraitBriefs: Record<string, LookdevPortraitBrief>;
-};
-
 type LookdevStoreState = {
   batches: LookdevBatch[];
   worldStyleSessions: Record<string, LookdevWorldStyleSession>;
   worldStylePacks: Record<string, LookdevWorldStylePack>;
   captureStates: Record<string, LookdevCaptureState>;
   portraitBriefs: Record<string, LookdevPortraitBrief>;
+  storageUserId: string;
+  hydrateForUser(userId: string): void;
+  clearHydratedWorkspace(): void;
   createBatch(input: CreateBatchInput): Promise<string>;
   saveWorldStyleSession(session: LookdevWorldStyleSession): void;
   saveWorldStylePack(pack: LookdevWorldStylePack): void;
   saveCaptureState(state: LookdevCaptureState): void;
   savePortraitBrief(brief: LookdevPortraitBrief): void;
+  deleteBatch(batchId: string): void;
   pauseBatch(batchId: string): void;
   resumeBatch(batchId: string): Promise<void>;
   resumeActiveBatches(): Promise<void>;
@@ -48,6 +49,13 @@ type LookdevStoreState = {
 };
 
 const batchLocks = new Map<string, Promise<void>>();
+
+function createEmptyWorkspaceState() {
+  return {
+    ...createEmptyLookdevWorkspace(),
+    storageUserId: '',
+  };
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -64,64 +72,32 @@ function portraitBriefKey(worldId: string | null | undefined, agentId: string): 
   return createCaptureStateKey(worldId, agentId);
 }
 
-function isObjectRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+function cloneBatch(batch: LookdevBatch): LookdevBatch {
+  return JSON.parse(JSON.stringify(batch)) as LookdevBatch;
 }
 
-function hasCompatibleCaptureStateSnapshot(value: unknown): value is LookdevCaptureState {
-  if (!isObjectRecord(value)) {
-    return false;
-  }
-  if (value.synthesisMode !== 'interactive' && value.synthesisMode !== 'silent') {
-    return false;
-  }
-  if (typeof value.currentBrief !== 'string') {
-    return false;
-  }
-  if (!isObjectRecord(value.feelingAnchor) || typeof value.feelingAnchor.coreVibe !== 'string') {
-    return false;
-  }
-  return true;
-}
-
-function hasCompatibleBatchItemSnapshot(value: unknown): boolean {
-  return isObjectRecord(value) && hasCompatibleCaptureStateSnapshot(value.captureStateSnapshot);
-}
-
-function unwrapPersistedLookdevState(value: unknown): unknown {
-  if (isObjectRecord(value) && isObjectRecord(value.state)) {
-    return value.state;
-  }
-  return value;
-}
-
-function sanitizePersistedLookdevState(value: unknown): PersistedLookdevWorkspace {
-  const unwrapped = unwrapPersistedLookdevState(value);
-  if (!isObjectRecord(unwrapped)) {
-    return {
-      batches: [],
-      worldStyleSessions: {},
-      worldStylePacks: {},
-      captureStates: {},
-      portraitBriefs: {},
-    };
-  }
-
+function partializeWorkspace(state: Pick<
+  LookdevStoreState,
+  'batches' | 'worldStyleSessions' | 'worldStylePacks' | 'captureStates' | 'portraitBriefs'
+>): PersistedLookdevWorkspace {
   return {
-    batches: Array.isArray(unwrapped.batches)
-      ? unwrapped.batches.filter((batch) => isObjectRecord(batch)
-        && Array.isArray(batch.items)
-        && batch.items.every((item) => hasCompatibleBatchItemSnapshot(item))) as LookdevBatch[]
-      : [],
-    worldStyleSessions: isObjectRecord(unwrapped.worldStyleSessions) ? unwrapped.worldStyleSessions as Record<string, LookdevWorldStyleSession> : {},
-    worldStylePacks: isObjectRecord(unwrapped.worldStylePacks) ? unwrapped.worldStylePacks as Record<string, LookdevWorldStylePack> : {},
-    captureStates: isObjectRecord(unwrapped.captureStates) ? unwrapped.captureStates as Record<string, LookdevCaptureState> : {},
-    portraitBriefs: isObjectRecord(unwrapped.portraitBriefs) ? unwrapped.portraitBriefs as Record<string, LookdevPortraitBrief> : {},
+    batches: state.batches,
+    worldStyleSessions: state.worldStyleSessions,
+    worldStylePacks: state.worldStylePacks,
+    captureStates: state.captureStates,
+    portraitBriefs: state.portraitBriefs,
   };
 }
 
-function cloneBatch(batch: LookdevBatch): LookdevBatch {
-  return JSON.parse(JSON.stringify(batch)) as LookdevBatch;
+function persistWorkspaceSnapshot(state: Pick<
+  LookdevStoreState,
+  'storageUserId' | 'batches' | 'worldStyleSessions' | 'worldStylePacks' | 'captureStates' | 'portraitBriefs'
+>): void {
+  const userId = String(state.storageUserId || '').trim();
+  if (!userId) {
+    return;
+  }
+  persistLookdevWorkspaceForUser(userId, partializeWorkspace(state));
 }
 
 function updateBatchCounts(batch: LookdevBatch): LookdevBatch {
@@ -140,16 +116,55 @@ function statusIsFailed(status: LookdevItemStatus): boolean {
   return status === 'auto_failed_retryable' || status === 'auto_failed_exhausted';
 }
 
+function isImageMimeType(value: string): boolean {
+  return /^image\//u.test(value);
+}
+
+function recoverInterruptedBatch(batch: LookdevBatch): LookdevBatch {
+  const hadInterruptedGenerating = batch.items.some((item) => item.status === 'generating');
+  const nextItems = batch.items.map((item) => item.status === 'generating'
+    ? {
+        ...item,
+        status: 'pending' as const,
+        currentEvaluation: null,
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        updatedAt: nowIso(),
+      }
+    : item);
+  if (!hadInterruptedGenerating) {
+    return batch;
+  }
+  return updateBatchCounts({
+    ...batch,
+    items: nextItems,
+    processingCompletedAt: null,
+    auditTrail: [createAuditEvent({
+      batchId: batch.batchId,
+      kind: 'batch_resumed',
+      scope: 'batch',
+      severity: 'warning',
+      detail: 'Recovered interrupted generating items and returned them to pending.',
+    }), ...batch.auditTrail],
+  });
+}
+
 async function uploadResourceForItem(item: LookdevItem, batch: LookdevBatch): Promise<string> {
   if (!item.currentImage) {
     throw new Error('LOOKDEV_COMMIT_IMAGE_MISSING');
   }
   const upload = await createLookdevImageUpload();
   const response = await fetch(item.currentImage.url);
+  if (!response.ok) {
+    throw new Error(`LOOKDEV_COMMIT_IMAGE_FETCH_FAILED:${response.status}`);
+  }
   const blob = await response.blob();
-  const mimeType = String(blob.type || item.currentImage.mimeType || '').trim();
+  const mimeType = String(blob.type || '').trim();
   if (!mimeType) {
     throw new Error('LOOKDEV_IMAGE_MIME_TYPE_REQUIRED');
+  }
+  if (!isImageMimeType(mimeType)) {
+    throw new Error(`LOOKDEV_IMAGE_MIME_TYPE_INVALID:${mimeType}`);
   }
   let uploadResponse = await fetch(upload.uploadUrl, {
     method: 'PUT',
@@ -180,9 +195,13 @@ async function uploadResourceForItem(item: LookdevItem, batch: LookdevBatch): Pr
 }
 
 function mutateBatch(batchId: string, updater: (batch: LookdevBatch) => LookdevBatch): void {
-  useLookdevStore.setState((state) => ({
-    batches: state.batches.map((batch) => batch.batchId === batchId ? updater(batch) : batch),
-  }));
+  useLookdevStore.setState((state) => {
+    const nextState = {
+      batches: state.batches.map((batch) => batch.batchId === batchId ? updater(batch) : batch),
+    };
+    persistWorkspaceSnapshot({ ...state, ...nextState });
+    return nextState;
+  });
 }
 
 function getBatch(batchId: string): LookdevBatch | null {
@@ -388,65 +407,111 @@ async function runBatchProcessing(batchId: string): Promise<void> {
   return runner;
 }
 
-export const useLookdevStore = create<LookdevStoreState>()(
-  persist(
-    (set, get) => ({
-      batches: [],
-      worldStyleSessions: {},
-      worldStylePacks: {},
-      captureStates: {},
-      portraitBriefs: {},
+export const useLookdevStore = create<LookdevStoreState>((set, get) => ({
+      ...createEmptyWorkspaceState(),
+
+      hydrateForUser(userId) {
+        const normalizedUserId = String(userId || '').trim();
+        const workspace = loadLookdevWorkspaceForUser(normalizedUserId);
+        set({
+          ...createEmptyWorkspaceState(),
+          ...workspace,
+          storageUserId: normalizedUserId,
+        });
+        persistWorkspaceSnapshot({
+          ...get(),
+          ...workspace,
+          storageUserId: normalizedUserId,
+        });
+      },
+
+      clearHydratedWorkspace() {
+        set(createEmptyWorkspaceState());
+      },
 
       saveWorldStyleSession(session) {
-        set((state) => ({
-          worldStyleSessions: {
+        set((state) => {
+          const nextState = {
+            worldStyleSessions: {
             ...state.worldStyleSessions,
             [session.worldId]: session,
-          },
-        }));
+            },
+          };
+          persistWorkspaceSnapshot({ ...state, ...nextState });
+          return nextState;
+        });
       },
 
       saveWorldStylePack(pack) {
         const timestamp = nowIso();
-        set((state) => ({
-          worldStylePacks: {
+        set((state) => {
+          const nextState = {
+            worldStylePacks: {
             ...state.worldStylePacks,
             [pack.worldId]: {
               ...pack,
               updatedAt: timestamp,
               createdAt: state.worldStylePacks[pack.worldId]?.createdAt || pack.createdAt || timestamp,
             },
-          },
-        }));
+            },
+          };
+          persistWorkspaceSnapshot({ ...state, ...nextState });
+          return nextState;
+        });
       },
 
       saveCaptureState(state) {
         const key = createCaptureStateKey(state.worldId, state.agentId);
         const timestamp = nowIso();
-        set((current) => ({
-          captureStates: {
+        set((current) => {
+          const nextState = {
+            captureStates: {
             ...current.captureStates,
             [key]: {
               ...state,
               updatedAt: timestamp,
               createdAt: current.captureStates[key]?.createdAt || state.createdAt || timestamp,
             },
-          },
-        }));
+            },
+          };
+          persistWorkspaceSnapshot({ ...current, ...nextState });
+          return nextState;
+        });
       },
 
       savePortraitBrief(brief) {
         const key = portraitBriefKey(brief.worldId, brief.agentId);
         const timestamp = nowIso();
-        set((state) => ({
-          portraitBriefs: {
+        set((state) => {
+          const nextState = {
+            portraitBriefs: {
             ...state.portraitBriefs,
             [key]: {
               ...brief,
               updatedAt: timestamp,
             },
-          },
-        }));
+            },
+          };
+          persistWorkspaceSnapshot({ ...state, ...nextState });
+          return nextState;
+        });
+      },
+
+      deleteBatch(batchId) {
+        const batch = get().batches.find((entry) => entry.batchId === batchId);
+        if (!batch) {
+          return;
+        }
+        if (batch.status === 'running') {
+          throw new Error('LOOKDEV_BATCH_DELETE_RUNNING_FORBIDDEN');
+        }
+        set((state) => {
+          const nextState = {
+            batches: state.batches.filter((entry) => entry.batchId !== batchId),
+          };
+          persistWorkspaceSnapshot({ ...state, ...nextState });
+          return nextState;
+        });
       },
 
       async createBatch(input) {
@@ -465,13 +530,17 @@ export const useLookdevStore = create<LookdevStoreState>()(
         }
 
         const detailedAgents = await Promise.all(input.agents.map(async (agent) => {
-          const detail = await getLookdevAgent(agent.id);
+          const authoringContext = agent.worldId
+            ? await getLookdevAgentAuthoringContext(agent.worldId, agent.id).catch(() => null)
+            : null;
           const currentPortrait = agent.worldId
-            ? await getAgentPortraitBinding(agent.worldId, agent.id)
+            ? await getAgentPortraitBinding(agent.worldId, agent.id).catch(() => null)
             : null;
           return {
             ...agent,
-            ...detail,
+            description: authoringContext?.detail?.description ?? agent.description ?? null,
+            scenario: authoringContext?.detail?.scenario ?? agent.scenario ?? null,
+            greeting: authoringContext?.detail?.greeting ?? agent.greeting ?? null,
             currentPortrait,
           };
         }));
@@ -584,7 +653,11 @@ export const useLookdevStore = create<LookdevStoreState>()(
         };
 
         batch.selectedItemId = batch.items[0]?.itemId || null;
-        set((state) => ({ batches: [updateBatchCounts(batch), ...state.batches] }));
+        set((state) => {
+          const nextState = { batches: [updateBatchCounts(batch), ...state.batches] };
+          persistWorkspaceSnapshot({ ...state, ...nextState });
+          return nextState;
+        });
         void runBatchProcessing(batchId);
         return batchId;
       },
@@ -629,7 +702,16 @@ export const useLookdevStore = create<LookdevStoreState>()(
       },
 
       async resumeActiveBatches() {
-        const active = get().batches.filter((batch) => batch.status === 'running');
+        const active = get().batches
+          .filter((batch) => batch.status === 'running')
+          .map((batch) => {
+            const recovered = recoverInterruptedBatch(batch);
+            if (recovered === batch) {
+              return batch;
+            }
+            mutateBatch(batch.batchId, () => recovered);
+            return recovered;
+          });
         for (const batch of active) {
           await runBatchProcessing(batch.batchId);
         }
@@ -754,22 +836,4 @@ export const useLookdevStore = create<LookdevStoreState>()(
           updatedAt: nowIso(),
         }));
       },
-    }),
-    {
-      name: 'lookdev-workspace-formal-v8',
-      version: 1,
-      migrate: (persistedState) => sanitizePersistedLookdevState(persistedState),
-      merge: (persistedState, currentState) => ({
-        ...currentState,
-        ...sanitizePersistedLookdevState(persistedState),
-      }),
-      partialize: (state) => ({
-        batches: state.batches,
-        worldStyleSessions: state.worldStyleSessions,
-        worldStylePacks: state.worldStylePacks,
-        captureStates: state.captureStates,
-        portraitBriefs: state.portraitBriefs,
-      }),
-    },
-  ),
-);
+}));

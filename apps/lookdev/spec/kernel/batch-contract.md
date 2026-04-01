@@ -127,6 +127,13 @@ Once a batch reaches `commit_complete`, it is closed.
 - they may not be rerun inside the closed batch
 - further processing requires a new batch
 
+Closed or paused batches may still be deleted from Lookdev's local workspace.
+
+- deletion removes the local `LookdevBatch` record only
+- deletion must not delete reusable app-local assets such as `WorldStylePack`, `CaptureState`, or `PortraitBrief`
+- deletion must not revert or mutate any already committed Realm portrait truth
+- a `running` batch must be paused before deletion is allowed
+
 ## LD-BATCH-010 — Capture Selection Authority
 
 Capture selection is user-owned.

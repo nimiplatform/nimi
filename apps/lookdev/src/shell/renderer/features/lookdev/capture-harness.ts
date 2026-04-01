@@ -251,6 +251,7 @@ export function buildCaptureSeedSignature(input: {
     normalizeText(input.agent.id),
     normalizeText(input.agent.worldId),
     normalizeText(input.agent.concept),
+    normalizeText(input.worldStylePack.language),
     normalizeText(input.worldStylePack.name),
     normalizeText(input.worldStylePack.summary),
     normalizeText(input.worldStylePack.visualEra),

@@ -11,10 +11,12 @@ type EmbeddedCapturePanelProps = {
   activePortraitBriefFieldPrefix: string;
   interactiveCaptureInput: string;
   interactiveCaptureBusy: boolean;
+  interactiveCaptureResetBusy: boolean;
   interactiveCaptureError: string | null;
   onSelectBriefAgent(agentId: string): void;
   onInteractiveCaptureInputChange(value: string): void;
   onRunInteractiveCaptureRefine(): void;
+  onResetInteractiveCapture(): void;
   onUpdateCaptureVisualIntent(patch: Partial<LookdevCaptureState['visualIntent']>): void;
 };
 
@@ -60,12 +62,15 @@ export function EmbeddedCapturePanel(props: EmbeddedCapturePanelProps) {
     activePortraitBriefFieldPrefix,
     interactiveCaptureInput,
     interactiveCaptureBusy,
+    interactiveCaptureResetBusy,
     interactiveCaptureError,
     onSelectBriefAgent,
     onInteractiveCaptureInputChange,
     onRunInteractiveCaptureRefine,
+    onResetInteractiveCapture,
     onUpdateCaptureVisualIntent,
   } = props;
+  const interactiveCaptureActionBusy = interactiveCaptureBusy || interactiveCaptureResetBusy;
 
   return (
     <div className="grid gap-4 rounded-3xl border border-white/8 bg-black/14 px-5 py-5">
@@ -245,7 +250,7 @@ export function EmbeddedCapturePanel(props: EmbeddedCapturePanelProps) {
                     value={interactiveCaptureInput}
                     onChange={(event) => onInteractiveCaptureInputChange(event.target.value)}
                     placeholder={t('createBatch.captureRefinePlaceholder', { defaultValue: 'Describe what to preserve, what to push, and where this role should move next.' })}
-                    disabled={interactiveCaptureBusy}
+                    disabled={interactiveCaptureActionBusy}
                     textareaClassName="min-h-[108px] text-sm text-white"
                   />
                   {interactiveCaptureError ? (
@@ -257,11 +262,20 @@ export function EmbeddedCapturePanel(props: EmbeddedCapturePanelProps) {
                     <Button
                       tone="primary"
                       onClick={onRunInteractiveCaptureRefine}
-                      disabled={!interactiveCaptureInput.trim() || interactiveCaptureBusy}
+                      disabled={!interactiveCaptureInput.trim() || interactiveCaptureActionBusy}
                     >
                       {interactiveCaptureBusy
                         ? t('createBatch.captureRefineBusy', { defaultValue: 'Refining...' })
                         : t('createBatch.captureRefineRun', { defaultValue: 'Refine capture' })}
+                    </Button>
+                    <Button
+                      tone="secondary"
+                      onClick={onResetInteractiveCapture}
+                      disabled={interactiveCaptureActionBusy}
+                    >
+                      {interactiveCaptureResetBusy
+                        ? t('createBatch.captureResetBusy', { defaultValue: 'Resetting...' })
+                        : t('createBatch.captureResetRun', { defaultValue: 'Reset capture' })}
                     </Button>
                   </div>
                 </div>

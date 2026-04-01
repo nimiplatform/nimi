@@ -5,7 +5,6 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeLocale, i18n, initI18n, LOCALE_STORAGE_KEY } from '@renderer/i18n/index.js';
 import { useAppStore } from '@renderer/app-shell/providers/app-store.js';
-import { useLookdevStore } from '@renderer/features/lookdev/lookdev-store.js';
 import { LookdevLayout } from './lookdev-layout.js';
 
 vi.mock('@renderer/hooks/use-runtime-readiness.js', () => ({
@@ -95,9 +94,6 @@ describe('LookdevLayout', () => {
         refreshToken: 'refresh',
       },
     });
-    useLookdevStore.setState({
-      resumeActiveBatches: vi.fn(async () => {}),
-    });
   });
 
   it('renders english navigation, operator card, and runtime badge', async () => {
@@ -107,13 +103,13 @@ describe('LookdevLayout', () => {
     expect(screen.getByRole('link', { name: 'Batch List' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Create Batch' })).toBeInTheDocument();
     expect(screen.getByText('Nimi Test User')).toBeInTheDocument();
-    expect(screen.getByText('test@nimi.xyz')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Route Settings' })).toBeInTheDocument();
     expect(screen.getByText(/Runtime ready/i)).toBeInTheDocument();
     expect(screen.getByText(/2 issues/i)).toBeInTheDocument();
     expect(screen.getByText('outlet content')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(useLookdevStore.getState().resumeActiveBatches).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('outlet content')).toBeInTheDocument();
     });
   });
 
@@ -125,9 +121,23 @@ describe('LookdevLayout', () => {
 
     expect(await screen.findByRole('link', { name: '批次列表' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '创建批次' })).toBeInTheDocument();
-    expect(screen.getByText('语言')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '路由设置' })).toBeInTheDocument();
     expect(screen.getByText(/运行时/)).toBeInTheDocument();
     expect(localStorage.getItem(LOCALE_STORAGE_KEY)).toBe('zh');
     expect(document.documentElement.lang).toBe('zh-CN');
+  });
+
+  it('opens route settings dialog with runtime and route controls', async () => {
+    const user = userEvent.setup();
+    renderLayout();
+
+    await user.click(screen.getByRole('button', { name: 'Route Settings' }));
+
+    expect(await screen.findByRole('heading', { name: 'Lookdev route settings' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Dialogue route')).toBeInTheDocument();
+    expect(screen.getByLabelText('Image route')).toBeInTheDocument();
+    expect(screen.getByLabelText('Evaluation route')).toBeInTheDocument();
+    expect(screen.getByText('Image Connector / Image Model')).toBeInTheDocument();
+    expect(screen.getByText('Vision Connector / Vision Model')).toBeInTheDocument();
   });
 });

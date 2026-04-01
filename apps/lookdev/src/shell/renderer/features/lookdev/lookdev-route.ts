@@ -195,23 +195,25 @@ async function loadLocalOptions(
   capability: LookdevRouteCapability,
 ): Promise<LookdevRuntimeTargetOption[]> {
   const response = await withTimeout(
-    runtime.local.listLocalModels({} as Parameters<typeof runtime.local.listLocalModels>[0]),
+    runtime.local.listLocalAssets({} as Parameters<typeof runtime.local.listLocalAssets>[0]),
     `lookdev-local-models:${capability}`,
   );
-  return (response.models || [])
-    .filter((model) => model.capabilities.includes(capability))
+  return (response.assets || [])
+    .filter((asset) => asset.capabilities.includes(capability))
     .sort((left, right) => {
       const rankDelta = localStatusRank(left.status) - localStatusRank(right.status);
       if (rankDelta !== 0) {
         return rankDelta;
       }
-      return normalizeText(left.localModelId || left.modelId).localeCompare(normalizeText(right.localModelId || right.modelId));
+      return normalizeText(left.localAssetId || left.logicalModelId || left.assetId).localeCompare(
+        normalizeText(right.localAssetId || right.logicalModelId || right.assetId),
+      );
     })
-    .map((model) => createLocalTargetOption({
+    .map((asset) => createLocalTargetOption({
       capability,
-      modelId: normalizeText(model.modelId || model.localModelId),
-      localModelId: normalizeText(model.localModelId) || undefined,
-      engine: normalizeText(model.engine) || undefined,
+      modelId: normalizeText(asset.logicalModelId || asset.assetId || asset.localAssetId),
+      localModelId: normalizeText(asset.localAssetId) || undefined,
+      engine: normalizeText(asset.engine) || undefined,
     }))
     .filter((option) => Boolean(option.modelId));
 }

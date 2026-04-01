@@ -58,6 +58,12 @@ All selected agents must pass through one of two capture lanes before the main b
 - interactive capture remains inside Lookdev's mainline flow even when it borrows Agent-Capture-style refinement ideas
 - silent capture remains a structured AI synthesis step, not a raw-field passthrough
 
+The interactive lane must also support an explicit reset-to-initial action.
+
+- reset re-synthesizes the current agent's capture state from the current world style lane plus all currently readable agent fields
+- reset clears unfinished operator draft text for that agent
+- reset does not mutate sibling agents' capture states or the shared world style pack
+
 ## LD-PIPE-007 — Freeze Batch, Then Process
 
 Only after world style, portrait briefs, and capture selection settle does Lookdev create one frozen batch.

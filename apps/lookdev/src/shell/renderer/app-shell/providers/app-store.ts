@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { RuntimeDefaults } from '@renderer/bridge/types.js';
 import type { LookdevRuntimeTargetOption } from '@renderer/features/lookdev/lookdev-route.js';
+import { loadLookdevRouteSettings, persistLookdevRouteSettings } from './lookdev-route-settings-storage.js';
 
 export type AuthUser = {
   id: string;
@@ -45,6 +46,12 @@ export interface LookdevAppStore {
   runtimeStatus: RuntimeStatus;
   runtimeError: string | null;
   runtimeProbe: RuntimeProbeState;
+  routeSettingsOpen: boolean;
+  routeSettings: {
+    dialogueTargetKey: string;
+    generationTargetKey: string;
+    evaluationTargetKey: string;
+  };
 
   setAuthSession(user: AuthUser, token: string, refreshToken: string): void;
   clearAuthSession(): void;
@@ -53,6 +60,10 @@ export interface LookdevAppStore {
   setRuntimeDefaults(defaults: RuntimeDefaults): void;
   setRuntimeStatus(status: RuntimeStatus, error?: string): void;
   setRuntimeProbe(input: RuntimeProbeState): void;
+  setRouteSettingsOpen(open: boolean): void;
+  setDialogueTargetKey(key: string): void;
+  setGenerationTargetKey(key: string): void;
+  setEvaluationTargetKey(key: string): void;
 }
 
 const DEFAULT_RUNTIME_PROBE: RuntimeProbeState = {
@@ -86,6 +97,8 @@ export const useAppStore = create<LookdevAppStore>((set) => ({
   runtimeStatus: 'checking',
   runtimeError: null,
   runtimeProbe: DEFAULT_RUNTIME_PROBE,
+  routeSettingsOpen: false,
+  routeSettings: loadLookdevRouteSettings(),
 
   setAuthSession(user, token, refreshToken) {
     set({
@@ -120,5 +133,42 @@ export const useAppStore = create<LookdevAppStore>((set) => ({
 
   setRuntimeProbe(input) {
     set({ runtimeProbe: input });
+  },
+
+  setRouteSettingsOpen(open) {
+    set({ routeSettingsOpen: open });
+  },
+
+  setDialogueTargetKey(key) {
+    set((state) => {
+      const routeSettings = {
+        ...state.routeSettings,
+        dialogueTargetKey: key,
+      };
+      persistLookdevRouteSettings(routeSettings);
+      return { routeSettings };
+    });
+  },
+
+  setGenerationTargetKey(key) {
+    set((state) => {
+      const routeSettings = {
+        ...state.routeSettings,
+        generationTargetKey: key,
+      };
+      persistLookdevRouteSettings(routeSettings);
+      return { routeSettings };
+    });
+  },
+
+  setEvaluationTargetKey(key) {
+    set((state) => {
+      const routeSettings = {
+        ...state.routeSettings,
+        evaluationTargetKey: key,
+      };
+      persistLookdevRouteSettings(routeSettings);
+      return { routeSettings };
+    });
   },
 }));

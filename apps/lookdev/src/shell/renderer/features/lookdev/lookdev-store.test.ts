@@ -4,6 +4,7 @@ import { evaluateLookdevImage, generateLookdevItem } from './lookdev-processing.
 import { useLookdevStore } from './lookdev-store.js';
 import { createConfirmedWorldStylePack, createDefaultPolicySnapshot, type LookdevAuditEvent, type LookdevBatch, type LookdevCaptureState, type LookdevItem } from './types.js';
 import { createWorldStyleSession } from './world-style-session.js';
+import { getLookdevLegacyWorkspaceStorageKey, getLookdevWorkspaceStorageKeyForUser } from './lookdev-workspace-storage.js';
 
 const generationTarget = {
   key: 'image.generate::cloud::image-connector::image-model::',
@@ -84,16 +85,20 @@ const mockRuntime = {
 };
 
 const {
-  getLookdevAgent,
+  getLookdevAgentAuthoringContext,
   getAgentPortraitBinding,
   createLookdevImageUpload,
   finalizeLookdevResource,
   upsertAgentPortraitBinding,
 } = vi.hoisted(() => ({
-  getLookdevAgent: vi.fn(async () => ({
-    description: 'Long coat, measured posture.',
-    scenario: 'anchor',
-    greeting: null,
+  getLookdevAgentAuthoringContext: vi.fn(async () => ({
+    detail: {
+      description: 'Long coat, measured posture.',
+      scenario: 'anchor',
+      greeting: null,
+    },
+    truthBundle: null,
+    fullTruthReadable: false,
   })),
   getAgentPortraitBinding: vi.fn(async () => null),
   createLookdevImageUpload: vi.fn(async () => ({
@@ -105,7 +110,7 @@ const {
 }));
 
 vi.mock('@renderer/data/lookdev-data-client.js', () => ({
-  getLookdevAgent,
+  getLookdevAgentAuthoringContext,
   getAgentPortraitBinding,
   createLookdevImageUpload,
   finalizeLookdevResource,
@@ -122,7 +127,8 @@ describe('lookdev store', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    useLookdevStore.setState({ batches: [] });
+    useLookdevStore.getState().clearHydratedWorkspace();
+    useLookdevStore.getState().hydrateForUser('u1');
     useAppStore.setState({
       runtimeProbe: {
         realmConfigured: true,
@@ -707,10 +713,10 @@ describe('lookdev store', () => {
     expect(mockRuntime.ai.text.generate).not.toHaveBeenCalled();
   });
 
-  it('fails closed when current portrait binding lookup fails', async () => {
+  it('keeps batch creation running when current portrait binding lookup fails', async () => {
     getAgentPortraitBinding.mockRejectedValueOnce(new Error('binding unavailable'));
 
-    await expect(createBatchWithCaptureStates({
+    const batchId = await createBatchWithCaptureStates({
       name: 'Binding fallback batch',
       selectionSource: 'explicit_selection',
       worldId,
@@ -732,7 +738,11 @@ describe('lookdev store', () => {
         importance: 'PRIMARY',
         status: 'READY',
       }],
-    })).rejects.toThrow('binding unavailable');
+    }, { waitForCompletion: false });
+
+    const batch = useLookdevStore.getState().batches.find((entry) => entry.batchId === batchId);
+    expect(batch?.batchId).toBe(batchId);
+    expect(batch?.items[0]?.existingPortraitUrl).toBeNull();
   });
 
   it('preserves the generated image when evaluation fails after generation', async () => {
@@ -848,6 +858,9 @@ describe('lookdev store', () => {
             { key: 'fullBody', passed: false },
             { key: 'fixedFocalLength', passed: true },
             { key: 'subjectClarity', passed: true },
+            { key: 'stablePose', passed: true },
+            { key: 'backgroundSubordinate', passed: true },
+            { key: 'lowOcclusion', passed: true },
           ],
           summary: 'Too cropped.',
           failureReasons: ['Keep the full body visible.'],
@@ -861,6 +874,9 @@ describe('lookdev store', () => {
             { key: 'fullBody', passed: true },
             { key: 'fixedFocalLength', passed: false },
             { key: 'subjectClarity', passed: true },
+            { key: 'stablePose', passed: true },
+            { key: 'backgroundSubordinate', passed: true },
+            { key: 'lowOcclusion', passed: true },
           ],
           summary: 'Lens still feels too wide.',
           failureReasons: ['Reduce perspective distortion.'],
@@ -874,6 +890,9 @@ describe('lookdev store', () => {
             { key: 'fullBody', passed: true },
             { key: 'fixedFocalLength', passed: true },
             { key: 'subjectClarity', passed: true },
+            { key: 'stablePose', passed: true },
+            { key: 'backgroundSubordinate', passed: true },
+            { key: 'lowOcclusion', passed: true },
           ],
           summary: 'Third pass is acceptable.',
           failureReasons: [],
@@ -1061,6 +1080,33 @@ describe('lookdev store', () => {
     expect(batch?.items[0]?.status).toBe('auto_passed');
   });
 
+  it('requeues orphaned generating items when resuming active batches after rehydrate', async () => {
+    useLookdevStore.setState({
+      batches: [makeBatch({
+        status: 'running',
+        items: [makeItem({
+          status: 'generating',
+          attemptCount: 1,
+          lastErrorCode: 'LOOKDEV_STALE_WORKER',
+          lastErrorMessage: 'worker disappeared',
+        })],
+      })],
+    });
+
+    await useLookdevStore.getState().resumeActiveBatches();
+
+    const batch = useLookdevStore.getState().batches[0];
+    expect(batch?.status).toBe('processing_complete');
+    expect(batch?.items[0]?.status).toBe('auto_passed');
+    expect(batch?.items[0]?.attemptCount).toBe(2);
+    expect(batch?.items[0]?.lastErrorCode).toBeNull();
+    expectAuditEvent(batch?.auditTrail, {
+      kind: 'batch_resumed',
+      severity: 'warning',
+      detail: 'Recovered interrupted generating items and returned them to pending.',
+    });
+  });
+
   it('reruns failed items and returns them to passed state', async () => {
     useLookdevStore.setState({
       batches: [makeBatch({
@@ -1192,6 +1238,92 @@ describe('lookdev store', () => {
     });
   });
 
+  it('marks items as commit_failed when the generated image download returns a non-ok response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith('https://images.example.com/')) {
+        return new Response('expired', { status: 403, headers: { 'content-type': 'text/plain' } });
+      }
+      return new Response(null, { status: 200 });
+    }));
+
+    useLookdevStore.setState({
+      batches: [makeBatch({
+        status: 'processing_complete',
+        items: [
+          makeItem({
+            status: 'auto_passed',
+            currentImage: {
+              url: 'https://images.example.com/portrait.png',
+              mimeType: 'image/png',
+              promptSnapshot: 'anchor',
+              createdAt: '2026-03-28T00:00:00.000Z',
+            },
+            currentEvaluation: {
+              passed: true,
+              score: 88,
+              checks: [{ key: 'fullBody', passed: true, kind: 'hard_gate' }],
+              summary: 'Good anchor portrait.',
+              failureReasons: [],
+            },
+          }),
+        ],
+      })],
+    });
+
+    await useLookdevStore.getState().commitBatch('b1');
+
+    const batch = useLookdevStore.getState().batches[0];
+    expect(batch?.status).toBe('commit_complete');
+    expect(batch?.items[0]?.status).toBe('commit_failed');
+    expect(batch?.items[0]?.lastErrorMessage).toContain('LOOKDEV_COMMIT_IMAGE_FETCH_FAILED:403');
+    expect(finalizeLookdevResource).not.toHaveBeenCalled();
+    expect(upsertAgentPortraitBinding).not.toHaveBeenCalled();
+  });
+
+  it('marks items as commit_failed when the generated image download is not an image mime type', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith('https://images.example.com/')) {
+        return new Response('<html>error</html>', { status: 200, headers: { 'content-type': 'text/html' } });
+      }
+      return new Response(null, { status: 200 });
+    }));
+
+    useLookdevStore.setState({
+      batches: [makeBatch({
+        status: 'processing_complete',
+        items: [
+          makeItem({
+            status: 'auto_passed',
+            currentImage: {
+              url: 'https://images.example.com/portrait.png',
+              mimeType: 'image/png',
+              promptSnapshot: 'anchor',
+              createdAt: '2026-03-28T00:00:00.000Z',
+            },
+            currentEvaluation: {
+              passed: true,
+              score: 88,
+              checks: [{ key: 'fullBody', passed: true, kind: 'hard_gate' }],
+              summary: 'Good anchor portrait.',
+              failureReasons: [],
+            },
+          }),
+        ],
+      })],
+    });
+
+    await useLookdevStore.getState().commitBatch('b1');
+
+    const batch = useLookdevStore.getState().batches[0];
+    expect(batch?.status).toBe('commit_complete');
+    expect(batch?.items[0]?.status).toBe('commit_failed');
+    expect(batch?.items[0]?.lastErrorMessage).toContain('LOOKDEV_IMAGE_MIME_TYPE_INVALID:text/html');
+    expect(finalizeLookdevResource).not.toHaveBeenCalled();
+    expect(upsertAgentPortraitBinding).not.toHaveBeenCalled();
+  });
+
   it('does nothing when commitBatch is called for a non-processing batch', async () => {
     useLookdevStore.setState({
       batches: [makeBatch({
@@ -1241,13 +1373,14 @@ describe('lookdev store', () => {
 
     useLookdevStore.getState().saveWorldStyleSession(session);
 
-    const persisted = localStorage.getItem('lookdev-workspace-formal-v8');
+    const persisted = localStorage.getItem(getLookdevWorkspaceStorageKeyForUser('u1'));
     expect(persisted).toContain('"worldStyleSessions"');
     expect(persisted).toContain('"captureStates"');
     expect(persisted).toContain('"Aurora Harbor"');
   });
 
   it('drops legacy persisted batches that do not carry capture-state snapshots', async () => {
+    localStorage.clear();
     useLookdevStore.setState({
       batches: [],
       worldStyleSessions: {},
@@ -1255,7 +1388,7 @@ describe('lookdev store', () => {
       portraitBriefs: {},
     });
 
-    localStorage.setItem('lookdev-workspace-formal-v8', JSON.stringify({
+    localStorage.setItem(getLookdevLegacyWorkspaceStorageKey(), JSON.stringify({
       state: {
         batches: [
           makeBatch({
@@ -1282,7 +1415,7 @@ describe('lookdev store', () => {
       version: 1,
     }));
 
-    await useLookdevStore.persist.rehydrate();
+    useLookdevStore.getState().hydrateForUser('u1');
 
     expect(useLookdevStore.getState().batches.map((batch) => batch.name)).toEqual(['test2']);
   });
@@ -1305,5 +1438,131 @@ describe('lookdev store', () => {
       }),
       worldStylePackSnapshot: worldStylePack,
     })).rejects.toThrow('LOOKDEV_IMAGE_MIME_TYPE_REQUIRED');
+  });
+
+  it('creates a batch when selected agents only have limited authoring detail', async () => {
+    getLookdevAgentAuthoringContext.mockResolvedValueOnce({
+      detail: {
+        description: '',
+        scenario: '',
+        greeting: null,
+      },
+      truthBundle: null,
+      fullTruthReadable: false,
+    });
+
+    const batchId = await createBatchWithCaptureStates({
+      name: 'Limited truth batch',
+      selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: ['a1'],
+      generationTarget,
+      evaluationTarget,
+      agents: [{
+        id: 'a1',
+        handle: 'receptionist',
+        displayName: '接待员',
+        concept: '接待员',
+        description: null,
+        scenario: null,
+        greeting: null,
+        worldId,
+        avatarUrl: null,
+        currentPortrait: null,
+        importance: 'PRIMARY',
+        status: 'ACTIVE',
+      }],
+    }, { waitForCompletion: false });
+
+    const batch = useLookdevStore.getState().batches.find((entry) => entry.batchId === batchId);
+    expect(batch?.items[0]?.agentDisplayName).toBe('接待员');
+    expect(batch?.items[0]?.agentConcept).toBe('接待员');
+  });
+
+  it('creates a batch when portrait binding lookup returns 400 for selected agents', async () => {
+    getAgentPortraitBinding.mockRejectedValueOnce(new Error('400 Bad Request'));
+
+    const batchId = await createBatchWithCaptureStates({
+      name: 'Binding lookup failure batch',
+      selectionSource: 'explicit_selection',
+      worldId,
+      worldStylePack,
+      captureSelectionAgentIds: ['a1'],
+      generationTarget,
+      evaluationTarget,
+      agents: [{
+        id: 'a1',
+        handle: 'receptionist',
+        displayName: '接待员',
+        concept: '接待员',
+        description: null,
+        scenario: null,
+        greeting: null,
+        worldId,
+        avatarUrl: null,
+        currentPortrait: null,
+        importance: 'PRIMARY',
+        status: 'ACTIVE',
+      }],
+    }, { waitForCompletion: false });
+
+    const batch = useLookdevStore.getState().batches.find((entry) => entry.batchId === batchId);
+    expect(batch?.batchId).toBe(batchId);
+    expect(batch?.items[0]?.existingPortraitUrl).toBeNull();
+  });
+
+  it('deletes a paused batch without deleting reusable working assets', () => {
+    const captureState = makeCaptureState();
+    const captureStateKey = `${worldId}::${captureState.agentId}`;
+    const portraitBrief = {
+      agentId: captureState.agentId,
+      worldId: captureState.worldId,
+      displayName: captureState.displayName,
+      visualRole: captureState.visualIntent.visualRole,
+      silhouette: captureState.visualIntent.silhouette,
+      outfit: captureState.visualIntent.outfit,
+      hairstyle: captureState.visualIntent.hairstyle,
+      palettePrimary: captureState.visualIntent.palettePrimary,
+      artStyle: captureState.visualIntent.artStyle,
+      mustKeepTraits: captureState.visualIntent.mustKeepTraits,
+      forbiddenTraits: captureState.visualIntent.forbiddenTraits,
+      sourceConfidence: captureState.sourceConfidence,
+      updatedAt: captureState.updatedAt,
+    };
+    useLookdevStore.setState({
+      batches: [makeBatch({
+        batchId: 'paused-batch',
+        status: 'paused',
+      })],
+      worldStylePacks: {
+        [worldId]: worldStylePack,
+      },
+      captureStates: {
+        [captureStateKey]: captureState,
+      },
+      portraitBriefs: {
+        [captureStateKey]: portraitBrief,
+      },
+    });
+
+    useLookdevStore.getState().deleteBatch('paused-batch');
+
+    expect(useLookdevStore.getState().batches).toEqual([]);
+    expect(useLookdevStore.getState().worldStylePacks[worldId]).toEqual(worldStylePack);
+    expect(useLookdevStore.getState().captureStates[captureStateKey]).toEqual(captureState);
+    expect(useLookdevStore.getState().portraitBriefs[captureStateKey]).toEqual(portraitBrief);
+  });
+
+  it('fails closed when deleting a running batch', () => {
+    useLookdevStore.setState({
+      batches: [makeBatch({
+        batchId: 'running-batch',
+        status: 'running',
+      })],
+    });
+
+    expect(() => useLookdevStore.getState().deleteBatch('running-batch')).toThrow('LOOKDEV_BATCH_DELETE_RUNNING_FORBIDDEN');
+    expect(useLookdevStore.getState().batches[0]?.batchId).toBe('running-batch');
   });
 });

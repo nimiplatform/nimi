@@ -128,6 +128,12 @@ export type LookdevAgentTruthBundle = {
   };
 };
 
+export type LookdevAgentAuthoringContext = {
+  detail: Pick<LookdevAgentRecord, 'description' | 'scenario' | 'greeting'> | null;
+  truthBundle: LookdevAgentTruthBundle | null;
+  fullTruthReadable: boolean;
+};
+
 type LooseObject = Record<string, unknown>;
 type CreatorAgentDetailProjection = Pick<LookdevAgentTruthBundle, 'description' | 'scenario' | 'greeting' | 'wakeStrategy'> & {
   dna: LookdevAgentTruthBundle['dna'];
@@ -254,6 +260,17 @@ function normalizeRulesPayload(value: unknown): string[] {
   }
   const text = toStringOrNull(rules.text);
   return text ? text.split(/\n+/u).map((line) => line.trim()).filter(Boolean) : [];
+}
+
+function normalizeRuleList(value: AgentRulesListResult): NormalizedRuleRecord[] {
+  const ruleItems = Array.isArray(value)
+    ? value
+    : Array.isArray(asRecord(value).items)
+      ? asRecord(value).items as unknown[]
+      : [];
+  return ruleItems
+    .map(normalizeRuleRecord)
+    .filter((rule): rule is NormalizedRuleRecord => rule !== null);
 }
 
 function mergeIdentityTruth(
@@ -438,6 +455,47 @@ function normalizeCreatorAgentDetail(value: CreatorGetAgentResult): CreatorAgent
   };
 }
 
+function buildLookdevTruthBundle(
+  detail: CreatorAgentDetailProjection,
+  rules: NormalizedRuleRecord[],
+): LookdevAgentTruthBundle {
+  const identityRule = findRuleTruth(rules, 'dna:identity:core');
+  const biologicalRule = findRuleTruth(rules, 'dna:biological:traits');
+  const appearanceRule = findRuleTruth(rules, 'dna:appearance:visual');
+  const personalityRule = findRuleTruth(rules, 'dna:personality:traits');
+  const communicationRule = findRuleTruth(rules, 'dna:communication:style');
+  const soulPrimeRule = findRuleTruth(rules, SOUL_PRIME_RULE_KEY);
+
+  const identityStructured = identityRule ? normalizeIdentityTruth(identityRule.structured) : null;
+  const biologicalStructured = biologicalRule ? normalizeBiologicalTruth(biologicalRule.structured) : null;
+  const appearanceStructured = appearanceRule ? normalizeAppearanceTruth(appearanceRule.structured) : null;
+  const personalityStructured = personalityRule ? normalizePersonalityTruth(personalityRule.structured) : null;
+  const communicationStructured = communicationRule ? normalizeCommunicationTruth(communicationRule.structured) : null;
+
+  return {
+    description: detail.description,
+    scenario: detail.scenario,
+    greeting: detail.greeting,
+    wakeStrategy: detail.wakeStrategy,
+    dna: {
+      identity: mergeIdentityTruth(detail.dna.identity, identityStructured),
+      biological: mergeBiologicalTruth(detail.dna.biological, biologicalStructured),
+      appearance: mergeAppearanceTruth(detail.dna.appearance, appearanceStructured),
+      personality: mergePersonalityTruth(detail.dna.personality, personalityStructured),
+      communication: mergeCommunicationTruth(detail.dna.communication, communicationStructured),
+    },
+    behavioralRules: detail.behavioralRules,
+    soulPrime: normalizeSoulPrime(soulPrimeRule),
+    ruleTruth: {
+      identity: { statement: identityRule?.statement || null, structured: identityStructured },
+      biological: { statement: biologicalRule?.statement || null, structured: biologicalStructured },
+      appearance: { statement: appearanceRule?.statement || null, structured: appearanceStructured },
+      personality: { statement: personalityRule?.statement || null, structured: personalityStructured },
+      communication: { statement: communicationRule?.statement || null, structured: communicationStructured },
+    },
+  };
+}
+
 function normalizeWorldAgentListItem(worldId: string, value: unknown): Omit<LookdevAgentRecord, 'description' | 'scenario' | 'greeting' | 'currentPortrait'> | null {
   const item = asRecord(value);
   const id = String(item.id || item.agentId || '').trim();
@@ -539,49 +597,31 @@ export async function getLookdevAgentTruthBundle(worldId: string, agentId: strin
     realm().services.CreatorService.creatorControllerGetAgent(agentId),
     realm().services.AgentRulesService.agentRulesControllerListRules(worldId, agentId, 'DNA', 'ACTIVE'),
   ]);
-  const detail = normalizeCreatorAgentDetail(detailPayload as CreatorGetAgentResult);
-  const ruleItems = Array.isArray(rulesPayload)
-    ? rulesPayload
-    : Array.isArray(asRecord(rulesPayload).items)
-      ? asRecord(rulesPayload).items as unknown[]
-      : [];
-  const rules = ruleItems
-    .map(normalizeRuleRecord)
-    .filter((rule): rule is NormalizedRuleRecord => rule !== null);
-  const identityRule = findRuleTruth(rules, 'dna:identity:core');
-  const biologicalRule = findRuleTruth(rules, 'dna:biological:traits');
-  const appearanceRule = findRuleTruth(rules, 'dna:appearance:visual');
-  const personalityRule = findRuleTruth(rules, 'dna:personality:traits');
-  const communicationRule = findRuleTruth(rules, 'dna:communication:style');
-  const soulPrimeRule = findRuleTruth(rules, SOUL_PRIME_RULE_KEY);
+  return buildLookdevTruthBundle(
+    normalizeCreatorAgentDetail(detailPayload as CreatorGetAgentResult),
+    normalizeRuleList(rulesPayload as AgentRulesListResult),
+  );
+}
 
-  const identityStructured = identityRule ? normalizeIdentityTruth(identityRule.structured) : null;
-  const biologicalStructured = biologicalRule ? normalizeBiologicalTruth(biologicalRule.structured) : null;
-  const appearanceStructured = appearanceRule ? normalizeAppearanceTruth(appearanceRule.structured) : null;
-  const personalityStructured = personalityRule ? normalizePersonalityTruth(personalityRule.structured) : null;
-  const communicationStructured = communicationRule ? normalizeCommunicationTruth(communicationRule.structured) : null;
+export async function getLookdevAgentAuthoringContext(worldId: string, agentId: string): Promise<LookdevAgentAuthoringContext> {
+  const [detailResult, rulesResult] = await Promise.allSettled([
+    realm().services.CreatorService.creatorControllerGetAgent(agentId),
+    realm().services.AgentRulesService.agentRulesControllerListRules(worldId, agentId, 'DNA', 'ACTIVE'),
+  ]);
+  const detail = detailResult.status === 'fulfilled'
+    ? normalizeAgentDetail(detailResult.value as CreatorGetAgentResult)
+    : null;
+  const detailProjection = detailResult.status === 'fulfilled'
+    ? normalizeCreatorAgentDetail(detailResult.value as CreatorGetAgentResult)
+    : null;
+  const rules = rulesResult.status === 'fulfilled'
+    ? normalizeRuleList(rulesResult.value as AgentRulesListResult)
+    : [];
 
   return {
-    description: detail.description,
-    scenario: detail.scenario,
-    greeting: detail.greeting,
-    wakeStrategy: detail.wakeStrategy,
-    dna: {
-      identity: mergeIdentityTruth(detail.dna.identity, identityStructured),
-      biological: mergeBiologicalTruth(detail.dna.biological, biologicalStructured),
-      appearance: mergeAppearanceTruth(detail.dna.appearance, appearanceStructured),
-      personality: mergePersonalityTruth(detail.dna.personality, personalityStructured),
-      communication: mergeCommunicationTruth(detail.dna.communication, communicationStructured),
-    },
-    behavioralRules: detail.behavioralRules,
-    soulPrime: normalizeSoulPrime(soulPrimeRule),
-    ruleTruth: {
-      identity: { statement: identityRule?.statement || null, structured: identityStructured },
-      biological: { statement: biologicalRule?.statement || null, structured: biologicalStructured },
-      appearance: { statement: appearanceRule?.statement || null, structured: appearanceStructured },
-      personality: { statement: personalityRule?.statement || null, structured: personalityStructured },
-      communication: { statement: communicationRule?.statement || null, structured: communicationStructured },
-    },
+    detail,
+    truthBundle: detailProjection ? buildLookdevTruthBundle(detailProjection, rules) : null,
+    fullTruthReadable: detailProjection !== null && rulesResult.status === 'fulfilled',
   };
 }
 
