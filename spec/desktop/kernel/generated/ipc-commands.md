@@ -82,7 +82,7 @@
 | `runtime_bridge_config_set` | `runtime-daemon` | Set runtime bridge configuration | `D-IPC-003` |
 | `runtime_local_audits_list` | `local-runtime` | Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative | `D-IPC-011` |
 | `runtime_local_pick_asset_manifest_path` | `local-runtime` | Pick a local AI asset.manifest.json path under the runtime models root via native file dialog | `D-IPC-011` |
-| `runtime_local_assets_install_verified` | `local-runtime` | Install a verified asset from the hardcoded asset registry | `D-IPC-011` |
+| `runtime_local_assets_install_verified` | `local-runtime` | Install a verified asset through the runtime-authoritative verified asset catalog | `D-IPC-011` |
 | `runtime_local_assets_import` | `local-runtime` | Import a local asset from an asset.manifest.json file | `D-IPC-011` |
 | `runtime_local_models_catalog_search` | `local-runtime` | Host catalog helper; catalog/install-plan truth must remain runtime-owned | `D-IPC-011` |
 | `runtime_local_models_catalog_list_variants` | `local-runtime` | Host catalog helper for model variants; not a local model state truth source | `D-IPC-011` |
@@ -99,7 +99,6 @@
 | `runtime_local_services_remove` | `local-runtime` | Host service removal helper; shipped product removal truth must come from RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_nodes_catalog_list` | `local-runtime` | Host node-catalog helper; node availability truth remains runtime-owned | `D-IPC-011` |
 | `runtime_local_assets_install` | `local-runtime` | Install an asset from catalog parameters; execution truth is RuntimeLocalService | `D-IPC-011` |
-| `runtime_local_assets_adopt` | `local-runtime` | Adopt a pre-existing asset record; must not create a second Desktop state | `D-IPC-011` |
 | `runtime_local_assets_import_file` | `local-runtime` | Import a local asset file; execution truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_remove` | `local-runtime` | Remove an installed asset; execution truth is RuntimeLocalService | `D-IPC-011` |
 | `runtime_local_assets_start` | `local-runtime` | Start a runnable asset; lifecycle truth is RuntimeLocalService | `D-IPC-011` |

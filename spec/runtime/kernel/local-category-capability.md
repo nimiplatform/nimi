@@ -88,7 +88,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 - 生成唯一 `local_asset_id`（ULID 格式）。
 - 初始状态为 `INSTALLED`（`K-LOCAL-005` 状态机锚点）。
 - runtime 既是注册真源，也是本地资产获取、导入、orphan scaffold/adopt、transfer/progress 与生命周期的唯一执行面；desktop 仅负责 shell-native/helper 能力。
-- 重复安装同一 `model_id` + `engine` + `kind` 组合时返回 `ALREADY_EXISTS` + `AI_LOCAL_ASSET_ALREADY_INSTALLED`。
+- 重复安装同一 `asset_id` + `engine` + `kind` 组合时返回 `ALREADY_EXISTS` + `AI_LOCAL_ASSET_ALREADY_INSTALLED`。
 
 ## K-LOCAL-010 Verified 资产目录结构
 
@@ -98,7 +98,7 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 |---|---|---|
 | `template_id` | 是 | 唯一标识（如 `llama3.1-8b`） |
 | `title` | 是 | 人类可读名称 |
-| `model_id` | 是 | 安装时使用的 model_id |
+| `asset_id` | 是 | 安装时使用的统一 asset_id |
 | `logical_model_id` | 是 | 用户抽象 ID；不得直接退化成 provider alias |
 | `kind` | 是 | 资产类型（`chat` / `image` / `video` / `tts` / `stt` / `vae` / `clip` / `lora` / `controlnet` / `auxiliary`） |
 | `repo` | 条件必填 | 资产仓库地址；`install_kind=verified-hf-multi-file` 时必填 |
@@ -113,6 +113,16 @@ Phase 1 的 6 个 system local connector 仅作为固定 category 的目录 / pr
 | `tags` | 否 | 标签列表（搜索/过滤用，如 `["llama", "chat", "8b"]`） |
 | `artifact_roles` | 是 | runtime 解析 bundle 所需的 artifact 角色集合 |
 | `preferred_engine` | 是 | 首选执行引擎；值域固定为 `llama` / `media` / `speech` / `sidecar` |
+
+## K-LOCAL-010a Public Manifest Intake
+
+稳定 public local asset intake 仅接受 `asset.manifest.json` 与统一 asset schema：
+
+- 文件名必须是 `asset.manifest.json`
+- manifest 顶层稳定字段必须使用 `asset_id` / `kind`；不得接受 `model_id`、`artifact_id` 或旧 dual manifest shape
+- runnable asset 使用同一 schema 扩展 `logical_model_id`、`capabilities`、`artifact_roles`、`preferred_engine`、`fallback_engines`
+- passive asset 也必须走同一 schema；区别仅在 `kind` 与可选 runtime-native 扩展字段，而不是另一套 manifest 类型
+- Desktop / renderer / bridge / runtime 的稳定输入输出面都必须 fail-close，不得继续兼容旧 manifest 名称或旧字段别名
 
 
 ## K-LOCAL-011 模型目录来源

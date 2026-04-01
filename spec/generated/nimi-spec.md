@@ -1941,7 +1941,7 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：catalog 搜索命令保留 `runtime_local_models_catalog_*` 前缀（对应 proto `SearchCatalogModels` / `ResolveModelInstallPlan`，搜索对象是 model catalog entry 而非 asset inventory）：
 
 - `runtime_local_assets_install` / `runtime_local_assets_install_verified`：asset 安装，权威执行面为 `RuntimeLocalService`。
-- `runtime_local_assets_import` / `runtime_local_assets_import_file` / `runtime_local_assets_adopt`：asset 导入，权威执行面为 `RuntimeLocalService`。
+- `runtime_local_assets_import` / `runtime_local_assets_import_file`：asset 导入，权威执行面为 `RuntimeLocalService`。
 - `runtime_local_assets_remove` / `runtime_local_assets_start` / `runtime_local_assets_stop` / `runtime_local_assets_health`：asset 生命周期管理。
 - `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输管理。
 - `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：服务管理。
@@ -1961,7 +1961,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 
 产品约束：
 
-- local asset inventory 的 list、verified list、install、import、remove、health/readiness、intake/adopt、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
+- local asset inventory 的 list、verified list、install、import、remove、health/readiness、intake、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
 - `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Tauri `runtime_local_downloads_*` 或 `local-runtime://download-progress` 为真源。
 - Tauri `runtime_local_*` 命令若仍存在于 shipped app，只能作为 shell-native/helper IPC；不得暴露或暗示 Desktop/Tauri local runtime state 是本地模型真源。
 - Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。
@@ -4077,7 +4077,7 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | runtime_bridge_config_set | Set runtime bridge configuration |
 | runtime_local_audits_list | Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative |
 | runtime_local_pick_asset_manifest_path | Pick a local AI asset.manifest.json path under the runtime models root via native file dialog |
-| runtime_local_assets_install_verified | Install a verified asset from the hardcoded asset registry |
+| runtime_local_assets_install_verified | Install a verified asset through the runtime-authoritative verified asset catalog |
 | runtime_local_assets_import | Import a local asset from an asset.manifest.json file |
 | runtime_local_models_catalog_search | Host catalog helper; catalog/install-plan truth must remain runtime-owned |
 | runtime_local_models_catalog_list_variants | Host catalog helper for model variants; not a local model state truth source |
@@ -4094,7 +4094,6 @@ Source ID 格式为 `RESEARCH-<ABBREV>-NNN`，其中 ABBREV 是 2-6 字符的大
 | runtime_local_services_remove | Host service removal helper; shipped product removal truth must come from RuntimeLocalService |
 | runtime_local_nodes_catalog_list | Host node-catalog helper; node availability truth remains runtime-owned |
 | runtime_local_assets_install | Install an asset from catalog parameters; execution truth is RuntimeLocalService |
-| runtime_local_assets_adopt | Adopt a pre-existing asset record; must not create a second Desktop state |
 | runtime_local_assets_import_file | Import a local asset file; execution truth is RuntimeLocalService |
 | runtime_local_assets_remove | Remove an installed asset; execution truth is RuntimeLocalService |
 | runtime_local_assets_start | Start a runnable asset; lifecycle truth is RuntimeLocalService |

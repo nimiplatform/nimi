@@ -220,6 +220,7 @@
 | `K-LOCAL-008` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-009` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-010` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
+| `K-LOCAL-010a` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-011` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-012` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |
 | `K-LOCAL-013` | `covered` | `runtime_kernel_consistency`, `runtime_go_test` |

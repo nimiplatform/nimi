@@ -367,82 +367,76 @@ channels:
     source_rule: RL-IPC-010
 
   # Local runtime (RL-IPC-011)
-  - channel: relay:local:models:list
-    type: unary
-    module: local
-    sdk_method: runtime.local.listLocalModels
-    source_rule: RL-IPC-011
-
   - channel: relay:local:assets:list
     type: unary
     module: local
     sdk_method: runtime.local.listLocalAssets
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:verified
+  - channel: relay:local:assets:verified
     type: unary
     module: local
-    sdk_method: runtime.local.listVerifiedModels
+    sdk_method: runtime.local.listVerifiedAssets
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:catalog-search
+  - channel: relay:local:assets:catalog-search
     type: unary
     module: local
     sdk_method: runtime.local.searchCatalogModels
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:install-plan
+  - channel: relay:local:assets:install-plan
     type: unary
     module: local
     sdk_method: runtime.local.resolveModelInstallPlan
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:install
+  - channel: relay:local:assets:install
     type: unary
     module: local
-    sdk_method: runtime.local.installLocalModel
+    sdk_method: runtime.local.installVerifiedAsset
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:install-verified
+  - channel: relay:local:assets:install-verified
     type: unary
     module: local
-    sdk_method: runtime.local.installVerifiedModel
+    sdk_method: runtime.local.installVerifiedAsset
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:import
+  - channel: relay:local:assets:import
     type: unary
     module: local
-    sdk_method: runtime.local.importLocalModel
+    sdk_method: runtime.local.importLocalAsset
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:remove
+  - channel: relay:local:assets:remove
     type: unary
     module: local
-    sdk_method: runtime.local.removeLocalModel
+    sdk_method: runtime.local.removeLocalAsset
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:start
+  - channel: relay:local:assets:start
     type: unary
     module: local
-    sdk_method: runtime.local.startLocalModel
+    sdk_method: runtime.local.startLocalAsset
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:stop
+  - channel: relay:local:assets:stop
     type: unary
     module: local
-    sdk_method: runtime.local.stopLocalModel
+    sdk_method: runtime.local.stopLocalAsset
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:health
+  - channel: relay:local:assets:health
     type: unary
     module: local
-    sdk_method: runtime.local.checkLocalModelHealth
+    sdk_method: runtime.local.checkLocalAssetHealth
     source_rule: RL-IPC-011
 
-  - channel: relay:local:models:warm
+  - channel: relay:local:assets:warm
     type: unary
     module: local
-    sdk_method: runtime.local.warmLocalModel
+    sdk_method: runtime.local.warmLocalAsset
     source_rule: RL-IPC-011
 
   - channel: relay:local:device-profile

@@ -170,7 +170,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 
 **SDK gRPC 路径**（D-BOOT-004 → SDK Runtime client）：
 - 应用层 Runtime 能力：AI 推理（ExecuteScenario、StreamScenario）、Connector 管理（CreateConnector、ListConnectors 等）、Auth/Grant（RegisterApp、OpenSession 等）、场景任务（SubmitScenarioJob 等）
-- 本地资产控制面：`RuntimeLocalService` 负责 local asset inventory 的 list、import/install、health/readiness、intake/adopt、audit、transfer session 与 progress watch；`StartLocalAsset` / `StopLocalAsset` 保留为 runtime 维护能力，不是 Desktop 产品主路径
+- 本地资产控制面：`RuntimeLocalService` 负责 local asset inventory 的 list、import/install、health/readiness、intake、audit、transfer session 与 progress watch；`StartLocalAsset` / `StopLocalAsset` 保留为 runtime 维护能力，不是 Desktop 产品主路径
 - Phase 1 健康监控（GetRuntimeHealth、ListAIProviderHealth、SubscribeRuntimeHealthEvents、SubscribeAIProviderHealthEvents）— 见 S-TRANSPORT-007 Mode D Phase 1 投影
 - Phase 2 服务（Workflow、Knowledge、Audit、AppMessage、Script）
 
@@ -198,7 +198,7 @@ Desktop 到 Runtime 存在两条数据路径。两者分界为设计意图，不
 
 补充约束：
 
-- passive asset（`vae` / `ae` / `clip` / `controlnet` / `lora` / `auxiliary`）列表、verified catalog、安装、导入、移除、intake/adopt、transfer/progress 与 lifecycle 全部以 `RuntimeLocalService` 为真源；Tauri 命令若仍存在，只能作为 host helper，不得构成第二条产品执行路径。
+- passive asset（`vae` / `ae` / `clip` / `controlnet` / `lora` / `auxiliary`）列表、verified catalog、安装、导入、移除、intake、transfer/progress 与 lifecycle 全部以 `RuntimeLocalService` 为真源；Tauri 命令若仍存在，只能作为 host helper，不得构成第二条产品执行路径。
 - local image workflow 的 `engineConfig`、`components`、`profile_overrides` 必须沿 `desktop -> sdk/runtime -> runtime` 原样透传；Desktop 不得改写为绝对路径。
 
 cloud 路径必须固定经由 Runtime connector APIs；Desktop 不得恢复 legacy adapter factory、直接 `listModels()` 或 `healthCheck()` 调用以绕开 Runtime。
@@ -223,7 +223,7 @@ Local Runtime 桥接通过 `loadLocalRuntimeBridge()` 懒加载（`D-IPC-010`）
 Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_local_models_*` / `runtime_local_artifacts_*` CRUD/lifecycle 命令不再注册，也不得作为 shipped helper 保留。例外：catalog 搜索命令保留 `runtime_local_models_catalog_*` 前缀（对应 proto `SearchCatalogModels` / `ResolveModelInstallPlan`，搜索对象是 model catalog entry 而非 asset inventory）：
 
 - `runtime_local_assets_install` / `runtime_local_assets_install_verified`：asset 安装，权威执行面为 `RuntimeLocalService`。
-- `runtime_local_assets_import` / `runtime_local_assets_import_file` / `runtime_local_assets_adopt`：asset 导入，权威执行面为 `RuntimeLocalService`。
+- `runtime_local_assets_import` / `runtime_local_assets_import_file`：asset 导入，权威执行面为 `RuntimeLocalService`。
 - `runtime_local_assets_remove` / `runtime_local_assets_start` / `runtime_local_assets_stop` / `runtime_local_assets_health`：asset 生命周期管理。
 - `runtime_local_downloads_list` / `runtime_local_downloads_pause` / `runtime_local_downloads_resume` / `runtime_local_downloads_cancel`：传输管理。
 - `runtime_local_services_list` / `runtime_local_services_install` / `runtime_local_services_start` / `runtime_local_services_stop` / `runtime_local_services_health` / `runtime_local_services_remove`：服务管理。
@@ -243,7 +243,7 @@ Local-runtime Tauri 命令使用 `runtime_local_assets_*` 前缀。旧 `runtime_
 
 产品约束：
 
-- local asset inventory 的 list、verified list、install、import、remove、health/readiness、intake/adopt、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
+- local asset inventory 的 list、verified list、install、import、remove、health/readiness、intake、transfer session 与 progress 必须固定走 `RuntimeLocalService` typed APIs。
 - `Active Downloads` / `Active Imports` 必须来自 runtime-owned transfer plane（`ListLocalTransfers` + `WatchLocalTransfers`），不得再以 Tauri `runtime_local_downloads_*` 或 `local-runtime://download-progress` 为真源。
 - Tauri `runtime_local_*` 命令若仍存在于 shipped app，只能作为 shell-native/helper IPC；不得暴露或暗示 Desktop/Tauri local runtime state 是本地模型真源。
 - Desktop Local Model Center 不得再暴露手动 start/stop toggle；本地模型 readiness 必须直接反映 runtime 状态。

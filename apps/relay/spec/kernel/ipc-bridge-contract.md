@@ -161,19 +161,18 @@ All calls are SDK passthrough with `normalizeError` wrapping.
 
 | Channel | Type | SDK Method |
 |---------|------|------------|
-| `relay:local:models:list` | unary | `runtime.local.listLocalModels` |
 | `relay:local:assets:list` | unary | `runtime.local.listLocalAssets` |
-| `relay:local:models:verified` | unary | `runtime.local.listVerifiedModels` |
-| `relay:local:models:catalog-search` | unary | `runtime.local.searchCatalogModels` |
-| `relay:local:models:install-plan` | unary | `runtime.local.resolveModelInstallPlan` |
-| `relay:local:models:install` | unary | `runtime.local.installLocalModel` |
-| `relay:local:models:install-verified` | unary | `runtime.local.installVerifiedModel` |
-| `relay:local:models:import` | unary | `runtime.local.importLocalModel` |
-| `relay:local:models:remove` | unary | `runtime.local.removeLocalModel` |
-| `relay:local:models:start` | unary | `runtime.local.startLocalModel` |
-| `relay:local:models:stop` | unary | `runtime.local.stopLocalModel` |
-| `relay:local:models:health` | unary | `runtime.local.checkLocalModelHealth` |
-| `relay:local:models:warm` | unary | `runtime.local.warmLocalModel` |
+| `relay:local:assets:verified` | unary | `runtime.local.listVerifiedAssets` |
+| `relay:local:assets:catalog-search` | unary | `runtime.local.searchCatalogModels` |
+| `relay:local:assets:install-plan` | unary | `runtime.local.resolveModelInstallPlan` |
+| `relay:local:assets:install` | unary | `runtime.local.installVerifiedAsset` |
+| `relay:local:assets:install-verified` | unary | `runtime.local.installVerifiedAsset` |
+| `relay:local:assets:import` | unary | `runtime.local.importLocalAsset` |
+| `relay:local:assets:remove` | unary | `runtime.local.removeLocalAsset` |
+| `relay:local:assets:start` | unary | `runtime.local.startLocalAsset` |
+| `relay:local:assets:stop` | unary | `runtime.local.stopLocalAsset` |
+| `relay:local:assets:health` | unary | `runtime.local.checkLocalAssetHealth` |
+| `relay:local:assets:warm` | unary | `runtime.local.warmLocalAsset` |
 | `relay:local:device-profile` | unary | `runtime.local.collectDeviceProfile` |
 | `relay:local:profile:resolve` | unary | `runtime.local.resolveProfile` |
 | `relay:local:catalog:nodes` | unary | `runtime.local.listNodeCatalog` |

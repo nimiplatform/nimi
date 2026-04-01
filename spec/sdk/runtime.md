@@ -46,7 +46,7 @@
 
 - `LocalAsset*` RPC 与统一 asset 列表/安装/导入/删除
 - 主模型 `engine_config` 字段投影
-- runtime image helper `buildLocalImageProfileExtensions()`，用于编码 `entry_overrides` 与 `profile_overrides`
+- runtime image helper `buildLocalProfileExtensions()`，用于编码 `entry_overrides` 与 `profile_overrides`
 - runtime music helper `buildMusicIterationExtensions()`，仅作为低层 escape hatch；官方主路径是 `runtime.media.music.iterate()`
 
 ## 4. 非目标

@@ -403,7 +403,7 @@ commands:
 
   - command: runtime_local_assets_install_verified
     module: local-runtime
-    description: Install a verified asset from the hardcoded asset registry
+    description: Install a verified asset through the runtime-authoritative verified asset catalog
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_import
@@ -484,11 +484,6 @@ commands:
   - command: runtime_local_assets_install
     module: local-runtime
     description: Install an asset from catalog parameters; execution truth is RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_assets_adopt
-    module: local-runtime
-    description: Adopt a pre-existing asset record; must not create a second Desktop state
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_import_file

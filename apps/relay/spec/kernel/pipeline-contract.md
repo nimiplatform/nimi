@@ -73,9 +73,9 @@ Image/video/voice generation must follow one beat-level orchestration policy:
 6. text beat success must not be blocked by media failure
 7. explicit visual beats carry `mediaRequest` planner input; Relay must keep that planner envelope separate from persisted artifact records
 8. local image execution must preserve local route selection through main-process resolution; Relay must not coerce `local` image routes into cloud bindings
-9. local image execution must fail closed when `imageLocalModelId` is missing
+9. local image execution must fail closed when `selectedProfileId` is missing
 10. Relay must not auto-select the first available local image model or silently fall back to cloud image generation
-11. local image workflow configuration is explicit settings state via `imageProfileOverrides`; installed local assets may be listed, but installation remains outside Relay
+11. local image profile configuration is explicit settings state via `selectedProfileId` and `profileEntryOverrides`; installed local assets may be listed, but installation remains outside Relay
 
 ## RL-PIPE-007 — Proactive Heartbeat Pipeline
 

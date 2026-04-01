@@ -119,8 +119,8 @@ Lightweight model status and management via SDK passthrough:
 - **Connector management** (RL-IPC-012): CRUD connectors, test connections, browse provider catalogs
 - **Desktop interop** (RL-IPC-013): one-click open Desktop runtime config for advanced management
 - **Relay media route options**: capability-filtered image/audio route options expose both `local.models` and cloud `connectors`
-- **Relay image settings**: local image generation persists `imageRouteSource`, `imageLocalModelId`, explicit `profileEntryOverrides`, and optional `imageProfileOverrides`
+- **Relay image settings**: local image generation persists `imageRouteSource`, `selectedProfileId`, and explicit `profileEntryOverrides`
 
 Model configuration is not agent-scoped — operations apply to the runtime globally.
 Relay provides a lightweight status panel; full management UI lives in Desktop (RL-INTOP-004).
-Relay does not auto-install or auto-infer local image assets; the user configures workflow parameters via `imageProfileOverrides`.
+Relay does not auto-install or auto-infer local image assets; the user selects a local image profile and optional `profileEntryOverrides`.

@@ -32,7 +32,7 @@ mod 本地持久化通过 host-injected `createHookClient(...).storage` 与 `@ni
 
 - Desktop hook 能力模型：`spec/desktop/kernel/hook-capability-contract.md`。
 - Runtime app messaging：`spec/runtime/kernel/app-messaging-contract.md`。
-- Local image workflow host projection：mod 通过 host-injected facade 请求 `runtime.local.assets.list`，并用 `buildLocalImageProfileExtensions()` 组装 `entry_overrides` 与 `profile_overrides`。
+- Local image workflow host projection：mod 通过 host-injected facade 请求 `runtime.local.assets.list`，并用 `buildLocalProfileExtensions()` 或 relay 侧 profile builder 组装 `entry_overrides` 与 `profile_overrides`。
 - Local AI profile host projection：mod 通过 host-injected facade 枚举 `runtime.local.listProfiles()`，并以 `runtime.local.requestProfileInstall(...)` 请求 desktop host 执行受控的一键安装。
 - `S-MOD-005`: hook 注册、卸载与生命周期回调边界必须与 desktop 执行内核保持一致，不能在 SDK/mod 层私自扩展 hook 生命周期语义。
 - `S-MOD-006` / `S-BOUNDARY-005` / `S-BOUNDARY-006`: `mod/shell` 与 `mod/lifecycle` 必须保持 renderer-agnostic，且 route runtime lifecycle 的稳定公开作用域固定为 `tabId`。

@@ -33,7 +33,7 @@
 
 ## 3. 模块映射
 
-- Local service（含 `LocalArtifact*`、bundle/health/warm 元数据持久化）：`runtime/internal/services/localservice/`。
+- Local service（含统一 `LocalAsset*`、bundle/health/warm 元数据持久化）：`runtime/internal/services/localservice/`。
 - 引擎抽象：`runtime/internal/engine/`。
 - 统一模型视图：`runtime/internal/services/model/`、`runtime/internal/modelregistry/`。
 - 审计与错误映射：`runtime/internal/services/audit/`、`runtime/internal/errors/`。
