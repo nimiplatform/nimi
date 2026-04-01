@@ -31,7 +31,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' ipc:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https://tile.openstreetmap.org; media-src 'self' data: blob: file:; font-src 'self' data:; connect-src 'self' https: http://127.0.0.1:* http://localhost:*;"
+      "csp": "default-src 'self' ipc:; script-src 'self' https://webapi.amap.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file: https://tile.openstreetmap.org https://*.amap.com https://webapi.amap.com; media-src 'self' data: blob: file:; font-src 'self' data: https://*.amap.com; connect-src 'self' https: http://127.0.0.1:* http://localhost:*;"
     }
   },
   "bundle": {

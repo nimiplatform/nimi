@@ -2,10 +2,12 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-const GEOCODER_PROVIDER: &str = "nominatim";
+const GEOCODER_PROVIDER: &str = "amap";
+const AMAP_GEOCODE_ENDPOINT: &str = "https://restapi.amap.com/v3/geocode/geo";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -78,9 +80,14 @@ pub struct GeocodeOutcome {
 }
 
 #[derive(Debug, Deserialize)]
-struct NominatimRow {
-    lat: String,
-    lon: String,
+struct AmapGeocodeRow {
+    location: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AmapGeocodeResponse {
+    status: String,
+    geocodes: Option<Vec<AmapGeocodeRow>>,
 }
 
 fn repo_root() -> Result<PathBuf, String> {
@@ -207,7 +214,37 @@ pub fn build_geocode_query(venue_name: &str, address_text: &str) -> String {
     if address.is_empty() {
         return venue.to_string();
     }
-    format!("{venue} {address}")
+    address.to_string()
+}
+
+fn amap_web_key() -> String {
+    env::var("NIMI_VIDEO_FOOD_MAP_AMAP_WEB_KEY")
+        .ok()
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
+fn amap_default_city() -> String {
+    env::var("NIMI_VIDEO_FOOD_MAP_AMAP_DEFAULT_CITY")
+        .ok()
+        .unwrap_or_default()
+        .trim()
+        .to_string()
+}
+
+fn build_http_client() -> Result<Client, String> {
+    reqwest::blocking::Client::builder()
+        .user_agent("nimi-video-food-map/0.1 (local desktop app)")
+        .build()
+        .map_err(|error| format!("http client build failed: {error}"))
+}
+
+fn split_amap_location(raw: &str) -> (Option<f64>, Option<f64>) {
+    let mut parts = raw.split(',');
+    let longitude = parts.next().and_then(|value| value.trim().parse::<f64>().ok());
+    let latitude = parts.next().and_then(|value| value.trim().parse::<f64>().ok());
+    (latitude, longitude)
 }
 
 pub fn geocode_address(query: &str) -> GeocodeOutcome {
@@ -222,10 +259,18 @@ pub fn geocode_address(query: &str) -> GeocodeOutcome {
         };
     }
 
-    let client = match reqwest::blocking::Client::builder()
-        .user_agent("nimi-video-food-map/0.1 (local desktop app)")
-        .build()
-    {
+    let key = amap_web_key();
+    if key.is_empty() {
+        return GeocodeOutcome {
+            provider: GEOCODER_PROVIDER.to_string(),
+            status: "failed".to_string(),
+            query: normalized.to_string(),
+            latitude: None,
+            longitude: None,
+        };
+    }
+
+    let client = match build_http_client() {
         Ok(client) => client,
         Err(_) => {
             return GeocodeOutcome {
@@ -238,13 +283,20 @@ pub fn geocode_address(query: &str) -> GeocodeOutcome {
         }
     };
 
+    let city = amap_default_city();
+
     let response = client
-        .get("https://nominatim.openstreetmap.org/search")
-        .query(&[("format", "jsonv2"), ("limit", "1"), ("q", normalized)])
+        .get(AMAP_GEOCODE_ENDPOINT)
+        .query(&[
+            ("key", key.as_str()),
+            ("address", normalized),
+            ("output", "json"),
+            ("city", city.as_str()),
+        ])
         .send();
 
     let rows = match response.and_then(|result| result.error_for_status()) {
-        Ok(response) => response.json::<Vec<NominatimRow>>(),
+        Ok(response) => response.json::<AmapGeocodeResponse>(),
         Err(_) => {
             return GeocodeOutcome {
                 provider: GEOCODER_PROVIDER.to_string(),
@@ -257,11 +309,13 @@ pub fn geocode_address(query: &str) -> GeocodeOutcome {
     };
 
     match rows {
-        Ok(rows) => {
-            let first = rows.first();
-            let latitude = first.and_then(|row| row.lat.parse::<f64>().ok());
-            let longitude = first.and_then(|row| row.lon.parse::<f64>().ok());
-            let status = if latitude.is_some() && longitude.is_some() {
+        Ok(payload) => {
+            let first = payload.geocodes.as_ref().and_then(|rows| rows.first());
+            let (latitude, longitude) = first
+                .map(|row| split_amap_location(&row.location))
+                .unwrap_or((None, None));
+            let status = if payload.status.trim() == "1" && latitude.is_some() && longitude.is_some()
+            {
                 "resolved"
             } else {
                 "failed"
@@ -269,7 +323,11 @@ pub fn geocode_address(query: &str) -> GeocodeOutcome {
             GeocodeOutcome {
                 provider: GEOCODER_PROVIDER.to_string(),
                 status: status.to_string(),
-                query: normalized.to_string(),
+                query: if city.is_empty() {
+                    normalized.to_string()
+                } else {
+                    format!("{city} {normalized}")
+                },
                 latitude,
                 longitude,
             }

@@ -5,7 +5,29 @@ mod desktop_paths;
 mod probe;
 mod runtime_daemon;
 
+use std::env;
+use std::path::PathBuf;
 use std::thread;
+
+fn load_dotenv_files() {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let repo_root = match manifest_dir.join("../../..").canonicalize() {
+        Ok(path) => path,
+        Err(_) => return,
+    };
+
+    for path in [repo_root.join(".env"), repo_root.join(".env.local")] {
+        let Ok(iter) = dotenvy::from_path_iter(&path) else {
+            continue;
+        };
+        for item in iter.flatten() {
+            let (key, value) = item;
+            if key.starts_with("NIMI_") || key.starts_with("VITE_") {
+                env::set_var(key, value);
+            }
+        }
+    }
+}
 
 fn explain_import_error(error: &str) -> String {
     let normalized = error.trim();
@@ -74,6 +96,7 @@ fn video_food_map_import_video(url: String) -> Result<db::ImportRecord, String> 
 }
 
 fn main() {
+    load_dotenv_files();
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             video_food_map_snapshot,

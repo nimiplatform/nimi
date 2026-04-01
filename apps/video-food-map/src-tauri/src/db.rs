@@ -655,7 +655,6 @@ fn address_is_specific(address_text: &str) -> bool {
 
 fn resolve_review_state(input: &VenueInput, geocode: &GeocodeOutcome) -> String {
     if geocode.status == "resolved"
-        && !input.needs_review
         && input.confidence.trim() != "low"
         && !input.venue_name.trim().is_empty()
         && address_is_specific(&input.address_text)
@@ -686,7 +685,7 @@ fn replace_venues(conn: &Connection, import_id: &str, venues: &[VenueInput]) -> 
         let geocode =
             if venue.address_text.trim().is_empty() || !address_is_specific(&venue.address_text) {
                 GeocodeOutcome {
-                    provider: "nominatim".to_string(),
+                    provider: "amap".to_string(),
                     status: "skipped".to_string(),
                     query: if address_is_specific(&venue.address_text) {
                         String::new()
@@ -944,7 +943,7 @@ mod tests {
     #[test]
     fn resolved_geocode_stays_in_review_when_address_is_vague() {
         let geocode = GeocodeOutcome {
-            provider: "nominatim".to_string(),
+            provider: "amap".to_string(),
             status: "resolved".to_string(),
             query: "炭火小馆 天河城商圈".to_string(),
             latitude: Some(23.0),
@@ -954,5 +953,19 @@ mod tests {
             resolve_review_state(&sample_input("天河城商圈"), &geocode),
             "search_only"
         );
+    }
+
+    #[test]
+    fn resolved_precise_address_can_map_even_if_record_still_needs_review() {
+        let mut input = sample_input("上海市静安区茂名北路68号");
+        input.needs_review = true;
+        let geocode = GeocodeOutcome {
+            provider: "amap".to_string(),
+            status: "resolved".to_string(),
+            query: "上海市静安区茂名北路68号".to_string(),
+            latitude: Some(31.227),
+            longitude: Some(121.459),
+        };
+        assert_eq!(resolve_review_state(&input, &geocode), "map_ready");
     }
 }

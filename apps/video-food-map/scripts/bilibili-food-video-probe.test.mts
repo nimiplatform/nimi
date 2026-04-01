@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   buildTranscriptionSegments,
+  containsLikelyTraditionalChinese,
   extractBvid,
   resolveSttModel,
   computeExtractionCoverage,
@@ -44,6 +45,13 @@ test('extractBvid supports full bilibili urls', () => {
 
 test('extractBvid supports raw bvid input', () => {
   assert.equal(extractBvid('BV1P2Awz6EUQ'), 'BV1P2Awz6EUQ');
+});
+
+test('containsLikelyTraditionalChinese detects obvious traditional-only characters', () => {
+  assert.equal(containsLikelyTraditionalChinese('从化田边村新村'), false);
+  assert.equal(containsLikelyTraditionalChinese('從化田邊村新村'), true);
+  assert.equal(containsLikelyTraditionalChinese('肉肠粉'), false);
+  assert.equal(containsLikelyTraditionalChinese('肉腸粉'), true);
 });
 
 test('resolveSttModel keeps configured stt model for long audio when no long-audio override exists', () => {
@@ -134,7 +142,7 @@ test('filterCommentCluesForExtraction keeps venue and address hints from public 
       },
       {
         rpid: 2,
-        like: 1,
+        like: 0,
         ctime: 1_712_345_600,
         member: { uname: '路人乙' },
         content: { message: '这个视频拍得不错。' },
@@ -201,4 +209,86 @@ test('filterCommentCluesForExtraction keeps comment-only venue names for cross-c
   });
   assert.equal(clues.length, 1);
   assert.deepEqual(clues[0]?.matchedVenueNames, ['文联文兴小食店', '荔蜜园餐厅']);
+});
+
+test('filterCommentCluesForExtraction drops obvious ask-only and chat-only noise', () => {
+  const clues = filterCommentCluesForExtraction({
+    extractionJson: {
+      venues: [
+        {
+          venue_name: '',
+        },
+      ],
+    },
+    comments: [
+      {
+        rpid: 4,
+        like: 1,
+        ctime: 1_712_345_900,
+        member: { uname: '路人甲' },
+        content: { message: '求店名' },
+      },
+      {
+        rpid: 5,
+        like: 1,
+        ctime: 1_712_345_901,
+        member: { uname: '路人乙' },
+        content: { message: '求咩酒店' },
+      },
+      {
+        rpid: 6,
+        like: 3,
+        ctime: 1_712_345_902,
+        member: { uname: '吃咩啊啊' },
+        content: { message: '本期：文联文兴小食店 荔蜜园餐厅 我做了地图。' },
+      },
+    ],
+  });
+  assert.equal(clues.length, 1);
+  assert.deepEqual(clues[0]?.matchedVenueNames, ['文联文兴小食店', '荔蜜园餐厅']);
+});
+
+test('filterCommentCluesForExtraction keeps liked generic comments in the wider candidate pool', () => {
+  const clues = filterCommentCluesForExtraction({
+    extractionJson: {
+      venues: [
+        {
+          venue_name: '',
+        },
+      ],
+    },
+    comments: [
+      {
+        rpid: 7,
+        like: 3,
+        ctime: 1_712_345_903,
+        member: { uname: '路人丙' },
+        content: { message: '这一家牛腩面看起来真的很不错，下次去从化想试试。' },
+      },
+    ],
+  });
+  assert.equal(clues.length, 1);
+  assert.equal(clues[0]?.message, '这一家牛腩面看起来真的很不错，下次去从化想试试。');
+});
+
+test('filterCommentCluesForExtraction still drops zero-like generic chatter', () => {
+  const clues = filterCommentCluesForExtraction({
+    extractionJson: {
+      venues: [
+        {
+          venue_name: '',
+        },
+      ],
+    },
+    comments: [
+      {
+        rpid: 8,
+        like: 0,
+        ctime: 1_712_345_904,
+        member: { uname: '路人丁' },
+        content: { message: '这一家牛腩面看起来真的很不错，下次去从化想试试。' },
+      },
+    ],
+  });
+  assert.equal(clues.length, 0);
 });

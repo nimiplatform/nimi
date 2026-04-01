@@ -132,6 +132,18 @@ export type CommentClue = {
   addressHint: string;
 };
 
+export type CommentScreeningRecord = {
+  commentId: string;
+  authorName: string;
+  message: string;
+  likeCount: number;
+  publishedAt: string;
+  matchedVenueNames: string[];
+  addressHint: string;
+  keep: boolean;
+  reason: string;
+};
+
 type ReplyApiMember = {
   uname?: string;
 };
@@ -184,6 +196,9 @@ const MCDN_HOST_PATTERN = /\.mcdn\.bilivideo\.cn/u;
 const DEFAULT_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36';
 const DEFAULT_REFERER = 'https://www.bilibili.com/';
 const DEFAULT_MAX_COMMENT_CROSSCHECK = 10;
+const LIKELY_TRADITIONAL_ONLY_CHARS = new Set([
+  ...'萬與專業叢東絲兩嚴喪個豐臨為麗舉麼義烏樂喬習鄉書買亂乾爭於虧雲亞產畝親褻見觀規覺覽觸計訊討讓訓議謝識證評話該詳誠語說讀調誰課請諸諾貝負財責貢貨販貧貴貸費貿賀資賓賴趙趕車軟轉輪辦這邊遙遞遠遷還郵鄧鄭鄰醫釀釋針鈣鈴鈦銀銅銘鋪錄錢錯鎮長門開間閃閉問闆陽陰際難從邊邏溫腸彈廣興偉發條區嗎對點幾價聽個數學嚟邊腸溫鎮廣場樓號補證雞麵館飲邊農莊餐廳點樣裡麵體灣灣燒雞氣廚餸鹹鮮雞豬腳飯麪館餃蝦蝦餅餵'.split(''),
+]);
 
 function readArg(flag: string, argv: string[] = process.argv): string {
   const index = argv.indexOf(flag);
@@ -389,6 +404,16 @@ function normalizeForCompare(value: string): string {
   return String(value || '').trim().toLowerCase().replace(/\s+/gu, '');
 }
 
+export function containsLikelyTraditionalChinese(value: unknown): boolean {
+  const text = String(value || '');
+  for (const ch of text) {
+    if (LIKELY_TRADITIONAL_ONLY_CHARS.has(ch)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function formatPublishedAt(timestampSec: number): string {
   if (!Number.isFinite(timestampSec) || timestampSec <= 0) {
     return '';
@@ -468,6 +493,21 @@ function readVenueNameCandidates(extractionJson: Record<string, unknown> | null)
     .filter(Boolean);
 }
 
+function isLikelyVenueNameHint(value: string): boolean {
+  const normalized = String(value || '').trim();
+  if (!normalized) {
+    return false;
+  }
+  const blockedPrefixes = ['求', '问', '請問', '请问', '有冇', '有没有', '系咪', '是不是', '住咩', '住乜', '哪家', '邊間', '边间'];
+  if (blockedPrefixes.some((prefix) => normalized.startsWith(prefix))) {
+    return false;
+  }
+  if (normalized.includes('店名') || normalized.includes('酒店名')) {
+    return false;
+  }
+  return true;
+}
+
 function extractVenueNameHintsFromComment(message: string): string[] {
   const normalized = String(message || '').replace(/\s+/gu, ' ').trim();
   if (!normalized) {
@@ -476,7 +516,7 @@ function extractVenueNameHintsFromComment(message: string): string[] {
   const pattern = /([\u4e00-\u9fa5A-Za-z0-9]{2,24}(?:小食店|餐厅|农庄|酒店|酒楼|饭店|面馆|粉店|茶餐厅|烧腊店|烧鹅店|烧烤店|甜品店|咖啡店|大排档|食店|食府|茶档|排档))/gu;
   const matches = [...normalized.matchAll(pattern)]
     .map((entry) => String(entry[1] || '').trim())
-    .filter(Boolean);
+    .filter((entry) => Boolean(entry) && isLikelyVenueNameHint(entry));
   return [...new Set(matches)];
 }
 
@@ -485,8 +525,34 @@ function hasCrossCheckCue(message: string): boolean {
   if (!normalized) {
     return false;
   }
-  const markers = ['本期', '店名', '地址', '具体地址', '导航', '到店', '地图', '就在', '斜对面', '楼下', '附近'];
+  const markers = ['本期', '具体地址', '导航', '到店', '地图', '就在', '斜对面', '楼下'];
   return markers.some((marker) => normalized.includes(marker));
+}
+
+function hasUsefulCommentBody(message: string): boolean {
+  const normalized = String(message || '').replace(/\s+/gu, ' ').trim();
+  if (!normalized) {
+    return false;
+  }
+  if (normalized.length < 4) {
+    return false;
+  }
+  return /[\u4e00-\u9fa5A-Za-z0-9]/u.test(normalized);
+}
+
+function isLikelyNoiseComment(message: string): boolean {
+  const normalized = String(message || '').replace(/\s+/gu, ' ').trim();
+  if (!normalized) {
+    return true;
+  }
+  const exactNoise = ['求店名', '求咩酒店', '求什么酒店', '求酒店名', '住咩酒店', '唔会', '老乡'];
+  if (exactNoise.includes(normalized)) {
+    return true;
+  }
+  if (normalized.length <= 8 && (normalized.startsWith('求') || normalized.startsWith('问'))) {
+    return true;
+  }
+  return false;
 }
 
 function buildCommentClue(input: {
@@ -497,6 +563,9 @@ function buildCommentClue(input: {
   if (!message) {
     return null;
   }
+  if (isLikelyNoiseComment(message)) {
+    return null;
+  }
   const normalizedMessage = normalizeForCompare(message);
   const matchedKnownVenueNames = input.knownVenueNames.filter((venueName) =>
     normalizedMessage.includes(normalizeForCompare(venueName)),
@@ -504,7 +573,11 @@ function buildCommentClue(input: {
   const extractedVenueHints = extractVenueNameHintsFromComment(message);
   const matchedVenueNames = [...new Set([...matchedKnownVenueNames, ...extractedVenueHints])];
   const addressHint = extractAddressHintFromComment(message);
-  const shouldKeep = matchedVenueNames.length > 0 || Boolean(addressHint) || hasCrossCheckCue(message);
+  const likeCount = Number(input.comment.like || 0);
+  const shouldKeep = matchedVenueNames.length > 0
+    || Boolean(addressHint)
+    || hasCrossCheckCue(message)
+    || (likeCount > 0 && hasUsefulCommentBody(message));
   if (!shouldKeep) {
     return null;
   }
@@ -512,23 +585,103 @@ function buildCommentClue(input: {
     commentId: String(input.comment.rpid || '').trim(),
     authorName: String(input.comment.member?.uname || '').trim(),
     message,
-    likeCount: Number(input.comment.like || 0),
+    likeCount,
     publishedAt: formatPublishedAt(Number(input.comment.ctime || 0)),
     matchedVenueNames,
     addressHint,
   };
 }
 
+export function screenCommentsForExtraction(input: {
+  extractionJson: Record<string, unknown> | null;
+  comments: ReplyApiItem[];
+}): CommentScreeningRecord[] {
+  const knownVenueNames = readVenueNameCandidates(input.extractionJson);
+  return input.comments.map((comment) => {
+    const message = String(comment.content?.message || '').replace(/\s+/gu, ' ').trim();
+    const likeCount = Number(comment.like || 0);
+    const publishedAt = formatPublishedAt(Number(comment.ctime || 0));
+    const authorName = String(comment.member?.uname || '').trim();
+    const commentId = String(comment.rpid || '').trim();
+
+    if (!message) {
+      return {
+        commentId,
+        authorName,
+        message,
+        likeCount,
+        publishedAt,
+        matchedVenueNames: [],
+        addressHint: '',
+        keep: false,
+        reason: '空评论',
+      };
+    }
+
+    if (isLikelyNoiseComment(message)) {
+      return {
+        commentId,
+        authorName,
+        message,
+        likeCount,
+        publishedAt,
+        matchedVenueNames: [],
+        addressHint: '',
+        keep: false,
+        reason: '明显噪声',
+      };
+    }
+
+    const normalizedMessage = normalizeForCompare(message);
+    const matchedKnownVenueNames = knownVenueNames.filter((venueName) =>
+      normalizedMessage.includes(normalizeForCompare(venueName)),
+    );
+    const extractedVenueHints = extractVenueNameHintsFromComment(message);
+    const matchedVenueNames = [...new Set([...matchedKnownVenueNames, ...extractedVenueHints])];
+    const addressHint = extractAddressHintFromComment(message);
+    const hasCue = hasCrossCheckCue(message);
+    const likedGeneric = likeCount > 0 && hasUsefulCommentBody(message);
+    const keep = matchedVenueNames.length > 0 || Boolean(addressHint) || hasCue || likedGeneric;
+    let reason = '无明显线索';
+    if (matchedVenueNames.length > 0) {
+      reason = '命中店名';
+    } else if (addressHint) {
+      reason = '命中地址';
+    } else if (hasCue) {
+      reason = '命中强线索词';
+    } else if (likedGeneric) {
+      reason = '点赞评论进入候选池';
+    }
+
+    return {
+      commentId,
+      authorName,
+      message,
+      likeCount,
+      publishedAt,
+      matchedVenueNames,
+      addressHint,
+      keep,
+      reason,
+    };
+  });
+}
+
 export function filterCommentCluesForExtraction(input: {
   extractionJson: Record<string, unknown> | null;
   comments: ReplyApiItem[];
 }): CommentClue[] {
-  const clues = input.comments
-    .map((comment) => buildCommentClue({
-      comment,
-      knownVenueNames: readVenueNameCandidates(input.extractionJson),
-    }))
-    .filter((item): item is CommentClue => Boolean(item));
+  const clues = screenCommentsForExtraction(input)
+    .filter((item) => item.keep)
+    .map((item) => ({
+      commentId: item.commentId,
+      authorName: item.authorName,
+      message: item.message,
+      likeCount: item.likeCount,
+      publishedAt: item.publishedAt,
+      matchedVenueNames: item.matchedVenueNames,
+      addressHint: item.addressHint,
+    }));
 
   const deduped = new Map<string, CommentClue>();
   for (const clue of clues) {
@@ -540,8 +693,16 @@ export function filterCommentCluesForExtraction(input: {
 
   return [...deduped.values()]
     .sort((left, right) => {
-      const leftScore = (left.matchedVenueNames.length * 10) + (left.addressHint ? 6 : 0) + Math.min(left.likeCount, 20);
-      const rightScore = (right.matchedVenueNames.length * 10) + (right.addressHint ? 6 : 0) + Math.min(right.likeCount, 20);
+      const leftScore = (left.matchedVenueNames.length * 20)
+        + (left.addressHint ? 12 : 0)
+        + (hasCrossCheckCue(left.message) ? 8 : 0)
+        + Math.min(left.likeCount, 20)
+        + Math.min(Math.floor(left.message.length / 24), 4);
+      const rightScore = (right.matchedVenueNames.length * 20)
+        + (right.addressHint ? 12 : 0)
+        + (hasCrossCheckCue(right.message) ? 8 : 0)
+        + Math.min(right.likeCount, 20)
+        + Math.min(Math.floor(right.message.length / 24), 4);
       if (rightScore !== leftScore) {
         return rightScore - leftScore;
       }
@@ -617,13 +778,18 @@ async function normalizeExtractionJsonToSimplified(input: {
   if (!input.extractionJson) {
     return null;
   }
+  if (!containsLikelyTraditionalChinese(JSON.stringify(input.extractionJson))) {
+    return input.extractionJson;
+  }
 
   const normalized = await input.runtime.ai.text.generate({
     model: input.textModel,
     input: [
-      '把下面这个 JSON 里的中文内容统一改成简体中文。',
-      '不要改键名、结构、英文值、数字、布尔值或数组层级。',
-      '如果原文已经是简体，保持不变。',
+      '把下面这个 JSON 里的所有中文内容统一改成简体中文。',
+      '这一步只做字形转换和极少量口语收口，不要改键名、结构、英文值、数字、布尔值、数组层级，也不要增删任何字段。',
+      '如果原文里有粤语口语，可以保留原意，但字形必须改成简体。',
+      '不要保留任何繁体字。请逐项检查所有字符串。',
+      '示例：從化->从化，田邊村->田边村，肉腸粉->肉肠粉，溫泉鎮->温泉镇。',
       '只输出 JSON，不要输出解释。',
       '',
       JSON.stringify(input.extractionJson, null, 2),
@@ -666,7 +832,8 @@ function buildCommentCrossCheckPrompt(input: {
     '如果评论之间互相冲突，或者和视频内容冲突，要保留 needs_review=true，并把冲突写进 uncertain_points。',
     'evidence 里可以加入“评论补充：...”这样的句子，保留原始线索。',
     '输出必须是 JSON 对象，不要输出任何解释。',
-    '所有中文字段一律使用简体中文输出。',
+    '所有中文字段一律使用简体中文输出，并且尽量使用简单直白的中文表达。',
+    '即使转写内容或评论原文里出现繁体字，最终输出也必须统一改成简体中文，不要保留繁体字。',
     '保持 JSON 结构不变：video_summary / venues / uncertain_points。',
     '',
     '视频元信息：',
@@ -736,7 +903,7 @@ function buildFoodExtractionPrompt(input: {
     '你是一个严格的信息提取助手，只能根据给定内容提取，不允许猜测。',
     '任务：从一条美食视频的转写里提取被明确推荐的店和菜。',
     '输出必须是 JSON 对象，不要输出任何额外解释。',
-    '所有中文字段一律使用简体中文输出。',
+    '所有中文字段一律使用简体中文输出，并且尽量使用简单直白的中文表达。',
     'JSON 结构：',
     '{',
     '  "video_summary": "一句话总结这条视频主要在吃什么",',
@@ -760,7 +927,7 @@ function buildFoodExtractionPrompt(input: {
     '2. 店名、地址、菜系、口味拿不准时可以留空，但不要编造。',
     '3. 只要店名、推荐菜、证据三者缺一，就把 needs_review 设为 true。',
     '4. 如果同一视频提到多家店，必须拆成多个 venue 对象。',
-    '5. 输出里的中文不要使用繁体字。',
+    '5. 输出里的中文不要使用繁体字；如果原文是繁体，也要统一改成简体。',
     '',
     '视频元信息：',
     metadataBlock,
@@ -1220,11 +1387,7 @@ async function transcribeAndExtract(input: {
   });
   const extractionRaw = String(extracted.text || '').trim();
   const parsedExtractionJson = extractJsonObject(extractionRaw);
-  const baseExtractionJson = await normalizeExtractionJsonToSimplified({
-    runtime,
-    textModel,
-    extractionJson: parsedExtractionJson,
-  });
+  const baseExtractionJson = parsedExtractionJson;
   const rawComments = await fetchPublicComments(input.metadata.aid).catch(() => []);
   const crossCheckComments = filterCommentCluesForExtraction({
     extractionJson: baseExtractionJson,
