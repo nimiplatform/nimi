@@ -99,23 +99,24 @@ async function loadLocalModels(
   runtime: PlatformClient['runtime'],
   capability = 'text.generate',
 ): Promise<RelayLocalModelOption[]> {
-  const response = await runtime.local.listLocalModels({} as Parameters<typeof runtime.local.listLocalModels>[0]);
-  const models = response.models || [];
-  return models
-    .map((model) => {
-      const capabilities = model.capabilities.map(normalizeCapability);
+  const response = await runtime.local.listLocalAssets({} as Parameters<typeof runtime.local.listLocalAssets>[0]);
+  const assets = response.assets || [];
+  return assets
+    .map((asset) => {
+      const capabilities = asset.capabilities.map(normalizeCapability);
       return {
-        localModelId: model.localModelId,
-        modelId: model.modelId,
-        engine: model.engine || 'llama',
-        status: mapStatus(model.status),
+        localModelId: asset.localAssetId,
+        modelId: asset.logicalModelId || asset.assetId,
+        engine: asset.engine || 'llama',
+        status: mapStatus(asset.status),
         capabilities,
       };
     })
     .filter((model) => (
-      !capability || model.capabilities.includes(capability)
+      model.status !== 'removed'
+      && (!capability || model.capabilities.includes(capability))
     ))
-    .sort((a, b) => {
+    .sort((a: RelayLocalModelOption, b: RelayLocalModelOption) => {
       const rankDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
       if (rankDiff !== 0) return rankDiff;
       return a.localModelId.localeCompare(b.localModelId);

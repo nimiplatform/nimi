@@ -170,11 +170,6 @@ describe('normalizeLocalChatInspectSettings', () => {
       imageRouteSource: 'local',
       imageLocalModelId: '  local-image-1  ',
       imageModel: '  flux-local-dev  ',
-      imageWorkflowComponents: [
-        { slot: '  vae_path  ', localArtifactId: '  artifact-vae-1  ' },
-        { slot: '', localArtifactId: 'artifact-empty-slot' },
-        { slot: 'clip_path', localArtifactId: '' },
-      ],
       imageProfileOverrides: {
         scheduler: 'ddim',
       },
@@ -183,23 +178,14 @@ describe('normalizeLocalChatInspectSettings', () => {
     assert.equal(result.imageRouteSource, 'local');
     assert.equal(result.imageLocalModelId, 'local-image-1');
     assert.equal(result.imageModel, 'flux-local-dev');
-    assert.deepEqual(result.imageWorkflowComponents, [
-      { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
-    ]);
     assert.deepEqual(result.imageProfileOverrides, { scheduler: 'ddim' });
   });
 
-  it('drops invalid local image workflow objects and empty profile overrides', () => {
+  it('drops empty profile overrides', () => {
     const result = normalizeLocalChatInspectSettings({
-      imageWorkflowComponents: [
-        null,
-        { slot: 'vae_path' },
-        { localArtifactId: 'artifact-vae-1' },
-      ],
       imageProfileOverrides: {},
     });
 
-    assert.deepEqual(result.imageWorkflowComponents, []);
     assert.equal(result.imageProfileOverrides, null);
   });
 

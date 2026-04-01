@@ -128,7 +128,7 @@ const api: NimiRelayBridge = {
   },
   local: {
     listModels: (input) => invoke('relay:local:models:list', input),
-    listArtifacts: (input) => invoke('relay:local:artifacts:list', input),
+    listAssets: (input) => invoke('relay:local:assets:list', input),
     listVerifiedModels: (input) => invoke('relay:local:models:verified', input),
     searchCatalog: (input) => invoke('relay:local:models:catalog-search', input),
     resolveInstallPlan: (input) => invoke('relay:local:models:install-plan', input),

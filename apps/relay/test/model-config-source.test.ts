@@ -58,15 +58,7 @@ describe('image settings source regressions', () => {
     );
   });
 
-  it('loads installed local artifacts for explicit workflow component selection', () => {
-    assert.ok(
-      settingsDrawerSource.includes('getBridge().local.listArtifacts('),
-      'settings drawer should query installed local artifacts',
-    );
-    assert.ok(
-      settingsDrawerSource.includes('imageWorkflowComponents'),
-      'settings drawer should edit explicit image workflow components',
-    );
+  it('exposes profile override editing for local image workflows', () => {
     assert.ok(
       settingsDrawerSource.includes('profileOverrides'),
       'settings drawer should expose profile override editing',

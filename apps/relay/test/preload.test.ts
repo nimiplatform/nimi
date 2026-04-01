@@ -60,8 +60,8 @@ describe('RL-IPC-004 — Preload Security Boundary', () => {
 
   it('exposes typed local artifact listing and media route option methods through preload', () => {
     assert.ok(
-      preloadSource.includes("listArtifacts: (input) => invoke('relay:local:artifacts:list', input)"),
-      'preload should expose relay:local:artifacts:list',
+      preloadSource.includes("listAssets: (input) => invoke('relay:local:assets:list', input)"),
+      'preload should expose relay:local:assets:list',
     );
     assert.ok(
       preloadSource.includes("getOptions: (input) => invoke('relay:media-route:options', input)"),

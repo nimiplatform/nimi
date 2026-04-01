@@ -22,11 +22,6 @@ export const LOCAL_CHAT_TTS_VOICE_OPTIONS = [
 
 export type LocalChatBooleanSettingKey = 'allowProactiveContact' | 'autoPlayVoiceReplies';
 
-export type LocalImageWorkflowComponent = {
-  slot: string;
-  localArtifactId: string;
-};
-
 export type LocalChatProductSettings = {
   mediaAutonomy: LocalChatMediaAutonomy;
   voiceAutonomy: LocalChatVoiceAutonomy;
@@ -50,7 +45,6 @@ export type LocalChatInspectSettings = {
   imageConnectorId: string;
   imageModel: string;
   imageLocalModelId: string;
-  imageWorkflowComponents: LocalImageWorkflowComponent[];
   imageProfileOverrides: JsonObject | null;
   videoRouteSource: 'auto' | 'local' | 'cloud';
   videoConnectorId: string;
@@ -91,7 +85,6 @@ export const DEFAULT_LOCAL_CHAT_INSPECT_SETTINGS: LocalChatInspectSettings = {
   imageConnectorId: '',
   imageModel: '',
   imageLocalModelId: '',
-  imageWorkflowComponents: [],
   imageProfileOverrides: null,
   videoRouteSource: 'auto',
   videoConnectorId: '',
@@ -184,7 +177,6 @@ export function normalizeLocalChatInspectSettings(value: unknown): LocalChatInsp
   const imageConnectorId = String(record.imageConnectorId || '').trim();
   const imageModel = String(record.imageModel || '').trim();
   const imageLocalModelId = String(record.imageLocalModelId || '').trim();
-  const imageWorkflowComponents = normalizeImageWorkflowComponents(record.imageWorkflowComponents);
   const imageProfileOverrides = normalizeImageProfileOverrides(record.imageProfileOverrides);
   const videoConnectorId = String(record.videoConnectorId || '').trim();
   const videoModel = String(record.videoModel || '').trim();
@@ -202,7 +194,6 @@ export function normalizeLocalChatInspectSettings(value: unknown): LocalChatInsp
     imageConnectorId,
     imageModel,
     imageLocalModelId,
-    imageWorkflowComponents,
     imageProfileOverrides,
     videoRouteSource,
     videoConnectorId,
@@ -231,26 +222,6 @@ export function mergeLocalChatSettings(settings: LocalChatSettings): LocalChatDe
     ...settings.inspect,
     enableVoice: resolveLocalChatVoiceEnabled(settings.product),
   };
-}
-
-function normalizeImageWorkflowComponents(value: unknown): LocalImageWorkflowComponent[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .map((item) => {
-      if (!item || typeof item !== 'object' || Array.isArray(item)) {
-        return null;
-      }
-      const record = item as Record<string, unknown>;
-      const slot = String(record.slot || '').trim();
-      const localArtifactId = String(record.localArtifactId || '').trim();
-      if (!slot || !localArtifactId) {
-        return null;
-      }
-      return { slot, localArtifactId };
-    })
-    .filter((item): item is LocalImageWorkflowComponent => item !== null);
 }
 
 function normalizeImageProfileOverrides(value: unknown): JsonObject | null {

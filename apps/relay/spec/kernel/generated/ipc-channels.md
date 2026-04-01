@@ -63,7 +63,7 @@
 | `relay:model:remove` | unary | model | `runtime.model.remove` | RL-IPC-010 |
 | `relay:model:health` | unary | model | `runtime.model.checkHealth` | RL-IPC-010 |
 | `relay:local:models:list` | unary | local | `runtime.local.listLocalModels` | RL-IPC-011 |
-| `relay:local:artifacts:list` | unary | local | `runtime.local.listLocalArtifacts` | RL-IPC-011 |
+| `relay:local:assets:list` | unary | local | `runtime.local.listLocalAssets` | RL-IPC-011 |
 | `relay:local:models:verified` | unary | local | `runtime.local.listVerifiedModels` | RL-IPC-011 |
 | `relay:local:models:catalog-search` | unary | local | `runtime.local.searchCatalogModels` | RL-IPC-011 |
 | `relay:local:models:install-plan` | unary | local | `runtime.local.resolveModelInstallPlan` | RL-IPC-011 |

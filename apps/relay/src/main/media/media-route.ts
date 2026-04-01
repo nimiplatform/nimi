@@ -1,4 +1,3 @@
-import { buildLocalImageWorkflowExtensions } from '@nimiplatform/sdk/runtime';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { JsonObject } from '../../shared/json.js';
 import type { LocalChatResolvedMediaRoute } from '../chat-pipeline/types.js';
@@ -153,14 +152,14 @@ export function resolveMediaRouteConfig(input: {
 export function resolveConfiguredImageWorkflowExtensions(
   settings: LocalChatDefaultSettings,
 ): JsonObject | undefined {
-  const extensions = buildLocalImageWorkflowExtensions({
-    components: settings.imageWorkflowComponents,
-    ...(settings.imageProfileOverrides ? { profileOverrides: settings.imageProfileOverrides } : {}),
-  });
+  const extensions: Record<string, unknown> = {};
+  if (settings.imageProfileOverrides && typeof settings.imageProfileOverrides === 'object') {
+    Object.assign(extensions, settings.imageProfileOverrides);
+  }
   if (Object.keys(extensions).length === 0) {
     return undefined;
   }
-  return extensions;
+  return extensions as JsonObject;
 }
 
 export function resolveConfiguredImageGenerateTarget(
@@ -197,13 +196,6 @@ export function resolveConfiguredImageGenerateTarget(
       );
     }
     const extensions = resolveConfiguredImageWorkflowExtensions(settings);
-    if (!extensions?.components || !Array.isArray(extensions.components) || extensions.components.length === 0) {
-      throw createRelayMediaRouteError(
-        'local media workflow requires explicit companion artifact selections via components[]',
-        ReasonCode.AI_INPUT_INVALID,
-        'select_local_image_companions',
-      );
-    }
     return {
       routeSource: 'local',
       model: `local/${model}`,

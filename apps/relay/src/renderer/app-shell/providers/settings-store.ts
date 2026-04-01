@@ -5,11 +5,6 @@ import { create } from 'zustand';
 import { getBridge } from '../../bridge/electron-bridge.js';
 import type { JsonObject } from '../../../shared/json.js';
 
-export type ImageWorkflowComponent = {
-  slot: string;
-  localArtifactId: string;
-};
-
 export type MediaAutonomy = 'off' | 'explicit-only' | 'natural';
 export type VoiceAutonomy = 'off' | 'explicit-only' | 'natural';
 export type VisualComfortLevel = 'text-only' | 'restrained-visuals' | 'natural-visuals';
@@ -28,7 +23,6 @@ export interface InspectSettings {
   imageConnectorId: string;
   imageModel: string;
   imageLocalModelId: string;
-  imageWorkflowComponents: ImageWorkflowComponent[];
   imageProfileOverrides: JsonObject | null;
   videoConnectorId: string;
   videoModel: string;
@@ -53,7 +47,6 @@ const DEFAULT_INSPECT_SETTINGS: InspectSettings = {
   imageConnectorId: '',
   imageModel: '',
   imageLocalModelId: '',
-  imageWorkflowComponents: [],
   imageProfileOverrides: null,
   videoConnectorId: '',
   videoModel: '',
@@ -159,22 +152,6 @@ function pickInspectFields(value: unknown): Partial<InspectSettings> {
     if (typeof r[key] === 'string') {
       result[key] = r[key].trim() as InspectSettings[typeof key];
     }
-  }
-  if (Array.isArray(r.imageWorkflowComponents)) {
-    result.imageWorkflowComponents = r.imageWorkflowComponents
-      .map((item) => {
-        if (!item || typeof item !== 'object' || Array.isArray(item)) {
-          return null;
-        }
-        const record = item as Record<string, unknown>;
-        const slot = typeof record.slot === 'string' ? record.slot.trim() : '';
-        const localArtifactId = typeof record.localArtifactId === 'string' ? record.localArtifactId.trim() : '';
-        if (!slot || !localArtifactId) {
-          return null;
-        }
-        return { slot, localArtifactId };
-      })
-      .filter((item): item is ImageWorkflowComponent => item !== null);
   }
   if (r.imageProfileOverrides && typeof r.imageProfileOverrides === 'object' && !Array.isArray(r.imageProfileOverrides)) {
     result.imageProfileOverrides = r.imageProfileOverrides as JsonObject;

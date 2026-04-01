@@ -373,10 +373,10 @@ channels:
     sdk_method: runtime.local.listLocalModels
     source_rule: RL-IPC-011
 
-  - channel: relay:local:artifacts:list
+  - channel: relay:local:assets:list
     type: unary
     module: local
-    sdk_method: runtime.local.listLocalArtifacts
+    sdk_method: runtime.local.listLocalAssets
     source_rule: RL-IPC-011
 
   - channel: relay:local:models:verified

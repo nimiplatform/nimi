@@ -16,12 +16,10 @@ import {
 import { CompactRouteModelPicker } from '@nimiplatform/nimi-kit/features/model-picker/ui';
 import {
   useSettingsStore,
-  type ImageWorkflowComponent,
   type MediaAutonomy,
   type VoiceAutonomy,
   type VisualComfortLevel,
 } from '../../../app-shell/providers/settings-store.js';
-import type { NimiRelayBridge } from '../../../bridge/electron-bridge.js';
 import { createBridgeRouteDataProvider } from '../../model-config/bridge-route-provider.js';
 import { useRelayRoute } from '../../model-config/use-relay-route.js';
 import { getBridge } from '../../../bridge/electron-bridge.js';
@@ -38,17 +36,6 @@ function formatModelDisplayName(raw: string): string {
   return parts.length > 1 ? parts[parts.length - 1]! : raw;
 }
 
-const IMAGE_WORKFLOW_SLOT_PRESETS = ['vae_path', 'llm_path', 'clip_path', 'controlnet_path', 'lora_path'] as const;
-const IMAGE_ARTIFACT_KIND_LABEL: Record<number, string> = {
-  1: 'VAE',
-  2: 'LLM',
-  3: 'CLIP',
-  4: 'ControlNet',
-  5: 'LoRA',
-  6: 'Auxiliary',
-};
-
-type LocalArtifactRecord = Awaited<ReturnType<NimiRelayBridge['local']['listArtifacts']>>['artifacts'][number];
 type LocalImageModelOption = RelayMediaRouteOptionsResponse['local']['models'][number];
 
 // ---------------------------------------------------------------------------
@@ -370,7 +357,6 @@ function ImageModelSettings() {
   const { t } = useTranslation();
   const { inspect, updateInspect } = useSettingsStore();
   const [routeOptions, setRouteOptions] = useState<RelayMediaRouteOptionsResponse | null>(null);
-  const [artifacts, setArtifacts] = useState<LocalArtifactRecord[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [profileOverridesText, setProfileOverridesText] = useState(() => JSON.stringify(inspect.imageProfileOverrides ?? {}, null, 2));
   const [profileOverridesError, setProfileOverridesError] = useState<string | null>(null);
@@ -381,29 +367,17 @@ function ImageModelSettings() {
 
   useEffect(() => {
     let cancelled = false;
-    void Promise.all([
-      getBridge().mediaRoute.getOptions({ capability: 'image.generate' }),
-      getBridge().local.listArtifacts({
-        statusFilter: 0,
-        kindFilter: 0,
-        engineFilter: '',
-        pageSize: 0,
-        pageToken: '',
-      }),
-    ]).then(([mediaOptions, artifactResponse]) => {
-      if (cancelled) return;
-      setRouteOptions(mediaOptions);
-      const nextArtifacts = Array.isArray(artifactResponse.artifacts)
-        ? artifactResponse.artifacts.filter((artifact) => Number(artifact.status ?? 0) !== 4)
-        : [];
-      setArtifacts(nextArtifacts);
-      setLoadError(null);
-    }).catch((error) => {
-      if (cancelled) return;
-      setRouteOptions(null);
-      setArtifacts([]);
-      setLoadError(error instanceof Error ? error.message : 'Failed to load local image settings');
-    });
+    void getBridge().mediaRoute.getOptions({ capability: 'image.generate' })
+      .then((mediaOptions) => {
+        if (cancelled) return;
+        setRouteOptions(mediaOptions);
+        setLoadError(null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setRouteOptions(null);
+        setLoadError(error instanceof Error ? error.message : 'Failed to load image route options');
+      });
     return () => {
       cancelled = true;
     };
@@ -441,33 +415,6 @@ function ImageModelSettings() {
       imageModel: model,
     });
   }, [updateInspect]);
-
-  const handleWorkflowComponentChange = useCallback((index: number, patch: Partial<ImageWorkflowComponent>) => {
-    const next = inspect.imageWorkflowComponents.map((component, currentIndex) => (
-      currentIndex === index
-        ? {
-            slot: (patch.slot ?? component.slot).trim(),
-            localArtifactId: (patch.localArtifactId ?? component.localArtifactId).trim(),
-          }
-        : component
-    ));
-    void updateInspect({ imageWorkflowComponents: next });
-  }, [inspect.imageWorkflowComponents, updateInspect]);
-
-  const handleAddWorkflowComponent = useCallback(() => {
-    void updateInspect({
-      imageWorkflowComponents: [
-        ...inspect.imageWorkflowComponents,
-        { slot: '', localArtifactId: '' },
-      ],
-    });
-  }, [inspect.imageWorkflowComponents, updateInspect]);
-
-  const handleRemoveWorkflowComponent = useCallback((index: number) => {
-    void updateInspect({
-      imageWorkflowComponents: inspect.imageWorkflowComponents.filter((_, currentIndex) => currentIndex !== index),
-    });
-  }, [inspect.imageWorkflowComponents, updateInspect]);
 
   const handleProfileOverridesBlur = useCallback(() => {
     const trimmed = profileOverridesText.trim();
@@ -513,66 +460,15 @@ function ImageModelSettings() {
             onValueChange={handleLocalModelChange}
             options={localModels.map((model: LocalImageModelOption) => ({
               value: model.localModelId,
-              label: `${formatModelDisplayName(model.modelId)} (${model.engine})`,
+              label: formatModelDisplayName(model.modelId),
             }))}
             placeholder={t('settings.selectLocalImageModel', 'Select local image model...')}
             selectClassName="font-normal"
           />
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
-                {t('settings.imageWorkflow', 'Workflow Components')}
-              </p>
-              <button
-                type="button"
-                onClick={handleAddWorkflowComponent}
-                className="rounded-md border border-[color:var(--nimi-border-subtle)] px-2 py-1 text-[12px] text-[color:var(--nimi-text-secondary)] transition-colors hover:border-[color:var(--nimi-text-muted)] hover:text-[color:var(--nimi-text-primary)]"
-              >
-                {t('settings.addComponent', 'Add')}
-              </button>
-            </div>
-
-            {inspect.imageWorkflowComponents.length === 0 ? (
-              <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
-                {t('settings.imageWorkflowHint', 'Select companion artifacts explicitly. Local image generation fails closed without them.')}
-              </p>
-            ) : null}
-
-            {inspect.imageWorkflowComponents.map((component, index) => (
-              <div key={`${component.slot}:${component.localArtifactId}:${index}`} className="rounded-xl border border-[color:var(--nimi-border-subtle)] p-3">
-                <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
-                  <input
-                    value={component.slot}
-                    onChange={(event) => handleWorkflowComponentChange(index, { slot: event.target.value })}
-                    list={`image-workflow-slot-${index}`}
-                    placeholder={t('settings.imageWorkflowSlot', 'slot')}
-                    className="h-10 rounded-lg border border-[color:var(--nimi-border-subtle)] bg-transparent px-3 text-[13px] text-[color:var(--nimi-text-primary)] outline-none transition-colors focus:border-[color:var(--nimi-action-primary-bg)]"
-                  />
-                  <datalist id={`image-workflow-slot-${index}`}>
-                    {IMAGE_WORKFLOW_SLOT_PRESETS.map((slot) => <option key={slot} value={slot} />)}
-                  </datalist>
-                  <SelectField
-                    value={component.localArtifactId || undefined}
-                    onValueChange={(value) => handleWorkflowComponentChange(index, { localArtifactId: value })}
-                    options={artifacts.map((artifact) => ({
-                      value: String(artifact.localArtifactId || ''),
-                      label: formatArtifactOptionLabel(artifact),
-                    })).filter((option) => option.value)}
-                    placeholder={t('settings.selectArtifact', 'Select artifact...')}
-                    selectClassName="font-normal"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveWorkflowComponent(index)}
-                    className="rounded-lg border border-[color:var(--nimi-border-subtle)] px-3 py-2 text-[12px] text-[color:var(--nimi-text-secondary)] transition-colors hover:border-[var(--nimi-status-danger)] hover:text-[var(--nimi-status-danger)]"
-                  >
-                    {t('settings.removeComponent', 'Remove')}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="text-[12px] text-[color:var(--nimi-text-muted)]">
+            {t('settings.imageProfileHint', 'Asset slots (VAE, CLIP, LoRA, etc.) are resolved automatically from the active profile.')}
+          </p>
 
           <div className="space-y-2">
             <p className="text-[12px] font-semibold uppercase tracking-[0.15em] text-[color:var(--nimi-text-muted)]">
@@ -582,7 +478,7 @@ function ImageModelSettings() {
               value={profileOverridesText}
               onChange={(event) => setProfileOverridesText(event.target.value)}
               onBlur={handleProfileOverridesBlur}
-              rows={6}
+              rows={4}
               spellCheck={false}
               className="w-full resize-y rounded-xl border border-[color:var(--nimi-border-subtle)] bg-transparent px-3 py-2 text-[12px] leading-relaxed text-[color:var(--nimi-text-primary)] outline-none transition-colors focus:border-[color:var(--nimi-action-primary-bg)]"
             />
@@ -608,17 +504,4 @@ function ImageModelSettings() {
       )}
     </div>
   );
-}
-
-function formatArtifactOptionLabel(artifact: LocalArtifactRecord): string {
-  const artifactId = String(artifact.artifactId || artifact.localArtifactId || '').trim();
-  const kind = IMAGE_ARTIFACT_KIND_LABEL[Number(artifact.kind ?? 0)] || `Kind ${String(artifact.kind ?? '')}`;
-  const engine = String(artifact.engine || '').trim();
-  if (artifactId && engine) {
-    return `${artifactId} (${kind}, ${engine})`;
-  }
-  if (artifactId) {
-    return `${artifactId} (${kind})`;
-  }
-  return kind;
 }

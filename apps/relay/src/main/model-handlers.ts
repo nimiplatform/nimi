@@ -46,15 +46,15 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:list', async (_e, input) => {
     try {
-      return await runtime.local.listLocalModels(input ?? {});
+      return await runtime.local.listLocalAssets(input ?? {});
     } catch (error) {
       throw toIpcError(error);
     }
   });
 
-  safeHandle('relay:local:artifacts:list', async (_e, input) => {
+  safeHandle('relay:local:assets:list', async (_e, input) => {
     try {
-      return await runtime.local.listLocalArtifacts(input ?? {});
+      return await runtime.local.listLocalAssets(input ?? {});
     } catch (error) {
       throw toIpcError(error);
     }
@@ -62,7 +62,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:verified', async (_e, input) => {
     try {
-      return await runtime.local.listVerifiedModels(input ?? {});
+      return await runtime.local.listVerifiedAssets(input ?? {});
     } catch (error) {
       throw toIpcError(error);
     }
@@ -86,7 +86,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:install', async (_e, input) => {
     try {
-      return await runtime.local.installLocalModel(input);
+      return await runtime.local.installVerifiedAsset(input);
     } catch (error) {
       throw toIpcError(error);
     }
@@ -94,7 +94,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:install-verified', async (_e, input) => {
     try {
-      return await runtime.local.installVerifiedModel(input);
+      return await runtime.local.installVerifiedAsset(input);
     } catch (error) {
       throw toIpcError(error);
     }
@@ -102,7 +102,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:import', async (_e, input) => {
     try {
-      return await runtime.local.importLocalModel(input);
+      return await runtime.local.importLocalAsset(input);
     } catch (error) {
       throw toIpcError(error);
     }
@@ -110,7 +110,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:remove', async (_e, input) => {
     try {
-      return await runtime.local.removeLocalModel(input);
+      return await runtime.local.removeLocalAsset(input);
     } catch (error) {
       throw toIpcError(error);
     }
@@ -118,7 +118,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:start', async (_e, input) => {
     try {
-      return await runtime.local.startLocalModel(input);
+      return await runtime.local.startLocalAsset(input);
     } catch (error) {
       throw toIpcError(error);
     }
@@ -126,7 +126,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:stop', async (_e, input) => {
     try {
-      return await runtime.local.stopLocalModel(input);
+      return await runtime.local.stopLocalAsset(input);
     } catch (error) {
       throw toIpcError(error);
     }
@@ -134,7 +134,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:health', async (_e, input) => {
     try {
-      return await runtime.local.checkLocalModelHealth(input);
+      return await runtime.local.checkLocalAssetHealth(input);
     } catch (error) {
       throw toIpcError(error);
     }
@@ -142,7 +142,7 @@ export function registerModelIpcHandlers(runtime: PlatformClient['runtime']): vo
 
   safeHandle('relay:local:models:warm', async (_e, input) => {
     try {
-      return await runtime.local.warmLocalModel(input);
+      return await runtime.local.warmLocalAsset(input);
     } catch (error) {
       throw toIpcError(error);
     }

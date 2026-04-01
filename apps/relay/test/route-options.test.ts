@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { loadMediaRouteConnectors, loadRouteOptions, normalizeCapability } from '../src/main/route/route-options.js';
 
 function createRuntimeStub(input: {
-  localModels?: unknown[];
+  localModels?: Array<{ localModelId: string; modelId: string; engine: string; status: number; capabilities: string[] }>;
   localError?: Error;
   connectors?: Array<{ connectorId: string; provider: string; label?: string; status?: string }>;
   connectorListError?: Error;
@@ -12,11 +12,19 @@ function createRuntimeStub(input: {
 }) {
   return {
     local: {
-      listLocalModels: async () => {
+      listLocalAssets: async () => {
         if (input.localError) {
           throw input.localError;
         }
-        return { models: input.localModels ?? [] };
+        const assets = (input.localModels ?? []).map((m) => ({
+          localAssetId: m.localModelId,
+          logicalModelId: m.modelId,
+          assetId: m.modelId,
+          engine: m.engine,
+          status: m.status,
+          capabilities: m.capabilities,
+        }));
+        return { assets };
       },
     },
     connector: {

@@ -252,11 +252,11 @@ rules:
     status: verified
     evidence_path: apps/relay/src/main/media/media-route.ts
     test: apps/relay/test/media-route.test.ts
-    note: Image modality orchestration preserves explicit local route selection, requires local model + workflow components, and fails closed instead of coercing to cloud
+    note: Image modality orchestration preserves explicit local route selection, requires local model selection, and fails closed instead of coercing to cloud
 
   - id: RL-IPC-011
     contract: kernel/ipc-bridge-contract.md
     status: verified
     evidence_path: apps/relay/src/main/model-handlers.ts
     test: apps/relay/test/ipc-handlers.test.ts
-    note: Local runtime bridge now exposes read-only relay:local:artifacts:list for installed local image workflow companions alongside existing local model operations
+    note: Local runtime bridge exposes read-only relay:local:assets:list for installed local assets alongside existing local model operations

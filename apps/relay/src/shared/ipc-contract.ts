@@ -54,32 +54,28 @@ type ModelRemoveResponse = RuntimeMethodOutput<Runtime['model']['remove']>;
 type ModelHealthInput = RuntimeMethodInput<Runtime['model']['checkHealth']>;
 type ModelHealthResponse = RuntimeMethodOutput<Runtime['model']['checkHealth']>;
 
-type LocalListModelsInput = RuntimeMethodInput<Runtime['local']['listLocalModels']>;
-type LocalListModelsResponse = RuntimeMethodOutput<Runtime['local']['listLocalModels']>;
-type LocalListArtifactsInput = RuntimeMethodInput<Runtime['local']['listLocalArtifacts']>;
-type LocalListArtifactsResponse = RuntimeMethodOutput<Runtime['local']['listLocalArtifacts']>;
-type LocalListVerifiedModelsInput = RuntimeMethodInput<Runtime['local']['listVerifiedModels']>;
-type LocalListVerifiedModelsResponse = RuntimeMethodOutput<Runtime['local']['listVerifiedModels']>;
+type LocalListAssetsInput = RuntimeMethodInput<Runtime['local']['listLocalAssets']>;
+type LocalListAssetsResponse = RuntimeMethodOutput<Runtime['local']['listLocalAssets']>;
+type LocalListVerifiedAssetsInput = RuntimeMethodInput<Runtime['local']['listVerifiedAssets']>;
+type LocalListVerifiedAssetsResponse = RuntimeMethodOutput<Runtime['local']['listVerifiedAssets']>;
 type LocalSearchCatalogInput = RuntimeMethodInput<Runtime['local']['searchCatalogModels']>;
 type LocalSearchCatalogResponse = RuntimeMethodOutput<Runtime['local']['searchCatalogModels']>;
 type LocalResolveInstallPlanInput = RuntimeMethodInput<Runtime['local']['resolveModelInstallPlan']>;
 type LocalResolveInstallPlanResponse = RuntimeMethodOutput<Runtime['local']['resolveModelInstallPlan']>;
-type LocalInstallModelInput = RuntimeMethodInput<Runtime['local']['installLocalModel']>;
-type LocalInstallModelResponse = RuntimeMethodOutput<Runtime['local']['installLocalModel']>;
-type LocalInstallVerifiedModelInput = RuntimeMethodInput<Runtime['local']['installVerifiedModel']>;
-type LocalInstallVerifiedModelResponse = RuntimeMethodOutput<Runtime['local']['installVerifiedModel']>;
-type LocalImportModelInput = RuntimeMethodInput<Runtime['local']['importLocalModel']>;
-type LocalImportModelResponse = RuntimeMethodOutput<Runtime['local']['importLocalModel']>;
-type LocalRemoveModelInput = RuntimeMethodInput<Runtime['local']['removeLocalModel']>;
-type LocalRemoveModelResponse = RuntimeMethodOutput<Runtime['local']['removeLocalModel']>;
-type LocalStartModelInput = RuntimeMethodInput<Runtime['local']['startLocalModel']>;
-type LocalStartModelResponse = RuntimeMethodOutput<Runtime['local']['startLocalModel']>;
-type LocalStopModelInput = RuntimeMethodInput<Runtime['local']['stopLocalModel']>;
-type LocalStopModelResponse = RuntimeMethodOutput<Runtime['local']['stopLocalModel']>;
-type LocalCheckHealthInput = RuntimeMethodInput<Runtime['local']['checkLocalModelHealth']>;
-type LocalCheckHealthResponse = RuntimeMethodOutput<Runtime['local']['checkLocalModelHealth']>;
-type LocalWarmModelInput = RuntimeMethodInput<Runtime['local']['warmLocalModel']>;
-type LocalWarmModelResponse = RuntimeMethodOutput<Runtime['local']['warmLocalModel']>;
+type LocalInstallVerifiedAssetInput = RuntimeMethodInput<Runtime['local']['installVerifiedAsset']>;
+type LocalInstallVerifiedAssetResponse = RuntimeMethodOutput<Runtime['local']['installVerifiedAsset']>;
+type LocalImportAssetInput = RuntimeMethodInput<Runtime['local']['importLocalAsset']>;
+type LocalImportAssetResponse = RuntimeMethodOutput<Runtime['local']['importLocalAsset']>;
+type LocalRemoveAssetInput = RuntimeMethodInput<Runtime['local']['removeLocalAsset']>;
+type LocalRemoveAssetResponse = RuntimeMethodOutput<Runtime['local']['removeLocalAsset']>;
+type LocalStartAssetInput = RuntimeMethodInput<Runtime['local']['startLocalAsset']>;
+type LocalStartAssetResponse = RuntimeMethodOutput<Runtime['local']['startLocalAsset']>;
+type LocalStopAssetInput = RuntimeMethodInput<Runtime['local']['stopLocalAsset']>;
+type LocalStopAssetResponse = RuntimeMethodOutput<Runtime['local']['stopLocalAsset']>;
+type LocalCheckHealthInput = RuntimeMethodInput<Runtime['local']['checkLocalAssetHealth']>;
+type LocalCheckHealthResponse = RuntimeMethodOutput<Runtime['local']['checkLocalAssetHealth']>;
+type LocalWarmAssetInput = RuntimeMethodInput<Runtime['local']['warmLocalAsset']>;
+type LocalWarmAssetResponse = RuntimeMethodOutput<Runtime['local']['warmLocalAsset']>;
 type LocalCollectDeviceProfileInput = RuntimeMethodInput<Runtime['local']['collectDeviceProfile']>;
 type LocalCollectDeviceProfileResponse = RuntimeMethodOutput<Runtime['local']['collectDeviceProfile']>;
 type LocalResolveProfileInput = RuntimeMethodInput<Runtime['local']['resolveProfile']>;
@@ -429,16 +425,16 @@ export type RelayInvokeMap = {
     response: ModelHealthResponse;
   };
   'relay:local:models:list': {
-    request: LocalListModelsInput | undefined;
-    response: LocalListModelsResponse;
+    request: LocalListAssetsInput | undefined;
+    response: LocalListAssetsResponse;
   };
-  'relay:local:artifacts:list': {
-    request: LocalListArtifactsInput | undefined;
-    response: LocalListArtifactsResponse;
+  'relay:local:assets:list': {
+    request: LocalListAssetsInput | undefined;
+    response: LocalListAssetsResponse;
   };
   'relay:local:models:verified': {
-    request: LocalListVerifiedModelsInput | undefined;
-    response: LocalListVerifiedModelsResponse;
+    request: LocalListVerifiedAssetsInput | undefined;
+    response: LocalListVerifiedAssetsResponse;
   };
   'relay:local:models:catalog-search': {
     request: LocalSearchCatalogInput;
@@ -449,36 +445,36 @@ export type RelayInvokeMap = {
     response: LocalResolveInstallPlanResponse;
   };
   'relay:local:models:install': {
-    request: LocalInstallModelInput;
-    response: LocalInstallModelResponse;
+    request: LocalInstallVerifiedAssetInput;
+    response: LocalInstallVerifiedAssetResponse;
   };
   'relay:local:models:install-verified': {
-    request: LocalInstallVerifiedModelInput;
-    response: LocalInstallVerifiedModelResponse;
+    request: LocalInstallVerifiedAssetInput;
+    response: LocalInstallVerifiedAssetResponse;
   };
   'relay:local:models:import': {
-    request: LocalImportModelInput;
-    response: LocalImportModelResponse;
+    request: LocalImportAssetInput;
+    response: LocalImportAssetResponse;
   };
   'relay:local:models:remove': {
-    request: LocalRemoveModelInput;
-    response: LocalRemoveModelResponse;
+    request: LocalRemoveAssetInput;
+    response: LocalRemoveAssetResponse;
   };
   'relay:local:models:start': {
-    request: LocalStartModelInput;
-    response: LocalStartModelResponse;
+    request: LocalStartAssetInput;
+    response: LocalStartAssetResponse;
   };
   'relay:local:models:stop': {
-    request: LocalStopModelInput;
-    response: LocalStopModelResponse;
+    request: LocalStopAssetInput;
+    response: LocalStopAssetResponse;
   };
   'relay:local:models:health': {
     request: LocalCheckHealthInput;
     response: LocalCheckHealthResponse;
   };
   'relay:local:models:warm': {
-    request: LocalWarmModelInput;
-    response: LocalWarmModelResponse;
+    request: LocalWarmAssetInput;
+    response: LocalWarmAssetResponse;
   };
   'relay:local:device-profile': {
     request: LocalCollectDeviceProfileInput | undefined;
@@ -722,7 +718,7 @@ export interface NimiRelayBridge {
   };
   local: {
     listModels: (...args: RelayInvokeArgs<'relay:local:models:list'>) => Promise<RelayInvokeResponse<'relay:local:models:list'>>;
-    listArtifacts: (...args: RelayInvokeArgs<'relay:local:artifacts:list'>) => Promise<RelayInvokeResponse<'relay:local:artifacts:list'>>;
+    listAssets: (...args: RelayInvokeArgs<'relay:local:assets:list'>) => Promise<RelayInvokeResponse<'relay:local:assets:list'>>;
     listVerifiedModels: (...args: RelayInvokeArgs<'relay:local:models:verified'>) => Promise<RelayInvokeResponse<'relay:local:models:verified'>>;
     searchCatalog: (...args: RelayInvokeArgs<'relay:local:models:catalog-search'>) => Promise<RelayInvokeResponse<'relay:local:models:catalog-search'>>;
     resolveInstallPlan: (...args: RelayInvokeArgs<'relay:local:models:install-plan'>) => Promise<RelayInvokeResponse<'relay:local:models:install-plan'>>;

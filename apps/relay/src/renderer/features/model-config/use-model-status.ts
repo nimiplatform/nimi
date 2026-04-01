@@ -64,7 +64,7 @@ export function useModelStatus(): ModelStatus {
         }
 
         if (localResult.status === 'fulfilled') {
-          for (const model of localResult.value.models ?? []) {
+          for (const model of localResult.value.assets ?? []) {
             const next = toModelStatusEntry(model, 'local');
             const id = next.id;
             const existing = entries.find((e) => e.id === id);

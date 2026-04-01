@@ -162,7 +162,7 @@ All calls are SDK passthrough with `normalizeError` wrapping.
 | Channel | Type | SDK Method |
 |---------|------|------------|
 | `relay:local:models:list` | unary | `runtime.local.listLocalModels` |
-| `relay:local:artifacts:list` | unary | `runtime.local.listLocalArtifacts` |
+| `relay:local:assets:list` | unary | `runtime.local.listLocalAssets` |
 | `relay:local:models:verified` | unary | `runtime.local.listVerifiedModels` |
 | `relay:local:models:catalog-search` | unary | `runtime.local.searchCatalogModels` |
 | `relay:local:models:install-plan` | unary | `runtime.local.resolveModelInstallPlan` |
@@ -179,7 +179,7 @@ All calls are SDK passthrough with `normalizeError` wrapping.
 | `relay:local:catalog:nodes` | unary | `runtime.local.listNodeCatalog` |
 
 Local runtime operations are not agent-scoped.
-`relay:local:artifacts:list` is read-only and exposes installed local artifacts for explicit local image workflow companion selection.
+`relay:local:assets:list` is read-only and exposes installed local assets for explicit local image workflow configuration.
 
 ## RL-IPC-012 — Connector IPC
 

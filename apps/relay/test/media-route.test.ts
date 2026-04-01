@@ -201,35 +201,23 @@ describe('resolveConfiguredImageWorkflowExtensions', () => {
     assert.equal(resolveConfiguredImageWorkflowExtensions(settings), undefined);
   });
 
-  it('includes explicit workflow components and profile overrides', () => {
+  it('includes profile overrides as flat extension keys', () => {
     const settings = createSettings({
-      imageWorkflowComponents: [
-        { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
-        { slot: 'llm_path', localArtifactId: 'artifact-llm-1' },
-      ],
-      imageProfileOverrides: { scheduler: 'ddim' },
+      imageProfileOverrides: { scheduler: 'ddim', cfg_scale: 7 },
     });
 
     const extensions = resolveConfiguredImageWorkflowExtensions(settings);
-    assert.deepEqual(extensions, {
-      components: [
-        { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
-        { slot: 'llm_path', localArtifactId: 'artifact-llm-1' },
-      ],
-      profile_overrides: { scheduler: 'ddim' },
-    });
+    assert.deepEqual(extensions, { scheduler: 'ddim', cfg_scale: 7 });
   });
 });
 
 describe('resolveConfiguredImageGenerateTarget', () => {
-  it('returns local route target with local-prefixed model and workflow extensions', () => {
+  it('returns local route target with local-prefixed model and profile override extensions', () => {
     const settings = createSettings({
       imageRouteSource: 'local',
       imageLocalModelId: 'local-image-1',
       imageModel: 'flux-local-dev',
-      imageWorkflowComponents: [
-        { slot: 'vae_path', localArtifactId: 'artifact-vae-1' },
-      ],
+      imageProfileOverrides: { scheduler: 'ddim' },
     });
 
     const result = resolveConfiguredImageGenerateTarget(settings);
@@ -237,9 +225,7 @@ describe('resolveConfiguredImageGenerateTarget', () => {
       routeSource: 'local',
       model: 'local/flux-local-dev',
       localModelId: 'local-image-1',
-      extensions: {
-        components: [{ slot: 'vae_path', localArtifactId: 'artifact-vae-1' }],
-      },
+      extensions: { scheduler: 'ddim' },
     });
   });
 
@@ -255,17 +241,20 @@ describe('resolveConfiguredImageGenerateTarget', () => {
     );
   });
 
-  it('fails closed when local image route lacks workflow components', () => {
+  it('succeeds without profile overrides and returns extensions undefined', () => {
     const settings = createSettings({
       imageRouteSource: 'local',
       imageLocalModelId: 'local-image-1',
       imageModel: 'flux-local-dev',
     });
 
-    assert.throws(
-      () => resolveConfiguredImageGenerateTarget(settings),
-      /requires explicit companion artifact selections via components\[\]/,
-    );
+    const result = resolveConfiguredImageGenerateTarget(settings);
+    assert.deepEqual(result, {
+      routeSource: 'local',
+      model: 'local/flux-local-dev',
+      localModelId: 'local-image-1',
+      extensions: undefined,
+    });
   });
 
   it('returns cloud route target unchanged for cloud settings', () => {
