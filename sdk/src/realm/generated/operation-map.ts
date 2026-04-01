@@ -5500,6 +5500,31 @@ export const REALM_OPERATION_MAP = {
     ],
     "hasSuccessBody": true
   },
+  "WorldsService.getWorldScenes": {
+    "operationId": "getWorldScenes",
+    "method": "GET",
+    "path": "/api/world/by-id/{id}/scenes",
+    "service": "WorldsService",
+    "methodName": "getWorldScenes",
+    "tag": "Worlds",
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "valueType": "string"
+      }
+    ],
+    "hasBody": false,
+    "bodyRequired": false,
+    "successStatusCodes": [
+      "200"
+    ],
+    "successContentTypes": [
+      "application/json"
+    ],
+    "hasSuccessBody": true
+  },
   "WorldsService.worldControllerGetMainWorld": {
     "operationId": "WorldController_getMainWorld",
     "method": "GET",
@@ -6097,6 +6122,7 @@ export const REALM_SERVICE_METHODS = {
     "worldRulesControllerValidateRules": "WorldRulesService.worldRulesControllerValidateRules"
   },
   "WorldsService": {
+    "getWorldScenes": "WorldsService.getWorldScenes",
     "worldControllerGetMainWorld": "WorldsService.worldControllerGetMainWorld",
     "worldControllerGetWorld": "WorldsService.worldControllerGetWorld",
     "worldControllerGetWorldAgents": "WorldsService.worldControllerGetWorldAgents",

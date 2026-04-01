@@ -6,13 +6,16 @@ import { fetchWorldPublicAssets } from '../src/shell/renderer/features/world/wor
 
 const originalLoadWorldLorebooks = dataSync.loadWorldLorebooks.bind(dataSync);
 const originalLoadWorldBindings = dataSync.loadWorldBindings.bind(dataSync);
+const originalLoadWorldScenes = dataSync.loadWorldScenes.bind(dataSync);
 
 type WorldLorebookListPayload = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>;
 type WorldBindingListPayload = Awaited<ReturnType<typeof dataSync.loadWorldBindings>>;
+type WorldSceneListPayload = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>;
 
 function stubPublicAssetLoads(input?: {
   lorebooks?: { worldId?: string; items: unknown[] };
   bindings?: { worldId?: string; items: unknown[] };
+  scenes?: { worldId?: string; items: unknown[] };
 }) {
   dataSync.loadWorldLorebooks = (async () => ({
     worldId: 'world-1',
@@ -24,11 +27,17 @@ function stubPublicAssetLoads(input?: {
     items: [],
     ...input?.bindings,
   } as unknown as WorldBindingListPayload)) as typeof dataSync.loadWorldBindings;
+  dataSync.loadWorldScenes = (async () => ({
+    worldId: 'world-1',
+    items: [],
+    ...input?.scenes,
+  } as unknown as WorldSceneListPayload)) as typeof dataSync.loadWorldScenes;
 }
 
 test.after(() => {
   dataSync.loadWorldLorebooks = originalLoadWorldLorebooks;
   dataSync.loadWorldBindings = originalLoadWorldBindings;
+  dataSync.loadWorldScenes = originalLoadWorldScenes;
 });
 
 test('fetchWorldPublicAssets decodes projection payloads without fallback synthesis', async () => {
@@ -63,11 +72,21 @@ test('fetchWorldPublicAssets decodes projection payloads without fallback synthe
         },
       }],
     },
+    scenes: {
+      items: [{
+        id: 'scene-1',
+        name: '花果山',
+        description: '齐天大圣的居所',
+        activeEntities: ['agent-wukong', 'agent-bajie'],
+      }],
+    },
   });
 
   const payload = await fetchWorldPublicAssets('world-1');
   assert.equal(payload.lorebooks[0]?.key, 'chronicle');
-  assert.deepEqual(payload.scenes, []);
+  assert.equal(payload.scenes.length, 1);
+  assert.equal(payload.scenes[0]?.name, '花果山');
+  assert.deepEqual(payload.scenes[0]?.activeEntities, ['agent-wukong', 'agent-bajie']);
   assert.equal(payload.bindings[0]?.resource.resourceType, 'IMAGE');
 });
 

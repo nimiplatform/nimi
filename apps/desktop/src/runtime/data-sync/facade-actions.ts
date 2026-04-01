@@ -65,6 +65,7 @@ import {
   loadWorldList,
   loadWorldLorebooks,
   loadWorldBindings,
+  loadWorldScenes,
   loadWorldSemanticBundle,
   loadWorldAgents,
   loadWorldDetailWithAgents,
@@ -298,6 +299,8 @@ export function createDataSyncActions(input: CreateDataSyncActionsInput) {
       loadWorldLorebooks(input.callApiTask, input.emitFacadeError, worldId),
     loadWorldBindings: async (worldId: string) =>
       loadWorldBindings(input.callApiTask, input.emitFacadeError, worldId),
+    loadWorldScenes: async (worldId: string) =>
+      loadWorldScenes(input.callApiTask, input.emitFacadeError, worldId),
     startWorldTransit: async (payload: {
       agentId: string;
       fromWorldId?: string;

@@ -35,6 +35,7 @@ export type RealmGeneratedModelMap = {
   AgentResponseTierSummaryDto: components['schemas']['AgentResponseTierSummaryDto'];
   AgentResponseUserDto: components['schemas']['AgentResponseUserDto'];
   AgentRuleDto: components['schemas']['AgentRuleDto'];
+  AgentRuleLayerCountDto: components['schemas']['AgentRuleLayerCountDto'];
   AgentState: components['schemas']['AgentState'];
   AgentStatsDto: components['schemas']['AgentStatsDto'];
   AgentVisibilitySettingsDto: components['schemas']['AgentVisibilitySettingsDto'];
@@ -217,6 +218,8 @@ export type RealmGeneratedModelMap = {
   PublicWorldHistoryListDto: components['schemas']['PublicWorldHistoryListDto'];
   PublicWorldLorebookDto: components['schemas']['PublicWorldLorebookDto'];
   PublicWorldLorebookListDto: components['schemas']['PublicWorldLorebookListDto'];
+  PublicWorldSceneDto: components['schemas']['PublicWorldSceneDto'];
+  PublicWorldSceneListDto: components['schemas']['PublicWorldSceneListDto'];
   PublishWorldDraftDto: components['schemas']['PublishWorldDraftDto'];
   PublishWorldDraftResultDto: components['schemas']['PublishWorldDraftResultDto'];
   ReceivedGiftsResponseDto: components['schemas']['ReceivedGiftsResponseDto'];
@@ -333,6 +336,7 @@ export type RealmGeneratedModelMap = {
   WithdrawalSummaryDto: components['schemas']['WithdrawalSummaryDto'];
   WorldAccessRecordDto: components['schemas']['WorldAccessRecordDto'];
   WorldAccessSummaryDto: components['schemas']['WorldAccessSummaryDto'];
+  WorldAgentRuleSummaryDto: components['schemas']['WorldAgentRuleSummaryDto'];
   WorldAgentSummaryDto: components['schemas']['WorldAgentSummaryDto'];
   WorldClockConfigDto: components['schemas']['WorldClockConfigDto'];
   WorldClockEraDto: components['schemas']['WorldClockEraDto'];

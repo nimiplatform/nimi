@@ -37,7 +37,7 @@ endpoints:
     path: /api/world/by-id/{worldId}/detail-with-agents
     status: existing
     feature: explore-world-detail
-    description: 获取 World 详情及推荐 Agent 列表
+    description: 获取 World 详情及公开 Agent 列表
     query: recommendedAgentLimit
     response: WorldDetailWithAgentsDto
     required_fields:
@@ -46,14 +46,15 @@ endpoints:
       - tagline
       - description
       - bannerUrl
-      - recommendedAgents
+      - agents
     nested_required_fields:
-      recommendedAgents:
+      agents:
         - id
         - name
-        - title
-        - summary
+        - bio
         - avatarUrl
+        - activeRuleCount
+        - display.role
 
   # ── Agent Discovery ──────────────────────────────────
   - method: GET
@@ -65,8 +66,10 @@ endpoints:
     required_fields:
       - id
       - name
-      - title
-      - summary
+      - bio
+      - avatarUrl
+      - activeRuleCount
+      - display.role
 
   - method: GET
     path: /api/agent/accounts/{agentId}

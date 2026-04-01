@@ -2856,6 +2856,23 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/world/by-id/{id}/scenes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List world scenes */
+        get: operations["getWorldScenes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/world/by-id/{id}/transit": {
         parameters: {
             query?: never;
@@ -3718,6 +3735,16 @@ export type components = {
             updatedBy: string;
             version: number;
             worldRuleRef?: string;
+        };
+        AgentRuleLayerCountDto: {
+            /** @description ACTIVE AgentRule count for BEHAVIORAL layer */
+            BEHAVIORAL: number;
+            /** @description ACTIVE AgentRule count for CONTEXTUAL layer */
+            CONTEXTUAL: number;
+            /** @description ACTIVE AgentRule count for DNA layer */
+            DNA: number;
+            /** @description ACTIVE AgentRule count for RELATIONAL layer */
+            RELATIONAL: number;
         };
         /** @enum {string} */
         AgentState: "INCUBATING" | "READY" | "ACTIVE" | "SUSPENDED" | "FAILED";
@@ -5353,6 +5380,16 @@ export type components = {
             items: components["schemas"]["PublicWorldLorebookDto"][];
             worldId: string;
         };
+        PublicWorldSceneDto: {
+            activeEntities: string[];
+            description?: string | null;
+            id: string;
+            name: string;
+        };
+        PublicWorldSceneListDto: {
+            items: components["schemas"]["PublicWorldSceneDto"][];
+            worldId: string;
+        };
         PublishWorldDraftDto: {
             reason?: string;
         };
@@ -5826,7 +5863,7 @@ export type components = {
              * @enum {string}
              */
             context: "caption" | "chat";
-            /** @description Target language code (ISO 639-1). If not provided, inferred from user settings. */
+            /** @description Target language code (ISO 639-1). If not provided, it must be resolvable from user settings or the request fails. */
             targetLang?: string;
             /** @description Text to translate */
             text: string;
@@ -6386,7 +6423,17 @@ export type components = {
             records: components["schemas"]["WorldAccessRecordDto"][];
             userId: string;
         };
+        WorldAgentRuleSummaryDto: {
+            /** @description ACTIVE AgentRule count grouped by layer */
+            byLayer: components["schemas"]["AgentRuleLayerCountDto"];
+            /** @description Total ACTIVE AgentRules across all public agents in the world */
+            totalAgentRuleCount: number;
+            /** @description AgentRules with a non-null worldRuleRef (world-linked rules) */
+            worldLinkedRuleCount: number;
+        };
         WorldAgentSummaryDto: {
+            /** @description Number of ACTIVE AgentRules for this agent in its world */
+            activeRuleCount: number;
             activeWorldId: string;
             avatarUrl?: string;
             bio?: string;
@@ -6484,6 +6531,7 @@ export type components = {
         };
         WorldDetailWithAgentsDto: {
             agentCount: number;
+            agentRuleSummary: components["schemas"]["WorldAgentRuleSummaryDto"];
             agents: components["schemas"]["WorldAgentSummaryDto"][];
             bannerUrl?: string;
             clockConfig?: components["schemas"]["WorldClockConfigDto"];
@@ -11053,6 +11101,20 @@ export interface operations {
                     "application/json": components["schemas"]["TranslateResponseDto"];
                 };
             };
+            /** @description TRANSLATION_TARGET_LANG_REQUIRED: targetLang is missing and no user language preference is available. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description TRANSLATION_PROVIDER_FAILED or TRANSLATION_PROVIDER_INVALID: translation provider returned no usable structured result. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     WorldController_listWorlds: {
@@ -11406,6 +11468,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransitDetailDto"];
+                };
+            };
+        };
+    };
+    getWorldScenes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description World ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicWorldSceneListDto"];
                 };
             };
         };

@@ -9,6 +9,7 @@ import type {
   WorldHistoryItem,
   WorldLorebookItem,
   WorldPublicAssetsData,
+  WorldSceneItem,
   WorldSemanticData,
   WorldSemanticLanguage,
   WorldSemanticLevel,
@@ -31,6 +32,7 @@ type SpaceRealmDto = RealmModel<'SpaceRealmDto'>;
 type WorldLanguageDto = RealmModel<'WorldLanguageDto'>;
 type PublicWorldLorebookDto = Awaited<ReturnType<typeof dataSync.loadWorldLorebooks>>['items'][number];
 type PublicBindingDto = Awaited<ReturnType<typeof dataSync.loadWorldBindings>>['items'][number];
+type PublicWorldSceneDto = Awaited<ReturnType<typeof dataSync.loadWorldScenes>>['items'][number];
 
 const DEFAULT_WORLD_PREFETCH_STALE_TIME_MS = 30_000;
 const DEFAULT_WORLD_DETAIL_RECOMMENDED_AGENT_LIMIT = 4;
@@ -480,16 +482,26 @@ export async function fetchWorldLevelAudits(worldId: string): Promise<WorldAudit
   return payload.map(toWorldAuditItem);
 }
 
+function toWorldSceneItem(raw: PublicWorldSceneDto): WorldSceneItem {
+  return {
+    id: requireString(raw.id, 'scene_id'),
+    name: requireString(raw.name, 'scene_name'),
+    description: readString(raw.description) ?? '',
+    activeEntities: raw.activeEntities ?? [],
+  };
+}
+
 export async function fetchWorldPublicAssets(worldId: string): Promise<WorldPublicAssetsData> {
   const normalizedWorldId = normalizeWorldId(worldId);
-  const [lorebooksPayload, bindingsPayload] = await Promise.all([
+  const [lorebooksPayload, bindingsPayload, scenesPayload] = await Promise.all([
     dataSync.loadWorldLorebooks(normalizedWorldId),
     dataSync.loadWorldBindings(normalizedWorldId),
+    dataSync.loadWorldScenes(normalizedWorldId),
   ]);
 
   return {
     lorebooks: lorebooksPayload.items.map(toWorldLorebookItem),
-    scenes: [],
+    scenes: scenesPayload.items.map(toWorldSceneItem),
     bindings: bindingsPayload.items.map(toWorldBindingItem),
   };
 }

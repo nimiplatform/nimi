@@ -5656,10 +5656,6 @@ pub struct LocalAuditTimeRange {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalUnregisteredAssetDeclaration {
-    #[prost(string, tag = "1")]
-    pub asset_class: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub model_type: ::prost::alloc::string::String,
     #[prost(enumeration = "LocalAssetKind", tag = "3")]
     pub asset_kind: i32,
     #[prost(string, tag = "4")]

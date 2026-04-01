@@ -14,6 +14,7 @@ type WorldAgentSummaryDto = RealmServiceResult<'WorldsService', 'worldController
 type PublicWorldHistoryPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldHistory'>;
 export type WorldLorebookListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldLorebooks'>;
 export type WorldBindingListPayload = RealmServiceResult<'WorldsService', 'worldControllerGetWorldBindings'>;
+export type WorldSceneListPayload = RealmServiceResult<'WorldsService', 'getWorldScenes'>;
 
 type DataSyncApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 type DataSyncErrorEmitter = (
@@ -256,6 +257,20 @@ export async function loadWorldBindings(
     worldId,
     'load-world-bindings',
     (realm, normalizedWorldId) => realm.services.WorldsService.worldControllerGetWorldBindings(normalizedWorldId),
+  );
+}
+
+export async function loadWorldScenes(
+  callApi: DataSyncApiCaller,
+  emitDataSyncError: DataSyncErrorEmitter,
+  worldId: string,
+): Promise<WorldSceneListPayload> {
+  return loadWorldAssetList(
+    callApi,
+    emitDataSyncError,
+    worldId,
+    'load-world-scenes',
+    (realm, normalizedWorldId) => realm.services.WorldsService.getWorldScenes(normalizedWorldId),
   );
 }
 

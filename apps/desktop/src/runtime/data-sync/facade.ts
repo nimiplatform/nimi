@@ -12,6 +12,7 @@ import type {
   WorldHistoryPayload,
   WorldLorebookListPayload,
   WorldBindingListPayload,
+  WorldSceneListPayload,
 } from './flows/world-flow';
 import { normalizeRealmBaseUrl, normalizeApiError, tryParseJsonLike } from './api-core';
 import type { PasswordAuthDebug } from './auth';
@@ -309,6 +310,7 @@ export class DataSync {
   loadWorldHistory(worldId: string): Promise<WorldHistoryPayload> { return this.actions.loadWorldHistory(worldId); }
   loadWorldLorebooks(worldId: string): Promise<WorldLorebookListPayload> { return this.actions.loadWorldLorebooks(worldId); }
   loadWorldBindings(worldId: string): Promise<WorldBindingListPayload> { return this.actions.loadWorldBindings(worldId); }
+  loadWorldScenes(worldId: string): Promise<WorldSceneListPayload> { return this.actions.loadWorldScenes(worldId); }
   startWorldTransit(input: {
     agentId: string;
     fromWorldId?: string;
