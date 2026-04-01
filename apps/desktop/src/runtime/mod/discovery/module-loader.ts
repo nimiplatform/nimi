@@ -1,5 +1,6 @@
 import type { RuntimeModFactory } from '../types';
 import { resolveRuntimeModFactory, type RuntimeModModule } from './types';
+import { resolveHostedPackageImportUrl } from './hosted-packages';
 
 const STATIC_IMPORT_OR_EXPORT_SPECIFIER_PATTERN =
   /(\b(?:import|export)\s+(?:[^'"`]*?\s+from\s+)?)(['"])([^'"`]+)\2/g;
@@ -64,6 +65,10 @@ function shouldSkipRewrite(specifier: string): boolean {
 function rewriteImportSpecifierForEntryPath(specifier: string, entryPath: string): string {
   if (shouldSkipRewrite(specifier)) {
     return specifier;
+  }
+  const hostedPackageImportUrl = resolveHostedPackageImportUrl(specifier);
+  if (hostedPackageImportUrl) {
+    return hostedPackageImportUrl;
   }
   const resolvedPath = resolveFsImportPath(entryPath, specifier);
   if (!resolvedPath) {
