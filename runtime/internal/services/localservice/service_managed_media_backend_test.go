@@ -2,7 +2,6 @@ package localservice
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,13 +9,12 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/oklog/ulid/v2"
-	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
+func TestResolveManagedMediaImageProfileInjectsDynamicSlots(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
@@ -42,61 +40,80 @@ func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "z_image_turbo",
-		Capabilities: []string{"image"},
-		Engine:       "media",
-		Entry:        "z_image_turbo-Q4_K_M.gguf",
-		EngineConfig: engineConfig,
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
 	})
 	svc.mu.Lock()
-	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
 
-	vaePath := filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID("z_image_ae"), "vae", "diffusion_pytorch_model.safetensors")
+	vaePath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("z_image_ae"), "vae", "diffusion_pytorch_model.safetensors")
 	if err := os.MkdirAll(filepath.Dir(vaePath), 0o755); err != nil {
 		t.Fatalf("mkdir vae dir: %v", err)
 	}
 	if err := os.WriteFile(vaePath, []byte("vae"), 0o600); err != nil {
 		t.Fatalf("write vae file: %v", err)
 	}
-	vaeRecord, err := svc.installLocalArtifactRecord(&runtimev1.LocalArtifactRecord{
-		LocalArtifactId: "artifact_" + ulid.Make().String(),
-		ArtifactId:      "z_image_ae",
-		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-		Engine:          "media",
-		Entry:           "vae/diffusion_pytorch_model.safetensors",
-		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
-		Source:          &runtimev1.LocalArtifactSource{},
-	})
-	if err != nil {
-		t.Fatalf("install vae artifact: %v", err)
+	vaeRecord := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "artifact_" + ulid.Make().String(),
+		AssetId:      "z_image_ae",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:       "media",
+		Entry:        "vae/diffusion_pytorch_model.safetensors",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
 	}
+	svc.assets[vaeRecord.GetLocalAssetId()] = vaeRecord
 
-	llmPath := filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
+	llmPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
 	if err := os.MkdirAll(filepath.Dir(llmPath), 0o755); err != nil {
 		t.Fatalf("mkdir llm dir: %v", err)
 	}
 	if err := os.WriteFile(llmPath, []byte("llm"), 0o600); err != nil {
 		t.Fatalf("write llm file: %v", err)
 	}
-	llmRecord, err := svc.installLocalArtifactRecord(&runtimev1.LocalArtifactRecord{
-		LocalArtifactId: "artifact_" + ulid.Make().String(),
-		ArtifactId:      "qwen3_4b_companion",
-		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM,
-		Engine:          "media",
-		Entry:           "Qwen3-4B-Q4_K_M.gguf",
-		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
-		Source:          &runtimev1.LocalArtifactSource{},
-	})
-	if err != nil {
-		t.Fatalf("install llm artifact: %v", err)
+	llmRecord := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "artifact_" + ulid.Make().String(),
+		AssetId:      "qwen3_4b_companion",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:       "llama",
+		Entry:        "Qwen3-4B-Q4_K_M.gguf",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
 	}
+	svc.assets[llmRecord.GetLocalAssetId()] = llmRecord
 
 	alias, profile, forwarded, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
-		"components": []any{
-			map[string]any{"slot": "vae_path", "localArtifactId": vaeRecord.GetLocalArtifactId()},
-			map[string]any{"slot": "llm_path", "localArtifactId": llmRecord.GetLocalArtifactId()},
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+			{
+				EntryId:    "vae-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "z_image_ae",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+			},
+			{
+				EntryId:    "llm-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "qwen3_4b_companion",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+				Engine:     "llama",
+				EngineSlot: "llm_path",
+			},
 		},
 		"profile_overrides": map[string]any{
 			"step": 30,
@@ -120,10 +137,10 @@ func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
 		t.Fatalf("unexpected model parameter: %q", got)
 	}
 	options := valueAsStringSlice(profile["options"])
-	if !containsString(options, "llm_path:artifacts/qwen3-4b-companion/Qwen3-4B-Q4_K_M.gguf") {
+	if !containsString(options, "llm_path:resolved/local_qwen3_4b_companion/Qwen3-4B-Q4_K_M.gguf") {
 		t.Fatalf("expected llm_path option, got=%v", options)
 	}
-	if !containsString(options, "vae_path:artifacts/z-image-ae/vae/diffusion_pytorch_model.safetensors") {
+	if !containsString(options, "vae_path:resolved/local_z_image_ae/vae/diffusion_pytorch_model.safetensors") {
 		t.Fatalf("expected vae_path option, got=%v", options)
 	}
 	if containsString(options, "vae_path:old.safetensors") {
@@ -132,11 +149,117 @@ func TestResolveManagedMediaImageProfileInjectsDynamicComponents(t *testing.T) {
 	if valueAsString(forwarded["user_note"]) != "keep-me" {
 		t.Fatalf("expected workflow-only extensions to be stripped but user fields to remain: %#v", forwarded)
 	}
-	if _, exists := forwarded["components"]; exists {
-		t.Fatalf("components should not be forwarded: %#v", forwarded)
+	if _, exists := forwarded["profile_entries"]; exists {
+		t.Fatalf("profile_entries should not be forwarded: %#v", forwarded)
 	}
 	if _, exists := forwarded["profile_overrides"]; exists {
 		t.Fatalf("profile_overrides should not be forwarded: %#v", forwarded)
+	}
+	if _, exists := forwarded["entry_overrides"]; exists {
+		t.Fatalf("entry_overrides should not be forwarded: %#v", forwarded)
+	}
+}
+
+func TestResolveManagedMediaImageProfileAppliesEntryOverrides(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
+	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
+		t.Fatalf("mkdir main model dir: %v", err)
+	}
+	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
+		t.Fatalf("write main model file: %v", err)
+	}
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+
+	defaultLLMPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("qwen3_4b_companion"), "Qwen3-4B-Q4_K_M.gguf")
+	if err := os.MkdirAll(filepath.Dir(defaultLLMPath), 0o755); err != nil {
+		t.Fatalf("mkdir default llm dir: %v", err)
+	}
+	if err := os.WriteFile(defaultLLMPath, []byte("default-llm"), 0o600); err != nil {
+		t.Fatalf("write default llm file: %v", err)
+	}
+	defaultLLM := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "asset_" + ulid.Make().String(),
+		AssetId:      "qwen3_4b_companion",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:       "llama",
+		Entry:        "Qwen3-4B-Q4_K_M.gguf",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
+	}
+	svc.assets[defaultLLM.GetLocalAssetId()] = defaultLLM
+
+	overrideLLMPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("qwen3_4b_override"), "Qwen3-4B-Override.gguf")
+	if err := os.MkdirAll(filepath.Dir(overrideLLMPath), 0o755); err != nil {
+		t.Fatalf("mkdir override llm dir: %v", err)
+	}
+	if err := os.WriteFile(overrideLLMPath, []byte("override-llm"), 0o600); err != nil {
+		t.Fatalf("write override llm file: %v", err)
+	}
+	overrideLLM := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "asset_" + ulid.Make().String(),
+		AssetId:      "qwen3_4b_override",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+		Engine:       "llama",
+		Entry:        "Qwen3-4B-Override.gguf",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
+	}
+	svc.assets[overrideLLM.GetLocalAssetId()] = overrideLLM
+
+	_, profile, _, err := svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:   "main-image",
+				Kind:      runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				AssetId:   "z_image_turbo",
+				AssetKind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:    "media",
+			},
+			{
+				EntryId:    "llm-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "qwen3_4b_companion",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
+				Engine:     "llama",
+				EngineSlot: "llm_path",
+			},
+		},
+		"entry_overrides": []any{
+			map[string]any{
+				"entry_id":       "llm-slot",
+				"local_asset_id": overrideLLM.GetLocalAssetId(),
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("resolve local media image profile with entry override: %v", err)
+	}
+	options := valueAsStringSlice(profile["options"])
+	if !containsString(options, "llm_path:resolved/local_qwen3_4b_override/Qwen3-4B-Override.gguf") {
+		t.Fatalf("expected overridden llm_path option, got=%v", options)
+	}
+	if containsString(options, "llm_path:resolved/local_qwen3_4b_companion/Qwen3-4B-Q4_K_M.gguf") {
+		t.Fatalf("expected default llm_path to be replaced, got=%v", options)
 	}
 }
 
@@ -158,15 +281,15 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "z_image_turbo",
-		Capabilities: []string{"image"},
-		Engine:       "media",
-		Entry:        "z_image_turbo-Q4_K_M.gguf",
-		EngineConfig: engineConfig,
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
 	})
 	svc.mu.Lock()
-	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
 
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
@@ -182,7 +305,50 @@ func TestResolveManagedMediaImageProfileRejectsPathOverrides(t *testing.T) {
 	}
 }
 
-func TestResolveManagedMediaImageProfileRejectsMissingComponents(t *testing.T) {
+func TestResolveManagedMediaImageProfileFailsCloseWithoutProfileEntries(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
+	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
+		t.Fatalf("mkdir main model dir: %v", err)
+	}
+	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
+		t.Fatalf("write main model file: %v", err)
+	}
+	engineConfig, err := structpb.NewStruct(map[string]any{
+		"backend": "stablediffusion-ggml",
+		"parameters": map[string]any{
+			"scheduler": "karras",
+		},
+	})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_overrides": map[string]any{
+			"step": 25,
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected fail-close when no profile entries are supplied")
+	}
+	assertGRPCReasonCode(t, err, "missing profile entries", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+}
+
+func TestResolveManagedMediaImageProfileRejectsMissingRequiredSlotAsset(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
@@ -200,63 +366,249 @@ func TestResolveManagedMediaImageProfileRejectsMissingComponents(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build engine config: %v", err)
 	}
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "z_image_turbo",
-		Capabilities: []string{"image"},
-		Engine:       "media",
-		Entry:        "z_image_turbo-Q4_K_M.gguf",
-		EngineConfig: engineConfig,
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
 	})
 	svc.mu.Lock()
-	svc.models[modelResp.GetLocalModelId()].Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 	svc.mu.Unlock()
 
+	required := true
 	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
-		"profile_overrides": map[string]any{
-			"step": 25,
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:    "vae-slot",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "nonexistent_vae",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+				Required:   &required,
+			},
 		},
 	})
 	if err == nil {
-		t.Fatalf("expected missing companion selections to fail")
+		t.Fatalf("expected missing required slot asset to fail")
 	}
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected invalid argument, got %v", status.Code(err))
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("expected failed precondition, got %v", status.Code(err))
 	}
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok {
-		t.Fatalf("expected reason code on missing components error")
+		t.Fatalf("expected reason code on missing slot asset error")
 	}
-	if reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
+	if reason != runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING {
 		t.Fatalf("unexpected reason code: %s", reason)
-	}
-	st, ok := status.FromError(err)
-	if !ok {
-		t.Fatalf("expected grpc status error")
-	}
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(st.Message()), &payload); err != nil {
-		t.Fatalf("decode status message payload: %v", err)
-	}
-	if got := payload["message"]; got != "local media workflow requires explicit companion artifact selections via components[]" {
-		t.Fatalf("unexpected message payload: %#v", payload)
-	}
-	if got := payload["actionHint"]; got != "select_local_image_companions" {
-		t.Fatalf("unexpected action hint payload: %#v", payload)
-	}
-	details := st.Details()
-	if len(details) != 1 {
-		t.Fatalf("expected 1 detail, got %d", len(details))
-	}
-	info, ok := details[0].(*errdetails.ErrorInfo)
-	if !ok {
-		t.Fatalf("expected ErrorInfo detail, got %T", details[0])
-	}
-	if info.GetMetadata()["action_hint"] != "select_local_image_companions" {
-		t.Fatalf("unexpected action hint: %q", info.GetMetadata()["action_hint"])
 	}
 }
 
-func TestResolveManagedArtifactPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *testing.T) {
+func TestResolveManagedMediaImageProfileRejectsOptionalMissingSlotAsset(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
+	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
+		t.Fatalf("mkdir main model dir: %v", err)
+	}
+	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
+		t.Fatalf("write main model file: %v", err)
+	}
+	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+
+	optional := false
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:    "main-image",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "z_image_turbo",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:     "media",
+			},
+			{
+				EntryId:    "missing-optional-vae",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "nonexistent_vae",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+				Required:   &optional,
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected optional missing slot asset to fail-close")
+	}
+	assertGRPCReasonCode(t, err, "optional slot asset missing", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+}
+
+func TestResolveManagedMediaImageProfileRejectsRunnableEngineSlotBinding(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
+	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
+		t.Fatalf("mkdir main model dir: %v", err)
+	}
+	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
+		t.Fatalf("write main model file: %v", err)
+	}
+	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:    "main-image",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "z_image_turbo",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected runnable slot binding to fail-close")
+	}
+	assertGRPCReasonCode(t, err, "runnable engineSlot forbidden", runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_FORBIDDEN)
+}
+
+func TestResolveManagedMediaImageProfileRejectsDuplicateEngineSlotBindings(t *testing.T) {
+	svc := newTestService(t)
+	modelsRoot := filepath.Join(t.TempDir(), "models")
+	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
+
+	mainModelPath := filepath.Join(modelsRoot, slugifyLocalModelID("z_image_turbo"), "z_image_turbo-Q4_K_M.gguf")
+	if err := os.MkdirAll(filepath.Dir(mainModelPath), 0o755); err != nil {
+		t.Fatalf("mkdir main model dir: %v", err)
+	}
+	if err := os.WriteFile(mainModelPath, []byte("main-model"), 0o600); err != nil {
+		t.Fatalf("write main model file: %v", err)
+	}
+	engineConfig, err := structpb.NewStruct(map[string]any{"backend": "stablediffusion-ggml"})
+	if err != nil {
+		t.Fatalf("build engine config: %v", err)
+	}
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "z_image_turbo",
+		capabilities: []string{"image"},
+		engine:       "media",
+		entry:        "z_image_turbo-Q4_K_M.gguf",
+		engineConfig: engineConfig,
+	})
+	svc.mu.Lock()
+	svc.assets[modelResp.GetLocalAssetId()].Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	svc.mu.Unlock()
+
+	firstSlotPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("z_image_vae_a"), "vae", "diffusion_pytorch_model.safetensors")
+	if err := os.MkdirAll(filepath.Dir(firstSlotPath), 0o755); err != nil {
+		t.Fatalf("mkdir first slot dir: %v", err)
+	}
+	if err := os.WriteFile(firstSlotPath, []byte("vae-a"), 0o600); err != nil {
+		t.Fatalf("write first slot file: %v", err)
+	}
+	secondSlotPath := filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID("z_image_vae_b"), "vae", "diffusion_pytorch_model.safetensors")
+	if err := os.MkdirAll(filepath.Dir(secondSlotPath), 0o755); err != nil {
+		t.Fatalf("mkdir second slot dir: %v", err)
+	}
+	if err := os.WriteFile(secondSlotPath, []byte("vae-b"), 0o600); err != nil {
+		t.Fatalf("write second slot file: %v", err)
+	}
+
+	firstLocalAssetID := "artifact_" + ulid.Make().String()
+	svc.assets[firstLocalAssetID] = &runtimev1.LocalAssetRecord{
+		LocalAssetId: firstLocalAssetID,
+		AssetId:      "z_image_vae_a",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:       "media",
+		Entry:        "vae/diffusion_pytorch_model.safetensors",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
+	}
+	secondLocalAssetID := "artifact_" + ulid.Make().String()
+	svc.assets[secondLocalAssetID] = &runtimev1.LocalAssetRecord{
+		LocalAssetId: secondLocalAssetID,
+		AssetId:      "z_image_vae_b",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:       "media",
+		Entry:        "vae/diffusion_pytorch_model.safetensors",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source:       &runtimev1.LocalAssetSource{},
+	}
+
+	_, _, _, err = svc.ResolveManagedMediaImageProfile(context.Background(), "media/z_image_turbo", map[string]any{
+		"profile_entries": []*runtimev1.LocalProfileEntryDescriptor{
+			{
+				EntryId:    "main-image",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "z_image_turbo",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE,
+				Engine:     "media",
+			},
+			{
+				EntryId:    "vae-slot-a",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "z_image_vae_a",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+			},
+			{
+				EntryId:    "vae-slot-b",
+				Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+				Capability: "image",
+				AssetId:    "z_image_vae_b",
+				AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+				Engine:     "media",
+				EngineSlot: "vae_path",
+			},
+		},
+	})
+	if err == nil {
+		t.Fatalf("expected duplicate engineSlot binding to fail-close")
+	}
+	assertGRPCReasonCode(t, err, "duplicate engineSlot binding", runtimev1.ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT)
+}
+
+func TestResolveManagedAssetPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *testing.T) {
 	svc := newTestService(t)
 	modelsRoot := filepath.Join(t.TempDir(), "models")
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
@@ -277,26 +629,24 @@ func TestResolveManagedArtifactPathRejectsSymlinkedBaseDirOutsideModelsRoot(t *t
 		t.Fatalf("create symlinked artifact dir: %v", err)
 	}
 
-	artifact, err := svc.installLocalArtifactRecord(&runtimev1.LocalArtifactRecord{
-		LocalArtifactId: "artifact_" + ulid.Make().String(),
-		ArtifactId:      "linked/artifact",
-		Kind:            runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-		Engine:          "media",
-		Entry:           "weights.safetensors",
-		Status:          runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED,
-		Source: &runtimev1.LocalArtifactSource{
-			Repo: "file://" + filepath.Join(linkedDir, "artifact.manifest.json"),
+	artifact := &runtimev1.LocalAssetRecord{
+		LocalAssetId: "artifact_" + ulid.Make().String(),
+		AssetId:      "linked/artifact",
+		Kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:       "media",
+		Entry:        "weights.safetensors",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		Source: &runtimev1.LocalAssetSource{
+			Repo: "file://" + filepath.Join(linkedDir, "asset.manifest.json"),
 		},
-	})
-	if err != nil {
-		t.Fatalf("install linked artifact: %v", err)
 	}
+	svc.assets[artifact.GetLocalAssetId()] = artifact
 
-	_, err = svc.ResolveManagedArtifactPath(context.Background(), artifact.GetLocalArtifactId())
+	_, err := svc.ResolveManagedAssetPath(context.Background(), artifact.GetLocalAssetId())
 	if err == nil {
 		t.Fatal("expected symlinked artifact base dir outside root to be rejected")
 	}
-	assertGRPCReasonCode(t, err, "ResolveManagedArtifactPath(symlink outside root)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+	assertGRPCReasonCode(t, err, "ResolveManagedAssetPath(symlink outside root)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
 
 func containsString(values []string, target string) bool {

@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +29,7 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 		t.Fatalf("write source model: %v", err)
 	}
 
-	resp, err := svc.ImportLocalModelFile(context.Background(), &runtimev1.ImportLocalModelFileRequest{
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
 		Capabilities: []string{"chat"},
 		Engine:       "llama",
@@ -36,17 +37,17 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ImportLocalModelFile: %v", err)
 	}
-	model := resp.GetModel()
+	model := resp.GetAsset()
 	if model == nil {
 		t.Fatal("expected imported model")
 	}
-	if got := model.GetStatus(); got != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+	if got := model.GetStatus(); got != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("status mismatch: got=%s", got)
 	}
-	if got := svc.modelRuntimeMode(model.GetLocalModelId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
+	if got := svc.modelRuntimeMode(model.GetLocalAssetId()); got != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
 		t.Fatalf("runtime mode mismatch: got=%s", got)
 	}
-	manifestPath := runtimeManagedResolvedModelManifestPath(resolveLocalModelsPath(svc.localModelsPath), model.GetLogicalModelId())
+	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), model.GetLogicalModelId())
 	if _, err := os.Stat(manifestPath); err != nil {
 		t.Fatalf("managed manifest missing: %v", err)
 	}
@@ -71,11 +72,57 @@ func TestImportLocalModelFileRegistersManagedSupervisedLlama(t *testing.T) {
 	if transfer.GetState() != "completed" {
 		t.Fatalf("state = %q", transfer.GetState())
 	}
-	if transfer.GetLocalModelId() != model.GetLocalModelId() {
-		t.Fatalf("localModelId = %q want %q", transfer.GetLocalModelId(), model.GetLocalModelId())
+	if transfer.GetLocalAssetId() != model.GetLocalAssetId() {
+		t.Fatalf("localModelId = %q want %q", transfer.GetLocalAssetId(), model.GetLocalAssetId())
 	}
-	if got := model.GetSource().GetRepo(); !strings.HasPrefix(got, "file://") || !strings.HasSuffix(got, "/manifest.json") {
+	if got := model.GetSource().GetRepo(); !strings.HasPrefix(got, "file://") || !strings.HasSuffix(got, "/asset.manifest.json") {
 		t.Fatalf("source repo = %q", got)
+	}
+}
+
+func TestImportLocalPassiveAssetFileKeepsManifestKind(t *testing.T) {
+	svc := newTestService(t)
+	sourceDir := t.TempDir()
+	sourcePath := filepath.Join(sourceDir, "z_image_ae.safetensors")
+	if err := os.WriteFile(sourcePath, []byte("vae-payload"), 0o644); err != nil {
+		t.Fatalf("write source asset: %v", err)
+	}
+
+	resp, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
+		FilePath: sourcePath,
+		Kind:     runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+		Engine:   "media",
+	})
+	if err != nil {
+		t.Fatalf("ImportLocalAssetFile passive asset: %v", err)
+	}
+	asset := resp.GetAsset()
+	if asset == nil {
+		t.Fatal("expected imported passive asset")
+	}
+	if asset.GetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
+		t.Fatalf("passive asset kind mismatch: got=%s", asset.GetKind())
+	}
+	if len(asset.GetCapabilities()) != 0 {
+		t.Fatalf("passive asset must not synthesize runnable capabilities: %#v", asset.GetCapabilities())
+	}
+	manifestPath := runtimeManagedPassiveAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), asset.GetAssetId())
+	raw, err := os.ReadFile(manifestPath)
+	if err != nil {
+		t.Fatalf("read passive manifest: %v", err)
+	}
+	var manifest map[string]any
+	if err := json.Unmarshal(raw, &manifest); err != nil {
+		t.Fatalf("parse passive manifest: %v", err)
+	}
+	if got, _ := manifest["asset_id"].(string); got != asset.GetAssetId() {
+		t.Fatalf("manifest asset_id mismatch: got=%q want=%q", got, asset.GetAssetId())
+	}
+	if got, _ := manifest["kind"].(string); got != "vae" {
+		t.Fatalf("manifest kind mismatch: got=%q want=vae", got)
+	}
+	if _, exists := manifest["artifact_id"]; exists {
+		t.Fatalf("legacy artifact_id must not be written: %#v", manifest)
 	}
 }
 
@@ -91,7 +138,7 @@ func TestImportLocalModelFileRollsBackStagedBundleWhenRegistrationFails(t *testi
 		t.Fatalf("write source model: %v", err)
 	}
 
-	_, err := svc.ImportLocalModelFile(context.Background(), &runtimev1.ImportLocalModelFileRequest{
+	_, err := svc.ImportLocalAssetFile(context.Background(), &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     sourcePath,
 		Capabilities: []string{"image"},
 		Engine:       "media",
@@ -133,7 +180,7 @@ func TestScaffoldOrphanModelRestoresSourceWhenRegistrationFails(t *testing.T) {
 		t.Fatalf("write source model: %v", err)
 	}
 
-	_, err := svc.ScaffoldOrphanModel(context.Background(), &runtimev1.ScaffoldOrphanModelRequest{
+	_, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
 		Capabilities: []string{"image"},
 		Engine:       "media",
@@ -167,11 +214,11 @@ func TestScaffoldOrphanModelRestoresSourceAndQuarantinesFailedBundleAfterActivat
 	t.Setenv("HOME", t.TempDir())
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	svc := newTestService(t)
-	_ = mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local-import/orphan",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     "http://127.0.0.1:11434/v1",
+	_ = mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local-import/orphan",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "http://127.0.0.1:11434/v1",
 	})
 
 	sourceDir := t.TempDir()
@@ -180,7 +227,7 @@ func TestScaffoldOrphanModelRestoresSourceAndQuarantinesFailedBundleAfterActivat
 		t.Fatalf("write source model: %v", err)
 	}
 
-	_, err := svc.ScaffoldOrphanModel(context.Background(), &runtimev1.ScaffoldOrphanModelRequest{
+	_, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
 		Capabilities: []string{"chat"},
 		Engine:       "llama",
@@ -205,7 +252,7 @@ func TestScaffoldOrphanModelRestoresSourceAndQuarantinesFailedBundleAfterActivat
 	if _, statErr := os.Stat(filepath.Join(quarantineDirs[0], "orphan.gguf")); statErr != nil {
 		t.Fatalf("quarantined bundle should retain model file: %v", statErr)
 	}
-	if _, statErr := os.Stat(filepath.Join(quarantineDirs[0], "manifest.json")); statErr != nil {
+	if _, statErr := os.Stat(filepath.Join(quarantineDirs[0], "asset.manifest.json")); statErr != nil {
 		t.Fatalf("quarantined bundle should retain manifest: %v", statErr)
 	}
 	if len(svc.audits) == 0 || svc.audits[0].GetEventType() != "runtime_model_bundle_quarantined" {
@@ -221,7 +268,7 @@ func TestScaffoldOrphanModelMovesSourceIntoRuntimeManagedStorage(t *testing.T) {
 		t.Fatalf("write source model: %v", err)
 	}
 
-	resp, err := svc.ScaffoldOrphanModel(context.Background(), &runtimev1.ScaffoldOrphanModelRequest{
+	resp, err := svc.ScaffoldOrphanAsset(context.Background(), &runtimev1.ScaffoldOrphanAssetRequest{
 		Path:         sourcePath,
 		Capabilities: []string{"chat"},
 		Engine:       "llama",
@@ -229,14 +276,14 @@ func TestScaffoldOrphanModelMovesSourceIntoRuntimeManagedStorage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ScaffoldOrphanModel: %v", err)
 	}
-	model := resp.GetModel()
+	model := resp.GetAsset()
 	if model == nil {
 		t.Fatal("expected scaffolded model")
 	}
 	if _, err := os.Stat(sourcePath); !os.IsNotExist(err) {
 		t.Fatalf("expected orphan source to be moved, stat err=%v", err)
 	}
-	manifestPath := runtimeManagedResolvedModelManifestPath(resolveLocalModelsPath(svc.localModelsPath), model.GetLogicalModelId())
+	manifestPath := runtimeManagedAssetManifestPath(resolveLocalModelsPath(svc.localModelsPath), model.GetLogicalModelId())
 	if _, err := os.Stat(manifestPath); err != nil {
 		t.Fatalf("managed manifest missing: %v", err)
 	}
@@ -266,7 +313,7 @@ func TestScanUnregisteredAssetsFindsModelsInDefaultRoot(t *testing.T) {
 	if item.GetPath() != assetPath {
 		t.Fatalf("asset path mismatch: got=%q want=%q", item.GetPath(), assetPath)
 	}
-	if item.GetDeclaration() == nil || item.GetDeclaration().GetAssetClass() != "model" {
+	if item.GetDeclaration() == nil || item.GetDeclaration().GetAssetKind() != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT {
 		t.Fatalf("expected model declaration, got %#v", item.GetDeclaration())
 	}
 }

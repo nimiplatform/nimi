@@ -408,7 +408,7 @@ mappings:
     surface: local_consume_or_probe
     exit_shape: grpc_status_or_payload_ok_false
     source_rule: K-LOCAL-006
-  - reason_code: AI_LOCAL_MODEL_ALREADY_INSTALLED
+  - reason_code: AI_LOCAL_ASSET_ALREADY_INSTALLED
     grpc_code: ALREADY_EXISTS
     surface: install_local_model_duplicate
     exit_shape: grpc_status
@@ -448,6 +448,31 @@ mappings:
     surface: local_service_state_transition
     exit_shape: grpc_status
     source_rule: K-LOCAL-005
+  - reason_code: AI_LOCAL_ASSET_ALREADY_INSTALLED
+    grpc_code: ALREADY_EXISTS
+    surface: local_asset_install
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-009
+  - reason_code: AI_LOCAL_ASSET_SLOT_MISSING
+    grpc_code: FAILED_PRECONDITION
+    surface: local_profile_slot_resolution
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-031
+  - reason_code: AI_LOCAL_ASSET_SLOT_FORBIDDEN
+    grpc_code: INVALID_ARGUMENT
+    surface: local_profile_slot_resolution
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-031
+  - reason_code: AI_LOCAL_PROFILE_SLOT_CONFLICT
+    grpc_code: INVALID_ARGUMENT
+    surface: local_profile_slot_resolution
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-031
+  - reason_code: AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN
+    grpc_code: INVALID_ARGUMENT
+    surface: local_profile_entry_override
+    exit_shape: grpc_status
+    source_rule: K-LOCAL-032
   - reason_code: AI_LOCAL_DOWNLOAD_FAILED
     grpc_code: INTERNAL
     surface: local_model_download

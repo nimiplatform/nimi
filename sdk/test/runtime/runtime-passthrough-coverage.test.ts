@@ -134,16 +134,18 @@ test('passthrough: model module methods are callable and forwarded', async () =>
 });
 
 // ---------------------------------------------------------------------------
-// local (37 methods)
+// local (unified asset methods)
 // ---------------------------------------------------------------------------
 test('passthrough: local module methods are callable and forwarded', async () => {
   const { clients, guardCalls, invokeCalls } = createMockClients();
   const methods = [
-    'listLocalModels', 'listLocalArtifacts', 'listVerifiedModels', 'listVerifiedArtifacts',
-    'searchCatalogModels', 'resolveModelInstallPlan', 'installLocalModel', 'installVerifiedModel',
-    'installVerifiedArtifact', 'importLocalModel', 'importLocalArtifact', 'removeLocalModel',
-    'removeLocalArtifact', 'startLocalModel', 'stopLocalModel', 'checkLocalModelHealth',
-    'warmLocalModel', 'collectDeviceProfile', 'resolveProfile', 'applyProfile',
+    'listLocalAssets', 'listVerifiedAssets',
+    'searchCatalogModels', 'resolveModelInstallPlan', 'installVerifiedAsset',
+    'importLocalAsset', 'importLocalAssetFile',
+    'scanUnregisteredAssets', 'scaffoldOrphanAsset',
+    'removeLocalAsset', 'startLocalAsset', 'stopLocalAsset', 'checkLocalAssetHealth',
+    'warmLocalAsset', 'listLocalTransfers', 'pauseLocalTransfer', 'resumeLocalTransfer',
+    'cancelLocalTransfer', 'collectDeviceProfile', 'resolveProfile', 'applyProfile',
     'listLocalServices', 'installLocalService', 'startLocalService', 'stopLocalService',
     'checkLocalServiceHealth', 'removeLocalService', 'listNodeCatalog', 'listLocalAudits',
     'appendInferenceAudit', 'appendRuntimeAudit', 'listEngines', 'ensureEngine',

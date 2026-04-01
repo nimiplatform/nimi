@@ -453,11 +453,11 @@ func (s *Service) managedSpeechEndpoint() string {
 	return strings.TrimSpace(s.managedSpeechEndpointValue)
 }
 
-func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalModelRecord) string {
+func (s *Service) effectiveLocalModelEndpoint(model *runtimev1.LocalAssetRecord) string {
 	if model == nil {
 		return ""
 	}
-	return s.effectiveEndpointForRuntimeMode(model.GetEngine(), s.modelRuntimeMode(model.GetLocalModelId()), model.GetEndpoint())
+	return s.effectiveEndpointForRuntimeMode(model.GetEngine(), s.modelRuntimeMode(model.GetLocalAssetId()), model.GetEndpoint())
 }
 
 func (s *Service) serviceProbeEndpoint(service *runtimev1.LocalServiceDescriptor) string {
@@ -467,14 +467,18 @@ func (s *Service) serviceProbeEndpoint(service *runtimev1.LocalServiceDescriptor
 	return s.effectiveEndpointForRuntimeMode(service.GetEngine(), s.serviceRuntimeMode(service.GetServiceId()), service.GetEndpoint())
 }
 
-func (s *Service) modelByID(localModelID string) *runtimev1.LocalModelRecord {
-	id := strings.TrimSpace(localModelID)
+func (s *Service) modelByID(localModelID string) *runtimev1.LocalAssetRecord {
+	return s.assetByLocalID(localModelID)
+}
+
+func (s *Service) assetByLocalID(localAssetID string) *runtimev1.LocalAssetRecord {
+	id := strings.TrimSpace(localAssetID)
 	if id == "" {
 		return nil
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return cloneLocalModel(s.models[id])
+	return cloneLocalAsset(s.assets[id])
 }
 
 func (s *Service) serviceByID(serviceID string) *runtimev1.LocalServiceDescriptor {
@@ -490,10 +494,10 @@ func (s *Service) serviceByID(serviceID string) *runtimev1.LocalServiceDescripto
 func (s *Service) modelRecoveryFailure(localModelID string, now time.Time) (int, time.Duration) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	state := s.modelProbeState[localModelID]
+	state := s.assetProbeState[localModelID]
 	if state == nil {
 		state = &probeRecoveryState{}
-		s.modelProbeState[localModelID] = state
+		s.assetProbeState[localModelID] = state
 	}
 	state.consecutiveFailure++
 	state.consecutiveSuccess = 0
@@ -507,10 +511,10 @@ func (s *Service) modelRecoveryFailure(localModelID string, now time.Time) (int,
 func (s *Service) modelRecoverySuccess(localModelID string, now time.Time) int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	state := s.modelProbeState[localModelID]
+	state := s.assetProbeState[localModelID]
 	if state == nil {
 		state = &probeRecoveryState{}
-		s.modelProbeState[localModelID] = state
+		s.assetProbeState[localModelID] = state
 	}
 	state.consecutiveSuccess++
 	state.consecutiveFailure = 0
@@ -522,7 +526,7 @@ func (s *Service) modelRecoverySuccess(localModelID string, now time.Time) int {
 func (s *Service) resetModelRecovery(localModelID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	delete(s.modelProbeState, localModelID)
+	delete(s.assetProbeState, localModelID)
 }
 
 func (s *Service) serviceRecoveryFailure(serviceID string, now time.Time) (int, time.Duration) {

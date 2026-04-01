@@ -94,7 +94,7 @@ Runtime 错误通过三层投影到 Desktop UI：
 | `AI_MEDIA_OPTION_UNSUPPORTED` | `S-ERROR-001` 上游错误 | "当前不支持此媒体生成选项" |
 | `AI_MEDIA_JOB_NOT_CANCELLABLE` | `S-ERROR-001` 上游错误 | "任务已完成，无法取消" |
 | `AI_LOCAL_MODEL_PROFILE_MISSING` | `S-ERROR-001` 上游错误 | "本地模型缺少推理配置文件" |
-| `AI_LOCAL_MODEL_ALREADY_INSTALLED` | `S-ERROR-001` 上游错误 | "模型已安装，无需重复安装" |
+| `AI_LOCAL_ASSET_ALREADY_INSTALLED` | `S-ERROR-001` 上游错误 | "资产已安装，无需重复安装" |
 | `AI_LOCAL_ENDPOINT_REQUIRED` | `S-ERROR-001` 上游错误 | "本地引擎需要配置端点地址" |
 | `AI_LOCAL_TEMPLATE_NOT_FOUND` | `S-ERROR-001` 上游错误 | "模型模板未找到" |
 | `AI_LOCAL_MANIFEST_INVALID` | `S-ERROR-001` 上游错误 | "模型清单格式无效，请检查文件" |
@@ -148,15 +148,15 @@ Phase 1 provider 健康细粒度展示为 Phase 2（D-IPC-002），因此 Phase 
 
 ## D-ERR-008 — 本地模型生命周期 NOT_FOUND 映射
 
-Runtime K-ERR-008 规定 `StartLocalModel`、`StopLocalModel`、`RemoveLocalModel` 对不存在的 `local_model_id` 返回 `NOT_FOUND`。Desktop D-IPC-011 调用这些命令时需处理此错误。
+Runtime K-ERR-008 规定 `StartLocalAsset`、`StopLocalAsset`、`RemoveLocalAsset` 对不存在的 `local_model_id` 返回 `NOT_FOUND`。Desktop D-IPC-011 调用这些命令时需处理此错误。
 
 **映射规则**：
 
 | IPC 命令 | gRPC 状态 | UI 行为 |
 |---|---|---|
-| `runtime_local_models_start` | `NOT_FOUND` | toast "模型未找到，可能已被移除"，刷新模型列表 |
-| `runtime_local_models_stop` | `NOT_FOUND` | 静默处理（模型已不存在等价于已停止），刷新模型列表 |
-| `runtime_local_models_remove` | `NOT_FOUND` | 静默处理（幂等语义），刷新模型列表 |
+| `runtime_local_assets_start` | `NOT_FOUND` | toast "资产未找到，可能已被移除"，刷新资产列表 |
+| `runtime_local_assets_stop` | `NOT_FOUND` | 静默处理（资产已不存在等价于已停止），刷新资产列表 |
+| `runtime_local_assets_remove` | `NOT_FOUND` | 静默处理（幂等语义），刷新资产列表 |
 
 **跨层引用**：Runtime K-ERR-008、K-LOCAL-009。
 

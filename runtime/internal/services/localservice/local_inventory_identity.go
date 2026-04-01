@@ -28,115 +28,90 @@ func normalizeLocalInventoryID(value string) string {
 	return "local/" + trimmed
 }
 
-func localModelIdentityKey(modelID string, engine string) string {
-	normalizedModelID := normalizeLocalInventoryID(modelID)
+// localAssetIdentityKey produces the unique identity key for an asset.
+// Identity: (assetID, kind, engine).
+func localAssetIdentityKey(assetID string, kind runtimev1.LocalAssetKind, engine string) string {
+	normalizedAssetID := normalizeLocalInventoryID(assetID)
 	normalizedEngine := strings.ToLower(strings.TrimSpace(engine))
-	if normalizedModelID == "" && normalizedEngine == "" {
+	if normalizedAssetID == "" && normalizedEngine == "" && kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		return ""
 	}
-	return normalizedModelID + "::" + normalizedEngine
+	return fmt.Sprintf("%s::%d::%s", normalizedAssetID, kind, normalizedEngine)
 }
 
-func localArtifactIdentityKey(artifactID string, kind runtimev1.LocalArtifactKind, engine string) string {
-	normalizedArtifactID := normalizeLocalInventoryID(artifactID)
-	normalizedEngine := strings.ToLower(strings.TrimSpace(engine))
-	if normalizedArtifactID == "" && normalizedEngine == "" && kind == runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED {
-		return ""
-	}
-	return fmt.Sprintf("%s::%d::%s", normalizedArtifactID, kind, normalizedEngine)
-}
-
-func localModelRecordIdentityKey(record *runtimev1.LocalModelRecord) string {
+func localAssetRecordIdentityKey(record *runtimev1.LocalAssetRecord) string {
 	if record == nil {
 		return ""
 	}
-	if key := localModelIdentityKey(record.GetModelId(), record.GetEngine()); key != "" {
+	if key := localAssetIdentityKey(record.GetAssetId(), record.GetKind(), record.GetEngine()); key != "" {
 		return key
 	}
-	return "local-model-id::" + strings.TrimSpace(record.GetLocalModelId())
+	return "local-asset-id::" + strings.TrimSpace(record.GetLocalAssetId())
 }
 
-func localArtifactRecordIdentityKey(record *runtimev1.LocalArtifactRecord) string {
-	if record == nil {
-		return ""
-	}
-	if key := localArtifactIdentityKey(record.GetArtifactId(), record.GetKind(), record.GetEngine()); key != "" {
-		return key
-	}
-	return "local-artifact-id::" + strings.TrimSpace(record.GetLocalArtifactId())
+func isRunnableKind(k runtimev1.LocalAssetKind) bool {
+	return k >= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT && k <= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
 }
 
-func dedupeLocalModelRecords(records []*runtimev1.LocalModelRecord) ([]*runtimev1.LocalModelRecord, bool) {
-	byKey := make(map[string]*runtimev1.LocalModelRecord, len(records))
+// inferAssetKindFromCapabilities derives the asset kind from the first
+// matching capability token. Returns CHAT as the default for runnable assets
+// when no capability maps to a known kind.
+func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetKind {
+	for _, cap := range capabilities {
+		switch strings.TrimSpace(strings.ToLower(cap)) {
+		case "chat", "embedding", "text.generate", "text.embed":
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+		case "image", "image.generate":
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
+		case "video", "video.generate":
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
+		case "tts", "audio.synthesize", "voice_workflow.tts_v2v", "voice_workflow.tts_t2v":
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
+		case "stt", "audio.transcribe":
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
+		}
+	}
+	return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
+}
+
+func slugifyLocalAssetID(assetID string) string {
+	return slug(normalizeLocalInventoryID(assetID))
+}
+
+func dedupeLocalAssetRecords(records []*runtimev1.LocalAssetRecord) ([]*runtimev1.LocalAssetRecord, bool) {
+	byKey := make(map[string]*runtimev1.LocalAssetRecord, len(records))
 	changed := false
 	for _, record := range records {
 		if record == nil {
 			continue
 		}
-		key := localModelRecordIdentityKey(record)
+		key := localAssetRecordIdentityKey(record)
 		if existing, ok := byKey[key]; ok {
 			changed = true
-			if preferLocalModelRecord(record, existing) {
+			if preferLocalAssetRecord(record, existing) {
 				byKey[key] = record
 			}
 			continue
 		}
 		byKey[key] = record
 	}
-	out := make([]*runtimev1.LocalModelRecord, 0, len(byKey))
+	out := make([]*runtimev1.LocalAssetRecord, 0, len(byKey))
 	for _, record := range byKey {
 		out = append(out, record)
 	}
 	return out, changed
 }
 
-func dedupeLocalArtifactRecords(records []*runtimev1.LocalArtifactRecord) ([]*runtimev1.LocalArtifactRecord, bool) {
-	byKey := make(map[string]*runtimev1.LocalArtifactRecord, len(records))
-	changed := false
-	for _, record := range records {
-		if record == nil {
-			continue
-		}
-		key := localArtifactRecordIdentityKey(record)
-		if existing, ok := byKey[key]; ok {
-			changed = true
-			if preferLocalArtifactRecord(record, existing) {
-				byKey[key] = record
-			}
-			continue
-		}
-		byKey[key] = record
-	}
-	out := make([]*runtimev1.LocalArtifactRecord, 0, len(byKey))
-	for _, record := range byKey {
-		out = append(out, record)
-	}
-	return out, changed
-}
-
-func preferLocalModelRecord(candidate *runtimev1.LocalModelRecord, current *runtimev1.LocalModelRecord) bool {
+func preferLocalAssetRecord(candidate *runtimev1.LocalAssetRecord, current *runtimev1.LocalAssetRecord) bool {
 	return preferInventoryRecord(
 		candidate.GetUpdatedAt(),
 		candidate.GetInstalledAt(),
 		current.GetUpdatedAt(),
 		current.GetInstalledAt(),
-		localModelStatusRank(candidate.GetStatus()),
-		localModelStatusRank(current.GetStatus()),
-		candidate.GetLocalModelId(),
-		current.GetLocalModelId(),
-	)
-}
-
-func preferLocalArtifactRecord(candidate *runtimev1.LocalArtifactRecord, current *runtimev1.LocalArtifactRecord) bool {
-	return preferInventoryRecord(
-		candidate.GetUpdatedAt(),
-		candidate.GetInstalledAt(),
-		current.GetUpdatedAt(),
-		current.GetInstalledAt(),
-		localArtifactStatusRank(candidate.GetStatus()),
-		localArtifactStatusRank(current.GetStatus()),
-		candidate.GetLocalArtifactId(),
-		current.GetLocalArtifactId(),
+		localAssetStatusRank(candidate.GetStatus()),
+		localAssetStatusRank(current.GetStatus()),
+		candidate.GetLocalAssetId(),
+		current.GetLocalAssetId(),
 	)
 }
 
@@ -185,30 +160,15 @@ func inventoryLifecycleTime(primary string, fallback string) time.Time {
 	return time.Time{}
 }
 
-func localModelStatusRank(status runtimev1.LocalModelStatus) int {
+func localAssetStatusRank(status runtimev1.LocalAssetStatus) int {
 	switch status {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		return 4
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		return 3
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
 		return 2
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED:
-		return 1
-	default:
-		return 0
-	}
-}
-
-func localArtifactStatusRank(status runtimev1.LocalArtifactStatus) int {
-	switch status {
-	case runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_ACTIVE:
-		return 4
-	case runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_UNHEALTHY:
-		return 3
-	case runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_INSTALLED:
-		return 2
-	case runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
 		return 1
 	default:
 		return 0

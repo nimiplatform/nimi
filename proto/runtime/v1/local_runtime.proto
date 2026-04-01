@@ -9,86 +9,117 @@ import "runtime/v1/common.proto";
 import "runtime/v1/local_runtime_engine.proto";
 import "runtime/v1/local_runtime_types.proto";
 
-message ListLocalModelsRequest {
-  LocalModelStatus status_filter = 1;
-  string engine_filter = 2;
-  string category_filter = 3;
-  int32 page_size = 4;
-  string page_token = 5;
+// === Asset CRUD (unified from Model + Artifact) ===
+
+message ListLocalAssetsRequest {
+  LocalAssetStatus status_filter = 1;
+  LocalAssetKind kind_filter     = 2;
+  string engine_filter           = 3;
+  int32 page_size                = 4;
+  string page_token              = 5;
 }
 
-message ListLocalModelsResponse {
-  repeated LocalModelRecord models = 1;
-  string next_page_token = 2;
+message ListLocalAssetsResponse {
+  repeated LocalAssetRecord assets = 1;
+  string next_page_token           = 2;
 }
 
-message ListLocalArtifactsRequest {
-  LocalArtifactStatus status_filter = 1;
-  LocalArtifactKind kind_filter = 2;
-  string engine_filter = 3;
-  int32 page_size = 4;
-  string page_token = 5;
+message ListVerifiedAssetsRequest {
+  LocalAssetKind kind_filter = 1;
+  string engine_filter       = 2;
+  int32 page_size            = 3;
+  string page_token          = 4;
 }
 
-message ListLocalArtifactsResponse {
-  repeated LocalArtifactRecord artifacts = 1;
-  string next_page_token = 2;
+message ListVerifiedAssetsResponse {
+  repeated LocalVerifiedAssetDescriptor assets = 1;
+  string next_page_token                       = 2;
 }
 
-message ListVerifiedModelsRequest {
-  string category_filter = 1;
-  string engine_filter = 2;
-  int32 page_size = 3;
-  string page_token = 4;
+message InstallVerifiedAssetRequest {
+  string template_id = 1;
+  string endpoint    = 2;
 }
 
-message ListVerifiedModelsResponse {
-  repeated LocalVerifiedModelDescriptor models = 1;
-  string next_page_token = 2;
+message InstallVerifiedAssetResponse {
+  LocalAssetRecord asset = 1;
 }
 
-message ListVerifiedArtifactsRequest {
-  LocalArtifactKind kind_filter = 1;
-  string engine_filter = 2;
-  int32 page_size = 3;
-  string page_token = 4;
+message ImportLocalAssetRequest {
+  string manifest_path                 = 1;
+  string endpoint                      = 2;
+  google.protobuf.Struct engine_config = 3;
 }
 
-message ListVerifiedArtifactsResponse {
-  repeated LocalVerifiedArtifactDescriptor artifacts = 1;
-  string next_page_token = 2;
+message ImportLocalAssetResponse {
+  LocalAssetRecord asset = 1;
 }
+
+message ImportLocalAssetFileRequest {
+  string file_path       = 1;
+  LocalAssetKind kind    = 2;
+  string engine          = 3;
+  string asset_name      = 4;
+  repeated string capabilities = 5;
+  string endpoint        = 6;
+}
+
+message ImportLocalAssetFileResponse {
+  LocalAssetRecord asset = 1;
+}
+
+message ScaffoldOrphanAssetRequest {
+  string path              = 1;
+  LocalAssetKind kind      = 2;
+  string engine            = 3;
+  repeated string capabilities = 4;
+  string endpoint          = 5;
+}
+
+message ScaffoldOrphanAssetResponse {
+  LocalAssetRecord asset = 1;
+}
+
+message RemoveLocalAssetRequest {
+  string local_asset_id = 1;
+}
+
+message RemoveLocalAssetResponse {
+  LocalAssetRecord asset = 1;
+}
+
+// === Catalog & Install Plan ===
 
 message SearchCatalogModelsRequest {
-  string query = 1;
-  string capability = 2;
+  string query           = 1;
+  string capability      = 2;
   reserved 3;
   reserved "limit";
   string category_filter = 4;
-  string engine_filter = 5;
-  int32 page_size = 6;
-  string page_token = 7;
+  string engine_filter   = 5;
+  int32 page_size        = 6;
+  string page_token      = 7;
 }
 
 message SearchCatalogModelsResponse {
   repeated LocalCatalogModelDescriptor items = 1;
-  string next_page_token = 2;
+  string next_page_token                     = 2;
 }
 
 message ResolveModelInstallPlanRequest {
-  string item_id = 1;
-  string source = 2;
-  string template_id = 3;
-  string model_id = 4;
-  string repo = 5;
-  string revision = 6;
-  repeated string capabilities = 7;
-  string engine = 8;
-  string entry = 9;
-  repeated string files = 10;
-  string license = 11;
-  map<string, string> hashes = 12;
-  string endpoint = 13;
+  string item_id                       = 1;
+  string source                        = 2;
+  string template_id                   = 3;
+  string model_id                      = 4;
+  string repo                          = 5;
+  string revision                      = 6;
+  repeated string capabilities         = 7;
+  string engine                        = 8;
+  string entry                         = 9;
+  repeated string files                = 10;
+  string license                       = 11;
+  map<string, string> hashes           = 12;
+  string endpoint                      = 13;
   google.protobuf.Struct engine_config = 14;
 }
 
@@ -96,99 +127,49 @@ message ResolveModelInstallPlanResponse {
   LocalInstallPlanDescriptor plan = 1;
 }
 
-message InstallLocalModelRequest {
-  string model_id = 1;
-  string repo = 2;
-  string revision = 3;
-  repeated string capabilities = 4;
-  string engine = 5;
-  string entry = 6;
-  repeated string files = 7;
-  string license = 8;
-  map<string, string> hashes = 9;
-  string endpoint = 10;
-  google.protobuf.Struct engine_config = 11;
+// === Asset Lifecycle (runnable assets) ===
+
+message StartLocalAssetRequest {
+  string local_asset_id = 1;
 }
 
-message InstallLocalModelResponse {
-  LocalModelRecord model = 1;
+message StartLocalAssetResponse {
+  LocalAssetRecord asset = 1;
 }
 
-message InstallVerifiedModelRequest {
-  string template_id = 1;
-  string endpoint = 2;
+message StopLocalAssetRequest {
+  string local_asset_id = 1;
 }
 
-message InstallVerifiedModelResponse {
-  LocalModelRecord model = 1;
+message StopLocalAssetResponse {
+  LocalAssetRecord asset = 1;
 }
 
-message InstallVerifiedArtifactRequest {
-  string template_id = 1;
+message CheckLocalAssetHealthRequest {
+  string local_asset_id = 1;
 }
 
-message InstallVerifiedArtifactResponse {
-  LocalArtifactRecord artifact = 1;
+message CheckLocalAssetHealthResponse {
+  repeated LocalAssetHealth assets = 1;
 }
 
-message ImportLocalModelRequest {
-  string manifest_path = 1;
-  string endpoint = 2;
-  google.protobuf.Struct engine_config = 3;
+message WarmLocalAssetRequest {
+  string local_asset_id = 1;
+  int32 timeout_ms      = 2;
 }
 
-message ImportLocalModelResponse {
-  LocalModelRecord model = 1;
+message WarmLocalAssetResponse {
+  string local_asset_id = 1;
+  string asset_id       = 2;
+  string model_resolved = 3;
+  string endpoint       = 4;
+  string engine         = 5;
+  bool already_warm     = 6;
+  int64 latency_ms      = 7;
+  string trace_id       = 8;
 }
 
-message ImportLocalArtifactRequest {
-  string manifest_path = 1;
-}
-
-message ImportLocalArtifactResponse {
-  LocalArtifactRecord artifact = 1;
-}
-
-message ImportLocalModelFileRequest {
-  string file_path = 1;
-  string model_name = 2;
-  repeated string capabilities = 3;
-  string engine = 4;
-  string endpoint = 5;
-}
-
-message ImportLocalModelFileResponse {
-  LocalModelRecord model = 1;
-}
-
-message ImportLocalArtifactFileRequest {
-  string file_path = 1;
-  LocalArtifactKind kind = 2;
-  string engine = 3;
-}
-
-message ImportLocalArtifactFileResponse {
-  LocalArtifactRecord artifact = 1;
-}
-
-message LocalUnregisteredAssetDeclaration {
-  string asset_class = 1;
-  string model_type = 2;
-  LocalArtifactKind artifact_kind = 3;
-  string engine = 4;
-}
-
-message LocalUnregisteredAssetDescriptor {
-  string filename = 1;
-  string path = 2;
-  int64 size_bytes = 3;
-  LocalUnregisteredAssetDeclaration declaration = 4;
-  string suggestion_source = 5;
-  string confidence = 6;
-  bool auto_importable = 7;
-  bool requires_manual_review = 8;
-  string folder_name = 9;
-}
+// === Unregistered Asset Scan ===
 
 message ScanUnregisteredAssetsRequest {}
 
@@ -196,67 +177,46 @@ message ScanUnregisteredAssetsResponse {
   repeated LocalUnregisteredAssetDescriptor items = 1;
 }
 
-message ScaffoldOrphanModelRequest {
-  string path = 1;
-  repeated string capabilities = 2;
-  string engine = 3;
-  string endpoint = 4;
-}
-
-message ScaffoldOrphanModelResponse {
-  LocalModelRecord model = 1;
-}
-
-message ScaffoldOrphanArtifactRequest {
-  string path = 1;
-  LocalArtifactKind kind = 2;
-  string engine = 3;
-}
-
-message ScaffoldOrphanArtifactResponse {
-  LocalArtifactRecord artifact = 1;
-}
+// === Transfers ===
 
 message LocalTransferSessionSummary {
   string install_session_id = 1;
-  string model_id = 2;
-  string local_model_id = 3;
-  string artifact_id = 4;
-  string local_artifact_id = 5;
-  string session_kind = 6;
-  string phase = 7;
-  string state = 8;
-  int64 bytes_received = 9;
-  int64 bytes_total = 10;
+  string asset_id           = 2;
+  string local_asset_id     = 3;
+  reserved 4, 5;
+  string session_kind       = 6;
+  string phase              = 7;
+  string state              = 8;
+  int64 bytes_received      = 9;
+  int64 bytes_total         = 10;
   int64 speed_bytes_per_sec = 11;
-  int64 eta_seconds = 12;
-  string message = 13;
-  string reason_code = 14;
-  bool retryable = 15;
-  string created_at = 16;
-  string updated_at = 17;
+  int64 eta_seconds         = 12;
+  string message            = 13;
+  string reason_code        = 14;
+  bool retryable            = 15;
+  string created_at         = 16;
+  string updated_at         = 17;
 }
 
 message LocalTransferProgressEvent {
   string install_session_id = 1;
-  string model_id = 2;
-  string local_model_id = 3;
-  string artifact_id = 4;
-  string local_artifact_id = 5;
-  string session_kind = 6;
-  string phase = 7;
-  int64 bytes_received = 8;
-  int64 bytes_total = 9;
+  string asset_id           = 2;
+  string local_asset_id     = 3;
+  reserved 4, 5;
+  string session_kind       = 6;
+  string phase              = 7;
+  int64 bytes_received      = 8;
+  int64 bytes_total         = 9;
   int64 speed_bytes_per_sec = 10;
-  int64 eta_seconds = 11;
-  string message = 12;
-  string state = 13;
-  string reason_code = 14;
-  bool retryable = 15;
-  bool done = 16;
-  bool success = 17;
-  string created_at = 18;
-  string updated_at = 19;
+  int64 eta_seconds         = 11;
+  string message            = 12;
+  string state              = 13;
+  string reason_code        = 14;
+  bool retryable            = 15;
+  bool done                 = 16;
+  bool success              = 17;
+  string created_at         = 18;
+  string updated_at         = 19;
 }
 
 message ListLocalTransfersRequest {}
@@ -291,45 +251,7 @@ message CancelLocalTransferResponse {
 
 message WatchLocalTransfersRequest {}
 
-message RemoveLocalModelRequest {
-  string local_model_id = 1;
-}
-
-message RemoveLocalModelResponse {
-  LocalModelRecord model = 1;
-}
-
-message RemoveLocalArtifactRequest {
-  string local_artifact_id = 1;
-}
-
-message RemoveLocalArtifactResponse {
-  LocalArtifactRecord artifact = 1;
-}
-
-message StartLocalModelRequest {
-  string local_model_id = 1;
-}
-
-message StartLocalModelResponse {
-  LocalModelRecord model = 1;
-}
-
-message StopLocalModelRequest {
-  string local_model_id = 1;
-}
-
-message StopLocalModelResponse {
-  LocalModelRecord model = 1;
-}
-
-message CheckLocalModelHealthRequest {
-  string local_model_id = 1;
-}
-
-message CheckLocalModelHealthResponse {
-  repeated LocalModelHealth models = 1;
-}
+// === Device Profile ===
 
 message CollectDeviceProfileRequest {
   repeated int32 extra_ports = 1;
@@ -339,11 +261,14 @@ message CollectDeviceProfileResponse {
   LocalDeviceProfile profile = 1;
 }
 
+// === Profile Resolution ===
+
 message ResolveProfileRequest {
-  string mod_id = 1;
-  LocalProfileDescriptor profile = 2;
-  string capability = 3;
-  LocalDeviceProfile device_profile = 4;
+  string mod_id                                = 1;
+  LocalProfileDescriptor profile               = 2;
+  string capability                            = 3;
+  LocalDeviceProfile device_profile            = 4;
+  repeated ProfileEntryOverride entry_overrides = 5;
 }
 
 message ResolveProfileResponse {
@@ -358,24 +283,26 @@ message ApplyProfileResponse {
   LocalProfileApplyResult result = 1;
 }
 
+// === Services ===
+
 message ListLocalServicesRequest {
   LocalServiceStatus status_filter = 1;
-  int32 page_size = 2;
-  string page_token = 3;
+  int32 page_size                  = 2;
+  string page_token                = 3;
 }
 
 message ListLocalServicesResponse {
   repeated LocalServiceDescriptor services = 1;
-  string next_page_token = 2;
+  string next_page_token                   = 2;
 }
 
 message InstallLocalServiceRequest {
-  string service_id = 1;
-  string title = 2;
-  string engine = 3;
-  string endpoint = 4;
+  string service_id            = 1;
+  string title                 = 2;
+  string engine                = 3;
+  string endpoint              = 4;
   repeated string capabilities = 5;
-  string local_model_id = 6;
+  string local_model_id        = 6;
 }
 
 message InstallLocalServiceResponse {
@@ -414,119 +341,118 @@ message RemoveLocalServiceResponse {
   LocalServiceDescriptor service = 1;
 }
 
+// === Node Catalog ===
+
 message ListNodeCatalogRequest {
-  string capability = 1;
-  string service_id = 2;
-  string provider = 3;
+  string capability  = 1;
+  string service_id  = 2;
+  string provider    = 3;
   string type_filter = 4;
-  int32 page_size = 5;
-  string page_token = 6;
+  int32 page_size    = 5;
+  string page_token  = 6;
 }
 
 message ListNodeCatalogResponse {
   repeated LocalNodeDescriptor nodes = 1;
-  string next_page_token = 2;
+  string next_page_token             = 2;
 }
+
+// === Audits ===
 
 message ListLocalAuditsRequest {
   reserved 1;
   reserved "limit";
-  string event_type = 2;
-  repeated string event_types = 3;
-  string source = 4;
-  string modality = 5;
-  string local_model_id = 6;
-  string mod_id = 7;
-  string reason_code = 8;
+  string event_type            = 2;
+  repeated string event_types  = 3;
+  string source                = 4;
+  string modality              = 5;
+  string local_model_id        = 6;
+  string mod_id                = 7;
+  string reason_code           = 8;
   LocalAuditTimeRange time_range = 9;
-  int32 page_size = 10;
-  string page_token = 11;
-  string app_id = 12;
-  string subject_user_id = 13;
+  int32 page_size              = 10;
+  string page_token            = 11;
+  string app_id                = 12;
+  string subject_user_id       = 13;
 }
 
 message ListLocalAuditsResponse {
   repeated LocalAuditEvent events = 1;
-  string next_page_token = 2;
+  string next_page_token          = 2;
 }
 
 message AppendInferenceAuditRequest {
-  string event_type = 1;
-  string mod_id = 2;
-  string source = 3;
-  string provider = 4;
-  string modality = 5;
-  string adapter = 6;
-  string model = 7;
-  string local_model_id = 8;
-  string endpoint = 9;
-  string reason_code = 10;
-  string detail = 11;
+  string event_type                = 1;
+  string mod_id                    = 2;
+  string source                    = 3;
+  string provider                  = 4;
+  string modality                  = 5;
+  string adapter                   = 6;
+  string model                     = 7;
+  string local_model_id            = 8;
+  string endpoint                  = 9;
+  string reason_code               = 10;
+  string detail                    = 11;
   google.protobuf.Struct policy_gate = 12;
-  google.protobuf.Struct extra = 13;
+  google.protobuf.Struct extra     = 13;
 }
 
 message AppendRuntimeAuditRequest {
-  string event_type = 1;
-  string model_id = 2;
-  string local_model_id = 3;
+  string event_type              = 1;
+  string model_id                = 2;
+  string local_model_id          = 3;
   google.protobuf.Struct payload = 4;
 }
 
-message WarmLocalModelRequest {
-  string local_model_id = 1;
-  int32 timeout_ms = 2;
-}
-
-message WarmLocalModelResponse {
-  string local_model_id = 1;
-  string model_id = 2;
-  string model_resolved = 3;
-  string endpoint = 4;
-  string engine = 5;
-  bool already_warm = 6;
-  int64 latency_ms = 7;
-  string trace_id = 8;
-}
+// === Service Definition ===
 
 service RuntimeLocalService {
-  rpc ListLocalModels(ListLocalModelsRequest) returns (ListLocalModelsResponse);
-  rpc ListLocalArtifacts(ListLocalArtifactsRequest) returns (ListLocalArtifactsResponse);
-  rpc ListVerifiedModels(ListVerifiedModelsRequest) returns (ListVerifiedModelsResponse);
-  rpc ListVerifiedArtifacts(ListVerifiedArtifactsRequest) returns (ListVerifiedArtifactsResponse);
+  // Asset CRUD (unified)
+  rpc ListLocalAssets(ListLocalAssetsRequest) returns (ListLocalAssetsResponse);
+  rpc ListVerifiedAssets(ListVerifiedAssetsRequest) returns (ListVerifiedAssetsResponse);
+  rpc InstallVerifiedAsset(InstallVerifiedAssetRequest) returns (InstallVerifiedAssetResponse);
+  rpc ImportLocalAsset(ImportLocalAssetRequest) returns (ImportLocalAssetResponse);
+  rpc ImportLocalAssetFile(ImportLocalAssetFileRequest) returns (ImportLocalAssetFileResponse);
+  rpc ScanUnregisteredAssets(ScanUnregisteredAssetsRequest) returns (ScanUnregisteredAssetsResponse);
+  rpc ScaffoldOrphanAsset(ScaffoldOrphanAssetRequest) returns (ScaffoldOrphanAssetResponse);
+  rpc RemoveLocalAsset(RemoveLocalAssetRequest) returns (RemoveLocalAssetResponse);
+
+  // Catalog & Install
   rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
   rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
-  rpc InstallLocalModel(InstallLocalModelRequest) returns (InstallLocalModelResponse);
-  rpc InstallVerifiedModel(InstallVerifiedModelRequest) returns (InstallVerifiedModelResponse);
-  rpc InstallVerifiedArtifact(InstallVerifiedArtifactRequest) returns (InstallVerifiedArtifactResponse);
-  rpc ImportLocalModel(ImportLocalModelRequest) returns (ImportLocalModelResponse);
-  rpc ImportLocalArtifact(ImportLocalArtifactRequest) returns (ImportLocalArtifactResponse);
-  rpc ImportLocalModelFile(ImportLocalModelFileRequest) returns (ImportLocalModelFileResponse);
-  rpc ImportLocalArtifactFile(ImportLocalArtifactFileRequest) returns (ImportLocalArtifactFileResponse);
-  rpc ScanUnregisteredAssets(ScanUnregisteredAssetsRequest) returns (ScanUnregisteredAssetsResponse);
-  rpc ScaffoldOrphanModel(ScaffoldOrphanModelRequest) returns (ScaffoldOrphanModelResponse);
-  rpc ScaffoldOrphanArtifact(ScaffoldOrphanArtifactRequest) returns (ScaffoldOrphanArtifactResponse);
+
+  // Asset lifecycle (runnable assets)
+  rpc StartLocalAsset(StartLocalAssetRequest) returns (StartLocalAssetResponse);
+  rpc StopLocalAsset(StopLocalAssetRequest) returns (StopLocalAssetResponse);
+  rpc CheckLocalAssetHealth(CheckLocalAssetHealthRequest) returns (CheckLocalAssetHealthResponse);
+  rpc WarmLocalAsset(WarmLocalAssetRequest) returns (WarmLocalAssetResponse);
+
+  // Transfers
   rpc ListLocalTransfers(ListLocalTransfersRequest) returns (ListLocalTransfersResponse);
   rpc PauseLocalTransfer(PauseLocalTransferRequest) returns (PauseLocalTransferResponse);
   rpc ResumeLocalTransfer(ResumeLocalTransferRequest) returns (ResumeLocalTransferResponse);
   rpc CancelLocalTransfer(CancelLocalTransferRequest) returns (CancelLocalTransferResponse);
   rpc WatchLocalTransfers(WatchLocalTransfersRequest) returns (stream LocalTransferProgressEvent);
-  rpc RemoveLocalModel(RemoveLocalModelRequest) returns (RemoveLocalModelResponse);
-  rpc RemoveLocalArtifact(RemoveLocalArtifactRequest) returns (RemoveLocalArtifactResponse);
-  rpc StartLocalModel(StartLocalModelRequest) returns (StartLocalModelResponse);
-  rpc StopLocalModel(StopLocalModelRequest) returns (StopLocalModelResponse);
-  rpc CheckLocalModelHealth(CheckLocalModelHealthRequest) returns (CheckLocalModelHealthResponse);
-  rpc WarmLocalModel(WarmLocalModelRequest) returns (WarmLocalModelResponse);
+
+  // Device
   rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);
+
+  // Profile
   rpc ResolveProfile(ResolveProfileRequest) returns (ResolveProfileResponse);
   rpc ApplyProfile(ApplyProfileRequest) returns (ApplyProfileResponse);
+
+  // Services
   rpc ListLocalServices(ListLocalServicesRequest) returns (ListLocalServicesResponse);
   rpc InstallLocalService(InstallLocalServiceRequest) returns (InstallLocalServiceResponse);
   rpc StartLocalService(StartLocalServiceRequest) returns (StartLocalServiceResponse);
   rpc StopLocalService(StopLocalServiceRequest) returns (StopLocalServiceResponse);
   rpc CheckLocalServiceHealth(CheckLocalServiceHealthRequest) returns (CheckLocalServiceHealthResponse);
   rpc RemoveLocalService(RemoveLocalServiceRequest) returns (RemoveLocalServiceResponse);
+
+  // Nodes
   rpc ListNodeCatalog(ListNodeCatalogRequest) returns (ListNodeCatalogResponse);
+
+  // Audits
   rpc ListLocalAudits(ListLocalAuditsRequest) returns (ListLocalAuditsResponse);
   rpc AppendInferenceAudit(AppendInferenceAuditRequest) returns (Ack);
   rpc AppendRuntimeAudit(AppendRuntimeAuditRequest) returns (Ack);

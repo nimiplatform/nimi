@@ -12,8 +12,8 @@ import type {
   ModRuntimeLocalProfile,
   ModRuntimeLocalProfileInstallResult,
   ModRuntimeLocalProfileInstallStatus,
-  ModRuntimeListLocalArtifactsInput,
-  ModRuntimeLocalArtifactRecord,
+  ModRuntimeListLocalAssetsInput,
+  ModRuntimeLocalAssetRecord,
   ModRuntimeBoundSpeechListVoicesInput,
   ModRuntimeBoundSpeechSynthesizeInput,
   ModRuntimeBoundSpeechTranscribeInput,
@@ -80,9 +80,9 @@ export type ModRuntimeHost = {
     }) => Promise<RuntimeRouteHealthResult>;
   };
   local: {
-    listArtifacts: (input: ModRuntimeListLocalArtifactsInput & {
+    listAssets: (input: ModRuntimeListLocalAssetsInput & {
       modId: string;
-    }) => Promise<ModRuntimeLocalArtifactRecord[]>;
+    }) => Promise<ModRuntimeLocalAssetRecord[]>;
     listProfiles: (input: {
       modId: string;
     }) => Promise<ModRuntimeLocalProfile[]>;

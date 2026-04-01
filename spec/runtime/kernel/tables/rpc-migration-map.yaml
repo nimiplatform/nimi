@@ -1,604 +1,564 @@
 version: 1
 service_mappings:
-  - design_service: AIService
-    proto_service: RuntimeAiService
-    mapping_status: renamed_service
-    phase: phase1
-    source_rule: K-RPC-005
-  - design_service: RuntimeAiRealtimeService
-    proto_service: RuntimeAiRealtimeService
-    mapping_status: aligned
-    phase: phase1
-    source_rule: K-RPC-005
-  - design_service: ConnectorService
-    proto_service: RuntimeConnectorService
-    mapping_status: aligned
-    phase: phase1
-    source_rule: K-RPC-005
-  - design_service: RuntimeLocalService
-    proto_service: RuntimeLocalService
-    mapping_status: aligned
-    phase: phase1
-    source_rule: K-RPC-004
-  - design_service: RuntimeAuthService
-    proto_service: RuntimeAuthService
-    mapping_status: aligned
-    phase: phase1
-    source_rule: K-AUTHSVC-002
-  - design_service: RuntimeGrantService
-    proto_service: RuntimeGrantService
-    mapping_status: aligned
-    phase: phase1
-    source_rule: K-GRANT-002
-  - design_service: RuntimeWorkflowService
-    proto_service: RuntimeWorkflowService
-    mapping_status: aligned
-    phase: phase2
-    source_rule: K-WF-003
-  - design_service: RuntimeAuditService
-    proto_service: RuntimeAuditService
-    mapping_status: aligned
-    phase: phase2
-    source_rule: K-AUDIT-013
-  - design_service: RuntimeModelService
-    proto_service: RuntimeModelService
-    mapping_status: aligned
-    phase: phase2
-    source_rule: K-MODEL-004
-  - design_service: RuntimeKnowledgeService
-    proto_service: RuntimeKnowledgeService
-    mapping_status: aligned
-    phase: phase2
-    source_rule: K-KNOW-001
-  - design_service: RuntimeAppService
-    proto_service: RuntimeAppService
-    mapping_status: aligned
-    phase: phase2
-    source_rule: K-APP-001
+- design_service: AIService
+  proto_service: RuntimeAiService
+  mapping_status: renamed_service
+  phase: phase1
+  source_rule: K-RPC-005
+- design_service: RuntimeAiRealtimeService
+  proto_service: RuntimeAiRealtimeService
+  mapping_status: aligned
+  phase: phase1
+  source_rule: K-RPC-005
+- design_service: ConnectorService
+  proto_service: RuntimeConnectorService
+  mapping_status: aligned
+  phase: phase1
+  source_rule: K-RPC-005
+- design_service: RuntimeLocalService
+  proto_service: RuntimeLocalService
+  mapping_status: aligned
+  phase: phase1
+  source_rule: K-RPC-004
+- design_service: RuntimeAuthService
+  proto_service: RuntimeAuthService
+  mapping_status: aligned
+  phase: phase1
+  source_rule: K-AUTHSVC-002
+- design_service: RuntimeGrantService
+  proto_service: RuntimeGrantService
+  mapping_status: aligned
+  phase: phase1
+  source_rule: K-GRANT-002
+- design_service: RuntimeWorkflowService
+  proto_service: RuntimeWorkflowService
+  mapping_status: aligned
+  phase: phase2
+  source_rule: K-WF-003
+- design_service: RuntimeAuditService
+  proto_service: RuntimeAuditService
+  mapping_status: aligned
+  phase: phase2
+  source_rule: K-AUDIT-013
+- design_service: RuntimeModelService
+  proto_service: RuntimeModelService
+  mapping_status: aligned
+  phase: phase2
+  source_rule: K-MODEL-004
+- design_service: RuntimeKnowledgeService
+  proto_service: RuntimeKnowledgeService
+  mapping_status: aligned
+  phase: phase2
+  source_rule: K-KNOW-001
+- design_service: RuntimeAppService
+  proto_service: RuntimeAppService
+  mapping_status: aligned
+  phase: phase2
+  source_rule: K-APP-001
 method_mappings:
-  - design_service: AIService
-    design_method: ExecuteScenario
-    proto_service: RuntimeAiService
-    proto_method: ExecuteScenario
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: StreamScenario
-    proto_service: RuntimeAiService
-    proto_method: StreamScenario
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: SubmitScenarioJob
-    proto_service: RuntimeAiService
-    proto_method: SubmitScenarioJob
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: GetScenarioJob
-    proto_service: RuntimeAiService
-    proto_method: GetScenarioJob
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: CancelScenarioJob
-    proto_service: RuntimeAiService
-    proto_method: CancelScenarioJob
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: SubscribeScenarioJobEvents
-    proto_service: RuntimeAiService
-    proto_method: SubscribeScenarioJobEvents
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: GetScenarioArtifacts
-    proto_service: RuntimeAiService
-    proto_method: GetScenarioArtifacts
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: ListScenarioProfiles
-    proto_service: RuntimeAiService
-    proto_method: ListScenarioProfiles
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: GetVoiceAsset
-    proto_service: RuntimeAiService
-    proto_method: GetVoiceAsset
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: ListVoiceAssets
-    proto_service: RuntimeAiService
-    proto_method: ListVoiceAssets
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: DeleteVoiceAsset
-    proto_service: RuntimeAiService
-    proto_method: DeleteVoiceAsset
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: ListPresetVoices
-    proto_service: RuntimeAiService
-    proto_method: ListPresetVoices
-    mapping_status: aligned
-  - design_service: AIService
-    design_method: UploadArtifact
-    proto_service: RuntimeAiService
-    proto_method: UploadArtifact
-    mapping_status: aligned
-  - design_service: RuntimeAiRealtimeService
-    design_method: OpenRealtimeSession
-    proto_service: RuntimeAiRealtimeService
-    proto_method: OpenRealtimeSession
-    mapping_status: aligned
-  - design_service: RuntimeAiRealtimeService
-    design_method: AppendRealtimeInput
-    proto_service: RuntimeAiRealtimeService
-    proto_method: AppendRealtimeInput
-    mapping_status: aligned
-  - design_service: RuntimeAiRealtimeService
-    design_method: ReadRealtimeEvents
-    proto_service: RuntimeAiRealtimeService
-    proto_method: ReadRealtimeEvents
-    mapping_status: aligned
-  - design_service: RuntimeAiRealtimeService
-    design_method: CloseRealtimeSession
-    proto_service: RuntimeAiRealtimeService
-    proto_method: CloseRealtimeSession
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: CreateConnector
-    proto_service: RuntimeConnectorService
-    proto_method: CreateConnector
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: GetConnector
-    proto_service: RuntimeConnectorService
-    proto_method: GetConnector
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: ListConnectors
-    proto_service: RuntimeConnectorService
-    proto_method: ListConnectors
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: UpdateConnector
-    proto_service: RuntimeConnectorService
-    proto_method: UpdateConnector
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: DeleteConnector
-    proto_service: RuntimeConnectorService
-    proto_method: DeleteConnector
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: TestConnector
-    proto_service: RuntimeConnectorService
-    proto_method: TestConnector
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: ListConnectorModels
-    proto_service: RuntimeConnectorService
-    proto_method: ListConnectorModels
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: ListProviderCatalog
-    proto_service: RuntimeConnectorService
-    proto_method: ListProviderCatalog
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: ListModelCatalogProviders
-    proto_service: RuntimeConnectorService
-    proto_method: ListModelCatalogProviders
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: UpsertModelCatalogProvider
-    proto_service: RuntimeConnectorService
-    proto_method: UpsertModelCatalogProvider
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: DeleteModelCatalogProvider
-    proto_service: RuntimeConnectorService
-    proto_method: DeleteModelCatalogProvider
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: ListCatalogProviderModels
-    proto_service: RuntimeConnectorService
-    proto_method: ListCatalogProviderModels
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: GetCatalogModelDetail
-    proto_service: RuntimeConnectorService
-    proto_method: GetCatalogModelDetail
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: UpsertCatalogModelOverlay
-    proto_service: RuntimeConnectorService
-    proto_method: UpsertCatalogModelOverlay
-    mapping_status: aligned
-  - design_service: ConnectorService
-    design_method: DeleteCatalogModelOverlay
-    proto_service: RuntimeConnectorService
-    proto_method: DeleteCatalogModelOverlay
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListLocalModels
-    proto_service: RuntimeLocalService
-    proto_method: ListLocalModels
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListLocalArtifacts
-    proto_service: RuntimeLocalService
-    proto_method: ListLocalArtifacts
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListVerifiedModels
-    proto_service: RuntimeLocalService
-    proto_method: ListVerifiedModels
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListVerifiedArtifacts
-    proto_service: RuntimeLocalService
-    proto_method: ListVerifiedArtifacts
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: InstallLocalModel
-    proto_service: RuntimeLocalService
-    proto_method: InstallLocalModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: InstallVerifiedModel
-    proto_service: RuntimeLocalService
-    proto_method: InstallVerifiedModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: InstallVerifiedArtifact
-    proto_service: RuntimeLocalService
-    proto_method: InstallVerifiedArtifact
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ImportLocalModel
-    proto_service: RuntimeLocalService
-    proto_method: ImportLocalModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ImportLocalArtifact
-    proto_service: RuntimeLocalService
-    proto_method: ImportLocalArtifact
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ImportLocalModelFile
-    proto_service: RuntimeLocalService
-    proto_method: ImportLocalModelFile
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ImportLocalArtifactFile
-    proto_service: RuntimeLocalService
-    proto_method: ImportLocalArtifactFile
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: RemoveLocalModel
-    proto_service: RuntimeLocalService
-    proto_method: RemoveLocalModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: RemoveLocalArtifact
-    proto_service: RuntimeLocalService
-    proto_method: RemoveLocalArtifact
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: StartLocalModel
-    proto_service: RuntimeLocalService
-    proto_method: StartLocalModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: StopLocalModel
-    proto_service: RuntimeLocalService
-    proto_method: StopLocalModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: CheckLocalModelHealth
-    proto_service: RuntimeLocalService
-    proto_method: CheckLocalModelHealth
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: WarmLocalModel
-    proto_service: RuntimeLocalService
-    proto_method: WarmLocalModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: SearchCatalogModels
-    proto_service: RuntimeLocalService
-    proto_method: SearchCatalogModels
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ResolveModelInstallPlan
-    proto_service: RuntimeLocalService
-    proto_method: ResolveModelInstallPlan
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: CollectDeviceProfile
-    proto_service: RuntimeLocalService
-    proto_method: CollectDeviceProfile
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ScanUnregisteredAssets
-    proto_service: RuntimeLocalService
-    proto_method: ScanUnregisteredAssets
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ScaffoldOrphanModel
-    proto_service: RuntimeLocalService
-    proto_method: ScaffoldOrphanModel
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ScaffoldOrphanArtifact
-    proto_service: RuntimeLocalService
-    proto_method: ScaffoldOrphanArtifact
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListLocalTransfers
-    proto_service: RuntimeLocalService
-    proto_method: ListLocalTransfers
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: PauseLocalTransfer
-    proto_service: RuntimeLocalService
-    proto_method: PauseLocalTransfer
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ResumeLocalTransfer
-    proto_service: RuntimeLocalService
-    proto_method: ResumeLocalTransfer
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: CancelLocalTransfer
-    proto_service: RuntimeLocalService
-    proto_method: CancelLocalTransfer
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: WatchLocalTransfers
-    proto_service: RuntimeLocalService
-    proto_method: WatchLocalTransfers
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListLocalServices
-    proto_service: RuntimeLocalService
-    proto_method: ListLocalServices
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: InstallLocalService
-    proto_service: RuntimeLocalService
-    proto_method: InstallLocalService
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: StartLocalService
-    proto_service: RuntimeLocalService
-    proto_method: StartLocalService
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: StopLocalService
-    proto_service: RuntimeLocalService
-    proto_method: StopLocalService
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: CheckLocalServiceHealth
-    proto_service: RuntimeLocalService
-    proto_method: CheckLocalServiceHealth
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: RemoveLocalService
-    proto_service: RuntimeLocalService
-    proto_method: RemoveLocalService
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListNodeCatalog
-    proto_service: RuntimeLocalService
-    proto_method: ListNodeCatalog
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ResolveProfile
-    proto_service: RuntimeLocalService
-    proto_method: ResolveProfile
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ApplyProfile
-    proto_service: RuntimeLocalService
-    proto_method: ApplyProfile
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListLocalAudits
-    proto_service: RuntimeLocalService
-    proto_method: ListLocalAudits
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: AppendInferenceAudit
-    proto_service: RuntimeLocalService
-    proto_method: AppendInferenceAudit
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: AppendRuntimeAudit
-    proto_service: RuntimeLocalService
-    proto_method: AppendRuntimeAudit
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: ListEngines
-    proto_service: RuntimeLocalService
-    proto_method: ListEngines
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: EnsureEngine
-    proto_service: RuntimeLocalService
-    proto_method: EnsureEngine
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: StartEngine
-    proto_service: RuntimeLocalService
-    proto_method: StartEngine
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: StopEngine
-    proto_service: RuntimeLocalService
-    proto_method: StopEngine
-    mapping_status: aligned
-  - design_service: RuntimeLocalService
-    design_method: GetEngineStatus
-    proto_service: RuntimeLocalService
-    proto_method: GetEngineStatus
-    mapping_status: aligned
-  - design_service: RuntimeAuthService
-    design_method: RegisterApp
-    proto_service: RuntimeAuthService
-    proto_method: RegisterApp
-    mapping_status: aligned
-  - design_service: RuntimeAuthService
-    design_method: OpenSession
-    proto_service: RuntimeAuthService
-    proto_method: OpenSession
-    mapping_status: aligned
-  - design_service: RuntimeAuthService
-    design_method: RefreshSession
-    proto_service: RuntimeAuthService
-    proto_method: RefreshSession
-    mapping_status: aligned
-  - design_service: RuntimeAuthService
-    design_method: RevokeSession
-    proto_service: RuntimeAuthService
-    proto_method: RevokeSession
-    mapping_status: aligned
-  - design_service: RuntimeAuthService
-    design_method: RegisterExternalPrincipal
-    proto_service: RuntimeAuthService
-    proto_method: RegisterExternalPrincipal
-    mapping_status: aligned
-  - design_service: RuntimeAuthService
-    design_method: OpenExternalPrincipalSession
-    proto_service: RuntimeAuthService
-    proto_method: OpenExternalPrincipalSession
-    mapping_status: aligned
-  - design_service: RuntimeAuthService
-    design_method: RevokeExternalPrincipalSession
-    proto_service: RuntimeAuthService
-    proto_method: RevokeExternalPrincipalSession
-    mapping_status: aligned
-  - design_service: RuntimeGrantService
-    design_method: AuthorizeExternalPrincipal
-    proto_service: RuntimeGrantService
-    proto_method: AuthorizeExternalPrincipal
-    mapping_status: aligned
-  - design_service: RuntimeGrantService
-    design_method: ValidateAppAccessToken
-    proto_service: RuntimeGrantService
-    proto_method: ValidateAppAccessToken
-    mapping_status: aligned
-  - design_service: RuntimeGrantService
-    design_method: RevokeAppAccessToken
-    proto_service: RuntimeGrantService
-    proto_method: RevokeAppAccessToken
-    mapping_status: aligned
-  - design_service: RuntimeGrantService
-    design_method: IssueDelegatedAccessToken
-    proto_service: RuntimeGrantService
-    proto_method: IssueDelegatedAccessToken
-    mapping_status: aligned
-  - design_service: RuntimeGrantService
-    design_method: ListTokenChain
-    proto_service: RuntimeGrantService
-    proto_method: ListTokenChain
-    mapping_status: aligned
-  - design_service: RuntimeWorkflowService
-    design_method: SubmitWorkflow
-    proto_service: RuntimeWorkflowService
-    proto_method: SubmitWorkflow
-    mapping_status: aligned
-  - design_service: RuntimeWorkflowService
-    design_method: GetWorkflow
-    proto_service: RuntimeWorkflowService
-    proto_method: GetWorkflow
-    mapping_status: aligned
-  - design_service: RuntimeWorkflowService
-    design_method: CancelWorkflow
-    proto_service: RuntimeWorkflowService
-    proto_method: CancelWorkflow
-    mapping_status: aligned
-  - design_service: RuntimeWorkflowService
-    design_method: SubscribeWorkflowEvents
-    proto_service: RuntimeWorkflowService
-    proto_method: SubscribeWorkflowEvents
-    mapping_status: aligned
-  - design_service: RuntimeAuditService
-    design_method: ListAuditEvents
-    proto_service: RuntimeAuditService
-    proto_method: ListAuditEvents
-    mapping_status: aligned
-  - design_service: RuntimeAuditService
-    design_method: ExportAuditEvents
-    proto_service: RuntimeAuditService
-    proto_method: ExportAuditEvents
-    mapping_status: aligned
-  - design_service: RuntimeAuditService
-    design_method: ListUsageStats
-    proto_service: RuntimeAuditService
-    proto_method: ListUsageStats
-    mapping_status: aligned
-  - design_service: RuntimeAuditService
-    design_method: GetRuntimeHealth
-    proto_service: RuntimeAuditService
-    proto_method: GetRuntimeHealth
-    mapping_status: aligned
-  - design_service: RuntimeAuditService
-    design_method: ListAIProviderHealth
-    proto_service: RuntimeAuditService
-    proto_method: ListAIProviderHealth
-    mapping_status: aligned
-  - design_service: RuntimeAuditService
-    design_method: SubscribeAIProviderHealthEvents
-    proto_service: RuntimeAuditService
-    proto_method: SubscribeAIProviderHealthEvents
-    mapping_status: aligned
-  - design_service: RuntimeAuditService
-    design_method: SubscribeRuntimeHealthEvents
-    proto_service: RuntimeAuditService
-    proto_method: SubscribeRuntimeHealthEvents
-    mapping_status: aligned
-  - design_service: RuntimeModelService
-    design_method: ListModels
-    proto_service: RuntimeModelService
-    proto_method: ListModels
-    mapping_status: aligned
-  - design_service: RuntimeModelService
-    design_method: PullModel
-    proto_service: RuntimeModelService
-    proto_method: PullModel
-    mapping_status: aligned
-  - design_service: RuntimeModelService
-    design_method: RemoveModel
-    proto_service: RuntimeModelService
-    proto_method: RemoveModel
-    mapping_status: aligned
-  - design_service: RuntimeModelService
-    design_method: CheckModelHealth
-    proto_service: RuntimeModelService
-    proto_method: CheckModelHealth
-    mapping_status: aligned
-  - design_service: RuntimeKnowledgeService
-    design_method: BuildIndex
-    proto_service: RuntimeKnowledgeService
-    proto_method: BuildIndex
-    mapping_status: aligned
-  - design_service: RuntimeKnowledgeService
-    design_method: SearchIndex
-    proto_service: RuntimeKnowledgeService
-    proto_method: SearchIndex
-    mapping_status: aligned
-  - design_service: RuntimeKnowledgeService
-    design_method: DeleteIndex
-    proto_service: RuntimeKnowledgeService
-    proto_method: DeleteIndex
-    mapping_status: aligned
-  - design_service: RuntimeAppService
-    design_method: SendAppMessage
-    proto_service: RuntimeAppService
-    proto_method: SendAppMessage
-    mapping_status: aligned
-  - design_service: RuntimeAppService
-    design_method: SubscribeAppMessages
-    proto_service: RuntimeAppService
-    proto_method: SubscribeAppMessages
-    mapping_status: aligned
+- design_service: AIService
+  design_method: ExecuteScenario
+  proto_service: RuntimeAiService
+  proto_method: ExecuteScenario
+  mapping_status: aligned
+- design_service: AIService
+  design_method: StreamScenario
+  proto_service: RuntimeAiService
+  proto_method: StreamScenario
+  mapping_status: aligned
+- design_service: AIService
+  design_method: SubmitScenarioJob
+  proto_service: RuntimeAiService
+  proto_method: SubmitScenarioJob
+  mapping_status: aligned
+- design_service: AIService
+  design_method: GetScenarioJob
+  proto_service: RuntimeAiService
+  proto_method: GetScenarioJob
+  mapping_status: aligned
+- design_service: AIService
+  design_method: CancelScenarioJob
+  proto_service: RuntimeAiService
+  proto_method: CancelScenarioJob
+  mapping_status: aligned
+- design_service: AIService
+  design_method: SubscribeScenarioJobEvents
+  proto_service: RuntimeAiService
+  proto_method: SubscribeScenarioJobEvents
+  mapping_status: aligned
+- design_service: AIService
+  design_method: GetScenarioArtifacts
+  proto_service: RuntimeAiService
+  proto_method: GetScenarioArtifacts
+  mapping_status: aligned
+- design_service: AIService
+  design_method: ListScenarioProfiles
+  proto_service: RuntimeAiService
+  proto_method: ListScenarioProfiles
+  mapping_status: aligned
+- design_service: AIService
+  design_method: GetVoiceAsset
+  proto_service: RuntimeAiService
+  proto_method: GetVoiceAsset
+  mapping_status: aligned
+- design_service: AIService
+  design_method: ListVoiceAssets
+  proto_service: RuntimeAiService
+  proto_method: ListVoiceAssets
+  mapping_status: aligned
+- design_service: AIService
+  design_method: DeleteVoiceAsset
+  proto_service: RuntimeAiService
+  proto_method: DeleteVoiceAsset
+  mapping_status: aligned
+- design_service: AIService
+  design_method: ListPresetVoices
+  proto_service: RuntimeAiService
+  proto_method: ListPresetVoices
+  mapping_status: aligned
+- design_service: AIService
+  design_method: UploadArtifact
+  proto_service: RuntimeAiService
+  proto_method: UploadArtifact
+  mapping_status: aligned
+- design_service: RuntimeAiRealtimeService
+  design_method: OpenRealtimeSession
+  proto_service: RuntimeAiRealtimeService
+  proto_method: OpenRealtimeSession
+  mapping_status: aligned
+- design_service: RuntimeAiRealtimeService
+  design_method: AppendRealtimeInput
+  proto_service: RuntimeAiRealtimeService
+  proto_method: AppendRealtimeInput
+  mapping_status: aligned
+- design_service: RuntimeAiRealtimeService
+  design_method: ReadRealtimeEvents
+  proto_service: RuntimeAiRealtimeService
+  proto_method: ReadRealtimeEvents
+  mapping_status: aligned
+- design_service: RuntimeAiRealtimeService
+  design_method: CloseRealtimeSession
+  proto_service: RuntimeAiRealtimeService
+  proto_method: CloseRealtimeSession
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: CreateConnector
+  proto_service: RuntimeConnectorService
+  proto_method: CreateConnector
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: GetConnector
+  proto_service: RuntimeConnectorService
+  proto_method: GetConnector
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: ListConnectors
+  proto_service: RuntimeConnectorService
+  proto_method: ListConnectors
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: UpdateConnector
+  proto_service: RuntimeConnectorService
+  proto_method: UpdateConnector
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: DeleteConnector
+  proto_service: RuntimeConnectorService
+  proto_method: DeleteConnector
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: TestConnector
+  proto_service: RuntimeConnectorService
+  proto_method: TestConnector
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: ListConnectorModels
+  proto_service: RuntimeConnectorService
+  proto_method: ListConnectorModels
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: ListProviderCatalog
+  proto_service: RuntimeConnectorService
+  proto_method: ListProviderCatalog
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: ListModelCatalogProviders
+  proto_service: RuntimeConnectorService
+  proto_method: ListModelCatalogProviders
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: UpsertModelCatalogProvider
+  proto_service: RuntimeConnectorService
+  proto_method: UpsertModelCatalogProvider
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: DeleteModelCatalogProvider
+  proto_service: RuntimeConnectorService
+  proto_method: DeleteModelCatalogProvider
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: ListCatalogProviderModels
+  proto_service: RuntimeConnectorService
+  proto_method: ListCatalogProviderModels
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: GetCatalogModelDetail
+  proto_service: RuntimeConnectorService
+  proto_method: GetCatalogModelDetail
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: UpsertCatalogModelOverlay
+  proto_service: RuntimeConnectorService
+  proto_method: UpsertCatalogModelOverlay
+  mapping_status: aligned
+- design_service: ConnectorService
+  design_method: DeleteCatalogModelOverlay
+  proto_service: RuntimeConnectorService
+  proto_method: DeleteCatalogModelOverlay
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListLocalAssets
+  proto_service: RuntimeLocalService
+  proto_method: ListLocalAssets
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListVerifiedAssets
+  proto_service: RuntimeLocalService
+  proto_method: ListVerifiedAssets
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: InstallVerifiedAsset
+  proto_service: RuntimeLocalService
+  proto_method: InstallVerifiedAsset
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ImportLocalAsset
+  proto_service: RuntimeLocalService
+  proto_method: ImportLocalAsset
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ImportLocalAssetFile
+  proto_service: RuntimeLocalService
+  proto_method: ImportLocalAssetFile
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: RemoveLocalAsset
+  proto_service: RuntimeLocalService
+  proto_method: RemoveLocalAsset
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StartLocalAsset
+  proto_service: RuntimeLocalService
+  proto_method: StartLocalAsset
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StopLocalAsset
+  proto_service: RuntimeLocalService
+  proto_method: StopLocalAsset
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: CheckLocalAssetHealth
+  proto_service: RuntimeLocalService
+  proto_method: CheckLocalAssetHealth
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: WarmLocalAsset
+  proto_service: RuntimeLocalService
+  proto_method: WarmLocalAsset
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: SearchCatalogModels
+  proto_service: RuntimeLocalService
+  proto_method: SearchCatalogModels
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ResolveModelInstallPlan
+  proto_service: RuntimeLocalService
+  proto_method: ResolveModelInstallPlan
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: CollectDeviceProfile
+  proto_service: RuntimeLocalService
+  proto_method: CollectDeviceProfile
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ScanUnregisteredAssets
+  proto_service: RuntimeLocalService
+  proto_method: ScanUnregisteredAssets
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ScaffoldOrphanAsset
+  proto_service: RuntimeLocalService
+  proto_method: ScaffoldOrphanAsset
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListLocalTransfers
+  proto_service: RuntimeLocalService
+  proto_method: ListLocalTransfers
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: PauseLocalTransfer
+  proto_service: RuntimeLocalService
+  proto_method: PauseLocalTransfer
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ResumeLocalTransfer
+  proto_service: RuntimeLocalService
+  proto_method: ResumeLocalTransfer
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: CancelLocalTransfer
+  proto_service: RuntimeLocalService
+  proto_method: CancelLocalTransfer
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: WatchLocalTransfers
+  proto_service: RuntimeLocalService
+  proto_method: WatchLocalTransfers
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListLocalServices
+  proto_service: RuntimeLocalService
+  proto_method: ListLocalServices
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: InstallLocalService
+  proto_service: RuntimeLocalService
+  proto_method: InstallLocalService
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StartLocalService
+  proto_service: RuntimeLocalService
+  proto_method: StartLocalService
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StopLocalService
+  proto_service: RuntimeLocalService
+  proto_method: StopLocalService
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: CheckLocalServiceHealth
+  proto_service: RuntimeLocalService
+  proto_method: CheckLocalServiceHealth
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: RemoveLocalService
+  proto_service: RuntimeLocalService
+  proto_method: RemoveLocalService
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListNodeCatalog
+  proto_service: RuntimeLocalService
+  proto_method: ListNodeCatalog
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ResolveProfile
+  proto_service: RuntimeLocalService
+  proto_method: ResolveProfile
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ApplyProfile
+  proto_service: RuntimeLocalService
+  proto_method: ApplyProfile
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListLocalAudits
+  proto_service: RuntimeLocalService
+  proto_method: ListLocalAudits
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: AppendInferenceAudit
+  proto_service: RuntimeLocalService
+  proto_method: AppendInferenceAudit
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: AppendRuntimeAudit
+  proto_service: RuntimeLocalService
+  proto_method: AppendRuntimeAudit
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: ListEngines
+  proto_service: RuntimeLocalService
+  proto_method: ListEngines
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: EnsureEngine
+  proto_service: RuntimeLocalService
+  proto_method: EnsureEngine
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StartEngine
+  proto_service: RuntimeLocalService
+  proto_method: StartEngine
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: StopEngine
+  proto_service: RuntimeLocalService
+  proto_method: StopEngine
+  mapping_status: aligned
+- design_service: RuntimeLocalService
+  design_method: GetEngineStatus
+  proto_service: RuntimeLocalService
+  proto_method: GetEngineStatus
+  mapping_status: aligned
+- design_service: RuntimeAuthService
+  design_method: RegisterApp
+  proto_service: RuntimeAuthService
+  proto_method: RegisterApp
+  mapping_status: aligned
+- design_service: RuntimeAuthService
+  design_method: OpenSession
+  proto_service: RuntimeAuthService
+  proto_method: OpenSession
+  mapping_status: aligned
+- design_service: RuntimeAuthService
+  design_method: RefreshSession
+  proto_service: RuntimeAuthService
+  proto_method: RefreshSession
+  mapping_status: aligned
+- design_service: RuntimeAuthService
+  design_method: RevokeSession
+  proto_service: RuntimeAuthService
+  proto_method: RevokeSession
+  mapping_status: aligned
+- design_service: RuntimeAuthService
+  design_method: RegisterExternalPrincipal
+  proto_service: RuntimeAuthService
+  proto_method: RegisterExternalPrincipal
+  mapping_status: aligned
+- design_service: RuntimeAuthService
+  design_method: OpenExternalPrincipalSession
+  proto_service: RuntimeAuthService
+  proto_method: OpenExternalPrincipalSession
+  mapping_status: aligned
+- design_service: RuntimeAuthService
+  design_method: RevokeExternalPrincipalSession
+  proto_service: RuntimeAuthService
+  proto_method: RevokeExternalPrincipalSession
+  mapping_status: aligned
+- design_service: RuntimeGrantService
+  design_method: AuthorizeExternalPrincipal
+  proto_service: RuntimeGrantService
+  proto_method: AuthorizeExternalPrincipal
+  mapping_status: aligned
+- design_service: RuntimeGrantService
+  design_method: ValidateAppAccessToken
+  proto_service: RuntimeGrantService
+  proto_method: ValidateAppAccessToken
+  mapping_status: aligned
+- design_service: RuntimeGrantService
+  design_method: RevokeAppAccessToken
+  proto_service: RuntimeGrantService
+  proto_method: RevokeAppAccessToken
+  mapping_status: aligned
+- design_service: RuntimeGrantService
+  design_method: IssueDelegatedAccessToken
+  proto_service: RuntimeGrantService
+  proto_method: IssueDelegatedAccessToken
+  mapping_status: aligned
+- design_service: RuntimeGrantService
+  design_method: ListTokenChain
+  proto_service: RuntimeGrantService
+  proto_method: ListTokenChain
+  mapping_status: aligned
+- design_service: RuntimeWorkflowService
+  design_method: SubmitWorkflow
+  proto_service: RuntimeWorkflowService
+  proto_method: SubmitWorkflow
+  mapping_status: aligned
+- design_service: RuntimeWorkflowService
+  design_method: GetWorkflow
+  proto_service: RuntimeWorkflowService
+  proto_method: GetWorkflow
+  mapping_status: aligned
+- design_service: RuntimeWorkflowService
+  design_method: CancelWorkflow
+  proto_service: RuntimeWorkflowService
+  proto_method: CancelWorkflow
+  mapping_status: aligned
+- design_service: RuntimeWorkflowService
+  design_method: SubscribeWorkflowEvents
+  proto_service: RuntimeWorkflowService
+  proto_method: SubscribeWorkflowEvents
+  mapping_status: aligned
+- design_service: RuntimeAuditService
+  design_method: ListAuditEvents
+  proto_service: RuntimeAuditService
+  proto_method: ListAuditEvents
+  mapping_status: aligned
+- design_service: RuntimeAuditService
+  design_method: ExportAuditEvents
+  proto_service: RuntimeAuditService
+  proto_method: ExportAuditEvents
+  mapping_status: aligned
+- design_service: RuntimeAuditService
+  design_method: ListUsageStats
+  proto_service: RuntimeAuditService
+  proto_method: ListUsageStats
+  mapping_status: aligned
+- design_service: RuntimeAuditService
+  design_method: GetRuntimeHealth
+  proto_service: RuntimeAuditService
+  proto_method: GetRuntimeHealth
+  mapping_status: aligned
+- design_service: RuntimeAuditService
+  design_method: ListAIProviderHealth
+  proto_service: RuntimeAuditService
+  proto_method: ListAIProviderHealth
+  mapping_status: aligned
+- design_service: RuntimeAuditService
+  design_method: SubscribeAIProviderHealthEvents
+  proto_service: RuntimeAuditService
+  proto_method: SubscribeAIProviderHealthEvents
+  mapping_status: aligned
+- design_service: RuntimeAuditService
+  design_method: SubscribeRuntimeHealthEvents
+  proto_service: RuntimeAuditService
+  proto_method: SubscribeRuntimeHealthEvents
+  mapping_status: aligned
+- design_service: RuntimeModelService
+  design_method: ListModels
+  proto_service: RuntimeModelService
+  proto_method: ListModels
+  mapping_status: aligned
+- design_service: RuntimeModelService
+  design_method: PullModel
+  proto_service: RuntimeModelService
+  proto_method: PullModel
+  mapping_status: aligned
+- design_service: RuntimeModelService
+  design_method: RemoveModel
+  proto_service: RuntimeModelService
+  proto_method: RemoveModel
+  mapping_status: aligned
+- design_service: RuntimeModelService
+  design_method: CheckModelHealth
+  proto_service: RuntimeModelService
+  proto_method: CheckModelHealth
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: BuildIndex
+  proto_service: RuntimeKnowledgeService
+  proto_method: BuildIndex
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: SearchIndex
+  proto_service: RuntimeKnowledgeService
+  proto_method: SearchIndex
+  mapping_status: aligned
+- design_service: RuntimeKnowledgeService
+  design_method: DeleteIndex
+  proto_service: RuntimeKnowledgeService
+  proto_method: DeleteIndex
+  mapping_status: aligned
+- design_service: RuntimeAppService
+  design_method: SendAppMessage
+  proto_service: RuntimeAppService
+  proto_method: SendAppMessage
+  mapping_status: aligned
+- design_service: RuntimeAppService
+  design_method: SubscribeAppMessages
+  proto_service: RuntimeAppService
+  proto_method: SubscribeAppMessages
+  mapping_status: aligned
 excluded_proto_methods: []

@@ -8,17 +8,17 @@ import {
   isRuntimeLocalAnonymousMethod,
   isRuntimeWriteMethod,
 } from '../../src/runtime/method-ids.js';
-import { buildLocalImageWorkflowExtensions } from '../../src/runtime/runtime-media.js';
+import { buildLocalImageProfileExtensions } from '../../src/runtime/runtime-media.js';
 
-test('runtime method groups classify local artifact RPCs correctly', () => {
+test('runtime method groups classify local asset RPCs correctly', () => {
   const anonymousMethods = [
-    RuntimeMethodIds.local.listLocalArtifacts,
-    RuntimeMethodIds.local.listVerifiedArtifacts,
+    RuntimeMethodIds.local.listLocalAssets,
+    RuntimeMethodIds.local.listVerifiedAssets,
   ];
   const writeMethods = [
-    RuntimeMethodIds.local.installVerifiedArtifact,
-    RuntimeMethodIds.local.importLocalArtifact,
-    RuntimeMethodIds.local.removeLocalArtifact,
+    RuntimeMethodIds.local.installVerifiedAsset,
+    RuntimeMethodIds.local.importLocalAsset,
+    RuntimeMethodIds.local.removeLocalAsset,
   ];
 
   for (const methodId of anonymousMethods) {
@@ -44,14 +44,14 @@ test('runtime method groups classify local profile RPCs correctly', () => {
   assert.equal(isRuntimeLocalAnonymousMethod(RuntimeMethodIds.local.applyProfile), false);
 });
 
-test('buildLocalImageWorkflowExtensions normalizes workflow selections and preserves unrelated extensions', () => {
-  const extensions = buildLocalImageWorkflowExtensions(
+test('buildLocalImageProfileExtensions normalizes entry overrides and preserves unrelated extensions', () => {
+  const extensions = buildLocalImageProfileExtensions(
     {
-      components: [
-        { slot: '  vae  ', localArtifactId: ' artifact-vae ' },
-        { slot: 'llm', localArtifactId: 'artifact-llm' },
-        { slot: '', localArtifactId: 'ignored-empty-slot' },
-        { slot: 'clip', localArtifactId: '' },
+      entryOverrides: [
+        { entryId: '  image-vae  ', localAssetId: ' asset-vae ' },
+        { entryId: 'text-encoder', localAssetId: 'asset-llm' },
+        { entryId: '', localAssetId: 'ignored-empty-entry' },
+        { entryId: 'clip', localAssetId: '' },
       ],
       profileOverrides: {
         step: 8,
@@ -65,9 +65,9 @@ test('buildLocalImageWorkflowExtensions normalizes workflow selections and prese
 
   assert.deepEqual(extensions, {
     preserved: true,
-    components: [
-      { slot: 'vae', localArtifactId: 'artifact-vae' },
-      { slot: 'llm', localArtifactId: 'artifact-llm' },
+    entry_overrides: [
+      { entry_id: 'image-vae', local_asset_id: 'asset-vae' },
+      { entry_id: 'text-encoder', local_asset_id: 'asset-llm' },
     ],
     profile_overrides: {
       step: 8,

@@ -101,7 +101,7 @@ warning 不阻止安装，仅在 `InstallPlanDescriptor.warnings` 中输出。
 
 Phase 1 不缓存设备画像：每次 `CollectDeviceProfile` 调用都实时采集所有字段。
 
-> **触发点枚举**：daemon 不主动周期性采集。画像仅在以下时机刷新：(1) `CollectDeviceProfile` RPC，(2) `ResolveModelInstallPlan`/`ResolveProfile` 执行面归一化流程内，(3) `StartLocalModel`/`StartLocalService` 流程内（`K-DEV-009`）。
+> **触发点枚举**：daemon 不主动周期性采集。画像仅在以下时机刷新：(1) `CollectDeviceProfile` RPC，(2) `ResolveModelInstallPlan`/`ResolveProfile` 执行面归一化流程内，(3) `StartLocalAsset`/`StartLocalService` 流程内（`K-DEV-009`）。
 
 未来可按需引入 TTL 缓存（不超过 60 秒），但必须保证以下场景强制刷新：
 
@@ -113,7 +113,7 @@ Phase 1 不缓存设备画像：每次 `CollectDeviceProfile` 调用都实时采
 
 ## K-DEV-009 运行时设备画像重校验
 
-`StartLocalModel` / `StartLocalService` 在执行启动流程前，必须重新采集设备画像并校验硬件兼容性（复用 `K-DEV-007` 规则）：
+`StartLocalAsset` / `StartLocalService` 在执行启动流程前，必须重新采集设备画像并校验硬件兼容性（复用 `K-DEV-007` 规则）：
 
 - 不通过时返回 warning（附加在响应中），但不阻断启动流程（Phase 1）。
 - Phase 2 可升级为阻断策略（需新增配置开关）。

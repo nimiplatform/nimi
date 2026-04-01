@@ -177,24 +177,24 @@ func buildNodeProviderHints(
 	return hints
 }
 
-func modelHealth(model *runtimev1.LocalModelRecord) *runtimev1.LocalModelHealth {
+func modelHealth(model *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetHealth {
 	if model == nil {
-		return &runtimev1.LocalModelHealth{
-			Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
+		return &runtimev1.LocalAssetHealth{
+			Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 			Detail: "model not found",
 		}
 	}
 	detail := model.GetHealthDetail()
 	switch model.GetStatus() {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		if detail == "" {
 			detail = "model healthy"
 		}
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		if detail == "" {
 			detail = "model unhealthy"
 		}
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
 		if detail == "" {
 			detail = "model removed"
 		}
@@ -203,11 +203,11 @@ func modelHealth(model *runtimev1.LocalModelRecord) *runtimev1.LocalModelHealth 
 			detail = "model idle"
 		}
 	}
-	return &runtimev1.LocalModelHealth{
-		LocalModelId: model.GetLocalModelId(),
+	return &runtimev1.LocalAssetHealth{
+		LocalAssetId: model.GetLocalAssetId(),
 		Status:       model.GetStatus(),
 		Detail:       detail,
-		Endpoint:     model.GetEndpoint(),
+		Endpoint:     "",
 	}
 }
 
@@ -233,7 +233,7 @@ func mergeInferencePayload(req *runtimev1.AppendInferenceAuditRequest) *structpb
 	return toStruct(payload)
 }
 
-func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
+func defaultVerifiedAssets() []*runtimev1.LocalVerifiedAssetDescriptor {
 	zImageDefaults, _ := structpb.NewStruct(map[string]any{
 		"backend":   "stablediffusion-ggml",
 		"cfg_scale": 1,
@@ -246,13 +246,13 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 	chatEngine := defaultLocalEngine("", []string{"chat"})
 	sttEngine := defaultLocalEngine("", []string{"stt"})
 	imageEngine := defaultLocalEngine("", []string{"image"})
-	return []*runtimev1.LocalVerifiedModelDescriptor{
+	runnable := []*runtimev1.LocalVerifiedAssetDescriptor{
 		{
 			TemplateId:     "verified.chat.llama3_8b",
 			Title:          "Llama 3 8B Instruct",
 			Description:    "General chat model for local runtime",
 			InstallKind:    "download",
-			ModelId:        "local/llama3.1",
+			AssetId:        "local/llama3.1",
 			LogicalModelId: "nimi/chat-llama3.1-8b",
 			Repo:           "nimiplatform/llama3.1-8b-instruct",
 			Revision:       "main",
@@ -276,7 +276,7 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Title:          "Whisper STT",
 			Description:    "Speech to text local model",
 			InstallKind:    "download",
-			ModelId:        "local/whisper-large-v3",
+			AssetId:        "local/whisper-large-v3",
 			LogicalModelId: "nimi/stt-whisper-large-v3",
 			Repo:           "nimiplatform/whisper-large-v3",
 			Revision:       "main",
@@ -300,7 +300,7 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Title:           "Kokoro TTS",
 			Description:     "Default local speech synthesis model",
 			InstallKind:     "download",
-			ModelId:         "local/kokoro-tts",
+			AssetId:         "local/kokoro-tts",
 			LogicalModelId:  "nimi/tts-kokoro",
 			Repo:            "nimiplatform/kokoro-onnx",
 			Revision:        "main",
@@ -322,7 +322,7 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Title:           "Qwen3 TTS Voice Workflow",
 			Description:     "Heavy local voice workflow family for synthesize, clone, and design flows",
 			InstallKind:     "verified-hf-multi-file",
-			ModelId:         "local/qwen3-tts",
+			AssetId:         "local/qwen3-tts",
 			LogicalModelId:  "nimi/voice-qwen3-tts",
 			Repo:            "Qwen/Qwen3-TTS-30B-A3B-Instruct",
 			Revision:        "main",
@@ -344,7 +344,7 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			Title:          "Z-Image Turbo (GGUF)",
 			Description:    "Recommended verified local image main model for dynamic workflow assembly",
 			InstallKind:    "download",
-			ModelId:        "local/z_image_turbo",
+			AssetId:        "local/z_image_turbo",
 			LogicalModelId: "nimi/image-z-image-turbo",
 			Repo:           "jayn7/Z-Image-Turbo-GGUF",
 			Revision:       "main",
@@ -365,24 +365,25 @@ func defaultVerifiedModels() []*runtimev1.LocalVerifiedModelDescriptor {
 			EngineConfig:    zImageDefaults,
 		},
 	}
+	return append(runnable, defaultVerifiedPassiveAssets()...)
 }
 
-func defaultVerifiedArtifacts() []*runtimev1.LocalVerifiedArtifactDescriptor {
+func defaultVerifiedPassiveAssets() []*runtimev1.LocalVerifiedAssetDescriptor {
 	vaeMeta, _ := structpb.NewStruct(map[string]any{
 		"family": "z-image",
 		"format": "safetensors",
 	})
-	llmMeta, _ := structpb.NewStruct(map[string]any{
+	chatEncoderMeta, _ := structpb.NewStruct(map[string]any{
 		"family": "z-image",
 		"format": "gguf",
 	})
-	return []*runtimev1.LocalVerifiedArtifactDescriptor{
+	return []*runtimev1.LocalVerifiedAssetDescriptor{
 		{
-			TemplateId:     "verified.artifact.z_image.vae",
+			TemplateId:     "verified.asset.z_image.vae",
 			Title:          "Z-Image AE VAE",
-			Description:    "Recommended verified companion VAE for local Z-Image workflows",
-			ArtifactId:     "local/z_image_ae",
-			Kind:           runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			Description:    "Recommended verified VAE for local Z-Image workflows",
+			AssetId:        "local/z_image_ae",
+			Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 			Engine:         "llama",
 			Entry:          "vae/diffusion_pytorch_model.safetensors",
 			Files:          []string{"vae/diffusion_pytorch_model.safetensors"},
@@ -396,11 +397,11 @@ func defaultVerifiedArtifacts() []*runtimev1.LocalVerifiedArtifactDescriptor {
 			Metadata:       vaeMeta,
 		},
 		{
-			TemplateId:     "verified.artifact.z_image.qwen3_4b",
-			Title:          "Qwen3 4B Companion LLM",
-			Description:    "Recommended verified companion LLM for local Z-Image workflows",
-			ArtifactId:     "local/qwen3_4b_companion",
-			Kind:           runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM,
+			TemplateId:     "verified.asset.z_image.qwen3_4b",
+			Title:          "Qwen3 4B (text encoder)",
+			Description:    "Recommended verified text encoder for local Z-Image workflows",
+			AssetId:        "local/qwen3_4b",
+			Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 			Engine:         "llama",
 			Entry:          "Qwen3-4B-Q4_K_M.gguf",
 			Files:          []string{"Qwen3-4B-Q4_K_M.gguf"},
@@ -410,13 +411,13 @@ func defaultVerifiedArtifacts() []*runtimev1.LocalVerifiedArtifactDescriptor {
 			Hashes:         map[string]string{},
 			FileCount:      1,
 			TotalSizeBytes: 0,
-			Tags:           []string{"image", "verified", "recommended", "z-image", "llm"},
-			Metadata:       llmMeta,
+			Tags:           []string{"image", "verified", "recommended", "z-image", "chat"},
+			Metadata:       chatEncoderMeta,
 		},
 	}
 }
 
-func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedModelDescriptor) []*runtimev1.LocalCatalogModelDescriptor {
+func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedAssetDescriptor) []*runtimev1.LocalCatalogModelDescriptor {
 	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified))
 	deviceProfile := collectDeviceProfile()
 	for _, item := range verified {
@@ -426,7 +427,7 @@ func defaultCatalogFromVerified(verified []*runtimev1.LocalVerifiedModelDescript
 			Source:            "verified",
 			Title:             item.GetTitle(),
 			Description:       item.GetDescription(),
-			ModelId:           item.GetModelId(),
+			ModelId:           item.GetAssetId(),
 			Repo:              item.GetRepo(),
 			Revision:          item.GetRevision(),
 			TemplateId:        item.GetTemplateId(),

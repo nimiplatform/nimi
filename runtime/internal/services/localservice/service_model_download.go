@@ -20,13 +20,17 @@ import (
 )
 
 const (
-	localModelDownloadTimeout      = 30 * time.Minute
-	localModelDownloadMaxBodyBytes = 64 << 30
+	defaultHFDownloadBaseURL          = "https://huggingface.co"
+	localModelDownloadTimeout         = 30 * time.Minute
+	localModelDownloadMaxBodyBytes    = 64 << 30
+	localArtifactDownloadTimeout      = 30 * time.Minute
+	localArtifactDownloadMaxBodyBytes = 64 << 30
 )
 
 type managedDownloadedModelSpec struct {
 	modelID            string
 	logicalModelID     string
+	kind               runtimev1.LocalAssetKind
 	capabilities       []string
 	engine             string
 	entry              string
@@ -44,7 +48,7 @@ type managedDownloadedModelSpec struct {
 func (s *Service) installManagedDownloadedModel(
 	ctx context.Context,
 	spec managedDownloadedModelSpec,
-) (*runtimev1.LocalModelRecord, error) {
+) (*runtimev1.LocalAssetRecord, error) {
 	modelID := strings.TrimSpace(spec.modelID)
 	if modelID == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID)
@@ -115,7 +119,8 @@ func (s *Service) installManagedDownloadedModel(
 
 	s.updateTransferProgress(transferID, "manifest", 0, 0, "writing model manifest")
 	if err := writeModelManifest(manifestPathForStaging(stagingDir), managedModelManifestDescriptor{
-		modelID:            modelID,
+		assetID:            modelID,
+		kind:               spec.kind,
 		logicalModelID:     logicalModelID,
 		capabilities:       spec.capabilities,
 		engine:             spec.engine,
@@ -159,8 +164,9 @@ func (s *Service) installManagedDownloadedModel(
 	success = true
 
 	s.updateTransferProgress(transferID, "register", 0, 0, "registering model")
-	record, err := s.installLocalModelRecord(
+	record, err := s.installLocalAssetRecord(
 		modelID,
+		spec.kind,
 		spec.capabilities,
 		spec.engine,
 		spec.entry,
@@ -199,14 +205,14 @@ func (s *Service) installManagedDownloadedModel(
 		s.logger.Warn("cleanup managed bundle backup failed after download install", "logical_model_id", logicalModelID, "error", commitErr)
 	}
 	s.completeTransfer(transferID, "register", "model installed", func(summary *runtimev1.LocalTransferSessionSummary) {
-		summary.LocalModelId = record.GetLocalModelId()
-		summary.ModelId = record.GetModelId()
+		summary.LocalAssetId = record.GetLocalAssetId()
+		summary.AssetId = record.GetAssetId()
 	})
 	return record, nil
 }
 
 func manifestPathForStaging(stagingDir string) string {
-	return filepath.Join(stagingDir, "manifest.json")
+	return filepath.Join(stagingDir, "asset.manifest.json")
 }
 
 func (s *Service) downloadManagedModelFile(
@@ -266,6 +272,39 @@ func (s *Service) downloadManagedModelFile(
 	return actualHash, nil
 }
 
+func normalizeArtifactRelativeFile(file string) (string, error) {
+	cleaned := filepath.ToSlash(strings.TrimSpace(file))
+	if cleaned == "" || cleaned == "." || cleaned == "/" {
+		return "", fmt.Errorf("empty artifact relative file path")
+	}
+	cleaned = strings.TrimPrefix(cleaned, "./")
+	cleaned = strings.TrimPrefix(cleaned, "/")
+	if strings.Contains(cleaned, "..") {
+		return "", fmt.Errorf("artifact relative file path must not contain '..': %s", cleaned)
+	}
+	return cleaned, nil
+}
+
+func buildHFResolveURL(baseURL string, repo string, revision string, relativeFile string) (string, error) {
+	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if base == "" {
+		return "", fmt.Errorf("HF base URL required")
+	}
+	normalizedRepo := strings.TrimSpace(repo)
+	if normalizedRepo == "" {
+		return "", fmt.Errorf("HF repo required")
+	}
+	normalizedRevision := strings.TrimSpace(revision)
+	if normalizedRevision == "" {
+		normalizedRevision = "main"
+	}
+	normalizedFile := strings.TrimSpace(relativeFile)
+	if normalizedFile == "" {
+		return "", fmt.Errorf("HF relative file required")
+	}
+	return fmt.Sprintf("%s/%s/resolve/%s/%s", base, normalizedRepo, normalizedRevision, normalizedFile), nil
+}
+
 func expectedModelSHA256(hashes map[string]string, relativeFile string) string {
 	if len(hashes) == 0 {
 		return ""
@@ -278,7 +317,8 @@ func expectedModelSHA256(hashes map[string]string, relativeFile string) string {
 }
 
 type managedModelManifestDescriptor struct {
-	modelID            string
+	assetID            string
+	kind               runtimev1.LocalAssetKind
 	logicalModelID     string
 	capabilities       []string
 	engine             string
@@ -295,9 +335,14 @@ type managedModelManifestDescriptor struct {
 }
 
 func writeModelManifest(manifestPath string, descriptor managedModelManifestDescriptor) error {
+	kindToken, err := localAssetKindToken(descriptor.kind)
+	if err != nil {
+		return err
+	}
 	manifest := map[string]any{
 		"schemaVersion":    "1.0.0",
-		"model_id":         descriptor.modelID,
+		"asset_id":         descriptor.assetID,
+		"kind":             kindToken,
 		"logical_model_id": descriptor.logicalModelID,
 		"capabilities":     append([]string(nil), descriptor.capabilities...),
 		"engine":           descriptor.engine,
@@ -347,4 +392,31 @@ func writeModelManifest(manifestPath string, descriptor managedModelManifestDesc
 		return fmt.Errorf("write model manifest: %w", err)
 	}
 	return nil
+}
+
+func localAssetKindToken(kind runtimev1.LocalAssetKind) (string, error) {
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
+		return "chat", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
+		return "image", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
+		return "video", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
+		return "tts", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
+		return "stt", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
+		return "vae", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CLIP:
+		return "clip", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA:
+		return "lora", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CONTROLNET:
+		return "controlnet", nil
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY:
+		return "auxiliary", nil
+	default:
+		return "", fmt.Errorf("local asset manifest requires concrete kind")
+	}
 }

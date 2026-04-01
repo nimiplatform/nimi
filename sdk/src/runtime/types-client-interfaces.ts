@@ -84,34 +84,24 @@ import type {
   AppendRuntimeAuditRequest,
   CancelLocalTransferRequest,
   CancelLocalTransferResponse,
-  CheckLocalModelHealthRequest,
-  CheckLocalModelHealthResponse,
+  CheckLocalAssetHealthRequest,
+  CheckLocalAssetHealthResponse,
   CheckLocalServiceHealthRequest,
   CheckLocalServiceHealthResponse,
   CollectDeviceProfileRequest,
   CollectDeviceProfileResponse,
-  ImportLocalArtifactRequest,
-  ImportLocalArtifactResponse,
-  ImportLocalArtifactFileRequest,
-  ImportLocalArtifactFileResponse,
-  ImportLocalModelRequest,
-  ImportLocalModelResponse,
-  ImportLocalModelFileRequest,
-  ImportLocalModelFileResponse,
-  InstallLocalModelRequest,
-  InstallLocalModelResponse,
+  ImportLocalAssetRequest,
+  ImportLocalAssetResponse,
+  ImportLocalAssetFileRequest,
+  ImportLocalAssetFileResponse,
   InstallLocalServiceRequest,
   InstallLocalServiceResponse,
-  InstallVerifiedArtifactRequest,
-  InstallVerifiedArtifactResponse,
-  InstallVerifiedModelRequest,
-  InstallVerifiedModelResponse,
-  ListLocalArtifactsRequest,
-  ListLocalArtifactsResponse,
+  InstallVerifiedAssetRequest,
+  InstallVerifiedAssetResponse,
+  ListLocalAssetsRequest,
+  ListLocalAssetsResponse,
   ListLocalAuditsRequest,
   ListLocalAuditsResponse,
-  ListLocalModelsRequest,
-  ListLocalModelsResponse,
   ListLocalServicesRequest,
   ListLocalServicesResponse,
   ListLocalTransfersRequest,
@@ -121,14 +111,10 @@ import type {
   ListNodeCatalogResponse,
   PauseLocalTransferRequest,
   PauseLocalTransferResponse,
-  ListVerifiedArtifactsRequest,
-  ListVerifiedArtifactsResponse,
-  ListVerifiedModelsRequest,
-  ListVerifiedModelsResponse,
-  RemoveLocalArtifactRequest,
-  RemoveLocalArtifactResponse,
-  RemoveLocalModelRequest,
-  RemoveLocalModelResponse,
+  ListVerifiedAssetsRequest,
+  ListVerifiedAssetsResponse,
+  RemoveLocalAssetRequest,
+  RemoveLocalAssetResponse,
   RemoveLocalServiceRequest,
   RemoveLocalServiceResponse,
   ResumeLocalTransferRequest,
@@ -137,25 +123,23 @@ import type {
   ResolveProfileResponse,
   ScanUnregisteredAssetsRequest,
   ScanUnregisteredAssetsResponse,
-  ScaffoldOrphanArtifactRequest,
-  ScaffoldOrphanArtifactResponse,
-  ScaffoldOrphanModelRequest,
-  ScaffoldOrphanModelResponse,
+  ScaffoldOrphanAssetRequest,
+  ScaffoldOrphanAssetResponse,
   ResolveModelInstallPlanRequest,
   ResolveModelInstallPlanResponse,
   SearchCatalogModelsRequest,
   SearchCatalogModelsResponse,
-  StartLocalModelRequest,
-  StartLocalModelResponse,
+  StartLocalAssetRequest,
+  StartLocalAssetResponse,
   StartLocalServiceRequest,
   StartLocalServiceResponse,
-  StopLocalModelRequest,
-  StopLocalModelResponse,
+  StopLocalAssetRequest,
+  StopLocalAssetResponse,
   StopLocalServiceRequest,
   StopLocalServiceResponse,
   WatchLocalTransfersRequest,
-  WarmLocalModelRequest,
-  WarmLocalModelResponse,
+  WarmLocalAssetRequest,
+  WarmLocalAssetResponse,
 } from './generated/runtime/v1/local_runtime';
 import type {
   EnsureEngineRequest,
@@ -304,33 +288,25 @@ export type RuntimeKnowledgeClient = {
 };
 
 export type RuntimeLocalServiceClient = {
-  listLocalModels(request: ListLocalModelsRequest, options?: RuntimeCallOptions): Promise<ListLocalModelsResponse>;
-  listLocalArtifacts(request: ListLocalArtifactsRequest, options?: RuntimeCallOptions): Promise<ListLocalArtifactsResponse>;
-  listVerifiedModels(request: ListVerifiedModelsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedModelsResponse>;
-  listVerifiedArtifacts(request: ListVerifiedArtifactsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedArtifactsResponse>;
+  listLocalAssets(request: ListLocalAssetsRequest, options?: RuntimeCallOptions): Promise<ListLocalAssetsResponse>;
+  listVerifiedAssets(request: ListVerifiedAssetsRequest, options?: RuntimeCallOptions): Promise<ListVerifiedAssetsResponse>;
   searchCatalogModels(request: SearchCatalogModelsRequest, options?: RuntimeCallOptions): Promise<SearchCatalogModelsResponse>;
   resolveModelInstallPlan(request: ResolveModelInstallPlanRequest, options?: RuntimeCallOptions): Promise<ResolveModelInstallPlanResponse>;
-  installLocalModel(request: InstallLocalModelRequest, options?: RuntimeCallOptions): Promise<InstallLocalModelResponse>;
-  installVerifiedModel(request: InstallVerifiedModelRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedModelResponse>;
-  installVerifiedArtifact(request: InstallVerifiedArtifactRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedArtifactResponse>;
-  importLocalModel(request: ImportLocalModelRequest, options?: RuntimeCallOptions): Promise<ImportLocalModelResponse>;
-  importLocalArtifact(request: ImportLocalArtifactRequest, options?: RuntimeCallOptions): Promise<ImportLocalArtifactResponse>;
-  importLocalModelFile(request: ImportLocalModelFileRequest, options?: RuntimeCallOptions): Promise<ImportLocalModelFileResponse>;
-  importLocalArtifactFile(request: ImportLocalArtifactFileRequest, options?: RuntimeCallOptions): Promise<ImportLocalArtifactFileResponse>;
+  installVerifiedAsset(request: InstallVerifiedAssetRequest, options?: RuntimeCallOptions): Promise<InstallVerifiedAssetResponse>;
+  importLocalAsset(request: ImportLocalAssetRequest, options?: RuntimeCallOptions): Promise<ImportLocalAssetResponse>;
+  importLocalAssetFile(request: ImportLocalAssetFileRequest, options?: RuntimeCallOptions): Promise<ImportLocalAssetFileResponse>;
   scanUnregisteredAssets(request: ScanUnregisteredAssetsRequest, options?: RuntimeCallOptions): Promise<ScanUnregisteredAssetsResponse>;
-  scaffoldOrphanModel(request: ScaffoldOrphanModelRequest, options?: RuntimeCallOptions): Promise<ScaffoldOrphanModelResponse>;
-  scaffoldOrphanArtifact(request: ScaffoldOrphanArtifactRequest, options?: RuntimeCallOptions): Promise<ScaffoldOrphanArtifactResponse>;
+  scaffoldOrphanAsset(request: ScaffoldOrphanAssetRequest, options?: RuntimeCallOptions): Promise<ScaffoldOrphanAssetResponse>;
+  removeLocalAsset(request: RemoveLocalAssetRequest, options?: RuntimeCallOptions): Promise<RemoveLocalAssetResponse>;
+  startLocalAsset(request: StartLocalAssetRequest, options?: RuntimeCallOptions): Promise<StartLocalAssetResponse>;
+  stopLocalAsset(request: StopLocalAssetRequest, options?: RuntimeCallOptions): Promise<StopLocalAssetResponse>;
+  checkLocalAssetHealth(request: CheckLocalAssetHealthRequest, options?: RuntimeCallOptions): Promise<CheckLocalAssetHealthResponse>;
+  warmLocalAsset(request: WarmLocalAssetRequest, options?: RuntimeCallOptions): Promise<WarmLocalAssetResponse>;
   listLocalTransfers(request: ListLocalTransfersRequest, options?: RuntimeCallOptions): Promise<ListLocalTransfersResponse>;
   pauseLocalTransfer(request: PauseLocalTransferRequest, options?: RuntimeCallOptions): Promise<PauseLocalTransferResponse>;
   resumeLocalTransfer(request: ResumeLocalTransferRequest, options?: RuntimeCallOptions): Promise<ResumeLocalTransferResponse>;
   cancelLocalTransfer(request: CancelLocalTransferRequest, options?: RuntimeCallOptions): Promise<CancelLocalTransferResponse>;
   watchLocalTransfers(request: WatchLocalTransfersRequest, options?: RuntimeStreamCallOptions): Promise<AsyncIterable<LocalTransferProgressEvent>>;
-  removeLocalModel(request: RemoveLocalModelRequest, options?: RuntimeCallOptions): Promise<RemoveLocalModelResponse>;
-  removeLocalArtifact(request: RemoveLocalArtifactRequest, options?: RuntimeCallOptions): Promise<RemoveLocalArtifactResponse>;
-  startLocalModel(request: StartLocalModelRequest, options?: RuntimeCallOptions): Promise<StartLocalModelResponse>;
-  stopLocalModel(request: StopLocalModelRequest, options?: RuntimeCallOptions): Promise<StopLocalModelResponse>;
-  checkLocalModelHealth(request: CheckLocalModelHealthRequest, options?: RuntimeCallOptions): Promise<CheckLocalModelHealthResponse>;
-  warmLocalModel(request: WarmLocalModelRequest, options?: RuntimeCallOptions): Promise<WarmLocalModelResponse>;
   collectDeviceProfile(request: CollectDeviceProfileRequest, options?: RuntimeCallOptions): Promise<CollectDeviceProfileResponse>;
   resolveProfile(request: ResolveProfileRequest, options?: RuntimeCallOptions): Promise<ResolveProfileResponse>;
   applyProfile(request: ApplyProfileRequest, options?: RuntimeCallOptions): Promise<ApplyProfileResponse>;

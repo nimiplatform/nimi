@@ -11,43 +11,33 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func (s *Service) ListLocalModels(ctx context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+func (s *Service) ListLocalAssets(ctx context.Context, req *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
 	statusFilter := req.GetStatusFilter()
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
-	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
+	kindFilter := req.GetKindFilter()
 
-	s.healLegacyManagedLocalImportRecords()
 	s.normalizeManagedSupervisedLlamaStatuses(ctx)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	modelRows := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
-	for _, model := range s.models {
+	modelRows := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
+	for _, model := range s.assets {
 		modelRows = append(modelRows, model)
 	}
-	modelRows, _ = dedupeLocalModelRecords(modelRows)
+	modelRows, _ = dedupeLocalAssetRecords(modelRows)
 
-	models := make([]*runtimev1.LocalModelRecord, 0, len(modelRows))
+	models := make([]*runtimev1.LocalAssetRecord, 0, len(modelRows))
 	for _, model := range modelRows {
-		if statusFilter != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
+		if statusFilter != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED && model.GetStatus() != statusFilter {
 			continue
 		}
 		if engineFilter != "" && strings.ToLower(strings.TrimSpace(model.GetEngine())) != engineFilter {
 			continue
 		}
-		if categoryFilter != "" {
-			matched := false
-			for _, capName := range model.GetCapabilities() {
-				if strings.EqualFold(strings.TrimSpace(capName), categoryFilter) {
-					matched = true
-					break
-				}
-			}
-			if !matched {
-				continue
-			}
+		if kindFilter != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && model.GetKind() != kindFilter {
+			continue
 		}
-		models = append(models, cloneLocalModel(model))
+		models = append(models, cloneLocalAsset(model))
 	}
 	sort.Slice(models, func(i, j int) bool {
 		ci := localModelSortCategory(models[i])
@@ -55,65 +45,48 @@ func (s *Service) ListLocalModels(ctx context.Context, req *runtimev1.ListLocalM
 		if ci != cj {
 			return ci < cj
 		}
-		if models[i].GetModelId() != models[j].GetModelId() {
-			return models[i].GetModelId() < models[j].GetModelId()
+		if models[i].GetAssetId() != models[j].GetAssetId() {
+			return models[i].GetAssetId() < models[j].GetAssetId()
 		}
-		return models[i].GetLocalModelId() < models[j].GetLocalModelId()
+		return models[i].GetLocalAssetId() < models[j].GetLocalAssetId()
 	})
-	filterDigest := pagination.FilterDigest(statusFilter.String(), engineFilter, categoryFilter)
+	filterDigest := pagination.FilterDigest(statusFilter.String(), engineFilter, kindFilter.String())
 	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, req.GetPageSize(), 50, 200, len(models))
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.ListLocalModelsResponse{
-		Models:        models[start:end],
+	return &runtimev1.ListLocalAssetsResponse{
+		Assets:        models[start:end],
 		NextPageToken: next,
 	}, nil
 }
 
-func (s *Service) ListVerifiedModels(_ context.Context, req *runtimev1.ListVerifiedModelsRequest) (*runtimev1.ListVerifiedModelsResponse, error) {
-	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
+func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerifiedAssetsRequest) (*runtimev1.ListVerifiedAssetsResponse, error) {
+	kindFilter := req.GetKindFilter()
 	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	items := make([]*runtimev1.LocalVerifiedModelDescriptor, 0, len(s.verified))
+	items := make([]*runtimev1.LocalVerifiedAssetDescriptor, 0, len(s.verified))
 	for _, item := range s.verified {
 		if engineFilter != "" && strings.ToLower(strings.TrimSpace(item.GetEngine())) != engineFilter {
 			continue
 		}
-		if categoryFilter != "" {
-			matched := false
-			for _, tag := range item.GetTags() {
-				if strings.EqualFold(strings.TrimSpace(tag), categoryFilter) {
-					matched = true
-					break
-				}
-			}
-			if !matched {
-				for _, capName := range item.GetCapabilities() {
-					if strings.EqualFold(strings.TrimSpace(capName), categoryFilter) {
-						matched = true
-						break
-					}
-				}
-			}
-			if !matched {
-				continue
-			}
+		if kindFilter != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && item.GetKind() != kindFilter {
+			continue
 		}
-		items = append(items, cloneVerifiedModel(item))
+		items = append(items, cloneVerifiedAsset(item))
 	}
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].GetTemplateId() < items[j].GetTemplateId()
 	})
-	filterDigest := pagination.FilterDigest(categoryFilter, engineFilter)
+	filterDigest := pagination.FilterDigest(kindFilter.String(), engineFilter)
 	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, req.GetPageSize(), 50, 200, len(items))
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.ListVerifiedModelsResponse{
-		Models:        items[start:end],
+	return &runtimev1.ListVerifiedAssetsResponse{
+		Assets:        items[start:end],
 		NextPageToken: next,
 	}, nil
 }

@@ -139,28 +139,31 @@ export type ModRuntimeListPresetVoicesInput =
     binding?: RuntimeRouteBinding;
   };
 
-export type ModRuntimeLocalArtifactKind =
+export type ModRuntimeLocalAssetKind =
+  | 'chat'
+  | 'image'
+  | 'video'
+  | 'tts'
+  | 'stt'
   | 'vae'
-  | 'ae'
-  | 'llm'
   | 'clip'
-  | 'controlnet'
   | 'lora'
+  | 'controlnet'
   | 'auxiliary';
 
-export type ModRuntimeLocalArtifactStatus =
+export type ModRuntimeLocalAssetStatus =
   | 'installed'
   | 'active'
   | 'unhealthy'
   | 'removed';
 
-export type ModRuntimeListLocalArtifactsInput = {
-  kind?: ModRuntimeLocalArtifactKind;
-  status?: ModRuntimeLocalArtifactStatus;
+export type ModRuntimeListLocalAssetsInput = {
+  kind?: ModRuntimeLocalAssetKind;
+  status?: ModRuntimeLocalAssetStatus;
   engine?: string;
 };
 
-export type ModRuntimeLocalProfileEntryKind = 'model' | 'artifact' | 'service' | 'node';
+export type ModRuntimeLocalProfileEntryKind = 'asset' | 'service' | 'node';
 
 export type ModRuntimeLocalProfileRequirement = {
   minGpuMemoryGb?: number;
@@ -177,13 +180,13 @@ export type ModRuntimeLocalProfileDescriptorEntry = {
   capability?: RuntimeCanonicalCapability | string;
   required?: boolean;
   preferred?: boolean;
-  modelId?: string;
+  assetId?: string;
+  assetKind?: ModRuntimeLocalAssetKind;
+  engineSlot?: string;
   repo?: string;
   serviceId?: string;
   nodeId?: string;
   engine?: string;
-  artifactId?: string;
-  artifactKind?: ModRuntimeLocalArtifactKind;
   templateId?: string;
   revision?: string;
   tags?: string[];
@@ -217,10 +220,10 @@ export type ModRuntimeLocalProfileInstallResult = {
   reasonCode?: string;
 };
 
-export type ModRuntimeLocalArtifactRecord = {
-  localArtifactId: string;
-  artifactId: string;
-  kind: ModRuntimeLocalArtifactKind;
+export type ModRuntimeLocalAssetRecord = {
+  localAssetId: string;
+  assetId: string;
+  kind: ModRuntimeLocalAssetKind;
   engine: string;
   entry: string;
   files: string[];
@@ -230,7 +233,7 @@ export type ModRuntimeLocalArtifactRecord = {
     revision: string;
   };
   hashes: Record<string, string>;
-  status: ModRuntimeLocalArtifactStatus;
+  status: ModRuntimeLocalAssetStatus;
   installedAt: string;
   updatedAt: string;
   healthDetail?: string;
@@ -244,7 +247,7 @@ export type ModRuntimeClient = {
     checkHealth(input: ModRuntimeRouteCheckHealthInput): Promise<RuntimeRouteHealthResult>;
   };
   local: {
-    listArtifacts(input?: ModRuntimeListLocalArtifactsInput): Promise<ModRuntimeLocalArtifactRecord[]>;
+    listAssets(input?: ModRuntimeListLocalAssetsInput): Promise<ModRuntimeLocalAssetRecord[]>;
     listProfiles(): Promise<ModRuntimeLocalProfile[]>;
     requestProfileInstall(input: {
       profileId: string;
@@ -300,14 +303,14 @@ export type ModRuntimeClient = {
 
 export type ModRuntimeLocalProfileEntry = {
   entryId: string;
-  kind: 'model' | 'artifact' | 'service' | 'node';
+  kind: 'asset' | 'service' | 'node';
   capability?: RuntimeCanonicalCapability;
   required: boolean;
   selected: boolean;
   preferred: boolean;
-  modelId?: string;
-  artifactId?: string;
-  artifactKind?: ModRuntimeLocalArtifactKind;
+  assetId?: string;
+  assetKind?: ModRuntimeLocalAssetKind;
+  engineSlot?: string;
   templateId?: string;
   repo?: string;
   engine?: string;

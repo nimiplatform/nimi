@@ -188,12 +188,12 @@ func TestRecordRouteAutoSwitch_NoPanicOnMissingDependencies(t *testing.T) {
 func TestPrepareScenarioRequestAllowsAnonymousLocal(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.localModel = &fakeLocalModelLister{
-		responses: []*runtimev1.ListLocalModelsResponse{{
-			Models: []*runtimev1.LocalModelRecord{{
-				LocalModelId: "lm-1",
-				ModelId:      "qwen",
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId: "lm-1",
+				AssetId:      "qwen",
 				Engine:       "llama",
-				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+				Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			}},
 		}},
 	}

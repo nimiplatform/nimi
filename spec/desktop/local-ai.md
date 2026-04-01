@@ -4,7 +4,7 @@
 
 ## Scope
 
-本地 AI 功能域 — Runtime Config 内的本地模型管理、companion artifact 管理、recommendation feed 页面、transfer/progress 展示，以及 Desktop 对 runtime 本地模型控制面的投影。
+本地 AI 功能域 — Runtime Config 内的本地资产管理、dependency asset 管理、recommendation feed 页面、transfer/progress 展示，以及 Desktop 对 runtime 本地模型控制面的投影。
 
 ## Kernel References
 

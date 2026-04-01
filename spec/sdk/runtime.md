@@ -44,9 +44,9 @@
 - `S-ERROR-009` / `S-ERROR-012` / `S-ERROR-014`: 非错误终端 reason、Mode D `CANCELLED`、以及 `node-grpc` / `tauri-ipc` 的结构化错误投影必须等价。
 - `S-RUNTIME-072`: `runtime.media.music.iterate()` 必须对 iteration 输入做客户端 fail-fast 预校验，但不得替代 runtime 权威校验。
 
-- `LocalArtifact*` RPC 与 companion asset 列表/安装/导入/删除
+- `LocalAsset*` RPC 与统一 asset 列表/安装/导入/删除
 - 主模型 `engine_config` 字段投影
-- runtime image helper `buildLocalImageWorkflowExtensions()`，用于编码 `components` 与 `profile_overrides`
+- runtime image helper `buildLocalImageProfileExtensions()`，用于编码 `entry_overrides` 与 `profile_overrides`
 - runtime music helper `buildMusicIterationExtensions()`，仅作为低层 escape hatch；官方主路径是 `runtime.media.music.iterate()`
 
 ## 4. 非目标

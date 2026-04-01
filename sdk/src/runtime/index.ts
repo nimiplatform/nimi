@@ -86,8 +86,5 @@ export {
 } from './runtime-realm-bridge.js';
 export {
   buildMusicIterationExtensions,
-  buildLocalImageWorkflowExtensions,
-  type LocalImageWorkflowComponentSelection,
-  type LocalImageWorkflowExtensionInput,
 } from './runtime-media.js';
 export { toProtoStruct } from './helpers.js';

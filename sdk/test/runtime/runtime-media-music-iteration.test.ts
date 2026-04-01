@@ -6,7 +6,7 @@ import { ScenarioJobStatus, SpeechTimingMode } from '../../src/runtime/generated
 import { musicGenerateOutput } from '../helpers/runtime-ai-shapes.js';
 import {
   buildMusicIterationExtensions,
-  buildLocalImageWorkflowExtensions,
+  buildLocalImageProfileExtensions,
   toSpeechTimingMode,
 } from '../../src/runtime/runtime-media.js';
 import { runtimeGenerateMusicIteration } from '../../src/runtime/runtime-modality.js';
@@ -153,47 +153,47 @@ test('runtimeGenerateMusicIteration fails fast on invalid iteration input', asyn
   assert.equal(invoked, false);
 });
 
-test('buildLocalImageWorkflowExtensions: components not an array returns empty merged', () => {
-  const result = buildLocalImageWorkflowExtensions({ components: undefined });
+test('buildLocalImageProfileExtensions: entryOverrides not an array returns empty merged', () => {
+  const result = buildLocalImageProfileExtensions({ entryOverrides: undefined });
   assert.deepEqual(result, {});
 });
 
-test('buildLocalImageWorkflowExtensions: components is non-array value treated as empty', () => {
-  const result = buildLocalImageWorkflowExtensions(
-    { components: 'not-an-array' as never },
+test('buildLocalImageProfileExtensions: entryOverrides is non-array value treated as empty', () => {
+  const result = buildLocalImageProfileExtensions(
+    { entryOverrides: 'not-an-array' as never },
   );
   assert.deepEqual(result, {});
 });
 
-test('buildLocalImageWorkflowExtensions: all components filtered out (empty slot/artifactId)', () => {
-  const result = buildLocalImageWorkflowExtensions({
-    components: [
-      { slot: '', localArtifactId: 'a' },
-      { slot: 'b', localArtifactId: '' },
-      { slot: '  ', localArtifactId: '  ' },
+test('buildLocalImageProfileExtensions: all entryOverrides filtered out (empty entryId/localAssetId)', () => {
+  const result = buildLocalImageProfileExtensions({
+    entryOverrides: [
+      { entryId: '', localAssetId: 'a' },
+      { entryId: 'b', localAssetId: '' },
+      { entryId: '  ', localAssetId: '  ' },
     ],
   });
-  assert.equal('components' in result, false);
+  assert.equal('entry_overrides' in result, false);
 });
 
-test('buildLocalImageWorkflowExtensions: no baseExtensions defaults to empty', () => {
-  const result = buildLocalImageWorkflowExtensions({
-    components: [{ slot: 'vae', localArtifactId: 'art-1' }],
+test('buildLocalImageProfileExtensions: no baseExtensions defaults to empty', () => {
+  const result = buildLocalImageProfileExtensions({
+    entryOverrides: [{ entryId: 'image-vae', localAssetId: 'art-1' }],
   });
   assert.deepEqual(result, {
-    components: [{ slot: 'vae', localArtifactId: 'art-1' }],
+    entry_overrides: [{ entry_id: 'image-vae', local_asset_id: 'art-1' }],
   });
 });
 
-test('buildLocalImageWorkflowExtensions: empty profileOverrides omitted', () => {
-  const result = buildLocalImageWorkflowExtensions({
+test('buildLocalImageProfileExtensions: empty profileOverrides omitted', () => {
+  const result = buildLocalImageProfileExtensions({
     profileOverrides: {},
   });
   assert.equal('profile_overrides' in result, false);
 });
 
-test('buildLocalImageWorkflowExtensions: no profileOverrides omitted', () => {
-  const result = buildLocalImageWorkflowExtensions({});
+test('buildLocalImageProfileExtensions: no profileOverrides omitted', () => {
+  const result = buildLocalImageProfileExtensions({});
   assert.equal('profile_overrides' in result, false);
 });
 

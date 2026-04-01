@@ -19,7 +19,7 @@ func TestUnaryLifecycleInterceptorAllowsLocalReadWhenStopping(t *testing.T) {
 	_, err := interceptor(
 		context.Background(),
 		struct{}{},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/ListLocalModels"},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"},
 		func(_ context.Context, _ any) (any, error) {
 			handlerCalled = true
 			return struct{}{}, nil
@@ -39,8 +39,8 @@ func TestUnaryLifecycleInterceptorAllowsLocalArtifactReadsWhenStopping(t *testin
 	interceptor := newUnaryLifecycleInterceptor(state)
 
 	for _, fullMethod := range []string{
-		"/nimi.runtime.v1.RuntimeLocalService/ListLocalArtifacts",
-		"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedArtifacts",
+		"/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets",
+		"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets",
 		"/nimi.runtime.v1.RuntimeLocalService/ResolveProfile",
 	} {
 		handlerCalled := false
@@ -71,7 +71,7 @@ func TestUnaryLifecycleInterceptorRejectsLocalWriteWhenStopping(t *testing.T) {
 	_, err := interceptor(
 		context.Background(),
 		struct{}{},
-		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/InstallLocalModel"},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"},
 		func(_ context.Context, _ any) (any, error) {
 			handlerCalled = true
 			return struct{}{}, nil

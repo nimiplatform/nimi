@@ -51,35 +51,19 @@ func cloneStringMap(input map[string]string) map[string]string {
 	return out
 }
 
-func cloneLocalModel(input *runtimev1.LocalModelRecord) *runtimev1.LocalModelRecord {
+func cloneLocalAsset(input *runtimev1.LocalAssetRecord) *runtimev1.LocalAssetRecord {
 	if input == nil {
 		return nil
 	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalModelRecord)
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalAssetRecord)
 	return cloned
 }
 
-func cloneLocalArtifact(input *runtimev1.LocalArtifactRecord) *runtimev1.LocalArtifactRecord {
+func cloneVerifiedAsset(input *runtimev1.LocalVerifiedAssetDescriptor) *runtimev1.LocalVerifiedAssetDescriptor {
 	if input == nil {
 		return nil
 	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalArtifactRecord)
-	return cloned
-}
-
-func cloneVerifiedModel(input *runtimev1.LocalVerifiedModelDescriptor) *runtimev1.LocalVerifiedModelDescriptor {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalVerifiedModelDescriptor)
-	return cloned
-}
-
-func cloneVerifiedArtifact(input *runtimev1.LocalVerifiedArtifactDescriptor) *runtimev1.LocalVerifiedArtifactDescriptor {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalVerifiedArtifactDescriptor)
+	cloned, _ := proto.Clone(input).(*runtimev1.LocalVerifiedAssetDescriptor)
 	return cloned
 }
 
@@ -128,14 +112,6 @@ func cloneProfileDescriptor(input *runtimev1.LocalProfileDescriptor) *runtimev1.
 		return nil
 	}
 	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileDescriptor)
-	return cloned
-}
-
-func cloneProfileArtifactPlanEntry(input *runtimev1.LocalProfileArtifactPlanEntry) *runtimev1.LocalProfileArtifactPlanEntry {
-	if input == nil {
-		return nil
-	}
-	cloned, _ := proto.Clone(input).(*runtimev1.LocalProfileArtifactPlanEntry)
 	return cloned
 }
 

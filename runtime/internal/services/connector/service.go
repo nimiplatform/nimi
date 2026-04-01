@@ -41,7 +41,7 @@ func New(logger *slog.Logger, store *ConnectorStore, audit *auditlog.Store) *Ser
 }
 
 type localModelLister interface {
-	ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error)
+	ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error)
 }
 
 // SetCloudProvider sets the cloud provider for probe and model listing.

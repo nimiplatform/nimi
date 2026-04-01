@@ -176,7 +176,7 @@ func (s *Service) modelRuntimeMode(localModelID string) runtimev1.LocalEngineRun
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return normalizeRuntimeMode(s.modelRuntimeModes[id])
+	return normalizeRuntimeMode(s.assetRuntimeModes[id])
 }
 
 func (s *Service) serviceRuntimeMode(serviceID string) runtimev1.LocalEngineRuntimeMode {
@@ -193,7 +193,7 @@ func (s *Service) serviceRuntimeMode(serviceID string) runtimev1.LocalEngineRunt
 	if service == nil {
 		return runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
 	}
-	return normalizeRuntimeMode(s.modelRuntimeModes[strings.TrimSpace(service.GetLocalModelId())])
+	return normalizeRuntimeMode(s.assetRuntimeModes[strings.TrimSpace(service.GetLocalModelId())])
 }
 
 func (s *Service) setModelRuntimeModeLocked(localModelID string, mode runtimev1.LocalEngineRuntimeMode) {
@@ -201,7 +201,7 @@ func (s *Service) setModelRuntimeModeLocked(localModelID string, mode runtimev1.
 	if id == "" {
 		return
 	}
-	s.modelRuntimeModes[id] = normalizeRuntimeMode(mode)
+	s.assetRuntimeModes[id] = normalizeRuntimeMode(mode)
 }
 
 func (s *Service) setServiceRuntimeModeLocked(serviceID string, mode runtimev1.LocalEngineRuntimeMode) {

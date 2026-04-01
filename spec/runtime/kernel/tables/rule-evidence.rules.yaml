@@ -1196,3 +1196,9 @@
 - rule_id: K-LOCAL-021e
   status: covered
   evidence_refs: [runtime_kernel_consistency, runtime_catalog_drift]
+- rule_id: K-LOCAL-031
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]
+- rule_id: K-LOCAL-032
+  status: covered
+  evidence_refs: [runtime_kernel_consistency]

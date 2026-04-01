@@ -6,288 +6,276 @@ option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtime
 
 import "google/protobuf/struct.proto";
 
-enum LocalModelStatus {
-  LOCAL_MODEL_STATUS_UNSPECIFIED = 0;
-  LOCAL_MODEL_STATUS_INSTALLED = 1;
-  LOCAL_MODEL_STATUS_ACTIVE = 2;
-  LOCAL_MODEL_STATUS_UNHEALTHY = 3;
-  LOCAL_MODEL_STATUS_REMOVED = 4;
+// === Asset Kind & Status (unified from Model + Artifact) ===
+
+enum LocalAssetKind {
+  LOCAL_ASSET_KIND_UNSPECIFIED = 0;
+
+  // Runnable kinds
+  LOCAL_ASSET_KIND_CHAT       = 1;
+  LOCAL_ASSET_KIND_IMAGE      = 2;
+  LOCAL_ASSET_KIND_VIDEO      = 3;
+  LOCAL_ASSET_KIND_TTS        = 4;
+  LOCAL_ASSET_KIND_STT        = 5;
+
+  // Passive kinds
+  LOCAL_ASSET_KIND_VAE        = 10;
+  LOCAL_ASSET_KIND_CLIP       = 11;
+  LOCAL_ASSET_KIND_LORA       = 12;
+  LOCAL_ASSET_KIND_CONTROLNET = 13;
+  LOCAL_ASSET_KIND_AUXILIARY   = 14;
 }
 
-enum LocalArtifactKind {
-  LOCAL_ARTIFACT_KIND_UNSPECIFIED = 0;
-  LOCAL_ARTIFACT_KIND_VAE = 1;
-  LOCAL_ARTIFACT_KIND_LLM = 2;
-  LOCAL_ARTIFACT_KIND_CLIP = 3;
-  LOCAL_ARTIFACT_KIND_CONTROLNET = 4;
-  LOCAL_ARTIFACT_KIND_LORA = 5;
-  LOCAL_ARTIFACT_KIND_AUXILIARY = 6;
-}
-
-enum LocalArtifactStatus {
-  LOCAL_ARTIFACT_STATUS_UNSPECIFIED = 0;
-  LOCAL_ARTIFACT_STATUS_INSTALLED = 1;
-  LOCAL_ARTIFACT_STATUS_ACTIVE = 2;
-  LOCAL_ARTIFACT_STATUS_UNHEALTHY = 3;
-  LOCAL_ARTIFACT_STATUS_REMOVED = 4;
+enum LocalAssetStatus {
+  LOCAL_ASSET_STATUS_UNSPECIFIED = 0;
+  LOCAL_ASSET_STATUS_INSTALLED  = 1;
+  LOCAL_ASSET_STATUS_ACTIVE     = 2;
+  LOCAL_ASSET_STATUS_UNHEALTHY  = 3;
+  LOCAL_ASSET_STATUS_REMOVED    = 4;
 }
 
 enum LocalServiceStatus {
   LOCAL_SERVICE_STATUS_UNSPECIFIED = 0;
-  LOCAL_SERVICE_STATUS_INSTALLED = 1;
-  LOCAL_SERVICE_STATUS_ACTIVE = 2;
-  LOCAL_SERVICE_STATUS_UNHEALTHY = 3;
-  LOCAL_SERVICE_STATUS_REMOVED = 4;
+  LOCAL_SERVICE_STATUS_INSTALLED  = 1;
+  LOCAL_SERVICE_STATUS_ACTIVE     = 2;
+  LOCAL_SERVICE_STATUS_UNHEALTHY  = 3;
+  LOCAL_SERVICE_STATUS_REMOVED    = 4;
 }
 
 enum LocalEngineRuntimeMode {
-  LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED = 0;
-  LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED = 1;
+  LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED       = 0;
+  LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED        = 1;
   LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
 }
 
 enum LocalBundleState {
   LOCAL_BUNDLE_STATE_UNSPECIFIED = 0;
-  LOCAL_BUNDLE_STATE_RESOLVING = 1;
-  LOCAL_BUNDLE_STATE_READY = 2;
-  LOCAL_BUNDLE_STATE_DEGRADED = 3;
-  LOCAL_BUNDLE_STATE_INVALID = 4;
-  LOCAL_BUNDLE_STATE_REMOVED = 5;
+  LOCAL_BUNDLE_STATE_RESOLVING  = 1;
+  LOCAL_BUNDLE_STATE_READY      = 2;
+  LOCAL_BUNDLE_STATE_DEGRADED   = 3;
+  LOCAL_BUNDLE_STATE_INVALID    = 4;
+  LOCAL_BUNDLE_STATE_REMOVED    = 5;
 }
 
 enum LocalWarmState {
   LOCAL_WARM_STATE_UNSPECIFIED = 0;
-  LOCAL_WARM_STATE_COLD = 1;
-  LOCAL_WARM_STATE_WARMING = 2;
-  LOCAL_WARM_STATE_READY = 3;
-  LOCAL_WARM_STATE_FAILED = 4;
+  LOCAL_WARM_STATE_COLD        = 1;
+  LOCAL_WARM_STATE_WARMING     = 2;
+  LOCAL_WARM_STATE_READY       = 3;
+  LOCAL_WARM_STATE_FAILED      = 4;
 }
 
 enum LocalExecutionEntryKind {
   LOCAL_EXECUTION_ENTRY_KIND_UNSPECIFIED = 0;
-  LOCAL_EXECUTION_ENTRY_KIND_MODEL = 1;
-  LOCAL_EXECUTION_ENTRY_KIND_SERVICE = 2;
-  LOCAL_EXECUTION_ENTRY_KIND_NODE = 3;
+  LOCAL_EXECUTION_ENTRY_KIND_MODEL      = 1;
+  LOCAL_EXECUTION_ENTRY_KIND_SERVICE    = 2;
+  LOCAL_EXECUTION_ENTRY_KIND_NODE       = 3;
   reserved 4;
   reserved "LOCAL_EXECUTION_ENTRY_KIND_WORKFLOW";
 }
 
 enum LocalProfileEntryKind {
   LOCAL_PROFILE_ENTRY_KIND_UNSPECIFIED = 0;
-  LOCAL_PROFILE_ENTRY_KIND_MODEL = 1;
-  LOCAL_PROFILE_ENTRY_KIND_ARTIFACT = 2;
+  reserved 1, 2;
+  reserved "LOCAL_PROFILE_ENTRY_KIND_MODEL", "LOCAL_PROFILE_ENTRY_KIND_ARTIFACT";
   LOCAL_PROFILE_ENTRY_KIND_SERVICE = 3;
-  LOCAL_PROFILE_ENTRY_KIND_NODE = 4;
+  LOCAL_PROFILE_ENTRY_KIND_NODE    = 4;
+  LOCAL_PROFILE_ENTRY_KIND_ASSET   = 5;
 }
 
-message LocalModelSource {
-  string repo = 1;
+// === Source ===
+
+message LocalAssetSource {
+  string repo     = 1;
   string revision = 2;
 }
 
-message LocalArtifactSource {
-  string repo = 1;
-  string revision = 2;
-}
+// === Host Requirements ===
 
 message LocalHostRequirements {
-  bool gpu_required = 1;
+  bool gpu_required            = 1;
   bool python_runtime_required = 2;
   repeated string supported_platforms = 3;
-  repeated string required_backends = 4;
+  repeated string required_backends   = 4;
 }
 
-message LocalModelRecord {
-  string local_model_id = 1;
-  string model_id = 2;
-  repeated string capabilities = 3;
-  string engine = 4;
-  string entry = 5;
-  string license = 6;
-  LocalModelSource source = 7;
-  map<string, string> hashes = 8;
-  string endpoint = 9;
-  LocalModelStatus status = 10;
-  string installed_at = 11;
-  string updated_at = 12;
-  string health_detail = 13;
-  string local_invoke_profile_id = 14;
-  google.protobuf.Struct engine_config = 15;
-  string logical_model_id = 16;
-  string family = 17;
-  repeated string artifact_roles = 18;
-  string preferred_engine = 19;
-  repeated string fallback_engines = 20;
-  LocalBundleState bundle_state = 21;
-  LocalWarmState warm_state = 22;
-  LocalHostRequirements host_requirements = 23;
+// === Unified Asset Record ===
+
+message LocalAssetRecord {
+  string local_asset_id        = 1;
+  string asset_id              = 2;
+  LocalAssetKind kind          = 3;
+  string engine                = 4;
+  string entry                 = 5;
+  repeated string files        = 6;
+  string license               = 7;
+  LocalAssetSource source      = 8;
+  map<string, string> hashes   = 9;
+  LocalAssetStatus status      = 10;
+  string installed_at          = 11;
+  string updated_at            = 12;
+  string health_detail         = 13;
+
+  // Runnable-only fields
+  repeated string capabilities         = 20;
+  string logical_model_id              = 21;
+  string family                        = 22;
+  repeated string artifact_roles       = 23;
+  string preferred_engine              = 24;
+  repeated string fallback_engines     = 25;
+  LocalBundleState bundle_state        = 26;
+  LocalWarmState warm_state            = 27;
+  LocalHostRequirements host_requirements = 28;
+  string local_invoke_profile_id       = 29;
+  google.protobuf.Struct engine_config = 30;
+  string endpoint                      = 31;
+
+  // Passive-only fields
+  google.protobuf.Struct metadata = 40;
 }
 
-message LocalModelHealth {
-  string local_model_id = 1;
-  LocalModelStatus status = 2;
-  string detail = 3;
-  string endpoint = 4;
+message LocalAssetHealth {
+  string local_asset_id  = 1;
+  LocalAssetStatus status = 2;
+  string detail          = 3;
+  string endpoint        = 4;
 }
 
-message LocalArtifactRecord {
-  string local_artifact_id = 1;
-  string artifact_id = 2;
-  LocalArtifactKind kind = 3;
-  string engine = 4;
-  string entry = 5;
-  repeated string files = 6;
-  string license = 7;
-  LocalArtifactSource source = 8;
-  map<string, string> hashes = 9;
-  LocalArtifactStatus status = 10;
-  string installed_at = 11;
-  string updated_at = 12;
-  string health_detail = 13;
-  google.protobuf.Struct metadata = 14;
-}
+// === Verified Asset Descriptor (unified from Model + Artifact) ===
 
-message LocalVerifiedModelDescriptor {
-  string template_id = 1;
-  string title = 2;
-  string description = 3;
-  string install_kind = 4;
-  string model_id = 5;
-  string repo = 6;
-  string revision = 7;
-  repeated string capabilities = 8;
-  string engine = 9;
-  string entry = 10;
-  repeated string files = 11;
-  string license = 12;
-  map<string, string> hashes = 13;
-  string endpoint = 14;
-  int32 file_count = 15;
-  int64 total_size_bytes = 16;
-  repeated string tags = 17;
-  google.protobuf.Struct engine_config = 18;
-  string logical_model_id = 19;
-  repeated string artifact_roles = 20;
-  string preferred_engine = 21;
-  repeated string fallback_engines = 22;
-}
-
-message LocalVerifiedArtifactDescriptor {
-  string template_id = 1;
-  string title = 2;
-  string description = 3;
-  string artifact_id = 4;
-  LocalArtifactKind kind = 5;
-  string engine = 6;
-  string entry = 7;
-  repeated string files = 8;
-  string license = 9;
-  string repo = 10;
-  string revision = 11;
-  map<string, string> hashes = 12;
-  int32 file_count = 13;
-  int64 total_size_bytes = 14;
-  repeated string tags = 15;
+message LocalVerifiedAssetDescriptor {
+  string template_id           = 1;
+  string title                 = 2;
+  string description           = 3;
+  string asset_id              = 4;
+  LocalAssetKind kind          = 5;
+  string engine                = 6;
+  string entry                 = 7;
+  repeated string files        = 8;
+  string license               = 9;
+  string repo                  = 10;
+  string revision              = 11;
+  map<string, string> hashes   = 12;
+  int32 file_count             = 13;
+  int64 total_size_bytes       = 14;
+  repeated string tags         = 15;
   google.protobuf.Struct metadata = 16;
+
+  // Runnable-only fields
+  string install_kind                      = 20;
+  string logical_model_id                  = 21;
+  repeated string capabilities             = 22;
+  repeated string artifact_roles           = 23;
+  string preferred_engine                  = 24;
+  repeated string fallback_engines         = 25;
+  google.protobuf.Struct engine_config     = 26;
+  string endpoint                          = 27;
+  LocalHostRequirements host_requirements  = 28;
 }
+
+// === Provider Hints ===
 
 message LocalProviderHintsLlama {
-  string backend = 1;
-  string preferred_adapter = 2;
+  string backend             = 1;
+  string preferred_adapter   = 2;
   string multimodal_projector = 3;
 }
 
 message LocalProviderHintsMedia {
-  string backend = 1;
-  string preferred_adapter = 2;
-  string family = 3;
-  string image_driver = 4;
-  string video_driver = 5;
-  string device = 6;
-  string fallback_driver = 7;
-  string fallback_reason = 8;
-  string policy_gate = 9;
+  string backend            = 1;
+  string preferred_adapter  = 2;
+  string family             = 3;
+  string image_driver       = 4;
+  string video_driver       = 5;
+  string device             = 6;
+  string fallback_driver    = 7;
+  string fallback_reason    = 8;
+  string policy_gate        = 9;
 }
 
 message LocalProviderHintsSpeech {
-  string backend = 1;
-  string preferred_adapter = 2;
-  string family = 3;
-  string driver = 4;
-  string device = 5;
-  string voice_workflow_driver = 6;
-  string policy_gate = 7;
+  string backend                = 1;
+  string preferred_adapter      = 2;
+  string family                 = 3;
+  string driver                 = 4;
+  string device                 = 5;
+  string voice_workflow_driver  = 6;
+  string policy_gate            = 7;
 }
 
 message LocalProviderHintsSidecar {
   string preferred_adapter = 1;
-  string backend = 2;
+  string backend           = 2;
 }
 
 message LocalProviderHints {
-  LocalProviderHintsLlama llama = 1;
-  LocalProviderHintsMedia media = 2;
-  LocalProviderHintsSpeech speech = 3;
+  LocalProviderHintsLlama llama    = 1;
+  LocalProviderHintsMedia media    = 2;
+  LocalProviderHintsSpeech speech  = 3;
   LocalProviderHintsSidecar sidecar = 4;
-  map<string, string> extra = 10;
+  map<string, string> extra        = 10;
 }
 
+// === Catalog & Install Plan ===
+
 message LocalCatalogModelDescriptor {
-  string item_id = 1;
-  string source = 2;
-  string title = 3;
-  string description = 4;
-  string model_id = 5;
-  string repo = 6;
-  string revision = 7;
-  string template_id = 8;
-  repeated string capabilities = 9;
-  string engine = 10;
+  string item_id                        = 1;
+  string source                         = 2;
+  string title                          = 3;
+  string description                    = 4;
+  string model_id                       = 5;
+  string repo                           = 6;
+  string revision                       = 7;
+  string template_id                    = 8;
+  repeated string capabilities          = 9;
+  string engine                         = 10;
   LocalEngineRuntimeMode engine_runtime_mode = 11;
-  string install_kind = 12;
-  bool install_available = 13;
-  string endpoint = 14;
-  LocalProviderHints provider_hints = 15;
-  string entry = 16;
-  repeated string files = 17;
-  string license = 18;
-  map<string, string> hashes = 19;
-  repeated string tags = 20;
-  int64 downloads = 21;
-  int64 likes = 22;
-  string last_modified = 23;
-  bool verified = 24;
-  google.protobuf.Struct engine_config = 25;
+  string install_kind                   = 12;
+  bool install_available                = 13;
+  string endpoint                       = 14;
+  LocalProviderHints provider_hints     = 15;
+  string entry                          = 16;
+  repeated string files                 = 17;
+  string license                        = 18;
+  map<string, string> hashes            = 19;
+  repeated string tags                  = 20;
+  int64 downloads                       = 21;
+  int64 likes                           = 22;
+  string last_modified                  = 23;
+  bool verified                         = 24;
+  google.protobuf.Struct engine_config  = 25;
 }
 
 message LocalInstallPlanDescriptor {
-  string plan_id = 1;
-  string item_id = 2;
-  string source = 3;
-  string template_id = 4;
-  string model_id = 5;
-  string repo = 6;
-  string revision = 7;
-  repeated string capabilities = 8;
-  string engine = 9;
-  LocalEngineRuntimeMode engine_runtime_mode = 10;
-  string install_kind = 11;
-  bool install_available = 12;
-  string endpoint = 13;
-  LocalProviderHints provider_hints = 14;
-  string entry = 15;
-  repeated string files = 16;
-  string license = 17;
-  map<string, string> hashes = 18;
-  repeated string warnings = 19;
-  string reason_code = 20;
-  google.protobuf.Struct engine_config = 21;
+  string plan_id                              = 1;
+  string item_id                              = 2;
+  string source                               = 3;
+  string template_id                          = 4;
+  string model_id                             = 5;
+  string repo                                 = 6;
+  string revision                             = 7;
+  repeated string capabilities                = 8;
+  string engine                               = 9;
+  LocalEngineRuntimeMode engine_runtime_mode  = 10;
+  string install_kind                         = 11;
+  bool install_available                      = 12;
+  string endpoint                             = 13;
+  LocalProviderHints provider_hints           = 14;
+  string entry                                = 15;
+  repeated string files                       = 16;
+  string license                              = 17;
+  map<string, string> hashes                  = 18;
+  repeated string warnings                    = 19;
+  string reason_code                          = 20;
+  google.protobuf.Struct engine_config        = 21;
 }
+
+// === Device Profile ===
 
 message LocalGpuProfile {
   bool available = 1;
-  string vendor = 2;
-  string model = 3;
+  string vendor  = 2;
+  string model   = 3;
 }
 
 message LocalPythonProfile {
@@ -297,240 +285,280 @@ message LocalPythonProfile {
 
 message LocalNpuProfile {
   bool available = 1;
-  bool ready = 2;
-  string vendor = 3;
+  bool ready     = 2;
+  string vendor  = 3;
   string runtime = 4;
-  string detail = 5;
+  string detail  = 5;
 }
 
 message LocalPortAvailability {
-  int32 port = 1;
+  int32 port     = 1;
   bool available = 2;
 }
 
 message LocalDeviceProfile {
-  string os = 1;
-  string arch = 2;
-  LocalGpuProfile gpu = 3;
-  LocalPythonProfile python = 4;
-  LocalNpuProfile npu = 5;
-  int64 disk_free_bytes = 6;
-  repeated LocalPortAvailability ports = 7;
+  string os                             = 1;
+  string arch                           = 2;
+  LocalGpuProfile gpu                   = 3;
+  LocalPythonProfile python             = 4;
+  LocalNpuProfile npu                   = 5;
+  int64 disk_free_bytes                 = 6;
+  repeated LocalPortAvailability ports  = 7;
 }
 
+// === Execution Descriptors ===
+
 message LocalExecutionOptionDescriptor {
-  string entry_id = 1;
-  LocalExecutionEntryKind kind = 2;
-  string capability = 3;
-  string title = 4;
-  string model_id = 5;
-  string repo = 6;
-  string service_id = 7;
-  string node_id = 8;
+  string entry_id                = 1;
+  LocalExecutionEntryKind kind   = 2;
+  string capability              = 3;
+  string title                   = 4;
+  string model_id                = 5;
+  string repo                    = 6;
+  string service_id              = 7;
+  string node_id                 = 8;
   reserved 9;
   reserved "workflow_id";
-  string engine = 10;
+  string engine                  = 10;
 }
 
 message LocalExecutionAlternativeDescriptor {
-  string alternative_id = 1;
-  string preferred_entry_id = 2;
-  repeated LocalExecutionOptionDescriptor options = 3;
+  string alternative_id                              = 1;
+  string preferred_entry_id                          = 2;
+  repeated LocalExecutionOptionDescriptor options    = 3;
 }
 
 message LocalExecutionDeclarationDescriptor {
-  repeated LocalExecutionOptionDescriptor required = 1;
-  repeated LocalExecutionOptionDescriptor optional = 2;
-  repeated LocalExecutionAlternativeDescriptor alternatives = 3;
-  map<string, string> preferred = 4;
+  repeated LocalExecutionOptionDescriptor required              = 1;
+  repeated LocalExecutionOptionDescriptor optional              = 2;
+  repeated LocalExecutionAlternativeDescriptor alternatives     = 3;
+  map<string, string> preferred                                 = 4;
 }
 
 message LocalExecutionEntryDescriptor {
-  string entry_id = 1;
-  LocalExecutionEntryKind kind = 2;
-  string capability = 3;
-  bool required = 4;
-  bool selected = 5;
-  bool preferred = 6;
-  string model_id = 7;
-  string repo = 8;
-  string engine = 9;
-  string service_id = 10;
-  string node_id = 11;
+  string entry_id                = 1;
+  LocalExecutionEntryKind kind   = 2;
+  string capability              = 3;
+  bool required                  = 4;
+  bool selected                  = 5;
+  bool preferred                 = 6;
+  string model_id                = 7;
+  string repo                    = 8;
+  string engine                  = 9;
+  string service_id              = 10;
+  string node_id                 = 11;
   reserved 12;
   reserved "workflow_id";
-  string reason_code = 13;
-  repeated string warnings = 14;
+  string reason_code             = 13;
+  repeated string warnings       = 14;
 }
 
 message LocalPreflightDecision {
-  string entry_id = 1;
-  string target = 2;
-  string check = 3;
-  bool ok = 4;
+  string entry_id    = 1;
+  string target      = 2;
+  string check       = 3;
+  bool ok            = 4;
   string reason_code = 5;
-  string detail = 6;
+  string detail      = 6;
 }
 
 message LocalExecutionSelectionRationale {
-  string entry_id = 1;
-  bool selected = 2;
+  string entry_id    = 1;
+  bool selected      = 2;
   string reason_code = 3;
-  string detail = 4;
+  string detail      = 4;
 }
 
 message LocalExecutionPlan {
-  string plan_id = 1;
-  string mod_id = 2;
-  string capability = 3;
-  LocalDeviceProfile device_profile = 4;
-  repeated LocalExecutionEntryDescriptor entries = 5;
+  string plan_id                                              = 1;
+  string mod_id                                               = 2;
+  string capability                                           = 3;
+  LocalDeviceProfile device_profile                           = 4;
+  repeated LocalExecutionEntryDescriptor entries              = 5;
   repeated LocalExecutionSelectionRationale selection_rationale = 6;
-  repeated LocalPreflightDecision preflight_decisions = 7;
-  repeated string warnings = 8;
-  string reason_code = 9;
+  repeated LocalPreflightDecision preflight_decisions         = 7;
+  repeated string warnings                                    = 8;
+  string reason_code                                          = 9;
 }
 
 message LocalExecutionStageResult {
-  string stage = 1;
-  bool ok = 2;
+  string stage       = 1;
+  bool ok            = 2;
   string reason_code = 3;
-  string detail = 4;
+  string detail      = 4;
 }
+
+// === Service Descriptor ===
 
 message LocalServiceDescriptor {
-  string service_id = 1;
-  string title = 2;
-  string engine = 3;
-  string artifact_type = 4;
-  string endpoint = 5;
-  repeated string capabilities = 6;
-  string local_model_id = 7;
-  LocalServiceStatus status = 8;
-  string detail = 9;
-  string installed_at = 10;
-  string updated_at = 11;
+  string service_id              = 1;
+  string title                   = 2;
+  string engine                  = 3;
+  string artifact_type           = 4;
+  string endpoint                = 5;
+  repeated string capabilities   = 6;
+  string local_model_id          = 7;
+  LocalServiceStatus status      = 8;
+  string detail                  = 9;
+  string installed_at            = 10;
+  string updated_at              = 11;
 }
 
+// === Execution Apply Result ===
+
 message LocalExecutionApplyResult {
-  string plan_id = 1;
-  string mod_id = 2;
-  repeated LocalExecutionEntryDescriptor entries = 3;
-  repeated LocalModelRecord installed_models = 4;
-  repeated LocalServiceDescriptor services = 5;
-  repeated string capabilities = 6;
-  repeated LocalExecutionStageResult stage_results = 7;
-  repeated LocalPreflightDecision preflight_decisions = 8;
-  bool rollback_applied = 9;
-  repeated string warnings = 10;
-  string reason_code = 11;
+  string plan_id                                               = 1;
+  string mod_id                                                = 2;
+  repeated LocalExecutionEntryDescriptor entries               = 3;
+  repeated LocalAssetRecord installed_assets                   = 4;
+  repeated LocalServiceDescriptor services                     = 5;
+  repeated string capabilities                                 = 6;
+  repeated LocalExecutionStageResult stage_results             = 7;
+  repeated LocalPreflightDecision preflight_decisions          = 8;
+  bool rollback_applied                                        = 9;
+  repeated string warnings                                     = 10;
+  string reason_code                                           = 11;
 }
+
+// === Profile Types ===
 
 message LocalProfileRequirementDescriptor {
   double min_gpu_memory_gb = 1;
-  int64 min_disk_bytes = 2;
+  int64 min_disk_bytes     = 2;
   repeated string platforms = 3;
-  repeated string notes = 4;
+  repeated string notes     = 4;
 }
 
 message LocalProfileEntryDescriptor {
-  string entry_id = 1;
-  LocalProfileEntryKind kind = 2;
-  string title = 3;
-  string description = 4;
-  string capability = 5;
-  optional bool required = 6;
-  optional bool preferred = 7;
-  string model_id = 8;
-  string repo = 9;
-  string service_id = 10;
-  string node_id = 11;
-  string engine = 12;
-  string artifact_id = 13;
-  LocalArtifactKind artifact_kind = 14;
-  string template_id = 15;
-  string revision = 16;
-  repeated string tags = 17;
+  string entry_id              = 1;
+  LocalProfileEntryKind kind   = 2;
+  string title                 = 3;
+  string description           = 4;
+  string capability            = 5;
+  optional bool required       = 6;
+  optional bool preferred      = 7;
+  reserved 8;
+  reserved "model_id";
+  string repo                  = 9;
+  string service_id            = 10;
+  string node_id               = 11;
+  string engine                = 12;
+  reserved 13, 14;
+  reserved "artifact_id", "artifact_kind";
+  string template_id           = 15;
+  string revision              = 16;
+  repeated string tags         = 17;
+
+  // Unified asset fields
+  string asset_id              = 20;
+  LocalAssetKind asset_kind    = 21;
+  string engine_slot           = 22;
 }
 
 message LocalProfileDescriptor {
-  string id = 1;
-  string title = 2;
-  string description = 3;
-  bool recommended = 4;
-  repeated string consume_capabilities = 5;
-  repeated LocalProfileEntryDescriptor entries = 6;
-  LocalProfileRequirementDescriptor requirements = 7;
+  string id                                              = 1;
+  string title                                           = 2;
+  string description                                     = 3;
+  bool recommended                                       = 4;
+  repeated string consume_capabilities                   = 5;
+  repeated LocalProfileEntryDescriptor entries           = 6;
+  LocalProfileRequirementDescriptor requirements         = 7;
 }
 
-message LocalProfileArtifactPlanEntry {
-  LocalProfileEntryDescriptor entry = 1;
-  bool installed = 2;
+message ProfileEntryOverride {
+  string entry_id       = 1;
+  string local_asset_id = 2;
 }
 
 message LocalProfileResolutionPlan {
-  string plan_id = 1;
-  string mod_id = 2;
-  string profile_id = 3;
-  string title = 4;
-  string description = 5;
-  bool recommended = 6;
-  repeated string consume_capabilities = 7;
-  LocalProfileRequirementDescriptor requirements = 8;
-  LocalExecutionPlan execution_plan = 9;
-  repeated LocalProfileArtifactPlanEntry artifact_entries = 10;
-  repeated string warnings = 11;
-  string reason_code = 12;
+  string plan_id                                             = 1;
+  string mod_id                                              = 2;
+  string profile_id                                          = 3;
+  string title                                               = 4;
+  string description                                         = 5;
+  bool recommended                                           = 6;
+  repeated string consume_capabilities                       = 7;
+  LocalProfileRequirementDescriptor requirements             = 8;
+  LocalExecutionPlan execution_plan                          = 9;
+  reserved 10;
+  reserved "asset_entries";
+  repeated string warnings                                   = 11;
+  string reason_code                                         = 12;
 }
 
 message LocalProfileApplyResult {
-  string plan_id = 1;
-  string mod_id = 2;
-  string profile_id = 3;
+  string plan_id                             = 1;
+  string mod_id                              = 2;
+  string profile_id                          = 3;
   LocalExecutionApplyResult execution_result = 4;
-  repeated LocalArtifactRecord installed_artifacts = 5;
-  repeated string warnings = 6;
-  string reason_code = 7;
+  repeated LocalAssetRecord installed_assets = 5;
+  repeated string warnings                   = 6;
+  string reason_code                         = 7;
 }
+
+// === Node Descriptor ===
 
 message LocalNodeDescriptor {
-  string node_id = 1;
-  string title = 2;
-  string service_id = 3;
-  repeated string capabilities = 4;
-  string provider = 5;
-  string adapter = 6;
-  string backend = 7;
-  string backend_source = 8;
-  bool available = 9;
-  string reason_code = 10;
-  LocalProviderHints provider_hints = 11;
-  string policy_gate = 12;
-  string api_path = 13;
-  google.protobuf.Struct input_schema = 14;
-  google.protobuf.Struct output_schema = 15;
-  bool read_only = 16;
+  string node_id                         = 1;
+  string title                           = 2;
+  string service_id                      = 3;
+  repeated string capabilities           = 4;
+  string provider                        = 5;
+  string adapter                         = 6;
+  string backend                         = 7;
+  string backend_source                  = 8;
+  bool available                         = 9;
+  string reason_code                     = 10;
+  LocalProviderHints provider_hints      = 11;
+  string policy_gate                     = 12;
+  string api_path                        = 13;
+  google.protobuf.Struct input_schema    = 14;
+  google.protobuf.Struct output_schema   = 15;
+  bool read_only                         = 16;
 }
 
+// === Audit Types ===
+
 message LocalAuditEvent {
-  string id = 1;
-  string event_type = 2;
-  string occurred_at = 3;
-  string source = 4;
-  string modality = 5;
-  string reason_code = 6;
-  string detail = 7;
-  string model_id = 8;
-  string local_model_id = 9;
-  google.protobuf.Struct payload = 10;
-  string trace_id = 11;
-  string app_id = 12;
-  string domain = 13;
-  string operation = 14;
-  string subject_user_id = 15;
+  string id                        = 1;
+  string event_type                = 2;
+  string occurred_at               = 3;
+  string source                    = 4;
+  string modality                  = 5;
+  string reason_code               = 6;
+  string detail                    = 7;
+  string model_id                  = 8;
+  string local_model_id            = 9;
+  google.protobuf.Struct payload   = 10;
+  string trace_id                  = 11;
+  string app_id                    = 12;
+  string domain                    = 13;
+  string operation                 = 14;
+  string subject_user_id           = 15;
 }
 
 message LocalAuditTimeRange {
   string from = 1;
-  string to = 2;
+  string to   = 2;
+}
+
+// === Unregistered Asset Scan ===
+
+message LocalUnregisteredAssetDeclaration {
+  reserved 1, 2;
+  reserved "asset_class", "model_type";
+  LocalAssetKind asset_kind = 3;
+  string engine          = 4;
+}
+
+message LocalUnregisteredAssetDescriptor {
+  string filename                                   = 1;
+  string path                                       = 2;
+  int64 size_bytes                                  = 3;
+  LocalUnregisteredAssetDeclaration declaration      = 4;
+  string suggestion_source                          = 5;
+  string confidence                                 = 6;
+  bool auto_importable                              = 7;
+  bool requires_manual_review                       = 8;
+  string folder_name                                = 9;
 }

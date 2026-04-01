@@ -7,9 +7,9 @@ import type { ModRuntimeContextInput } from '../types/runtime-mod.js';
 import type { ModRuntimeClient } from './types.js';
 export { createModRuntimeInspector } from './inspector.js';
 export {
-  buildLocalImageWorkflowExtensions,
-  type LocalImageWorkflowComponentSelection,
-  type LocalImageWorkflowExtensionInput,
+  buildLocalImageProfileExtensions,
+  type LocalImageProfileEntryOverride,
+  type LocalImageProfileExtensionInput,
 } from '../../runtime/runtime-media.js';
 
 function normalizeModId(modId: string): string {
@@ -48,7 +48,7 @@ export function createModRuntimeClient(modId: string, context?: ModRuntimeContex
       }),
     },
     local: {
-      listArtifacts: async (input) => runtimeHost.local.listArtifacts({
+      listAssets: async (input) => runtimeHost.local.listAssets({
         modId: normalizedModId,
         ...input,
       }),

@@ -18,30 +18,30 @@ import (
 )
 
 type fakeLocalModelLister struct {
-	responses []*runtimev1.ListLocalModelsResponse
+	responses []*runtimev1.ListLocalAssetsResponse
 	err       error
 }
 
-func (f *fakeLocalModelLister) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+func (f *fakeLocalModelLister) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
 	if len(f.responses) == 0 {
-		return &runtimev1.ListLocalModelsResponse{}, nil
+		return &runtimev1.ListLocalAssetsResponse{}, nil
 	}
 	response := f.responses[0]
 	f.responses = f.responses[1:]
 	if response == nil {
-		return &runtimev1.ListLocalModelsResponse{}, nil
+		return &runtimev1.ListLocalAssetsResponse{}, nil
 	}
-	if req.GetStatusFilter() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED {
-		filtered := make([]*runtimev1.LocalModelRecord, 0, len(response.GetModels()))
-		for _, model := range response.GetModels() {
-			if model != nil && model.GetStatus() == req.GetStatusFilter() {
-				filtered = append(filtered, model)
+	if req.GetStatusFilter() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
+		filtered := make([]*runtimev1.LocalAssetRecord, 0, len(response.GetAssets()))
+		for _, asset := range response.GetAssets() {
+			if asset != nil && asset.GetStatus() == req.GetStatusFilter() {
+				filtered = append(filtered, asset)
 			}
 		}
-		return &runtimev1.ListLocalModelsResponse{Models: filtered, NextPageToken: response.GetNextPageToken()}, nil
+		return &runtimev1.ListLocalAssetsResponse{Assets: filtered, NextPageToken: response.GetNextPageToken()}, nil
 	}
 	return response, nil
 }
@@ -204,12 +204,12 @@ func TestCheckModelHealthLocalLlamaRequiresWarmProof(t *testing.T) {
 func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalModelLister(&fakeLocalModelLister{
-		responses: []*runtimev1.ListLocalModelsResponse{{
-			Models: []*runtimev1.LocalModelRecord{{
-				LocalModelId: "local-1",
-				ModelId:      "local/qwen3-4b-q4_k_m",
-				Engine:       "llama",
-				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:   "local-1",
+				LogicalModelId: "local/qwen3-4b-q4_k_m",
+				Engine:         "llama",
+				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			}},
 		}},
 	})
@@ -229,12 +229,12 @@ func TestCheckModelHealthLocalModelUsesLocalServiceActiveState(t *testing.T) {
 func TestCheckModelHealthLocalModelUsesLocalServiceInstalledState(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalModelLister(&fakeLocalModelLister{
-		responses: []*runtimev1.ListLocalModelsResponse{{
-			Models: []*runtimev1.LocalModelRecord{{
-				LocalModelId: "local-1",
-				ModelId:      "local/qwen3-4b-q4_k_m",
-				Engine:       "llama",
-				Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
+		responses: []*runtimev1.ListLocalAssetsResponse{{
+			Assets: []*runtimev1.LocalAssetRecord{{
+				LocalAssetId:   "local-1",
+				LogicalModelId: "local/qwen3-4b-q4_k_m",
+				Engine:         "llama",
+				Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
 			}},
 		}},
 	})

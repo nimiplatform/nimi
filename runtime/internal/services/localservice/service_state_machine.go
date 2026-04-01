@@ -11,21 +11,21 @@ import (
 )
 
 // validModelTransitions defines the allowed state machine transitions per K-LOCAL-005.
-var validModelTransitions = map[runtimev1.LocalModelStatus][]runtimev1.LocalModelStatus{
-	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED: {
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+var validModelTransitions = map[runtimev1.LocalAssetStatus][]runtimev1.LocalAssetStatus{
+	runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED: {
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED,
 	},
-	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE: {
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+	runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE: {
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED,
 	},
-	runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY: {
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+	runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY: {
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED,
 	},
 }
 
@@ -47,7 +47,7 @@ var validServiceTransitions = map[runtimev1.LocalServiceStatus][]runtimev1.Local
 	},
 }
 
-func isValidModelTransition(from, to runtimev1.LocalModelStatus) bool {
+func isValidModelTransition(from, to runtimev1.LocalAssetStatus) bool {
 	for _, allowed := range validModelTransitions[from] {
 		if allowed == to {
 			return true
@@ -65,7 +65,7 @@ func isValidServiceTransition(from, to runtimev1.LocalServiceStatus) bool {
 	return false
 }
 
-func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalModelStatus, detail string) (*runtimev1.LocalModelRecord, error) {
+func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalAssetStatus, detail string) (*runtimev1.LocalAssetRecord, error) {
 	id := strings.TrimSpace(localModelID)
 	if id == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -73,7 +73,7 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalM
 	now := nowISO()
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	current := cloneLocalModel(s.models[id])
+	current := cloneLocalAsset(s.assets[id])
 	if current == nil {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
@@ -83,20 +83,20 @@ func (s *Service) updateModelStatus(localModelID string, status runtimev1.LocalM
 	current.Status = status
 	current.UpdatedAt = now
 	current.HealthDetail = detail
-	s.models[id] = cloneLocalModel(current)
-	if status == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-		delete(s.modelRuntimeModes, id)
+	s.assets[id] = cloneLocalAsset(current)
+	if status == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+		delete(s.assetRuntimeModes, id)
 	}
-	if status != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		delete(s.modelProbeState, id)
+	if status != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		delete(s.assetProbeState, id)
 	}
 	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:           "audit_" + ulid.Make().String(),
 		EventType:    "runtime_model_status_changed",
 		OccurredAt:   now,
 		Source:       "local",
-		ModelId:      current.GetModelId(),
-		LocalModelId: current.GetLocalModelId(),
+		ModelId:      current.GetAssetId(),
+		LocalModelId: current.GetLocalAssetId(),
 		Detail:       detail,
 	})
 	return current, nil

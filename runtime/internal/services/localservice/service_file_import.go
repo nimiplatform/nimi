@@ -56,16 +56,16 @@ func runtimeManagedResolvedModelDir(modelsRoot string, logicalModelID string) st
 	return filepath.Join(modelsRoot, "resolved", filepath.FromSlash(strings.Trim(strings.TrimSpace(logicalModelID), "/")))
 }
 
-func runtimeManagedResolvedModelManifestPath(modelsRoot string, logicalModelID string) string {
-	return filepath.Join(runtimeManagedResolvedModelDir(modelsRoot, logicalModelID), "manifest.json")
+func runtimeManagedAssetManifestPath(modelsRoot string, logicalModelID string) string {
+	return filepath.Join(runtimeManagedResolvedModelDir(modelsRoot, logicalModelID), "asset.manifest.json")
 }
 
-func runtimeManagedArtifactDir(modelsRoot string, artifactID string) string {
-	return filepath.Join(modelsRoot, "artifacts", slugifyLocalModelID(artifactID))
+func runtimeManagedPassiveAssetDir(modelsRoot string, assetID string) string {
+	return filepath.Join(modelsRoot, "resolved", slugifyLocalAssetID(assetID))
 }
 
-func runtimeManagedArtifactManifestPath(modelsRoot string, artifactID string) string {
-	return filepath.Join(runtimeManagedArtifactDir(modelsRoot, artifactID), "artifact.manifest.json")
+func runtimeManagedPassiveAssetManifestPath(modelsRoot string, assetID string) string {
+	return filepath.Join(runtimeManagedPassiveAssetDir(modelsRoot, assetID), "asset.manifest.json")
 }
 
 func maybeMoveOrCopyFile(sourcePath string, destPath string, removeSource bool) error {
@@ -92,38 +92,50 @@ func maybeMoveOrCopyFile(sourcePath string, destPath string, removeSource bool) 
 	return nil
 }
 
-func kindString(kind runtimev1.LocalArtifactKind) string {
-	switch kind {
-	case runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LLM:
-		return "llm"
-	case runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_CLIP:
-		return "clip"
-	case runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_CONTROLNET:
-		return "controlnet"
-	case runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_LORA:
-		return "lora"
-	case runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_AUXILIARY:
-		return "auxiliary"
-	default:
-		return "vae"
+func copyFile(src, dst string, perm os.FileMode) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("read source file: %w", err)
 	}
+	return os.WriteFile(dst, data, perm)
 }
 
-func normalizeModelTypeForPath(path string) string {
+func copyDirRecursive(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(dst, relPath)
+		if d.IsDir() {
+			return os.MkdirAll(dstPath, 0o755)
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		return copyFile(path, dstPath, info.Mode().Perm())
+	})
+}
+
+func normalizeAssetKindForPath(path string) runtimev1.LocalAssetKind {
 	extension := strings.ToLower(filepath.Ext(strings.TrimSpace(path)))
 	switch extension {
 	case ".gguf":
-		return "chat"
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 	default:
-		return "chat"
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 	}
 }
 
-func defaultEngineForModelType(modelType string) string {
-	switch strings.ToLower(strings.TrimSpace(modelType)) {
-	case "image", "video":
+func defaultEngineForAssetKind(kind runtimev1.LocalAssetKind) string {
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
 		return "media"
-	case "tts", "stt", "music":
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
 		return "speech"
 	default:
 		return "llama"
@@ -135,12 +147,28 @@ func isKnownModelFile(path string) bool {
 	return ok
 }
 
-func (s *Service) ImportLocalModelFile(ctx context.Context, req *runtimev1.ImportLocalModelFileRequest) (*runtimev1.ImportLocalModelFileResponse, error) {
+func (s *Service) ImportLocalAssetFile(ctx context.Context, req *runtimev1.ImportLocalAssetFileRequest) (*runtimev1.ImportLocalAssetFileResponse, error) {
+	kind := req.GetKind()
+	if kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && !isRunnableKind(kind) {
+		return s.importLocalPassiveAssetFile(ctx, req, false)
+	}
 	return s.importLocalModelFile(ctx, req, false)
 }
 
-func (s *Service) ScaffoldOrphanModel(ctx context.Context, req *runtimev1.ScaffoldOrphanModelRequest) (*runtimev1.ScaffoldOrphanModelResponse, error) {
-	resp, err := s.importLocalModelFile(ctx, &runtimev1.ImportLocalModelFileRequest{
+func (s *Service) ScaffoldOrphanAsset(ctx context.Context, req *runtimev1.ScaffoldOrphanAssetRequest) (*runtimev1.ScaffoldOrphanAssetResponse, error) {
+	kind := req.GetKind()
+	if kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && !isRunnableKind(kind) {
+		resp, err := s.importLocalPassiveAssetFile(ctx, &runtimev1.ImportLocalAssetFileRequest{
+			FilePath: req.GetPath(),
+			Kind:     req.GetKind(),
+			Engine:   req.GetEngine(),
+		}, true)
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.ScaffoldOrphanAssetResponse{Asset: resp.GetAsset()}, nil
+	}
+	resp, err := s.importLocalModelFile(ctx, &runtimev1.ImportLocalAssetFileRequest{
 		FilePath:     req.GetPath(),
 		Capabilities: append([]string(nil), req.GetCapabilities()...),
 		Engine:       req.GetEngine(),
@@ -149,14 +177,14 @@ func (s *Service) ScaffoldOrphanModel(ctx context.Context, req *runtimev1.Scaffo
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.ScaffoldOrphanModelResponse{Model: resp.GetModel()}, nil
+	return &runtimev1.ScaffoldOrphanAssetResponse{Asset: resp.GetAsset()}, nil
 }
 
 func (s *Service) importLocalModelFile(
 	ctx context.Context,
-	req *runtimev1.ImportLocalModelFileRequest,
+	req *runtimev1.ImportLocalAssetFileRequest,
 	removeSource bool,
-) (*runtimev1.ImportLocalModelFileResponse, error) {
+) (*runtimev1.ImportLocalAssetFileResponse, error) {
 	sourcePath, _, err := prepareImportSourcePath(req.GetFilePath())
 	if err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
@@ -168,7 +196,7 @@ func (s *Service) importLocalModelFile(
 		capabilities = []string{"chat"}
 	}
 	engine := defaultLocalEngine(strings.TrimSpace(req.GetEngine()), capabilities)
-	modelName := strings.TrimSpace(req.GetModelName())
+	modelName := strings.TrimSpace(req.GetAssetName())
 	if modelName == "" {
 		modelName = strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
 	}
@@ -210,10 +238,19 @@ func (s *Service) importLocalModelFile(
 		})
 	}
 	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local model staged")
-	manifestPath := filepath.Join(stageDir, "manifest.json")
+	manifestPath := filepath.Join(stageDir, "asset.manifest.json")
+	kind := inferAssetKindFromCapabilities(capabilities)
+	kindToken, err := localAssetKindToken(kind)
+	if err != nil {
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID, grpcerr.ReasonOptions{
+			Message: err.Error(),
+		})
+	}
 	manifest := map[string]any{
 		"schemaVersion":    "1.0.0",
-		"model_id":         modelID,
+		"asset_id":         modelID,
+		"kind":             kindToken,
 		"logical_model_id": logicalModelID,
 		"capabilities":     capabilities,
 		"engine":           engine,
@@ -269,9 +306,9 @@ func (s *Service) importLocalModelFile(
 			Message: fmt.Sprintf("activate managed model bundle: %v", err),
 		})
 	}
-	manifestPath = runtimeManagedResolvedModelManifestPath(modelsRoot, logicalModelID)
+	manifestPath = runtimeManagedAssetManifestPath(modelsRoot, logicalModelID)
 	s.updateTransferProgress(transferID, "register", 1, 1, "registering local model")
-	imported, err := s.ImportLocalModel(ctx, &runtimev1.ImportLocalModelRequest{
+	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 		Endpoint:     binding.endpoint,
 	})
@@ -307,33 +344,17 @@ func (s *Service) importLocalModelFile(
 		s.logger.Warn("cleanup managed bundle backup failed after import", "logical_model_id", logicalModelID, "error", commitErr)
 	}
 	s.completeTransfer(transferID, "register", "local model imported", func(summary *runtimev1.LocalTransferSessionSummary) {
-		summary.LocalModelId = imported.GetModel().GetLocalModelId()
-		summary.ModelId = imported.GetModel().GetModelId()
+		summary.LocalAssetId = imported.GetAsset().GetLocalAssetId()
+		summary.AssetId = imported.GetAsset().GetAssetId()
 	})
-	return &runtimev1.ImportLocalModelFileResponse{Model: imported.GetModel()}, nil
+	return &runtimev1.ImportLocalAssetFileResponse{Asset: imported.GetAsset()}, nil
 }
 
-func (s *Service) ImportLocalArtifactFile(ctx context.Context, req *runtimev1.ImportLocalArtifactFileRequest) (*runtimev1.ImportLocalArtifactFileResponse, error) {
-	return s.importLocalArtifactFile(ctx, req, false)
-}
-
-func (s *Service) ScaffoldOrphanArtifact(ctx context.Context, req *runtimev1.ScaffoldOrphanArtifactRequest) (*runtimev1.ScaffoldOrphanArtifactResponse, error) {
-	resp, err := s.importLocalArtifactFile(ctx, &runtimev1.ImportLocalArtifactFileRequest{
-		FilePath: req.GetPath(),
-		Kind:     req.GetKind(),
-		Engine:   req.GetEngine(),
-	}, true)
-	if err != nil {
-		return nil, err
-	}
-	return &runtimev1.ScaffoldOrphanArtifactResponse{Artifact: resp.GetArtifact()}, nil
-}
-
-func (s *Service) importLocalArtifactFile(
+func (s *Service) importLocalPassiveAssetFile(
 	ctx context.Context,
-	req *runtimev1.ImportLocalArtifactFileRequest,
+	req *runtimev1.ImportLocalAssetFileRequest,
 	removeSource bool,
-) (*runtimev1.ImportLocalArtifactFileResponse, error) {
+) (*runtimev1.ImportLocalAssetFileResponse, error) {
 	sourcePath, _, err := prepareImportSourcePath(req.GetFilePath())
 	if err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, grpcerr.ReasonOptions{
@@ -341,11 +362,11 @@ func (s *Service) importLocalArtifactFile(
 		})
 	}
 	kind := req.GetKind()
-	if kind == runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED {
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID)
 	}
 	engine := strings.TrimSpace(req.GetEngine())
-	if engine == "" && kind != runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_AUXILIARY {
+	if engine == "" && kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY {
 		engine = defaultLocalEngine("", nil)
 	}
 	artifactName := strings.TrimSuffix(filepath.Base(sourcePath), filepath.Ext(sourcePath))
@@ -364,7 +385,7 @@ func (s *Service) importLocalArtifactFile(
 	})
 	transferID := transfer.GetInstallSessionId()
 	modelsRoot := resolveLocalModelsPath(s.localModelsPath)
-	destDir := runtimeManagedArtifactDir(modelsRoot, artifactID)
+	destDir := runtimeManagedPassiveAssetDir(modelsRoot, artifactID)
 	destFileName := filepath.Base(sourcePath)
 	destFilePath := filepath.Join(destDir, destFileName)
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
@@ -380,14 +401,22 @@ func (s *Service) importLocalArtifactFile(
 		})
 	}
 	s.updateTransferProgress(transferID, transferPhase, 1, 1, "local artifact staged")
-	manifestPath := runtimeManagedArtifactManifestPath(modelsRoot, artifactID)
+	manifestPath := runtimeManagedPassiveAssetManifestPath(modelsRoot, artifactID)
+	kindToken, err := localAssetKindToken(kind)
+	if err != nil {
+		s.failTransfer(transferID, err.Error(), false)
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID, grpcerr.ReasonOptions{
+			Message: err.Error(),
+		})
+	}
 	manifest := map[string]any{
-		"artifact_id": artifactID,
-		"kind":        kindString(kind),
-		"engine":      engine,
-		"entry":       destFileName,
-		"files":       []string{destFileName},
-		"license":     "unknown",
+		"schemaVersion": "1.0.0",
+		"asset_id":      artifactID,
+		"kind":          kindToken,
+		"engine":        engine,
+		"entry":         destFileName,
+		"files":         []string{destFileName},
+		"license":       "unknown",
 		"source": map[string]any{
 			"repo":     "local-import/" + slugifyLocalModelID(artifactID),
 			"revision": "local",
@@ -410,17 +439,17 @@ func (s *Service) importLocalArtifactFile(
 		})
 	}
 	s.updateTransferProgress(transferID, "register", 1, 1, "registering local artifact")
-	imported, err := s.ImportLocalArtifact(ctx, &runtimev1.ImportLocalArtifactRequest{ManifestPath: manifestPath})
+	imported, err := s.ImportLocalAsset(ctx, &runtimev1.ImportLocalAssetRequest{ManifestPath: manifestPath})
 	if err != nil {
 		s.failTransfer(transferID, err.Error(), false)
 		return nil, err
 	}
 	s.completeTransfer(transferID, "register", "local artifact imported", func(summary *runtimev1.LocalTransferSessionSummary) {
-		summary.ArtifactId = imported.GetArtifact().GetArtifactId()
-		summary.LocalArtifactId = imported.GetArtifact().GetLocalArtifactId()
-		summary.ModelId = imported.GetArtifact().GetArtifactId()
+		summary.AssetId = imported.GetAsset().GetAssetId()
+		summary.LocalAssetId = imported.GetAsset().GetLocalAssetId()
+		summary.AssetId = imported.GetAsset().GetAssetId()
 	})
-	return &runtimev1.ImportLocalArtifactFileResponse{Artifact: imported.GetArtifact()}, nil
+	return &runtimev1.ImportLocalAssetFileResponse{Asset: imported.GetAsset()}, nil
 }
 
 func (s *Service) ScanUnregisteredAssets(_ context.Context, _ *runtimev1.ScanUnregisteredAssetsRequest) (*runtimev1.ScanUnregisteredAssetsResponse, error) {
@@ -441,10 +470,10 @@ func (s *Service) ScanUnregisteredAssets(_ context.Context, _ *runtimev1.ScanUnr
 		cleanPath := filepath.Clean(path)
 		if d.IsDir() {
 			name := strings.ToLower(strings.TrimSpace(d.Name()))
-			if name == "resolved" || name == "artifacts" || name == "quarantine" || strings.HasSuffix(cleanPath, string(filepath.Separator)+"resolved") {
+			if name == "resolved" || name == "quarantine" || strings.HasSuffix(cleanPath, string(filepath.Separator)+"resolved") {
 				return filepath.SkipDir
 			}
-			if _, statErr := os.Stat(filepath.Join(cleanPath, "artifact.manifest.json")); statErr == nil {
+			if _, statErr := os.Stat(filepath.Join(cleanPath, "asset.manifest.json")); statErr == nil {
 				return filepath.SkipDir
 			}
 			return nil
@@ -461,14 +490,14 @@ func (s *Service) ScanUnregisteredAssets(_ context.Context, _ *runtimev1.ScanUnr
 				return nil
 			}
 			parentName := filepath.Base(filepath.Dir(cleanPath))
+			assetKind := normalizeAssetKindForPath(cleanPath)
 			items = append(items, &runtimev1.LocalUnregisteredAssetDescriptor{
 				Filename:  filepath.Base(cleanPath),
 				Path:      cleanPath,
 				SizeBytes: info.Size(),
 				Declaration: &runtimev1.LocalUnregisteredAssetDeclaration{
-					AssetClass: "model",
-					ModelType:  normalizeModelTypeForPath(cleanPath),
-					Engine:     defaultEngineForModelType(normalizeModelTypeForPath(cleanPath)),
+					AssetKind: assetKind,
+					Engine:    defaultEngineForAssetKind(assetKind),
 				},
 				SuggestionSource:     "filename",
 				Confidence:           "low",

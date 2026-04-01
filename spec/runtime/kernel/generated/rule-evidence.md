@@ -413,3 +413,5 @@
 | `K-LOCAL-021c` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
 | `K-LOCAL-021d` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
 | `K-LOCAL-021e` | `covered` | `runtime_kernel_consistency`, `runtime_catalog_drift` |
+| `K-LOCAL-031` | `covered` | `runtime_kernel_consistency` |
+| `K-LOCAL-032` | `covered` | `runtime_kernel_consistency` |

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
 
 import { createNimiAiProvider } from '../../../../src/ai-provider/index.js';
@@ -123,8 +125,9 @@ function promptFromText(text: string) {
   }];
 }
 
-async function installAndStartLocalModel(
+async function installAndStartLocalAsset(
   runtime: Runtime,
+  localModelsPath: string,
   input: {
     modelId: string;
     capabilities: string[];
@@ -132,15 +135,24 @@ async function installAndStartLocalModel(
     endpoint: string;
   },
 ): Promise<void> {
-  const installed = await runtime.local.installLocalModel({
-    modelId: input.modelId,
+  const assetSlug = input.modelId.replace(/[^a-z0-9._-]+/gi, '-').toLowerCase();
+  const manifestPath = join(localModelsPath, 'resolved', 'nimi', assetSlug, 'asset.manifest.json');
+  mkdirSync(join(localModelsPath, 'resolved', 'nimi', assetSlug), { recursive: true });
+  writeFileSync(manifestPath, JSON.stringify({
+    asset_id: input.modelId,
+    kind: input.engine === 'speech' && input.capabilities.includes('audio.transcribe') ? 'stt'
+      : input.engine === 'speech' ? 'tts'
+      : 'chat',
     capabilities: input.capabilities,
     engine: input.engine,
     endpoint: input.endpoint,
-  });
-  const localModelId = String(installed.model?.localModelId || '').trim();
-  assert.ok(localModelId, `missing localModelId for ${input.modelId}`);
-  await runtime.local.startLocalModel({ localModelId });
+    entry: './dist/index.js',
+  }), 'utf8');
+
+  const installed = await runtime.local.importLocalAsset({ manifestPath });
+  const localAssetId = String(installed.asset?.localAssetId || '').trim();
+  assert.ok(localAssetId, `missing localAssetId for ${input.modelId}`);
+  await runtime.local.startLocalAsset({ localAssetId });
 }
 
 test('provider_local_test.ts: engine-first local modalities + image/video fail-close via nimi-sdk', {
@@ -156,7 +168,7 @@ test('provider_local_test.ts: engine-first local modalities + image/video fail-c
       runtimeEnv: {
         NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL: fakeServer.url,
       },
-      run: async ({ endpoint }) => {
+      run: async ({ endpoint, localModelsPath }) => {
         const runtime = new Runtime({
           appId: APP_ID,
           transport: {
@@ -178,25 +190,25 @@ test('provider_local_test.ts: engine-first local modalities + image/video fail-c
           timeoutMs: 30_000,
         });
 
-        await installAndStartLocalModel(runtime, {
+        await installAndStartLocalAsset(runtime, localModelsPath, {
           modelId: 'qwen',
           capabilities: ['text.generate'],
           engine: 'llama',
           endpoint: fakeServer.url,
         });
-        await installAndStartLocalModel(runtime, {
+        await installAndStartLocalAsset(runtime, localModelsPath, {
           modelId: 'embed',
           capabilities: ['text.embed'],
           engine: 'llama',
           endpoint: fakeServer.url,
         });
-        await installAndStartLocalModel(runtime, {
+        await installAndStartLocalAsset(runtime, localModelsPath, {
           modelId: 'tts',
           capabilities: ['audio.synthesize'],
           engine: 'speech',
           endpoint: fakeServer.url,
         });
-        await installAndStartLocalModel(runtime, {
+        await installAndStartLocalAsset(runtime, localModelsPath, {
           modelId: 'stt',
           capabilities: ['audio.transcribe'],
           engine: 'speech',

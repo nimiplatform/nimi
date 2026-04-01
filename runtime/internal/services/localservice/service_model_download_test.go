@@ -30,11 +30,12 @@ func TestInstallVerifiedModelDownloadsManagedBundle(t *testing.T) {
 
 	svc := newTestService(t)
 	svc.hfDownloadBaseURL = server.URL
-	svc.verified = []*runtimev1.LocalVerifiedModelDescriptor{
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
 		{
 			TemplateId:     "verified.chat.demo",
 			Title:          "Demo Verified",
-			ModelId:        "local/demo-verified",
+			AssetId:        "local/demo-verified",
+			Kind:           runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 			LogicalModelId: "nimi/demo-verified",
 			Repo:           "nimiplatform/demo-verified",
 			Revision:       "main",
@@ -49,19 +50,19 @@ func TestInstallVerifiedModelDownloadsManagedBundle(t *testing.T) {
 		},
 	}
 
-	resp, err := svc.InstallVerifiedModel(context.Background(), &runtimev1.InstallVerifiedModelRequest{
+	resp, err := svc.InstallVerifiedAsset(context.Background(), &runtimev1.InstallVerifiedAssetRequest{
 		TemplateId: "verified.chat.demo",
 	})
 	if err != nil {
 		t.Fatalf("install verified model: %v", err)
 	}
-	model := resp.GetModel()
-	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+	model := resp.GetAsset()
+	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("status = %s", model.GetStatus())
 	}
 	modelDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), "nimi/demo-verified")
 	modelPath := filepath.Join(modelDir, "model.gguf")
-	manifestPath := filepath.Join(modelDir, "manifest.json")
+	manifestPath := filepath.Join(modelDir, "asset.manifest.json")
 	if _, err := os.Stat(modelPath); err != nil {
 		t.Fatalf("expected downloaded model at %s: %v", modelPath, err)
 	}
@@ -90,8 +91,8 @@ func TestInstallVerifiedModelDownloadsManagedBundle(t *testing.T) {
 	if transfer.GetState() != "completed" {
 		t.Fatalf("state = %q", transfer.GetState())
 	}
-	if transfer.GetLocalModelId() != model.GetLocalModelId() {
-		t.Fatalf("localModelId = %q want %q", transfer.GetLocalModelId(), model.GetLocalModelId())
+	if transfer.GetLocalAssetId() != model.GetLocalAssetId() {
+		t.Fatalf("localModelId = %q want %q", transfer.GetLocalAssetId(), model.GetLocalAssetId())
 	}
 }
 
@@ -112,24 +113,24 @@ func TestInstallLocalModelDownloadsManagedBundleWhenSupervised(t *testing.T) {
 	svc := newTestService(t)
 	svc.hfDownloadBaseURL = server.URL
 
-	resp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/manual-chat",
-		Repo:         "owner/manual-chat",
-		Revision:     "main",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Entry:        "model.gguf",
-		Files:        []string{"model.gguf"},
-		License:      "apache-2.0",
-		Hashes: map[string]string{
+	resp, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/manual-chat",
+		repo:         "owner/manual-chat",
+		revision:     "main",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		entry:        "model.gguf",
+		files:        []string{"model.gguf"},
+		license:      "apache-2.0",
+		hashes: map[string]string{
 			"model.gguf": "sha256:" + hex.EncodeToString(modelHash[:]),
 		},
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
-	if resp.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
-		t.Fatalf("status = %s", resp.GetModel().GetStatus())
+	if resp.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		t.Fatalf("status = %s", resp.GetStatus())
 	}
 	modelDir := runtimeManagedResolvedModelDir(resolveLocalModelsPath(svc.localModelsPath), "nimi/local-manual-chat")
 	if _, err := os.Stat(filepath.Join(modelDir, "model.gguf")); err != nil {
@@ -154,25 +155,25 @@ func TestInstallLocalModelDownloadFailureQuarantinesNewBundleWithoutDeletingDown
 
 	svc := newTestService(t)
 	svc.hfDownloadBaseURL = server.URL
-	_ = mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/manual-chat",
-		Repo:         "owner/manual-chat",
-		Revision:     "main",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     "http://127.0.0.1:11434/v1",
+	_ = mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/manual-chat",
+		repo:         "owner/manual-chat",
+		revision:     "main",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "http://127.0.0.1:11434/v1",
 	})
 
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/manual-chat",
-		Repo:         "owner/manual-chat",
-		Revision:     "main",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Entry:        "model.gguf",
-		Files:        []string{"model.gguf"},
-		License:      "apache-2.0",
-		Hashes: map[string]string{
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/manual-chat",
+		repo:         "owner/manual-chat",
+		revision:     "main",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		entry:        "model.gguf",
+		files:        []string{"model.gguf"},
+		license:      "apache-2.0",
+		hashes: map[string]string{
 			"model.gguf": "sha256:" + hex.EncodeToString(modelHash[:]),
 		},
 	})
@@ -221,26 +222,26 @@ func TestInstallLocalModelDownloadFailureRestoresExistingManagedBundle(t *testin
 	if err := os.WriteFile(filepath.Join(modelDir, "model.gguf"), oldBytes, 0o644); err != nil {
 		t.Fatalf("write old managed model: %v", err)
 	}
-	record := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/manual-chat",
-		Repo:         "owner/manual-chat",
-		Revision:     "main",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     "http://127.0.0.1:11434/v1",
+	record := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/manual-chat",
+		repo:         "owner/manual-chat",
+		revision:     "main",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "http://127.0.0.1:11434/v1",
 	})
-	svc.rewriteManagedLocalModelSourceRepo(record.GetLocalModelId(), filepath.Join(modelDir, "manifest.json"))
+	svc.rewriteManagedLocalAssetSourceRepo(record.GetLocalAssetId(), filepath.Join(modelDir, "asset.manifest.json"))
 
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/manual-chat",
-		Repo:         "owner/manual-chat",
-		Revision:     "main",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Entry:        "model.gguf",
-		Files:        []string{"model.gguf"},
-		License:      "apache-2.0",
-		Hashes: map[string]string{
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/manual-chat",
+		repo:         "owner/manual-chat",
+		revision:     "main",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		entry:        "model.gguf",
+		files:        []string{"model.gguf"},
+		license:      "apache-2.0",
+		hashes: map[string]string{
 			"model.gguf": "sha256:" + hex.EncodeToString(modelHash[:]),
 		},
 	})

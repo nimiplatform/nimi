@@ -247,7 +247,7 @@ func (s *Service) resolveTextGenerateArtifactPath(
 	if s == nil || s.localImageProfile == nil {
 		return "", "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	path, err := s.localImageProfile.ResolveManagedArtifactPath(ctx, localArtifactID)
+	path, err := s.localImageProfile.ResolveManagedAssetPath(ctx, localArtifactID)
 	if err != nil {
 		return "", "", nil, err
 	}

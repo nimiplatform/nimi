@@ -92,10 +92,10 @@
 
 数据流关系：
 
-- `InstallLocalModel` 成功后，本地模型必须同步反映到 `RuntimeModelService` 统一视图。
+- `InstallVerifiedAsset` 成功后，本地模型必须同步反映到 `RuntimeModelService` 统一视图。
 - `RuntimeModelService.ListModels` 是 Desktop/SDK 的统一模型目录入口。
 - local model center、artifact intake、transfer/lifecycle 等本地模型管理 UI 可以并且应当直接依赖 `RuntimeLocalService`，而不是经 desktop host 维护第二套本地状态。
-- `ListLocalModels` / `ListLocalArtifacts` / `ListLocalTransfers` 是本地控制面权威细节视图，不再被视为 desktop 专属降级镜像。
+- `ListLocalAssets` / `ListLocalTransfers` 是本地控制面权威细节视图，不再被视为 desktop 专属降级镜像。
 
 ## K-MODEL-008 ModelStatus 状态机
 

@@ -2,7 +2,6 @@ package localservice
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -39,8 +38,33 @@ func profileEntryMatchesCapability(entry *runtimev1.LocalProfileEntryDescriptor,
 	return entryCapability == "" || strings.EqualFold(entryCapability, capabilityFilter)
 }
 
-func profileEntryIsArtifact(entry *runtimev1.LocalProfileEntryDescriptor) bool {
-	return entry != nil && entry.GetKind() == runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ARTIFACT
+func profileEntryIsAsset(entry *runtimev1.LocalProfileEntryDescriptor) bool {
+	return entry != nil && entry.GetKind() == runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET
+}
+
+func profileEntryHasEngineSlot(entry *runtimev1.LocalProfileEntryDescriptor) bool {
+	return entry != nil && strings.TrimSpace(entry.GetEngineSlot()) != ""
+}
+
+func assetKindMatchesCapability(kind runtimev1.LocalAssetKind, capability string) bool {
+	cap := strings.ToLower(strings.TrimSpace(capability))
+	if cap == "" {
+		return isRunnableKind(kind)
+	}
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
+		return cap == "chat"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
+		return cap == "image"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
+		return cap == "video"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
+		return cap == "tts"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
+		return cap == "stt"
+	default:
+		return false
+	}
 }
 
 func profileEntryRequired(entry *runtimev1.LocalProfileEntryDescriptor) bool {
@@ -63,41 +87,61 @@ func profileEntryToDependencyOption(entry *runtimev1.LocalProfileEntryDescriptor
 	}
 
 	return &runtimev1.LocalExecutionOptionDescriptor{
-		EntryId: strings.TrimSpace(entry.GetEntryId()),
-		Kind:         kind,
-		Capability:   strings.TrimSpace(entry.GetCapability()),
-		Title:        strings.TrimSpace(entry.GetTitle()),
-		ModelId:      strings.TrimSpace(entry.GetModelId()),
-		Repo:         strings.TrimSpace(entry.GetRepo()),
-		ServiceId:    strings.TrimSpace(entry.GetServiceId()),
-		NodeId:       strings.TrimSpace(entry.GetNodeId()),
-		Engine:       strings.TrimSpace(entry.GetEngine()),
+		EntryId:    strings.TrimSpace(entry.GetEntryId()),
+		Kind:       kind,
+		Capability: strings.TrimSpace(entry.GetCapability()),
+		Title:      strings.TrimSpace(entry.GetTitle()),
+		ModelId:    strings.TrimSpace(entry.GetAssetId()),
+		Repo:       strings.TrimSpace(entry.GetRepo()),
+		ServiceId:  strings.TrimSpace(entry.GetServiceId()),
+		NodeId:     strings.TrimSpace(entry.GetNodeId()),
+		Engine:     strings.TrimSpace(entry.GetEngine()),
 	}
+}
+
+// entryOverrideIndex builds a lookup map from entry_id -> local_asset_id
+// for entry overrides supplied by the caller.
+func entryOverrideIndex(overrides []*runtimev1.ProfileEntryOverride) map[string]string {
+	if len(overrides) == 0 {
+		return nil
+	}
+	idx := make(map[string]string, len(overrides))
+	for _, o := range overrides {
+		if o == nil {
+			continue
+		}
+		entryID := strings.TrimSpace(o.GetEntryId())
+		localAssetID := strings.TrimSpace(o.GetLocalAssetId())
+		if entryID != "" && localAssetID != "" {
+			idx[entryID] = localAssetID
+		}
+	}
+	if len(idx) == 0 {
+		return nil
+	}
+	return idx
 }
 
 func bridgeProfileToDependencyDeclaration(
 	profile *runtimev1.LocalProfileDescriptor,
 	capability string,
-) (*runtimev1.LocalExecutionDeclarationDescriptor, []*runtimev1.LocalProfileArtifactPlanEntry) {
+	overrides map[string]string,
+) *runtimev1.LocalExecutionDeclarationDescriptor {
 	declaration := &runtimev1.LocalExecutionDeclarationDescriptor{
 		Required:     []*runtimev1.LocalExecutionOptionDescriptor{},
 		Optional:     []*runtimev1.LocalExecutionOptionDescriptor{},
 		Alternatives: []*runtimev1.LocalExecutionAlternativeDescriptor{},
 		Preferred:    map[string]string{},
 	}
-	artifactEntries := make([]*runtimev1.LocalProfileArtifactPlanEntry, 0)
 	if profile == nil {
-		return declaration, artifactEntries
+		return declaration
 	}
 
 	for _, entry := range profile.GetEntries() {
 		if !profileEntryMatchesCapability(entry, capability) {
 			continue
 		}
-		if profileEntryIsArtifact(entry) {
-			artifactEntries = append(artifactEntries, &runtimev1.LocalProfileArtifactPlanEntry{
-				Entry: cloneProfileEntryDescriptor(entry),
-			})
+		if profileEntryIsAsset(entry) && profileEntryHasEngineSlot(entry) {
 			continue
 		}
 
@@ -105,24 +149,28 @@ func bridgeProfileToDependencyDeclaration(
 		if option == nil {
 			continue
 		}
+		// Apply entry override: when an override exists for this entry_id,
+		// use the overridden local_asset_id as the ModelId.
+		if overriddenAssetID, ok := overrides[option.GetEntryId()]; ok {
+			option.ModelId = overriddenAssetID
+		}
 		if profileEntryRequired(entry) {
 			declaration.Required = append(declaration.Required, option)
-			continue
+		} else {
+			declaration.Optional = append(declaration.Optional, option)
 		}
-		declaration.Optional = append(declaration.Optional, option)
 	}
 
-	return declaration, artifactEntries
+	return declaration
 }
 
 func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runtimev1.LocalProfileResolutionPlan {
 	planID := nextProfilePlanID("", "")
 	if req == nil {
 		return &runtimev1.LocalProfileResolutionPlan{
-			PlanId:          planID,
-			ArtifactEntries: []*runtimev1.LocalProfileArtifactPlanEntry{},
-			Warnings:        []string{"resolve profile request is required"},
-			ReasonCode:      "LOCAL_PROFILE_REQUEST_REQUIRED",
+			PlanId:     planID,
+			Warnings:   []string{"resolve profile request is required"},
+			ReasonCode: "LOCAL_PROFILE_REQUEST_REQUIRED",
 		}
 	}
 
@@ -159,21 +207,19 @@ func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runt
 	}
 
 	planID = nextProfilePlanID(modID, profileID)
-	declaration, artifactEntries := bridgeProfileToDependencyDeclaration(profile, capability)
+	overrides := entryOverrideIndex(req.GetEntryOverrides())
+	declaration := bridgeProfileToDependencyDeclaration(profile, capability, overrides)
 	executionPlan := resolveExecutionPlan(&executionResolveRequest{
 		modID:         modID,
 		capability:    capability,
 		entries:       declaration,
 		deviceProfile: cloneDeviceProfile(deviceProfile),
 	})
+	appendPassiveAssetEntriesToExecutionPlan(executionPlan, profile, capability, overrides)
 	executionPlan.PlanId = planID
 	executionPlan.ModId = modID
 	executionPlan.Capability = capability
 	executionPlan.DeviceProfile = cloneDeviceProfile(deviceProfile)
-
-	for _, entry := range artifactEntries {
-		entry.Installed = s.findInstalledArtifactForProfileEntry(entry.GetEntry()) != nil
-	}
 
 	warnings = append(warnings, executionPlan.GetWarnings()...)
 	warnings = normalizeStringSlice(warnings)
@@ -199,79 +245,90 @@ func (s *Service) resolveProfilePlan(req *runtimev1.ResolveProfileRequest) *runt
 		ConsumeCapabilities: consumeCapabilities,
 		Requirements:        requirements,
 		ExecutionPlan:       executionPlan,
-		ArtifactEntries:     artifactEntries,
 		Warnings:            warnings,
 		ReasonCode:          reasonCode,
+	}
+}
+
+func appendPassiveAssetEntriesToExecutionPlan(
+	plan *runtimev1.LocalExecutionPlan,
+	profile *runtimev1.LocalProfileDescriptor,
+	capability string,
+	overrides map[string]string,
+) {
+	if plan == nil || profile == nil {
+		return
+	}
+	for _, entry := range profile.GetEntries() {
+		if !profileEntryMatchesCapability(entry, capability) || !profileEntryIsAsset(entry) || !profileEntryHasEngineSlot(entry) {
+			continue
+		}
+		modelID := strings.TrimSpace(entry.GetAssetId())
+		if overrideLocalAssetID, ok := overrides[strings.TrimSpace(entry.GetEntryId())]; ok && strings.TrimSpace(overrideLocalAssetID) != "" {
+			modelID = strings.TrimSpace(overrideLocalAssetID)
+		}
+		descriptor := &runtimev1.LocalExecutionEntryDescriptor{
+			EntryId:    strings.TrimSpace(entry.GetEntryId()),
+			Kind:       runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL,
+			Capability: strings.TrimSpace(entry.GetCapability()),
+			Required:   profileEntryRequired(entry),
+			Selected:   true,
+			Preferred:  false,
+			ModelId:    modelID,
+			Repo:       strings.TrimSpace(entry.GetRepo()),
+			Engine:     strings.TrimSpace(entry.GetEngine()),
+			ReasonCode: "LOCAL_DEPENDENCY_PASSIVE_SELECTED",
+			Warnings:   []string{},
+		}
+		plan.Entries = append(plan.GetEntries(), descriptor)
+		plan.SelectionRationale = append(plan.GetSelectionRationale(), &runtimev1.LocalExecutionSelectionRationale{
+			EntryId:    descriptor.GetEntryId(),
+			Selected:   true,
+			ReasonCode: "LOCAL_DEPENDENCY_PASSIVE_SELECTED",
+			Detail:     "slot-bound asset bypasses execution resolver and is applied directly",
+		})
+		plan.PreflightDecisions = append(plan.GetPreflightDecisions(), &runtimev1.LocalPreflightDecision{
+			EntryId:    descriptor.GetEntryId(),
+			Target:     preflightTargetForDependency(descriptor),
+			Check:      "dependency-shape",
+			Ok:         true,
+			ReasonCode: "LOCAL_DEPENDENCY_PASSIVE_SELECTED",
+			Detail:     "slot-bound asset queued for direct apply",
+		})
 	}
 }
 
 func (s *Service) applyProfileStrict(ctx context.Context, plan *runtimev1.LocalProfileResolutionPlan) *runtimev1.LocalProfileApplyResult {
 	if plan == nil {
 		return &runtimev1.LocalProfileApplyResult{
-			InstalledArtifacts: []*runtimev1.LocalArtifactRecord{},
-			Warnings:           []string{"profile plan is required"},
-			ReasonCode:         "LOCAL_PROFILE_PLAN_REQUIRED",
+			InstalledAssets: []*runtimev1.LocalAssetRecord{},
+			Warnings:        []string{"profile plan is required"},
+			ReasonCode:      "LOCAL_PROFILE_PLAN_REQUIRED",
 		}
 	}
 
 	result := &runtimev1.LocalProfileApplyResult{
-		PlanId:             strings.TrimSpace(plan.GetPlanId()),
-		ModId:              strings.TrimSpace(plan.GetModId()),
-		ProfileId:          strings.TrimSpace(plan.GetProfileId()),
-		ExecutionResult:    cloneDependencyApplyResult(s.applyExecutionPlanStrict(ctx, plan.GetExecutionPlan())),
-		InstalledArtifacts: []*runtimev1.LocalArtifactRecord{},
-		Warnings:           append([]string(nil), plan.GetWarnings()...),
-		ReasonCode:         "ACTION_EXECUTED",
+		PlanId:          strings.TrimSpace(plan.GetPlanId()),
+		ModId:           strings.TrimSpace(plan.GetModId()),
+		ProfileId:       strings.TrimSpace(plan.GetProfileId()),
+		ExecutionResult: cloneDependencyApplyResult(s.applyExecutionPlanStrict(ctx, plan.GetExecutionPlan())),
+		InstalledAssets: []*runtimev1.LocalAssetRecord{},
+		Warnings:        append([]string(nil), plan.GetWarnings()...),
+		ReasonCode:      "ACTION_EXECUTED",
 	}
 	if result.ExecutionResult != nil {
 		result.ReasonCode = strings.TrimSpace(result.ExecutionResult.GetReasonCode())
 	}
-	if result.ReasonCode != "" && result.ReasonCode != "ACTION_EXECUTED" {
-		result.Warnings = normalizeStringSlice(result.Warnings)
-		return result
-	}
 
-	for _, artifactPlanEntry := range plan.GetArtifactEntries() {
-		entry := artifactPlanEntry.GetEntry()
-		if entry == nil {
-			result.Warnings = append(result.Warnings, "profile artifact entry is missing")
-			result.ReasonCode = "LOCAL_PROFILE_ARTIFACT_ENTRY_REQUIRED"
-			break
-		}
-		if existing := s.findInstalledArtifactForProfileEntry(entry); existing != nil {
-			result.InstalledArtifacts = append(result.InstalledArtifacts, cloneLocalArtifact(existing))
-			continue
-		}
-
-		templateID := strings.TrimSpace(entry.GetTemplateId())
-		if templateID == "" {
-			warning := fmt.Sprintf("profile artifact %s requires templateId", defaultString(entry.GetEntryId(), "artifact"))
-			result.Warnings = append(result.Warnings, warning)
-			if profileEntryRequired(entry) {
-				result.ReasonCode = "LOCAL_PROFILE_ARTIFACT_TEMPLATE_ID_REQUIRED"
-				break
+	// Passive asset installation now happens as part of the execution plan apply
+	// (dependency_apply.go stage 2). Collect passive installed assets from
+	// the execution result into the profile result for backward compatibility.
+	if result.ExecutionResult != nil {
+		for _, asset := range result.ExecutionResult.GetInstalledAssets() {
+			if asset != nil && asset.GetKind() >= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
+				result.InstalledAssets = append(result.InstalledAssets, cloneLocalAsset(asset))
 			}
-			continue
 		}
-
-		installed, err := s.InstallVerifiedArtifact(ctx, &runtimev1.InstallVerifiedArtifactRequest{
-			TemplateId: templateID,
-		})
-		if err != nil || installed.GetArtifact() == nil {
-			warning := fmt.Sprintf(
-				"profile artifact %s install failed: %s",
-				defaultString(entry.GetEntryId(), templateID),
-				defaultString(fmt.Sprintf("%v", err), "artifact install returned empty response"),
-			)
-			result.Warnings = append(result.Warnings, warning)
-			if profileEntryRequired(entry) {
-				result.ReasonCode = "LOCAL_PROFILE_ARTIFACT_INSTALL_FAILED"
-				break
-			}
-			continue
-		}
-
-		result.InstalledArtifacts = append(result.InstalledArtifacts, cloneLocalArtifact(installed.GetArtifact()))
 	}
 
 	result.Warnings = normalizeStringSlice(result.Warnings)
@@ -281,52 +338,79 @@ func (s *Service) applyProfileStrict(ctx context.Context, plan *runtimev1.LocalP
 	return result
 }
 
-func (s *Service) resolveVerifiedArtifactForProfileEntry(entry *runtimev1.LocalProfileEntryDescriptor) *runtimev1.LocalVerifiedArtifactDescriptor {
+func (s *Service) resolveVerifiedAssetForProfileEntry(entry *runtimev1.LocalProfileEntryDescriptor) *runtimev1.LocalVerifiedAssetDescriptor {
 	if entry == nil {
 		return nil
 	}
 	templateID := strings.TrimSpace(entry.GetTemplateId())
-	artifactID := strings.TrimSpace(entry.GetArtifactId())
+	artifactID := strings.TrimSpace(entry.GetAssetId())
 	engine := strings.TrimSpace(entry.GetEngine())
-	artifactKind := entry.GetArtifactKind()
+	artifactKind := entry.GetAssetKind()
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, item := range s.verifiedArtifacts {
+	for _, item := range s.verified {
 		if item == nil {
 			continue
 		}
 		if templateID != "" && item.GetTemplateId() == templateID {
-			return cloneVerifiedArtifact(item)
+			return cloneVerifiedAsset(item)
 		}
-		if artifactID != "" && item.GetArtifactId() != artifactID {
+		if artifactID != "" && item.GetAssetId() != artifactID {
 			continue
 		}
-		if artifactKind != runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED && item.GetKind() != artifactKind {
+		if artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && item.GetKind() != artifactKind {
 			continue
 		}
 		if engine != "" && !strings.EqualFold(item.GetEngine(), engine) {
 			continue
 		}
-		if artifactID != "" || artifactKind != runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED || engine != "" {
-			return cloneVerifiedArtifact(item)
+		if artifactID != "" || artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED || engine != "" {
+			return cloneVerifiedAsset(item)
 		}
 	}
 	return nil
 }
 
-func (s *Service) findInstalledArtifactForProfileEntry(entry *runtimev1.LocalProfileEntryDescriptor) *runtimev1.LocalArtifactRecord {
+// resolveVerifiedByAssetIDAndEngine looks up a verified asset descriptor by
+// assetId and engine. Used by dependency_apply to detect passive assets
+// (kind >= VAE) during the install stage.
+func (s *Service) resolveVerifiedByAssetIDAndEngine(assetID string, engine string) *runtimev1.LocalVerifiedAssetDescriptor {
+	normalizedID := strings.TrimSpace(assetID)
+	normalizedEngine := strings.TrimSpace(engine)
+	if normalizedID == "" {
+		return nil
+	}
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, item := range s.verified {
+		if item == nil {
+			continue
+		}
+		if item.GetAssetId() != normalizedID {
+			continue
+		}
+		if normalizedEngine != "" && !strings.EqualFold(item.GetEngine(), normalizedEngine) {
+			continue
+		}
+		return cloneVerifiedAsset(item)
+	}
+	return nil
+}
+
+func (s *Service) findInstalledAssetForProfileEntry(entry *runtimev1.LocalProfileEntryDescriptor) *runtimev1.LocalAssetRecord {
 	if entry == nil {
 		return nil
 	}
-	artifactID := strings.TrimSpace(entry.GetArtifactId())
+	artifactID := strings.TrimSpace(entry.GetAssetId())
 	engine := strings.TrimSpace(entry.GetEngine())
-	artifactKind := entry.GetArtifactKind()
-	if descriptor := s.resolveVerifiedArtifactForProfileEntry(entry); descriptor != nil {
+	artifactKind := entry.GetAssetKind()
+	if descriptor := s.resolveVerifiedAssetForProfileEntry(entry); descriptor != nil {
 		if artifactID == "" {
-			artifactID = strings.TrimSpace(descriptor.GetArtifactId())
+			artifactID = strings.TrimSpace(descriptor.GetAssetId())
 		}
-		if artifactKind == runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED {
+		if artifactKind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 			artifactKind = descriptor.GetKind()
 		}
 		if engine == "" {
@@ -336,21 +420,21 @@ func (s *Service) findInstalledArtifactForProfileEntry(entry *runtimev1.LocalPro
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	for _, existing := range s.artifacts {
-		if existing == nil || existing.GetStatus() == runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED {
+	for _, existing := range s.assets {
+		if existing == nil || existing.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if artifactID != "" && existing.GetArtifactId() != artifactID {
+		if artifactID != "" && existing.GetAssetId() != artifactID {
 			continue
 		}
-		if artifactKind != runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED && existing.GetKind() != artifactKind {
+		if artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && existing.GetKind() != artifactKind {
 			continue
 		}
 		if engine != "" && !strings.EqualFold(existing.GetEngine(), engine) {
 			continue
 		}
-		if artifactID != "" || artifactKind != runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_UNSPECIFIED || engine != "" {
-			return cloneLocalArtifact(existing)
+		if artifactID != "" || artifactKind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED || engine != "" {
+			return cloneLocalAsset(existing)
 		}
 	}
 	return nil

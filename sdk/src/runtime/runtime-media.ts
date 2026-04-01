@@ -42,13 +42,13 @@ import {
 } from './helpers.js';
 import { runtimeAiRequestRequiresSubject } from './runtime-guards.js';
 
-export interface LocalImageWorkflowComponentSelection {
-  slot: string;
-  localArtifactId: string;
+export interface LocalImageProfileEntryOverride {
+  entryId: string;
+  localAssetId: string;
 }
 
-export interface LocalImageWorkflowExtensionInput {
-  components?: LocalImageWorkflowComponentSelection[];
+export interface LocalImageProfileExtensionInput {
+  entryOverrides?: LocalImageProfileEntryOverride[];
   profileOverrides?: JsonObject;
 }
 
@@ -145,21 +145,21 @@ function isValidMusicIterationBase64(value: string): boolean {
   return false;
 }
 
-export function buildLocalImageWorkflowExtensions(
-  workflow: LocalImageWorkflowExtensionInput,
+export function buildLocalImageProfileExtensions(
+  workflow: LocalImageProfileExtensionInput,
   baseExtensions?: JsonObject,
 ): JsonObject {
   const merged: JsonObject = { ...(baseExtensions || {}) };
-  const components = Array.isArray(workflow.components)
-    ? workflow.components
+  const entryOverrides = Array.isArray(workflow.entryOverrides)
+    ? workflow.entryOverrides
       .map((item) => ({
-        slot: normalizeText(item.slot),
-        localArtifactId: normalizeText(item.localArtifactId),
+        entry_id: normalizeText(item.entryId),
+        local_asset_id: normalizeText(item.localAssetId),
       }))
-      .filter((item) => item.slot && item.localArtifactId)
+      .filter((item) => item.entry_id && item.local_asset_id)
     : [];
-  if (components.length > 0) {
-    merged.components = components;
+  if (entryOverrides.length > 0) {
+    merged.entry_overrides = entryOverrides;
   }
   if (workflow.profileOverrides && Object.keys(workflow.profileOverrides).length > 0) {
     merged.profile_overrides = workflow.profileOverrides;

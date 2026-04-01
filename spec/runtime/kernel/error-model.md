@@ -53,7 +53,7 @@ Provider 上游失败（401/429/5xx/timeout）统一映射：`UNAVAILABLE` + `AI
 
 ## K-ERR-008 管理 RPC 的 NOT_FOUND 语义
 
-本地模型管理 RPC（`StartLocalModel`、`StopLocalModel`、`RemoveLocalModel` 等）在目标 `local_model_id` 不存在时返回 `NOT_FOUND`（无特定 reason code）。`AI_LOCAL_*` 系列 reason code 专用于 consume 路径和 probe 路径场景（见 error-mapping-matrix.yaml）。
+本地模型管理 RPC（`StartLocalAsset`、`StopLocalAsset`、`RemoveLocalAsset` 等）在目标 `local_model_id` 不存在时返回 `NOT_FOUND`（无特定 reason code）。`AI_LOCAL_*` 系列 reason code 专用于 consume 路径和 probe 路径场景（见 error-mapping-matrix.yaml）。
 
 ## K-ERR-009 结构化错误字段稳定性
 

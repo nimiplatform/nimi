@@ -391,39 +391,24 @@ commands:
     source_rule: D-IPC-003
 
   # Local runtime (local_runtime::commands)
-  - command: runtime_local_models_list
-    module: local-runtime
-    description: Host helper surface for local AI model listing; shipped product paths must treat RuntimeLocalService as the model truth source
-    source_rule: D-IPC-011
-
   - command: runtime_local_audits_list
     module: local-runtime
     description: Host helper surface for local AI audit listing; shipped product paths must treat runtime audit state as authoritative
     source_rule: D-IPC-011
 
-  - command: runtime_local_pick_manifest_path
+  - command: runtime_local_pick_asset_manifest_path
     module: local-runtime
-    description: Pick a local AI resolved manifest.json path under the runtime models root via native file dialog
+    description: Pick a local AI asset.manifest.json path under the runtime models root via native file dialog
     source_rule: D-IPC-011
 
-  - command: runtime_local_pick_artifact_manifest_path
+  - command: runtime_local_assets_install_verified
     module: local-runtime
-    description: Pick a local AI artifact manifest file path under the runtime models root via native file dialog
+    description: Install a verified asset from the hardcoded asset registry
     source_rule: D-IPC-011
 
-  - command: runtime_local_artifacts_list
+  - command: runtime_local_assets_import
     module: local-runtime
-    description: Host helper surface for companion artifact listing; shipped product paths must treat RuntimeLocalService as the artifact truth source
-    source_rule: D-IPC-011
-
-  - command: runtime_local_artifacts_verified_list
-    module: local-runtime
-    description: Host helper surface for verified companion artifact metadata; install truth remains RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_verified_list
-    module: local-runtime
-    description: Host helper surface for verified local AI model metadata; install truth remains RuntimeLocalService
+    description: Import a local asset from an asset.manifest.json file
     source_rule: D-IPC-011
 
   - command: runtime_local_models_catalog_search
@@ -496,94 +481,64 @@ commands:
     description: Host node-catalog helper; node availability truth remains runtime-owned
     source_rule: D-IPC-011
 
-  - command: runtime_local_models_install
+  - command: runtime_local_assets_install
     module: local-runtime
-    description: Host model install helper; shipped product install truth must come from RuntimeLocalService
+    description: Install an asset from catalog parameters; execution truth is RuntimeLocalService
     source_rule: D-IPC-011
 
-  - command: runtime_local_models_install_verified
+  - command: runtime_local_assets_adopt
     module: local-runtime
-    description: Host verified model install helper; shipped product install truth must come from RuntimeLocalService
+    description: Adopt a pre-existing asset record; must not create a second Desktop state
     source_rule: D-IPC-011
 
-  - command: runtime_local_artifacts_install_verified
+  - command: runtime_local_assets_import_file
     module: local-runtime
-    description: Host verified artifact install helper; shipped product install truth must come from RuntimeLocalService
+    description: Import a local asset file; execution truth is RuntimeLocalService
+    source_rule: D-IPC-011
+
+  - command: runtime_local_assets_remove
+    module: local-runtime
+    description: Remove an installed asset; execution truth is RuntimeLocalService
+    source_rule: D-IPC-011
+
+  - command: runtime_local_assets_start
+    module: local-runtime
+    description: Start a runnable asset; lifecycle truth is RuntimeLocalService
+    source_rule: D-IPC-011
+
+  - command: runtime_local_assets_stop
+    module: local-runtime
+    description: Stop a running asset; lifecycle truth is RuntimeLocalService
+    source_rule: D-IPC-011
+
+  - command: runtime_local_assets_health
+    module: local-runtime
+    description: Check asset health; health truth is RuntimeLocalService
     source_rule: D-IPC-011
 
   - command: runtime_local_downloads_list
     module: local-runtime
-    description: Legacy host-local download session helper; product transfer UI must use RuntimeLocalService transfer sessions instead
+    description: List active download/transfer sessions
     source_rule: D-IPC-011
 
   - command: runtime_local_downloads_pause
     module: local-runtime
-    description: Legacy host-local download pause helper; not authoritative for shipped transfer state
+    description: Pause an active download session
     source_rule: D-IPC-011
 
   - command: runtime_local_downloads_resume
     module: local-runtime
-    description: Legacy host-local download resume helper; not authoritative for shipped transfer state
+    description: Resume a paused download session
     source_rule: D-IPC-011
 
   - command: runtime_local_downloads_cancel
     module: local-runtime
-    description: Legacy host-local download cancel helper; not authoritative for shipped transfer state
+    description: Cancel an active download session
     source_rule: D-IPC-011
 
-  - command: runtime_local_models_import
+  - command: runtime_local_pick_asset_file
     module: local-runtime
-    description: Host bridge helper for manifest-based model import; product import truth remains RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_artifacts_import
-    module: local-runtime
-    description: Host bridge helper for artifact manifest import; product import truth remains RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_adopt
-    module: local-runtime
-    description: Host adopt helper; must not create or imply a second Desktop model state
-    source_rule: D-IPC-011
-
-  - command: runtime_local_artifacts_adopt
-    module: local-runtime
-    description: Host adopt helper; must not create or imply a second Desktop artifact state
-    source_rule: D-IPC-011
-
-  - command: runtime_local_pick_model_file
-    module: local-runtime
-    description: Pick a local model file for import via native file dialog
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_import_file
-    module: local-runtime
-    description: Host file-pick import helper; product file import semantics and transfer truth are runtime-owned
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_remove
-    module: local-runtime
-    description: Host model removal helper; shipped product removal truth must come from RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_artifacts_remove
-    module: local-runtime
-    description: Host artifact removal helper; shipped product removal truth must come from RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_start
-    module: local-runtime
-    description: Host start helper retained in allowlist; shipped lifecycle truth must come from RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_stop
-    module: local-runtime
-    description: Host stop helper retained in allowlist; shipped lifecycle truth must come from RuntimeLocalService
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_health
-    module: local-runtime
-    description: Host health helper retained in allowlist; shipped health truth must come from RuntimeLocalService
+    description: Pick a local asset file for import via native file dialog
     source_rule: D-IPC-011
 
   - command: runtime_local_append_inference_audit
@@ -596,42 +551,17 @@ commands:
     description: Append local runtime audit event
     source_rule: D-IPC-011
 
-  - command: runtime_local_models_reveal_in_folder
+  - command: runtime_local_assets_reveal_in_folder
     module: local-runtime
-    description: Reveal installed model files in system file manager
+    description: Reveal installed asset files in system file manager
     source_rule: D-IPC-011
 
-  - command: runtime_local_models_reveal_root_folder
+  - command: runtime_local_assets_reveal_root_folder
     module: local-runtime
     description: Reveal the runtime models root folder in the system file manager
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_scan_orphans
-    module: local-runtime
-    description: Specialized host helper for orphan model scan; product unregistered-asset review should prefer runtime unified scan
-    source_rule: D-IPC-011
-
-  - command: runtime_local_models_scaffold_orphan
-    module: local-runtime
-    description: Specialized host helper for orphan model scaffold; product scaffold truth must remain runtime-owned
-    source_rule: D-IPC-011
-
-  - command: runtime_local_artifacts_scan_orphans
-    module: local-runtime
-    description: Specialized host helper for orphan artifact scan; product unregistered-asset review should prefer runtime unified scan
-    source_rule: D-IPC-011
-
-  - command: runtime_local_artifacts_scaffold_orphan
-    module: local-runtime
-    description: Specialized host helper for orphan artifact scaffold; product scaffold truth must remain runtime-owned
     source_rule: D-IPC-011
 
   - command: runtime_local_assets_scan_unregistered
     module: local-runtime
     description: Host-local unregistered asset helper; if shipped product paths have runtime scan coverage, runtime remains the only truth source
-    source_rule: D-IPC-011
-
-  - command: runtime_local_pick_asset_manifest_path
-    module: local-runtime
-    description: Pick either a resolved model manifest or managed artifact manifest under the runtime models root
     source_rule: D-IPC-011

@@ -60,23 +60,23 @@ func modelCatalogProviderEntryFromRecord(record aicatalog.CatalogProviderRecord)
 	}
 }
 
-func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalModelRecord, error) {
+func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalAssetRecord, error) {
 	localModel := s.localModelLister()
 	if localModel == nil {
 		return nil, nil
 	}
 	pageToken := ""
-	collected := make([]*runtimev1.LocalModelRecord, 0, 16)
+	collected := make([]*runtimev1.LocalAssetRecord, 0, 16)
 	for i := 0; i < 20; i++ {
-		resp, err := localModel.ListLocalModels(ctx, &runtimev1.ListLocalModelsRequest{
-			StatusFilter: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+		resp, err := localModel.ListLocalAssets(ctx, &runtimev1.ListLocalAssetsRequest{
+			StatusFilter: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			PageSize:     100,
 			PageToken:    pageToken,
 		})
 		if err != nil {
 			return nil, err
 		}
-		collected = append(collected, resp.GetModels()...)
+		collected = append(collected, resp.GetAssets()...)
 		pageToken = strings.TrimSpace(resp.GetNextPageToken())
 		if pageToken == "" {
 			break
@@ -85,7 +85,7 @@ func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.Lo
 	return collected, nil
 }
 
-func hasActiveLocalModelForCategory(models []*runtimev1.LocalModelRecord, category runtimev1.LocalConnectorCategory) bool {
+func hasActiveLocalModelForCategory(models []*runtimev1.LocalAssetRecord, category runtimev1.LocalConnectorCategory) bool {
 	for _, model := range models {
 		if modelMatchesCategory(model, category) {
 			return true
@@ -94,16 +94,16 @@ func hasActiveLocalModelForCategory(models []*runtimev1.LocalModelRecord, catego
 	return false
 }
 
-func buildLocalConnectorModelDescriptors(models []*runtimev1.LocalModelRecord, category runtimev1.LocalConnectorCategory) []*runtimev1.ConnectorModelDescriptor {
+func buildLocalConnectorModelDescriptors(models []*runtimev1.LocalAssetRecord, category runtimev1.LocalConnectorCategory) []*runtimev1.ConnectorModelDescriptor {
 	descriptors := make([]*runtimev1.ConnectorModelDescriptor, 0, len(models))
 	for _, model := range models {
 		if !modelMatchesCategory(model, category) {
 			continue
 		}
 		descriptors = append(descriptors, &runtimev1.ConnectorModelDescriptor{
-			ModelId:      model.GetModelId(),
-			ModelLabel:   model.GetModelId(),
-			Available:    model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			ModelId:      model.GetAssetId(),
+			ModelLabel:   model.GetAssetId(),
+			Available:    model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			Capabilities: append([]string(nil), model.GetCapabilities()...),
 		})
 	}
@@ -138,7 +138,7 @@ func (s *Service) listCatalogConnectorModels(subjectUserID string, provider stri
 	return descriptors, nil
 }
 
-func modelMatchesCategory(model *runtimev1.LocalModelRecord, category runtimev1.LocalConnectorCategory) bool {
+func modelMatchesCategory(model *runtimev1.LocalAssetRecord, category runtimev1.LocalConnectorCategory) bool {
 	caps := make(map[string]bool, len(model.GetCapabilities()))
 	for _, capability := range model.GetCapabilities() {
 		capLower := strings.ToLower(strings.TrimSpace(capability))

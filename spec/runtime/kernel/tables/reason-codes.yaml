@@ -130,7 +130,7 @@ codes:
     value: 353
     family: MODEL
     source_rule: K-LOCAL-003
-  - name: AI_LOCAL_MODEL_ALREADY_INSTALLED
+  - name: AI_LOCAL_ASSET_ALREADY_INSTALLED
     value: 354
     family: MODEL
     source_rule: K-LOCAL-009
@@ -182,6 +182,26 @@ codes:
     value: 366
     family: MODEL
     source_rule: K-LOCAL-005
+  - name: AI_LOCAL_ASSET_ALREADY_INSTALLED
+    value: 367
+    family: MODEL
+    source_rule: K-LOCAL-009
+  - name: AI_LOCAL_ASSET_SLOT_MISSING
+    value: 368
+    family: MODEL
+    source_rule: K-LOCAL-031
+  - name: AI_LOCAL_ASSET_SLOT_FORBIDDEN
+    value: 369
+    family: MODEL
+    source_rule: K-LOCAL-031
+  - name: AI_LOCAL_PROFILE_SLOT_CONFLICT
+    value: 376
+    family: MODEL
+    source_rule: K-LOCAL-031
+  - name: AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN
+    value: 377
+    family: MODEL
+    source_rule: K-LOCAL-032
   # AI legacy frozen codes (201-213): stable wire values, see numbering_note
   - name: AI_MODEL_NOT_READY
     value: 201

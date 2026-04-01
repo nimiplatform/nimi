@@ -10,22 +10,22 @@ codes:
 
   - code: LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID
     domain: local-ai
-    description: Only resolved manifest.json files under ~/.nimi/models/**/resolved/** may be imported
+    description: Only resolved asset.manifest.json files under ~/.nimi/models/**/resolved/** may be imported
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID
     domain: local-ai
-    description: Only artifact.manifest.json files may be imported
+    description: Only asset.manifest.json files may be imported
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND
     domain: local-ai
-    description: Selected companion orphan file does not exist
+    description: Selected dependency asset orphan file does not exist
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID
     domain: local-ai
-    description: Companion orphan kind is invalid or unsupported
+    description: Dependency asset orphan kind is invalid or unsupported
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS
@@ -35,27 +35,27 @@ codes:
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED
     domain: local-ai
-    description: Cannot create companion artifact directory
+    description: Cannot create dependency asset directory
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED
     domain: local-ai
-    description: Cannot move or copy companion artifact payload into runtime models root
+    description: Cannot move or copy dependency asset payload into runtime models root
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED
     domain: local-ai
-    description: Source companion payload cleanup failed after copy fallback
+    description: Source dependency asset payload cleanup failed after copy fallback
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED
     domain: local-ai
-    description: Failed to serialize generated companion artifact manifest JSON
+    description: Failed to serialize generated dependency asset manifest JSON
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED
     domain: local-ai
-    description: Failed to write generated artifact.manifest.json to disk
+    description: Failed to write generated asset.manifest.json to disk
     source_rule: D-ERR-001
 
   - code: LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND
@@ -201,7 +201,7 @@ codes:
 
   - code: LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED
     domain: local-ai
-    description: Failed to write generated resolved manifest.json to disk
+    description: Failed to write generated resolved asset.manifest.json to disk
     source_rule: D-ERR-001
 
   # Runtime route errors

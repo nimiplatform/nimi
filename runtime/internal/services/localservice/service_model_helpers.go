@@ -2,9 +2,11 @@ package localservice
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -34,6 +36,15 @@ func manifestStringDefault(input map[string]any, keys ...string) string {
 		return ""
 	}
 	return value
+}
+
+func manifestHasAnyKey(input map[string]any, keys ...string) bool {
+	for _, key := range keys {
+		if _, exists := input[key]; exists {
+			return true
+		}
+	}
+	return false
 }
 
 func manifestStringSliceKeys(input map[string]any, keys ...string) ([]string, error) {
@@ -108,13 +119,88 @@ func manifestStruct(input map[string]any, keys ...string) (*structpb.Struct, err
 	return nil, nil
 }
 
+func parseLocalAssetKindToken(raw string) (runtimev1.LocalAssetKind, bool) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "chat":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT, true
+	case "image":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE, true
+	case "video":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO, true
+	case "tts":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS, true
+	case "stt":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT, true
+	case "vae":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE, true
+	case "clip":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CLIP, true
+	case "lora":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA, true
+	case "controlnet":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CONTROLNET, true
+	case "auxiliary":
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY, true
+	default:
+		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED, false
+	}
+}
+
+func manifestAssetKind(input map[string]any, keys ...string) (runtimev1.LocalAssetKind, bool) {
+	for _, key := range keys {
+		value, exists := input[key]
+		if !exists || value == nil {
+			continue
+		}
+		switch typed := value.(type) {
+		case string:
+			kind, ok := parseLocalAssetKindToken(typed)
+			if !ok {
+				return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED, false
+			}
+			return kind, true
+		case float64:
+			kind := runtimev1.LocalAssetKind(int32(typed))
+			if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+				return kind, false
+			}
+			return kind, true
+		case int32:
+			kind := runtimev1.LocalAssetKind(typed)
+			if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+				return kind, false
+			}
+			return kind, true
+		case int:
+			kind := runtimev1.LocalAssetKind(typed)
+			if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+				return kind, false
+			}
+			return kind, true
+		case json.Number:
+			parsed, err := strconv.Atoi(string(typed))
+			if err != nil {
+				return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED, false
+			}
+			kind := runtimev1.LocalAssetKind(parsed)
+			if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+				return kind, false
+			}
+			return kind, true
+		default:
+			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED, false
+		}
+	}
+	return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED, false
+}
+
 func validateResolvedModelManifestPath(manifestPath string, modelsRoot string) error {
 	cleanManifestPath := filepath.Clean(strings.TrimSpace(manifestPath))
 	if cleanManifestPath == "." || cleanManifestPath == "" {
 		return fmt.Errorf("manifest path required")
 	}
-	if !strings.EqualFold(filepath.Base(cleanManifestPath), "manifest.json") {
-		return fmt.Errorf("resolved manifest must be named manifest.json")
+	if !strings.EqualFold(filepath.Base(cleanManifestPath), "asset.manifest.json") {
+		return fmt.Errorf("resolved manifest must be named asset.manifest.json")
 	}
 	cleanModelsRoot := filepath.Clean(strings.TrimSpace(modelsRoot))
 	if cleanModelsRoot == "." || cleanModelsRoot == "" {
@@ -143,7 +229,7 @@ func validateResolvedModelManifestPath(manifestPath string, modelsRoot string) e
 	}
 	parent := filepath.Dir(rel)
 	if parent == "resolved" || parent == "." {
-		return fmt.Errorf("resolved manifest must live under resolved/<logical-model-id>/manifest.json")
+		return fmt.Errorf("resolved manifest must live under resolved/<logical-model-id>/asset.manifest.json")
 	}
 	return nil
 }
@@ -153,8 +239,8 @@ func validateLocalArtifactManifestPath(manifestPath string, modelsRoot string) e
 	if cleanManifestPath == "." || cleanManifestPath == "" {
 		return fmt.Errorf("manifest path required")
 	}
-	if !strings.EqualFold(filepath.Base(cleanManifestPath), "artifact.manifest.json") {
-		return fmt.Errorf("artifact manifest must be named artifact.manifest.json")
+	if !strings.EqualFold(filepath.Base(cleanManifestPath), "asset.manifest.json") {
+		return fmt.Errorf("artifact manifest must be named asset.manifest.json")
 	}
 	cleanModelsRoot := filepath.Clean(strings.TrimSpace(modelsRoot))
 	if cleanModelsRoot == "." || cleanModelsRoot == "" {
@@ -180,13 +266,13 @@ func validateLocalArtifactManifestPath(manifestPath string, modelsRoot string) e
 	}
 	parent := filepath.Dir(rel)
 	if parent == "." {
-		return fmt.Errorf("artifact manifest must live under <artifact-dir>/artifact.manifest.json")
+		return fmt.Errorf("artifact manifest must live under <asset-dir>/asset.manifest.json")
 	}
 	return nil
 }
 
-func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocalModelRequest) (*runtimev1.RemoveLocalModelResponse, error) {
-	localModelID := strings.TrimSpace(req.GetLocalModelId())
+func (s *Service) RemoveLocalAsset(_ context.Context, req *runtimev1.RemoveLocalAssetRequest) (*runtimev1.RemoveLocalAssetResponse, error) {
+	localModelID := strings.TrimSpace(req.GetLocalAssetId())
 	if localModelID == "" {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
 			ActionHint: "set_local_model_id",
@@ -201,7 +287,7 @@ func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocal
 	if boundServiceID := s.findBoundServiceID(localModelID); boundServiceID != "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION)
 	}
-	model, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED, "model removed")
+	model, err := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED, "model removed")
 	if err != nil {
 		return nil, err
 	}
@@ -209,10 +295,10 @@ func (s *Service) RemoveLocalModel(_ context.Context, req *runtimev1.RemoveLocal
 		s.logger.Warn("sync llama assets after remove failed", "local_model_id", localModelID, "error", syncErr)
 	}
 	s.cleanupRemovedModelBundle(current)
-	return &runtimev1.RemoveLocalModelResponse{Model: model}, nil
+	return &runtimev1.RemoveLocalAssetResponse{Asset: model}, nil
 }
 
-func (s *Service) cleanupRemovedModelBundle(model *runtimev1.LocalModelRecord) {
+func (s *Service) cleanupRemovedModelBundle(model *runtimev1.LocalAssetRecord) {
 	if model == nil {
 		return
 	}
@@ -250,7 +336,7 @@ func (s *Service) CollectDeviceProfile(_ context.Context, req *runtimev1.Collect
 	return &runtimev1.CollectDeviceProfileResponse{Profile: collectDeviceProfile(req.GetExtraPorts()...)}, nil
 }
 
-func localModelSortCategory(model *runtimev1.LocalModelRecord) string {
+func localModelSortCategory(model *runtimev1.LocalAssetRecord) string {
 	if model == nil {
 		return "zzzz"
 	}

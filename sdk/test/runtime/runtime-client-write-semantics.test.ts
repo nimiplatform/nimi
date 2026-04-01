@@ -20,8 +20,8 @@ import {
 } from '../../src/runtime/generated/runtime/v1/ai';
 import { ListModelsResponse } from '../../src/runtime/generated/runtime/v1/model';
 import {
-  InstallLocalModelResponse,
-  ListLocalModelsResponse,
+  InstallVerifiedAssetResponse,
+  ListLocalAssetsResponse,
 } from '../../src/runtime/generated/runtime/v1/local_runtime';
 import { ConnectorStatus } from '../../src/runtime/generated/runtime/v1/connector';
 import { RuntimeMethodIds } from '../../src/runtime/method-ids';
@@ -380,10 +380,10 @@ test('createRuntimeClient suppresses auth only for anonymous local AI and local 
               traceId: 'trace-auth-routing',
             }),
           );
-        case RuntimeMethodIds.local.listLocalModels:
-          return ListLocalModelsResponse.toBinary(ListLocalModelsResponse.create({ models: [] }));
-        case RuntimeMethodIds.local.installLocalModel:
-          return InstallLocalModelResponse.toBinary(InstallLocalModelResponse.create({}));
+        case RuntimeMethodIds.local.listLocalAssets:
+          return ListLocalAssetsResponse.toBinary(ListLocalAssetsResponse.create({ assets: [] }));
+        case RuntimeMethodIds.local.installVerifiedAsset:
+          return InstallVerifiedAssetResponse.toBinary(InstallVerifiedAssetResponse.create({}));
         default:
           throw new Error(`unexpected unary method: ${input.methodId}`);
       }
@@ -403,8 +403,8 @@ test('createRuntimeClient suppresses auth only for anonymous local AI and local 
     });
 
     await client.ai.executeScenario(createGenerateRequest());
-    await client.local.listLocalModels({});
-    await client.local.installLocalModel({});
+    await client.local.listLocalAssets({});
+    await client.local.installVerifiedAsset({} as never);
     await client.ai.executeScenario({
       ...createGenerateRequest(),
       head: {

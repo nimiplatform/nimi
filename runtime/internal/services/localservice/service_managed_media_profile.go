@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -17,18 +18,168 @@ import (
 )
 
 const (
-	managedMediaWorkflowComponentsKey       = "components"
+	managedMediaWorkflowProfileEntriesKey   = "profile_entries"
+	managedMediaWorkflowEntryOverridesKey   = "entry_overrides"
 	managedMediaWorkflowProfileOverridesKey = "profile_overrides"
 )
 
-type managedMediaComponentSelection struct {
-	Slot            string
-	LocalArtifactID string
+// resolveProfileSlots resolves main model path and passive engine slot paths
+// from the given profile entries for a specific capability. Entries without
+// engineSlot whose assetKind matches the capability produce the main runnable
+// model path; entries with engineSlot are passive dependencies whose installed
+// asset paths are returned as slot:path pairs.
+//
+// overrides maps entry_id -> local_asset_id. When an override exists for an
+// entry, the overridden local_asset_id is used instead of looking up by
+// assetId/kind/engine.
+//
+// Fail-close: duplicate runnable candidates, duplicate slot bindings, missing
+// or unhealthy slot assets, and invalid runnable/passive slot declarations all
+// return an error instead of silently continuing.
+func (s *Service) resolveProfileSlots(
+	entries []*runtimev1.LocalProfileEntryDescriptor,
+	capability string,
+	overrides map[string]string,
+) (string, map[string]string, error) {
+	var modelPath string
+	engineSlots := make(map[string]string)
+
+	for _, entry := range entries {
+		if entry == nil {
+			continue
+		}
+		if !profileEntryMatchesCapability(entry, capability) {
+			continue
+		}
+		if !profileEntryIsAsset(entry) {
+			continue
+		}
+
+		// Apply entry override: when an override exists, resolve the
+		// installed asset by local_asset_id directly.
+		entryID := strings.TrimSpace(entry.GetEntryId())
+		overriddenLocalID := ""
+		if entryID != "" && overrides != nil {
+			overriddenLocalID = overrides[entryID]
+		}
+
+		slot := strings.TrimSpace(entry.GetEngineSlot())
+		entryKind := entry.GetAssetKind()
+		if slot == "" {
+			if !assetKindMatchesCapability(entryKind, capability) {
+				return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+					Message:    fmt.Sprintf("profile entry %q kind %s must declare engineSlot", entryID, entryKind.String()),
+					ActionHint: "declare_profile_slot",
+				})
+			}
+			// Main runnable model: assetKind matches capability, no engineSlot.
+			if !assetKindMatchesCapability(entryKind, capability) {
+				continue
+			}
+			if modelPath != "" {
+				return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+					Message:    fmt.Sprintf("ambiguous: multiple main models for capability %q", capability),
+					ActionHint: "narrow_profile_entries",
+				})
+			}
+			var installed *runtimev1.LocalAssetRecord
+			if overriddenLocalID != "" {
+				installed = s.localAssetByID(overriddenLocalID)
+			} else {
+				installed = s.findInstalledAssetForProfileEntry(entry)
+			}
+			if installed == nil {
+				return "", nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+			}
+			if !profileEntryInstalledAssetUsable(installed) {
+				return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+					Message:    fmt.Sprintf("main asset %q is not in a usable status", installed.GetLocalAssetId()),
+					ActionHint: "inspect_local_runtime_model_health",
+				})
+			}
+			resolved, err := s.resolveManagedModelEntryPath(installed)
+			if err != nil {
+				return "", nil, err
+			}
+			modelPath = resolved
+			continue
+		}
+
+		// Slot-bound dependency: any non-main asset may bind an engineSlot,
+		// including chat assets used as text encoders (for example llm_path).
+		if assetKindMatchesCapability(entryKind, capability) {
+			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_FORBIDDEN, grpcerr.ReasonOptions{
+				Message:    fmt.Sprintf("main asset entry %q kind %s cannot declare engineSlot %q", entryID, entryKind.String(), slot),
+				ActionHint: "remove_profile_slot",
+			})
+		}
+		if _, exists := engineSlots[slot]; exists {
+			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_PROFILE_SLOT_CONFLICT, grpcerr.ReasonOptions{
+				Message:    fmt.Sprintf("duplicate engineSlot binding %q in profile entries", slot),
+				ActionHint: "dedupe_profile_slot_bindings",
+			})
+		}
+		var installed *runtimev1.LocalAssetRecord
+		if overriddenLocalID != "" {
+			installed = s.localAssetByID(overriddenLocalID)
+		} else {
+			installed = s.findInstalledAssetForProfileEntry(entry)
+		}
+		if installed == nil {
+			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+				Message:    fmt.Sprintf("slot %q asset is not installed", slot),
+				ActionHint: "install_profile_slot_asset",
+			})
+		}
+		if !profileEntryInstalledAssetUsable(installed) {
+			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+				Message:    fmt.Sprintf("slot %q asset %q is not in a usable status", slot, installed.GetLocalAssetId()),
+				ActionHint: "inspect_profile_slot_asset",
+			})
+		}
+		resolved, err := s.resolveManagedAssetEntryPath(installed)
+		if err != nil {
+			return "", nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING, grpcerr.ReasonOptions{
+				Message:    fmt.Sprintf("slot %q asset path is unavailable: %v", slot, err),
+				ActionHint: "inspect_profile_slot_asset",
+			})
+		}
+		engineSlots[slot] = resolved
+	}
+
+	return modelPath, engineSlots, nil
 }
 
-// ResolveManagedMediaImageProfile renders a dynamic managed media profile for the
-// selected main model plus companion artifact selections supplied in the image
-// scenario extension payload.
+func profileEntryInstalledAssetUsable(asset *runtimev1.LocalAssetRecord) bool {
+	if asset == nil {
+		return false
+	}
+	switch asset.GetStatus() {
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
+		return true
+	default:
+		return false
+	}
+}
+
+// managedMediaProfileEntries extracts profile entries from the scenario
+// extensions when supplied under the profile_entries key.
+func managedMediaProfileEntries(scenarioExtensions map[string]any) []*runtimev1.LocalProfileEntryDescriptor {
+	raw, ok := scenarioExtensions[managedMediaWorkflowProfileEntriesKey]
+	if !ok || raw == nil {
+		return nil
+	}
+	if typed, ok := raw.([]*runtimev1.LocalProfileEntryDescriptor); ok {
+		return typed
+	}
+	return nil
+}
+
+// ResolveManagedMediaImageProfile renders a dynamic managed media profile for
+// the selected main model. Slot dependencies are resolved from profile entries
+// supplied via the profile_entries key in scenario extensions. The workflow is
+// hard-cut and does not fall back to the model's own entry path.
 func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedModelID string, scenarioExtensions map[string]any) (string, map[string]any, map[string]any, error) {
 	model := s.resolveManagedMediaImageModel(requestedModelID)
 	if model == nil {
@@ -50,15 +201,11 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	if err := validateManagedMediaProfileOverrides(profileOverrides); err != nil {
 		return "", nil, nil, err
 	}
-	components, err := managedMediaComponents(scenarioExtensions)
+
+	profileEntries := managedMediaProfileEntries(scenarioExtensions)
+	entryOverrides, err := managedMediaEntryOverrides(scenarioExtensions)
 	if err != nil {
 		return "", nil, nil, err
-	}
-	if len(components) == 0 {
-		return "", nil, nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{
-			Message:    "local media workflow requires explicit companion artifact selections via components[]",
-			ActionHint: "select_local_image_companions",
-		})
 	}
 
 	profile := mergeMaps(defaults, profileOverrides)
@@ -66,9 +213,26 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 		profile["backend"] = "stablediffusion-ggml"
 	}
 
-	modelPath, err := s.resolveManagedModelEntryPath(model)
-	if err != nil {
-		return "", nil, nil, err
+	var modelPath string
+	slotPaths := map[string]string{}
+
+	if len(profileEntries) > 0 {
+		resolved, slots, resolveErr := s.resolveProfileSlots(profileEntries, "image", entryOverrides)
+		if resolveErr != nil {
+			return "", nil, nil, resolveErr
+		}
+		if resolved != "" {
+			modelPath = resolved
+		}
+		slotPaths = slots
+	}
+
+	// Fail-close: profile entries must supply the main model path for image workflow.
+	if modelPath == "" {
+		return "", nil, nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
+			Message:    "image workflow requires profile entries with a main image model; no fallback to model entry path",
+			ActionHint: "supply_profile_entries",
+		})
 	}
 
 	parameters := valueAsObject(profile["parameters"])
@@ -76,45 +240,29 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	profile["parameters"] = parameters
 
 	options := valueAsStringSlice(profile["options"])
-	componentSlots := make(map[string]string, len(components))
-	for _, component := range components {
-		if component.Slot == "" || component.LocalArtifactID == "" {
-			return "", nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		artifact := s.localArtifactByID(component.LocalArtifactID)
-		if artifact == nil || artifact.GetStatus() == runtimev1.LocalArtifactStatus_LOCAL_ARTIFACT_STATUS_REMOVED {
-			return "", nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
-		}
-		entryPath, resolveErr := s.resolveManagedArtifactEntryPath(artifact)
-		if resolveErr != nil {
-			return "", nil, nil, resolveErr
-		}
-		componentSlots[component.Slot] = entryPath
-	}
-
-	filteredOptions := make([]string, 0, len(options)+len(componentSlots))
+	filteredOptions := make([]string, 0, len(options)+len(slotPaths))
 	for _, option := range options {
 		key, _, hasKV := strings.Cut(option, ":")
 		if hasKV {
 			key = strings.TrimSpace(key)
-			if _, exists := componentSlots[key]; exists {
+			if _, exists := slotPaths[key]; exists {
 				continue
 			}
 		}
 		filteredOptions = append(filteredOptions, option)
 	}
-	componentNames := make([]string, 0, len(componentSlots))
-	for slot := range componentSlots {
-		componentNames = append(componentNames, slot)
+	slotNames := make([]string, 0, len(slotPaths))
+	for slot := range slotPaths {
+		slotNames = append(slotNames, slot)
 	}
-	sort.Strings(componentNames)
-	for _, slot := range componentNames {
-		filteredOptions = append(filteredOptions, slot+":"+componentSlots[slot])
+	sort.Strings(slotNames)
+	for _, slot := range slotNames {
+		filteredOptions = append(filteredOptions, slot+":"+slotPaths[slot])
 	}
 	profile["options"] = filteredOptions
 
 	profile["download_files"] = nil
-	delete(profile, managedMediaWorkflowComponentsKey)
+	delete(profile, managedMediaWorkflowProfileEntriesKey)
 	delete(profile, managedMediaWorkflowProfileOverridesKey)
 
 	canonical, err := json.Marshal(profile)
@@ -128,28 +276,28 @@ func (s *Service) ResolveManagedMediaImageProfile(_ context.Context, requestedMo
 	return alias, profile, managedMediaForwardedExtensions(scenarioExtensions), nil
 }
 
-func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtimev1.LocalModelRecord {
+func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtimev1.LocalAssetRecord {
 	normalizedID, explicitEngine, preferMedia := parseManagedMediaRequestedModelID(requestedModelID)
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	candidates := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
-	for _, model := range s.models {
+	candidates := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
+	for _, model := range s.assets {
 		if model == nil {
 			continue
 		}
-		if strings.TrimSpace(model.GetModelId()) != normalizedID {
+		if strings.TrimSpace(model.GetAssetId()) != normalizedID {
 			continue
 		}
-		if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE &&
-			model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED {
+		if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE &&
+			model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED {
 			continue
 		}
 		if !hasCapability(model.GetCapabilities(), "image") {
 			continue
 		}
-		candidates = append(candidates, cloneLocalModel(model))
+		candidates = append(candidates, cloneLocalAsset(model))
 	}
 	if len(candidates) == 0 {
 		return nil
@@ -160,7 +308,7 @@ func (s *Service) resolveManagedMediaImageModel(requestedModelID string) *runtim
 		if pi != pj {
 			return pi < pj
 		}
-		return candidates[i].GetLocalModelId() < candidates[j].GetLocalModelId()
+		return candidates[i].GetLocalAssetId() < candidates[j].GetLocalAssetId()
 	})
 
 	if explicitEngine != "" {
@@ -216,34 +364,6 @@ func hasCapability(capabilities []string, target string) bool {
 	return false
 }
 
-func managedMediaComponents(scenarioExtensions map[string]any) ([]managedMediaComponentSelection, error) {
-	raw, ok := scenarioExtensions[managedMediaWorkflowComponentsKey]
-	if !ok || raw == nil {
-		return nil, nil
-	}
-	items, ok := raw.([]any)
-	if !ok {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	result := make([]managedMediaComponentSelection, 0, len(items))
-	for _, item := range items {
-		object, ok := item.(map[string]any)
-		if !ok {
-			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		slot := strings.TrimSpace(valueAsString(object["slot"]))
-		localArtifactID := strings.TrimSpace(valueAsString(object["localArtifactId"]))
-		if localArtifactID == "" {
-			localArtifactID = strings.TrimSpace(valueAsString(object["local_artifact_id"]))
-		}
-		result = append(result, managedMediaComponentSelection{
-			Slot:            slot,
-			LocalArtifactID: localArtifactID,
-		})
-	}
-	return result, nil
-}
-
 func managedMediaProfileOverrides(scenarioExtensions map[string]any) (map[string]any, error) {
 	raw, ok := scenarioExtensions[managedMediaWorkflowProfileOverridesKey]
 	if !ok || raw == nil {
@@ -254,6 +374,40 @@ func managedMediaProfileOverrides(scenarioExtensions map[string]any) (map[string
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	return cloneAnyMap(object), nil
+}
+
+func managedMediaEntryOverrides(scenarioExtensions map[string]any) (map[string]string, error) {
+	raw, ok := scenarioExtensions[managedMediaWorkflowEntryOverridesKey]
+	if !ok || raw == nil {
+		return nil, nil
+	}
+	items, ok := raw.([]any)
+	if !ok {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	overrides := make(map[string]string, len(items))
+	for _, item := range items {
+		record, ok := item.(map[string]any)
+		if !ok {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		entryID := strings.TrimSpace(valueAsString(record["entry_id"]))
+		if entryID == "" {
+			entryID = strings.TrimSpace(valueAsString(record["entryId"]))
+		}
+		localAssetID := strings.TrimSpace(valueAsString(record["local_asset_id"]))
+		if localAssetID == "" {
+			localAssetID = strings.TrimSpace(valueAsString(record["localAssetId"]))
+		}
+		if entryID == "" || localAssetID == "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		overrides[entryID] = localAssetID
+	}
+	if len(overrides) == 0 {
+		return nil, nil
+	}
+	return overrides, nil
 }
 
 func validateManagedMediaProfileOverrides(overrides map[string]any) error {
@@ -282,7 +436,7 @@ func managedMediaForwardedExtensions(scenarioExtensions map[string]any) map[stri
 	}
 	out := make(map[string]any, len(scenarioExtensions))
 	for key, value := range scenarioExtensions {
-		if key == managedMediaWorkflowComponentsKey || key == managedMediaWorkflowProfileOverridesKey {
+		if key == managedMediaWorkflowProfileEntriesKey || key == managedMediaWorkflowEntryOverridesKey || key == managedMediaWorkflowProfileOverridesKey {
 			continue
 		}
 		out[key] = value
@@ -293,41 +447,41 @@ func managedMediaForwardedExtensions(scenarioExtensions map[string]any) map[stri
 	return out
 }
 
-func (s *Service) localArtifactByID(localArtifactID string) *runtimev1.LocalArtifactRecord {
+func (s *Service) localAssetByID(localArtifactID string) *runtimev1.LocalAssetRecord {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return cloneLocalArtifact(s.artifacts[strings.TrimSpace(localArtifactID)])
+	return cloneLocalAsset(s.assets[strings.TrimSpace(localArtifactID)])
 }
 
-func (s *Service) ResolveManagedArtifactPath(_ context.Context, localArtifactID string) (string, error) {
-	artifact := s.localArtifactByID(localArtifactID)
-	relPath, err := s.resolveManagedArtifactEntryPath(artifact)
+func (s *Service) ResolveManagedAssetPath(_ context.Context, localArtifactID string) (string, error) {
+	artifact := s.localAssetByID(localArtifactID)
+	relPath, err := s.resolveManagedAssetEntryPath(artifact)
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(s.resolvedLocalModelsPath(), filepath.FromSlash(relPath)), nil
 }
 
-func (s *Service) resolveManagedModelEntryPath(model *runtimev1.LocalModelRecord) (string, error) {
+func (s *Service) resolveManagedModelEntryPath(model *runtimev1.LocalAssetRecord) (string, error) {
 	if model == nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	return resolveManagedEntryRelativePath(
 		s.resolvedLocalModelsPath(),
-		model.GetModelId(),
+		model.GetAssetId(),
 		model.GetSource().GetRepo(),
 		model.GetEntry(),
 	)
 }
 
-func (s *Service) resolveManagedArtifactEntryPath(artifact *runtimev1.LocalArtifactRecord) (string, error) {
+func (s *Service) resolveManagedAssetEntryPath(artifact *runtimev1.LocalAssetRecord) (string, error) {
 	if artifact == nil {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 	modelsRoot := s.resolvedLocalModelsPath()
 	repo := strings.TrimSpace(artifact.GetSource().GetRepo())
 	if strings.HasPrefix(repo, "file://") {
-		return resolveManagedEntryRelativePath(modelsRoot, artifact.GetArtifactId(), repo, artifact.GetEntry())
+		return resolveManagedEntryRelativePath(modelsRoot, artifact.GetAssetId(), repo, artifact.GetEntry())
 	}
 	root := strings.TrimSpace(modelsRoot)
 	if root == "" {
@@ -342,7 +496,7 @@ func (s *Service) resolveManagedArtifactEntryPath(artifact *runtimev1.LocalArtif
 		strings.HasPrefix(cleanEntry, ".."+string(filepath.Separator)) {
 		return "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	absPath := filepath.Join(rootAbs, "artifacts", slugifyLocalModelID(artifact.GetArtifactId()), cleanEntry)
+	absPath := filepath.Join(rootAbs, "resolved", slugifyLocalAssetID(artifact.GetAssetId()), cleanEntry)
 	absPath, err = filepath.Abs(absPath)
 	if err != nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)

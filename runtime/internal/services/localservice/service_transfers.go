@@ -149,10 +149,8 @@ func cloneLocalTransferSummary(summary *runtimev1.LocalTransferSessionSummary) *
 	}
 	return &runtimev1.LocalTransferSessionSummary{
 		InstallSessionId: summary.GetInstallSessionId(),
-		ModelId:          summary.GetModelId(),
-		LocalModelId:     summary.GetLocalModelId(),
-		ArtifactId:       summary.GetArtifactId(),
-		LocalArtifactId:  summary.GetLocalArtifactId(),
+		AssetId:          summary.GetAssetId(),
+		LocalAssetId:     summary.GetLocalAssetId(),
 		SessionKind:      normalizeTransferKind(summary.GetSessionKind()),
 		Phase:            strings.TrimSpace(summary.GetPhase()),
 		State:            normalizeTransferState(summary.GetState()),
@@ -175,10 +173,8 @@ func localTransferEventFromSummary(summary *runtimev1.LocalTransferSessionSummar
 	done, success := transferStateDoneSuccess(summary.GetState())
 	return &runtimev1.LocalTransferProgressEvent{
 		InstallSessionId: summary.GetInstallSessionId(),
-		ModelId:          summary.GetModelId(),
-		LocalModelId:     summary.GetLocalModelId(),
-		ArtifactId:       summary.GetArtifactId(),
-		LocalArtifactId:  summary.GetLocalArtifactId(),
+		AssetId:          summary.GetAssetId(),
+		LocalAssetId:     summary.GetLocalAssetId(),
 		SessionKind:      normalizeTransferKind(summary.GetSessionKind()),
 		Phase:            strings.TrimSpace(summary.GetPhase()),
 		BytesReceived:    summary.GetBytesReceived(),
@@ -200,10 +196,8 @@ func (s *Service) newLocalTransfer(kind string, input localTransferMutation) *ru
 	now := nowISO()
 	summary := &runtimev1.LocalTransferSessionSummary{
 		InstallSessionId: "transfer_" + strings.ToLower(ulid.Make().String()),
-		ModelId:          strings.TrimSpace(input.ModelID),
-		LocalModelId:     strings.TrimSpace(input.LocalModelID),
-		ArtifactId:       strings.TrimSpace(input.ArtifactID),
-		LocalArtifactId:  strings.TrimSpace(input.LocalArtifactID),
+		AssetId:          defaultString(strings.TrimSpace(input.ModelID), strings.TrimSpace(input.ArtifactID)),
+		LocalAssetId:     defaultString(strings.TrimSpace(input.LocalModelID), strings.TrimSpace(input.LocalArtifactID)),
 		SessionKind:      normalizeTransferKind(kind),
 		Phase:            defaultString(strings.TrimSpace(input.Phase), "download"),
 		State:            normalizeTransferState(defaultString(strings.TrimSpace(input.State), localTransferStateRunning)),
@@ -294,10 +288,8 @@ func (s *Service) publishTransferEventLocked(event *runtimev1.LocalTransferProgr
 	for subscriberID, ch := range s.transferSubscribers {
 		clone := localTransferEventFromSummary(&runtimev1.LocalTransferSessionSummary{
 			InstallSessionId: event.GetInstallSessionId(),
-			ModelId:          event.GetModelId(),
-			LocalModelId:     event.GetLocalModelId(),
-			ArtifactId:       event.GetArtifactId(),
-			LocalArtifactId:  event.GetLocalArtifactId(),
+			AssetId:          event.GetAssetId(),
+			LocalAssetId:     event.GetLocalAssetId(),
 			SessionKind:      event.GetSessionKind(),
 			Phase:            event.GetPhase(),
 			State:            event.GetState(),

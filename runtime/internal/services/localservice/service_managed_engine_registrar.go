@@ -96,30 +96,6 @@ func (s *Service) SetManagedLlamaEndpoint(endpoint string) {
 		return
 	}
 
-	updatedAt := nowISO()
-	changed := false
-	for localModelID, model := range s.models {
-		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-			continue
-		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
-			continue
-		}
-		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-			continue
-		}
-		if strings.TrimSpace(model.GetEndpoint()) == s.managedLlamaEndpointValue {
-			continue
-		}
-		cloned := cloneLocalModel(model)
-		cloned.Endpoint = s.managedLlamaEndpointValue
-		cloned.UpdatedAt = updatedAt
-		s.models[localModelID] = cloned
-		changed = true
-	}
-	if changed {
-		s.persistStateLocked()
-	}
 }
 
 // SetManagedMediaEndpoint records the managed media endpoint exposed
@@ -133,30 +109,6 @@ func (s *Service) SetManagedMediaEndpoint(endpoint string) {
 		return
 	}
 
-	updatedAt := nowISO()
-	changed := false
-	for localModelID, model := range s.models {
-		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-			continue
-		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "media") {
-			continue
-		}
-		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-			continue
-		}
-		if strings.TrimSpace(model.GetEndpoint()) == s.managedMediaEndpointValue {
-			continue
-		}
-		cloned := cloneLocalModel(model)
-		cloned.Endpoint = s.managedMediaEndpointValue
-		cloned.UpdatedAt = updatedAt
-		s.models[localModelID] = cloned
-		changed = true
-	}
-	if changed {
-		s.persistStateLocked()
-	}
 }
 
 // ManagedMediaEndpoint returns the currently exposed managed media loopback
@@ -176,30 +128,6 @@ func (s *Service) SetManagedSpeechEndpoint(endpoint string) {
 		return
 	}
 
-	updatedAt := nowISO()
-	changed := false
-	for localModelID, model := range s.models {
-		if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-			continue
-		}
-		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "speech") {
-			continue
-		}
-		if normalizeRuntimeMode(s.modelRuntimeModes[localModelID]) != runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED {
-			continue
-		}
-		if strings.TrimSpace(model.GetEndpoint()) == s.managedSpeechEndpointValue {
-			continue
-		}
-		cloned := cloneLocalModel(model)
-		cloned.Endpoint = s.managedSpeechEndpointValue
-		cloned.UpdatedAt = updatedAt
-		s.models[localModelID] = cloned
-		changed = true
-	}
-	if changed {
-		s.persistStateLocked()
-	}
 }
 
 // SetManagedMediaDiffusersBackendConfig records whether the managed diffusers image
@@ -304,9 +232,9 @@ func (s *Service) SyncManagedLlamaAssets(ctx context.Context) error {
 
 func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegistration, []byte, error) {
 	s.mu.RLock()
-	models := make([]*runtimev1.LocalModelRecord, 0, len(s.models))
-	for _, model := range s.models {
-		models = append(models, cloneLocalModel(model))
+	models := make([]*runtimev1.LocalAssetRecord, 0, len(s.assets))
+	for _, model := range s.assets {
+		models = append(models, cloneLocalAsset(model))
 	}
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
 	managed := s.managedLlamaEnabled
@@ -314,7 +242,7 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 	s.mu.RUnlock()
 
 	sort.Slice(models, func(i, j int) bool {
-		return models[i].GetLocalModelId() < models[j].GetLocalModelId()
+		return models[i].GetLocalAssetId() < models[j].GetLocalAssetId()
 	})
 
 	registrations := make(map[string]managedLlamaRegistration, len(models))
@@ -323,25 +251,23 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 		if model == nil {
 			continue
 		}
-		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
 		if !strings.EqualFold(strings.TrimSpace(model.GetEngine()), "llama") {
 			continue
 		}
-		if healedModel, _, err := s.healLegacyManagedLocalImportRecord(model.GetLocalModelId()); err != nil {
-			registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalModelId()), modelsPath, managed, imageBackendUp)
-			registration.Problem = managedLocalModelRecordFailureDetail(err)
-			registrations[model.GetLocalModelId()] = registration
+		if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(model.GetLocalAssetId())); err != nil {
+			registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalAssetId()), modelsPath, managed, imageBackendUp)
+			registration.Problem = managedLocalAssetRecordFailureDetail(err)
+			registrations[model.GetLocalAssetId()] = registration
 			continue
-		} else if healedModel != nil {
-			model = healedModel
 		}
 
-		registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalModelId()), modelsPath, managed, imageBackendUp)
-		registrations[model.GetLocalModelId()] = registration
+		registration := inspectManagedLlamaModelRegistration(model, s.modelRuntimeMode(model.GetLocalAssetId()), modelsPath, managed, imageBackendUp)
+		registrations[model.GetLocalAssetId()] = registration
 		if registration.Managed && strings.TrimSpace(registration.Problem) == "" {
-			candidateIndexes[registration.ExposedModelName] = append(candidateIndexes[registration.ExposedModelName], model.GetLocalModelId())
+			candidateIndexes[registration.ExposedModelName] = append(candidateIndexes[registration.ExposedModelName], model.GetLocalAssetId())
 		}
 	}
 
@@ -395,16 +321,16 @@ func (s *Service) buildManagedLlamaRegistrations() (map[string]managedLlamaRegis
 }
 
 func inspectManagedLlamaModelRegistration(
-	model *runtimev1.LocalModelRecord,
+	model *runtimev1.LocalAssetRecord,
 	mode runtimev1.LocalEngineRuntimeMode,
 	modelsPath string,
 	managed bool,
 	imageBackendUp bool,
 ) managedLlamaRegistration {
 	registration := managedLlamaRegistration{
-		LocalModelID:     strings.TrimSpace(model.GetLocalModelId()),
-		ModelID:          strings.TrimSpace(model.GetModelId()),
-		ExposedModelName: normalizeManagedModelRegistrationModelID(model.GetModelId()),
+		LocalModelID:     strings.TrimSpace(model.GetLocalAssetId()),
+		ModelID:          strings.TrimSpace(model.GetAssetId()),
+		ExposedModelName: normalizeManagedModelRegistrationModelID(model.GetAssetId()),
 		Managed:          managed && normalizeRuntimeMode(mode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 	}
 	if !registration.Managed {
@@ -558,38 +484,36 @@ func writeGeneratedLlamaConfigIfChanged(path string, rendered []byte) (bool, err
 	return true, nil
 }
 
-func (s *Service) managedLlamaRegistrationForModel(model *runtimev1.LocalModelRecord) managedLlamaRegistration {
+func (s *Service) managedLlamaRegistrationForModel(model *runtimev1.LocalAssetRecord) managedLlamaRegistration {
 	if model == nil {
 		return managedLlamaRegistration{}
 	}
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalModelId()); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalAssetId()); err != nil {
 		return managedLlamaRegistration{
-			LocalModelID: strings.TrimSpace(model.GetLocalModelId()),
-			ModelID:      strings.TrimSpace(model.GetModelId()),
+			LocalModelID: strings.TrimSpace(model.GetLocalAssetId()),
+			ModelID:      strings.TrimSpace(model.GetAssetId()),
 			Managed:      true,
-			Problem:      managedLocalModelRecordFailureDetail(err),
+			Problem:      managedLocalAssetRecordFailureDetail(err),
 		}
 	} else if healedModel != nil {
 		model = healedModel
 	}
-	if healedModel, _, err := s.healLegacyManagedLocalImportRecord(model.GetLocalModelId()); err != nil {
+	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(model.GetLocalAssetId())); err != nil {
 		return managedLlamaRegistration{
-			LocalModelID: strings.TrimSpace(model.GetLocalModelId()),
-			ModelID:      strings.TrimSpace(model.GetModelId()),
-			Managed:      normalizeRuntimeMode(s.modelRuntimeMode(model.GetLocalModelId())) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
-			Problem:      managedLocalModelRecordFailureDetail(err),
+			LocalModelID: strings.TrimSpace(model.GetLocalAssetId()),
+			ModelID:      strings.TrimSpace(model.GetAssetId()),
+			Managed:      normalizeRuntimeMode(s.modelRuntimeMode(model.GetLocalAssetId())) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
+			Problem:      managedLocalAssetRecordFailureDetail(err),
 		}
-	} else if healedModel != nil {
-		model = healedModel
 	}
 
-	localModelID := strings.TrimSpace(model.GetLocalModelId())
+	localModelID := strings.TrimSpace(model.GetLocalAssetId())
 	s.mu.RLock()
 	registration, ok := s.managedLlamaRegistrations[localModelID]
 	modelsPath := resolveLocalModelsPath(s.localModelsPath)
 	managed := s.managedLlamaEnabled
 	imageBackendUp := s.managedMediaBackendConfigured && s.managedMediaBackendHealthy
-	mode := s.modelRuntimeModes[localModelID]
+	mode := s.assetRuntimeModes[localModelID]
 	s.mu.RUnlock()
 	if ok && !registration.DynamicProfile {
 		return registration
@@ -597,7 +521,7 @@ func (s *Service) managedLlamaRegistrationForModel(model *runtimev1.LocalModelRe
 	return inspectManagedLlamaModelRegistration(model, mode, modelsPath, managed, imageBackendUp)
 }
 
-func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration managedLlamaRegistration) bool {
+func modelProbeSucceeded(model *runtimev1.LocalAssetRecord, probe endpointProbeResult, registration managedLlamaRegistration) bool {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
 		return managedLlamaModelProbeSucceeded(probe, registration)
@@ -607,7 +531,7 @@ func modelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeR
 	return probe.healthy
 }
 
-func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult, registration managedLlamaRegistration) string {
+func modelProbeFailureDetail(model *runtimev1.LocalAssetRecord, probe endpointProbeResult, registration managedLlamaRegistration) string {
 	switch strings.ToLower(strings.TrimSpace(model.GetEngine())) {
 	case "llama":
 		return managedLlamaModelProbeFailureDetail(probe, registration)
@@ -617,11 +541,11 @@ func modelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointPr
 	return defaultString(probe.detail, "model probe failed")
 }
 
-func mediaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
+func mediaModelProbeSucceeded(model *runtimev1.LocalAssetRecord, probe endpointProbeResult) bool {
 	if !probe.healthy {
 		return false
 	}
-	expectedModelName := strings.TrimSpace(model.GetModelId())
+	expectedModelName := strings.TrimSpace(model.GetAssetId())
 	if expectedModelName == "" || len(probe.models) == 0 {
 		return false
 	}
@@ -629,11 +553,11 @@ func mediaModelProbeSucceeded(model *runtimev1.LocalModelRecord, probe endpointP
 	return ok
 }
 
-func mediaModelProbeFailureDetail(model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
+func mediaModelProbeFailureDetail(model *runtimev1.LocalAssetRecord, probe endpointProbeResult) string {
 	if !probe.healthy {
 		return defaultString(probe.detail, "media model probe failed")
 	}
-	expectedModelName := strings.TrimSpace(model.GetModelId())
+	expectedModelName := strings.TrimSpace(model.GetAssetId())
 	if expectedModelName == "" {
 		return "media probe requires a model id"
 	}

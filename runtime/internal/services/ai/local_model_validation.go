@@ -17,13 +17,13 @@ import (
 )
 
 type localModelLister interface {
-	ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error)
-	WarmLocalModel(context.Context, *runtimev1.WarmLocalModelRequest) (*runtimev1.WarmLocalModelResponse, error)
+	ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error)
+	WarmLocalAsset(context.Context, *runtimev1.WarmLocalAssetRequest) (*runtimev1.WarmLocalAssetResponse, error)
 }
 
 type localImageProfileResolver interface {
 	ResolveManagedMediaImageProfile(context.Context, string, map[string]any) (string, map[string]any, map[string]any, error)
-	ResolveManagedArtifactPath(context.Context, string) (string, error)
+	ResolveManagedAssetPath(context.Context, string) (string, error)
 }
 
 type localModelSelector struct {
@@ -53,7 +53,7 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 		return nil
 	}
 
-	localModels, err := s.listAllLocalModels(ctx, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED)
+	localModels, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
@@ -75,9 +75,10 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 	if selected == nil {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	if selected.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
-		warmed, err := s.localModel.WarmLocalModel(ctx, &runtimev1.WarmLocalModelRequest{
-			LocalModelId: selected.GetLocalModelId(),
+	var warmEndpoint string
+	if selected.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		warmed, err := s.localModel.WarmLocalAsset(ctx, &runtimev1.WarmLocalAssetRequest{
+			LocalAssetId: selected.GetLocalAssetId(),
 		})
 		if err != nil {
 			return grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
@@ -85,41 +86,44 @@ func (s *Service) validateLocalModelRequest(ctx context.Context, requestedModelI
 				Message:    err.Error(),
 			})
 		}
-		selected.Status = runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
+		selected.Status = runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
 		if warmed != nil && strings.TrimSpace(warmed.GetEndpoint()) != "" {
-			selected.Endpoint = strings.TrimSpace(warmed.GetEndpoint())
+			warmEndpoint = strings.TrimSpace(warmed.GetEndpoint())
 		}
 	}
-	s.hydrateLocalProviderFromModel(selected)
+	s.hydrateLocalProviderFromModel(selected, warmEndpoint)
 	if modelRequiresInvokeProfile(selected) {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_PROFILE_MISSING)
 	}
 	return nil
 }
 
-func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalModelRecord) {
+func (s *Service) hydrateLocalProviderFromModel(model *runtimev1.LocalAssetRecord, endpointOverride string) {
 	if s == nil || model == nil {
 		return
 	}
 	switch model.GetStatus() {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
-		runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+		runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED:
 	default:
 		return
 	}
 	providerID := strings.ToLower(strings.TrimSpace(model.GetEngine()))
-	endpoint := strings.TrimSpace(model.GetEndpoint())
+	endpoint := strings.TrimSpace(endpointOverride)
+	if endpoint == "" {
+		endpoint = strings.TrimSpace(model.GetEndpoint())
+	}
 	if endpoint == "" || !localrouting.IsKnownProvider(providerID) {
 		return
 	}
 	s.SetLocalProviderEndpoint(providerID, endpoint, "")
 }
 
-func (s *Service) listAllLocalModels(ctx context.Context, statusFilter runtimev1.LocalModelStatus) ([]*runtimev1.LocalModelRecord, error) {
+func (s *Service) listAllLocalModels(ctx context.Context, statusFilter runtimev1.LocalAssetStatus) ([]*runtimev1.LocalAssetRecord, error) {
 	pageToken := ""
-	collected := make([]*runtimev1.LocalModelRecord, 0, 16)
+	collected := make([]*runtimev1.LocalAssetRecord, 0, 16)
 	for i := 0; i < 20; i++ {
-		resp, err := s.localModel.ListLocalModels(ctx, &runtimev1.ListLocalModelsRequest{
+		resp, err := s.localModel.ListLocalAssets(ctx, &runtimev1.ListLocalAssetsRequest{
 			StatusFilter: statusFilter,
 			PageSize:     100,
 			PageToken:    pageToken,
@@ -127,7 +131,7 @@ func (s *Service) listAllLocalModels(ctx context.Context, statusFilter runtimev1
 		if err != nil {
 			return nil, err
 		}
-		collected = append(collected, resp.GetModels()...)
+		collected = append(collected, resp.GetAssets()...)
 		pageToken = strings.TrimSpace(resp.GetNextPageToken())
 		if pageToken == "" {
 			break
@@ -136,8 +140,8 @@ func (s *Service) listAllLocalModels(ctx context.Context, statusFilter runtimev1
 	return collected, nil
 }
 
-func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalModelRecord, error) {
-	return s.listAllLocalModels(ctx, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE)
+func (s *Service) listAllActiveLocalModels(ctx context.Context) ([]*runtimev1.LocalAssetRecord, error) {
+	return s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE)
 }
 
 func parseLocalModelSelector(modelID string, modal runtimev1.Modal) localModelSelector {
@@ -166,14 +170,14 @@ func parseLocalModelSelector(modelID string, modal runtimev1.Modal) localModelSe
 	return selector
 }
 
-func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector localModelSelector) (*runtimev1.LocalModelRecord, runtimev1.ReasonCode) {
+func selectActiveLocalModel(models []*runtimev1.LocalAssetRecord, selector localModelSelector) (*runtimev1.LocalAssetRecord, runtimev1.ReasonCode) {
 	if explicitReason := unsupportedExplicitLocalEngineReason(selector); explicitReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return nil, explicitReason
 	}
 	expectedModelID := normalizeComparableModelID(selector.modelID)
-	candidates := make([]*runtimev1.LocalModelRecord, 0, len(models))
+	candidates := make([]*runtimev1.LocalAssetRecord, 0, len(models))
 	for _, model := range models {
-		if normalizeComparableModelID(model.GetModelId()) != expectedModelID {
+		if normalizeComparableModelID(model.GetAssetId()) != expectedModelID {
 			continue
 		}
 		candidates = append(candidates, model)
@@ -188,7 +192,7 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 		if pi != pj {
 			return pi < pj
 		}
-		return candidates[i].GetLocalModelId() < candidates[j].GetLocalModelId()
+		return candidates[i].GetLocalAssetId() < candidates[j].GetLocalAssetId()
 	})
 
 	if selector.explicitEngine != "" {
@@ -214,20 +218,20 @@ func selectActiveLocalModel(models []*runtimev1.LocalModelRecord, selector local
 	return candidates[0], runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
-func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector localModelSelector) (*runtimev1.LocalModelRecord, runtimev1.ReasonCode, string) {
+func selectRunnableLocalModel(models []*runtimev1.LocalAssetRecord, selector localModelSelector) (*runtimev1.LocalAssetRecord, runtimev1.ReasonCode, string) {
 	if explicitReason := unsupportedExplicitLocalEngineReason(selector); explicitReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return nil, explicitReason, ""
 	}
 	expectedModelID := normalizeComparableModelID(selector.modelID)
-	candidates := make([]*runtimev1.LocalModelRecord, 0, len(models))
+	candidates := make([]*runtimev1.LocalAssetRecord, 0, len(models))
 	for _, model := range models {
 		if model == nil {
 			continue
 		}
-		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if normalizeComparableModelID(model.GetModelId()) != expectedModelID {
+		if normalizeComparableModelID(model.GetAssetId()) != expectedModelID {
 			continue
 		}
 		candidates = append(candidates, model)
@@ -262,19 +266,19 @@ func selectRunnableLocalModel(models []*runtimev1.LocalModelRecord, selector loc
 	return nil, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, unavailableLocalModelDetail(candidates)
 }
 
-func firstRunnableLocalModel(models []*runtimev1.LocalModelRecord) *runtimev1.LocalModelRecord {
+func firstRunnableLocalModel(models []*runtimev1.LocalAssetRecord) *runtimev1.LocalAssetRecord {
 	for _, candidate := range models {
 		if candidate == nil {
 			continue
 		}
 		switch candidate.GetStatus() {
-		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
-			runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED:
+		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED:
 			return candidate
 		}
 	}
 	for _, candidate := range models {
-		if candidate != nil && candidate.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+		if candidate != nil && candidate.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 			return candidate
 		}
 	}
@@ -294,9 +298,9 @@ func unsupportedExplicitLocalEngineReason(selector localModelSelector) runtimev1
 	return runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
-func filterLocalModelsByEngine(models []*runtimev1.LocalModelRecord, engine string) []*runtimev1.LocalModelRecord {
+func filterLocalModelsByEngine(models []*runtimev1.LocalAssetRecord, engine string) []*runtimev1.LocalAssetRecord {
 	normalizedEngine := strings.TrimSpace(engine)
-	filtered := make([]*runtimev1.LocalModelRecord, 0, len(models))
+	filtered := make([]*runtimev1.LocalAssetRecord, 0, len(models))
 	for _, model := range models {
 		if strings.EqualFold(strings.TrimSpace(model.GetEngine()), normalizedEngine) {
 			filtered = append(filtered, model)
@@ -305,12 +309,12 @@ func filterLocalModelsByEngine(models []*runtimev1.LocalModelRecord, engine stri
 	return filtered
 }
 
-func firstActiveLocalModel(models []*runtimev1.LocalModelRecord) *runtimev1.LocalModelRecord {
-	active := make([]*runtimev1.LocalModelRecord, 0, len(models))
+func firstActiveLocalModel(models []*runtimev1.LocalAssetRecord) *runtimev1.LocalAssetRecord {
+	active := make([]*runtimev1.LocalAssetRecord, 0, len(models))
 	for _, model := range models {
 		switch model.GetStatus() {
-		case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
-			runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED:
+		case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
+			runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED:
 			active = append(active, model)
 		}
 	}
@@ -323,16 +327,16 @@ func firstActiveLocalModel(models []*runtimev1.LocalModelRecord) *runtimev1.Loca
 		if pi != pj {
 			return pi < pj
 		}
-		return active[i].GetLocalModelId() < active[j].GetLocalModelId()
+		return active[i].GetLocalAssetId() < active[j].GetLocalAssetId()
 	})
 	return active[0]
 }
 
-func unavailableLocalModelDetail(models []*runtimev1.LocalModelRecord) string {
+func unavailableLocalModelDetail(models []*runtimev1.LocalAssetRecord) string {
 	if len(models) == 0 {
 		return ""
 	}
-	sorted := append([]*runtimev1.LocalModelRecord(nil), models...)
+	sorted := append([]*runtimev1.LocalAssetRecord(nil), models...)
 	sort.Slice(sorted, func(i, j int) bool {
 		si := localUnavailableStatusPriority(sorted[i].GetStatus())
 		sj := localUnavailableStatusPriority(sorted[j].GetStatus())
@@ -344,37 +348,37 @@ func unavailableLocalModelDetail(models []*runtimev1.LocalModelRecord) string {
 		if pi != pj {
 			return pi < pj
 		}
-		return sorted[i].GetLocalModelId() < sorted[j].GetLocalModelId()
+		return sorted[i].GetLocalAssetId() < sorted[j].GetLocalAssetId()
 	})
 	selected := sorted[0]
 	if detail := strings.TrimSpace(selected.GetHealthDetail()); detail != "" {
 		return detail
 	}
-	return fmt.Sprintf("local model %q is %s", strings.TrimSpace(selected.GetModelId()), localModelStatusLabel(selected.GetStatus()))
+	return fmt.Sprintf("local model %q is %s", strings.TrimSpace(selected.GetAssetId()), localModelStatusLabel(selected.GetStatus()))
 }
 
-func localUnavailableStatusPriority(status runtimev1.LocalModelStatus) int {
+func localUnavailableStatusPriority(status runtimev1.LocalAssetStatus) int {
 	switch status {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		return 0
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
 		return 1
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		return 2
 	default:
 		return 3
 	}
 }
 
-func localModelStatusLabel(status runtimev1.LocalModelStatus) string {
+func localModelStatusLabel(status runtimev1.LocalAssetStatus) string {
 	switch status {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		return "active"
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
 		return "installed"
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		return "unhealthy"
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
 		return "removed"
 	default:
 		return strings.ToLower(strings.TrimSpace(status.String()))
@@ -412,7 +416,7 @@ func localRoutingCapabilityForModal(modal runtimev1.Modal) string {
 	}
 }
 
-func modelRequiresInvokeProfile(model *runtimev1.LocalModelRecord) bool {
+func modelRequiresInvokeProfile(model *runtimev1.LocalAssetRecord) bool {
 	if strings.TrimSpace(model.GetLocalInvokeProfileId()) != "" {
 		return false
 	}

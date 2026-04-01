@@ -19,33 +19,25 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeLocalService_ListLocalModels_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/ListLocalModels"
-	RuntimeLocalService_ListLocalArtifacts_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ListLocalArtifacts"
-	RuntimeLocalService_ListVerifiedModels_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedModels"
-	RuntimeLocalService_ListVerifiedArtifacts_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedArtifacts"
+	RuntimeLocalService_ListLocalAssets_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/ListLocalAssets"
+	RuntimeLocalService_ListVerifiedAssets_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets"
+	RuntimeLocalService_InstallVerifiedAsset_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedAsset"
+	RuntimeLocalService_ImportLocalAsset_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAsset"
+	RuntimeLocalService_ImportLocalAssetFile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalAssetFile"
+	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
+	RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanAsset"
+	RuntimeLocalService_RemoveLocalAsset_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalAsset"
 	RuntimeLocalService_SearchCatalogModels_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
 	RuntimeLocalService_ResolveModelInstallPlan_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan"
-	RuntimeLocalService_InstallLocalModel_FullMethodName       = "/nimi.runtime.v1.RuntimeLocalService/InstallLocalModel"
-	RuntimeLocalService_InstallVerifiedModel_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedModel"
-	RuntimeLocalService_InstallVerifiedArtifact_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/InstallVerifiedArtifact"
-	RuntimeLocalService_ImportLocalModel_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalModel"
-	RuntimeLocalService_ImportLocalArtifact_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalArtifact"
-	RuntimeLocalService_ImportLocalModelFile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalModelFile"
-	RuntimeLocalService_ImportLocalArtifactFile_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/ImportLocalArtifactFile"
-	RuntimeLocalService_ScanUnregisteredAssets_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ScanUnregisteredAssets"
-	RuntimeLocalService_ScaffoldOrphanModel_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanModel"
-	RuntimeLocalService_ScaffoldOrphanArtifact_FullMethodName  = "/nimi.runtime.v1.RuntimeLocalService/ScaffoldOrphanArtifact"
+	RuntimeLocalService_StartLocalAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/StartLocalAsset"
+	RuntimeLocalService_StopLocalAsset_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/StopLocalAsset"
+	RuntimeLocalService_CheckLocalAssetHealth_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalAssetHealth"
+	RuntimeLocalService_WarmLocalAsset_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalAsset"
 	RuntimeLocalService_ListLocalTransfers_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers"
 	RuntimeLocalService_PauseLocalTransfer_FullMethodName      = "/nimi.runtime.v1.RuntimeLocalService/PauseLocalTransfer"
 	RuntimeLocalService_ResumeLocalTransfer_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/ResumeLocalTransfer"
 	RuntimeLocalService_CancelLocalTransfer_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/CancelLocalTransfer"
 	RuntimeLocalService_WatchLocalTransfers_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers"
-	RuntimeLocalService_RemoveLocalModel_FullMethodName        = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalModel"
-	RuntimeLocalService_RemoveLocalArtifact_FullMethodName     = "/nimi.runtime.v1.RuntimeLocalService/RemoveLocalArtifact"
-	RuntimeLocalService_StartLocalModel_FullMethodName         = "/nimi.runtime.v1.RuntimeLocalService/StartLocalModel"
-	RuntimeLocalService_StopLocalModel_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/StopLocalModel"
-	RuntimeLocalService_CheckLocalModelHealth_FullMethodName   = "/nimi.runtime.v1.RuntimeLocalService/CheckLocalModelHealth"
-	RuntimeLocalService_WarmLocalModel_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/WarmLocalModel"
 	RuntimeLocalService_CollectDeviceProfile_FullMethodName    = "/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile"
 	RuntimeLocalService_ResolveProfile_FullMethodName          = "/nimi.runtime.v1.RuntimeLocalService/ResolveProfile"
 	RuntimeLocalService_ApplyProfile_FullMethodName            = "/nimi.runtime.v1.RuntimeLocalService/ApplyProfile"
@@ -70,43 +62,44 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeLocalServiceClient interface {
-	ListLocalModels(ctx context.Context, in *ListLocalModelsRequest, opts ...grpc.CallOption) (*ListLocalModelsResponse, error)
-	ListLocalArtifacts(ctx context.Context, in *ListLocalArtifactsRequest, opts ...grpc.CallOption) (*ListLocalArtifactsResponse, error)
-	ListVerifiedModels(ctx context.Context, in *ListVerifiedModelsRequest, opts ...grpc.CallOption) (*ListVerifiedModelsResponse, error)
-	ListVerifiedArtifacts(ctx context.Context, in *ListVerifiedArtifactsRequest, opts ...grpc.CallOption) (*ListVerifiedArtifactsResponse, error)
+	// Asset CRUD (unified)
+	ListLocalAssets(ctx context.Context, in *ListLocalAssetsRequest, opts ...grpc.CallOption) (*ListLocalAssetsResponse, error)
+	ListVerifiedAssets(ctx context.Context, in *ListVerifiedAssetsRequest, opts ...grpc.CallOption) (*ListVerifiedAssetsResponse, error)
+	InstallVerifiedAsset(ctx context.Context, in *InstallVerifiedAssetRequest, opts ...grpc.CallOption) (*InstallVerifiedAssetResponse, error)
+	ImportLocalAsset(ctx context.Context, in *ImportLocalAssetRequest, opts ...grpc.CallOption) (*ImportLocalAssetResponse, error)
+	ImportLocalAssetFile(ctx context.Context, in *ImportLocalAssetFileRequest, opts ...grpc.CallOption) (*ImportLocalAssetFileResponse, error)
+	ScanUnregisteredAssets(ctx context.Context, in *ScanUnregisteredAssetsRequest, opts ...grpc.CallOption) (*ScanUnregisteredAssetsResponse, error)
+	ScaffoldOrphanAsset(ctx context.Context, in *ScaffoldOrphanAssetRequest, opts ...grpc.CallOption) (*ScaffoldOrphanAssetResponse, error)
+	RemoveLocalAsset(ctx context.Context, in *RemoveLocalAssetRequest, opts ...grpc.CallOption) (*RemoveLocalAssetResponse, error)
+	// Catalog & Install
 	SearchCatalogModels(ctx context.Context, in *SearchCatalogModelsRequest, opts ...grpc.CallOption) (*SearchCatalogModelsResponse, error)
 	ResolveModelInstallPlan(ctx context.Context, in *ResolveModelInstallPlanRequest, opts ...grpc.CallOption) (*ResolveModelInstallPlanResponse, error)
-	InstallLocalModel(ctx context.Context, in *InstallLocalModelRequest, opts ...grpc.CallOption) (*InstallLocalModelResponse, error)
-	InstallVerifiedModel(ctx context.Context, in *InstallVerifiedModelRequest, opts ...grpc.CallOption) (*InstallVerifiedModelResponse, error)
-	InstallVerifiedArtifact(ctx context.Context, in *InstallVerifiedArtifactRequest, opts ...grpc.CallOption) (*InstallVerifiedArtifactResponse, error)
-	ImportLocalModel(ctx context.Context, in *ImportLocalModelRequest, opts ...grpc.CallOption) (*ImportLocalModelResponse, error)
-	ImportLocalArtifact(ctx context.Context, in *ImportLocalArtifactRequest, opts ...grpc.CallOption) (*ImportLocalArtifactResponse, error)
-	ImportLocalModelFile(ctx context.Context, in *ImportLocalModelFileRequest, opts ...grpc.CallOption) (*ImportLocalModelFileResponse, error)
-	ImportLocalArtifactFile(ctx context.Context, in *ImportLocalArtifactFileRequest, opts ...grpc.CallOption) (*ImportLocalArtifactFileResponse, error)
-	ScanUnregisteredAssets(ctx context.Context, in *ScanUnregisteredAssetsRequest, opts ...grpc.CallOption) (*ScanUnregisteredAssetsResponse, error)
-	ScaffoldOrphanModel(ctx context.Context, in *ScaffoldOrphanModelRequest, opts ...grpc.CallOption) (*ScaffoldOrphanModelResponse, error)
-	ScaffoldOrphanArtifact(ctx context.Context, in *ScaffoldOrphanArtifactRequest, opts ...grpc.CallOption) (*ScaffoldOrphanArtifactResponse, error)
+	// Asset lifecycle (runnable assets)
+	StartLocalAsset(ctx context.Context, in *StartLocalAssetRequest, opts ...grpc.CallOption) (*StartLocalAssetResponse, error)
+	StopLocalAsset(ctx context.Context, in *StopLocalAssetRequest, opts ...grpc.CallOption) (*StopLocalAssetResponse, error)
+	CheckLocalAssetHealth(ctx context.Context, in *CheckLocalAssetHealthRequest, opts ...grpc.CallOption) (*CheckLocalAssetHealthResponse, error)
+	WarmLocalAsset(ctx context.Context, in *WarmLocalAssetRequest, opts ...grpc.CallOption) (*WarmLocalAssetResponse, error)
+	// Transfers
 	ListLocalTransfers(ctx context.Context, in *ListLocalTransfersRequest, opts ...grpc.CallOption) (*ListLocalTransfersResponse, error)
 	PauseLocalTransfer(ctx context.Context, in *PauseLocalTransferRequest, opts ...grpc.CallOption) (*PauseLocalTransferResponse, error)
 	ResumeLocalTransfer(ctx context.Context, in *ResumeLocalTransferRequest, opts ...grpc.CallOption) (*ResumeLocalTransferResponse, error)
 	CancelLocalTransfer(ctx context.Context, in *CancelLocalTransferRequest, opts ...grpc.CallOption) (*CancelLocalTransferResponse, error)
 	WatchLocalTransfers(ctx context.Context, in *WatchLocalTransfersRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalTransferProgressEvent], error)
-	RemoveLocalModel(ctx context.Context, in *RemoveLocalModelRequest, opts ...grpc.CallOption) (*RemoveLocalModelResponse, error)
-	RemoveLocalArtifact(ctx context.Context, in *RemoveLocalArtifactRequest, opts ...grpc.CallOption) (*RemoveLocalArtifactResponse, error)
-	StartLocalModel(ctx context.Context, in *StartLocalModelRequest, opts ...grpc.CallOption) (*StartLocalModelResponse, error)
-	StopLocalModel(ctx context.Context, in *StopLocalModelRequest, opts ...grpc.CallOption) (*StopLocalModelResponse, error)
-	CheckLocalModelHealth(ctx context.Context, in *CheckLocalModelHealthRequest, opts ...grpc.CallOption) (*CheckLocalModelHealthResponse, error)
-	WarmLocalModel(ctx context.Context, in *WarmLocalModelRequest, opts ...grpc.CallOption) (*WarmLocalModelResponse, error)
+	// Device
 	CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error)
+	// Profile
 	ResolveProfile(ctx context.Context, in *ResolveProfileRequest, opts ...grpc.CallOption) (*ResolveProfileResponse, error)
 	ApplyProfile(ctx context.Context, in *ApplyProfileRequest, opts ...grpc.CallOption) (*ApplyProfileResponse, error)
+	// Services
 	ListLocalServices(ctx context.Context, in *ListLocalServicesRequest, opts ...grpc.CallOption) (*ListLocalServicesResponse, error)
 	InstallLocalService(ctx context.Context, in *InstallLocalServiceRequest, opts ...grpc.CallOption) (*InstallLocalServiceResponse, error)
 	StartLocalService(ctx context.Context, in *StartLocalServiceRequest, opts ...grpc.CallOption) (*StartLocalServiceResponse, error)
 	StopLocalService(ctx context.Context, in *StopLocalServiceRequest, opts ...grpc.CallOption) (*StopLocalServiceResponse, error)
 	CheckLocalServiceHealth(ctx context.Context, in *CheckLocalServiceHealthRequest, opts ...grpc.CallOption) (*CheckLocalServiceHealthResponse, error)
 	RemoveLocalService(ctx context.Context, in *RemoveLocalServiceRequest, opts ...grpc.CallOption) (*RemoveLocalServiceResponse, error)
+	// Nodes
 	ListNodeCatalog(ctx context.Context, in *ListNodeCatalogRequest, opts ...grpc.CallOption) (*ListNodeCatalogResponse, error)
+	// Audits
 	ListLocalAudits(ctx context.Context, in *ListLocalAuditsRequest, opts ...grpc.CallOption) (*ListLocalAuditsResponse, error)
 	AppendInferenceAudit(ctx context.Context, in *AppendInferenceAuditRequest, opts ...grpc.CallOption) (*Ack, error)
 	AppendRuntimeAudit(ctx context.Context, in *AppendRuntimeAuditRequest, opts ...grpc.CallOption) (*Ack, error)
@@ -126,40 +119,80 @@ func NewRuntimeLocalServiceClient(cc grpc.ClientConnInterface) RuntimeLocalServi
 	return &runtimeLocalServiceClient{cc}
 }
 
-func (c *runtimeLocalServiceClient) ListLocalModels(ctx context.Context, in *ListLocalModelsRequest, opts ...grpc.CallOption) (*ListLocalModelsResponse, error) {
+func (c *runtimeLocalServiceClient) ListLocalAssets(ctx context.Context, in *ListLocalAssetsRequest, opts ...grpc.CallOption) (*ListLocalAssetsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListLocalModelsResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ListLocalModels_FullMethodName, in, out, cOpts...)
+	out := new(ListLocalAssetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ListLocalAssets_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ListLocalArtifacts(ctx context.Context, in *ListLocalArtifactsRequest, opts ...grpc.CallOption) (*ListLocalArtifactsResponse, error) {
+func (c *runtimeLocalServiceClient) ListVerifiedAssets(ctx context.Context, in *ListVerifiedAssetsRequest, opts ...grpc.CallOption) (*ListVerifiedAssetsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListLocalArtifactsResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ListLocalArtifacts_FullMethodName, in, out, cOpts...)
+	out := new(ListVerifiedAssetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ListVerifiedAssets_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ListVerifiedModels(ctx context.Context, in *ListVerifiedModelsRequest, opts ...grpc.CallOption) (*ListVerifiedModelsResponse, error) {
+func (c *runtimeLocalServiceClient) InstallVerifiedAsset(ctx context.Context, in *InstallVerifiedAssetRequest, opts ...grpc.CallOption) (*InstallVerifiedAssetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListVerifiedModelsResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ListVerifiedModels_FullMethodName, in, out, cOpts...)
+	out := new(InstallVerifiedAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_InstallVerifiedAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ListVerifiedArtifacts(ctx context.Context, in *ListVerifiedArtifactsRequest, opts ...grpc.CallOption) (*ListVerifiedArtifactsResponse, error) {
+func (c *runtimeLocalServiceClient) ImportLocalAsset(ctx context.Context, in *ImportLocalAssetRequest, opts ...grpc.CallOption) (*ImportLocalAssetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListVerifiedArtifactsResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ListVerifiedArtifacts_FullMethodName, in, out, cOpts...)
+	out := new(ImportLocalAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ImportLocalAssetFile(ctx context.Context, in *ImportLocalAssetFileRequest, opts ...grpc.CallOption) (*ImportLocalAssetFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportLocalAssetFileResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalAssetFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ScanUnregisteredAssets(ctx context.Context, in *ScanUnregisteredAssetsRequest, opts ...grpc.CallOption) (*ScanUnregisteredAssetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScanUnregisteredAssetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ScanUnregisteredAssets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ScaffoldOrphanAsset(ctx context.Context, in *ScaffoldOrphanAssetRequest, opts ...grpc.CallOption) (*ScaffoldOrphanAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScaffoldOrphanAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) RemoveLocalAsset(ctx context.Context, in *RemoveLocalAssetRequest, opts ...grpc.CallOption) (*RemoveLocalAssetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveLocalAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_RemoveLocalAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -186,100 +219,40 @@ func (c *runtimeLocalServiceClient) ResolveModelInstallPlan(ctx context.Context,
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) InstallLocalModel(ctx context.Context, in *InstallLocalModelRequest, opts ...grpc.CallOption) (*InstallLocalModelResponse, error) {
+func (c *runtimeLocalServiceClient) StartLocalAsset(ctx context.Context, in *StartLocalAssetRequest, opts ...grpc.CallOption) (*StartLocalAssetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InstallLocalModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_InstallLocalModel_FullMethodName, in, out, cOpts...)
+	out := new(StartLocalAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_StartLocalAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) InstallVerifiedModel(ctx context.Context, in *InstallVerifiedModelRequest, opts ...grpc.CallOption) (*InstallVerifiedModelResponse, error) {
+func (c *runtimeLocalServiceClient) StopLocalAsset(ctx context.Context, in *StopLocalAssetRequest, opts ...grpc.CallOption) (*StopLocalAssetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InstallVerifiedModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_InstallVerifiedModel_FullMethodName, in, out, cOpts...)
+	out := new(StopLocalAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_StopLocalAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) InstallVerifiedArtifact(ctx context.Context, in *InstallVerifiedArtifactRequest, opts ...grpc.CallOption) (*InstallVerifiedArtifactResponse, error) {
+func (c *runtimeLocalServiceClient) CheckLocalAssetHealth(ctx context.Context, in *CheckLocalAssetHealthRequest, opts ...grpc.CallOption) (*CheckLocalAssetHealthResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InstallVerifiedArtifactResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_InstallVerifiedArtifact_FullMethodName, in, out, cOpts...)
+	out := new(CheckLocalAssetHealthResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_CheckLocalAssetHealth_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *runtimeLocalServiceClient) ImportLocalModel(ctx context.Context, in *ImportLocalModelRequest, opts ...grpc.CallOption) (*ImportLocalModelResponse, error) {
+func (c *runtimeLocalServiceClient) WarmLocalAsset(ctx context.Context, in *WarmLocalAssetRequest, opts ...grpc.CallOption) (*WarmLocalAssetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ImportLocalModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalModel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ImportLocalArtifact(ctx context.Context, in *ImportLocalArtifactRequest, opts ...grpc.CallOption) (*ImportLocalArtifactResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ImportLocalArtifactResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalArtifact_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ImportLocalModelFile(ctx context.Context, in *ImportLocalModelFileRequest, opts ...grpc.CallOption) (*ImportLocalModelFileResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ImportLocalModelFileResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalModelFile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ImportLocalArtifactFile(ctx context.Context, in *ImportLocalArtifactFileRequest, opts ...grpc.CallOption) (*ImportLocalArtifactFileResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ImportLocalArtifactFileResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ImportLocalArtifactFile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ScanUnregisteredAssets(ctx context.Context, in *ScanUnregisteredAssetsRequest, opts ...grpc.CallOption) (*ScanUnregisteredAssetsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ScanUnregisteredAssetsResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ScanUnregisteredAssets_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ScaffoldOrphanModel(ctx context.Context, in *ScaffoldOrphanModelRequest, opts ...grpc.CallOption) (*ScaffoldOrphanModelResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ScaffoldOrphanModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ScaffoldOrphanModel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) ScaffoldOrphanArtifact(ctx context.Context, in *ScaffoldOrphanArtifactRequest, opts ...grpc.CallOption) (*ScaffoldOrphanArtifactResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ScaffoldOrphanArtifactResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_ScaffoldOrphanArtifact_FullMethodName, in, out, cOpts...)
+	out := new(WarmLocalAssetResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_WarmLocalAsset_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -344,66 +317,6 @@ func (c *runtimeLocalServiceClient) WatchLocalTransfers(ctx context.Context, in 
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeLocalService_WatchLocalTransfersClient = grpc.ServerStreamingClient[LocalTransferProgressEvent]
-
-func (c *runtimeLocalServiceClient) RemoveLocalModel(ctx context.Context, in *RemoveLocalModelRequest, opts ...grpc.CallOption) (*RemoveLocalModelResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RemoveLocalModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_RemoveLocalModel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) RemoveLocalArtifact(ctx context.Context, in *RemoveLocalArtifactRequest, opts ...grpc.CallOption) (*RemoveLocalArtifactResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RemoveLocalArtifactResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_RemoveLocalArtifact_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) StartLocalModel(ctx context.Context, in *StartLocalModelRequest, opts ...grpc.CallOption) (*StartLocalModelResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StartLocalModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_StartLocalModel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) StopLocalModel(ctx context.Context, in *StopLocalModelRequest, opts ...grpc.CallOption) (*StopLocalModelResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StopLocalModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_StopLocalModel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) CheckLocalModelHealth(ctx context.Context, in *CheckLocalModelHealthRequest, opts ...grpc.CallOption) (*CheckLocalModelHealthResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CheckLocalModelHealthResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_CheckLocalModelHealth_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeLocalServiceClient) WarmLocalModel(ctx context.Context, in *WarmLocalModelRequest, opts ...grpc.CallOption) (*WarmLocalModelResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(WarmLocalModelResponse)
-	err := c.cc.Invoke(ctx, RuntimeLocalService_WarmLocalModel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
 func (c *runtimeLocalServiceClient) CollectDeviceProfile(ctx context.Context, in *CollectDeviceProfileRequest, opts ...grpc.CallOption) (*CollectDeviceProfileResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -589,43 +502,44 @@ func (c *runtimeLocalServiceClient) GetEngineStatus(ctx context.Context, in *Get
 // All implementations should embed UnimplementedRuntimeLocalServiceServer
 // for forward compatibility.
 type RuntimeLocalServiceServer interface {
-	ListLocalModels(context.Context, *ListLocalModelsRequest) (*ListLocalModelsResponse, error)
-	ListLocalArtifacts(context.Context, *ListLocalArtifactsRequest) (*ListLocalArtifactsResponse, error)
-	ListVerifiedModels(context.Context, *ListVerifiedModelsRequest) (*ListVerifiedModelsResponse, error)
-	ListVerifiedArtifacts(context.Context, *ListVerifiedArtifactsRequest) (*ListVerifiedArtifactsResponse, error)
+	// Asset CRUD (unified)
+	ListLocalAssets(context.Context, *ListLocalAssetsRequest) (*ListLocalAssetsResponse, error)
+	ListVerifiedAssets(context.Context, *ListVerifiedAssetsRequest) (*ListVerifiedAssetsResponse, error)
+	InstallVerifiedAsset(context.Context, *InstallVerifiedAssetRequest) (*InstallVerifiedAssetResponse, error)
+	ImportLocalAsset(context.Context, *ImportLocalAssetRequest) (*ImportLocalAssetResponse, error)
+	ImportLocalAssetFile(context.Context, *ImportLocalAssetFileRequest) (*ImportLocalAssetFileResponse, error)
+	ScanUnregisteredAssets(context.Context, *ScanUnregisteredAssetsRequest) (*ScanUnregisteredAssetsResponse, error)
+	ScaffoldOrphanAsset(context.Context, *ScaffoldOrphanAssetRequest) (*ScaffoldOrphanAssetResponse, error)
+	RemoveLocalAsset(context.Context, *RemoveLocalAssetRequest) (*RemoveLocalAssetResponse, error)
+	// Catalog & Install
 	SearchCatalogModels(context.Context, *SearchCatalogModelsRequest) (*SearchCatalogModelsResponse, error)
 	ResolveModelInstallPlan(context.Context, *ResolveModelInstallPlanRequest) (*ResolveModelInstallPlanResponse, error)
-	InstallLocalModel(context.Context, *InstallLocalModelRequest) (*InstallLocalModelResponse, error)
-	InstallVerifiedModel(context.Context, *InstallVerifiedModelRequest) (*InstallVerifiedModelResponse, error)
-	InstallVerifiedArtifact(context.Context, *InstallVerifiedArtifactRequest) (*InstallVerifiedArtifactResponse, error)
-	ImportLocalModel(context.Context, *ImportLocalModelRequest) (*ImportLocalModelResponse, error)
-	ImportLocalArtifact(context.Context, *ImportLocalArtifactRequest) (*ImportLocalArtifactResponse, error)
-	ImportLocalModelFile(context.Context, *ImportLocalModelFileRequest) (*ImportLocalModelFileResponse, error)
-	ImportLocalArtifactFile(context.Context, *ImportLocalArtifactFileRequest) (*ImportLocalArtifactFileResponse, error)
-	ScanUnregisteredAssets(context.Context, *ScanUnregisteredAssetsRequest) (*ScanUnregisteredAssetsResponse, error)
-	ScaffoldOrphanModel(context.Context, *ScaffoldOrphanModelRequest) (*ScaffoldOrphanModelResponse, error)
-	ScaffoldOrphanArtifact(context.Context, *ScaffoldOrphanArtifactRequest) (*ScaffoldOrphanArtifactResponse, error)
+	// Asset lifecycle (runnable assets)
+	StartLocalAsset(context.Context, *StartLocalAssetRequest) (*StartLocalAssetResponse, error)
+	StopLocalAsset(context.Context, *StopLocalAssetRequest) (*StopLocalAssetResponse, error)
+	CheckLocalAssetHealth(context.Context, *CheckLocalAssetHealthRequest) (*CheckLocalAssetHealthResponse, error)
+	WarmLocalAsset(context.Context, *WarmLocalAssetRequest) (*WarmLocalAssetResponse, error)
+	// Transfers
 	ListLocalTransfers(context.Context, *ListLocalTransfersRequest) (*ListLocalTransfersResponse, error)
 	PauseLocalTransfer(context.Context, *PauseLocalTransferRequest) (*PauseLocalTransferResponse, error)
 	ResumeLocalTransfer(context.Context, *ResumeLocalTransferRequest) (*ResumeLocalTransferResponse, error)
 	CancelLocalTransfer(context.Context, *CancelLocalTransferRequest) (*CancelLocalTransferResponse, error)
 	WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error
-	RemoveLocalModel(context.Context, *RemoveLocalModelRequest) (*RemoveLocalModelResponse, error)
-	RemoveLocalArtifact(context.Context, *RemoveLocalArtifactRequest) (*RemoveLocalArtifactResponse, error)
-	StartLocalModel(context.Context, *StartLocalModelRequest) (*StartLocalModelResponse, error)
-	StopLocalModel(context.Context, *StopLocalModelRequest) (*StopLocalModelResponse, error)
-	CheckLocalModelHealth(context.Context, *CheckLocalModelHealthRequest) (*CheckLocalModelHealthResponse, error)
-	WarmLocalModel(context.Context, *WarmLocalModelRequest) (*WarmLocalModelResponse, error)
+	// Device
 	CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error)
+	// Profile
 	ResolveProfile(context.Context, *ResolveProfileRequest) (*ResolveProfileResponse, error)
 	ApplyProfile(context.Context, *ApplyProfileRequest) (*ApplyProfileResponse, error)
+	// Services
 	ListLocalServices(context.Context, *ListLocalServicesRequest) (*ListLocalServicesResponse, error)
 	InstallLocalService(context.Context, *InstallLocalServiceRequest) (*InstallLocalServiceResponse, error)
 	StartLocalService(context.Context, *StartLocalServiceRequest) (*StartLocalServiceResponse, error)
 	StopLocalService(context.Context, *StopLocalServiceRequest) (*StopLocalServiceResponse, error)
 	CheckLocalServiceHealth(context.Context, *CheckLocalServiceHealthRequest) (*CheckLocalServiceHealthResponse, error)
 	RemoveLocalService(context.Context, *RemoveLocalServiceRequest) (*RemoveLocalServiceResponse, error)
+	// Nodes
 	ListNodeCatalog(context.Context, *ListNodeCatalogRequest) (*ListNodeCatalogResponse, error)
+	// Audits
 	ListLocalAudits(context.Context, *ListLocalAuditsRequest) (*ListLocalAuditsResponse, error)
 	AppendInferenceAudit(context.Context, *AppendInferenceAuditRequest) (*Ack, error)
 	AppendRuntimeAudit(context.Context, *AppendRuntimeAuditRequest) (*Ack, error)
@@ -644,17 +558,29 @@ type RuntimeLocalServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeLocalServiceServer struct{}
 
-func (UnimplementedRuntimeLocalServiceServer) ListLocalModels(context.Context, *ListLocalModelsRequest) (*ListLocalModelsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListLocalModels not implemented")
+func (UnimplementedRuntimeLocalServiceServer) ListLocalAssets(context.Context, *ListLocalAssetsRequest) (*ListLocalAssetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLocalAssets not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) ListLocalArtifacts(context.Context, *ListLocalArtifactsRequest) (*ListLocalArtifactsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListLocalArtifacts not implemented")
+func (UnimplementedRuntimeLocalServiceServer) ListVerifiedAssets(context.Context, *ListVerifiedAssetsRequest) (*ListVerifiedAssetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListVerifiedAssets not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) ListVerifiedModels(context.Context, *ListVerifiedModelsRequest) (*ListVerifiedModelsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListVerifiedModels not implemented")
+func (UnimplementedRuntimeLocalServiceServer) InstallVerifiedAsset(context.Context, *InstallVerifiedAssetRequest) (*InstallVerifiedAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InstallVerifiedAsset not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) ListVerifiedArtifacts(context.Context, *ListVerifiedArtifactsRequest) (*ListVerifiedArtifactsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListVerifiedArtifacts not implemented")
+func (UnimplementedRuntimeLocalServiceServer) ImportLocalAsset(context.Context, *ImportLocalAssetRequest) (*ImportLocalAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportLocalAsset not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ImportLocalAssetFile(context.Context, *ImportLocalAssetFileRequest) (*ImportLocalAssetFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportLocalAssetFile not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ScanUnregisteredAssets(context.Context, *ScanUnregisteredAssetsRequest) (*ScanUnregisteredAssetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ScanUnregisteredAssets not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ScaffoldOrphanAsset(context.Context, *ScaffoldOrphanAssetRequest) (*ScaffoldOrphanAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ScaffoldOrphanAsset not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) RemoveLocalAsset(context.Context, *RemoveLocalAssetRequest) (*RemoveLocalAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveLocalAsset not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) SearchCatalogModels(context.Context, *SearchCatalogModelsRequest) (*SearchCatalogModelsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SearchCatalogModels not implemented")
@@ -662,35 +588,17 @@ func (UnimplementedRuntimeLocalServiceServer) SearchCatalogModels(context.Contex
 func (UnimplementedRuntimeLocalServiceServer) ResolveModelInstallPlan(context.Context, *ResolveModelInstallPlanRequest) (*ResolveModelInstallPlanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveModelInstallPlan not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) InstallLocalModel(context.Context, *InstallLocalModelRequest) (*InstallLocalModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method InstallLocalModel not implemented")
+func (UnimplementedRuntimeLocalServiceServer) StartLocalAsset(context.Context, *StartLocalAssetRequest) (*StartLocalAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartLocalAsset not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) InstallVerifiedModel(context.Context, *InstallVerifiedModelRequest) (*InstallVerifiedModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method InstallVerifiedModel not implemented")
+func (UnimplementedRuntimeLocalServiceServer) StopLocalAsset(context.Context, *StopLocalAssetRequest) (*StopLocalAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StopLocalAsset not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) InstallVerifiedArtifact(context.Context, *InstallVerifiedArtifactRequest) (*InstallVerifiedArtifactResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method InstallVerifiedArtifact not implemented")
+func (UnimplementedRuntimeLocalServiceServer) CheckLocalAssetHealth(context.Context, *CheckLocalAssetHealthRequest) (*CheckLocalAssetHealthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CheckLocalAssetHealth not implemented")
 }
-func (UnimplementedRuntimeLocalServiceServer) ImportLocalModel(context.Context, *ImportLocalModelRequest) (*ImportLocalModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ImportLocalModel not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ImportLocalArtifact(context.Context, *ImportLocalArtifactRequest) (*ImportLocalArtifactResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ImportLocalArtifact not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ImportLocalModelFile(context.Context, *ImportLocalModelFileRequest) (*ImportLocalModelFileResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ImportLocalModelFile not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ImportLocalArtifactFile(context.Context, *ImportLocalArtifactFileRequest) (*ImportLocalArtifactFileResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ImportLocalArtifactFile not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ScanUnregisteredAssets(context.Context, *ScanUnregisteredAssetsRequest) (*ScanUnregisteredAssetsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ScanUnregisteredAssets not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ScaffoldOrphanModel(context.Context, *ScaffoldOrphanModelRequest) (*ScaffoldOrphanModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ScaffoldOrphanModel not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) ScaffoldOrphanArtifact(context.Context, *ScaffoldOrphanArtifactRequest) (*ScaffoldOrphanArtifactResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ScaffoldOrphanArtifact not implemented")
+func (UnimplementedRuntimeLocalServiceServer) WarmLocalAsset(context.Context, *WarmLocalAssetRequest) (*WarmLocalAssetResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WarmLocalAsset not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ListLocalTransfers(context.Context, *ListLocalTransfersRequest) (*ListLocalTransfersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalTransfers not implemented")
@@ -706,24 +614,6 @@ func (UnimplementedRuntimeLocalServiceServer) CancelLocalTransfer(context.Contex
 }
 func (UnimplementedRuntimeLocalServiceServer) WatchLocalTransfers(*WatchLocalTransfersRequest, grpc.ServerStreamingServer[LocalTransferProgressEvent]) error {
 	return status.Error(codes.Unimplemented, "method WatchLocalTransfers not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) RemoveLocalModel(context.Context, *RemoveLocalModelRequest) (*RemoveLocalModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RemoveLocalModel not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) RemoveLocalArtifact(context.Context, *RemoveLocalArtifactRequest) (*RemoveLocalArtifactResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RemoveLocalArtifact not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) StartLocalModel(context.Context, *StartLocalModelRequest) (*StartLocalModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method StartLocalModel not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) StopLocalModel(context.Context, *StopLocalModelRequest) (*StopLocalModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method StopLocalModel not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) CheckLocalModelHealth(context.Context, *CheckLocalModelHealthRequest) (*CheckLocalModelHealthResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CheckLocalModelHealth not implemented")
-}
-func (UnimplementedRuntimeLocalServiceServer) WarmLocalModel(context.Context, *WarmLocalModelRequest) (*WarmLocalModelResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method WarmLocalModel not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) CollectDeviceProfile(context.Context, *CollectDeviceProfileRequest) (*CollectDeviceProfileResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectDeviceProfile not implemented")
@@ -799,74 +689,146 @@ func RegisterRuntimeLocalServiceServer(s grpc.ServiceRegistrar, srv RuntimeLocal
 	s.RegisterService(&RuntimeLocalService_ServiceDesc, srv)
 }
 
-func _RuntimeLocalService_ListLocalModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListLocalModelsRequest)
+func _RuntimeLocalService_ListLocalAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLocalAssetsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ListLocalModels(ctx, in)
+		return srv.(RuntimeLocalServiceServer).ListLocalAssets(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ListLocalModels_FullMethodName,
+		FullMethod: RuntimeLocalService_ListLocalAssets_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ListLocalModels(ctx, req.(*ListLocalModelsRequest))
+		return srv.(RuntimeLocalServiceServer).ListLocalAssets(ctx, req.(*ListLocalAssetsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ListLocalArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListLocalArtifactsRequest)
+func _RuntimeLocalService_ListVerifiedAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListVerifiedAssetsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ListLocalArtifacts(ctx, in)
+		return srv.(RuntimeLocalServiceServer).ListVerifiedAssets(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ListLocalArtifacts_FullMethodName,
+		FullMethod: RuntimeLocalService_ListVerifiedAssets_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ListLocalArtifacts(ctx, req.(*ListLocalArtifactsRequest))
+		return srv.(RuntimeLocalServiceServer).ListVerifiedAssets(ctx, req.(*ListVerifiedAssetsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ListVerifiedModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListVerifiedModelsRequest)
+func _RuntimeLocalService_InstallVerifiedAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InstallVerifiedAssetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ListVerifiedModels(ctx, in)
+		return srv.(RuntimeLocalServiceServer).InstallVerifiedAsset(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ListVerifiedModels_FullMethodName,
+		FullMethod: RuntimeLocalService_InstallVerifiedAsset_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ListVerifiedModels(ctx, req.(*ListVerifiedModelsRequest))
+		return srv.(RuntimeLocalServiceServer).InstallVerifiedAsset(ctx, req.(*InstallVerifiedAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ListVerifiedArtifacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListVerifiedArtifactsRequest)
+func _RuntimeLocalService_ImportLocalAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportLocalAssetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ListVerifiedArtifacts(ctx, in)
+		return srv.(RuntimeLocalServiceServer).ImportLocalAsset(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ListVerifiedArtifacts_FullMethodName,
+		FullMethod: RuntimeLocalService_ImportLocalAsset_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ListVerifiedArtifacts(ctx, req.(*ListVerifiedArtifactsRequest))
+		return srv.(RuntimeLocalServiceServer).ImportLocalAsset(ctx, req.(*ImportLocalAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ImportLocalAssetFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportLocalAssetFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ImportLocalAssetFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ImportLocalAssetFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ImportLocalAssetFile(ctx, req.(*ImportLocalAssetFileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ScanUnregisteredAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScanUnregisteredAssetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ScanUnregisteredAssets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ScanUnregisteredAssets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ScanUnregisteredAssets(ctx, req.(*ScanUnregisteredAssetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ScaffoldOrphanAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScaffoldOrphanAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ScaffoldOrphanAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanAsset(ctx, req.(*ScaffoldOrphanAssetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_RemoveLocalAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveLocalAssetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).RemoveLocalAsset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_RemoveLocalAsset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).RemoveLocalAsset(ctx, req.(*RemoveLocalAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -907,182 +869,74 @@ func _RuntimeLocalService_ResolveModelInstallPlan_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_InstallLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InstallLocalModelRequest)
+func _RuntimeLocalService_StartLocalAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartLocalAssetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).InstallLocalModel(ctx, in)
+		return srv.(RuntimeLocalServiceServer).StartLocalAsset(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_InstallLocalModel_FullMethodName,
+		FullMethod: RuntimeLocalService_StartLocalAsset_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).InstallLocalModel(ctx, req.(*InstallLocalModelRequest))
+		return srv.(RuntimeLocalServiceServer).StartLocalAsset(ctx, req.(*StartLocalAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_InstallVerifiedModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InstallVerifiedModelRequest)
+func _RuntimeLocalService_StopLocalAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StopLocalAssetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).InstallVerifiedModel(ctx, in)
+		return srv.(RuntimeLocalServiceServer).StopLocalAsset(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_InstallVerifiedModel_FullMethodName,
+		FullMethod: RuntimeLocalService_StopLocalAsset_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).InstallVerifiedModel(ctx, req.(*InstallVerifiedModelRequest))
+		return srv.(RuntimeLocalServiceServer).StopLocalAsset(ctx, req.(*StopLocalAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_InstallVerifiedArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InstallVerifiedArtifactRequest)
+func _RuntimeLocalService_CheckLocalAssetHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckLocalAssetHealthRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).InstallVerifiedArtifact(ctx, in)
+		return srv.(RuntimeLocalServiceServer).CheckLocalAssetHealth(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_InstallVerifiedArtifact_FullMethodName,
+		FullMethod: RuntimeLocalService_CheckLocalAssetHealth_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).InstallVerifiedArtifact(ctx, req.(*InstallVerifiedArtifactRequest))
+		return srv.(RuntimeLocalServiceServer).CheckLocalAssetHealth(ctx, req.(*CheckLocalAssetHealthRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeLocalService_ImportLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ImportLocalModelRequest)
+func _RuntimeLocalService_WarmLocalAsset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WarmLocalAssetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ImportLocalModel(ctx, in)
+		return srv.(RuntimeLocalServiceServer).WarmLocalAsset(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RuntimeLocalService_ImportLocalModel_FullMethodName,
+		FullMethod: RuntimeLocalService_WarmLocalAsset_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ImportLocalModel(ctx, req.(*ImportLocalModelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ImportLocalArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ImportLocalArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ImportLocalArtifact(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ImportLocalArtifact_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ImportLocalArtifact(ctx, req.(*ImportLocalArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ImportLocalModelFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ImportLocalModelFileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ImportLocalModelFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ImportLocalModelFile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ImportLocalModelFile(ctx, req.(*ImportLocalModelFileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ImportLocalArtifactFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ImportLocalArtifactFileRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ImportLocalArtifactFile(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ImportLocalArtifactFile_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ImportLocalArtifactFile(ctx, req.(*ImportLocalArtifactFileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ScanUnregisteredAssets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ScanUnregisteredAssetsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ScanUnregisteredAssets(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ScanUnregisteredAssets_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ScanUnregisteredAssets(ctx, req.(*ScanUnregisteredAssetsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ScaffoldOrphanModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ScaffoldOrphanModelRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanModel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ScaffoldOrphanModel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanModel(ctx, req.(*ScaffoldOrphanModelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_ScaffoldOrphanArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ScaffoldOrphanArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanArtifact(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_ScaffoldOrphanArtifact_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).ScaffoldOrphanArtifact(ctx, req.(*ScaffoldOrphanArtifactRequest))
+		return srv.(RuntimeLocalServiceServer).WarmLocalAsset(ctx, req.(*WarmLocalAssetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1169,114 +1023,6 @@ func _RuntimeLocalService_WatchLocalTransfers_Handler(srv interface{}, stream gr
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeLocalService_WatchLocalTransfersServer = grpc.ServerStreamingServer[LocalTransferProgressEvent]
-
-func _RuntimeLocalService_RemoveLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveLocalModelRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).RemoveLocalModel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_RemoveLocalModel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).RemoveLocalModel(ctx, req.(*RemoveLocalModelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_RemoveLocalArtifact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveLocalArtifactRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).RemoveLocalArtifact(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_RemoveLocalArtifact_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).RemoveLocalArtifact(ctx, req.(*RemoveLocalArtifactRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_StartLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StartLocalModelRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).StartLocalModel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_StartLocalModel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).StartLocalModel(ctx, req.(*StartLocalModelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_StopLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StopLocalModelRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).StopLocalModel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_StopLocalModel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).StopLocalModel(ctx, req.(*StopLocalModelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_CheckLocalModelHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckLocalModelHealthRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).CheckLocalModelHealth(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_CheckLocalModelHealth_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).CheckLocalModelHealth(ctx, req.(*CheckLocalModelHealthRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeLocalService_WarmLocalModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(WarmLocalModelRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeLocalServiceServer).WarmLocalModel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeLocalService_WarmLocalModel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeLocalServiceServer).WarmLocalModel(ctx, req.(*WarmLocalModelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
 
 func _RuntimeLocalService_CollectDeviceProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CollectDeviceProfileRequest)
@@ -1610,20 +1356,36 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RuntimeLocalServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListLocalModels",
-			Handler:    _RuntimeLocalService_ListLocalModels_Handler,
+			MethodName: "ListLocalAssets",
+			Handler:    _RuntimeLocalService_ListLocalAssets_Handler,
 		},
 		{
-			MethodName: "ListLocalArtifacts",
-			Handler:    _RuntimeLocalService_ListLocalArtifacts_Handler,
+			MethodName: "ListVerifiedAssets",
+			Handler:    _RuntimeLocalService_ListVerifiedAssets_Handler,
 		},
 		{
-			MethodName: "ListVerifiedModels",
-			Handler:    _RuntimeLocalService_ListVerifiedModels_Handler,
+			MethodName: "InstallVerifiedAsset",
+			Handler:    _RuntimeLocalService_InstallVerifiedAsset_Handler,
 		},
 		{
-			MethodName: "ListVerifiedArtifacts",
-			Handler:    _RuntimeLocalService_ListVerifiedArtifacts_Handler,
+			MethodName: "ImportLocalAsset",
+			Handler:    _RuntimeLocalService_ImportLocalAsset_Handler,
+		},
+		{
+			MethodName: "ImportLocalAssetFile",
+			Handler:    _RuntimeLocalService_ImportLocalAssetFile_Handler,
+		},
+		{
+			MethodName: "ScanUnregisteredAssets",
+			Handler:    _RuntimeLocalService_ScanUnregisteredAssets_Handler,
+		},
+		{
+			MethodName: "ScaffoldOrphanAsset",
+			Handler:    _RuntimeLocalService_ScaffoldOrphanAsset_Handler,
+		},
+		{
+			MethodName: "RemoveLocalAsset",
+			Handler:    _RuntimeLocalService_RemoveLocalAsset_Handler,
 		},
 		{
 			MethodName: "SearchCatalogModels",
@@ -1634,44 +1396,20 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeLocalService_ResolveModelInstallPlan_Handler,
 		},
 		{
-			MethodName: "InstallLocalModel",
-			Handler:    _RuntimeLocalService_InstallLocalModel_Handler,
+			MethodName: "StartLocalAsset",
+			Handler:    _RuntimeLocalService_StartLocalAsset_Handler,
 		},
 		{
-			MethodName: "InstallVerifiedModel",
-			Handler:    _RuntimeLocalService_InstallVerifiedModel_Handler,
+			MethodName: "StopLocalAsset",
+			Handler:    _RuntimeLocalService_StopLocalAsset_Handler,
 		},
 		{
-			MethodName: "InstallVerifiedArtifact",
-			Handler:    _RuntimeLocalService_InstallVerifiedArtifact_Handler,
+			MethodName: "CheckLocalAssetHealth",
+			Handler:    _RuntimeLocalService_CheckLocalAssetHealth_Handler,
 		},
 		{
-			MethodName: "ImportLocalModel",
-			Handler:    _RuntimeLocalService_ImportLocalModel_Handler,
-		},
-		{
-			MethodName: "ImportLocalArtifact",
-			Handler:    _RuntimeLocalService_ImportLocalArtifact_Handler,
-		},
-		{
-			MethodName: "ImportLocalModelFile",
-			Handler:    _RuntimeLocalService_ImportLocalModelFile_Handler,
-		},
-		{
-			MethodName: "ImportLocalArtifactFile",
-			Handler:    _RuntimeLocalService_ImportLocalArtifactFile_Handler,
-		},
-		{
-			MethodName: "ScanUnregisteredAssets",
-			Handler:    _RuntimeLocalService_ScanUnregisteredAssets_Handler,
-		},
-		{
-			MethodName: "ScaffoldOrphanModel",
-			Handler:    _RuntimeLocalService_ScaffoldOrphanModel_Handler,
-		},
-		{
-			MethodName: "ScaffoldOrphanArtifact",
-			Handler:    _RuntimeLocalService_ScaffoldOrphanArtifact_Handler,
+			MethodName: "WarmLocalAsset",
+			Handler:    _RuntimeLocalService_WarmLocalAsset_Handler,
 		},
 		{
 			MethodName: "ListLocalTransfers",
@@ -1688,30 +1426,6 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelLocalTransfer",
 			Handler:    _RuntimeLocalService_CancelLocalTransfer_Handler,
-		},
-		{
-			MethodName: "RemoveLocalModel",
-			Handler:    _RuntimeLocalService_RemoveLocalModel_Handler,
-		},
-		{
-			MethodName: "RemoveLocalArtifact",
-			Handler:    _RuntimeLocalService_RemoveLocalArtifact_Handler,
-		},
-		{
-			MethodName: "StartLocalModel",
-			Handler:    _RuntimeLocalService_StartLocalModel_Handler,
-		},
-		{
-			MethodName: "StopLocalModel",
-			Handler:    _RuntimeLocalService_StopLocalModel_Handler,
-		},
-		{
-			MethodName: "CheckLocalModelHealth",
-			Handler:    _RuntimeLocalService_CheckLocalModelHealth_Handler,
-		},
-		{
-			MethodName: "WarmLocalModel",
-			Handler:    _RuntimeLocalService_WarmLocalModel_Handler,
 		},
 		{
 			MethodName: "CollectDeviceProfile",

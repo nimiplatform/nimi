@@ -31,7 +31,7 @@ type NativeProjection struct {
 const (
 	maxResolvedBundleSearchDepth   = 8
 	maxResolvedBundleManifestReads = 256
-	resolvedBundleManifestFileName = "manifest.json"
+	resolvedBundleManifestFileName = "asset.manifest.json"
 )
 
 type resolvedBundleManifestIndex struct {
@@ -71,6 +71,7 @@ func InferNativeProjection(modelID string, capabilities []string, files []string
 type resolvedBundleManifest struct {
 	LogicalModelID   string                           `json:"logical_model_id"`
 	ModelID          string                           `json:"model_id"`
+	AssetID          string                           `json:"asset_id"`
 	Family           string                           `json:"family"`
 	Capabilities     []string                         `json:"capabilities"`
 	ArtifactRoles    []string                         `json:"artifact_roles"`
@@ -82,6 +83,7 @@ type resolvedBundleManifest struct {
 type resolvedBundleManifestDisk struct {
 	LogicalModelID   string         `json:"logical_model_id"`
 	ModelID          string         `json:"model_id"`
+	AssetID          string         `json:"asset_id"`
 	Family           string         `json:"family"`
 	Capabilities     []string       `json:"capabilities"`
 	ArtifactRoles    []string       `json:"artifact_roles"`
@@ -107,7 +109,7 @@ func loadResolvedBundleProjection(modelID string, status runtimev1.ModelStatus) 
 		return NativeProjection{}, false, fmt.Errorf("parse resolved manifest %q: %w", manifestPath, err)
 	}
 	projection := NativeProjection{
-		LogicalModelID:   firstNonEmpty(disk.LogicalModelID, disk.ModelID, modelID),
+		LogicalModelID:   firstNonEmpty(disk.LogicalModelID, disk.AssetID, disk.ModelID, modelID),
 		Family:           firstNonEmpty(disk.Family, inferModelFamily(modelID)),
 		ArtifactRoles:    normalizeStrings(disk.ArtifactRoles),
 		PreferredEngine:  firstNonEmpty(disk.PreferredEngine, inferPreferredEngine(disk.Capabilities)),
@@ -176,10 +178,10 @@ func resolvedBundleManifestCandidates(resolvedRoot string, modelID string) []str
 		}
 		candidates = append(candidates, candidate)
 	}
-	add(filepath.FromSlash(normalized), "manifest.json")
+	add(filepath.FromSlash(normalized), "asset.manifest.json")
 	if trimmed, ok := trimPublicLocalPrefix(normalized); ok {
-		add(filepath.FromSlash(trimmed), "manifest.json")
-		add("nimi", filepath.FromSlash(trimmed), "manifest.json")
+		add(filepath.FromSlash(trimmed), "asset.manifest.json")
+		add("nimi", filepath.FromSlash(trimmed), "asset.manifest.json")
 	}
 	return candidates
 }
@@ -308,6 +310,7 @@ func buildResolvedBundleManifestIndex(resolvedRoot string, rootModTime time.Time
 			return fmt.Errorf("parse resolved manifest %q: %w", path, jsonErr)
 		}
 		for _, comparableID := range []string{
+			comparableResolvedModelID(disk.AssetID),
 			comparableResolvedModelID(disk.ModelID),
 			comparableResolvedModelID(disk.LogicalModelID),
 		} {

@@ -162,7 +162,7 @@ func localTextGenerateCapabilityAliases(capability string) []string {
 	}
 }
 
-func localModelSupportsTextGenerateCapability(model *runtimev1.LocalModelRecord, capability string) bool {
+func localModelSupportsTextGenerateCapability(model *runtimev1.LocalAssetRecord, capability string) bool {
 	if model == nil {
 		return false
 	}
@@ -181,7 +181,7 @@ func localModelSupportsTextGenerateCapability(model *runtimev1.LocalModelRecord,
 			}
 		}
 	}
-	modelID := strings.ToLower(strings.TrimSpace(model.GetModelId()))
+	modelID := strings.ToLower(strings.TrimSpace(model.GetAssetId()))
 	if strings.Contains(modelID, "omni") {
 		return capability == aicapabilities.TextGenerateVision ||
 			capability == aicapabilities.TextGenerateAudio ||
@@ -199,7 +199,7 @@ func (s *Service) validateLocalTextGenerateInputCapabilities(
 	if len(required) == 0 || s == nil || s.localModel == nil {
 		return nil
 	}
-	models, err := s.listAllLocalModels(ctx, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED)
+	models, err := s.listAllLocalModels(ctx, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED)
 	if err != nil {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}

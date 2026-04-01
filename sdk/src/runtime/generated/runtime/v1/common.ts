@@ -397,6 +397,18 @@ export enum ReasonCode {
      */
     AI_LOCAL_SERVICE_INVALID_TRANSITION = 366,
     /**
+     * @generated from protobuf enum value: AI_LOCAL_ASSET_ALREADY_INSTALLED = 367;
+     */
+    AI_LOCAL_ASSET_ALREADY_INSTALLED = 367,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_ASSET_SLOT_MISSING = 368;
+     */
+    AI_LOCAL_ASSET_SLOT_MISSING = 368,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_ASSET_SLOT_FORBIDDEN = 369;
+     */
+    AI_LOCAL_ASSET_SLOT_FORBIDDEN = 369,
+    /**
      * FINISH family (370+)
      *
      * @generated from protobuf enum value: AI_FINISH_LENGTH = 370;
@@ -406,6 +418,14 @@ export enum ReasonCode {
      * @generated from protobuf enum value: AI_FINISH_CONTENT_FILTER = 371;
      */
     AI_FINISH_CONTENT_FILTER = 371,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_PROFILE_SLOT_CONFLICT = 376;
+     */
+    AI_LOCAL_PROFILE_SLOT_CONFLICT = 376,
+    /**
+     * @generated from protobuf enum value: AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN = 377;
+     */
+    AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN = 377,
     /**
      * MODEL_ROUTE family (380+)
      *

@@ -413,7 +413,7 @@ func TestStartSupervisedEnginesEnablesManagedLlamaControlPlaneWithoutStartupBoot
 	if err := os.WriteFile(entryPath, []byte("GGUFtest"), 0o644); err != nil {
 		t.Fatalf("write model entry: %v", err)
 	}
-	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "manifest.json")
+	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", "local-import-qwen3-4b-q4-k-m", "asset.manifest.json")
 	manifestRaw, err := json.Marshal(map[string]any{
 		"model_id":         "local-import/Qwen3-4B-Q4_K_M",
 		"logical_model_id": "nimi/local-import-qwen3-4b-q4-k-m",
@@ -429,11 +429,12 @@ func TestStartSupervisedEnginesEnablesManagedLlamaControlPlaneWithoutStartupBoot
 		t.Fatalf("write manifest: %v", err)
 	}
 	stateRaw, err := json.Marshal(map[string]any{
-		"schemaVersion": 1,
+		"schemaVersion": 2,
 		"savedAt":       time.Now().UTC().Format(time.RFC3339Nano),
-		"models": []map[string]any{{
-			"localModelId":      "01KMWJ7Z76YY5QA4QJ35M5ECXM",
-			"modelId":           "local/local-import/Qwen3-4B-Q4_K_M",
+		"assets": []map[string]any{{
+			"localAssetId":      "01KMWJ7Z76YY5QA4QJ35M5ECXM",
+			"assetId":           "local/local-import/Qwen3-4B-Q4_K_M",
+			"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT),
 			"capabilities":      []string{"chat"},
 			"engine":            "llama",
 			"entry":             "Qwen3-4B-Q4_K_M.gguf",
@@ -447,7 +448,6 @@ func TestStartSupervisedEnginesEnablesManagedLlamaControlPlaneWithoutStartupBoot
 			"engineRuntimeMode": 1,
 			"logicalModelId":    "nimi/local-import-qwen3-4b-q4-k-m",
 		}},
-		"artifacts": []map[string]any{},
 		"services":  []map[string]any{},
 		"transfers": []map[string]any{},
 		"audits":    []map[string]any{},
@@ -565,12 +565,13 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	localModelID := "model_bootstrap_sync_fail"
 	now := time.Now().UTC().Format(time.RFC3339)
 	stateRaw, err := json.Marshal(map[string]any{
-		"schemaVersion": 1,
+		"schemaVersion": 2,
 		"savedAt":       now,
-		"models": []map[string]any{
+		"assets": []map[string]any{
 			{
-				"localModelId":      localModelID,
-				"modelId":           "local/bootstrap-sync-fail",
+				"localAssetId":      localModelID,
+				"assetId":           "local/bootstrap-sync-fail",
+				"kind":              int32(runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT),
 				"capabilities":      []string{"chat"},
 				"engine":            "llama",
 				"entry":             "./weights/model.gguf",
@@ -579,13 +580,12 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 				"sourceRevision":    "main",
 				"hashes":            map[string]string{},
 				"endpoint":          "",
-				"status":            int32(runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED),
+				"status":            int32(runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED),
 				"installedAt":       now,
 				"updatedAt":         now,
 				"engineRuntimeMode": int32(runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED),
 			},
 		},
-		"artifacts": []map[string]any{},
 		"services":  []map[string]any{},
 		"audits":    []map[string]any{},
 	})
@@ -627,7 +627,7 @@ func TestStartSupervisedEnginesSkipsManagedLlamaBootstrapWhenAssetSyncFails(t *t
 	if err := os.WriteFile(entryPath, []byte("test-model"), 0o644); err != nil {
 		t.Fatalf("write entry file: %v", err)
 	}
-	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", modelSlug, "manifest.json")
+	manifestPath := filepath.Join(localModelsPath, "resolved", "nimi", modelSlug, "asset.manifest.json")
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		t.Fatalf("create manifest dir: %v", err)
 	}

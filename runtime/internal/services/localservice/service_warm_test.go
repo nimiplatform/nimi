@@ -32,18 +32,18 @@ func TestWarmLocalModelLoadsOnceAndCachesReadyState(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestServiceWithProbe(t, nil)
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/qwen",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     server.URL + "/v1",
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/qwen",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     server.URL + "/v1",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
 
-	first, err := svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	first, err := svc.WarmLocalAsset(context.Background(), &runtimev1.WarmLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 		TimeoutMs:    60_000,
 	})
 	if err != nil {
@@ -56,13 +56,13 @@ func TestWarmLocalModelLoadsOnceAndCachesReadyState(t *testing.T) {
 		t.Fatalf("unexpected resolved model id: %q", first.GetModelResolved())
 	}
 
-	model := svc.modelByID(installed.GetModel().GetLocalModelId())
-	if model == nil || model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+	model := svc.modelByID(installed.GetLocalAssetId())
+	if model == nil || model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("warm should promote model to ACTIVE, got %#v", model)
 	}
 
-	second, err := svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	second, err := svc.WarmLocalAsset(context.Background(), &runtimev1.WarmLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 		TimeoutMs:    60_000,
 	})
 	if err != nil {
@@ -78,14 +78,14 @@ func TestWarmLocalModelLoadsOnceAndCachesReadyState(t *testing.T) {
 
 func TestWarmLocalModelRejectsUnsupportedCapability(t *testing.T) {
 	svc := newTestService(t)
-	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/image-only",
-		Capabilities: []string{"image"},
-		Engine:       "llama",
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/image-only",
+		capabilities: []string{"image"},
+		engine:       "llama",
 	})
 
-	_, err := svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	_, err := svc.WarmLocalAsset(context.Background(), &runtimev1.WarmLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err == nil {
 		t.Fatalf("expected warm to reject non-chat model")
@@ -115,18 +115,18 @@ func TestWarmLocalModelInstalledProbeFailureReturnsUnavailableWithoutInvalidTran
 	defer server.Close()
 
 	svc := newTestServiceWithProbe(t, nil)
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/qwen",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     server.URL + "/v1",
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/qwen",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     server.URL + "/v1",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
 
-	_, err = svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	_, err = svc.WarmLocalAsset(context.Background(), &runtimev1.WarmLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 		TimeoutMs:    60_000,
 	})
 	if err == nil {
@@ -136,11 +136,11 @@ func TestWarmLocalModelInstalledProbeFailureReturnsUnavailableWithoutInvalidTran
 		t.Fatalf("unexpected reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 
-	model := svc.modelByID(installed.GetModel().GetLocalModelId())
+	model := svc.modelByID(installed.GetLocalAssetId())
 	if model == nil {
 		t.Fatalf("expected model record to remain available")
 	}
-	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("installed model should stay INSTALLED after warm probe failure, got %v", model.GetStatus())
 	}
 	if model.GetHealthDetail() == "" {
@@ -156,24 +156,24 @@ func TestWarmLocalModelUnhealthyProbeFailureReturnsUnavailableWithoutInvalidTran
 			probeURL: endpoint,
 		}
 	})
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/qwen",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     "http://127.0.0.1:1234/v1",
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/qwen",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "http://127.0.0.1:1234/v1",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
-	if _, err := svc.updateModelStatus(installed.GetModel().GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+	if _, err := svc.updateModelStatus(installed.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
 		t.Fatalf("promote model active: %v", err)
 	}
-	if _, err := svc.updateModelStatus(installed.GetModel().GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, "probe failed"); err != nil {
+	if _, err := svc.updateModelStatus(installed.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "probe failed"); err != nil {
 		t.Fatalf("mark model unhealthy: %v", err)
 	}
 
-	_, err = svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	_, err = svc.WarmLocalAsset(context.Background(), &runtimev1.WarmLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 		TimeoutMs:    200,
 	})
 	if err == nil {
@@ -183,11 +183,11 @@ func TestWarmLocalModelUnhealthyProbeFailureReturnsUnavailableWithoutInvalidTran
 		t.Fatalf("unexpected reason mismatch: got=%v ok=%v want=%v", reason, ok, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 
-	model := svc.modelByID(installed.GetModel().GetLocalModelId())
+	model := svc.modelByID(installed.GetLocalAssetId())
 	if model == nil {
 		t.Fatalf("expected model record to remain available")
 	}
-	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 		t.Fatalf("unhealthy model should stay UNHEALTHY after repeated warm probe failure, got %v", model.GetStatus())
 	}
 	if model.GetHealthDetail() == "" {
@@ -226,19 +226,19 @@ func TestWarmLocalModelRetriesManagedProbeUntilReady(t *testing.T) {
 			models:   []string{"qwen"},
 		}
 	})
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/qwen",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     server.URL + "/v1",
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/qwen",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     server.URL + "/v1",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
 
 	startedAt := time.Now()
-	resp, err := svc.WarmLocalModel(context.Background(), &runtimev1.WarmLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	resp, err := svc.WarmLocalAsset(context.Background(), &runtimev1.WarmLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 		TimeoutMs:    5_000,
 	})
 	if err != nil {

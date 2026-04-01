@@ -60,23 +60,18 @@ groups:
     status: active
     source_kernel_table: spec/runtime/kernel/tables/rpc-methods.yaml
     methods:
-      - ListLocalModels
-      - ListLocalArtifacts
-      - InstallLocalModel
-      - InstallVerifiedArtifact
-      - RemoveLocalModel
-      - RemoveLocalArtifact
-      - StartLocalModel
-      - StopLocalModel
-      - CheckLocalModelHealth
-      - WarmLocalModel
-      - ListVerifiedModels
-      - ListVerifiedArtifacts
+      - ListLocalAssets
+      - RemoveLocalAsset
+      - StartLocalAsset
+      - StopLocalAsset
+      - CheckLocalAssetHealth
+      - WarmLocalAsset
+      - ListVerifiedAssets
       - SearchCatalogModels
       - ResolveModelInstallPlan
-      - InstallVerifiedModel
-      - ImportLocalModel
-      - ImportLocalArtifact
+      - InstallVerifiedAsset
+      - ImportLocalAsset
+      - ImportLocalAssetFile
       - CollectDeviceProfile
       - ListLocalServices
       - InstallLocalService
@@ -85,6 +80,8 @@ groups:
       - CheckLocalServiceHealth
       - RemoveLocalService
       - ListNodeCatalog
+      - ScanUnregisteredAssets
+      - ScaffoldOrphanAsset
       - ResolveProfile
       - ApplyProfile
       - ListLocalAudits

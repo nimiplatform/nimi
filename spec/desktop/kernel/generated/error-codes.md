@@ -5,16 +5,16 @@
 | Code | Domain | Description | Source Rule |
 |---|---|---|---|
 | `LOCAL_AI_IMPORT_PATH_OUTSIDE_RUNTIME_ROOT` | `local-ai` | Import path not within Local Runtime models directory | `D-ERR-001` |
-| `LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only resolved manifest.json files under ~/.nimi/models/**/resolved/** may be imported | `D-ERR-001` |
-| `LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only artifact.manifest.json files may be imported | `D-ERR-001` |
-| `LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND` | `local-ai` | Selected companion orphan file does not exist | `D-ERR-001` |
-| `LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID` | `local-ai` | Companion orphan kind is invalid or unsupported | `D-ERR-001` |
+| `LOCAL_AI_IMPORT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only resolved asset.manifest.json files under ~/.nimi/models/**/resolved/** may be imported | `D-ERR-001` |
+| `LOCAL_AI_IMPORT_ARTIFACT_MANIFEST_FILE_NAME_INVALID` | `local-ai` | Only asset.manifest.json files may be imported | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_NOT_FOUND` | `local-ai` | Selected dependency asset orphan file does not exist | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_KIND_INVALID` | `local-ai` | Dependency asset orphan kind is invalid or unsupported | `D-ERR-001` |
 | `LOCAL_AI_ARTIFACT_ORPHAN_TARGET_EXISTS` | `local-ai` | Target artifact directory or payload file already exists | `D-ERR-001` |
-| `LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED` | `local-ai` | Cannot create companion artifact directory | `D-ERR-001` |
-| `LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED` | `local-ai` | Cannot move or copy companion artifact payload into runtime models root | `D-ERR-001` |
-| `LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED` | `local-ai` | Source companion payload cleanup failed after copy fallback | `D-ERR-001` |
-| `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated companion artifact manifest JSON | `D-ERR-001` |
-| `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated artifact.manifest.json to disk | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_DIR_FAILED` | `local-ai` | Cannot create dependency asset directory | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_MOVE_FAILED` | `local-ai` | Cannot move or copy dependency asset payload into runtime models root | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_SOURCE_CLEANUP_FAILED` | `local-ai` | Source dependency asset payload cleanup failed after copy fallback | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated dependency asset manifest JSON | `D-ERR-001` |
+| `LOCAL_AI_ARTIFACT_ORPHAN_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated asset.manifest.json to disk | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_MANIFEST_NOT_FOUND` | `local-ai` | Resolved model manifest file not found at import path | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED` | `local-ai` | Resolved model manifest JSON parsing failed | `D-ERR-001` |
 | `LOCAL_AI_IMPORT_HASH_MISMATCH` | `local-ai` | Resolved model manifest checksum verification failed | `D-ERR-001` |
@@ -43,6 +43,6 @@
 | `LOCAL_AI_FILE_IMPORT_FLUSH_FAILED` | `local-ai` | Failed to flush written file to OS buffer | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_SYNC_FAILED` | `local-ai` | Failed to sync written file to disk | `D-ERR-001` |
 | `LOCAL_AI_FILE_IMPORT_MANIFEST_SERIALIZE_FAILED` | `local-ai` | Failed to serialize generated resolved model manifest JSON | `D-ERR-001` |
-| `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated resolved manifest.json to disk | `D-ERR-001` |
+| `LOCAL_AI_FILE_IMPORT_MANIFEST_WRITE_FAILED` | `local-ai` | Failed to write generated resolved asset.manifest.json to disk | `D-ERR-001` |
 | `LOCAL_LIFECYCLE_WRITE_DENIED` | `runtime` | Source has no permission for model lifecycle write operations | `D-ERR-004` |
 | `RUNTIME_ROUTE_CAPABILITY_MISMATCH` | `runtime` | Route-bound local model lacks required capability | `D-ERR-004` |

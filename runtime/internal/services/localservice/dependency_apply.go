@@ -27,7 +27,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 			Warnings:        []string{"apply request missing plan"},
 			Entries:         []*runtimev1.LocalExecutionEntryDescriptor{},
 			Capabilities:    []string{},
-			InstalledModels: []*runtimev1.LocalModelRecord{},
+			InstalledAssets: []*runtimev1.LocalAssetRecord{},
 			Services:        []*runtimev1.LocalServiceDescriptor{},
 		}
 	}
@@ -36,7 +36,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 		PlanId:             plan.GetPlanId(),
 		ModId:              plan.GetModId(),
 		Entries:            make([]*runtimev1.LocalExecutionEntryDescriptor, 0, len(plan.GetEntries())),
-		InstalledModels:    []*runtimev1.LocalModelRecord{},
+		InstalledAssets:    []*runtimev1.LocalAssetRecord{},
 		Services:           []*runtimev1.LocalServiceDescriptor{},
 		Capabilities:       []string{},
 		StageResults:       []*runtimev1.LocalExecutionStageResult{},
@@ -92,6 +92,7 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 
 	installedModelIDs := make([]string, 0, len(selected))
 	installedServiceIDs := make([]string, 0, len(selected))
+	passiveAssetIDs := make(map[string]bool, len(selected))
 	modelRefToLocalID := make(map[string]string, len(selected)*2)
 
 	// Stage 2: install artifacts
@@ -99,6 +100,67 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 		switch dep.GetKind() {
 		case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_MODEL:
 			modelID := defaultString(dep.GetModelId(), "local/default")
+
+			// Override path: if modelID matches an already-installed asset by
+			// local_asset_id, use it directly — no verified lookup or install needed.
+			if existing := s.assetByLocalID(modelID); existing != nil && existing.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+				assetRecord := cloneLocalAsset(existing)
+				result.InstalledAssets = append(result.InstalledAssets, assetRecord)
+				localID := assetRecord.GetLocalAssetId()
+				installedModelIDs = append(installedModelIDs, localID)
+				if isRunnableKind(assetRecord.GetKind()) {
+					modelRefToLocalID[localID] = localID
+					if ref := strings.TrimSpace(dep.GetModelId()); ref != "" {
+						modelRefToLocalID[ref] = localID
+					}
+				} else {
+					passiveAssetIDs[localID] = true
+				}
+				continue
+			}
+
+			// Check if this is a passive asset (kind >= VAE). Passive assets
+			// are installed via InstallVerifiedAsset and skip start/health.
+			if verified := s.resolveVerifiedByAssetIDAndEngine(modelID, dep.GetEngine()); verified != nil && verified.GetKind() >= runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE {
+				templateID := strings.TrimSpace(verified.GetTemplateId())
+				if templateID == "" {
+					result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
+						Stage:      applyStageInstall,
+						Ok:         false,
+						ReasonCode: "LOCAL_DEPENDENCY_PASSIVE_TEMPLATE_REQUIRED",
+						Detail:     modelID,
+					})
+					result.ReasonCode = "LOCAL_DEPENDENCY_PASSIVE_TEMPLATE_REQUIRED"
+					s.rollbackApply(ctx, installedModelIDs, installedServiceIDs, result)
+					return result
+				}
+				installed, err := s.InstallVerifiedAsset(ctx, &runtimev1.InstallVerifiedAssetRequest{
+					TemplateId: templateID,
+				})
+				if err != nil || installed.GetAsset() == nil {
+					detail := defaultString(fmt.Sprintf("%v", err), "passive asset install returned empty response")
+					result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
+						Stage:      applyStageInstall,
+						Ok:         false,
+						ReasonCode: "LOCAL_DEPENDENCY_PASSIVE_ASSET_INSTALL_FAILED",
+						Detail:     detail,
+					})
+					result.ReasonCode = "LOCAL_DEPENDENCY_PASSIVE_ASSET_INSTALL_FAILED"
+					s.rollbackApply(ctx, installedModelIDs, installedServiceIDs, result)
+					return result
+				}
+				assetRecord := cloneLocalAsset(installed.GetAsset())
+				result.InstalledAssets = append(result.InstalledAssets, assetRecord)
+				localID := assetRecord.GetLocalAssetId()
+				installedModelIDs = append(installedModelIDs, localID)
+				passiveAssetIDs[localID] = true
+				if ref := strings.TrimSpace(dep.GetModelId()); ref != "" {
+					modelRefToLocalID[ref] = localID
+				}
+				modelRefToLocalID[localID] = localID
+				continue
+			}
+
 			capabilities := normalizeStringSlice([]string{dep.GetCapability()})
 			engine := defaultLocalEngine(dep.GetEngine(), capabilities)
 			binding := resolveInstallRuntimeBinding(engine, "", cloneDeviceProfile(plan.GetDeviceProfile()))
@@ -113,8 +175,9 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				s.rollbackApply(ctx, installedModelIDs, installedServiceIDs, result)
 				return result
 			}
-			modelRecord, err := s.installLocalModelRecord(
+			modelRecord, err := s.installLocalAssetRecord(
 				modelID,
+				inferAssetKindFromCapabilities(capabilities),
 				capabilities,
 				engine,
 				"./dist/index.js",
@@ -142,22 +205,29 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 				s.rollbackApply(ctx, installedModelIDs, installedServiceIDs, result)
 				return result
 			}
-			modelRecord = cloneLocalModel(modelRecord)
-			result.InstalledModels = append(result.InstalledModels, modelRecord)
-			installedModelIDs = append(installedModelIDs, modelRecord.GetLocalModelId())
+			modelRecord = cloneLocalAsset(modelRecord)
+			result.InstalledAssets = append(result.InstalledAssets, modelRecord)
+			installedModelIDs = append(installedModelIDs, modelRecord.GetLocalAssetId())
 			if ref := strings.TrimSpace(dep.GetModelId()); ref != "" {
-				modelRefToLocalID[ref] = modelRecord.GetLocalModelId()
+				modelRefToLocalID[ref] = modelRecord.GetLocalAssetId()
 			}
-			modelRefToLocalID[modelRecord.GetLocalModelId()] = modelRecord.GetLocalModelId()
+			modelRefToLocalID[modelRecord.GetLocalAssetId()] = modelRecord.GetLocalAssetId()
 		case runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_SERVICE:
 			serviceID := defaultString(dep.GetServiceId(), "svc_"+slug(dep.GetEntryId()))
 			localModelID := s.resolveServiceDependencyLocalModelID(strings.TrimSpace(dep.GetModelId()), modelRefToLocalID)
+			serviceEndpoint := ""
+			if localModelID != "" {
+				if modelRecord := s.modelByID(localModelID); modelRecord != nil {
+					serviceEndpoint = s.effectiveLocalModelEndpoint(modelRecord)
+				}
+			}
 			installed, err := s.InstallLocalService(ctx, &runtimev1.InstallLocalServiceRequest{
 				ServiceId:    serviceID,
 				Title:        serviceID,
 				Engine:       defaultLocalEngine(dep.GetEngine(), []string{dep.GetCapability()}),
 				Capabilities: normalizeStringSlice([]string{dep.GetCapability()}),
 				LocalModelId: localModelID,
+				Endpoint:     serviceEndpoint,
 			})
 			if err != nil || installed.GetService() == nil {
 				detail := defaultString(fmt.Sprintf("%v", err), "service install returned empty response")
@@ -195,10 +265,13 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 		Detail:     fmt.Sprintf("models=%d services=%d", len(installedModelIDs), len(installedServiceIDs)),
 	})
 
-	// Stage 3: bootstrap
+	// Stage 3: bootstrap (skip passive assets — no start needed)
 	for _, modelID := range installedModelIDs {
-		started, err := s.StartLocalModel(ctx, &runtimev1.StartLocalModelRequest{LocalModelId: modelID})
-		if err != nil || started.GetModel() == nil {
+		if passiveAssetIDs[modelID] {
+			continue
+		}
+		started, err := s.StartLocalAsset(ctx, &runtimev1.StartLocalAssetRequest{LocalAssetId: modelID})
+		if err != nil || started.GetAsset() == nil {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
 				Stage:      applyStageBootstrap,
 				Ok:         false,
@@ -231,10 +304,13 @@ func (s *Service) applyExecutionPlanStrict(ctx context.Context, plan *runtimev1.
 		Detail:     fmt.Sprintf("started models=%d services=%d", len(installedModelIDs), len(installedServiceIDs)),
 	})
 
-	// Stage 4: health gates
+	// Stage 4: health gates (skip passive assets — no health check needed)
 	for _, modelID := range installedModelIDs {
-		health, err := s.CheckLocalModelHealth(ctx, &runtimev1.CheckLocalModelHealthRequest{LocalModelId: modelID})
-		if err != nil || len(health.GetModels()) == 0 || health.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+		if passiveAssetIDs[modelID] {
+			continue
+		}
+		health, err := s.CheckLocalAssetHealth(ctx, &runtimev1.CheckLocalAssetHealthRequest{LocalAssetId: modelID})
+		if err != nil || len(health.GetAssets()) == 0 || health.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 			result.StageResults = append(result.StageResults, &runtimev1.LocalExecutionStageResult{
 				Stage:      applyStageHealth,
 				Ok:         false,
@@ -283,22 +359,22 @@ func (s *Service) runApplyPreflight(ctx context.Context, dep *runtimev1.LocalExe
 	}
 
 	check := evaluateDependencyCandidate(&runtimev1.LocalExecutionOptionDescriptor{
-		EntryId: dep.GetEntryId(),
-		Kind:         dep.GetKind(),
-		Capability:   dep.GetCapability(),
-		ModelId:      dep.GetModelId(),
-		Repo:         dep.GetRepo(),
-		ServiceId:    dep.GetServiceId(),
-		NodeId:       dep.GetNodeId(),
-		Engine:       dep.GetEngine(),
+		EntryId:    dep.GetEntryId(),
+		Kind:       dep.GetKind(),
+		Capability: dep.GetCapability(),
+		ModelId:    dep.GetModelId(),
+		Repo:       dep.GetRepo(),
+		ServiceId:  dep.GetServiceId(),
+		NodeId:     dep.GetNodeId(),
+		Engine:     dep.GetEngine(),
 	}, profile)
 	decision := &runtimev1.LocalPreflightDecision{
-		EntryId: dep.GetEntryId(),
-		Target:       preflightTargetForDependency(dep),
-		Check:        defaultString(check.check, "dependency-shape"),
-		Ok:           check.ok,
-		ReasonCode:   check.reasonCode,
-		Detail:       check.detail,
+		EntryId:    dep.GetEntryId(),
+		Target:     preflightTargetForDependency(dep),
+		Check:      defaultString(check.check, "dependency-shape"),
+		Ok:         check.ok,
+		ReasonCode: check.reasonCode,
+		Detail:     check.detail,
 	}
 	if !decision.GetOk() || dep.GetKind() != runtimev1.LocalExecutionEntryKind_LOCAL_EXECUTION_ENTRY_KIND_NODE {
 		return decision
@@ -353,18 +429,18 @@ func (s *Service) resolveServiceDependencyLocalModelID(modelRef string, modelRef
 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if model := s.models[ref]; model != nil {
+	if model := s.assets[ref]; model != nil {
 		return ref
 	}
-	for _, model := range s.models {
+	for _, model := range s.assets {
 		if model == nil {
 			continue
 		}
-		if model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+		if model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 			continue
 		}
-		if strings.TrimSpace(model.GetModelId()) == ref {
-			return strings.TrimSpace(model.GetLocalModelId())
+		if strings.TrimSpace(model.GetAssetId()) == ref {
+			return strings.TrimSpace(model.GetLocalAssetId())
 		}
 	}
 	return ref
@@ -387,7 +463,7 @@ func (s *Service) rollbackApply(ctx context.Context, modelIDs []string, serviceI
 	}
 	for i := len(modelIDs) - 1; i >= 0; i-- {
 		modelID := modelIDs[i]
-		if _, err := s.RemoveLocalModel(ctx, &runtimev1.RemoveLocalModelRequest{LocalModelId: modelID}); err != nil {
+		if _, err := s.RemoveLocalAsset(ctx, &runtimev1.RemoveLocalAssetRequest{LocalAssetId: modelID}); err != nil {
 			rollbackFailures = append(rollbackFailures, "rollback remove model failed: "+modelID)
 			result.Warnings = append(result.Warnings, "rollback remove model failed: "+modelID)
 			rollbackReason = defaultString(rollbackReason, rollbackReasonCodeFromError(err))

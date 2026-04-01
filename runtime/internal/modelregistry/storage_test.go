@@ -268,7 +268,7 @@ func TestInferNativeProjectionFailsClosedOnCorruptResolvedManifest(t *testing.T)
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatalf("mkdir manifest dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(manifestDir, "manifest.json"), []byte("{invalid"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(manifestDir, "asset.manifest.json"), []byte("{invalid"), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 
@@ -325,7 +325,7 @@ func TestRegistryListDescriptorsPropagatesProjectionError(t *testing.T) {
 	if err := os.MkdirAll(manifestDir, 0o755); err != nil {
 		t.Fatalf("mkdir manifest dir: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(manifestDir, "manifest.json"), []byte("{invalid"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(manifestDir, "asset.manifest.json"), []byte("{invalid"), 0o644); err != nil {
 		t.Fatalf("write manifest: %v", err)
 	}
 
@@ -349,7 +349,7 @@ func TestFindResolvedBundleManifestByModelIDRefreshesIndexWhenRootChanges(t *tes
 		t.Fatalf("mkdir resolved root: %v", err)
 	}
 
-	pathOne := filepath.Join(root, "vendor-a", "manifest.json")
+	pathOne := filepath.Join(root, "vendor-a", "asset.manifest.json")
 	writeResolvedManifest(t, pathOne, resolvedBundleManifestDisk{
 		ModelID: "local/qwen2.5",
 		Family:  "vendor-a",
@@ -366,7 +366,7 @@ func TestFindResolvedBundleManifestByModelIDRefreshesIndexWhenRootChanges(t *tes
 	if err := os.Remove(pathOne); err != nil {
 		t.Fatalf("remove first manifest: %v", err)
 	}
-	pathTwo := filepath.Join(root, "vendor-b", "manifest.json")
+	pathTwo := filepath.Join(root, "vendor-b", "asset.manifest.json")
 	writeResolvedManifest(t, pathTwo, resolvedBundleManifestDisk{
 		ModelID: "local/qwen2.5",
 		Family:  "vendor-b",

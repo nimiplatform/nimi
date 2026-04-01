@@ -13,23 +13,23 @@ import (
 )
 
 type fakeLocalModelLister struct {
-	models []*runtimev1.LocalModelRecord
+	models []*runtimev1.LocalAssetRecord
 	err    error
 }
 
-func (f *fakeLocalModelLister) ListLocalModels(_ context.Context, req *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error) {
+func (f *fakeLocalModelLister) ListLocalAssets(_ context.Context, req *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
-	result := make([]*runtimev1.LocalModelRecord, 0, len(f.models))
+	result := make([]*runtimev1.LocalAssetRecord, 0, len(f.models))
 	for _, model := range f.models {
-		if req.GetStatusFilter() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED &&
+		if req.GetStatusFilter() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED &&
 			model.GetStatus() != req.GetStatusFilter() {
 			continue
 		}
 		result = append(result, model)
 	}
-	return &runtimev1.ListLocalModelsResponse{Models: result}, nil
+	return &runtimev1.ListLocalAssetsResponse{Assets: result}, nil
 }
 
 func newTestService(t *testing.T) *Service {

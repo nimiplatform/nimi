@@ -23,7 +23,7 @@ import (
 type pullExecutor func(modelID string, complete func(runtimev1.ModelStatus))
 
 type localModelLister interface {
-	ListLocalModels(context.Context, *runtimev1.ListLocalModelsRequest) (*runtimev1.ListLocalModelsResponse, error)
+	ListLocalAssets(context.Context, *runtimev1.ListLocalAssetsRequest) (*runtimev1.ListLocalAssetsResponse, error)
 }
 
 const (
@@ -281,22 +281,22 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 		return false, nil, false
 	}
 
-	models, err := s.listAllLocalModels(ctx, localModel)
+	assets, err := s.listAllLocalAssets(ctx, localModel)
 	if err != nil {
 		return false, nil, false
 	}
-	if len(models) == 0 {
+	if len(assets) == 0 {
 		return false, nil, false
 	}
 
 	normalizedModelID := strings.TrimSpace(modelID)
-	var selected *runtimev1.LocalModelRecord
-	for _, model := range models {
-		if model == nil || !strings.EqualFold(strings.TrimSpace(model.GetModelId()), normalizedModelID) {
+	var selected *runtimev1.LocalAssetRecord
+	for _, asset := range assets {
+		if asset == nil || !strings.EqualFold(strings.TrimSpace(asset.GetLogicalModelId()), normalizedModelID) {
 			continue
 		}
-		if selected == nil || localModelStatusPriority(model.GetStatus()) < localModelStatusPriority(selected.GetStatus()) {
-			selected = model
+		if selected == nil || localAssetStatusPriority(asset.GetStatus()) < localAssetStatusPriority(selected.GetStatus()) {
+			selected = asset
 		}
 	}
 	if selected == nil {
@@ -304,21 +304,21 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 	}
 
 	switch selected.GetStatus() {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		return true, nil, true
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
 		return false, &runtimev1.CheckModelHealthResponse{
 			Healthy:    false,
 			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_READY,
 			ActionHint: "warm local model",
 		}, true
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		return false, &runtimev1.CheckModelHealthResponse{
 			Healthy:    false,
 			ReasonCode: runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE,
 			ActionHint: "inspect_local_runtime_model_health",
 		}, true
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
 		return false, &runtimev1.CheckModelHealthResponse{
 			Healthy:    false,
 			ReasonCode: runtimev1.ReasonCode_AI_MODEL_NOT_FOUND,
@@ -329,19 +329,19 @@ func (s *Service) checkLocalModelHealthViaLocalService(ctx context.Context, mode
 	}
 }
 
-func (s *Service) listAllLocalModels(ctx context.Context, localModel localModelLister) ([]*runtimev1.LocalModelRecord, error) {
+func (s *Service) listAllLocalAssets(ctx context.Context, localModel localModelLister) ([]*runtimev1.LocalAssetRecord, error) {
 	pageToken := ""
-	collected := make([]*runtimev1.LocalModelRecord, 0, 16)
+	collected := make([]*runtimev1.LocalAssetRecord, 0, 16)
 	for i := 0; i < 20; i++ {
-		resp, err := localModel.ListLocalModels(ctx, &runtimev1.ListLocalModelsRequest{
-			StatusFilter: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNSPECIFIED,
+		resp, err := localModel.ListLocalAssets(ctx, &runtimev1.ListLocalAssetsRequest{
+			StatusFilter: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNSPECIFIED,
 			PageSize:     100,
 			PageToken:    pageToken,
 		})
 		if err != nil {
 			return nil, err
 		}
-		collected = append(collected, resp.GetModels()...)
+		collected = append(collected, resp.GetAssets()...)
 		pageToken = strings.TrimSpace(resp.GetNextPageToken())
 		if pageToken == "" {
 			break
@@ -350,15 +350,15 @@ func (s *Service) listAllLocalModels(ctx context.Context, localModel localModelL
 	return collected, nil
 }
 
-func localModelStatusPriority(status runtimev1.LocalModelStatus) int {
+func localAssetStatusPriority(status runtimev1.LocalAssetStatus) int {
 	switch status {
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE:
 		return 0
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY:
 		return 1
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED:
 		return 2
-	case runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED:
+	case runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED:
 		return 3
 	default:
 		return 4

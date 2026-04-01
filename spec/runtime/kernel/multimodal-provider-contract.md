@@ -86,12 +86,12 @@ Runtime 在不引入 DAG 编排的前提下，必须支持 canonical local image
 - i2i：`reference_images[0] -> file`，`reference_images -> files`，`reference_images[1:] -> ref_images`。
 - `negative_prompt` 存在时，必须透传 `negative_prompt`。
 - 本地路由（`local/*`）必须基于已解析 engine（`llama` / `media` / `sidecar`）推断 providerType，避免 adapter 误判。
-- `nimi.scenario.image.request` 命名空间允许 runtime 接收 `components[]` 与 `profile_overrides`：
-  - dynamic image workflow 必须显式提供 `components[]`；缺失或空数组必须 fail-close（`AI_INPUT_INVALID`）。
-  - `components[]` 只接受 `{slot, localArtifactId}`，不得接受原始文件路径，也不得由 runtime 猜测 companion。
-  - `profile_overrides` 允许覆盖非路径 profile 字段；`parameters.model`、`download_files` 与任何 `*_path` 原始值必须由 runtime 注入或拒绝。
-  - `profile_overrides` 单独存在但没有显式 companion 选择时，不得触发 dynamic import。
-  - runtime 渲染完成后，必须从 forwarded extensions 中移除 `components` 与 `profile_overrides`。
+- `nimi.scenario.image.request` 命名空间允许 runtime 接收 `profile_overrides`：
+  - image workflow 的 slot 依赖（`vae_path`、`llm_path`、`lora_path`、`controlnet_path` 等）由 runtime 从当前 profile 的已安装 passive asset entries 按 `engineSlot` 解析注入（`K-LOCAL-031`），不再由调用方通过 `components[]` 显式提供。
+  - 当 profile 中缺失 workflow 必需的 `engineSlot` 绑定时，runtime 必须 fail-close（`AI_INPUT_INVALID`），不得猜测 companion 或使用默认值。
+  - `profile_overrides` 允许覆盖非路径 profile 字段（`K-LOCAL-032`）；`parameters.model`、`download_files` 与任何 `*_path` 原始值必须由 runtime 注入或拒绝。
+  - `profile_overrides` 单独存在但 profile 未绑定对应 slot asset 时，不得触发 dynamic import。
+  - runtime 渲染完成后，必须从 forwarded extensions 中移除 `profile_overrides`。
 - image `response_format` 只允许 `b64_json`、`base64`（归一化为 `b64_json`）或 `url`；其他值必须 fail-close（`AI_MEDIA_OPTION_UNSUPPORTED`）。
 - 当 provider 返回 URL artifact 时，runtime 下载必须继承父请求 `ctx`，并施加有界读取上限；超时、取消、空载荷或超限载荷必须 fail-close（`AI_OUTPUT_INVALID`）。
 
@@ -100,9 +100,9 @@ Runtime 在不引入 DAG 编排的前提下，必须支持 canonical local image
 | t2i | `reference_images` 为空 | 不下发 `file/files/ref_images` | 仅按文本生成 |
 | i2i | `reference_images` 非空 | `reference_images[0] -> file`，`reference_images -> files`，`reference_images[1:] -> ref_images` | 形成最简 image-to-image 映射 |
 | negative prompt 透传 | `negative_prompt` 存在 | 始终透传 `negative_prompt` | 不得静默丢弃 |
-| dynamic workflow 缺参 | `components[]` 缺失或空数组 | fail-close | `AI_INPUT_INVALID` |
-| companion 选择非法 | `components[]` 不是 `{slot, localArtifactId}`，或包含原始路径 | 拒绝透传/猜测 companion | fail-close |
-| profile overrides 越界 | `profile_overrides` 触碰 `parameters.model`、`download_files` 或任何 `*_path`，或无显式 companion 选择却触发 dynamic import | 由 runtime 注入或拒绝 | fail-close 或忽略 dynamic import |
+| workflow slot 缺失 | profile 缺失 workflow 必需的 `engineSlot` 绑定 | fail-close | `AI_INPUT_INVALID` |
+| slot asset 不可用 | profile slot asset 未安装或 `UNHEALTHY` | fail-close | `AI_INPUT_INVALID` |
+| profile overrides 越界 | `profile_overrides` 触碰 `parameters.model`、`download_files` 或任何 `*_path`，或 profile 未绑定 slot asset 却触发 dynamic import | 由 runtime 注入或拒绝 | fail-close 或忽略 dynamic import |
 | response_format 合法 | `response_format` 为 `b64_json`、`base64`、`url` | `base64 -> b64_json` 归一化，其余透传 | 保持兼容 |
 | response_format 非法 | `response_format` 为其他值 | fail-close | `AI_MEDIA_OPTION_UNSUPPORTED` |
 | URL artifact 下载失败 | provider 返回 URL artifact，且下载出现超时、取消、空载荷或超限载荷 | 下载继承父请求 `ctx` 且使用有界读取 | `AI_OUTPUT_INVALID` |

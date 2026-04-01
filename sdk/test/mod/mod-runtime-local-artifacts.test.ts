@@ -6,10 +6,10 @@ import { createModRuntimeClient } from '../../src/mod/runtime/index.js';
 import { ReasonCode } from '../../src/types/index.js';
 import type { RuntimeHookRuntimeFacade } from '../../src/mod/types/runtime-facade.js';
 
-test('mod runtime client forwards local artifact listing with mod id and filters', async () => {
+test('mod runtime client forwards local asset listing with mod id and filters', async () => {
   clearModSdkHost();
 
-  const artifactCalls: Array<Record<string, unknown>> = [];
+  const assetCalls: Array<Record<string, unknown>> = [];
   const runtimeHost = {
     getRuntimeHookRuntime: () => ({}) as RuntimeHookRuntimeFacade,
     route: {
@@ -39,11 +39,11 @@ test('mod runtime client forwards local artifact listing with mod id and filters
       }),
     },
     local: {
-      listArtifacts: async (input: Record<string, unknown>) => {
-        artifactCalls.push(input);
+      listAssets: async (input: Record<string, unknown>) => {
+        assetCalls.push(input);
         return [{
-          localArtifactId: 'artifact-1',
-          artifactId: 'z-image-ae',
+          localAssetId: 'asset-1',
+          assetId: 'z-image-ae',
           kind: 'vae',
           engine: 'media',
           entry: 'ae.safetensors',
@@ -115,17 +115,17 @@ test('mod runtime client forwards local artifact listing with mod id and filters
     runtime: {} as RuntimeHookRuntimeFacade,
   });
 
-  const artifacts = await client.local.listArtifacts({
+  const assets = await client.local.listAssets({
     kind: 'vae',
     engine: 'media',
   });
 
-  assert.equal(artifactCalls.length, 1);
-  assert.deepEqual(artifactCalls[0], {
+  assert.equal(assetCalls.length, 1);
+  assert.deepEqual(assetCalls[0], {
     modId: 'mod.local.artifacts.test',
     kind: 'vae',
     engine: 'media',
   });
-  assert.equal(artifacts.length, 1);
-  assert.equal(artifacts[0]?.artifactId, 'z-image-ae');
+  assert.equal(assets.length, 1);
+  assert.equal(assets[0]?.assetId, 'z-image-ae');
 });

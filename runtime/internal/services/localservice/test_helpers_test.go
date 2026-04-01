@@ -7,50 +7,51 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func mustInstallAttachedLocalModel(t *testing.T, svc *Service, req *runtimev1.InstallLocalModelRequest) *runtimev1.LocalModelRecord {
+func mustInstallAttachedLocalModel(t *testing.T, svc *Service, req installLocalAssetParams) *runtimev1.LocalAssetRecord {
 	t.Helper()
-	capabilities := normalizeStringSlice(req.GetCapabilities())
-	engine := defaultLocalEngine(req.GetEngine(), capabilities)
-	endpoint := req.GetEndpoint()
+	capabilities := normalizeStringSlice(req.capabilities)
+	engine := defaultLocalEngine(req.engine, capabilities)
+	endpoint := req.endpoint
 	if endpoint == "" {
 		endpoint = managedDefaultEndpointForEngine(engine)
 	}
-	resp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      req.GetModelId(),
-		Repo:         req.GetRepo(),
-		Revision:     req.GetRevision(),
-		Capabilities: capabilities,
-		Engine:       engine,
-		Entry:        req.GetEntry(),
-		Files:        append([]string(nil), req.GetFiles()...),
-		License:      req.GetLicense(),
-		Hashes:       cloneStringMap(req.GetHashes()),
-		Endpoint:     endpoint,
-		EngineConfig: cloneStruct(req.GetEngineConfig()),
+	record, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      req.assetID,
+		repo:         req.repo,
+		revision:     req.revision,
+		capabilities: capabilities,
+		engine:       engine,
+		entry:        req.entry,
+		files:        append([]string(nil), req.files...),
+		license:      req.license,
+		hashes:       cloneStringMap(req.hashes),
+		endpoint:     endpoint,
+		engineConfig: cloneStruct(req.engineConfig),
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
-	return resp.GetModel()
+	return record
 }
 
-func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req *runtimev1.InstallLocalModelRequest) *runtimev1.LocalModelRecord {
+func mustInstallSupervisedLocalModel(t *testing.T, svc *Service, req installLocalAssetParams) *runtimev1.LocalAssetRecord {
 	t.Helper()
-	capabilities := normalizeStringSlice(req.GetCapabilities())
-	engine := defaultLocalEngine(req.GetEngine(), capabilities)
-	record, err := svc.installLocalModelRecord(
-		req.GetModelId(),
+	capabilities := normalizeStringSlice(req.capabilities)
+	engine := defaultLocalEngine(req.engine, capabilities)
+	record, err := svc.installLocalAssetRecord(
+		req.assetID,
+		inferAssetKindFromCapabilities(capabilities),
 		capabilities,
 		engine,
-		defaultString(req.GetEntry(), "./dist/index.js"),
-		defaultString(req.GetLicense(), "unknown"),
-		req.GetRepo(),
-		defaultString(req.GetRevision(), "main"),
-		req.GetHashes(),
+		defaultString(req.entry, "./dist/index.js"),
+		defaultString(req.license, "unknown"),
+		req.repo,
+		defaultString(req.revision, "main"),
+		req.hashes,
 		"",
 		runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED,
 		"",
-		req.GetEngineConfig(),
+		req.engineConfig,
 		nil,
 		"runtime_model_ready_after_install",
 		"model installed",

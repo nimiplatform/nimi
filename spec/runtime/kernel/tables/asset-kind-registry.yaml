@@ -1,0 +1,73 @@
+version: 1
+source_rule: K-LOCAL-007
+description: >
+  Defines all LocalAssetKind enum values, their runnable/passive semantics,
+  and the capability token they map to (for runnable kinds).
+
+kinds:
+  # Runnable kinds (1-5) — can be directly scheduled/invoked
+  - name: chat
+    proto_value: LOCAL_ASSET_KIND_CHAT
+    proto_number: 1
+    runnable: true
+    capability: chat
+    description: Chat / text generation model
+
+  - name: image
+    proto_value: LOCAL_ASSET_KIND_IMAGE
+    proto_number: 2
+    runnable: true
+    capability: image.generate
+    description: Image generation model
+
+  - name: video
+    proto_value: LOCAL_ASSET_KIND_VIDEO
+    proto_number: 3
+    runnable: true
+    capability: video.generate
+    description: Video generation model
+
+  - name: tts
+    proto_value: LOCAL_ASSET_KIND_TTS
+    proto_number: 4
+    runnable: true
+    capability: audio.synthesize
+    description: Text-to-speech model
+
+  - name: stt
+    proto_value: LOCAL_ASSET_KIND_STT
+    proto_number: 5
+    runnable: true
+    capability: audio.transcribe
+    description: Speech-to-text model
+
+  # Passive kinds (10-14) — referenced as dependencies by runnable assets
+  - name: vae
+    proto_value: LOCAL_ASSET_KIND_VAE
+    proto_number: 10
+    runnable: false
+    description: Variational autoencoder (image/video pipeline component)
+
+  - name: clip
+    proto_value: LOCAL_ASSET_KIND_CLIP
+    proto_number: 11
+    runnable: false
+    description: CLIP text/image encoder
+
+  - name: lora
+    proto_value: LOCAL_ASSET_KIND_LORA
+    proto_number: 12
+    runnable: false
+    description: LoRA adapter weights
+
+  - name: controlnet
+    proto_value: LOCAL_ASSET_KIND_CONTROLNET
+    proto_number: 13
+    runnable: false
+    description: ControlNet conditioning model
+
+  - name: auxiliary
+    proto_value: LOCAL_ASSET_KIND_AUXILIARY
+    proto_number: 14
+    runnable: false
+    description: Auxiliary asset (engine-specific, uncategorized)

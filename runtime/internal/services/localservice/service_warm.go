@@ -25,30 +25,28 @@ type warmLocalModelExecutionState struct {
 	alreadyWarm   bool
 }
 
-func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalModelRequest) (*runtimev1.WarmLocalModelResponse, error) {
-	if req == nil || strings.TrimSpace(req.GetLocalModelId()) == "" {
+func (s *Service) WarmLocalAsset(ctx context.Context, req *runtimev1.WarmLocalAssetRequest) (*runtimev1.WarmLocalAssetResponse, error) {
+	if req == nil || strings.TrimSpace(req.GetLocalAssetId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
 
-	model := s.modelByID(req.GetLocalModelId())
-	if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+	model := s.modelByID(req.GetLocalAssetId())
+	if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 	}
-	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalModelId()); err != nil {
+	if healedModel, _, err := s.healManagedSupervisedLlamaRuntimeMode(model.GetLocalAssetId()); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    managedLocalModelRecordFailureDetail(err),
+			Message:    managedLocalAssetRecordFailureDetail(err),
 			ActionHint: "inspect_local_runtime_model_health",
 		})
 	} else if healedModel != nil {
 		model = healedModel
 	}
-	if healedModel, _, err := s.healLegacyManagedLocalImportRecord(model.GetLocalModelId()); err != nil {
+	if err := validateManagedLocalAssetRecord(model, s.modelRuntimeMode(model.GetLocalAssetId())); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE, grpcerr.ReasonOptions{
-			Message:    managedLocalModelRecordFailureDetail(err),
+			Message:    managedLocalAssetRecordFailureDetail(err),
 			ActionHint: "inspect_local_runtime_model_health",
 		})
-	} else if healedModel != nil {
-		model = healedModel
 	}
 	if !modelSupportsWarmup(model) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
@@ -68,7 +66,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 			ActionHint: "inspect_local_runtime_model_health",
 		})
 	}
-	if refreshed := s.modelByID(model.GetLocalModelId()); refreshed != nil {
+	if refreshed := s.modelByID(model.GetLocalAssetId()); refreshed != nil {
 		model = refreshed
 	}
 	registration := s.managedLlamaRegistrationForModel(model)
@@ -84,7 +82,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	}
 
 	endpoint := s.effectiveLocalModelEndpoint(model)
-	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), s.modelRuntimeMode(model.GetLocalModelId()), endpoint); err != nil {
+	if err := s.bootstrapEngineIfManaged(requestCtx, model.GetEngine(), s.modelRuntimeMode(model.GetLocalAssetId()), endpoint); err != nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 			Message:    strings.TrimSpace(err.Error()),
 			ActionHint: "check_local_runtime_engine",
@@ -114,14 +112,14 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 		}
 		return nil, err
 	}
-	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		activeModel, err := s.updateModelStatus(model.GetLocalModelId(), runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active")
+	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		activeModel, err := s.updateModelStatus(model.GetLocalAssetId(), runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active")
 		if err != nil {
 			return nil, err
 		}
 		model = activeModel
 	}
-	return s.newWarmLocalModelResponse(
+	return s.newWarmLocalAssetResponse(
 		model,
 		result.modelResolved,
 		endpoint,
@@ -131,7 +129,7 @@ func (s *Service) WarmLocalModel(ctx context.Context, req *runtimev1.WarmLocalMo
 	), nil
 }
 
-func modelSupportsWarmup(model *runtimev1.LocalModelRecord) bool {
+func modelSupportsWarmup(model *runtimev1.LocalAssetRecord) bool {
 	if model == nil {
 		return false
 	}
@@ -163,14 +161,14 @@ func normalizeWarmResolvedModelID(modelID string) string {
 
 func (s *Service) performWarmLocalModelExecution(
 	ctx context.Context,
-	model *runtimev1.LocalModelRecord,
+	model *runtimev1.LocalAssetRecord,
 	endpoint string,
 	timeout time.Duration,
 ) (warmLocalModelExecutionState, error) {
 	result := warmLocalModelExecutionState{
 		startedAt:     time.Now(),
 		traceID:       ulid.Make().String(),
-		modelResolved: normalizeWarmResolvedModelID(model.GetModelId()),
+		modelResolved: normalizeWarmResolvedModelID(model.GetAssetId()),
 	}
 
 	warmKey := warmCacheKey(model, endpoint, result.modelResolved)
@@ -221,7 +219,7 @@ func shouldRetryWarmProbe(engine string, endpoint string) bool {
 
 func (s *Service) waitForWarmProbe(
 	ctx context.Context,
-	model *runtimev1.LocalModelRecord,
+	model *runtimev1.LocalAssetRecord,
 	registration managedLlamaRegistration,
 	endpoint string,
 ) endpointProbeResult {
@@ -248,17 +246,17 @@ func (s *Service) waitForWarmProbe(
 	}
 }
 
-func (s *Service) recordWarmFailure(model *runtimev1.LocalModelRecord, detail string, transitionUnhealthy bool) error {
+func (s *Service) recordWarmFailure(model *runtimev1.LocalAssetRecord, detail string, transitionUnhealthy bool) error {
 	if model == nil {
 		return nil
 	}
-	if transitionUnhealthy || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		if _, err := s.transitionModelToUnhealthy(model.GetLocalModelId(), detail); err != nil {
+	if transitionUnhealthy || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		if _, err := s.transitionModelToUnhealthy(model.GetLocalAssetId(), detail); err != nil {
 			return err
 		}
 		return nil
 	}
-	s.setModelHealthDetail(model.GetLocalModelId(), detail)
+	s.setModelHealthDetail(model.GetLocalAssetId(), detail)
 	return nil
 }
 
@@ -274,12 +272,12 @@ func appendWarmWaitDetail(detail string, err error) string {
 	return base + "; " + waitDetail
 }
 
-func warmCacheKey(model *runtimev1.LocalModelRecord, endpoint string, modelResolved string) string {
+func warmCacheKey(model *runtimev1.LocalAssetRecord, endpoint string, modelResolved string) string {
 	if model == nil {
 		return ""
 	}
 	return strings.Join([]string{
-		strings.TrimSpace(model.GetLocalModelId()),
+		strings.TrimSpace(model.GetLocalAssetId()),
 		strings.TrimSpace(endpoint),
 		strings.TrimSpace(modelResolved),
 	}, "|")
@@ -327,7 +325,7 @@ func (s *Service) moveWarmKeyToTailLocked(key string) {
 }
 
 func (s *Service) appendWarmLocalModelAudit(
-	model *runtimev1.LocalModelRecord,
+	model *runtimev1.LocalAssetRecord,
 	modelResolved string,
 	endpoint string,
 	traceID string,
@@ -343,8 +341,8 @@ func (s *Service) appendWarmLocalModelAudit(
 		EventType:     "runtime_model_warmed",
 		OccurredAt:    nowISO(),
 		Source:        "local",
-		ModelId:       model.GetModelId(),
-		LocalModelId:  model.GetLocalModelId(),
+		ModelId:       model.GetAssetId(),
+		LocalModelId:  model.GetLocalAssetId(),
 		TraceId:       traceID,
 		Operation:     "warm_local_model",
 		Detail:        "local model warm-up completed",
@@ -358,17 +356,17 @@ func (s *Service) appendWarmLocalModelAudit(
 	})
 }
 
-func (s *Service) newWarmLocalModelResponse(
-	model *runtimev1.LocalModelRecord,
+func (s *Service) newWarmLocalAssetResponse(
+	model *runtimev1.LocalAssetRecord,
 	modelResolved string,
 	endpoint string,
 	alreadyWarm bool,
 	startedAt time.Time,
 	traceID string,
-) *runtimev1.WarmLocalModelResponse {
-	return &runtimev1.WarmLocalModelResponse{
-		LocalModelId:  strings.TrimSpace(model.GetLocalModelId()),
-		ModelId:       strings.TrimSpace(model.GetModelId()),
+) *runtimev1.WarmLocalAssetResponse {
+	return &runtimev1.WarmLocalAssetResponse{
+		LocalAssetId:  strings.TrimSpace(model.GetLocalAssetId()),
+		AssetId:       strings.TrimSpace(model.GetAssetId()),
 		ModelResolved: strings.TrimSpace(modelResolved),
 		Endpoint:      strings.TrimSpace(endpoint),
 		Engine:        strings.TrimSpace(model.GetEngine()),

@@ -64,30 +64,30 @@ func TestLocalStartLocalModelRequiresExactManagedLlamaModel(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestServiceWithProbe(t, nil)
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/expected-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     server.URL + "/v1",
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/expected-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     server.URL + "/v1",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		t.Fatalf("expected UNHEALTHY, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected UNHEALTHY, got %s", started.GetAsset().GetStatus())
 	}
-	if !strings.Contains(started.GetModel().GetHealthDetail(), `missing expected model "expected-model"`) {
-		t.Fatalf("expected exact-model mismatch detail, got %q", started.GetModel().GetHealthDetail())
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), `missing expected model "expected-model"`) {
+		t.Fatalf("expected exact-model mismatch detail, got %q", started.GetAsset().GetHealthDetail())
 	}
-	if !strings.Contains(started.GetModel().GetHealthDetail(), "available_models=other-model") {
-		t.Fatalf("expected available model listing, got %q", started.GetModel().GetHealthDetail())
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "available_models=other-model") {
+		t.Fatalf("expected available model listing, got %q", started.GetAsset().GetHealthDetail())
 	}
 }
 
@@ -140,8 +140,8 @@ func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T)
 		t.Fatalf("expected no restart when config fingerprint is unchanged, got start=%d stop=%d", mgr.startCalls, mgr.stopCalls)
 	}
 
-	if _, err := svc.RemoveLocalModel(context.Background(), &runtimev1.RemoveLocalModelRequest{
-		LocalModelId: second.GetLocalModelId(),
+	if _, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{
+		LocalAssetId: second.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("remove managed local model: %v", err)
 	}
@@ -161,7 +161,7 @@ func TestSyncManagedLlamaAssetsWritesConfigAndRestartsOnlyOnChange(t *testing.T)
 		t.Fatalf("expected only first model to remain after removal, got %+v", entries)
 	}
 
-	if first.GetLocalModelId() == "" {
+	if first.GetLocalAssetId() == "" {
 		t.Fatalf("expected non-empty first local model id")
 	}
 }
@@ -174,11 +174,11 @@ func TestSyncManagedLlamaAssetsSkipsExternalEndpointOnlyModels(t *testing.T) {
 	svc.SetManagedLlamaRegistrationConfig(modelsPath, configPath, true)
 	svc.SetEngineManager(mgr)
 
-	if _, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/external-only",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     "https://example.com/v1",
+	if _, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/external-only",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "https://example.com/v1",
 	}); err != nil {
 		t.Fatalf("install external llama model: %v", err)
 	}
@@ -199,50 +199,48 @@ func TestBuildManagedLlamaRegistrationsRejectsManagedNameConflicts(t *testing.T)
 
 	writeManagedLlamaManifest(t, modelsPath, "local/conflict-model", "./weights/model-a.gguf", []string{"chat"})
 	writeManagedLlamaManifest(t, modelsPath, "llama/conflict-model", "./weights/model-b.gguf", []string{"chat"})
-	firstManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("local/conflict-model"), "manifest.json")
-	secondManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("llama/conflict-model"), "manifest.json")
-	first := &runtimev1.LocalModelRecord{
-		LocalModelId:    "local-conflict-a",
-		ModelId:         "local/conflict-model",
-		LogicalModelId:  "nimi/" + slugifyLocalModelID("local/conflict-model"),
-		Capabilities:    []string{"chat"},
-		Engine:          "llama",
-		Entry:           "./weights/model-a.gguf",
-		License:         "apache-2.0",
-		Source:          &runtimev1.LocalModelSource{Repo: "file://" + filepath.ToSlash(firstManifestPath), Revision: "local"},
-		Endpoint:        defaultLocalEndpoint,
-		Status:          runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt:     nowISO(),
-		UpdatedAt:       nowISO(),
+	firstManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("local/conflict-model"), "asset.manifest.json")
+	secondManifestPath := filepath.Join(modelsPath, "resolved", "nimi", slugifyLocalModelID("llama/conflict-model"), "asset.manifest.json")
+	first := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "local-conflict-a",
+		AssetId:        "local/conflict-model",
+		LogicalModelId: "nimi/" + slugifyLocalModelID("local/conflict-model"),
+		Capabilities:   []string{"chat"},
+		Engine:         "llama",
+		Entry:          "./weights/model-a.gguf",
+		License:        "apache-2.0",
+		Source:         &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(firstManifestPath), Revision: "local"},
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		InstalledAt:    nowISO(),
+		UpdatedAt:      nowISO(),
 	}
-	second := &runtimev1.LocalModelRecord{
-		LocalModelId:    "local-conflict-b",
-		ModelId:         "llama/conflict-model",
-		LogicalModelId:  "nimi/" + slugifyLocalModelID("llama/conflict-model"),
-		Capabilities:    []string{"chat"},
-		Engine:          "llama",
-		Entry:           "./weights/model-b.gguf",
-		License:         "apache-2.0",
-		Source:          &runtimev1.LocalModelSource{Repo: "file://" + filepath.ToSlash(secondManifestPath), Revision: "local"},
-		Endpoint:        defaultLocalEndpoint,
-		Status:          runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED,
-		InstalledAt:     nowISO(),
-		UpdatedAt:       nowISO(),
+	second := &runtimev1.LocalAssetRecord{
+		LocalAssetId:   "local-conflict-b",
+		AssetId:        "llama/conflict-model",
+		LogicalModelId: "nimi/" + slugifyLocalModelID("llama/conflict-model"),
+		Capabilities:   []string{"chat"},
+		Engine:         "llama",
+		Entry:          "./weights/model-b.gguf",
+		License:        "apache-2.0",
+		Source:         &runtimev1.LocalAssetSource{Repo: "file://" + filepath.ToSlash(secondManifestPath), Revision: "local"},
+		Status:         runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED,
+		InstalledAt:    nowISO(),
+		UpdatedAt:      nowISO(),
 	}
-	svc.models[first.GetLocalModelId()] = first
-	svc.models[second.GetLocalModelId()] = second
-	svc.setModelRuntimeModeLocked(first.GetLocalModelId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
-	svc.setModelRuntimeModeLocked(second.GetLocalModelId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.assets[first.GetLocalAssetId()] = first
+	svc.assets[second.GetLocalAssetId()] = second
+	svc.setModelRuntimeModeLocked(first.GetLocalAssetId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
+	svc.setModelRuntimeModeLocked(second.GetLocalAssetId(), runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED)
 
 	registrations, rendered, err := svc.buildManagedLlamaRegistrations()
 	if err != nil {
 		t.Fatalf("build llama registrations: %v", err)
 	}
-	if !strings.Contains(registrations[first.GetLocalModelId()].Problem, "name conflict") {
-		t.Fatalf("expected first registration conflict problem, got %+v", registrations[first.GetLocalModelId()])
+	if !strings.Contains(registrations[first.GetLocalAssetId()].Problem, "name conflict") {
+		t.Fatalf("expected first registration conflict problem, got %+v", registrations[first.GetLocalAssetId()])
 	}
-	if !strings.Contains(registrations[second.GetLocalModelId()].Problem, "name conflict") {
-		t.Fatalf("expected second registration conflict problem, got %+v", registrations[second.GetLocalModelId()])
+	if !strings.Contains(registrations[second.GetLocalAssetId()].Problem, "name conflict") {
+		t.Fatalf("expected second registration conflict problem, got %+v", registrations[second.GetLocalAssetId()])
 	}
 
 	var entries []managedLlamaConfigEntry
@@ -319,7 +317,7 @@ func TestManagedLlamaRegistrationForDynamicProfileRecomputesWhenImageBackendReco
 	if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
 		t.Fatalf("sync managed llama assets: %v", err)
 	}
-	stale := svc.managedLlamaRegistrations[installed.GetLocalModelId()]
+	stale := svc.managedLlamaRegistrations[installed.GetLocalAssetId()]
 	if stale.Problem != "managed diffusers backend unavailable" {
 		t.Fatalf("expected cached unavailable registration, got %+v", stale)
 	}
@@ -335,20 +333,43 @@ func TestManagedLlamaRegistrationForDynamicProfileRecomputesWhenImageBackendReco
 	}
 }
 
-func installManagedLlamaModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string, engineConfig *structpb.Struct) *runtimev1.LocalModelRecord {
+func installManagedLlamaModelForRegistrarTest(t *testing.T, svc *Service, modelID string, entry string, capabilities []string, endpoint string, engineConfig *structpb.Struct) *runtimev1.LocalAssetRecord {
 	t.Helper()
-	req := &runtimev1.InstallLocalModelRequest{
-		ModelId:      modelID,
-		Capabilities: capabilities,
-		Engine:       "llama",
-		Entry:        entry,
-		Endpoint:     endpoint,
-		EngineConfig: engineConfig,
+	req := installLocalAssetParams{
+		assetID:      modelID,
+		capabilities: capabilities,
+		engine:       "llama",
+		entry:        entry,
+		endpoint:     endpoint,
+		engineConfig: engineConfig,
 	}
 	if strings.TrimSpace(endpoint) == "" {
-		return mustInstallSupervisedLocalModel(t, svc, req)
+		record := mustInstallSupervisedLocalModel(t, svc, req)
+		manifestPath := filepath.Join(modelsPathForRegistrarTest(svc), "resolved", "nimi", slugifyLocalModelID(modelID), "asset.manifest.json")
+		svc.mu.Lock()
+		stored := cloneLocalAsset(svc.assets[record.GetLocalAssetId()])
+		stored.LogicalModelId = "nimi/" + slugifyLocalModelID(modelID)
+		if stored.Source == nil {
+			stored.Source = &runtimev1.LocalAssetSource{}
+		}
+		stored.Source.Repo = "file://" + filepath.ToSlash(manifestPath)
+		if strings.TrimSpace(stored.Source.GetRevision()) == "" {
+			stored.Source.Revision = "local"
+		}
+		svc.assets[record.GetLocalAssetId()] = stored
+		svc.mu.Unlock()
+		if err := svc.SyncManagedLlamaAssets(context.Background()); err != nil {
+			t.Fatalf("sync managed llama assets after manifest rewrite: %v", err)
+		}
+		return cloneLocalAsset(stored)
 	}
 	return mustInstallAttachedLocalModel(t, svc, req)
+}
+
+func modelsPathForRegistrarTest(svc *Service) string {
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+	return resolveLocalModelsPath(svc.localModelsPath)
 }
 
 func writeManagedLlamaManifest(t *testing.T, modelsPath string, modelID string, entry string, capabilities []string) {
@@ -367,12 +388,13 @@ func writeManagedLlamaManifest(t *testing.T, modelsPath string, modelID string, 
 		t.Fatalf("write manifest entry: %v", err)
 	}
 
-	manifestPath := filepath.Join(modelsPath, "resolved", "nimi", modelSlug, "manifest.json")
+	manifestPath := filepath.Join(modelsPath, "resolved", "nimi", modelSlug, "asset.manifest.json")
 	if err := os.MkdirAll(filepath.Dir(manifestPath), 0o755); err != nil {
 		t.Fatalf("create manifest dir: %v", err)
 	}
 	manifest := map[string]any{
-		"model_id":         modelID,
+		"asset_id":         modelID,
+		"kind":             "chat",
 		"logical_model_id": "nimi/" + modelSlug,
 		"entry":            entry,
 		"engine":           "llama",

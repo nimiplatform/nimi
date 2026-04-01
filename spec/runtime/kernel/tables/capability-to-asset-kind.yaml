@@ -1,0 +1,96 @@
+version: 1
+source_rule: K-LOCAL-007
+description: >
+  Maps canonical capability tokens and local manifest tokens to LocalAssetKind.
+  Used during asset registration and profile resolution.
+  First match wins; canonical tokens take priority over local manifest tokens.
+  Offline migration tooling may consult separate migration-only inputs, but
+  runtime/public asset contracts do not accept legacy artifact-kind aliases.
+
+mappings:
+  # Canonical capability tokens → asset kind
+  - token: chat
+    source: canonical
+    asset_kind: chat
+
+  - token: text.generate
+    source: canonical
+    asset_kind: chat
+
+  - token: text.embed
+    source: canonical
+    asset_kind: chat
+
+  - token: image.generate
+    source: canonical
+    asset_kind: image
+
+  - token: video.generate
+    source: canonical
+    asset_kind: video
+
+  - token: audio.synthesize
+    source: canonical
+    asset_kind: tts
+
+  - token: audio.transcribe
+    source: canonical
+    asset_kind: stt
+
+  - token: voice_workflow.tts_v2v
+    source: canonical
+    asset_kind: tts
+
+  - token: voice_workflow.tts_t2v
+    source: canonical
+    asset_kind: tts
+
+  # Local manifest tokens → asset kind (fallback)
+  - token: embedding
+    source: local_manifest
+    asset_kind: chat
+
+  - token: image
+    source: local_manifest
+    asset_kind: image
+
+  - token: video
+    source: local_manifest
+    asset_kind: video
+
+  - token: tts
+    source: local_manifest
+    asset_kind: tts
+
+  - token: stt
+    source: local_manifest
+    asset_kind: stt
+
+  - token: music
+    source: local_manifest
+    asset_kind: auxiliary
+
+  # Offline migration input → asset kind (not accepted by runtime/public contracts)
+  - token: llm
+    source: offline_migration_input
+    asset_kind: chat
+
+  - token: vae
+    source: offline_migration_input
+    asset_kind: vae
+
+  - token: clip
+    source: offline_migration_input
+    asset_kind: clip
+
+  - token: controlnet
+    source: offline_migration_input
+    asset_kind: controlnet
+
+  - token: lora
+    source: offline_migration_input
+    asset_kind: lora
+
+  - token: auxiliary
+    source: offline_migration_input
+    asset_kind: auxiliary

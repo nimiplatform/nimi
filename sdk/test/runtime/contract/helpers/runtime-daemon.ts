@@ -10,6 +10,7 @@ import { createRuntimeClient } from '../../../../src/runtime/index.js';
 
 export type RuntimeDaemonRunContext = {
   endpoint: string;
+  localModelsPath: string;
 };
 
 const DEFAULT_RUNTIME_READY_TIMEOUT_MS = 120_000;
@@ -75,7 +76,7 @@ async function waitForRuntimeReady(endpoint: string, appId: string): Promise<voi
   while (Date.now() < deadline) {
     try {
       const remainingMs = Math.max(1, deadline - Date.now());
-      await client.local.listLocalModels({}, {
+      await client.local.listLocalAssets({}, {
         timeoutMs: Math.min(DEFAULT_RUNTIME_READY_CALL_TIMEOUT_MS, remainingMs),
       });
       return;
@@ -127,6 +128,7 @@ export async function withRuntimeDaemon(
   const grpcPort = await allocatePort();
   const httpPort = await allocatePort();
   const endpoint = `127.0.0.1:${grpcPort}`;
+  const localModelsPath = join(stateRoot, 'local-models');
 
   const daemon = spawn('go', ['run', './cmd/nimi', 'serve'], {
     cwd: runtimeDir,
@@ -140,6 +142,7 @@ export async function withRuntimeDaemon(
       NIMI_RUNTIME_CONFIG_PATH: join(stateRoot, 'config.json'),
       NIMI_RUNTIME_MODEL_REGISTRY_PATH: join(stateRoot, 'model-registry.json'),
       NIMI_RUNTIME_LOCAL_STATE_PATH: join(stateRoot, 'local-state.json'),
+      NIMI_RUNTIME_LOCAL_MODELS_PATH: localModelsPath,
       NIMI_RUNTIME_CONNECTOR_STORE_PATH: join(stateRoot, 'connector-store.json'),
       XDG_DATA_HOME: join(stateRoot, 'xdg-data'),
       XDG_CACHE_HOME: join(stateRoot, 'xdg-cache'),
@@ -172,7 +175,7 @@ export async function withRuntimeDaemon(
       throw new Error(`runtime daemon failed before ready: ${readyOrError.message}`);
     }
 
-    await input.run({ endpoint });
+    await input.run({ endpoint, localModelsPath });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error || '');
     throw new Error(`${detail}\nstdout=${stdout}\nstderr=${stderr}`);

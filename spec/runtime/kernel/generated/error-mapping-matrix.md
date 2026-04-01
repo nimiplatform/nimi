@@ -84,7 +84,7 @@
 | `AI_MODEL_PROVIDER_MISMATCH` | `INVALID_ARGUMENT` | `model_prefix_provider_mismatch` | `grpc_status` | `K-ERR-006` |
 | `AI_LOCAL_MODEL_PROFILE_MISSING` | `FAILED_PRECONDITION` | `local_consume_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-003` |
 | `AI_LOCAL_MODEL_UNAVAILABLE` | `FAILED_PRECONDITION` | `local_consume_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-006` |
-| `AI_LOCAL_MODEL_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `install_local_model_duplicate` | `grpc_status` | `K-LOCAL-009` |
+| `AI_LOCAL_ASSET_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `install_local_model_duplicate` | `grpc_status` | `K-LOCAL-009` |
 | `AI_LOCAL_SERVICE_UNAVAILABLE` | `FAILED_PRECONDITION` | `local_service_lifecycle_or_probe` | `grpc_status_or_payload_ok_false` | `K-LOCAL-006` |
 | `AI_LOCAL_SERVICE_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `install_local_service_duplicate` | `grpc_status` | `K-LOCAL-009` |
 | `AI_LOCAL_ENDPOINT_REQUIRED` | `INVALID_ARGUMENT` | `install_or_start_local_model_endpoint_required` | `grpc_status` | `K-LENG-005` |
@@ -92,6 +92,11 @@
 | `AI_LOCAL_MANIFEST_INVALID` | `INVALID_ARGUMENT` | `import_local_model_manifest_parse_fail` | `grpc_status` | `K-LOCAL-009` |
 | `AI_LOCAL_MODEL_INVALID_TRANSITION` | `FAILED_PRECONDITION` | `local_model_or_service_state_transition` | `grpc_status` | `K-LOCAL-005` |
 | `AI_LOCAL_SERVICE_INVALID_TRANSITION` | `FAILED_PRECONDITION` | `local_service_state_transition` | `grpc_status` | `K-LOCAL-005` |
+| `AI_LOCAL_ASSET_ALREADY_INSTALLED` | `ALREADY_EXISTS` | `local_asset_install` | `grpc_status` | `K-LOCAL-009` |
+| `AI_LOCAL_ASSET_SLOT_MISSING` | `FAILED_PRECONDITION` | `local_profile_slot_resolution` | `grpc_status` | `K-LOCAL-031` |
+| `AI_LOCAL_ASSET_SLOT_FORBIDDEN` | `INVALID_ARGUMENT` | `local_profile_slot_resolution` | `grpc_status` | `K-LOCAL-031` |
+| `AI_LOCAL_PROFILE_SLOT_CONFLICT` | `INVALID_ARGUMENT` | `local_profile_slot_resolution` | `grpc_status` | `K-LOCAL-031` |
+| `AI_LOCAL_PROFILE_OVERRIDE_FORBIDDEN` | `INVALID_ARGUMENT` | `local_profile_entry_override` | `grpc_status` | `K-LOCAL-032` |
 | `AI_LOCAL_DOWNLOAD_FAILED` | `INTERNAL` | `local_model_download` | `grpc_status` | `K-LOCAL-024` |
 | `AI_LOCAL_DOWNLOAD_HASH_MISMATCH` | `DATA_LOSS` | `local_model_download_verify` | `grpc_status` | `K-LOCAL-024` |
 | `AI_LOCAL_HF_REPO_INVALID` | `INVALID_ARGUMENT` | `local_model_hf_repo_parse` | `grpc_status` | `K-LOCAL-023` |

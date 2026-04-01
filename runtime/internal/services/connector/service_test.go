@@ -1004,8 +1004,8 @@ func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
 	}
 
 	svc.SetLocalModelLister(&fakeLocalModelLister{
-		models: []*runtimev1.LocalModelRecord{
-			{ModelId: "image-only", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
+		models: []*runtimev1.LocalAssetRecord{
+			{AssetId: "image-only", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
 		},
 	})
 	emptyResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
@@ -1020,8 +1020,8 @@ func TestTestConnectorLocalUsesRuntimeAvailability(t *testing.T) {
 	}
 
 	svc.SetLocalModelLister(&fakeLocalModelLister{
-		models: []*runtimev1.LocalModelRecord{
-			{ModelId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
+		models: []*runtimev1.LocalAssetRecord{
+			{AssetId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
 		},
 	})
 	okResp, err := svc.TestConnector(ctx, &runtimev1.TestConnectorRequest{ConnectorId: llmConnectorID})
@@ -1056,10 +1056,10 @@ func TestListConnectorModelsLocalUsesRuntimeModels(t *testing.T) {
 	}
 
 	svc.SetLocalModelLister(&fakeLocalModelLister{
-		models: []*runtimev1.LocalModelRecord{
-			{ModelId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
-			{ModelId: "image-model", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE},
-			{ModelId: "chat-installed", Capabilities: []string{"chat"}, Status: runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED},
+		models: []*runtimev1.LocalAssetRecord{
+			{AssetId: "chat-model", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
+			{AssetId: "image-model", Capabilities: []string{"image.generate"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE},
+			{AssetId: "chat-installed", Capabilities: []string{"chat"}, Status: runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED},
 		},
 	})
 

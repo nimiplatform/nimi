@@ -49,28 +49,20 @@ export type RuntimeUnaryMethodContractMap = {
   [RuntimeMethodIds.model.pull]: RuntimeClientMethodContract<'model', 'pull'>;
   [RuntimeMethodIds.model.remove]: RuntimeClientMethodContract<'model', 'remove'>;
   [RuntimeMethodIds.model.checkHealth]: RuntimeClientMethodContract<'model', 'checkHealth'>;
-  [RuntimeMethodIds.local.listLocalModels]: RuntimeClientMethodContract<'local', 'listLocalModels'>;
-  [RuntimeMethodIds.local.listLocalArtifacts]: RuntimeClientMethodContract<'local', 'listLocalArtifacts'>;
-  [RuntimeMethodIds.local.listVerifiedModels]: RuntimeClientMethodContract<'local', 'listVerifiedModels'>;
-  [RuntimeMethodIds.local.listVerifiedArtifacts]: RuntimeClientMethodContract<'local', 'listVerifiedArtifacts'>;
+  [RuntimeMethodIds.local.listLocalAssets]: RuntimeClientMethodContract<'local', 'listLocalAssets'>;
+  [RuntimeMethodIds.local.listVerifiedAssets]: RuntimeClientMethodContract<'local', 'listVerifiedAssets'>;
   [RuntimeMethodIds.local.searchCatalogModels]: RuntimeClientMethodContract<'local', 'searchCatalogModels'>;
   [RuntimeMethodIds.local.resolveModelInstallPlan]: RuntimeClientMethodContract<'local', 'resolveModelInstallPlan'>;
-  [RuntimeMethodIds.local.installLocalModel]: RuntimeClientMethodContract<'local', 'installLocalModel'>;
-  [RuntimeMethodIds.local.installVerifiedModel]: RuntimeClientMethodContract<'local', 'installVerifiedModel'>;
-  [RuntimeMethodIds.local.installVerifiedArtifact]: RuntimeClientMethodContract<'local', 'installVerifiedArtifact'>;
-  [RuntimeMethodIds.local.importLocalModel]: RuntimeClientMethodContract<'local', 'importLocalModel'>;
-  [RuntimeMethodIds.local.importLocalArtifact]: RuntimeClientMethodContract<'local', 'importLocalArtifact'>;
-  [RuntimeMethodIds.local.importLocalModelFile]: RuntimeClientMethodContract<'local', 'importLocalModelFile'>;
-  [RuntimeMethodIds.local.importLocalArtifactFile]: RuntimeClientMethodContract<'local', 'importLocalArtifactFile'>;
+  [RuntimeMethodIds.local.installVerifiedAsset]: RuntimeClientMethodContract<'local', 'installVerifiedAsset'>;
+  [RuntimeMethodIds.local.importLocalAsset]: RuntimeClientMethodContract<'local', 'importLocalAsset'>;
+  [RuntimeMethodIds.local.importLocalAssetFile]: RuntimeClientMethodContract<'local', 'importLocalAssetFile'>;
   [RuntimeMethodIds.local.scanUnregisteredAssets]: RuntimeClientMethodContract<'local', 'scanUnregisteredAssets'>;
-  [RuntimeMethodIds.local.scaffoldOrphanModel]: RuntimeClientMethodContract<'local', 'scaffoldOrphanModel'>;
-  [RuntimeMethodIds.local.scaffoldOrphanArtifact]: RuntimeClientMethodContract<'local', 'scaffoldOrphanArtifact'>;
-  [RuntimeMethodIds.local.removeLocalModel]: RuntimeClientMethodContract<'local', 'removeLocalModel'>;
-  [RuntimeMethodIds.local.removeLocalArtifact]: RuntimeClientMethodContract<'local', 'removeLocalArtifact'>;
-  [RuntimeMethodIds.local.startLocalModel]: RuntimeClientMethodContract<'local', 'startLocalModel'>;
-  [RuntimeMethodIds.local.stopLocalModel]: RuntimeClientMethodContract<'local', 'stopLocalModel'>;
-  [RuntimeMethodIds.local.checkLocalModelHealth]: RuntimeClientMethodContract<'local', 'checkLocalModelHealth'>;
-  [RuntimeMethodIds.local.warmLocalModel]: RuntimeClientMethodContract<'local', 'warmLocalModel'>;
+  [RuntimeMethodIds.local.scaffoldOrphanAsset]: RuntimeClientMethodContract<'local', 'scaffoldOrphanAsset'>;
+  [RuntimeMethodIds.local.removeLocalAsset]: RuntimeClientMethodContract<'local', 'removeLocalAsset'>;
+  [RuntimeMethodIds.local.startLocalAsset]: RuntimeClientMethodContract<'local', 'startLocalAsset'>;
+  [RuntimeMethodIds.local.stopLocalAsset]: RuntimeClientMethodContract<'local', 'stopLocalAsset'>;
+  [RuntimeMethodIds.local.checkLocalAssetHealth]: RuntimeClientMethodContract<'local', 'checkLocalAssetHealth'>;
+  [RuntimeMethodIds.local.warmLocalAsset]: RuntimeClientMethodContract<'local', 'warmLocalAsset'>;
   [RuntimeMethodIds.local.collectDeviceProfile]: RuntimeClientMethodContract<'local', 'collectDeviceProfile'>;
   [RuntimeMethodIds.local.resolveProfile]: RuntimeClientMethodContract<'local', 'resolveProfile'>;
   [RuntimeMethodIds.local.applyProfile]: RuntimeClientMethodContract<'local', 'applyProfile'>;
@@ -131,11 +123,9 @@ export type RuntimeStreamMethodContractMap = {
 };
 
 type RuntimeExplicitUnaryMethodIds =
-  | typeof RuntimeMethodIds.local.importLocalModelFile
-  | typeof RuntimeMethodIds.local.importLocalArtifactFile
+  | typeof RuntimeMethodIds.local.importLocalAssetFile
   | typeof RuntimeMethodIds.local.scanUnregisteredAssets
-  | typeof RuntimeMethodIds.local.scaffoldOrphanModel
-  | typeof RuntimeMethodIds.local.scaffoldOrphanArtifact
+  | typeof RuntimeMethodIds.local.scaffoldOrphanAsset
   | typeof RuntimeMethodIds.local.listLocalTransfers
   | typeof RuntimeMethodIds.local.pauseLocalTransfer
   | typeof RuntimeMethodIds.local.resumeLocalTransfer

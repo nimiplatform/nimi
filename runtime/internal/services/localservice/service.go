@@ -56,14 +56,12 @@ type Service struct {
 	managedMediaBackendUpdatedAt   string
 
 	mu                        sync.RWMutex
-	models                    map[string]*runtimev1.LocalModelRecord
-	modelRuntimeModes         map[string]runtimev1.LocalEngineRuntimeMode
-	artifacts                 map[string]*runtimev1.LocalArtifactRecord
+	assets                    map[string]*runtimev1.LocalAssetRecord
+	assetRuntimeModes         map[string]runtimev1.LocalEngineRuntimeMode
 	services                  map[string]*runtimev1.LocalServiceDescriptor
 	serviceRuntimeModes       map[string]runtimev1.LocalEngineRuntimeMode
 	audits                    []*runtimev1.LocalAuditEvent
-	verified                  []*runtimev1.LocalVerifiedModelDescriptor
-	verifiedArtifacts         []*runtimev1.LocalVerifiedArtifactDescriptor
+	verified                  []*runtimev1.LocalVerifiedAssetDescriptor
 	catalog                   []*runtimev1.LocalCatalogModelDescriptor
 	engineMgr                 EngineManager
 	managedLlamaRegistrations map[string]managedLlamaRegistration
@@ -77,7 +75,7 @@ type Service struct {
 	artifactDownloadMaxBodyBytes int64
 	modelDownloadTimeout         time.Duration
 	modelDownloadMaxBodyBytes    int64
-	modelProbeState              map[string]*probeRecoveryState
+	assetProbeState              map[string]*probeRecoveryState
 	serviceProbeState            map[string]*probeRecoveryState
 	transfers                    map[string]*runtimev1.LocalTransferSessionSummary
 	transferControls             map[string]*localTransferControl
@@ -101,8 +99,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 	if localAuditCapacity <= 0 {
 		localAuditCapacity = defaultLocalAuditCapacity
 	}
-	verified := defaultVerifiedModels()
-	verifiedArtifacts := defaultVerifiedArtifacts()
+	verified := defaultVerifiedAssets()
 	svc := &Service{
 		logger:                       logger,
 		auditStore:                   store,
@@ -110,14 +107,12 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		localAuditCap:                localAuditCapacity,
 		localModelsPath:              resolveLocalModelsPath(""),
 		managedLlamaModelsConfigPath: resolveGeneratedLlamaModelsConfigPath(""),
-		models:                       make(map[string]*runtimev1.LocalModelRecord),
-		modelRuntimeModes:            make(map[string]runtimev1.LocalEngineRuntimeMode),
-		artifacts:                    make(map[string]*runtimev1.LocalArtifactRecord),
+		assets:                       make(map[string]*runtimev1.LocalAssetRecord),
+		assetRuntimeModes:            make(map[string]runtimev1.LocalEngineRuntimeMode),
 		services:                     make(map[string]*runtimev1.LocalServiceDescriptor),
 		serviceRuntimeModes:          make(map[string]runtimev1.LocalEngineRuntimeMode),
 		audits:                       make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
 		verified:                     verified,
-		verifiedArtifacts:            verifiedArtifacts,
 		catalog:                      defaultCatalogFromVerified(verified),
 		managedLlamaRegistrations:    make(map[string]managedLlamaRegistration),
 		warmedModelKeys:              make(map[string]struct{}),
@@ -129,7 +124,7 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		artifactDownloadMaxBodyBytes: localArtifactDownloadMaxBodyBytes,
 		modelDownloadTimeout:         localModelDownloadTimeout,
 		modelDownloadMaxBodyBytes:    localModelDownloadMaxBodyBytes,
-		modelProbeState:              make(map[string]*probeRecoveryState),
+		assetProbeState:              make(map[string]*probeRecoveryState),
 		serviceProbeState:            make(map[string]*probeRecoveryState),
 		transfers:                    make(map[string]*runtimev1.LocalTransferSessionSummary),
 		transferControls:             make(map[string]*localTransferControl),
@@ -137,9 +132,6 @@ func New(logger *slog.Logger, store *auditlog.Store, stateStorePath string, loca
 		entryHashCache:               make(map[string]entryHashCacheState),
 	}
 	if err := svc.restoreState(); err != nil {
-		return nil, err
-	}
-	if err := svc.migrateDesktopLocalRuntimeState(); err != nil {
 		return nil, err
 	}
 	svc.startRecoveryLoop()

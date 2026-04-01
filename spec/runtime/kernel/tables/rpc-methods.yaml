@@ -76,39 +76,25 @@ services:
   - name: RuntimeLocalService
     source_rule: K-RPC-004
     methods:
-      - name: ListLocalModels
+      - name: ListLocalAssets
         type: unary
-      - name: ListLocalArtifacts
+      - name: ListVerifiedAssets
         type: unary
-      - name: ListVerifiedModels
+      - name: InstallVerifiedAsset
         type: unary
-      - name: ListVerifiedArtifacts
+      - name: ImportLocalAsset
         type: unary
-      - name: InstallLocalModel
+      - name: ImportLocalAssetFile
         type: unary
-      - name: InstallVerifiedModel
+      - name: RemoveLocalAsset
         type: unary
-      - name: InstallVerifiedArtifact
+      - name: StartLocalAsset
         type: unary
-      - name: ImportLocalModel
+      - name: StopLocalAsset
         type: unary
-      - name: ImportLocalArtifact
+      - name: CheckLocalAssetHealth
         type: unary
-      - name: ImportLocalModelFile
-        type: unary
-      - name: ImportLocalArtifactFile
-        type: unary
-      - name: RemoveLocalModel
-        type: unary
-      - name: RemoveLocalArtifact
-        type: unary
-      - name: StartLocalModel
-        type: unary
-      - name: StopLocalModel
-        type: unary
-      - name: CheckLocalModelHealth
-        type: unary
-      - name: WarmLocalModel
+      - name: WarmLocalAsset
         type: unary
       - name: SearchCatalogModels
         type: unary
@@ -118,9 +104,7 @@ services:
         type: unary
       - name: ScanUnregisteredAssets
         type: unary
-      - name: ScaffoldOrphanModel
-        type: unary
-      - name: ScaffoldOrphanArtifact
+      - name: ScaffoldOrphanAsset
         type: unary
       - name: ListLocalTransfers
         type: unary

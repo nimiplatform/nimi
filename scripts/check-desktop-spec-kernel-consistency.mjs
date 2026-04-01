@@ -998,6 +998,8 @@ function checkLocalRuntimeIpcConsistency() {
       ...content.matchAll(/\binvokeLocalAiCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
       ...content.matchAll(/\binvokeLocalRuntimeCommand(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
       ...content.matchAll(/\btauriInvoke(?:<[^>]+>)?\(\s*'((?:runtime_local_[a-z0-9_]+))'/gu),
+      // SDK-bridged commands declare coverage via comment markers (not direct Tauri invoke).
+      ...content.matchAll(/^\s*\/\/\s+(runtime_local_[a-z0-9_]+)\s*$/gmu),
     ];
   });
   const tsCommands = new Set(tsCommandMatches.map((match) => match[1]));

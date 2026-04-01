@@ -69,11 +69,11 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	model := cloneLocalModel(s.models[localModelID])
-	if model == nil || model.GetStatus() == runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
+	model := cloneLocalAsset(s.assets[localModelID])
+	if model == nil || model.GetStatus() == runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
 		return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_LOCAL_SERVICE_UNAVAILABLE)
 	}
-	modelMode := normalizeRuntimeMode(s.modelRuntimeModes[localModelID])
+	modelMode := normalizeRuntimeMode(s.assetRuntimeModes[localModelID])
 
 	engine := defaultString(strings.TrimSpace(req.GetEngine()), model.GetEngine())
 	if !strings.EqualFold(engine, model.GetEngine()) {
@@ -110,7 +110,8 @@ func (s *Service) InstallLocalService(_ context.Context, req *runtimev1.InstallL
 	if strings.TrimSpace(req.GetEndpoint()) != "" {
 		serviceMode = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
 	}
-	endpoint := resolveServiceInstallEndpoint(strings.TrimSpace(req.GetEndpoint()), strings.TrimSpace(model.GetEndpoint()))
+	modelEndpoint := effectiveEndpointForRuntimeMode(engine, modelMode, model.GetEndpoint(), s.managedEndpointForEngineLocked(engine))
+	endpoint := resolveServiceInstallEndpoint(strings.TrimSpace(req.GetEndpoint()), modelEndpoint)
 	if normalizeRuntimeMode(serviceMode) == runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT && strings.TrimSpace(endpoint) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED)
 	}
@@ -424,9 +425,9 @@ func (s *Service) ListNodeCatalog(ctx context.Context, req *runtimev1.ListNodeCa
 	for _, service := range s.services {
 		services = append(services, cloneServiceDescriptor(service))
 	}
-	models := make(map[string]*runtimev1.LocalModelRecord, len(s.models))
-	for localModelID, model := range s.models {
-		models[localModelID] = cloneLocalModel(model)
+	models := make(map[string]*runtimev1.LocalAssetRecord, len(s.assets))
+	for localModelID, model := range s.assets {
+		models[localModelID] = cloneLocalAsset(model)
 	}
 	s.mu.RUnlock()
 
@@ -580,7 +581,7 @@ func capabilityRequiresNodeProbe(provider string, capability string) bool {
 	}
 }
 
-func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) bool {
+func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalAssetRecord, probe endpointProbeResult) bool {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
 	case "media":
 		return mediaModelProbeSucceeded(model, probe)
@@ -589,7 +590,7 @@ func providerCapabilityProbeSucceeded(provider string, model *runtimev1.LocalMod
 	}
 }
 
-func providerCapabilityProbeFailureDetail(provider string, model *runtimev1.LocalModelRecord, probe endpointProbeResult) string {
+func providerCapabilityProbeFailureDetail(provider string, model *runtimev1.LocalAssetRecord, probe endpointProbeResult) string {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
 	case "media":
 		return mediaModelProbeFailureDetail(model, probe)
@@ -606,7 +607,7 @@ func isCustomCapability(capability string) bool {
 	return normalized == "custom" || strings.HasPrefix(normalized, "custom.") || strings.HasPrefix(normalized, "custom/")
 }
 
-func missingCustomInvokeProfile(service *runtimev1.LocalServiceDescriptor, models map[string]*runtimev1.LocalModelRecord) bool {
+func missingCustomInvokeProfile(service *runtimev1.LocalServiceDescriptor, models map[string]*runtimev1.LocalAssetRecord) bool {
 	localModelID := strings.TrimSpace(service.GetLocalModelId())
 	if localModelID == "" {
 		return true

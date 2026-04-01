@@ -155,66 +155,66 @@ func TestDefaultEndpointProbeMediaCollectsReadyModels(t *testing.T) {
 func TestLocalModelLifecycle(t *testing.T) {
 	svc := newTestService(t)
 
-	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/test-chat",
-		Capabilities: []string{"chat", "chat"},
-		Engine:       "llama",
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/test-chat",
+		capabilities: []string{"chat", "chat"},
+		engine:       "llama",
 	})
 	model := installed
-	if model.GetLocalModelId() == "" {
+	if model.GetLocalAssetId() == "" {
 		t.Fatalf("local model id must not be empty")
 	}
-	if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
+	if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
 		t.Fatalf("install status mismatch: got=%s", model.GetStatus())
 	}
 	if len(model.GetCapabilities()) != 1 || model.GetCapabilities()[0] != "chat" {
 		t.Fatalf("capabilities must be normalized: %#v", model.GetCapabilities())
 	}
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: model.GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: model.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("start status mismatch: got=%s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("start status mismatch: got=%s", started.GetAsset().GetStatus())
 	}
 
-	healthResp, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
-		LocalModelId: model.GetLocalModelId(),
+	healthResp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: model.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("check local model health: %v", err)
 	}
-	if len(healthResp.GetModels()) != 1 {
-		t.Fatalf("health rows mismatch: got=%d want=1", len(healthResp.GetModels()))
+	if len(healthResp.GetAssets()) != 1 {
+		t.Fatalf("health rows mismatch: got=%d want=1", len(healthResp.GetAssets()))
 	}
-	if healthResp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("health status mismatch: got=%s", healthResp.GetModels()[0].GetStatus())
+	if healthResp.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("health status mismatch: got=%s", healthResp.GetAssets()[0].GetStatus())
 	}
-	if healthResp.GetModels()[0].GetDetail() != "model active" {
-		t.Fatalf("health detail mismatch: got=%q", healthResp.GetModels()[0].GetDetail())
+	if healthResp.GetAssets()[0].GetDetail() != "model active" {
+		t.Fatalf("health detail mismatch: got=%q", healthResp.GetAssets()[0].GetDetail())
 	}
 
-	stopped, err := svc.StopLocalModel(context.Background(), &runtimev1.StopLocalModelRequest{
-		LocalModelId: model.GetLocalModelId(),
+	stopped, err := svc.StopLocalAsset(context.Background(), &runtimev1.StopLocalAssetRequest{
+		LocalAssetId: model.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("stop local model: %v", err)
 	}
-	if stopped.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED {
-		t.Fatalf("stop status mismatch: got=%s", stopped.GetModel().GetStatus())
+	if stopped.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED {
+		t.Fatalf("stop status mismatch: got=%s", stopped.GetAsset().GetStatus())
 	}
 
-	removed, err := svc.RemoveLocalModel(context.Background(), &runtimev1.RemoveLocalModelRequest{
-		LocalModelId: model.GetLocalModelId(),
+	removed, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{
+		LocalAssetId: model.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("remove local model: %v", err)
 	}
-	if removed.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED {
-		t.Fatalf("remove status mismatch: got=%s", removed.GetModel().GetStatus())
+	if removed.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED {
+		t.Fatalf("remove status mismatch: got=%s", removed.GetAsset().GetStatus())
 	}
 }
 
@@ -226,23 +226,23 @@ func TestLocalStartLocalModelProbeFailureTransitionsUnhealthy(t *testing.T) {
 			probeURL: "http://127.0.0.1:1234/v1/models",
 		}
 	})
-	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/probe-fail-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/probe-fail-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		t.Fatalf("expected unhealthy status, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy status, got %s", started.GetAsset().GetStatus())
 	}
-	if !strings.Contains(started.GetModel().GetHealthDetail(), "connection refused") {
-		t.Fatalf("expected probe failure detail, got %q", started.GetModel().GetHealthDetail())
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "connection refused") {
+		t.Fatalf("expected probe failure detail, got %q", started.GetAsset().GetHealthDetail())
 	}
 }
 
@@ -266,20 +266,20 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 	svc.SetManagedLlamaEndpoint(server.URL + "/v1")
-	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/qwen",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/qwen",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected active status after warm success, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected active status after warm success, got %s", started.GetAsset().GetStatus())
 	}
 	if chatCompletions != 1 {
 		t.Fatalf("expected one warm execution, got %d", chatCompletions)
@@ -288,14 +288,14 @@ func TestLocalStartManagedLocalModelWarmsBeforeReportingActive(t *testing.T) {
 		t.Fatalf("expected a single managed engine bootstrap, got %d", mgr.startCalls)
 	}
 
-	restarted, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	restarted, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("restart local model after warm cache: %v", err)
 	}
-	if restarted.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected active status after cached warm start, got %s", restarted.GetModel().GetStatus())
+	if restarted.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected active status after cached warm start, got %s", restarted.GetAsset().GetStatus())
 	}
 	if chatCompletions != 1 {
 		t.Fatalf("expected cached warm state to avoid a second execution, got %d calls", chatCompletions)
@@ -320,23 +320,23 @@ func TestLocalStartManagedLocalModelWarmFailureTransitionsUnhealthy(t *testing.T
 	svc := newTestServiceWithProbe(t, nil)
 	svc.SetEngineManager(&mockEngineManager{})
 	svc.SetManagedLlamaEndpoint(server.URL + "/v1")
-	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/qwen",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/qwen",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		t.Fatalf("expected unhealthy status after warm failure, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy status after warm failure, got %s", started.GetAsset().GetStatus())
 	}
-	if !strings.Contains(started.GetModel().GetHealthDetail(), "warm execution failed") {
-		t.Fatalf("expected warm failure detail, got %q", started.GetModel().GetHealthDetail())
+	if !strings.Contains(started.GetAsset().GetHealthDetail(), "warm execution failed") {
+		t.Fatalf("expected warm failure detail, got %q", started.GetAsset().GetHealthDetail())
 	}
 }
 
@@ -357,49 +357,49 @@ func TestLocalCheckLocalModelHealthRecoversAfterThreeProbes(t *testing.T) {
 			probeURL: "http://127.0.0.1:1234/v1/models",
 		}
 	})
-	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/recover-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/recover-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
-	localModelID := installed.GetLocalModelId()
+	localModelID := installed.GetLocalAssetId()
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: localModelID,
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: localModelID,
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		t.Fatalf("expected unhealthy after startup probe failure, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy after startup probe failure, got %s", started.GetAsset().GetStatus())
 	}
 
 	for i := 1; i <= 2; i++ {
-		resp, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
-			LocalModelId: localModelID,
+		resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+			LocalAssetId: localModelID,
 		})
 		if err != nil {
 			t.Fatalf("check local model health #%d: %v", i, err)
 		}
-		if len(resp.GetModels()) != 1 {
-			t.Fatalf("expected one model row at probe #%d, got %d", i, len(resp.GetModels()))
+		if len(resp.GetAssets()) != 1 {
+			t.Fatalf("expected one model row at probe #%d, got %d", i, len(resp.GetAssets()))
 		}
-		if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-			t.Fatalf("probe #%d should keep model unhealthy until threshold, got %s", i, resp.GetModels()[0].GetStatus())
+		if resp.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+			t.Fatalf("probe #%d should keep model unhealthy until threshold, got %s", i, resp.GetAssets()[0].GetStatus())
 		}
 	}
 
-	recovered, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
-		LocalModelId: localModelID,
+	recovered, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: localModelID,
 	})
 	if err != nil {
 		t.Fatalf("check local model health #3: %v", err)
 	}
-	if len(recovered.GetModels()) != 1 {
-		t.Fatalf("expected one model row after recovery probe, got %d", len(recovered.GetModels()))
+	if len(recovered.GetAssets()) != 1 {
+		t.Fatalf("expected one model row after recovery probe, got %d", len(recovered.GetAssets()))
 	}
-	if recovered.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("third successful probe should recover model to ACTIVE, got %s", recovered.GetModels()[0].GetStatus())
+	if recovered.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("third successful probe should recover model to ACTIVE, got %s", recovered.GetAssets()[0].GetStatus())
 	}
 }
 
@@ -411,16 +411,16 @@ func TestLocalStartLocalServiceProbeFailureTransitionsUnhealthy(t *testing.T) {
 			probeURL: "http://127.0.0.1:8080/v1/models",
 		}
 	})
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/service-probe-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/service-probe-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-probe-fail",
 		Engine:       "llama",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -456,16 +456,16 @@ func TestLocalCheckLocalServiceHealthRecoversAfterThreeProbes(t *testing.T) {
 			probeURL: "http://127.0.0.1:8080/v1/models",
 		}
 	})
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/service-recover-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/service-recover-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-recover",
 		Engine:       "llama",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -512,8 +512,8 @@ func TestLocalCheckLocalServiceHealthRecoversAfterThreeProbes(t *testing.T) {
 func TestLocalCheckLocalModelHealthNotFoundWhenTargetMissing(t *testing.T) {
 	svc := newTestService(t)
 
-	_, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
-		LocalModelId: "model_missing",
+	_, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: "model_missing",
 	})
 	assertGRPCCode(t, err, "CheckLocalModelHealth(not_found)", codes.NotFound)
 	assertGRPCReasonCode(t, err, "CheckLocalModelHealth(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
@@ -538,20 +538,20 @@ func TestLocalDefaultProbeBuildsSingleV1ModelsPath(t *testing.T) {
 	defer server.Close()
 
 	svc := newTestServiceWithProbe(t, nil)
-	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/default-probe-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     server.URL + "/v1",
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/default-probe-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     server.URL + "/v1",
 	})
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected active after successful real probe, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected active after successful real probe, got %s", started.GetAsset().GetStatus())
 	}
 	if receivedPath != "/v1/models" {
 		t.Fatalf("probe path mismatch: got %s want /v1/models", receivedPath)
@@ -563,20 +563,20 @@ func TestLocalStartLocalModelBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/bootstrap-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/bootstrap-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected ACTIVE, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", started.GetAsset().GetStatus())
 	}
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one engine bootstrap start call, got %d", mgr.startCalls)
@@ -594,16 +594,16 @@ func TestLocalStartLocalServiceBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/bootstrap-service-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/bootstrap-service-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bootstrap",
 		Engine:       "llama",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -633,21 +633,21 @@ func TestLocalBootstrapSkipsNonLoopbackEndpoint(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/non-loopback-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     "https://example.com/v1",
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/non-loopback-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "https://example.com/v1",
 	})
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected ACTIVE, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", started.GetAsset().GetStatus())
 	}
 	if mgr.startCalls != 0 {
 		t.Fatalf("expected no managed engine bootstrap for non-loopback endpoint, got %d calls", mgr.startCalls)
@@ -659,27 +659,27 @@ func TestLocalCheckLocalModelHealthBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/health-bootstrap-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/health-bootstrap-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
-	localModelID := installed.GetLocalModelId()
-	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+	localModelID := installed.GetLocalAssetId()
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
 		t.Fatalf("promote model to active: %v", err)
 	}
 
-	resp, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
-		LocalModelId: localModelID,
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: localModelID,
 	})
 	if err != nil {
 		t.Fatalf("check local model health: %v", err)
 	}
-	if len(resp.GetModels()) != 1 {
-		t.Fatalf("expected one model row, got %d", len(resp.GetModels()))
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one model row, got %d", len(resp.GetAssets()))
 	}
-	if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected ACTIVE, got %s", resp.GetModels()[0].GetStatus())
+	if resp.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected ACTIVE, got %s", resp.GetAssets()[0].GetStatus())
 	}
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
@@ -697,16 +697,16 @@ func TestLocalCheckLocalServiceHealthBootstrapsManagedEngine(t *testing.T) {
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/health-bootstrap-service-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/health-bootstrap-service-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-health-bootstrap",
 		Engine:       "llama",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -742,30 +742,30 @@ func TestLocalCheckLocalModelHealthUnhealthyPathBootstrapsManagedEngine(t *testi
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/health-unhealthy-bootstrap-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/health-unhealthy-bootstrap-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
-	localModelID := installed.GetLocalModelId()
-	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+	localModelID := installed.GetLocalAssetId()
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
 		t.Fatalf("promote model to active: %v", err)
 	}
-	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY, "model unhealthy"); err != nil {
+	if _, err := svc.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY, "model unhealthy"); err != nil {
 		t.Fatalf("promote model to unhealthy: %v", err)
 	}
 
-	resp, err := svc.CheckLocalModelHealth(context.Background(), &runtimev1.CheckLocalModelHealthRequest{
-		LocalModelId: localModelID,
+	resp, err := svc.CheckLocalAssetHealth(context.Background(), &runtimev1.CheckLocalAssetHealthRequest{
+		LocalAssetId: localModelID,
 	})
 	if err != nil {
 		t.Fatalf("check local model health: %v", err)
 	}
-	if len(resp.GetModels()) != 1 {
-		t.Fatalf("expected one model row, got %d", len(resp.GetModels()))
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one model row, got %d", len(resp.GetAssets()))
 	}
-	if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		t.Fatalf("expected UNHEALTHY before recovery threshold, got %s", resp.GetModels()[0].GetStatus())
+	if resp.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected UNHEALTHY before recovery threshold, got %s", resp.GetAssets()[0].GetStatus())
 	}
 	if mgr.startCalls != 1 {
 		t.Fatalf("expected one bootstrap start call, got %d", mgr.startCalls)
@@ -777,16 +777,16 @@ func TestLocalCheckLocalServiceHealthUnhealthyPathBootstrapsManagedEngine(t *tes
 	mgr := &mockEngineManager{}
 	svc.SetEngineManager(mgr)
 
-	modelResp := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/health-unhealthy-bootstrap-service-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelResp := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/health-unhealthy-bootstrap-service-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-health-unhealthy-bootstrap",
 		Engine:       "llama",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -988,26 +988,26 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 		}
 		return endpointProbeResult{healthy: false, detail: "startup failed"}
 	})
-	installed := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/recovery-sweep-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/recovery-sweep-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
-	localModelID := installed.GetLocalModelId()
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: localModelID,
+	localModelID := installed.GetLocalAssetId()
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: localModelID,
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
-		t.Fatalf("expected unhealthy after startup failure, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
+		t.Fatalf("expected unhealthy after startup failure, got %s", started.GetAsset().GetStatus())
 	}
 
 	healthy = true
 	for i := 1; i <= 2; i++ {
 		svc.mu.Lock()
-		state := svc.modelProbeState[localModelID]
+		state := svc.assetProbeState[localModelID]
 		if state == nil {
 			t.Fatalf("expected model probe state to exist")
 		}
@@ -1019,13 +1019,13 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 		if current == nil {
 			t.Fatalf("model should still exist")
 		}
-		if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 			t.Fatalf("recovery sweep #%d should keep UNHEALTHY before threshold, got %s", i, current.GetStatus())
 		}
 	}
 
 	svc.mu.Lock()
-	state := svc.modelProbeState[localModelID]
+	state := svc.assetProbeState[localModelID]
 	if state == nil {
 		svc.mu.Unlock()
 		t.Fatalf("expected model probe state to exist before final sweep")
@@ -1038,7 +1038,7 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 	if current == nil {
 		t.Fatalf("model should still exist")
 	}
-	if current.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
+	if current.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
 		t.Fatalf("expected ACTIVE after third successful recovery sweep, got %s", current.GetStatus())
 	}
 }
@@ -1046,12 +1046,12 @@ func TestLocalRecoverySweepPromotesUnhealthyModel(t *testing.T) {
 func TestCollectUnhealthyRecoveryTargetsSnapshotsRuntimeModes(t *testing.T) {
 	svc := newTestService(t)
 	svc.mu.Lock()
-	svc.models["model-1"] = &runtimev1.LocalModelRecord{
-		LocalModelId: "model-1",
-		ModelId:      "local/recovery-snapshot-model",
-		Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY,
+	svc.assets["model-1"] = &runtimev1.LocalAssetRecord{
+		LocalAssetId: "model-1",
+		AssetId:      "local/recovery-snapshot-model",
+		Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY,
 	}
-	svc.modelRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
+	svc.assetRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.services["service-1"] = &runtimev1.LocalServiceDescriptor{
 		ServiceId: "service-1",
 		Engine:    "media",
@@ -1062,7 +1062,7 @@ func TestCollectUnhealthyRecoveryTargetsSnapshotsRuntimeModes(t *testing.T) {
 
 	models, services := svc.collectUnhealthyRecoveryTargets()
 	svc.mu.Lock()
-	svc.modelRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
+	svc.assetRuntimeModes["model-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT
 	svc.serviceRuntimeModes["service-1"] = runtimev1.LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED
 	svc.mu.Unlock()
 
@@ -1130,8 +1130,8 @@ func TestLocalResolveAndApplyExecutionPlan(t *testing.T) {
 	if result.GetPlanId() != plan.GetPlanId() {
 		t.Fatalf("applied plan mismatch: got=%q want=%q", result.GetPlanId(), plan.GetPlanId())
 	}
-	if len(result.GetInstalledModels()) != 1 {
-		t.Fatalf("installed model count mismatch: got=%d want=1", len(result.GetInstalledModels()))
+	if len(result.GetInstalledAssets()) != 1 {
+		t.Fatalf("installed model count mismatch: got=%d want=1", len(result.GetInstalledAssets()))
 	}
 	if len(result.GetServices()) != 1 {
 		t.Fatalf("installed service count mismatch: got=%d want=1", len(result.GetServices()))
@@ -1170,28 +1170,28 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 			Entries: []*runtimev1.LocalProfileEntryDescriptor{
 				{
 					EntryId:    "profile.image.model",
-					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_MODEL,
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
 					Capability: "image",
 					Required:   &required,
-					ModelId:    "local/image-best",
+					AssetId:    "local/image-best",
 					Engine:     "llama",
 				},
 				{
-					EntryId:      "profile.image.vae",
-					Kind:         runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ARTIFACT,
-					Capability:   "image",
-					Required:     &required,
-					TemplateId:   "verified.artifact.z_image.vae",
-					ArtifactId:   "local/z_image_ae",
-					ArtifactKind: runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-					Engine:       "media",
+					EntryId:    "profile.image.vae",
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+					Capability: "image",
+					Required:   &required,
+					TemplateId: "verified.asset.z_image.vae",
+					AssetId:    "local/z_image_ae",
+					AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+					Engine:     "media",
 				},
 				{
 					EntryId:    "profile.image.helper",
-					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_MODEL,
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
 					Capability: "chat",
 					Required:   &optional,
-					ModelId:    "local/helper-chat",
+					AssetId:    "local/helper-chat",
 					Engine:     "llama",
 				},
 			},
@@ -1215,18 +1215,15 @@ func TestLocalResolveProfileSeparatesDependencyAndArtifactEntries(t *testing.T) 
 	if plan.GetExecutionPlan().GetPlanId() != plan.GetPlanId() {
 		t.Fatalf("execution plan should share profile plan id: got=%q want=%q", plan.GetExecutionPlan().GetPlanId(), plan.GetPlanId())
 	}
-	if len(plan.GetExecutionPlan().GetEntries()) != 1 {
-		t.Fatalf("expected only image runtime entry after capability filter, got=%d", len(plan.GetExecutionPlan().GetEntries()))
-	}
-	if len(plan.GetArtifactEntries()) != 1 {
-		t.Fatalf("expected one artifact entry, got=%d", len(plan.GetArtifactEntries()))
-	}
-	if plan.GetArtifactEntries()[0].GetInstalled() {
-		t.Fatalf("artifact should not be marked installed before apply")
+	// The main image asset is resolved through the execution resolver, while the
+	// passive slot asset is appended directly to the execution plan. The
+	// chat-capability helper is filtered out, leaving 2 entries total.
+	if len(plan.GetExecutionPlan().GetEntries()) != 2 {
+		t.Fatalf("expected image model + passive VAE entries after capability filter, got=%d", len(plan.GetExecutionPlan().GetEntries()))
 	}
 }
 
-func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
+func TestLocalApplyProfileInstallsPassiveAssets(t *testing.T) {
 	svc := newTestServiceWithProbe(t, func(_ context.Context, endpoint string) endpointProbeResult {
 		return endpointProbeResult{
 			healthy:   true,
@@ -1256,12 +1253,12 @@ func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
 	defer server.Close()
 
 	svc.hfDownloadBaseURL = server.URL
-	svc.verifiedArtifacts = []*runtimev1.LocalVerifiedArtifactDescriptor{
+	svc.verified = []*runtimev1.LocalVerifiedAssetDescriptor{
 		{
-			TemplateId: "verified.artifact.z_image.vae",
+			TemplateId: "verified.asset.z_image.vae",
 			Title:      "Z-Image AE",
-			ArtifactId: "local/z_image_ae",
-			Kind:       runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
+			AssetId:    "local/z_image_ae",
+			Kind:       runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
 			Engine:     "media",
 			Entry:      "vae/diffusion_pytorch_model.safetensors",
 			Files:      []string{"vae/diffusion_pytorch_model.safetensors"},
@@ -1284,21 +1281,22 @@ func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
 			Entries: []*runtimev1.LocalProfileEntryDescriptor{
 				{
 					EntryId:    "profile.image.model",
-					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_MODEL,
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
 					Capability: "image",
 					Required:   &required,
-					ModelId:    "local/image-best",
+					AssetId:    "local/image-best",
 					Engine:     "media",
 				},
 				{
-					EntryId:      "profile.image.vae",
-					Kind:         runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ARTIFACT,
-					Capability:   "image",
-					Required:     &required,
-					TemplateId:   "verified.artifact.z_image.vae",
-					ArtifactId:   "local/z_image_ae",
-					ArtifactKind: runtimev1.LocalArtifactKind_LOCAL_ARTIFACT_KIND_VAE,
-					Engine:       "media",
+					EntryId:    "profile.image.vae",
+					Kind:       runtimev1.LocalProfileEntryKind_LOCAL_PROFILE_ENTRY_KIND_ASSET,
+					Capability: "image",
+					Required:   &required,
+					TemplateId: "verified.asset.z_image.vae",
+					AssetId:    "local/z_image_ae",
+					AssetKind:  runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE,
+					EngineSlot: "vae_path",
+					Engine:     "media",
 				},
 			},
 		},
@@ -1332,14 +1330,15 @@ func TestLocalApplyProfileInstallsCompanionArtifacts(t *testing.T) {
 	if result.GetExecutionResult() == nil {
 		t.Fatalf("execution result must be present")
 	}
-	if len(result.GetExecutionResult().GetInstalledModels()) != 1 {
-		t.Fatalf("expected one installed model, got=%d", len(result.GetExecutionResult().GetInstalledModels()))
+	// Execution result now contains both the runnable model and the passive VAE.
+	if len(result.GetExecutionResult().GetInstalledAssets()) != 2 {
+		t.Fatalf("expected runnable model + passive VAE in execution result, got=%d", len(result.GetExecutionResult().GetInstalledAssets()))
 	}
-	if len(result.GetInstalledArtifacts()) != 1 {
-		t.Fatalf("expected one installed artifact, got=%d", len(result.GetInstalledArtifacts()))
+	if len(result.GetInstalledAssets()) != 1 {
+		t.Fatalf("expected one installed passive asset, got=%d", len(result.GetInstalledAssets()))
 	}
-	if result.GetInstalledArtifacts()[0].GetArtifactId() != "local/z_image_ae" {
-		t.Fatalf("artifact id mismatch: got=%q", result.GetInstalledArtifacts()[0].GetArtifactId())
+	if result.GetInstalledAssets()[0].GetAssetId() != "local/z_image_ae" {
+		t.Fatalf("asset id mismatch: got=%q", result.GetInstalledAssets()[0].GetAssetId())
 	}
 }
 
@@ -1431,10 +1430,10 @@ func TestLocalAuditContextEnvelopeAndFilters(t *testing.T) {
 func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/vision-chat-model",
-		Capabilities: []string{"image.understand", "chat"},
-		Engine:       "llama",
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/vision-chat-model",
+		capabilities: []string{"image.understand", "chat"},
+		engine:       "llama",
 	})
 
 	installed, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -1442,7 +1441,8 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 		Title:        "Vision Service",
 		Engine:       "llama",
 		Capabilities: []string{"image.understand", "chat"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
+		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install local service: %v", err)
@@ -1533,17 +1533,18 @@ func TestLocalNodeCatalogFiltersByCapabilityAndProvider(t *testing.T) {
 func TestLocalNodeCatalogSortsByNodeIDWithinSameAdapter(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/sort-catalog-model",
-		Capabilities: []string{"chat", "image.understand"},
-		Engine:       "llama",
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/sort-catalog-model",
+		capabilities: []string{"chat", "image.understand"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-sort",
 		Title:        "Sort Service",
 		Engine:       "llama",
 		Capabilities: []string{"chat", "image.understand"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
+		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -1579,10 +1580,10 @@ func TestLocalNodeCatalogSortsByNodeIDWithinSameAdapter(t *testing.T) {
 func TestLocalNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "custom-node-model",
-		Engine:       "llama",
-		Capabilities: []string{"custom"},
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "custom-node-model",
+		engine:       "llama",
+		capabilities: []string{"custom"},
 	})
 
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -1590,7 +1591,8 @@ func TestLocalNodeCatalogCustomMissingProfileIsUnavailable(t *testing.T) {
 		Title:        "Custom Service",
 		Engine:       "llama",
 		Capabilities: []string{"custom"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
+		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -1717,7 +1719,7 @@ func TestLocalApplyExecutionPlanShortCircuitsOnPreflight(t *testing.T) {
 	if result.GetReasonCode() != "LOCAL_DEPENDENCY_PYTHON_REQUIRED" {
 		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
 	}
-	if len(result.GetInstalledModels()) != 0 || len(result.GetServices()) != 0 {
+	if len(result.GetInstalledAssets()) != 0 || len(result.GetServices()) != 0 {
 		t.Fatalf("preflight failure should block install stage")
 	}
 }
@@ -1756,10 +1758,10 @@ func TestLocalApplyExecutionPlanFailsWhenNodeUnresolved(t *testing.T) {
 func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/node-chat-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelResp := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/node-chat-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
@@ -1767,7 +1769,8 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 		Title:        "Node Chat Service",
 		Engine:       "llama",
 		Capabilities: []string{"chat"},
-		LocalModelId: modelResp.GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
+		Endpoint:     managedDefaultEndpointForEngine("llama"),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -1813,25 +1816,25 @@ func TestLocalApplyExecutionPlanPassesWhenNodeResolved(t *testing.T) {
 	if result.GetReasonCode() != "ACTION_EXECUTED" {
 		t.Fatalf("unexpected reason code: %s", result.GetReasonCode())
 	}
-	if len(result.GetInstalledModels()) != 0 || len(result.GetServices()) != 0 {
+	if len(result.GetInstalledAssets()) != 0 || len(result.GetServices()) != 0 {
 		t.Fatalf("node-only apply must not install model/service artifacts")
 	}
 }
 
 func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 	svc := newTestService(t)
-	first := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId: "local/dup-model",
-		Engine:  "llama",
+	first := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID: "local/dup-model",
+		engine:  "llama",
 	})
-	if _, parseErr := ulid.Parse(first.GetLocalModelId()); parseErr != nil {
+	if _, parseErr := ulid.Parse(first.GetLocalAssetId()); parseErr != nil {
 		t.Fatalf("local_model_id must be pure ULID: %v", parseErr)
 	}
 
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:  "local/dup-model",
-		Engine:   "llama",
-		Endpoint: managedDefaultEndpointForEngine("llama"),
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:  "local/dup-model",
+		engine:   "llama",
+		endpoint: managedDefaultEndpointForEngine("llama"),
 	})
 	if err == nil {
 		t.Fatalf("expected duplicate install to fail")
@@ -1840,25 +1843,25 @@ func TestLocalInstallLocalModelRejectsDuplicateAndUsesULID(t *testing.T) {
 	if st.Code() != codes.AlreadyExists {
 		t.Fatalf("expected AlreadyExists, got %v", st.Code())
 	}
-	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_MODEL_ALREADY_INSTALLED.String() {
-		t.Fatalf("expected AI_LOCAL_MODEL_ALREADY_INSTALLED, got %s", st.Message())
+	if st.Message() != runtimev1.ReasonCode_AI_LOCAL_ASSET_ALREADY_INSTALLED.String() {
+		t.Fatalf("expected AI_LOCAL_ASSET_ALREADY_INSTALLED, got %s", st.Message())
 	}
 }
 
 func TestLocalInstallLocalModelRejectsCanonicalAliasDuplicate(t *testing.T) {
 	svc := newTestService(t)
-	if _, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:  "z_image_turbo",
-		Engine:   "llama",
-		Endpoint: managedDefaultEndpointForEngine("llama"),
+	if _, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:  "z_image_turbo",
+		engine:   "llama",
+		endpoint: managedDefaultEndpointForEngine("llama"),
 	}); err != nil {
 		t.Fatalf("install bare model id: %v", err)
 	}
 
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:  "local/z_image_turbo",
-		Engine:   "llama",
-		Endpoint: managedDefaultEndpointForEngine("llama"),
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:  "local/z_image_turbo",
+		engine:   "llama",
+		endpoint: managedDefaultEndpointForEngine("llama"),
 	})
 	if err == nil {
 		t.Fatalf("expected canonical alias duplicate install to fail")
@@ -1871,50 +1874,50 @@ func TestLocalInstallLocalModelRejectsCanonicalAliasDuplicate(t *testing.T) {
 
 func TestListLocalModelsDedupesCanonicalAliasHistory(t *testing.T) {
 	svc := newTestService(t)
-	svc.models = map[string]*runtimev1.LocalModelRecord{
+	svc.assets = map[string]*runtimev1.LocalAssetRecord{
 		"legacy-local": {
-			LocalModelId: "legacy-local",
-			ModelId:      "local/z_image_turbo",
+			LocalAssetId: "legacy-local",
+			AssetId:      "local/z_image_turbo",
 			Capabilities: []string{"image"},
 			Engine:       "llama",
 			Entry:        "z_image_turbo-Q4_K_M.gguf",
-			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED,
+			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED,
 			InstalledAt:  "2026-03-12T03:22:03.108524Z",
 			UpdatedAt:    "2026-03-12T03:29:11.762573Z",
 		},
 		"current-bare": {
-			LocalModelId: "current-bare",
-			ModelId:      "z_image_turbo",
+			LocalAssetId: "current-bare",
+			AssetId:      "z_image_turbo",
 			Capabilities: []string{"image"},
 			Engine:       "llama",
 			Entry:        "z_image_turbo-Q4_K_M.gguf",
-			Status:       runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE,
+			Status:       runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE,
 			InstalledAt:  "2026-03-12T03:29:58.769489Z",
 			UpdatedAt:    "2026-03-12T03:30:12.73915Z",
 		},
 	}
 
-	resp, err := svc.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
+	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
 	if err != nil {
 		t.Fatalf("list local models: %v", err)
 	}
-	if len(resp.GetModels()) != 1 {
-		t.Fatalf("expected one canonical model row, got %d", len(resp.GetModels()))
+	if len(resp.GetAssets()) != 1 {
+		t.Fatalf("expected one canonical model row, got %d", len(resp.GetAssets()))
 	}
-	if resp.GetModels()[0].GetLocalModelId() != "current-bare" {
-		t.Fatalf("expected latest active alias row to win, got %q", resp.GetModels()[0].GetLocalModelId())
+	if resp.GetAssets()[0].GetLocalAssetId() != "current-bare" {
+		t.Fatalf("expected latest active alias row to win, got %q", resp.GetAssets()[0].GetLocalAssetId())
 	}
-	if resp.GetModels()[0].GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("expected active status, got %s", resp.GetModels()[0].GetStatus())
+	if resp.GetAssets()[0].GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("expected active status, got %s", resp.GetAssets()[0].GetStatus())
 	}
 }
 
 func TestLocalInstallLocalModelRequiresEndpointForSidecar(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/sidecar-model",
-		Engine:       "sidecar",
-		Capabilities: []string{"music"},
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/sidecar-model",
+		engine:       "sidecar",
+		capabilities: []string{"music"},
 	})
 	if err == nil {
 		t.Fatalf("expected sidecar endpoint required error")
@@ -1966,32 +1969,32 @@ func TestLocalInstallLocalServiceRequiresExistingLocalModel(t *testing.T) {
 func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 	svc := newTestService(t)
 
-	model1 := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/service-bind-1",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	model1 := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/service-bind-1",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
-	model2 := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/service-bind-2",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	model2 := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/service-bind-2",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	first, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-1",
 		Engine:       "llama",
-		LocalModelId: model1.GetLocalModelId(),
+		LocalModelId: model1.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("install first service: %v", err)
 	}
-	if first.GetService().GetLocalModelId() != model1.GetLocalModelId() {
+	if first.GetService().GetLocalModelId() != model1.GetLocalAssetId() {
 		t.Fatalf("service local_model_id mismatch")
 	}
 
 	secondTry, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-2",
 		Engine:       "llama",
-		LocalModelId: model1.GetLocalModelId(),
+		LocalModelId: model1.GetLocalAssetId(),
 	})
 	if err == nil {
 		t.Fatalf("expected second service for same model to fail")
@@ -2010,7 +2013,7 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 	_, err = svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-bind-1",
 		Engine:       "llama",
-		LocalModelId: model2.GetLocalModelId(),
+		LocalModelId: model2.GetLocalAssetId(),
 	})
 	if err == nil {
 		t.Fatalf("expected rebinding existing service to another model to fail")
@@ -2027,73 +2030,73 @@ func TestLocalInstallLocalServiceEnforcesModelServiceOneToOne(t *testing.T) {
 func TestLocalListLocalModelsSortByCategoryThenModelID(t *testing.T) {
 	svc := newTestService(t)
 
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "z-chat",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     managedDefaultEndpointForEngine("llama"),
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "z-chat",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install chat model: %v", err)
 	}
-	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "a-custom",
-		Capabilities: []string{"custom"},
-		Engine:       "llama",
-		Endpoint:     managedDefaultEndpointForEngine("llama"),
+	_, err = svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "a-custom",
+		capabilities: []string{"custom"},
+		engine:       "llama",
+		endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install custom model: %v", err)
 	}
-	_, err = svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "a-chat",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     managedDefaultEndpointForEngine("llama"),
+	_, err = svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "a-chat",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     managedDefaultEndpointForEngine("llama"),
 	})
 	if err != nil {
 		t.Fatalf("install second chat model: %v", err)
 	}
 
-	resp, err := svc.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
+	resp, err := svc.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
 	if err != nil {
 		t.Fatalf("list local models: %v", err)
 	}
-	if len(resp.GetModels()) != 3 {
-		t.Fatalf("expected 3 models, got %d", len(resp.GetModels()))
+	if len(resp.GetAssets()) != 3 {
+		t.Fatalf("expected 3 models, got %d", len(resp.GetAssets()))
 	}
-	if resp.GetModels()[0].GetModelId() != "a-custom" {
-		t.Fatalf("expected custom category first, got %s", resp.GetModels()[0].GetModelId())
+	if resp.GetAssets()[0].GetAssetId() != "a-custom" {
+		t.Fatalf("expected custom category first, got %s", resp.GetAssets()[0].GetAssetId())
 	}
-	if resp.GetModels()[1].GetModelId() != "a-chat" || resp.GetModels()[2].GetModelId() != "z-chat" {
-		t.Fatalf("expected llm models ordered by model_id asc, got [%s, %s]", resp.GetModels()[1].GetModelId(), resp.GetModels()[2].GetModelId())
+	if resp.GetAssets()[1].GetAssetId() != "a-chat" || resp.GetAssets()[2].GetAssetId() != "z-chat" {
+		t.Fatalf("expected llm models ordered by model_id asc, got [%s, %s]", resp.GetAssets()[1].GetAssetId(), resp.GetAssets()[2].GetAssetId())
 	}
 }
 
 func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
 	svc := newTestService(t)
 
-	modelA := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/service-sort-a",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelA := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/service-sort-a",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
-	modelB := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/service-sort-b",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	modelB := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/service-sort-b",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-z",
 		Engine:       "llama",
-		LocalModelId: modelA.GetLocalModelId(),
+		LocalModelId: modelA.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install svc-z: %v", err)
 	}
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-a",
 		Engine:       "llama",
-		LocalModelId: modelB.GetLocalModelId(),
+		LocalModelId: modelB.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install svc-a: %v", err)
 	}
@@ -2113,21 +2116,21 @@ func TestLocalListLocalServicesSortByServiceID(t *testing.T) {
 func TestLocalRemoveModelRejectedWhenServiceBound(t *testing.T) {
 	svc := newTestService(t)
 
-	model := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/remove-guard",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	model := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/remove-guard",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-remove-guard",
 		Engine:       "llama",
-		LocalModelId: model.GetLocalModelId(),
+		LocalModelId: model.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install service: %v", err)
 	}
 
-	_, err := svc.RemoveLocalModel(context.Background(), &runtimev1.RemoveLocalModelRequest{
-		LocalModelId: model.GetLocalModelId(),
+	_, err := svc.RemoveLocalAsset(context.Background(), &runtimev1.RemoveLocalAssetRequest{
+		LocalAssetId: model.GetLocalAssetId(),
 	})
 	if err == nil {
 		t.Fatalf("expected remove model to fail while service is bound")
@@ -2176,7 +2179,7 @@ func TestLocalResolveExecutionPlanRejectsServiceWithoutModelID(t *testing.T) {
 
 func TestLocalInstallVerifiedModelTemplateNotFound(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.InstallVerifiedModel(context.Background(), &runtimev1.InstallVerifiedModelRequest{
+	_, err := svc.InstallVerifiedAsset(context.Background(), &runtimev1.InstallVerifiedAssetRequest{
 		TemplateId: "verified.missing-template",
 	})
 	if err == nil {
@@ -2196,14 +2199,14 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", false)
 
-	invalidPath := filepath.Join(tmpDir, "resolved", "nimi", "invalid", "manifest.json")
+	invalidPath := filepath.Join(tmpDir, "resolved", "nimi", "invalid", "asset.manifest.json")
 	if err := os.MkdirAll(filepath.Dir(invalidPath), 0o755); err != nil {
 		t.Fatalf("create invalid manifest dir: %v", err)
 	}
 	if err := os.WriteFile(invalidPath, []byte("{not-json"), 0o600); err != nil {
 		t.Fatalf("write invalid manifest: %v", err)
 	}
-	_, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: invalidPath})
+	_, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: invalidPath})
 	if err == nil {
 		t.Fatalf("expected invalid manifest parse error")
 	}
@@ -2212,14 +2215,14 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		t.Fatalf("unexpected invalid manifest error: %v", err)
 	}
 
-	schemaInvalidPath := filepath.Join(tmpDir, "resolved", "nimi", "schema-invalid", "manifest.json")
+	schemaInvalidPath := filepath.Join(tmpDir, "resolved", "nimi", "schema-invalid", "asset.manifest.json")
 	if err := os.MkdirAll(filepath.Dir(schemaInvalidPath), 0o755); err != nil {
 		t.Fatalf("create schema invalid manifest dir: %v", err)
 	}
-	if err := os.WriteFile(schemaInvalidPath, []byte(`{"model_id":"local/test","engine":"llama","endpoint":"http://127.0.0.1:1234/v1","capabilities":"chat"}`), 0o600); err != nil {
+	if err := os.WriteFile(schemaInvalidPath, []byte(`{"asset_id":"local/test","kind":"chat","engine":"llama","endpoint":"http://127.0.0.1:1234/v1","capabilities":"chat"}`), 0o600); err != nil {
 		t.Fatalf("write schema invalid manifest: %v", err)
 	}
-	_, err = svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: schemaInvalidPath})
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: schemaInvalidPath})
 	if err == nil {
 		t.Fatalf("expected schema invalid manifest error")
 	}
@@ -2228,9 +2231,10 @@ func TestLocalImportManifestValidation(t *testing.T) {
 		t.Fatalf("unexpected schema invalid manifest error: %v", err)
 	}
 
-	validPath := filepath.Join(tmpDir, "resolved", "nimi", "import-manifest-ok", "manifest.json")
+	validPath := filepath.Join(tmpDir, "resolved", "nimi", "import-manifest-ok", "asset.manifest.json")
 	validManifest := map[string]any{
-		"model_id":                "local/import-manifest-ok",
+		"asset_id":                "local/import-manifest-ok",
+		"kind":                    "chat",
 		"logical_model_id":        "nimi/import-manifest-ok",
 		"engine":                  "llama",
 		"capabilities":            []string{"chat"},
@@ -2249,12 +2253,36 @@ func TestLocalImportManifestValidation(t *testing.T) {
 	if err := os.WriteFile(validPath, validRaw, 0o600); err != nil {
 		t.Fatalf("write valid manifest: %v", err)
 	}
-	resp, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: validPath})
+	resp, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: validPath})
 	if err != nil {
 		t.Fatalf("import valid manifest: %v", err)
 	}
-	if resp.GetModel().GetLocalInvokeProfileId() != "profile-chat-default" {
+	if resp.GetAsset().GetLocalInvokeProfileId() != "profile-chat-default" {
 		t.Fatalf("local_invoke_profile_id should be imported from manifest")
+	}
+
+	legacyPath := filepath.Join(tmpDir, "resolved", "nimi", "legacy-import", "asset.manifest.json")
+	legacyManifest := map[string]any{
+		"model_id":         "local/legacy-import",
+		"logical_model_id": "nimi/legacy-import",
+		"engine":           "llama",
+		"capabilities":     []string{"chat"},
+		"entry":            "./dist/index.js",
+	}
+	legacyRaw, _ := json.Marshal(legacyManifest)
+	if err := os.MkdirAll(filepath.Dir(legacyPath), 0o755); err != nil {
+		t.Fatalf("create legacy manifest dir: %v", err)
+	}
+	if err := os.WriteFile(legacyPath, legacyRaw, 0o600); err != nil {
+		t.Fatalf("write legacy manifest: %v", err)
+	}
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: legacyPath})
+	if err == nil {
+		t.Fatalf("expected legacy public manifest fields to fail-close")
+	}
+	st, _ = status.FromError(err)
+	if st.Code() != codes.InvalidArgument || st.Message() != runtimev1.ReasonCode_AI_LOCAL_MANIFEST_SCHEMA_INVALID.String() {
+		t.Fatalf("unexpected legacy manifest error: %v", err)
 	}
 }
 
@@ -2263,9 +2291,10 @@ func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
 	tmpDir := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(tmpDir, "", true)
 	svc.SetManagedLlamaEndpoint("http://127.0.0.1:57510/v1")
-	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model", "manifest.json")
+	manifestPath := filepath.Join(tmpDir, "resolved", "nimi", "image-model", "asset.manifest.json")
 	rawManifest, err := json.Marshal(map[string]any{
-		"model_id":         "local-import/z_image_turbo-Q4_K",
+		"asset_id":         "local-import/z_image_turbo-Q4_K",
+		"kind":             "image",
 		"logical_model_id": "nimi/image-model",
 		"engine":           "media",
 		"capabilities":     []string{"image"},
@@ -2284,7 +2313,7 @@ func TestLocalImportMediaModelRequiresExplicitEndpoint(t *testing.T) {
 		t.Fatalf("write manifest: %v", err)
 	}
 
-	_, err = svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{
+	_, err = svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 	})
 	if err == nil {
@@ -2301,11 +2330,11 @@ func TestLocalImportManifestRejectsSymlinkOutsideModelsRoot(t *testing.T) {
 	svc.SetManagedLlamaRegistrationConfig(modelsRoot, "", false)
 
 	outsideDir := t.TempDir()
-	outsideManifest := filepath.Join(outsideDir, "manifest.json")
-	if err := os.WriteFile(outsideManifest, []byte(`{"model_id":"local/outside","engine":"llama","capabilities":["chat"]}`), 0o600); err != nil {
+	outsideManifest := filepath.Join(outsideDir, "asset.manifest.json")
+	if err := os.WriteFile(outsideManifest, []byte(`{"asset_id":"local/outside","kind":"chat","engine":"llama","capabilities":["chat"]}`), 0o600); err != nil {
 		t.Fatalf("write outside manifest: %v", err)
 	}
-	linkedManifest := filepath.Join(modelsRoot, "resolved", "nimi", "symlinked", "manifest.json")
+	linkedManifest := filepath.Join(modelsRoot, "resolved", "nimi", "symlinked", "asset.manifest.json")
 	if err := os.MkdirAll(filepath.Dir(linkedManifest), 0o755); err != nil {
 		t.Fatalf("create linked manifest dir: %v", err)
 	}
@@ -2313,7 +2342,7 @@ func TestLocalImportManifestRejectsSymlinkOutsideModelsRoot(t *testing.T) {
 		t.Fatalf("create manifest symlink: %v", err)
 	}
 
-	_, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{ManifestPath: linkedManifest})
+	_, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{ManifestPath: linkedManifest})
 	if err == nil {
 		t.Fatal("expected symlinked manifest outside root to be rejected")
 	}
@@ -2396,10 +2425,10 @@ func TestResolveModelInstallPlanSidecarEndpointRequired(t *testing.T) {
 
 func TestInstallLocalModelSidecarRequiresEndpoint(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/stable-audio-open-sidecar",
-		Engine:       "sidecar",
-		Capabilities: []string{"music"},
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/stable-audio-open-sidecar",
+		engine:       "sidecar",
+		capabilities: []string{"music"},
 	})
 	reason, ok := grpcerr.ExtractReasonCode(err)
 	if !ok || reason != runtimev1.ReasonCode_AI_LOCAL_ENDPOINT_REQUIRED {
@@ -2410,11 +2439,11 @@ func TestInstallLocalModelSidecarRequiresEndpoint(t *testing.T) {
 func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
 	svc := newTestService(t)
 
-	modelResp, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/stable-audio-open-sidecar",
-		Capabilities: []string{"music"},
-		Engine:       "sidecar",
-		Endpoint:     "http://127.0.0.1:19191",
+	modelResp, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/stable-audio-open-sidecar",
+		capabilities: []string{"music"},
+		engine:       "sidecar",
+		endpoint:     "http://127.0.0.1:19191",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
@@ -2424,7 +2453,7 @@ func TestLocalNodeCatalogSidecarMusicAdapter(t *testing.T) {
 		Title:        "Sidecar Music Service",
 		Engine:       "sidecar",
 		Capabilities: []string{"music"},
-		LocalModelId: modelResp.GetModel().GetLocalModelId(),
+		LocalModelId: modelResp.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install local service: %v", err)
 	}
@@ -2591,10 +2620,10 @@ func TestInstallLocalModelMediaRequiresExplicitEndpointOnUnsupportedHost(t *test
 	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "intel")
 	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "false")
 
-	_, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/flux-test",
-		Engine:       "media",
-		Capabilities: []string{"image"},
+	_, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/flux-test",
+		engine:       "media",
+		capabilities: []string{"image"},
 	})
 	if err == nil {
 		t.Fatal("expected explicit endpoint requirement for unsupported media host")
@@ -2614,24 +2643,24 @@ func TestStartLocalModelSpeechTTSProbePassesThroughCurrentAttachedEndpointBehavi
 		}
 	})
 
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/kokoro-tts-model",
-		Capabilities: []string{"tts"},
-		Engine:       "speech",
-		Endpoint:     "http://127.0.0.1:18181/v1",
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/kokoro-tts-model",
+		capabilities: []string{"tts"},
+		engine:       "speech",
+		endpoint:     "http://127.0.0.1:18181/v1",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("speech attached-endpoint model should follow generic probe health, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("speech attached-endpoint model should follow generic probe health, got %s", started.GetAsset().GetStatus())
 	}
 }
 
@@ -2646,24 +2675,24 @@ func TestStartLocalModelSpeechTTSProbeSuccess(t *testing.T) {
 		}
 	})
 
-	installed, err := svc.InstallLocalModel(context.Background(), &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/kokoro-tts-model",
-		Capabilities: []string{"tts"},
-		Engine:       "speech",
-		Endpoint:     "http://127.0.0.1:18181/v1",
+	installed, err := svc.installLocalAsset(context.Background(), installLocalAssetParams{
+		assetID:      "local/kokoro-tts-model",
+		capabilities: []string{"tts"},
+		engine:       "speech",
+		endpoint:     "http://127.0.0.1:18181/v1",
 	})
 	if err != nil {
 		t.Fatalf("install local model: %v", err)
 	}
 
-	started, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetModel().GetLocalModelId(),
+	started, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	if started.GetModel().GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE {
-		t.Fatalf("speech tts model should become active when capability probe matches, got %s", started.GetModel().GetStatus())
+	if started.GetAsset().GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE {
+		t.Fatalf("speech tts model should become active when capability probe matches, got %s", started.GetAsset().GetStatus())
 	}
 }
 
@@ -2739,26 +2768,27 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create service: %v", err)
 	}
-	installedModel := mustInstallAttachedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/persisted-model",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
-		Endpoint:     "http://127.0.0.1:1234/v1",
+	installedModel := mustInstallAttachedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/persisted-model",
+		capabilities: []string{"chat"},
+		engine:       "llama",
+		endpoint:     "http://127.0.0.1:1234/v1",
 	})
 	if _, err := svc.InstallLocalService(context.Background(), &runtimev1.InstallLocalServiceRequest{
 		ServiceId:    "svc-persisted",
 		Title:        "svc-persisted",
 		Capabilities: []string{"chat"},
-		LocalModelId: installedModel.GetLocalModelId(),
+		LocalModelId: installedModel.GetLocalAssetId(),
 	}); err != nil {
 		t.Fatalf("install service: %v", err)
 	}
 
 	importRoot := t.TempDir()
 	svc.SetManagedLlamaRegistrationConfig(importRoot, "", false)
-	manifestPath := filepath.Join(importRoot, "resolved", "nimi", "persisted-import", "manifest.json")
+	manifestPath := filepath.Join(importRoot, "resolved", "nimi", "persisted-import", "asset.manifest.json")
 	manifestRaw, _ := json.Marshal(map[string]any{
-		"model_id":                "local/persisted-import",
+		"asset_id":                "local/persisted-import",
+		"kind":                    "chat",
 		"logical_model_id":        "nimi/persisted-import",
 		"engine":                  "llama",
 		"capabilities":            []string{"chat"},
@@ -2771,7 +2801,7 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	if err := os.WriteFile(manifestPath, manifestRaw, 0o600); err != nil {
 		t.Fatalf("write import manifest: %v", err)
 	}
-	if _, err := svc.ImportLocalModel(context.Background(), &runtimev1.ImportLocalModelRequest{
+	if _, err := svc.ImportLocalAsset(context.Background(), &runtimev1.ImportLocalAssetRequest{
 		ManifestPath: manifestPath,
 	}); err != nil {
 		t.Fatalf("import model: %v", err)
@@ -2795,16 +2825,16 @@ func TestLocalStateRestoresAfterRestart(t *testing.T) {
 	if err != nil {
 		t.Fatalf("restart service: %v", err)
 	}
-	modelsResp, err := restarted.ListLocalModels(context.Background(), &runtimev1.ListLocalModelsRequest{})
+	modelsResp, err := restarted.ListLocalAssets(context.Background(), &runtimev1.ListLocalAssetsRequest{})
 	if err != nil {
 		t.Fatalf("list models after restart: %v", err)
 	}
-	if len(modelsResp.GetModels()) == 0 {
+	if len(modelsResp.GetAssets()) == 0 {
 		t.Fatalf("expected restored models from persisted state")
 	}
 	foundProfile := false
-	for _, model := range modelsResp.GetModels() {
-		if model.GetModelId() == "local/persisted-import" && model.GetLocalInvokeProfileId() == "profile-persisted" {
+	for _, model := range modelsResp.GetAssets() {
+		if model.GetAssetId() == "local/persisted-import" && model.GetLocalInvokeProfileId() == "profile-persisted" {
 			foundProfile = true
 			break
 		}
@@ -2852,19 +2882,19 @@ func TestStartLocalModelSanitizesBootstrapFailureDetail(t *testing.T) {
 	svc.SetEngineManager(&mockEngineManager{
 		startErr: fmt.Errorf("bootstrap failed for /tmp/private-model on 127.0.0.1:1234"),
 	})
-	installed := mustInstallSupervisedLocalModel(t, svc, &runtimev1.InstallLocalModelRequest{
-		ModelId:      "local/bootstrap-sanitize",
-		Capabilities: []string{"chat"},
-		Engine:       "llama",
+	installed := mustInstallSupervisedLocalModel(t, svc, installLocalAssetParams{
+		assetID:      "local/bootstrap-sanitize",
+		capabilities: []string{"chat"},
+		engine:       "llama",
 	})
 
-	resp, err := svc.StartLocalModel(context.Background(), &runtimev1.StartLocalModelRequest{
-		LocalModelId: installed.GetLocalModelId(),
+	resp, err := svc.StartLocalAsset(context.Background(), &runtimev1.StartLocalAssetRequest{
+		LocalAssetId: installed.GetLocalAssetId(),
 	})
 	if err != nil {
 		t.Fatalf("start local model: %v", err)
 	}
-	detail := resp.GetModel().GetHealthDetail()
+	detail := resp.GetAsset().GetHealthDetail()
 	if !strings.Contains(detail, "bootstrap_error=managed_engine_bootstrap_failed") {
 		t.Fatalf("expected sanitized bootstrap marker, got %q", detail)
 	}
@@ -3192,27 +3222,27 @@ func TestLocalManagementRPCsReturnStructuredModelIDErrors(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	_, err := svc.StartLocalModel(ctx, &runtimev1.StartLocalModelRequest{LocalModelId: ""})
+	_, err := svc.StartLocalAsset(ctx, &runtimev1.StartLocalAssetRequest{LocalAssetId: ""})
 	assertGRPCCode(t, err, "StartLocalModel(empty_id)", codes.InvalidArgument)
 	assertGRPCReasonCode(t, err, "StartLocalModel(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
-	_, err = svc.StopLocalModel(ctx, &runtimev1.StopLocalModelRequest{LocalModelId: ""})
+	_, err = svc.StopLocalAsset(ctx, &runtimev1.StopLocalAssetRequest{LocalAssetId: ""})
 	assertGRPCCode(t, err, "StopLocalModel(empty_id)", codes.InvalidArgument)
 	assertGRPCReasonCode(t, err, "StopLocalModel(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
-	_, err = svc.RemoveLocalModel(ctx, &runtimev1.RemoveLocalModelRequest{LocalModelId: ""})
+	_, err = svc.RemoveLocalAsset(ctx, &runtimev1.RemoveLocalAssetRequest{LocalAssetId: ""})
 	assertGRPCCode(t, err, "RemoveLocalModel(empty_id)", codes.InvalidArgument)
 	assertGRPCReasonCode(t, err, "RemoveLocalModel(empty_id)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
-	_, err = svc.StartLocalModel(ctx, &runtimev1.StartLocalModelRequest{LocalModelId: "model_missing"})
+	_, err = svc.StartLocalAsset(ctx, &runtimev1.StartLocalAssetRequest{LocalAssetId: "model_missing"})
 	assertGRPCCode(t, err, "StartLocalModel(not_found)", codes.NotFound)
 	assertGRPCReasonCode(t, err, "StartLocalModel(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
-	_, err = svc.StopLocalModel(ctx, &runtimev1.StopLocalModelRequest{LocalModelId: "model_missing"})
+	_, err = svc.StopLocalAsset(ctx, &runtimev1.StopLocalAssetRequest{LocalAssetId: "model_missing"})
 	assertGRPCCode(t, err, "StopLocalModel(not_found)", codes.NotFound)
 	assertGRPCReasonCode(t, err, "StopLocalModel(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 
-	_, err = svc.RemoveLocalModel(ctx, &runtimev1.RemoveLocalModelRequest{LocalModelId: "model_missing"})
+	_, err = svc.RemoveLocalAsset(ctx, &runtimev1.RemoveLocalAssetRequest{LocalAssetId: "model_missing"})
 	assertGRPCCode(t, err, "RemoveLocalModel(not_found)", codes.NotFound)
 	assertGRPCReasonCode(t, err, "RemoveLocalModel(not_found)", runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
 }
@@ -3310,18 +3340,18 @@ func TestEngineStatusToProtoMapping(t *testing.T) {
 // --- State machine exhaustive verification ---
 
 func TestLocalModelLifecycleTransitionsMatchSpec(t *testing.T) {
-	installed := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_INSTALLED
-	active := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE
-	unhealthy := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY
-	removed := runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_REMOVED
+	installed := runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_INSTALLED
+	active := runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE
+	unhealthy := runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY
+	removed := runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_REMOVED
 
-	allStates := []runtimev1.LocalModelStatus{installed, active, unhealthy, removed}
+	allStates := []runtimev1.LocalAssetStatus{installed, active, unhealthy, removed}
 
 	// Spec: local_model_lifecycle — 9 valid transitions.
 	tests := []struct {
 		name string
-		from runtimev1.LocalModelStatus
-		to   runtimev1.LocalModelStatus
+		from runtimev1.LocalAssetStatus
+		to   runtimev1.LocalAssetStatus
 		want bool
 	}{
 		// Positive: all 9 spec transitions

@@ -10,7 +10,7 @@ import (
 )
 
 type modelRecoveryTarget struct {
-	record *runtimev1.LocalModelRecord
+	record *runtimev1.LocalAssetRecord
 	mode   runtimev1.LocalEngineRuntimeMode
 }
 
@@ -55,7 +55,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 
 	for _, model := range models {
 		localModel := model.record
-		localModelID := strings.TrimSpace(localModel.GetLocalModelId())
+		localModelID := strings.TrimSpace(localModel.GetLocalAssetId())
 		if localModelID == "" || !s.shouldProbeModelNow(localModelID, now) {
 			continue
 		}
@@ -72,7 +72,7 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 		if modelProbeSucceeded(localModel, probe, registration) {
 			successes := s.modelRecoverySuccess(localModelID, now)
 			if successes >= localRecoverySuccessThreshold {
-				if _, err := s.updateModelStatus(localModelID, runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_ACTIVE, "model active"); err != nil {
+				if _, err := s.updateModelStatus(localModelID, runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_ACTIVE, "model active"); err != nil {
 					s.logger.Debug("local model recovery transition failed", "local_model_id", localModelID, "error", err)
 				}
 				s.resetModelRecovery(localModelID)
@@ -126,17 +126,17 @@ func (s *Service) runRecoverySweep(ctx context.Context) {
 func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []serviceRecoveryTarget) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	models := make([]modelRecoveryTarget, 0, len(s.models))
-	for _, model := range s.models {
+	models := make([]modelRecoveryTarget, 0, len(s.assets))
+	for _, model := range s.assets {
 		if model == nil {
 			continue
 		}
-		if model.GetStatus() != runtimev1.LocalModelStatus_LOCAL_MODEL_STATUS_UNHEALTHY {
+		if model.GetStatus() != runtimev1.LocalAssetStatus_LOCAL_ASSET_STATUS_UNHEALTHY {
 			continue
 		}
 		models = append(models, modelRecoveryTarget{
-			record: cloneLocalModel(model),
-			mode:   s.modelRuntimeModes[model.GetLocalModelId()],
+			record: cloneLocalAsset(model),
+			mode:   s.assetRuntimeModes[model.GetLocalAssetId()],
 		})
 	}
 	services := make([]serviceRecoveryTarget, 0, len(s.services))
@@ -157,7 +157,7 @@ func (s *Service) collectUnhealthyRecoveryTargets() ([]modelRecoveryTarget, []se
 
 func (s *Service) shouldProbeModelNow(localModelID string, now time.Time) bool {
 	s.mu.RLock()
-	state := s.modelProbeState[localModelID]
+	state := s.assetProbeState[localModelID]
 	s.mu.RUnlock()
 	if state == nil || state.lastProbeAt.IsZero() {
 		return true
@@ -182,14 +182,14 @@ func (s *Service) setModelHealthDetail(localModelID string, detail string) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	record := s.models[id]
+	record := s.assets[id]
 	if record == nil {
 		return
 	}
-	cloned := cloneLocalModel(record)
+	cloned := cloneLocalAsset(record)
 	cloned.HealthDetail = strings.TrimSpace(detail)
 	cloned.UpdatedAt = nowISO()
-	s.models[id] = cloned
+	s.assets[id] = cloned
 	s.persistStateLocked()
 }
 
