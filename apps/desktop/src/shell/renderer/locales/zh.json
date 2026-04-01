@@ -2730,7 +2730,10 @@
       "companionAsset": "配套资产",
       "confirmRemoveModel": "移除「{{name}}」？本地模型文件将被永久删除。",
       "confirmRemoveArtifact": "移除「{{name}}」？资产文件将被永久删除。",
-      "confirm": "确认"
+      "confirm": "确认",
+      "healthy": "运行正常",
+      "notChecked": "未检查",
+      "unregisteredAssetsTitle": "未注册资产"
     }
   },
   "Layout": {

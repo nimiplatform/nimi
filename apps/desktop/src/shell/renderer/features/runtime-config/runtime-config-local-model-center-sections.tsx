@@ -75,14 +75,14 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[var(--nimi-surface-canvas)]">
-      <div className="flex h-14 shrink-0 items-center border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-6">
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
+      <div className="flex h-14 shrink-0 items-center border-b border-[var(--nimi-border-subtle)] bg-white px-6">
         <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
           {i18n.t('runtimeConfig.localModelCenter.localModels', { defaultValue: 'Local Models' })}
         </h2>
       </div>
     <ScrollArea className="flex-1" contentClassName="space-y-6 p-6">
-          <div className="space-y-4 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-6">
+          <div className="space-y-4 rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 p-6 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
             <div>
               <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
                 {selectedProfileTarget?.modName
@@ -140,7 +140,7 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
                 })}
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_34%,transparent)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
+                <button type="button" onClick={() => props.onNavigateToSetup?.('local')} className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-warning)_34%,transparent)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
                   {i18n.t('runtimeConfig.localModelCenter.installModels', { defaultValue: 'Install Models' })}
                 </button>
                 <button type="button" onClick={() => props.onNavigateToSetup?.('cloud')} className="px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-warning)] hover:bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
@@ -174,32 +174,24 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
   const ghostBtnClass = 'flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_8%,transparent)] disabled:opacity-50 transition-colors';
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-2.5">
-      <div className="flex items-center gap-2">
-        <HeartPulseIcon className={`h-3.5 w-3.5 ${props.localHealthy ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-muted)]'}`} />
-        <span className={`text-xs font-medium ${props.localHealthy ? 'text-[var(--nimi-status-success)]' : 'text-[var(--nimi-text-muted)]'}`}>
-          {props.localHealthy
-            ? i18n.t('runtimeConfig.localModelCenter.healthy', { defaultValue: 'Healthy' })
-            : i18n.t('runtimeConfig.localModelCenter.notChecked', { defaultValue: 'Not checked' })}
-        </span>
-        {healthTooltip ? (
-          <span className="text-[11px] text-[var(--nimi-text-muted)]">{healthTooltip}</span>
-        ) : null}
-      </div>
+    <div className="flex items-center justify-end">
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={props.onHealthCheck}
           disabled={props.checkingHealth}
           title={healthTooltip}
-          className={ghostBtnClass}
+          className={`${ghostBtnClass} ${
+            props.localHealthy
+              ? 'text-[var(--nimi-status-success)]'
+              : ''
+          }`}
         >
           <HeartPulseIcon className="h-4 w-4" />
           {props.checkingHealth
             ? i18n.t('runtimeConfig.localModelCenter.checking', { defaultValue: 'Checking...' })
             : i18n.t('runtimeConfig.localModelCenter.health', { defaultValue: 'Health' })}
         </button>
-        <div className="h-5 w-px bg-[var(--nimi-border-subtle)]" />
         <button
           type="button"
           onClick={props.onRefresh}
@@ -229,7 +221,7 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
             {i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
           </button>
           {props.showImportMenu ? (
-            <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-floating)]">
+            <div className="absolute right-0 top-full z-20 mt-1 w-56 overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-white shadow-lg">
               <button type="button" onClick={props.onOpenImportFile} className="w-full px-3 py-2.5 text-left text-xs transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)]">
                 <div className="font-medium text-[var(--nimi-text-primary)]">
                   {i18n.t('runtimeConfig.localModelCenter.importAssetFile', { defaultValue: 'Import Asset File' })}
@@ -279,7 +271,7 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-raised)]">
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 p-5 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)]">
@@ -381,7 +373,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
+    <div className="rounded-2xl border border-[var(--nimi-border-subtle)]/70 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.04)]">
       <div className="flex items-center justify-between border-b border-[var(--nimi-border-subtle)] px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-warning)_14%,transparent)]">
@@ -439,7 +431,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                 : i18n.t('runtimeConfig.localModelCenter.sourceUnknown', { defaultValue: 'Unknown' });
 
           return (
-            <div key={asset.path} className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4 transition-colors hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_24%,transparent)]">
+            <div key={asset.path} className="rounded-xl border border-[var(--nimi-border-subtle)]/70 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-all hover:border-[var(--nimi-border-strong)] hover:shadow-[0_6px_18px_rgba(15,23,42,0.06)]">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]">
                   <FolderOpenIcon className="h-4 w-4" />

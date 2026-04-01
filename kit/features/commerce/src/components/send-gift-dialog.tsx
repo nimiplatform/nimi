@@ -194,7 +194,7 @@ export function SendGiftDialog({
                     </div>
                   )}
                 </div>
-                <p className="mt-3 truncate text-center text-sm font-semibold text-[var(--nimi-text-primary)]">{gift.name}</p>
+                <p className="mt-3 text-center text-xs font-semibold leading-tight text-[var(--nimi-text-primary)]">{gift.name}</p>
                 <p className="mt-1 text-center text-xs font-medium text-[var(--nimi-action-primary-bg)]">
                   {formatSparkCost(gift.sparkCost)} {sparkUnitLabel}
                 </p>

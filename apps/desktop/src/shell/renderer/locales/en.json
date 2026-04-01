@@ -2730,7 +2730,10 @@
       "companionAsset": "Companion asset",
       "confirmRemoveModel": "Remove \"{{name}}\"? Local model files will be permanently deleted.",
       "confirmRemoveArtifact": "Remove \"{{name}}\"? Artifact files will be permanently deleted.",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "healthy": "Healthy",
+      "notChecked": "Not checked",
+      "unregisteredAssetsTitle": "Unregistered Assets"
     }
   },
   "Layout": {

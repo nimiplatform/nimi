@@ -1,8 +1,7 @@
-import { Button, Surface } from '@nimiplatform/nimi-kit/ui';
+import { Button, SidebarItem, OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { i18n } from '@renderer/i18n';
 import { getSemanticAgentPalette } from '@renderer/components/agent-theme.js';
 import { EntityAvatar } from '@renderer/components/entity-avatar.js';
-import { OverlayShell } from '@nimiplatform/nimi-kit/ui';
 import { E2E_IDS } from '@renderer/testability/e2e-ids';
 import type { ContactRecord } from './contacts-model.js';
 
@@ -62,50 +61,41 @@ function BlockedContactRow({
   const palette = getBlockedContactPalette(contact);
 
   return (
-    <Surface
-      role="button"
-      tabIndex={0}
-      tone={isSelected ? 'panel' : 'card'}
-      elevation="base"
-      interactive
+    <SidebarItem
+      kind="entity-row"
       active={isSelected}
-      className="mx-1 flex w-auto items-center gap-3 rounded-lg px-3 py-2.5 text-left text-gray-700"
       onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-    >
-      <EntityAvatar
-        imageUrl={contact.avatarUrl}
-        name={contact.displayName}
-        kind={contact.isAgent ? 'agent' : 'human'}
-        sizeClassName="h-10 w-10"
-        radiusClassName={contact.isAgent ? 'rounded-lg' : undefined}
-        innerRadiusClassName={contact.isAgent ? 'rounded-md' : undefined}
-        textClassName="text-sm font-medium"
-      />
-      <div className="min-w-0 flex-1 text-left">
-        <div className="truncate text-[15px] text-gray-900">{contact.displayName}</div>
-        {contact.isAgent && contact.worldName ? (
-          <div className="truncate text-xs" style={{ color: palette.accent }}>
-            {contact.worldName}
-          </div>
-        ) : null}
-      </div>
-      <Button
-        tone="primary"
-        size="sm"
-        onClick={(event) => {
-          event.stopPropagation();
-          onUnblock();
-        }}
-      >
-        {i18n.t('Contacts.restore', { defaultValue: 'Restore' })}
-      </Button>
-    </Surface>
+      className="mx-1 min-h-[52px]"
+      icon={(
+        <EntityAvatar
+          imageUrl={contact.avatarUrl}
+          name={contact.displayName}
+          kind={contact.isAgent ? 'agent' : 'human'}
+          sizeClassName="h-10 w-10"
+          radiusClassName={contact.isAgent ? 'rounded-[10px]' : undefined}
+          innerRadiusClassName={contact.isAgent ? 'rounded-[8px]' : undefined}
+          textClassName="text-sm font-medium"
+        />
+      )}
+      label={contact.displayName}
+      description={
+        contact.isAgent && contact.worldName
+          ? <span style={{ color: palette.accent }}>{contact.worldName}</span>
+          : undefined
+      }
+      trailing={(
+        <Button
+          tone="primary"
+          size="sm"
+          onClick={(event) => {
+            event.stopPropagation();
+            onUnblock();
+          }}
+        >
+          {i18n.t('Contacts.restore', { defaultValue: 'Restore' })}
+        </Button>
+      )}
+    />
   );
 }
 
