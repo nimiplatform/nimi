@@ -383,6 +383,7 @@ pub fn collect_device_profile(app: &AppHandle) -> LocalAiDeviceProfile {
     }
 }
 
+#[cfg(test)]
 pub fn collect_device_profile_from_env() -> LocalAiDeviceProfile {
     let runtime_root = std::env::var("NIMI_LOCAL_AI_RUNTIME_ROOT")
         .ok()

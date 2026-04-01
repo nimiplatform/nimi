@@ -10,6 +10,10 @@ import type {
 } from './types-dependencies';
 
 export type LocalRuntimeProfileEntryKind = 'asset' | 'service' | 'node';
+export type LocalRuntimeProfileEntryOverride = {
+  entryId: string;
+  localAssetId: string;
+};
 
 export type LocalRuntimeProfileRequirementDescriptor = {
   minGpuMemoryGb?: number;
@@ -94,12 +98,14 @@ export type LocalRuntimeProfileResolvePayload = {
   profile: LocalRuntimeProfileDescriptor;
   capability?: 'chat' | 'image' | 'video' | 'tts' | 'stt' | 'embedding' | string;
   deviceProfile?: LocalRuntimeDeviceProfile;
+  entryOverrides?: LocalRuntimeProfileEntryOverride[];
 };
 
 export type LocalRuntimeProfileInstallRequest = {
   modId: string;
   profileId: string;
   confirmMessage?: string;
+  entryOverrides?: LocalRuntimeProfileEntryOverride[];
 };
 
 export type LocalRuntimeProfileInstallRequestResult = {

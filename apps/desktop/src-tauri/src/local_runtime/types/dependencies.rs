@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::models::LocalAiModelRecord;
 use super::recommendation::LocalAiHostSupportClass;
 use super::services::LocalAiServiceDescriptor;
+use super::LocalAiAssetRecord;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -148,7 +148,7 @@ pub struct LocalAiDependencyApplyResult {
     pub plan_id: String,
     pub mod_id: String,
     pub dependencies: Vec<LocalAiDependencyDescriptor>,
-    pub installed_models: Vec<LocalAiModelRecord>,
+    pub installed_assets: Vec<LocalAiAssetRecord>,
     pub services: Vec<LocalAiServiceDescriptor>,
     pub capabilities: Vec<String>,
     #[serde(default)]

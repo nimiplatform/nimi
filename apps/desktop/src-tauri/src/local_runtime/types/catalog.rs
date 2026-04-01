@@ -2,40 +2,9 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::models::{LocalAiIntegrityMode, LocalAiModelStatus};
 use super::recommendation::LocalAiRecommendationDescriptor;
 use super::services::LocalAiProviderHints;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImportedModelSource {
-    pub repo: String,
-    pub revision: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImportedModelManifest {
-    pub schema_version: String,
-    pub model_id: String,
-    pub logical_model_id: String,
-    pub capabilities: Vec<String>,
-    pub engine: String,
-    pub entry: String,
-    #[serde(default)]
-    pub files: Vec<String>,
-    pub license: String,
-    pub source: ImportedModelSource,
-    #[serde(default, alias = "integrity_mode")]
-    pub integrity_mode: Option<LocalAiIntegrityMode>,
-    pub hashes: HashMap<String, String>,
-    #[serde(default)]
-    pub artifact_roles: Vec<String>,
-    pub preferred_engine: Option<String>,
-    #[serde(default)]
-    pub fallback_engines: Vec<String>,
-    pub engine_config: Option<serde_json::Value>,
-}
+use super::LocalAiAssetStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -161,9 +130,10 @@ pub struct LocalAiInstallRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelHealth {
-    pub local_model_id: String,
-    pub status: LocalAiModelStatus,
+pub struct LocalAiAssetHealth {
+    #[serde(rename = "localAssetId", alias = "localModelId")]
+    pub local_asset_id: String,
+    pub status: LocalAiAssetStatus,
     pub detail: String,
     pub endpoint: String,
 }

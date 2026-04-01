@@ -341,6 +341,7 @@ export type {
   LocalRuntimeExecutionApplyResult,
 } from './types-dependencies';
 export type {
+  LocalRuntimeProfileEntryOverride,
   LocalRuntimeProfileEntryKind,
   LocalRuntimeProfileRequirementDescriptor,
   LocalRuntimeProfileEntryDescriptor,
@@ -570,13 +571,6 @@ export type LocalRuntimeDownloadControlPayload = {
   installSessionId: string;
 };
 
-export type OrphanAssetFile = {
-  filename: string;
-  path: string;
-  sizeBytes: number;
-  recommendation?: LocalRuntimeCatalogRecommendation;
-};
-
 export type LocalRuntimeAssetDeclaration = {
   assetKind: LocalRuntimeAssetKind;
   engine?: string;
@@ -592,15 +586,6 @@ export type LocalRuntimeUnregisteredAssetDescriptor = {
   autoImportable: boolean;
   requiresManualReview: boolean;
   folderName?: string;
-};
-
-export type LocalRuntimeOrphanScanPreference = {
-  capability?: string;
-  engine?: string;
-};
-
-export type LocalRuntimeScanOrphansPayload = {
-  preferences?: Record<string, LocalRuntimeOrphanScanPreference>;
 };
 
 export type LocalRuntimeScaffoldOrphanPayload = {

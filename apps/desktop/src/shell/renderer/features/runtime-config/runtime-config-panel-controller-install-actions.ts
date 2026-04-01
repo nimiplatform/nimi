@@ -75,15 +75,15 @@ export type RuntimeConfigInstallActions = {
   installLocalModel: (payload: LocalRuntimeInstallPayload) => Promise<void>;
   installVerifiedLocalModel: (templateId: string) => Promise<void>;
   importLocalModel: () => Promise<void>;
-  installVerifiedLocalArtifact: (templateId: string) => Promise<void>;
-  importLocalArtifact: () => Promise<void>;
-  scaffoldLocalArtifactOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
+  installVerifiedLocalAsset: (templateId: string) => Promise<void>;
+  importLocalAsset: () => Promise<void>;
+  scaffoldLocalAssetOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
   importLocalModelFile: (capabilities: string[], engine?: string) => Promise<void>;
   startLocalModel: (localModelId: string) => Promise<void>;
   stopLocalModel: (localModelId: string) => Promise<void>;
   restartLocalModel: (localModelId: string) => Promise<void>;
   removeLocalModel: (localModelId: string) => Promise<void>;
-  removeLocalArtifact: (localArtifactId: string) => Promise<void>;
+  removeLocalAsset: (localAssetId: string) => Promise<void>;
   localModelLifecycleById: Record<string, string>;
   localModelLifecycleErrorById: Record<string, string>;
 };
@@ -222,13 +222,13 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
         kind: 'success',
         message: translateRuntimeLocalText(
           'runtimeConfig.local.profileAppliedSummary',
-          'Installed profile {{profileId}} for {{modId}}: {{modelCount}} model(s), {{serviceCount}} service(s), {{artifactCount}} artifact(s)',
+          'Installed profile {{profileId}} for {{modId}}: {{modelCount}} runnable asset(s), {{serviceCount}} service(s), {{dependencyAssetCount}} dependency asset(s)',
           {
             modId,
             profileId,
             modelCount: result.executionResult.installedAssets.length,
             serviceCount: result.executionResult.services.length,
-            artifactCount: (result.installedAssets ?? []).length,
+            dependencyAssetCount: (result.installedAssets ?? []).length,
           },
         ),
       });
@@ -338,31 +338,31 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const installVerifiedLocalArtifact = useCallback(async (templateId: string) => {
+  const installVerifiedLocalAsset = useCallback(async (templateId: string) => {
     const normalizedTemplateId = String(templateId || '').trim();
     if (!normalizedTemplateId) {
       throw new Error('templateId is required');
     }
     try {
       assertRuntimeWriteAllowed();
-      const artifact = await localRuntime.installVerifiedAsset({
+      const asset = await localRuntime.installVerifiedAsset({
         templateId: normalizedTemplateId,
       }, { caller: 'core' });
       await refreshLocalSnapshot();
       setStatusBanner({
         kind: 'success',
-        message: `Artifact installed: ${artifact.assetId}`,
+        message: `Asset installed: ${asset.assetId}`,
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: `Verified artifact install failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: `Verified asset install failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
       throw error;
     }
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
-  const importLocalArtifact = useCallback(async () => {
+  const importLocalAsset = useCallback(async () => {
     try {
       assertRuntimeWriteAllowed();
       const manifestPath = await localRuntime.pickAssetManifestPath();
@@ -374,17 +374,17 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
       setStatusBanner({
         kind: 'success',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.artifactImported',
-          'Asset imported: {{artifactId}}',
-          { artifactId: imported.assetId },
+          'runtimeConfig.local.assetImported',
+          'Asset imported: {{assetId}}',
+          { assetId: imported.assetId },
         ),
       });
     } catch (error) {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.artifactImportFailedWithReason',
-          'Artifact import failed: {{message}}',
+          'runtimeConfig.local.assetImportFailedWithReason',
+          'Asset import failed: {{message}}',
           { message: error instanceof Error ? error.message : String(error || '') },
         ),
       });
@@ -392,7 +392,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
 
-  const scaffoldLocalArtifactOrphan = useCallback(async (path: string, kind: LocalRuntimeAssetKind) => {
+  const scaffoldLocalAssetOrphan = useCallback(async (path: string, kind: LocalRuntimeAssetKind) => {
     try {
       assertRuntimeWriteAllowed();
       const imported = await localRuntime.scaffoldOrphanAsset({
@@ -407,7 +407,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     } catch (error) {
       setStatusBanner({
         kind: 'error',
-        message: `Artifact orphan import failed: ${error instanceof Error ? error.message : String(error || '')}`,
+        message: `Asset orphan import failed: ${error instanceof Error ? error.message : String(error || '')}`,
       });
       throw error;
     }
@@ -428,16 +428,16 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     installCatalogLocalModel,
     installLocalModel,
     installVerifiedLocalModel,
-    installVerifiedLocalArtifact,
+    installVerifiedLocalAsset,
     importLocalModel: modelActions.importLocalModel,
-    importLocalArtifact,
-    scaffoldLocalArtifactOrphan,
+    importLocalAsset,
+    scaffoldLocalAssetOrphan,
     importLocalModelFile: modelActions.importLocalModelFile,
     startLocalModel: modelActions.startLocalModel,
     stopLocalModel: modelActions.stopLocalModel,
     restartLocalModel: modelActions.restartLocalModel,
     removeLocalModel: modelActions.removeLocalModel,
-    removeLocalArtifact: modelActions.removeLocalArtifact,
+    removeLocalAsset: modelActions.removeLocalAsset,
     localModelLifecycleById: modelActions.localModelLifecycleById,
     localModelLifecycleErrorById: modelActions.localModelLifecycleErrorById,
   };

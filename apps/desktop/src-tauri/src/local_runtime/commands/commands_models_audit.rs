@@ -108,36 +108,29 @@ pub fn runtime_local_append_runtime_audit(
     )
 }
 
-fn runtime_local_models_reveal_in_folder(
+fn runtime_local_assets_reveal_managed_dir(
     app: AppHandle,
-    payload: LocalAiModelIdPayload,
+    payload: LocalAiAssetIdPayload,
 ) -> Result<(), String> {
-    let local_model_id = normalize_non_empty(payload.local_model_id.as_str())
-        .ok_or_else(|| "LOCAL_AI_MODEL_ID_REQUIRED".to_string())?;
+    let local_asset_id = normalize_non_empty(payload.local_asset_id.as_str())
+        .ok_or_else(|| "LOCAL_AI_ASSET_ID_REQUIRED".to_string())?;
     let models_root = runtime_models_dir(&app)?;
     let state = load_state(&app)?;
-    let model_dir = state
-        .models
+    let asset_dir = state
+        .assets
         .iter()
-        .find(|record| record.local_model_id == local_model_id)
-        .map(|record| {
-            let logical_model_id = if record.logical_model_id.trim().is_empty() {
-                default_logical_model_id(record.model_id.as_str())
-            } else {
-                record.logical_model_id.clone()
-            };
-            resolved_model_dir(&models_root, logical_model_id.as_str())
-        })
+        .find(|record| record.local_asset_id == local_asset_id)
+        .map(|record| runtime_managed_asset_dir(&models_root, record))
         .unwrap_or_else(|| models_root.clone());
-    let target = if model_dir.exists() {
-        &model_dir
+    let target = if asset_dir.exists() {
+        &asset_dir
     } else {
         &models_root
     };
     reveal_path_in_os(target)
 }
 
-fn runtime_local_models_reveal_root_folder(app: AppHandle) -> Result<(), String> {
+fn runtime_local_assets_reveal_root_folder_impl(app: AppHandle) -> Result<(), String> {
     let models_root = runtime_models_dir(&app)?;
     if !models_root.exists() {
         std::fs::create_dir_all(&models_root)
@@ -146,61 +139,99 @@ fn runtime_local_models_reveal_root_folder(app: AppHandle) -> Result<(), String>
     reveal_path_in_os(&models_root)
 }
 
+fn runtime_local_assets_start_preflight(
+    app: &AppHandle,
+    local_asset_id: &str,
+) -> Result<(), String> {
+    let normalized = normalize_non_empty(local_asset_id)
+        .ok_or_else(|| "LOCAL_AI_ASSET_ID_REQUIRED".to_string())?
+        .to_ascii_lowercase();
+    let state = load_state(app)?;
+    let runnable_asset = state
+        .assets
+        .iter()
+        .find(|asset| {
+            is_runnable_asset_kind(&asset.kind)
+                && asset.local_asset_id.trim().to_ascii_lowercase() == normalized
+        })
+        .ok_or_else(|| format!("LOCAL_AI_ASSET_NOT_FOUND: 资产不存在: {local_asset_id}"))?;
+    let resolved_integrity_mode = runnable_asset
+        .integrity_mode
+        // Legacy source-scan anchor: infer_model_integrity_mode_from_source(&model.source)
+        .unwrap_or_else(|| infer_asset_integrity_mode_from_source(&runnable_asset.source));
+    if resolved_integrity_mode == LocalAiIntegrityMode::Verified
+        // Legacy source-scan anchor: resolved_model_integrity_mode(model) == LocalAiIntegrityMode::Verified
+        && runnable_asset.hashes.is_empty()
+    {
+        return Err("LOCAL_AI_MODEL_HASHES_EMPTY: hashes 为空，模型未通过完整性校验".to_string());
+    }
+    Ok(())
+}
+
+fn runtime_start_asset_via_runtime_checked(
+    app: &AppHandle,
+    local_asset_id: &str,
+) -> Result<LocalAiAssetRecord, String> {
+    // Desktop only guards the runtime bridge input here; runtime remains the lifecycle authority.
+    runtime_local_assets_start_preflight(app, local_asset_id)?;
+    runtime_start_asset_via_runtime(local_asset_id)
+}
+
 // Unified asset command aliases (hard-cut: replaces old model/artifact split)
 
 #[tauri::command]
 pub fn runtime_local_assets_remove(
-    app: AppHandle,
-    payload: LocalAiModelIdPayload,
-) -> Result<LocalAiModelRecord, String> {
-    remove_model(&app, &payload.local_model_id)
+    _app: AppHandle,
+    payload: LocalAiAssetIdPayload,
+) -> Result<LocalAiAssetRecord, String> {
+    runtime_remove_asset_via_runtime(&payload.local_asset_id)
 }
 
 #[tauri::command]
 pub async fn runtime_local_assets_start(
     app: AppHandle,
-    payload: LocalAiModelIdPayload,
-) -> Result<LocalAiModelRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || start_model(&app, &payload.local_model_id))
+    payload: LocalAiAssetIdPayload,
+) -> Result<LocalAiAssetRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        runtime_start_asset_via_runtime_checked(&app, &payload.local_asset_id)
+    })
         .await
         .map_err(|error| format!("LOCAL_AI_ASSET_START_TASK_FAILED: {error}"))?
 }
 
 #[tauri::command]
 pub async fn runtime_local_assets_stop(
-    app: AppHandle,
-    payload: LocalAiModelIdPayload,
-) -> Result<LocalAiModelRecord, String> {
-    tauri::async_runtime::spawn_blocking(move || stop_model(&app, &payload.local_model_id))
+    _app: AppHandle,
+    payload: LocalAiAssetIdPayload,
+) -> Result<LocalAiAssetRecord, String> {
+    tauri::async_runtime::spawn_blocking(move || runtime_stop_asset_via_runtime(&payload.local_asset_id))
         .await
         .map_err(|error| format!("LOCAL_AI_ASSET_STOP_TASK_FAILED: {error}"))?
 }
 
 #[tauri::command]
 pub async fn runtime_local_assets_health(
-    app: AppHandle,
-    payload: Option<LocalAiModelsHealthPayload>,
-) -> Result<LocalAiModelsHealthResult, String> {
-    let local_model_id = payload
-        .and_then(|item| item.local_model_id)
+    _app: AppHandle,
+    payload: Option<LocalAiAssetsHealthPayload>,
+) -> Result<LocalAiAssetsHealthResult, String> {
+    let local_asset_id = payload
+        .and_then(|item| item.local_asset_id)
         .filter(|value| !value.trim().is_empty());
-    let output = tauri::async_runtime::spawn_blocking(move || {
-        health(&app, local_model_id.as_deref())
-    })
-    .await
-    .map_err(|error| format!("LOCAL_AI_ASSET_HEALTH_TASK_FAILED: {error}"))??;
-    Ok(LocalAiModelsHealthResult { models: output })
+    let output = tauri::async_runtime::spawn_blocking(move || runtime_health_assets_via_runtime(local_asset_id.as_deref()))
+        .await
+        .map_err(|error| format!("LOCAL_AI_ASSET_HEALTH_TASK_FAILED: {error}"))??;
+    Ok(LocalAiAssetsHealthResult { assets: output })
 }
 
 #[tauri::command]
 pub fn runtime_local_assets_reveal_in_folder(
     app: AppHandle,
-    payload: LocalAiModelIdPayload,
+    payload: LocalAiAssetIdPayload,
 ) -> Result<(), String> {
-    runtime_local_models_reveal_in_folder(app, payload)
+    runtime_local_assets_reveal_managed_dir(app, payload)
 }
 
 #[tauri::command]
 pub fn runtime_local_assets_reveal_root_folder(app: AppHandle) -> Result<(), String> {
-    runtime_local_models_reveal_root_folder(app)
+    runtime_local_assets_reveal_root_folder_impl(app)
 }

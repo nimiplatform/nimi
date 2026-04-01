@@ -34,11 +34,9 @@ import type {
   LocalRuntimeDownloadProgressEvent,
   LocalRuntimeDownloadSessionSummary,
   LocalRuntimeSnapshot,
-  LocalRuntimeScanOrphansPayload,
   LocalRuntimeWriteOptions,
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
-  OrphanAssetFile,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeScaffoldOrphanPayload,
 } from './types';
@@ -297,6 +295,7 @@ export async function resolveLocalRuntimeProfile(
       profile: payload.profile,
       capability: payload.capability,
       deviceProfile: payload.deviceProfile,
+      entryOverrides: payload.entryOverrides,
     },
   });
   return parseProfileResolutionPlan(result);
@@ -588,15 +587,6 @@ export async function importLocalRuntimeAsset(
   return parseAssetRecord(asRecord(response).asset);
 }
 
-export async function adoptLocalRuntimeAsset(
-  payload: LocalRuntimeAssetRecord,
-  options?: LocalRuntimeWriteOptions,
-): Promise<LocalRuntimeAssetRecord> {
-  assertLifecycleWriteAllowed('local_runtime_assets_adopt', options?.caller);
-  const result = await invokeLocalRuntimeCommand<unknown>('runtime_local_assets_adopt', { payload });
-  return parseAssetRecord(result);
-}
-
 export async function removeLocalRuntimeAsset(
   localAssetId: string,
   options?: LocalRuntimeWriteOptions,
@@ -715,24 +705,6 @@ export async function subscribeLocalRuntimeDownloadProgress(
   };
 }
 
-export async function scanLocalRuntimeOrphanAssets(
-  _payload?: LocalRuntimeScanOrphansPayload,
-): Promise<OrphanAssetFile[]> {
-  const runtime = requireSdkLocal();
-  const response = await runtime.scanUnregisteredAssets({});
-  const raw = asRecord(response);
-  const items: unknown[] = Array.isArray(raw.items) ? raw.items : [];
-  return items
-    .map((item) => parseUnregisteredAssetDescriptor(item))
-    .filter((item) => Boolean(item.declaration))
-    .map((item) => ({
-      filename: item.filename,
-      path: item.path,
-      sizeBytes: item.sizeBytes,
-      recommendation: undefined,
-    }));
-}
-
 export async function scaffoldLocalRuntimeOrphanAsset(
   payload: LocalRuntimeScaffoldOrphanPayload,
   options?: LocalRuntimeWriteOptions,
@@ -797,6 +769,3 @@ export async function fetchLocalRuntimeSnapshot(localAssetId?: string): Promise<
     generatedAt: new Date().toISOString(),
   };
 }
-
-/** @deprecated Use revealLocalRuntimeAssetsRootFolder */
-export const revealLocalRuntimeModelsRootFolder = revealLocalRuntimeAssetsRootFolder;

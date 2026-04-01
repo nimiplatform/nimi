@@ -18,6 +18,7 @@ import type {
   ModRuntimeLocalProfileInstallStatus,
   ModRuntimeListLocalAssetsInput,
   ModRuntimeLocalAssetRecord,
+  ModRuntimeProfileEntryOverride,
   ModRuntimeBoundSpeechListVoicesInput,
   ModRuntimeBoundSpeechSynthesizeInput,
   ModRuntimeBoundSpeechTranscribeInput,
@@ -196,11 +197,13 @@ export type ModSdkHost = {
       profileId: string;
       capability?: RuntimeCanonicalCapability | string;
       confirmMessage?: string;
+      entryOverrides?: ModRuntimeProfileEntryOverride[];
     }) => Promise<ModRuntimeLocalProfileInstallResult>;
     getProfileInstallStatus: (input: {
       modId: string;
       profileId: string;
       capability?: RuntimeCanonicalCapability | string;
+      entryOverrides?: ModRuntimeProfileEntryOverride[];
     }) => Promise<ModRuntimeLocalProfileInstallStatus>;
   };
     ai: {

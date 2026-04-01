@@ -11,7 +11,8 @@ import { toBridgeNimiError } from '../src/shell/renderer/bridge/runtime-bridge/i
 // The hash validation lives in two Rust module groups:
 //   1. `local_runtime/import_validator*` — manifest hash verification at import time
 //      (LOCAL_AI_IMPORT_HASH_MISMATCH)
-//   2. `supervisor.rs` — verified-model preflight hash-empty check at model start time
+//   2. `commands_models_audit.rs` — runtime-authoritative start preflight for verified
+//      assets with empty hashes
 //      (LOCAL_AI_MODEL_HASHES_EMPTY)
 //
 // This file uses source scanning on the Rust authoritative layer and
@@ -34,9 +35,9 @@ const IMPORT_VALIDATOR_MANIFEST_CHECKS_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
   '../src-tauri/src/local_runtime/import_validator/manifest_checks.rs',
 );
-const SUPERVISOR_PATH = path.resolve(
+const LIFECYCLE_COMMANDS_PATH = path.resolve(
   import.meta.dirname ?? __dirname,
-  '../src-tauri/src/local_runtime/supervisor.rs',
+  '../src-tauri/src/local_runtime/commands/commands_models_audit.rs',
 );
 
 const importValidatorSource = [
@@ -46,7 +47,7 @@ const importValidatorSource = [
 ]
   .map((filePath) => fs.readFileSync(filePath, 'utf-8'))
   .join('\n');
-const supervisorSource = fs.readFileSync(SUPERVISOR_PATH, 'utf-8');
+const lifecycleCommandsSource = fs.readFileSync(LIFECYCLE_COMMANDS_PATH, 'utf-8');
 
 // ---------------------------------------------------------------------------
 // D-SEC-006: verified empty hash list → LOCAL_AI_MODEL_HASHES_EMPTY
@@ -55,12 +56,12 @@ const supervisorSource = fs.readFileSync(SUPERVISOR_PATH, 'utf-8');
 test('D-SEC-006: verified empty hash list produces LOCAL_AI_MODEL_HASHES_EMPTY error', () => {
   // 1. Supervisor preflight rejects only verified models with empty hashes (source scan)
   assert.ok(
-    supervisorSource.includes('resolved_model_integrity_mode(model) == LocalAiIntegrityMode::Verified'),
-    'supervisor.rs must gate the empty-hash preflight on verified integrity mode',
+    lifecycleCommandsSource.includes('resolved_model_integrity_mode(model) == LocalAiIntegrityMode::Verified'),
+    'commands_models_audit.rs must gate the empty-hash preflight on verified integrity mode',
   );
   assert.ok(
-    supervisorSource.includes('LOCAL_AI_MODEL_HASHES_EMPTY'),
-    'supervisor.rs must emit LOCAL_AI_MODEL_HASHES_EMPTY when hashes are empty',
+    lifecycleCommandsSource.includes('LOCAL_AI_MODEL_HASHES_EMPTY'),
+    'commands_models_audit.rs must emit LOCAL_AI_MODEL_HASHES_EMPTY when hashes are empty',
   );
 
   // 2. Bridge error map translates the code for the renderer (behavioral)
@@ -81,12 +82,12 @@ test('D-SEC-006: verified empty hash list produces LOCAL_AI_MODEL_HASHES_EMPTY e
 
 test('D-SEC-006: local unverified models are allowed to start without hashes', () => {
   assert.ok(
-    supervisorSource.includes('infer_model_integrity_mode_from_source(&model.source)'),
-    'supervisor.rs must infer integrity mode for legacy records from source.repo',
+    lifecycleCommandsSource.includes('infer_model_integrity_mode_from_source(&model.source)'),
+    'commands_models_audit.rs must infer integrity mode for legacy records from source.repo',
   );
   assert.ok(
-    supervisorSource.includes('LocalAiIntegrityMode::Verified'),
-    'supervisor.rs must explicitly distinguish verified models from local unverified imports',
+    lifecycleCommandsSource.includes('LocalAiIntegrityMode::Verified'),
+    'commands_models_audit.rs must explicitly distinguish verified models from local unverified imports',
   );
 });
 

@@ -206,7 +206,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                     });
                     return readManifestProfiles(modId);
                 },
-                requestProfileInstall: async ({ modId, profileId, capability, confirmMessage }) => {
+                requestProfileInstall: async ({ modId, profileId, capability, confirmMessage, entryOverrides }) => {
                     authorizeRuntimeCapability({
                         modId,
                         capabilityKey: 'runtime.local.profiles.install.request',
@@ -242,6 +242,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         modId,
                         profile,
                         capability: String(capability || '').trim() || undefined,
+                        entryOverrides,
                     });
                     const result = await localRuntime.applyProfile(plan, { caller: 'core' });
                     return {
@@ -253,7 +254,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         reasonCode: result.reasonCode,
                     };
                 },
-                getProfileInstallStatus: async ({ modId, profileId, capability }) => {
+                getProfileInstallStatus: async ({ modId, profileId, capability, entryOverrides }) => {
                     authorizeRuntimeCapability({
                         modId,
                         capabilityKey: 'runtime.local.profiles.list',
@@ -274,6 +275,7 @@ export function buildRuntimeHostCapabilities(input: HostCapabilityInput): ModSdk
                         modId,
                         profile,
                         capability: String(capability || '').trim() || undefined,
+                        entryOverrides,
                     });
                 },
             },

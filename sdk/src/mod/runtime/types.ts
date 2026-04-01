@@ -163,6 +163,11 @@ export type ModRuntimeListLocalAssetsInput = {
   engine?: string;
 };
 
+export type ModRuntimeProfileEntryOverride = {
+  entryId: string;
+  localAssetId: string;
+};
+
 export type ModRuntimeLocalProfileEntryKind = 'asset' | 'service' | 'node';
 
 export type ModRuntimeLocalProfileRequirement = {
@@ -253,10 +258,12 @@ export type ModRuntimeClient = {
       profileId: string;
       capability?: RuntimeCanonicalCapability | string;
       confirmMessage?: string;
+      entryOverrides?: ModRuntimeProfileEntryOverride[];
     }): Promise<ModRuntimeLocalProfileInstallResult>;
     getProfileInstallStatus(input: {
       profileId: string;
       capability?: RuntimeCanonicalCapability | string;
+      entryOverrides?: ModRuntimeProfileEntryOverride[];
     }): Promise<ModRuntimeLocalProfileInstallStatus>;
   };
   ai: {

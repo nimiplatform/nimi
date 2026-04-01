@@ -14,7 +14,7 @@ type UseLocalModelCenterImportActionsInput = {
   getInstallEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
   isModMode: boolean;
   onRefreshUnregisteredAssets: () => Promise<void>;
-  onRefreshArtifactSections: () => Promise<void>;
+  onRefreshAssetSections: () => Promise<void>;
   onRefreshVerifiedModels: () => Promise<void>;
   props: LocalModelCenterProps;
 };
@@ -50,7 +50,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     });
     if (success) {
       void input.props.onDiscover().finally(() => {
-        void input.onRefreshArtifactSections();
+        void input.onRefreshAssetSections();
         void input.onRefreshUnregisteredAssets();
       });
       return;
@@ -94,7 +94,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
       return;
     }
 
-    await input.onRefreshArtifactSections();
+    await input.onRefreshAssetSections();
     await input.onRefreshUnregisteredAssets();
   }, [input]);
 
@@ -167,7 +167,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     await input.props.onDiscover();
     const passiveKinds = new Set(['vae', 'clip', 'lora', 'controlnet', 'auxiliary']);
     if (passiveKinds.has(imported.asset.kind)) {
-      await input.onRefreshArtifactSections();
+      await input.onRefreshAssetSections();
     }
     await input.onRefreshUnregisteredAssets();
   }, [input]);

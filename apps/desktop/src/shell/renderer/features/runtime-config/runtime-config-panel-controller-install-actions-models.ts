@@ -17,7 +17,7 @@ export type RuntimeConfigModelManagementActions = {
   stopLocalModel: (localModelId: string) => Promise<void>;
   restartLocalModel: (localModelId: string) => Promise<void>;
   removeLocalModel: (localModelId: string) => Promise<void>;
-  removeLocalArtifact: (localArtifactId: string) => Promise<void>;
+  removeLocalAsset: (localAssetId: string) => Promise<void>;
   localModelLifecycleById: Record<string, string>;
   localModelLifecycleErrorById: Record<string, string>;
 };
@@ -250,18 +250,18 @@ export function useRuntimeConfigModelManagementActions(
       kind: 'info',
       message: translateRuntimeLocalText(
         'runtimeConfig.local.startModelPending',
-        'Starting local model: {{localModelId}}',
+        'Starting local asset: {{localModelId}}',
         { localModelId },
       ),
     });
     const model = await localRuntime.start(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.startModelFailed',
-          'Start model failed: {{message}}',
-          { message: error instanceof Error ? error.message : String(error || '') },
-        ),
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.startModelFailed',
+        'Start asset failed: {{message}}',
+        { message: error instanceof Error ? error.message : String(error || '') },
+      ),
       });
       setLifecycleState(
         localModelId,
@@ -277,7 +277,7 @@ export function useRuntimeConfigModelManagementActions(
       kind: 'success',
       message: translateRuntimeLocalText(
         'runtimeConfig.local.modelStarted',
-        'Model started: {{localModelId}}',
+        'Asset started: {{localModelId}}',
         { localModelId },
       ),
     });
@@ -298,18 +298,18 @@ export function useRuntimeConfigModelManagementActions(
       kind: 'info',
       message: translateRuntimeLocalText(
         'runtimeConfig.local.stopModelPending',
-        'Stopping local model: {{localModelId}}',
+        'Stopping local asset: {{localModelId}}',
         { localModelId },
       ),
     });
     const model = await localRuntime.stop(localModelId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
-        message: translateRuntimeLocalText(
-          'runtimeConfig.local.stopModelFailed',
-          'Stop model failed: {{message}}',
-          { message: error instanceof Error ? error.message : String(error || '') },
-        ),
+      message: translateRuntimeLocalText(
+        'runtimeConfig.local.stopModelFailed',
+        'Stop asset failed: {{message}}',
+        { message: error instanceof Error ? error.message : String(error || '') },
+      ),
       });
       setLifecycleState(
         localModelId,
@@ -325,7 +325,7 @@ export function useRuntimeConfigModelManagementActions(
       kind: 'success',
       message: translateRuntimeLocalText(
         'runtimeConfig.local.modelStopped',
-        'Model stopped: {{localModelId}}',
+        'Asset stopped: {{localModelId}}',
         { localModelId },
       ),
     });
@@ -346,7 +346,7 @@ export function useRuntimeConfigModelManagementActions(
       kind: 'info',
       message: translateRuntimeLocalText(
         'runtimeConfig.local.restartModelPending',
-        'Restarting local model: {{localModelId}}',
+        'Restarting local asset: {{localModelId}}',
         { localModelId },
       ),
     });
@@ -426,13 +426,13 @@ export function useRuntimeConfigModelManagementActions(
     });
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner, updateState]);
 
-  const removeLocalArtifact = useCallback(async (localArtifactId: string) => {
+  const removeLocalAsset = useCallback(async (localAssetId: string) => {
     assertRuntimeWriteAllowed();
-    const artifact = await localRuntime.remove(localArtifactId, { caller: 'core' }).catch((error) => {
+    const asset = await localRuntime.remove(localAssetId, { caller: 'core' }).catch((error) => {
       setStatusBanner({
         kind: 'error',
         message: translateRuntimeLocalText(
-          'runtimeConfig.local.removeArtifactFailed',
+          'runtimeConfig.local.removeAssetFailed',
           'Remove asset failed: {{message}}',
           { message: error instanceof Error ? error.message : String(error || '') },
         ),
@@ -443,9 +443,9 @@ export function useRuntimeConfigModelManagementActions(
     setStatusBanner({
       kind: 'success',
       message: translateRuntimeLocalText(
-        'runtimeConfig.local.artifactRemoved',
-        'Asset removed: {{artifactId}}',
-        { artifactId: artifact.assetId },
+        'runtimeConfig.local.assetRemoved',
+        'Asset removed: {{assetId}}',
+        { assetId: asset.assetId },
       ),
     });
   }, [assertRuntimeWriteAllowed, refreshLocalSnapshot, setStatusBanner]);
@@ -457,7 +457,7 @@ export function useRuntimeConfigModelManagementActions(
     stopLocalModel,
     restartLocalModel,
     removeLocalModel,
-    removeLocalArtifact,
+    removeLocalAsset,
     localModelLifecycleById,
     localModelLifecycleErrorById,
   };

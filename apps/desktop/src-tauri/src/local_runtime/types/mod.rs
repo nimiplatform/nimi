@@ -1,25 +1,23 @@
-mod artifacts;
+mod assets;
 mod catalog;
 mod constants;
 mod dependencies;
 mod download;
 mod intake;
 mod model_index;
-mod models;
 mod profiles;
 mod recommendation;
 mod runtime_state;
 mod services;
 mod util;
 
-pub use artifacts::*;
+pub use assets::*;
 pub use catalog::*;
 pub use constants::*;
 pub use dependencies::*;
 pub use download::*;
 pub use intake::*;
 pub use model_index::*;
-pub use models::*;
 pub use profiles::*;
 pub use recommendation::*;
 pub use runtime_state::*;

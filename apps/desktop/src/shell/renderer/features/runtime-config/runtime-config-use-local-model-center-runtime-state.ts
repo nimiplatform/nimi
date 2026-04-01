@@ -54,14 +54,14 @@ function defaultEngineForModelType(modelType: ModelTypeOption): AssetEngineOptio
   return 'llama';
 }
 
-function defaultEngineForArtifactKind(kind: LocalRuntimeAssetKind): AssetEngineOption | '' {
+function defaultEngineForDependencyAssetKind(kind: LocalRuntimeAssetKind): AssetEngineOption | '' {
   if (kind === 'auxiliary') {
     return '';
   }
   return 'media';
 }
 
-function normalizeArtifactKind(kind: string | undefined): LocalRuntimeAssetKind {
+function normalizeDependencyAssetKind(kind: string | undefined): LocalRuntimeAssetKind {
   const normalized = String(kind || '').trim().toLowerCase();
   return (ASSET_KIND_OPTIONS.find((value) => value === normalized) || 'vae') as LocalRuntimeAssetKind;
 }
@@ -74,11 +74,11 @@ function normalizeAssetDeclaration(
   const assetKind = declaration?.assetKind;
   const isRunnable = RUNNABLE_ASSET_KINDS.has(String(assetKind || ''));
   if (!isRunnable && assetKind) {
-    const normalizedKind = normalizeArtifactKind(assetKind);
+    const normalizedKind = normalizeDependencyAssetKind(assetKind);
     const engine = String(declaration?.engine || '').trim();
     return {
       assetKind: normalizedKind,
-      ...(engine ? { engine } : (normalizedKind === 'auxiliary' ? {} : { engine: defaultEngineForArtifactKind(normalizedKind) })),
+      ...(engine ? { engine } : (normalizedKind === 'auxiliary' ? {} : { engine: defaultEngineForDependencyAssetKind(normalizedKind) })),
     };
   }
 
@@ -110,19 +110,19 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const [loadingCatalog, setLoadingCatalog] = useState(false);
   const [verifiedModels, setVerifiedModels] = useState<LocalRuntimeVerifiedAssetDescriptor[]>([]);
   const [loadingVerifiedModels, setLoadingVerifiedModels] = useState(false);
-  const [installedArtifacts, setInstalledArtifacts] = useState<LocalRuntimeAssetRecord[]>([]);
-  const [loadingInstalledArtifacts, setLoadingInstalledArtifacts] = useState(false);
-  const [verifiedArtifacts, setVerifiedArtifacts] = useState<LocalRuntimeVerifiedAssetDescriptor[]>([]);
-  const [loadingVerifiedArtifacts, setLoadingVerifiedArtifacts] = useState(false);
-  const [artifactKindFilter, setArtifactKindFilter] = useState<'all' | LocalRuntimeAssetKind>('all');
-  const [artifactBusy, setArtifactBusy] = useState(false);
-  const [artifactPendingTemplateIds, setArtifactPendingTemplateIds] = useState<string[]>([]);
-  const [artifactTasks, setArtifactTasks] = useState<AssetTaskEntry[]>([]);
+  const [installedAssets, setInstalledAssets] = useState<LocalRuntimeAssetRecord[]>([]);
+  const [loadingInstalledAssets, setLoadingInstalledAssets] = useState(false);
+  const [verifiedAssets, setVerifiedAssets] = useState<LocalRuntimeVerifiedAssetDescriptor[]>([]);
+  const [loadingVerifiedAssets, setLoadingVerifiedAssets] = useState(false);
+  const [assetKindFilter, setAssetKindFilter] = useState<'all' | LocalRuntimeAssetKind>('all');
+  const [assetBusy, setAssetBusy] = useState(false);
+  const [assetPendingTemplateIds, setAssetPendingTemplateIds] = useState<string[]>([]);
+  const [assetTasks, setAssetTasks] = useState<AssetTaskEntry[]>([]);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [showImportFileDialog, setShowImportFileDialog] = useState(false);
-  const [importFileAssetClass, setImportFileAssetClass] = useState<AssetClassOption>('model');
+  const [importFileAssetClass, setImportFileAssetClass] = useState<AssetClassOption>('runnable');
   const [importFileModelType, setImportFileModelType] = useState<ModelTypeOption>('chat');
-  const [importFileArtifactKind, setImportFileArtifactKind] = useState<LocalRuntimeAssetKind>('vae');
+  const [importFileDependencyKind, setImportFileDependencyKind] = useState<LocalRuntimeAssetKind>('vae');
   const [importFileAuxiliaryEngine, setImportFileAuxiliaryEngine] = useState<AssetEngineOption | ''>('');
   const importMenuRef = useRef<HTMLDivElement>(null);
   const [catalogCapabilityOverrides, setCatalogCapabilityOverrides] = useState<Record<string, CapabilityOption>>({});
@@ -144,32 +144,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     return () => document.removeEventListener('mousedown', handler);
   }, [showImportMenu]);
 
-  const sortedModels = useMemo(
-    () => [...props.state.local.models].sort((left, right) => {
-      const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
-      const rightRank = parseTimestamp(right.installedAt) || parseTimestamp(right.updatedAt);
-      if (leftRank !== rightRank) {
-        return rightRank - leftRank;
-      }
-      return String(right.localModelId || '').localeCompare(String(left.localModelId || ''));
-    }),
-    [props.state.local.models],
-  );
-
-  const filteredInstalledModels = useMemo(() => {
-    if (!deferredSearchQuery.trim()) {
-      return sortedModels;
-    }
-    const query = deferredSearchQuery.toLowerCase().trim();
-    return sortedModels.filter((model) => (
-      model.model.toLowerCase().includes(query)
-      || model.localModelId.toLowerCase().includes(query)
-      || model.engine.toLowerCase().includes(query)
-    ));
-  }, [deferredSearchQuery, sortedModels]);
-
-  const sortedInstalledArtifacts = useMemo(
-    () => [...installedArtifacts].sort((left, right) => {
+  const sortedInstalledAssets = useMemo(
+    () => [...installedAssets].sort((left, right) => {
       const leftRank = parseTimestamp(left.installedAt) || parseTimestamp(left.updatedAt);
       const rightRank = parseTimestamp(right.installedAt) || parseTimestamp(right.updatedAt);
       if (leftRank !== rightRank) {
@@ -177,27 +153,53 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       }
       return String(right.localAssetId || '').localeCompare(String(left.localAssetId || ''));
     }),
-    [installedArtifacts],
+    [installedAssets],
   );
 
-  const filteredInstalledArtifacts = useMemo(
-    () => filterInstalledAssets(sortedInstalledArtifacts, artifactKindFilter, deferredSearchQuery.toLowerCase().trim()),
-    [artifactKindFilter, deferredSearchQuery, sortedInstalledArtifacts],
+  const sortedInstalledRunnableAssets = useMemo(
+    () => sortedInstalledAssets.filter((asset) => RUNNABLE_ASSET_KINDS.has(asset.kind)),
+    [sortedInstalledAssets],
   );
 
-  const installedArtifactIds = useMemo(
-    () => new Set(sortedInstalledArtifacts.map((artifact) => toCanonicalLocalLookupKey(artifact.assetId)).filter(Boolean)),
-    [sortedInstalledArtifacts],
+  const filteredInstalledRunnableAssets = useMemo(() => {
+    if (!deferredSearchQuery.trim()) {
+      return sortedInstalledRunnableAssets;
+    }
+    const query = deferredSearchQuery.toLowerCase().trim();
+    return sortedInstalledRunnableAssets.filter((asset) => (
+      asset.assetId.toLowerCase().includes(query)
+      || asset.localAssetId.toLowerCase().includes(query)
+      || asset.engine.toLowerCase().includes(query)
+      || asset.kind.toLowerCase().includes(query)
+      || asset.logicalModelId?.toLowerCase().includes(query)
+      || asset.source.repo.toLowerCase().includes(query)
+      || (asset.capabilities || []).some((capability) => capability.toLowerCase().includes(query))
+    ));
+  }, [deferredSearchQuery, sortedInstalledRunnableAssets]);
+
+  const sortedInstalledDependencyAssets = useMemo(
+    () => sortedInstalledAssets.filter((asset) => !RUNNABLE_ASSET_KINDS.has(asset.kind)),
+    [sortedInstalledAssets],
   );
 
-  const installedArtifactsById = useMemo(
-    () => new Map(sortedInstalledArtifacts.map((artifact) => [toCanonicalLocalLookupKey(artifact.assetId), artifact] as const)),
-    [sortedInstalledArtifacts],
+  const filteredInstalledDependencyAssets = useMemo(
+    () => filterInstalledAssets(sortedInstalledDependencyAssets, assetKindFilter, deferredSearchQuery.toLowerCase().trim()),
+    [assetKindFilter, deferredSearchQuery, sortedInstalledDependencyAssets],
   );
 
-  const isInstalled = useCallback((modelId: string) => (
-    sortedModels.some((model) => toCanonicalLocalLookupKey(model.model) === toCanonicalLocalLookupKey(modelId))
-  ), [sortedModels]);
+  const installedRunnableAssetIds = useMemo(
+    () => new Set(sortedInstalledRunnableAssets.map((asset) => toCanonicalLocalLookupKey(asset.assetId)).filter(Boolean)),
+    [sortedInstalledRunnableAssets],
+  );
+
+  const installedAssetsById = useMemo(
+    () => new Map(sortedInstalledAssets.map((asset) => [toCanonicalLocalLookupKey(asset.assetId), asset] as const)),
+    [sortedInstalledAssets],
+  );
+
+  const isRunnableAssetInstalled = useCallback((assetId: string) => (
+    installedRunnableAssetIds.has(toCanonicalLocalLookupKey(assetId))
+  ), [installedRunnableAssetIds]);
 
   const inferredCatalogCapability = useCallback((item: LocalRuntimeCatalogItemDescriptor): CapabilityOption => (
     normalizeCapabilityOption(item.capabilities.find((capability) => (
@@ -219,8 +221,8 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   catalogCapabilityRef.current = catalogCapability;
   const catalogRequestSeqRef = useRef(0);
   const verifiedModelsRequestSeqRef = useRef(0);
-  const installedArtifactsRequestSeqRef = useRef(0);
-  const verifiedArtifactsRequestSeqRef = useRef(0);
+  const installedAssetsRequestSeqRef = useRef(0);
+  const verifiedAssetsRequestSeqRef = useRef(0);
   const unregisteredAssetsRequestSeqRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -248,7 +250,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       if (!mountedRef.current || requestId !== catalogRequestSeqRef.current) {
         return;
       }
-      setCatalogItems(rows.filter((item) => !isInstalled(item.modelId)));
+      setCatalogItems(rows.filter((item) => !isRunnableAssetInstalled(item.modelId)));
     } catch {
       if (!mountedRef.current || requestId !== catalogRequestSeqRef.current) {
         return;
@@ -259,7 +261,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         setLoadingCatalog(false);
       }
     }
-  }, [isInstalled]);
+  }, [isRunnableAssetInstalled]);
 
   const refreshVerifiedModels = useCallback(async () => {
     const requestId = ++verifiedModelsRequestSeqRef.current;
@@ -269,7 +271,9 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
       }
-      setVerifiedModels(sortVerifiedAssetsForDisplay(rows.filter((item) => !isInstalled(item.assetId))).slice(0, 5));
+      setVerifiedModels(sortVerifiedAssetsForDisplay(rows.filter((item) => (
+        RUNNABLE_ASSET_KINDS.has(item.kind) && !isRunnableAssetInstalled(item.assetId)
+      ))).slice(0, 5));
     } catch {
       if (!mountedRef.current || requestId !== verifiedModelsRequestSeqRef.current) {
         return;
@@ -280,53 +284,49 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
         setLoadingVerifiedModels(false);
       }
     }
-  }, [isInstalled]);
+  }, [isRunnableAssetInstalled]);
 
-  const refreshInstalledArtifacts = useCallback(async () => {
-    const requestId = ++installedArtifactsRequestSeqRef.current;
-    setLoadingInstalledArtifacts(true);
+  const refreshInstalledAssets = useCallback(async () => {
+    const requestId = ++installedAssetsRequestSeqRef.current;
+    setLoadingInstalledAssets(true);
     try {
-      const rows = await localRuntime.listAssets(
-        artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
-      );
-      if (!mountedRef.current || requestId !== installedArtifactsRequestSeqRef.current) {
+      const rows = await localRuntime.listAssets();
+      if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
-      setInstalledArtifacts(rows);
+      setInstalledAssets(rows);
     } catch {
-      if (!mountedRef.current || requestId !== installedArtifactsRequestSeqRef.current) {
+      if (!mountedRef.current || requestId !== installedAssetsRequestSeqRef.current) {
         return;
       }
-      setInstalledArtifacts([]);
+      setInstalledAssets([]);
     } finally {
-      if (mountedRef.current && requestId === installedArtifactsRequestSeqRef.current) {
-        setLoadingInstalledArtifacts(false);
+      if (mountedRef.current && requestId === installedAssetsRequestSeqRef.current) {
+        setLoadingInstalledAssets(false);
       }
     }
-  }, [artifactKindFilter]);
+  }, []);
 
-  const refreshVerifiedArtifacts = useCallback(async () => {
-    const requestId = ++verifiedArtifactsRequestSeqRef.current;
-    setLoadingVerifiedArtifacts(true);
+  const refreshVerifiedAssets = useCallback(async () => {
+    const requestId = ++verifiedAssetsRequestSeqRef.current;
+    setLoadingVerifiedAssets(true);
     try {
-      const rows = await localRuntime.listVerifiedAssets(
-        artifactKindFilter === 'all' ? undefined : { kind: artifactKindFilter },
-      );
-      if (!mountedRef.current || requestId !== verifiedArtifactsRequestSeqRef.current) {
+      const rows = await localRuntime.listVerifiedAssets();
+      if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
       }
-      setVerifiedArtifacts(rows);
+      setVerifiedAssets(rows);
     } catch {
-      if (!mountedRef.current || requestId !== verifiedArtifactsRequestSeqRef.current) {
+      if (!mountedRef.current || requestId !== verifiedAssetsRequestSeqRef.current) {
         return;
       }
-      setVerifiedArtifacts([]);
+      setVerifiedAssets([]);
     } finally {
-      if (mountedRef.current && requestId === verifiedArtifactsRequestSeqRef.current) {
-        setLoadingVerifiedArtifacts(false);
+      if (mountedRef.current && requestId === verifiedAssetsRequestSeqRef.current) {
+        setLoadingVerifiedAssets(false);
       }
     }
-  }, [artifactKindFilter]);
+  }, []);
 
   const refreshUnregisteredAssets = useCallback(async () => {
     const requestId = ++unregisteredAssetsRequestSeqRef.current;
@@ -375,65 +375,71 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [refreshVerifiedModels]);
 
   useEffect(() => {
-    void refreshInstalledArtifacts();
-  }, [refreshInstalledArtifacts]);
+    void refreshInstalledAssets();
+  }, [refreshInstalledAssets]);
 
   useEffect(() => {
-    void refreshVerifiedArtifacts();
-  }, [refreshVerifiedArtifacts]);
+    void refreshVerifiedAssets();
+  }, [refreshVerifiedAssets]);
 
   useEffect(() => {
     void refreshUnregisteredAssets();
   }, [refreshUnregisteredAssets]);
 
-  const visibleVerifiedArtifacts = useMemo(() => {
+  const visibleVerifiedAssets = useMemo(() => {
     const query = deferredSearchQuery.toLowerCase().trim();
-    const candidates = verifiedArtifacts.filter((artifact) => {
-      if (installedArtifactIds.has(toCanonicalLocalLookupKey(artifact.assetId))) {
+    const candidates = verifiedAssets.filter((asset) => {
+      if (RUNNABLE_ASSET_KINDS.has(asset.kind)) {
+        return false;
+      }
+      if (assetKindFilter !== 'all' && asset.kind !== assetKindFilter) {
+        return false;
+      }
+      if (installedAssetsById.has(toCanonicalLocalLookupKey(asset.assetId))) {
         return false;
       }
       if (!query) {
         return true;
       }
       return (
-        artifact.assetId.toLowerCase().includes(query)
-        || artifact.title.toLowerCase().includes(query)
-        || artifact.description.toLowerCase().includes(query)
-        || artifact.kind.toLowerCase().includes(query)
-        || artifact.repo.toLowerCase().includes(query)
+        asset.assetId.toLowerCase().includes(query)
+        || asset.title.toLowerCase().includes(query)
+        || asset.description.toLowerCase().includes(query)
+        || asset.kind.toLowerCase().includes(query)
+        || asset.repo.toLowerCase().includes(query)
       );
     });
     return sortVerifiedAssetsForDisplay(candidates);
-  }, [deferredSearchQuery, installedArtifactIds, verifiedArtifacts]);
+  }, [assetKindFilter, deferredSearchQuery, installedAssetsById, verifiedAssets]);
 
-  const relatedArtifactsByModelTemplate = useMemo(() => {
+  const relatedAssetsByModelTemplate = useMemo(() => {
     const next = new Map<string, LocalRuntimeVerifiedAssetDescriptor[]>();
     for (const model of verifiedModels) {
-      next.set(model.templateId, sortVerifiedAssetsForDisplay(relatedPassiveAssetsForRunnable(model, verifiedArtifacts)));
+      next.set(model.templateId, sortVerifiedAssetsForDisplay(relatedPassiveAssetsForRunnable(model, verifiedAssets)));
     }
     return next;
-  }, [verifiedArtifacts, verifiedModels]);
+  }, [verifiedAssets, verifiedModels]);
 
-  const verifiedArtifactsByTemplateId = useMemo(
-    () => new Map(verifiedArtifacts.map((artifact) => [artifact.templateId, artifact] as const)),
-    [verifiedArtifacts],
+  const verifiedAssetsByTemplateId = useMemo(
+    () => new Map(verifiedAssets.map((asset) => [asset.templateId, asset] as const)),
+    [verifiedAssets],
   );
 
-  const visibleArtifactTasks = useMemo(
-    () => artifactTasks.slice().sort((left, right) => right.updatedAtMs - left.updatedAtMs).slice(0, 4),
-    [artifactTasks],
+  const visibleAssetTasks = useMemo(
+    () => assetTasks.slice().sort((left, right) => right.updatedAtMs - left.updatedAtMs).slice(0, 4),
+    [assetTasks],
   );
 
-  const refreshArtifactSections = useCallback(async () => {
-    await Promise.all([refreshInstalledArtifacts(), refreshVerifiedArtifacts()]);
-  }, [refreshInstalledArtifacts, refreshVerifiedArtifacts]);
+  const refreshAssetSections = useCallback(async () => {
+    await Promise.all([refreshInstalledAssets(), refreshVerifiedAssets()]);
+  }, [refreshInstalledAssets, refreshVerifiedAssets]);
 
-  const markArtifactPending = useCallback((templateId: string, pending: boolean) => {
+  const markAssetPending = useCallback((templateId: string, pending: boolean) => {
     const normalized = String(templateId || '').trim();
     if (!normalized) {
       return;
     }
-    setArtifactPendingTemplateIds((prev) => {
+    setAssetPendingTemplateIds((prev) => {
       if (pending) {
         return prev.includes(normalized) ? prev : [...prev, normalized];
       }
@@ -441,17 +447,17 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     });
   }, []);
 
-  const upsertArtifactTask = useCallback((templateId: string, state: AssetTaskState, detail?: string) => {
+  const upsertAssetTask = useCallback((templateId: string, state: AssetTaskState, detail?: string) => {
     const normalizedTemplateId = String(templateId || '').trim();
     if (!normalizedTemplateId) {
       return;
     }
-    const descriptor = verifiedArtifactsByTemplateId.get(normalizedTemplateId);
+    const descriptor = verifiedAssetsByTemplateId.get(normalizedTemplateId);
     if (!descriptor) {
       return;
     }
     const nowMs = Date.now();
-    setArtifactTasks((prev) => {
+    setAssetTasks((prev) => {
       const next = prev.filter((task) => (
         task.templateId !== normalizedTemplateId
         && !(isAssetTaskTerminal(task.state) && nowMs - task.updatedAtMs > PROGRESS_RETENTION_MS)
@@ -468,56 +474,56 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       });
       return next.slice(0, 8);
     });
-  }, [verifiedArtifactsByTemplateId]);
+  }, [verifiedAssetsByTemplateId]);
 
-  const isArtifactPending = useCallback((templateId: string) => (
-    artifactPendingTemplateIds.includes(String(templateId || '').trim())
-  ), [artifactPendingTemplateIds]);
+  const isAssetPending = useCallback((templateId: string) => (
+    assetPendingTemplateIds.includes(String(templateId || '').trim())
+  ), [assetPendingTemplateIds]);
 
-  const installVerifiedArtifact = useCallback(async (templateId: string) => {
+  const installVerifiedAsset = useCallback(async (templateId: string) => {
     const normalizedTemplateId = String(templateId || '').trim();
     if (!normalizedTemplateId) {
       return;
     }
-    markArtifactPending(normalizedTemplateId, true);
-    upsertArtifactTask(normalizedTemplateId, 'running');
+    markAssetPending(normalizedTemplateId, true);
+    upsertAssetTask(normalizedTemplateId, 'running');
     try {
-      await props.onInstallVerifiedArtifact(normalizedTemplateId);
-      await refreshArtifactSections();
-      upsertArtifactTask(normalizedTemplateId, 'completed', 'Artifact installed and ready.');
+      await props.onInstallVerifiedAsset(normalizedTemplateId);
+      await refreshAssetSections();
+      upsertAssetTask(normalizedTemplateId, 'completed', 'Asset installed and ready.');
     } catch (error: unknown) {
-      upsertArtifactTask(
+      upsertAssetTask(
         normalizedTemplateId,
         'failed',
-        error instanceof Error ? error.message : String(error || 'Artifact install failed'),
+        error instanceof Error ? error.message : String(error || 'Asset install failed'),
       );
       throw error;
     } finally {
-      markArtifactPending(normalizedTemplateId, false);
+      markAssetPending(normalizedTemplateId, false);
     }
-  }, [markArtifactPending, props, refreshArtifactSections, upsertArtifactTask]);
+  }, [markAssetPending, props, refreshAssetSections, upsertAssetTask]);
 
-  const installMissingArtifactsForModel = useCallback(async (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => {
-    const missing = artifacts.filter((artifact) => !installedArtifactsById.has(toCanonicalLocalLookupKey(artifact.assetId)));
-    for (const artifact of missing) {
-      await installVerifiedArtifact(artifact.templateId);
+  const installMissingAssetsForModel = useCallback(async (assets: LocalRuntimeVerifiedAssetDescriptor[]) => {
+    const missing = assets.filter((asset) => !installedAssetsById.has(toCanonicalLocalLookupKey(asset.assetId)));
+    for (const asset of missing) {
+      await installVerifiedAsset(asset.templateId);
     }
-  }, [installVerifiedArtifact, installedArtifactsById]);
+  }, [installVerifiedAsset, installedAssetsById]);
 
-  const removeInstalledArtifact = useCallback(async (localArtifactId: string) => {
-    setArtifactBusy(true);
+  const removeInstalledAsset = useCallback(async (localAssetId: string) => {
+    setAssetBusy(true);
     try {
-      await props.onRemoveArtifact(localArtifactId);
+      await props.onRemoveAsset(localAssetId);
     } catch {
       // Error is already surfaced as a status banner by the panel controller.
     }
     try {
-      await refreshArtifactSections();
+      await refreshAssetSections();
       await refreshUnregisteredAssets();
     } finally {
-      setArtifactBusy(false);
+      setAssetBusy(false);
     }
-  }, [props, refreshArtifactSections, refreshUnregisteredAssets]);
+  }, [props, refreshAssetSections, refreshUnregisteredAssets]);
 
   const installVerifiedModel = useCallback(async (templateId: string) => {
     setInstalling(true);
@@ -532,7 +538,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     getInstallEngine: selectedCatalogEngine,
     isModMode,
     onRefreshUnregisteredAssets: refreshUnregisteredAssets,
-    onRefreshArtifactSections: refreshArtifactSections,
+    onRefreshAssetSections: refreshAssetSections,
     onRefreshVerifiedModels: refreshVerifiedModels,
     props,
   });
@@ -540,7 +546,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   const resolveUnregisteredAssetDraft = useCallback((asset: LocalRuntimeUnregisteredAssetDescriptor): LocalRuntimeAssetDeclaration => (
     unregisteredAssetDrafts[asset.path]
     || normalizeAssetDeclaration(asset.declaration)
-    || defaultAssetDeclaration('model')
+    || defaultAssetDeclaration('runnable')
   ), [unregisteredAssetDrafts]);
 
   const setUnregisteredAssetDraft = useCallback((
@@ -564,10 +570,10 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     });
   }, [setUnregisteredAssetDraft]);
 
-  const setUnregisteredArtifactKind = useCallback((assetPath: string, artifactKind: LocalRuntimeAssetKind) => {
-    const engine = defaultEngineForArtifactKind(artifactKind);
+  const setUnregisteredDependencyKind = useCallback((assetPath: string, assetKind: LocalRuntimeAssetKind) => {
+    const engine = defaultEngineForDependencyAssetKind(assetKind);
     setUnregisteredAssetDraft(assetPath, {
-      assetKind: artifactKind,
+      assetKind,
       ...(engine ? { engine } : {}),
     });
   }, [setUnregisteredAssetDraft]);
@@ -651,12 +657,12 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
   }, [importActions]);
 
   const importFileDeclaration = useMemo<LocalRuntimeAssetDeclaration>(() => {
-    if (importFileAssetClass === 'artifact') {
-      const engine = importFileArtifactKind === 'auxiliary'
+    if (importFileAssetClass === 'dependency') {
+      const engine = importFileDependencyKind === 'auxiliary'
         ? String(importFileAuxiliaryEngine || '').trim()
-        : defaultEngineForArtifactKind(importFileArtifactKind);
+        : defaultEngineForDependencyAssetKind(importFileDependencyKind);
       return {
-        assetKind: importFileArtifactKind,
+        assetKind: importFileDependencyKind,
         ...(engine ? { engine } : {}),
       };
     }
@@ -664,17 +670,14 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
       assetKind: importFileModelType === 'music' ? 'chat' as const : importFileModelType as LocalRuntimeAssetKind,
       engine: defaultEngineForModelType(importFileModelType),
     };
-  }, [importFileArtifactKind, importFileAssetClass, importFileAuxiliaryEngine, importFileModelType]);
+  }, [importFileDependencyKind, importFileAssetClass, importFileAuxiliaryEngine, importFileModelType]);
 
   return {
     activeDownloads: importActions.activeDownloads,
     activeImports: importActions.activeImports,
-    artifactBusy,
-    artifactKindFilter,
-    artifactOrphanError: '',
-    artifactOrphanFiles: [],
-    artifactOrphanKinds: {},
-    artifactPendingTemplateIds,
+    assetBusy,
+    assetKindFilter,
+    assetPendingTemplateIds,
     assetImportError: importActions.assetImportError,
     assetImportSessionByPath: importActions.assetImportSessionByPath,
     catalogCapability,
@@ -682,9 +685,9 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     catalogItems,
     closeVariantPicker: importActions.closeVariantPicker,
     deferredSearchQuery,
-    filteredInstalledArtifacts,
-    filteredInstalledModels,
-    importFileArtifactKind,
+    filteredInstalledDependencyAssets,
+    filteredInstalledRunnableAssets,
+    importFileDependencyKind,
     importFileAssetClass,
     importFileAuxiliaryEngine,
     importFileDeclaration,
@@ -692,47 +695,43 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     importMenuRef,
     importingAssetPath: importActions.importingAssetPath,
     installCatalogVariant,
-    installMissingArtifactsForModel,
-    installVerifiedArtifact,
+    installMissingAssetsForModel,
+    installVerifiedAsset,
     installVerifiedModel,
     installing,
-    installedArtifactsById,
-    isArtifactPending,
+    installedAssetsById,
+    isAssetPending,
     loadingCatalog,
-    loadingInstalledArtifacts,
+    loadingInstalledAssets,
     loadingVariants: importActions.loadingVariants,
-    loadingVerifiedArtifacts,
+    loadingVerifiedAssets,
     loadingVerifiedModels,
     onCancelDownload: importActions.onCancelDownload,
     onDismissSession: importActions.onDismissSession,
     onPauseDownload: importActions.onPauseDownload,
     onResumeDownload: importActions.onResumeDownload,
-    orphanCapabilities: {},
-    orphanError: '',
-    orphanFiles: [],
-    orphanImportSessionByPath: {},
-    refreshArtifactSections,
+    refreshAssetSections,
     refreshUnregisteredAssets,
     refreshVerifiedModels,
-    relatedArtifactsByModelTemplate,
-    removeInstalledArtifact,
+    relatedAssetsByModelTemplate,
+    removeInstalledAsset,
     resolveUnregisteredAssetDraft,
     searchQuery,
     selectedCatalogCapability,
     selectedCatalogEngine,
-    setArtifactKindFilter,
+    setAssetKindFilter,
     setCatalogCapability,
     setCatalogCapabilityOverrides,
     setCatalogDisplayCount,
     setCatalogEngineOverrides,
-    setImportFileArtifactKind,
+    setImportFileDependencyKind,
     setImportFileAssetClass,
     setImportFileAuxiliaryEngine,
     setImportFileModelType,
     setSearchQuery,
     setShowImportFileDialog,
     setShowImportMenu,
-    setUnregisteredArtifactKind,
+    setUnregisteredDependencyKind,
     setUnregisteredAssetClass,
     setUnregisteredAuxiliaryEngine,
     setUnregisteredModelType,
@@ -749,7 +748,7 @@ export function useLocalModelCenterRuntimeState({ isModMode, props }: UseLocalMo
     variantList: importActions.variantList,
     variantPickerItem: importActions.variantPickerItem,
     verifiedModels,
-    visibleArtifactTasks,
-    visibleVerifiedArtifacts,
+    visibleAssetTasks,
+    visibleVerifiedAssets,
   };
 }

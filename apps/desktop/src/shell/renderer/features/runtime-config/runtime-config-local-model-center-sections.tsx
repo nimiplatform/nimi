@@ -36,12 +36,12 @@ import {
   formatLastCheckedAgo,
 } from './runtime-config-local-model-center-helpers';
 export {
-  ArtifactRequirementBadges,
+  AssetRequirementBadges,
   LocalModelCenterActiveDownloadsSection,
   LocalModelCenterActiveImportsSection,
-  LocalModelCenterArtifactTasksSection,
+  LocalModelCenterAssetTasksSection,
   LocalModelCenterQuickPicksSection,
-  LocalModelCenterVerifiedArtifactsSection,
+  LocalModelCenterVerifiedAssetsSection,
 } from './runtime-config-local-model-center-catalog-sections';
 
 type ModModeViewProps = {
@@ -136,7 +136,7 @@ export function LocalModelCenterModModeView(props: ModModeViewProps) {
               </p>
               <p className="mt-1 text-[11px] text-[var(--nimi-status-warning)]">
                 {i18n.t('runtimeConfig.localModelCenter.setupRequiredDescription', {
-                  defaultValue: 'Some capabilities are not available locally. Install a local model or configure a cloud API connector to enable them.',
+                  defaultValue: 'Some capabilities are not available locally. Install a local asset or configure a cloud API connector to enable them.',
                 })}
               </p>
               <div className="mt-3 flex items-center gap-2">
@@ -254,11 +254,11 @@ type ImportDialogProps = {
   visible: boolean;
   assetClass: AssetClassOption;
   modelType: ModelTypeOption;
-  artifactKind: LocalRuntimeAssetKind;
+  dependencyKind: LocalRuntimeAssetKind;
   auxiliaryEngine: AssetEngineOption | '';
   onAssetClassChange: (assetClass: AssetClassOption) => void;
   onModelTypeChange: (modelType: ModelTypeOption) => void;
-  onArtifactKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onDependencyKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onClose: () => void;
   onChooseFile: () => void;
@@ -292,15 +292,15 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
           </span>
           <RuntimeSelect
             value={props.assetClass}
-            onChange={(value) => props.onAssetClassChange((value || 'model') as AssetClassOption)}
+            onChange={(value) => props.onAssetClassChange((value || 'runnable') as AssetClassOption)}
             className="w-36"
             options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
               value: assetClass,
-              label: assetClass === 'model' ? 'Runnable asset' : 'Dependency asset',
+              label: assetClass === 'runnable' ? 'Runnable asset' : 'Dependency asset',
             }))}
           />
         </div>
-        {props.assetClass === 'model' ? (
+        {props.assetClass === 'runnable' ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.modelTypeLabel', { defaultValue: 'Type:' })}
@@ -315,17 +315,17 @@ export function LocalModelCenterImportDialog(props: ImportDialogProps) {
         ) : (
           <div className="flex items-center gap-2">
             <span className="text-xs text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.artifactKindLabel', { defaultValue: 'Kind:' })}
+              {i18n.t('runtimeConfig.localModelCenter.assetKindLabel', { defaultValue: 'Kind:' })}
             </span>
             <RuntimeSelect
-              value={props.artifactKind}
-              onChange={(value) => props.onArtifactKindChange((value || 'vae') as LocalRuntimeAssetKind)}
+              value={props.dependencyKind}
+              onChange={(value) => props.onDependencyKindChange((value || 'vae') as LocalRuntimeAssetKind)}
               className="w-36"
               options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
             />
           </div>
         )}
-        {props.assetClass === 'artifact' && props.artifactKind === 'auxiliary' ? (
+        {props.assetClass === 'dependency' && props.dependencyKind === 'auxiliary' ? (
           <div className="flex items-center gap-2">
             <span className="text-xs text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.engineLabel', { defaultValue: 'Engine:' })}
@@ -362,7 +362,7 @@ type UnregisteredAssetsSectionProps = {
   onRefresh: () => void;
   onAssetClassChange: (path: string, assetClass: AssetClassOption) => void;
   onModelTypeChange: (path: string, modelType: ModelTypeOption) => void;
-  onArtifactKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
+  onDependencyKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
   onImport: (path: string) => void;
 };
@@ -459,14 +459,14 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--nimi-border-subtle)_50%,transparent)] pt-3">
                 <RuntimeSelect
-                  value={draftIsRunnable ? 'model' : 'artifact'}
-                  onChange={(value) => props.onAssetClassChange(asset.path, (value || 'model') as AssetClassOption)}
+                  value={draftIsRunnable ? 'runnable' : 'dependency'}
+                  onChange={(value) => props.onAssetClassChange(asset.path, (value || 'runnable') as AssetClassOption)}
                   className="w-36"
                   options={ASSET_CLASS_OPTIONS.map((assetClass) => ({
                     value: assetClass,
-                    label: assetClass === 'model'
+                    label: assetClass === 'runnable'
                       ? i18n.t('runtimeConfig.localModelCenter.mainModel', { defaultValue: 'Runnable asset' })
-                      : i18n.t('runtimeConfig.localModelCenter.companionAsset', { defaultValue: 'Dependency asset' }),
+                      : i18n.t('runtimeConfig.localModelCenter.dependencyAsset', { defaultValue: 'Dependency asset' }),
                   }))}
                 />
                 {draftIsRunnable ? (
@@ -479,7 +479,7 @@ export function LocalModelCenterUnregisteredAssetsSection(props: UnregisteredAss
                 ) : (
                   <RuntimeSelect
                     value={draft.assetKind || 'vae'}
-                    onChange={(value) => props.onArtifactKindChange(asset.path, (value || 'vae') as LocalRuntimeAssetKind)}
+                    onChange={(value) => props.onDependencyKindChange(asset.path, (value || 'vae') as LocalRuntimeAssetKind)}
                     className="w-36"
                     options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
                   />

@@ -36,12 +36,12 @@ export function LocalPage({ model, state }: LocalPageProps) {
         onInstall={model.installLocalModel}
         onInstallVerified={model.installVerifiedLocalModel}
         onImport={model.importLocalModel}
-        onInstallVerifiedArtifact={model.installVerifiedLocalArtifact}
-        onImportArtifact={model.importLocalArtifact}
-        onScaffoldArtifactOrphan={model.scaffoldLocalArtifactOrphan}
+        onInstallVerifiedAsset={model.installVerifiedLocalAsset}
+        onImportAsset={model.importLocalAsset}
+        onScaffoldAssetOrphan={model.scaffoldLocalAssetOrphan}
         onImportFile={model.importLocalModelFile}
         onRemove={model.removeLocalModel}
-        onRemoveArtifact={model.removeLocalArtifact}
+        onRemoveAsset={model.removeLocalAsset}
         onSetLocalModelQuery={model.setLocalModelQuery}
         onChangeLocalEndpoint={(endpoint) => {
           model.updateState((prev) => ({

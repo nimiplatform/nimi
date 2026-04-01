@@ -41,12 +41,12 @@ export type LocalModelCenterProps = {
   onInstall: (payload: LocalRuntimeInstallPayload) => Promise<void>;
   onInstallVerified: (templateId: string) => Promise<void>;
   onImport: () => Promise<void>;
-  onInstallVerifiedArtifact: (templateId: string) => Promise<void>;
-  onImportArtifact: () => Promise<void>;
-  onScaffoldArtifactOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
+  onInstallVerifiedAsset: (templateId: string) => Promise<void>;
+  onImportAsset: () => Promise<void>;
+  onScaffoldAssetOrphan: (path: string, kind: LocalRuntimeAssetKind) => Promise<void>;
   onImportFile: (capabilities: string[], engine?: string) => Promise<void>;
   onRemove: (localModelId: string) => Promise<void>;
-  onRemoveArtifact: (localArtifactId: string) => Promise<void>;
+  onRemoveAsset: (localAssetId: string) => Promise<void>;
   onSetLocalModelQuery: (value: string) => void;
   onChangeLocalEndpoint: (endpoint: string) => void;
   onNavigateToSetup?: (pageId: RuntimeSetupPageIdV11) => void;
@@ -65,7 +65,7 @@ export const CAPABILITY_OPTIONS = ['chat', 'image', 'video', 'tts', 'stt', 'embe
 export type CapabilityOption = typeof CAPABILITY_OPTIONS[number];
 export const INSTALL_ENGINE_OPTIONS = ['llama', 'media', 'speech', 'sidecar'] as const;
 export type InstallEngineOption = typeof INSTALL_ENGINE_OPTIONS[number];
-export const ASSET_CLASS_OPTIONS = ['model', 'artifact'] as const;
+export const ASSET_CLASS_OPTIONS = ['runnable', 'dependency'] as const;
 export type AssetClassOption = typeof ASSET_CLASS_OPTIONS[number];
 export const MODEL_TYPE_OPTIONS = ['chat', 'embedding', 'image', 'video', 'tts', 'stt', 'music'] as const;
 export type ModelTypeOption = typeof MODEL_TYPE_OPTIONS[number];
@@ -205,7 +205,7 @@ export function normalizeInstallEngine(value: string | undefined): InstallEngine
 
 export function normalizeAssetClassOption(value: string | undefined): AssetClassOption {
   const normalized = String(value || '').trim().toLowerCase();
-  return (ASSET_CLASS_OPTIONS.find((item) => item === normalized) || 'model') as AssetClassOption;
+  return (ASSET_CLASS_OPTIONS.find((item) => item === normalized) || 'runnable') as AssetClassOption;
 }
 
 export function normalizeModelTypeOption(value: string | undefined): ModelTypeOption {
@@ -213,8 +213,8 @@ export function normalizeModelTypeOption(value: string | undefined): ModelTypeOp
   return (MODEL_TYPE_OPTIONS.find((item) => item === normalized) || 'chat') as ModelTypeOption;
 }
 
-export function defaultAssetDeclaration(assetClass: AssetClassOption = 'model'): LocalRuntimeAssetDeclaration {
-  if (assetClass === 'artifact') {
+export function defaultAssetDeclaration(assetClass: AssetClassOption = 'runnable'): LocalRuntimeAssetDeclaration {
+  if (assetClass === 'dependency') {
     return {
       assetKind: 'vae',
       engine: 'media',

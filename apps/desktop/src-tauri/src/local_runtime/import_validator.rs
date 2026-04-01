@@ -6,28 +6,33 @@ mod manifest_checks;
 use helpers::{err, normalize_manifest_hash, ASSET_MANIFEST_FILE_NAME};
 pub(crate) use helpers::{normalize_and_validate_capabilities, validate_loopback_endpoint};
 use manifest_checks::normalize_asset_kind;
+#[cfg(test)]
+pub(crate) use manifest_checks::parse_and_validate_manifest;
 pub(crate) use manifest_checks::{
-    parse_and_validate_asset_manifest, parse_and_validate_manifest,
-    validate_import_asset_manifest_path,
+    parse_and_validate_asset_manifest, validate_import_asset_manifest_path,
 };
 
 use super::types::{
-    generate_ulid_string, infer_asset_integrity_mode_from_source,
-    infer_model_integrity_mode_from_source, normalize_non_empty, now_iso_timestamp,
-    slugify_local_model_id, ImportedAssetManifest, ImportedModelManifest, LocalAiAssetKind,
-    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiModelRecord,
-    LocalAiModelSource, LocalAiModelStatus,
+    generate_ulid_string, infer_asset_integrity_mode_from_source, normalize_non_empty,
+    now_iso_timestamp, slugify_local_model_id, ImportedAssetManifest, LocalAiAssetKind,
+    LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
 };
 
-pub fn manifest_to_model_record(
-    manifest: &ImportedModelManifest,
+pub fn manifest_to_asset_record(
+    manifest: &ImportedAssetManifest,
     endpoint_override: Option<&str>,
     model_dir: Option<&Path>,
-) -> Result<LocalAiModelRecord, String> {
-    let slug = slugify_local_model_id(&manifest.model_id);
-    let local_model_id = format!("local_{slug}_{}", generate_ulid_string());
+) -> Result<LocalAiAssetRecord, String> {
+    let slug = slugify_local_model_id(&manifest.asset_id);
+    let local_asset_id = format!("local_{slug}_{}", generate_ulid_string());
     let now = now_iso_timestamp();
     let capabilities = normalize_and_validate_capabilities(&manifest.capabilities)?;
+    let kind = normalize_asset_kind(&manifest.kind)?;
+    let logical_model_id = if super::types::is_runnable_asset_kind(&kind) {
+        normalize_non_empty(&manifest.logical_model_id, &manifest.asset_id)
+    } else {
+        manifest.logical_model_id.trim().to_string()
+    };
     let files = if manifest.files.is_empty() {
         vec![manifest.entry.trim().to_string()]
     } else {
@@ -53,70 +58,15 @@ pub fn manifest_to_model_record(
         }
     });
 
-    Ok(LocalAiModelRecord {
-        local_model_id,
-        model_id: manifest.model_id.trim().to_string(),
-        logical_model_id: normalize_non_empty(&manifest.logical_model_id, &manifest.model_id),
-        capabilities,
-        engine: normalize_non_empty(&manifest.engine, "llama"),
-        entry: manifest.entry.trim().to_string(),
-        files,
-        license: manifest.license.trim().to_string(),
-        source: LocalAiModelSource {
-            repo: manifest.source.repo.trim().to_string(),
-            revision: manifest.source.revision.trim().to_string(),
-        },
-        integrity_mode: manifest.integrity_mode.or_else(|| {
-            Some(infer_model_integrity_mode_from_source(
-                &LocalAiModelSource {
-                    repo: manifest.source.repo.trim().to_string(),
-                    revision: manifest.source.revision.trim().to_string(),
-                },
-            ))
-        }),
-        hashes: manifest
-            .hashes
-            .iter()
-            .map(|(key, value)| (key.trim().to_string(), value.trim().to_string()))
-            .collect::<HashMap<_, _>>(),
-        tags: Vec::new(),
-        known_total_size_bytes,
-        endpoint: validate_loopback_endpoint(endpoint_override.unwrap_or_default())?,
-        status: LocalAiModelStatus::Installed,
-        installed_at: now.clone(),
-        updated_at: now,
-        health_detail: None,
-        artifact_roles: manifest.artifact_roles.clone(),
-        preferred_engine: manifest.preferred_engine.clone(),
-        fallback_engines: manifest.fallback_engines.clone(),
-        engine_config: manifest.engine_config.clone(),
-        recommendation: None,
-    })
-}
-
-pub fn manifest_to_artifact_record(
-    manifest: &ImportedAssetManifest,
-) -> Result<LocalAiAssetRecord, String> {
-    let slug = slugify_local_model_id(&manifest.asset_id);
-    let local_asset_id = format!("local_asset_{slug}_{}", generate_ulid_string());
-    let now = now_iso_timestamp();
-    let kind = normalize_asset_kind(&manifest.kind)?;
-
     Ok(LocalAiAssetRecord {
         local_asset_id,
         asset_id: manifest.asset_id.trim().to_string(),
         kind,
+        logical_model_id,
+        capabilities,
         engine: normalize_non_empty(&manifest.engine, "llama"),
         entry: manifest.entry.trim().to_string(),
-        files: if manifest.files.is_empty() {
-            vec![manifest.entry.trim().to_string()]
-        } else {
-            manifest
-                .files
-                .iter()
-                .map(|item| item.trim().to_string())
-                .collect()
-        },
+        files,
         license: manifest.license.trim().to_string(),
         source: LocalAiAssetSource {
             repo: manifest.source.repo.trim().to_string(),
@@ -130,19 +80,38 @@ pub fn manifest_to_artifact_record(
                 },
             ))
         }),
-        hashes: manifest.hashes.clone(),
+        hashes: manifest
+            .hashes
+            .iter()
+            .map(|(key, value)| (key.trim().to_string(), value.trim().to_string()))
+            .collect::<HashMap<_, _>>(),
+        tags: Vec::new(),
+        known_total_size_bytes,
+        endpoint: validate_loopback_endpoint(endpoint_override.unwrap_or_default())?,
         status: LocalAiAssetStatus::Installed,
         installed_at: now.clone(),
         updated_at: now,
         health_detail: None,
+        artifact_roles: manifest.artifact_roles.clone(),
+        preferred_engine: manifest.preferred_engine.clone(),
+        fallback_engines: manifest.fallback_engines.clone(),
+        engine_config: manifest.engine_config.clone(),
+        recommendation: None,
         metadata: manifest.metadata.clone(),
     })
 }
 
 #[cfg(test)]
+pub fn manifest_to_artifact_record(
+    manifest: &ImportedAssetManifest,
+) -> Result<LocalAiAssetRecord, String> {
+    manifest_to_asset_record(manifest, None, None)
+}
+
+#[cfg(test)]
 mod tests {
     use super::{
-        manifest_to_model_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
+        manifest_to_asset_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
         validate_import_asset_manifest_path, validate_loopback_endpoint,
     };
     use sha2::{Digest, Sha256};
@@ -190,8 +159,10 @@ mod tests {
 
         let legacy_path = models_dir.join("model.manifest.json");
         fs::write(&legacy_path, "{}").expect("write legacy manifest");
-        let legacy =
-            validate_import_asset_manifest_path(legacy_path.to_str().unwrap(), models_dir.as_path());
+        let legacy = validate_import_asset_manifest_path(
+            legacy_path.to_str().unwrap(),
+            models_dir.as_path(),
+        );
         assert!(legacy.is_err());
         assert!(legacy
             .unwrap_err()
@@ -260,12 +231,13 @@ mod tests {
         fs::write(&entry_path, b"hello-world").expect("write entry");
         let correct_hash = sha256_hex(b"hello-world");
 
-        let manifest_path = manifest_dir.join("manifest.json");
+        let manifest_path = manifest_dir.join("asset.manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
                 "schemaVersion": "1.0.0",
-                "modelId": "hf:test/model",
+                "assetId": "hf:test/model",
+                "kind": "chat",
                 "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
                 "engine": "llama",
@@ -294,7 +266,8 @@ mod tests {
             &manifest_path,
             serde_json::json!({
                 "schemaVersion": "1.0.0",
-                "modelId": "hf:test/model",
+                "assetId": "hf:test/model",
+                "kind": "chat",
                 "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
                 "engine": "llama",
@@ -350,12 +323,13 @@ mod tests {
     #[test]
     fn parse_manifest_rejects_empty_schema_version() {
         let temp = unique_temp_dir("schema-ver");
-        let manifest_path = temp.join("manifest.json");
+        let manifest_path = temp.join("asset.manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
                 "schemaVersion": "",
-                "modelId": "hf:test/model",
+                "assetId": "hf:test/model",
+                "kind": "chat",
                 "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
                 "engine": "llama",
@@ -378,14 +352,15 @@ mod tests {
     }
 
     #[test]
-    fn parse_manifest_rejects_empty_model_id() {
+    fn parse_manifest_rejects_empty_asset_id() {
         let temp = unique_temp_dir("model-id");
-        let manifest_path = temp.join("manifest.json");
+        let manifest_path = temp.join("asset.manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
                 "schemaVersion": "1.0.0",
-                "modelId": "",
+                "assetId": "",
+                "kind": "chat",
                 "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
                 "engine": "llama",
@@ -403,19 +378,20 @@ mod tests {
         .expect("write manifest");
         let result = parse_and_validate_manifest(&manifest_path);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("MODEL_ID_MISSING"));
+        assert!(result.unwrap_err().contains("ASSET_ID_MISSING"));
         let _ = fs::remove_dir_all(&temp);
     }
 
     #[test]
     fn parse_manifest_rejects_entry_not_in_files() {
         let temp = unique_temp_dir("entry-files");
-        let manifest_path = temp.join("manifest.json");
+        let manifest_path = temp.join("asset.manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
                 "schemaVersion": "1.0.0",
-                "modelId": "hf:test/model",
+                "assetId": "hf:test/model",
+                "kind": "chat",
                 "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
                 "engine": "llama",
@@ -440,12 +416,13 @@ mod tests {
     #[test]
     fn parse_manifest_rejects_empty_hashes() {
         let temp = unique_temp_dir("empty-hashes");
-        let manifest_path = temp.join("manifest.json");
+        let manifest_path = temp.join("asset.manifest.json");
         fs::write(
             &manifest_path,
             serde_json::json!({
                 "schemaVersion": "1.0.0",
-                "modelId": "hf:test/model",
+                "assetId": "hf:test/model",
+                "kind": "chat",
                 "logicalModelId": "nimi/test-model",
                 "capabilities": ["chat"],
                 "engine": "llama",
@@ -468,22 +445,24 @@ mod tests {
     }
 
     #[test]
-    fn manifest_to_model_record_generates_installed_status() {
+    fn manifest_to_asset_record_generates_installed_status() {
         use crate::local_runtime::types::{
-            ImportedModelManifest, ImportedModelSource, LocalAiIntegrityMode, LocalAiModelStatus,
+            ImportedAssetManifest, LocalAiAssetKind, LocalAiAssetSource, LocalAiAssetStatus,
+            LocalAiIntegrityMode,
         };
         use std::collections::HashMap;
 
-        let manifest = ImportedModelManifest {
+        let manifest = ImportedAssetManifest {
             schema_version: "1.0.0".to_string(),
-            model_id: "hf:test/model".to_string(),
+            asset_id: "hf:test/model".to_string(),
+            kind: "chat".to_string(),
             logical_model_id: "nimi/test-model".to_string(),
             capabilities: vec!["chat".to_string()],
             engine: "llama".to_string(),
             entry: "model.gguf".to_string(),
             files: vec!["model.gguf".to_string()],
             license: "apache-2.0".to_string(),
-            source: ImportedModelSource {
+            source: LocalAiAssetSource {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
@@ -493,11 +472,14 @@ mod tests {
             preferred_engine: Some("llama".to_string()),
             fallback_engines: Vec::new(),
             engine_config: None,
+            endpoint: String::new(),
+            metadata: None,
         };
-        let record = manifest_to_model_record(&manifest, None, None).expect("model record");
-        assert_eq!(record.status, LocalAiModelStatus::Installed);
-        assert!(record.local_model_id.starts_with("local_hf-test-model_"));
-        assert_eq!(record.model_id, "hf:test/model");
+        let record = manifest_to_asset_record(&manifest, None, None).expect("asset record");
+        assert_eq!(record.status, LocalAiAssetStatus::Installed);
+        assert_eq!(record.kind, LocalAiAssetKind::Chat);
+        assert!(record.local_asset_id.starts_with("local_hf-test-model_"));
+        assert_eq!(record.asset_id, "hf:test/model");
         assert_eq!(record.capabilities, vec!["chat"]);
         assert_eq!(record.engine, "llama");
     }

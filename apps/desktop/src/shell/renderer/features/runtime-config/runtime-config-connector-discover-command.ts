@@ -38,7 +38,7 @@ export async function runDiscoverLocalModelsCommand(input: {
       : 'Local Runtime model list is up to date',
   });
 
-  // Discovery no longer reconciles a second Desktop-local model registry into runtime.
+  // Discovery no longer reconciles a second Desktop-local asset inventory into runtime.
   // Runtime is already the SSOT; only cache the discovered endpoint metadata locally.
   void (async () => {
     try {

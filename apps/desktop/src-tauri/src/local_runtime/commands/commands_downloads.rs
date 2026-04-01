@@ -1,6 +1,6 @@
-fn runtime_local_models_install(
+fn runtime_local_assets_install_impl(
     app: AppHandle,
-    payload: LocalAiModelsInstallPayload,
+    payload: LocalAiAssetsInstallPayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
     let default_endpoint = default_runtime_endpoint_for(payload.engine.as_deref());
     let validated_endpoint = validate_loopback_endpoint(
@@ -45,9 +45,9 @@ fn runtime_local_models_install(
 #[tauri::command]
 pub fn runtime_local_assets_install(
     app: AppHandle,
-    payload: LocalAiModelsInstallPayload,
+    payload: LocalAiAssetsInstallPayload,
 ) -> Result<LocalAiInstallAcceptedResponse, String> {
-    runtime_local_models_install(app, payload)
+    runtime_local_assets_install_impl(app, payload)
 }
 
 fn validated_install_session_id(payload: &LocalAiDownloadControlPayload) -> Result<String, String> {

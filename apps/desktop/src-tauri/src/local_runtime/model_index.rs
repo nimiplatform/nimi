@@ -7,17 +7,16 @@ use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-use super::model_registry::list_models;
 use super::recommendation::{build_catalog_recommendation, build_recommendation_candidate};
-use super::store::runtime_root_dir;
+use super::store::{load_state, runtime_root_dir};
 use super::types::{
-    now_iso_timestamp, LocalAiDeviceProfile, LocalAiHostSupportClass, LocalAiInstallRequest,
-    LocalAiModelRecord, LocalAiRecommendationActionState, LocalAiRecommendationConfidence,
-    LocalAiRecommendationDescriptor, LocalAiRecommendationFeedCacheState,
-    LocalAiRecommendationFeedCapability, LocalAiRecommendationFeedDescriptor,
-    LocalAiRecommendationFeedEntryDescriptor, LocalAiRecommendationFeedItemDescriptor,
-    LocalAiRecommendationFeedSource, LocalAiRecommendationFormat,
-    LocalAiRecommendationInstalledState, LocalAiRecommendationTier,
+    is_runnable_asset_kind, now_iso_timestamp, LocalAiAssetRecord, LocalAiDeviceProfile,
+    LocalAiHostSupportClass, LocalAiInstallRequest, LocalAiRecommendationActionState,
+    LocalAiRecommendationConfidence, LocalAiRecommendationDescriptor,
+    LocalAiRecommendationFeedCacheState, LocalAiRecommendationFeedCapability,
+    LocalAiRecommendationFeedDescriptor, LocalAiRecommendationFeedEntryDescriptor,
+    LocalAiRecommendationFeedItemDescriptor, LocalAiRecommendationFeedSource,
+    LocalAiRecommendationFormat, LocalAiRecommendationInstalledState, LocalAiRecommendationTier,
 };
 use super::verified_models::verified_model_list;
 
@@ -181,16 +180,16 @@ fn entry_hashes(entry: &RemoteInstallEntry) -> HashMap<String, String> {
 
 fn installed_state_for_item(
     item: &RemoteModelEntry,
-    installed_models: &[LocalAiModelRecord],
+    installed_assets: &[LocalAiAssetRecord],
 ) -> LocalAiRecommendationInstalledState {
-    if let Some(model) = installed_models
-        .iter()
-        .find(|model| model.source.repo.eq_ignore_ascii_case(item.repo.as_str()))
-    {
+    if let Some(asset) = installed_assets.iter().find(|asset| {
+        is_runnable_asset_kind(&asset.kind)
+            && asset.source.repo.eq_ignore_ascii_case(item.repo.as_str())
+    }) {
         return LocalAiRecommendationInstalledState {
             installed: true,
-            local_model_id: Some(model.local_model_id.clone()),
-            status: Some(model.status.clone()),
+            local_model_id: Some(asset.local_asset_id.clone()),
+            status: Some(asset.status.clone()),
         };
     }
     LocalAiRecommendationInstalledState {
@@ -198,6 +197,18 @@ fn installed_state_for_item(
         local_model_id: None,
         status: None,
     }
+}
+
+fn load_installed_runnable_assets(app: &AppHandle) -> Vec<LocalAiAssetRecord> {
+    load_state(app)
+        .map(|state| {
+            state
+                .assets
+                .into_iter()
+                .filter(|asset| is_runnable_asset_kind(&asset.kind))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn verified_for_item(item: &RemoteModelEntry) -> bool {
@@ -264,7 +275,7 @@ fn build_feed_item(
     item: &RemoteModelEntry,
     capability: &str,
     profile: &LocalAiDeviceProfile,
-    installed_models: &[LocalAiModelRecord],
+    installed_assets: &[LocalAiAssetRecord],
     source_rank: usize,
 ) -> LocalAiRecommendationFeedItemDescriptor {
     let preferred_engine = preferred_engine_for_capability(capability);
@@ -332,7 +343,7 @@ fn build_feed_item(
         .or(best_entry.as_ref())
         .cloned();
 
-    let installed_state = installed_state_for_item(item, installed_models);
+    let installed_state = installed_state_for_item(item, installed_assets);
     let verified = verified_for_item(item);
     let action_state = LocalAiRecommendationActionState {
         can_review_install_plan: !installed_state.installed && chosen_entry.is_some(),
@@ -403,14 +414,14 @@ fn materialize_feed_descriptor(
     cache_state: LocalAiRecommendationFeedCacheState,
     capability: &str,
     device_profile: LocalAiDeviceProfile,
-    installed_models: &[LocalAiModelRecord],
+    installed_assets: &[LocalAiAssetRecord],
 ) -> LocalAiRecommendationFeedDescriptor {
     let mut items = feed
         .items
         .iter()
         .enumerate()
         .map(|(index, item)| {
-            build_feed_item(item, capability, &device_profile, installed_models, index)
+            build_feed_item(item, capability, &device_profile, installed_assets, index)
         })
         .collect::<Vec<_>>();
     items.sort_by(|left, right| {
@@ -444,7 +455,7 @@ pub fn load_recommendation_feed(
     let normalized_capability = normalize_capability(capability);
     let normalized_page_size = normalize_page_size(page_size);
     let device_profile = super::device_profile::collect_device_profile(app);
-    let installed_models = list_models(app).unwrap_or_default();
+    let installed_assets = load_installed_runnable_assets(app);
     let cache = load_cache(app);
     let base_url = resolve_model_index_base_url();
     let remote = resolve_remote_or_cached_feed(
@@ -478,7 +489,7 @@ pub fn load_recommendation_feed(
         cache_state,
         normalized_capability.as_str(),
         device_profile,
-        installed_models.as_slice(),
+        installed_assets.as_slice(),
     ))
 }
 

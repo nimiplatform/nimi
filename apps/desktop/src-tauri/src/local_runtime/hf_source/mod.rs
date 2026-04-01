@@ -10,15 +10,15 @@ use sha2::{Digest, Sha256};
 use tauri::AppHandle;
 
 use super::import_validator::{
-    manifest_to_model_record, normalize_and_validate_capabilities, parse_and_validate_manifest,
-    validate_loopback_endpoint,
+    manifest_to_asset_record, normalize_and_validate_capabilities,
+    parse_and_validate_asset_manifest, validate_loopback_endpoint,
 };
 use super::store::runtime_models_dir;
 use super::types::{
     default_artifact_roles_for_capabilities, default_fallback_engines_for_engine,
     default_logical_model_id, default_preferred_engine_for_capabilities, normalize_local_engine,
-    normalize_non_empty, resolved_model_dir, slugify_local_model_id, ImportedModelManifest,
-    ImportedModelSource, LocalAiInstallRequest, LocalAiIntegrityMode, DEFAULT_LOCAL_ENDPOINT,
+    normalize_non_empty, resolved_model_dir, slugify_local_model_id, ImportedAssetManifest,
+    LocalAiAssetSource, LocalAiInstallRequest, LocalAiIntegrityMode, DEFAULT_LOCAL_ENDPOINT,
 };
 
 #[derive(Debug, Clone)]
@@ -61,6 +61,7 @@ include!("download_transport.rs");
 include!("install_flow.rs");
 include!("tests.rs");
 
+#[cfg(test)]
 pub(super) fn download_file_for_local_runtime<F>(
     url: &str,
     destination: &std::path::PathBuf,
@@ -72,6 +73,7 @@ where
     download_file_with_resume(url, destination, on_progress)
 }
 
+#[cfg(test)]
 pub(super) fn sha256_hex_for_local_runtime(path: &std::path::Path) -> Result<String, String> {
     sha256_hex_streaming_with_progress(path, &mut |_bytes_verified, _bytes_total| true)
 }

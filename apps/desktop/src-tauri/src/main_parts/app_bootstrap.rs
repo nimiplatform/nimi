@@ -258,7 +258,6 @@ fn build_desktop_app() -> Result<tauri::App<tauri::Wry>, tauri::Error> {
             local_runtime::commands::runtime_local_downloads_resume,
             local_runtime::commands::runtime_local_downloads_cancel,
             local_runtime::commands::runtime_local_assets_import,
-            local_runtime::commands::runtime_local_assets_adopt,
             local_runtime::commands::runtime_local_assets_import_file,
             local_runtime::commands::runtime_local_assets_remove,
             local_runtime::commands::runtime_local_assets_start,

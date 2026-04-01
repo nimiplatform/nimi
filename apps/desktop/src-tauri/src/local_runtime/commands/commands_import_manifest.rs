@@ -4,9 +4,9 @@ pub fn runtime_local_pick_asset_file(app: AppHandle) -> Result<Option<String>, S
         dirs::home_dir().unwrap_or_else(|| runtime_models_dir(&app).unwrap_or_default());
     let selected = rfd::FileDialog::new()
         .set_directory(&start_dir)
-        .set_title("Select model file to import")
+        .set_title("Select asset file to import")
         .add_filter(
-            "Model Files",
+            "Asset Files",
             &["gguf", "safetensors", "bin", "pt", "onnx", "pth"],
         )
         .add_filter("All Files", &["*"])
@@ -184,15 +184,45 @@ fn execute_file_import(
         return;
     }
 
-    // Write resolved manifest.json
     let normalized_engine = normalize_local_engine(engine, capabilities);
     let artifact_roles = default_artifact_roles_for_capabilities(capabilities);
     let preferred_engine = default_preferred_engine_for_capabilities(capabilities);
     let fallback_engines =
         default_fallback_engines_for_engine(normalized_engine.as_str(), capabilities);
+    let record = LocalAiAssetRecord {
+        local_asset_id: local_model_id.to_string(),
+        asset_id: model_id.to_string(),
+        kind: LocalAiAssetKind::Chat,
+        logical_model_id: logical_model_id.clone(),
+        capabilities: capabilities.to_vec(),
+        engine: normalized_engine.clone(),
+        entry: file_name.to_string(),
+        files: vec![file_name.to_string()],
+        license: "unknown".to_string(),
+        source: super::types::LocalAiAssetSource {
+            repo: format!("local-import/{}", slug),
+            revision: "local".to_string(),
+        },
+        integrity_mode: Some(LocalAiIntegrityMode::LocalUnverified),
+        hashes: std::collections::HashMap::new(),
+        tags: Vec::new(),
+        known_total_size_bytes: Some(file_size),
+        endpoint: endpoint.to_string(),
+        status: super::types::LocalAiAssetStatus::Installed,
+        installed_at: now_iso_timestamp(),
+        updated_at: now_iso_timestamp(),
+        health_detail: None,
+        artifact_roles: artifact_roles.clone(),
+        preferred_engine: Some(preferred_engine.clone()),
+        fallback_engines: fallback_engines.clone(),
+        engine_config: None,
+        recommendation: None,
+        metadata: None,
+    };
     let manifest = serde_json::json!({
         "schemaVersion": "1.0.0",
-        "model_id": model_id,
+        "asset_id": model_id,
+        "kind": "chat",
         "logical_model_id": logical_model_id,
         "capabilities": capabilities,
         "engine": normalized_engine,
@@ -208,9 +238,10 @@ fn execute_file_import(
         "artifact_roles": artifact_roles,
         "preferred_engine": preferred_engine,
         "fallback_engines": fallback_engines,
-        "endpoint": endpoint
+        "endpoint": endpoint,
+        "metadata": null
     });
-    let manifest_path = resolved_model_manifest_path(&models_root, logical_model_id.as_str());
+    let manifest_path = runtime_managed_asset_manifest_path(&models_root, &record);
     let manifest_json = match serde_json::to_string_pretty(&manifest) {
         Ok(json) => json,
         Err(error) => {
@@ -267,43 +298,14 @@ fn execute_file_import(
         return;
     }
 
-    // Register model via upsert
-    let record = LocalAiModelRecord {
-        local_model_id: local_model_id.to_string(),
-        model_id: model_id.to_string(),
-        logical_model_id: default_logical_model_id(model_id),
-        capabilities: capabilities.to_vec(),
-        engine: normalized_engine.clone(),
-        entry: file_name.to_string(),
-        files: vec![file_name.to_string()],
-        license: "unknown".to_string(),
-        source: super::types::LocalAiModelSource {
-            repo: format!("local-import/{}", slug),
-            revision: "local".to_string(),
-        },
-        integrity_mode: Some(LocalAiIntegrityMode::LocalUnverified),
-        hashes: std::collections::HashMap::new(),
-        tags: Vec::new(),
-        known_total_size_bytes: Some(file_size),
-        endpoint: endpoint.to_string(),
-        status: super::types::LocalAiModelStatus::Installed,
-        installed_at: now_iso_timestamp(),
-        updated_at: now_iso_timestamp(),
-        health_detail: None,
-        artifact_roles: default_artifact_roles_for_capabilities(capabilities),
-        preferred_engine: Some(preferred_engine.clone()),
-        fallback_engines,
-        engine_config: None,
-        recommendation: None,
-    };
-    match upsert_model(app, record) {
+    match runtime_import_manifest_via_runtime(manifest_path.as_path(), Some(endpoint), None) {
         Ok(saved) => {
             emit_download_progress_event(
                 app,
                 LocalAiDownloadProgressEvent {
                     install_session_id: install_session_id.to_string(),
-                    model_id: saved.model_id.clone(),
-                    local_model_id: Some(saved.local_model_id.clone()),
+                    model_id: saved.asset_id.clone(),
+                    local_model_id: Some(saved.local_asset_id.clone()),
                     session_kind: LocalAiTransferSessionKind::Import,
                     phase: "register".to_string(),
                     bytes_received: file_size,
@@ -321,8 +323,8 @@ fn execute_file_import(
             append_app_audit_event_non_blocking(
                 app,
                 EVENT_MODEL_FILE_IMPORT_STARTED,
-                Some(saved.model_id.as_str()),
-                Some(saved.local_model_id.as_str()),
+                Some(saved.asset_id.as_str()),
+                Some(saved.local_asset_id.as_str()),
                 Some(serde_json::json!({
                     "source": "local-file",
                     "engine": engine,
@@ -333,8 +335,8 @@ fn execute_file_import(
             append_app_audit_event_non_blocking(
                 app,
                 EVENT_MODEL_IMPORT_VALIDATED,
-                Some(saved.model_id.as_str()),
-                Some(saved.local_model_id.as_str()),
+                Some(saved.asset_id.as_str()),
+                Some(saved.local_asset_id.as_str()),
                 Some(serde_json::json!({
                     "manifestPath": manifest_path.to_string_lossy().to_string(),
                 })),
@@ -349,14 +351,14 @@ fn execute_file_import(
                     model_id: model_id.to_string(),
                     local_model_id: Some(local_model_id.to_string()),
                     session_kind: LocalAiTransferSessionKind::Import,
-                    phase: "upsert".to_string(),
+                    phase: "register".to_string(),
                     bytes_received: file_size,
                     bytes_total: Some(file_size),
                     speed_bytes_per_sec: None,
                     eta_seconds: None,
                     message: Some(error),
                     state: LocalAiDownloadState::Failed,
-                    reason_code: Some("LOCAL_AI_FILE_IMPORT_UPSERT_FAILED".to_string()),
+                    reason_code: Some("LOCAL_AI_FILE_IMPORT_RUNTIME_IMPORT_FAILED".to_string()),
                     retryable: Some(false),
                     done: true,
                     success: false,

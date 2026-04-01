@@ -11,8 +11,9 @@ use super::reason_codes::{
 };
 use super::service_artifacts::find_service_artifact;
 use super::types::{
-    LocalAiCapabilityMatrixEntry, LocalAiDeviceProfile, LocalAiModelRecord, LocalAiModelStatus,
-    LocalAiNodeDescriptor, LocalAiRuntimeState, LocalAiServiceDescriptor, LocalAiServiceStatus,
+    is_runnable_asset_kind, LocalAiAssetRecord, LocalAiAssetStatus, LocalAiCapabilityMatrixEntry,
+    LocalAiDeviceProfile, LocalAiNodeDescriptor, LocalAiRuntimeState, LocalAiServiceDescriptor,
+    LocalAiServiceStatus,
 };
 
 fn normalize_optional(input: Option<&str>) -> Option<String> {
@@ -26,48 +27,48 @@ fn service_ready(service: &LocalAiServiceDescriptor) -> bool {
         || service.status == LocalAiServiceStatus::Installed
 }
 
-fn model_matches_capability(model: &LocalAiModelRecord, capability: &str) -> bool {
-    model.status != LocalAiModelStatus::Removed
-        && model
+fn asset_matches_capability(asset: &LocalAiAssetRecord, capability: &str) -> bool {
+    asset.status != LocalAiAssetStatus::Removed
+        && asset
             .capabilities
             .iter()
             .any(|item| item.trim().eq_ignore_ascii_case(capability))
 }
 
-fn model_matches_provider(model: &LocalAiModelRecord, provider: &str) -> bool {
-    provider_from_engine(model.engine.as_str()).eq_ignore_ascii_case(provider)
+fn asset_matches_provider(asset: &LocalAiAssetRecord, provider: &str) -> bool {
+    provider_from_engine(asset.engine.as_str()).eq_ignore_ascii_case(provider)
 }
 
-fn models_for_service_provider_capability<'a>(
+fn assets_for_service_provider_capability<'a>(
     service: &LocalAiServiceDescriptor,
-    models: &'a [LocalAiModelRecord],
+    assets: &'a [LocalAiAssetRecord],
     provider: &str,
     capability: &str,
-) -> Vec<&'a LocalAiModelRecord> {
+) -> Vec<&'a LocalAiAssetRecord> {
     if let Some(local_model_id) = normalize_optional(service.local_model_id.as_deref()) {
-        return models
+        return assets
             .iter()
-            .filter(|model| {
-                model
-                    .local_model_id
+            .filter(|asset| {
+                asset
+                    .local_asset_id
                     .trim()
                     .eq_ignore_ascii_case(local_model_id.as_str())
-                    && model_matches_capability(model, capability)
-                    && model_matches_provider(model, provider)
+                    && asset_matches_capability(asset, capability)
+                    && asset_matches_provider(asset, provider)
             })
             .collect::<Vec<_>>();
     }
 
-    let mut selected = models
+    let mut selected = assets
         .iter()
-        .filter(|model| {
-            model_matches_capability(model, capability) && model_matches_provider(model, provider)
+        .filter(|asset| {
+            asset_matches_capability(asset, capability) && asset_matches_provider(asset, provider)
         })
         .collect::<Vec<_>>();
     selected.sort_by(|left, right| {
-        left.local_model_id
-            .cmp(&right.local_model_id)
-            .then(left.model_id.cmp(&right.model_id))
+        left.local_asset_id
+            .cmp(&right.local_asset_id)
+            .then(left.asset_id.cmp(&right.asset_id))
     });
     selected
 }
@@ -168,6 +169,12 @@ pub fn build_capability_matrix_with_probe_and_device(
     _device_profile: Option<&LocalAiDeviceProfile>,
 ) -> Vec<LocalAiCapabilityMatrixEntry> {
     let mut output = Vec::<LocalAiCapabilityMatrixEntry>::new();
+    let installed_assets = state
+        .assets
+        .iter()
+        .filter(|asset| is_runnable_asset_kind(&asset.kind))
+        .cloned()
+        .collect::<Vec<_>>();
 
     for service in &state.services {
         if service.status == LocalAiServiceStatus::Removed {
@@ -186,9 +193,9 @@ pub fn build_capability_matrix_with_probe_and_device(
         let policy_gate = default_policy_gate_for_provider(provider.as_str());
 
         for node in artifact.nodes {
-            let installed_models = models_for_service_provider_capability(
+            let installed_assets_for_service = assets_for_service_provider_capability(
                 service,
-                state.models.as_slice(),
+                installed_assets.as_slice(),
                 provider.as_str(),
                 node.capability.as_str(),
             );
@@ -197,13 +204,13 @@ pub fn build_capability_matrix_with_probe_and_device(
                 probe_models.as_slice(),
                 node.capability.as_str(),
             );
-            if !installed_models.is_empty() {
-                let installed_model_ids = installed_models
+            if !installed_assets_for_service.is_empty() {
+                let installed_asset_ids = installed_assets_for_service
                     .iter()
-                    .map(|item| item.model_id.to_ascii_lowercase())
+                    .map(|item| item.asset_id.to_ascii_lowercase())
                     .collect::<BTreeSet<_>>();
                 probe_candidates.retain(|item| {
-                    !installed_model_ids.contains(item.trim().to_ascii_lowercase().as_str())
+                    !installed_asset_ids.contains(item.trim().to_ascii_lowercase().as_str())
                 });
             }
 
@@ -286,15 +293,15 @@ pub fn build_capability_matrix_with_probe_and_device(
                     });
                 };
 
-            if installed_models.is_empty() && probe_candidates.is_empty() {
+            if installed_assets_for_service.is_empty() && probe_candidates.is_empty() {
                 push_entry(None, None, "catalog");
                 continue;
             }
 
-            for model in &installed_models {
+            for asset in &installed_assets_for_service {
                 push_entry(
-                    Some(model.model_id.clone()),
-                    Some(model.engine.clone()),
+                    Some(asset.asset_id.clone()),
+                    Some(asset.engine.clone()),
                     "installed-model",
                 );
             }

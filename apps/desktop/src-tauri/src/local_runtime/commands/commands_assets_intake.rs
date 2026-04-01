@@ -8,16 +8,19 @@ fn is_model_file_extension(path: &std::path::Path) -> bool {
         .unwrap_or(false)
 }
 
-fn registered_model_paths(
+fn registered_runnable_asset_paths(
     models_root: &std::path::Path,
     state: &LocalAiRuntimeState,
 ) -> std::collections::HashSet<String> {
     state
-        .models
+        .assets
         .iter()
         .filter_map(|record| {
+            if !is_runnable_asset_kind(&record.kind) {
+                return None;
+            }
             let logical_model_id = if record.logical_model_id.trim().is_empty() {
-                default_logical_model_id(record.model_id.as_str())
+                default_logical_model_id(record.asset_id.as_str())
             } else {
                 record.logical_model_id.clone()
             };
@@ -45,20 +48,23 @@ fn is_reserved_models_root_child(path: &std::path::Path) -> bool {
     )
 }
 
-fn registered_artifact_paths(
+fn registered_passive_asset_paths(
     models_root: &std::path::Path,
     state: &LocalAiRuntimeState,
 ) -> std::collections::HashSet<String> {
     state
-        .artifacts
+        .assets
         .iter()
         .filter_map(|asset| {
+            if is_runnable_asset_kind(&asset.kind) {
+                return None;
+            }
             let entry = asset.entry.trim();
             if entry.is_empty() {
                 return None;
             }
             Some(
-                artifact_dir(models_root, asset.asset_id.as_str())
+                runtime_managed_asset_dir(models_root, asset)
                     .join(entry)
                     .to_string_lossy()
                     .to_string(),
@@ -207,8 +213,8 @@ fn make_unregistered_asset_descriptor(
 fn scan_unregistered_assets(app: &AppHandle) -> Result<Vec<LocalAiUnregisteredAssetDescriptor>, String> {
     let models_root = runtime_models_dir(app)?;
     let state = load_state(app)?;
-    let registered_model_paths = registered_model_paths(&models_root, &state);
-    let registered_artifact_paths = registered_artifact_paths(&models_root, &state);
+    let registered_runnable_asset_paths = registered_runnable_asset_paths(&models_root, &state);
+    let registered_passive_asset_paths = registered_passive_asset_paths(&models_root, &state);
     let mut assets = Vec::<LocalAiUnregisteredAssetDescriptor>::new();
     let entries = std::fs::read_dir(&models_root).map_err(|error| {
         format!("LOCAL_AI_UNREGISTERED_SCAN_READ_DIR_FAILED: cannot read models directory: {error}")
@@ -221,7 +227,9 @@ fn scan_unregistered_assets(app: &AppHandle) -> Result<Vec<LocalAiUnregisteredAs
         let path = entry.path();
         if path.is_file() {
             let absolute_path = path.to_string_lossy().to_string();
-            if registered_model_paths.contains(&absolute_path) || registered_artifact_paths.contains(&absolute_path) {
+            if registered_runnable_asset_paths.contains(&absolute_path)
+                || registered_passive_asset_paths.contains(&absolute_path)
+            {
                 continue;
             }
             if let Some(item) = make_unregistered_asset_descriptor(&path, None) {
@@ -246,7 +254,9 @@ fn scan_unregistered_assets(app: &AppHandle) -> Result<Vec<LocalAiUnregisteredAs
             };
             let sub_path = sub_entry.path();
             let absolute_path = sub_path.to_string_lossy().to_string();
-            if registered_model_paths.contains(&absolute_path) || registered_artifact_paths.contains(&absolute_path) {
+            if registered_runnable_asset_paths.contains(&absolute_path)
+                || registered_passive_asset_paths.contains(&absolute_path)
+            {
                 continue;
             }
             if let Some(item) = make_unregistered_asset_descriptor(&sub_path, Some(folder_name)) {

@@ -523,7 +523,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <QuickLinkCard
             title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
-            description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local models' })}
+            description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Install, start, stop local assets' })}
             onClick={() => model.onChangePage('local')}
           />
           <QuickLinkCard

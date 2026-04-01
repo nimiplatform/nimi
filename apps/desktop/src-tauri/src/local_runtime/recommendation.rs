@@ -10,7 +10,7 @@ use super::types::{
     LocalAiRecommendationDescriptor, LocalAiRecommendationFormat, LocalAiRecommendationSource,
     LocalAiRecommendationTier, LocalAiSuggestedAsset,
 };
-use super::verified_artifacts::verified_asset_list;
+use super::verified_assets::verified_asset_list;
 
 pub const REASON_BASELINE_IMAGE_DEFAULT_V1: &str = "baseline_image_default_v1";
 pub const REASON_BASELINE_VIDEO_DEFAULT_V1: &str = "baseline_video_default_v1";

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type LocalRuntimeProfileResolutionPlan,
 } from '@runtime/local-runtime';
-import { revealLocalRuntimeModelsRootFolder } from '@runtime/local-runtime/commands';
+import { revealLocalRuntimeAssetsRootFolder } from '@runtime/local-runtime/commands';
 import {
   type LocalModelCenterProps,
   normalizeSelectedProfileCapability,
@@ -128,46 +128,42 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
 
   return (
     <LocalModelCenterRuntimeView
-      artifactBusy={runtimeState.artifactBusy}
-      artifactKindFilter={runtimeState.artifactKindFilter}
-      artifactOrphanError={runtimeState.artifactOrphanError}
-      artifactOrphanFiles={runtimeState.artifactOrphanFiles}
-      artifactOrphanKinds={runtimeState.artifactOrphanKinds}
-      artifactPendingTemplateIds={runtimeState.artifactPendingTemplateIds}
+      assetBusy={runtimeState.assetBusy}
+      assetKindFilter={runtimeState.assetKindFilter}
+      assetPendingTemplateIds={runtimeState.assetPendingTemplateIds}
       catalogCapability={runtimeState.catalogCapability}
       catalogDisplayCount={runtimeState.catalogDisplayCount}
       catalogItems={runtimeState.catalogItems}
       checkingHealth={props.checkingHealth}
       deferredSearchQuery={runtimeState.deferredSearchQuery}
       discovering={props.discovering}
-      filteredInstalledArtifacts={runtimeState.filteredInstalledArtifacts}
-      filteredInstalledModels={runtimeState.filteredInstalledModels}
+      filteredInstalledDependencyAssets={runtimeState.filteredInstalledDependencyAssets}
+      filteredInstalledRunnableAssets={runtimeState.filteredInstalledRunnableAssets}
       hasSearchQuery={hasSearchQuery}
       importFileAssetClass={runtimeState.importFileAssetClass}
       importFileModelType={runtimeState.importFileModelType}
-      importFileArtifactKind={runtimeState.importFileArtifactKind}
+      importFileDependencyKind={runtimeState.importFileDependencyKind}
       importFileAuxiliaryEngine={runtimeState.importFileAuxiliaryEngine}
       importMenuRef={runtimeState.importMenuRef}
       importingAssetPath={runtimeState.importingAssetPath}
       installing={runtimeState.installing}
-      installedArtifactsById={runtimeState.installedArtifactsById}
-      isArtifactPending={runtimeState.isArtifactPending}
+      installedAssetsById={runtimeState.installedAssetsById}
+      isAssetPending={runtimeState.isAssetPending}
       lastCheckedAt={props.state.local.lastCheckedAt}
       loadingCatalog={runtimeState.loadingCatalog}
-      loadingInstalledArtifacts={runtimeState.loadingInstalledArtifacts}
+      loadingInstalledAssets={runtimeState.loadingInstalledAssets}
       loadingVariants={runtimeState.loadingVariants}
-      loadingVerifiedArtifacts={runtimeState.loadingVerifiedArtifacts}
+      loadingVerifiedAssets={runtimeState.loadingVerifiedAssets}
       loadingVerifiedModels={runtimeState.loadingVerifiedModels}
       localHealthy={localHealthy}
       assetImportError={runtimeState.assetImportError}
       assetImportSessionByPath={runtimeState.assetImportSessionByPath}
-      onArtifactKindFilterChange={runtimeState.setArtifactKindFilter}
-      onArtifactOrphanKindChange={() => {}}
+      onArtifactKindFilterChange={runtimeState.setAssetKindFilter}
       onCancelDownload={runtimeState.onCancelDownload}
       onAssetClassChange={runtimeState.setImportFileAssetClass}
       onAssetModelTypeChange={runtimeState.setImportFileModelType}
-      onAssetArtifactKindChange={(kind) => {
-        runtimeState.setImportFileArtifactKind(kind);
+      onAssetDependencyKindChange={(kind) => {
+        runtimeState.setImportFileDependencyKind(kind);
         if (kind !== 'auxiliary') {
           runtimeState.setImportFileAuxiliaryEngine('');
         }
@@ -188,52 +184,42 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       }}
       onCloseImportFileDialog={() => runtimeState.setShowImportFileDialog(false)}
       onCloseVariantPicker={runtimeState.closeVariantPicker}
-      onOpenModelsFolder={() => { void revealLocalRuntimeModelsRootFolder(); }}
+      onOpenModelsFolder={() => { void revealLocalRuntimeAssetsRootFolder(); }}
       onHealthCheck={() => void props.onHealthCheck()}
       onImportManifest={() => {
         runtimeState.setShowImportMenu(false);
         void runtimeState.importPickedAssetManifest();
       }}
-      onInstallArtifact={(templateId) => { void runtimeState.installVerifiedArtifact(templateId); }}
+      onInstallAsset={(templateId) => { void runtimeState.installVerifiedAsset(templateId); }}
       onInstallCatalogVariant={(item, variantFilename) => { void runtimeState.installCatalogVariant(item, variantFilename); }}
-      onInstallMissingArtifacts={(artifacts) => { void runtimeState.installMissingArtifactsForModel(artifacts); }}
+      onInstallMissingAssets={(assets) => { void runtimeState.installMissingAssetsForModel(assets); }}
       onInstallVerifiedModel={(templateId) => { void runtimeState.installVerifiedModel(templateId); }}
       onLoadMoreCatalog={() => runtimeState.setCatalogDisplayCount((prev) => prev + 10)}
       onOpenImportFile={() => {
         runtimeState.setShowImportMenu(false);
         runtimeState.setShowImportFileDialog(true);
       }}
-      onOrphanCapabilityChange={() => {}}
       onPauseDownload={runtimeState.onPauseDownload}
       onRefresh={() => {
         void props.onDiscover().finally(() => {
           void runtimeState.refreshUnregisteredAssets();
         });
       }}
-      onRefreshArtifacts={() => { void runtimeState.refreshArtifactSections(); }}
+      onRefreshAssets={() => { void runtimeState.refreshAssetSections(); }}
       onRefreshQuickPicks={() => { void runtimeState.refreshVerifiedModels(); }}
       onRefreshUnregisteredAssets={() => { void runtimeState.refreshUnregisteredAssets(); }}
-      onRemoveArtifact={(localArtifactId) => { void runtimeState.removeInstalledArtifact(localArtifactId); }}
-      onRemoveModel={(localModelId) => { void props.onRemove?.(localModelId); }}
+      onRemoveAsset={(localAssetId) => { void runtimeState.removeInstalledAsset(localAssetId); }}
       onResumeDownload={runtimeState.onResumeDownload}
-      onScaffoldArtifactOrphan={() => {}}
-      onScaffoldOrphan={() => {}}
       onSearchQueryChange={runtimeState.setSearchQuery}
       onToggleImportMenu={() => runtimeState.setShowImportMenu((prev) => !prev)}
       onToggleVariantPicker={runtimeState.toggleVariantPicker}
       onImportUnregisteredAsset={(path) => { void runtimeState.importUnregisteredAsset(path); }}
       onUnregisteredAssetClassChange={runtimeState.setUnregisteredAssetClass}
       onUnregisteredModelTypeChange={runtimeState.setUnregisteredModelType}
-      onUnregisteredArtifactKindChange={runtimeState.setUnregisteredArtifactKind}
+      onUnregisteredDependencyKindChange={runtimeState.setUnregisteredDependencyKind}
       onUnregisteredAuxiliaryEngineChange={runtimeState.setUnregisteredAuxiliaryEngine}
-      orphanCapabilities={runtimeState.orphanCapabilities}
-      orphanError={runtimeState.orphanError}
-      orphanFiles={runtimeState.orphanFiles}
-      orphanImportSessionByPath={runtimeState.orphanImportSessionByPath}
-      relatedArtifactsByModelTemplate={runtimeState.relatedArtifactsByModelTemplate}
+      relatedAssetsByModelTemplate={runtimeState.relatedAssetsByModelTemplate}
       resolveUnregisteredAssetDraft={runtimeState.resolveUnregisteredAssetDraft}
-      scaffoldingArtifactOrphan={null}
-      scaffoldingOrphan={null}
       searchQuery={runtimeState.searchQuery}
       selectedCatalogCapability={runtimeState.selectedCatalogCapability}
       selectedCatalogEngine={runtimeState.selectedCatalogEngine}
@@ -244,8 +230,8 @@ export function LocalModelCenter(props: LocalModelCenterProps) {
       variantList={runtimeState.variantList}
       variantPickerItem={runtimeState.variantPickerItem}
       verifiedModels={runtimeState.verifiedModels}
-      visibleArtifactTasks={runtimeState.visibleArtifactTasks}
-      visibleVerifiedArtifacts={runtimeState.visibleVerifiedArtifacts}
+      visibleAssetTasks={runtimeState.visibleAssetTasks}
+      visibleVerifiedAssets={runtimeState.visibleVerifiedAssets}
       downloads={runtimeState.activeDownloads}
       imports={runtimeState.activeImports}
       onDismissSession={runtimeState.onDismissSession}

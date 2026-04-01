@@ -134,11 +134,16 @@ export function sortVerifiedAssetsForDisplay(
 }
 
 const ASSET_KIND_RANK: Partial<Record<LocalRuntimeAssetKind, number>> = {
-  vae: 0,
-  clip: 1,
-  controlnet: 2,
-  lora: 3,
-  auxiliary: 4,
+  chat: 0,
+  image: 1,
+  video: 2,
+  tts: 3,
+  stt: 4,
+  vae: 10,
+  clip: 11,
+  controlnet: 12,
+  lora: 13,
+  auxiliary: 14,
 };
 
 export function sortVerifiedPassiveAssetsForDisplay(

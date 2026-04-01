@@ -12,6 +12,8 @@ fn z_image_vae_descriptor() -> LocalAiVerifiedAssetDescriptor {
             .to_string(),
         asset_id: "local/z_image_ae".to_string(),
         kind: LocalAiAssetKind::Vae,
+        logical_model_id: String::new(),
+        capabilities: Vec::new(),
         engine: "media".to_string(),
         entry: "vae/diffusion_pytorch_model.safetensors".to_string(),
         files: vec!["vae/diffusion_pytorch_model.safetensors".to_string()],
@@ -19,6 +21,7 @@ fn z_image_vae_descriptor() -> LocalAiVerifiedAssetDescriptor {
         repo: "Tongyi-MAI/Z-Image-Turbo".to_string(),
         revision: "main".to_string(),
         hashes: HashMap::new(),
+        endpoint: String::new(),
         file_count: 1,
         total_size_bytes: Some(0),
         tags: vec![
@@ -28,6 +31,10 @@ fn z_image_vae_descriptor() -> LocalAiVerifiedAssetDescriptor {
             "z-image".to_string(),
             "vae".to_string(),
         ],
+        artifact_roles: Vec::new(),
+        preferred_engine: Some("media".to_string()),
+        fallback_engines: Vec::new(),
+        engine_config: None,
         metadata: Some(json!({
             "family": "z-image",
             "format": "safetensors"
@@ -43,6 +50,8 @@ fn z_image_qwen_descriptor() -> LocalAiVerifiedAssetDescriptor {
             .to_string(),
         asset_id: "local/qwen3_4b_companion".to_string(),
         kind: LocalAiAssetKind::Chat,
+        logical_model_id: "nimi/qwen3-4b-companion".to_string(),
+        capabilities: vec!["chat".to_string()],
         engine: "llama".to_string(),
         entry: "Qwen3-4B-Q4_K_M.gguf".to_string(),
         files: vec!["Qwen3-4B-Q4_K_M.gguf".to_string()],
@@ -50,6 +59,7 @@ fn z_image_qwen_descriptor() -> LocalAiVerifiedAssetDescriptor {
         repo: "Qwen/Qwen3-4B-GGUF".to_string(),
         revision: "main".to_string(),
         hashes: HashMap::new(),
+        endpoint: "http://127.0.0.1:1234/v1".to_string(),
         file_count: 1,
         total_size_bytes: Some(0),
         tags: vec![
@@ -59,6 +69,10 @@ fn z_image_qwen_descriptor() -> LocalAiVerifiedAssetDescriptor {
             "z-image".to_string(),
             "chat".to_string(),
         ],
+        artifact_roles: vec!["llm".to_string(), "tokenizer".to_string()],
+        preferred_engine: Some("llama".to_string()),
+        fallback_engines: Vec::new(),
+        engine_config: None,
         metadata: Some(json!({
             "family": "z-image",
             "format": "gguf"

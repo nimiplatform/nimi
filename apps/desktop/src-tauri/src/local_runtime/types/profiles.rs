@@ -52,30 +52,6 @@ pub struct LocalAiProfileDescriptor {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiProfileAssetPlanEntry {
-    pub entry_id: String,
-    pub kind: String,
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub capability: Option<String>,
-    pub required: Option<bool>,
-    pub preferred: Option<bool>,
-    pub asset_id: Option<String>,
-    pub asset_kind: Option<String>,
-    pub engine_slot: Option<String>,
-    pub repo: Option<String>,
-    pub service_id: Option<String>,
-    pub node_id: Option<String>,
-    pub engine: Option<String>,
-    pub template_id: Option<String>,
-    pub revision: Option<String>,
-    #[serde(default)]
-    pub tags: Vec<String>,
-    pub installed: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct LocalAiProfileResolutionPlan {
     pub plan_id: String,
     pub mod_id: String,
@@ -88,7 +64,7 @@ pub struct LocalAiProfileResolutionPlan {
     pub requirements: Option<LocalAiProfileRequirementDescriptor>,
     pub execution_plan: LocalAiDependencyResolutionPlan,
     #[serde(default)]
-    pub asset_entries: Vec<LocalAiProfileAssetPlanEntry>,
+    pub asset_entries: Vec<LocalAiProfileEntryDescriptor>,
     #[serde(default)]
     pub warnings: Vec<String>,
     pub reason_code: Option<String>,

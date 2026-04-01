@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::SecondsFormat;
 use sha2::Digest;
 
+use super::assets::{is_runnable_asset_kind, LocalAiAssetRecord};
 use super::constants::DEFAULT_LOCAL_ENDPOINT;
 
 pub fn now_iso_timestamp() -> String {
@@ -113,18 +114,20 @@ pub fn resolved_model_dir(models_root: &Path, logical_model_id: &str) -> PathBuf
     models_root.join(resolved_model_relative_dir(logical_model_id))
 }
 
-pub fn resolved_model_manifest_path(models_root: &Path, logical_model_id: &str) -> PathBuf {
-    resolved_model_dir(models_root, logical_model_id).join("manifest.json")
+pub fn runtime_managed_asset_dir(models_root: &Path, record: &LocalAiAssetRecord) -> PathBuf {
+    if is_runnable_asset_kind(&record.kind) {
+        return resolved_model_dir(models_root, record.logical_model_id.as_str());
+    }
+    models_root
+        .join("resolved")
+        .join(slugify_local_model_id(record.asset_id.as_str()))
 }
 
-pub fn artifact_relative_dir(artifact_id: &str) -> PathBuf {
-    let mut path = PathBuf::from("artifacts");
-    path.push(slugify_local_model_id(artifact_id));
-    path
-}
-
-pub fn artifact_dir(models_root: &Path, artifact_id: &str) -> PathBuf {
-    models_root.join(artifact_relative_dir(artifact_id))
+pub fn runtime_managed_asset_manifest_path(
+    models_root: &Path,
+    record: &LocalAiAssetRecord,
+) -> PathBuf {
+    runtime_managed_asset_dir(models_root, record).join("asset.manifest.json")
 }
 
 fn push_unique(values: &mut Vec<String>, value: &str) {
@@ -187,6 +190,7 @@ pub fn default_endpoint_for_engine(engine: &str) -> String {
     }
 }
 
+#[cfg(test)]
 pub fn normalize_local_inventory_id(value: &str) -> String {
     let trimmed = value.trim();
     if trimmed.is_empty() {

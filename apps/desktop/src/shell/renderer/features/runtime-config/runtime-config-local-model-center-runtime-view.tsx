@@ -7,7 +7,6 @@ import type {
   GgufVariantDescriptor,
   LocalRuntimeUnregisteredAssetDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
-  OrphanAssetFile,
 } from '@runtime/local-runtime';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
 import type {
@@ -18,10 +17,10 @@ import { LocalModelCenterImportControls } from './runtime-config-local-model-cen
 import {
   LocalModelCenterActiveDownloadsSection,
   LocalModelCenterActiveImportsSection,
-  LocalModelCenterArtifactTasksSection,
+  LocalModelCenterAssetTasksSection,
   LocalModelCenterQuickPicksSection,
   LocalModelCenterUnregisteredAssetsSection,
-  LocalModelCenterVerifiedArtifactsSection,
+  LocalModelCenterVerifiedAssetsSection,
 } from './runtime-config-local-model-center-sections';
 import type {
   AssetClassOption,
@@ -30,49 +29,44 @@ import type {
   InstallEngineOption,
   ModelTypeOption,
 } from './runtime-config-model-center-utils';
-import type { LocalModelOptionV11 } from './runtime-config-state-types';
 import type { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type DownloadState = ReturnType<typeof useLocalModelCenterDownloads>;
 
 type LocalModelCenterRuntimeViewProps = {
-  artifactBusy: boolean;
-  artifactKindFilter: 'all' | LocalRuntimeAssetKind;
-  artifactOrphanError: string;
-  artifactOrphanFiles: OrphanAssetFile[];
-  artifactOrphanKinds: Record<string, LocalRuntimeAssetKind>;
-  artifactPendingTemplateIds: string[];
+  assetBusy: boolean;
+  assetKindFilter: 'all' | LocalRuntimeAssetKind;
+  assetPendingTemplateIds: string[];
   catalogCapability: 'all' | CapabilityOption;
   catalogDisplayCount: number;
   catalogItems: LocalRuntimeCatalogItemDescriptor[];
   checkingHealth: boolean;
   deferredSearchQuery: string;
   discovering: boolean;
-  filteredInstalledArtifacts: LocalRuntimeAssetRecord[];
-  filteredInstalledModels: LocalModelOptionV11[];
+  filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
+  filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
   hasSearchQuery: boolean;
   importFileAssetClass: AssetClassOption;
   importFileModelType: ModelTypeOption;
-  importFileArtifactKind: LocalRuntimeAssetKind;
+  importFileDependencyKind: LocalRuntimeAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
   importMenuRef: RefObject<HTMLDivElement | null>;
   importingAssetPath: string | null;
   installing: boolean;
-  installedArtifactsById: Map<string, LocalRuntimeAssetRecord>;
-  isArtifactPending: (templateId: string) => boolean;
+  installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
+  isAssetPending: (templateId: string) => boolean;
   loadingCatalog: boolean;
-  loadingInstalledArtifacts: boolean;
+  loadingInstalledAssets: boolean;
   loadingVariants: boolean;
-  loadingVerifiedArtifacts: boolean;
+  loadingVerifiedAssets: boolean;
   loadingVerifiedModels: boolean;
   localHealthy: boolean;
   assetImportError: string;
   assetImportSessionByPath: Record<string, string>;
   onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
-  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onAssetClassChange: (assetClass: AssetClassOption) => void;
   onAssetModelTypeChange: (modelType: ModelTypeOption) => void;
-  onAssetArtifactKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onAssetDependencyKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAssetAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
@@ -83,39 +77,29 @@ type LocalModelCenterRuntimeViewProps = {
   onHealthCheck: () => void;
   onOpenModelsFolder: () => void;
   onImportManifest: () => void;
-  onInstallArtifact: (templateId: string) => void;
+  onInstallAsset: (templateId: string) => void;
   onInstallCatalogVariant: (item: LocalRuntimeCatalogItemDescriptor, variantFilename: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
   onLoadMoreCatalog: () => void;
   onOpenImportFile: () => void;
-  onOrphanCapabilityChange: (path: string, capability: CapabilityOption) => void;
   onPauseDownload: DownloadState['onPauseDownload'];
   onRefresh: () => void;
-  onRefreshArtifacts: () => void;
+  onRefreshAssets: () => void;
   onRefreshQuickPicks: () => void;
   onRefreshUnregisteredAssets: () => void;
-  onRemoveArtifact: (localArtifactId: string) => void;
-  onRemoveModel: (localModelId: string) => void;
+  onRemoveAsset: (localAssetId: string) => void;
   onResumeDownload: DownloadState['onResumeDownload'];
-  onScaffoldArtifactOrphan: (path: string) => void;
-  onScaffoldOrphan: (path: string) => void;
   onSearchQueryChange: (value: string) => void;
   onToggleImportMenu: () => void;
   onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
   onImportUnregisteredAsset: (path: string) => void;
   onUnregisteredAssetClassChange: (path: string, assetClass: AssetClassOption) => void;
   onUnregisteredModelTypeChange: (path: string, modelType: ModelTypeOption) => void;
-  onUnregisteredArtifactKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
+  onUnregisteredDependencyKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
   onUnregisteredAuxiliaryEngineChange: (path: string, engine: AssetEngineOption | '') => void;
-  orphanCapabilities: Record<string, CapabilityOption>;
-  orphanError: string;
-  orphanFiles: OrphanAssetFile[];
-  orphanImportSessionByPath: Record<string, string>;
-  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
+  relatedAssetsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
   resolveUnregisteredAssetDraft: (asset: LocalRuntimeUnregisteredAssetDescriptor) => LocalRuntimeAssetDeclaration;
-  scaffoldingArtifactOrphan: string | null;
-  scaffoldingOrphan: string | null;
   searchQuery: string;
   selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
   selectedCatalogEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
@@ -126,8 +110,8 @@ type LocalModelCenterRuntimeViewProps = {
   variantList: GgufVariantDescriptor[];
   variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
   verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
-  visibleArtifactTasks: AssetTaskEntry[];
-  visibleVerifiedArtifacts: LocalRuntimeVerifiedAssetDescriptor[];
+  visibleAssetTasks: AssetTaskEntry[];
+  visibleVerifiedAssets: LocalRuntimeVerifiedAssetDescriptor[];
   downloads: DownloadState['activeDownloads'];
   imports: DownloadState['activeImports'];
   unregisteredAssets: LocalRuntimeUnregisteredAssetDescriptor[];
@@ -150,7 +134,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           showImportFileDialog={props.showImportFileDialog}
           importFileAssetClass={props.importFileAssetClass}
           importFileModelType={props.importFileModelType}
-          importFileArtifactKind={props.importFileArtifactKind}
+          importFileDependencyKind={props.importFileDependencyKind}
           importFileAuxiliaryEngine={props.importFileAuxiliaryEngine}
           onHealthCheck={props.onHealthCheck}
           onRefresh={props.onRefresh}
@@ -160,7 +144,7 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onImportManifest={props.onImportManifest}
           onAssetClassChange={props.onAssetClassChange}
           onModelTypeChange={props.onAssetModelTypeChange}
-          onArtifactKindChange={props.onAssetArtifactKindChange}
+          onDependencyKindChange={props.onAssetDependencyKindChange}
           onAuxiliaryEngineChange={props.onAssetAuxiliaryEngineChange}
           onCloseImportFileDialog={props.onCloseImportFileDialog}
           onChooseImportFile={props.onChooseImportFile}
@@ -175,55 +159,41 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onRefresh={props.onRefreshUnregisteredAssets}
           onAssetClassChange={props.onUnregisteredAssetClassChange}
           onModelTypeChange={props.onUnregisteredModelTypeChange}
-          onArtifactKindChange={props.onUnregisteredArtifactKindChange}
+          onDependencyKindChange={props.onUnregisteredDependencyKindChange}
           onAuxiliaryEngineChange={props.onUnregisteredAuxiliaryEngineChange}
           onImport={props.onImportUnregisteredAsset}
         />
         <LocalModelCenterCatalogCard
           searchQuery={props.searchQuery}
           catalogCapability={props.catalogCapability}
-          filteredInstalledModels={props.filteredInstalledModels}
-          filteredInstalledArtifacts={props.filteredInstalledArtifacts}
+          filteredInstalledRunnableAssets={props.filteredInstalledRunnableAssets}
+          filteredInstalledDependencyAssets={props.filteredInstalledDependencyAssets}
           loadingCatalog={props.loadingCatalog}
-          loadingInstalledArtifacts={props.loadingInstalledArtifacts}
-          loadingVerifiedArtifacts={props.loadingVerifiedArtifacts}
-          artifactKindFilter={props.artifactKindFilter}
-          artifactBusy={props.artifactBusy}
-          orphanFiles={props.orphanFiles}
-          orphanError={props.orphanError}
-          orphanCapabilities={props.orphanCapabilities}
-          orphanImportSessionByPath={props.orphanImportSessionByPath}
-          scaffoldingOrphan={props.scaffoldingOrphan}
-          artifactOrphanFiles={props.artifactOrphanFiles}
-          artifactOrphanError={props.artifactOrphanError}
-          artifactOrphanKinds={props.artifactOrphanKinds}
-          scaffoldingArtifactOrphan={props.scaffoldingArtifactOrphan}
+          loadingInstalledAssets={props.loadingInstalledAssets}
+          loadingVerifiedAssets={props.loadingVerifiedAssets}
+          assetKindFilter={props.assetKindFilter}
+          assetBusy={props.assetBusy}
           hasSearchQuery={props.hasSearchQuery}
           verifiedModels={props.verifiedModels}
           catalogItems={props.catalogItems}
           catalogDisplayCount={props.catalogDisplayCount}
-          relatedArtifactsByModelTemplate={props.relatedArtifactsByModelTemplate}
-          installedAssetsById={props.installedArtifactsById}
+          relatedAssetsByModelTemplate={props.relatedAssetsByModelTemplate}
+          installedAssetsById={props.installedAssetsById}
           variantPickerItem={props.variantPickerItem}
           variantList={props.variantList}
           variantError={props.variantError}
           loadingVariants={props.loadingVariants}
           selectedCatalogCapability={props.selectedCatalogCapability}
           selectedCatalogEngine={props.selectedCatalogEngine}
-          isArtifactPending={props.isArtifactPending}
+          isAssetPending={props.isAssetPending}
           onSearchQueryChange={props.onSearchQueryChange}
           onCatalogCapabilityChange={props.onCatalogCapabilityChange}
-          onRemoveModel={props.onRemoveModel}
           onArtifactKindFilterChange={props.onArtifactKindFilterChange}
-          onRefreshArtifacts={props.onRefreshArtifacts}
-          onRemoveArtifact={props.onRemoveArtifact}
-          onOrphanCapabilityChange={props.onOrphanCapabilityChange}
-          onScaffoldOrphan={props.onScaffoldOrphan}
-          onArtifactOrphanKindChange={props.onArtifactOrphanKindChange}
-          onScaffoldArtifactOrphan={props.onScaffoldArtifactOrphan}
-          onInstallMissingArtifacts={props.onInstallMissingArtifacts}
+          onRefreshAssets={props.onRefreshAssets}
+          onRemoveAsset={props.onRemoveAsset}
+          onInstallMissingAssets={props.onInstallMissingAssets}
           onInstallVerifiedModel={props.onInstallVerifiedModel}
-          onInstallArtifact={props.onInstallArtifact}
+          onInstallAsset={props.onInstallAsset}
           onToggleVariantPicker={props.onToggleVariantPicker}
           onCloseVariantPicker={props.onCloseVariantPicker}
           onCatalogCapabilityOverrideChange={props.onCatalogCapabilityOverrideChange}
@@ -232,14 +202,14 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onLoadMoreCatalog={props.onLoadMoreCatalog}
           installing={props.installing}
         />
-        <LocalModelCenterVerifiedArtifactsSection
+        <LocalModelCenterVerifiedAssetsSection
           hasSearchQuery={props.hasSearchQuery}
-          loadingVerifiedArtifacts={props.loadingVerifiedArtifacts}
-          artifactBusy={props.artifactBusy}
-          visibleVerifiedArtifacts={props.visibleVerifiedArtifacts}
-          isArtifactPending={props.isArtifactPending}
-          onRefresh={props.onRefreshArtifacts}
-          onInstallArtifact={props.onInstallArtifact}
+          loadingVerifiedAssets={props.loadingVerifiedAssets}
+          assetBusy={props.assetBusy}
+          visibleVerifiedAssets={props.visibleVerifiedAssets}
+          isAssetPending={props.isAssetPending}
+          onRefresh={props.onRefreshAssets}
+          onInstallAsset={props.onInstallAsset}
         />
         <LocalModelCenterActiveDownloadsSection
           downloads={props.downloads}
@@ -248,24 +218,24 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           onCancel={props.onCancelDownload}
         />
         <LocalModelCenterActiveImportsSection imports={props.imports} onDismiss={props.onDismissSession} />
-        <LocalModelCenterArtifactTasksSection
-          tasks={props.visibleArtifactTasks}
-          pendingTemplateIds={props.artifactPendingTemplateIds}
-          onRetryTask={props.onInstallArtifact}
+        <LocalModelCenterAssetTasksSection
+          tasks={props.visibleAssetTasks}
+          pendingTemplateIds={props.assetPendingTemplateIds}
+          onRetryTask={props.onInstallAsset}
         />
         {!props.hasSearchQuery ? (
           <LocalModelCenterQuickPicksSection
             loadingVerifiedModels={props.loadingVerifiedModels}
             installing={props.installing}
-            artifactBusy={props.artifactBusy}
+            assetBusy={props.assetBusy}
             verifiedModels={props.verifiedModels}
-            relatedArtifactsByModelTemplate={props.relatedArtifactsByModelTemplate}
-            installedArtifactsById={props.installedArtifactsById}
-            isArtifactPending={props.isArtifactPending}
+            relatedAssetsByModelTemplate={props.relatedAssetsByModelTemplate}
+            installedAssetsById={props.installedAssetsById}
+            isAssetPending={props.isAssetPending}
             onRefresh={props.onRefreshQuickPicks}
             onInstallVerifiedModel={props.onInstallVerifiedModel}
-            onInstallArtifact={props.onInstallArtifact}
-            onInstallMissingArtifacts={props.onInstallMissingArtifacts}
+            onInstallAsset={props.onInstallAsset}
+            onInstallMissingAssets={props.onInstallMissingAssets}
           />
         ) : null}
       </ScrollArea>

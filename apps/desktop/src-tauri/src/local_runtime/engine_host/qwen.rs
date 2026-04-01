@@ -10,8 +10,8 @@ use std::time::{Duration, Instant};
 #[cfg(test)]
 use super::normalize_engine;
 use super::{
-    qwen_process_registry, with_model_operation_lock, EngineAdapter, EngineHealthResult,
-    LlamaCppProcessAdapter, LocalAiModelRecord, LocalAiModelStatus, QWEN_TTS_GATEWAY_SCRIPT_NAME,
+    qwen_process_registry, with_asset_operation_lock, EngineAdapter, EngineHealthResult,
+    LlamaCppProcessAdapter, LocalAiAssetRecord, LocalAiAssetStatus, QWEN_TTS_GATEWAY_SCRIPT_NAME,
     QWEN_TTS_GATEWAY_TEMPLATE, QWEN_TTS_HEALTH_POLL_INTERVAL_MS, QWEN_TTS_START_TIMEOUT_MS_DEFAULT,
     QWEN_TTS_STOP_GRACE_MS_DEFAULT, QWEN_TTS_VENV_DIR_NAME,
 };
@@ -213,9 +213,9 @@ impl QwenTtsPythonAdapter {
         Ok(std::path::PathBuf::from(value))
     }
 
-    fn model_install_dir(model: &LocalAiModelRecord) -> Result<std::path::PathBuf, String> {
+    fn asset_install_dir(model: &LocalAiAssetRecord) -> Result<std::path::PathBuf, String> {
         let models_root = Self::models_root_path()?;
-        Ok(models_root.join(model.local_model_id.replace(':', "-")))
+        Ok(models_root.join(model.local_asset_id.replace(':', "-")))
     }
 
     fn ensure_gateway_script() -> Result<std::path::PathBuf, String> {
@@ -295,7 +295,7 @@ impl QwenTtsPythonAdapter {
         host: &str,
         port: u16,
         model_dir: &Path,
-        model_id: &str,
+        asset_id: &str,
     ) -> Result<Vec<String>, String> {
         if artifact.process.args.is_empty() {
             return Err(
@@ -314,7 +314,7 @@ impl QwenTtsPythonAdapter {
                     .replace("${HOST}", host)
                     .replace("${PORT}", port_value.as_str())
                     .replace("${MODEL_DIR}", model_dir_value.as_str())
-                    .replace("${MODEL_ID}", model_id)
+                    .replace("${MODEL_ID}", asset_id)
             })
             .collect::<Vec<_>>();
         Ok(args)
@@ -375,20 +375,20 @@ impl QwenTtsPythonAdapter {
         Ok(venv_python)
     }
 
-    fn process_running(model: &LocalAiModelRecord) -> Result<bool, String> {
-        with_model_operation_lock(model.local_model_id.as_str(), || {
+    fn process_running(model: &LocalAiAssetRecord) -> Result<bool, String> {
+        with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let mut registry = qwen_process_registry()
                 .lock()
                 .map_err(|_| "qwen process registry lock poisoned".to_string())?;
-            if let Some(child) = registry.get_mut(&model.local_model_id) {
+            if let Some(child) = registry.get_mut(&model.local_asset_id) {
                 match child.try_wait() {
                     Ok(None) => return Ok(true),
                     Ok(Some(_)) => {
-                        registry.remove(&model.local_model_id);
+                        registry.remove(&model.local_asset_id);
                         return Ok(false);
                     }
                     Err(error) => {
-                        registry.remove(&model.local_model_id);
+                        registry.remove(&model.local_asset_id);
                         return Err(format!("qwen process check failed: {error}"));
                     }
                 }
@@ -397,12 +397,12 @@ impl QwenTtsPythonAdapter {
         })
     }
 
-    fn stop_process(model: &LocalAiModelRecord) -> Result<bool, String> {
-        with_model_operation_lock(model.local_model_id.as_str(), || {
+    fn stop_process(model: &LocalAiAssetRecord) -> Result<bool, String> {
+        with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let mut registry = qwen_process_registry()
                 .lock()
                 .map_err(|_| "qwen process registry lock poisoned".to_string())?;
-            let mut child = match registry.remove(&model.local_model_id) {
+            let mut child = match registry.remove(&model.local_asset_id) {
                 Some(value) => value,
                 None => return Ok(false),
             };
@@ -411,10 +411,10 @@ impl QwenTtsPythonAdapter {
         })
     }
 
-    fn start_process(model: &LocalAiModelRecord) -> Result<(), String> {
-        with_model_operation_lock(model.local_model_id.as_str(), || {
+    fn start_process(model: &LocalAiAssetRecord) -> Result<(), String> {
+        with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let python_binary = Self::preflight(model.endpoint.as_str())?;
-            let model_dir = Self::model_install_dir(model)?;
+            let model_dir = Self::asset_install_dir(model)?;
             if !model_dir.exists() {
                 return Err(format!(
                     "LOCAL_AI_QWEN_MODEL_DIR_MISSING: model directory is missing: {}",
@@ -441,7 +441,7 @@ impl QwenTtsPythonAdapter {
                 host.as_str(),
                 port,
                 model_dir.as_path(),
-                model.model_id.as_str(),
+                model.asset_id.as_str(),
             )?;
             let mut command = Command::new(venv_python.as_path());
             command.args(spawn_args.iter().map(String::as_str));
@@ -461,7 +461,7 @@ impl QwenTtsPythonAdapter {
             let mut registry = qwen_process_registry()
                 .lock()
                 .map_err(|_| "qwen process registry lock poisoned".to_string())?;
-            registry.insert(model.local_model_id.clone(), child);
+            registry.insert(model.local_asset_id.clone(), child);
             drop(registry);
 
             if let Err(error) =
@@ -470,7 +470,7 @@ impl QwenTtsPythonAdapter {
                 let mut registry = qwen_process_registry()
                     .lock()
                     .map_err(|_| "qwen process registry lock poisoned".to_string())?;
-                if let Some(mut child) = registry.remove(&model.local_model_id) {
+                if let Some(mut child) = registry.remove(&model.local_asset_id) {
                     LlamaCppProcessAdapter::shutdown_child_process(
                         &mut child,
                         Self::stop_grace_timeout(),
@@ -499,79 +499,79 @@ where
 }
 
 impl EngineAdapter for QwenTtsPythonAdapter {
-    fn start(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn start(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         match Self::process_running(model) {
             Ok(true) => EngineHealthResult {
                 healthy: true,
                 detail: "qwen-tts-python already running".to_string(),
-                status: LocalAiModelStatus::Active,
+                status: LocalAiAssetStatus::Active,
             },
             Ok(false) => match Self::start_process(model) {
                 Ok(()) => EngineHealthResult {
                     healthy: true,
                     detail: "qwen-tts-python started".to_string(),
-                    status: LocalAiModelStatus::Active,
+                    status: LocalAiAssetStatus::Active,
                 },
                 Err(error) => EngineHealthResult {
                     healthy: false,
                     detail: error,
-                    status: LocalAiModelStatus::Unhealthy,
+                    status: LocalAiAssetStatus::Unhealthy,
                 },
             },
             Err(error) => EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             },
         }
     }
 
-    fn stop(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn stop(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         match Self::stop_process(model) {
             Ok(true) => EngineHealthResult {
                 healthy: true,
                 detail: "qwen-tts-python stop requested".to_string(),
-                status: LocalAiModelStatus::Installed,
+                status: LocalAiAssetStatus::Installed,
             },
             Ok(false) => EngineHealthResult {
                 healthy: true,
                 detail: "qwen-tts-python process not running".to_string(),
-                status: LocalAiModelStatus::Installed,
+                status: LocalAiAssetStatus::Installed,
             },
             Err(error) => EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             },
         }
     }
 
-    fn health(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn health(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         match Self::process_running(model) {
             Ok(true) => EngineHealthResult {
                 healthy: true,
                 detail: "qwen-tts-python running".to_string(),
-                status: LocalAiModelStatus::Active,
+                status: LocalAiAssetStatus::Active,
             },
             Ok(false) => {
-                if model.status == LocalAiModelStatus::Active {
+                if model.status == LocalAiAssetStatus::Active {
                     EngineHealthResult {
                         healthy: false,
                         detail: "qwen-tts-python process exited unexpectedly".to_string(),
-                        status: LocalAiModelStatus::Unhealthy,
+                        status: LocalAiAssetStatus::Unhealthy,
                     }
                 } else {
                     EngineHealthResult {
                         healthy: true,
                         detail: "qwen-tts-python ready (not started)".to_string(),
-                        status: LocalAiModelStatus::Installed,
+                        status: LocalAiAssetStatus::Installed,
                     }
                 }
             }
             Err(error) => EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             },
         }
     }

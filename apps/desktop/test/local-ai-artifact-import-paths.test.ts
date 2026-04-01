@@ -9,10 +9,12 @@ const localModelCenterSectionsPath = path.resolve(
 );
 const runtimeCommandsPath = path.resolve(process.cwd(), 'src/runtime/local-runtime/commands.ts');
 const runtimeHookFacadePath = path.resolve(process.cwd(), 'src/runtime/hook/contracts/facade.ts');
+const tauriAssetsCommandsPath = path.resolve(process.cwd(), 'src-tauri/src/local_runtime/commands/commands_assets.rs');
 
 const localModelCenterSectionsSource = readFileSync(localModelCenterSectionsPath, 'utf-8');
 const runtimeCommandsSource = readFileSync(runtimeCommandsPath, 'utf-8');
 const runtimeHookFacadeSource = readFileSync(runtimeHookFacadePath, 'utf-8');
+const tauriAssetsCommandsSource = readFileSync(tauriAssetsCommandsPath, 'utf-8');
 
 type TauriInvokeCall = {
   command: string;
@@ -27,7 +29,7 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
   globalRecord.__NIMI_TAURI_TEST__ = {
     invoke: async (command: string, payload?: unknown) => {
       calls.push({ command, payload });
-      return '/tmp/runtime-models/resolved/demo/manifest.json';
+      return '/tmp/runtime-models/resolved/demo/asset.manifest.json';
     },
     listen: async () => () => {},
   };
@@ -35,7 +37,7 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
   try {
     const { pickLocalRuntimeAssetManifestPath } = await import('../src/runtime/local-runtime/commands');
     const manifestPath = await pickLocalRuntimeAssetManifestPath();
-    assert.equal(manifestPath, '/tmp/runtime-models/resolved/demo/manifest.json');
+    assert.equal(manifestPath, '/tmp/runtime-models/resolved/demo/asset.manifest.json');
     assert.deepEqual(calls, [{
       command: 'runtime_local_pick_asset_manifest_path',
       payload: {},
@@ -52,6 +54,11 @@ test('pickLocalRuntimeAssetManifestPath uses the unified Tauri manifest picker',
 test('asset manifest import uses the unified importLocalRuntimeAsset command', () => {
   assert.match(runtimeCommandsSource, /importLocalRuntimeAsset\(\{ manifestPath: normalizedPath \}/);
   assert.match(runtimeCommandsSource, /export async function importLocalRuntimeAssetManifest/);
+  assert.doesNotMatch(runtimeCommandsSource, /runtime_local_assets_adopt/);
+  assert.match(tauriAssetsCommandsSource, /runtime_import_manifest_via_runtime\(path\.as_path\(\), endpoint, engine_config\)/);
+  assert.doesNotMatch(tauriAssetsCommandsSource, /upsert_asset/);
+  assert.doesNotMatch(tauriAssetsCommandsSource, /runtime_local_assets_adopt/);
+  assert.doesNotMatch(tauriAssetsCommandsSource, /LOCAL_AI_ASSET_ADOPT_UNSUPPORTED/);
 });
 
 test('asset file import uses unified importLocalRuntimeAssetFile and scaffoldLocalRuntimeOrphanAsset', () => {

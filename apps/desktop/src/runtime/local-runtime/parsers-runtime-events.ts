@@ -18,7 +18,6 @@ import type {
   LocalRuntimeScaffoldAssetResult,
   LocalRuntimeAssetHealth,
   LocalRuntimeUnregisteredAssetDescriptor,
-  OrphanAssetFile,
 } from './types';
 import { asRecord, asString } from './parser-primitives';
 import { toCanonicalLocalId } from './local-id';
@@ -274,16 +273,6 @@ export function parseRecommendationFeedDescriptor(
         .map((item) => parseRecommendationFeedItemDescriptor(item))
         .filter((item): item is LocalRuntimeRecommendationFeedItemDescriptor => Boolean(item))
       : [],
-  };
-}
-
-export function parseOrphanAssetFile(value: unknown): OrphanAssetFile {
-  const record = asRecord(value);
-  return {
-    filename: asString(record.filename),
-    path: asString(record.path),
-    sizeBytes: typeof record.sizeBytes === 'number' ? record.sizeBytes : 0,
-    recommendation: parseCatalogRecommendation(record.recommendation),
   };
 }
 

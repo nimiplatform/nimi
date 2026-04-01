@@ -9,8 +9,7 @@ use super::super::audit::{
 use super::super::hf_source::{
     install_from_hf_with_control, HfDownloadControl, HfDownloadProgress,
 };
-use super::super::model_registry::upsert_model;
-use super::super::store::load_state;
+use super::super::store::{load_state, runtime_models_dir};
 use super::super::types::LocalAiDownloadState;
 use super::shared::{
     append_audit_non_blocking, classify_reason_code, cleanup_staging_for_model,
@@ -19,6 +18,8 @@ use super::shared::{
     LOCAL_AI_HF_DOWNLOAD_CANCELLED, LOCAL_AI_HF_DOWNLOAD_HASH_MISMATCH,
     LOCAL_AI_HF_DOWNLOAD_PAUSED,
 };
+use crate::local_runtime::commands::runtime_import_manifest_via_runtime;
+use crate::local_runtime::types::runtime_managed_asset_manifest_path;
 
 fn process_session(app: &AppHandle, install_session_id: &str) {
     let record = match update_record(app, install_session_id, |entry| {
@@ -84,64 +85,98 @@ fn process_session(app: &AppHandle, install_session_id: &str) {
     };
 
     match install_from_hf_with_control(app, &install_request, &mut on_progress) {
-        Ok(model) => match upsert_model(app, model) {
-            Ok(saved) => {
-                match update_or_restore_record(app, &latest_record, |entry| {
-                    entry.phase = "verify".to_string();
-                    entry.state = LocalAiDownloadState::Completed;
-                    entry.message = Some("installation completed".to_string());
-                    entry.reason_code = None;
-                    entry.retryable = false;
-                    entry.local_model_id = saved.local_model_id.clone();
-                }) {
-                    Ok(updated) => {
-                        emit_progress_event(app, &updated);
-                    }
-                    Err(error) => {
-                        eprintln!("LOCAL_AI_DOWNLOAD_COMPLETION_SAVE_FAILED: {error}");
-                    }
+        Ok(asset) => {
+            let models_root = match runtime_models_dir(app) {
+                Ok(value) => value,
+                Err(error) => {
+                    let reason_code = classify_reason_code(error.as_str()).0;
+                    let _ = update_or_restore_record(app, &latest_record, |entry| {
+                        entry.phase = "register".to_string();
+                        entry.state = LocalAiDownloadState::Failed;
+                        entry.message = Some(error.clone());
+                        entry.reason_code = Some(reason_code.clone());
+                        entry.retryable = false;
+                    });
+                    append_audit_non_blocking(
+                        app,
+                        EVENT_MODEL_DOWNLOAD_FAILED,
+                        Some(model_id.as_str()),
+                        Some(local_model_id.as_str()),
+                        Some(serde_json::json!({
+                            "reasonCode": reason_code,
+                            "error": error,
+                            "retryable": false,
+                            "phase": "register",
+                            "metadata": metadata,
+                        })),
+                    );
+                    return;
                 }
-                append_audit_non_blocking(
-                    app,
-                    EVENT_MODEL_DOWNLOAD_COMPLETED,
-                    Some(saved.model_id.as_str()),
-                    Some(saved.local_model_id.as_str()),
-                    Some(serde_json::json!({
-                        "source": "huggingface",
-                    })),
-                );
-            }
-            Err(error) => {
-                let reason_code = classify_reason_code(error.as_str()).0;
-                match update_or_restore_record(app, &latest_record, |entry| {
-                    entry.phase = "upsert".to_string();
-                    entry.state = LocalAiDownloadState::Failed;
-                    entry.message = Some(error.clone());
-                    entry.reason_code = Some(reason_code.clone());
-                    entry.retryable = false;
-                }) {
-                    Ok(updated) => {
-                        emit_progress_event(app, &updated);
+            };
+            let manifest_path = runtime_managed_asset_manifest_path(models_root.as_path(), &asset);
+            match runtime_import_manifest_via_runtime(
+                manifest_path.as_path(),
+                install_request.endpoint.as_deref(),
+                install_request.engine_config.as_ref(),
+            ) {
+                Ok(saved) => {
+                    match update_or_restore_record(app, &latest_record, |entry| {
+                        entry.phase = "verify".to_string();
+                        entry.state = LocalAiDownloadState::Completed;
+                        entry.message = Some("installation completed".to_string());
+                        entry.reason_code = None;
+                        entry.retryable = false;
+                        entry.local_model_id = saved.local_asset_id.clone();
+                    }) {
+                        Ok(updated) => {
+                            emit_progress_event(app, &updated);
+                        }
+                        Err(error) => {
+                            eprintln!("LOCAL_AI_DOWNLOAD_COMPLETION_SAVE_FAILED: {error}");
+                        }
                     }
-                    Err(save_error) => {
-                        eprintln!("LOCAL_AI_DOWNLOAD_UPSERT_FAILURE_SAVE_FAILED: {save_error}");
-                    }
+                    append_audit_non_blocking(
+                        app,
+                        EVENT_MODEL_DOWNLOAD_COMPLETED,
+                        Some(saved.asset_id.as_str()),
+                        Some(saved.local_asset_id.as_str()),
+                        Some(serde_json::json!({
+                            "source": "huggingface",
+                        })),
+                    );
                 }
-                append_audit_non_blocking(
-                    app,
-                    EVENT_MODEL_DOWNLOAD_FAILED,
-                    Some(model_id.as_str()),
-                    Some(local_model_id.as_str()),
-                    Some(serde_json::json!({
-                        "reasonCode": reason_code,
-                        "error": error,
-                        "retryable": false,
-                        "phase": "upsert",
-                        "metadata": metadata,
-                    })),
-                );
+                Err(error) => {
+                    let reason_code = classify_reason_code(error.as_str()).0;
+                    match update_or_restore_record(app, &latest_record, |entry| {
+                        entry.phase = "register".to_string();
+                        entry.state = LocalAiDownloadState::Failed;
+                        entry.message = Some(error.clone());
+                        entry.reason_code = Some(reason_code.clone());
+                        entry.retryable = false;
+                    }) {
+                        Ok(updated) => {
+                            emit_progress_event(app, &updated);
+                        }
+                        Err(save_error) => {
+                            eprintln!("LOCAL_AI_DOWNLOAD_UPSERT_FAILURE_SAVE_FAILED: {save_error}");
+                        }
+                    }
+                    append_audit_non_blocking(
+                        app,
+                        EVENT_MODEL_DOWNLOAD_FAILED,
+                        Some(model_id.as_str()),
+                        Some(local_model_id.as_str()),
+                        Some(serde_json::json!({
+                            "reasonCode": reason_code,
+                            "error": error,
+                            "retryable": false,
+                            "phase": "register",
+                            "metadata": metadata,
+                        })),
+                    );
+                }
             }
-        },
+        }
         Err(error) => {
             let (reason_code, retryable) = classify_reason_code(error.as_str());
             let mut next_state = LocalAiDownloadState::Failed;

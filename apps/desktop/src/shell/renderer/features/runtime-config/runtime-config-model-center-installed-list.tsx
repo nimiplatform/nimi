@@ -187,14 +187,14 @@ export function ModelCenterInstalledList(props: ModelCenterInstalledListProps) {
             <CpuIcon className="h-6 w-6 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
           </div>
           <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.local.noModelsInstalled', { defaultValue: 'No Models Installed' })}
+            {t('runtimeConfig.local.noModelsInstalled', { defaultValue: 'No Assets Installed' })}
           </p>
           <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
             {props.sortedModels.length === 0
               ? t('runtimeConfig.local.noModelsInstalledDesc', {
-                  defaultValue: 'No local model registered. Install or import one to enable Local Runtime capability resolution.',
+                  defaultValue: 'No local asset registered. Install or import one to enable Local Runtime capability resolution.',
                 })
-              : t('runtimeConfig.local.noModelsMatchFilter', { defaultValue: 'No models match the current filter.' })}
+              : t('runtimeConfig.local.noModelsMatchFilter', { defaultValue: 'No assets match the current filter.' })}
           </p>
         </div>
       </div>

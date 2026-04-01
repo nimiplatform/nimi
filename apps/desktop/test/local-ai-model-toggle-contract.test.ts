@@ -19,18 +19,30 @@ const tauriCommandsPath = path.resolve(
   process.cwd(),
   'src-tauri/src/local_runtime/commands/commands_models_audit.rs',
 );
+const tauriModelIndexPath = path.resolve(
+  process.cwd(),
+  'src-tauri/src/local_runtime/model_index.rs',
+);
+const tauriLocalRuntimeModPath = path.resolve(
+  process.cwd(),
+  'src-tauri/src/local_runtime/mod.rs',
+);
 
 const catalogCardSource = readFileSync(catalogCardPath, 'utf-8');
 const controllerSource = readFileSync(controllerPath, 'utf-8');
 const localPageSource = readFileSync(localPagePath, 'utf-8');
 const tauriCommandsSource = readFileSync(tauriCommandsPath, 'utf-8');
+const tauriModelIndexSource = readFileSync(tauriModelIndexPath, 'utf-8');
+const tauriLocalRuntimeModSource = readFileSync(tauriLocalRuntimeModPath, 'utf-8');
 
 test('local model center installed list is status-only and no longer renders a lifecycle toggle', () => {
   assert.doesNotMatch(catalogCardSource, /<Toggle/);
   assert.doesNotMatch(catalogCardSource, /onStartModel:/);
   assert.doesNotMatch(catalogCardSource, /onStopModel:/);
   assert.doesNotMatch(catalogCardSource, /localModelLifecycleById:/);
-  assert.match(catalogCardSource, /model\.status === 'installed'/);
+  assert.doesNotMatch(catalogCardSource, /filteredInstalledModels/);
+  assert.match(catalogCardSource, /filteredInstalledRunnableAssets/);
+  assert.match(catalogCardSource, /asset\.status === 'installed'/);
   assert.match(catalogCardSource, /runtimeConfig\.localModelCenter\.installed/);
 });
 
@@ -53,10 +65,23 @@ test('runtime local lifecycle controller remains available only as non-product m
 });
 
 test('local model tauri lifecycle commands run on a background blocking task', () => {
-  assert.match(tauriCommandsSource, /async fn runtime_local_models_start/);
-  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| start_model\(&app, &payload\.local_model_id\)\)/);
-  assert.match(tauriCommandsSource, /async fn runtime_local_models_stop/);
-  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| stop_model\(&app, &payload\.local_model_id\)\)/);
-  assert.match(tauriCommandsSource, /async fn runtime_local_models_health/);
-  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| \{\s*health\(&app, local_model_id\.as_deref\(\)\)/);
+  assert.match(tauriCommandsSource, /async fn runtime_local_assets_start/);
+  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| \{/);
+  assert.match(tauriCommandsSource, /runtime_start_asset_via_runtime_checked\(&app, &payload\.local_asset_id\)/);
+  assert.match(tauriCommandsSource, /async fn runtime_local_assets_stop/);
+  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| runtime_stop_asset_via_runtime\(&payload\.local_asset_id\)\)/);
+  assert.match(tauriCommandsSource, /async fn runtime_local_assets_health/);
+  assert.match(tauriCommandsSource, /spawn_blocking\(move \|\| runtime_health_assets_via_runtime\(local_asset_id\.as_deref\(\)\)\)/);
+  assert.doesNotMatch(tauriCommandsSource, /start_asset\(&app, &payload\.local_asset_id\)/);
+  assert.doesNotMatch(tauriCommandsSource, /stop_asset\(&app, &payload\.local_asset_id\)/);
+  assert.doesNotMatch(tauriCommandsSource, /health_assets\(&app, local_asset_id\.as_deref\(\)\)/);
+});
+
+test('local runtime cleanup removes host-local registry and supervisor modules from shipped paths', () => {
+  assert.doesNotMatch(tauriLocalRuntimeModSource, /mod asset_registry;/);
+  assert.doesNotMatch(tauriLocalRuntimeModSource, /mod supervisor;/);
+  assert.match(tauriLocalRuntimeModSource, /#\[cfg\(test\)\]\s*mod engine_host;/);
+  assert.match(tauriLocalRuntimeModSource, /#\[cfg\(test\)\]\s*mod engine_pack;/);
+  assert.doesNotMatch(tauriModelIndexSource, /list_runnable_assets/);
+  assert.match(tauriModelIndexSource, /load_state\(app\)/);
 });

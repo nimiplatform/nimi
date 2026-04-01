@@ -28,7 +28,7 @@ fn execute_hf_install_blocking(
     app: &AppHandle,
     install_request: LocalAiInstallRequest,
     install_metadata: Option<serde_json::Value>,
-) -> Result<LocalAiModelRecord, String> {
+) -> Result<LocalAiAssetRecord, String> {
     let install_session_id = next_install_session_id(install_request.model_id.as_str());
     let install_model_id = install_request.model_id.clone();
     let guessed_local_model_id =
@@ -139,14 +139,20 @@ fn execute_hf_install_blocking(
     };
 
     match install_from_hf(app, &install_request, &mut on_progress) {
-        Ok(model) => {
-            let saved = upsert_model(app, model)?;
+        Ok(asset) => {
+            let models_root = runtime_models_dir(app)?;
+            let manifest_path = runtime_managed_asset_manifest_path(models_root.as_path(), &asset);
+            let saved = runtime_import_manifest_via_runtime(
+                manifest_path.as_path(),
+                install_request.endpoint.as_deref(),
+                install_request.engine_config.as_ref(),
+            )?;
             emit_download_progress_event(
                 app,
                 LocalAiDownloadProgressEvent {
                     install_session_id: install_session_id.clone(),
-                    model_id: saved.model_id.clone(),
-                    local_model_id: Some(saved.local_model_id.clone()),
+                    model_id: saved.asset_id.clone(),
+                    local_model_id: Some(saved.local_asset_id.clone()),
                     session_kind: LocalAiTransferSessionKind::Download,
                     phase: "verify".to_string(),
                     bytes_received: latest_bytes_received,
@@ -164,8 +170,8 @@ fn execute_hf_install_blocking(
             append_app_audit_event_non_blocking(
                 app,
                 EVENT_MODEL_DOWNLOAD_COMPLETED,
-                Some(saved.model_id.as_str()),
-                Some(saved.local_model_id.as_str()),
+                Some(saved.asset_id.as_str()),
+                Some(saved.local_asset_id.as_str()),
                 Some(merge_json_object(
                     serde_json::json!({
                         "engine": saved.engine,
@@ -177,8 +183,8 @@ fn execute_hf_install_blocking(
             append_app_audit_event_non_blocking(
                 app,
                 EVENT_MODEL_IMPORT_VALIDATED,
-                Some(saved.model_id.as_str()),
-                Some(saved.local_model_id.as_str()),
+                Some(saved.asset_id.as_str()),
+                Some(saved.local_asset_id.as_str()),
                 None,
             );
             Ok(saved)

@@ -66,9 +66,11 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
   let resolved = 0;
   let applied = 0;
   let resolvedCapability = '';
+  let resolvedEntryOverrides: unknown[] = [];
   localRuntime.resolveProfile = (async (input?: Record<string, unknown>) => {
     resolved += 1;
     resolvedCapability = String(input?.capability || '');
+    resolvedEntryOverrides = Array.isArray(input?.entryOverrides) ? input.entryOverrides : [];
     return {
       planId: 'plan-balanced-fast',
       modId: 'world.nimi.local-image',
@@ -120,6 +122,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
       modId: 'world.nimi.local-image',
       profileId: 'balanced-fast',
       capability: 'image',
+      entryOverrides: [{ entryId: 'text-encoder', localAssetId: 'asset-llm-1' }],
     });
 
     assert.equal(result.accepted, true);
@@ -127,6 +130,7 @@ test('requestProfileInstall resolves and applies only after host confirm accepta
     assert.equal(resolved, 1);
     assert.equal(applied, 1);
     assert.equal(resolvedCapability, 'image');
+    assert.deepEqual(resolvedEntryOverrides, [{ entryId: 'text-encoder', localAssetId: 'asset-llm-1' }]);
     assert.match(confirmMessage, /Balanced Fast/);
   } finally {
     restoreWindow();
@@ -160,8 +164,10 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
   })) as unknown as typeof useAppStore.getState;
 
   let observedCapability = '';
+  let observedEntryOverrides: unknown[] = [];
   localRuntime.getProfileInstallStatus = (async (input?: Record<string, unknown>) => {
     observedCapability = String(input?.capability || '');
+    observedEntryOverrides = Array.isArray(input?.entryOverrides) ? input.entryOverrides : [];
     return {
       modId: 'world.nimi.local-image',
       profileId: 'balanced-fast',
@@ -178,10 +184,12 @@ test('getProfileInstallStatus forwards capability to local runtime profile statu
       modId: 'world.nimi.local-image',
       profileId: 'balanced-fast',
       capability: 'image',
+      entryOverrides: [{ entryId: 'image-vae', localAssetId: 'asset-vae-1' }],
     });
 
     assert.equal(result.status, 'ready');
     assert.equal(observedCapability, 'image');
+    assert.deepEqual(observedEntryOverrides, [{ entryId: 'image-vae', localAssetId: 'asset-vae-1' }]);
   } finally {
     useAppStore.getState = originalGetState;
     localRuntime.getProfileInstallStatus = originalGetProfileInstallStatus;

@@ -5,7 +5,7 @@ fn run_dependency_apply(
     let mut warnings = plan.warnings.clone();
     let mut capabilities = std::collections::BTreeSet::<String>::new();
     let mut progress = DependencyApplyProgress::new();
-    let mut installed_model_map = std::collections::BTreeMap::<String, LocalAiModelRecord>::new();
+    let mut installed_asset_map = std::collections::BTreeMap::<String, LocalAiAssetRecord>::new();
     let mut service_map = std::collections::BTreeMap::<String, LocalAiServiceDescriptor>::new();
     let mut service_ids_to_start = std::collections::BTreeSet::<String>::new();
     let mut started_service_ids = Vec::<String>::new();
@@ -98,7 +98,7 @@ fn run_dependency_apply(
                         "planId": plan.plan_id,
                     })),
                 )?;
-                installed_model_map.insert(installed.local_model_id.clone(), installed);
+                installed_asset_map.insert(installed.local_asset_id.clone(), installed);
             }
             LocalAiDependencyKind::Service => {
                 let service_id = dependency.service_id.clone().ok_or_else(|| {
@@ -136,8 +136,8 @@ fn run_dependency_apply(
                             "serviceId": service_id.clone(),
                         })),
                     )?;
-                    local_model_id_for_service = Some(installed.local_model_id.clone());
-                    installed_model_map.insert(installed.local_model_id.clone(), installed);
+                    local_model_id_for_service = Some(installed.local_asset_id.clone());
+                    installed_asset_map.insert(installed.local_asset_id.clone(), installed);
                 }
                 let install_payload = LocalAiServicesInstallPayload {
                     service_id: service_id.clone(),
@@ -207,13 +207,13 @@ fn run_dependency_apply(
         }
     }
 
-    let mut installed_models = installed_model_map.values().cloned().collect::<Vec<_>>();
+    let mut installed_assets = installed_asset_map.values().cloned().collect::<Vec<_>>();
     let mut services = service_map.values().cloned().collect::<Vec<_>>();
     progress.push_stage_ok(
         "install-artifacts",
         Some(format!(
-            "installedModels={}, services={}",
-            installed_models.len(),
+            "installedAssets={}, services={}",
+            installed_assets.len(),
             services.len()
         )),
     );
@@ -340,9 +340,9 @@ fn run_dependency_apply(
 
     progress.push_stage_ok("health", Some("health checks passed".to_string()));
 
-    installed_models = installed_model_map.values().cloned().collect::<Vec<_>>();
+    installed_assets = installed_asset_map.values().cloned().collect::<Vec<_>>();
     services = service_map.values().cloned().collect::<Vec<_>>();
-    installed_models.sort_by(|left, right| left.local_model_id.cmp(&right.local_model_id));
+    installed_assets.sort_by(|left, right| left.local_asset_id.cmp(&right.local_asset_id));
     services.sort_by(|left, right| left.service_id.cmp(&right.service_id));
 
     let refreshed_matrix_entries = {
@@ -372,7 +372,7 @@ fn run_dependency_apply(
         plan_id: plan.plan_id.clone(),
         mod_id: plan.mod_id.clone(),
         dependencies: plan.dependencies.clone(),
-        installed_models,
+        installed_assets,
         services,
         capabilities,
         stage_results: progress.stage_results,

@@ -20,7 +20,7 @@ type LocalModelCenterImportControlsProps = {
   showImportFileDialog: boolean;
   importFileAssetClass: AssetClassOption;
   importFileModelType: ModelTypeOption;
-  importFileArtifactKind: LocalRuntimeAssetKind;
+  importFileDependencyKind: LocalRuntimeAssetKind;
   importFileAuxiliaryEngine: AssetEngineOption | '';
   onHealthCheck: () => void;
   onRefresh: () => void;
@@ -30,7 +30,7 @@ type LocalModelCenterImportControlsProps = {
   onImportManifest: () => void;
   onAssetClassChange: (assetClass: AssetClassOption) => void;
   onModelTypeChange: (modelType: ModelTypeOption) => void;
-  onArtifactKindChange: (kind: LocalRuntimeAssetKind) => void;
+  onDependencyKindChange: (kind: LocalRuntimeAssetKind) => void;
   onAuxiliaryEngineChange: (engine: AssetEngineOption | '') => void;
   onCloseImportFileDialog: () => void;
   onChooseImportFile: () => void;
@@ -58,11 +58,11 @@ export function LocalModelCenterImportControls(props: LocalModelCenterImportCont
         visible={props.showImportFileDialog}
         assetClass={props.importFileAssetClass}
         modelType={props.importFileModelType}
-        artifactKind={props.importFileArtifactKind}
+        dependencyKind={props.importFileDependencyKind}
         auxiliaryEngine={props.importFileAuxiliaryEngine}
         onAssetClassChange={props.onAssetClassChange}
         onModelTypeChange={props.onModelTypeChange}
-        onArtifactKindChange={props.onArtifactKindChange}
+        onDependencyKindChange={props.onDependencyKindChange}
         onAuxiliaryEngineChange={props.onAuxiliaryEngineChange}
         onClose={props.onCloseImportFileDialog}
         onChooseFile={props.onChooseImportFile}

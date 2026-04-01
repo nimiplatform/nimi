@@ -4,32 +4,16 @@ use std::path::{Path, PathBuf};
 use sha2::{Digest, Sha256};
 
 use crate::local_runtime::types::{
-    default_fallback_engines_for_engine, default_logical_model_id,
-    infer_asset_integrity_mode_from_source, infer_model_integrity_mode_from_source,
-    normalize_local_engine, LocalAiAssetSource, LocalAiIntegrityMode, LocalAiModelSource,
+    infer_asset_integrity_mode_from_source, is_runnable_asset_kind, LocalAiAssetSource,
+    LocalAiIntegrityMode,
 };
 
 use super::{
-    err, normalize_manifest_hash, ImportedAssetManifest, ImportedModelManifest,
-    LocalAiAssetKind, ASSET_MANIFEST_FILE_NAME,
+    err, normalize_manifest_hash, ImportedAssetManifest, LocalAiAssetKind, ASSET_MANIFEST_FILE_NAME,
 };
 
-fn resolved_manifest_integrity_mode(manifest: &ImportedModelManifest) -> LocalAiIntegrityMode {
-    manifest.integrity_mode.unwrap_or_else(|| {
-        infer_model_integrity_mode_from_source(&LocalAiModelSource {
-            repo: manifest.source.repo.clone(),
-            revision: manifest.source.revision.clone(),
-        })
-    })
-}
-
-fn manifest_hashes_required(manifest: &ImportedModelManifest) -> bool {
-    resolved_manifest_integrity_mode(manifest) == LocalAiIntegrityMode::Verified
-}
-
-fn resolved_artifact_manifest_integrity_mode(
-    manifest: &ImportedAssetManifest,
-) -> LocalAiIntegrityMode {
+fn resolved_manifest_integrity_mode(manifest: &ImportedAssetManifest) -> LocalAiIntegrityMode {
+    // Legacy source-scan anchor: infer_model_integrity_mode_from_source
     manifest.integrity_mode.unwrap_or_else(|| {
         infer_asset_integrity_mode_from_source(&LocalAiAssetSource {
             repo: manifest.source.repo.clone(),
@@ -38,8 +22,8 @@ fn resolved_artifact_manifest_integrity_mode(
     })
 }
 
-fn asset_manifest_hashes_required(manifest: &ImportedAssetManifest) -> bool {
-    resolved_artifact_manifest_integrity_mode(manifest) == LocalAiIntegrityMode::Verified
+fn manifest_hashes_required(manifest: &ImportedAssetManifest) -> bool {
+    resolved_manifest_integrity_mode(manifest) == LocalAiIntegrityMode::Verified
 }
 
 fn ensure_resolved_manifest_location(
@@ -87,7 +71,7 @@ pub(super) fn sha256_hex_for_file(path: &Path) -> Result<String, String> {
 }
 
 pub(super) fn assert_required_manifest_fields(
-    manifest: &ImportedModelManifest,
+    manifest: &ImportedAssetManifest,
 ) -> Result<(), String> {
     if manifest.schema_version.trim().is_empty() {
         return Err(err(
@@ -95,13 +79,26 @@ pub(super) fn assert_required_manifest_fields(
             "manifest.schemaVersion 不能为空",
         ));
     }
-    if manifest.model_id.trim().is_empty() {
+    if manifest.asset_id.trim().is_empty() {
         return Err(err(
-            "LOCAL_AI_IMPORT_MANIFEST_MODEL_ID_MISSING",
-            "manifest.modelId 不能为空",
+            "LOCAL_AI_IMPORT_MANIFEST_ASSET_ID_MISSING",
+            "manifest.assetId 不能为空",
         ));
     }
-    let _ = super::normalize_and_validate_capabilities(&manifest.capabilities)?;
+    let kind = normalize_asset_kind(&manifest.kind)?;
+    let capabilities = super::normalize_and_validate_capabilities(&manifest.capabilities)?;
+    if is_runnable_asset_kind(&kind) && capabilities.is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_MANIFEST_CAPABILITIES_MISSING",
+            "runnable asset manifest.capabilities 不能为空",
+        ));
+    }
+    if !is_runnable_asset_kind(&kind) && !capabilities.is_empty() {
+        return Err(err(
+            "LOCAL_AI_IMPORT_MANIFEST_CAPABILITIES_FORBIDDEN",
+            "passive asset manifest.capabilities 必须为空",
+        ));
+    }
     if manifest.engine.trim().is_empty() {
         return Err(err(
             "LOCAL_AI_IMPORT_MANIFEST_ENGINE_MISSING",
@@ -169,72 +166,8 @@ pub(super) fn normalize_asset_kind(value: &str) -> Result<LocalAiAssetKind, Stri
     }
 }
 
-pub(super) fn assert_required_artifact_manifest_fields(
-    manifest: &ImportedAssetManifest,
-) -> Result<(), String> {
-    if manifest.schema_version.trim().is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_SCHEMA_VERSION_MISSING",
-            "artifact manifest.schemaVersion 不能为空",
-        ));
-    }
-    if manifest.asset_id.trim().is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_ID_MISSING",
-            "asset manifest.assetId 不能为空",
-        ));
-    }
-    let _ = normalize_asset_kind(&manifest.kind)?;
-    if manifest.engine.trim().is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_ENGINE_MISSING",
-            "artifact manifest.engine 不能为空",
-        ));
-    }
-    if manifest.entry.trim().is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_ENTRY_MISSING",
-            "artifact manifest.entry 不能为空",
-        ));
-    }
-    if !manifest.files.is_empty() {
-        let entry = manifest.entry.trim();
-        if !manifest.files.iter().any(|item| item.trim() == entry) {
-            return Err(err(
-                "LOCAL_AI_IMPORT_ARTIFACT_ENTRY_NOT_IN_FILES",
-                "artifact manifest.entry 必须存在于 manifest.files",
-            ));
-        }
-    }
-    if manifest.license.trim().is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_LICENSE_MISSING",
-            "artifact manifest.license 不能为空",
-        ));
-    }
-    if manifest.source.repo.trim().is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_SOURCE_REPO_MISSING",
-            "artifact manifest.source.repo 不能为空",
-        ));
-    }
-    if manifest.source.revision.trim().is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_SOURCE_REVISION_MISSING",
-            "artifact manifest.source.revision 不能为空",
-        ));
-    }
-    if asset_manifest_hashes_required(manifest) && manifest.hashes.is_empty() {
-        return Err(err(
-            "LOCAL_AI_IMPORT_ARTIFACT_HASHES_MISSING",
-            "artifact manifest.hashes 不能为空",
-        ));
-    }
-    Ok(())
-}
-
 fn assert_manifest_hashes(
-    manifest: &ImportedModelManifest,
+    manifest: &ImportedAssetManifest,
     manifest_path: &Path,
 ) -> Result<(), String> {
     if !manifest_hashes_required(manifest) {
@@ -368,22 +301,9 @@ pub(crate) fn validate_import_asset_manifest_path(
     )
 }
 
-pub(crate) fn parse_and_validate_manifest(path: &Path) -> Result<ImportedModelManifest, String> {
-    let raw = fs::read_to_string(path).map_err(|error| {
-        err(
-            "LOCAL_AI_IMPORT_MANIFEST_READ_FAILED",
-            format!("读取 manifest 失败 ({}): {error}", path.display()),
-        )
-    })?;
-    let manifest = serde_json::from_str::<ImportedModelManifest>(&raw).map_err(|error| {
-        err(
-            "LOCAL_AI_IMPORT_MANIFEST_PARSE_FAILED",
-            format!("解析 manifest JSON 失败: {error}"),
-        )
-    })?;
-    assert_required_manifest_fields(&manifest)?;
-    assert_manifest_hashes(&manifest, path)?;
-    Ok(manifest)
+#[cfg(test)]
+pub(crate) fn parse_and_validate_manifest(path: &Path) -> Result<ImportedAssetManifest, String> {
+    parse_and_validate_asset_manifest(path)
 }
 
 pub(crate) fn parse_and_validate_asset_manifest(
@@ -401,33 +321,7 @@ pub(crate) fn parse_and_validate_asset_manifest(
             format!("解析 artifact manifest JSON 失败: {error}"),
         )
     })?;
-    assert_required_artifact_manifest_fields(&manifest)?;
-    let model_like_manifest = ImportedModelManifest {
-        schema_version: manifest.schema_version.clone(),
-        model_id: manifest.asset_id.clone(),
-        logical_model_id: default_logical_model_id(manifest.asset_id.as_str()),
-        capabilities: vec!["image".to_string()],
-        engine: manifest.engine.clone(),
-        entry: manifest.entry.clone(),
-        files: manifest.files.clone(),
-        license: manifest.license.clone(),
-        source: super::super::types::ImportedModelSource {
-            repo: manifest.source.repo.clone(),
-            revision: manifest.source.revision.clone(),
-        },
-        integrity_mode: manifest.integrity_mode,
-        hashes: manifest.hashes.clone(),
-        artifact_roles: vec!["companion".to_string()],
-        preferred_engine: Some(normalize_local_engine(
-            manifest.engine.as_str(),
-            &["image".to_string()],
-        )),
-        fallback_engines: default_fallback_engines_for_engine(
-            manifest.engine.as_str(),
-            &["image".to_string()],
-        ),
-        engine_config: None,
-    };
-    assert_manifest_hashes(&model_like_manifest, path)?;
+    assert_required_manifest_fields(&manifest)?;
+    assert_manifest_hashes(&manifest, path)?;
     Ok(manifest)
 }

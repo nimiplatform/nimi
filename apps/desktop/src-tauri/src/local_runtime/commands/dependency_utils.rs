@@ -74,31 +74,6 @@ fn profile_entry_is_asset(entry: &LocalAiProfileEntryDescriptor) -> bool {
     entry.kind.trim().eq_ignore_ascii_case("asset")
 }
 
-fn to_profile_asset_plan_entry(
-    entry: &LocalAiProfileEntryDescriptor,
-) -> LocalAiProfileAssetPlanEntry {
-    LocalAiProfileAssetPlanEntry {
-        entry_id: entry.entry_id.clone(),
-        kind: "asset".to_string(),
-        title: entry.title.clone(),
-        description: entry.description.clone(),
-        capability: entry.capability.clone(),
-        required: entry.required,
-        preferred: entry.preferred,
-        asset_id: entry.asset_id.clone(),
-        asset_kind: entry.asset_kind.clone(),
-        engine_slot: entry.engine_slot.clone(),
-        repo: entry.repo.clone(),
-        service_id: entry.service_id.clone(),
-        node_id: entry.node_id.clone(),
-        engine: entry.engine.clone(),
-        template_id: entry.template_id.clone(),
-        revision: entry.revision.clone(),
-        tags: entry.tags.clone(),
-        installed: false,
-    }
-}
-
 fn to_dependency_option_input_from_profile(
     entry: &LocalAiProfileEntryDescriptor,
 ) -> DependencyOptionInput {
@@ -119,7 +94,7 @@ fn to_dependency_option_input_from_profile(
 fn bridge_profile_to_dependency_declaration(
     profile: &LocalAiProfileDescriptor,
     capability_filter: Option<&str>,
-) -> (DependencyDeclarationInput, Vec<LocalAiProfileAssetPlanEntry>) {
+) -> (DependencyDeclarationInput, Vec<LocalAiProfileEntryDescriptor>) {
     let filtered_entries = profile
         .entries
         .iter()
@@ -144,7 +119,7 @@ fn bridge_profile_to_dependency_declaration(
     let asset_entries = filtered_entries
         .iter()
         .filter(|entry| profile_entry_is_asset(entry) && profile_entry_has_engine_slot(entry))
-        .map(to_profile_asset_plan_entry)
+        .cloned()
         .collect::<Vec<_>>();
 
     (

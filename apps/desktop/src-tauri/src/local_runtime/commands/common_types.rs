@@ -1,6 +1,6 @@
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsInstallPayload {
+pub struct LocalAiAssetsInstallPayload {
     pub model_id: String,
     pub repo: String,
     pub revision: Option<String>,
@@ -54,7 +54,7 @@ pub struct LocalAiModelsCatalogResolveInstallPlanPayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsImportFilePayload {
+pub struct LocalAiAssetsImportFilePayload {
     pub file_path: String,
     pub model_name: Option<String>,
     pub capabilities: Vec<String>,
@@ -64,20 +64,20 @@ pub struct LocalAiModelsImportFilePayload {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelIdPayload {
-    pub local_model_id: String,
+pub struct LocalAiAssetIdPayload {
+    pub local_asset_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsHealthPayload {
-    pub local_model_id: Option<String>,
+pub struct LocalAiAssetsHealthPayload {
+    pub local_asset_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct LocalAiModelsHealthResult {
-    pub models: Vec<LocalAiModelHealth>,
+pub struct LocalAiAssetsHealthResult {
+    pub assets: Vec<LocalAiAssetHealth>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -36,7 +36,10 @@ pub fn runtime_local_profiles_apply(
                     continue;
                 }
                 match find_verified_asset(template_id.as_deref().unwrap_or_default()) {
-                    Some(descriptor) => match install_verified_asset_descriptor(&app, &descriptor) {
+                    Some(_descriptor) => match runtime_install_verified_asset_via_runtime(
+                        template_id.as_deref().unwrap_or_default(),
+                        None,
+                    ) {
                         Ok(record) => installed_assets.push(serde_json::to_value(record).unwrap_or_default()),
                         Err(error) => {
                             warnings.push(error.clone());
@@ -81,7 +84,7 @@ pub fn runtime_local_profiles_apply(
                     "modId": result.mod_id.clone(),
                     "profileId": result.profile_id.clone(),
                     "planId": result.plan_id.clone(),
-                    "installedModelCount": result.execution_result.installed_models.len(),
+                    "installedAssetCount": result.execution_result.installed_assets.len(),
                     "serviceCount": result.execution_result.services.len(),
                     "warningCount": result.warnings.len(),
                 })),

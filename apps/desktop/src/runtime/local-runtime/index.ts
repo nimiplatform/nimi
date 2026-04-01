@@ -38,7 +38,6 @@ import {
   removeLocalRuntimeAsset,
   startLocalRuntimeAsset,
   stopLocalRuntimeAsset,
-  scanLocalRuntimeOrphanAssets,
   scanLocalRuntimeUnregisteredAssets,
   scaffoldLocalRuntimeOrphanAsset,
   resolveLocalRuntimeProfile,
@@ -62,6 +61,7 @@ import type {
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileEntryOverride,
   LocalRuntimeProfileInstallRequest,
   LocalRuntimeProfileInstallRequestResult,
   LocalRuntimeProfileInstallStatus,
@@ -100,10 +100,8 @@ import type {
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
   LocalRuntimeInferenceAuditPayload,
-  OrphanAssetFile,
   LocalRuntimeScaffoldAssetPayload,
   LocalRuntimeScaffoldAssetResult,
-  LocalRuntimeScanOrphansPayload,
   LocalRuntimeScaffoldOrphanPayload,
 } from './types';
 import {
@@ -139,6 +137,7 @@ export type {
   LocalRuntimeProfileApplyResult,
   LocalRuntimeProfileDescriptor,
   LocalRuntimeProfileEntryDescriptor,
+  LocalRuntimeProfileEntryOverride,
   LocalRuntimeProfileInstallRequest,
   LocalRuntimeProfileInstallRequestResult,
   LocalRuntimeProfileInstallStatus,
@@ -178,10 +177,8 @@ export type {
   LocalRuntimeWriteOptions,
   LocalRuntimeListAssetsPayload,
   LocalRuntimeListVerifiedAssetsPayload,
-  OrphanAssetFile,
   LocalRuntimeScaffoldAssetPayload,
   LocalRuntimeScaffoldAssetResult,
-  LocalRuntimeScanOrphansPayload,
   LocalRuntimeScaffoldOrphanPayload,
 };
 
@@ -277,7 +274,6 @@ export type LocalRuntimeFacade = {
   ) => Promise<() => void>;
   revealInFolder: (localAssetId: string) => Promise<void>;
   revealRootFolder: () => Promise<void>;
-  scanOrphanAssets: (payload?: LocalRuntimeScanOrphansPayload) => Promise<OrphanAssetFile[]>;
   scaffoldOrphanAsset: (
     payload: LocalRuntimeScaffoldOrphanPayload,
     options?: LocalRuntimeWriteOptions,
@@ -334,7 +330,6 @@ export const localRuntime: LocalRuntimeFacade = {
   subscribeDownloadProgress: subscribeLocalRuntimeDownloadProgress,
   revealInFolder: revealLocalRuntimeAssetInFolder,
   revealRootFolder: revealLocalRuntimeAssetsRootFolder,
-  scanOrphanAssets: scanLocalRuntimeOrphanAssets,
   scaffoldOrphanAsset: scaffoldLocalRuntimeOrphanAsset,
   scanUnregisteredAssets: scanLocalRuntimeUnregisteredAssets,
   importAssetFile: importLocalRuntimeAssetFileUnified,

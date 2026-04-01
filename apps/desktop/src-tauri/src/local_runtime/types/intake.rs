@@ -3,18 +3,6 @@ use serde::{Deserialize, Serialize};
 use super::LocalAiAssetKind;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
-pub enum LocalAiModelType {
-    Chat,
-    Embedding,
-    Image,
-    Video,
-    Tts,
-    Stt,
-    Music,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum LocalAiSuggestionSource {
     Manifest,

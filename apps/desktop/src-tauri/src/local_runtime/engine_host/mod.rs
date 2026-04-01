@@ -1,6 +1,6 @@
 use super::engine_pack::{ensure_llama_cpp_binary, resolve_existing_llama_cpp_binary};
 use super::types::{
-    resolved_model_dir, LocalAiModelHealth, LocalAiModelRecord, LocalAiModelStatus,
+    resolved_model_dir, LocalAiAssetHealth, LocalAiAssetRecord, LocalAiAssetStatus,
 };
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -19,7 +19,7 @@ use self::qwen::QwenTtsPythonAdapter;
 pub struct EngineHealthResult {
     pub healthy: bool,
     pub detail: String,
-    pub status: LocalAiModelStatus,
+    pub status: LocalAiAssetStatus,
 }
 
 const LLAMA_CPP_START_TIMEOUT_MS_DEFAULT: u64 = 45_000;
@@ -33,9 +33,9 @@ const QWEN_TTS_GATEWAY_TEMPLATE: &str = include_str!("../qwen_tts_server_templat
 const QWEN_TTS_VENV_DIR_NAME: &str = "qwen-tts-python";
 
 trait EngineAdapter {
-    fn start(&self, model: &LocalAiModelRecord) -> EngineHealthResult;
-    fn stop(&self, model: &LocalAiModelRecord) -> EngineHealthResult;
-    fn health(&self, model: &LocalAiModelRecord) -> EngineHealthResult;
+    fn start(&self, model: &LocalAiAssetRecord) -> EngineHealthResult;
+    fn stop(&self, model: &LocalAiAssetRecord) -> EngineHealthResult;
+    fn health(&self, model: &LocalAiAssetRecord) -> EngineHealthResult;
 }
 
 fn normalize_engine(value: &str) -> String {
@@ -90,20 +90,20 @@ impl OpenAiCompatibleAdapter {
         }
     }
 
-    fn endpoint_health(model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn endpoint_health(model: &LocalAiAssetRecord) -> EngineHealthResult {
         let endpoint = model.endpoint.trim();
         let probe_result = Self::probe_endpoint(endpoint);
         if let Err(error) = probe_result {
             return EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             };
         }
-        let status = if model.status == LocalAiModelStatus::Active {
-            LocalAiModelStatus::Active
+        let status = if model.status == LocalAiAssetStatus::Active {
+            LocalAiAssetStatus::Active
         } else {
-            LocalAiModelStatus::Installed
+            LocalAiAssetStatus::Installed
         };
         EngineHealthResult {
             healthy: true,
@@ -114,38 +114,38 @@ impl OpenAiCompatibleAdapter {
 }
 
 impl EngineAdapter for OpenAiCompatibleAdapter {
-    fn start(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn start(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         let endpoint = model.endpoint.trim();
         let probe_result = Self::probe_endpoint(endpoint);
         if let Err(error) = probe_result {
             return EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             };
         }
         EngineHealthResult {
             healthy: true,
             detail: format!("openai-compatible endpoint ready: {endpoint}"),
-            status: LocalAiModelStatus::Active,
+            status: LocalAiAssetStatus::Active,
         }
     }
 
-    fn stop(&self, _model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn stop(&self, _model: &LocalAiAssetRecord) -> EngineHealthResult {
         EngineHealthResult {
             healthy: true,
             detail: "openai-compatible endpoint stop requested".to_string(),
-            status: LocalAiModelStatus::Installed,
+            status: LocalAiAssetStatus::Installed,
         }
     }
 
-    fn health(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn health(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         Self::endpoint_health(model)
     }
 }
 
 static LLAMA_CPP_PROCESS_REGISTRY: OnceLock<Mutex<HashMap<String, Child>>> = OnceLock::new();
-static LLAMA_CPP_MODEL_OP_LOCKS: OnceLock<Mutex<HashMap<String, Arc<Mutex<()>>>>> = OnceLock::new();
+static LLAMA_CPP_ASSET_OP_LOCKS: OnceLock<Mutex<HashMap<String, Arc<Mutex<()>>>>> = OnceLock::new();
 static QWEN_TTS_PROCESS_REGISTRY: OnceLock<Mutex<HashMap<String, Child>>> = OnceLock::new();
 
 fn process_registry() -> &'static Mutex<HashMap<String, Child>> {
@@ -156,27 +156,27 @@ fn qwen_process_registry() -> &'static Mutex<HashMap<String, Child>> {
     QWEN_TTS_PROCESS_REGISTRY.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn model_operation_locks() -> &'static Mutex<HashMap<String, Arc<Mutex<()>>>> {
-    LLAMA_CPP_MODEL_OP_LOCKS.get_or_init(|| Mutex::new(HashMap::new()))
+fn asset_operation_locks() -> &'static Mutex<HashMap<String, Arc<Mutex<()>>>> {
+    LLAMA_CPP_ASSET_OP_LOCKS.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-fn with_model_operation_lock<T>(
-    local_model_id: &str,
+fn with_asset_operation_lock<T>(
+    local_asset_id: &str,
     task: impl FnOnce() -> Result<T, String>,
 ) -> Result<T, String> {
-    let model_key = local_model_id.trim().to_string();
-    let model_lock = {
-        let mut locks = model_operation_locks()
+    let asset_key = local_asset_id.trim().to_string();
+    let asset_lock = {
+        let mut locks = asset_operation_locks()
             .lock()
-            .map_err(|_| "local-ai model lock registry lock poisoned".to_string())?;
+            .map_err(|_| "local-ai asset lock registry lock poisoned".to_string())?;
         locks
-            .entry(model_key.clone())
+            .entry(asset_key.clone())
             .or_insert_with(|| Arc::new(Mutex::new(())))
             .clone()
     };
-    let _guard = model_lock
+    let _guard = asset_lock
         .lock()
-        .map_err(|_| format!("local-ai model operation lock poisoned: {model_key}"))?;
+        .map_err(|_| format!("local-ai asset operation lock poisoned: {asset_key}"))?;
     task()
 }
 
@@ -197,7 +197,7 @@ impl LlamaCppProcessAdapter {
         Ok(PathBuf::from(value))
     }
 
-    fn model_entry_path(model: &LocalAiModelRecord) -> Result<PathBuf, String> {
+    fn runnable_asset_entry_path(model: &LocalAiAssetRecord) -> Result<PathBuf, String> {
         let entry = model.entry.trim();
         if entry.is_empty() {
             return Err(
@@ -226,11 +226,15 @@ impl LlamaCppProcessAdapter {
         Ok((host.to_string(), port))
     }
 
-    fn start_args(model: &LocalAiModelRecord) -> Result<Vec<String>, String> {
+    fn start_args(model: &LocalAiAssetRecord) -> Result<Vec<String>, String> {
         let mut args = Self::parse_extra_args();
         if !args.iter().any(|item| item == "--model") {
             args.push("--model".to_string());
-            args.push(Self::model_entry_path(model)?.to_string_lossy().to_string());
+            args.push(
+                Self::runnable_asset_entry_path(model)?
+                    .to_string_lossy()
+                    .to_string(),
+            );
         }
         if !args.iter().any(|item| item == "--host") || !args.iter().any(|item| item == "--port") {
             let (host, port) = Self::parse_endpoint_bind(model.endpoint.as_str())?;
@@ -409,8 +413,8 @@ impl LlamaCppProcessAdapter {
         let _ = child.wait();
     }
 
-    fn start_process(model: &LocalAiModelRecord) -> Result<(), String> {
-        with_model_operation_lock(model.local_model_id.as_str(), || {
+    fn start_process(model: &LocalAiAssetRecord) -> Result<(), String> {
+        with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let binary = Self::resolve_binary_path()?;
             if !Path::new(&binary).exists() {
                 return Err(format!("llama.cpp binary not found: {binary}"));
@@ -428,7 +432,7 @@ impl LlamaCppProcessAdapter {
             let mut registry = process_registry()
                 .lock()
                 .map_err(|_| "llama.cpp process registry lock poisoned".to_string())?;
-            registry.insert(model.local_model_id.clone(), child);
+            registry.insert(model.local_asset_id.clone(), child);
             drop(registry);
 
             if let Err(error) =
@@ -437,7 +441,7 @@ impl LlamaCppProcessAdapter {
                 let mut registry = process_registry()
                     .lock()
                     .map_err(|_| "llama.cpp process registry lock poisoned".to_string())?;
-                if let Some(mut child) = registry.remove(&model.local_model_id) {
+                if let Some(mut child) = registry.remove(&model.local_asset_id) {
                     Self::shutdown_child_process(&mut child, Self::stop_grace_timeout());
                 }
                 return Err(error);
@@ -447,20 +451,20 @@ impl LlamaCppProcessAdapter {
         })
     }
 
-    fn process_running(model: &LocalAiModelRecord) -> Result<bool, String> {
-        with_model_operation_lock(model.local_model_id.as_str(), || {
+    fn process_running(model: &LocalAiAssetRecord) -> Result<bool, String> {
+        with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let mut registry = process_registry()
                 .lock()
                 .map_err(|_| "llama.cpp process registry lock poisoned".to_string())?;
-            if let Some(child) = registry.get_mut(&model.local_model_id) {
+            if let Some(child) = registry.get_mut(&model.local_asset_id) {
                 match child.try_wait() {
                     Ok(None) => return Ok(true),
                     Ok(Some(_)) => {
-                        registry.remove(&model.local_model_id);
+                        registry.remove(&model.local_asset_id);
                         return Ok(false);
                     }
                     Err(error) => {
-                        registry.remove(&model.local_model_id);
+                        registry.remove(&model.local_asset_id);
                         return Err(format!("llama.cpp process check failed: {error}"));
                     }
                 }
@@ -469,12 +473,12 @@ impl LlamaCppProcessAdapter {
         })
     }
 
-    fn stop_process(model: &LocalAiModelRecord) -> Result<bool, String> {
-        with_model_operation_lock(model.local_model_id.as_str(), || {
+    fn stop_process(model: &LocalAiAssetRecord) -> Result<bool, String> {
+        with_asset_operation_lock(model.local_asset_id.as_str(), || {
             let mut registry = process_registry()
                 .lock()
                 .map_err(|_| "llama.cpp process registry lock poisoned".to_string())?;
-            let mut child = match registry.remove(&model.local_model_id) {
+            let mut child = match registry.remove(&model.local_asset_id) {
                 Some(value) => value,
                 None => return Ok(false),
             };
@@ -485,14 +489,14 @@ impl LlamaCppProcessAdapter {
 }
 
 impl EngineAdapter for LlamaCppProcessAdapter {
-    fn start(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn start(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         let binary = match Self::resolve_binary_path() {
             Ok(value) => value,
             Err(error) => {
                 return EngineHealthResult {
                     healthy: false,
                     detail: error,
-                    status: LocalAiModelStatus::Unhealthy,
+                    status: LocalAiAssetStatus::Unhealthy,
                 }
             }
         };
@@ -500,7 +504,7 @@ impl EngineAdapter for LlamaCppProcessAdapter {
             return EngineHealthResult {
                 healthy: false,
                 detail: format!("llama.cpp binary not found: {binary}"),
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             };
         }
 
@@ -509,55 +513,55 @@ impl EngineAdapter for LlamaCppProcessAdapter {
                 Ok(()) => EngineHealthResult {
                     healthy: true,
                     detail: format!("llama.cpp already running: {binary}"),
-                    status: LocalAiModelStatus::Active,
+                    status: LocalAiAssetStatus::Active,
                 },
                 Err(error) => EngineHealthResult {
                     healthy: false,
                     detail: error,
-                    status: LocalAiModelStatus::Unhealthy,
+                    status: LocalAiAssetStatus::Unhealthy,
                 },
             },
             Ok(false) => match Self::start_process(model) {
                 Ok(()) => EngineHealthResult {
                     healthy: true,
                     detail: format!("llama.cpp started: {binary}"),
-                    status: LocalAiModelStatus::Active,
+                    status: LocalAiAssetStatus::Active,
                 },
                 Err(error) => EngineHealthResult {
                     healthy: false,
                     detail: error,
-                    status: LocalAiModelStatus::Unhealthy,
+                    status: LocalAiAssetStatus::Unhealthy,
                 },
             },
             Err(error) => EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             },
         }
     }
 
-    fn stop(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn stop(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         match Self::stop_process(model) {
             Ok(true) => EngineHealthResult {
                 healthy: true,
                 detail: "llama.cpp stop requested".to_string(),
-                status: LocalAiModelStatus::Installed,
+                status: LocalAiAssetStatus::Installed,
             },
             Ok(false) => EngineHealthResult {
                 healthy: true,
                 detail: "llama.cpp process not running".to_string(),
-                status: LocalAiModelStatus::Installed,
+                status: LocalAiAssetStatus::Installed,
             },
             Err(error) => EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             },
         }
     }
 
-    fn health(&self, model: &LocalAiModelRecord) -> EngineHealthResult {
+    fn health(&self, model: &LocalAiAssetRecord) -> EngineHealthResult {
         match Self::process_running(model) {
             Ok(true) => match Self::probe_endpoint(model.endpoint.as_str()) {
                 Ok(()) => {
@@ -569,39 +573,39 @@ impl EngineAdapter for LlamaCppProcessAdapter {
                     EngineHealthResult {
                         healthy: true,
                         detail,
-                        status: LocalAiModelStatus::Active,
+                        status: LocalAiAssetStatus::Active,
                     }
                 }
                 Err(error) => EngineHealthResult {
                     healthy: false,
                     detail: error,
-                    status: LocalAiModelStatus::Unhealthy,
+                    status: LocalAiAssetStatus::Unhealthy,
                 },
             },
             Ok(false) => {
-                if model.status == LocalAiModelStatus::Active {
+                if model.status == LocalAiAssetStatus::Active {
                     EngineHealthResult {
                         healthy: false,
                         detail: "llama.cpp process exited unexpectedly".to_string(),
-                        status: LocalAiModelStatus::Unhealthy,
+                        status: LocalAiAssetStatus::Unhealthy,
                     }
                 } else {
                     match Self::resolve_existing_binary_path() {
                         Ok(Some(binary)) => EngineHealthResult {
                             healthy: true,
                             detail: format!("llama.cpp ready (not started): {binary}"),
-                            status: LocalAiModelStatus::Installed,
+                            status: LocalAiAssetStatus::Installed,
                         },
                         Ok(None) => EngineHealthResult {
                             healthy: true,
                             detail: "llama.cpp engine pack missing; start required to bootstrap"
                                 .to_string(),
-                            status: LocalAiModelStatus::Installed,
+                            status: LocalAiAssetStatus::Installed,
                         },
                         Err(error) => EngineHealthResult {
                             healthy: false,
                             detail: error,
-                            status: LocalAiModelStatus::Unhealthy,
+                            status: LocalAiAssetStatus::Unhealthy,
                         },
                     }
                 }
@@ -609,13 +613,13 @@ impl EngineAdapter for LlamaCppProcessAdapter {
             Err(error) => EngineHealthResult {
                 healthy: false,
                 detail: error,
-                status: LocalAiModelStatus::Unhealthy,
+                status: LocalAiAssetStatus::Unhealthy,
             },
         }
     }
 }
 
-fn adapter_for(model: &LocalAiModelRecord) -> Box<dyn EngineAdapter + Send + Sync> {
+fn adapter_for(model: &LocalAiAssetRecord) -> Box<dyn EngineAdapter + Send + Sync> {
     let engine = normalize_engine(&model.engine);
     if is_supervised_llama_engine(engine.as_str()) {
         return Box::new(LlamaCppProcessAdapter);
@@ -626,7 +630,7 @@ fn adapter_for(model: &LocalAiModelRecord) -> Box<dyn EngineAdapter + Send + Syn
     Box::new(OpenAiCompatibleAdapter)
 }
 
-pub fn restart_engine(model: &LocalAiModelRecord) -> EngineHealthResult {
+pub fn restart_engine(model: &LocalAiAssetRecord) -> EngineHealthResult {
     let adapter = adapter_for(model);
     let stop_result = adapter.stop(model);
     if !stop_result.healthy {
@@ -635,18 +639,18 @@ pub fn restart_engine(model: &LocalAiModelRecord) -> EngineHealthResult {
     adapter.start(model)
 }
 
-pub fn start_engine(model: &LocalAiModelRecord) -> EngineHealthResult {
+pub fn start_engine(model: &LocalAiAssetRecord) -> EngineHealthResult {
     adapter_for(model).start(model)
 }
 
-pub fn stop_engine(model: &LocalAiModelRecord) -> EngineHealthResult {
+pub fn stop_engine(model: &LocalAiAssetRecord) -> EngineHealthResult {
     adapter_for(model).stop(model)
 }
 
-pub fn check_engine_health(model: &LocalAiModelRecord) -> LocalAiModelHealth {
+pub fn check_engine_health(model: &LocalAiAssetRecord) -> LocalAiAssetHealth {
     let outcome = adapter_for(model).health(model);
-    LocalAiModelHealth {
-        local_model_id: model.local_model_id.clone(),
+    LocalAiAssetHealth {
+        local_asset_id: model.local_asset_id.clone(),
         status: outcome.status,
         detail: outcome.detail,
         endpoint: model.endpoint.clone(),
@@ -660,7 +664,7 @@ mod tests {
         start_engine, LlamaCppProcessAdapter,
     };
     use crate::local_runtime::types::{
-        LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
+        LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus, LocalAiIntegrityMode,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -668,17 +672,18 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
 
-    fn model_fixture(engine: &str, status: LocalAiModelStatus) -> LocalAiModelRecord {
-        LocalAiModelRecord {
-            local_model_id: "local:test-model".to_string(),
-            model_id: "hf:test/model".to_string(),
+    fn model_fixture(engine: &str, status: LocalAiAssetStatus) -> LocalAiAssetRecord {
+        LocalAiAssetRecord {
+            local_asset_id: "local:test-model".to_string(),
+            asset_id: "hf:test/model".to_string(),
+            kind: super::super::types::LocalAiAssetKind::Chat,
             logical_model_id: "nimi/test-model".to_string(),
             capabilities: vec!["chat".to_string()],
             engine: engine.to_string(),
             entry: "model.gguf".to_string(),
             files: vec!["model.gguf".to_string()],
             license: "apache-2.0".to_string(),
-            source: LocalAiModelSource {
+            source: LocalAiAssetSource {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
@@ -696,6 +701,7 @@ mod tests {
             fallback_engines: Vec::new(),
             engine_config: None,
             recommendation: None,
+            metadata: None,
         }
     }
 
@@ -742,17 +748,17 @@ mod tests {
         let _guard = env_lock().lock().expect("lock env");
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
-        let model = model_fixture("llama-cpp", LocalAiModelStatus::Installed);
+        let model = model_fixture("llama-cpp", LocalAiAssetStatus::Installed);
         let started = start_engine(&model);
         assert!(!started.healthy);
-        assert_eq!(started.status, LocalAiModelStatus::Unhealthy);
+        assert_eq!(started.status, LocalAiAssetStatus::Unhealthy);
         assert!(
             started.detail.contains("LOCAL_AI_ENGINE_PACK")
                 || started.detail.to_ascii_lowercase().contains("llama.cpp")
         );
 
         let health = check_engine_health(&model);
-        assert_eq!(health.status, LocalAiModelStatus::Installed);
+        assert_eq!(health.status, LocalAiAssetStatus::Installed);
         assert!(
             health.detail.contains("start required")
                 || health.detail.to_ascii_lowercase().contains("llama.cpp")
@@ -772,9 +778,9 @@ mod tests {
         let _guard = env_lock().lock().expect("lock env");
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
-        let model = model_fixture("llama", LocalAiModelStatus::Installed);
+        let model = model_fixture("llama", LocalAiAssetStatus::Installed);
         let health = check_engine_health(&model);
-        assert_eq!(health.status, LocalAiModelStatus::Installed);
+        assert_eq!(health.status, LocalAiAssetStatus::Installed);
         assert!(health.detail.contains("start required") || health.detail.contains("not started"));
     }
 
@@ -783,9 +789,9 @@ mod tests {
         let _guard = env_lock().lock().expect("lock env");
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
         std::env::remove_var("NIMI_LOCAL_AI_RUNTIME_ROOT");
-        let model = model_fixture("llama", LocalAiModelStatus::Unhealthy);
+        let model = model_fixture("llama", LocalAiAssetStatus::Unhealthy);
         let health = check_engine_health(&model);
-        assert_eq!(health.status, LocalAiModelStatus::Installed);
+        assert_eq!(health.status, LocalAiAssetStatus::Installed);
     }
 
     #[test]
@@ -815,9 +821,9 @@ mod tests {
         )
         .expect("write invalid bundle manifest");
 
-        let model = model_fixture("llama", LocalAiModelStatus::Installed);
+        let model = model_fixture("llama", LocalAiAssetStatus::Installed);
         let health = check_engine_health(&model);
-        assert_eq!(health.status, LocalAiModelStatus::Unhealthy);
+        assert_eq!(health.status, LocalAiAssetStatus::Unhealthy);
         assert!(health
             .detail
             .contains("LOCAL_AI_ENGINE_PACK_BUNDLE_INVALID"));
@@ -834,7 +840,7 @@ mod tests {
             "NIMI_LOCAL_AI_MODELS_DIR",
             models_root.display().to_string(),
         );
-        let model = model_fixture("llama", LocalAiModelStatus::Installed);
+        let model = model_fixture("llama", LocalAiAssetStatus::Installed);
 
         let args = LlamaCppProcessAdapter::start_args(&model).expect("build llama start args");
         let expected_model_path = crate::local_runtime::types::resolved_model_dir(
@@ -868,19 +874,19 @@ mod tests {
     #[test]
     fn canonical_llama_active_without_running_process_is_unhealthy() {
         std::env::remove_var("NIMI_LLAMA_CPP_BIN");
-        let model = model_fixture("llama", LocalAiModelStatus::Active);
+        let model = model_fixture("llama", LocalAiAssetStatus::Active);
         let health = check_engine_health(&model);
-        assert_eq!(health.status, LocalAiModelStatus::Unhealthy);
+        assert_eq!(health.status, LocalAiAssetStatus::Unhealthy);
         assert!(health.detail.contains("exited unexpectedly"));
     }
 
     #[test]
     fn openai_compatible_engine_reports_unhealthy_when_endpoint_unreachable() {
-        let mut model = model_fixture("openai-compatible", LocalAiModelStatus::Installed);
+        let mut model = model_fixture("openai-compatible", LocalAiAssetStatus::Installed);
         model.endpoint = unreachable_endpoint_fixture();
         let started = start_engine(&model);
         assert!(!started.healthy);
-        assert_eq!(started.status, LocalAiModelStatus::Unhealthy);
+        assert_eq!(started.status, LocalAiAssetStatus::Unhealthy);
         assert!(started
             .detail
             .contains("LOCAL_AI_OPENAI_ENDPOINT_UNREACHABLE"));

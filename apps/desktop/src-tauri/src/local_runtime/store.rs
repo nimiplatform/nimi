@@ -8,8 +8,8 @@ use std::sync::{Mutex, OnceLock};
 use tauri::AppHandle;
 
 use super::types::{
-    default_logical_model_id, LocalAiDownloadSessionRecord, LocalAiDownloadState,
-    LocalAiRuntimeState,
+    default_logical_model_id, is_runnable_asset_kind, LocalAiDownloadSessionRecord,
+    LocalAiDownloadState, LocalAiRuntimeState,
 };
 
 const LOCAL_AI_RUNTIME_MODELS_DIR: &str = "models";
@@ -55,9 +55,9 @@ fn load_state_from_path(path: &Path) -> Result<LocalAiRuntimeState, String> {
         )
     })?;
     sanitize_legacy_runtime_state(&mut parsed);
-    for model in &mut parsed.models {
-        if model.logical_model_id.is_empty() {
-            model.logical_model_id = default_logical_model_id(&model.model_id);
+    for asset in &mut parsed.assets {
+        if is_runnable_asset_kind(&asset.kind) && asset.logical_model_id.is_empty() {
+            asset.logical_model_id = default_logical_model_id(&asset.asset_id);
         }
     }
     Ok(parsed)
@@ -76,22 +76,24 @@ fn is_legacy_local_runtime_value(value: &str) -> bool {
 
 fn rebuild_capability_index(state: &mut LocalAiRuntimeState) {
     let mut index = HashMap::<String, Vec<String>>::new();
-    for model in &state.models {
-        if model.status == super::types::LocalAiModelStatus::Removed {
+    for asset in &state.assets {
+        if !is_runnable_asset_kind(&asset.kind)
+            || asset.status == super::types::LocalAiAssetStatus::Removed
+        {
             continue;
         }
-        let local_model_id = model.local_model_id.trim();
-        if local_model_id.is_empty() {
+        let local_asset_id = asset.local_asset_id.trim();
+        if local_asset_id.is_empty() {
             continue;
         }
-        for capability in &model.capabilities {
+        for capability in &asset.capabilities {
             let normalized = capability.trim().to_ascii_lowercase();
             if normalized.is_empty() {
                 continue;
             }
             let bucket = index.entry(normalized).or_default();
-            if !bucket.iter().any(|item| item == local_model_id) {
-                bucket.push(local_model_id.to_string());
+            if !bucket.iter().any(|item| item == local_asset_id) {
+                bucket.push(local_asset_id.to_string());
             }
         }
     }
@@ -99,22 +101,17 @@ fn rebuild_capability_index(state: &mut LocalAiRuntimeState) {
 }
 
 fn sanitize_legacy_runtime_state(state: &mut LocalAiRuntimeState) {
-    state.models.retain(|model| {
-        !is_legacy_local_runtime_value(model.engine.as_str())
-            && !is_legacy_local_runtime_value(model.model_id.as_str())
-            && !model
+    state.assets.retain(|asset| {
+        !is_legacy_local_runtime_value(asset.engine.as_str())
+            && !is_legacy_local_runtime_value(asset.asset_id.as_str())
+            && !asset
                 .preferred_engine
                 .as_deref()
                 .is_some_and(is_legacy_local_runtime_value)
-            && !model
+            && !asset
                 .fallback_engines
                 .iter()
                 .any(|engine| is_legacy_local_runtime_value(engine.as_str()))
-    });
-
-    state.artifacts.retain(|asset| {
-        !is_legacy_local_runtime_value(asset.engine.as_str())
-            && !is_legacy_local_runtime_value(asset.asset_id.as_str())
     });
 
     state.services.retain(|service| {
@@ -310,8 +307,7 @@ mod tests {
     use crate::local_runtime::types::{
         LocalAiAssetKind, LocalAiAssetRecord, LocalAiAssetSource, LocalAiAssetStatus,
         LocalAiDownloadSessionRecord, LocalAiDownloadState, LocalAiInstallRequest,
-        LocalAiIntegrityMode, LocalAiModelRecord, LocalAiModelSource, LocalAiModelStatus,
-        LocalAiRuntimeState, LocalAiTransferSessionKind,
+        LocalAiIntegrityMode, LocalAiRuntimeState, LocalAiTransferSessionKind,
     };
     use std::collections::HashMap;
     use std::fs;
@@ -329,17 +325,18 @@ mod tests {
         path
     }
 
-    fn model_fixture(local_model_id: &str) -> LocalAiModelRecord {
-        LocalAiModelRecord {
-            local_model_id: local_model_id.to_string(),
-            model_id: format!("hf:test/{local_model_id}"),
-            logical_model_id: format!("nimi/{local_model_id}"),
+    fn model_fixture(local_asset_id: &str) -> LocalAiAssetRecord {
+        LocalAiAssetRecord {
+            local_asset_id: local_asset_id.to_string(),
+            asset_id: format!("hf:test/{local_asset_id}"),
+            kind: LocalAiAssetKind::Chat,
+            logical_model_id: format!("nimi/{local_asset_id}"),
             capabilities: vec!["chat".to_string()],
             engine: "llama".to_string(),
             entry: "model.gguf".to_string(),
             files: vec!["model.gguf".to_string()],
             license: "apache-2.0".to_string(),
-            source: LocalAiModelSource {
+            source: LocalAiAssetSource {
                 repo: "hf://test/model".to_string(),
                 revision: "main".to_string(),
             },
@@ -348,7 +345,7 @@ mod tests {
             tags: Vec::new(),
             known_total_size_bytes: Some(1_024),
             endpoint: "http://127.0.0.1:1234/v1".to_string(),
-            status: LocalAiModelStatus::Installed,
+            status: LocalAiAssetStatus::Installed,
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
@@ -357,6 +354,7 @@ mod tests {
             fallback_engines: Vec::new(),
             engine_config: None,
             recommendation: None,
+            metadata: None,
         }
     }
 
@@ -365,6 +363,8 @@ mod tests {
             local_asset_id: local_asset_id.to_string(),
             asset_id: format!("local:test/{local_asset_id}"),
             kind: LocalAiAssetKind::Vae,
+            logical_model_id: String::new(),
+            capabilities: Vec::new(),
             engine: "media".to_string(),
             entry: "vae.safetensors".to_string(),
             files: vec!["vae.safetensors".to_string()],
@@ -374,14 +374,19 @@ mod tests {
                 revision: "main".to_string(),
             },
             integrity_mode: Some(LocalAiIntegrityMode::Verified),
-            hashes: HashMap::from([(
-                "vae.safetensors".to_string(),
-                "sha256:def".to_string(),
-            )]),
+            hashes: HashMap::from([("vae.safetensors".to_string(), "sha256:def".to_string())]),
+            tags: Vec::new(),
+            known_total_size_bytes: None,
+            endpoint: String::new(),
             status: LocalAiAssetStatus::Installed,
             installed_at: "2026-01-01T00:00:00.000Z".to_string(),
             updated_at: "2026-01-01T00:00:00.000Z".to_string(),
             health_detail: None,
+            artifact_roles: Vec::new(),
+            preferred_engine: None,
+            fallback_engines: Vec::new(),
+            engine_config: None,
+            recommendation: None,
             metadata: Some(serde_json::json!({
                 "slot": "vae_path",
             })),
@@ -438,8 +443,7 @@ mod tests {
         let state_path = temp.join("state.json");
         let state = LocalAiRuntimeState {
             version: 11,
-            models: vec![model_fixture("model-a"), model_fixture("model-b")],
-            artifacts: Vec::new(),
+            assets: vec![model_fixture("model-a"), model_fixture("model-b")],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -449,9 +453,9 @@ mod tests {
         save_state_to_path(&state_path, &state).expect("save state");
         let loaded = load_state_from_path(&state_path).expect("load state");
         assert_eq!(loaded.version, state.version);
-        assert_eq!(loaded.models.len(), 2);
-        assert_eq!(loaded.models[0].local_model_id, "model-a");
-        assert_eq!(loaded.models[1].local_model_id, "model-b");
+        assert_eq!(loaded.assets.len(), 2);
+        assert_eq!(loaded.assets[0].local_asset_id, "model-a");
+        assert_eq!(loaded.assets[1].local_asset_id, "model-b");
         let _ = fs::remove_dir_all(&temp);
     }
 
@@ -461,8 +465,7 @@ mod tests {
         let state_path = temp.join("state.json");
         let state = LocalAiRuntimeState {
             version: 11,
-            models: vec![model_fixture("model-a")],
-            artifacts: vec![asset_fixture("asset-a")],
+            assets: vec![model_fixture("model-a"), asset_fixture("asset-a")],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -481,10 +484,11 @@ mod tests {
             .and_then(|value| value.as_array())
             .expect("assets array");
         assert_eq!(assets.len(), 2);
-        assert_eq!(assets[0]["assetRecordType"], "runnable");
         assert_eq!(assets[0]["localAssetId"], "model-a");
-        assert_eq!(assets[1]["assetRecordType"], "passive");
+        assert_eq!(assets[0]["kind"], "chat");
+        assert_eq!(assets[0]["logicalModelId"], "nimi/model-a");
         assert_eq!(assets[1]["localAssetId"], "asset-a");
+        assert_eq!(assets[1]["kind"], "vae");
 
         let _ = fs::remove_dir_all(&temp);
     }
@@ -506,7 +510,7 @@ mod tests {
         let state_path = temp.join("nonexistent.json");
         let state = load_state_from_path(&state_path).expect("default state");
         assert_eq!(state.version, LocalAiRuntimeState::default().version);
-        assert!(state.models.is_empty());
+        assert!(state.assets.is_empty());
         let _ = fs::remove_dir_all(&temp);
     }
 
@@ -521,32 +525,41 @@ mod tests {
     }
 
     #[test]
-    fn load_state_prunes_legacy_runtime_records() {
-        let temp = unique_temp_dir("legacy-prune");
+    fn load_state_rejects_legacy_models_artifacts_payload() {
+        let temp = unique_temp_dir("legacy-reject");
         let state_path = temp.join("state.json");
-        let mut legacy_model = model_fixture("legacy-model");
-        legacy_model.model_id = "local/z_image_turbo".to_string();
-        legacy_model.engine = "localai".to_string();
-        legacy_model.preferred_engine = Some("localai".to_string());
-        let state = LocalAiRuntimeState {
-            version: 11,
-            models: vec![legacy_model],
-            artifacts: Vec::new(),
-            capability_index: HashMap::from([(
-                "image".to_string(),
-                vec!["legacy-model".to_string()],
-            )]),
-            capability_matrix: Vec::new(),
-            services: Vec::new(),
-            downloads: Vec::new(),
-            audits: Vec::new(),
-        };
-        save_state_to_path(&state_path, &state).expect("save state");
+        fs::write(
+            &state_path,
+            serde_json::json!({
+                "version": 11,
+                "models": [{
+                    "localModelId": "legacy-model",
+                    "modelId": "local/z_image_turbo",
+                    "logicalModelId": "nimi/legacy-model",
+                    "capabilities": ["image"],
+                    "engine": "localai",
+                    "entry": "model.gguf",
+                    "files": ["model.gguf"],
+                    "license": "apache-2.0",
+                    "source": {
+                        "repo": "hf://test/model",
+                        "revision": "main"
+                    },
+                    "hashes": {
+                        "model.gguf": "sha256:abc"
+                    },
+                    "status": "installed",
+                    "installedAt": "2026-01-01T00:00:00.000Z",
+                    "updatedAt": "2026-01-01T00:00:00.000Z"
+                }],
+                "artifacts": []
+            })
+            .to_string(),
+        )
+        .expect("write legacy state");
 
-        let loaded = load_state_from_path(&state_path).expect("load state");
-
-        assert!(loaded.models.is_empty());
-        assert!(loaded.capability_index.is_empty());
+        let error = load_state_from_path(&state_path).expect_err("legacy state should fail");
+        assert!(error.contains("LOCAL_AI_LEGACY_RUNTIME_STATE_UNSUPPORTED"));
         let _ = fs::remove_dir_all(&temp);
     }
 
@@ -560,10 +573,9 @@ mod tests {
                 "version": 11,
                 "assets": [
                     {
-                        "assetRecordType": "runnable",
                         "localAssetId": "model-a",
                         "assetId": "hf:test/model-a",
-                        "modelType": "chat",
+                        "kind": "chat",
                         "logicalModelId": "nimi/model-a",
                         "capabilities": ["chat"],
                         "engine": "llama",
@@ -584,12 +596,11 @@ mod tests {
                         "status": "installed",
                         "installedAt": "2026-01-01T00:00:00.000Z",
                         "updatedAt": "2026-01-01T00:00:00.000Z",
-                        "assetRoles": ["llm", "tokenizer"],
+                        "artifactRoles": ["llm", "tokenizer"],
                         "preferredEngine": "llama",
                         "fallbackEngines": []
                     },
                     {
-                        "assetRecordType": "passive",
                         "localAssetId": "asset-a",
                         "assetId": "local:test/asset-a",
                         "kind": "vae",
@@ -620,12 +631,11 @@ mod tests {
 
         let loaded = load_state_from_path(&state_path).expect("load state");
 
-        assert_eq!(loaded.models.len(), 1);
-        assert_eq!(loaded.models[0].local_model_id, "model-a");
-        assert_eq!(loaded.models[0].artifact_roles, vec!["llm", "tokenizer"]);
-        assert_eq!(loaded.artifacts.len(), 1);
-        assert_eq!(loaded.artifacts[0].local_asset_id, "asset-a");
-        assert_eq!(loaded.artifacts[0].kind, LocalAiAssetKind::Vae);
+        assert_eq!(loaded.assets.len(), 2);
+        assert_eq!(loaded.assets[0].local_asset_id, "model-a");
+        assert_eq!(loaded.assets[0].artifact_roles, vec!["llm", "tokenizer"]);
+        assert_eq!(loaded.assets[1].local_asset_id, "asset-a");
+        assert_eq!(loaded.assets[1].kind, LocalAiAssetKind::Vae);
 
         let _ = fs::remove_dir_all(&temp);
     }
@@ -634,8 +644,7 @@ mod tests {
     fn merge_state_for_save_preserves_downloads_missing_from_incoming_state() {
         let current = LocalAiRuntimeState {
             version: 11,
-            models: vec![],
-            artifacts: Vec::new(),
+            assets: vec![],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -650,8 +659,7 @@ mod tests {
         };
         let incoming = LocalAiRuntimeState {
             version: 11,
-            models: vec![model_fixture("model-a")],
-            artifacts: Vec::new(),
+            assets: vec![model_fixture("model-a")],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -661,7 +669,7 @@ mod tests {
 
         let merged = super::merge_state_for_save(&current, &incoming);
 
-        assert_eq!(merged.models.len(), 1);
+        assert_eq!(merged.assets.len(), 1);
         assert_eq!(merged.downloads.len(), 1);
         assert_eq!(merged.downloads[0].install_session_id, "install-1");
         assert_eq!(merged.downloads[0].phase, "verify");
@@ -671,8 +679,7 @@ mod tests {
     fn merge_state_for_save_prefers_newer_download_record() {
         let current = LocalAiRuntimeState {
             version: 11,
-            models: vec![],
-            artifacts: Vec::new(),
+            assets: vec![],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -687,8 +694,7 @@ mod tests {
         };
         let incoming = LocalAiRuntimeState {
             version: 11,
-            models: vec![],
-            artifacts: Vec::new(),
+            assets: vec![],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -713,8 +719,7 @@ mod tests {
     fn merge_state_for_save_breaks_same_timestamp_ties_with_progress() {
         let current = LocalAiRuntimeState {
             version: 11,
-            models: vec![],
-            artifacts: Vec::new(),
+            assets: vec![],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),
@@ -729,8 +734,7 @@ mod tests {
         };
         let incoming = LocalAiRuntimeState {
             version: 11,
-            models: vec![],
-            artifacts: Vec::new(),
+            assets: vec![],
             capability_index: HashMap::new(),
             capability_matrix: Vec::new(),
             services: Vec::new(),

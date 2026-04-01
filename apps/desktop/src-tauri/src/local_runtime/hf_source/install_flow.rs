@@ -99,7 +99,7 @@ pub fn install_from_hf(
     app: &AppHandle,
     request: &LocalAiInstallRequest,
     on_progress: &mut impl FnMut(HfDownloadProgress),
-) -> Result<super::types::LocalAiModelRecord, String> {
+) -> Result<super::types::LocalAiAssetRecord, String> {
     let mut wrapped_progress = |progress: HfDownloadProgress| -> HfDownloadControl {
         on_progress(progress);
         HfDownloadControl::Continue
@@ -111,7 +111,7 @@ pub fn install_from_hf_with_control(
     app: &AppHandle,
     request: &LocalAiInstallRequest,
     on_progress: &mut impl FnMut(HfDownloadProgress) -> HfDownloadControl,
-) -> Result<super::types::LocalAiModelRecord, String> {
+) -> Result<super::types::LocalAiAssetRecord, String> {
     if request.model_id.trim().is_empty() {
         return Err("LOCAL_AI_INSTALL_MODEL_ID_EMPTY: 安装失败: modelId 不能为空".to_string());
     }
@@ -359,7 +359,7 @@ pub fn install_from_hf_with_control(
             return Err(error);
         }
     };
-    let manifest_path: PathBuf = staging_dir.join("manifest.json");
+    let manifest_path: PathBuf = staging_dir.join("asset.manifest.json");
     let manifest_json = serde_json::to_string_pretty(&manifest)
         .map_err(|error| format!("序列化 HF manifest 失败: {error}"))?;
     fs::write(&manifest_path, manifest_json).map_err(|error| {
@@ -374,7 +374,7 @@ pub fn install_from_hf_with_control(
         )
     })?;
 
-    let validated = match parse_and_validate_manifest(&manifest_path) {
+    let validated = match parse_and_validate_asset_manifest(&manifest_path) {
         Ok(value) => value,
         Err(error) => {
             rollback_staging(
@@ -431,7 +431,7 @@ pub fn install_from_hf_with_control(
         return Err(error);
     }
 
-    manifest_to_model_record(
+    manifest_to_asset_record(
         &validated,
         Some(validated_endpoint.as_str()),
         Some(model_dir.as_path()),

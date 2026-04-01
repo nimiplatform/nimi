@@ -51,7 +51,6 @@ export {
   parseDownloadSessionSummary,
   parseGgufVariantDescriptor,
   parseAssetHealth,
-  parseOrphanAssetFile,
   parseUnregisteredAssetDescriptor,
   parseRecommendationFeedDescriptor,
   parseRecommendationFeedItemDescriptor,
@@ -66,12 +65,9 @@ export function normalizeAssetStatus(value: unknown): LocalRuntimeAssetStatus {
   }
   const raw = asString(value);
   if (raw === 'active' || raw === 'unhealthy' || raw === 'removed') return raw;
-  if (raw === 'LOCAL_MODEL_STATUS_ACTIVE' || raw === 'LOCAL_ASSET_STATUS_ACTIVE' || raw === '2') return 'active';
-  if (raw === 'LOCAL_MODEL_STATUS_UNHEALTHY' || raw === 'LOCAL_ASSET_STATUS_UNHEALTHY' || raw === '3') return 'unhealthy';
-  if (raw === 'LOCAL_MODEL_STATUS_REMOVED' || raw === 'LOCAL_ASSET_STATUS_REMOVED' || raw === '4') return 'removed';
-  if (raw === 'LOCAL_ARTIFACT_STATUS_ACTIVE') return 'active';
-  if (raw === 'LOCAL_ARTIFACT_STATUS_UNHEALTHY') return 'unhealthy';
-  if (raw === 'LOCAL_ARTIFACT_STATUS_REMOVED') return 'removed';
+  if (raw === 'LOCAL_ASSET_STATUS_ACTIVE' || raw === '2') return 'active';
+  if (raw === 'LOCAL_ASSET_STATUS_UNHEALTHY' || raw === '3') return 'unhealthy';
+  if (raw === 'LOCAL_ASSET_STATUS_REMOVED' || raw === '4') return 'removed';
   return 'installed';
 }
 

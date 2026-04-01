@@ -7,6 +7,7 @@ import {
   parseExecutionPlan,
   parseProfileResolutionPlan,
   parseUnregisteredAssetDescriptor,
+  normalizeAssetStatus,
 } from '../src/runtime/local-runtime/parsers.js';
 
 test('parseExecutionPlan normalizes device profile and selections', () => {
@@ -208,4 +209,10 @@ test('parseUnregisteredAssetDescriptor only accepts assetKind-based declarations
   });
 
   assert.equal(legacyOnly.declaration, undefined);
+});
+
+test('normalizeAssetStatus fail-closes legacy model and artifact enums', () => {
+  assert.equal(normalizeAssetStatus('LOCAL_MODEL_STATUS_ACTIVE'), 'installed');
+  assert.equal(normalizeAssetStatus('LOCAL_ARTIFACT_STATUS_ACTIVE'), 'installed');
+  assert.equal(normalizeAssetStatus('LOCAL_ASSET_STATUS_ACTIVE'), 'active');
 });

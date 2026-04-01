@@ -5,11 +5,9 @@ import type {
   LocalRuntimeAssetRecord,
   LocalRuntimeCatalogItemDescriptor,
   LocalRuntimeVerifiedAssetDescriptor,
-  OrphanAssetFile,
 } from '@runtime/local-runtime';
 import { i18n } from '@renderer/i18n';
 import { ScrollArea } from '@nimiplatform/nimi-kit/ui';
-import type { LocalModelOptionV11 } from '@renderer/features/runtime-config/runtime-config-state-types';
 import { RuntimeSelect } from './runtime-config-primitives';
 import {
   CAPABILITY_OPTIONS,
@@ -39,32 +37,23 @@ import {
   StarIcon,
   TrashIcon,
 } from './runtime-config-local-model-center-helpers';
-import { ArtifactRequirementBadges } from './runtime-config-local-model-center-sections';
+import { AssetRequirementBadges } from './runtime-config-local-model-center-sections';
 
 type CatalogCardProps = {
   searchQuery: string;
   catalogCapability: 'all' | CapabilityOption;
-  filteredInstalledModels: LocalModelOptionV11[];
-  filteredInstalledArtifacts: LocalRuntimeAssetRecord[];
+  filteredInstalledRunnableAssets: LocalRuntimeAssetRecord[];
+  filteredInstalledDependencyAssets: LocalRuntimeAssetRecord[];
   loadingCatalog: boolean;
-  loadingInstalledArtifacts: boolean;
-  loadingVerifiedArtifacts: boolean;
-  artifactKindFilter: 'all' | LocalRuntimeAssetKind;
-  artifactBusy: boolean;
-  orphanFiles: OrphanAssetFile[];
-  orphanError: string;
-  orphanCapabilities: Record<string, CapabilityOption>;
-  orphanImportSessionByPath: Record<string, string>;
-  scaffoldingOrphan: string | null;
-  artifactOrphanFiles: OrphanAssetFile[];
-  artifactOrphanError: string;
-  artifactOrphanKinds: Record<string, LocalRuntimeAssetKind>;
-  scaffoldingArtifactOrphan: string | null;
+  loadingInstalledAssets: boolean;
+  loadingVerifiedAssets: boolean;
+  assetKindFilter: 'all' | LocalRuntimeAssetKind;
+  assetBusy: boolean;
   hasSearchQuery: boolean;
   verifiedModels: LocalRuntimeVerifiedAssetDescriptor[];
   catalogItems: LocalRuntimeCatalogItemDescriptor[];
   catalogDisplayCount: number;
-  relatedArtifactsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
+  relatedAssetsByModelTemplate: Map<string, LocalRuntimeVerifiedAssetDescriptor[]>;
   installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
   variantPickerItem: LocalRuntimeCatalogItemDescriptor | null;
   variantList: GgufVariantDescriptor[];
@@ -72,20 +61,15 @@ type CatalogCardProps = {
   loadingVariants: boolean;
   selectedCatalogCapability: (item: LocalRuntimeCatalogItemDescriptor) => CapabilityOption;
   selectedCatalogEngine: (item: LocalRuntimeCatalogItemDescriptor) => InstallEngineOption;
-  isArtifactPending: (templateId: string) => boolean;
+  isAssetPending: (templateId: string) => boolean;
   onSearchQueryChange: (value: string) => void;
   onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
-  onRemoveModel: (localModelId: string) => void;
   onArtifactKindFilterChange: (value: 'all' | LocalRuntimeAssetKind) => void;
-  onRefreshArtifacts: () => void;
-  onRemoveArtifact: (localArtifactId: string) => void;
-  onOrphanCapabilityChange: (path: string, capability: CapabilityOption) => void;
-  onScaffoldOrphan: (path: string) => void;
-  onArtifactOrphanKindChange: (path: string, kind: LocalRuntimeAssetKind) => void;
-  onScaffoldArtifactOrphan: (path: string) => void;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onRefreshAssets: () => void;
+  onRemoveAsset: (localAssetId: string) => void;
+  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
   onInstallVerifiedModel: (templateId: string) => void;
-  onInstallArtifact: (templateId: string) => void;
+  onInstallAsset: (templateId: string) => void;
   onToggleVariantPicker: (item: LocalRuntimeCatalogItemDescriptor) => void;
   onCloseVariantPicker: () => void;
   onCatalogCapabilityOverrideChange: (itemId: string, capability: CapabilityOption) => void;
@@ -97,13 +81,13 @@ type CatalogCardProps = {
 
 function VerifiedModelSearchRow(props: {
   item: LocalRuntimeVerifiedAssetDescriptor;
-  relatedArtifacts: LocalRuntimeVerifiedAssetDescriptor[];
+  relatedAssets: LocalRuntimeVerifiedAssetDescriptor[];
   installedAssetsById: Map<string, LocalRuntimeAssetRecord>;
-  artifactBusy: boolean;
+  assetBusy: boolean;
   installing: boolean;
-  isArtifactPending: (templateId: string) => boolean;
-  onInstallMissingArtifacts: (artifacts: LocalRuntimeVerifiedAssetDescriptor[]) => void;
-  onInstallArtifact: (templateId: string) => void;
+  isAssetPending: (templateId: string) => boolean;
+  onInstallMissingAssets: (assets: LocalRuntimeVerifiedAssetDescriptor[]) => void;
+  onInstallAsset: (templateId: string) => void;
   onInstallVerifiedModel: (templateId: string) => void;
 }) {
   return (
@@ -125,14 +109,14 @@ function VerifiedModelSearchRow(props: {
         </div>
         <p className="truncate text-xs text-[var(--nimi-text-muted)]">{props.item.assetId}</p>
         {props.item.description ? <p className="mt-0.5 line-clamp-1 text-xs text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{props.item.description}</p> : null}
-        <ArtifactRequirementBadges
+        <AssetRequirementBadges
           modelTemplateId={props.item.templateId}
-          relatedArtifacts={props.relatedArtifacts}
-          installedArtifactsById={props.installedAssetsById}
-          artifactBusy={props.artifactBusy}
-          isArtifactPending={props.isArtifactPending}
-          onInstallMissingArtifacts={props.onInstallMissingArtifacts}
-          onInstallArtifact={props.onInstallArtifact}
+          relatedAssets={props.relatedAssets}
+          installedAssetsById={props.installedAssetsById}
+          assetBusy={props.assetBusy}
+          isAssetPending={props.isAssetPending}
+          onInstallMissingAssets={props.onInstallMissingAssets}
+          onInstallAsset={props.onInstallAsset}
         />
       </div>
       <button
@@ -279,8 +263,7 @@ function CatalogVariantPicker(props: {
 }
 
 export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
-  const [confirmRemoveModelId, setConfirmRemoveModelId] = useState('');
-  const [confirmRemoveArtifactId, setConfirmRemoveArtifactId] = useState('');
+  const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
 
   return (
     <div className="overflow-visible rounded-2xl bg-white shadow-[0_6px_18px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.04]">
@@ -331,88 +314,91 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
           <PackageIcon className="h-4 w-4 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
             {i18n.t('runtimeConfig.localModelCenter.installedCount', {
-              count: props.filteredInstalledModels.length,
+              count: props.filteredInstalledRunnableAssets.length,
               defaultValue: 'Installed ({{count}})',
             })}
           </span>
         </div>
-        {props.filteredInstalledModels.length > 0 ? (
+        {props.filteredInstalledRunnableAssets.length > 0 ? (
           <div className="divide-y divide-gray-200/80">
-            {props.filteredInstalledModels.map((model) => {
-              return (
-              <div key={model.localModelId} className="px-4 py-3 transition-colors hover:bg-white">
+            {props.filteredInstalledRunnableAssets.map((asset) => (
+              <div key={asset.localAssetId} className="px-4 py-3 transition-colors hover:bg-white">
                 <div className="flex items-center gap-3">
-                <ModelIcon engine={model.engine} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{model.model}</span>
-                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{model.engine}</span>
-                    {model.recommendation ? (
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(model.recommendation.tier)}`}>
-                        {recommendationTierLabel(model.recommendation.tier)}
+                  <ModelIcon engine={asset.engine} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{asset.assetId}</span>
+                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{asset.engine}</span>
+                      <span className="rounded bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-action-primary-bg)]">
+                        {formatAssetKindLabel(asset.kind)}
                       </span>
+                      {asset.recommendation ? (
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(asset.recommendation.tier)}`}>
+                          {recommendationTierLabel(asset.recommendation.tier)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="truncate text-xs text-[var(--nimi-text-muted)]">{asset.localAssetId}</p>
+                    {asset.recommendation ? (
+                      <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
+                        {recommendationSummary(asset.recommendation)}
+                      </p>
                     ) : null}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {(asset.capabilities || []).slice(0, 3).map((capability) => (
+                        <span key={capability} className="rounded border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-action-primary-bg)]">{capability}</span>
+                      ))}
+                    </div>
                   </div>
-                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{model.localModelId}</p>
-                  {model.recommendation ? (
-                    <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
-                      {recommendationSummary(model.recommendation)}
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded px-2 py-0.5 text-[10px] ${
+                      asset.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : asset.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
+                    }`}>
+                      {asset.status === 'installed'
+                        ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
+                        : asset.status}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmRemoveAssetId(asset.localAssetId)}
+                      disabled={props.assetBusy || confirmRemoveAssetId === asset.localAssetId}
+                      className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
+                      title={i18n.t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                {confirmRemoveAssetId === asset.localAssetId ? (
+                  <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
+                    <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
+                      {i18n.t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
+                        defaultValue: 'Remove "{{name}}"? Asset files will be permanently deleted.',
+                        name: asset.assetId,
+                      })}
                     </p>
-                  ) : null}
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {model.capabilities.slice(0, 3).map((capability) => (
-                      <span key={capability} className="rounded border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-action-primary-bg)]">{capability}</span>
-                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmRemoveAssetId('');
+                        props.onRemoveAsset(asset.localAssetId);
+                      }}
+                      disabled={props.assetBusy}
+                      className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
+                    >
+                      {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmRemoveAssetId('')}
+                      className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
+                    >
+                      {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
+                    </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`rounded px-2 py-0.5 text-[10px] ${
-                    model.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : model.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
-                  }`}>
-                    {model.status === 'installed'
-                      ? i18n.t('runtimeConfig.localModelCenter.installed', { defaultValue: 'Installed' })
-                      : model.status}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmRemoveModelId(model.localModelId)}
-                    disabled={confirmRemoveModelId === model.localModelId}
-                    className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
-                    title={i18n.t('runtimeConfig.localModelCenter.remove', { defaultValue: 'Remove' })}
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
+                ) : null}
               </div>
-              {confirmRemoveModelId === model.localModelId ? (
-                <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
-                  <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
-                    {i18n.t('runtimeConfig.localModelCenter.confirmRemoveModel', {
-                      defaultValue: 'Remove "{{name}}"? Local model files will be permanently deleted.',
-                      name: model.model,
-                    })}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConfirmRemoveModelId('');
-                      props.onRemoveModel(model.localModelId);
-                    }}
-                    className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)]"
-                  >
-                    {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirmRemoveModelId('')}
-                    className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
-                  >
-                    {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
-                  </button>
-                </div>
-              ) : null}
-              </div>
-            );})}
+            ))}
           </div>
         ) : (
           <div className="px-4 py-8 text-center">
@@ -431,15 +417,15 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
           <div className="flex items-center gap-2">
             <FolderOpenIcon className="h-4 w-4 text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]" />
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.companionAssetsCount', {
-                count: props.filteredInstalledArtifacts.length,
+              {i18n.t('runtimeConfig.localModelCenter.dependencyAssetsCount', {
+                count: props.filteredInstalledDependencyAssets.length,
                 defaultValue: 'Dependency Assets ({{count}})',
               })}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <RuntimeSelect
-              value={props.artifactKindFilter}
+              value={props.assetKindFilter}
               onChange={(next) => props.onArtifactKindFilterChange((next || 'all') as 'all' | LocalRuntimeAssetKind)}
               className="w-36"
               options={[
@@ -452,8 +438,8 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             />
             <button
               type="button"
-              onClick={props.onRefreshArtifacts}
-              disabled={props.loadingInstalledArtifacts || props.loadingVerifiedArtifacts || props.artifactBusy}
+              onClick={props.onRefreshAssets}
+              disabled={props.loadingInstalledAssets || props.loadingVerifiedAssets || props.assetBusy}
               className="flex items-center gap-1.5 rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50"
             >
               <RefreshIcon className="h-3 w-3" />
@@ -461,68 +447,68 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
             </button>
           </div>
         </div>
-        {props.loadingInstalledArtifacts ? (
+        {props.loadingInstalledAssets ? (
           <div className="px-4 py-6 text-center">
             <p className="text-sm text-[var(--nimi-text-muted)]">
               {i18n.t('runtimeConfig.localModelCenter.loadingCompanionAssets', { defaultValue: 'Loading dependency assets...' })}
             </p>
           </div>
-        ) : props.filteredInstalledArtifacts.length > 0 ? (
+        ) : props.filteredInstalledDependencyAssets.length > 0 ? (
           <div className="divide-y divide-gray-200/80">
-            {props.filteredInstalledArtifacts.map((artifact) => (
-              <div key={artifact.localAssetId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
+            {props.filteredInstalledDependencyAssets.map((asset) => (
+              <div key={asset.localAssetId} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-white">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
-                  {formatAssetKindLabel(artifact.kind).slice(0, 3).toUpperCase()}
+                  {formatAssetKindLabel(asset.kind).slice(0, 3).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{artifact.assetId}</span>
+                    <span className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{asset.assetId}</span>
                     <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-secondary)]">
-                      {formatAssetKindLabel(artifact.kind)}
+                      {formatAssetKindLabel(asset.kind)}
                     </span>
-                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{artifact.engine}</span>
+                    <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">{asset.engine}</span>
                   </div>
-                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{artifact.localAssetId}</p>
-                  <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{artifact.entry}</p>
+                  <p className="truncate text-xs text-[var(--nimi-text-muted)]">{asset.localAssetId}</p>
+                  <p className="truncate text-[11px] text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]">{asset.entry}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded px-2 py-0.5 text-[10px] ${
-                    artifact.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : artifact.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
+                    asset.status === 'active' ? 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]' : asset.status === 'unhealthy' ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : 'bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-muted)]'
                   }`}>
-                    {artifact.status}
+                    {asset.status}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setConfirmRemoveArtifactId(artifact.localAssetId)}
-                    disabled={props.artifactBusy || confirmRemoveArtifactId === artifact.localAssetId}
+                    onClick={() => setConfirmRemoveAssetId(asset.localAssetId)}
+                    disabled={props.assetBusy || confirmRemoveAssetId === asset.localAssetId}
                     className="rounded-lg p-1.5 text-[var(--nimi-status-danger)] transition-colors hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
                     title={i18n.t('runtimeConfig.localModelCenter.removeAsset', { defaultValue: 'Remove asset' })}
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
                 </div>
-                {confirmRemoveArtifactId === artifact.localAssetId ? (
+                {confirmRemoveAssetId === asset.localAssetId ? (
                   <div className="mt-2 flex items-center gap-3 rounded-xl border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2.5">
                     <p className="flex-1 text-xs text-[var(--nimi-status-danger)]">
-                      {i18n.t('runtimeConfig.localModelCenter.confirmRemoveArtifact', {
+                      {i18n.t('runtimeConfig.localModelCenter.confirmRemoveAsset', {
                         defaultValue: 'Remove "{{name}}"? Asset files will be permanently deleted.',
-                        name: artifact.assetId,
+                        name: asset.assetId,
                       })}
                     </p>
                     <button
                       type="button"
                       onClick={() => {
-                        setConfirmRemoveArtifactId('');
-                        props.onRemoveArtifact(artifact.localAssetId);
+                        setConfirmRemoveAssetId('');
+                        props.onRemoveAsset(asset.localAssetId);
                       }}
-                      disabled={props.artifactBusy}
+                      disabled={props.assetBusy}
                       className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] disabled:opacity-50"
                     >
                       {i18n.t('runtimeConfig.localModelCenter.confirm', { defaultValue: 'Confirm' })}
                     </button>
                     <button
                       type="button"
-                      onClick={() => setConfirmRemoveArtifactId('')}
+                      onClick={() => setConfirmRemoveAssetId('')}
                       className="rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]"
                     >
                       {i18n.t('World.createAgent.cancel', { defaultValue: 'Cancel' })}
@@ -538,168 +524,16 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               <FolderOpenIcon className="h-6 w-6" />
             </div>
             <h3 className="mb-1 text-sm font-medium text-[var(--nimi-text-primary)]">
-              {i18n.t('runtimeConfig.localModelCenter.noCompanionAssets', { defaultValue: 'No Dependency Assets' })}
+              {i18n.t('runtimeConfig.localModelCenter.noDependencyAssets', { defaultValue: 'No Dependency Assets' })}
             </h3>
             <p className="text-xs text-[var(--nimi-text-muted)]">
-              {i18n.t('runtimeConfig.localModelCenter.noCompanionAssetsDescription', {
+              {i18n.t('runtimeConfig.localModelCenter.noDependencyAssetsDescription', {
                 defaultValue: 'Import `asset.manifest.json` files or install verified dependency assets below.',
               })}
             </p>
           </div>
         )}
       </div>
-
-      {props.artifactOrphanFiles.length > 0 ? (
-        <div className="border-t border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))]/60">
-          <div className="flex items-center gap-2 border-b border-[var(--nimi-border-subtle)] px-4 py-2">
-            <svg className="h-4 w-4 text-[var(--nimi-text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-              <path d="m3.3 7 8.7 5 8.7-5" />
-              <path d="M12 22V12" />
-            </svg>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-text-secondary)]">
-              {i18n.t('runtimeConfig.localModelCenter.unregisteredCompanionAssets', {
-                count: props.artifactOrphanFiles.length,
-                defaultValue: 'Unregistered Dependency Assets ({{count}})',
-              })}
-            </span>
-          </div>
-          <div className="border-b border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))]/70 px-4 py-2 text-[11px] text-[var(--nimi-text-secondary)]">
-            {i18n.t('runtimeConfig.localModelCenter.unclassifiedFilesDescription', {
-              defaultValue: 'Unclassified files can appear in both runnable and dependency asset lanes until you import them.',
-            })}
-          </div>
-          {props.artifactOrphanError ? (
-            <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2 text-xs text-[var(--nimi-status-danger)]">
-              {props.artifactOrphanError}
-            </div>
-          ) : null}
-          <div className="divide-y divide-[color-mix(in_srgb,var(--nimi-border-subtle)_70%,transparent)]">
-            {props.artifactOrphanFiles.map((orphan) => (
-              <div key={`artifact-${orphan.path}`} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] text-[var(--nimi-text-secondary)]">
-                  <FolderOpenIcon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{orphan.filename}</div>
-                  <div className="text-xs text-[var(--nimi-text-muted)]">{formatBytes(orphan.sizeBytes)}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <RuntimeSelect
-                    value={props.artifactOrphanKinds[orphan.path] || 'vae'}
-                    onChange={(value) => props.onArtifactOrphanKindChange(orphan.path, (value || 'vae') as LocalRuntimeAssetKind)}
-                    className="w-36"
-                    options={ASSET_KIND_OPTIONS.map((kind) => ({ value: kind, label: formatAssetKindLabel(kind) }))}
-                  />
-                  <button
-                    type="button"
-                    disabled={props.artifactBusy || props.scaffoldingArtifactOrphan === orphan.path}
-                    onClick={() => props.onScaffoldArtifactOrphan(orphan.path)}
-                    className="flex items-center gap-1 rounded-lg bg-[color:rgb(51_65_85)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[color:rgb(30_41_59)] disabled:opacity-50"
-                  >
-                    <DownloadIcon className="h-3 w-3" />
-                    {(props.artifactBusy || props.scaffoldingArtifactOrphan === orphan.path)
-                      ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
-                      : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      {props.orphanFiles.length > 0 ? (
-        <div className="border-t border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-warning)_12%,transparent)]/50">
-          <div className="flex items-center gap-2 border-b border-[color-mix(in_srgb,var(--nimi-status-warning)_28%,transparent)] px-4 py-2">
-            <svg className="h-4 w-4 text-[var(--nimi-status-warning)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-              <line x1="12" y1="9" x2="12" y2="13" />
-              <line x1="12" y1="17" x2="12.01" y2="17" />
-            </svg>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--nimi-status-warning)]">
-              {i18n.t('runtimeConfig.localModelCenter.unregisteredModelsFound', {
-                count: props.orphanFiles.length,
-                defaultValue: 'Unregistered Models Found ({{count}})',
-              })}
-            </span>
-          </div>
-          {props.orphanError ? (
-            <div className="border-b border-[color-mix(in_srgb,var(--nimi-status-danger)_24%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] px-4 py-2 text-xs text-[var(--nimi-status-danger)]">
-              {props.orphanError}
-            </div>
-          ) : null}
-          <div className="divide-y divide-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)]">
-            {props.orphanFiles.map((orphan) => (
-              <div key={orphan.path} className="flex items-center gap-3 px-4 py-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]">
-                  <FolderOpenIcon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{orphan.filename}</div>
-                    {orphan.recommendation ? (
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] ${recommendationTierClass(orphan.recommendation.tier)}`}>
-                        {recommendationTierLabel(orphan.recommendation.tier)}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="text-xs text-[var(--nimi-text-muted)]">{formatBytes(orphan.sizeBytes)}</div>
-                  {orphan.recommendation ? (
-                    <>
-                      <p className="mt-1 line-clamp-2 text-[11px] text-[var(--nimi-text-muted)]">
-                        {recommendationSummary(orphan.recommendation)}
-                      </p>
-                      <RecommendationDetailList
-                        recommendation={orphan.recommendation}
-                        className="mt-1 space-y-0.5"
-                        rowClassName="text-[10px] text-[var(--nimi-text-muted)]"
-                        labelClassName="font-medium text-[var(--nimi-text-secondary)]"
-                        maxFallbackEntries={2}
-                      />
-                      <RecommendationDiagnosticsPanel
-                        recommendation={orphan.recommendation}
-                        className="mt-1"
-                      />
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {orphan.recommendation.hostSupportClass ? (
-                          <span className="rounded border border-[color-mix(in_srgb,var(--nimi-status-info)_22%,transparent)] bg-[color-mix(in_srgb,var(--nimi-status-info)_12%,transparent)] px-1.5 py-0.5 text-[10px] text-[var(--nimi-status-info)]">
-                            {recommendationHostSupportLabel(orphan.recommendation.hostSupportClass)}
-                          </span>
-                        ) : null}
-                        {orphan.recommendation.confidence ? (
-                          <span className="rounded border border-[var(--nimi-border-subtle)] bg-white px-1.5 py-0.5 text-[10px] text-[var(--nimi-text-muted)]">
-                            {recommendationConfidenceLabel(orphan.recommendation.confidence)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <RuntimeSelect
-                    value={props.orphanCapabilities[orphan.path] || 'chat'}
-                    onChange={(value) => props.onOrphanCapabilityChange(orphan.path, (value || 'chat') as CapabilityOption)}
-                    className="w-32"
-                    options={CAPABILITY_OPTIONS.map((capability) => ({ value: capability, label: capability }))}
-                  />
-                  <button
-                    type="button"
-                    disabled={props.scaffoldingOrphan === orphan.path || Boolean(props.orphanImportSessionByPath[orphan.path])}
-                    onClick={() => props.onScaffoldOrphan(orphan.path)}
-                    className="flex items-center gap-1 rounded-lg bg-[var(--nimi-status-warning)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--nimi-status-warning)] disabled:opacity-50"
-                  >
-                    <DownloadIcon className="h-3 w-3" />
-                    {(props.scaffoldingOrphan === orphan.path || props.orphanImportSessionByPath[orphan.path])
-                      ? i18n.t('runtimeConfig.localModelCenter.importing', { defaultValue: 'Importing...' })
-                      : i18n.t('runtimeConfig.localModelCenter.import', { defaultValue: 'Import' })}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       {props.hasSearchQuery ? (
         <div className="border-t border-[var(--nimi-border-subtle)] bg-white/60">
@@ -713,13 +547,13 @@ export function LocalModelCenterCatalogCard(props: CatalogCardProps) {
               <VerifiedModelSearchRow
                 key={item.templateId}
                 item={item}
-                relatedArtifacts={props.relatedArtifactsByModelTemplate.get(item.templateId) || []}
+                relatedAssets={props.relatedAssetsByModelTemplate.get(item.templateId) || []}
                 installedAssetsById={props.installedAssetsById}
-                artifactBusy={props.artifactBusy}
+                assetBusy={props.assetBusy}
                 installing={props.installing}
-                isArtifactPending={props.isArtifactPending}
-                onInstallMissingArtifacts={props.onInstallMissingArtifacts}
-                onInstallArtifact={props.onInstallArtifact}
+                isAssetPending={props.isAssetPending}
+                onInstallMissingAssets={props.onInstallMissingAssets}
+                onInstallAsset={props.onInstallAsset}
                 onInstallVerifiedModel={props.onInstallVerifiedModel}
               />
             ))}

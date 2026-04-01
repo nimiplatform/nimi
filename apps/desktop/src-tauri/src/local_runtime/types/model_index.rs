@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use super::catalog::LocalAiInstallRequest;
 use super::dependencies::LocalAiDeviceProfile;
-use super::models::LocalAiModelStatus;
 use super::recommendation::{LocalAiRecommendationDescriptor, LocalAiRecommendationFormat};
+use super::LocalAiAssetStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
@@ -44,7 +44,7 @@ pub struct LocalAiRecommendationFeedEntryDescriptor {
 pub struct LocalAiRecommendationInstalledState {
     pub installed: bool,
     pub local_model_id: Option<String>,
-    pub status: Option<LocalAiModelStatus>,
+    pub status: Option<LocalAiAssetStatus>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

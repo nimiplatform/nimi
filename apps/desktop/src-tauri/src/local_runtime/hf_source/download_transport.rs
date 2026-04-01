@@ -265,7 +265,7 @@ fn build_manifest_from_install_request(
     entry_file: &str,
     files: &[String],
     computed_hashes: &HashMap<String, String>,
-) -> Result<ImportedModelManifest, String> {
+) -> Result<ImportedAssetManifest, String> {
     let capabilities_input = request
         .capabilities
         .clone()
@@ -287,16 +287,29 @@ fn build_manifest_from_install_request(
     let fallback_engines =
         default_fallback_engines_for_engine(normalized_engine.as_str(), &capabilities);
 
-    Ok(ImportedModelManifest {
+    let kind = if capabilities.iter().any(|value| value == "image") {
+        "image"
+    } else if capabilities.iter().any(|value| value == "video") {
+        "video"
+    } else if capabilities.iter().any(|value| value == "tts") {
+        "tts"
+    } else if capabilities.iter().any(|value| value == "stt") {
+        "stt"
+    } else {
+        "chat"
+    };
+
+    Ok(ImportedAssetManifest {
         schema_version: "1.0.0".to_string(),
-        model_id: request.model_id.trim().to_string(),
+        asset_id: request.model_id.trim().to_string(),
+        kind: kind.to_string(),
         logical_model_id: default_logical_model_id(request.model_id.as_str()),
         capabilities,
         engine: normalized_engine.clone(),
         entry: entry_file.to_string(),
         files: files.to_vec(),
         license: normalize_non_empty(request.license.as_deref().unwrap_or("unknown"), "unknown"),
-        source: ImportedModelSource {
+        source: LocalAiAssetSource {
             repo: request.repo.trim().to_string(),
             revision: normalize_non_empty(request.revision.as_deref().unwrap_or("main"), "main"),
         },
@@ -306,6 +319,8 @@ fn build_manifest_from_install_request(
         preferred_engine: Some(preferred_engine),
         fallback_engines,
         engine_config: request.engine_config.clone(),
+        endpoint: request.endpoint.clone().unwrap_or_default(),
+        metadata: None,
     })
 }
 
